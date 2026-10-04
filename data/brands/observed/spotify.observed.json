@@ -5,7 +5,7 @@
   "start": "https://www.spotify.com",
   "landed": "https://open.spotify.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:52:42.965Z",
+  "read_at": "2026-10-04T17:10:13.093Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -82,35 +82,9 @@
       "signal": "the icon the page declares (link rel=icon)"
     }
   ],
-  "palette_ok": true,
-  "palette": {
-    "primary": "#000000",
-    "accent": "#000000",
-    "ink": "#333333",
-    "surface": "#ffffff",
-    "surface_alt": "#ffffff",
-    "muted": "#333333",
-    "line": "#e4e4e4",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
-  },
+  "palette_ok": false,
+  "palette": null,
   "palette_evidence": {
-    "primary": {
-      "value": "#000000",
-      "exact": "#000000",
-      "derived": false,
-      "from_role": "identity",
-      "signal": "header background as rendered; the site renders no chromatic brand colour and no filled call to action",
-      "source": {
-        "page": "https://open.spotify.com/",
-        "role": "header",
-        "selector": "div#global-nav-bar",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#121212",
@@ -125,122 +99,18 @@
         "signal": "computed"
       }
     },
-    "ink": {
-      "value": "#333333",
-      "exact": "#ffffff",
-      "derived": true,
-      "note": "DERIVED from #ffffff: the body copy as rendered measures 1:1 on #ffffff, so it is darkened until it reads (12.63:1).",
-      "source": {
-        "page": "https://open.spotify.com/",
-        "role": "body copy",
-        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "surface_alt": {
-      "value": "#ffffff",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
-      }
-    },
-    "muted": {
-      "value": "#333333",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
-      "source": {
-        "page": "https://open.spotify.com/",
-        "role": "body copy",
-        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "accent": {
-      "value": "#000000",
-      "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
-      }
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "warn": {
-      "value": "#c9a227",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "err": {
-      "value": "#c0392b",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#000000",
+          "from": "the header background",
+          "why": "1.12:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
     }
   },
-  "palette_warnings": [
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)",
   "typography": {
     "heading": {
       "family": "SpotifyMixUI",
@@ -281,5 +151,11 @@
       }
     }
   },
-  "source": "Rendered https://open.spotify.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #000000 from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#global-nav-bar). Headings SpotifyMixUI, body SpotifyMixUI, as rendered."
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "open.spotify.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

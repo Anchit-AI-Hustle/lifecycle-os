@@ -5,7 +5,7 @@
   "start": "https://www.amazon.com",
   "landed": "https://www.amazon.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:50:49.122Z",
+  "read_at": "2026-10-04T17:08:31.055Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -77,7 +77,25 @@
   "assets": [],
   "palette_ok": false,
   "palette": null,
-  "palette_evidence": {},
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.amazon.com/",
+        "role": "page ground",
+        "selector": "body",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": []
+    }
+  },
   "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
   "typography": {
     "heading": {

@@ -5,7 +5,7 @@
   "start": "https://www.samsung.com",
   "landed": "https://www.samsung.com/us/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:52:04.009Z",
+  "read_at": "2026-10-04T17:09:45.208Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -105,56 +105,30 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/f2607/home/home/HOME_Explore-Card_One-UI_PC_312x312.png?$312_312_PNG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/footer/Footer_GetShopApp_082025.png?$ORIGIN_PNG$",
       "role": "photograph",
-      "alt": "One UI",
+      "alt": "Get Shop Samusng App",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/HOME_Explore-Card_Switch-to-Galaxy_PC_312x312.jpg?$LazyLoad_Home_JPG$",
+      "url": "https://images.samsung.com/is/content/samsung/assets/us/footer/text-banner-2.svg",
       "role": "photograph",
-      "alt": "Switch to Galaxy",
+      "alt": "Never miss a thing. Sign up for texts to be notified about our best offers",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/f2607/home/home/HOME_Explore-Card_Smart-Switch_PC_312x312.png?$LazyLoad_Home_PNG$",
-      "role": "photograph",
-      "alt": "Smart Switch",
+      "url": "https://consent.trustarc.com/get?name=samsungblack_logo.png",
+      "role": "hero",
+      "alt": "Samsung",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
   ],
-  "palette_ok": true,
-  "palette": {
-    "primary": "#1429a0",
-    "accent": "#1429a0",
-    "ink": "#000000",
-    "surface": "#ffffff",
-    "surface_alt": "#ffffff",
-    "muted": "#000000",
-    "line": "#e4e4e4",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
-  },
+  "palette_ok": false,
+  "palette": null,
   "palette_evidence": {
-    "primary": {
-      "value": "#1429a0",
-      "exact": "#1429a0",
-      "derived": false,
-      "source": {
-        "page": "https://www.samsung.com/us/",
-        "role": "primary call to action",
-        "selector": "button#truste-consent-button",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      },
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -168,121 +142,18 @@
         "signal": "computed"
       }
     },
-    "ink": {
-      "value": "#000000",
-      "exact": "#000000",
-      "derived": false,
-      "source": {
-        "page": "https://www.samsung.com/us/",
-        "role": "body copy",
-        "selector": "div.text-editor__inner-wrap.padding-top--48 > div.text-editor__inner.desktop-padding-left-right--large > div.text-editor__column-wrap > div.text-editor__column.description-text-size--small > p:nth-of-type(1)",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "surface_alt": {
-      "value": "#ffffff",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
-      }
-    },
-    "muted": {
-      "value": "#000000",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
-      "source": {
-        "page": "https://www.samsung.com/us/",
-        "role": "body copy",
-        "selector": "div.text-editor__inner-wrap.padding-top--48 > div.text-editor__inner.desktop-padding-left-right--large > div.text-editor__column-wrap > div.text-editor__column.description-text-size--small > p:nth-of-type(1)",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "accent": {
-      "value": "#1429a0",
-      "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://www.samsung.com/us/",
-        "role": "primary call to action",
-        "selector": "button#truste-consent-button",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "warn": {
-      "value": "#c9a227",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "err": {
-      "value": "#c0392b",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#1429a0",
+          "from": "the reader's primary",
+          "why": "measured on a consent or cookie banner, which is that vendor's design, not the brand's"
+        }
+      ]
     }
   },
-  "palette_warnings": [
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)",
   "typography": {
     "heading": {
       "family": "SamsungOne",
@@ -323,5 +194,11 @@
       }
     }
   },
-  "source": "Rendered https://www.samsung.com/us/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #1429a0 from the primary call to action, as rendered: the only brand colour this site renders (button#truste-consent-button). Headings SamsungOne, body SamsungOne, as rendered."
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "www.samsung.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)"
+  },
+  "note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's). The preset stays on the neutral default."
 }

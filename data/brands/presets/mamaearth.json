@@ -15,21 +15,6 @@
     "typography_source": "verified",
     "logo_signal": "the logo element as rendered (a.hdt-inline-flex.hdt-align-center > div.hdt-brand-box.header-logo-text-enabled > div.hdt-brand-logo:nth-of-type(2) > picture.hdt-logo-default:nth-of-type(1) > img.hdt-logo-img)",
     "palette_evidence": {
-      "primary": {
-        "value": "#00aeef",
-        "exact": "#00aeef",
-        "derived": false,
-        "source": {
-          "page": "https://mamaearth.in/",
-          "role": "primary call to action",
-          "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
-        },
-        "from_role": "action",
-        "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-      },
       "surface": {
         "value": "#ffffff",
         "exact": "#ffffff",
@@ -38,6 +23,21 @@
           "page": "https://mamaearth.in/",
           "role": "page ground",
           "selector": "body.hdt-page-type-index.template-index",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "primary": {
+        "value": "#00aeef",
+        "exact": "#00aeef",
+        "derived": false,
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+        "source": {
+          "page": "https://mamaearth.in/",
+          "role": "primary call to action",
+          "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
@@ -170,15 +170,15 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 70.9,
-      "mismatch": 0.2906,
+      "score": 64.7,
+      "mismatch": 0.3533,
       "surfaces": {
         "landing page": {
-          "score": 70.7,
-          "mismatch": 0.2931,
+          "score": 64.9,
+          "mismatch": 0.3515,
           "done": false,
-          "tokens_off": 7,
-          "regions_off": 3
+          "tokens_off": 5,
+          "regions_off": 4
         },
         "mailer": {
           "score": 88.2,

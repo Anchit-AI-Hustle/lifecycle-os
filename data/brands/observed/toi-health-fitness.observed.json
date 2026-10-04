@@ -5,7 +5,7 @@
   "start": "https://timesofindia.indiatimes.com/life-style/health-fitness",
   "landed": "https://timesofindia.indiatimes.com/life-style/health-fitness",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:50:06.510Z",
+  "read_at": "2026-10-04T17:07:50.619Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -142,21 +142,6 @@
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#f44141",
-      "exact": "#f44141",
-      "derived": false,
-      "source": {
-        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
-        "role": "primary call to action",
-        "selector": "div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      },
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-    },
     "surface": {
       "value": "#f4f4f4",
       "exact": "#f4f4f4",
@@ -165,6 +150,21 @@
         "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
         "role": "page ground",
         "selector": "body#fullscreen",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "#f44141",
+      "exact": "#f44141",
+      "derived": false,
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "primary call to action",
+        "selector": "div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"

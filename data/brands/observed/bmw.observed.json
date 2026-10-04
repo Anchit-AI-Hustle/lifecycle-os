@@ -20,5 +20,5 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.bmw.com did not finish rendering within the read's time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }

@@ -15,21 +15,6 @@
     "typography_source": "verified",
     "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
-      "primary": {
-        "value": "#d40000",
-        "exact": "#d40000",
-        "derived": false,
-        "source": {
-          "page": "https://www.airtel.in/",
-          "role": "logo",
-          "selector": "div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i",
-          "viewport": "desktop",
-          "property": "fill",
-          "signal": "computed"
-        },
-        "from_role": "identity",
-        "signal": "logo mark fill as rendered"
-      },
       "surface": {
         "value": "#ffffff",
         "exact": "#ffffff",
@@ -40,6 +25,21 @@
           "selector": "canvas (no background declared)",
           "viewport": "desktop",
           "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "primary": {
+        "value": "#d40000",
+        "exact": "#d40000",
+        "derived": false,
+        "from_role": "identity",
+        "signal": "logo mark fill as rendered",
+        "source": {
+          "page": "https://www.airtel.in/",
+          "role": "logo",
+          "selector": "div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i",
+          "viewport": "desktop",
+          "property": "fill",
           "signal": "computed"
         }
       },
@@ -84,18 +84,18 @@
         }
       },
       "accent": {
-        "value": "#e3e5ff",
+        "value": "#d40000",
         "exact": "#e3e5ff",
-        "derived": false,
+        "derived": true,
+        "note": "The second colour the reader found (#e3e5ff) is a tint of the page (1.24:1), so the accent repeats the primary.",
         "source": {
           "page": "https://www.airtel.in/",
-          "role": "primary call to action",
-          "selector": "button#primaryCta-2",
+          "role": "logo",
+          "selector": "div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i",
           "viewport": "desktop",
-          "property": "background-color",
+          "property": "fill",
           "signal": "computed"
-        },
-        "from_role": "action"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -230,7 +230,7 @@
   },
   "palette": {
     "primary": "#d40000",
-    "accent": "#e3e5ff",
+    "accent": "#d40000",
     "ink": "#000000",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",

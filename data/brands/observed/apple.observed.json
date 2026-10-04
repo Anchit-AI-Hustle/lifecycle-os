@@ -5,7 +5,7 @@
   "start": "https://www.apple.com",
   "landed": "https://www.apple.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:50:19.688Z",
+  "read_at": "2026-10-04T17:07:58.747Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -144,21 +144,6 @@
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#0071e3",
-      "exact": "#0071e3",
-      "derived": false,
-      "source": {
-        "page": "https://www.apple.com/",
-        "role": "primary call to action",
-        "selector": "section.section.section-hero:nth-of-type(1) > div.tile-wrapper.theme-dark:nth-of-type(1) > div.tile-content:nth-of-type(1) > div.tile-ctas:nth-of-type(2) > a.button:nth-of-type(1)",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      },
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -167,6 +152,21 @@
         "page": "https://www.apple.com/",
         "role": "page ground",
         "selector": "body.ac-nav-overlap.globalnav-scrim",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "#0071e3",
+      "exact": "#0071e3",
+      "derived": false,
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "primary call to action",
+        "selector": "section.section.section-hero:nth-of-type(1) > div.tile-wrapper.theme-dark:nth-of-type(1) > div.tile-content:nth-of-type(1) > div.tile-ctas:nth-of-type(2) > a.button:nth-of-type(1)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
@@ -192,7 +192,7 @@
       "source": {
         "page": "https://www.apple.com/",
         "role": "product card",
-        "selector": "div#_r_o_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
+        "selector": "div#_r_q_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"

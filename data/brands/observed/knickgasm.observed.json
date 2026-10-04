@@ -5,7 +5,7 @@
   "start": "https://knickgasm.com",
   "landed": "https://knickgasm.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:49:57.752Z",
+  "read_at": "2026-10-04T17:07:37.814Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -137,21 +137,6 @@
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#111111",
-      "exact": "#111111",
-      "derived": false,
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome",
-      "source": {
-        "page": "https://knickgasm.com/en-us",
-        "role": "primary call to action",
-        "selector": "div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -160,6 +145,21 @@
         "page": "https://knickgasm.com/en-us",
         "role": "page ground",
         "selector": "body.gradient.rounded-style",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "#111111",
+      "exact": "#111111",
+      "derived": false,
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome",
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "primary call to action",
+        "selector": "div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
@@ -199,7 +199,7 @@
       "source": {
         "page": "https://knickgasm.com/en-us",
         "role": "secondary text",
-        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
+        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(1) > div.px-15",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
@@ -211,12 +211,12 @@
       "derived": true,
       "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
       "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
+        "page": "https://knickgasm.com/en-us",
+        "role": "primary call to action",
+        "selector": "div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
       }
     },
     "line": {
@@ -319,5 +319,5 @@
       }
     }
   },
-  "source": "Rendered https://knickgasm.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome (div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline). Headings Instrument Sans, body Instrument Sans, as rendered."
+  "source": "Rendered https://knickgasm.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline). Headings Instrument Sans, body Instrument Sans, as rendered."
 }

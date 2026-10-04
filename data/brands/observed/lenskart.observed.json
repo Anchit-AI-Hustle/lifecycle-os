@@ -5,7 +5,7 @@
   "start": "https://www.lenskart.com",
   "landed": "https://www.lenskart.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T16:51:42.307Z",
+  "read_at": "2026-10-04T17:09:23.344Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -139,31 +139,16 @@
   "palette": {
     "primary": "#4d4d4d",
     "accent": "#4d4d4d",
-    "ink": "#4d4d4d",
+    "ink": "#000042",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#4d4d4d",
+    "muted": "#000042",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "palette_evidence": {
-    "primary": {
-      "value": "#4d4d4d",
-      "exact": "#4d4d4d",
-      "derived": false,
-      "from_role": "identity",
-      "signal": "header background as rendered; the site renders no chromatic brand colour and no filled call to action",
-      "source": {
-        "page": "https://www.lenskart.com/en-us",
-        "role": "header",
-        "selector": "div#header > nav.sc-d63abe48-1.lfbqwn",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
     "surface": {
       "value": "#ffffff",
       "exact": "#ffffff",
@@ -177,18 +162,34 @@
         "signal": "computed"
       }
     },
-    "ink": {
+    "primary": {
       "value": "#4d4d4d",
+      "exact": "#4d4d4d",
+      "derived": false,
+      "from_role": "identity",
+      "signal": "header background as rendered; the site renders no other colour that reads on its page",
+      "source": {
+        "page": "https://www.lenskart.com/en-us",
+        "role": "header",
+        "selector": "div#header > nav.sc-d63abe48-1.lfbqwn",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#000042",
       "exact": "",
       "derived": true,
-      "note": "DERIVED from #4d4d4d: the read measured no body copy colour, so the text colour is the primary taken to 7:1 on #ffffff.",
+      "from_role": "display heading",
+      "note": "The read found no body copy; the display heading text the site renders (#000042) is the ink.",
       "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
+        "page": "https://www.lenskart.com/en-us",
+        "role": "display heading",
+        "selector": "div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
       }
     },
     "surface_alt": {
@@ -206,7 +207,7 @@
       }
     },
     "muted": {
-      "value": "#4d4d4d",
+      "value": "#000042",
       "exact": "",
       "derived": true,
       "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
@@ -225,12 +226,12 @@
       "derived": true,
       "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
       "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
+        "page": "https://www.lenskart.com/en-us",
+        "role": "header",
+        "selector": "div#header > nav.sc-d63abe48-1.lfbqwn",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
       }
     },
     "line": {
@@ -294,5 +295,5 @@
     "Primary and accent are nearly the same tone; the two will not read as distinct."
   ],
   "typography": null,
-  "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#header > nav.sc-d63abe48-1.lfbqwn)."
+  "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no other colour that reads on its page (div#header > nav.sc-d63abe48-1.lfbqwn)."
 }

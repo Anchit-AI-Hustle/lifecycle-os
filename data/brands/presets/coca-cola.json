@@ -15,21 +15,6 @@
     "typography_source": "verified",
     "logo_signal": "the logo element as rendered (div > div.cmp-adaptive-image.cmp-image > a.cmp-image__link > picture > img.cmp-image__image)",
     "palette_evidence": {
-      "primary": {
-        "value": "#ea0000",
-        "exact": "#ea0000",
-        "derived": false,
-        "source": {
-          "page": "https://www.coca-cola.com/us/en",
-          "role": "custom property",
-          "selector": ":root",
-          "viewport": "desktop",
-          "property": "--color-icon-brand-primary-regular",
-          "signal": "computed"
-        },
-        "from_role": "identity",
-        "signal": "--color-icon-brand-primary-regular as computed on :root"
-      },
       "surface": {
         "value": "#eeeeee",
         "exact": "#eeeeee",
@@ -40,6 +25,21 @@
           "selector": "body.page.basicpage",
           "viewport": "desktop",
           "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "primary": {
+        "value": "#ea0000",
+        "exact": "#ea0000",
+        "derived": false,
+        "from_role": "identity",
+        "signal": "--color-icon-brand-primary-regular as computed on :root",
+        "source": {
+          "page": "https://www.coca-cola.com/us/en",
+          "role": "custom property",
+          "selector": ":root",
+          "viewport": "desktop",
+          "property": "--color-icon-brand-primary-regular",
           "signal": "computed"
         }
       },
@@ -85,18 +85,18 @@
         }
       },
       "accent": {
-        "value": "#ffffff",
+        "value": "#ea0000",
         "exact": "#ffffff",
-        "derived": false,
+        "derived": true,
+        "note": "The second colour the reader found (#ffffff) is a tint of the page (1.16:1), so the accent repeats the primary.",
         "source": {
           "page": "https://www.coca-cola.com/us/en",
-          "role": "primary call to action",
-          "selector": "div.teaser.hero > div.cmp-teaser > div.cmp-teaser__content:nth-of-type(1) > div.cmp-teaser__action-container:nth-of-type(2) > a.cmp-teaser__action-link",
+          "role": "custom property",
+          "selector": ":root",
           "viewport": "desktop",
-          "property": "background-color",
+          "property": "--color-icon-brand-primary-regular",
           "signal": "computed"
-        },
-        "from_role": "action"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -225,7 +225,7 @@
   },
   "palette": {
     "primary": "#ea0000",
-    "accent": "#ffffff",
+    "accent": "#ea0000",
     "ink": "#000000",
     "surface": "#eeeeee",
     "surface_alt": "#eeeeee",
