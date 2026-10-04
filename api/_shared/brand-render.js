@@ -104,6 +104,47 @@ const withTimeout = (p, ms, what) => Promise.race([
   new Promise((_, rej) => setTimeout(() => { const e = new Error(`${what} took longer than ${ms}ms`); e.code = 'timeout'; rej(e); }, Math.max(1, ms))),
 ]);
 
+/**
+ * Load, and wait for, every web-font face the visible text asks for: the
+ * computed family stacks of up to 400 text elements, each family that has a
+ * FontFace declared and not yet loaded, at the weights and styles in use.
+ * Bounded by `ms`. Returns what was waited for and how it ended.
+ */
+async function ensureFaces(page, ms) {
+  return page.evaluate(async (budget) => {
+    const want = new Map();
+    let n = 0;
+    for (const el of document.body ? document.body.querySelectorAll('*') : []) {
+      if (n > 400) break;
+      let t = '';
+      for (const c of el.childNodes) if (c.nodeType === 3) t += c.nodeValue;
+      t = t.trim();
+      if (t.length < 1) continue;
+      const s = getComputedStyle(el);
+      if (s.display === 'none' || s.visibility === 'hidden') continue;
+      n += 1;
+      const fam = String(s.fontFamily || '').split(',')[0].trim().replace(/^["']|["']$/g, '');
+      if (!fam) continue;
+      const k = `${s.fontStyle} ${s.fontWeight} 16px "${fam}"`;
+      if (!want.has(k)) want.set(k, { fam, sample: t.slice(0, 40) });
+    }
+    const declared = new Set();
+    try { document.fonts.forEach((f) => declared.add(String(f.family).replace(/^["']|["']$/g, '').toLowerCase())); } catch (_) { return []; }
+    const out = [];
+    const jobs = [];
+    for (const [font, w] of want) {
+      if (!declared.has(w.fam.toLowerCase())) continue;
+      if (document.fonts.check(font, w.sample)) continue;
+      const rec = { font, before: 'not loaded' };
+      out.push(rec);
+      jobs.push(document.fonts.load(font, w.sample).then((r) => { rec.after = r && r.length ? 'loaded' : 'no matching face'; }, () => { rec.after = 'failed'; }));
+    }
+    if (jobs.length) await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, budget))]);
+    for (const rec of out) if (!rec.after) rec.after = document.fonts.check(rec.font) ? 'loaded' : 'still loading at the deadline';
+    return out.slice(0, 20);
+  }, ms).catch(() => []);
+}
+
 /** Open, settle and capture one page at one viewport. */
 async function capturePageAt(context, url, ctx, { viewport, label, states }) {
   const page = await context.newPage();
@@ -135,7 +176,12 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     });
     const html = await page.content().catch(() => '');
     const shot = {};
-    const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40 }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
+    // A face the page declares and has not finished loading reads as its
+    // fallback (one brand's own DIN read as system-ui). Every family the
+    // measured text asks for is loaded and CONFIRMED first, bounded.
+    const facesWaited = await ensureFaces(page, Math.max(500, Math.min(8000, left() - 6000)));
+    const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40, consent: stab().CONSENT }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
+    data.faces_waited = facesWaited;
     data.__viewport = label;
     data.stabilised = stabilised;
     // The face the engine actually drew each role in (not the declared stack).
@@ -150,7 +196,8 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     const st = {};
     if (states) {
       await page.evaluate(() => {
-        try { const s = document.createElement('style'); s.setAttribute('data-lcos', 'notransition'); s.textContent = '*,*::before,*::after{transition:none!important}'; document.head.appendChild(s); } catch (_) { /* CSP */ }
+        // CSSOM, not an injected <style>: a CSP without 'unsafe-inline' refuses the latter.
+        for (const el of document.querySelectorAll('*')) { try { el.style.setProperty('transition', 'none', 'important'); } catch (_) { /* no style */ } }
       }).catch(() => {});
       for (const role of ['button-primary', 'button-secondary']) {
         const loc = page.locator(`[data-lcos-role="${role}"]`).first();
@@ -259,10 +306,51 @@ function identityCandidates(desk, manifestThemeColor) {
   const chroma = (h) => h && !bx.isNeutral(h);
   if (desk.meta && desk.meta.theme_color) out.push({ value: desk.meta.theme_color, signal: 'meta theme-color', role: 'identity', neutral: !chroma(desk.meta.theme_color), source: src(desk, 'theme-color', 'desktop', 'content', 'meta[name=theme-color]') });
   if (manifestThemeColor && manifestThemeColor.value) out.push({ value: manifestThemeColor.value, signal: 'web app manifest theme_color', role: 'identity', neutral: !chroma(manifestThemeColor.value), source: { page: manifestThemeColor.url, role: 'manifest', selector: 'theme_color', viewport: '', property: 'theme_color', signal: 'declared' } });
+  // A token SCALE (`--x-brand-25 ... --x-brand-900`) names many steps; the
+  // brand colour is the step the site RENDERS on its identity elements, never
+  // the first or palest step by name (review: one brand's identity came from
+  // `--hds-color-core-brand-25`, #f5f5ff). A scale none of whose steps is
+  // rendered proposes nothing.
+  const r = desk.roles || {};
+  const onIdentity = [
+    [r.logo && r.logo.svg_fill, 'logo mark'], [r.header && r.header.style && r.header.style.background, 'header'],
+    [r.button_primary && r.button_primary.style && r.button_primary.style.background, 'primary call to action'],
+    [r.button_secondary && r.button_secondary.style && (r.button_secondary.style.background || r.button_secondary.style.border_color), 'secondary call to action'],
+    [r.nav_link && r.nav_link.type && r.nav_link.type.color, 'navigation links'], [r.link && r.link.type && r.link.type.color, 'body links'],
+    [r.display && r.display.type && r.display.type.color, 'display heading'], [r.headings && r.headings.h1 && r.headings.h1.type && r.headings.h1.type.color, 'h1'],
+    [r.card && r.card.badge && r.card.badge.style && r.card.badge.style.background, 'product badge'],
+  ].filter((x) => x[0]);
+  const renderedCount = new Map(((desk.rendered_colors || [])).map((x) => [String(x.hex).toLowerCase(), x.n]));
+  const stepped = new Map();
+  const plain = [];
   for (const [name, v] of Object.entries(desk.custom_properties || {})) {
-    if (!v.hex) continue;
-    if (bx.tokenNameRole(name) === 'identity') out.push({ value: v.hex, signal: `${name} as computed on :root${v.inline ? ' (set at runtime by script)' : ''}`, role: 'identity', neutral: !chroma(v.hex), source: src(desk, 'custom property', 'desktop', name, ':root') });
+    if (!v.hex || bx.tokenNameRole(name) !== 'identity') continue;
+    const m = /^(.*?)[-_](\d{1,4})$/.exec(name);
+    if (m) { const fam = m[1]; if (!stepped.has(fam)) stepped.set(fam, []); stepped.get(fam).push({ name, v, step: +m[2] }); } else plain.push({ name, v });
   }
+  const scaleNotes = [];
+  const ordered = [];
+  for (const [name, v] of Object.entries(desk.custom_properties || {})) {
+    if (!v.hex || bx.tokenNameRole(name) !== 'identity') continue;
+    const m = /^(.*?)[-_](\d{1,4})$/.exec(name);
+    const members = m ? stepped.get(m[1]) : null;
+    if (!members || members.length < 2) { ordered.push({ name, v, signal: `${name} as computed on :root${v.inline ? ' (set at runtime by script)' : ''}` }); continue; }
+    if (members.done) continue;
+    members.done = true;
+    let pick = null;
+    for (const mem of members) {
+      const hit = onIdentity.find(([h]) => deltaE(h, mem.v.hex) <= 2.3);
+      if (hit) { pick = { mem, why: `the step of ${m[1]}-* the site renders on its ${hit[1]}` }; break; }
+    }
+    if (!pick) {
+      const counted = members.map((mem) => ({ mem, n: renderedCount.get(String(mem.v.hex).toLowerCase()) || 0 })).filter((x) => x.n >= 2).sort((a, b) => b.n - a.n)[0];
+      if (counted) pick = { mem: counted.mem, why: `the step of ${m[1]}-* the site renders most (${counted.n} elements)` };
+    }
+    if (pick) ordered.push({ name: pick.mem.name, v: pick.mem.v, signal: `${pick.mem.name} as computed on :root: ${pick.why}` });
+    else scaleNotes.push(`${m[1]}-* is a scale of ${members.length} steps and none of them is rendered on the page, so it proposes no brand colour.`);
+  }
+  for (const t of ordered) out.push({ value: t.v.hex, signal: t.signal, role: 'identity', neutral: !chroma(t.v.hex), source: src(desk, 'custom property', 'desktop', t.name, ':root') });
+  out.scale_notes = scaleNotes;
   const hdr = desk.roles && desk.roles.header;
   const hbg = hdr && ((hdr.style && hdr.style.background) || '');
   if (hbg && chroma(hbg)) out.push({ value: hbg, signal: 'header background as rendered', role: 'identity', neutral: false, source: src(desk, 'header', 'desktop', 'background-color', hdr.selector) });
@@ -272,6 +360,15 @@ function identityCandidates(desk, manifestThemeColor) {
 }
 
 function deltaE(a, b) { return require('./render-regression.js').deltaE2000(a, b); }
+
+/** Is this a family Google Fonts serves? (data/google-fonts/families.json, names only.) */
+let GOOGLE_FAMILIES = null;
+function isGoogleFamily(fam) {
+  if (!GOOGLE_FAMILIES) {
+    try { GOOGLE_FAMILIES = new Set(require('../../data/google-fonts/families.json').families.map((f) => String(f).toLowerCase())); } catch (_) { GOOGLE_FAMILIES = new Set(); }
+  }
+  return GOOGLE_FAMILIES.has(String(fam || '').trim().toLowerCase());
+}
 
 /**
  * Build the manifest from the measurements. Pure: no browser, no network.
@@ -299,6 +396,7 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
   const action = rd.button_primary && rd.button_primary.style ? rd.button_primary.style.background : '';
   const idc = identityCandidates(desk, manifestJson && manifestJson.theme_color ? { value: manifestJson.theme_color, url: manifestJson.url } : null);
   const identity = idc.find((c) => !c.neutral) || null;
+  for (const n of (idc.scale_notes || [])) notes.push(n);
   const conflicts = [];
   if (identity) {
     set('primary', identity.value, identity.source, { signal: identity.signal, from_role: 'identity' });
@@ -338,7 +436,12 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     const files = faces.filter((f) => f.family.toLowerCase() === String(fam).toLowerCase());
     const used = files.filter((f) => fetchedFonts.has(f.url));
     const keep = (used.length ? used : files).slice(0, 6).map((f) => ({ url: f.url, weight: f.weight, style: f.style, format: f.format }));
-    const google = keep.some((f) => /fonts\.gstatic\.com/.test(f.url)) || files.some((f) => /fonts\.googleapis\.com/.test(f.sheet));
+    const servedByGoogle = keep.some((f) => /fonts\.gstatic\.com/.test(f.url)) || files.some((f) => /fonts\.googleapis\.com/.test(f.sheet));
+    // A Google Fonts family the site hosts ITSELF is still a Google family
+    // the app can load by reference (review: Inter and Open Sans, self-hosted,
+    // were marked non-Google and shown in fallback).
+    const selfHostedGoogle = !servedByGoogle && t.family_kind === 'webfont' && isGoogleFamily(fam);
+    const google = servedByGoogle || selfHostedGoogle;
     const weights = [...new Set(((desk.fonts && desk.fonts.faces) || []).filter((f) => f.family.toLowerCase() === String(fam).toLowerCase() && f.status === 'loaded').map((f) => String(f.weight)))].slice(0, 6);
     // THE FONT LEGAL GATE (2026-10-04): a family and the URLs its files are
     // served from are RECORDED; the files are loaded BY REFERENCE to measure
@@ -350,6 +453,7 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     fonts[slot] = {
       family: fam, kind: t.family_kind, stack, google, files: keep, weights,
       licence: google ? 'open (Google Fonts)' : (brandFont ? 'brand font' : 'system'),
+      google_self_hosted: selfHostedGoogle,
       display_name: brandFont ? `${fam} (brand font)` : fam,
       fallback_stack: rest.slice(1).map((f) => (/^(serif|sans-serif|monospace|system-ui|cursive|fantasy|ui-[a-z-]+|-apple-system|blinkmacsystemfont)$/i.test(f) ? f : `'${f.replace(/'/g, '')}'`)).join(',') || 'sans-serif',
       files_by_reference: true,
@@ -500,7 +604,7 @@ async function readRendered(url, opts) {
   const disallowByOrigin = new Map();
   const limits = o.limits || null;
   const ctx = {
-    policy, deadline, transport: o.transport, perRequestMs: o.perRequestMs, limits,
+    policy, deadline, transport: o.transport, perRequestMs: Number(o.perRequestMs) > 0 ? Number(o.perRequestMs) : undefined, limits,
     budget: net.makeBudget((limits && limits.maxBytesTotal) || net.LIMITS.maxBytesTotal, limits && limits.maxRequests),
     inScope: (u) => sc.inScope(u, hosts) || (policy.allowOrigins && (() => { try { return policy.allowOrigins.has(new URL(u).origin); } catch (_) { return false; } })()),
     robotsFor: (u) => {
@@ -520,7 +624,11 @@ async function readRendered(url, opts) {
   await ctx.robotsFor(start);
   timings.robots_ms = Date.now() - t0;
   // Resolve the start document (redirects followed here, every hop checked).
-  const first = await net.fetchFollow(start, ctx, { kind: 'document' });
+  // The FIRST document may be slower than any subresource (a cold origin, a
+  // server-rendered home): a caller can give it its own timeout, still bounded
+  // by the read's deadline inside fetchFollow.
+  const firstCtx = Number(o.firstDocumentMs) > 0 ? Object.assign(Object.create(ctx), { perRequestMs: Number(o.firstDocumentMs) }) : ctx;
+  const first = await net.fetchFollow(start, firstCtx, { kind: 'document' });
   if (!first.ok) {
     const at = (() => { try { return new URL(first.url || start).host; } catch (_) { return start; } })();
     const e = new Error(/robots/.test(first.reason) ? `${at} disallows this page in its robots.txt, and this platform honours it.` : `The site could not be opened: ${first.reason}.`);
@@ -563,7 +671,7 @@ async function readRendered(url, opts) {
   if (Date.now() < deadline - 8000) {
     const t2 = Date.now();
     try {
-      ctx.ledger.prefetched.set(home, await net.fetchFollow(home, ctx, { kind: 'document' }));
+      ctx.ledger.prefetched.set(home, await net.fetchFollow(home, firstCtx, { kind: 'document' }));
       mobCap = await capturePageAt(mobileCtx, home, ctx, { viewport: vps.mobile, label: 'mobile', states: false });
     } catch (e) { notes.push(`The phone-width read did not finish: ${e.message}`); partial = true; }
     timings.mobile_ms = Date.now() - t2;
@@ -620,6 +728,8 @@ async function readRendered(url, opts) {
   // A consent overlay is HIDDEN in this throwaway browser, never accepted.
   const hidden = [].concat((deskCap.data.stabilised && deskCap.data.stabilised.consent_hidden) || [], (mobCap && mobCap.data.stabilised && mobCap.data.stabilised.consent_hidden) || []);
   if (hidden.length) notes.push(`${hidden.length} consent overlay(s) were HIDDEN in the reader's throwaway browser, not accepted: nothing was consented to on anyone's behalf, and an overlay's colours are not read as the brand's.`);
+  const unhidden = [].concat((deskCap.data.stabilised && deskCap.data.stabilised.consent_unhidden) || [], (mobCap && mobCap.data.stabilised && mobCap.data.stabilised.consent_unhidden) || []);
+  if (unhidden.length) notes.push(`${unhidden.length} consent overlay(s) could NOT be hidden; they are still excluded from every measurement, but may appear in the screenshots.`);
   // Every hop counted, including the ones made outside a browser request.
   ctx.ledger.requests = ctx.budget.requests;
   ctx.ledger.bytes = ctx.budget.used;
@@ -669,6 +779,9 @@ async function readSite(url, opts) {
       const left = () => deadlineMs - (Date.now() - t0);
       const manifest = await withTimeout(readRendered(url, {
         browser, policy: o.policy, transport: o.transport, keepPages: true, limits: o.limits,
+        // Threaded through (review: the first document of six starter sites
+        // died at the 9 s default because readSite dropped these).
+        perRequestMs: o.perRequestMs, firstDocumentMs: o.firstDocumentMs,
         deadlineMs: Math.max(15000, Math.min(o.manifestMs || 62000, left() - 25000)),
         maxPages: o.maxPages, renderer: info,
       }), Math.max(10000, left() - 5000), 'reading the site');

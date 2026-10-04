@@ -301,7 +301,7 @@ async function fetchFollow(url, ctx, { kind = 'resource', method = 'GET' } = {})
     if (ctx.budget && !ctx.budget.takeRequest()) return { ok: false, reason: 'the request budget for this read is spent', url: cur, hops, requestBudget: true };
     const r = await (ctx.transport || module.exports.transport)(cur, {
       addresses: verdict.addresses, method,
-      timeoutMs: ctx.perRequestMs || LIMITS.perRequestMs,
+      timeoutMs: Math.max(1000, Math.min(ctx.perRequestMs || LIMITS.perRequestMs, ctx.deadline ? ctx.deadline - Date.now() - 1000 : Infinity)),
       maxBytes: (ctx.limits && ctx.limits.maxBytesPerResponse) || LIMITS.maxBytesPerResponse,
       budget: ctx.budget || null,
     });
