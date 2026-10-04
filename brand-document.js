@@ -1199,6 +1199,34 @@
   }
 
   /**
+   * A response body read up to `max` bytes and no further: a declared length
+   * past the cap is refused before a byte is read, and a body that keeps
+   * coming (chunked, or a Content-Length that lied) is CANCELLED the moment it
+   * crosses the cap, so an 80 MB limit never means holding a gigabyte first.
+   */
+  function tooLarge(max) { return err('That document is larger than ' + (max / 1048576) + ' MB, the largest this page reads, so the download was stopped.', 'too_large'); }
+  async function readCapped(r, max) {
+    var declared = Number(r.headers.get('content-length') || 0);
+    if (declared > max) { try { if (r.body) await r.body.cancel(); } catch (_) {} throw tooLarge(max); }
+    if (!r.body || typeof r.body.getReader !== 'function') {
+      var whole = await r.arrayBuffer();
+      if (whole.byteLength > max) throw tooLarge(max);
+      return whole;
+    }
+    var reader = r.body.getReader(), chunks = [], total = 0;
+    for (;;) {
+      var step = await reader.read();
+      if (step.done) break;
+      total += step.value.byteLength;
+      if (total > max) { try { await reader.cancel(); } catch (_) {} throw tooLarge(max); }
+      chunks.push(step.value);
+    }
+    var out = new Uint8Array(total), at = 0;
+    chunks.forEach(function (c) { out.set(c, at); at += c.byteLength; });
+    return out.buffer;
+  }
+
+  /**
    * A document by URL: straight from the host when it allows a browser to read
    * it (CORS), else through the server's op=document-fetch, which runs the SSRF
    * guard on every hop. `viaServer(url)` is supplied by the page.
@@ -1218,9 +1246,14 @@
     if (!o.serverOnly) {
       try {
         var r = await fetch(u.toString(), { method: 'GET', mode: 'cors', credentials: 'omit', redirect: 'follow' });
-        if (r.ok) direct = { buf: await r.arrayBuffer(), type: (r.headers.get('content-type') || '').split(';')[0], name: decodeURIComponent((new URL(r.url || u.toString()).pathname.split('/').pop()) || 'document'), url: r.url || u.toString() };
+        if (r.ok) direct = { buf: await readCapped(r, LIMITS.document), type: (r.headers.get('content-type') || '').split(';')[0], name: decodeURIComponent((new URL(r.url || u.toString()).pathname.split('/').pop()) || 'document'), url: r.url || u.toString() };
         else directErr = err(u.host + ' answered ' + r.status + ', so nothing was read.', 'url_status');
-      } catch (e) { directErr = e; }
+      } catch (e) {
+        // Too large is an answer, not a CORS refusal: the server path would only
+        // fetch the same oversized file again.
+        if (e && e.code === 'too_large') throw e;
+        directErr = e;
+      }
     }
     if (!direct) {
       if (typeof o.viaServer !== 'function') throw directErr || err('That host does not let a browser read the file directly.', 'cors');

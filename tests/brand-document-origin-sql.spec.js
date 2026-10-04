@@ -214,7 +214,7 @@ test('deleting an account brand removes its hosted files under its workspace pre
   process.env.SUPABASE_URL = 'https://fixture.supabase.co';
   process.env.SUPABASE_ANON_KEY = 'anon';
   const real = global.fetch;
-  const run = async (storageDelete) => {
+  const run = async (storageDelete, listing) => {
     const calls = [];
     global.fetch = async (url, init) => {
       const u = new URL(String(url));
@@ -222,7 +222,12 @@ test('deleting an account brand removes its hosted files under its workspace pre
       calls.push({ method, path: u.pathname, body: init && init.body ? JSON.parse(init.body) : null, auth: init && init.headers && init.headers.authorization });
       const ok = (b) => new Response(JSON.stringify(b), { status: 200, headers: { 'content-type': 'application/json' } });
       if (u.pathname === '/rest/v1/brand_workspaces' && method === 'GET') return ok([{ id: WS, owner_id: OWNER, name: 'Harbourlight Goods' }]);
-      if (u.pathname === '/storage/v1/object/list/brand-assets') return ok([{ name: 'aaa.png', id: '1' }, { name: 'bbb.woff2', id: '2' }, { name: 'folder', id: null }]);
+      if (u.pathname === '/storage/v1/object/list/brand-assets') {
+        if (listing === 'down') throw new Error('fetch failed');
+        if (listing === 500) return new Response('{"message":"internal"}', { status: 500 });
+        if (listing === 'no-bucket') return new Response('{"statusCode":"404","error":"Bucket not found","message":"Bucket not found"}', { status: 400 });
+        return ok([{ name: 'aaa.png', id: '1' }, { name: 'bbb.woff2', id: '2' }, { name: 'folder', id: null }]);
+      }
       if (u.pathname === '/storage/v1/object/brand-assets' && method === 'DELETE') return storageDelete === 200 ? ok([]) : new Response('{"message":"denied"}', { status: storageDelete });
       if (u.pathname === '/rest/v1/brand_workspaces' && method === 'DELETE') return ok([{ id: WS, name: 'Harbourlight Goods' }]);
       throw new Error('unexpected request ' + method + ' ' + u.pathname);
@@ -245,6 +250,19 @@ test('deleting an account brand removes its hosted files under its workspace pre
     expect(refused.error && refused.error.status).toBe(502);
     expect(refused.error.message).toMatch(/2 hosted file\(s\).*nothing was deleted/);
     expect(refused.calls.some((c) => c.method === 'DELETE' && c.path === '/rest/v1/brand_workspaces')).toBe(false);
+    // The LISTING fails: an unanswered list is not an empty folder, so the
+    // brand is not deleted either (the files it could not see would be orphaned).
+    for (const listing of [500, 'down']) {
+      const blind = await run(200, listing);
+      expect(blind.error && blind.error.status, `listing ${listing}`).toBe(502);
+      expect(blind.error.message).toMatch(/could not be listed.*nothing was deleted/);
+      expect(blind.calls.some((c) => c.method === 'DELETE'), `listing ${listing}: something was deleted`).toBe(false);
+    }
+    // No bucket at all (the migration not applied): nothing can be in it.
+    const none = await run(200, 'no-bucket');
+    expect(none.error).toBeNull();
+    expect(none.result.storage_removed).toBe(0);
+    expect(none.calls.map((c) => c.method + ' ' + c.path)).toEqual(['GET /rest/v1/brand_workspaces', 'POST /storage/v1/object/list/brand-assets', 'DELETE /rest/v1/brand_workspaces']);
   } finally {
     global.fetch = real;
     if (saved.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = saved.url;
