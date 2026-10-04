@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 168" width="240" height="168" role="img" aria-label="Lifecycle OS"><title>Lifecycle OS</title><g transform="translate(72 4) scale(1.5)"><rect id="tile" x="1" y="1" width="62" height="62" rx="15" fill="#F5F6F8" stroke="#D4D8DE" stroke-width="2"/><g id="glyph">
+    <path d="M 36.4 15.58 A 17 17 0 1 1 18.07 22.25" fill="none" stroke="#24292E" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M 22.09 16.52 L 22.82 26.8 L 12.18 19.34 Z" fill="#24292E"/>
+    <circle cx="32" cy="32" r="4.5" fill="#24292E"/>
+  </g></g><text x="120" y="150" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#24292E" textLength="204" lengthAdjust="spacingAndGlyphs" text-anchor="middle">Lifecycle OS</text></svg>
