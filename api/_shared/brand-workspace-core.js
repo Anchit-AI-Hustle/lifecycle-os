@@ -1327,7 +1327,62 @@ function buildRow(input, existing) {
  * they touched, and re-saving an untouched form must not quietly claim the
  * whole record away from the automatic path.
  */
+/* ── WHERE A FIELD'S VALUE CAME FROM (2026-10-04) ─────────────────────────
+   One order, the same in SQL (brand_origin_rank, migration 20261004120000),
+   here, and in brand-context.js's device store:
+     user 50 > document 40 > site-render 30 > site-parse 20 (= auto) > preset 10
+   `default` (a wizard placeholder nobody chose) ranks 0 and is recorded nowhere.
+   The wizard's save carries, per field, the source its value came from in
+   brand_data.field_origins; a field with no entry there is the operator's, as
+   every save before this one was read. */
+const ORIGIN_RANK = { user: 50, document: 40, 'site-render': 30, 'site-parse': 20, auto: 20, preset: 10, default: 0 };
+const RECORDED_ORIGINS = new Set(['document', 'site-render', 'site-parse', 'preset']);
+
+function fieldOriginOf(input, field) {
+  const bd = input && input.brand_data;
+  const map = bd && typeof bd === 'object' && bd.field_origins && typeof bd.field_origins === 'object' && !Array.isArray(bd.field_origins)
+    ? bd.field_origins : null;
+  if (!map) return null;
+  const r = map[field];
+  const o = r && typeof r === 'object' ? String(r.origin || '') : (typeof r === 'string' ? r : '');
+  return Object.prototype.hasOwnProperty.call(ORIGIN_RANK, o) ? Object.assign({}, r && typeof r === 'object' ? r : {}, { origin: o }) : null;
+}
+
+/**
+ * The dotted fields a save CARRIED whose value came from somewhere other than
+ * the operator's typing, mapped to the provenance row that says where. A
+ * document's field cites the file (or URL), the page and the verbatim line.
+ */
+function recordedOrigins(input) {
+  const out = {};
+  for (const f of carriedFields(input)) {
+    const r = fieldOriginOf(input, f);
+    if (!r || !RECORDED_ORIGINS.has(r.origin)) continue;
+    const where = [r.page ? `p.${r.page}` : '', r.line ? `l.${r.line}` : ''].filter(Boolean).join(' ');
+    out[f] = {
+      origin: r.origin,
+      source_url: str(r.url || (r.source ? r.source + (r.page ? `#page=${r.page}` : '') : ''), 500),
+      signal: str([where, r.quote ? `"${r.quote}"` : '', r.signal || ''].filter(Boolean).join(': '), 500),
+      confidence: str(r.confidence || (r.origin === 'document' ? 'stated' : ''), 40),
+      value_preview: str(r.value, 200),
+    };
+  }
+  return out;
+}
+
 function claimedFields(input) {
+  // A field whose value the save says came from a document, a site read or a
+  // preset is not a TYPED field, so it is not claimed as the operator's; it is
+  // recorded with its origin instead (recordedOrigins). A field with no origin
+  // on the save is claimed, exactly as before.
+  return carriedFields(input).filter((f) => {
+    const r = fieldOriginOf(input, f);
+    return !r || r.origin === 'user';
+  });
+}
+
+/** Every dotted field path a save carried a non-empty value for. */
+function carriedFields(input) {
   const b = (input && typeof input === 'object') ? input : {};
   const out = [];
   for (const k of ['name', 'tagline', 'legal_name', 'industry', 'website', 'logo_url', 'favicon_url']) {
@@ -1366,17 +1421,33 @@ function claimedFields(input) {
  * behaviour that existed before any of this - not a corrupted record.
  */
 async function claimUserOwnedFields(auth, workspaceId, input) {
+  let n = 0;
   try {
     const fields = claimedFields(input);
-    if (!fields.length || !workspaceId) return 0;
-    await restAs(auth.token, 'rpc/brand_fields_claim_user', {
-      method: 'POST', body: { p_workspace: workspaceId, p_fields: fields },
-    });
-    return fields.length;
+    if (fields.length && workspaceId) {
+      await restAs(auth.token, 'rpc/brand_fields_claim_user', {
+        method: 'POST', body: { p_workspace: workspaceId, p_fields: fields },
+      });
+      n += fields.length;
+    }
   } catch (err) {
     console.warn('[brand] field provenance not recorded:', (err && err.message) || err);
-    return 0;
   }
+  // The rest of the save's fields, with the origin each came from. The SQL
+  // never demotes (a typed field stays typed), so this cannot take a field
+  // away from a person.
+  try {
+    const rec = recordedOrigins(input);
+    if (Object.keys(rec).length && workspaceId) {
+      await restAs(auth.token, 'rpc/brand_fields_record_origin', {
+        method: 'POST', body: { p_workspace: workspaceId, p_fields: rec },
+      });
+      n += Object.keys(rec).length;
+    }
+  } catch (err) {
+    console.warn('[brand] field origins not recorded:', (err && err.message) || err);
+  }
+  return n;
 }
 
 async function saveWorkspace(auth, input) {
@@ -1714,7 +1785,33 @@ function shellPayload(brand, extra) {
     regions: brand.regions || [],
     tokens: tokens(brand),
     fonts_href: fontsHref(brand),
+    files: filesSummary(brand),
   }, extra || {});
+}
+
+/**
+ * What the shell needs to paint a brand's own FILES (2026-10-04): the id of an
+ * uploaded logo / icon / font (kept in the browser's IndexedDB on a device,
+ * brand-context.js) and its hosted https URL once it has one. Ids, family
+ * names and https URLs only - never bytes. Mirrored by filesSummaryFor() in
+ * brand-context.js.
+ */
+function filesSummary(brand) {
+  const f = brand && brand.brand_data && brand.brand_data.brand_files;
+  if (!f || typeof f !== 'object') return {};
+  const https = (u) => (typeof u === 'string' && /^https:\/\//i.test(u.trim()) ? u.trim().slice(0, 500) : '');
+  const one = (x) => (x && typeof x === 'object' ? { id: str(x.id, 80), hosted_url: https(x.hosted_url), url: https(x.url) } : null);
+  const out = {};
+  if (one(f.logo)) out.logo = one(f.logo);
+  if (one(f.favicon)) out.favicon = one(f.favicon);
+  const fonts = f.fonts && typeof f.fonts === 'object' ? f.fonts : {};
+  const fo = {};
+  for (const slot of ['heading', 'body', 'mono']) {
+    const x = fonts[slot];
+    if (x && typeof x === 'object') fo[slot] = Object.assign(one(x), { family: str(x.family, 64), format: str(x.format, 16) });
+  }
+  if (Object.keys(fo).length) out.fonts = fo;
+  return out;
 }
 
 /* ── the context-pack background chain ────────────────────────────────────
@@ -1834,6 +1931,29 @@ async function sessionCheckable() {
   };
 }
 
+/**
+ * Answer `op=document-fetch` with the document's BYTES (not JSON), or a refusal
+ * sentence as JSON. The browser reads the file; this only carries it past a
+ * host that sends no CORS headers. See brand-document-fetch.js.
+ */
+async function sendDocument(res, body, q) {
+  try {
+    const out = await require('./brand-document-fetch.js').fetchDocument(str(body.url || q.url, 2000));
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Document-Type', out.content_type);
+    res.setHeader('X-Document-Name', encodeURIComponent(out.name));
+    res.setHeader('X-Document-Url', encodeURIComponent(out.url));
+    return res.status(200).send(out.bytes);
+  } catch (err) {
+    return res.status((err && err.status) || 500).json({
+      ok: false,
+      error: (err && err.code) || 'document_fetch_failed',
+      message: (err && err.message) || 'That document could not be fetched.',
+    });
+  }
+}
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1910,9 +2030,14 @@ async function handle(req, res) {
   // a session could be checked - see sessionCheckable() above. That caller is
   // every browser there is now: signed out, or signed in on the device (whose
   // token is never sent).
-  let openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+  // `document-fetch` (2026-10-04) is the same kind of read as `extract`: one
+  // public URL the operator pasted, fetched behind the same SSRF guard,
+  // returned as bytes, nothing stored, no model. So it opens on exactly the
+  // same rule, and nowhere else.
+  const OPEN_READ = op === 'extract' || op === 'document-fetch';
+  let openWithoutBackend = !auth.ok && auth.backend_unreachable === true && OPEN_READ;
   let noSession = null;
-  if (!auth.ok && !openWithoutBackend && op === 'extract' && auth.error === 'sign_in_required') {
+  if (!auth.ok && !openWithoutBackend && OPEN_READ && auth.error === 'sign_in_required') {
     noSession = await sessionCheckable();
     openWithoutBackend = !noSession.checkable;
   }
@@ -1929,6 +2054,7 @@ async function handle(req, res) {
   const spend = auth.ok ? require('./credits-core.js').spenderRefusal(auth) : null;
   const VOICE_SKIPPED_NOTE = 'The tone of voice was not observed: that step is the only one that needs a language model, and this mobile-number sign-in has no credit wallet because its number is not on the operator\'s list. Everything else was read from the site exactly as always.';
 
+  if (openWithoutBackend && op === 'document-fetch') return sendDocument(res, body, q);
   if (openWithoutBackend) {
     try {
       const out = await require('./brand-extract.js').runExtract(
@@ -2197,6 +2323,11 @@ async function handle(req, res) {
         const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
         return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
       }
+      // The bytes of a brand guideline document the operator LINKED, for the
+      // browser to read (brand-document.js). See brand-document-fetch.js.
+      case 'document-fetch': {
+        return sendDocument(res, body, q);
+      }
       case 'suggest': {
         // Options for ONE field, written from this brand's own record. Nothing
         // is written here: the response is candidates, and the operator's click
@@ -2218,7 +2349,7 @@ async function handle(req, res) {
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'document-fetch', 'suggest',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
@@ -2246,4 +2377,5 @@ module.exports = {
   importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
+  carriedFields, recordedOrigins, ORIGIN_RANK,
 };

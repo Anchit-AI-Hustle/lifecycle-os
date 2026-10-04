@@ -155,7 +155,46 @@ function normalizeBrand(brand) {
     if (out === brand) out = { ...brand };      // copy only once, and only if needed
     out[key] = data[key];
   }
+  const pend = pendingHostingOf(brand);
+  if (pend.length) {
+    if (out === brand) out = { ...brand };
+    out.pending_hosting = pend;
+  }
   return out;
+}
+
+/* ── A BRAND FILE THAT IS NOT HOSTED YET (2026-10-04) ─────────────────────
+   The operator can upload a logo, an icon, a font or imagery as a FILE. With a
+   database to host it, it is uploaded and its https URL goes on the record;
+   with none (production now: device mode) it stays in the browser's IndexedDB,
+   where the app shell and the previews use it - and where no email can.
+   A generated mailer or ad must reference a HOSTED https URL: the email.mailer
+   contract blocks embedded base64, and Gmail clips past ~102 KB. So such an
+   asset carries, in its place, the spec's marker naming exactly what to do:
+   [DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>] - never the bytes,
+   never a blob: or data: URL, never nothing. */
+const PENDING_KINDS = ['logo', 'icon', 'font', 'image'];
+function httpsUrl(v) {
+  const s = typeof v === 'string' ? v.trim() : '';
+  return /^https:\/\/[^\s"'<>]+$/i.test(s) ? s.slice(0, 500) : '';
+}
+/** What a server brand's record says is uploaded but not hosted yet. */
+function pendingHostingOf(brand) {
+  const files = brand && brand.brand_data && brand.brand_data.brand_files;
+  if (!files || typeof files !== 'object') return [];
+  const out = [];
+  const unhosted = (f) => f && typeof f === 'object' && f.id && !httpsUrl(f.hosted_url);
+  if (unhosted(files.logo) && !httpsUrl(brand.logo_url)) out.push('logo');
+  if (unhosted(files.favicon) && !httpsUrl(brand.favicon_url)) out.push('icon');
+  const fonts = files.fonts && typeof files.fonts === 'object' ? files.fonts : {};
+  if (Object.keys(fonts).some((k) => unhosted(fonts[k]))) out.push('font');
+  if (Array.isArray(files.images) && files.images.some(unhosted)) out.push('image');
+  return out;
+}
+/** The marker for an uploaded file that is not hosted yet. */
+function hostedMarker(kind, brand) {
+  const what = kind === 'icon' ? 'app icon' : kind;
+  return `[DATA REQUIRED BEFORE LAUNCH: hosted ${what} URL, ${(brand && brand.name) || 'this brand'}]`;
 }
 
 /**
@@ -229,7 +268,13 @@ function carriedBrand(body, auth) {
     // assortment. A carried record is a device brand: it owns no server file.
     id, slug: id, storage: 'device', carried: true,
     name, tagline: str(src.tagline, 300), industry: str(src.industry, 120), website: str(src.website, 300),
-    logo_url: str(src.logo_url, 500),
+    // https only: a generated email references this URL as-is, so a blob:,
+    // data: or http: value is dropped here rather than embedded (2026-10-04).
+    logo_url: httpsUrl(src.logo_url),
+    // What the browser holds as an uploaded FILE that has no hosted URL yet -
+    // an enum list, never the bytes. Generators print the hosted-URL marker
+    // for each (hostedMarker()).
+    pending_hosting: list(src.pending_hosting, 4, 12).filter((k) => PENDING_KINDS.includes(k)),
     palette, typography, voice: {
       tone: str(voice.tone, 300), preferred: list(voice.preferred, 40, 60), banned: list(voice.banned, 60, 80),
       no_em_dashes: voice.no_em_dashes !== false,
@@ -403,7 +448,13 @@ function brandBlock(brand) {
   lines.push(`TYPOGRAPHY (strict): ${typographyLine(t)}. Never introduce another family.`);
   const imp = fontImport(t);
   if (imp) lines.push(`For any HTML asset, inject this EXACT import into the <head> <style> before app rules:\n  ${imp}`);
-  lines.push(`LOGO (header, exact — never substitute): ${b.logo_url ? `<img src="${b.logo_url}" alt="${b.name || 'brand'}" /> at a restrained header height (~30px).` : missing('logo URL')}`);
+  const pend = Array.isArray(b.pending_hosting) ? b.pending_hosting : [];
+  const logo = httpsUrl(b.logo_url);
+  lines.push(`LOGO (header, exact — never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30px).`
+    : pend.includes('logo') ? `${hostedMarker('logo', b)} - the logo exists only as an uploaded file on the operator's device. Write this marker where the logo goes; never embed an image as data:/base64 and never invent a URL.`
+      : missing('logo URL')}`);
+  if (pend.includes('font')) lines.push(`FONT FILES: ${hostedMarker('font', b)} - a brand font was uploaded as a file and has no hosted URL yet. Use the family name with its fallback stack; never embed the font as data:/base64.`);
+  if (pend.includes('image')) lines.push(`BRAND IMAGERY: ${hostedMarker('image', b)} - uploaded brand images are not hosted yet. Never embed an image as data:/base64.`);
   lines.push('FOOTER: "Privacy Policy" and "Terms of Service" must be plain labels with href="#" and no target/onclick routing.');
   // The block forbids fabricating a claim but never said what this brand may
   // actually assert, so a generator had nothing approved to reach for and every
@@ -510,6 +561,7 @@ module.exports = {
   scopedBrand, unresolvedBrand, isUnresolved, carriedBrand,
   resolve, brandBlock, regionFacts, homeRegion, scrubForBrand, scrubHtmlForBrand,
   defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,
+  httpsUrl, pendingHostingOf, hostedMarker,
   // The font import the brand block already prints, for a renderer that has to
   // put the SAME line into a <style> (pipeline-core.tokens): one derivation,
   // not two that drift.
