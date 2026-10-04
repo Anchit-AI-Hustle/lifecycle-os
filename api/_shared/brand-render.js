@@ -121,8 +121,12 @@ async function ensureFaces(page, ms) {
       for (const c of el.childNodes) if (c.nodeType === 3) t += c.nodeValue;
       t = t.trim();
       if (t.length < 1) continue;
+      // Rendered visibility, not the element's own display: a descendant of a
+      // display:none menu computes display:block (review: a hidden menu of 400
+      // links used up the budget before the visible heading was reached).
+      const shown = typeof el.checkVisibility === 'function' ? el.checkVisibility({ visibilityProperty: true }) : el.getClientRects().length > 0;
+      if (!shown) continue;
       const s = getComputedStyle(el);
-      if (s.display === 'none' || s.visibility === 'hidden') continue;
       n += 1;
       const fam = String(s.fontFamily || '').split(',')[0].trim().replace(/^["']|["']$/g, '');
       if (!fam) continue;
@@ -347,10 +351,13 @@ function identityCandidates(desk, manifestThemeColor) {
     if (!members || members.length < 2) { ordered.push({ name, v, signal: `${name} as computed on :root${v.inline ? ' (set at runtime by script)' : ''}` }); continue; }
     if (members.done) continue;
     members.done = true;
+    // By IDENTITY ROLE first (logo, header, primary CTA, ... in that order),
+    // then by scale order - never by declaration order (review: a link tint
+    // declared first beat the step the logo is drawn in).
     let pick = null;
-    for (const mem of members) {
-      const hit = onIdentity.find(([h]) => deltaE(h, mem.v.hex) <= 2.3);
-      if (hit) { pick = { mem, why: `the step of ${m[1]}-* the site renders on its ${hit[1]}` }; break; }
+    for (const [h, where] of onIdentity) {
+      const mem = members.slice().sort((a, b) => a.step - b.step).find((x) => deltaE(h, x.v.hex) <= 2.3);
+      if (mem) { pick = { mem, why: `the step of ${m[1]}-* the site renders on its ${where}` }; break; }
     }
     if (!pick) {
       const counted = members.map((mem) => ({ mem, n: renderedCount.get(String(mem.v.hex).toLowerCase()) || 0 })).filter((x) => x.n >= 2).sort((a, b) => b.n - a.n)[0];

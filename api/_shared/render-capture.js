@@ -90,7 +90,7 @@ function capturePage(opts) {
   const C_WORDS = new RegExp(cc.words || '\\b(cookies?|consent)\\b', 'i');
   const structuralEl = (el) => el === document.body || el === document.documentElement || /^(MAIN|NAV|HEADER)$/.test(el.tagName) || !!el.querySelector('main,h1,nav,[role=navigation]');
   const consentRoots = [];
-  try { if (cc.vendor) document.querySelectorAll(cc.vendor).forEach((el) => consentRoots.push(el)); } catch (_) { /* bad selector */ }
+  try { if (cc.vendor) document.querySelectorAll(cc.vendor).forEach((el) => { if (!structuralEl(el)) consentRoots.push(el); }); } catch (_) { /* bad selector */ }
   try { document.querySelectorAll('[data-lcos-hidden]').forEach((el) => consentRoots.push(el)); } catch (_) { /* none */ }
   for (const el of (document.body ? document.body.querySelectorAll('*') : [])) {
     if (consentRoots.some((r) => r.contains(el))) continue;

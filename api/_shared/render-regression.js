@@ -621,8 +621,22 @@ async function fallbackDrawn(page, fonts) {
   }
   if (!Object.keys(probes).length) return out;
   const drawn = await require('./brand-render.js').drawnFaces(page, Object.fromEntries(Object.entries(probes).map(([k, v]) => [k, v.sel]))).catch(() => ({}));
-  for (const [k, v] of Object.entries(probes)) if (drawn[k] && drawn[k].family) out[String(v.family).toLowerCase()] = drawn[k].family;
+  // Keyed by SLOT (review: heading and body can share one brand family with
+  // different fallback stacks; keyed by family, the body's overwrote the heading's).
+  for (const [k, v] of Object.entries(probes)) if (drawn[k] && drawn[k].family) out[k.replace(/^fb-/, '')] = drawn[k].family;
   return out;
+}
+
+/** The fallback face that applies to a mailer component: heading -> the heading slot, body copy -> body, a button -> the slot whose family it uses. */
+function fallbackFaceFor(component, family, fonts, bySlot) {
+  const f = fonts || {};
+  const c = String(component || '');
+  let slot = /heading|headline|display/.test(c) ? 'heading' : (/body/.test(c) ? 'body' : '');
+  if (!slot) {
+    const fam = String(family || '').toLowerCase();
+    slot = f.body && String(f.body.family).toLowerCase() === fam ? 'body' : (f.heading && String(f.heading.family).toLowerCase() === fam ? 'heading' : 'body');
+  }
+  return (bySlot || {})[slot] || '';
 }
 
 /** The second shots, ~500 ms later, then the masked comparison per region. */
@@ -714,7 +728,7 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
         // The engine reports the face by the FILE's own name, not the CSS
         // alias, so the brand font is recognised by the role's declared family.
         const fam = roleFamily[row.component];
-        const fb = fallbackFaces[String(fam || '').toLowerCase()];
+        const fb = fallbackFaceFor(row.component, fam, m.fonts || {}, fallbackFaces);
         const lic = row.kind === 'face' && licenceExempt(row.ours, fam, brandFontNames, fb);
         mailRows.push(Object.assign(row, { component: `${style}: ${row.component}` }, lic ? { licence_exempt: true, licence_family: fam, licence_fallback: fb } : {}));
       }
@@ -869,5 +883,5 @@ function summariseComponents(rows, regions) {
 module.exports = {
   TOLERANCE, PIXEL_LIMIT, MISMATCH_LIMIT, MAX_ITER, STRUCTURAL_LIMIT, PERCEPTUAL_LIMIT,
   deltaE2000, lab, compareToken, pixelRatio, judge, scoreOf, lpPairs, emailPairs, adPairs,
-  sampleFrom, brandFor, brandAsApplied, renderOurs, repair, run, MAILER_STYLES, facePairs, licenceExempt,
+  sampleFrom, brandFor, brandAsApplied, renderOurs, repair, run, MAILER_STYLES, facePairs, licenceExempt, fallbackDrawn, fallbackFaceFor,
 };
