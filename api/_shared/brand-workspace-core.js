@@ -1562,16 +1562,33 @@ async function removeBrandAssets(auth, wsId) {
   try { e = env(); } catch (_) { return { removed: 0, note: '' }; }
   const base = `${e.url}/storage/v1/object`;
   const headers = { apikey: e.anon, authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' };
-  let items;
-  try {
-    const listed = await fetch(`${base}/list/brand-assets`, { method: 'POST', headers, body: JSON.stringify({ prefix: wsId, limit: 1000, offset: 0 }), cache: 'no-store' });
-    // No bucket (the migration not applied yet) is nothing to orphan.
-    if (!listed.ok) return { removed: 0, note: `The brand-assets listing answered ${listed.status}, so no hosted files were found to remove.` };
-    items = await listed.json();
-  } catch (err) {
-    return { removed: 0, note: `Hosted brand files could not be listed (${(err && err.message) || 'storage did not answer'}).` };
+  // A listing that did not answer is NOT an empty folder: deleting the brand
+  // on it would orphan every public file it could not see. So anything but a
+  // readable list (or Storage saying the bucket itself does not exist, when no
+  // file can be in it) stops the delete with a sentence.
+  const refuse = (why) => {
+    const er = new Error(`The hosted files of this brand (brand-assets/${wsId}/) could not be listed (${why}), so nothing was deleted: deleting the brand without knowing what it hosts could leave public files behind. Try again.`);
+    er.status = 502;
+    return er;
+  };
+  const PAGE = 1000;
+  const paths = [];
+  for (let offset = 0; ; offset += PAGE) {
+    let listed;
+    try {
+      listed = await fetch(`${base}/list/brand-assets`, { method: 'POST', headers, body: JSON.stringify({ prefix: wsId, limit: PAGE, offset }), cache: 'no-store' });
+    } catch (err) { throw refuse((err && err.message) || 'storage did not answer'); }
+    let items = null;
+    try { items = await listed.json(); } catch (_) { items = null; }
+    if (!listed.ok) {
+      const said = items && typeof items === 'object' ? String(items.error || items.message || '') : '';
+      if ((listed.status === 400 || listed.status === 404) && /^bucket not found$/i.test(said.trim())) return { removed: 0, note: '' };
+      throw refuse(`it answered ${listed.status}${said ? ': ' + said.slice(0, 120) : ''}`);
+    }
+    if (!Array.isArray(items)) throw refuse('its answer was not a list');
+    for (const x of items) if (x && x.name && x.id !== null) paths.push(`${wsId}/${x.name}`);
+    if (items.length < PAGE) break;
   }
-  const paths = (Array.isArray(items) ? items : []).filter((x) => x && x.name && x.id !== null).map((x) => `${wsId}/${x.name}`);
   if (!paths.length) return { removed: 0, note: '' };
   let res;
   try {

@@ -2357,6 +2357,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function originOf(f) {
     var r = origins()[f];
     if (r && r.origin) return r.origin;
+    // A rendered read of the brand's site records its fields in
+    // brand_data.field_origin (design-system.js); that is not the operator's.
+    var fo = brand && brand.brand_data && brand.brand_data.field_origin;
+    if (fo && typeof fo[f] === 'string' && fo[f]) return fo[f];
     var v = getField(f);
     // An unticked "never use em dashes" is a choice too: the default is ticked.
     return (legacyOrigins && (filled(v) || v === false)) ? 'user' : '';
@@ -2466,7 +2470,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* ── reading ── */
   async function docRead(job, label) {
     if (DOC.busy) return;
-    DOC.busy = true; DOC.error = null; DOC.status = 'Reading ' + label + '...'; render();
+    DOC.busy = true; DOC.error = null; DOC.errorTitle = ''; DOC.status = 'Reading ' + label + '...'; render();
     try {
       var rep = await job();
       docTook(rep);
@@ -2518,7 +2522,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function docApply() {
     var rep = DOC.report;
     if (!rep || DOC.busy) return;
-    DOC.busy = true;
+    DOC.busy = true; DOC.error = null; DOC.errorTitle = '';
     DOC.snapshot = JSON.parse(JSON.stringify(brand));
     DOC.added = [];
     var f = rep.fields, results = [];
@@ -2618,7 +2622,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var kept = results.filter(function (r) { return r.status === 'kept'; }).length;
       DOC.status = 'Applied ' + applied + ' value(s) from ' + sourceName + '. ' + (kept ? kept + ' kept because you typed them. ' : '') + (rep.missing || []).length + ' still missing. Press Revert to undo all of it.';
     } catch (e) {
+      // ALL OR NOTHING. A step that failed part-way (the device store refused
+      // the logo or the book, a host upload threw) must not leave the fields
+      // it had already written: put the brand back exactly as it was, remove
+      // the files this attempt kept, and say so.
+      var keepId = { id: brand.id, slug: brand.slug };
+      brand = JSON.parse(JSON.stringify(DOC.snapshot));
+      if (keepId.id) { brand.id = keepId.id; brand.slug = keepId.slug || brand.slug; }
+      for (var j = 0; j < DOC.added.length; j++) {
+        try { await window.BrandContext.files.remove(fileOwnerId(), DOC.added[j].id); } catch (_) { /* never kept */ }
+      }
+      delete ASSET.logo; delete ASSET.document;
+      DOC.results = null; DOC.snapshot = null; DOC.added = [];
+      snapshotSeen();
+      DOC.status = '';
       DOC.error = e;
+      DOC.errorTitle = 'Nothing from ' + sourceName + ' was applied; the brand is exactly as it was';
     } finally {
       DOC.busy = false;
       render();
@@ -2775,7 +2794,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<button type="button" class="btn" id="docUrlRun"' + (busy ? ' disabled aria-disabled="true"' : '') + '>' + (busy ? 'Reading...' : 'Read the link') + '</button>' +
       '</div>' +
       '<p class="asset-note" role="status" id="docStatus">' + esc(DOC.status || '') + '</p>';
-    if (DOC.error) out += window.LifecycleFailure.html(DOC.error, { title: 'Nothing was read and nothing was applied' });
+    if (DOC.error) out += window.LifecycleFailure.html(DOC.error, { title: DOC.errorTitle || 'Nothing was read and nothing was applied' });
     if (DOC.report) out += docReport(DOC.report);
     return out + '</div>';
   }
@@ -2883,13 +2902,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { ASSET[kind] = { note: (e && e.message) || 'That file could not be used.' }; }
     render();
   }
-  /** A URL the operator pasted: checked to load, used as-is, never re-hosted. */
-  function onAssetUrl(kind, input) {
+  /** A URL the operator pasted: checked to load, used as-is, never re-hosted.
+      Typing already wrote the field, so an address that is refused or does not
+      load puts back the logo or icon that was there (`accepted`, taken when the
+      control was drawn), with its origin: a failed paste never blanks a brand's
+      mark, or hides the uploaded file a blank URL falls back to. */
+  function onAssetUrl(kind, input, accepted) {
     var v = String(input.value || '').trim();
+    var path = kind === 'logo' ? 'logo_url' : (kind === 'favicon' ? 'favicon_url' : '');
+    function refuse(note) {
+      var had = '';
+      if (path && accepted) {
+        brand[path] = accepted.value;
+        if (accepted.origin) origins()[path] = accepted.origin; else delete origins()[path];
+        lastSeen[path] = normVal(accepted.value);
+        had = accepted.value || (bfiles()[kind] && bfiles()[kind].id ? 'file' : '');
+      }
+      ASSET[kind] = { note: note + (had ? ' The ' + (kind === 'logo' ? 'logo' : 'app icon') + ' you had is kept.' : '') };
+      render();
+    }
     if (!v) { ASSET[kind] = { note: kind === 'image' ? 'Paste the address of an image first.' : '' }; render(); return; }
     var u;
-    try { u = new URL(v); } catch (_) { ASSET[kind] = { note: 'That is not a web address.' }; render(); return; }
-    if (u.protocol !== 'https:' && u.protocol !== 'http:') { ASSET[kind] = { note: 'Only http and https addresses can be used.' }; render(); return; }
+    try { u = new URL(v); } catch (_) { refuse('That is not a web address.'); return; }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') { refuse('Only http and https addresses can be used.'); return; }
     var img = new Image();
     img.onload = function () {
       var own = ownHost(u.host);
@@ -2908,7 +2943,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ASSET[kind] = { note: (img.naturalWidth ? 'Loaded (' + img.naturalWidth + '×' + img.naturalHeight + ' px). ' : 'Loaded. ') + bits.join(' ') };
       render();
     };
-    img.onerror = function () { ASSET[kind] = { note: 'That address did not load as an image. Check it opens in a browser tab, or upload the file instead.' }; render(); };
+    img.onerror = function () { refuse('That address did not load as an image. Check it opens in a browser tab, or upload the file instead.'); };
     img.src = v;
   }
   function ownHost(host) {
@@ -2977,8 +3012,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     document.fonts.add(face);
     var format = (file.name.match(FONT_EXT) || ['', ''])[1].toLowerCase();
     var type = { woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', otf: 'font/otf' }[format];
-    await storeAsset('font:' + slot, new Blob([buf], { type: type }), { name: file.name, family: family, format: format });
-    brand.typography[slot] = { family: family, stack: "'" + family + "'," + GENERIC[slot], google: false, weights: (brand.typography[slot] && brand.typography[slot].weights) || '400;600;700' };
+    var ref = await storeAsset('font:' + slot, new Blob([buf], { type: type }), { name: file.name, family: family, format: format });
+    brand.typography[slot] = selfHostedFont(slot, family, ref.hosted_url, format);
     setOrigin('typography.' + slot, 'user', { file: file.name });
   }
   async function useFontUrl(slot, input) {
@@ -3007,10 +3042,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var bf = bfiles(); bf.fonts = bf.fonts || {};
     if (bf.fonts[slot] && bf.fonts[slot].id && window.BrandContext && window.BrandContext.files) window.BrandContext.files.remove(fileOwnerId(), bf.fonts[slot].id).catch(function () {});
     bf.fonts[slot] = { url: v, family: family, source: 'url', format: (u.pathname.match(FONT_EXT) || ['', ''])[1].toLowerCase() };
-    brand.typography[slot] = { family: family, stack: "'" + family + "'," + GENERIC[slot], google: false, weights: (brand.typography[slot] && brand.typography[slot].weights) || '400;600;700' };
+    brand.typography[slot] = selfHostedFont(slot, family, v, bf.fonts[slot].format);
     setOrigin('typography.' + slot, 'user', { url: v });
     ASSET[kind] = { note: family + ' loaded from ' + u.host + '. Every generated page and email references this URL.' };
     render();
+  }
+  /** A family the brand serves itself. `src` is the https file every generated
+      page and email declares in @font-face (brand-runtime.fontFaces); a file
+      kept only on this device has none yet, and assets carry the hosted-font
+      marker instead. */
+  function selfHostedFont(slot, family, src, format) {
+    var t = { family: family, stack: "'" + family + "'," + GENERIC[slot], google: false, weights: (brand.typography[slot] && brand.typography[slot].weights) || '400;600;700' };
+    if (src && /^https:\/\//i.test(src)) { t.src = src; if (format) t.format = format; }
+    return t;
   }
   /** Fonts this brand keeps as files: registered so the wizard previews them. */
   function registerFontRefs() {
@@ -3044,6 +3088,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ref.hosted_url = h.url; changed = true;
       if (refs[i][0] === 'logo' && !brand.logo_url) brand.logo_url = h.url;
       if (refs[i][0] === 'favicon' && !brand.favicon_url) brand.favicon_url = h.url;
+      if (refs[i][0].indexOf('font:') === 0) {
+        var fs = refs[i][0].slice(5), cur = brand.typography[fs];
+        if (cur && cur.family === ref.family && cur.google === false && !cur.src) brand.typography[fs] = selfHostedFont(fs, ref.family, h.url, ref.format);
+      }
     }
     if (changed) { setTimeout(function () { save(true); }, 0); }
   }
@@ -3089,7 +3137,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
     Array.prototype.forEach.call(c.querySelectorAll('input[data-asset-url]'), function (inp) {
       var kind = inp.getAttribute('data-asset-url');
-      if (kind !== 'image') inp.addEventListener('change', function () { onAssetUrl(kind, inp); });
+      if (kind === 'image') return;
+      var p = inp.getAttribute('data-path');
+      var o = p && origins()[p];
+      var accepted = { value: (p && brand[p]) || '', origin: o ? JSON.parse(JSON.stringify(o)) : null };
+      inp.addEventListener('change', function () { onAssetUrl(kind, inp, accepted); });
     });
     Array.prototype.forEach.call(c.querySelectorAll('[data-asset-add]'), function (b) {
       b.addEventListener('click', function () { onAssetUrl('image', c.querySelector('input[data-asset-url="image"]')); });

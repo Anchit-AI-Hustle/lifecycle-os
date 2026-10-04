@@ -396,25 +396,34 @@ function typographyLine(t) {
  * whose FILE the record names (typography[slot].src, an https URL - uploaded to
  * the brand's storage, or a URL the operator pasted; 2026-10-04). Without the
  * second, a family the brand serves itself reached every asset by name only and
- * rendered in the fallback. One place, so every renderer loads fonts the same way.
+ * rendered in the fallback. One place, so every renderer loads fonts the same
+ * way: design-system.resolve() adds fontFaces() to the faces it read off the
+ * rendered site, so the /lp page and every email built from it carry them too.
  */
+const FONT_FMT = { woff2: 'woff2', woff: 'woff', ttf: 'truetype', truetype: 'truetype', otf: 'opentype', opentype: 'opentype' };
+function fontFaces(t) {
+  const faces = [];
+  for (const slot of ['heading', 'body']) {
+    const f = t && t[slot];
+    if (!f || !f.family || f.google !== false) continue;
+    if (!/^https:\/\/[^\s"'()<>\\]+$/i.test(String(f.src || ''))) continue;
+    const fam = String(f.family).replace(/['"\\<>{};]/g, '').trim();
+    const fmt = FONT_FMT[String(f.format || '').toLowerCase()];
+    const face = `@font-face{font-family:'${fam}';src:url('${f.src}')${fmt ? ` format('${fmt}')` : ''};font-display:swap}`;
+    if (fam && !faces.includes(face)) faces.push(face);
+  }
+  return faces.join('');
+}
 function fontImport(t) {
   const fams = [];
-  const faces = [];
-  const FMT = { woff2: 'woff2', woff: 'woff', ttf: 'truetype', truetype: 'truetype', otf: 'opentype', opentype: 'opentype' };
   for (const slot of ['heading', 'body']) {
     const f = t && t[slot];
     if (f && f.family && f.google !== false) {
       fams.push(`family=${String(f.family).trim().replace(/\s+/g, '+')}:wght@${String(f.weights || '400;600;700').replace(/[^0-9;]/g, '')}`);
-    } else if (f && f.family && /^https:\/\/[^\s"'()<>]+$/i.test(String(f.src || ''))) {
-      const fam = String(f.family).replace(/['"\\<>{};]/g, '').trim();
-      const fmt = FMT[String(f.format || '').toLowerCase()];
-      const face = `@font-face{font-family:'${fam}';src:url('${f.src}')${fmt ? ` format('${fmt}')` : ''};font-display:swap}`;
-      if (fam && !faces.includes(face)) faces.push(face);
     }
   }
   const imp = fams.length ? `@import url('https://fonts.googleapis.com/css2?${fams.join('&')}&display=swap');` : '';
-  return imp + faces.join('');
+  return imp + fontFaces(t);
 }
 
 /**
@@ -581,4 +590,5 @@ module.exports = {
   // put the SAME line into a <style> (pipeline-core.tokens): one derivation,
   // not two that drift.
   fontImport,
+  fontFaces,
 };

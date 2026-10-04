@@ -305,6 +305,43 @@ test('Apply fills every stated field except a typed one, says which, shows the h
   expect(log.errors).toEqual([]);
 });
 
+test('Apply is all or nothing: when the device store refuses a file part-way, every field it had written is put back and the kept files removed', async ({ page }) => {
+  const log = await open(page, world);
+  await page.fill('input[data-path="name"]', 'Harbour Typed');
+  await readBook(page);
+  // The logo is kept; then the device store refuses the brand book itself
+  // (a full disk, a private window that drops IndexedDB part-way).
+  await page.evaluate(() => {
+    const F = window.BrandContext.files;
+    const real = F.put.bind(F);
+    window.__puts = [];
+    F.put = async (brandId, slot, blob, info) => {
+      if (slot === 'document') throw Object.assign(new Error('The device store is full, so the brand book could not be kept.'), { name: 'QuotaExceededError' });
+      const meta = await real(brandId, slot, blob, info);
+      window.__puts.push({ brandId, slot, id: meta.id });
+      return meta;
+    };
+  });
+  await page.click('#docApply');
+  await expect(page.locator('#docBlock')).toContainText('Nothing from harbourlight-brand-book.pdf was applied; the brand is exactly as it was');
+  await expect(page.locator('#docBlock')).toContainText('The device store is full');
+  expect(await page.locator('#docRevert').count(), 'a Revert was offered for an apply that did not happen').toBe(0);
+  await expect(page.locator('input[data-path="name"]')).toHaveValue('Harbour Typed');
+  await expect(page.locator('input[data-path="tagline"]'), 'a field from the failed apply stayed').toHaveValue('');
+  const left = await page.evaluate(async () => {
+    const puts = window.__puts;
+    const ids = [];
+    for (const p of puts) ids.push(...(await window.BrandContext.files.list(p.brandId)).map((f) => f.id));
+    return { puts: puts.map((p) => p.slot), ids };
+  });
+  expect(left.puts, 'the logo was never kept, so the test proved nothing').toEqual(['logo']);
+  expect(left.ids, 'a file from the failed apply stayed on the device').toEqual([]);
+  await page.locator('.step-pip[data-step="2"]').click();
+  await expect(page.locator('input[type=text][data-path="palette.primary"]')).toHaveValue('#1F5FD0');
+  expect(log.dialogs).toEqual([]);
+  expect(log.errors).toEqual([]);
+});
+
 test('the applied document becomes the brand: saved with its origins, activated, and painted as --brand-* tokens', async ({ page }) => {
   const log = await open(page, world);
   await readBook(page);
@@ -485,6 +522,27 @@ test('logo, app icon and imagery each take a file or a URL; a refused file is a 
   await page.fill('input[data-asset-url="logo"]', DOCS + '/missing.png');
   await page.locator('input[data-asset-url="logo"]').dispatchEvent('change');
   await expect(note('logo')).toContainText('did not load as an image');
+  // A paste that does not load never blanks the mark: the logo that was there
+  // is put back, in the field and in the record.
+  await expect(note('logo')).toContainText('The logo you had is kept.');
+  await expect(page.locator('input[data-path="logo_url"]')).toHaveValue(DOCS + '/logo.png');
+  await page.fill('input[data-asset-url="logo"]', 'not an address');
+  await page.locator('input[data-asset-url="logo"]').dispatchEvent('change');
+  await expect(note('logo')).toContainText('That is not a web address. The logo you had is kept.');
+  await expect(page.locator('input[data-path="logo_url"]')).toHaveValue(DOCS + '/logo.png');
+  // The icon was an uploaded FILE (no URL): a failed paste leaves the file in use.
+  await page.fill('input[data-asset-url="favicon"]', DOCS + '/missing-icon.png');
+  await page.locator('input[data-asset-url="favicon"]').dispatchEvent('change');
+  await expect(note('favicon')).toContainText('The app icon you had is kept.');
+  await expect(page.locator('input[data-path="favicon_url"]')).toHaveValue('');
+  await expect(page.locator('[data-asset-prev="favicon"] img')).toHaveCount(1);
+  await page.fill('input[data-path="name"]', 'Harbourlight Goods');
+  await page.click('[data-go="next"]');
+  await expect.poll(() => page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('lifecycle.brand.device.workspaces') || 'null');
+    const w = d && d.workspaces && d.workspaces[0];
+    return w ? { logo: w.logo_url, icon: w.favicon_url, file: !!(w.brand_data.brand_files.favicon && w.brand_data.brand_files.favicon.id) } : null;
+  })).toEqual({ logo: DOCS + '/logo.png', icon: '', file: true });
   expect(log.dialogs).toEqual([]);
   expect(log.errors).toEqual([]);
 });
@@ -532,6 +590,57 @@ test('a font is a file or a URL, and it actually loads; a file that is not a fon
   await page.click('[data-font-load="heading"]');
   await expect(page.locator('[data-asset-note="font:heading"]')).toContainText('has to be https');
   expect(log.errors).toEqual([]);
+
+  // The FILE reaches the brand record, not only brand_files: the saved
+  // typography names the https URL every generated asset declares in
+  // @font-face. The heading font is a file on this device, so it has no src
+  // (its assets carry the hosted-font marker instead).
+  await page.click('[data-go="next"]');
+  await expect.poll(() => page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('lifecycle.brand.device.workspaces') || 'null');
+    return d && d.workspaces && d.workspaces[0] ? d.workspaces[0].typography : null;
+  })).toMatchObject({ body: { family: 'HarbourBody', google: false, src: DOCS + '/fonts/harbour.woff', format: 'woff' } });
+  const typo = await page.evaluate(() => JSON.parse(localStorage.getItem('lifecycle.brand.device.workspaces')).workspaces[0].typography);
+  expect(typo.heading.family).toBe('HarbourHead');
+  expect(typo.heading.src, 'a file only on this device was given a URL').toBeUndefined();
+
+  // The record, built into the real assets: every one declares the face.
+  const face = `@font-face{font-family:'HarbourBody';src:url('${DOCS}/fonts/harbour.woff') format('woff');font-display:swap}`;
+  const brand = { id: '44444444-4444-4444-8444-444444444444', name: 'Harbourlight Goods', palette: { primary: '#1a6b3c', accent: '#b8531f', ink: '#15201c', surface: '#fbfaf6' }, typography: typo, voice: {}, regions: [{ code: 'US', store_url: 'https://harbourlight.example', home: true }], claims: [] };
+  const runtime = require('../api/_shared/brand-runtime.js');
+  expect(runtime.fontImport(typo)).toContain(face);
+  expect(runtime.brandBlock(brand), 'the prompt never tells a writer to load the face').toContain(face);
+  const { buildFallbackLanding } = require('../api/_shared/landing-fallback.js');
+  expect(buildFallbackLanding({ id: 'cid-font', region: 'us', brand }), 'the /lp fallback page').toContain(face);
+  const sbPlan = require('../api/_shared/smart-brain-plan.js');
+  const lp = sbPlan.lpHtml({ brand, market: 'US', heroProduct: { title: 'Lantern' } }, { landing: { headline: 'Light, made by hand' } }, 'cid-font', null);
+  expect(lp, 'the /lp/:id page').toContain(face);
+  // The html stage's own renderer (the path every provider being down takes).
+  const LLM = require.resolve('../api/_shared/llm.js');
+  const realLlm = require.cache[LLM];
+  const real = require(LLM);
+  const down = async () => { throw new Error('every provider is down'); };
+  for (const k of Object.keys(real)) down[k] = real[k];
+  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
+  const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+  for (const k of ENV_KEYS) delete process.env[k];
+  const realFetch = global.fetch;
+  global.fetch = async (u) => { throw new Error('no network in this test: ' + u); };
+  try {
+    const stage = require('../api/ai/pipeline/html.js');
+    const out = await callShipped(stage, {
+      method: 'POST', url: '/api/ai/pipeline/html',
+      headers: { origin: 'https://app.example.test', referer: 'https://app.example.test/studio', authorization: 'Bearer ' + TOKEN_A, 'x-lifecycle-token': TOKEN_A },
+      body: { variant: 'A', brand, market: 'US', plan: {}, strategy: {} },
+    });
+    expect(out.code, JSON.stringify(out.body).slice(0, 300)).toBe(200);
+    expect(out.body._heuristic).toBe(true);
+    expect(String(out.body.html || ''), 'the mailer').toContain(face);
+  } finally {
+    global.fetch = realFetch;
+    for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+    if (realLlm) require.cache[LLM] = realLlm; else delete require.cache[LLM];
+  }
 });
 
 /* ═══ 8. device storage: per account, deleted with the brand, never in an email ═ */
@@ -738,6 +847,47 @@ test('a linked document is cut off at the cap however the host describes it, and
     expect(world.net.emitted, `${p}: bytes pulled from the host`).toBeLessThanOrEqual(cap + 3 * 65536);
     expect(world.net.cancelled, `${p}: the host's stream was not cancelled`).toBe(true);
   }
+});
+
+test('in the browser too, a CORS download is cut off at the cap and its stream cancelled, and the server is not asked to fetch it again', async ({ page }) => {
+  await open(page, world);
+  const out = await page.evaluate(async () => {
+    const BD = window.BrandDocument;
+    const cap = 2 * 1048576;
+    BD.LIMITS.document = cap;                                 // the shipped reader, a smaller cap for the test
+    const realFetch = window.fetch;
+    const runs = {};
+    for (const kind of ['endless', 'liar', 'declared']) {
+      const net = { emitted: 0, cancelled: false, server: 0 };
+      window.fetch = async (url, init) => {
+        if (!/\/guide-/.test(String(url))) return realFetch(url, init);
+        // 64 MB if read to the end; pulled a chunk at a time.
+        const stream = new ReadableStream({
+          pull(c) { if (net.emitted >= 64 * 1048576) { c.close(); return; } net.emitted += 65536; c.enqueue(new Uint8Array(65536)); },
+          cancel() { net.cancelled = true; },
+        });
+        const headers = { 'content-type': 'application/pdf' };
+        if (kind === 'liar') headers['content-length'] = '1000';
+        if (kind === 'declared') headers['content-length'] = String(64 * 1048576);
+        return new Response(stream, { status: 200, headers });
+      };
+      let error = null;
+      try { await BD.readUrl('https://cdn.harbourlight.example/guide-' + kind + '.pdf', { viaServer: async () => { net.server++; throw new Error('asked the server'); } }); }
+      catch (e) { error = { code: e.code, message: e.message }; }
+      runs[kind] = { error, emitted: net.emitted, cancelled: net.cancelled, server: net.server };
+    }
+    window.fetch = realFetch;
+    return { cap, runs };
+  });
+  for (const [kind, r] of Object.entries(out.runs)) {
+    expect(r.error && r.error.code, kind).toBe('too_large');
+    expect(r.error.message, kind).toMatch(/larger than 2 MB.*download was stopped/);
+    expect(r.emitted, `${kind}: bytes pulled from the host`).toBeLessThanOrEqual(out.cap + 3 * 65536);
+    expect(r.cancelled, `${kind}: the host's stream was not cancelled`).toBe(true);
+    expect(r.server, `${kind}: an oversized file was fetched again through the server`).toBe(0);
+  }
+  // A declared length past the cap is refused before a byte is read.
+  expect(out.runs.declared.emitted).toBeLessThanOrEqual(65536);
 });
 
 test('a typed value the document repeats stays typed, so a later document cannot take it', async ({ page }) => {
