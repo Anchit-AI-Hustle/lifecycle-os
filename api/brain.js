@@ -281,7 +281,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|social-approve|social-skip|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -907,6 +907,18 @@ module.exports = async function handler(req, res) {
       // dispatch-webhook is routed ABOVE the switch, before body(req) runs.
       // See the comment there and _shared/platform-webhooks.js.
 
+      // ── Social Integration Gateway (2026-10-04) ─────────────────────────
+      // Read + update for Meta, TikTok, Pinterest, YouTube (and the existing
+      // Google Ads adapter): status, reads, the inbox of verified webhook
+      // events, underperformance flags, thresholds and LIVE APPROVAL. Every
+      // write it starts is a dispatch job behind the three switches. A signed
+      // in caller only; the workspace is the one scoping resolved for them.
+      case 'social-gateway': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return await require('./_shared/social-gateway-core.js').handle(req, res, { auth, workspaceId: __wsId, body: b });
+      }
+
       case 'deliverability-domain': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
@@ -1253,6 +1265,12 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           const sweep = await universe.refreshDueWorkspaces({ maxWorkspaces: 3 });
           steps.competitor_universe = { due: sweep.due, refreshed: sweep.refreshed, added: sweep.added, note: sweep.note };
         } catch (e) { steps.competitor_universe = { error: e.message }; }
+        // Social gateway tokens (2026-10-04): every OAuth connection whose
+        // token expires within 7 days is refreshed through its platform's own
+        // documented flow; a refusal marks it needs_reauth for the hub. Rides
+        // this cron because both Hobby crons are taken.
+        try { steps.social_tokens = await require('./_shared/social-gateway-core.js').refreshDueTokens({ withinDays: 7 }); }
+        catch (e) { steps.social_tokens = { error: e.message }; }
         // Snowflake → Supabase daily mirror (historical/deep metrics for the
         // Knickgasm3DConnectorEngine). No-op stub when SNOWFLAKE_* env is unset.
         try { steps.snowflake_sync = snowflake ? await snowflake.runSync({ source: 'cron' }) : { skipped: true }; }
