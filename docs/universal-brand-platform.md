@@ -198,6 +198,14 @@ pixels masked; the worst region at most 3% different). Approval needs both, and 
 A repair is **kept only if the composite strictly improves**; otherwise it is put back and listed under
 `reverted`.
 
+**What is never measured, and what a call to action is.** Every element inside a consent, cookie or CMP
+container is excluded from every role, whether or not the overlay could be hidden; hiding works through
+the CSSOM (so a strict Content-Security-Policy cannot defeat it) and is verified before it is reported.
+A control is a call to action only if its fill or border stands at least 1.5:1 off the page behind it.
+A numbered brand token scale contributes the step the site renders on its identity elements. A Google
+Fonts family the site hosts itself is recognised by name, and a face still loading is waited for before
+the page is measured. `readSite` takes `perRequestMs` and `firstDocumentMs`, both bounded by the deadline.
+
 **Fonts: by reference, never copied.** The site's families and the URLs of their files are recorded and
 loaded by reference to measure the site and preview our landing page. No site font file is ever copied
 or re-hosted, and a generated email carries no `@font-face`: a family that is not openly licensed is

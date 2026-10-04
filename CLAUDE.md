@@ -304,6 +304,29 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
   Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
   a separate template builder, a TypeScript/Next.js restructure.
+- **Review of #134 and the 40-brand harvest found eight more (2026-10-04)**, each a local fixture read
+  through the shipped reader in `tests/rendered-read-defects.spec.js`, each mutation-verified:
+  (1) a page whose CSP has no `'unsafe-inline'` in `style-src` REFUSES an injected `<style>` (the reader
+  honours CSP), so an overlay was reported hidden while still painted: hiding and freezing now go through
+  the CSSOM (`el.style.setProperty(..., 'important')`, which CSP does not govern), the stylesheet is
+  verified with a probe, every hidden node is VERIFIED with `getComputedStyle` (or removed from the
+  throwaway DOM), and one that could not be hidden is reported as such - the test reads the pixels of the
+  screenshot. (2) the font legal gate excuses a drawn face only when it is the face the brand font's
+  recorded FALLBACK stack draws on that engine (a probe span measured by CDP), never "any face".
+  (3) every element inside a consent/cookie/CMP container (vendor ids incl. TrustArc, names, a dialog
+  worded as consent) is excluded from EVERY role measurement in `render-capture.js`, hidden or not; a
+  wrapper that holds `main`/`h1`/`nav` is never one. (4) a call to action must stand off the page:
+  fill (or border) at least **1.5:1** non-text contrast against what is behind it - WCAG 1.4.11 asks 3:1
+  where nothing else identifies a component, and pastel brand buttons lean on their label, so 1.5:1 is the
+  floor below which a fill is a tint (a `#ecf0f4` tab at 1.15:1 was one brand's "primary CTA").
+  (5) a numbered identity token SCALE (`--x-brand-25 ... -900`) gives the step rendered on the logo,
+  header, CTA, links or headings (else the most-rendered step); an unrendered scale proposes nothing.
+  (6) `readSite` threads `perRequestMs` and a separate `firstDocumentMs` to every hop, bounded by the
+  deadline (the harvest gives the home page 30 s; six sites died at the 9 s default). (7) a Google Fonts
+  family the site HOSTS ITSELF is recognised by name (`data/google-fonts/families.json`, 1908 names from
+  google-font-metadata 6.0.8, MIT) and loadable by reference. (8) every face the visible text asks for
+  that is declared and not loaded is loaded and CONFIRMED (`document.fonts.load` + `check`, bounded)
+  before the page is measured.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
