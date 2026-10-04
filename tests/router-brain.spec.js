@@ -510,6 +510,31 @@ add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: 
       expect(a.approved_claims).toBeUndefined();
       expect(a.offer).toBeUndefined();
     },
+  }, {
+    // brand-runtime.resolve() answers TENANT ZERO (a record with no id) when
+    // it cannot read the workspace. The copy is linted as the workspace's own
+    // row, or as no brand at all (unchecked) - never as the fallback.
+    name: 'a resolve() fallback to tenant zero is not linted as: the workspace\'s own row is read, and none means no brand',
+    run: { json: { asset_id: 'a1', channel: 'email' } },
+    stubs: () => {
+      S.on(BRAND_RT, 'resolve', async () => ({ slug: 'tenant-zero', name: 'Tenant Zero', industry: 'Custom sneakers' }));
+      S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND);
+      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+    },
+    expect: (r) => {
+      const a = last(M.preflight, 'run')[0];
+      expect(a.brand).toBe(BRAND);
+      expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS);
+    },
+  }, {
+    name: 'with the workspace row unreadable too, the preflight gets NO brand (unchecked), not tenant zero',
+    run: { json: { asset_id: 'a1', channel: 'email' } },
+    stubs: () => {
+      S.on(BRAND_RT, 'resolve', async () => ({ slug: 'tenant-zero', name: 'Tenant Zero', industry: 'Custom sneakers' }));
+      S.on(WS_SCOPE, 'brandForWorkspace', async () => null);
+      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'warn' }));
+    },
+    expect: (r) => { expect(last(M.preflight, 'run')[0].brand).toBeNull(); },
   }],
 });
 add('deliverability-warmup', { gate: 'user', browser: 'refuse', run: { json: { start_on: '2026-10-01', target_daily: 100, days: 3 } },

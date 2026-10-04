@@ -36,6 +36,19 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
   bank" would have blocked a publisher (statistics are claim-SHAPED only; possessive superlatives WARN).
 - Known limits, said: English lexicon only; phrase not meaning; no green-claims or Indian (ASCI) pack;
   a testimonial block with the author on its own line (no dash) is not read as an endorsement.
+- **Seven review findings on #138, fixed after it merged (each an executed test that failed first,
+  20 mutations caught)**: approved claims dedupe only WITHIN one region scope (a UK register entry
+  had inherited a US study; a GLOBAL send accepts only market-wide approvals); a stated sector or
+  industry nothing recognises is `compliance.sector_unrecognised` WARN naming it (an industry the gate
+  KNOWS has no sector pack, sneakers/news/software…, is `sector_basis: no-regulated-sector` with its
+  basis; fintech/alcohol/CBD are deliberately not on that list); a guaranteed outcome blocks even when
+  "approved" and is never briefed as usable; dispatch lints only as THIS workspace's brand
+  (`dispatch-core.trustedBrand`: `resolve()` answers tenant zero on a failed read), else UNCHECKED and
+  blocked at the queue; the offer is read server-side from the `smart_generated_campaigns` row the job
+  names (`campaign_id`, workspace-scoped; the builder stamps `campaign.offer`), never the body; a
+  recorded offer backs only what it says (`deadlineAgainst`/`stockAgainst`, from an injectable `now`:
+  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted,
+  and a disclosure anywhere in the asset (its hashtags) counts.
 
 ## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
 `api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
