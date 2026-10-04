@@ -180,9 +180,11 @@ test('an asset with no contract says so rather than reading as approved', () => 
 test('the campaign builder judges every finished asset', () => {
   const plan = fs.readFileSync(path.join(ROOT, 'api/_shared/smart-brain-plan.js'), 'utf8');
   expect(plan).toMatch(/function checkAssetContracts/);
-  expect(plan).toMatch(/checkAssetContracts\(campaign\)/);
-  // It must run on the finished artefacts, after they are built.
-  const call = plan.indexOf('checkAssetContracts(campaign);');
+  expect(plan).toMatch(/checkAssetContracts\(campaign, entry\)/);
+  // It must run on the finished artefacts, after they are built. (It takes the
+  // entry since 2026-10-04: the compliance gate in the same pass judges the
+  // assets as the slot's brand, market and offer.)
+  const call = plan.indexOf('checkAssetContracts(campaign, entry);');
   expect(call).toBeGreaterThan(plan.indexOf('attachMasterPrompts(campaign, entry);'));
   // And it must not silently rewrite copy to fit.
   const fn = plan.slice(plan.indexOf('function checkAssetContracts'), plan.indexOf('// ── Master prompts'));
