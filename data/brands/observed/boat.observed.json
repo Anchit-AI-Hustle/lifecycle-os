@@ -5,7 +5,7 @@
   "start": "https://www.boat-lifestyle.com",
   "landed": "https://www.boat-lifestyle.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:14:18.314Z",
+  "read_at": "2026-10-04T18:50:36.862Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,33 +33,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 45,
-    "mismatch": 0.55,
+    "score": 44.5,
+    "mismatch": 0.5549,
     "surfaces": {
       "landing page": {
-        "score": 46.3,
-        "mismatch": 0.5366,
+        "score": 48.1,
+        "mismatch": 0.5193,
         "done": false,
-        "tokens_off": 24,
+        "tokens_off": 26,
         "regions_off": 4
       },
       "mailer": {
-        "score": 63,
-        "mismatch": 0.3699,
+        "score": 57.1,
+        "mismatch": 0.4286,
         "done": false,
-        "tokens_off": 27,
+        "tokens_off": 30,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 60,
-        "mismatch": 0.4,
+        "score": 66.7,
+        "mismatch": 0.3333,
         "done": false,
-        "tokens_off": 4,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },
     "iterations": 2,
-    "repairs": 3,
+    "repairs": 4,
     "mismatch_limit": 0.05
   },
   "conflicts": [],

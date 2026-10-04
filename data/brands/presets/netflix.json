@@ -14,10 +14,10 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "blocked",
+      "renderer": "timeout",
       "at": "2026-10-04",
       "host": "www.netflix.com",
-      "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+      "reason": "The site could not be opened: timed out."
     }
   },
   "palette": {

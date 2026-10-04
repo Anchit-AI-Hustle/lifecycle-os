@@ -212,16 +212,16 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_MiniLED_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$1440_N_JPG$",
       "role": "photograph",
-      "alt": "Mini LED M80H",
+      "alt": "Enabling better living",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_FramePro_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/ref.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "The Frame Pro",
+      "alt": "Bespoke Refrigerator",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
