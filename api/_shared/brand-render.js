@@ -804,6 +804,14 @@ async function extractWithRender(auth, args, opts) {
       manifest: rendered.manifest, apply: rendered.apply, regression: rendered.regression,
       screenshots: rendered.screenshots, renderer_info: rendered.renderer_info,
     };
+    // The same read as a DESIGN.md, through the context pack's own renderer
+    // (google-labs-code/design.md): tokens from the computed values, the
+    // measured components documented with their provenance.
+    try {
+      const nm = (out.fields.name && out.fields.name.value) || '';
+      const doc = require('./brand-context-pack.js').renderDesignMd(out, { name: nm || undefined, website: out.start }, { observed_at: rendered.manifest.read_at });
+      out.design_md = doc.markdown;
+    } catch (e) { out.design_md_error = (e && e.message) || 'DESIGN.md could not be rendered'; }
     out.parsed_fields = parsed && parsed.fields ? { palette: parsed.fields.palette && parsed.fields.palette.proposed, heading: (parsed.fields.typography && parsed.fields.typography.heading || []).slice(0, 1), body: (parsed.fields.typography && parsed.fields.typography.body || []).slice(0, 1), scale_rows: (parsed.fields.typography && parsed.fields.typography.scale || []).length } : null;
   }
   out.wall_ms = Date.now() - t0;
