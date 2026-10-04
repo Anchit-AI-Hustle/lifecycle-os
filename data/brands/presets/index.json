@@ -23,8 +23,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#D0473E",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#6A33D8",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "Montserrat",
       "body_font": "Instrument Sans",
+      "heading_stack": "'Montserrat','Raleway',Arial,sans-serif",
+      "body_stack": "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
+      "heading_google": true,
+      "body_google": true,
+      "heading_line": "Montserrat",
+      "body_line": "Instrument Sans",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": true,
       "catalog_kind": "shopify_public",
       "placeholder_products": 0,
@@ -54,8 +86,40 @@
         "#4D4D4D",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#D51131",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#ED193B",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#4D4D4D",
+          "derived": false
+        }
+      ],
       "heading_font": "Montserrat",
       "body_font": "Faustina",
+      "heading_stack": "'Montserrat',Verdana,Arial,sans-serif",
+      "body_stack": "'Faustina',Georgia,'Times New Roman',serif",
+      "heading_google": true,
+      "body_google": true,
+      "heading_line": "Montserrat",
+      "body_line": "Faustina",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": true,
       "catalog_kind": "manual",
       "placeholder_products": 0,
@@ -86,8 +150,40 @@
         "#1A1A1A",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#E21B22",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#AF2C2C",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#1A1A1A",
+          "derived": false
+        }
+      ],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
+      "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "body_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "heading_google": true,
+      "body_google": true,
+      "heading_line": "Rethink Sans",
+      "body_line": "Rethink Sans",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": true,
       "catalog_kind": "manual",
       "placeholder_products": 0,
@@ -118,8 +214,40 @@
         "#1A1A1A",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#EB1B24",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#147014",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#1A1A1A",
+          "derived": false
+        }
+      ],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
+      "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "body_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
+      "heading_google": true,
+      "body_google": true,
+      "heading_line": "Rethink Sans",
+      "body_line": "Rethink Sans",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": true,
       "catalog_kind": "manual",
       "placeholder_products": 0,
@@ -150,8 +278,40 @@
         "#1D1D1F",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#0071E3",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#1D1D1F",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#1D1D1F",
+          "derived": false
+        }
+      ],
       "heading_font": "SF Pro Display",
       "body_font": "SF Pro Text",
+      "heading_stack": "'SF Pro Display','SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
+      "body_stack": "'SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "SF Pro Display (brand font, shown in fallback)",
+      "body_line": "SF Pro Text (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "none",
       "placeholder_products": 0,
@@ -182,8 +342,40 @@
         "#111111",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#111111",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#111111",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "Nike Futura ND",
       "body_font": "Helvetica Now Text",
+      "heading_stack": "'Nike Futura ND', \"Helvetica Now Text Medium\", Helvetica, Arial, sans-serif",
+      "body_stack": "'Helvetica Now Text', Helvetica, Arial, sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "Nike Futura ND (brand font, shown in fallback)",
+      "body_line": "Helvetica Now Text (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 15,
@@ -212,8 +404,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 15,
@@ -242,8 +466,40 @@
         "#191919",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#27455c",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#191919",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#191919",
+          "derived": false
+        }
+      ],
       "heading_font": "FFDINforPuma",
       "body_font": "FFDINforPuma",
+      "heading_stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
+      "body_stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "FFDINforPuma (brand font, shown in fallback)",
+      "body_line": "FFDINforPuma (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 15,
@@ -272,8 +528,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 15,
@@ -302,8 +590,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -332,8 +652,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -362,8 +714,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -392,8 +776,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -422,8 +838,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -453,8 +901,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -484,8 +964,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -515,8 +1027,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -545,8 +1089,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -576,8 +1152,40 @@
         "#3d3d3d",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#3d3d3d",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#3d3d3d",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#3d3d3d",
+          "derived": false
+        }
+      ],
       "heading_font": "Halesworth",
       "body_font": "HelveticaNowDisplay",
+      "heading_stack": "'Halesworth', \"Times New Roman\", Times, serif",
+      "body_stack": "'HelveticaNowDisplay', Arial, Helvetica, sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "Halesworth (brand font, shown in fallback)",
+      "body_line": "HelveticaNowDisplay (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -606,8 +1214,40 @@
         "#1d1d1d",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#00aeef",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#1d1d1d",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#1d1d1d",
+          "derived": false
+        }
+      ],
       "heading_font": "Open Sans",
       "body_font": "Open Sans",
+      "heading_stack": "'Open Sans', sans-serif",
+      "body_stack": "'Open Sans', sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "Open Sans (brand font, shown in fallback)",
+      "body_line": "Open Sans (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 20,
@@ -636,8 +1276,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -666,8 +1338,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 16,
@@ -697,8 +1401,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -727,8 +1463,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#0078d4",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#279ab9",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "Segoe UI Variable Text",
       "body_font": "Segoe UI Variable Text",
+      "heading_stack": "'Segoe UI Variable Text', \"Segoe UI\", segoeui, \"Helvetica Neue\", helvetica",
+      "body_stack": "'Segoe UI Variable Text', \"Segoe UI\", segoeui, \"Helvetica Neue\", helvetica",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "Segoe UI Variable Text (brand font, shown in fallback)",
+      "body_line": "Segoe UI Variable Text (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -758,8 +1526,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -788,8 +1588,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -819,8 +1651,40 @@
         "#414141",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#000000",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#1c69d4",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#414141",
+          "derived": false
+        }
+      ],
       "heading_font": "bmwTypeNextWeb",
       "body_font": "bmwTypeNextWeb",
+      "heading_stack": "'bmwTypeNextWeb', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "body_stack": "'bmwTypeNextWeb', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "bmwTypeNextWeb (brand font, shown in fallback)",
+      "body_line": "bmwTypeNextWeb (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -850,8 +1714,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#e10a1d",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#000000",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -881,8 +1777,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#006341",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#00754a",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "SoDoSans",
       "body_font": "SoDoSans",
+      "heading_stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "body_stack": "'SoDoSans', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "SoDoSans (brand font, shown in fallback)",
+      "body_line": "SoDoSans (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 12,
@@ -912,8 +1840,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 12,
@@ -943,8 +1903,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 12,
@@ -973,8 +1965,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 12,
@@ -1003,8 +2027,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#e50914",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#000000",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 3,
@@ -1034,8 +2090,40 @@
         "#111111",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#121212",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#1ed760",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "SpotifyMixUI",
       "body_font": "SpotifyMixUI",
+      "heading_stack": "'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek",
+      "body_stack": "'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "SpotifyMixUI (brand font, shown in fallback)",
+      "body_line": "SpotifyMixUI (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 3,
@@ -1065,8 +2153,40 @@
         "#222222",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#ff385c",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#222222",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#222222",
+          "derived": false
+        }
+      ],
       "heading_font": "Airbnb Cereal VF",
       "body_font": "Airbnb Cereal VF",
+      "heading_stack": "'Airbnb Cereal VF', Circular, -apple-system, BlinkMacSystemFont, Roboto",
+      "body_stack": "'Airbnb Cereal VF', Circular, -apple-system, BlinkMacSystemFont, Roboto",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "Airbnb Cereal VF (brand font, shown in fallback)",
+      "body_line": "Airbnb Cereal VF (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -1095,8 +2215,40 @@
         "#111111",
         "#FFFFFF"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#2B2B2B",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#5A5A5A",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#FFFFFF",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#111111",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -1126,8 +2278,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#533afd",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#000000",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "sohne-var",
       "body_font": "sohne-var",
+      "heading_stack": "'sohne-var', \"SF Pro Display\", sans-serif",
+      "body_stack": "'sohne-var', \"SF Pro Display\", sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "sohne-var (brand font, shown in fallback)",
+      "body_line": "sohne-var (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -1157,8 +2341,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#305eff",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#ffbfbf",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -1188,8 +2404,40 @@
         "#000000",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#002970",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#000000",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
       "heading_font": "Inter",
       "body_font": "Inter",
+      "heading_stack": "'Inter', sans-serif",
+      "body_stack": "'Inter', sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "Inter (brand font, shown in fallback)",
+      "body_line": "Inter (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 4,
@@ -1219,8 +2467,40 @@
         "#696b6f",
         "#ffffff"
       ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#000000",
+          "derived": false
+        },
+        {
+          "role": "accent",
+          "value": "#696b6f",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#696b6f",
+          "derived": false
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
+      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "system-ui (system font)",
+      "body_line": "system-ui (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": null,
+      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,

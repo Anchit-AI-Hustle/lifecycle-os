@@ -1,0 +1,184 @@
+# Harvest the starter brands from their OWN rendered sites.
+#
+# WHY A WORKFLOW. The /onboarding gallery's starter brands must carry the
+# colours and type each brand's own site renders (the preset provenance rule
+# in CLAUDE.md). Reading them needs a real browser and the public internet;
+# the agent containers that edit this repo have neither egress nor the right
+# to fake it. GitHub's runners have both.
+#
+# WHAT IT RUNS. scripts/harvest-presets.js, which reads each preset's
+# `website` through the platform's ONE rendered reader
+# (api/_shared/brand-render.js `readSite`: headless Chromium, computed styles
+# by element role, per-value provenance, its own SSRF and robots.txt rules,
+# its honest user agent, a per-site deadline). It writes
+# data/brands/observed/<slug>.observed.json, then `npm run brand:presets`
+# regenerates data/brands/presets/, then the brand gates run, then the result
+# is committed. A site that blocks an automated read stays on the neutral
+# default and says so; nothing here tries to get past a bot wall.
+#
+# TRIGGERS.
+#   workflow_dispatch  `slugs` (comma-separated, empty = all). From the default
+#                      branch it opens a PR on a fresh `claude/` branch (no
+#                      Vercel preview: vercel.json deploymentEnabled); from any
+#                      other branch it commits to that branch.
+#   pull_request       when a PR from THIS repository touches the harvester,
+#                      the builder, the reader or this file - so a change to
+#                      how presets are read is proven on its own PR, with the
+#                      regenerated presets committed back to it. A head commit
+#                      whose message carries `[skip harvest]` skips it (the
+#                      author already has the data they need), and the bot's
+#                      own commit is pushed with GITHUB_TOKEN, which starts no
+#                      new run, so it cannot loop.
+#
+# LEAST PRIVILEGE. Read-only at the top; the one job that writes is granted
+# `contents: write` (to push the data) and `pull-requests: write` (to open the
+# dispatch PR), and only for a same-repository PR or a dispatch.
+name: Harvest preset brands (rendered)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: 'Comma-separated preset slugs to read (empty = every preset)'
+        required: false
+        default: ''
+  pull_request:
+    paths:
+      - scripts/harvest-presets.js
+      - scripts/lib/preset-observation.js
+      - scripts/build-brand-presets.js
+      - api/_shared/brand-render.js
+      - api/_shared/render-*.js
+      - .github/workflows/harvest-presets.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harvest-presets-${{ github.head_ref || github.ref_name }}
+  # Queued, not cancelled: a later push (often one carrying [skip harvest])
+  # must not kill a harvest that is half way through forty sites.
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      SLUGS: ${{ github.event.inputs.slugs || '' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The branch itself, not the merge ref, so the result can be pushed.
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Skip when the head commit asks to
+        id: gate
+        run: |
+          msg="$(git log -1 --format=%B)"
+          if [ "${{ github.event_name }}" = "pull_request" ] && printf '%s' "$msg" | grep -qF '[skip harvest]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Head commit carries [skip harvest]; nothing read." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.skip != 'true'
+        with: { node-version: 22, cache: npm }
+
+      - name: Install dependencies
+        if: steps.gate.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Install Chromium for the reader
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          npx playwright install --with-deps chromium
+          echo "BRAND_RENDER_CHROMIUM=$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")" >> "$GITHUB_ENV"
+
+      - name: Keep the gallery as it was, for the before/after table
+        if: steps.gate.outputs.skip != 'true'
+        run: cp data/brands/presets/index.json "$RUNNER_TEMP/index.before.json"
+
+      - name: Read each brand's own site
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          node scripts/harvest-presets.js \
+            --slugs "$SLUGS" \
+            --artifacts harvest-artifacts \
+            --concurrency 3 \
+            --deadline-ms 110000 \
+            --max-pages 2
+
+      - name: Regenerate the presets from what was read
+        if: steps.gate.outputs.skip != 'true'
+        run: npm run brand:presets
+
+      - name: The gates the presets have to pass
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          npm run brand:check
+          npm run build
+          npm run test:isolation
+          npx playwright test tests/brand-presets.spec.js tests/preset-harvest.spec.js --project=desktop-1280 --reporter=line
+
+      - name: Before / after
+        if: always() && steps.gate.outputs.skip != 'true'
+        run: |
+          mkdir -p harvest-artifacts
+          {
+            echo "## Starter brands, read from their own rendered sites"
+            echo
+            node scripts/harvest-presets.js --report-before "$RUNNER_TEMP/index.before.json"
+          } | tee harvest-artifacts/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Screenshots and per-brand reports
+        if: always() && steps.gate.outputs.skip != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: preset-harvest-${{ github.run_id }}
+          path: harvest-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Commit the regenerated presets
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+          REF: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/brands/observed data/brands/presets
+          if git diff --cached --quiet; then
+            echo "Nothing changed: every preset already carries this read." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          today="$(date -u +%Y-%m-%d)"
+          git commit -q -m "Starter brands read from their own rendered sites ($today)" \
+            -m "Written by .github/workflows/harvest-presets.yml run ${{ github.run_id }} through api/_shared/brand-render.js readSite. Blocked, timed-out and unavailable reads keep the neutral default and record why. Screenshots and per-brand reports: the run's preset-harvest artifact."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "$REF" = "$BASE" ]; then
+            branch="claude/harvest-presets-${{ github.run_id }}"
+            git push origin "HEAD:refs/heads/$branch"
+            node -e '
+              const body = { title: "Starter brands read from their own rendered sites", head: process.argv[1], base: process.argv[2],
+                body: "Regenerated by the harvest-presets workflow (run " + process.argv[3] + "). The per-brand table is in the run summary; screenshots and reports are in its artifact.\n\nA PR opened with the workflow token starts no CI run of its own: push any commit to this branch (or close and reopen it) to run CI before merging." };
+              process.stdout.write(JSON.stringify(body));' "$branch" "$BASE" "${{ github.run_id }}" > "$RUNNER_TEMP/pr.json"
+            curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls" -d @"$RUNNER_TEMP/pr.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log("Opened", JSON.parse(s).html_url))'
+          else
+            for i in 1 2 3; do
+              if git push origin "HEAD:refs/heads/$REF"; then exit 0; fi
+              # The branch moved while the sites were being read: replay this
+              # data-only commit on top of it and try again.
+              git pull --rebase -q origin "$REF" || { echo "The branch moved and the data commit does not replay cleanly." >&2; exit 1; }
+            done
+            exit 1
+          fi
