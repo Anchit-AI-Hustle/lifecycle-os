@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261004120000_social_gateway.sql
+-- 20261004150000_social_gateway.sql
 --
 -- The Social Integration Gateway: view + update for Meta, TikTok, Pinterest and
 -- YouTube on top of the dispatch tables from 20260818140000. Every WRITE still

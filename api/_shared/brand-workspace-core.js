@@ -486,12 +486,21 @@ function normalizeFont(f, fallback) {
   // A stack is only ever built from the operator's own family + a generic
   // fallback; we never substitute a different brand's typeface.
   const stack = str(src.stack, 200) || `'${family}',${fallback}`;
-  return {
+  const out = {
     family,
     stack,
     google: src.google !== false,
     weights: str(src.weights, 40) || '400;600;700',
   };
+  // A self-hosted family's FILE (2026-10-04): an https URL only, so a
+  // generated page can declare @font-face for it (brand-runtime.fontImport).
+  const file = str(src.src, 300);
+  if (out.google === false && /^https:\/\/[^\s"'()<>]+$/i.test(file)) {
+    out.src = file;
+    const fmt = str(src.format, 12).toLowerCase();
+    if (/^(woff2|woff|truetype|opentype|ttf|otf)$/.test(fmt)) out.format = fmt;
+  }
+  return out;
 }
 
 function normalizeTypography(input) {
@@ -657,7 +666,7 @@ function tokens(brand) {
   const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
   const t = brand && brand.typography ? brand.typography : {};
 
-  return {
+  return Object.assign({
     '--brand-primary': primary,
     '--brand-primary-dark': shade(primary, -0.25),
     '--brand-primary-soft': shade(primary, 0.86),
@@ -690,7 +699,27 @@ function tokens(brand) {
     '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
     '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
     '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-  };
+  }, componentTokens(brand));
+}
+
+/**
+ * The shell's share of the brand's DESIGN SYSTEM (2026-10-04): the corner
+ * radius of its controls and cards as its own site renders them, read by
+ * theme.css through var(--brand-radius-*, <the shell's own value>). A brand
+ * with no measured design system emits nothing, so the shell is unchanged.
+ * brand-context.js carries the same function for the device path.
+ */
+function componentTokens(brand) {
+  const ds = brand && brand.brand_data && brand.brand_data.design_system;
+  const out = {};
+  const comp = (ds && ds.components) || null;
+  if (!comp) return out;
+  const b = comp.button && comp.button.primary && comp.button.primary.desktop;
+  const c = comp.card && comp.card.desktop && comp.card.desktop.box;
+  const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? `${Math.round(v * 100) / 100}px` : '');
+  if (b && n(b.radius)) out['--brand-radius-control'] = n(b.radius);
+  if (c && n(c.radius)) out['--brand-radius-card'] = n(c.radius);
+  return out;
 }
 
 /** Google Fonts stylesheet URL for whichever families are marked google:true. */
@@ -1211,6 +1240,24 @@ async function listWorkspaces(auth) {
   return Array.isArray(rows) ? rows : [];
 }
 
+/**
+ * The brand a signed-in read is scored as: the WORKSPACE as it stands on the
+ * server when the caller can read it (a device principal has none there), else
+ * the draft the request carries. Either way through brand-render.scoringBrand,
+ * so it is bounded the same way.
+ */
+async function scoringBrandFor(auth, body, q) {
+  const render = require('./brand-render.js');
+  const wsId = str((body && body.workspace_id) || (q && q.workspace_id));
+  if (wsId && auth && auth.ok && auth.token && auth.mode !== 'device' && !/^local-/.test(wsId)) {
+    try {
+      const row = await module.exports.getWorkspace(auth, wsId);
+      if (row) return render.scoringBrand(row);
+    } catch (_) { /* unreadable: the carried draft below */ }
+  }
+  return render.scoringBrand(body && body.brand);
+}
+
 async function getWorkspace(auth, id) {
   const rows = await restAs(auth.token, `brand_workspaces?select=${SELECT_COLS}&id=eq.${encodeURIComponent(id)}&limit=1`);
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
@@ -1327,7 +1374,68 @@ function buildRow(input, existing) {
  * they touched, and re-saving an untouched form must not quietly claim the
  * whole record away from the automatic path.
  */
+/* ── WHERE A FIELD'S VALUE CAME FROM (2026-10-04) ─────────────────────────
+   One order, the same in SQL (brand_origin_rank, migration 20261004120000),
+   here, and in brand-context.js's device store:
+     user 50 > document 40 > site-render 30 > site-parse 20 (= auto) > preset 10
+   `default` (a wizard placeholder nobody chose) ranks 0 and is recorded nowhere.
+   The wizard's save carries, per field, the source its value came from in
+   brand_data.field_origins; a field with no entry there is the operator's, as
+   every save before this one was read. */
+const ORIGIN_RANK = { user: 50, document: 40, 'site-render': 30, 'site-parse': 20, auto: 20, preset: 10, default: 0 };
+const RECORDED_ORIGINS = new Set(['document', 'site-render', 'site-parse', 'preset']);
+
+function fieldOriginOf(input, field) {
+  const bd = input && input.brand_data;
+  if (!bd || typeof bd !== 'object') return null;
+  const okMap = (m) => (m && typeof m === 'object' && !Array.isArray(m) ? m : null);
+  // Two shapes, one meaning: the wizard's per-field RECORD (field_origins:
+  // origin + source, page, line, quote) and the rendered read's plain map
+  // (field_origin: 'site-render' ...). The record is richer, so it is read
+  // first; a save that carries only the map is honoured the same way. A field
+  // in neither was typed, as every save before origins existed was read.
+  const rec = okMap(bd.field_origins) ? bd.field_origins[field] : undefined;
+  const plain = okMap(bd.field_origin) ? bd.field_origin[field] : undefined;
+  const r = rec !== undefined ? rec : plain;
+  const o = r && typeof r === 'object' ? String(r.origin || '') : (typeof r === 'string' ? r : '');
+  return Object.prototype.hasOwnProperty.call(ORIGIN_RANK, o) ? Object.assign({}, r && typeof r === 'object' ? r : {}, { origin: o }) : null;
+}
+
+/**
+ * The dotted fields a save CARRIED whose value came from somewhere other than
+ * the operator's typing, mapped to the provenance row that says where. A
+ * document's field cites the file (or URL), the page and the verbatim line.
+ */
+function recordedOrigins(input) {
+  const out = {};
+  for (const f of carriedFields(input)) {
+    const r = fieldOriginOf(input, f);
+    if (!r || !RECORDED_ORIGINS.has(r.origin)) continue;
+    const where = [r.page ? `p.${r.page}` : '', r.line ? `l.${r.line}` : ''].filter(Boolean).join(' ');
+    out[f] = {
+      origin: r.origin,
+      source_url: str(r.url || (r.source ? r.source + (r.page ? `#page=${r.page}` : '') : ''), 500),
+      signal: str([where, r.quote ? `"${r.quote}"` : '', r.signal || ''].filter(Boolean).join(': '), 500),
+      confidence: str(r.confidence || (r.origin === 'document' ? 'stated' : ''), 40),
+      value_preview: str(r.value, 200),
+    };
+  }
+  return out;
+}
+
 function claimedFields(input) {
+  // A field whose value the save says came from a document, a site read or a
+  // preset is not a TYPED field, so it is not claimed as the operator's; it is
+  // recorded with its origin instead (recordedOrigins). A field with no origin
+  // on the save is claimed, exactly as before.
+  return carriedFields(input).filter((f) => {
+    const r = fieldOriginOf(input, f);
+    return !r || r.origin === 'user';
+  });
+}
+
+/** Every dotted field path a save carried a non-empty value for. */
+function carriedFields(input) {
   const b = (input && typeof input === 'object') ? input : {};
   const out = [];
   for (const k of ['name', 'tagline', 'legal_name', 'industry', 'website', 'logo_url', 'favicon_url']) {
@@ -1366,17 +1474,33 @@ function claimedFields(input) {
  * behaviour that existed before any of this - not a corrupted record.
  */
 async function claimUserOwnedFields(auth, workspaceId, input) {
+  let n = 0;
   try {
     const fields = claimedFields(input);
-    if (!fields.length || !workspaceId) return 0;
-    await restAs(auth.token, 'rpc/brand_fields_claim_user', {
-      method: 'POST', body: { p_workspace: workspaceId, p_fields: fields },
-    });
-    return fields.length;
+    if (fields.length && workspaceId) {
+      await restAs(auth.token, 'rpc/brand_fields_claim_user', {
+        method: 'POST', body: { p_workspace: workspaceId, p_fields: fields },
+      });
+      n += fields.length;
+    }
   } catch (err) {
     console.warn('[brand] field provenance not recorded:', (err && err.message) || err);
-    return 0;
   }
+  // The rest of the save's fields, with the origin each came from. The SQL
+  // never demotes (a typed field stays typed), so this cannot take a field
+  // away from a person.
+  try {
+    const rec = recordedOrigins(input);
+    if (Object.keys(rec).length && workspaceId) {
+      await restAs(auth.token, 'rpc/brand_fields_record_origin', {
+        method: 'POST', body: { p_workspace: workspaceId, p_fields: rec },
+      });
+      n += Object.keys(rec).length;
+    }
+  } catch (err) {
+    console.warn('[brand] field origins not recorded:', (err && err.message) || err);
+  }
+  return n;
 }
 
 async function saveWorkspace(auth, input) {
@@ -1435,6 +1559,11 @@ async function deleteWorkspace(auth, id) {
     e.status = 403; throw e;
   }
 
+  // The brand's HOSTED files go first, while the row still exists: the
+  // bucket's delete policy asks is_brand_editor() of this very workspace.
+  // Public objects left behind would stay readable (and billed) forever.
+  const assets = await removeBrandAssets(auth, wsId);
+
   const gone = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,name`, {
     method: 'DELETE', prefer: 'return=representation',
   });
@@ -1459,8 +1588,62 @@ async function deleteWorkspace(auth, id) {
     ok: true,
     deleted: wsId,
     name: (rows[0] && rows[0].name) || ws.name || null,
-    storage_note: `Re-hosted media under brand-review-media/${wsId}/ is not removed by this delete and must be cleared separately.`,
+    storage_removed: assets.removed,
+    storage_note: `Re-hosted media under brand-review-media/${wsId}/ is not removed by this delete and must be cleared separately.`
+      + (assets.note ? ` ${assets.note}` : ''),
   };
+}
+
+/**
+ * Remove every object a brand HOSTED in the public `brand-assets` bucket
+ * (logo, app icon, fonts, imagery - migration 20261004120000), with the
+ * caller's own token, under the workspace's prefix. Resolves
+ * { removed, note }. Throws 502 when objects exist and could not be removed:
+ * a brand is never deleted while its public files would be orphaned.
+ */
+async function removeBrandAssets(auth, wsId) {
+  let e;
+  try { e = env(); } catch (_) { return { removed: 0, note: '' }; }
+  const base = `${e.url}/storage/v1/object`;
+  const headers = { apikey: e.anon, authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' };
+  // A listing that did not answer is NOT an empty folder: deleting the brand
+  // on it would orphan every public file it could not see. So anything but a
+  // readable list (or Storage saying the bucket itself does not exist, when no
+  // file can be in it) stops the delete with a sentence.
+  const refuse = (why) => {
+    const er = new Error(`The hosted files of this brand (brand-assets/${wsId}/) could not be listed (${why}), so nothing was deleted: deleting the brand without knowing what it hosts could leave public files behind. Try again.`);
+    er.status = 502;
+    return er;
+  };
+  const PAGE = 1000;
+  const paths = [];
+  for (let offset = 0; ; offset += PAGE) {
+    let listed;
+    try {
+      listed = await fetch(`${base}/list/brand-assets`, { method: 'POST', headers, body: JSON.stringify({ prefix: wsId, limit: PAGE, offset }), cache: 'no-store' });
+    } catch (err) { throw refuse((err && err.message) || 'storage did not answer'); }
+    let items = null;
+    try { items = await listed.json(); } catch (_) { items = null; }
+    if (!listed.ok) {
+      const said = items && typeof items === 'object' ? String(items.error || items.message || '') : '';
+      if ((listed.status === 400 || listed.status === 404) && /^bucket not found$/i.test(said.trim())) return { removed: 0, note: '' };
+      throw refuse(`it answered ${listed.status}${said ? ': ' + said.slice(0, 120) : ''}`);
+    }
+    if (!Array.isArray(items)) throw refuse('its answer was not a list');
+    for (const x of items) if (x && x.name && x.id !== null) paths.push(`${wsId}/${x.name}`);
+    if (items.length < PAGE) break;
+  }
+  if (!paths.length) return { removed: 0, note: '' };
+  let res;
+  try {
+    res = await fetch(`${base}/brand-assets`, { method: 'DELETE', headers, body: JSON.stringify({ prefixes: paths }), cache: 'no-store' });
+  } catch (_) { res = null; }
+  if (!res || !res.ok) {
+    const er = new Error(`This brand has ${paths.length} hosted file(s) in brand-assets/${wsId}/ that could not be removed (${res ? res.status : 'storage did not answer'}), so nothing was deleted: deleting the brand now would leave them public. Try again.`);
+    er.status = 502;
+    throw er;
+  }
+  return { removed: paths.length, note: '' };
 }
 
 /** Owner or editor. A `viewer` may read a workspace but must not change it. */
@@ -1714,7 +1897,33 @@ function shellPayload(brand, extra) {
     regions: brand.regions || [],
     tokens: tokens(brand),
     fonts_href: fontsHref(brand),
+    files: filesSummary(brand),
   }, extra || {});
+}
+
+/**
+ * What the shell needs to paint a brand's own FILES (2026-10-04): the id of an
+ * uploaded logo / icon / font (kept in the browser's IndexedDB on a device,
+ * brand-context.js) and its hosted https URL once it has one. Ids, family
+ * names and https URLs only - never bytes. Mirrored by filesSummaryFor() in
+ * brand-context.js.
+ */
+function filesSummary(brand) {
+  const f = brand && brand.brand_data && brand.brand_data.brand_files;
+  if (!f || typeof f !== 'object') return {};
+  const https = (u) => (typeof u === 'string' && /^https:\/\//i.test(u.trim()) ? u.trim().slice(0, 500) : '');
+  const one = (x) => (x && typeof x === 'object' ? { id: str(x.id, 80), hosted_url: https(x.hosted_url), url: https(x.url) } : null);
+  const out = {};
+  if (one(f.logo)) out.logo = one(f.logo);
+  if (one(f.favicon)) out.favicon = one(f.favicon);
+  const fonts = f.fonts && typeof f.fonts === 'object' ? f.fonts : {};
+  const fo = {};
+  for (const slot of ['heading', 'body', 'mono']) {
+    const x = fonts[slot];
+    if (x && typeof x === 'object') fo[slot] = Object.assign(one(x), { family: str(x.family, 64), format: str(x.format, 16) });
+  }
+  if (Object.keys(fo).length) out.fonts = fo;
+  return out;
 }
 
 /* ── the context-pack background chain ────────────────────────────────────
@@ -1834,6 +2043,37 @@ async function sessionCheckable() {
   };
 }
 
+/**
+ * Answer `op=document-fetch` with the document's BYTES (not JSON), or a refusal
+ * sentence as JSON. The browser reads the file; this only carries it past a
+ * host that sends no CORS headers. See brand-document-fetch.js.
+ */
+async function sendDocument(res, body, q) {
+  try {
+    const out = await require('./brand-document-fetch.js').fetchDocument(str(body.url || q.url, 2000));
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Document-Type', out.content_type);
+    res.setHeader('X-Document-Name', encodeURIComponent(out.name));
+    res.setHeader('X-Document-Url', encodeURIComponent(out.url));
+    return res.status(200).send(out.bytes);
+  } catch (err) {
+    return res.status((err && err.status) || 500).json({
+      ok: false,
+      error: (err && err.code) || 'document_fetch_failed',
+      message: (err && err.message) || 'That document could not be fetched.',
+    });
+  }
+}
+
+/**
+ * The operator's switch for the rendered read. Default ON. `BRAND_RENDER=off`
+ * makes "Read my site" parse published HTML and CSS only - for a deployment
+ * whose function cannot run the browser, and for test suites that exercise
+ * the gate rather than the reader. Read at call time.
+ */
+function renderOff() { return /^(off|0|false|no)$/i.test(String(process.env.BRAND_RENDER || '')); }
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1869,6 +2109,16 @@ async function handle(req, res) {
 
   if (op === 'validate-palette') {
     return res.status(200).json(Object.assign({ ok: true }, validatePalette(body.palette || q.palette || {})));
+  }
+
+  // `render-probe` is unauthenticated, like `defaults`: it proves the browser
+  // launches on THIS deployment by rendering a fixed page shipped with it
+  // (nothing is fetched, so it is neither an SSRF vector nor a free crawler),
+  // and its answer is cached per instance for five minutes so it cannot be
+  // used to burn CPU. GET-only callers (a status check, a monitor) can read it.
+  if (op === 'render-probe') {
+    if (renderOff()) return res.status(200).json({ ok: false, renderer: 'unavailable', reason: 'BRAND_RENDER=off on this deployment: Read my site reads published HTML and CSS only.' });
+    return res.status(200).json(await require('./brand-render.js').renderProbe());
   }
 
   const auth = await requireUser(req);
@@ -1910,9 +2160,14 @@ async function handle(req, res) {
   // a session could be checked - see sessionCheckable() above. That caller is
   // every browser there is now: signed out, or signed in on the device (whose
   // token is never sent).
-  let openWithoutBackend = !auth.ok && auth.backend_unreachable === true && op === 'extract';
+  // `document-fetch` (2026-10-04) is the same kind of read as `extract`: one
+  // public URL the operator pasted, fetched behind the same SSRF guard,
+  // returned as bytes, nothing stored, no model. So it opens on exactly the
+  // same rule, and nowhere else.
+  const OPEN_READ = op === 'extract' || op === 'document-fetch';
+  let openWithoutBackend = !auth.ok && auth.backend_unreachable === true && OPEN_READ;
   let noSession = null;
-  if (!auth.ok && !openWithoutBackend && op === 'extract' && auth.error === 'sign_in_required') {
+  if (!auth.ok && !openWithoutBackend && OPEN_READ && auth.error === 'sign_in_required') {
     noSession = await sessionCheckable();
     openWithoutBackend = !noSession.checkable;
   }
@@ -1929,9 +2184,15 @@ async function handle(req, res) {
   const spend = auth.ok ? require('./credits-core.js').spenderRefusal(auth) : null;
   const VOICE_SKIPPED_NOTE = 'The tone of voice was not observed: that step is the only one that needs a language model, and this mobile-number sign-in has no credit wallet because its number is not on the operator\'s list. Everything else was read from the site exactly as always.';
 
+  if (openWithoutBackend && op === 'document-fetch') return sendDocument(res, body, q);
   if (openWithoutBackend) {
     try {
-      const out = await require('./brand-extract.js').runExtract(
+      // RENDERED FIRST (2026-10-04): the site is opened in a headless browser
+      // and measured as it renders; the parser runs alongside and is the
+      // labelled fallback. On THIS path - no account the server can check -
+      // the browser read is rate-limited per address and per instance, and it
+      // calls no model whatever happens (voice stays OFF below).
+      const out = await require('./brand-render.js').extractWithRender(
         { ok: false, token: '', user_id: '', email: '' },
         {
           url: str(body.url || q.url, 500),
@@ -1940,6 +2201,7 @@ async function handle(req, res) {
           voice: false,
           max_pages: body.max_pages || q.max_pages,
         },
+        { open: true, req, render: !renderOff() && body.render !== false, brand: require('./brand-render.js').scoringBrand(body.brand) },
       );
       // Neutral about WHO is here: the server cannot tell a visitor from a
       // person signed in on the device (neither sends a token), and "read
@@ -2188,14 +2450,19 @@ async function handle(req, res) {
       }
       case 'extract': {
         const wantsVoice = (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false';
-        const out = await require('./brand-extract.js').runExtract(auth, {
+        const out = await require('./brand-render.js').extractWithRender(auth, {
           url: str(body.url || q.url, 500),
           workspace_id: str(body.workspace_id || q.workspace_id),
           voice: wantsVoice && !spend,
           max_pages: body.max_pages || q.max_pages,
-        });
+        }, { open: false, req, render: !renderOff() && body.render !== false, brand: await module.exports.scoringBrandFor(auth, body, q) });
         const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
         return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
+      }
+      // The bytes of a brand guideline document the operator LINKED, for the
+      // browser to read (brand-document.js). See brand-document-fetch.js.
+      case 'document-fetch': {
+        return sendDocument(res, body, q);
       }
       case 'suggest': {
         // Options for ONE field, written from this brand's own record. Nothing
@@ -2218,7 +2485,7 @@ async function handle(req, res) {
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest', 'document-fetch', 'render-probe',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
@@ -2242,8 +2509,9 @@ module.exports = {
   // catalog
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
-  listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
+  listWorkspaces, getWorkspace, scoringBrandFor, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
   importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
+  carriedFields, recordedOrigins, ORIGIN_RANK,
 };
