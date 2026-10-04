@@ -5,7 +5,7 @@
   "start": "https://www.samsung.com",
   "landed": "https://www.samsung.com/us/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:51:13.577Z",
+  "read_at": "2026-10-04T21:22:07.340Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -17,6 +17,14 @@
     {
       "url": "https://www.samsung.com/us/",
       "role": "home"
+    },
+    {
+      "url": "chrome-error://chromewebdata/",
+      "role": "product"
+    },
+    {
+      "url": "https://www.samsung.com/us/aboutsamsung/sustainability/environment/responsible-recycling/programs/",
+      "role": "about"
     }
   ],
   "viewports": {
@@ -29,7 +37,7 @@
       "h": 844
     }
   },
-  "partial": true,
+  "partial": false,
   "regression": {
     "ok": true,
     "done": false,
@@ -98,30 +106,30 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_MicroRGB_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
-      "role": "photograph",
-      "alt": "Micro RGB R95H",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_OLED_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
-      "role": "photograph",
-      "alt": "OLED S95H",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$1440_N_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
       "role": "photograph",
       "alt": "Enabling better living",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/ref.jpg?$560_560_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/footer/Footer_GetShopApp_082025.png?$ORIGIN_PNG$",
       "role": "photograph",
-      "alt": "Bespoke Refrigerator",
+      "alt": "Get Shop Samusng App",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/content/samsung/assets/us/footer/text-banner-2.svg",
+      "role": "photograph",
+      "alt": "Never miss a thing. Sign up for texts to be notified about our best offers",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://consent.trustarc.com/get?name=samsungblack_logo.png",
+      "role": "hero",
+      "alt": "Samsung",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
