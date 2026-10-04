@@ -36,6 +36,19 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
   bank" would have blocked a publisher (statistics are claim-SHAPED only; possessive superlatives WARN).
 - Known limits, said: English lexicon only; phrase not meaning; no green-claims or Indian (ASCI) pack;
   a testimonial block with the author on its own line (no dash) is not read as an endorsement.
+- **Seven review findings on #138, fixed after it merged (each an executed test that failed first,
+  20 mutations caught)**: approved claims dedupe only WITHIN one region scope (a UK register entry
+  had inherited a US study; a GLOBAL send accepts only market-wide approvals); a stated sector or
+  industry nothing recognises is `compliance.sector_unrecognised` WARN naming it (an industry the gate
+  KNOWS has no sector pack, sneakers/news/software…, is `sector_basis: no-regulated-sector` with its
+  basis; fintech/alcohol/CBD are deliberately not on that list); a guaranteed outcome blocks even when
+  "approved" and is never briefed as usable; dispatch lints only as THIS workspace's brand
+  (`dispatch-core.trustedBrand`: `resolve()` answers tenant zero on a failed read), else UNCHECKED and
+  blocked at the queue; the offer is read server-side from the `smart_generated_campaigns` row the job
+  names (`campaign_id`, workspace-scoped; the builder stamps `campaign.offer`), never the body; a
+  recorded offer backs only what it says (`deadlineAgainst`/`stockAgainst`, from an injectable `now`:
+  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted,
+  and a disclosure anywhere in the asset (its hashtags) counts.
 
 ## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
 `api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
@@ -183,6 +196,19 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   `field_origins` (this reader's records) and `field_origin` (the rendered read's map) are written
   together and read by both sides; a filled field with no recorded origin is the person's on every
   path; an automatic source never demotes a document value, the person's own pick does.
+- **Precedence is decided where the value is WRITTEN (Codex #1 on #127, migration
+  `20261004160000_brand_context_apply_by_origin.sql`).** The save PATCHed every carried field and only
+  then asked whose each was: a stale tab applying a brand book wrote the document's tagline over the one
+  another tab had just TYPED, and the record then said a person typed it. Now `saveExisting()` claims the
+  typed fields FIRST, PATCHes them with the ROW'S OWN value for every other field (conditional on
+  `updated_at`, re-read and retried on a concurrent write, 409 with a sentence after four), and sends
+  every document / site / template field through `brand_context_apply()`, which takes each value's
+  ORIGIN (default `auto`, so the context pack and Suggest are unchanged), refuses any field whose owner
+  outranks it, replaces an equal rank, and runs under a row lock on the workspace. `voice.banned` opens
+  only to a document or a template a person chose, never to a site read. Executed through the SHIPPED
+  `saveWorkspace` over PostgREST modelled on PGlite with the trigger installed: the stale tab, a typed
+  save landing between the stale tab's read and write, and an apply landing between a typed save's
+  claim and its write - each failed before (the document's tagline won), mutation-verified.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
