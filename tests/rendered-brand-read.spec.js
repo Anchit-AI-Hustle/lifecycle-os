@@ -512,10 +512,20 @@ test('E: the font legal gate - a brand font is recorded with its source URLs and
   const rr = require('../api/_shared/render-regression.js');
   const ours = rr.renderOurs(rr.brandFor(out.manifest), rr.sampleFrom(out.manifest));
   expect(ours.lp).toContain('/fonts/display.ttf');
-  for (const [style, html] of Object.entries(ours.mailers)) {
-    expect(html, `${style} mailer embeds a font face`).not.toContain('@font-face');
-    expect(html, `${style} mailer references the brand's font file`).not.toContain('display.ttf');
-    expect(html, `${style} mailer does not name the family first`).toContain("'Fixture Display'");
+  for (const [style, rendered] of Object.entries(ours.mailers)) {
+    expect(rendered, `${style} mailer embeds a font face`).not.toContain('@font-face');
+    expect(rendered, `${style} mailer references the brand's font file`).not.toContain('display.ttf');
+    expect(rendered, `${style} mailer does not name the family first`).toContain("'Fixture Display'");
+  }
+  // A file the OPERATOR supplied (uploaded, or a URL they gave) is theirs to
+  // license, and does reach the email - while the site's file still does not.
+  const own = rr.renderOurs(rr.brandFor(out.manifest, {
+    typography: { heading: { family: 'Fixture Display', stack: "'Fixture Display',Georgia,serif", google: false, src: 'https://cdn.mybrand.example/licensed/display.woff2', format: 'woff2' } },
+    brand_data: { field_origin: { 'typography.heading': 'user' } },
+  }), rr.sampleFrom(out.manifest));
+  for (const [style, rendered] of Object.entries(own.mailers)) {
+    expect(rendered, `${style} mailer lost the operator's licensed file`).toContain('https://cdn.mybrand.example/licensed/display.woff2');
+    expect(rendered, `${style} mailer references the site's font file`).not.toContain('/fonts/display.ttf');
   }
   // The email's drawn fallback is the gate working, said as such - not a miss.
   // (The engine names a drawn face by its FILE: this fixture's "Fixture Display" is the OFL file "Erica One".)
