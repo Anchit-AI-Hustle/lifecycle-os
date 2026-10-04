@@ -1254,8 +1254,9 @@ const textOn = (ground, surface, ink) => { const k = _wsCore(); try { return k ?
 // try.knickgasm.*-style presell landing page. Self-contained (inline CSS, no external
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
-function lpHtml(entry, copy, campaignId, creativeUrl) {
+function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const L = copy.landing || {};
+  const _o = opts || {};
   // Everything brand-visible derives from the ACTIVE brand on the entry:
   // name, palette, claims, store. Tenant zero's record is the source only
   // when the entry genuinely belongs to tenant zero.
@@ -1272,6 +1273,18 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   const P = sectionGround(_pal.primary, _pal.accent, SURF);
   const ACC = _pal.accent || _pal.primary || '#6A33D8';
   const ON_P = textOn(P, SURF, INKC), ON_ACC = textOn(ACC, SURF, INKC);
+  // THE BRAND'S DESIGN SYSTEM, as read off its own rendered site (2026-10-04).
+  // Until now this page painted tenant zero's two font families for EVERY
+  // brand (FONT_HEAD / FONT_BODY are its literals) and consumed nothing but a
+  // palette. resolve() gives the brand's own families wherever its record has
+  // them, and - when "Read my site" measured a design system - the component
+  // CSS (buttons with hover/focus, hero heading scale, body copy, card, header,
+  // footer, section rhythm) at desktop and phone width, with the hard rules
+  // applied inside lpCss(). No design system: the page is unchanged.
+  const _dsx = (() => { try { return require('./design-system.js'); } catch (_) { return null; } })();
+  const _ds = _dsx ? _dsx.resolve(_b) : { present: false, head: FONT_HEAD, body: FONT_BODY, fonts: { faces: '', googleHref: '' } };
+  const _dsCss = _dsx && _ds.present ? _dsx.lpCss(_ds, { surface: SURF, ink: INKC, primary: P, heroGround: P }) : { css: '', header: null };
+  const HEADF = _ds.head || FONT_HEAD, BODYF = _ds.body || FONT_BODY;
   const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
   let facts = regionFacts(entry.market);
   try { const bf = require('./brand-runtime.js').regionFacts(_b, entry.market); if (entry.brand && entry.brand.id && bf) facts = bf; } catch (_) {}
@@ -1280,7 +1293,17 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   const cta = esc(L.cta || entry.cta || 'See more');
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
-  const priceLabel = price != null ? `${cur}${price}` : '';
+  const priceLabel = _o.priceText ? String(_o.priceText) : (price != null ? `${cur}${price}` : '');
+  const _cardImg = _ds.present ? (_o.productImage || entry.heroProduct?.image || '') : '';
+  // The header bar exists only when the brand's own site has one measured: its
+  // logo (a hosted URL, or the inline SVG as an IMAGE - never as markup, so a
+  // script inside a site's SVG cannot run on a page served from this domain).
+  const _dsLogo = (() => {
+    if (!_ds.present || !_dsCss.header) return '';
+    const lg = (_ds.ds && _ds.ds.logo) || {};
+    const src = _b.logo_url || lg.url || (lg.svg ? 'data:image/svg+xml;base64,' + Buffer.from(lg.svg, 'utf8').toString('base64') : '');
+    return src ? `<img class="ds-logo" data-ds="logo" src="${esc(src)}" alt="${esc(bName)}">` : `<span class="ds-logo-text ds-head" data-ds="logo">${esc(lg.text || bName)}</span>`;
+  })();
   const faq = (L.faq || []).map((f) => `<details class="faq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('');
   const bullets = (L.why_bullets || []).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
   // ── Proof is APPROVED-ONLY, unconditionally ───────────────────────────────
@@ -1326,7 +1349,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
-:root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--on-moss:${ON_P};--on-lava:${ON_ACC};--head:${FONT_HEAD};--body:${FONT_BODY}}
+:root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--on-moss:${ON_P};--on-lava:${ON_ACC};--head:${HEADF};--body:${BODYF}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
@@ -1368,8 +1391,9 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
    that was only legible because the ground behind it was black. */
 footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26px;font-size:12px}
 @media(max-width:640px){.hero h1{font-size:30px}.sec h2{font-size:24px}.sticky .info .sub{display:none}}
-</style></head>
+</style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : ''}</head>
 <body>
+${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
 <div class="bar">${esc(bName)} · ${esc(entry.market)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
 <section class="hero">
   <!-- The eyebrow read "<cohort> edit" — so a landing page served to a real
@@ -1377,25 +1401,26 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26p
        "Hibernating edit", "At Risk edit", "Lost edit". The market is a place and
        is fine to say; the segment is an internal classification and is not. -->
   <p class="eyebrow">${esc(entry.market ? entry.market + ' edit' : 'Featured')}</p>
-  <h1>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
-  <p>${esc(L.hero_sub || entry.rationale || '')}</p>
-  <a class="btn" href="${esc(shopUrl)}">${cta}</a>
+  <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
+  <p data-ds="hero-body">${esc(L.hero_sub || entry.rationale || '')}</p>
+  <a class="btn" data-ds="button-primary" href="${esc(shopUrl)}">${cta}</a>
 </section>
 ${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:520px;object-fit:cover"/>` : ''}
 <div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
-<div class="wrap">
+<div class="wrap" data-ds="wrap">
   <section class="sec why">
     <h2>${esc(L.why_title || 'Why this edit')}</h2>
-    <ul>${bullets || `<li><span class="tick">✓</span>Selected from ${esc(bName)}'s own catalogue.</li>`}</ul>
+    <ul data-ds="body">${bullets || `<li><span class="tick">✓</span>Selected from ${esc(bName)}'s own catalogue.</li>`}</ul>
   </section>
   <section class="sec">
-    <div class="reveal">
+    <div class="reveal" data-ds="card">
+      ${_cardImg ? `<img class="ds-card-img" data-ds="card-image" src="${esc(_cardImg)}" alt="${esc(entry.heroProduct?.title || '')}" style="flex-basis:100%">` : ''}
       <div>
-        <h3 style="margin:0 0 6px">${esc(entry.heroProduct?.title || 'The edit')}</h3>
+        <h3 class="ds-card-title" data-ds="card-title" style="margin:0 0 6px">${esc(entry.heroProduct?.title || 'The edit')}</h3>
         <p style="margin:0;color:var(--ink-dim)">${esc(entry.heroProduct?.category || (entry.offering && entry.offering.kind) || '')}</p>
       </div>
       <div style="text-align:right">
-        ${priceLabel ? `<div class="price">${esc(priceLabel)}</div>` : ''}
+        ${priceLabel ? `<div class="price" data-ds="card-price">${esc(priceLabel)}</div>` : ''}
         <a class="btn btn-dark" href="${esc(shopUrl)}">${cta}</a>
       </div>
     </div>
@@ -1410,7 +1435,7 @@ ${proofSection}
   <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
   <a class="btn" href="${esc(shopUrl)}">${cta}</a>
 </div>
-<footer>© ${esc(bName)} · ${esc(entry.market)} · ${esc(campaignId)}</footer>
+<footer data-ds="footer">© ${esc(bName)} · ${esc(entry.market)} · ${esc(campaignId)}</footer>
 </body></html>`;
 }
 
@@ -2983,6 +3008,7 @@ module.exports = {
   __test_proofBlockHtml: proofBlockHtml,
   __test_injectProofBlock: injectProofBlock,
   __test_lpHtml: lpHtml,
+  lpHtml,
   __test_generateCreatives: generateCreatives,
   __test_applyCopy: applyCopy,
   __test_attachMotionCreative: attachMotionCreative,
