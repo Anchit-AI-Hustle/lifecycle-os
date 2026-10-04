@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "economic-times",
   "start": "https://economictimes.indiatimes.com",
   "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:48:28.441Z",
+  "read_at": "2026-10-04T23:18:58.321Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://economictimes.indiatimes.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "economictimes.indiatimes.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms"
+    }
+  ],
+  "design_read": {
+    "url": "https://economictimes.indiatimes.com",
+    "role": "home",
+    "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -33,15 +56,15 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 58.6,
-    "mismatch": 0.4143,
+    "score": 88.6,
+    "mismatch": 0.1143,
     "surfaces": {
       "landing page": {
-        "score": 61.8,
-        "mismatch": 0.3824,
+        "score": 91.8,
+        "mismatch": 0.0824,
         "done": false,
         "tokens_off": 2,
-        "regions_off": 2
+        "regions_off": 0
       },
       "mailer": {
         "score": 82.1,
@@ -85,6 +108,22 @@
       "signal": "the logo element as rendered (tr:nth-of-type(1) > td > div.header:nth-of-type(1) > a.et_logo:nth-of-type(1) > img)"
     }
   ],
+  "palette_candidates": [],
+  "read_details": [
+    {
+      "url": "https://economictimes.indiatimes.com",
+      "logo": {
+        "kind": "img",
+        "verdict": "none",
+        "hex": ""
+      },
+      "fonts": {
+        "heading": "Montserrat",
+        "body": ""
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": false,
   "palette": null,
   "palette_evidence": {
@@ -99,6 +138,13 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://economictimes.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "economictimes.indiatimes.com"
       }
     },
     "primary": {

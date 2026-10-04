@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "toi-health-fitness",
   "start": "https://timesofindia.indiatimes.com/life-style/health-fitness",
   "landed": "https://timesofindia.indiatimes.com/life-style/health-fitness",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:49:02.118Z",
+  "read_at": "2026-10-04T23:19:07.856Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://timesofindia.indiatimes.com/life-style/health-fitness"
+    }
+  ],
+  "design_read": {
+    "url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+    "role": "home",
+    "landed": "https://timesofindia.indiatimes.com/life-style/health-fitness"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -59,10 +82,15 @@
       }
     },
     "iterations": 2,
-    "repairs": 2,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
-  "conflicts": [],
+  "conflicts": [
+    {
+      "kind": "brand_colour_vs_action_colour",
+      "message": "The site declares #ffefcf as its own colour (logo pixels as rendered (78% of its coloured pixels)) but renders its primary call to action in #f44141. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+    }
+  ],
   "markers": [
     "[DATA REQUIRED BEFORE LAUNCH: header bar, timesofindia.indiatimes.com]",
     "[DATA REQUIRED BEFORE LAUNCH: footer, timesofindia.indiatimes.com]",
@@ -128,10 +156,47 @@
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "logo-image",
+      "value": "#ffefcf",
+      "score": 116,
+      "state": "passed over",
+      "page": "https://timesofindia.indiatimes.com/life-style/health-fitness"
+    },
+    {
+      "kind": "action",
+      "value": "#f44141",
+      "score": 67,
+      "state": "outranked",
+      "page": "https://timesofindia.indiatimes.com/life-style/health-fitness"
+    },
+    {
+      "kind": "icon",
+      "value": "#f44141",
+      "score": 68,
+      "state": "chosen",
+      "page": "https://timesofindia.indiatimes.com/icons/etfavicon.ico"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "logo": {
+        "kind": "img",
+        "verdict": "colour",
+        "hex": "#ffefcf"
+      },
+      "fonts": {
+        "heading": "Verdana",
+        "body": "Verdana"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": true,
   "palette": {
     "primary": "#f44141",
-    "accent": "#f44141",
     "ink": "#191919",
     "surface": "#f4f4f4",
     "surface_alt": "#f4f4f4",
@@ -153,22 +218,54 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "primary": {
       "value": "#f44141",
       "exact": "#f44141",
       "derived": false,
-      "from_role": "action",
-      "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+      "kind": "icon",
+      "strength": 56,
+      "score": 68,
+      "from_role": "identity",
+      "signal": "site icon pixels (shortcut icon)",
       "source": {
-        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
-        "role": "primary call to action",
-        "selector": "div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
+        "page": "https://timesofindia.indiatimes.com/icons/etfavicon.ico",
+        "role": "icon",
+        "selector": "link[rel=shortcut icon]",
+        "viewport": "",
+        "property": "pixels",
+        "signal": "rendered"
+      },
+      "read_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
+      },
+      "corroborated_by": [
+        {
+          "kind": "action",
+          "value": "#f44141",
+          "signal": "the primary call to action, as rendered",
+          "page": "https://timesofindia.indiatimes.com/life-style/health-fitness"
+        }
+      ],
+      "passed_over": [
+        {
+          "value": "#ffefcf",
+          "from": "the reader's primary",
+          "why": "1.03:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
     },
     "ink": {
       "value": "#191919",
@@ -182,6 +279,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "surface_alt": {
@@ -196,6 +300,13 @@
         "viewport": "",
         "property": "",
         "signal": ""
+      },
+      "read_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "muted": {
@@ -210,20 +321,27 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "accent": {
-      "value": "#f44141",
+      "value": "",
       "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
-        "role": "primary call to action",
-        "selector": "div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
+      "derived": false,
+      "absent": true,
+      "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+      "read_url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "line": {
@@ -283,10 +401,7 @@
       }
     }
   },
-  "palette_warnings": [
-    "Accent text on the surface is 3.36:1. Keep accent for fills and rules, not body copy.",
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_warnings": [],
   "typography": {
     "heading": {
       "family": "Verdana",
@@ -327,5 +442,5 @@
       }
     }
   },
-  "source": "Rendered https://timesofindia.indiatimes.com/life-style/health-fitness in Chromium 153.0.8010.12 on 2026-10-04. Primary #f44141 from the primary call to action, as rendered: the only brand colour this site renders (div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active). Headings Verdana, body Verdana, as rendered."
+  "source": "Rendered https://timesofindia.indiatimes.com/life-style/health-fitness in Chromium 153.0.8010.12 on 2026-10-04. Primary #f44141 from site icon pixels (shortcut icon) (link[rel=shortcut icon]). Agreed by action. Headings Verdana, body Verdana, as rendered."
 }

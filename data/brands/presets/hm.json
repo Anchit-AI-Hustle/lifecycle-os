@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www2.hm.com",
       "reason": "The site could not be opened: timed out."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: www2.hm.com (timeout), career.hm.com (blocked), hmgroup.com (not shown to be the brand's)."
   },
   "palette": {
     "primary": "#2B2B2B",

@@ -17,8 +17,9 @@
       "renderer": "rendered",
       "at": "2026-10-04",
       "host": "www.boat-lifestyle.com",
-      "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+      "reason": "the rendered site shows no brand colour a preset can use (#ffffff from meta theme-color: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
     },
+    "read_sources_note": "Its own other material was tried too: www.boat-lifestyle.com (unavailable).",
     "logo_signal": "the icon the page declares (link rel=shortcut icon)"
   },
   "palette": {

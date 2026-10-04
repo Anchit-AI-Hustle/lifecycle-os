@@ -1,24 +1,271 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "sephora",
   "start": "https://www.sephora.com",
-  "landed": "https://www.sephora.com",
+  "landed": "https://newsroom.sephora.com/",
   "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T23:21:08.741Z",
   "renderer": "blocked",
   "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
-  "read_attempt": {
+  "reads": [
+    {
+      "url": "https://www.sephora.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.sephora.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://newsroom.sephora.com/",
+      "role": "identity source",
+      "what": "Sephora newsroom",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "newsroom.sephora.com",
+        "registrable": "sephora.com",
+        "website_host": "www.sephora.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://newsroom.sephora.com/"
+    },
+    {
+      "url": "https://www.sephora.com/beauty/about-us",
+      "role": "identity source",
+      "what": "Sephora about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.sephora.com",
+        "registrable": "sephora.com",
+        "website_host": "www.sephora.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    }
+  ],
+  "design_read": {
+    "url": "https://newsroom.sephora.com/",
+    "role": "identity source",
+    "landed": "https://newsroom.sephora.com/"
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://newsroom.sephora.com/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), newsroom.sephora.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: footer, newsroom.sephora.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), newsroom.sephora.com]"
+  ],
+  "logo_url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-180x180.png",
+  "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+  "assets": [
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-180x180.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://www.lawnmowerlawnmower.com/se-news/se-newsroom-logo-2024.png",
+      "role": "hero",
+      "alt": "Sephora Newsroom",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/09/heartsnothate_logo.png",
+      "role": "hero",
+      "alt": "Project Hearts Not Hate Logo",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/08/Hand-holding-Sephora-shopping-bag.jpg",
+      "role": "hero",
+      "alt": "Hand holding Sephora shopping bag",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/07/Sephora_OliveYoung.jpg",
+      "role": "hero",
+      "alt": "Sephora and Olive Young",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/04/sephora-accelerate.png",
+      "role": "photograph",
+      "alt": "Sephora Accelerate",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/04/sephora-squad.png",
+      "role": "photograph",
+      "alt": "Sephora Squad",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/04/my-sephora-storefront.png",
+      "role": "photograph",
+      "alt": "My Sephora Storefront",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://newsroom.sephora.com/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://newsroom.sephora.com/",
+      "logo": {
+        "kind": "css",
+        "verdict": "none",
+        "hex": ""
+      },
+      "fonts": {
+        "heading": "Futura-Boo",
+        "body": "SephoraSansOfficeRegular"
+      },
+      "content_logos": 0
+    }
+  ],
+  "home_attempt": {
     "renderer": "blocked",
     "at": "2026-10-04",
     "host": "www.sephora.com",
     "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
   },
-  "reader": {
-    "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#fefefe",
+      "exact": "#fefefe",
+      "derived": false,
+      "source": {
+        "page": "https://newsroom.sephora.com/",
+        "role": "page ground",
+        "selector": "body.home.wp-singular",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://newsroom.sephora.com/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "newsroom.sephora.com",
+        "registrable": "sephora.com",
+        "website_host": "www.sephora.com"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1.01:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    }
   },
-  "note": "www.sephora.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "typography": {
+    "heading": {
+      "family": "Futura-Boo",
+      "stack": "'Futura-Boo',BlinkMacSystemFont,-apple-system,'Roboto','Lucida Sans'",
+      "google": false,
+      "weights": "600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "Futura-Boo (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://newsroom.sephora.com/",
+        "role": "h1",
+        "selector": "div.vc_column-inner > div.wpb_wrapper > div.wpb_text_column.wpb_content_element:nth-of-type(1) > div.wpb_wrapper > h1",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "SephoraSansOfficeRegular",
+      "stack": "'SephoraSansOfficeRegular',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "SephoraSansOfficeRegular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://newsroom.sephora.com/",
+        "role": "body copy",
+        "selector": "div.swiper-wrapper:nth-of-type(1) > div.swiper-slide.swiper-lazy:nth-of-type(1) > div.sp-pcp-post.pcp-item-6361 > div.sp-pcp-post-content:nth-of-type(2) > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "newsroom.sephora.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "newsroom.sephora.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

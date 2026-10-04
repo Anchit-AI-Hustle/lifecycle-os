@@ -9,7 +9,7 @@
     "sector": "Beauty",
     "blurb": "Beauty retail. Template for a replenishment and shade-led catalogue.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://www.nykaa.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #fc2779 from logo mark fill as rendered (div#headerMenu > a.logo.css-kus7g9 > svg). Headings Inter, body Inter, as rendered.",
+    "source": "Rendered https://www.nykaa.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #fc2779 from logo mark paint as rendered (100% of its coloured area) (div#headerMenu > a.logo.css-kus7g9 > svg). Headings Inter, body Inter, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "verified",
@@ -26,14 +26,24 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.nykaa.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.nykaa.com"
         }
       },
       "primary": {
         "value": "#fc2779",
         "exact": "#fc2779",
         "derived": false,
+        "kind": "logo-svg",
+        "strength": 120,
+        "score": 120,
         "from_role": "identity",
-        "signal": "logo mark fill as rendered",
+        "signal": "logo mark paint as rendered (100% of its coloured area)",
         "source": {
           "page": "https://www.nykaa.com/",
           "role": "logo",
@@ -41,7 +51,30 @@
           "viewport": "desktop",
           "property": "fill",
           "signal": "computed"
-        }
+        },
+        "read_url": "https://www.nykaa.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.nykaa.com"
+        },
+        "outranked": [
+          {
+            "value": "#e80071",
+            "kind": "action",
+            "signal": "the primary call to action, as rendered",
+            "score": 55,
+            "page": "https://www.nykaa.com/"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "meta theme-color",
+            "why": "1.11:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
       },
       "ink": {
         "value": "#001325",
@@ -54,6 +87,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.nykaa.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.nykaa.com"
         }
       },
       "surface_alt": {
@@ -68,6 +108,13 @@
           "viewport": "",
           "property": "",
           "signal": ""
+        },
+        "read_url": "https://www.nykaa.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.nykaa.com"
         }
       },
       "muted": {
@@ -81,21 +128,28 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.nykaa.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.nykaa.com"
         }
       },
       "accent": {
-        "value": "#e80071",
-        "exact": "#e80071",
+        "value": "",
+        "exact": "",
         "derived": false,
-        "source": {
-          "page": "https://www.nykaa.com/",
-          "role": "primary call to action",
-          "selector": "div.css-2o3va.e1e0j9zy2 > div.css-1tny7j1.e1ewpqpu0:nth-of-type(2) > div.css-vtwhmt.euw1lbv0:nth-of-type(1) > div.css-jgrj0x.euw1lbv2 > button.css-1gzc5zn",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
-        },
-        "from_role": "action"
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://www.nykaa.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.nykaa.com"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -170,35 +224,48 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 47.3,
-      "mismatch": 0.5269,
+      "score": 78.3,
+      "mismatch": 0.2171,
       "surfaces": {
         "landing page": {
-          "score": 51.6,
-          "mismatch": 0.4836,
+          "score": 74.8,
+          "mismatch": 0.2516,
           "done": false,
-          "tokens_off": 16,
-          "regions_off": 4
+          "tokens_off": 9,
+          "regions_off": 2
         },
         "mailer": {
-          "score": 63.5,
-          "mismatch": 0.3649,
-          "done": false,
-          "tokens_off": 27,
-          "regions_off": 0
-        },
-        "ad creative": {
-          "score": 60,
-          "mismatch": 0.4,
+          "score": 94.6,
+          "mismatch": 0.0541,
           "done": false,
           "tokens_off": 4,
           "regions_off": 0
+        },
+        "ad creative": {
+          "score": 90,
+          "mismatch": 0.1,
+          "done": false,
+          "tokens_off": 1,
+          "regions_off": 0
         }
       },
-      "iterations": 2,
-      "repairs": 4,
+      "iterations": 3,
+      "repairs": 0,
       "mismatch_limit": 0.05
     },
+    "read_from": [
+      "https://www.nykaa.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.nykaa.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      }
+    ],
     "typography_evidence": {
       "heading": {
         "page": "https://www.nykaa.com/",
@@ -222,7 +289,6 @@
   },
   "palette": {
     "primary": "#fc2779",
-    "accent": "#e80071",
     "ink": "#001325",
     "surface": "#f3f3f3",
     "surface_alt": "#f3f3f3",
@@ -236,20 +302,20 @@
     "heading": {
       "family": "Inter",
       "stack": "'Inter','Roboto','Arial',sans-serif",
-      "google": false,
+      "google": true,
       "weights": "400;500;600",
       "kind": "webfont",
-      "loadable": false,
-      "note": "Inter (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
+      "loadable": true,
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts."
     },
     "body": {
       "family": "Inter",
       "stack": "'Inter','Inter',sans-serif",
-      "google": false,
+      "google": true,
       "weights": "400;500;600",
       "kind": "webfont",
-      "loadable": false,
-      "note": "Inter (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
+      "loadable": true,
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts."
     }
   },
   "voice": {
@@ -514,14 +580,14 @@
     },
     {
       "url": "https://images-static.nykaa.com/uploads/b4322490-ee1c-410a-97f7-36bd1e3dfd06.gif",
-      "role": "photograph",
+      "role": "hero",
       "alt": "L'Oreal CPD _Flash_Sale",
       "found_on": "https://www.nykaa.com/",
       "signal": "image rendered on the page"
     },
     {
       "url": "https://images-static.nykaa.com/uploads/735a2ba5-8c3a-4154-8947-03bebd1d2990.gif",
-      "role": "photograph",
+      "role": "hero",
       "alt": "Site_Flash_Sale",
       "found_on": "https://www.nykaa.com/",
       "signal": "image rendered on the page"

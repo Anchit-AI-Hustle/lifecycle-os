@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www.amazon.com",
       "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: www.aboutamazon.com (not shown to be the brand's)."
   },
   "palette": {
     "primary": "#2B2B2B",

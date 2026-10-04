@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "airtel",
   "start": "https://www.airtel.in",
   "landed": "https://www.airtel.in/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:53:02.872Z",
+  "read_at": "2026-10-04T23:27:30.175Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.airtel.in",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.airtel.in/"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.airtel.in",
+    "role": "home",
+    "landed": "https://www.airtel.in/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -37,8 +60,8 @@
   "regression": {
     "ok": true,
     "done": true,
-    "score": 100,
-    "mismatch": 0,
+    "score": 98,
+    "mismatch": 0.0204,
     "surfaces": {
       "landing page": {
         "score": 100,
@@ -48,10 +71,10 @@
         "regions_off": 0
       },
       "mailer": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 93.9,
+        "mismatch": 0.0606,
+        "done": false,
+        "tokens_off": 4,
         "regions_off": 0
       },
       "ad creative": {
@@ -69,7 +92,7 @@
   "conflicts": [
     {
       "kind": "brand_colour_vs_action_colour",
-      "message": "The site declares #d40000 as its own colour (logo mark fill as rendered) but renders its primary call to action in #e3e5ff. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      "message": "The site declares #d40000 as its own colour (logo mark paint as rendered (100% of its coloured area)) but renders its primary call to action in #e3e5ff. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
     }
   ],
   "markers": [
@@ -136,10 +159,61 @@
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "logo-svg",
+      "value": "#d40000",
+      "score": 120,
+      "state": "chosen",
+      "page": "https://www.airtel.in/"
+    },
+    {
+      "kind": "action",
+      "value": "#e3e5ff",
+      "score": 55,
+      "state": "passed over",
+      "page": "https://www.airtel.in/"
+    },
+    {
+      "kind": "logo-image",
+      "value": "#d40000",
+      "score": 116,
+      "state": "outranked",
+      "page": "https://www.airtel.in/"
+    },
+    {
+      "kind": "theme-color",
+      "value": "#000000",
+      "score": 74,
+      "state": "neutral",
+      "page": "https://www.airtel.in/"
+    },
+    {
+      "kind": "icon",
+      "value": "#ed1b24",
+      "score": 56,
+      "state": "outranked",
+      "page": "https://assets.airtel.in/static-assets/new-home/img/favicon.ico"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.airtel.in",
+      "logo": {
+        "kind": "svg",
+        "verdict": "colour",
+        "hex": "#d40000"
+      },
+      "fonts": {
+        "heading": "TondoBold",
+        "body": "Tondo"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": true,
   "palette": {
     "primary": "#d40000",
-    "accent": "#d40000",
     "ink": "#000000",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -161,14 +235,24 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.airtel.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
       }
     },
     "primary": {
       "value": "#d40000",
       "exact": "#d40000",
       "derived": false,
+      "kind": "logo-svg",
+      "strength": 120,
+      "score": 120,
       "from_role": "identity",
-      "signal": "logo mark fill as rendered",
+      "signal": "logo mark paint as rendered (100% of its coloured area)",
       "source": {
         "page": "https://www.airtel.in/",
         "role": "logo",
@@ -176,7 +260,30 @@
         "viewport": "desktop",
         "property": "fill",
         "signal": "computed"
-      }
+      },
+      "read_url": "https://www.airtel.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
+      },
+      "outranked": [
+        {
+          "value": "#ed1b24",
+          "kind": "icon",
+          "signal": "site icon pixels (apple-touch-icon)",
+          "score": 56,
+          "page": "https://assets.airtel.in/static-assets/new-home/img/favicon.ico"
+        }
+      ],
+      "passed_over": [
+        {
+          "value": "#e3e5ff",
+          "from": "the reader's accent",
+          "why": "1.24:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
     },
     "ink": {
       "value": "#000000",
@@ -189,6 +296,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://www.airtel.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
       }
     },
     "surface_alt": {
@@ -203,6 +317,13 @@
         "viewport": "",
         "property": "",
         "signal": ""
+      },
+      "read_url": "https://www.airtel.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
       }
     },
     "muted": {
@@ -216,20 +337,27 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://www.airtel.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
       }
     },
     "accent": {
-      "value": "#d40000",
+      "value": "",
       "exact": "#e3e5ff",
-      "derived": true,
-      "note": "The second colour the reader found (#e3e5ff) is a tint of the page (1.24:1), so the accent repeats the primary.",
-      "source": {
-        "page": "https://www.airtel.in/",
-        "role": "logo",
-        "selector": "div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i",
-        "viewport": "desktop",
-        "property": "fill",
-        "signal": "computed"
+      "derived": false,
+      "absent": true,
+      "note": "The second colour the reader found (#e3e5ff) is a tint of the page (1.24:1), so this preset has no accent.",
+      "read_url": "https://www.airtel.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.airtel.in"
       }
     },
     "line": {
@@ -289,9 +417,7 @@
       }
     }
   },
-  "palette_warnings": [
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_warnings": [],
   "typography": {
     "heading": {
       "family": "TondoBold",
@@ -332,5 +458,5 @@
       }
     }
   },
-  "source": "Rendered https://www.airtel.in/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #d40000 from logo mark fill as rendered (div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i). Headings TondoBold, body Tondo, as rendered."
+  "source": "Rendered https://www.airtel.in/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #d40000 from logo mark paint as rendered (100% of its coloured area) (div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i). Headings TondoBold, body Tondo, as rendered."
 }

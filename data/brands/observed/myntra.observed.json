@@ -1,24 +1,179 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "myntra",
   "start": "https://www.myntra.com",
-  "landed": "https://www.myntra.com",
+  "landed": "https://jobs.myntra.com/home",
   "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T23:20:10.535Z",
   "renderer": "blocked",
   "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it.",
-  "read_attempt": {
+  "reads": [
+    {
+      "url": "https://www.myntra.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.myntra.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
+    },
+    {
+      "url": "https://jobs.myntra.com/home",
+      "role": "identity source",
+      "what": "Myntra careers site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.myntra.com",
+        "registrable": "myntra.com",
+        "website_host": "www.myntra.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://jobs.myntra.com/home"
+    },
+    {
+      "url": "https://www.myntra.com/shop/men",
+      "role": "identity source",
+      "what": "Myntra men's store",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.myntra.com",
+        "registrable": "myntra.com",
+        "website_host": "www.myntra.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
+    }
+  ],
+  "design_read": {
+    "url": "https://jobs.myntra.com/home",
+    "role": "identity source",
+    "landed": "https://jobs.myntra.com/home"
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://jobs.myntra.com/home",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.heading, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: logo, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: header bar, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: footer, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, jobs.myntra.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), jobs.myntra.com]"
+  ],
+  "logo_url": "https://jobs.myntra.com/favicon.png",
+  "logo_signal": "the icon the page declares (link rel=icon)",
+  "assets": [
+    {
+      "url": "https://jobs.myntra.com/favicon.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://jobs.myntra.com/home",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://jobs.myntra.com/splash/img/light-1x.png",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://jobs.myntra.com/home",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [],
+  "read_details": [
+    {
+      "url": "https://jobs.myntra.com/home",
+      "logo": null,
+      "fonts": {
+        "heading": "",
+        "body": ""
+      },
+      "content_logos": 0
+    }
+  ],
+  "home_attempt": {
     "renderer": "blocked",
     "at": "2026-10-04",
     "host": "www.myntra.com",
     "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
   },
-  "reader": {
-    "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://jobs.myntra.com/home",
+        "role": "page ground",
+        "selector": "body",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://jobs.myntra.com/home",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.myntra.com",
+        "registrable": "myntra.com",
+        "website_host": "www.myntra.com"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": []
+    }
   },
-  "note": "www.myntra.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+  "typography": null,
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "jobs.myntra.com",
+    "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+  },
+  "note": "jobs.myntra.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. The preset stays on the neutral default."
 }

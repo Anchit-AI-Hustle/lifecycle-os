@@ -9,7 +9,7 @@
     "sector": "Food and beverage",
     "blurb": "Coffee retail. Template for a rewards programme and a seasonal menu calendar.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://www.starbucks.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #006341 from meta theme-color (meta[name=theme-color]). Headings SoDoSans, body SoDoSans, as rendered.",
+    "source": "Rendered https://www.starbucks.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #006241 from logo mark paint as rendered (100% of its coloured area) (div.flex > div.sb-globalNav__logoContainer:nth-of-type(1) > div.sb-globalNav__logo.mr3 > a.block > svg). Agreed by theme-color. Headings SoDoSans, body SoDoSans, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "verified",
@@ -26,22 +26,77 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.starbucks.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.starbucks.com"
         }
       },
       "primary": {
-        "value": "#006341",
-        "exact": "#006341",
+        "value": "#006241",
+        "exact": "#006241",
         "derived": false,
+        "kind": "logo-svg",
+        "strength": 120,
+        "score": 132,
         "from_role": "identity",
-        "signal": "meta theme-color",
+        "signal": "logo mark paint as rendered (100% of its coloured area)",
         "source": {
           "page": "https://www.starbucks.com/",
-          "role": "theme-color",
-          "selector": "meta[name=theme-color]",
+          "role": "logo",
+          "selector": "div.flex > div.sb-globalNav__logoContainer:nth-of-type(1) > div.sb-globalNav__logo.mr3 > a.block > svg",
           "viewport": "desktop",
-          "property": "content",
+          "property": "fill",
           "signal": "computed"
-        }
+        },
+        "read_url": "https://www.starbucks.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.starbucks.com"
+        },
+        "corroborated_by": [
+          {
+            "kind": "theme-color",
+            "value": "#006341",
+            "signal": "meta theme-color",
+            "page": "https://www.starbucks.com/"
+          }
+        ],
+        "outranked": [
+          {
+            "value": "#008046",
+            "kind": "mask-icon",
+            "signal": "mask-icon colour the site declares (link rel=mask-icon color)",
+            "score": 90,
+            "page": "https://www.starbucks.com/"
+          },
+          {
+            "value": "#00a862",
+            "kind": "manifest-theme",
+            "signal": "web app manifest theme_color",
+            "score": 84,
+            "page": "https://www.starbucks.com/manifest.json"
+          },
+          {
+            "value": "#00a862",
+            "kind": "icon",
+            "signal": "site icon pixels (apple-touch-icon)",
+            "score": 68,
+            "page": "https://www.starbucks.com/apple-touch-icon.png"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "web app manifest background_color",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
       },
       "ink": {
         "value": "#212121",
@@ -56,6 +111,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.starbucks.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.starbucks.com"
         }
       },
       "surface_alt": {
@@ -70,6 +132,13 @@
           "viewport": "",
           "property": "",
           "signal": ""
+        },
+        "read_url": "https://www.starbucks.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.starbucks.com"
         }
       },
       "muted": {
@@ -83,20 +152,36 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.starbucks.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.starbucks.com"
         }
       },
       "accent": {
-        "value": "#006341",
-        "exact": "#008248",
-        "derived": true,
-        "note": "The second colour the reader found (#008248) was measured on a consent or cookie banner, so the accent repeats the primary.",
+        "value": "#008046",
+        "exact": "#008046",
+        "derived": false,
+        "kind": "mask-icon",
+        "from_role": "identity",
+        "signal": "mask-icon colour the site declares (link rel=mask-icon color)",
         "source": {
           "page": "https://www.starbucks.com/",
-          "role": "theme-color",
-          "selector": "meta[name=theme-color]",
-          "viewport": "desktop",
-          "property": "content",
-          "signal": "computed"
+          "role": "mask-icon",
+          "selector": "link[rel=mask-icon]",
+          "viewport": "",
+          "property": "color",
+          "signal": "declared"
+        },
+        "read_url": "https://www.starbucks.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.starbucks.com"
         }
       },
       "line": {
@@ -173,46 +258,53 @@
         "role": "product"
       },
       {
-        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=uZW6aYyVW5o6WycdpEb8Lg2csmCRTJDIJcgGMIj6MFU-1791139897-1.0.1.1-XZL3alq3Dc_J49OdS6yWsVODzugBeDOUvIjyu1358u8",
+        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=pzFKysFEY4mSLfWF89ShXf82ObZKmaozMKXNpjIrj.k-1791156231-1.0.1.1-oDd3jffQD..Wqtpb0AzvHuBJEdGQpmMdr3zlFmXmf.w",
         "role": "about"
       }
     ],
     "regression": {
       "ok": true,
       "done": false,
-      "score": 54.6,
-      "mismatch": 0.4539,
+      "score": 87.4,
+      "mismatch": 0.1261,
       "surfaces": {
         "landing page": {
-          "score": 57.6,
-          "mismatch": 0.4242,
+          "score": 89.1,
+          "mismatch": 0.1089,
           "done": false,
-          "tokens_off": 11,
-          "regions_off": 3
+          "tokens_off": 3,
+          "regions_off": 1
         },
         "mailer": {
-          "score": 75.4,
-          "mismatch": 0.2464,
+          "score": 89.2,
+          "mismatch": 0.1077,
           "done": false,
-          "tokens_off": 17,
+          "tokens_off": 7,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 70,
-          "mismatch": 0.3,
-          "done": false,
-          "tokens_off": 3,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         }
       },
-      "iterations": 3,
-      "repairs": 4,
+      "iterations": 2,
+      "repairs": 0,
       "mismatch_limit": 0.05
     },
-    "conflicts": [
+    "read_from": [
+      "https://www.starbucks.com"
+    ],
+    "reads": [
       {
-        "kind": "brand_colour_vs_action_colour",
-        "message": "The site declares #006341 as its own colour (meta theme-color) but renders its primary call to action in #008248. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+        "url": "https://www.starbucks.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
       }
     ],
     "typography_evidence": {
@@ -237,8 +329,8 @@
     }
   },
   "palette": {
-    "primary": "#006341",
-    "accent": "#006341",
+    "primary": "#006241",
+    "accent": "#008046",
     "ink": "#212121",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",

@@ -9,7 +9,7 @@
     "sector": "Fintech",
     "blurb": "Payments. Template for a B2B onboarding and activation programme.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
+    "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #3395ff from logo mark paint as rendered (100% of its coloured area) (div.framer-1q9w5ld-container:nth-of-type(1) > a.framer-2P3kL.framer-1f4o9py > div.framer-l60v55 > div.svgContainer > svg). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "verified",
@@ -26,22 +26,48 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://razorpay.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "razorpay.com"
         }
       },
       "primary": {
-        "value": "#305eff",
-        "exact": "#305eff",
+        "value": "#3395ff",
+        "exact": "#3395ff",
         "derived": false,
-        "from_role": "action",
-        "signal": "the primary call to action, as rendered: the only brand colour this site renders",
+        "kind": "logo-svg",
+        "strength": 120,
+        "score": 120,
+        "from_role": "identity",
+        "signal": "logo mark paint as rendered (100% of its coloured area)",
         "source": {
           "page": "https://razorpay.com/",
-          "role": "primary call to action",
-          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
+          "role": "logo",
+          "selector": "div.framer-1q9w5ld-container:nth-of-type(1) > a.framer-2P3kL.framer-1f4o9py > div.framer-l60v55 > div.svgContainer > svg",
           "viewport": "desktop",
-          "property": "background-color",
+          "property": "fill",
           "signal": "computed"
-        }
+        },
+        "read_url": "https://razorpay.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "razorpay.com"
+        },
+        "outranked": [
+          {
+            "value": "#305eff",
+            "kind": "action",
+            "signal": "the primary call to action, as rendered",
+            "score": 55,
+            "page": "https://razorpay.com/"
+          }
+        ]
       },
       "ink": {
         "value": "#222222",
@@ -54,6 +80,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://razorpay.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "razorpay.com"
         }
       },
       "surface_alt": {
@@ -68,34 +101,57 @@
           "viewport": "",
           "property": "",
           "signal": ""
+        },
+        "read_url": "https://razorpay.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "razorpay.com"
         }
       },
       "muted": {
-        "value": "#64748a",
-        "exact": "#64748a",
+        "value": "#192839",
+        "exact": "#192839",
         "derived": false,
         "source": {
           "page": "https://razorpay.com/",
           "role": "secondary text",
-          "selector": "div.framer-u54ahn:nth-of-type(1) > div.framer-1rs4mzo:nth-of-type(1) > div.framer-ttcpdg:nth-of-type(2) > div.framer-1xnbg6h:nth-of-type(1) > p.framer-text",
-          "viewport": "desktop",
-          "property": "color",
-          "signal": "computed"
-        }
-      },
-      "accent": {
-        "value": "#2950da",
-        "exact": "#2950da",
-        "derived": false,
-        "source": {
-          "page": "https://razorpay.com/",
-          "role": "body link",
-          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-qt6ikm-container:nth-of-type(2) > a.framer-1O3k8.framer-QQaRQ",
+          "selector": "div#undefined-15h83sd > div.framer-0ivRD.framer-1vcylss > div.framer-nq5qff-container:nth-of-type(1) > div > p:nth-of-type(1)",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
         },
-        "from_role": "link"
+        "read_url": "https://razorpay.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "razorpay.com"
+        }
+      },
+      "accent": {
+        "value": "#305eff",
+        "exact": "#305eff",
+        "derived": false,
+        "kind": "action",
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered",
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "primary call to action",
+          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://razorpay.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "razorpay.com"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -174,35 +230,54 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 48.3,
-      "mismatch": 0.5172,
+      "score": 70.9,
+      "mismatch": 0.291,
       "surfaces": {
         "landing page": {
-          "score": 49.2,
-          "mismatch": 0.5078,
+          "score": 68.6,
+          "mismatch": 0.3141,
           "done": false,
-          "tokens_off": 19,
-          "regions_off": 4
+          "tokens_off": 15,
+          "regions_off": 2
         },
         "mailer": {
-          "score": 69,
-          "mismatch": 0.3099,
+          "score": 84.3,
+          "mismatch": 0.1571,
           "done": false,
-          "tokens_off": 22,
+          "tokens_off": 11,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 60,
-          "mismatch": 0.4,
+          "score": 70,
+          "mismatch": 0.3,
           "done": false,
-          "tokens_off": 4,
+          "tokens_off": 3,
           "regions_off": 0
         }
       },
       "iterations": 3,
-      "repairs": 26,
+      "repairs": 0,
       "mismatch_limit": 0.05
     },
+    "conflicts": [
+      {
+        "kind": "brand_colour_vs_action_colour",
+        "message": "The site declares #3395ff as its own colour (logo mark paint as rendered (100% of its coloured area)) but renders its primary call to action in #305eff. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
+    "read_from": [
+      "https://razorpay.com"
+    ],
+    "reads": [
+      {
+        "url": "https://razorpay.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      }
+    ],
     "typography_evidence": {
       "heading": {
         "page": "https://razorpay.com/",
@@ -225,12 +300,12 @@
     }
   },
   "palette": {
-    "primary": "#305eff",
-    "accent": "#2950da",
+    "primary": "#3395ff",
+    "accent": "#305eff",
     "ink": "#222222",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#64748a",
+    "muted": "#192839",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -249,11 +324,11 @@
     "body": {
       "family": "Inter",
       "stack": "'Inter','Inter Placeholder',sans-serif",
-      "google": false,
-      "weights": "400;500;600",
+      "google": true,
+      "weights": "400;500;600;700",
       "kind": "webfont",
-      "loadable": false,
-      "note": "Inter (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
+      "loadable": true,
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts."
     }
   },
   "voice": {

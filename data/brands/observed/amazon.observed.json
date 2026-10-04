@@ -1,12 +1,47 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "amazon",
   "start": "https://www.amazon.com",
   "landed": "https://www.amazon.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:49:47.259Z",
+  "read_at": "2026-10-04T23:20:32.349Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.amazon.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.amazon.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.amazon.com/"
+    },
+    {
+      "url": "https://www.aboutamazon.com/",
+      "role": "identity source",
+      "what": "About Amazon, the company's own news site (linked from amazon.com)",
+      "kind": "page",
+      "owned": null,
+      "at": "2026-10-04",
+      "attempts": 0,
+      "renderer": "refused",
+      "ok": false,
+      "reason": "www.aboutamazon.com is not under amazon.com, and no page read on amazon.com links to it, so it is not shown to be the brand's own"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.amazon.com",
+    "role": "home",
+    "landed": "https://www.amazon.com/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -25,16 +60,16 @@
       "h": 900
     },
     "mobile": {
-      "w": 390,
-      "h": 844
+      "w": 398,
+      "h": 862
     }
   },
   "partial": false,
   "regression": {
     "ok": true,
     "done": true,
-    "score": 99.1,
-    "mismatch": 0.0095,
+    "score": 100,
+    "mismatch": 0,
     "surfaces": {
       "landing page": {
         "score": 100,
@@ -44,10 +79,10 @@
         "regions_off": 0
       },
       "mailer": {
-        "score": 97.7,
-        "mismatch": 0.0227,
+        "score": 100,
+        "mismatch": 0,
         "done": true,
-        "tokens_off": 1,
+        "tokens_off": 0,
         "regions_off": 0
       },
       "ad creative": {
@@ -64,17 +99,33 @@
   },
   "conflicts": [],
   "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.heading, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: logo, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: favicon, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: primary call to action, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: header bar, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: footer, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.amazon.com]"
   ],
   "logo_url": "",
   "logo_signal": "",
   "assets": [],
+  "palette_candidates": [],
+  "read_details": [
+    {
+      "url": "https://www.amazon.com",
+      "logo": null,
+      "fonts": {
+        "heading": "",
+        "body": ""
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": false,
   "palette": null,
   "palette_evidence": {
@@ -85,10 +136,17 @@
       "source": {
         "page": "https://www.amazon.com/",
         "role": "page ground",
-        "selector": "body",
+        "selector": "canvas (no background declared)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.amazon.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.amazon.com"
       }
     },
     "primary": {
@@ -97,46 +155,7 @@
     }
   },
   "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
-  "typography": {
-    "heading": {
-      "family": "Arial",
-      "stack": "'Arial',sans-serif",
-      "google": false,
-      "weights": "600;700",
-      "kind": "local",
-      "loadable": true,
-      "weights_read": false,
-      "note": "A system font stack: each device picks the face, exactly as on the site.",
-      "signal": "computed font-family of the heading role",
-      "source": {
-        "page": "https://www.amazon.com/",
-        "role": "display heading (largest text near the top)",
-        "selector": "div.a-container.a-padding-double-large > div.a-row.a-spacing-double-large:nth-of-type(1) > div.a-box.a-alert:nth-of-type(2) > div.a-box-inner > h4",
-        "viewport": "desktop",
-        "property": "font-family",
-        "signal": "computed"
-      }
-    },
-    "body": {
-      "family": "Arial",
-      "stack": "'Arial',sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "kind": "local",
-      "loadable": true,
-      "weights_read": false,
-      "note": "A system font stack: each device picks the face, exactly as on the site.",
-      "signal": "computed font-family of the body copy role",
-      "source": {
-        "page": "https://www.amazon.com/",
-        "role": "body copy",
-        "selector": "body > div.a-container.a-padding-double-large > div.a-text-center.a-size-mini:nth-of-type(4)",
-        "viewport": "desktop",
-        "property": "font-family",
-        "signal": "computed"
-      }
-    }
-  },
+  "typography": null,
   "read_attempt": {
     "renderer": "rendered",
     "at": "2026-10-04",

@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "paytm.com",
       "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: paytm.com (blocked), ir.paytm.com (blocked)."
   },
   "palette": {
     "primary": "#2B2B2B",

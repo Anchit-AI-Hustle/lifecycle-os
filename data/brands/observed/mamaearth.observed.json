@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "mamaearth",
   "start": "https://mamaearth.in",
   "landed": "https://mamaearth.in/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:50:27.804Z",
+  "read_at": "2026-10-04T23:21:50.906Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://mamaearth.in",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://mamaearth.in/"
+    }
+  ],
+  "design_read": {
+    "url": "https://mamaearth.in",
+    "role": "home",
+    "landed": "https://mamaearth.in/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -33,21 +56,21 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 61.1,
-    "mismatch": 0.3887,
+    "score": 68.2,
+    "mismatch": 0.3177,
     "surfaces": {
       "landing page": {
-        "score": 59.6,
-        "mismatch": 0.4041,
+        "score": 67.2,
+        "mismatch": 0.3277,
         "done": false,
         "tokens_off": 11,
-        "regions_off": 4
+        "regions_off": 3
       },
       "mailer": {
-        "score": 89.7,
-        "mismatch": 0.1029,
+        "score": 88.2,
+        "mismatch": 0.1176,
         "done": false,
-        "tokens_off": 7,
+        "tokens_off": 8,
         "regions_off": 0
       },
       "ad creative": {
@@ -59,7 +82,7 @@
       }
     },
     "iterations": 3,
-    "repairs": 11,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -126,10 +149,33 @@
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "action",
+      "value": "#00aeef",
+      "score": 55,
+      "state": "chosen",
+      "page": "https://mamaearth.in/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://mamaearth.in",
+      "logo": {
+        "kind": "img",
+        "verdict": "multicolour",
+        "hex": "#00aeef #82c341 #7ad4f6 #bfebfb #c1e1a2"
+      },
+      "fonts": {
+        "heading": "Open Sans",
+        "body": "Open Sans"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": true,
   "palette": {
     "primary": "#00aeef",
-    "accent": "#00aeef",
     "ink": "#1d1d1d",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -151,12 +197,22 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://mamaearth.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
       }
     },
     "primary": {
       "value": "#00aeef",
       "exact": "#00aeef",
       "derived": false,
+      "kind": "action",
+      "strength": 55,
+      "score": 55,
       "from_role": "action",
       "signal": "the primary call to action, as rendered: the only brand colour this site renders",
       "source": {
@@ -166,6 +222,13 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://mamaearth.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
       }
     },
     "ink": {
@@ -179,6 +242,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://mamaearth.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
       }
     },
     "surface_alt": {
@@ -192,6 +262,13 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://mamaearth.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
       }
     },
     "muted": {
@@ -206,20 +283,27 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://mamaearth.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
       }
     },
     "accent": {
-      "value": "#00aeef",
+      "value": "",
       "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://mamaearth.in/",
-        "role": "primary call to action",
-        "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
+      "derived": false,
+      "absent": true,
+      "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+      "read_url": "https://mamaearth.in",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "mamaearth.in"
       }
     },
     "line": {
@@ -280,20 +364,18 @@
     }
   },
   "palette_warnings": [
-    "Primary on the page surface is 2.53:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see.",
-    "Accent text on the surface is 2.53:1. Keep accent for fills and rules, not body copy.",
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
+    "Primary on the page surface is 2.53:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see."
   ],
   "typography": {
     "heading": {
       "family": "Open Sans",
       "stack": "'Open Sans',sans-serif",
-      "google": false,
+      "google": true,
       "weights": "400;700",
       "kind": "webfont",
-      "loadable": false,
+      "loadable": true,
       "weights_read": true,
-      "note": "Open Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts.",
       "signal": "computed font-family of the heading role",
       "source": {
         "page": "https://mamaearth.in/",
@@ -307,12 +389,12 @@
     "body": {
       "family": "Open Sans",
       "stack": "'Open Sans',sans-serif",
-      "google": false,
+      "google": true,
       "weights": "400;700",
       "kind": "webfont",
-      "loadable": false,
+      "loadable": true,
       "weights_read": true,
-      "note": "Open Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts.",
       "signal": "computed font-family of the body copy role",
       "source": {
         "page": "https://mamaearth.in/",

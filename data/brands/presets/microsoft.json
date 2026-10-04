@@ -9,7 +9,7 @@
     "sector": "Software",
     "blurb": "Software and devices. Template for a seat-based subscription lifecycle.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #0078d4 from the primary call to action, as rendered (store-button#action-occ033 > a). Headings segoeui, body segoeui, as rendered.",
+    "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #0078d4 from the primary call to action, as rendered: the only brand colour this site renders (store-button#action-occ033 > a). Headings segoeui, body segoeui, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "verified",
@@ -26,27 +26,49 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.microsoft.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.microsoft.com"
         }
       },
       "primary": {
         "value": "#0078d4",
         "exact": "#0078d4",
         "derived": false,
+        "kind": "action",
+        "strength": 55,
+        "score": 55,
         "from_role": "action",
-        "signal": "the primary call to action, as rendered",
+        "signal": "the primary call to action, as rendered: the only brand colour this site renders",
         "source": {
           "page": "https://www.microsoft.com/en-us",
-          "role": "secondary call to action",
+          "role": "primary call to action",
           "selector": "store-button#action-occ033 > a",
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
         },
+        "read_url": "https://www.microsoft.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.microsoft.com"
+        },
         "passed_over": [
           {
             "value": "#e6effd",
-            "from": "the reader's primary",
+            "from": "the reader's accent",
             "why": "1.16:1 against the page, a tint of the page that cannot carry buttons or bands"
+          },
+          {
+            "value": "#ffffff",
+            "from": "the header background",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
           }
         ]
       },
@@ -61,6 +83,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.microsoft.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.microsoft.com"
         }
       },
       "surface_alt": {
@@ -75,6 +104,13 @@
           "viewport": "",
           "property": "",
           "signal": ""
+        },
+        "read_url": "https://www.microsoft.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.microsoft.com"
         }
       },
       "muted": {
@@ -89,20 +125,27 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.microsoft.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.microsoft.com"
         }
       },
       "accent": {
-        "value": "#0078d4",
-        "exact": "",
-        "derived": true,
-        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-        "source": {
-          "page": "https://www.microsoft.com/en-us",
-          "role": "secondary call to action",
-          "selector": "store-button#action-occ033 > a",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
+        "value": "",
+        "exact": "#e6effd",
+        "derived": false,
+        "absent": true,
+        "note": "The second colour the reader found (#e6effd) is a tint of the page (1.16:1), so this preset has no accent.",
+        "read_url": "https://www.microsoft.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.microsoft.com"
         }
       },
       "line": {
@@ -177,22 +220,22 @@
     ],
     "regression": {
       "ok": true,
-      "done": true,
-      "score": 98,
-      "mismatch": 0.0201,
+      "done": false,
+      "score": 69,
+      "mismatch": 0.3102,
       "surfaces": {
         "landing page": {
-          "score": 96.9,
-          "mismatch": 0.0308,
-          "done": true,
+          "score": 67.8,
+          "mismatch": 0.3215,
+          "done": false,
           "tokens_off": 2,
-          "regions_off": 0
+          "regions_off": 2
         },
         "mailer": {
-          "score": 98.6,
-          "mismatch": 0.0135,
+          "score": 100,
+          "mismatch": 0,
           "done": true,
-          "tokens_off": 1,
+          "tokens_off": 0,
           "regions_off": 0
         },
         "ad creative": {
@@ -203,10 +246,23 @@
           "regions_off": 0
         }
       },
-      "iterations": 1,
-      "repairs": 0,
+      "iterations": 2,
+      "repairs": 2,
       "mismatch_limit": 0.05
     },
+    "read_from": [
+      "https://www.microsoft.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.microsoft.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      }
+    ],
     "typography_evidence": {
       "heading": {
         "page": "https://www.microsoft.com/en-us",
@@ -230,7 +286,6 @@
   },
   "palette": {
     "primary": "#0078d4",
-    "accent": "#0078d4",
     "ink": "#17253d",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",

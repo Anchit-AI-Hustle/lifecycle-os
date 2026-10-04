@@ -9,7 +9,7 @@
     "sector": "Sportswear",
     "blurb": "Sportswear. Template for sponsorship-led and event-led pushes.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)).",
+    "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (its logo mark is #ffffff, also neutral) (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)) on https://www.puma.com.",
     "needs_extraction": false,
     "palette_source": "verified",
     "typography_source": "default",
@@ -26,14 +26,24 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.puma.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.puma.com"
         }
       },
       "primary": {
         "value": "#191919",
         "exact": "#191919",
         "derived": false,
+        "kind": "action",
+        "strength": 55,
+        "score": 55,
         "from_role": "action",
-        "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome",
+        "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (its logo mark is #ffffff, also neutral)",
         "source": {
           "page": "https://us.puma.com/us/en",
           "role": "primary call to action",
@@ -41,7 +51,21 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
-        }
+        },
+        "read_url": "https://www.puma.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.puma.com"
+        },
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "msapplication-TileColor the page declares",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
       },
       "ink": {
         "value": "#191919",
@@ -56,6 +80,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.puma.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.puma.com"
         }
       },
       "surface_alt": {
@@ -69,6 +100,13 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.puma.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.puma.com"
         }
       },
       "muted": {
@@ -83,20 +121,27 @@
           "viewport": "",
           "property": "",
           "signal": ""
+        },
+        "read_url": "https://www.puma.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.puma.com"
         }
       },
       "accent": {
-        "value": "#191919",
+        "value": "",
         "exact": "",
-        "derived": true,
-        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-        "source": {
-          "page": "https://us.puma.com/us/en",
-          "role": "primary call to action",
-          "selector": "div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)",
-          "viewport": "desktop",
-          "property": "background-color",
-          "signal": "computed"
+        "derived": false,
+        "absent": true,
+        "note": "The site renders no chromatic colour at all; this preset has no accent rather than one the site does not use.",
+        "read_url": "https://www.puma.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.puma.com"
         }
       },
       "line": {
@@ -176,39 +221,59 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 66,
-      "mismatch": 0.3404,
+      "score": 85,
+      "mismatch": 0.15,
       "surfaces": {
         "landing page": {
-          "score": 66.9,
-          "mismatch": 0.3311,
+          "score": 85,
+          "mismatch": 0.15,
           "done": false,
-          "tokens_off": 2,
-          "regions_off": 4
+          "tokens_off": 0,
+          "regions_off": 2
         },
         "mailer": {
-          "score": 94.1,
-          "mismatch": 0.0588,
-          "done": false,
-          "tokens_off": 3,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 87.5,
-          "mismatch": 0.125,
-          "done": false,
-          "tokens_off": 1,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         }
       },
       "iterations": 2,
-      "repairs": 4,
+      "repairs": 0,
       "mismatch_limit": 0.05
-    }
+    },
+    "read_from": [
+      "https://www.puma.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.puma.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      },
+      {
+        "url": "https://about.puma.com/en",
+        "role": "identity source",
+        "what": "PUMA corporate site",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      }
+    ]
   },
   "palette": {
     "primary": "#191919",
-    "accent": "#191919",
     "ink": "#191919",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",

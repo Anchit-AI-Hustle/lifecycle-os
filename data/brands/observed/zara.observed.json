@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "zara",
@@ -20,5 +20,58 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.zara.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.zara.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.zara.com (blocked), www.zara.com (blocked). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.zara.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.zara.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.zara.com/us/",
+      "role": "identity source",
+      "what": "Zara US store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.zara.com",
+        "registrable": "zara.com",
+        "website_host": "www.zara.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.zara.com/es/en/",
+      "role": "identity source",
+      "what": "Zara Spain store front (English)",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.zara.com",
+        "registrable": "zara.com",
+        "website_host": "www.zara.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    }
+  ]
 }

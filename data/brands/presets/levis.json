@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www.levi.com",
       "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: www.levi.com (blocked), www.levistrauss.com (not shown to be the brand's)."
   },
   "palette": {
     "primary": "#2B2B2B",

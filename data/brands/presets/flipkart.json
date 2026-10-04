@@ -26,12 +26,22 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.flipkart.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.flipkart.com"
         }
       },
       "primary": {
         "value": "#56adff",
         "exact": "#56adff",
         "derived": false,
+        "kind": "theme-color",
+        "strength": 74,
+        "score": 74,
         "from_role": "identity",
         "signal": "meta theme-color",
         "source": {
@@ -41,7 +51,40 @@
           "viewport": "desktop",
           "property": "content",
           "signal": "computed"
-        }
+        },
+        "read_url": "https://www.flipkart.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.flipkart.com"
+        },
+        "outranked": [
+          {
+            "value": "#2a55e5",
+            "kind": "action",
+            "signal": "the primary call to action, as rendered",
+            "score": 55,
+            "page": "https://www.flipkart.com/"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#ffe70d",
+            "from": "site icon pixels (apple-touch-icon)",
+            "why": "1.26:1 against the page, a tint of the page that cannot carry buttons or bands"
+          },
+          {
+            "value": "#f4f5f5",
+            "from": "the reader's accent",
+            "why": "1.09:1 against the page, a tint of the page that cannot carry buttons or bands"
+          },
+          {
+            "value": "#ffffff",
+            "from": "the header background",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
       },
       "ink": {
         "value": "#333333",
@@ -56,6 +99,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.flipkart.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.flipkart.com"
         }
       },
       "surface_alt": {
@@ -65,10 +115,17 @@
         "source": {
           "page": "https://www.flipkart.com/",
           "role": "product card",
-          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(3) > div.css-g5y9jx > div > div",
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.flipkart.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.flipkart.com"
         }
       },
       "muted": {
@@ -83,12 +140,22 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.flipkart.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.flipkart.com"
         }
       },
       "accent": {
         "value": "#2a55e5",
         "exact": "#2a55e5",
         "derived": false,
+        "kind": "action",
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered",
         "source": {
           "page": "https://www.flipkart.com/",
           "role": "primary call to action",
@@ -97,7 +164,13 @@
           "property": "background-color",
           "signal": "computed"
         },
-        "from_role": "action"
+        "read_url": "https://www.flipkart.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.flipkart.com"
+        }
       },
       "line": {
         "value": "#e4e4e4",
@@ -205,6 +278,27 @@
       {
         "kind": "brand_colour_vs_action_colour",
         "message": "The site declares #56adff as its own colour (meta theme-color) but renders its primary call to action in #2a55e5. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
+    "read_from": [
+      "https://www.flipkart.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.flipkart.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      },
+      {
+        "url": "https://stories.flipkart.com/",
+        "role": "identity source",
+        "what": "Flipkart Stories, the company's own news site",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
       }
     ],
     "typography_evidence": {
@@ -570,7 +664,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://rukminim2.flixcart.com/fk-p-flap/1600/780/image/84f268d004c490c5.png?q=80",
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/920/448/image/c0b65ca665be6ebe.jpg?q=80",
       "role": "hero",
       "alt": "Image",
       "found_on": "https://www.flipkart.com/",

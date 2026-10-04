@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "paytm",
@@ -20,5 +20,58 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "paytm.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "paytm.com blocked an automated read on 2026-10-04. Its own other material was tried too: paytm.com (blocked), ir.paytm.com (blocked). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://paytm.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "paytm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
+    },
+    {
+      "url": "https://paytm.com/about-us",
+      "role": "identity source",
+      "what": "Paytm about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm.com - About Us\", whose first heading reads \"We will bring Half-a-Billion Indians to the Mainstream Economy.\"). Nothing was read from it."
+    },
+    {
+      "url": "https://ir.paytm.com/",
+      "role": "identity source",
+      "what": "Paytm investor relations",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "ir.paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "ir.paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm Investor Relations\", whose first heading reads \"Latest Publications\"). Nothing was read from it."
+    }
+  ]
 }

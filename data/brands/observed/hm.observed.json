@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "hm",
@@ -20,5 +20,70 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04. Its own other material was tried too: www2.hm.com (timeout), career.hm.com (blocked), hmgroup.com (not shown to be the brand's). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www2.hm.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www2.hm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www2.hm.com/en_us/index.html",
+      "role": "identity source",
+      "what": "H&M US store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www2.hm.com",
+        "registrable": "hm.com",
+        "website_host": "www2.hm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://career.hm.com/",
+      "role": "identity source",
+      "what": "H&M careers site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "career.hm.com",
+        "registrable": "hm.com",
+        "website_host": "www2.hm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "career.hm.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://hmgroup.com/",
+      "role": "identity source",
+      "what": "H&M Group corporate site (linked from hm.com)",
+      "kind": "page",
+      "owned": null,
+      "at": "2026-10-04",
+      "attempts": 0,
+      "renderer": "refused",
+      "ok": false,
+      "reason": "hmgroup.com is not under hm.com, and no page read on hm.com links to it, so it is not shown to be the brand's own"
+    }
+  ]
 }

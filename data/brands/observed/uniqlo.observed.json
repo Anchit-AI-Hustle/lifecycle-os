@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "uniqlo",
@@ -20,5 +20,58 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04. Its own other material was tried too: www.uniqlo.com (timeout), www.uniqlo.com (timeout). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.uniqlo.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.uniqlo.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www.uniqlo.com/us/en/",
+      "role": "identity source",
+      "what": "UNIQLO US store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.uniqlo.com",
+        "registrable": "uniqlo.com",
+        "website_host": "www.uniqlo.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www.uniqlo.com/in/en/",
+      "role": "identity source",
+      "what": "UNIQLO India store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.uniqlo.com",
+        "registrable": "uniqlo.com",
+        "website_host": "www.uniqlo.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    }
+  ]
 }
