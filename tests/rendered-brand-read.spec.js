@@ -141,9 +141,9 @@ test('(e) an inline-SVG logo is the logo, its markup kept, its fill the identity
   expect(out.regression.ok).toBe(true);
   const lp = require('../api/_shared/render-regression.js');
   const brand = lp.brandFor(out.manifest, null);
-  const html = lp.renderOurs(brand, lp.sampleFrom(out.manifest)).lp;
-  expect(html).toContain('src="data:image/svg+xml;base64,');
-  expect(html).not.toContain('<circle');
+  const rendered = lp.renderOurs(brand, lp.sampleFrom(out.manifest)).lp;
+  expect(rendered).toContain('src="data:image/svg+xml;base64,');
+  expect(rendered).not.toContain('<circle');
 });
 
 test('(f) a dark-neutral hero band: reported with its exact value, never painted as a section by our landing page', async () => {
@@ -243,4 +243,30 @@ test('every surface is scored per component with the limits stated, and the pixe
   // The mailer is compared at the site's PHONE values, never by pixels.
   expect(g.tokens.filter((t) => t.surface === 'mailer').every((t) => t.viewport === 'email (phone values)')).toBe(true);
   expect(g.regions.every((r) => !/mailer/.test(r.component))).toBe(true);
+});
+
+test('a rendered extract carries its DESIGN.md, through the context pack\'s own renderer, with the measured components', async () => {
+  const srv = await sites.serve(sites.siteRoutes('b'));
+  const br = require(RENDER);
+  const bx = require('../api/_shared/brand-extract.js');
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const realRun = bx.runExtract, realGuard = core.assertPublicUrl;
+  bx.runExtract = async () => ({ ok: true, start: srv.origin + '/', pages: [srv.origin + '/'], pages_visited: 1, stylesheets: [], limits: [], notes: [], markers: [], fields: { name: { value: 'Harbourlight', candidates: [] } } });
+  // The fixture lives on 127.0.0.1: the router's URL guard is answered for THIS origin only.
+  core.assertPublicUrl = async (u) => { if (!String(u).startsWith(srv.origin)) throw new Error('outside the fixture'); return String(u).replace(/\/$/, ''); };
+  let out;
+  try {
+    out = await br.extractWithRender({ ok: true }, { url: srv.origin + '/' }, {
+      readSite: (u, o) => br.readSite(u + '/', Object.assign({}, o, { policy: { allowOrigins: new Set([srv.origin]) } })),
+    });
+  } finally { bx.runExtract = realRun; core.assertPublicUrl = realGuard; await srv.close(); }
+  expect(out.read).toMatchObject({ method: 'rendered', renderer: 'chromium' });
+  expect(out.fields.palette.proposed).toMatchObject({ primary: '#1a4d8f', accent: '#b8531f', surface: '#ffffff', ink: '#1d1d1f' });
+  const doc = out.design_md;
+  expect(doc).toContain('This was RENDERED');
+  expect(doc).toMatch(/primary: "#1a4d8f"\s+# identity signal — --color-brand as computed on :root/);
+  expect(doc).toContain('| primary button | desktop | background | #b8531f |');
+  expect(doc).toContain('| primary button | desktop | radius | 999px |');
+  expect(doc).not.toContain('It is **not** a browser');
+  expect(Buffer.byteLength(JSON.stringify(out))).toBeLessThan(3800000);
 });
