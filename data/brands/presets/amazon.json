@@ -12,7 +12,13 @@
     "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.amazon.com.",
     "needs_extraction": true,
     "palette_source": "default",
-    "typography_source": "default"
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "rendered",
+      "at": "2026-10-04",
+      "host": "www.amazon.com",
+      "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+    }
   },
   "palette": {
     "primary": "#2B2B2B",

@@ -1,27 +1,204 @@
 {
-  "ok": false,
+  "format": "preset-observation/2",
+  "ok": true,
   "slug": "samsung",
   "start": "https://www.samsung.com",
   "landed": "https://www.samsung.com/us/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Samsung US | Mobile | TV | Home Electronics | Home Appliances | Samsung US",
-  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
-  "snapshot_summary": {
-    "theme": "",
-    "logoColor": "",
-    "paints": [
-      {
-        "hex": "#ef3434",
-        "n": 2,
-        "sample": "cart-in-number gnb-cart-count"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T17:23:03.277Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://www.samsung.com/us/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": {
+      "w": 390,
+      "h": 844
+    }
+  },
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 70,
+    "mismatch": 0.3,
+    "surfaces": {
+      "landing page": {
+        "score": 70,
+        "mismatch": 0.3,
+        "done": false,
+        "tokens_off": 0,
+        "regions_off": 4
       },
-      {
-        "hex": "#1429a0",
-        "n": 2,
-        "sample": "truste-button1"
+      "mailer": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
       }
-    ],
-    "vars": []
-  }
+    },
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.samsung.com]"
+  ],
+  "logo_url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/app_ico.png",
+  "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+  "assets": [
+    {
+      "url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/app_ico.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-30073/HOME_TS12_Hero-KV_1920x1080_pc_updated.jpg?imwidth=1366",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Hero-KV_Galaxy-Z_Fold8-Z-Fold8-Z-Flip8_PC_1920x1080_LTR.jpg?$LazyLoad_Home_JPG$",
+      "role": "photograph",
+      "alt": "S26",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/S26Ultra_SCOM-146440_SCOM_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "Galaxy S26 Ultra",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Feature-Card_Galaxy-Z-Flip8_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Z Flip8",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/HOME_Feature-Card_Galaxy-Watch-U2_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Watch Ultra2",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$LazyLoad_Home_JPG$",
+      "role": "photograph",
+      "alt": "amsung Vision AI",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
+      "role": "photograph",
+      "alt": "Enabling better living",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.samsung.com/us/",
+        "role": "page ground",
+        "selector": "canvas (no background declared)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#1429a0",
+          "from": "the reader's primary",
+          "why": "measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)"
+        }
+      ]
+    }
+  },
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))",
+  "typography": {
+    "heading": {
+      "family": "SamsungOne",
+      "stack": "'SamsungOne','arial',sans-serif",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "SamsungOne (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.samsung.com/us/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div.hd08-hero-kv-home__inner:nth-of-type(1) > div.hd08-hero-kv-home__contents > div.hd08-hero-kv-home__text-wrap.text-black:nth-of-type(1) > p.hd08-hero-kv-home__desc:nth-of-type(2) > span.hd08-hero-kv-home__desc-text.hd08-hero-kv-home__desc-text--pc-only:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "SamsungOne",
+      "stack": "'SamsungOne','arial',sans-serif",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "SamsungOne (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.samsung.com/us/",
+        "role": "body copy",
+        "selector": "div.text-editor__inner-wrap.padding-top--48 > div.text-editor__inner.desktop-padding-left-right--large > div.text-editor__column-wrap > div.text-editor__column.description-text-size--small > p:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "www.samsung.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
+  },
+  "note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)). The preset stays on the neutral default."
 }

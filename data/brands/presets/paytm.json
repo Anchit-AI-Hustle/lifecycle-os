@@ -8,90 +8,40 @@
     "label": "Paytm",
     "sector": "Fintech",
     "blurb": "Consumer payments. Template for a transaction-frequency and reactivation programme.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://paytm.com/ on 2026-09-30. Primary #002970 from computed background of _2iOZj (4 elements).",
-    "needs_extraction": false,
-    "palette_source": "verified",
-    "typography_source": "verified",
-    "logo_signal": "img on the page whose address or alt says logo",
-    "palette_evidence": {
-      "surface": {
-        "value": "#ffffff",
-        "signal": "computed background of body",
-        "source_url": "https://paytm.com/"
-      },
-      "ink": {
-        "value": "#000000",
-        "signal": "computed color of body",
-        "source_url": "https://paytm.com/"
-      },
-      "surface_alt": {
-        "value": "#f7f9fc",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://paytm.com/"
-      },
-      "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://paytm.com/"
-      },
-      "primary": {
-        "value": "#002970",
-        "signal": "computed background of _2iOZj (4 elements)",
-        "source_url": "https://paytm.com/"
-      },
-      "accent": {
-        "value": "#000000",
-        "signal": "text colour, used where the brand publishes no second colour",
-        "source_url": "https://paytm.com/"
-      },
-      "line": {
-        "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "ok": {
-        "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "warn": {
-        "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "err": {
-        "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      }
-    },
-    "typography_evidence": {
-      "heading": "computed font-family of h1",
-      "body": "computed font-family of body"
+    "verified_at": null,
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://paytm.com.",
+    "needs_extraction": true,
+    "palette_source": "default",
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "blocked",
+      "at": "2026-10-04",
+      "host": "paytm.com",
+      "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
     }
   },
   "palette": {
-    "primary": "#002970",
-    "accent": "#000000",
-    "ink": "#000000",
-    "surface": "#ffffff",
-    "surface_alt": "#f7f9fc",
-    "muted": "#666666",
+    "primary": "#2B2B2B",
+    "accent": "#5A5A5A",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F5F5",
+    "muted": "#6A6A6A",
+    "line": "#E4E4E4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "Inter",
-      "stack": "'Inter', sans-serif",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "Inter",
-      "stack": "'Inter', sans-serif",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -108,9 +58,7 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "paytm.com",
-    "pwebassets.paytm.com",
-    "assetscdn1.paytm.com"
+    "paytm.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -168,69 +116,12 @@
   ],
   "offerings": [],
   "data_gaps": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Paytm]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography, Paytm]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Paytm]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Paytm]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Paytm]"
   ],
-  "brand_assets": [
-    {
-      "url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/header/images/logo_new.svg",
-      "role": "logo",
-      "alt": "Paytm Logo",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179318/36886801089433092.png",
-      "role": "photograph",
-      "alt": "Mobile Recharge/Bill",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179321/4291158023212300.png",
-      "role": "photograph",
-      "alt": "Electricity Bill",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179320/67050918934984.png",
-      "role": "photograph",
-      "alt": "FASTag Recharge",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179317/36886820392724710.png",
-      "role": "photograph",
-      "alt": "DTH Recharge",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3238780/1792648419066137.png",
-      "role": "photograph",
-      "alt": "Insurance Premium",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179323/17103808700486.png",
-      "role": "photograph",
-      "alt": "Metro Recharge",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://assetscdn1.paytm.com/images/catalog/view_item/3179324/17120113824819.png",
-      "role": "photograph",
-      "alt": "Toll Gate Recharge",
-      "found_on": "https://paytm.com/",
-      "signal": "img on the page"
-    }
-  ],
-  "logo_url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/header/images/logo_new.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

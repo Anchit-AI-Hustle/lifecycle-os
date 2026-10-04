@@ -207,13 +207,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     background:var(--surface-alt,#fafafa);text-align:left;transition:border-color .12s,transform .12s;font:inherit}
   .preset:hover{border-color:var(--primary,#1F5FD0);transform:translateY(-1px)}
   .preset[aria-pressed="true"]{border-color:var(--primary,#1F5FD0);box-shadow:0 0 0 2px var(--primary,#1F5FD0) inset}
-  .preset .pname{font-weight:700;font-size:14px;margin-bottom:2px}
-  .preset .psector{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.6;margin-bottom:7px}
-  .preset .pblurb{font-size:12px;line-height:1.45;opacity:.82;margin-bottom:9px}
-  .preset .pswatch{display:flex;gap:4px;margin-bottom:7px}
-  .preset .pswatch i{width:19px;height:19px;border-radius:5px;border:1px solid rgba(0,0,0,.14);display:block}
-  .preset .pmeta{font-size:10.5px;opacity:.55;line-height:1.4}
-  .preset-note{font-size:11.5px;opacity:.6;margin:2px 0 0;line-height:1.5}
+  .preset .pname{font-weight:700;font-size:15px;margin-bottom:2px;color:var(--ink)}
+  .preset .psector{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:7px}
+  .preset .pblurb{font-size:12px;line-height:1.45;color:var(--ink);margin-bottom:9px}
+  /* The four roles a brand's own site renders, each NAMED. A row of anonymous
+     chips cannot say which is the brand colour and which is the page. */
+  .preset .pswatch{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .preset .psw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:38px}
+  .preset .psw i{width:24px;height:20px;border-radius:5px;border:1px solid var(--line,#d8d8d8);display:block}
+  .preset .psw b{font-size:9.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+  .preset .pmeta{font-size:10.5px;color:var(--muted);line-height:1.45}
+  .preset .ptype{font-size:11px;color:var(--ink);line-height:1.45;margin-bottom:2px}
+  .preset .pwhy{font-size:10.5px;color:var(--ink);line-height:1.45;margin:2px 0 3px}
+  .preset-note{font-size:11.5px;color:var(--muted);margin:2px 0 0;line-height:1.5}
   .asset-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .asset-strip img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#e3e3e3);background:var(--surface,#fff)}
   /* Suggested options. Deliberately NOT styled like an extracted candidate:
@@ -1032,6 +1038,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      because the form sits directly underneath. */
   var PRESETS = null, presetPicked = '';
 
+  /* A family the app can load (Google Fonts) is loaded once for the whole
+     gallery, subset to the characters the card names use. A brand's own web
+     font is NOT fetched from its host: the card says so and shows the site's
+     own fallback stack, so nobody takes the fallback for the brand's face. */
+  function presetFontsLink(list) {
+    var fams = [], chars = {};
+    list.forEach(function (p) {
+      if (p.palette_source === 'default' || !p.heading_google || !p.heading_font) return;
+      var f = 'family=' + String(p.heading_font).trim().replace(/\s+/g, '+');
+      if (fams.indexOf(f) < 0) fams.push(f);
+      String(p.name || '').split('').forEach(function (c) { chars[c] = 1; });
+    });
+    if (!fams.length || document.getElementById('presetFonts')) return;
+    var l = document.createElement('link');
+    l.id = 'presetFonts'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?' + fams.join('&') + '&display=swap&text=' + encodeURIComponent(Object.keys(chars).join(''));
+    document.head.appendChild(l);
+  }
+
   function paintPresets() {
     var host = document.getElementById('presetGallery');
     if (!host) return;
@@ -1044,27 +1069,38 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var ordered = PRESETS.slice().sort(function (a, b) {
       return (a.palette_source === 'default' ? 1 : 0) - (b.palette_source === 'default' ? 1 : 0);
     });
+    presetFontsLink(ordered);
+    var ROLES = ['primary', 'accent', 'surface', 'ink'];
     host.innerHTML = ordered.map(function (p) {
       var isDefault = p.palette_source === 'default';
+      var sw = (p.swatches && p.swatches.length) ? p.swatches : ROLES.map(function (r, i) {
+        return { role: r, value: (p.swatch || [])[[0, 1, 3, 2][i]] || '' };
+      });
+      var siteHost = esc((p.website || '').replace(/^https?:\/\//, '').replace(/\/.*$/, ''));
       return '<button type="button" class="preset' + (isDefault ? ' pdefault' : '') + '" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
-        '<div class="pswatch">' + (p.swatch || []).map(function (h) { return '<i style="background:' + esc(h) + '"></i>'; }).join('') + '</div>' +
-        '<div class="pname">' + esc(p.name) + '</div>' +
+        '<div class="pswatch" aria-label="' + (isDefault ? 'Default palette' : 'Palette read from ' + siteHost) + '">' + sw.map(function (s) {
+          var t = s.role + ' ' + s.value + (s.derived ? ' (derived' + (s.exact ? ' from ' + s.exact : '') + ')' : '');
+          return '<span class="psw" data-role="' + esc(s.role) + '" title="' + esc(t) + '"><i style="background:' + esc(s.value) + '"></i><b>' + esc(s.role) + (s.derived ? '*' : '') + '</b></span>';
+        }).join('') + '</div>' +
+        '<div class="pname"' + (isDefault || !p.heading_stack ? '' : ' style="font-family:' + esc(p.heading_stack) + '"') + '>' + esc(p.name) + '</div>' +
         '<div class="psector">' + esc(p.sector || '') + '</div>' +
         '<div class="pblurb">' + esc(p.blurb || '') + '</div>' +
         (isDefault
-          ? '<div class="pchip">Default palette, not this brand\'s</div>'
-          : '<div class="pmeta">' + esc(p.heading_font || '') + ' / ' + esc(p.body_font || '') + '</div>') +
+          ? '<div class="pchip">Default palette, not this brand\'s</div>' +
+            (p.read_note ? '<div class="pwhy">' + esc(p.read_note) + '</div>' : '')
+          : '<div class="ptype">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>') +
         '<div class="pmeta" style="margin-top:4px">' +
           (isDefault
-            ? 'Press Read my site above to fill the real values from ' + esc((p.website || '').replace(/^https?:\/\//, '')) + '.'
+            ? 'Press Read my site above to fill the real values from ' + siteHost + '.'
               + (p.placeholder_products ? ' Ships with ' + p.placeholder_products + ' placeholder products so the layouts render; they are not this brand\'s.' : '')
-            : 'Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
+            : (p.verified_at ? 'Read from ' + siteHost + ' on ' + esc(p.verified_at) + '. ' : '') +
+              'Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
               (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
               (p.has_catalog ? ' &middot; live feed' : '')) +
         '</div>' +
       '</button>';
     }).join('') +
-    '<p class="preset-note">Profiles are starting points, not licensed brand kits. Replace with your approved guidelines before running a real programme. Cards marked <b>Default palette</b> carry this app\'s neutral placeholder design rather than that brand\'s: nothing about their look was read from their site, so extract it before you judge anything by the colours.</p>';
+    '<p class="preset-note">Profiles are starting points, not licensed brand kits. Replace with your approved guidelines before running a real programme. Cards marked <b>Default palette</b> carry this app\'s neutral placeholder design rather than that brand\'s: nothing about their look was read from their site, so extract it before you judge anything by the colours. A role marked * is derived from the colour the site renders so text stays readable; hover it for the exact value.</p>';
   }
 
   function assetStrip() {
