@@ -542,7 +542,8 @@ function plainText(s) {
 
 const TEXT_KEYS = ['subject', 'subject_alt1', 'subject_alt2', 'preheader', 'preview_text', 'hook', 'hero_headline', 'hero_sub',
   'headline', 'title', 'intro_paragraph', 'body_paragraph', 'why_title', 'primary_text', 'description', 'caption', 'script',
-  'cta', 'proof_quote', 'proof_author', 'guarantee', 'sms_body', 'body', 'message', 'link_description', 'text', 'overlay_text'];
+  'cta', 'proof_quote', 'proof_author', 'guarantee', 'sms_body', 'body', 'message', 'link_description', 'text', 'overlay_text',
+  'path1', 'path2'];
 const LIST_KEYS = ['headlines', 'descriptions', 'why_bullets', 'benefits', 'badges'];
 const HTML_KEYS = ['html', 'motion_html'];
 
