@@ -177,22 +177,22 @@
     ],
     "regression": {
       "ok": true,
-      "done": true,
-      "score": 95.3,
-      "mismatch": 0.0471,
+      "done": false,
+      "score": 91.9,
+      "mismatch": 0.0805,
       "surfaces": {
         "landing page": {
-          "score": 96.6,
-          "mismatch": 0.0339,
+          "score": 96.9,
+          "mismatch": 0.0308,
           "done": true,
           "tokens_off": 2,
           "regions_off": 0
         },
         "mailer": {
-          "score": 88.9,
-          "mismatch": 0.1111,
+          "score": 86.5,
+          "mismatch": 0.1351,
           "done": false,
-          "tokens_off": 2,
+          "tokens_off": 10,
           "regions_off": 0
         },
         "ad creative": {

@@ -65,7 +65,7 @@
         "source": {
           "page": "https://www.flipkart.com/",
           "role": "product card",
-          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(1) > div.css-g5y9jx > div > div",
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
@@ -172,28 +172,28 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 51.5,
-      "mismatch": 0.4853,
+      "score": 41.6,
+      "mismatch": 0.584,
       "surfaces": {
         "landing page": {
-          "score": 54.3,
-          "mismatch": 0.4569,
+          "score": 48.5,
+          "mismatch": 0.5154,
           "done": false,
-          "tokens_off": 13,
+          "tokens_off": 20,
           "regions_off": 2
         },
         "mailer": {
-          "score": 57.1,
-          "mismatch": 0.4286,
+          "score": 45.9,
+          "mismatch": 0.5405,
           "done": false,
-          "tokens_off": 3,
+          "tokens_off": 20,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 33.3,
-          "mismatch": 0.6667,
+          "score": 25,
+          "mismatch": 0.75,
           "done": false,
-          "tokens_off": 2,
+          "tokens_off": 3,
           "regions_off": 0
         }
       },
@@ -561,7 +561,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://rukminim2.flixcart.com/fk-p-flap/920/448/image/93526a5a4881e8b7.jpg?q=80",
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/1600/780/image/84f268d004c490c5.png?q=80",
       "role": "hero",
       "alt": "Image",
       "found_on": "https://www.flipkart.com/",

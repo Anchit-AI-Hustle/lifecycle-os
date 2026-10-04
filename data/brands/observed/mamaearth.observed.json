@@ -5,7 +5,7 @@
   "start": "https://mamaearth.in",
   "landed": "https://mamaearth.in/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:22:35.617Z",
+  "read_at": "2026-10-04T18:00:02.021Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -29,52 +29,59 @@
       "h": 844
     }
   },
-  "partial": false,
+  "partial": true,
   "regression": {
     "ok": true,
     "done": false,
-    "score": 64.7,
-    "mismatch": 0.3533,
+    "score": 61.3,
+    "mismatch": 0.3869,
     "surfaces": {
       "landing page": {
-        "score": 64.9,
-        "mismatch": 0.3515,
+        "score": 62.7,
+        "mismatch": 0.3727,
         "done": false,
-        "tokens_off": 5,
+        "tokens_off": 8,
         "regions_off": 4
       },
       "mailer": {
-        "score": 88.2,
-        "mismatch": 0.1176,
+        "score": 85.3,
+        "mismatch": 0.1471,
         "done": false,
-        "tokens_off": 2,
+        "tokens_off": 10,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 87.5,
+        "mismatch": 0.125,
+        "done": false,
+        "tokens_off": 1,
         "regions_off": 0
       }
     },
-    "iterations": 1,
-    "repairs": 0,
+    "iterations": 3,
+    "repairs": 12,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
   "markers": [
     "[DATA REQUIRED BEFORE LAUNCH: footer, mamaearth.in]"
   ],
-  "logo_url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
-  "logo_signal": "the logo element as rendered (a.hdt-inline-flex.hdt-align-center > div.hdt-brand-box.header-logo-text-enabled > div.hdt-brand-logo:nth-of-type(2) > picture.hdt-logo-default:nth-of-type(1) > img.hdt-logo-img)",
+  "logo_url": "https://mamaearth.in/cdn/shop/files/cropped-Favicon-2-150x150.png?crop=center&height=48&v=1772930334&width=48",
+  "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
   "assets": [
     {
-      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
+      "url": "https://mamaearth.in/cdn/shop/files/cropped-Favicon-2-150x150.png?crop=center&height=48&v=1772930334&width=48",
       "role": "logo",
       "alt": "",
       "found_on": "https://mamaearth.in/",
-      "signal": "the logo element as rendered (a.hdt-inline-flex.hdt-align-center > div.hdt-brand-box.header-logo-text-enabled > div.hdt-brand-logo:nth-of-type(2) > picture.hdt-logo-default:nth-of-type(1) > img.hdt-logo-img)"
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
+      "role": "photograph",
+      "alt": "Mamaearth",
+      "found_on": "https://mamaearth.in/",
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://mamaearth.in/cdn/shop/files/b1g1-desktop.jpg?v=1790851465&width=1600",
@@ -115,13 +122,6 @@
       "url": "https://mamaearth.in/cdn/shop/files/flash-sale-unse_small.svg?v=1779262321",
       "role": "hero",
       "alt": "Flash Sale",
-      "found_on": "https://mamaearth.in/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://mamaearth.in/cdn/shop/files/Group_8_small.svg?v=1772934622",
-      "role": "hero",
-      "alt": "Hair",
       "found_on": "https://mamaearth.in/",
       "signal": "image rendered on the page"
     }
