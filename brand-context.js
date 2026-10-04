@@ -559,7 +559,7 @@
     var muted = p.muted || shade(ink, 0.35);
     var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
     var t = brand && brand.typography ? brand.typography : {};
-    return {
+    return Object.assign({
       '--brand-primary': primary,
       '--brand-primary-dark': shade(primary, -0.25),
       '--brand-primary-soft': shade(primary, 0.86),
@@ -582,7 +582,20 @@
       '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
       '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
       '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-    };
+    }, componentTokensFor(brand));
+  }
+  /** Mirrors componentTokens() on the server: the measured control/card radii. */
+  function componentTokensFor(brand) {
+    var ds = brand && brand.brand_data && brand.brand_data.design_system;
+    var out = {};
+    var comp = (ds && ds.components) || null;
+    if (!comp) return out;
+    var b = comp.button && comp.button.primary && comp.button.primary.desktop;
+    var c = comp.card && comp.card.desktop && comp.card.desktop.box;
+    var n = function (v) { return typeof v === 'number' && isFinite(v) ? (Math.round(v * 100) / 100) + 'px' : ''; };
+    if (b && n(b.radius)) out['--brand-radius-control'] = n(b.radius);
+    if (c && n(c.radius)) out['--brand-radius-card'] = n(c.radius);
+    return out;
   }
   /** Mirrors fontsHref() on the server. */
   function fontsHrefFor(brand) {
@@ -1102,6 +1115,13 @@
       if (k.indexOf('--brand-') !== 0) return;
       var v = tokens[k];
       if (typeof v === 'string' && v) root.style.setProperty(k, v);
+    });
+    // The design-system tokens are OPTIONAL (a brand with no measured design
+    // system has none), so one painted for the previous brand must be taken
+    // off, or the next brand inherits its corner radius. Found by reverting a
+    // rendered read in the wizard: the radius stayed.
+    ['--brand-radius-control', '--brand-radius-card'].forEach(function (k) {
+      if (!(typeof tokens[k] === 'string' && tokens[k])) root.style.removeProperty(k);
     });
     Object.keys(LEGACY).forEach(function (alias) {
       var v = tokens[LEGACY[alias]];

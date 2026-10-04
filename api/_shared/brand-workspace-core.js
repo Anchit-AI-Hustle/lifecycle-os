@@ -657,7 +657,7 @@ function tokens(brand) {
   const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
   const t = brand && brand.typography ? brand.typography : {};
 
-  return {
+  return Object.assign({
     '--brand-primary': primary,
     '--brand-primary-dark': shade(primary, -0.25),
     '--brand-primary-soft': shade(primary, 0.86),
@@ -690,7 +690,27 @@ function tokens(brand) {
     '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
     '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
     '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-  };
+  }, componentTokens(brand));
+}
+
+/**
+ * The shell's share of the brand's DESIGN SYSTEM (2026-10-04): the corner
+ * radius of its controls and cards as its own site renders them, read by
+ * theme.css through var(--brand-radius-*, <the shell's own value>). A brand
+ * with no measured design system emits nothing, so the shell is unchanged.
+ * brand-context.js carries the same function for the device path.
+ */
+function componentTokens(brand) {
+  const ds = brand && brand.brand_data && brand.brand_data.design_system;
+  const out = {};
+  const comp = (ds && ds.components) || null;
+  if (!comp) return out;
+  const b = comp.button && comp.button.primary && comp.button.primary.desktop;
+  const c = comp.card && comp.card.desktop && comp.card.desktop.box;
+  const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? `${Math.round(v * 100) / 100}px` : '');
+  if (b && n(b.radius)) out['--brand-radius-control'] = n(b.radius);
+  if (c && n(c.radius)) out['--brand-radius-card'] = n(c.radius);
+  return out;
 }
 
 /** Google Fonts stylesheet URL for whichever families are marked google:true. */
@@ -1354,7 +1374,14 @@ function claimedFields(input) {
     }
   }
   if (Array.isArray(b.regions) && b.regions.length) out.push('regions');
-  return out;
+  // A save carries the WHOLE form, including values an automatic read put
+  // there (2026-10-04). The wizard records who set each field in
+  // brand_data.field_origin; a field it says a machine set (site-render,
+  // site-parse, preset, document) is not the operator's and is not claimed,
+  // so the next read - or a brand document - can still update it. A field
+  // with no recorded origin is claimed exactly as before.
+  const fo = (b.brand_data && typeof b.brand_data === 'object' && b.brand_data.field_origin) || {};
+  return out.filter((f) => !fo[f] || fo[f] === 'user');
 }
 
 /**
@@ -1834,6 +1861,14 @@ async function sessionCheckable() {
   };
 }
 
+/**
+ * The operator's switch for the rendered read. Default ON. `BRAND_RENDER=off`
+ * makes "Read my site" parse published HTML and CSS only - for a deployment
+ * whose function cannot run the browser, and for test suites that exercise
+ * the gate rather than the reader. Read at call time.
+ */
+function renderOff() { return /^(off|0|false|no)$/i.test(String(process.env.BRAND_RENDER || '')); }
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1869,6 +1904,16 @@ async function handle(req, res) {
 
   if (op === 'validate-palette') {
     return res.status(200).json(Object.assign({ ok: true }, validatePalette(body.palette || q.palette || {})));
+  }
+
+  // `render-probe` is unauthenticated, like `defaults`: it proves the browser
+  // launches on THIS deployment by rendering a fixed page shipped with it
+  // (nothing is fetched, so it is neither an SSRF vector nor a free crawler),
+  // and its answer is cached per instance for five minutes so it cannot be
+  // used to burn CPU. GET-only callers (a status check, a monitor) can read it.
+  if (op === 'render-probe') {
+    if (renderOff()) return res.status(200).json({ ok: false, renderer: 'unavailable', reason: 'BRAND_RENDER=off on this deployment: Read my site reads published HTML and CSS only.' });
+    return res.status(200).json(await require('./brand-render.js').renderProbe());
   }
 
   const auth = await requireUser(req);
@@ -1931,7 +1976,12 @@ async function handle(req, res) {
 
   if (openWithoutBackend) {
     try {
-      const out = await require('./brand-extract.js').runExtract(
+      // RENDERED FIRST (2026-10-04): the site is opened in a headless browser
+      // and measured as it renders; the parser runs alongside and is the
+      // labelled fallback. On THIS path - no account the server can check -
+      // the browser read is rate-limited per address and per instance, and it
+      // calls no model whatever happens (voice stays OFF below).
+      const out = await require('./brand-render.js').extractWithRender(
         { ok: false, token: '', user_id: '', email: '' },
         {
           url: str(body.url || q.url, 500),
@@ -1940,6 +1990,7 @@ async function handle(req, res) {
           voice: false,
           max_pages: body.max_pages || q.max_pages,
         },
+        { open: true, req, render: !renderOff() && body.render !== false },
       );
       // Neutral about WHO is here: the server cannot tell a visitor from a
       // person signed in on the device (neither sends a token), and "read
@@ -2188,12 +2239,12 @@ async function handle(req, res) {
       }
       case 'extract': {
         const wantsVoice = (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false';
-        const out = await require('./brand-extract.js').runExtract(auth, {
+        const out = await require('./brand-render.js').extractWithRender(auth, {
           url: str(body.url || q.url, 500),
           workspace_id: str(body.workspace_id || q.workspace_id),
           voice: wantsVoice && !spend,
           max_pages: body.max_pages || q.max_pages,
-        });
+        }, { open: false, req, render: !renderOff() && body.render !== false });
         const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
         return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
       }
@@ -2218,7 +2269,7 @@ async function handle(req, res) {
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest', 'render-probe',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
