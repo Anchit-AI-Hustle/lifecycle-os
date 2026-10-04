@@ -163,6 +163,50 @@ test('only an editor of the workspace may record an origin', async () => {
   expect(await d.origin('tagline')).toBeNull();
 });
 
+test('a save claims only typed fields as the operator\'s and records a document\'s fields as document, with page and line', async () => {
+  // The shipped save path (brand-workspace-core.claimUserOwnedFields), with the
+  // two RPCs it calls captured at the network.
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const saved = { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY };
+  process.env.SUPABASE_URL = 'https://fixture.supabase.co';
+  process.env.SUPABASE_ANON_KEY = 'anon';
+  const calls = [];
+  const real = global.fetch;
+  global.fetch = async (url, init) => {
+    calls.push({ url: String(url), body: JSON.parse((init && init.body) || 'null') });
+    return new Response('1', { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const input = {
+      name: 'Harbourlight Goods', tagline: 'Light, made by hand',
+      palette: { primary: '#1a6b3c', accent: '#b8531f', ink: '#111111' },
+      brand_data: { field_origins: {
+        name: { origin: 'user' },
+        tagline: { origin: 'document', source: 'book.pdf', page: 1, line: 3, quote: 'Tagline: Light, made by hand', value: 'light, made by hand' },
+        'palette.primary': { origin: 'document', source: 'book.pdf', page: 2, line: 2, quote: 'Primary - Harbour Green / HEX #1A6B3C', value: '#1a6b3c' },
+        'palette.accent': { origin: 'site-parse', url: 'https://harbourlight.example/', signal: 'css --brand-accent' },
+        'palette.ink': { origin: 'default' },
+      } },
+    };
+    await core.claimUserOwnedFields({ token: 'user-jwt', user_id: OWNER }, WS, input);
+    const claim = calls.find((c) => /rpc\/brand_fields_claim_user$/.test(c.url));
+    const record = calls.find((c) => /rpc\/brand_fields_record_origin$/.test(c.url));
+    expect(claim.body.p_fields).toEqual(['name']);
+    expect(Object.keys(record.body.p_fields).sort()).toEqual(['palette.accent', 'palette.primary', 'tagline']);
+    expect(record.body.p_fields['palette.primary']).toEqual({ origin: 'document', source_url: 'book.pdf#page=2', signal: 'p.2 l.2: "Primary - Harbour Green / HEX #1A6B3C"', confidence: 'stated', value_preview: '#1a6b3c' });
+    expect(record.body.p_fields['palette.accent'].origin).toBe('site-parse');
+    // A save with no origins at all is read exactly as before: every field typed.
+    calls.length = 0;
+    await core.claimUserOwnedFields({ token: 'user-jwt', user_id: OWNER }, WS, { name: 'X', palette: { primary: '#1a6b3c' } });
+    expect(calls.map((c) => c.url.split('/').pop())).toEqual(['brand_fields_claim_user']);
+    expect(calls[0].body.p_fields).toEqual(['name', 'palette.primary']);
+  } finally {
+    global.fetch = real;
+    if (saved.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = saved.url;
+    if (saved.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = saved.anon;
+  }
+});
+
 test('the brand-assets bucket is public-read with editor-scoped writes under the workspace prefix', async () => {
   const d = await database();
   const b = await d.one(`select id, public from storage.buckets where id = 'brand-assets'`);

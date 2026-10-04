@@ -4,6 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
+The operator's words: *"ensure user can upload a document for the design schema to be followed too with
+all details like logo file or url, etc - keep options for files and urls both where either are
+required"*. `brand-document.js` (browser) + `onboarding.html` step 1 "Upload my brand guidelines" +
+`brand-context.js` (`BrandContext.files`, `.provenance`) + `api/_shared/brand-document-fetch.js` on
+`?action=brand&op=document-fetch` (still 12/12) + migration `20261004120000_brand_document_origin.sql`.
+Gated by `tests/brand-guide-upload.spec.js` (15, Chromium, documents built byte by byte in
+`tests/brand-guide-fixtures.js`) and `tests/brand-document-origin-sql.spec.js` (6, the migration
+EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
+- **Read in the browser, never paraphrased.** PDF via pdf.js 4.10.38 from jsdelivr (the same CDN the pages
+  use; `isEvalSupported:false`, so CVE-2024-4367's font-eval path is closed), DOCX unzipped with the
+  browser's own `DecompressionStream`, DESIGN.md (our own format), W3C DTCG / Style Dictionary / Tokens
+  Studio / Figma-variables JSON, CSS custom properties + `@font-face`, SVG text + labelled swatches, and
+  an image (no text layer: says so, offers it as the logo). Every value carries file or URL, page, line
+  and the verbatim line. Vercel caps a request body at 4.5 MB and brand books are bigger, so a FILE is
+  never uploaded to be parsed; only a LINKED document whose host sends no CORS goes through the server
+  op, behind `assertPublicUrl` on EVERY hop (`redirect:'manual'`), capped at 4 MB, opened on the same rule
+  as `extract` and nowhere else.
+- **Zero fabrication, in the rules themselves.** A role takes a STATED screen value only: a hex, or an
+  RGB triple (its notation). CMYK/Pantone-only colours are `print_only` - a conversion is offered labelled
+  `DERIVED from CMYK …` and is never applied by Apply; Pantone gets no computed hex at all. A colour named
+  in prose ("a soft grey colour") is `named_without_value` with the marker. A line that states a
+  COMPONENT colour ("Buttons: background #1A6B3C") feeds the component, never a palette role - the first
+  cut let "Buttons background" become the page surface. DESIGN.md tokens marked DERIVED (and `on-*` /
+  `*-text`) are skipped, not taken as stated.
+- **One order of origins, in three places** (SQL `brand_origin_rank()`, `brand-workspace-core
+  ORIGIN_RANK`, `brand-context.js ORIGIN_RANK`): `user 50 > document 40 > site-render 30 > site-parse 20
+  (= auto) > preset 10 > default 0`. The wizard keeps them per field in `brand_data.field_origins`
+  (typing → `user`, captured before the wizard's own handler; an explicit choice between two sources →
+  `user`). `saveWorkspace()` claims only `user`/unknown fields as typed and records the rest through
+  `brand_fields_record_origin()`, which NEVER demotes; `brand_context_apply()` (the automatic door) now
+  refuses every origin that outranks the site parser, by rank. A brand saved before origins existed has
+  none recorded, so everything filled on it is treated as typed (conservative).
+- **Apply / Revert.** Apply fills every field the document states except a typed one, lists each outcome
+  (`applied`, `kept, you typed it` with a "Use the document's" button, `already this`, `added to yours`,
+  `not in the document`), stores the logo the document puts beside the word "logo" and the guide itself
+  as files, writes `brand_data.design_components` (DESIGN.md component shape: `button-primary`
+  `{backgroundColor,textColor,rounded,padding,textTransform}`, `container.width`, `logo.clearSpace`,
+  `rounded`, `spacing`, `rules` + a parallel `provenance`), and shows the hard rules: exact colours as
+  tokens, AA text tokens `DERIVED from <exact>` with both ratios, a dark-neutral surface as a hard-rule
+  conflict (never swapped). Revert restores the pre-apply snapshot and removes the files it added.
+- **A later "Read my site" never overwrites a document value silently.** `docGuard()` runs FIRST in every
+  `render()`: a document-owned field changed by anything but typing (a site Use, a preset) is restored and
+  both values are shown side by side with a button each. It needs no edit to the site-read code, which
+  another branch is rewriting.
+- **File OR URL**: logo, app icon (`favicon_url`, now loaded and saved by the wizard), brand imagery,
+  heading/body fonts (WOFF2/WOFF/TTF/OTF file, a font URL, or a Google Fonts link) and the guide itself.
+  "Upload a file" is a LABEL around a hidden input (no dead click for the sweep); refusals are sentences
+  (type, size, < 32 px logo, non-square icon, a file the browser cannot load as a font). An uploaded SVG is
+  sanitised (scripts, `foreignObject`, `on*`, `javascript:`/external hrefs removed) and only ever shown as
+  `<img>`. A file is HOSTED for an account with a reachable project (`brand-assets` bucket,
+  `<workspace_id>/<sha256>.<ext>`, editor-scoped writes) and otherwise kept in IndexedDB (localStorage
+  caps ~5 MB) under `deviceKey()` - another person on the browser sees none, deleting the brand deletes
+  them, and a file chosen before the brand had an id moves to it on first save (`files.adopt`).
+- **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
+  (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
+  `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
+  that marker in the header. Executed: the shipped html stage, every provider down, for a carried brand
+  whose logo is on the device - no `;base64,`/`data:image`/`blob:` in the mailer.
+- **Found by running it**: Playwright's `route.fulfill` answers a cross-origin read permissively, so the
+  "host sends no CORS" case read the PDF directly and never reached the server op - modelled as the
+  failure a browser sees (`route.abort`). A second account was invisible to the namespace test until the
+  device user map held both people (auth.js rejects a session whose user is not on the device).
+- **Known limits, said not hidden**: no OCR (a raster style sheet's colours are not tied to roles); a
+  logo drawn as vector paths in a PDF is not lifted out; colour swatches DRAWN in a PDF are not read
+  (pdf.js converts CMYK fills to RGB before the operator list, so a drawn value cannot be told from a
+  derived one); the optional LLM structuring pass was not built (rule-based only); a pasted URL on a host
+  the brand has not declared is said, not blocked; per-row product images on the catalogue step stay URL
+  columns in the CSV/JSON; Brand Input (`brand.html`, the legacy brand kit) keeps its URL-only guide field.
+
 ## ⭐ Signing in with a phone never turns a feature off (2026-10-03)
 The operator's words, with a phone screenshot of production `/onboarding` after signing in with a
 mobile number and PIN: *"All features must work even with signin by number and pin"* (earlier: *"not
