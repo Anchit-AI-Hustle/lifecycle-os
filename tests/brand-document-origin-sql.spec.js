@@ -35,6 +35,7 @@ const WS = '33333333-3333-4333-8333-333333333333';
    faithful where the functions under test read it. */
 const PLATFORM = `
   create role authenticated;
+  create role anon;
   create schema auth;
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('test.uid', true), '')::uuid $$;
@@ -63,6 +64,7 @@ async function database() {
   await db.exec(fs.readFileSync(path.join(MIG, '20260814100000_brand_context_packs.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(MIG, '20261004120000_brand_document_origin.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(MIG, '20261004160000_brand_context_apply_by_origin.sql'), 'utf8'));
+  await db.exec(fs.readFileSync(path.join(MIG, '20261004170000_brand_workspace_save.sql'), 'utf8'));
   await db.query(`insert into public.brand_workspaces (id, owner_id, name, palette) values ($1, $2, 'Harbourlight Goods', '{"primary":"#111111"}')`, [WS, OWNER]);
   return {
     db,
@@ -338,6 +340,18 @@ async function saveWorld() {
     if (rpc && rpc[1] === 'brand_context_apply') {
       return ok((await d.db.query('select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r', [body.p_workspace, JSON.stringify(body.p_fields), JSON.stringify(body.p_source || {})])).rows[0].r);
     }
+    if (u.pathname === '/rest/v1/brand_field_provenance' && method === 'GET') {
+      const rows = (await d.db.query('select field, origin from public.brand_field_provenance where workspace_id = $1', [eq('workspace_id')])).rows;
+      return ok(rows);
+    }
+    if (rpc && rpc[1] === 'brand_workspace_save') {
+      try {
+        return ok((await d.db.query('select public.brand_workspace_save($1, $2::timestamptz, $3::jsonb, $4::jsonb, $5::text[], $6::jsonb) as r',
+          [body.p_workspace, body.p_expected, JSON.stringify(body.p_seen || {}), JSON.stringify(body.p_row), body.p_typed || [], JSON.stringify(body.p_origins || {})])).rows[0].r);
+      } catch (e) {
+        return new Response(JSON.stringify({ code: e.code || 'P0001', message: e.message }), { status: e.code === '42501' ? 403 : 400, headers: { 'content-type': 'application/json' } });
+      }
+    }
     if (rpc && rpc[1] === 'brand_fields_record_origin') {
       return ok((await d.db.query('select public.brand_fields_record_origin($1, $2::jsonb) as r', [body.p_workspace, JSON.stringify(body.p_fields)])).rows[0].r);
     }
@@ -382,14 +396,91 @@ test('two tabs: a stale tab saving a guideline document never overwrites a value
     // A field nobody typed takes the document's value, recorded as the document's.
     expect(row.palette.primary).toBe('#1a6b3c');
     expect(await w.d.origin('palette.primary')).toMatchObject({ origin: 'document', source_url: 'harbourlight-brand-book.pdf#page=2' });
-    // What a person owns was never in a write that could replace it: the PATCH
-    // carried the row's own tagline, and the database refused the document's.
-    const patch = w.calls.filter((c) => c.method === 'PATCH').pop();
-    expect(patch.body.tagline).toBe('Typed in tab B');
-    expect(patch.query).toMatch(/updated_at=eq\./);
-    const apply = w.calls.filter((c) => /rpc\/brand_context_apply$/.test(c.path)).pop();
-    expect(apply.body.p_source.tagline.origin).toBe('document');
+    // What a person owns was never in a write that could replace it: the one
+    // write carried the row's own tagline, conditional on the row and on the
+    // owners the decision was made against; only the applied value is recorded.
+    const save = w.calls.filter((c) => /rpc\/brand_workspace_save$/.test(c.path)).pop();
+    expect(save.body.p_row.tagline).toBe('Typed in tab B');
+    expect(save.body.p_expected).toBeTruthy();
+    expect(save.body.p_seen).toEqual({ tagline: 'user', 'palette.primary': null });
+    expect(Object.keys(save.body.p_origins)).toEqual(['palette.primary']);
+    expect(w.calls.some((c) => c.method === 'PATCH'), 'a save went around the one statement').toBe(false);
     expect(out.tagline, 'the save answered with a value the database does not hold').toBe('Typed in tab B');
+    // A newer document replaces an older one (equal rank).
+    const newer = staleDocumentSave();
+    newer.palette.primary = '#0b5130';
+    newer.brand_data.field_origins['palette.primary'].value = '#0b5130';
+    await w.core.saveWorkspace(w.auth, newer);
+    expect((await w.row()).palette.primary).toBe('#0b5130');
+  } finally { w.restore(); }
+});
+
+test('two tabs, interleaved, placeholders: a colour typed in another tab between this tab\'s read and write is not replaced by the value this tab read', async () => {
+  const w = await saveWorld();
+  try {
+    let landed = false;
+    w.hooks.before = async (call) => {
+      if (!landed && /rpc\/brand_workspace_save$/.test(call.path)) {
+        landed = true;
+        w.hooks.before = null;
+        // Tab B types an accent colour and saves.
+        await w.core.saveWorkspace(w.auth, { id: WS, name: 'Harbourlight Goods', tagline: 'Old line', palette: { primary: '#111111', accent: '#7a3fb0' },
+          brand_data: { field_origins: USER_ALL(['name', 'tagline', 'palette.accent']) } });
+      }
+    };
+    // Tab A still holds the placeholder accent; its person types a tagline.
+    await w.core.saveWorkspace(w.auth, typedSave('Typed in tab A'));
+    expect(landed).toBe(true);
+    const row = await w.row();
+    expect(row.tagline).toBe('Typed in tab A');
+    expect(row.palette.accent, 'the row value this tab read was written over a newer typed one').toBe('#7a3fb0');
+    expect((await w.d.origin('palette.accent')).origin).toBe('user');
+  } finally { w.restore(); }
+});
+
+test('an owner recorded without touching the row (an operator override from the context pack) still makes a stale decision stale', async () => {
+  const w = await saveWorld();
+  try {
+    let landed = false;
+    w.hooks.before = async (call) => {
+      if (!landed && /rpc\/brand_workspace_save$/.test(call.path)) {
+        landed = true;
+        w.hooks.before = null;
+        await w.d.as(OWNER);
+        await w.d.db.query(`select public.brand_fields_claim_user($1, '{tagline}'::text[])`, [WS]);
+      }
+    };
+    await w.core.saveWorkspace(w.auth, staleDocumentSave());
+    expect(landed).toBe(true);
+    expect((await w.row()).tagline, 'a document value was written over a field claimed after it was read').toBe('Old line');
+    expect((await w.d.origin('tagline')).origin).toBe('user');
+    expect(w.calls.filter((c) => /rpc\/brand_workspace_save$/.test(c.path)).length).toBe(2);
+  } finally { w.restore(); }
+});
+
+test('brand_workspace_save refuses to record a value over an owner that outranks it, whatever the caller decided', async () => {
+  const w = await saveWorld();
+  try {
+    await w.d.as(OWNER);
+    await w.d.db.query(`select public.brand_fields_claim_user($1, '{tagline}'::text[])`, [WS]);
+    const before = await w.row();
+    const r = (await w.d.db.query(`select public.brand_workspace_save($1, null, $2::jsonb, $3::jsonb, '{}'::text[], $4::jsonb) as r`,
+      [WS, JSON.stringify({ tagline: 'user' }), JSON.stringify({ tagline: 'Light, made by hand' }), JSON.stringify({ tagline: { origin: 'document' } })])).rows[0].r;
+    expect(r).toEqual({ ok: false, error: 'precedence', field: 'tagline', owner: 'user' });
+    expect((await w.row()).tagline).toBe(before.tagline);
+    expect((await w.d.origin('tagline')).origin).toBe('user');
+  } finally { w.restore(); }
+});
+
+test('brand_workspace_save writes for the brand\'s owner only, as the table\'s update policy does', async () => {
+  const w = await saveWorld();
+  try {
+    const row = await w.row();
+    await w.d.as(VIEWER);
+    const r = (await w.d.db.query(`select public.brand_workspace_save($1, null, '{}'::jsonb, $2::jsonb, '{tagline}'::text[], '{}'::jsonb) as r`, [WS, JSON.stringify({ tagline: 'Not yours' })])).rows[0].r;
+    expect(r).toEqual({ ok: false, error: 'not_found' });
+    expect((await w.row()).tagline).toBe(row.tagline);
+    expect(await w.d.origin('tagline')).toBeNull();
   } finally { w.restore(); }
 });
 
@@ -398,8 +489,8 @@ test('two tabs, interleaved: a typed save that lands between the stale tab\'s re
   try {
     let landed = false;
     w.hooks.before = async (call) => {
-      // Tab B's typed save lands exactly between tab A's read and tab A's PATCH.
-      if (!landed && call.method === 'PATCH') {
+      // Tab B's typed save lands exactly between tab A's read and tab A's write.
+      if (!landed && /rpc\/brand_workspace_save$/.test(call.path)) {
         landed = true;
         w.hooks.before = null;
         await w.core.saveWorkspace(w.auth, typedSave('Typed in tab B, mid-save'));
@@ -411,30 +502,98 @@ test('two tabs, interleaved: a typed save that lands between the stale tab\'s re
     expect(row.tagline).toBe('Typed in tab B, mid-save');
     expect((await w.d.origin('tagline')).origin).toBe('user');
     expect(row.palette.primary).toBe('#1a6b3c');
-    // Tab A's first PATCH matched nothing (the row had moved on) and it read again.
-    const aPatches = w.calls.filter((c) => c.method === 'PATCH');
-    expect(aPatches.length).toBe(3);   // A (refused: stale), B, A (on the fresh row)
+    // Tab A's first write was refused as stale (the row had moved on) and it decided again.
+    const saves = w.calls.filter((c) => /rpc\/brand_workspace_save$/.test(c.path));
+    expect(saves.length).toBe(3);   // A (refused: stale), B, A (on the fresh row)
+    expect(saves[2].body.p_row.tagline).toBe('Typed in tab B, mid-save');
   } finally { w.restore(); }
 });
 
-test('an apply landing between a typed save\'s claim and its write cannot take the field: the claim comes first', async () => {
+test('an automatic apply landing while a typed save is in flight never wins: the save sees the row moved, decides again, and what was typed is stored and claimed together', async () => {
   const w = await saveWorld();
   try {
-    let landed = false;
+    let landed = null;
     w.hooks.before = async (call) => {
-      // Tab A's document apply runs while tab B is between its claim and its PATCH.
-      if (!landed && call.method === 'PATCH') {
-        landed = true;
+      // A document apply (the context pack's door) runs between tab B's read and its write.
+      if (!landed && /rpc\/brand_workspace_save$/.test(call.path)) {
         w.hooks.before = null;
         await w.d.as(OWNER);
-        const r = (await w.d.db.query(`select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r`, [WS, JSON.stringify({ tagline: 'Light, made by hand' }), JSON.stringify({ tagline: { origin: 'document' } })])).rows[0].r;
-        expect(r.skipped_user_owned).toEqual(['tagline']);
+        landed = (await w.d.db.query(`select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r`, [WS, JSON.stringify({ tagline: 'Light, made by hand' }), JSON.stringify({ tagline: { origin: 'document' } })])).rows[0].r;
       }
     };
     await w.core.saveWorkspace(w.auth, typedSave('Typed in tab B'));
-    expect(landed).toBe(true);
+    expect(landed && landed.applied).toEqual(['tagline']);   // nothing was claimed yet, so the door was open
     expect((await w.row()).tagline).toBe('Typed in tab B');
     expect((await w.d.origin('tagline')).origin).toBe('user');
+    expect(w.calls.filter((c) => /rpc\/brand_workspace_save$/.test(c.path)).length).toBe(2);   // stale, then stored
+  } finally { w.restore(); }
+});
+
+const VALID = { primary: '#1a6b3c', accent: '#7a3fb0', ink: '#15201c', surface: '#fbfaf6' };
+const USER_ALL = (fields) => Object.fromEntries(fields.map((f) => [f, { origin: 'user' }]));
+
+test('a tab still holding the wizard\'s placeholder colour never writes it over a value another tab took from a document', async () => {
+  const w = await saveWorld();
+  try {
+    // Tab B applies a brand book's accent and saves.
+    await w.core.saveWorkspace(w.auth, { id: WS, name: 'Harbourlight Goods', tagline: 'Old line', palette: { primary: '#111111', accent: '#7a3fb0' },
+      brand_data: { field_origins: { name: { origin: 'user' }, tagline: { origin: 'user' }, 'palette.primary': { origin: 'default' },
+        'palette.accent': Object.assign({ origin: 'document', quote: 'Accent - Heather / HEX #7A3FB0', value: '#7a3fb0' }, BOOK) } } });
+    expect((await w.row()).palette.accent).toBe('#7a3fb0');
+    expect((await w.d.origin('palette.accent')).origin).toBe('document');
+    // Tab A, opened before that, still holds the wizard's placeholder accent
+    // (origin 'default': nobody chose it). Its person types a tagline and saves.
+    await w.core.saveWorkspace(w.auth, typedSave('Typed in tab A'));
+    const row = await w.row();
+    expect(row.tagline).toBe('Typed in tab A');
+    expect(row.palette.accent, 'a placeholder nobody chose was written over the document\'s colour').toBe('#7a3fb0');
+    expect((await w.d.origin('palette.accent')).origin).toBe('document');
+  } finally { w.restore(); }
+});
+
+test('a save that is refused claims nothing: the typed field is not left marked as the person\'s when its value was never written', async () => {
+  const w = await saveWorld();
+  try {
+    await w.d.db.exec(`update public.brand_workspaces set status = 'active', palette = '${JSON.stringify(VALID)}'::jsonb`);
+    let err = null;
+    try {
+      // A typed tagline beside a typed dark page surface on an ACTIVE brand: the design rules refuse it.
+      await w.core.saveWorkspace(w.auth, { id: WS, name: 'Harbourlight Goods', tagline: 'Typed, never saved', status: 'active',
+        palette: Object.assign({}, VALID, { surface: '#111111' }),
+        brand_data: { field_origins: USER_ALL(['name', 'tagline', 'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface']) } });
+    } catch (e) { err = e; }
+    expect(err && err.status).toBe(400);
+    expect((await w.row()).tagline).toBe('Old line');
+    expect(await w.d.origin('tagline'), 'a refused save left the field claimed as typed').toBeNull();
+    expect(await w.d.origin('palette.surface')).toBeNull();
+    // So a document can still set it.
+    const r = (await w.d.db.query(`select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r`, [WS, JSON.stringify({ tagline: 'Light, made by hand' }), JSON.stringify({ tagline: { origin: 'document' } })])).rows[0].r;
+    expect(r.applied).toEqual(['tagline']);
+  } finally { w.restore(); }
+});
+
+test('the design rules judge what will be STORED: a stale tab\'s refused document colour does not block the save, and an applied one still does', async () => {
+  const w = await saveWorld();
+  try {
+    await w.d.db.exec(`update public.brand_workspaces set status = 'active', palette = '{}'::jsonb`);
+    // Tab B: the person sets a valid palette on the active brand.
+    await w.core.saveWorkspace(w.auth, { id: WS, name: 'Harbourlight Goods', tagline: 'Old line', status: 'active', palette: VALID,
+      brand_data: { field_origins: USER_ALL(['name', 'tagline', 'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface']) } });
+    // Tab A (stale) applies a document whose page surface is a dark neutral.
+    const stale = { id: WS, name: 'Harbourlight Goods', tagline: 'Typed in tab A', status: 'active', palette: Object.assign({}, VALID, { surface: '#0b0b0b' }),
+      brand_data: { field_origins: Object.assign(USER_ALL(['name', 'tagline', 'palette.primary', 'palette.accent', 'palette.ink']),
+        { 'palette.surface': Object.assign({ origin: 'document', quote: 'Surface - Night / HEX #0B0B0B', value: '#0b0b0b' }, BOOK) }) } };
+    const out = await w.core.saveWorkspace(w.auth, stale);
+    // The surface stays the person's, so what is stored passes the rules, and the save goes through.
+    expect(out.palette.surface).toBe('#fbfaf6');
+    expect((await w.row()).tagline).toBe('Typed in tab A');
+    expect((await w.d.origin('palette.surface')).origin).toBe('user');
+    // On a brand where nobody set the surface, the same document colour WOULD be stored, so it is refused.
+    await w.d.db.exec(`delete from public.brand_field_provenance where field = 'palette.surface'`);
+    let err = null;
+    try { await w.core.saveWorkspace(w.auth, stale); } catch (e) { err = e; }
+    expect(err && err.status).toBe(400);
+    expect((await w.row()).palette.surface).toBe('#fbfaf6');
   } finally { w.restore(); }
 });
 
