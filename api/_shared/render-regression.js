@@ -82,6 +82,24 @@ const TOLERANCE = {
 const PIXEL_LIMIT = 0.03;
 const MISMATCH_LIMIT = 0.05;
 const MAX_ITER = 3;
+/*
+ * TWO SCORES, reported separately, and approval needs BOTH (2026-10-04):
+ *  STRUCTURAL - deterministic: role geometry, colours as CIEDE2000, family,
+ *    size, weight, line-height, radius, spacing, each within its tolerance.
+ *    Limit 0.95: at most one token in twenty out of tolerance. A token is an
+ *    exact measurement of a design decision, and more than one in twenty off
+ *    is a difference a reader sees on the page.
+ *  PERCEPTUAL - pixelmatch of OUR element against the site's, with the TEXT
+ *    boxes and the VOLATILE pixels (what changed between two shots ~500 ms
+ *    apart, on either side) masked, so glyph anti-aliasing and live content
+ *    cannot fail it. Score = 1 - the worst region's share of unmasked pixels
+ *    that differ. Limit 0.97 (= PIXEL_LIMIT): what is left after the masks is
+ *    grounds, borders and shapes, which the same engine draws identically; 3%
+ *    of them differing is a real difference in size, radius or colour.
+ */
+const STRUCTURAL_LIMIT = 0.95;
+const PERCEPTUAL_LIMIT = 1 - PIXEL_LIMIT;
+const VOLATILE_WAIT_MS = 500;
 
 /* ── colour science: sRGB hex -> CIELAB (D65) -> CIEDE2000 ──────────────── */
 function hexRgb(h) {
@@ -145,7 +163,8 @@ function compareToken(kind, site, ours) {
 }
 
 /* ── pixels ─────────────────────────────────────────────────────────────── */
-function pixelRatio(aBuf, bBuf, groundHex) {
+function pixelRatio(aBuf, bBuf, groundHex, opts) {
+  const o = opts || {};
   const { PNG } = require('pngjs');
   const pixelmatch = require('pixelmatch');
   const A = PNG.sync.read(aBuf), B = PNG.sync.read(bBuf);
@@ -154,13 +173,48 @@ function pixelRatio(aBuf, bBuf, groundHex) {
   const pad = (P) => {
     const out = new PNG({ width: w, height: h });
     for (let i = 0; i < w * h; i++) { out.data[i * 4] = g[0]; out.data[i * 4 + 1] = g[1]; out.data[i * 4 + 2] = g[2]; out.data[i * 4 + 3] = 255; }
-    PNG.bitblt(P, out, 0, 0, P.width, P.height, 0, 0);
+    PNG.bitblt(P, out, 0, 0, Math.min(P.width, w), Math.min(P.height, h), 0, 0);
     return out;
   };
   const pa = pad(A), pb = pad(B);
+  // The raw comparison, kept for the record.
+  const raw = pixelmatch(pa.data, pb.data, null, w, h, { threshold: 0.1, includeAA: false });
+  // MASKS: 1 = text (both sides' text boxes, dilated 2px), 2 = volatile (a
+  // pixel that changed between two shots of the SAME side).
+  const mask = new Uint8Array(w * h);
+  const rects = [].concat(o.textA || [], o.textB || []);
+  for (const r of rects) {
+    const x0 = Math.max(0, Math.floor(r.x) - 2), y0 = Math.max(0, Math.floor(r.y) - 2);
+    const x1 = Math.min(w, Math.ceil(r.x + r.w) + 2), y1 = Math.min(h, Math.ceil(r.y + r.h) + 2);
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) mask[y * w + x] = 1;
+  }
+  const volatileFrom = (first, secondBuf) => {
+    if (!secondBuf) return;
+    let S;
+    try { S = pad(PNG.sync.read(secondBuf)); } catch (_) { return; }
+    for (let i = 0; i < w * h; i++) {
+      const k = i * 4;
+      if (Math.abs(first.data[k] - S.data[k]) > 8 || Math.abs(first.data[k + 1] - S.data[k + 1]) > 8 || Math.abs(first.data[k + 2] - S.data[k + 2]) > 8) mask[i] = 2;
+    }
+  };
+  volatileFrom(pa, o.a2);
+  volatileFrom(pb, o.b2);
+  let text = 0, vol = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (!mask[i]) continue;
+    if (mask[i] === 1) text += 1; else vol += 1;
+    const k = i * 4;
+    pb.data[k] = pa.data[k]; pb.data[k + 1] = pa.data[k + 1]; pb.data[k + 2] = pa.data[k + 2]; pb.data[k + 3] = pa.data[k + 3];
+  }
+  const unmasked = w * h - text - vol;
   const diff = new PNG({ width: w, height: h });
   const n = pixelmatch(pa.data, pb.data, diff.data, w, h, { threshold: 0.1, includeAA: false });
-  return { ratio: Math.round((n / (w * h)) * 10000) / 10000, pixels: n, size: [w, h], site_size: [A.width, A.height], ours_size: [B.width, B.height], diff_png: PNG.sync.write(diff) };
+  return {
+    ratio: unmasked > 0 ? Math.round((n / unmasked) * 10000) / 10000 : 0, pixels: n,
+    raw_ratio: Math.round((raw / (w * h)) * 10000) / 10000,
+    masked: { text, volatile: vol, of: w * h },
+    size: [w, h], site_size: [A.width, A.height], ours_size: [B.width, B.height], diff_png: PNG.sync.write(diff),
+  };
 }
 
 /* ── sample content: the site's own words in our templates ───────────────── */
@@ -400,6 +454,7 @@ function judge(pairs, ctx) {
       row.status = 'exempt'; row.reason = `hard rule: no dark-neutral section ground. Your site paints ${s.site || p.site}; ours uses ${s.ours || p.ours}.`; return row;
     }
     if (p.surface === 'mailer' && p.kind === 'family' && p.email_fallback === false) { row.status = 'mismatch'; row.reason = 'email: no generic fallback after the family'; return row; }
+    if (p.licence_exempt) { row.status = 'exempt'; row.reason = `font licence: ${p.licence_family || p.site} is the brand's own font, and a generated email never carries a site's font files; it draws in the declared fallback (${p.ours}). Upload your licensed files to use it there.`; return row; }
     row.status = 'mismatch';
     return row;
   });
@@ -412,11 +467,20 @@ function scoreOf(rows, regions) {
   const regBad = reg.filter((g) => g.ratio > PIXEL_LIMIT).length;
   const tokenTerm = counted.length ? bad / counted.length : 0;
   const pixelTerm = reg.length ? regBad / reg.length : 0;
+  // The COMPOSITE: what a repair must strictly improve to be kept.
   const mismatch = reg.length ? 0.7 * tokenTerm + 0.3 * pixelTerm : tokenTerm;
+  const structural = 1 - tokenTerm;
+  const worst = reg.reduce((a, g) => (g.ratio > a.ratio ? g : a), { ratio: 0, component: '' });
+  const perceptual = 1 - worst.ratio;
+  const pct = (v) => Math.round(v * 1000) / 10;
+  const approved = structural >= STRUCTURAL_LIMIT && perceptual >= PERCEPTUAL_LIMIT;
   return {
-    mismatch: Math.round(mismatch * 10000) / 10000, score: Math.round((1 - mismatch) * 1000) / 10,
+    mismatch: Math.round(mismatch * 10000) / 10000, score: pct(1 - mismatch),
+    structural: { score: pct(structural), limit: pct(STRUCTURAL_LIMIT), pass: structural >= STRUCTURAL_LIMIT, tokens_compared: counted.length, tokens_off: bad },
+    perceptual: { score: pct(perceptual), limit: pct(PERCEPTUAL_LIMIT), pass: perceptual >= PERCEPTUAL_LIMIT, regions_compared: reg.length, worst_region: worst.component || '', worst_ratio: worst.ratio },
+    approved,
     tokens_compared: counted.length, tokens_off: bad, exempt: rows.filter((r) => r.status === 'exempt').length,
-    regions_compared: reg.length, regions_off: regBad, done: mismatch <= MISMATCH_LIMIT,
+    regions_compared: reg.length, regions_off: regBad, done: approved,
   };
 }
 
@@ -475,7 +539,7 @@ async function repair(rows, manifest, live, tried) {
           : String(got.value).toLowerCase() === String(current).toLowerCase());
       if (same) continue;
       setAt(roles, slot.path, got.value);
-      repairs.push({ surface: row.surface, viewport: vpName, component: row.component, token: row.token, from: current, to: got.value, strategy, selector: got.selector || '', source_page: manifest.read[vpName].url });
+      repairs.push({ surface: row.surface, viewport: vpName, path: slot.path, component: row.component, token: row.token, from: current, to: got.value, strategy, selector: got.selector || '', source_page: manifest.read[vpName].url });
       fixed = true;
       break;
     }
@@ -492,8 +556,8 @@ async function measureSurface(context, html, viewport, ctx, name) {
   const page = await context.newPage();
   await page.setViewportSize(viewport);
   await page.goto(url, { waitUntil: 'load', timeout: 15000 }).catch(() => {});
-  await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {});
-  await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true)).catch(() => {});
+  // The SAME frozen state the site was measured in (render-stabilise.js).
+  const stabilised = await require('./render-stabilise.js').stabilise(page, { idleMs: 2500, fontsMs: 3000 });
   // A motion creative is measured in its reduced-motion composition: the one
   // state in which nothing is mid-fade.
   const hooks = await page.evaluate(capture.measureHooks).catch(() => ({}));
@@ -503,6 +567,7 @@ async function measureSurface(context, html, viewport, ctx, name) {
     h1: '[data-ds="h1"]', body: '[data-ds="body"]', 'button-primary': '[data-ds="button-primary"]',
     'card-title': '[data-ds="card-title"]', logo: '[data-ds="logo"]', headline: '[data-ds="headline"]',
   }).catch(() => ({}));
+  hooks.__stabilised = stabilised;
   return { page, hooks };
 }
 
@@ -518,8 +583,23 @@ async function specimen(page, hook, siteRole, ground, buf, label) {
   if (!sel) return { component: label, comparable: false, reason: `our page rendered no ${hook} to compare${why ? ` (${why.slice(0, 120)})` : ''}` };
   const shot = await page.locator(sel).first().screenshot({ animations: 'disabled', timeout: 4000 }).catch((e) => { why = e.message; return null; });
   if (!shot) return { component: label, comparable: false, reason: `the specimen could not be captured (${why.slice(0, 160)})` };
-  const r = pixelRatio(buf, shot, ground);
-  return Object.assign({ component: label, comparable: true, ours_png: shot }, r);
+  const text = await page.evaluate(capture.textRects, sel).catch(() => []);
+  // Compared later, once the second shots of every specimen are in (one wait).
+  return { component: label, comparable: true, ours_png: shot, pending: { page, sel, site: buf, ground, text } };
+}
+
+/** The second shots, ~500 ms later, then the masked comparison per region. */
+async function settleRegions(regions, siteSecond, siteText) {
+  const pend = regions.filter((g) => g.pending);
+  if (!pend.length) return;
+  await new Promise((r) => setTimeout(r, VOLATILE_WAIT_MS));
+  for (const g of pend) {
+    const p = g.pending;
+    const b2 = await p.page.locator(p.sel).first().screenshot({ animations: 'disabled', timeout: 4000 }).catch(() => null);
+    const key = g.component;
+    Object.assign(g, pixelRatio(p.site, g.ours_png, p.ground, { a2: siteSecond[key] || null, b2, textA: siteText[key] || [], textB: p.text }));
+    delete g.pending;
+  }
 }
 
 /**
@@ -554,12 +634,25 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
   const vD = (m.viewports && m.viewports.desktop) || { w: 1440, h: 900 };
   const vM = (m.viewports && m.viewports.mobile) || { w: 390, h: 844 };
   const oursCtx = await browser.newContext({ viewport: { width: vD.w, height: vD.h }, deviceScaleFactor: 1, serviceWorkers: 'block', acceptDownloads: false, reducedMotion: 'reduce' });
+  await require('./render-stabilise.js').install(oursCtx);
   await net.attach(oursCtx, ctx);
   const sample = sampleFrom(m);
+  const brandFontNames = new Set(['heading', 'body'].map((s) => (m.fonts || {})[s]).filter((f) => f && f.licence === 'brand font').map((f) => String(f.family).toLowerCase()));
+  const er = ((truth.mobile && truth.mobile.roles) || (truth.desktop && truth.desktop.roles) || {});
+  const famOfRole = (x) => (x && x.type && x.type.family) || '';
+  const roleFamily = { heading: famOfRole(er.display || (er.headings && er.headings.h1)), 'body copy': famOfRole(er.body), button: famOfRole(er.button_primary) };
   const iterations = [];
   const allRepairs = [];
   const tried = {};
+  // MONOTONIC: a set of repairs is KEPT only if the composite strictly
+  // improves on the best state so far; otherwise each value is put back and
+  // the attempt is logged. Candidates still come only from re-measuring the
+  // source - never a value chosen to chase pixels.
+  const reverted = [];
+  let pendingRepairs = [];
+  let best = null;
   let last = null;
+  const closePages = async (st) => { if (st) for (const p of Object.values(st.pages)) await p.page.close().catch(() => {}); };
   for (let iter = 1; iter <= MAX_ITER; iter++) {
     if (Date.now() > deadline - 3000) break;
     const asApplied = brandAsApplied(m, brand);
@@ -574,7 +667,14 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
     const mailRows = [];
     for (const style of MAILER_STYLES) {
       const m2 = style === 'editorial' ? ml : await measureSurface(oursCtx, ours.mailers[style], { width: 640, height: 900 }, ctx, `mail-${style}${iter}`);
-      for (const row of emailPairs(truth.mobile, truth.desktop, m2.hooks)) mailRows.push(Object.assign(row, { component: `${style}: ${row.component}` }));
+      for (const row of emailPairs(truth.mobile, truth.desktop, m2.hooks)) {
+        // A brand font drawn as its fallback in an email is the legal gate
+        // working, not a miss (it is listed as exempt with the reason).
+        // The engine reports the face by the FILE's own name, not the CSS
+        // alias, so the brand font is recognised by the role's declared family.
+        const lic = row.kind === 'face' && brandFontNames.has(String(roleFamily[row.component] || '').toLowerCase());
+        mailRows.push(Object.assign(row, { component: `${style}: ${row.component}` }, lic ? { licence_exempt: true, licence_family: roleFamily[row.component] } : {}));
+      }
       if (m2 !== ml) await m2.page.close().catch(() => {});
     }
     const ad = await measureSurface(oursCtx, ours.ad, { width: 405, height: 720 }, ctx, `ad${iter}`);
@@ -606,39 +706,86 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
         else regions.push(Object.assign({ viewport: vp }, await specimen(page, 'h1', head, head.ground || '#ffffff', part, `hero heading (${vp})`) || { component: `hero heading (${vp})`, comparable: false, reason: 'our page rendered no heading to compare' }));
       }
     }
+    const siteSecond = {}, siteText = {};
+    for (const [vp, src] of [['desktop', shots.desktop], ['mobile', shots.mobile]]) {
+      if (!src) continue;
+      siteSecond[`primary button (${vp})`] = src.parts2 && src.parts2['button-primary'];
+      siteText[`primary button (${vp})`] = src.text && src.text['button-primary'];
+      const hk = src.parts && src.parts.display ? 'display' : 'h1';
+      siteSecond[`hero heading (${vp})`] = src.parts2 && src.parts2[hk];
+      siteText[`hero heading (${vp})`] = src.text && src.text[hk];
+    }
+    await settleRegions(regions, siteSecond, siteText);
     const surfaces = {};
     for (const s of ['landing page', 'mailer', 'ad creative']) surfaces[s] = scoreOf(rows.filter((x) => x.surface === s), s === 'landing page' ? regions : []);
     const overall = scoreOf(rows, regions);
-    last = { rows, regions, surfaces, overall, lpDecisions, ours, pages: { lpD, lpM, ml, ad }, asApplied };
-    iterations.push({ iteration: iter, mismatch: overall.mismatch, score: overall.score, tokens_off: overall.tokens_off, regions_off: overall.regions_off });
-    const repairable = rows.filter((x) => x.status === 'mismatch');
-    if (overall.done && !repairable.length) break;
+    const cur = { rows, regions, surfaces, overall, lpDecisions, ours, pages: { lpD, lpM, ml, ad }, asApplied, iteration: iter };
+    iterations.push({ iteration: iter, mismatch: overall.mismatch, score: overall.score, structural: overall.structural.score, perceptual: overall.perceptual.score, tokens_off: overall.tokens_off, regions_off: overall.regions_off });
+    if (best && !(overall.mismatch < best.overall.mismatch)) {
+      // Not strictly better: every value this attempt changed goes back.
+      for (const x of pendingRepairs.slice().reverse()) {
+        const roles = m.read[x.viewport] && m.read[x.viewport].roles;
+        if (roles) setAt(roles, x.path, x.from);
+        reverted.push(Object.assign({}, x, { reason: `the composite did not strictly improve (${best.overall.mismatch} -> ${overall.mismatch}), so the re-measured value was put back` }));
+        const at = allRepairs.indexOf(x);
+        if (at >= 0) allRepairs.splice(at, 1);
+      }
+      iterations[iterations.length - 1].reverted = pendingRepairs.length;
+      pendingRepairs = [];
+      await closePages(cur);
+      last = best;
+    } else {
+      if (best) await closePages(best);
+      best = cur;
+      last = cur;
+      pendingRepairs = [];
+    }
+    const repairable = last.rows.filter((x) => x.status === 'mismatch');
+    if (last.overall.done && !repairable.length) break;
     // A pixel region over its limit sends EVERY token of that component to be
     // re-measured, even ones that compared clean: the pixels are the evidence
     // no token names (a gradient, a shadow, a value the role read got wrong).
-    const failedRegions = regions.filter((g) => g.comparable && g.ratio > PIXEL_LIMIT);
-    const suspect = rows.map((x) => (x.status === 'match' && x.surface === 'landing page'
+    const failedRegions = last.regions.filter((g) => g.comparable && g.ratio > PIXEL_LIMIT);
+    const suspect = last.rows.map((x) => (x.status === 'match' && x.surface === 'landing page'
       && failedRegions.some((g) => g.component.startsWith(x.component) && g.viewport === x.viewport)) ? Object.assign({}, x, { status: 'mismatch', via: 'pixels' }) : x);
     const { repairs, unmatched } = await repair(suspect, m, live, tried);
     last.unmatched = unmatched;
-    allRepairs.push(...repairs.map((x) => Object.assign({ iteration: iter }, x)));
+    pendingRepairs = repairs.map((x) => Object.assign({ iteration: iter }, x));
+    allRepairs.push(...pendingRepairs);
     if (!repairs.length) break;
-    for (const p of [lpD.page, lpM.page, ml.page, ad.page]) await p.close().catch(() => {});
+  }
+  // Repairs made on the last iteration were never scored: put them back.
+  if (pendingRepairs.length) {
+    for (const x of pendingRepairs.slice().reverse()) {
+      const roles = m.read[x.viewport] && m.read[x.viewport].roles;
+      if (roles) setAt(roles, x.path, x.from);
+      reverted.push(Object.assign({}, x, { reason: 'the iteration limit was reached before this re-measured value could be scored, so it was put back' }));
+      const at = allRepairs.indexOf(x);
+      if (at >= 0) allRepairs.splice(at, 1);
+    }
   }
   // Report.
   const shotOf = async (page) => { try { return (await page.screenshot({ type: 'jpeg', quality: 60, animations: 'disabled' })).toString('base64'); } catch (_) { return null; } };
   const report = last ? {
     ok: true,
-    limits: { tolerance: TOLERANCE, pixel_limit: PIXEL_LIMIT, mismatch_limit: MISMATCH_LIMIT, max_iterations: MAX_ITER },
+    limits: { tolerance: TOLERANCE, pixel_limit: PIXEL_LIMIT, mismatch_limit: MISMATCH_LIMIT, max_iterations: MAX_ITER, structural_limit: STRUCTURAL_LIMIT, perceptual_limit: PERCEPTUAL_LIMIT, volatile_wait_ms: VOLATILE_WAIT_MS },
     done: last.overall.done,
+    approved: last.overall.approved,
+    structural: last.overall.structural,
+    perceptual: last.overall.perceptual,
     score: last.overall.score,
     mismatch: last.overall.mismatch,
     surfaces: last.surfaces,
     components: summariseComponents(last.rows, last.regions),
     tokens: last.rows.map((r) => ({ surface: r.surface, viewport: r.viewport, component: r.component, token: r.token, site: r.site, ours: r.ours, status: r.status, distance: r.distance, unit: r.unit, reason: r.reason || '', kept_field: r.kept_field || '' })),
-    regions: last.regions.map((g) => ({ component: g.component, comparable: g.comparable, ratio: g.ratio, pixels: g.pixels, size: g.size, site_size: g.site_size, ours_size: g.ours_size, reason: g.reason || '' })),
+    regions: last.regions.map((g) => ({ component: g.component, comparable: g.comparable, ratio: g.ratio, raw_ratio: g.raw_ratio, masked: g.masked, pixels: g.pixels, size: g.size, site_size: g.site_size, ours_size: g.ours_size, reason: g.reason || '' })),
     unmatched: (last.unmatched || []).map((u) => ({ surface: u.row.surface, viewport: u.row.viewport, component: u.row.component, token: u.row.token, best_site_value: u.row.site, ours: u.row.ours, reason: u.reason })),
     repairs: allRepairs,
+    reverted,
+    stabilised: {
+      source: { clock: ((m.read.desktop || {}).stabilised || {}).clock || '', consent_hidden: ((m.read.desktop || {}).stabilised || {}).consent_hidden || [] },
+      ours: { clock: ((last.pages.lpD.hooks || {}).__stabilised || {}).clock || '' },
+    },
     seeded,
     iterations,
     hard_rules: { derived: last.lpDecisions.derived, swapped: last.lpDecisions.swapped },
@@ -677,7 +824,7 @@ function summariseComponents(rows, regions) {
 }
 
 module.exports = {
-  TOLERANCE, PIXEL_LIMIT, MISMATCH_LIMIT, MAX_ITER,
+  TOLERANCE, PIXEL_LIMIT, MISMATCH_LIMIT, MAX_ITER, STRUCTURAL_LIMIT, PERCEPTUAL_LIMIT,
   deltaE2000, lab, compareToken, pixelRatio, judge, scoreOf, lpPairs, emailPairs, adPairs,
   sampleFrom, brandFor, brandAsApplied, renderOurs, repair, run, MAILER_STYLES, facePairs,
 };
