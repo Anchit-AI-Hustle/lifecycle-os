@@ -106,7 +106,7 @@ const SCOPED_TABLES = new Set([
   // with no policy and revoked from both browser roles, so nothing but the
   // service role can reach it at all.
   'oauth_authorization_states',
-  // 20261004120000 — the social gateway. social-gateway-core filters on the
+  // 20261004150000 — the social gateway. social-gateway-core filters on the
   // workspace explicitly on every call; this is the same structural backstop
   // the dispatch tables get, because a comment, a metric or a flag read across
   // brands would put one brand's customers in another brand's inbox.

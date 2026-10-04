@@ -54,7 +54,7 @@ const UNIQUE = {
   oauth_authorization_states: [['state']],
   credit_wallets: [['user_id', 'workspace_id']],
   domain_health_profiles: [['workspace_id', 'domain', 'role']],
-  // 20261004120000_social_gateway.sql
+  // 20261004150000_social_gateway.sql
   social_inbound_events: [['provider', 'event_id']],                             // social_inbound_events_dedupe_idx
   social_metric_snapshots: [['workspace_id', 'provider', 'kind', 'external_id', 'captured_on']],
   social_creative_flags: [['workspace_id', 'provider', 'external_id', 'metric', 'basis']],

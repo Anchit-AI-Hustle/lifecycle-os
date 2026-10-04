@@ -57,6 +57,11 @@
  * Run: npx playwright test tests/read-site-after-signin.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
+// op=extract RENDERS the site in a browser first (2026-10-04, brand-render.js).
+// This spec is about the gate and the parser path, so the browser read is
+// switched off with the operator's own switch; the rendered path has its own
+// specs (rendered-brand-read*.spec.js), which switch it back on.
+process.env.BRAND_RENDER = 'off';
 const fs = require('fs');
 const path = require('path');
 
