@@ -535,6 +535,24 @@ add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: 
       S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'warn' }));
     },
     expect: (r) => { expect(last(M.preflight, 'run')[0].brand).toBeNull(); },
+  }, {
+    // /publishing sends the asset as `payload` and names its campaign. The
+    // offer is the one the QUEUE will read (the campaign's record in this
+    // workspace), so preflight and enqueue measure a deadline line alike.
+    name: 'the offer is the named campaign\'s record in this workspace, read on the server: never the body\'s',
+    run: { json: { channel: 'klaviyo_email', campaign_id: 'campaign_abc123', payload: { id: 'campaign_abc123_email', subject: 'Today only' }, offer: { ends_at: '2099-01-01' }, mode: 'schedule', scheduled_for: '2099-10-05T09:00:00Z' } },
+    stubs: () => {
+      S.on(M.dispatch, 'campaignOffer', async () => ({ ends_at: '2026-10-05T23:59:59Z', stock: 10 }));
+      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+    },
+    expect: (r) => {
+      const [ws, ref] = last(M.dispatch, 'campaignOffer');
+      expect(ws).toBe(H.WS);
+      expect(ref).toEqual({ campaign_id: 'campaign_abc123', asset_ref: undefined, asset: { id: 'campaign_abc123_email', subject: 'Today only' } });
+      const a = last(M.preflight, 'run')[0];
+      expect(a.offer).toEqual({ ends_at: '2026-10-05T23:59:59Z', stock: 10 });
+      expect(a.now).toBe('2099-10-05T09:00:00Z');
+    },
   }],
 });
 add('deliverability-warmup', { gate: 'user', browser: 'refuse', run: { json: { start_on: '2026-10-01', target_daily: 100, days: 3 } },
