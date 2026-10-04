@@ -164,6 +164,16 @@ async function beginAuthorization(req, auth, workspaceId, input) {
   }
   await brandCore.assertCanWrite(auth, workspaceId, 'connect a platform');
 
+  // The dialog itself must be a confirmed URL. A platform whose sign-in URL
+  // is an unverified descriptor or a [DATA REQUIRED] marker has no sign-in to
+  // start, and saying so beats redirecting the operator to a guess.
+  const authorizeUrl = spec.endpoints && spec.endpoints.authorize;
+  if (typeof authorizeUrl !== 'string' || !/^https:\/\//.test(authorizeUrl)) {
+    const e = new Error(`${Adapter.label} has no confirmed sign-in URL in this platform, so there is no sign-in to start. Store its credential on the connections page instead.`);
+    e.status = 400; e.code = 'oauth_authorize_unverified';
+    throw e;
+  }
+
   const clientId = clientIdFor(providerId);
   if (!clientId) {
     const e = new Error(
@@ -209,7 +219,8 @@ async function beginAuthorization(req, auth, workspaceId, input) {
 
   const sep = spec.scope_separator || ' ';
   const params = new URLSearchParams({
-    client_id: clientId,
+    // TikTok names the client id `client_key`; every other platform here says client_id.
+    [spec.client_id_param || 'client_id']: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
     state,
@@ -221,6 +232,8 @@ async function beginAuthorization(req, auth, workspaceId, input) {
   // first consent. Without them the integration works for an hour and then
   // dies, which is the classic way this breaks a week after it is built.
   if (providerId === 'google_ads') { params.set('access_type', 'offline'); params.set('prompt', 'consent'); }
+  // The same requirement for any other Google surface (YouTube), declared by the adapter.
+  for (const [k, v] of Object.entries(spec.extra_authorize_params || {})) params.set(k, String(v));
 
   return { ok: true, url: `${spec.endpoints.authorize}?${params.toString()}`, state, scopes, redirect_uri: redirectUri };
 }
@@ -230,6 +243,9 @@ function clientIdFor(provider) {
     case 'meta': return String(process.env.META_APP_ID || '').trim();
     case 'google_ads': return String(process.env.GOOGLE_ADS_CLIENT_ID || '').trim();
     case 'klaviyo': return String(process.env.KLAVIYO_OAUTH_CLIENT_ID || '').trim();
+    case 'tiktok': return String(process.env.TIKTOK_CLIENT_KEY || '').trim();
+    case 'pinterest': return String(process.env.PINTEREST_APP_ID || '').trim();
+    case 'youtube': return String(process.env.YOUTUBE_OAUTH_CLIENT_ID || '').trim();
     default: return '';
   }
 }
@@ -239,6 +255,9 @@ function clientSecretFor(provider) {
     case 'meta': return String(process.env.META_APP_SECRET || '').trim();
     case 'google_ads': return String(process.env.GOOGLE_ADS_CLIENT_SECRET || '').trim();
     case 'klaviyo': return String(process.env.KLAVIYO_OAUTH_CLIENT_SECRET || '').trim();
+    case 'tiktok': return String(process.env.TIKTOK_CLIENT_SECRET || '').trim();
+    case 'pinterest': return String(process.env.PINTEREST_APP_SECRET || '').trim();
+    case 'youtube': return String(process.env.YOUTUBE_OAUTH_CLIENT_SECRET || '').trim();
     default: return '';
   }
 }
@@ -332,14 +351,21 @@ async function exchangeCode(provider, code, row) {
     return { ok: true, access_token: j.access_token, expires_in: Number(j.expires_in || 0) };
   }
 
-  // Google and Klaviyo are both POST with a form body; they differ in how the
-  // client credentials travel.
+  // Google, Klaviyo, Pinterest and TikTok are all POST with a form body; they
+  // differ in how the client credentials travel and what TikTok calls the id.
   const body = new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: row.redirect_uri });
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
 
-  if (provider === 'klaviyo') {
+  if (provider === 'klaviyo' || spec.token_auth === 'basic') {
+    // Klaviyo and Pinterest: the client credentials as HTTP Basic, never in the body.
     headers.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
     if (row.code_verifier) body.set('code_verifier', row.code_verifier);
+  } else if (provider === 'tiktok') {
+    // TikTok's token call (oauth-user-access-token-management): client_key and
+    // client_secret in the form body, and no PKCE for a web app.
+    body.set('client_key', clientId);
+    body.set('client_secret', clientSecret);
+    headers['Cache-Control'] = 'no-cache';
   } else {
     body.set('client_id', clientId);
     body.set('client_secret', clientSecret);
@@ -355,6 +381,10 @@ async function exchangeCode(provider, code, row) {
     access_token: j.access_token,
     refresh_token: j.refresh_token || '',
     expires_in: Number(j.expires_in || 0),
+    // TikTok: refresh_expires_in. Pinterest: refresh_token_expires_in.
+    refresh_expires_in: Number(j.refresh_expires_in || j.refresh_token_expires_in || 0),
+    // TikTok names the user it connected; kept so its webhooks can be routed.
+    open_id: j.open_id ? String(j.open_id) : '',
     // The GRANTED scopes, which can be narrower than what was asked for.
     granted_scopes: typeof j.scope === 'string' ? j.scope.split(/[\s,]+/).filter(Boolean) : null,
   };
@@ -392,9 +422,11 @@ async function persistGrant(row, provider, grant) {
       connect_kind: 'oauth',
       oauth_scopes: grant.granted_scopes || row.scopes || [],
       token_expires_at: grant.expires_in ? new Date(Date.now() + grant.expires_in * 1000).toISOString() : null,
+      refresh_expires_at: grant.refresh_expires_in ? new Date(Date.now() + grant.refresh_expires_in * 1000).toISOString() : null,
       last_refresh_at: new Date().toISOString(),
       refresh_failure_count: 0,
       revoked_at: null,
+      external_account_id: grant.open_id || undefined,
     },
   });
 
@@ -444,6 +476,12 @@ async function ensureFreshToken(workspaceId, provider, { connection, credentials
   // A pasted API key does not expire.
   if (!creds.access_token && creds.api_key) return { ok: true, credentials: creds, refreshed: false };
 
+  // The daily refresh already failed for good and said so in the hub. Trying
+  // again on the send path would only spend the platform's refresh budget.
+  if (conn && conn.status === 'needs_reauth') {
+    return { ok: false, note: `${Adapter.label} needs to be reconnected: ${conn.last_check_note || 'its token could not be refreshed.'}`, reconnect_required: true };
+  }
+
   const expiresAt = conn && conn.token_expires_at ? Date.parse(conn.token_expires_at) : 0;
   const stillGood = !expiresAt || expiresAt - Date.now() > REFRESH_SKEW_MS;
   if (stillGood) return { ok: true, credentials: creds, refreshed: false };
@@ -465,12 +503,12 @@ async function ensureFreshToken(workspaceId, provider, { connection, credentials
     workspace_id: workspaceId,
     provider: connectionProviderFor(provider),
     fields: r.credentials,
-    meta: {
+    meta: Object.assign({
       token_expires_at: r.expires_at || null,
       last_refresh_at: new Date().toISOString(),
       refresh_failure_count: 0,
       revoked_at: null,
-    },
+    }, r.refresh_expires_at ? { refresh_expires_at: r.refresh_expires_at } : {}),
   });
 
   return { ok: true, credentials: merged, refreshed: true };
@@ -521,7 +559,17 @@ async function revoke(auth, workspaceId, provider) {
   try {
     const conn = await connections.getConnectionAsService(workspaceId, connProvider);
     const creds = conn ? await connections.secretsAsService(conn.id) : null;
-    if (provider === 'google_ads' && creds && (creds.refresh_token || creds.access_token)) {
+    if (provider === 'tiktok' && creds && creds.access_token) {
+      // TikTok documents a revoke call: client_key, client_secret, token.
+      const r = await fetch('https://open.tiktokapis.com/v2/oauth/revoke/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cache-Control': 'no-cache' },
+        body: new URLSearchParams({ client_key: clientIdFor('tiktok'), client_secret: clientSecretFor('tiktok'), token: creds.access_token }).toString(),
+      }).catch(() => null);
+      providerNote = r && r.ok
+        ? 'The credential was removed here and revoked at TikTok.'
+        : 'The credential was removed here. TikTok did not confirm the revocation, so remove the app under Manage apps in TikTok too.';
+    } else if ((provider === 'google_ads' || provider === 'youtube') && creds && (creds.refresh_token || creds.access_token)) {
       const r = await fetch('https://oauth2.googleapis.com/revoke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -530,8 +578,9 @@ async function revoke(auth, workspaceId, provider) {
       providerNote = r && r.ok
         ? 'The credential was removed here and revoked at Google.'
         : 'The credential was removed here. Google did not confirm the revocation, so check the account\'s third-party access list.';
-    } else if (provider === 'meta' || provider === 'klaviyo') {
-      providerNote = `The credential was removed here. ${provider === 'meta' ? 'Meta' : 'Klaviyo'} does not expose a revoke endpoint this platform can call, so remove the app in that account too if you want the grant gone at their end.`;
+    } else if (provider === 'meta' || provider === 'klaviyo' || provider === 'pinterest') {
+      const name = provider === 'meta' ? 'Meta' : provider === 'pinterest' ? 'Pinterest' : 'Klaviyo';
+      providerNote = `The credential was removed here. ${name} does not expose a revoke endpoint this platform can call, so remove the app in that account too if you want the grant gone at their end.`;
     }
   } catch (_) { /* removal still proceeds */ }
 
