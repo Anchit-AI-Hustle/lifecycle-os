@@ -208,7 +208,8 @@
         "selector": "div > div.c1dbtjd2.atm_26_1qgma6g > div.cff48sj.atm_lb_fyhuej > div > h2.hifxi0b.atm_c8_21sjza",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.airbnb.com/",
@@ -216,7 +217,8 @@
         "selector": "span#unified-search-microphone-prompt",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
@@ -364,6 +366,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Airbnb]",

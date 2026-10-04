@@ -160,6 +160,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.samsung.com/be/about-us/brand-identity/logo/",
+      "kind": "page",
+      "what": "Samsung brand identity: logo"
+    },
+    {
+      "url": "https://news.samsung.com/global/",
+      "kind": "page",
+      "what": "Samsung Newsroom"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Samsung]",

@@ -114,6 +114,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://paytm.com/about-us",
+      "kind": "page",
+      "what": "Paytm about page"
+    },
+    {
+      "url": "https://ir.paytm.com/",
+      "kind": "page",
+      "what": "Paytm investor relations"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Paytm]",

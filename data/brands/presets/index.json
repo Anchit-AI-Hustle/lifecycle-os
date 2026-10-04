@@ -45,6 +45,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Montserrat",
       "body_font": "Instrument Sans",
       "heading_stack": "'Montserrat','Raleway',Arial,sans-serif",
@@ -108,6 +111,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Montserrat",
       "body_font": "Faustina",
       "heading_stack": "'Montserrat',Verdana,Arial,sans-serif",
@@ -172,6 +178,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
@@ -236,6 +245,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
@@ -300,6 +312,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "SF Pro Display",
       "body_font": "SF Pro Text",
       "heading_stack": "'SF Pro Display','SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
@@ -362,6 +377,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://about.nike.com/en",
+          "kind": "page",
+          "what": "Nike, Inc. corporate site"
+        },
+        {
+          "url": "https://about.nike.com/en/newsroom",
+          "kind": "page",
+          "what": "Nike newsroom"
         }
       ],
       "heading_font": "system-ui",
@@ -431,6 +460,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.adidas.com/us",
+          "kind": "page",
+          "what": "adidas US store front"
+        },
+        {
+          "url": "https://www.adidas-group.com/en/",
+          "kind": "page",
+          "what": "adidas Group corporate site (linked from adidas.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -498,6 +541,15 @@
           "value": "#191919",
           "derived": true,
           "exact": ""
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://about.puma.com/en",
+          "kind": "page",
+          "what": "PUMA corporate site"
         }
       ],
       "heading_font": "system-ui",
@@ -593,6 +645,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://jobs.newbalance.com/global/en",
+          "kind": "page",
+          "what": "New Balance careers site"
+        },
+        {
+          "url": "https://www.newbalance.com/about-us.html",
+          "kind": "page",
+          "what": "New Balance about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -658,6 +724,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.zara.com/us/",
+          "kind": "page",
+          "what": "Zara US store front"
+        },
+        {
+          "url": "https://www.zara.com/es/en/",
+          "kind": "page",
+          "what": "Zara Spain store front (English)"
         }
       ],
       "heading_font": "system-ui",
@@ -727,6 +807,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www2.hm.com/en_us/index.html",
+          "kind": "page",
+          "what": "H&M US store front"
+        },
+        {
+          "url": "https://hmgroup.com/",
+          "kind": "page",
+          "what": "H&M Group corporate site (linked from hm.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -792,6 +886,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.uniqlo.com/us/en/",
+          "kind": "page",
+          "what": "UNIQLO US store front"
+        },
+        {
+          "url": "https://www.uniqlo.com/in/en/",
+          "kind": "page",
+          "what": "UNIQLO India store front"
         }
       ],
       "heading_font": "system-ui",
@@ -861,6 +969,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.levi.com/US/en_US/",
+          "kind": "page",
+          "what": "Levi's US store front"
+        },
+        {
+          "url": "https://www.levistrauss.com/",
+          "kind": "page",
+          "what": "Levi Strauss & Co. corporate site (linked from levi.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -926,6 +1048,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://jobs.myntra.com/home",
+          "kind": "page",
+          "what": "Myntra careers site"
+        },
+        {
+          "url": "https://www.myntra.com/shop/men",
+          "kind": "page",
+          "what": "Myntra men's store"
         }
       ],
       "heading_font": "system-ui",
@@ -995,6 +1131,15 @@
           "value": "#333333",
           "derived": true,
           "exact": "#ffffff"
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://stories.flipkart.com/",
+          "kind": "page",
+          "what": "Flipkart Stories, the company's own news site"
         }
       ],
       "heading_font": "inter_bold",
@@ -1091,6 +1236,15 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.aboutamazon.com/",
+          "kind": "page",
+          "what": "About Amazon, the company's own news site (linked from amazon.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1159,6 +1313,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Inter",
       "body_font": "Inter",
       "heading_stack": "'Inter','Roboto','Arial',sans-serif",
@@ -1252,6 +1409,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://newsroom.sephora.com/",
+          "kind": "page",
+          "what": "Sephora newsroom"
+        },
+        {
+          "url": "https://www.sephora.com/beauty/about-us",
+          "kind": "page",
+          "what": "Sephora about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1318,6 +1489,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.loreal.com/en/press-release/",
+          "kind": "page",
+          "what": "L'Oreal Groupe newsroom"
+        },
+        {
+          "url": "https://www.loreal.com/en/group/",
+          "kind": "page",
+          "what": "L'Oreal Groupe about page"
         }
       ],
       "heading_font": "system-ui",
@@ -1388,6 +1573,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Open Sans",
       "body_font": "Open Sans",
       "heading_stack": "'Open Sans',sans-serif",
@@ -1481,6 +1669,15 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.boat-lifestyle.com/pages/about-us",
+          "kind": "page",
+          "what": "boAt about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1548,6 +1745,15 @@
           "value": "#000042",
           "derived": true,
           "exact": ""
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.lenskart.com/about-us",
+          "kind": "page",
+          "what": "Lenskart about page"
         }
       ],
       "heading_font": "system-ui",
@@ -1644,6 +1850,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.samsung.com/be/about-us/brand-identity/logo/",
+          "kind": "page",
+          "what": "Samsung brand identity: logo"
+        },
+        {
+          "url": "https://news.samsung.com/global/",
+          "kind": "page",
+          "what": "Samsung Newsroom"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1712,6 +1932,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "segoeui",
       "body_font": "segoeui",
       "heading_stack": "'segoeui','Helvetica Neue','helvetica','arial',sans-serif",
@@ -1806,6 +2029,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://electronics.sony.com/",
+          "kind": "page",
+          "what": "Sony Electronics store front"
+        },
+        {
+          "url": "https://www.sony.net/",
+          "kind": "page",
+          "what": "Sony Group global portal (linked from sony.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1871,6 +2108,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://ir.tesla.com/",
+          "kind": "page",
+          "what": "Tesla investor relations"
+        },
+        {
+          "url": "https://shop.tesla.com/",
+          "kind": "page",
+          "what": "Tesla shop"
         }
       ],
       "heading_font": "system-ui",
@@ -1941,6 +2192,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.bmw.com/en/index.html",
+          "kind": "page",
+          "what": "BMW.com (English)"
+        },
+        {
+          "url": "https://www.bmwgroup.com/en.html",
+          "kind": "page",
+          "what": "BMW Group corporate site (linked from bmw.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2007,6 +2272,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "kind": "page",
+          "what": "Toyota brand guidelines: brand colours"
+        },
+        {
+          "url": "https://pressroom.toyota.com/",
+          "kind": "page",
+          "what": "Toyota newsroom"
         }
       ],
       "heading_font": "system-ui",
@@ -2079,6 +2358,9 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "SoDoSans",
       "body_font": "SoDoSans",
       "heading_stack": "'SoDoSans','Helvetica Neue','Helvetica','Arial',sans-serif",
@@ -2173,6 +2455,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html",
+          "kind": "page",
+          "what": "McDonald's media assets: logos"
+        },
+        {
+          "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
+          "kind": "page",
+          "what": "McDonald's corporate site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2242,6 +2538,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TCCC-UnityText",
       "body_font": "TCCC-UnityText",
       "heading_stack": "'TCCC-UnityText',sans-serif",
@@ -2335,6 +2634,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.nestle.com/media",
+          "kind": "page",
+          "what": "Nestle media page"
+        },
+        {
+          "url": "https://www.nestle.com/about",
+          "kind": "page",
+          "what": "Nestle about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2400,6 +2713,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://brand.netflix.com/en/",
+          "kind": "page",
+          "what": "Netflix brand site"
+        },
+        {
+          "url": "https://about.netflix.com/en",
+          "kind": "page",
+          "what": "About Netflix"
         }
       ],
       "heading_font": "system-ui",
@@ -2468,6 +2795,20 @@
           "role": "ink",
           "value": "#111111",
           "derived": false
+        }
+      ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://developer.spotify.com/documentation/design",
+          "kind": "page",
+          "what": "Spotify design and branding guidelines"
+        },
+        {
+          "url": "https://newsroom.spotify.com/",
+          "kind": "page",
+          "what": "Spotify newsroom"
         }
       ],
       "heading_font": "system-ui",
@@ -2540,6 +2881,9 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Airbnb Cereal VF",
       "body_font": "Airbnb Cereal VF",
       "heading_stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
@@ -2633,6 +2977,15 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.makemytrip.com/flights/",
+          "kind": "page",
+          "what": "MakeMyTrip flights page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2702,6 +3055,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "sohne-var",
       "body_font": "sohne-var",
       "heading_stack": "'sohne-var','SF Pro Display',sans-serif",
@@ -2796,6 +3152,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TASA Orbiter Display SemiBold",
       "body_font": "Inter",
       "heading_stack": "'TASA Orbiter Display SemiBold','TASA Orbiter Display SemiBold Placeholder',sans-serif",
@@ -2890,6 +3249,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://paytm.com/about-us",
+          "kind": "page",
+          "what": "Paytm about page"
+        },
+        {
+          "url": "https://ir.paytm.com/",
+          "kind": "page",
+          "what": "Paytm investor relations"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2959,6 +3332,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TondoBold",
       "body_font": "Tondo",
       "heading_stack": "'TondoBold',sans-serif",

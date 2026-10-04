@@ -159,6 +159,13 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.boat-lifestyle.com/pages/about-us",
+      "kind": "page",
+      "what": "boAt about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, boAt]",

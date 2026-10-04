@@ -114,6 +114,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://ir.tesla.com/",
+      "kind": "page",
+      "what": "Tesla investor relations"
+    },
+    {
+      "url": "https://shop.tesla.com/",
+      "kind": "page",
+      "what": "Tesla shop"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Tesla]",
