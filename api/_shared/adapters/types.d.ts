@@ -71,6 +71,8 @@ export interface DispatchResult {
   retry_after_ms?: number;
   /** State a retry can resume from instead of duplicating (e.g. an IG container id). */
   resume?: Record<string, string>;
+  /** Which switch refused a send: dry_run | live_connectors_off | workspace_publishing_off | read_only_egress | platform_writes_off. */
+  blocked_by?: string;
   endpoint_unverified?: boolean;
   note?: string;
   raw?: unknown;
@@ -103,6 +105,10 @@ export interface RefreshResult {
   supported: boolean;
   /** True when the grant is gone for good and retrying only burns rate limit. */
   terminal?: boolean;
+  /** True when the platform did not answer (network, 429, 5xx): retried, not a reconnect. */
+  transient?: boolean;
+  refresh_expires_at?: string | null;
+  granted_scopes?: string[] | null;
   credentials?: AdapterCredentials;
   expires_at?: string | null;
   note?: string;
@@ -134,16 +140,58 @@ export interface ChannelDescriptor {
 }
 
 export interface AuthDescriptor {
-  kind: 'oauth' | 'api_key';
+  kind: 'oauth' | 'api_key' | 'account_token';
   endpoints: Record<string, unknown>;
   scopes: Array<{ value: string; why: string }>;
   default_scopes?: string[];
   pkce?: { required: boolean; method: string; [k: string]: unknown } | null;
   scope_separator?: string;
+  /** The authorize/token parameter name for the client id (TikTok: client_key). */
+  client_id_param?: string;
+  /** Extra authorize parameters the platform needs (Google: access_type, prompt). */
+  extra_authorize_params?: Record<string, string>;
   platform_prereq?: Record<string, unknown> | null;
   token_lifetime?: Record<string, unknown> | null;
   /** Where each endpoint above came from, or an admitted gap. */
   sources: string[];
+}
+
+/**
+ * One declared call of the social gateway (2026-10-04). `verified` is true ONLY
+ * when the call was read in the platform's own documentation, named in `doc`;
+ * anything else is refused by callEndpoint() with the exact request.
+ */
+export interface EndpointDescriptor {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  /** May carry {name} placeholders, filled and encoded from params. */
+  url: string;
+  verified: boolean;
+  doc?: string;
+  scopes?: string[];
+  /** A POST the platform documents as a READ: LIVE_CONNECTORS only, no publish gate. */
+  read?: boolean;
+  note?: string;
+}
+
+/** A normalised metric row. A value the platform did not return is ABSENT, never 0. */
+export interface MetricRow {
+  external_id: string;
+  kind: 'organic' | 'paid';
+  surface?: string;
+  name?: string;
+  values: { views?: number; likes?: number; comments?: number; shares?: number; saves?: number; reach?: number; impressions?: number; clicks?: number; spend?: number; ctr?: number; roas?: number; [k: string]: number | undefined };
+}
+
+/** One item of a verified webhook delivery. */
+export interface WebhookItem {
+  kind: 'comment' | 'mention' | 'publish_status' | 'authorization' | 'other';
+  field: string;
+  surface: string;
+  account_id: string | null;
+  object_id: string | null;
+  parent_id?: string | null;
+  status?: string | null;
+  text: string | null;
 }
 
 export interface BasePlatformAdapter {
@@ -161,6 +209,27 @@ export interface BasePlatformAdapter {
   verifyWebhook(headers: unknown, rawBody: Buffer | string): WebhookVerification;
   verifyChallenge(query: Record<string, string>): ChallengeVerification;
   gap(field: string, extra?: string): string;
+  /** The single door for a declared call; refuses an unverified endpoint. */
+  callEndpoint(op: string, opts?: unknown): Promise<DispatchResult & { data?: unknown; op?: string; doc?: string | null; live?: boolean }>;
+  readPost(url: string, opts?: unknown): Promise<{ ok: boolean; data?: unknown; status?: number; error?: string; error_class?: ErrorClass }>;
+  /* The social gateway readers and writers. An unsupported one answers ok:false, supported:false. */
+  readPostMetrics(refs: unknown): Promise<{ ok: boolean; supported?: boolean; metrics?: MetricRow[]; note?: string }>;
+  readAdMetrics(range: unknown): Promise<{ ok: boolean; supported?: boolean; rows?: MetricRow[]; note?: string }>;
+  listComments(ref: unknown): Promise<{ ok: boolean; supported?: boolean; comments?: Array<Record<string, unknown>>; note?: string }>;
+  listMentions(ref: unknown): Promise<{ ok: boolean; supported?: boolean; mentions?: Array<Record<string, unknown>>; note?: string }>;
+  replyToComment(spec: unknown): Promise<DispatchResult>;
+  moderateComment(spec: unknown): Promise<DispatchResult>;
+  /** LIVE APPROVAL: a paused/draft/private object turned on. Requires approved_by. */
+  activate(spec: unknown): Promise<DispatchResult>;
+  webhookEventId(event: unknown, rawBytes: Buffer | string): string;
+  webhookAccountId(event: unknown): string | null;
+  webhookItems(event: unknown): WebhookItem[];
+}
+
+export interface SocialPlatformAdapter extends BasePlatformAdapter {
+  readPostMetrics(refs: unknown): Promise<{ ok: boolean; supported?: boolean; metrics?: MetricRow[]; note?: string }>;
+  listComments(ref: unknown): Promise<{ ok: boolean; supported?: boolean; comments?: Array<Record<string, unknown>>; note?: string }>;
+  activate(spec: unknown): Promise<DispatchResult>;
 }
 
 export interface AdPlatformAdapter extends BasePlatformAdapter {

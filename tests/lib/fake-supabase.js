@@ -54,6 +54,11 @@ const UNIQUE = {
   oauth_authorization_states: [['state']],
   credit_wallets: [['user_id', 'workspace_id']],
   domain_health_profiles: [['workspace_id', 'domain', 'role']],
+  // 20261004120000_social_gateway.sql
+  social_inbound_events: [['provider', 'event_id']],                             // social_inbound_events_dedupe_idx
+  social_metric_snapshots: [['workspace_id', 'provider', 'kind', 'external_id', 'captured_on']],
+  social_creative_flags: [['workspace_id', 'provider', 'external_id', 'metric', 'basis']],
+  social_gateway_settings: [['workspace_id']],
 };
 
 /** Column defaults the migrations declare, applied on insert the way Postgres would. */
@@ -61,12 +66,15 @@ const DEFAULTS = {
   dispatch_jobs: { status: 'queued', attempt_count: 0, max_attempts: 5, lease_owner: null, lease_expires_at: null, external_id: null, external_status: null, result: null, last_error: null, completed_at: null, retry_after_at: null, dry_run: false },
   workspace_connections: { status: 'active', config: {}, secret_fields: [], secret_hint: '' },
   platform_webhook_events: { verified: false, processed_at: null },
+  social_creative_flags: { status: 'open', decided_by: null, decided_at: null },
+  social_inbound_events: { items: [] },
 };
 
 /** Tables whose rows are scoped to a workspace for RLS. */
 const WORKSPACE_SCOPED = new Set([
   'dispatch_jobs', 'dispatch_attempts', 'preflight_audits', 'platform_sync_log', 'platform_webhook_events',
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
+  'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
 ]);
 
 function uuid() { return crypto.randomUUID(); }
@@ -101,9 +109,22 @@ function cmp(a, b) {
   return sa < sb ? -1 : sa > sb ? 1 : 0;   // ISO timestamps compare correctly as strings
 }
 
+/**
+ * A column, or a JSON path into one (`config->>page_id`, `config->a->>b`), the
+ * way PostgREST reads a filter key. `->>` yields text, which is what an
+ * eq filter compares against.
+ */
+function fieldOf(row, col) {
+  if (!/->/.test(col)) return row[col];
+  const parts = col.split(/->>?/);
+  let v = row[parts[0]];
+  for (const k of parts.slice(1)) v = v == null ? undefined : v[k];
+  return v == null ? v : (/->>[^>]*$/.test(col) && typeof v !== 'string' ? String(v) : v);
+}
+
 /** One PostgREST filter expression (`col.op.value` form, as used inside or=()). */
 function matchOne(row, col, op, val) {
-  const v = row[col];
+  const v = fieldOf(row, col);
   switch (op) {
     case 'eq': return String(v) === String(val) && v != null;
     case 'neq': return String(v) !== String(val);
