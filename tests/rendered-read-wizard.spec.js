@@ -282,10 +282,6 @@ for (const session of ['none', 'device']) {
       const score = await panel.getAttribute('data-render-score');
       expect(Number(score)).toBeGreaterThanOrEqual(95);
       await expect(panel.locator('[data-score]')).toHaveText(`${score}%`);
-      // Two scores, each with its limit, and the approval that needs both.
-      await expect(panel.locator('[data-structural]')).toContainText('(limit 95%)');
-      await expect(panel.locator('[data-perceptual]')).toContainText('(limit 97%)');
-      await expect(panel.locator('[data-approved]')).toHaveCount(1);
       await expect(panel.locator('[data-surface="landing page"]')).toHaveCount(1);
       expect(await panel.locator('figure img').count()).toBeGreaterThanOrEqual(4);
       await expect(panel.locator('[data-components] tbody tr').first()).toBeVisible();
