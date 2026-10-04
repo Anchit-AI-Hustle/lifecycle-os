@@ -116,6 +116,12 @@ function loadsShell(file) {
  * ones and the excluded ones separately, so the spec can assert the exclusion
  * reasons rather than trusting them.
  */
+/* Pages that are deliberately NOT themed, each with the reason. Decided by the
+   operator's coordinator on 2026-10-05; the spec re-checks the reason against
+   the code that implements it. */
+const FROZEN = {
+  'diff-version.html': "tenant zero's own frozen before/after snapshot (CLAUDE.md: Tenant zero's OWN artefacts = the frozen diff-version snapshot); auth.js exempts it from theme.css by design, and the content audit keeps other brands from seeing it",
+};
 function appPages() {
   const candidates = new Set(fs.readdirSync(ROOT).filter((f) => f.endsWith('.html')));
   for (const r of [...(VERCEL.rewrites || []), ...(VERCEL.redirects || [])]) {
@@ -127,6 +133,7 @@ function appPages() {
     const s = loadsShell(file);
     if (file.startsWith('_')) { excluded.push({ file, why: 'underscore fixture, not served as a page' }); continue; }
     if (s.refresh && !s.auth) { excluded.push({ file, why: 'meta-refresh stub onto another page' }); continue; }
+    if (FROZEN[file]) { excluded.push({ file, why: FROZEN[file] }); continue; }
     if (!s.auth && !s.brand) { excluded.push({ file, why: 'loads neither auth.js nor brand-context.js: a generated artefact, not the app' }); continue; }
     kept.push(file);
   }
@@ -756,6 +763,24 @@ function probeConfig(name, tagPrefix) {
   return { tokens: t, hues, forbidden, fonts, tag: tagPrefix || 'b' };
 }
 
+/* ── the baseline: one file per page, so parallel fixes never collide ────── */
+const BASELINE_DIR = path.join(ROOT, 'tests', 'brand-theme-baseline');
+/** The file a page's (or Studio sequence's) baseline lives in. */
+function baselineFile(key) {
+  return path.join(BASELINE_DIR, String(key).replace(/[^a-z0-9._-]+/gi, '_').replace(/^_+|_+$/g, '') + '.json');
+}
+/** { key: counts } for every file in the directory; each file names its own key. */
+function readBaseline() {
+  const out = {};
+  if (!fs.existsSync(BASELINE_DIR)) return out;
+  for (const f of fs.readdirSync(BASELINE_DIR).filter((x) => x.endsWith('.json'))) {
+    const rec = JSON.parse(fs.readFileSync(path.join(BASELINE_DIR, f), 'utf8'));
+    out[rec.key] = Object.assign({ __file: f }, rec.counts);
+  }
+  return out;
+}
+
 module.exports = {
+  BASELINE_DIR, baselineFile, readBaseline, FROZEN,
   ROOT, HOST, PALETTES, TENANT_ZERO_HEX, SIBLING_HEX, tokensOf, appPages, install, open, PROBE, probeConfig, attribute, deviceRow,
 };
