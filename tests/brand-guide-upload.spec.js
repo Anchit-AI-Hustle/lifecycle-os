@@ -55,6 +55,11 @@ function serverWorld() {
   for (const k of ENV_KEYS) delete process.env[k];
   process.env.SUPABASE_URL = 'https://' + PAUSED;
   process.env.SUPABASE_ANON_KEY = 'anon-key-for-test';
+  // The module cache is put back EXACTLY as it was on restore: a spec that runs
+  // later in this worker (credits-comp-accounts) holds references to the
+  // modules it loaded, and a fresh copy left behind would split one module's
+  // state into two (found in CI: its listed-number balance answered 401).
+  const cacheBefore = new Map(Object.entries(require.cache));
   const mods = ['../api/public-config.js', '../api/_shared/brand-workspace-core.js', '../api/_shared/brand-document-fetch.js', '../api/_shared/mobile-auth-core.js'].map((m) => require.resolve(m));
   for (const m of mods) delete require.cache[m];
   const dns = require('dns').promises;
@@ -90,7 +95,8 @@ function serverWorld() {
     restore() {
       global.fetch = realFetch; dns.lookup = realLookup;
       for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
-      for (const m of mods) delete require.cache[m];
+      for (const k of Object.keys(require.cache)) if (!cacheBefore.has(k)) delete require.cache[k];
+      for (const [k, v] of cacheBefore) require.cache[k] = v;
     },
   };
 }

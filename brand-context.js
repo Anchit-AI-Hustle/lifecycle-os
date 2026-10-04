@@ -454,12 +454,20 @@
     var src = f && typeof f === 'object' ? f : {};
     var family = str(src.family, 64);
     if (!family) return null;
-    return {
+    var out = {
       family: family,
       stack: str(src.stack, 200) || ("'" + family + "'," + fallback),
       google: src.google !== false,
       weights: str(src.weights, 40) || '400;600;700',
     };
+    // Mirrors the server: a self-hosted family's https FILE, for @font-face.
+    var file = str(src.src, 300);
+    if (out.google === false && /^https:\/\/[^\s"'()<>]+$/i.test(file)) {
+      out.src = file;
+      var fmt = str(src.format, 12).toLowerCase();
+      if (/^(woff2|woff|truetype|opentype|ttf|otf)$/.test(fmt)) out.format = fmt;
+    }
+    return out;
   }
   function normalizeTypography(input) {
     var src = input && typeof input === 'object' ? input : {};

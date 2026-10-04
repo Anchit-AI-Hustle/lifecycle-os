@@ -390,16 +390,31 @@ function typographyLine(t) {
   return parts.join('. ');
 }
 
+/**
+ * The CSS that loads the brand's fonts in a generated page or email: a Google
+ * Fonts @import for Google families, and an @font-face for a self-hosted family
+ * whose FILE the record names (typography[slot].src, an https URL - uploaded to
+ * the brand's storage, or a URL the operator pasted; 2026-10-04). Without the
+ * second, a family the brand serves itself reached every asset by name only and
+ * rendered in the fallback. One place, so every renderer loads fonts the same way.
+ */
 function fontImport(t) {
   const fams = [];
+  const faces = [];
+  const FMT = { woff2: 'woff2', woff: 'woff', ttf: 'truetype', truetype: 'truetype', otf: 'opentype', opentype: 'opentype' };
   for (const slot of ['heading', 'body']) {
     const f = t && t[slot];
     if (f && f.family && f.google !== false) {
       fams.push(`family=${String(f.family).trim().replace(/\s+/g, '+')}:wght@${String(f.weights || '400;600;700').replace(/[^0-9;]/g, '')}`);
+    } else if (f && f.family && /^https:\/\/[^\s"'()<>]+$/i.test(String(f.src || ''))) {
+      const fam = String(f.family).replace(/['"\\<>{};]/g, '').trim();
+      const fmt = FMT[String(f.format || '').toLowerCase()];
+      const face = `@font-face{font-family:'${fam}';src:url('${f.src}')${fmt ? ` format('${fmt}')` : ''};font-display:swap}`;
+      if (fam && !faces.includes(face)) faces.push(face);
     }
   }
-  if (!fams.length) return '';
-  return `@import url('https://fonts.googleapis.com/css2?${fams.join('&')}&display=swap');`;
+  const imp = fams.length ? `@import url('https://fonts.googleapis.com/css2?${fams.join('&')}&display=swap');` : '';
+  return imp + faces.join('');
 }
 
 /**
