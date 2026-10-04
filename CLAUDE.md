@@ -4,6 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
+`api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
+`lib/smart-brain/services.js` + `cohort-engine.triggerEligibility()`, gated by `tests/replenishment-model.spec.js`
+(26 executed; 23 mutations each fail it). The roadmap's example assumed "1.5 cups/day": a consumption rate or a
+pack size is a product fact, so neither is ever used.
+- **Per (market, product)**: the empirical inter-purchase interval (median/p25/p75/n) from customers who bought
+  it twice; SKU first, its product type when the SKU is thin. `MIN_REPEAT_CUSTOMERS = 30` (one number for every
+  estimate) or the product reports `insufficient_history` WITH its count. Same-day orders are one occasion.
+  Never pooled across markets (closed source-of-truth).
+- **Per customer**: empirical-Bayes shrinkage on log intervals, `w(k) = tau2 / (tau2 + sigma2/k)`; `tau2 = 0`
+  means customers do not differ and everyone gets the median. Quantity only when the line STATES it and a seeded
+  bootstrap CI of the ratio excludes 1 (proportional only when it contains the mean quantity; otherwise the
+  measured ratio). Trigger at the p25-equivalent point; past p75 a customer is LAPSING - reactivation's job.
+- **The backtest decides** (last 26 weeks held out): the model ships only if its MAE improvement CI is above 0
+  and its hit-rate is not lower; otherwise the baseline (product median for everyone) ships and says why. On the
+  bundled export: `tau2 = 0`, MAE 217.9 vs baseline 217.5 days, hit-rate 0.317 vs 0.318 -> **baseline**.
+- **Whose orders**: the workspace's own `smart_orders`; tenant zero's `data/matrixify` export ONLY through
+  `ownsBundledExport()`, never for a request carrying a person with no workspace, never on the non-tenant-zero
+  planner branch (`allowBundled:false`). No orders = `[DATA REQUIRED BEFORE LAUNCH: order history, this brand]`.
+  That export is SAMPLE data (every email on example.com - detected from the file) and ends 2025-03-30, so as of
+  today 0 customers are due and 3,570 have lapsed; the insight line says exactly that.
+- **Planner**: weekly slots per market x {`Replenishment due: second order` -> `second-order activation`,
+  `... repeat` -> `replenishment`}; audience = due customers passing the same engagement tiers and
+  `frequencyCheck` (no send history = unchecked, never "inside the cap"), never widened to a floor; evidence on
+  `entry.replenishment`; the same `enforceFrequencyCap` pass (now a named export). `predictions`/`contacts` on the
+  analysis are non-enumerable: no customer list on the wire.
+- Left as found, on purpose: `lifecycle-cohorts.COHORTS` (a new key changes the UK planner's default rotation);
+  the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
+  cap input until the omnichannel fatigue ledger lands.
+
 ## ⭐ The starter brands are read from their own RENDERED sites, or say why not (2026-10-04)
 The operator, with a screenshot of `/onboarding`'s starter-brand gallery: *"styles need to be correct
 for these too"*. 22 of 40 presets wore the grey placeholder, and several that HAD been read were wrong
