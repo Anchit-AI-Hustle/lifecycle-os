@@ -1,10 +1,24 @@
 {
+  "format": "preset-observation/2",
   "ok": false,
+  "palette_ok": false,
   "slug": "hm",
   "start": "https://www2.hm.com",
-  "landed": "https://www2.hm.com/",
-  "observed_at": "2026-09-30",
-  "status": 403,
-  "title": "Access Denied",
-  "note": "The page did not serve the brand site (status 403, title \"Access Denied\"). Nothing was filled in from it."
+  "landed": "https://www2.hm.com",
+  "observed_at": "2026-10-04",
+  "renderer": "timeout",
+  "reason": "The site could not be opened: timed out.",
+  "read_attempt": {
+    "renderer": "timeout",
+    "at": "2026-10-04",
+    "host": "www2.hm.com",
+    "reason": "The site could not be opened: timed out."
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "",
+    "browser": "",
+    "chromium": ""
+  },
+  "note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }
