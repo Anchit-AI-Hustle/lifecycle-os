@@ -9,7 +9,8 @@
     "sector": "Health & fitness media",
     "blurb": "The health vertical: fitness, diet and wellness content, plus seasonal event pushes such as marathon training and yoga-day campaigns.",
     "verified_at": "2026-08-10",
-    "source": "timesofindia.indiatimes.com/life-style/health-fitness (live page, TOI red #e21b22/#eb1b24)"
+    "source": "timesofindia.indiatimes.com/life-style/health-fitness (live page, TOI red #e21b22/#eb1b24)",
+    "logo_signal": "the logo element as rendered (div.nl_subscribe > div.logo_heading:nth-of-type(2) > div.nl_logo:nth-of-type(1) > a > img)"
   },
   "palette": {
     "primary": "#EB1B24",
@@ -127,6 +128,65 @@
       "source": "UN-designated fixed date (21 June), covered by the vertical each year"
     }
   ],
+  "brand_assets": [
+    {
+      "url": "https://static.toiimg.com/photo/123402429.cms",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "the logo element as rendered (div.nl_subscribe > div.logo_heading:nth-of-type(2) > div.nl_logo:nth-of-type(1) > a > img)"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-132455411,imgsize-30772,width-606,height-340,resizemode-75/132455411.jpg",
+      "role": "hero",
+      "alt": "10 ‘boring’ and low-effort habits to transform by 2027",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131909408,imgsize-49292,width-301,height-222,resizemode-75/131909408.jpg",
+      "role": "hero",
+      "alt": "5 signs of a healthy gut, an NHS doc explains",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131905221,imgsize-117748,width-301,height-222/131905221.jpg",
+      "role": "hero",
+      "alt": "Woman's appendix removed, but she only had food poisoning",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131904045,imgsize-215318,width-301,height-222/131904045.jpg",
+      "role": "hero",
+      "alt": "Krispy Kreme issues urgent recall of World Cup doughnuts",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131891867,imgsize-38680,width-301,height-222,resizemode-75/131891867.jpg",
+      "role": "hero",
+      "alt": "Taking creatine? 5 things you should know first",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131890667,imgsize-264402,width-301,height-222/131890667.jpg",
+      "role": "hero",
+      "alt": "British mother of three sheds 14st without exercise",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131886782,imgsize-190142,width-301,height-222/131886782.jpg",
+      "role": "hero",
+      "alt": "This pre-bed snack could be ruining your sleep",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://static.toiimg.com/photo/123402429.cms",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

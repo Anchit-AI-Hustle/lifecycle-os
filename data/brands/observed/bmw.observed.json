@@ -1,150 +1,24 @@
 {
-  "ok": true,
-  "palette_ok": true,
+  "format": "preset-observation/2",
+  "ok": false,
+  "palette_ok": false,
   "slug": "bmw",
   "start": "https://www.bmw.com",
-  "landed": "https://www.bmwusa.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Luxury SUVs, Sedans, Coupes, Convertibles, and Crossovers | BMW USA",
-  "source": "Read from https://www.bmwusa.com/ on 2026-09-30. Primary #000000 from meta msapplication-TileColor.",
-  "palette": {
-    "primary": "#000000",
-    "accent": "#1c69d4",
-    "ink": "#414141",
-    "surface": "#ffffff",
-    "surface_alt": "#f6f6f6",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "landed": "https://www.bmw.com",
+  "observed_at": "2026-10-04",
+  "renderer": "timeout",
+  "reason": "The site could not be opened: timed out.",
+  "read_attempt": {
+    "renderer": "timeout",
+    "at": "2026-10-04",
+    "host": "www.bmw.com",
+    "reason": "The site could not be opened: timed out."
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "light page surface; the page ground was not a light colour",
-      "source_url": "https://www.bmwusa.com/"
-    },
-    "ink": {
-      "value": "#414141",
-      "signal": "computed color of body",
-      "source_url": "https://www.bmwusa.com/"
-    },
-    "surface_alt": {
-      "value": "#f6f6f6",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://www.bmwusa.com/"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://www.bmwusa.com/"
-    },
-    "primary": {
-      "value": "#000000",
-      "signal": "meta msapplication-TileColor",
-      "source_url": "https://www.bmwusa.com/"
-    },
-    "accent": {
-      "value": "#1c69d4",
-      "signal": "computed background of cmp-button     ",
-      "source_url": "https://www.bmwusa.com/"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    }
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "",
+    "browser": "",
+    "chromium": ""
   },
-  "typography": {
-    "heading": {
-      "family": "bmwTypeNextWeb",
-      "stack": "'bmwTypeNextWeb', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
-    },
-    "body": {
-      "family": "bmwTypeNextWeb",
-      "stack": "'bmwTypeNextWeb', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
-  },
-  "logo_url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/images/logo-icons/BMW/BMW_White_Logo.svg.asset.1695740583851.svg",
-  "logo_signal": "img on the page whose address or alt says logo",
-  "assets": [
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/images/logo-icons/BMW/BMW_White_Logo.svg.asset.1695740583851.svg",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://www.bmwusa.com/",
-      "role": "share",
-      "alt": "",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/images/logo-icons/BMW/BMW_Grey_Logo.svg.asset.1695740583799.svg",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/brand-logo/bmw-i/BMW_i_100px_white.png.asset.1691600505452.png",
-      "role": "logo",
-      "alt": "BMW i",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/brand-logo/bmw-m/BMW_M_Grey-Colour_RGB_new.SVG.asset.1695372898767.SVG",
-      "role": "logo",
-      "alt": "BMW M",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://bmw.scene7.com/is/image/BMW/GLobal-Nav-photo?wid=1500&hei=823",
-      "role": "photograph",
-      "alt": "Shop Inventory",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://bmw.scene7.com/is/image/BMW/MyBMW_App?wid=2185&hei=956",
-      "role": "photograph",
-      "alt": "A man leans on the hood of his BMW as he uses his mobile phone.",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://bmw.scene7.com/is/image/BMW/BMW-SEPTEMBER2026-OFFERS-X5-xDrive40i:16to7?fmt=webp&wid=1504&hei=658",
-      "role": "photograph",
-      "alt": "The BMW X5 parked dramatically on an asphalt surface.",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    }
-  ]
+  "note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }

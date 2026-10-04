@@ -12,7 +12,13 @@
     "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.tesla.com.",
     "needs_extraction": true,
     "palette_source": "default",
-    "typography_source": "default"
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "blocked",
+      "at": "2026-10-04",
+      "host": "www.tesla.com",
+      "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    }
   },
   "palette": {
     "primary": "#2B2B2B",

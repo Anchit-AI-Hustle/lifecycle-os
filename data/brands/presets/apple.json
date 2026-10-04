@@ -9,8 +9,7 @@
     "sector": "Consumer technology",
     "blurb": "Minimal, product-led design system. Useful as a restraint benchmark: huge whitespace, one accent, no decoration.",
     "verified_at": "2026-08-10",
-    "source": "apple.com globalheader.css (#0071e3 accent, #1d1d1f ink, #f5f5f7 surface, SF Pro Text stack)",
-    "logo_signal": "img on the page whose address or alt says logo"
+    "source": "apple.com globalheader.css (#0071e3 accent, #1d1d1f ink, #f5f5f7 surface, SF Pro Text stack)"
   },
   "palette": {
     "primary": "#0071E3",
@@ -137,42 +136,62 @@
   ],
   "brand_assets": [
     {
-      "url": "https://www.apple.com/ac/structured-data/images/open_graph_logo.png?202609042047",
-      "role": "logo",
-      "alt": "iPhone 18 Pro, burgundy color (dark red), back exterior, Pro Fusion camera system at top, Apple logo in center, Side exterior, Side button, ",
-      "found_on": "https://www.apple.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
       "url": "https://www.apple.com/v/homepage/images/iphone-18-pro/a/hero_iphone_18_pro__fqe1motd0ymy_largetall.jpg",
       "role": "hero",
-      "alt": "iPhone 18 Pro, burgundy color (dark red), back exterior, Pro Fusion camera system at top, Apple logo in center, Side exterior, Side button, ",
+      "alt": "iPhone 18 Pro, burgundy color (dark red), back exterior, Pro Fusion camera system at top, Apple logo in center, Side ext",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://www.apple.com/v/homepage/images/iphone-duo/a/hero_iphone_duo_announce__fh4u8yzndpe2_largetall.jpg",
       "role": "hero",
       "alt": "iPhone Duo, held by two hands in landscape orientation, unfolded, interior display features Home Screen",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://www.apple.com/v/homepage/images/logos/apple-watch-series-12/a/hero_logo_apple_watch_series_12__eze8r897c5me_large.png",
-      "role": "logo",
+      "role": "photograph",
       "alt": "",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://www.apple.com/v/homepage/images/apple-watch-series-12/a/hero_apple_watch_series_12__n9rln7bzvwya_largetall.jpg",
-      "role": "hero",
-      "alt": "Two Apple Watch Series 12 devices, aluminum case, dark bronze color, olive Sport Band, one showing front of watch with Heart Rate app, one s",
+      "role": "photograph",
+      "alt": "Two Apple Watch Series 12 devices, aluminum case, dark bronze color, olive Sport Band, one showing front of watch with H",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/logos/apple-watch-ultra-4/a/promo_logo_apple_watch_ultra_4__bc6ish8cjaeq_large.png",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/apple-watch-ultra-4/a/promo_apple_watch_ultra_4__e4r3qertak2u_large.jpg",
+      "role": "photograph",
+      "alt": "Apple Watch Ultra 4, titanium case, natural color, right exterior, Digital Crown, raised side button, digital watch face",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/macbook-air-m5/a/promo_macbook_air_m5__e5xk2yysqiie_large.jpg",
+      "role": "photograph",
+      "alt": "Two open MacBook Air laptops in sky blue color forming arrow shape, emphasizing narrow profile",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/logos/ipad-air-m4/a/promo_logo_ipad_air__dqdj4ni03quu_large.png",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
     }
   ],
-  "logo_url": "https://www.apple.com/ac/structured-data/images/open_graph_logo.png?202609042047",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
