@@ -300,7 +300,9 @@ the real reader in Chromium, the real builder, the real gallery).
   separate job (the only one with write scopes) commits the data onto `claude/harvest-presets-<run
   id>` and opens its own PR; dispatched elsewhere it reads and says why it did not publish. The data
   commit carries `[skip ci]`, so no run starts for it and auto-merge (which fires on CI completing)
-  cannot land it: a human reviews, then pushes any commit to start CI. Gated by
+  cannot land it: a human reviews, then pushes any commit to start CI. GitHub matches the marker ANYWHERE in the
+  head commit message, so a human commit that quotes it skips CI too - this change's own first commit
+  did, and started no run at all. Gated by
   `tests/harvest-workflow.spec.js`, which runs the publish script in a real clone of a real local
   remote and asserts which refs moved (mutation-verified six ways).
 - **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
