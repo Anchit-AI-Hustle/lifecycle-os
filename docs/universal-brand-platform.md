@@ -188,6 +188,22 @@ comparison. **Repair re-measures the source** (the element, its text carrier, it
 composited ground) and corrects the manifest; it never nudges a value toward a target. What every
 re-measurement confirms is reported unmatched, with its value and the reason.
 
+**Measured in one frozen state, scored twice.** Before anything is measured, the site and our clone go
+through the same `render-stabilise.js`: the page clock and `Math.random` pinned by an init script,
+network idle and fonts awaited (bounded), every animation and transition zeroed, consent overlays HIDDEN
+(never accepted). Each compared element is shot twice ~500 ms apart on both sides; pixels that changed
+are live content and are masked. The report carries two scores with their limits: **STRUCTURAL** (the
+tokens above; at least 95% within tolerance) and **PERCEPTUAL** (pixelmatch with text boxes and live
+pixels masked; the worst region at most 3% different). Approval needs both, and the wizard shows both.
+A repair is **kept only if the composite strictly improves**; otherwise it is put back and listed under
+`reverted`.
+
+**Fonts: by reference, never copied.** The site's families and the URLs of their files are recorded and
+loaded by reference to measure the site and preview our landing page. No site font file is ever copied
+or re-hosted, and a generated email carries no `@font-face`: a family that is not openly licensed is
+shown as "<family> (brand font)" with the site's own fallback stack, and the email draws that fallback
+(listed exempt, with the reason, until the operator uploads licensed files).
+
 **Email is scored differently, on purpose**: component tokens only, against the site's PHONE values (a
 600px column is a phone), never pixels; a family counts only when a generic fallback follows it;
 Outlook's Word engine drops border-radius and that is said, not hidden.

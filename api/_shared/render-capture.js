@@ -802,4 +802,31 @@ function makeSpecimen(args) {
   return '#' + id + ' > *';
 }
 
-module.exports = { capturePage, remeasure, stateStyle, measureHooks, makeSpecimen };
+/**
+ * The boxes of an element's TEXT, relative to the element's own box (the
+ * coordinates of its element screenshot). The perceptual comparison masks
+ * them: glyph anti-aliasing differs between two renders of the same words,
+ * and the type itself is judged by the structural tokens.
+ */
+function textRects(sel) {
+  const el = document.querySelector(sel);
+  if (!el) return [];
+  const b = el.getBoundingClientRect();
+  const out = [];
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = walk.nextNode())) {
+    if (!String(n.nodeValue || '').trim()) continue;
+    const r = document.createRange();
+    r.selectNodeContents(n);
+    for (const q of r.getClientRects()) {
+      if (q.width < 1 || q.height < 1) continue;
+      out.push({ x: q.left - b.left, y: q.top - b.top, w: q.width, h: q.height });
+      if (out.length > 80) return out;
+    }
+  }
+  return out;
+}
+
+module.exports = {
+  textRects, capturePage, remeasure, stateStyle, measureHooks, makeSpecimen };
