@@ -574,14 +574,22 @@ test('a paused warmup blocks the send outright; a social caption is not judged f
   out = await gate({ warmup: { status: 'complete' }, audience_size: 10 });
   expect(checkOf(out, 'warmup'), 'a finished ramp is no longer a constraint').toBeUndefined();
 
-  const social = await preflight.run({
+  // Since 2026-10-04 the gate also lints the copy as the BRAND (compliance-
+  // lint.js), so a pass needs the brand record it is linted as; without one
+  // that check warns rather than passing, asserted below.
+  const SOCIAL = {
     provider: 'meta', channel: 'facebook_page', mode: 'publish',
     connection: { oauth_scopes: ['pages_manage_posts'], config: { publishing_enabled: true }, secret_fields: ['access_token'], status: 'active' },
     payload: { caption: 'Grail drop this Friday' }, mapping_missing: [],
-  });
+  };
+  const social = await preflight.run(Object.assign({ brand: { id: 'ws-gate', name: 'Gate Test Co', industry: 'Custom sneakers', voice: { banned: [] } }, market: 'US' }, SOCIAL));
   expect(checkOf(social, 'content_spam')).toMatchObject({ status: 'pass', detail: 'No spam signals found.' });
+  expect(checkOf(social, 'compliance')).toMatchObject({ status: 'pass' });
   expect(social.verdict).toBe('pass');
   expect(social.score).toBe(100);
+  const unbranded = await preflight.run(SOCIAL);
+  expect(checkOf(unbranded, 'compliance')).toMatchObject({ status: 'warn' });
+  expect(checkOf(unbranded, 'compliance').detail).toMatch(/This is not a pass/);
   // An email still has to carry one, and the analyser's default is unchanged.
   const email = deliver.analyzeContent({ subject: 'x', html: '<p>hello there</p>' });
   expect(email.has_unsubscribe).toBe(false);

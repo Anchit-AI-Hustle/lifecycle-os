@@ -39,11 +39,12 @@
  *   admit()     the caller gate (require-caller), the method and body checks,
  *               and the brand resolved for THIS request (brand-runtime), pinned
  *               on the request so scopedBrand() finds it deeper down.
- *   briefing()  the three blocks a generation prompt must carry: the brand
+ *   briefing()  the blocks a generation prompt must carry: the brand
  *               block (brand-runtime.brandBlock), the asset contract the
- *               validator will apply (asset-contracts.brief) and the evidence
+ *               validator will apply (asset-contracts.brief), the evidence
  *               block (creative-evidence.briefFor) - or its explicit no-evidence
- *               state, never an omitted section.
+ *               state, never an omitted section - and the compliance rules the
+ *               dispatch gate will lint the copy against (compliance-lint.brief).
  *   tokens()    a section palette derived from the brand's own record through
  *               sectionGround()/textOn(), so no ground can be a dark neutral
  *               and no text can sit under AA, whichever brand is active.
@@ -235,6 +236,10 @@ function briefing(ctx, contractId) {
     contracts.brief(contractId || 'email.mailer'),
     '',
     evidence.briefFor(entry),
+    '',
+    // The rules the dispatch gate lints this copy against, briefed from the
+    // same brand and market (compliance-lint.js), so writer and gate agree.
+    require('./compliance-lint.js').brief({ brand: c.brand, market: c.market }),
   ].join('\n');
 }
 
