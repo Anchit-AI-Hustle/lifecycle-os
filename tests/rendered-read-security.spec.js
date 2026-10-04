@@ -69,6 +69,77 @@ test('a page that tries every route to a private address reaches NONE of them', 
   expect(srv.hits.every((h) => /^\/(robots\.txt|bounce-private|shop|sw\.js|favicon\.ico)?$/.test(h))).toBe(true);
 });
 
+test('ONE byte budget across concurrent downloads: ten large chunked responses at once never exceed it, and the read is labelled partial', async () => {
+  // Review finding (2026-10-04): the cap was checked per route BEFORE a fetch
+  // and charged AFTER a full buffer, so concurrent routes all saw a low counter.
+  const http = require('http');
+  const CHUNK = 64 * 1024;
+  const PER_STREAM = 8 * 1024 * 1024;
+  const CAP = 4 * 1024 * 1024;
+  const streams = { started: 0, closedEarly: 0 };
+  const home = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Big</title></head><body>
+    <h1>A page that asks for far too much</h1><p>Ten downloads at once, each larger than the whole budget for the read.</p>
+    <a style="display:inline-block;background:#245;color:#fff;padding:10px 20px" href="/x">Go</a>
+    <img src="/big/img"><script>for (var i = 0; i < 10; i++) fetch('/big/' + i).then(function (r) { return r.arrayBuffer(); }).catch(function () {});</script></body></html>`;
+  const server = http.createServer((req, res) => {
+    if (req.url === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('User-agent: *\nAllow: /\n'); return; }
+    if (req.url === '/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(home); return; }
+    if (req.url.startsWith('/big/')) {
+      streams.started += 1;
+      // Chunked, NO Content-Length: nothing to refuse up front.
+      res.writeHead(200, { 'content-type': 'application/octet-stream' });
+      let sent = 0, done = false;
+      res.on('close', () => { if (!done) streams.closedEarly += 1; });
+      const pump = () => {
+        while (sent < PER_STREAM) {
+          sent += CHUNK;
+          if (!res.write(Buffer.alloc(CHUNK, 7))) { res.once('drain', pump); return; }
+        }
+        done = true; res.end();
+      };
+      pump();
+      return;
+    }
+    res.writeHead(404); res.end();
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  let out;
+  try {
+    out = await require('../api/_shared/brand-render.js').readSite(origin + '/', {
+      policy: { allowOrigins: new Set([origin]) }, deadlineMs: 110000, regression: false, limits: { maxBytesTotal: CAP },
+    });
+  } finally { await new Promise((r) => server.close(() => r())); }
+  expect(out.ok).toBe(true);
+  const n = out.manifest.network;
+  expect(streams.started).toBeGreaterThanOrEqual(5);
+  expect(n.bytes).toBeLessThanOrEqual(CAP);
+  expect(n.budget_hit).toBe('bytes');
+  expect(out.manifest.partial).toBe(true);
+  expect(out.manifest.notes.join(' ')).toMatch(/byte budget for one read \(4 MB\) was spent; \d+ download\(s\) in flight were stopped/);
+  expect(streams.closedEarly).toBeGreaterThanOrEqual(3);
+});
+
+test('robots.txt is read for EVERY document origin first: a start URL that redirects to another allowed host obeys THAT host\'s rules', async () => {
+  // Review finding (2026-10-04): an in-scope origin with no cached rules was allow-all.
+  const b = await sites.serve({
+    '/robots.txt': { status: 200, type: 'text/plain', body: 'User-agent: *\nDisallow: /\n' },
+    '/': { status: 200, type: 'text/html', body: '<!doctype html><title>B</title><h1>Never read</h1>' },
+  });
+  const a = await sites.serve({
+    '/robots.txt': { status: 200, type: 'text/plain', body: 'User-agent: *\nAllow: /\n' },
+    '/': { status: 302, type: 'text/plain', body: '', headers: { location: b.origin + '/' } },
+  });
+  let out;
+  try {
+    out = await require('../api/_shared/brand-render.js').readSite(a.origin + '/', { policy: { allowOrigins: new Set([a.origin, b.origin]) }, deadlineMs: 60000, regression: false });
+  } finally { await a.close(); await b.close(); }
+  expect(out).toMatchObject({ ok: false, renderer: 'blocked' });
+  expect(out.reason).toContain(`${new URL(b.origin).host} disallows this page in its robots.txt`);
+  expect(b.hits).toContain('/robots.txt');
+  expect(b.hits).not.toContain('/');
+});
+
 test('the dead proxy is the floor: a request that escapes interception reaches nothing', async () => {
   // A context with NO route installed - exactly what "escaping interception"
   // would mean - on the launcher's own browser. Loopback is NOT bypassed, so
