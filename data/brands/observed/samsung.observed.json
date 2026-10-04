@@ -5,7 +5,7 @@
   "start": "https://www.samsung.com",
   "landed": "https://www.samsung.com/us/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:23:03.277Z",
+  "read_at": "2026-10-04T17:55:43.161Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -29,37 +29,37 @@
       "h": 844
     }
   },
-  "partial": false,
+  "partial": true,
   "regression": {
     "ok": true,
     "done": false,
-    "score": 70,
-    "mismatch": 0.3,
+    "score": 55.7,
+    "mismatch": 0.4429,
     "surfaces": {
       "landing page": {
-        "score": 70,
-        "mismatch": 0.3,
+        "score": 59.1,
+        "mismatch": 0.4094,
         "done": false,
-        "tokens_off": 0,
+        "tokens_off": 10,
         "regions_off": 4
       },
       "mailer": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 76.7,
+        "mismatch": 0.2329,
+        "done": false,
+        "tokens_off": 17,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 70,
+        "mismatch": 0.3,
+        "done": false,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },
-    "iterations": 1,
-    "repairs": 0,
+    "iterations": 2,
+    "repairs": 4,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -112,16 +112,16 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$LazyLoad_Home_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/GalaxyBook6Pro-14_SCOM-150372_SCOM_SCOM_HPWebTile_560x560.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "amsung Vision AI",
+      "alt": "Galaxy Book6 Pro",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$1440_N_JPG$",
       "role": "photograph",
-      "alt": "Enabling better living",
+      "alt": "amsung Vision AI",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
