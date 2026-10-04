@@ -377,8 +377,10 @@ function resolve(brand) {
 function withOwnFaces(fonts, t) {
   let own = '';
   try { own = require('./brand-runtime.js').fontFaces(t) || ''; } catch (_) { own = ''; }
-  if (!own) return fonts;
-  return { faces: (fonts.faces || '') + own, googleHref: fonts.googleHref || '' };
+  // `own` is kept apart: the brand's OWN supplied files (licensed by the
+  // operator) may go where the site's measured files may not - into email.
+  if (!own) return Object.assign({}, fonts, { own: '' });
+  return { faces: (fonts.faces || '') + own, googleHref: fonts.googleHref || '', own };
 }
 
 /** Text that sits on `ground`: the site's own colour when it clears AA there, else derived. */
@@ -627,13 +629,15 @@ function emailTokens(r, pal) {
   const h1 = tm.h1 || tm.display || td.h1 || null;
   const body = tm.body || td.body || null;
   const derived = [];
-  // THE FONT LEGAL GATE: a generated email never carries a site's font
-  // binaries - no @font-face pointing at the brand's files, nothing copied.
-  // An openly licensed (Google) family is linked by reference; a brand font
-  // is named first in the stack, so a client that has it installed uses it,
-  // and every other client draws the declared fallback.
+  // THE FONT LEGAL GATE: a generated email never carries the font files the
+  // read found on the SITE - no @font-face pointing at them, nothing copied.
+  // An openly licensed (Google) family is linked by reference; the files the
+  // OPERATOR supplied (uploaded, or a URL they gave: typography[slot].src) are
+  // theirs to license and do go in; a brand font with neither is named first
+  // in the stack, so a client that has it installed uses it, and every other
+  // client draws the declared fallback.
   const brandFonts = ['heading', 'body'].map((s) => ds.fonts && ds.fonts[s]).filter((f) => f && f.family && !f.google && f.licence === 'brand font').map((f) => f.family);
-  const out = { head: r.head, body: r.body, faces: '', googleHref: r.fonts.googleHref, brand_fonts: brandFonts };
+  const out = { head: r.head, body: r.body, faces: r.fonts.own || '', googleHref: r.fonts.googleHref, brand_fonts: brandFonts };
   if (h1) out.h1 = { size: h1.size, weight: h1.weight, line_height: h1.line_height, letter_spacing: h1.letter_spacing, transform: h1.transform, color: h1.color };
   if (body) out.text = { size: body.size, line_height: body.line_height, color: body.color };
   if (b) {

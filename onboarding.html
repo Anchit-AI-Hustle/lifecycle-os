@@ -1645,7 +1645,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      scorer reads; the server bounds it again. */
   function scoringDraft() {
     var t = brand.typography || {};
-    var f = function (x) { return x && x.family ? { family: x.family, stack: x.stack || '', google: x.google === true } : null; };
+    var f = function (x) { return x && x.family ? { family: x.family, stack: x.stack || '', google: x.google === true, src: x.src || '', format: x.format || '' } : null; };
     return {
       name: brand.name || '', tagline: brand.tagline || '', website: brand.website || '', logo_url: brand.logo_url || '', favicon_url: brand.favicon_url || '',
       palette: brand.palette || {}, typography: { heading: f(t.heading), body: f(t.body) },

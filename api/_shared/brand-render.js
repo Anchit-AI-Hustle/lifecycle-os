@@ -908,7 +908,11 @@ function scoringBrand(src) {
   const typography = {};
   for (const k of ['heading', 'body']) {
     const f = src.typography && src.typography[k];
-    if (f && typeof f === 'object' && s(f.family, 80)) typography[k] = { family: s(f.family, 80), stack: s(f.stack, 240), google: f.google === true };
+    if (f && typeof f === 'object' && s(f.family, 80)) {
+      typography[k] = { family: s(f.family, 80), stack: s(f.stack, 240), google: f.google === true };
+      // A font FILE the operator supplied (https only), so the score sees it.
+      if (/^https:\/\/[^\s"'()<>\\]+$/i.test(s(f.src, 600))) Object.assign(typography[k], { src: s(f.src, 600), format: s(f.format, 12) });
+    }
   }
   const raw = (src.field_origin && typeof src.field_origin === 'object' && src.field_origin)
     || (src.brand_data && typeof src.brand_data === 'object' && src.brand_data.field_origin && typeof src.brand_data.field_origin === 'object' && src.brand_data.field_origin) || {};
