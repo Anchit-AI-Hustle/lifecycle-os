@@ -39,7 +39,11 @@
 # the data PR waits, unmerged, for a human: auto-merge.yml fires only when CI
 # completes, and CI starts on the next commit a person pushes (an empty one is
 # enough). A human's commit does not carry the marker, so real CI is never
-# skipped. `[skip harvest]` on a PR head still skips the read.
+# skipped - unless its message QUOTES it: GitHub matches the marker anywhere in
+# the head commit's message, body included. This change's own first commit
+# described the marker in its body and started no CI, no SiS guard and no
+# read. Write "the skip-ci marker" in prose. `[skip harvest]` on a PR head
+# still skips the read.
 #
 # LEAST PRIVILEGE. The read job is read-only. The publish job alone holds
 # `contents: write` (its own branch), `pull-requests: write` (its own PR) and
@@ -190,8 +194,23 @@ jobs:
       - name: Fetch the data the read job regenerated
         env:
           GH_TOKEN: ${{ github.token }}
-        # Both paths share data/brands, so the artifact's root is that folder.
-        run: gh run download "${{ github.run_id }}" --repo "${{ github.repository }}" --name "preset-data-${{ github.run_id }}" --dir data/brands
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          DL: ${{ runner.temp }}/preset-data
+        # Both uploaded paths share data/brands, so the artifact's root is
+        # that folder: observed/ and presets/. `gh run download` refuses to
+        # overwrite a file that exists (found by the first real dispatch:
+        # "open .../adidas.observed.json: file exists"), so it downloads
+        # beside the tree, and the two folders are then replaced WHOLE - the
+        # tree is exactly what the read job produced.
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" --repo "$REPO" --name "preset-data-$RUN_ID" --dir "$DL"
+          test -f "$DL/presets/index.json" || { echo "The artifact holds no presets/index.json." >&2; exit 1; }
+          test -d "$DL/observed" || { echo "The artifact holds no observed/ folder." >&2; exit 1; }
+          rm -rf data/brands/observed data/brands/presets
+          cp -R "$DL/observed" data/brands/observed
+          cp -R "$DL/presets" data/brands/presets
 
       - name: Publish on a branch of its own
         env:

@@ -4,6 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A deterministic compliance gate runs before anything is published (2026-10-04)
+`api/_shared/compliance-lint.js`, gated by `tests/compliance-gate.spec.js` (23 tests, executed, 25
+mutations each caught). Rule PACKS keyed by jurisdiction x sector, selected from the ACTIVE brand's
+own record: sector from `compliance.sectors` (or `brand_data.compliance.sectors`) else the record's
+`industry` (supplement / food / health / beauty); jurisdiction from the asset's MARKET (US, UK; a
+GLOBAL or unstated market gets every shipped pack). Packs: `generic` (the brand's `voice.banned`,
+objective superlatives, guaranteed outcomes, unbacked deadline/stock lines, clinical claims and
+claim-shaped statistics not in the approved list), `us.ftc` (16 CFR 255.5 endorsement disclosure),
+`us.fda-ftc.health` (disease claims 21 CFR 101.93(g) / 21 U.S.C. 321(g)(1)(B); the 101.93(c)
+disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Compliance Guidance; 16 CFR
+255.2(b)), `uk.cap` (CAP 2.1/2.3), `uk.cap15` (15.1.1 + the GB NHC Register, 15.6.2, 15.6.6, Reg
+1924/2006 Art 10(3)), `uk.cap12` (12.1, 12.2, 12.11). Every rule cites its source + URL in `SOURCES`.
+- **Wired in three places, no parallel gate**: `checkAssetContracts(campaign, entry)` (findings join
+  `contract_check`, summary at `contract_check.compliance`, rendered by `smart-brain.html`
+  `complianceHTML`); `preflight-core` check `compliance` (BLOCK), and `dispatch-core.enqueue` refuses a
+  compliance override with no reason (`override_reason_required`); the copy brief (`copyPrompt`,
+  `pipeline-core.briefing`) is built from the SAME context, so writer and checker agree.
+- **Approved claims carry their citation**: `claims` strings are approved but uncited (fine for a
+  commercial claim, never for a clinical one); `approved_claims: [{text, citation:{source,url},
+  register?, regions?}]` is the cited library. Match is word for word; a claim scoped to US is not
+  approved in the UK. Missing: `[DATA REQUIRED BEFORE LAUNCH: approved claim + citation, <claim>, <brand>]`.
+- **The brand, approved claims and offer come from the SERVER**: brain.js passes `req.__brand` and
+  strips `approved_claims`/`offer` from the body, or a request could pick its own rule pack.
+- **Never rewrites copy**; the disclaimer is OFFERED (`finding.offer`). Unknown sector, a regulated
+  brand in a market with no pack (IN), copy that is not English, no brand at all: WARN, never pass.
+- **Found by running it**: JS `\b` is ASCII, so "best" matched inside "bestätigt" (Unicode boundaries
+  now); a phrase matched across two table cells ("insomnia" + "Cures"); the disclaimer's own "treat,
+  cure, or prevent any disease" read as a disease claim (masked); "Not just a tea: it cures anxiety"
+  read as negated (negation is the clause's last three words); news-style "fell 2%" / "India's largest
+  bank" would have blocked a publisher (statistics are claim-SHAPED only; possessive superlatives WARN).
+- Known limits, said: English lexicon only; phrase not meaning; no green-claims or Indian (ASCI) pack;
+  a testimonial block with the author on its own line (no dash) is not read as an endorsement.
+
 ## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
 `api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
 `lib/smart-brain/services.js` + `cohort-engine.triggerEligibility()`, gated by `tests/replenishment-model.spec.js`
@@ -310,9 +343,13 @@ the real reader in Chromium, the real builder, the real gallery).
   separate job (the only one with write scopes) commits the data onto `claude/harvest-presets-<run
   id>` and opens its own PR; dispatched elsewhere it reads and says why it did not publish. The data
   commit carries `[skip ci]`, so no run starts for it and auto-merge (which fires on CI completing)
-  cannot land it: a human reviews, then pushes any commit to start CI. Gated by
+  cannot land it: a human reviews, then pushes any commit to start CI. GitHub matches the marker ANYWHERE in the
+  head commit message, so a human commit that quotes it skips CI too - this change's own first commit
+  did, and started no run at all. Gated by
   `tests/harvest-workflow.spec.js`, which runs the publish script in a real clone of a real local
-  remote and asserts which refs moved (mutation-verified six ways).
+  remote and asserts which refs moved (mutation-verified seven ways). The first real dispatch found
+  that `gh run download` refuses to overwrite a file that exists, so the read job's data is downloaded
+  beside the tree and replaces observed/ and presets/ whole; the spec's fake gh refuses the same way.
 - **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
   unavailable` + the reason + `read_attempt`; no palette, type or logo. The preset keeps the neutral
   default and the card says one sentence (`<host> blocked an automated read on <date>.`). No stealth,

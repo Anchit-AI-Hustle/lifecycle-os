@@ -590,6 +590,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     this.disabled = false;
   });
 
+  // The compliance check carries every finding: the rule, the words it
+  // matched, the regulation it enforces and the fix. Shown in full, because an
+  // override is a decision about exactly these lines.
+  function findingsList(list) {
+    if (!Array.isArray(list) || !list.length) return '';
+    return '<ul class="muted" style="margin:6px 0 0;padding-left:18px">' + list.map(function (f) {
+      var cites = (f.citation || []).map(function (s) { return esc(s.cite); }).join('; ');
+      return '<li data-rule="' + esc(f.id) + '"><strong>' + esc(f.severity) + '</strong> ' + esc(f.title)
+        + (f.matched ? ' &middot; &ldquo;' + esc(f.matched) + '&rdquo;' : '')
+        + (f.field ? ' <em>(' + esc(f.field) + ')</em>' : '')
+        + '<div>' + esc(f.fix || '') + '</div>'
+        + (f.offer ? '<div>Required text: <code>' + esc(f.offer) + '</code></div>' : '')
+        + (cites ? '<div>Source: ' + cites + '</div>' : '')
+        + '</li>';
+    }).join('') + '</ul>';
+  }
+
   function showPreflight(pf) {
     var chip = document.getElementById('pf-chip');
     chip.className = 'chip ' + (pf.verdict === 'pass' ? 'on' : pf.verdict === 'warn' ? 'warn' : 'bad');
@@ -605,6 +622,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return '<div class="fixrow"><div><span class="dot ' + d + '" style="display:inline-block;margin-right:7px"></span>'
         + '<strong>' + esc(c.label) + '</strong><div class="muted">' + esc(c.detail) + '</div>'
         + (c.remediation ? '<div class="muted"><em>Fix:</em> ' + esc(c.remediation) + '</div>' : '')
+        + findingsList(c.findings)
         + '</div></div>';
     }).join('');
 

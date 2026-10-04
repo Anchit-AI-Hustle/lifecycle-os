@@ -85,10 +85,30 @@ test('a pull request runs only the read job, with a read-only token; publishing 
 
 /* ═══ executed: the publish script against a real remote ══════════════════ */
 
+// `gh run download` is modelled with the one behaviour that matters and that
+// the first real dispatch hit: it REFUSES to overwrite a file that exists
+// ("error extracting zip archive: ... file exists"), so a download straight
+// into the checked-out tree fails.
 const FAKE_GH = `#!/usr/bin/env node
 const fs = require('fs');
+const path = require('path');
 const args = process.argv.slice(2);
-if (args[0] !== 'api') { process.stderr.write('fake gh: only "gh api" is modelled\\n'); process.exit(2); }
+if (args[0] === 'run' && args[1] === 'download') {
+  const opt = (n) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : ''; };
+  fs.appendFileSync(process.env.FAKE_GH_LOG, JSON.stringify({ key: 'RUN DOWNLOAD ' + args[2], fields: ['repo=' + opt('--repo'), 'name=' + opt('--name')] }) + '\\n');
+  const src = process.env.FAKE_ARTIFACT_DIR;
+  const dest = opt('--dir') || '.';
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+  for (const f of walk(src)) {
+    const rel = path.relative(src, f);
+    const to = path.join(dest, rel);
+    if (fs.existsSync(to)) { process.stderr.write('error downloading ' + opt('--name') + ': error extracting zip archive: error extracting "' + rel + '": open ' + path.resolve(to) + ': file exists\\n'); process.exit(1); }
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.copyFileSync(f, to);
+  }
+  process.exit(0);
+}
+if (args[0] !== 'api') { process.stderr.write('fake gh: only "gh api" and "gh run download" are modelled\\n'); process.exit(2); }
 let method = 'GET', endpoint = null; const fields = [];
 for (let i = 1; i < args.length; i++) {
   const a = args[i];
@@ -166,6 +186,45 @@ function publish(w, { event = 'workflow_dispatch', ref = 'main', base = 'main' }
   }
   return spawnSync('bash', ['-e', '-c', step.run], { cwd: w.work, env, encoding: 'utf8' });
 }
+
+/** Run the fetch step's own script: the read job's artifact into the tree. */
+function fetchStep(w, artifact) {
+  const steps = wf.jobs.publish.steps.filter((s) => typeof s.run === 'string' && /gh run download/.test(s.run));
+  expect(steps, 'exactly one step downloads the data').toHaveLength(1);
+  const step = steps[0];
+  const supplied = { GH_TOKEN: 'fake-token', REPO, RUN_ID, DL: path.join(w.dir, 'runner-temp', 'preset-data') };
+  const env = { ...process.env, PATH: `${w.bin}:${process.env.PATH}`, FAKE_GH_LOG: w.ghLog, FAKE_ARTIFACT_DIR: artifact };
+  for (const k of Object.keys(step.env || {})) { if (k in supplied) env[k] = supplied[k]; else delete env[k]; }
+  return spawnSync('bash', ['-e', '-c', step.run], { cwd: w.work, env, encoding: 'utf8' });
+}
+
+/** The artifact the read job uploads: observed/ and presets/ under one root. */
+function artifactDir(w) {
+  const a = path.join(w.dir, 'artifact');
+  fs.mkdirSync(path.join(a, 'observed'), { recursive: true });
+  fs.mkdirSync(path.join(a, 'presets'), { recursive: true });
+  fs.writeFileSync(path.join(a, 'observed', 'airtel.observed.json'), '{"renderer":"rendered","palette":{"primary":"#d40000"}}\n');
+  fs.writeFileSync(path.join(a, 'observed', 'nike.observed.json'), '{"renderer":"blocked"}\n');
+  fs.writeFileSync(path.join(a, 'presets', 'index.json'), '{"presets":[{"slug":"airtel"},{"slug":"nike"}]}\n');
+  return a;
+}
+
+test('the read job\'s data replaces the tree\'s, even though every file in it already exists, and is what gets published', () => {
+  const w = world({ change: false });
+  const artifact = artifactDir(w);
+  const r = fetchStep(w, artifact);
+  expect(r.status, r.stderr).toBe(0);
+  for (const rel of ['observed/airtel.observed.json', 'observed/nike.observed.json', 'presets/index.json']) {
+    expect(fs.readFileSync(path.join(w.work, 'data', 'brands', rel), 'utf8'), rel).toBe(fs.readFileSync(path.join(artifact, rel), 'utf8'));
+  }
+  expect(ghCalls(w.ghLog)[0]).toEqual({ key: `RUN DOWNLOAD ${RUN_ID}`, fields: [`repo=${REPO}`, `name=preset-data-${RUN_ID}`] });
+  // And the publish step then commits exactly that data.
+  const p = publish(w);
+  expect(p.status, p.stderr).toBe(0);
+  const branch = `claude/harvest-presets-${RUN_ID}`;
+  expect(git(w.remote, 'diff', '--name-only', `${branch}~1`, branch).split('\n').sort())
+    .toEqual(['data/brands/observed/airtel.observed.json', 'data/brands/observed/nike.observed.json', 'data/brands/presets/index.json']);
+});
 
 test('a dispatch on the default branch publishes on claude/harvest-presets-<run id>, with [skip ci], data only, and opens its own PR', () => {
   const w = world();
