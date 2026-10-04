@@ -119,6 +119,7 @@ function dsCss(spec) {
       if (t.cta.background) parts.push(`background:${t.cta.background}`);
       parts.push(`color:${tx.value}`);
       if (t.cta.radius != null) parts.push(`border-radius:${px(t.cta.radius)}`);
+      if (t.cta.stack) parts.push(`font-family:${t.cta.stack}`);
       if (t.cta.weight) parts.push(`font-weight:${t.cta.weight}`);
       if (t.cta.transform) parts.push(`text-transform:${t.cta.transform}`);
       if (t.cta.letter_spacing != null) parts.push(`letter-spacing:${px(t.cta.letter_spacing)}`);

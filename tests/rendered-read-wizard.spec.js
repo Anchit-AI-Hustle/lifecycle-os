@@ -86,6 +86,8 @@ function serverWorld() {
   rn.transport = async (url) => {
     const u = new URL(url);
     net.browser.push(url);
+    // The logo the operator typed is on their own CDN; the scored landing page shows it.
+    if (u.hostname === 'cdn.mybrand.example') return { status: 200, headers: { 'content-type': 'image/png' }, body: sites.PNG_1x1 };
     if (u.origin !== SITE) { net.escaped.push(url); return { error: 'not in the test world' }; }
     const r = ROUTES[u.pathname];
     if (!r) return { status: 404, headers: { 'content-type': 'text/plain' }, body: Buffer.from('nf') };
@@ -248,6 +250,10 @@ for (const session of ['none', 'device']) {
       const sent = log.extract[0];
       expect(sent.code, JSON.stringify(sent.body).slice(0, 400)).toBe(200);
       expect(sent.body.read).toMatchObject({ method: 'rendered', renderer: 'chromium' });
+      // The brand as it stands travels with the read, with who set each field,
+      // and the score is of the brand AS IT WILL BE APPLIED: the typed logo kept.
+      expect(sent.sent.brand).toMatchObject({ logo_url: TYPED_LOGO, field_origin: { logo_url: 'user' } });
+      expect(sent.body.rendered.regression.applied_as.kept.map((k) => k.field)).toContain('logo_url');
       if (session === 'device') {
         expect(sent.headers['x-lifecycle-token'] || String(sent.headers.authorization || '').replace(/^Bearer /, '')).toBe(DEVICE_TOKEN);
         expect(sent.body.signed_out).toBeUndefined();

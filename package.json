@@ -4,7 +4,7 @@
   "private": true,
   "description": "Lifecycle OS — Data Analysis + 30-day Marketing Calendar + Mailer Creator. Forked from marketing_mailers__html_architect; adds retention dashboard + calendar generator on top of the existing 6-LLM mailer pipeline.",
   "engines": {
-    "node": ">=20.x"
+    "node": "24.x"
   },
   "scripts": {
     "build": "node scripts/build-brand-presets.js && node scripts/brand-sync.js && node scripts/build-catalog.js && node scripts/build-website-designs.js && node scripts/build-research-page.js",

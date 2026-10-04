@@ -192,16 +192,33 @@ re-measurement confirms is reported unmatched, with its value and the reason.
 600px column is a phone), never pixels; a family counts only when a generic fallback follows it;
 Outlook's Word engine drops border-radius and that is said, not hidden.
 
+**Fonts are compared as DRAWN, not as declared.** For every surface the regression asks the engine which
+face it actually drew each role in (CDP `CSS.getPlatformFontsForNode`) and compares that with the face
+the site drew. A surface that names a family and never loads it draws its fallback and fails; every
+surface LOADS what it names (the ad imports the Google stylesheet it names). All four mailer styles
+(editorial, visual, pure, founder) read the design system and are rendered and scored.
+
+**Scored as it will be applied.** The regression renders the brand AS THE READ WILL BE APPLIED TO IT:
+on the server path the workspace as it stands, otherwise the draft the wizard carries with
+`field_origin` (bounded like a carried brand). A person's own value is kept in the score as in the
+wizard, and a difference it explains is said (`you kept logo_url ...`) rather than "repaired";
+`regression.applied_as` lists what was kept and applied.
+
 **Applied completely, reversibly.** After a rendered read the wizard applies the whole patch - colours,
 fonts and scale, radii, logo, favicon, imagery, the design system - except a field a person set
-(`brand_data.field_origin`: `user` > `document` > `site-render` > `site-parse` > `preset`); it lists
+(`brand_data.field_origin`: `user` > `document` > `site-render` > `site-parse` > `preset` > `default`,
+the wizard's own placeholders). A non-empty value with NO recorded origin - every brand saved before
+origins existed - is the person's: kept, and offered beside the site's value with "Use your site's"; it lists
 what was kept, shows the hard-rule decisions (dark sections with their exact value; text DERIVED for
 AA with both ratios), the side-by-side screenshots and the score, and reverts in one click. It works in
 every state the wizard supports, because it rides the same save paths.
 
 **Security.** The browser has no network of its own (see `render-net.js`): GET/HEAD only, no
 WebSockets/EventSource/beacons/media, documents only on the brand's own hosts and allowed by robots.txt,
-service workers blocked, downloads off, no permissions, a fresh browser per read. On the open path
+service workers blocked, downloads off, no permissions, a fresh browser per read. One byte budget per
+read is taken chunk by chunk (every in-flight download aborted when it is spent), every redirect hop is a
+connection charged to the request budget, and robots.txt is read for every document origin before its
+first document. On the open path
 (no account the server can check) the browser read is rate-limited per address (4 / 10 min) and per
 instance (24 / 10 min), refusals said in a sentence, and no model is called. It is free (`brand.extract`
 costs 0: it is setup). `BRAND_RENDER=off` turns the browser read off for a deployment.
