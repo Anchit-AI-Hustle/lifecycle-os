@@ -234,6 +234,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.adidas.com/us",
+      "kind": "page",
+      "what": "adidas US store front"
+    },
+    {
+      "url": "https://www.adidas-group.com/en/",
+      "kind": "page",
+      "what": "adidas Group corporate site (linked from adidas.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Adidas]",

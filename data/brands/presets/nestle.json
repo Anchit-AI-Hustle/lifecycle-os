@@ -201,6 +201,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.nestle.com/media",
+      "kind": "page",
+      "what": "Nestle media page"
+    },
+    {
+      "url": "https://www.nestle.com/about",
+      "kind": "page",
+      "what": "Nestle about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Nestle]",

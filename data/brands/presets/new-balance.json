@@ -234,6 +234,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://jobs.newbalance.com/global/en",
+      "kind": "page",
+      "what": "New Balance careers site"
+    },
+    {
+      "url": "https://www.newbalance.com/about-us.html",
+      "kind": "page",
+      "what": "New Balance about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, New Balance]",

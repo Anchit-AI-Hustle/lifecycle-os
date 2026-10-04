@@ -202,6 +202,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html",
+      "kind": "page",
+      "what": "McDonald's media assets: logos"
+    },
+    {
+      "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
+      "kind": "page",
+      "what": "McDonald's corporate site"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, McDonald's]",

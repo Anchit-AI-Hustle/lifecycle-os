@@ -114,6 +114,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.bmw.com/en/index.html",
+      "kind": "page",
+      "what": "BMW.com (English)"
+    },
+    {
+      "url": "https://www.bmwgroup.com/en.html",
+      "kind": "page",
+      "what": "BMW Group corporate site (linked from bmw.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, BMW]",

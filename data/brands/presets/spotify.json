@@ -105,6 +105,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://developer.spotify.com/documentation/design",
+      "kind": "page",
+      "what": "Spotify design and branding guidelines"
+    },
+    {
+      "url": "https://newsroom.spotify.com/",
+      "kind": "page",
+      "what": "Spotify newsroom"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Spotify]",

@@ -222,7 +222,8 @@
         "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > h1.sb-heading.mb4",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.starbucks.com/",
@@ -230,7 +231,8 @@
         "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > div.sm.rich-text_text__27o41",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
@@ -425,6 +427,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Starbucks]",

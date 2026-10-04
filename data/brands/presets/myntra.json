@@ -290,6 +290,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://jobs.myntra.com/home",
+      "kind": "page",
+      "what": "Myntra careers site"
+    },
+    {
+      "url": "https://www.myntra.com/shop/men",
+      "kind": "page",
+      "what": "Myntra men's store"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Myntra]",

@@ -289,6 +289,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.loreal.com/en/press-release/",
+      "kind": "page",
+      "what": "L'Oreal Groupe newsroom"
+    },
+    {
+      "url": "https://www.loreal.com/en/group/",
+      "kind": "page",
+      "what": "L'Oreal Groupe about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, L'Oreal]",
