@@ -217,18 +217,24 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   together and read by both sides; a filled field with no recorded origin is the person's on every
   path; an automatic source never demotes a document value, the person's own pick does.
 - **Precedence is decided where the value is WRITTEN (Codex #1 on #127, migration
-  `20261004160000_brand_context_apply_by_origin.sql`).** The save PATCHed every carried field and only
+  `20261004160000_brand_context_apply_by_origin.sql`, then `20261004170000_brand_workspace_save.sql`).** The save PATCHed every carried field and only
   then asked whose each was: a stale tab applying a brand book wrote the document's tagline over the one
-  another tab had just TYPED, and the record then said a person typed it. Now `saveExisting()` claims the
-  typed fields FIRST, PATCHes them with the ROW'S OWN value for every other field (conditional on
-  `updated_at`, re-read and retried on a concurrent write, 409 with a sentence after four), and sends
-  every document / site / template field through `brand_context_apply()`, which takes each value's
-  ORIGIN (default `auto`, so the context pack and Suggest are unchanged), refuses any field whose owner
-  outranks it, replaces an equal rank, and runs under a row lock on the workspace. `voice.banned` opens
-  only to a document or a template a person chose, never to a site read. Executed through the SHIPPED
-  `saveWorkspace` over PostgREST modelled on PGlite with the trigger installed: the stale tab, a typed
-  save landing between the stale tab's read and write, and an apply landing between a typed save's
-  claim and its write - each failed before (the document's tagline won), mutation-verified.
+  another tab had just TYPED, and the record then said a person typed it. A first fix split the save into
+  claim / PATCH / apply, and review of #143 found what splitting cost: a claim committed before a write
+  that then FAILED; the wizard's placeholders (origin `default`) still riding the PATCH over another tab's
+  document value; the design rules judging the INCOMING palette, not the one that would be stored. Now
+  it is one decision and one statement: `saveExisting()` reads the row and who owns each field, builds
+  the EFFECTIVE row (typed values; another source's value only where it ranks at least as high as the
+  owner; the row's own value everywhere else, placeholders included), runs `buildRow()`'s design rules on
+  THAT, and `brand_workspace_save()` writes it, claims the typed fields and records each applied origin
+  in ONE transaction under the row lock - answering `stale` (decide again, 409 after four) if the row
+  or any owner the decision rested on moved. Owner only, as the table's update policy. The automatic
+  door `brand_context_apply()` also takes each value's ORIGIN (default `auto`, so the context pack and
+  Suggest are unchanged) and runs under the lock; `voice.banned` opens only to a document or a template.
+  Executed through the SHIPPED `saveWorkspace` over PostgREST modelled on PGlite with the trigger
+  installed: the stale tab, three interleavings (a typed save, a typed colour against a placeholder, an
+  owner recorded without a row change), an apply landing mid-save, a refused save claiming nothing, and
+  the rules on the stored palette - each failed before, mutation-verified.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
