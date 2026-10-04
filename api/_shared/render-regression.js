@@ -180,14 +180,30 @@ function sampleFrom(manifest) {
 }
 
 /** The brand the renderers see: the patch applied over the caller's brand. */
-function brandFor(manifest, base) {
+function brandFor(manifest, base) { return brandAsApplied(manifest, base).brand; }
+/**
+ * The brand AS THE READ WILL BE APPLIED TO IT: the caller's record (or none)
+ * with the read applied under the same ownership rule the wizard uses, and
+ * the decision returned so the report can say which fields were kept.
+ */
+function brandAsApplied(manifest, base) {
   const ds = require('./design-system.js');
   const host = (() => { try { return new URL(manifest.url).hostname; } catch (_) { return ''; } })();
-  const b = Object.assign({ id: 'site-read-preview', name: host || 'Brand', website: manifest.url, palette: {}, typography: {}, voice: {}, regions: [], brand_data: {} }, base || {});
-  if (!b.id) b.id = 'site-read-preview';
-  const { brand } = ds.applyToBrand(b, ds.applyFields(manifest), {});
+  const src = base && typeof base === 'object' ? JSON.parse(JSON.stringify(base)) : {};
+  // An empty name or website in the record is not a value: the preview's own stands in.
+  for (const k of ['name', 'website']) if (!src[k]) delete src[k];
+  const b = Object.assign({ id: 'site-read-preview', name: host || 'Brand', website: manifest.url, palette: {}, typography: {}, voice: {}, regions: [], brand_data: {} }, src);
+  b.id = 'site-read-preview';
+  const { brand, applied, kept } = ds.applyToBrand(b, ds.applyFields(manifest), {});
   if (!(brand.regions || []).length) brand.regions = [{ code: 'HOME', currency: '', symbol: '', store_url: manifest.url, home: true }];
-  return brand;
+  return { brand, applied, kept };
+}
+/** The kept field a mismatched row is explained by, if any. */
+function keptFieldFor(row, keptSet) {
+  let f = '';
+  if (/logo|wordmark/.test(row.token) || row.component === 'header' && /logo/.test(row.token)) f = 'logo_url';
+  else if (row.kind === 'family' || row.kind === 'face') f = /heading|headline|hero|display/.test(row.component) ? 'typography.heading' : 'typography.body';
+  return f && keptSet.has(f) ? f : '';
 }
 
 /** Render our three surfaces for the brand. */
@@ -433,6 +449,9 @@ async function repair(rows, manifest, live, tried) {
   const capture = require('./render-capture.js');
   const repairs = [], unmatched = [];
   for (const row of rows.filter((r) => r.status === 'mismatch')) {
+    // A difference a person's own kept value explains is not re-measured:
+    // the source is not wrong, the brand is applied as its owner set it.
+    if (row.kept_field) { unmatched.push({ row, reason: row.reason }); continue; }
     const slot = manifestSlot(row);
     const vpName = row.viewport === 'mobile' || /phone/.test(row.viewport) ? 'mobile' : 'desktop';
     const page = vpName === 'mobile' ? live.mobilePage : live.desktopPage;
@@ -543,7 +562,9 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
   let last = null;
   for (let iter = 1; iter <= MAX_ITER; iter++) {
     if (Date.now() > deadline - 3000) break;
-    const b = brandFor(m, brand);
+    const asApplied = brandAsApplied(m, brand);
+    const b = asApplied.brand;
+    const keptSet = new Map(asApplied.kept.map((k) => [k.field, k.origin]));
     const r = ds.resolve(b);
     const lpDecisions = ds.lpCss(r, { surface: b.palette.surface, ink: b.palette.ink, primary: b.palette.primary });
     const ours = renderOurs(b, sample);
@@ -561,7 +582,12 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
       .concat(lpPairs(truth.desktop, lpD.hooks, 'desktop'))
       .concat(truth.mobile ? lpPairs(truth.mobile, lpM.hooks, 'mobile') : [])
       .concat(mailRows)
-      .concat(adPairs(truth.mobile || truth.desktop, ad.hooks)), { swapped: lpDecisions.swapped });
+      .concat(adPairs(truth.mobile || truth.desktop, ad.hooks)), { swapped: lpDecisions.swapped })
+      .map((x) => {
+        if (x.status !== 'mismatch') return x;
+        const f = keptFieldFor(x, keptSet);
+        return f ? Object.assign(x, { kept_field: f, reason: `you kept ${f} (${keptSet.get(f) === 'unrecorded' ? 'saved before this read' : keptSet.get(f)}); this is your brand as the read will be applied to it` }) : x;
+      });
     // Pixels: the primary button and the display heading, both viewports.
     const regions = [];
     const shots = (live && live.shots) || {};
@@ -583,7 +609,7 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
     const surfaces = {};
     for (const s of ['landing page', 'mailer', 'ad creative']) surfaces[s] = scoreOf(rows.filter((x) => x.surface === s), s === 'landing page' ? regions : []);
     const overall = scoreOf(rows, regions);
-    last = { rows, regions, surfaces, overall, lpDecisions, ours, pages: { lpD, lpM, ml, ad } };
+    last = { rows, regions, surfaces, overall, lpDecisions, ours, pages: { lpD, lpM, ml, ad }, asApplied };
     iterations.push({ iteration: iter, mismatch: overall.mismatch, score: overall.score, tokens_off: overall.tokens_off, regions_off: overall.regions_off });
     const repairable = rows.filter((x) => x.status === 'mismatch');
     if (overall.done && !repairable.length) break;
@@ -609,13 +635,19 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
     mismatch: last.overall.mismatch,
     surfaces: last.surfaces,
     components: summariseComponents(last.rows, last.regions),
-    tokens: last.rows.map((r) => ({ surface: r.surface, viewport: r.viewport, component: r.component, token: r.token, site: r.site, ours: r.ours, status: r.status, distance: r.distance, unit: r.unit, reason: r.reason || '' })),
+    tokens: last.rows.map((r) => ({ surface: r.surface, viewport: r.viewport, component: r.component, token: r.token, site: r.site, ours: r.ours, status: r.status, distance: r.distance, unit: r.unit, reason: r.reason || '', kept_field: r.kept_field || '' })),
     regions: last.regions.map((g) => ({ component: g.component, comparable: g.comparable, ratio: g.ratio, pixels: g.pixels, size: g.size, site_size: g.site_size, ours_size: g.ours_size, reason: g.reason || '' })),
     unmatched: (last.unmatched || []).map((u) => ({ surface: u.row.surface, viewport: u.row.viewport, component: u.row.component, token: u.row.token, best_site_value: u.row.site, ours: u.row.ours, reason: u.reason })),
     repairs: allRepairs,
     seeded,
     iterations,
     hard_rules: { derived: last.lpDecisions.derived, swapped: last.lpDecisions.swapped },
+    // WHAT was scored: the brand as the read will be applied to it.
+    applied_as: {
+      kept: last.asApplied.kept.map((k) => ({ field: k.field, origin: k.origin })),
+      applied: last.asApplied.applied,
+      scored_with_caller_brand: !!brand,
+    },
     screenshots: {
       landing_desktop: await shotOf(last.pages.lpD.page),
       landing_mobile: await shotOf(last.pages.lpM.page),
@@ -647,5 +679,5 @@ function summariseComponents(rows, regions) {
 module.exports = {
   TOLERANCE, PIXEL_LIMIT, MISMATCH_LIMIT, MAX_ITER,
   deltaE2000, lab, compareToken, pixelRatio, judge, scoreOf, lpPairs, emailPairs, adPairs,
-  sampleFrom, brandFor, renderOurs, repair, run, MAILER_STYLES, facePairs,
+  sampleFrom, brandFor, brandAsApplied, renderOurs, repair, run, MAILER_STYLES, facePairs,
 };

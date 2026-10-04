@@ -191,27 +191,6 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/S26Ultra_SCOM-146440_SCOM_HPWebTile_560x560.jpg?$560_560_JPG$",
-      "role": "photograph",
-      "alt": "Galaxy S26 Ultra",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Feature-Card_Galaxy-Z-Flip8_560x560.png?$560_560_PNG$",
-      "role": "photograph",
-      "alt": "Galaxy Z Flip8",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/HOME_Feature-Card_Galaxy-Watch-U2_560x560.png?$560_560_PNG$",
-      "role": "photograph",
-      "alt": "Galaxy Watch Ultra2",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
       "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$LazyLoad_Home_JPG$",
       "role": "photograph",
       "alt": "amsung Vision AI",
@@ -219,9 +198,30 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_MicroRGB_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "Micro RGB R95H",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_OLED_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "OLED S95H",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$1440_N_JPG$",
       "role": "photograph",
       "alt": "Enabling better living",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/ref.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "Bespoke Refrigerator",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
