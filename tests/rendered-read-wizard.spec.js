@@ -104,6 +104,30 @@ function serverWorld() {
   };
 }
 
+/**
+ * Press "Read my site" ONCE. A re-paint after boot can swallow a press, so the
+ * press is repeated only while NO extract request has gone out; once one has,
+ * it is never pressed again (a second press would send a second read). Then
+ * wait for the answer for as long as the server takes - it bounds the read
+ * itself (brand-render.READ_HARD_MS, 108 s) - instead of re-pressing on a
+ * clock. The old loop pressed inside a 150 s toPass with a 140 s inner wait:
+ * a read that ran long on a loaded runner, or a swallowed first press, left the
+ * retry 10 s, and a re-press with a read in flight sent a second read (main
+ * went red on exactly this test, 2026-10-04).
+ */
+async function readSiteOnce(page, log) {
+  await expect(async () => {
+    if (!log.extractAsked) {
+      await page.fill('#xUrl', SITE + '/');
+      await page.click('#xRun', { timeout: 2000 });
+    }
+    await expect.poll(() => log.extractAsked || 0, { timeout: 4000 }).toBeGreaterThan(0);
+  }).toPass({ timeout: 30000 });
+  await expect.poll(() => log.extract.length, { timeout: 200000, intervals: [500, 1000] }).toBe(1);
+  await expect(page.locator('.xr[data-read-method]')).toHaveCount(1, { timeout: 20000 });
+  expect(log.extractAsked, 'Read my site was sent more than once').toBe(1);
+}
+
 async function callShipped(handler, { method, url, headers, body }) {
   const u = new URL(url, HOST);
   const out = { code: 0, body: null };
@@ -186,6 +210,9 @@ async function openWizard(page, session, world, opts) {
     if (u.pathname === '/api/public-config' && (!action || action === 'brand')) {
       let body = {};
       try { body = req.postDataJSON() || {}; } catch (_) { body = {}; }
+      // Counted when the request ARRIVES, so a test can tell "pressed and sent"
+      // from "answered" (a rendered read takes tens of seconds).
+      if (op === 'extract') log.extractAsked = (log.extractAsked || 0) + 1;
       const out = await callShipped(world.handler, { method: req.method(), url: u.pathname + u.search, headers, body });
       if (op === 'extract') log.extract.push({ headers, sent: body, code: out.code, body: out.body });
       return json(out.body, out.code || 200);
@@ -229,7 +256,7 @@ const tokensOnHtml = (page) => page.evaluate(() => {
 
 for (const session of ['none', 'device']) {
   test(`${session === 'none' ? 'no backend, signed out (production today)' : 'phone sign-in kept on this device'}: the rendered read is applied completely, scored, keeps what was typed, and reverts`, async ({ page }) => {
-    test.setTimeout(170000);
+    test.setTimeout(300000);
     require(RENDER).resetRateLimits();
     const world = serverWorld();
     try {
@@ -243,11 +270,7 @@ for (const session of ['none', 'device']) {
         await expect(page.locator('[data-path="logo_url"]')).toHaveValue(TYPED_LOGO, { timeout: 500 });
       }).toPass({ timeout: 15000 });
       const before = await tokensOnHtml(page);
-      await expect(async () => {
-        await page.fill('#xUrl', SITE + '/');
-        await page.click('#xRun', { timeout: 2000 });
-        await expect(page.locator('.xr[data-read-method]')).toHaveCount(1, { timeout: 140000 });
-      }).toPass({ timeout: 150000 });
+      await readSiteOnce(page, log);
 
       // The request and the path it took.
       expect(log.extract).toHaveLength(1);
@@ -362,7 +385,7 @@ test.afterAll(async () => { if (previewServer) await new Promise((r) => previewS
 
 for (const where of ['device', 'server']) {
   test(`a brand saved before field origins existed (${where === 'device' ? 'on this device' : 'on the server'}): every value it has is KEPT and offered side by side, never overwritten`, async ({ page }) => {
-    test.setTimeout(170000);
+    test.setTimeout(300000);
     require(RENDER).resetRateLimits();
     const world = serverWorld();
     try {
@@ -377,11 +400,7 @@ for (const where of ['device', 'server']) {
       // paints the brand it holds, on both paths, and that is asserted below.)
       if (where === 'device') expect((await tokensOnHtml(page)).primary.toLowerCase()).toBe('#aa3300');
 
-      await expect(async () => {
-        await page.fill('#xUrl', SITE + '/');
-        await page.click('#xRun', { timeout: 2000 });
-        await expect(page.locator('.xr[data-read-method]')).toHaveCount(1, { timeout: 140000 });
-      }).toPass({ timeout: 150000 });
+      await readSiteOnce(page, log);
       const panel = page.locator('.xr[data-read-method="rendered"]');
       await expect(panel).toHaveCount(1);
 
