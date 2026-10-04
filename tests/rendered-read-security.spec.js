@@ -69,6 +69,26 @@ test('a page that tries every route to a private address reaches NONE of them', 
   expect(srv.hits.every((h) => /^\/(robots\.txt|bounce-private|shop|sw\.js|favicon\.ico)?$/.test(h))).toBe(true);
 });
 
+test('the dead proxy is the floor: a request that escapes interception reaches nothing', async () => {
+  // A context with NO route installed - exactly what "escaping interception"
+  // would mean - on the launcher's own browser. Loopback is NOT bypassed, so
+  // even 127.0.0.1 goes to the dead proxy.
+  const can = await sites.canary();
+  try {
+    await require('../api/_shared/render-browser.js').withBrowser(async (browser) => {
+      const c = await browser.newContext();
+      const p = await c.newPage();
+      const r = await p.goto(`http://127.0.0.1:${can.port}/direct`, { timeout: 8000 }).then(() => 'loaded', (e) => String(e.message).slice(0, 80));
+      expect(r).not.toBe('loaded');
+      await p.close();
+    });
+  } finally {
+    await new Promise((r) => setTimeout(r, 300));
+    await can.close();
+  }
+  expect(can.conns.length).toBe(0);
+});
+
 test('the policy refuses every private spelling, odd ports, credentials and non-http schemes', async () => {
   const net = require('../api/_shared/render-net.js');
   const refused = [

@@ -1566,6 +1566,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
       if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);
+      // Saved through the path this brand already uses (the device store or the
+      // account), so a reload keeps it. A brand with no name yet stays in the form.
+      if (rendered && rendered.report === r && brand.name) await save(true);
       // A read that ran without a backend is a DIFFERENT result from a normal
       // one, and saying so is the whole point: nothing was saved, and the voice
       // step did not run. Reporting it as an ordinary success would leave the
@@ -1652,6 +1655,44 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       applied.push(f);
     });
     if (!brand.website) brand.website = r.start;
+    // The non-visual fields the same read found (the parser runs beside the
+    // browser): name, tagline, legal entity, social profiles, regions and the
+    // observed voice - under the same rule, so a person's own value is kept.
+    // CLAIMS are not applied: a sentence becomes a claim only when someone
+    // approves it, and that stays a tick-box.
+    var pf = r.fields || {};
+    var nonVisual = [
+      ['name', pf.name && pf.name.value, function (v) { brand.name = v; if (!brand.id) brand.slug = slugify(v); }],
+      ['tagline', pf.tagline && pf.tagline.value, function (v) { brand.tagline = v; }],
+      ['brand_data.legal_entity', pf.legal && pf.legal.candidates && pf.legal.candidates[0] && pf.legal.candidates[0].value, function (v) { brand.brand_data.legal_entity = v; }],
+    ];
+    nonVisual.forEach(function (row) {
+      var field = row[0], v = row[1];
+      if (!v) return;
+      if (ownedByPerson(field)) { kept.push({ field: field, origin: fieldOrigin(field) }); return; }
+      row[2](v);
+      var c = field === 'name' ? pf.name : field === 'tagline' ? pf.tagline : pf.legal.candidates[0];
+      noteSource(field, { value: v, signal: c.signal || '', source_url: c.source_url || '', confidence: c.confidence || '', origin: 'site-parse' });
+      applied.push(field);
+    });
+    if (pf.social && (pf.social.candidates || []).length && !ownedByPerson('brand_data.social')) {
+      brand.brand_data.social = pf.social.candidates.map(function (x) { return { platform: x.platform, url: x.value, source_url: x.source_url, signal: x.signal }; });
+      markOrigin('brand_data.social', 'site-parse');
+      applied.push('brand_data.social');
+    }
+    if (pf.regions && (pf.regions.candidates || []).length) {
+      if (ownedByPerson('regions')) kept.push({ field: 'regions', origin: fieldOrigin('regions') });
+      else { applyRegionsFrom(pf); applied.push('regions'); }
+    }
+    if (pf.voice && pf.voice.value && pf.voice.value.tone) {
+      if (ownedByPerson('voice.tone')) kept.push({ field: 'voice.tone', origin: fieldOrigin('voice.tone') });
+      else {
+        brand.voice.tone = pf.voice.value.tone;
+        (pf.voice.value.preferred || []).forEach(function (w) { if (brand.voice.preferred.indexOf(w) < 0) brand.voice.preferred.push(w); });
+        noteSource('voice.tone', { value: pf.voice.value.tone, signal: 'observed from public copy', source_url: (pf.voice.sources || []).join(' '), confidence: 'weak', origin: 'site-parse' });
+        applied.push('voice.tone');
+      }
+    }
     rendered = { report: r, applied: applied, kept: kept, snapshot: snapshot, at: new Date().toISOString(), reverted: false };
     loadRenderedFonts();
     paintShell();
@@ -1696,7 +1737,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var RFIELD = {
     'palette.primary': 'Primary colour', 'palette.accent': 'Accent colour', 'palette.ink': 'Text colour', 'palette.surface': 'Page surface',
     'palette.surface_alt': 'Card surface', 'palette.muted': 'Secondary text', 'typography.heading': 'Heading font', 'typography.body': 'Body font',
-    'logo_url': 'Logo', 'favicon_url': 'Favicon', 'brand_data.design_system': 'Design system (components, type scale, radii, spacing)', 'brand_data.imagery': 'Imagery'
+    'logo_url': 'Logo', 'favicon_url': 'Favicon', 'brand_data.design_system': 'Design system (components, type scale, radii, spacing)', 'brand_data.imagery': 'Imagery',
+    'name': 'Brand name', 'tagline': 'Tagline', 'brand_data.legal_entity': 'Legal entity', 'brand_data.social': 'Social profiles', 'regions': 'Regions and home market', 'voice.tone': 'Tone of voice (observed)'
   };
   function rShow(v) {
     if (v == null) return '';
@@ -1762,6 +1804,38 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function pick(field, i) {
     var list = (field && field.candidates) || [];
     return list[i] || (i === 0 && field && field.value ? field : null);
+  }
+
+  /* Regions from a read: shared by Use and by the rendered apply. Returns the sentence. */
+  function applyRegionsFrom(f) {
+    var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
+    // The home the operator already confirmed on this record. It is USER
+    // data: a re-read of the site that proposes no home (no strong signal,
+    // or a conflict) must not clear it, and a row the site's candidates do
+    // not list must not be dropped. Only an explicit NEW proposal replaces
+    // the flag, and the replacement is recorded.
+    var existingRows = brand.regions.slice();
+    var existingHomeRow = existingRows.filter(function (r) { return r.home === true && r.code; })[0] || null;
+    var existingHome = existingHomeRow ? String(existingHomeRow.code).toUpperCase() : '';
+    var nextHome = proposedHome || existingHome;
+    var rows = f.regions.candidates.map(function (x) {
+      var existing = existingRows.filter(function (r) { return String(r.code || '').toUpperCase() === x.code; })[0] || {};
+      // Currency only when the site DECLARED it on its own offers (the home
+      // row carries it then); otherwise whatever the operator typed, else empty.
+      return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!nextHome && x.code === nextHome };
+    });
+    if (existingHomeRow && !rows.some(function (r) { return r.code === existingHome; })) {
+      rows.push({ code: existingHome, currency: existingHomeRow.currency || '', symbol: existingHomeRow.symbol || '', store_url: existingHomeRow.store_url || '', home: nextHome === existingHome });
+    }
+    brand.regions = rows;
+    if (proposedHome) {
+      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
+    } else if (existingHome) {
+      noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
+    }
+    return ('Set ' + brand.regions.length + ' region(s)' +
+      (proposedHome ? ', home market ' + proposedHome + (existingHome && existingHome !== proposedHome ? ' (was ' + existingHome + ')' : '')
+        : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
   }
 
   function applyExtract(act, i) {
@@ -1834,34 +1908,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       toast('Saved ' + f.social.candidates.length + ' social profile(s).');
     }
     else if (act === 'regions') {
-      var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
-      // The home the operator already confirmed on this record. It is USER
-      // data: a re-read of the site that proposes no home (no strong signal,
-      // or a conflict) must not clear it, and a row the site's candidates do
-      // not list must not be dropped. Only an explicit NEW proposal replaces
-      // the flag, and the replacement is recorded.
-      var existingRows = brand.regions.slice();
-      var existingHomeRow = existingRows.filter(function (r) { return r.home === true && r.code; })[0] || null;
-      var existingHome = existingHomeRow ? String(existingHomeRow.code).toUpperCase() : '';
-      var nextHome = proposedHome || existingHome;
-      var rows = f.regions.candidates.map(function (x) {
-        var existing = existingRows.filter(function (r) { return String(r.code || '').toUpperCase() === x.code; })[0] || {};
-        // Currency only when the site DECLARED it on its own offers (the home
-        // row carries it then); otherwise whatever the operator typed, else empty.
-        return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!nextHome && x.code === nextHome };
-      });
-      if (existingHomeRow && !rows.some(function (r) { return r.code === existingHome; })) {
-        rows.push({ code: existingHome, currency: existingHomeRow.currency || '', symbol: existingHomeRow.symbol || '', store_url: existingHomeRow.store_url || '', home: nextHome === existingHome });
-      }
-      brand.regions = rows;
-      if (proposedHome) {
-        noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
-      } else if (existingHome) {
-        noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
-      }
-      toast('Set ' + brand.regions.length + ' region(s)' +
-        (proposedHome ? ', home market ' + proposedHome + (existingHome && existingHome !== proposedHome ? ' (was ' + existingHome + ')' : '')
-          : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
+      toast(applyRegionsFrom(f));
     }
     render();
   }

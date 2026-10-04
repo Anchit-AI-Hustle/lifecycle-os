@@ -254,6 +254,21 @@ for (const session of ['none', 'device']) {
       await expect(page.locator('[data-path="logo_url"]')).toHaveValue(TYPED_LOGO);
       await expect(panel.locator('[data-applied]')).toContainText('Primary colour');
       await expect(panel.locator('[data-applied]')).toContainText('#0f5132');
+      // The non-visual fields the same read found are applied too.
+      await expect(page.locator('[data-path="name"]')).toHaveValue('Verdant Supply');
+      await expect(panel.locator('[data-applied]')).toContainText('Brand name');
+      // And it was SAVED, through the path this browser uses (the device store
+      // here), with the measured design system on the record.
+      const stored = await page.evaluate(() => {
+        const raw = localStorage.getItem(window.BrandContext.device.key());
+        const rows = raw ? (JSON.parse(raw).workspaces || []) : [];
+        const w = rows.find((x) => x.name === 'Verdant Supply');
+        return w ? { primary: w.palette && w.palette.primary, ds: !!(w.brand_data && w.brand_data.design_system && w.brand_data.design_system.version), origin: w.brand_data && w.brand_data.field_origin } : null;
+      });
+      expect(stored, 'the applied brand was not saved on the device').toBeTruthy();
+      expect(stored.primary).toBe('#0f5132');
+      expect(stored.ds).toBe(true);
+      expect(stored.origin).toMatchObject({ 'palette.primary': 'site-render', logo_url: 'user', name: 'site-parse' });
 
       // Revert: every token back to the brand as it was before the read.
       await panel.locator('[data-xrevert]').click();
