@@ -142,10 +142,16 @@ on anything else.
     the adapter declares (`not_requested` names any gap).
   - **Recorded once is not processed once.** The receiver 500s a failed ingest so the platform retries,
     and the retry met the dedupe and got 200: the event was lost. `social_inbound_events.status`
-    (`received|processed|failed`, migration `20261004170000`): a redelivery of an unprocessed event
+    (`received|processed|failed`, migration `20261004180000`): a redelivery of an unprocessed event
     RESUMES the ingest; only `processed` short-circuits.
   - Organic flags judge EVERY metric the operator set a threshold for (the median stays on one primary
     metric). The console sends a comment read its `object_id`.
+  - **Two migrations, one version - twice in a day, and no test noticed.** The CLI keys
+    `schema_migrations` by the digits before the first `_`, so a shared version is ONE migration to it.
+    `tests/migration-versions.spec.js` gates the SET of files: 14-digit versions (the 13 date-only files
+    are a closed list - renaming an applied one re-applies it), unique even when padded to 14 digits,
+    each a real UTC time no later than the newest commit. A new migration takes a version later than
+    every one on main AT MERGE TIME, not at branch time.
   - A device phone sign-in at the connections router read its workspace through RLS, which throws:
     `connections_router_failed` (500) on every Connect and every /connections load. `list` answers
     nothing connected and why; every other op is `409 device_account` with the same sentence.
