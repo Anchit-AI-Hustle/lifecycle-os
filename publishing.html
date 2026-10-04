@@ -554,14 +554,27 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { return JSON.parse(raw); } catch (e) { throw new Error(label + ' is not valid JSON: ' + e.message); }
   }
 
+  // The campaign a generated asset belongs to: its own campaign_id, else the
+  // campaign its id is minted under (campaign_<hash>_email). The queue reads
+  // THAT campaign's offer on the server, so a "today only" the offer backs is
+  // not blocked for want of a record, and the offer itself is never sent.
+  function campaignIdOf(asset) {
+    var a = asset && typeof asset === 'object' ? asset : {};
+    if (a.campaign_id) return String(a.campaign_id);
+    var m = /^(campaign_[A-Za-z0-9]+)(?:_|$)/.exec(String(a.id || ''));
+    return m ? m[1] : undefined;
+  }
+
   function dispatchSpec(channel) {
     var mode = document.getElementById('sendmode').value;
     var when = document.getElementById('when').value;
+    var asset = readJson('asset', 'The asset');
     return {
       channel: channel,
       mode: mode,
       scheduled_for: mode === 'schedule' && when ? new Date(when).toISOString() : undefined,
-      asset: readJson('asset', 'The asset'),
+      campaign_id: campaignIdOf(asset),
+      asset: asset,
       mapping: readJson('mapping', 'The mapping'),
       message_priority: document.getElementById('priority').value,
       sending_domain: document.getElementById('domain-send').value.trim(),
@@ -580,6 +593,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         provider: (CHANNELS.find(function (c) { return c.channel === selected[0]; }) || {}).adapter,
         channel: selected[0],
         mode: spec.mode,
+        scheduled_for: spec.scheduled_for,
+        campaign_id: spec.campaign_id,
         payload: spec.asset,
         message_priority: spec.message_priority,
         sending_domain: spec.sending_domain
