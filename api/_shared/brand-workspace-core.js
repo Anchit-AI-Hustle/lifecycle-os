@@ -2349,7 +2349,7 @@ async function handle(req, res) {
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'document-fetch', 'suggest',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest', 'document-fetch',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }

@@ -595,3 +595,30 @@ test('a generated mailer for a brand whose logo is only on the device carries th
     if (realLlm) require.cache[LLM] = realLlm; else delete require.cache[LLM];
   }
 });
+
+/* ═══ 9. an account brand HOSTS its files, with the person's own token ═════ */
+test('for an account brand a file is uploaded to the brand-assets bucket under its workspace, and the https URL is what is kept', async ({ page }) => {
+  await open(page, world);
+  const WSID = '33333333-3333-4333-8333-333333333333';
+  const seen = [];
+  await page.route('https://live.supabase.co/storage/v1/object/**', async (route) => {
+    const r = route.request();
+    seen.push({ url: r.url(), method: r.method(), auth: r.headers().authorization, apikey: r.headers().apikey, type: r.headers()['content-type'], upsert: r.headers()['x-upsert'], bytes: (r.postDataBuffer() || Buffer.alloc(0)).length });
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"Key":"ok"}' });
+  });
+  const out = await page.evaluate(async ({ ws, b64 }) => {
+    window.__SUPABASE__ = { url: 'https://live.supabase.co', anonKey: 'anon-public' };
+    // An account session: a Supabase JWT (three segments) is what storage takes.
+    window.LifecycleAuth.apiToken = () => 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.c2lnbmF0dXJl';
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'image/png' });
+    const sha = await window.BrandDocument.sha256(bytes);
+    const hosted = await window.BrandContext.files.host(ws, { blob, type: 'image/png', sha256: sha, id: sha });
+    const device = await window.BrandContext.files.host('local-abc123', { blob, type: 'image/png', sha256: sha, id: sha });
+    return { hosted, device, sha };
+  }, { ws: WSID, b64: LOGO_PNG.toString('base64') });
+  expect(out.hosted).toEqual({ hosted: true, url: `https://live.supabase.co/storage/v1/object/public/brand-assets/${WSID}/${out.sha}.png` });
+  expect(out.device).toEqual({ hosted: false, reason: 'device' });
+  expect(seen).toEqual([{ url: `https://live.supabase.co/storage/v1/object/brand-assets/${WSID}/${out.sha}.png`, method: 'POST', auth: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.c2lnbmF0dXJl', apikey: 'anon-public', type: 'image/png', upsert: 'true', bytes: LOGO_PNG.length }]);
+  expect(out.sha).toBe(require('crypto').createHash('sha256').update(LOGO_PNG).digest('hex'));
+});
