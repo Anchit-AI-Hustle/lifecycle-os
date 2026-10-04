@@ -66,6 +66,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
 <script src="/auth.js?v=20260809" defer></script>
+<script src="/brand-document.js?v=20261004" defer></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -304,7 +305,55 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xdiag ul{margin:7px 0 0 16px}
   .xdiag li{margin-top:3px}
   .xlimits{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6}
+  /* The RENDERED read: applied, scored, reversible. Tokens only, no literal
+     colour: this panel is painted in whichever brand was just applied. */
+  .xtag.computed{border-color:color-mix(in srgb,var(--primary) 45%,transparent);color:var(--brand-primary-text)}
+  .xr{border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:18px;background:var(--card)}
+  .xr h3{font-family:var(--head);font-size:15px;font-weight:600;margin:0 0 4px}
+  .xr .xr-score{display:inline-block;font:700 22px/1 var(--head);margin-right:8px;color:var(--brand-primary-text)}
+  .xr .xr-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
+  .xr .xr-pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+  .xr figure{margin:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+  .xr figure img{display:block;width:100%;height:auto}
+  .xr figcaption{font-size:10.5px;padding:6px 8px;color:var(--muted)}
+  .xr .xr-list{font-size:11.5px;line-height:1.6;margin:6px 0 0 16px}
+  .xr .xr-side{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:3px 0 6px}
+  .xr .xr-side .btn{padding:3px 9px;font-size:11px}
+  .xr .xr-note{font-size:11.5px;line-height:1.6;margin-top:9px;color:var(--muted)}
+  .xr .xr-rule{margin-top:9px;padding:9px 11px;border-radius:9px;font-size:11.5px;line-height:1.55;border:1px solid var(--line);border-left:3px solid var(--accent)}
+  .xr-fallback{border-left:3px solid var(--accent)}
+  @media (max-width:640px){.xr .xr-pairs{grid-template-columns:minmax(0,1fr)}}
   .xlimits li{margin-left:16px}
+
+  /* Brand guideline document + file-or-URL asset controls (2026-10-04).
+     "Upload a file" is a LABEL around a hidden file input, so the press opens
+     the chooser with no script; "Paste a URL" is the input beside it. Either
+     is enough. Every note here takes the ACCENT rule: a file kept on this
+     device is an ordinary state, not a failure. */
+  .pair{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pair > input[type=url]{flex:1;min-width:200px}
+  .pair .pair-or{font-size:11.5px;color:var(--muted)}
+  .pair label.btn{margin:0;font-size:12.5px;padding:9px 14px;letter-spacing:0}
+  .pair label.btn input{display:none}
+  .asset-note{border-left:3px solid var(--accent);background:var(--card);border-radius:8px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--ink);margin:8px 0 0}
+  .asset-note:empty{display:none}
+  .asset-prev{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .asset-prev img{width:56px;height:56px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+  .asset-prev .xtag{margin-left:4px}
+  .doc-rows{margin-top:10px}
+  .doc-row{display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+  .doc-row:first-child{border-top:0}
+  .doc-row .dl{font-weight:600;font-size:11.5px;padding-top:2px}
+  .doc-row .dv{min-width:0;word-break:break-word}
+  .doc-row .dsrc{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .doc-st{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:999px;border:1px solid var(--line);margin-left:6px;vertical-align:1px}
+  .doc-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .doc-imgs button{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 10.5px/1.3 var(--body);color:var(--ink)}
+  .doc-imgs button[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
+  .doc-imgs img{width:68px;height:68px;object-fit:contain}
+  .doc-acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+  .doc-conflict{border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:10px;padding:11px 12px;margin:0 0 12px;font-size:12px;line-height:1.6}
+  .doc-conflict b{display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
@@ -338,7 +387,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      with a guess: an untouched field stays empty and is reported on step 6 as
      a [DATA REQUIRED BEFORE LAUNCH: ...] marker instead. */
   var brand = {
-    id: '', slug: '', name: '', tagline: '', industry: '', website: '', logo_url: '',
+    id: '', slug: '', name: '', tagline: '', industry: '', website: '', logo_url: '', favicon_url: '',
     palette: { primary: '#1F5FD0', accent: '#111111', ink: '#111111', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' },
     typography: {
       heading: { family: 'Lora', stack: "'Lora',Georgia,serif", google: true, weights: '500;600;700' },
@@ -353,6 +402,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     regions: [],
     brand_data: {}, status: 'draft', onboarding_step: 1
   };
+  /* The starting palette and type above are this wizard's PLACEHOLDERS, not a
+     person's choice, and the record says so (origin 'default'): a read may
+     replace them. A value with NO recorded origin is treated the other way -
+     as the person's own (see ownedByPerson) - because every brand saved before
+     origins existed carries exactly that shape. */
+  var DEFAULT_FIELDS = ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body'];
+  DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
 
   var STEPS = [
     { n: 1, key: 'brand',   label: 'Brand' },
@@ -624,6 +680,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var path = el.dataset.path;
       el.addEventListener(el.type === 'color' || el.tagName === 'SELECT' ? 'input' : 'input', function () {
         var v = el.type === 'checkbox' ? el.checked : el.value;
+        markOrigin(path, 'user');
         var parts = path.split('.'), o = brand;
         for (var i = 0; i < parts.length - 1; i++) o = o[parts[i]];
         o[parts[parts.length - 1]] = v;
@@ -690,6 +747,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         custom.style.display = 'none';
         var generic = slot === 'heading' ? "Georgia,serif" : "system-ui,-apple-system,Segoe UI,sans-serif";
         brand.typography[slot] = { family: v, stack: "'" + v + "'," + generic, google: true, weights: slot === 'heading' ? '500;600;700' : '400;500;600;700' };
+        markOrigin('typography.' + slot, 'user');
         loadPreviewFont(v);
         paintPreview();
       });
@@ -702,6 +760,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           var stack = root.querySelector('[data-custom-stack="' + slot + '"]').value.trim();
           if (!fam) return;
           brand.typography[slot] = { family: fam, stack: stack || ("'" + fam + "',sans-serif"), google: false, weights: '400;600;700' };
+          markOrigin('typography.' + slot, 'user');
           paintPreview();
         });
       });
@@ -821,6 +880,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (!v) return;
         var k = inp.dataset.add;
         if (brand.voice[k].indexOf(v) < 0) brand.voice[k].push(v);
+        markOrigin('voice.' + k, 'user');
         inp.value = '';
         render();
         var again = document.querySelector('[data-add="' + k + '"]');
@@ -847,14 +907,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   function render() {
+    docGuard();
     renderSteps();
     var c = $('stepCard');
 
     if (step === 1) {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
-        '<p class="hint">Start from your own website, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
-        extractBlock() + xPanel('brand') +
+        '<p class="hint">Start from your own website, from your brand guidelines, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
+        extractBlock() + xRenderedPanel() + xPanel('brand') +
+        docBlock() +
         // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
         // shipped brand name into the active brand's throughout the page, which
         // is right for the shell and catastrophic here: every card describes a
@@ -870,11 +932,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="one line that says what you make"></div>' +
           '<div class="field"><label>Industry</label><input type="text" data-path="industry" value="' + esc(brand.industry) + '" placeholder="e.g. Specialty retail / D2C"></div>' +
         '</div>' +
-        '<div class="row">' +
-          '<div class="field"><label>Website</label><input type="url" data-path="website" value="' + esc(brand.website) + '" placeholder="https://yourbrand.com"></div>' +
-          '<div class="field"><label>Logo URL <span class="note">must be a real hosted image</span></label><input type="url" data-path="logo_url" value="' + esc(brand.logo_url) + '" placeholder="https://yourbrand.com/logo.png"></div>' +
-        '</div>' +
-        assetStrip() +
+        '<div class="field"><label>Website</label><input type="url" data-path="website" value="' + esc(brand.website) + '" placeholder="https://yourbrand.com"></div>' +
+        assetPair('logo') + assetPair('favicon') +
+        assetStrip() + assetPair('image') +
         actions(null, 'Colour schema');
       loadPresets();
       paintPresets();
@@ -897,8 +957,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<h2>Typography</h2>' +
         xPanel('type') +
         '<p class="hint">Two families: one for headings, one for body. Google families are loaded automatically on every page; a custom family uses your own hosted @font-face.</p>' +
-        fontField('heading', 'Heading font') +
-        fontField('body', 'Body font') +
+        fontField('heading', 'Heading font') + fontFilePair('heading') +
+        fontField('body', 'Body font') + fontFilePair('body') +
         '<p class="muted">Every generated mailer, landing page and ad will use this pairing, and the app shell will too.</p>' +
         actions('Colour schema', 'Voice');
     }
@@ -1006,6 +1066,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (step === 5) wireImport();
     if (step === 6) wireReview();
     paintPreview();
+    docAfterRender(c);
     if (window.Credits) window.Credits.decorate(c);
   }
 
@@ -1121,7 +1182,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
         });
         brand.id = keepId;
+        // What the template filled is the TEMPLATE's (origin 'preset'), so a
+        // read of the brand's own site may replace it; a value the template
+        // did not carry keeps whatever origin it had.
+        ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) markOrigin(k, 'preset'); });
+        if (p.palette) Object.keys(p.palette).forEach(function (k) { markOrigin('palette.' + k, 'preset'); });
+        if (p.typography) ['heading', 'body'].forEach(function (k) { if (p.typography[k]) markOrigin('typography.' + k, 'preset'); });
+        if (p.voice && p.voice.tone) markOrigin('voice.tone', 'preset');
+        if (p.regions) markOrigin('regions', 'preset');
         presetPicked = slug;
+        markOrigins(['name', 'tagline', 'website', 'logo_url', 'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body', 'voice.tone', 'voice.preferred', 'voice.banned'], 'preset', { source: 'preset ' + slug });
         // The preset's website replaces whatever was being typed.
         xUrlDraft = null;
         render();
@@ -1154,7 +1224,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      Applied values record their source into brand_data.brand_extraction, so a
      fact stays traceable after onboarding closes. */
 
-  var XLABEL = { declared: 'declared', strong: 'strong', weak: 'weak' };
+  var XLABEL = { computed: 'computed', declared: 'declared', strong: 'strong', weak: 'weak' };
 
   function xTag(conf) {
     var c = XLABEL[conf] || 'weak';
@@ -1494,7 +1564,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
       '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
         ' stylesheet(s) read. ' + esc(extraction.coverage_note) + xCoverageLine() +
-        ' Nothing below is applied until you press Use.' +
+        (extraction.read && extraction.read.method === 'rendered'
+          ? ' The rendered read above was applied; the candidates below are for changing any value.'
+          : ' Nothing below is applied until you press Use.') +
         // Said on the panel, not only in a toast that has already gone.
         (extraction.note ? ' ' + esc(extraction.note) : '') + '</div>' +
       diag +
@@ -1555,7 +1627,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function extractBlock() {
     var off = extractOff();
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
-      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. Every value arrives with the page and the signal it came from, and nothing is applied until you press Use.</p>' +
+      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. It opens your site in a real browser at desktop and phone width, measures what it renders - colours, type, buttons, header, cards, footer - and applies all of it to this brand, keeping anything you typed yourself. You can revert in one click. If the browser cannot read your site, what its HTML and CSS publish is offered instead, and then nothing is applied until you press Use.</p>' +
       '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
         '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
@@ -1568,6 +1640,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '</div>';
   }
 
+  /* The brand as it stands, with who set each field, so the server scores the
+     read as it will be APPLIED (a person's own values kept). Only what the
+     scorer reads; the server bounds it again. */
+  function scoringDraft() {
+    var t = brand.typography || {};
+    var f = function (x) { return x && x.family ? { family: x.family, stack: x.stack || '', google: x.google === true } : null; };
+    return {
+      name: brand.name || '', tagline: brand.tagline || '', website: brand.website || '', logo_url: brand.logo_url || '', favicon_url: brand.favicon_url || '',
+      palette: brand.palette || {}, typography: { heading: f(t.heading), body: f(t.body) },
+      field_origin: (brand.brand_data && brand.brand_data.field_origin) || {}
+    };
+  }
   async function runExtract() {
     if (extractBusy || extractOff()) return;
     var input = $('xUrl');
@@ -1576,9 +1660,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     extractBusy = true; extractError = null; render();
     try {
       if (!brand.website) { brand.website = url; }
-      var r = await api('extract', { url: url, workspace_id: brand.id || undefined });
+      var r = await api('extract', { url: url, workspace_id: brand.id || undefined, brand: scoringDraft() });
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
+      if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);
+      // Saved through the path this brand already uses (the device store or the
+      // account), so a reload keeps it. A brand with no name yet stays in the form.
+      if (rendered && rendered.report === r && brand.name) await save(true);
       // A read that ran without a backend is a DIFFERENT result from a normal
       // one, and saying so is the whole point: nothing was saved, and the voice
       // step did not run. Reporting it as an ordinary success would leave the
@@ -1586,7 +1674,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // `signed_out` is the server's word for "read without an account it
       // could check" - which is also true of a person signed in on this
       // device, whose token is never sent. Never "without signing in" to them.
-      toast(r.signed_out
+      if (rendered && rendered.report === r) {
+        toast('Rendered your site and applied ' + rendered.applied.length + ' value(s)' + (rendered.kept.length ? ', kept ' + rendered.kept.length + ' you set yourself' : '') + '. Your generated assets score ' + (r.rendered.regression && r.rendered.regression.score != null ? r.rendered.regression.score + '%' : 'n/a') + ' against your site.', 5200);
+      } else toast(r.signed_out
         ? 'Read ' + r.pages_visited + ' page(s) ' + (phoneSession() ? 'without an account the server could check' : 'without signing in') + '. Nothing was saved.'
         : 'Read ' + r.pages_visited + ' page(s). Review each value and press Use to apply it.', r.signed_out ? 5200 : 2600);
     } catch (e) {
@@ -1611,11 +1701,304 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (c.origin) rec.origin = c.origin;
     if (c.replaced) rec.replaced = c.replaced;
     x.applied[field] = rec;
+    // A candidate taken with Use is a site read; the operator's own pick of
+    // one side of a conflict, or an assignment, says origin 'user'.
+    markOrigin(field, c.origin || 'site-parse');
+  }
+
+  /* ── WHO SET EACH FIELD (2026-10-04) ───────────────────────────────────
+     brand_data.field_origin[field] is one of: user (typed here), document (a
+     brand guideline file), site-render (the rendered read), site-parse (a
+     parsed candidate taken with Use), preset (a template). Precedence is in
+     that order; an automatic read never overwrites `user` or `document`.
+     Kept on the record, so it survives a reload and the server honours it. */
+  function fieldOrigin(field) {
+    var bd = brand.brand_data || {};
+    return (bd.field_origin && bd.field_origin[field]) || '';
+  }
+  function markOrigin(field, origin) {
+    if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {};
+    if (!brand.brand_data.field_origin) brand.brand_data.field_origin = {};
+    brand.brand_data.field_origin[field] = origin;
+    // The guideline reader keeps a richer record per field (field_origins);
+    // a different origin set here replaces it, so the two never disagree -
+    // except over a value the brand's guidelines stated: an automatic source
+    // (a template, a site read) does not quietly demote it. docGuard() puts
+    // the guideline's value back and shows the other one beside it; only the
+    // person's own choice ('user') takes the field.
+    var fos = brand.brand_data.field_origins;
+    if (fos && typeof fos === 'object' && !Array.isArray(fos) && (!fos[field] || fos[field].origin !== origin)) {
+      if (fos[field] && fos[field].origin === 'document' && origin !== 'user') return;
+      fos[field] = { origin: origin, at: new Date().toISOString() };
+    }
+  }
+  function hasValue(v) {
+    if (v == null) return false;
+    if (typeof v === 'string') return v.trim() !== '';
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return v.family ? true : Object.keys(v).length > 0;
+    return true;
+  }
+  /* Review finding (2026-10-04, data loss): a brand saved before field
+     origins existed has NONE recorded, and the first version of this read its
+     typed palette, logo and name as "no owner" and overwrote them. A non-empty
+     value with no recorded origin is now the person's: kept, and offered as a
+     side-by-side choice they can accept (acceptRendered). Only an EMPTY field,
+     or one a machine or the wizard's placeholder set, is filled automatically. */
+  function ownedByPerson(field) {
+    var o = fieldOrigin(field);
+    if (o === 'user' || o === 'document') return true;
+    if (!o && hasValue(getAt(brand, field))) return true;
+    return false;
+  }
+  function getAt(o, path) { return path.split('.').reduce(function (a, k) { return a && typeof a === 'object' ? a[k] : undefined; }, o); }
+  function setAt(o, path, v) {
+    var ks = path.split('.'), n = o;
+    for (var i = 0; i < ks.length - 1; i++) { if (!n[ks[i]] || typeof n[ks[i]] !== 'object') n[ks[i]] = {}; n = n[ks[i]]; }
+    n[ks[ks.length - 1]] = v;
+  }
+
+  /* ── the RENDERED read, APPLIED (2026-10-04) ─────────────────────────────
+     The operator's words: "apply that complete accurately". A rendered read
+     is applied in one go - colours, typography and its scale, radii, logo,
+     favicon, imagery and the measured design system the generators consume -
+     with three things visible, never silent: the fields KEPT because a person
+     set them, the hard-rule decisions (dark sections, AA-derived text with
+     both ratios), and a one-click revert to exactly what was there before. */
+  var rendered = null;
+  function applyRendered(r) {
+    var fields = (r.rendered && r.rendered.apply) || {};
+    var snapshot = JSON.stringify(brand);
+    var applied = [], kept = [];
+    var visual = function (f) {
+      setAt(brand, f, JSON.parse(JSON.stringify(fields[f].value)));
+      var src = fields[f].source || {};
+      noteSource(f, {
+        value: typeof fields[f].value === 'string' ? fields[f].value : '',
+        signal: 'computed: ' + (src.role || f) + (src.selector ? ' (' + src.selector + ')' : '') + (src.viewport ? ' @ ' + src.viewport : ''),
+        source_url: src.page || r.start, confidence: 'computed', origin: 'site-render'
+      });
+    };
+    Object.keys(fields).forEach(function (f) {
+      if (ownedByPerson(f)) { kept.push({ field: f, origin: fieldOrigin(f), theirs: fields[f].value, take: function () { visual(f); } }); return; }
+      visual(f);
+      applied.push(f);
+    });
+    if (!brand.website) brand.website = r.start;
+    // The non-visual fields the same read found (the parser runs beside the
+    // browser): name, tagline, legal entity, social profiles, regions and the
+    // observed voice - under the same rule, so a person's own value is kept.
+    // CLAIMS are not applied: a sentence becomes a claim only when someone
+    // approves it, and that stays a tick-box.
+    var pf = r.fields || {};
+    var nonVisual = [
+      ['name', pf.name && pf.name.value, function (v) { brand.name = v; if (!brand.id) brand.slug = slugify(v); }],
+      ['tagline', pf.tagline && pf.tagline.value, function (v) { brand.tagline = v; }],
+      ['brand_data.legal_entity', pf.legal && pf.legal.candidates && pf.legal.candidates[0] && pf.legal.candidates[0].value, function (v) { brand.brand_data.legal_entity = v; }],
+    ];
+    nonVisual.forEach(function (row) {
+      var field = row[0], v = row[1];
+      if (!v) return;
+      var take = function () {
+        row[2](v);
+        var c = field === 'name' ? pf.name : field === 'tagline' ? pf.tagline : pf.legal.candidates[0];
+        noteSource(field, { value: v, signal: c.signal || '', source_url: c.source_url || '', confidence: c.confidence || '', origin: 'site-parse' });
+      };
+      if (ownedByPerson(field)) { kept.push({ field: field, origin: fieldOrigin(field), theirs: v, take: take }); return; }
+      take();
+      applied.push(field);
+    });
+    if (pf.social && (pf.social.candidates || []).length) {
+      var takeSocial = function () {
+        brand.brand_data.social = pf.social.candidates.map(function (x) { return { platform: x.platform, url: x.value, source_url: x.source_url, signal: x.signal }; });
+        markOrigin('brand_data.social', 'site-parse');
+      };
+      if (ownedByPerson('brand_data.social')) kept.push({ field: 'brand_data.social', origin: fieldOrigin('brand_data.social'), theirs: pf.social.candidates.map(function (x) { return x.value; }), take: takeSocial });
+      else { takeSocial(); applied.push('brand_data.social'); }
+    }
+    if (pf.regions && (pf.regions.candidates || []).length) {
+      if (ownedByPerson('regions')) kept.push({ field: 'regions', origin: fieldOrigin('regions'), theirs: pf.regions.candidates.map(function (x) { return x.value && (x.value.code || x.value.name) || x.value; }), take: function () { applyRegionsFrom(pf); } });
+      else { applyRegionsFrom(pf); applied.push('regions'); }
+    }
+    if (pf.voice && pf.voice.value && pf.voice.value.tone) {
+      var takeVoice = function () {
+        brand.voice.tone = pf.voice.value.tone;
+        (pf.voice.value.preferred || []).forEach(function (w) { if (brand.voice.preferred.indexOf(w) < 0) brand.voice.preferred.push(w); });
+        noteSource('voice.tone', { value: pf.voice.value.tone, signal: 'observed from public copy', source_url: (pf.voice.sources || []).join(' '), confidence: 'weak', origin: 'site-parse' });
+      };
+      if (ownedByPerson('voice.tone')) kept.push({ field: 'voice.tone', origin: fieldOrigin('voice.tone'), theirs: pf.voice.value.tone, take: takeVoice });
+      else { takeVoice(); applied.push('voice.tone'); }
+    }
+    rendered = { report: r, applied: applied, kept: kept, snapshot: snapshot, at: new Date().toISOString(), reverted: false };
+    loadRenderedFonts();
+    paintShell();
+  }
+  /* The operator takes the site's value for ONE kept field. That is their
+     decision, so the field is recorded as theirs ('user') with what it
+     replaced - the same rule as picking a side of a colour conflict. */
+  function acceptRendered(field) {
+    if (!rendered || rendered.reverted) return;
+    var i = -1;
+    rendered.kept.forEach(function (k, j) { if (k.field === field) i = j; });
+    if (i < 0) return;
+    var k = rendered.kept[i];
+    var before = getAt(brand, field);
+    k.take();
+    markOrigin(field, 'user');
+    var x = brand.brand_data.brand_extraction;
+    if (x && x.applied && x.applied[field]) x.applied[field].replaced = typeof before === 'string' ? before : JSON.stringify(before || null).slice(0, 200);
+    rendered.kept.splice(i, 1);
+    rendered.applied.push(field);
+    if (field.indexOf('typography.') === 0 || field === 'brand_data.design_system') loadRenderedFonts();
+    paintShell();
+    render();
+    toast((RFIELD[field] || field) + ' now uses the value read from your site.');
+    save(true);
+  }
+  function revertRendered() {
+    if (!rendered || rendered.reverted) return;
+    brand = JSON.parse(rendered.snapshot);
+    rendered.reverted = true;
+    paintShell();
+    render();
+    toast('Reverted. Every field is back to what it was before the read.');
+    save(true);
+  }
+  /* The brand's own font files, as the browser loaded them on its site. */
+  function loadRenderedFonts() {
+    var ds = brand.brand_data && brand.brand_data.design_system;
+    if (!ds || !ds.fonts) return;
+    var css = '';
+    ['heading', 'body'].forEach(function (slot) {
+      var f = ds.fonts[slot];
+      if (!f || !f.family) return;
+      if (f.google) { loadPreviewFont(f.family); return; }
+      (f.files || []).forEach(function (file) {
+        if (!/^https?:\/\//.test(file.url || '')) return;
+        css += '@font-face{font-family:"' + String(f.family).replace(/["\\<>;{}]/g, '') + '";src:url("' + String(file.url).replace(/["\\<>]/g, '') + '");font-weight:' + String(file.weight || '400').replace(/[^0-9a-z ]/gi, '') + ';font-style:' + String(file.style || 'normal').replace(/[^a-z]/gi, '') + ';font-display:swap}';
+      });
+    });
+    var el = document.getElementById('renderedFaces');
+    if (!el) { el = document.createElement('style'); el.id = 'renderedFaces'; document.head.appendChild(el); }
+    el.textContent = css;
+  }
+  /* The app itself re-skins to the brand being set up, through the SAME token
+     maths the shell paints with (brand-context.js tokensFor). */
+  function paintShell() {
+    try {
+      var bc = window.BrandContext;
+      if (!bc || typeof bc.paint !== 'function' || typeof bc.tokensFor !== 'function') return;
+      bc.paint({ tokens: bc.tokensFor(brand), fonts_href: bc.fontsHrefFor ? bc.fontsHrefFor(brand) : '', name: brand.name, slug: brand.slug, logo_url: brand.logo_url, palette: brand.palette, typography: brand.typography });
+    } catch (_) { /* the preview card still shows it */ }
+    paintPreview();
+  }
+  var RFIELD = {
+    'palette.primary': 'Primary colour', 'palette.accent': 'Accent colour', 'palette.ink': 'Text colour', 'palette.surface': 'Page surface',
+    'palette.surface_alt': 'Card surface', 'palette.muted': 'Secondary text', 'typography.heading': 'Heading font', 'typography.body': 'Body font',
+    'logo_url': 'Logo', 'favicon_url': 'Favicon', 'brand_data.design_system': 'Design system (components, type scale, radii, spacing)', 'brand_data.imagery': 'Imagery',
+    'name': 'Brand name', 'tagline': 'Tagline', 'brand_data.legal_entity': 'Legal entity', 'brand_data.social': 'Social profiles', 'regions': 'Regions and home market', 'voice.tone': 'Tone of voice (observed)'
+  };
+  function rShow(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') return v.length > 80 ? v.slice(0, 77) + '...' : v;
+    if (v.family) return v.family;
+    if (Array.isArray(v)) return v.length + ' item(s)';
+    return 'measured';
+  }
+  function xRenderedPanel() {
+    if (!extraction || !extraction.read) return '';
+    var rd = extraction.read;
+    if (rd.method !== 'rendered') {
+      return '<div class="xr xr-fallback" data-read-method="parsed" data-renderer="' + esc(rd.renderer || '') + '"><h3>Read from published HTML and CSS, not rendered</h3>' +
+        '<p class="xr-note"><b>Browser read: ' + esc(rd.renderer || 'unavailable') + '.</b> ' + esc(rd.reason || '') + '</p>' +
+        '<p class="xr-note">' + esc(rd.note || '') + ' Nothing below is applied until you press Use.</p></div>';
+    }
+    var g = (extraction.rendered && extraction.rendered.regression) || {};
+    var m = (extraction.rendered && extraction.rendered.manifest) || {};
+    var shots = (extraction.rendered && extraction.rendered.screenshots) || {};
+    var img = function (b64, mime) { return b64 ? '<img alt="" src="data:' + (mime || 'image/jpeg') + ';base64,' + b64 + '">' : '<div class="xr-note" style="padding:12px">Not captured.</div>'; };
+    var fig = function (b64, cap, mime) { return '<figure>' + img(b64, mime) + '<figcaption>' + esc(cap) + '</figcaption></figure>'; };
+    var surf = g.surfaces || {};
+    var surfRow = Object.keys(surf).map(function (k) {
+      var x = surf[k];
+      return '<span class="xtag computed" data-surface="' + esc(k) + '" data-surface-score="' + esc(String(x.score)) + '">' + esc(k) + ' ' + esc(String(x.score)) + '%</span>';
+    }).join('');
+    var comps = (g.components || []).map(function (c) {
+      return '<tr><td>' + esc(c.surface) + '</td><td>' + esc(c.component) + '</td><td>' + (c.score == null ? '&mdash;' : esc(String(c.score)) + '%') + '</td><td>' + c.match + ' / ' + (c.match + c.mismatch) + (c.exempt ? ' (' + c.exempt + ' by rule)' : '') + '</td><td>' +
+        (c.pixels || []).map(function (p) { return esc(p.component) + ': ' + esc((p.ratio * 100).toFixed(2)) + '%'; }).join('<br>') + '</td></tr>';
+    }).join('');
+    var appliedL = rendered && !rendered.reverted ? rendered.applied.map(function (f) { return '<li>' + esc(RFIELD[f] || f) + ': <b>' + esc(rShow(getAt(brand, f))) + '</b></li>'; }).join('') : '';
+    var who = function (o) { return o === 'document' ? 'from your brand document' : o === 'user' ? 'you typed it' : 'saved before this read, with no record of who set it'; };
+    var keptL = rendered ? rendered.kept.map(function (k) {
+      return '<li data-kept="' + esc(k.field) + '" data-kept-origin="' + esc(k.origin || 'unrecorded') + '">' + esc(RFIELD[k.field] || k.field) + ' kept as you set it (' + esc(who(k.origin)) + ').' +
+        '<span class="xr-side"><span data-yours>Yours: <b>' + esc(rShow(getAt(brand, k.field))) + '</b></span><span data-theirs>Your site: <b>' + esc(rShow(k.theirs)) + '</b></span>' +
+        (rendered.reverted ? '' : '<button type="button" class="btn" data-xaccept="' + esc(k.field) + '">Use your site\'s</button>') + '</span></li>';
+    }).join('') : '';
+    var rules = (m.hard_rules || []).map(function (h) {
+      if (h.kind === 'aa') return '<div class="xr-rule" data-rule="aa"><b>' + esc(h.label) + '</b> for ' + esc(h.token) + ': your ' + esc(h.exact) + ' is ' + esc(String(h.ratio_exact)) + ':1 on ' + esc(h.against) + '; generated assets use ' + esc(h.derived) + ' at ' + esc(String(h.ratio_derived)) + ':1 (WCAG AA ' + esc(String(h.target)) + ':1).</div>';
+      return '<div class="xr-rule" data-rule="' + esc(h.kind) + '"><b>' + (h.kind === 'dark-surface' ? 'Dark page surface' : 'Dark section') + ' ' + esc(h.value) + '.</b> ' + esc(h.rule) + '</div>';
+    }).join('') + ((g.hard_rules && g.hard_rules.derived) || []).map(function (d) {
+      return '<div class="xr-rule" data-rule="derived"><b>DERIVED from ' + esc(d.site || '(none)') + '</b> for ' + esc(d.token) + ': yours is ' + esc(String(d.ratio_site)) + ':1 on ' + esc(d.against) + ', ours ' + esc(d.ours) + ' is ' + esc(String(d.ratio_ours)) + ':1.</div>';
+    }).join('');
+    var conf = (m.conflicts || []).map(function (c) { return '<div class="xr-rule" data-rule="conflict"><b>Brand colour and button colour differ.</b> ' + esc(c.message) + '</div>'; }).join('');
+    var unmatched = (g.unmatched || []).map(function (u) { return '<li>' + esc(u.surface) + ' / ' + esc(u.viewport) + ' / ' + esc(u.component) + ' ' + esc(u.token) + ': your site ' + esc(String(u.best_site_value)) + ', ours ' + esc(String(u.ours)) + '. ' + esc(u.reason) + '</li>'; }).join('');
+    var repairs = (g.repairs || []).map(function (x) { return '<li>' + esc(x.component) + ' ' + esc(x.token) + ' (' + esc(x.viewport) + '): ' + esc(String(x.from)) + ' &rarr; ' + esc(String(x.to)) + ', re-measured by ' + esc(x.strategy) + '</li>'; }).join('');
+    var gs = g.screenshots || {};
+    return '<div class="xr" data-read-method="rendered" data-render-score="' + esc(String(g.score == null ? '' : g.score)) + '" data-no-brand-swap>' +
+      '<h3>' + (rendered && rendered.reverted ? 'Rendered, then reverted' : 'Rendered in Chromium and applied to this brand') + '</h3>' +
+      '<p class="xr-note">Read at 1440px and 390px in ' + esc(rd.chromium ? 'Chromium ' + rd.chromium : 'Chromium') + ' (' + esc(String(Math.round((rd.wall_ms || 0) / 100) / 10)) + 's). Every value carries the page, the element and the viewport it was read from. The score is how close what this platform GENERATES for you - your landing page, mailer and ad - is to your own site, per component.</p>' +
+      '<div class="xr-row"><span class="xr-score" data-score>' + esc(String(g.score == null ? '-' : g.score)) + '%</span>' + surfRow +
+        (rendered && !rendered.reverted ? '<button type="button" class="btn" data-xrevert>Revert to before the read</button>' : '') + '</div>' +
+      '<div class="xr-pairs">' +
+        fig(shots.desktop && shots.desktop.fold && shots.desktop.fold.data, 'Your site, 1440px') + fig(gs.landing_desktop, 'Our landing page for you, 1440px') +
+        fig(shots.mobile && shots.mobile.fold && shots.mobile.fold.data, 'Your site, 390px') + fig(gs.landing_mobile, 'Our landing page for you, 390px') +
+        (gs.mailer ? fig(gs.mailer, 'Our mailer for you (scored on tokens, not pixels)') : '') + (gs.ad ? fig(gs.ad, 'Our ad creative for you') : '') +
+      '</div>' +
+      (comps ? '<div style="overflow-x:auto;margin-top:12px"><table class="xtable" data-components><thead><tr><th>Surface</th><th>Component</th><th>Score</th><th>Tokens</th><th>Pixels</th></tr></thead><tbody>' + comps + '</tbody></table></div>' : '') +
+      (appliedL ? '<div class="xr-note"><b>Applied</b><ul class="xr-list" data-applied>' + appliedL + '</ul></div>' : '') +
+      (keptL ? '<div class="xr-note"><b>Kept, because a person set them</b><ul class="xr-list" data-kept-list>' + keptL + '</ul></div>' : '') +
+      conf + rules +
+      (repairs ? '<div class="xr-note"><b>Repaired by re-measuring your site</b><ul class="xr-list">' + repairs + '</ul></div>' : '') +
+      (unmatched ? '<div class="xr-note"><b>Not matched, and not invented</b><ul class="xr-list" data-unmatched>' + unmatched + '</ul></div>' : '') +
+      ((m.markers || []).length ? '<div class="xr-note">' + m.markers.map(function (x) { return '<div class="marker">' + esc(x) + '</div>'; }).join('') + '</div>' : '') +
+      '</div>';
   }
 
   function pick(field, i) {
     var list = (field && field.candidates) || [];
     return list[i] || (i === 0 && field && field.value ? field : null);
+  }
+
+  /* Regions from a read: shared by Use and by the rendered apply. Returns the sentence. */
+  function applyRegionsFrom(f) {
+    var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
+    // The home the operator already confirmed on this record. It is USER
+    // data: a re-read of the site that proposes no home (no strong signal,
+    // or a conflict) must not clear it, and a row the site's candidates do
+    // not list must not be dropped. Only an explicit NEW proposal replaces
+    // the flag, and the replacement is recorded.
+    var existingRows = brand.regions.slice();
+    var existingHomeRow = existingRows.filter(function (r) { return r.home === true && r.code; })[0] || null;
+    var existingHome = existingHomeRow ? String(existingHomeRow.code).toUpperCase() : '';
+    var nextHome = proposedHome || existingHome;
+    var rows = f.regions.candidates.map(function (x) {
+      var existing = existingRows.filter(function (r) { return String(r.code || '').toUpperCase() === x.code; })[0] || {};
+      // Currency only when the site DECLARED it on its own offers (the home
+      // row carries it then); otherwise whatever the operator typed, else empty.
+      return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!nextHome && x.code === nextHome };
+    });
+    if (existingHomeRow && !rows.some(function (r) { return r.code === existingHome; })) {
+      rows.push({ code: existingHome, currency: existingHomeRow.currency || '', symbol: existingHomeRow.symbol || '', store_url: existingHomeRow.store_url || '', home: nextHome === existingHome });
+    }
+    brand.regions = rows;
+    if (proposedHome) {
+      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
+    } else if (existingHome) {
+      noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
+    }
+    return ('Set ' + brand.regions.length + ' region(s)' +
+      (proposedHome ? ', home market ' + proposedHome + (existingHome && existingHome !== proposedHome ? ' (was ' + existingHome + ')' : '')
+        : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
   }
 
   function applyExtract(act, i) {
@@ -1688,34 +2071,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       toast('Saved ' + f.social.candidates.length + ' social profile(s).');
     }
     else if (act === 'regions') {
-      var proposedHome = (f.regions.home && f.regions.home.proposed) || '';
-      // The home the operator already confirmed on this record. It is USER
-      // data: a re-read of the site that proposes no home (no strong signal,
-      // or a conflict) must not clear it, and a row the site's candidates do
-      // not list must not be dropped. Only an explicit NEW proposal replaces
-      // the flag, and the replacement is recorded.
-      var existingRows = brand.regions.slice();
-      var existingHomeRow = existingRows.filter(function (r) { return r.home === true && r.code; })[0] || null;
-      var existingHome = existingHomeRow ? String(existingHomeRow.code).toUpperCase() : '';
-      var nextHome = proposedHome || existingHome;
-      var rows = f.regions.candidates.map(function (x) {
-        var existing = existingRows.filter(function (r) { return String(r.code || '').toUpperCase() === x.code; })[0] || {};
-        // Currency only when the site DECLARED it on its own offers (the home
-        // row carries it then); otherwise whatever the operator typed, else empty.
-        return { code: x.code, currency: x.currency || existing.currency || '', symbol: existing.symbol || '', store_url: x.store_url || existing.store_url || '', home: !!nextHome && x.code === nextHome };
-      });
-      if (existingHomeRow && !rows.some(function (r) { return r.code === existingHome; })) {
-        rows.push({ code: existingHome, currency: existingHomeRow.currency || '', symbol: existingHomeRow.symbol || '', store_url: existingHomeRow.store_url || '', home: nextHome === existingHome });
-      }
-      brand.regions = rows;
-      if (proposedHome) {
-        noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
-      } else if (existingHome) {
-        noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
-      }
-      toast('Set ' + brand.regions.length + ' region(s)' +
-        (proposedHome ? ', home market ' + proposedHome + (existingHome && existingHome !== proposedHome ? ' (was ' + existingHome + ')' : '')
-          : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
+      toast(applyRegionsFrom(f));
     }
     render();
   }
@@ -1737,11 +2093,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         signal: 'operator resolved the brand-vs-action conflict in favour of the ' + side + ' colour (' + (pickSrc.signal || '') + ')',
         source_url: pickSrc.source_url || '',
         confidence: 'declared',
+        origin: 'user',
       });
       toast('Primary set to ' + hex + '. The other colour is still available as your accent.');
       render();
       return;
     }
+    var rv = e.target && e.target.closest ? e.target.closest('[data-xrevert]') : null;
+    if (rv) { revertRendered(); return; }
+    var acc = e.target && e.target.closest ? e.target.closest('[data-xaccept]') : null;
+    if (acc) { acceptRendered(acc.getAttribute('data-xaccept')); return; }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
     if (run) runExtract();
   });
@@ -1756,7 +2117,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var role = sel.value;
     if (!role) return;
     brand.palette[role] = sel.getAttribute('data-xrole');
-    noteSource('palette.' + role, { value: sel.getAttribute('data-xrole'), signal: 'operator assigned from an extracted candidate', source_url: extraction ? extraction.start : '', confidence: 'declared' });
+    noteSource('palette.' + role, { value: sel.getAttribute('data-xrole'), signal: 'operator assigned from an extracted candidate', source_url: extraction ? extraction.start : '', confidence: 'declared', origin: 'user' });
     render();
   });
 
@@ -2226,6 +2587,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('newBrand').addEventListener('click', function () {
       brand = JSON.parse(JSON.stringify(brand));
       brand.id = ''; brand.slug = ''; brand.name = ''; brand.website = ''; brand.logo_url = ''; brand.tagline = '';
+      // The cleared fields belong to nobody yet; the rest are copied with their origins.
+      if (brand.brand_data && brand.brand_data.field_origin) ['name', 'website', 'logo_url', 'tagline'].forEach(function (k) { delete brand.brand_data.field_origin[k]; });
       catalogCount = null; go(1);
     });
     $('activate').addEventListener('click', async function () {
@@ -2247,6 +2610,895 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* ══ BRAND GUIDELINES + FILE-OR-URL ASSETS (2026-10-04) ══════════════════
+     The operator's words: "ensure user can upload a document for the design
+     schema to be followed too with all details like logo file or url, etc -
+     keep options for files and urls both where either are required".
+
+     1. A GUIDELINE DOCUMENT (a brand book PDF, a DOCX, a DESIGN.md, a token
+        file, a CSS file, an SVG or image of a style sheet) is read in this
+        browser by brand-document.js. Every value carries its file or URL,
+        page and verbatim line; a field it does not state is a marker.
+     2. It is the brand's OWN declaration, so it ranks above a website read
+        and below what the operator typed:
+          user > document > site-render > site-parse > preset > default
+        kept per field in brand_data.field_origins (the device twin of
+        brand_field_provenance; the server records the same origins on save,
+        migration 20261004120000). "Apply" fills every field the document
+        states except one the operator typed, lists each outcome, and can be
+        reverted in one click. A later "Read my site" that tries to replace a
+        value the document gave is caught by docGuard() (run first in every
+        render) and shown as a conflict, side by side, for the operator.
+     3. Every asset - logo, app icon, fonts, imagery, the guide itself - is a
+        FILE or a URL, either sufficient. A file is hosted when an account
+        with a reachable project can upload it, and otherwise kept in
+        IndexedDB (BrandContext.files, per account); a generated asset then
+        carries [DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]. */
+
+  var PENDING_ID = 'pending-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  var DOC = { busy: false, error: null, status: '', report: null, results: null, snapshot: null, added: [], logoPick: -1, imgUrls: [], conflicts: [], urlDraft: '', source: null };
+  var ASSET = {};          // per control: { note, busy }
+  var lastSeen = {};
+  var TRACKED = ['name', 'tagline', 'website', 'logo_url', 'favicon_url',
+    'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
+    'typography.heading', 'typography.body', 'typography.mono', 'voice.tone', 'voice.preferred', 'voice.banned', 'voice.no_em_dashes',
+    'brand_data.legal_entity', 'brand_data.claims'];
+  var FIELD_LABEL = { name: 'Brand name', tagline: 'Tagline', website: 'Website', logo_url: 'Logo', favicon_url: 'App icon',
+    'palette.primary': 'Primary', 'palette.accent': 'Accent', 'palette.ink': 'Text', 'palette.surface': 'Page surface',
+    'palette.surface_alt': 'Card surface', 'palette.muted': 'Secondary text', 'palette.ok': 'Success', 'palette.warn': 'Warning', 'palette.err': 'Error',
+    'typography.heading': 'Heading font', 'typography.body': 'Body font', 'typography.mono': 'Mono font', 'voice.tone': 'Tone of voice',
+    'voice.preferred': 'Preferred words', 'voice.banned': 'Banned phrases', 'brand_data.legal_entity': 'Legal entity', 'brand_data.claims': 'Claims' };
+
+  function fileOwnerId() { return brand.id || PENDING_ID; }
+  function bd() { if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {}; return brand.brand_data; }
+  function origins() { var d = bd(); if (!d.field_origins || typeof d.field_origins !== 'object' || Array.isArray(d.field_origins)) d.field_origins = {}; return d.field_origins; }
+  function bfiles() { var d = bd(); if (!d.brand_files || typeof d.brand_files !== 'object') d.brand_files = {}; return d.brand_files; }
+  function getField(f) {
+    if (f.indexOf('palette.') === 0) return brand.palette[f.slice(8)] || '';
+    if (f.indexOf('typography.') === 0) return brand.typography[f.slice(11)] || null;
+    if (f === 'voice.tone') return brand.voice.tone || '';
+    if (f === 'voice.preferred' || f === 'voice.banned') return brand.voice[f.slice(6)] || [];
+    if (f === 'voice.no_em_dashes') return brand.voice.no_em_dashes !== false;
+    if (f === 'brand_data.legal_entity') return bd().legal_entity || '';
+    if (f === 'brand_data.claims') return bd().claims || [];
+    return brand[f] || '';
+  }
+  function setField(f, v) {
+    if (f.indexOf('palette.') === 0) brand.palette[f.slice(8)] = v;
+    else if (f.indexOf('typography.') === 0) brand.typography[f.slice(11)] = v;
+    else if (f === 'voice.tone') brand.voice.tone = v;
+    else if (f === 'voice.preferred' || f === 'voice.banned') brand.voice[f.slice(6)] = v;
+    else if (f === 'voice.no_em_dashes') brand.voice.no_em_dashes = v !== false;
+    else if (f === 'brand_data.legal_entity') bd().legal_entity = v;
+    else if (f === 'brand_data.claims') bd().claims = v;
+    else { brand[f] = v; if (f === 'name' && !brand.id) brand.slug = slugify(v); }
+  }
+  function normVal(v) {
+    if (v == null) return '';
+    if (typeof v === 'string') return v.trim().toLowerCase();
+    if (Array.isArray(v)) return v.map(normVal).join('|');
+    if (typeof v === 'object') return String(v.family || '').trim().toLowerCase();
+    return String(v);
+  }
+  function filled(v) { return Array.isArray(v) ? v.length > 0 : (v && typeof v === 'object' ? !!v.family : !!v); }
+  /** The origin of a field's CURRENT value: the guideline reader's record
+      (field_origins), else the plain map the rendered read and the site read
+      keep (field_origin, fieldOrigin()). A filled value with NEITHER is the
+      person's, exactly as ownedByPerson() reads it: every brand saved before
+      origins existed has that shape, and a document never overwrites it. */
+  function originOf(f) {
+    var r = origins()[f];
+    if (r && r.origin) return r.origin;
+    var plain = fieldOrigin(f);
+    if (plain) return plain;
+    var v = getField(f);
+    // An unticked "never use em dashes" is a choice too: the default is ticked.
+    return (filled(v) || v === false) ? 'user' : '';
+  }
+  function rankOf(o) { var p = window.BrandContext && window.BrandContext.provenance; return p ? p.rank(o) : ({ user: 50, document: 40, 'site-render': 30, 'site-parse': 20, preset: 10, default: 0 })[o]; }
+  /* One origin, two shapes: the record here, and the plain map the rendered
+     read, the site read and the server's claim check read. Both are written. */
+  function setOrigin(f, origin, extra) {
+    origins()[f] = Object.assign({ origin: origin, at: new Date().toISOString() }, extra || {});
+    var d = bd();
+    if (!d.field_origin || typeof d.field_origin !== 'object') d.field_origin = {};
+    d.field_origin[f] = origin;
+    lastSeen[f] = normVal(getField(f));
+  }
+  function markOrigins(list, origin, extra) {
+    list.forEach(function (f) {
+      var o = originOf(f);
+      // A value the guidelines gave is not replaced quietly: docGuard() turns
+      // the change into a conflict for the operator.
+      if (o === 'document') return;
+      if (filled(getField(f))) setOrigin(f, origin, extra);
+    });
+  }
+  function snapshotSeen() { lastSeen = {}; TRACKED.forEach(function (f) { lastSeen[f] = normVal(getField(f)); }); }
+  (function docInitDefaults() {
+    // The wizard's starting palette and type pairing are placeholders nobody
+    // chose: a document or a site read may fill them.
+    ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body']
+      .forEach(function (f) { if (!origins()[f]) origins()[f] = { origin: 'default' }; });
+    snapshotSeen();
+  })();
+  function docLoaded() {
+    snapshotSeen();
+    registerFontRefs();
+  }
+
+  /* Typing makes a field the operator's. Capture phase, so it is recorded
+     before the wizard's own handler writes the value. */
+  function typedField(el) {
+    if (!el || !el.getAttribute) return '';
+    var p = el.getAttribute('data-path');
+    if (p && TRACKED.indexOf(p) >= 0) return p;
+    var cf = el.getAttribute('data-custom-family') || el.getAttribute('data-custom-stack') || el.getAttribute('data-font-slot');
+    if (cf) return 'typography.' + cf;
+    var add = el.getAttribute('data-add') || el.getAttribute('data-rm');
+    if (add === 'preferred' || add === 'banned') return 'voice.' + add;
+    return '';
+  }
+  function markTyped(e) {
+    var f = typedField(e.target && e.target.closest ? (e.target.closest('[data-rm]') || e.target) : e.target);
+    if (!f) return;
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ',') return;
+    origins()[f] = { origin: 'user', at: new Date().toISOString() };
+    setTimeout(function () { lastSeen[f] = normVal(getField(f)); }, 0);
+  }
+  document.addEventListener('input', markTyped, true);
+  document.addEventListener('change', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-font-slot')) markTyped(e); }, true);
+  document.addEventListener('keydown', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-add')) markTyped(e); }, true);
+  document.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('[data-rm]')) markTyped(e); }, true);
+
+  /** What "Read my site" recorded for a field, if anything (brand_data.brand_extraction.applied). */
+  function siteApplied(f) {
+    var x = bd().brand_extraction;
+    var a = x && x.applied;
+    if (!a) return null;
+    return a[f] || a[f.replace(/^brand_data\./, '')] || null;
+  }
+  /** Run first in every render: a value the GUIDELINES gave that something
+      other than typing replaced (a site read, a preset) is restored and the
+      two are shown side by side. Any other unattributed change that a site
+      read recorded is marked as the site's. */
+  function docGuard() {
+    var fo = origins();
+    TRACKED.forEach(function (f) {
+      var now = normVal(getField(f));
+      var r = fo[f];
+      if (r && r.origin === 'document' && r.value != null && now !== r.value) {
+        var ap = siteApplied(f);
+        var other = { value: getField(f), origin: ap ? (ap.origin && ap.origin !== 'user' ? ap.origin : 'site-parse') : (presetPicked ? 'preset' : 'another source'), signal: ap ? (ap.signal || '') : '', source_url: ap ? (ap.source_url || '') : '' };
+        DOC.conflicts = DOC.conflicts.filter(function (c) { return c.field !== f; });
+        DOC.conflicts.push({ field: f, doc: r, other: other });
+        setField(f, r.raw != null ? JSON.parse(JSON.stringify(r.raw)) : r.value);
+        if (bd().field_origin && typeof bd().field_origin === 'object') bd().field_origin[f] = 'document';
+        toast('Kept the ' + (FIELD_LABEL[f] || f) + ' your brand guidelines state. The other value is shown beside it for you to choose.', 5200);
+      } else if (lastSeen[f] !== undefined && now !== lastSeen[f] && (!r || (r.origin !== 'user' && r.origin !== 'document'))) {
+        var ap2 = siteApplied(f);
+        if (ap2 && ap2.confidence !== 'user' && ap2.origin !== 'user') fo[f] = { origin: ap2.origin && /^site-/.test(ap2.origin) ? ap2.origin : 'site-parse', at: new Date().toISOString(), url: ap2.source_url || '', signal: ap2.signal || '' };
+        else if (ap2) fo[f] = { origin: 'user', at: new Date().toISOString() };
+      }
+      lastSeen[f] = normVal(getField(f));
+    });
+  }
+
+  function waitDocLib() {
+    return new Promise(function (resolve, reject) {
+      var n = 0;
+      (function poll() {
+        if (window.BrandDocument) return resolve(window.BrandDocument);
+        if (++n > 60) return reject(new Error('The document reader did not load (brand-document.js), so nothing was read. Reload the page and try again.'));
+        setTimeout(poll, 100);
+      })();
+    });
+  }
+  function provLine(p, locator) {
+    if (!p) return '';
+    var bits = [p.source || p.url || 'document'];
+    if (p.page) bits.push('p.' + p.page);
+    if (p.line) bits.push((locator === 'paragraph' ? '¶ ' : 'l.') + p.line);
+    return bits.join(' · ') + (p.quote ? ' — “' + p.quote + '”' : '');
+  }
+  function provRecord(p, value, raw) {
+    return { source: (p && p.source) || '', url: (p && p.url) || '', page: (p && p.page) || null, line: (p && p.line) || null, quote: (p && p.quote) || '', value: normVal(value), raw: raw === undefined ? value : raw };
+  }
+
+  /* ── reading ── */
+  async function docRead(job, label) {
+    if (DOC.busy) return;
+    DOC.busy = true; DOC.error = null; DOC.errorTitle = ''; DOC.status = 'Reading ' + label + '...'; render();
+    try {
+      var rep = await job();
+      docTook(rep);
+      DOC.status = 'Read ' + rep.source.name + ': ' + docCount(rep) + ' value(s) stated. Nothing is applied until you press Apply.';
+    } catch (e) {
+      DOC.report = null;
+      DOC.error = e;
+      DOC.status = '';
+    } finally {
+      DOC.busy = false;
+      render();
+    }
+  }
+  function docCount(rep) {
+    var f = rep.fields, n = 0;
+    ['name', 'tagline', 'website', 'legal_entity'].forEach(function (k) { if (f[k]) n++; });
+    n += Object.keys(f.palette).length + Object.keys(f.typography).length + (f.voice.tone ? 1 : 0) + f.voice.preferred.length + f.voice.banned.length + f.claims.length;
+    n += Object.keys(f.components).length + Object.keys(f.rounded).length + Object.keys(f.spacing).length;
+    return n;
+  }
+  function docTook(rep) {
+    DOC.imgUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (_) {} });
+    DOC.report = rep;
+    DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = [];
+    DOC.imgUrls = (rep.images || []).map(function (im) { return URL.createObjectURL(im.blob); });
+    DOC.logoPick = (rep.images || []).findIndex(function (im) { return im.mentions_logo; });
+  }
+  async function docViaServer(url) {
+    var t = window.BrandContext && window.BrandContext.token ? window.BrandContext.token() : '';
+    var headers = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = 'Bearer ' + t;
+    var r = await fetch('/api/public-config?action=brand&op=document-fetch', { method: 'POST', headers: headers, body: JSON.stringify({ url: url }) });
+    if (!r.ok) {
+      var j = await r.json().catch(function () { return {}; });
+      var e = new Error(j.message || ('The server could not fetch that document (' + r.status + ').'));
+      e.code = j.error || ''; e.status = r.status; e.payload = j;
+      throw e;
+    }
+    return { buf: await r.arrayBuffer(), type: r.headers.get('X-Document-Type') || '', name: decodeURIComponent(r.headers.get('X-Document-Name') || 'document'), url: decodeURIComponent(r.headers.get('X-Document-Url') || url) };
+  }
+
+  /* ── applying ── */
+  var GENERIC = { heading: 'Georgia,serif', body: 'system-ui,-apple-system,Segoe UI,sans-serif', mono: 'ui-monospace,SFMono-Regular,Menlo,monospace' };
+  function fontValue(slot, t) {
+    var google = t.google || GOOGLE_FONTS.indexOf(t.family) >= 0;
+    return { family: t.family, stack: t.stack || ("'" + t.family + "'," + GENERIC[slot]), google: google,
+      weights: t.weights && t.weights.length ? t.weights.join(';') : (slot === 'heading' ? '500;600;700' : '400;500;600;700') };
+  }
+  async function docApply() {
+    var rep = DOC.report;
+    if (!rep || DOC.busy) return;
+    DOC.busy = true; DOC.error = null; DOC.errorTitle = '';
+    DOC.snapshot = JSON.parse(JSON.stringify(brand));
+    DOC.added = [];
+    var f = rep.fields, results = [];
+    var sourceName = rep.source.name;
+    function offer(field, value, p, opts) {
+      var cur = getField(field), o = originOf(field);
+      var row = { field: field, value: value, prov: p, previous: cur, previous_origin: o };
+      // Equal is UNCHANGED: a value the operator typed stays theirs even when a
+      // document says the same thing, so a later document cannot take it.
+      if (normVal(cur) === normVal(value) && filled(cur)) { row.status = 'same'; if (rankOf(o) < rankOf('document')) setOrigin(field, 'document', provRecord(p, value)); }
+      else if (o === 'user') row.status = 'kept';
+      else {
+        setField(field, value);
+        setOrigin(field, 'document', provRecord(p, value));
+        row.status = filled(cur) && o && o !== 'default' ? 'replaced' : 'applied';
+      }
+      if (opts && opts.site) row.site = opts.site;
+      results.push(row);
+    }
+    function mergeList(field, items) {
+      if (!items.length) return;
+      var cur = (getField(field) || []).slice();
+      var added = items.map(function (x) { return x.value; }).filter(function (v) { return cur.map(normVal).indexOf(normVal(v)) < 0; });
+      var next = cur.concat(added);
+      setField(field, next);
+      if (originOf(field) !== 'user') setOrigin(field, 'document', provRecord(items[0].prov, next));
+      else lastSeen[field] = normVal(next);
+      results.push({ field: field, value: added.length ? added : items.map(function (x) { return x.value; }), prov: items[0].prov, status: added.length ? (originOf(field) === 'user' ? 'merged' : 'applied') : 'same', items: items });
+    }
+    try {
+      if (f.name) offer('name', f.name.value, f.name.prov);
+      if (f.tagline) offer('tagline', f.tagline.value, f.tagline.prov);
+      if (f.website) offer('website', f.website.value, f.website.prov);
+      if (f.legal_entity) offer('brand_data.legal_entity', f.legal_entity.value, f.legal_entity.prov);
+      var site = extraction && extraction.ok && extraction.fields && extraction.fields.palette ? extraction.fields.palette : null;
+      ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted', 'ok', 'warn', 'err'].forEach(function (role) {
+        var c = f.palette[role];
+        if (!c) return;
+        var sv = site && site.proposed && site.proposed[role];
+        offer('palette.' + role, c.hex, c.prov, sv && sv.toLowerCase() !== c.hex ? { site: { value: sv, signal: (site.sources && site.sources[role] && site.sources[role].signal) || '', source_url: (site.sources && site.sources[role] && site.sources[role].source_url) || '' } } : null);
+      });
+      if (f.extra.length) {
+        var ex = Array.isArray(brand.palette.extra) ? brand.palette.extra.slice() : [];
+        f.extra.forEach(function (e) { if (!ex.some(function (x) { return x.hex === e.hex; }) && ex.length < 12) ex.push({ name: String(e.name).slice(0, 32), hex: e.hex }); });
+        brand.palette.extra = ex;
+      }
+      ['heading', 'body', 'mono'].forEach(function (slot) {
+        var t = f.typography[slot];
+        if (!t) return;
+        var v = fontValue(slot, t);
+        offer('typography.' + slot, v, t.prov);
+        if (v.google) loadPreviewFont(v.family);
+      });
+      if (f.type_scale.length) bd().type_scale = f.type_scale.map(function (r) { return Object.assign({}, r, { origin: 'document' }); });
+      if (f.voice.tone) offer('voice.tone', f.voice.tone.value, f.voice.tone.prov);
+      mergeList('voice.preferred', f.voice.preferred);
+      mergeList('voice.banned', f.voice.banned);
+      if (f.voice.no_em_dashes) offer('voice.no_em_dashes', true, f.voice.no_em_dashes.prov);
+      mergeList('brand_data.claims', f.claims);
+      // Components the renderers read: the DESIGN.md component shape, plain
+      // values beside their provenance.
+      var compKeys = Object.keys(f.components).length + Object.keys(f.rounded).length + Object.keys(f.spacing).length + Object.keys(f.rules).length;
+      if (compKeys) {
+        var plain = {}, provs = {};
+        Object.keys(f.components).forEach(function (n) {
+          plain[n] = {}; provs[n] = {};
+          Object.keys(f.components[n]).forEach(function (k) { plain[n][k] = f.components[n][k].value; provs[n][k] = provRecord(f.components[n][k].prov, f.components[n][k].value); });
+        });
+        var flat = function (o) { var out = {}, pv = {}; Object.keys(o).forEach(function (k) { out[k] = o[k].value; pv[k] = provRecord(o[k].prov, o[k].value); }); return { v: out, p: pv }; };
+        var rd = flat(f.rounded), sp = flat(f.spacing), ru = flat(f.rules);
+        bd().design_components = { origin: 'document', source: sourceName, components: plain, rounded: rd.v, spacing: sp.v, rules: ru.v, provenance: { components: provs, rounded: rd.p, spacing: sp.p, rules: ru.p } };
+        results.push({ field: 'components', value: Object.keys(plain).concat(Object.keys(rd.v).map(function (k) { return 'rounded.' + k; }), Object.keys(sp.v).map(function (k) { return 'spacing.' + k; }), Object.keys(ru.v)), status: 'applied' });
+      }
+      // The logo the document shows beside the word "logo", as a FILE.
+      if (DOC.logoPick >= 0 && rep.images[DOC.logoPick]) {
+        var im = rep.images[DOC.logoPick];
+        if (originOf('logo_url') === 'user' && brand.logo_url) results.push({ field: 'logo_url', value: im.name, prov: im.prov, status: 'kept', previous: brand.logo_url });
+        else {
+          var ref = await storeAsset('logo', im.blob, { name: im.name, from: 'document', prov: im.prov });
+          DOC.added.push({ kind: 'logo', id: ref.id });
+          setOrigin('logo_url', 'document', provRecord(im.prov, brand.logo_url || ''));
+          results.push({ field: 'logo_url', value: im.name, prov: im.prov, status: 'applied', file: ref });
+        }
+      }
+      if (f.logo.rules.length) bd().logo_rules = f.logo.rules.map(function (r) { return { kind: r.kind, text: r.text, value: r.value, origin: 'document', prov: provRecord(r.prov, r.text) }; });
+      // The guideline itself is one of the brand's files.
+      if (DOC.source && DOC.source.blob) {
+        var dref = await storeAsset('document', DOC.source.blob, { name: rep.source.name, from: 'upload' });
+        DOC.added.push({ kind: 'document', id: dref.id });
+      } else if (rep.source.url) bfiles().document = { url: rep.source.url, name: rep.source.name, source: 'url' };
+      bd().brand_document = { name: rep.source.name, url: rep.source.url || '', kind: rep.source.kind, pages: rep.pages || null, read_at: new Date().toISOString(),
+        applied: results.filter(function (r) { return r.status === 'applied' || r.status === 'replaced' || r.status === 'merged'; }).map(function (r) { return r.field; }),
+        missing: (rep.missing || []).slice() };
+      (rep.missing || []).forEach(function (m) { results.push({ field: m, status: 'missing' }); });
+      DOC.results = results;
+      var applied = results.filter(function (r) { return r.status === 'applied' || r.status === 'replaced' || r.status === 'merged'; }).length;
+      var kept = results.filter(function (r) { return r.status === 'kept'; }).length;
+      DOC.status = 'Applied ' + applied + ' value(s) from ' + sourceName + '. ' + (kept ? kept + ' kept because you typed them. ' : '') + (rep.missing || []).length + ' still missing. Press Revert to undo all of it.';
+    } catch (e) {
+      // ALL OR NOTHING. A step that failed part-way (the device store refused
+      // the logo or the book, a host upload threw) must not leave the fields
+      // it had already written: put the brand back exactly as it was, remove
+      // the files this attempt kept, and say so.
+      var keepId = { id: brand.id, slug: brand.slug };
+      brand = JSON.parse(JSON.stringify(DOC.snapshot));
+      if (keepId.id) { brand.id = keepId.id; brand.slug = keepId.slug || brand.slug; }
+      for (var j = 0; j < DOC.added.length; j++) {
+        try { await window.BrandContext.files.remove(fileOwnerId(), DOC.added[j].id); } catch (_) { /* never kept */ }
+      }
+      delete ASSET.logo; delete ASSET.document;
+      DOC.results = null; DOC.snapshot = null; DOC.added = [];
+      snapshotSeen();
+      DOC.status = '';
+      DOC.error = e;
+      DOC.errorTitle = 'Nothing from ' + sourceName + ' was applied; the brand is exactly as it was';
+    } finally {
+      DOC.busy = false;
+      render();
+    }
+  }
+  async function docRevert() {
+    if (!DOC.snapshot) return;
+    var keep = { id: brand.id, slug: brand.slug };
+    brand = JSON.parse(JSON.stringify(DOC.snapshot));
+    if (keep.id) { brand.id = keep.id; brand.slug = keep.slug || brand.slug; }
+    for (var i = 0; i < DOC.added.length; i++) {
+      try { await window.BrandContext.files.remove(fileOwnerId(), DOC.added[i].id); } catch (_) { /* already gone */ }
+    }
+    DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = [];
+    DOC.status = 'Reverted. The brand is exactly as it was before the document was applied.';
+    snapshotSeen();
+    render();
+  }
+  function docTake(field, which) {
+    var row = (DOC.results || []).filter(function (r) { return r.field === field; })[0];
+    var c = DOC.conflicts.filter(function (x) { return x.field === field; })[0];
+    if (which === 'doc' && row) setField(field, JSON.parse(JSON.stringify(row.value)));
+    if (which === 'site' && row && row.site) setField(field, row.site.value);
+    if (which === 'other' && c) setField(field, JSON.parse(JSON.stringify(c.other.value)));
+    if (which === 'keepdoc' && c) { DOC.conflicts = DOC.conflicts.filter(function (x) { return x !== c; }); render(); return; }
+    // An explicit choice between two sources is the operator's answer.
+    setOrigin(field, 'user', { chose: which });
+    if (row) row.status = which === 'site' ? 'site-chosen' : 'applied-by-you';
+    DOC.conflicts = DOC.conflicts.filter(function (x) { return x.field !== field; });
+    render();
+  }
+  function docUseDerived(i) {
+    var p = DOC.report && DOC.report.fields.print_only[i];
+    if (!p || !p.derived || !p.role) return;
+    setField('palette.' + p.role, p.derived.hex);
+    setOrigin('palette.' + p.role, 'user', { chose: 'derived', note: p.derived.note });
+    toast('Set ' + p.role + ' to ' + p.derived.hex + ', ' + p.derived.note.split('.')[0] + '.', 5200);
+    render();
+  }
+
+  /* ── rendering ── */
+  function fieldValueHtml(field, v) {
+    if (v == null || v === '') return '';
+    if (field.indexOf('palette.') === 0) return '<span class="xsw" style="background:' + esc(v) + '"></span> <b style="font:600 12px ui-monospace,Menlo,monospace">' + esc(v) + '</b>';
+    if (field.indexOf('typography.') === 0 && typeof v === 'object') return '<b>' + esc(v.family) + '</b> <span class="muted">' + esc(v.weights || '') + '</span>';
+    if (Array.isArray(v)) return esc(v.join(', '));
+    return esc(String(v));
+  }
+  var STATUS_WORD = { applied: 'applied', replaced: 'applied over an earlier value', same: 'already this', kept: 'kept, you typed it', merged: 'added to yours', missing: 'not in the document', 'site-chosen': 'site value chosen', 'applied-by-you': 'chosen by you' };
+  function docRow(field, label, valueHtml, p, extra) {
+    var res = (DOC.results || []).filter(function (r) { return r.field === field; })[0];
+    var st = res ? '<span class="doc-st" data-doc-status="' + esc(res.status) + '">' + esc(STATUS_WORD[res.status] || res.status) + '</span>' : '';
+    var kept = res && res.status === 'kept'
+      ? '<div class="dsrc">You typed ' + fieldValueHtml(field, res.previous) + '; the document states the value above. <button type="button" class="xalt" data-doc-take="' + esc(field) + '" data-doc-which="doc">Use the document\'s</button></div>' : '';
+    var site = res && res.site
+      ? '<div class="dsrc">Your site renders <span class="xsw" style="background:' + esc(res.site.value) + '"></span> ' + esc(res.site.value) + (res.site.signal ? ' (' + esc(res.site.signal) + ')' : '') + '. The document outranks a site read, so its value was applied. <button type="button" class="xalt" data-doc-take="' + esc(field) + '" data-doc-which="site">Use the site\'s instead</button></div>' : '';
+    return '<div class="doc-row" data-doc-field="' + esc(field) + '"><div class="dl">' + esc(label) + '</div> <div class="dv">' + valueHtml + st +
+      (p ? '<div class="dsrc" data-doc-prov>' + esc(provLine(p, DOC.report && DOC.report.locator)) + '</div>' : '') + kept + site + (extra || '') + '</div></div>';
+  }
+  function docReport(r) {
+    var f = r.fields, out = '';
+    out += '<div class="xmeta" style="margin-top:12px"><b>Read from ' + esc(r.source.name) + '</b>' + (r.source.url ? ' (' + esc(r.source.url) + ')' : '') +
+      (r.pages ? ' · ' + r.pages + ' page(s)' : '') + ' · ' + r.lines_read + ' line(s) of text. Every value below is the document\'s own text, with where it is.</div>';
+    out += '<div class="doc-rows">';
+    [['name', 'Brand name'], ['tagline', 'Tagline'], ['website', 'Website'], ['legal_entity', 'Legal entity']].forEach(function (k) {
+      var x = f[k[0]];
+      var field = k[0] === 'legal_entity' ? 'brand_data.legal_entity' : k[0];
+      out += x ? docRow(field, k[1], esc(x.value), x.prov) : docRow(field, k[1], '<span class="marker">' + esc(marker(k[1].toLowerCase())) + '</span>', null);
+    });
+    ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted', 'ok', 'warn', 'err'].forEach(function (role) {
+      var c = f.palette[role];
+      if (c) out += docRow('palette.' + role, FIELD_LABEL['palette.' + role], fieldValueHtml('palette.' + role, c.hex) + (c.from === 'rgb' ? ' <span class="xtag">from the stated RGB ' + esc((c.rgb || []).join(' ')) + '</span>' : (c.from === 'drawn swatch' ? ' <span class="xtag weak">drawn swatch</span>' : '')) + (c.cmyk ? ' <span class="muted">CMYK ' + esc(c.cmyk.join(' ')) + '</span>' : '') + (c.pantone ? ' <span class="muted">Pantone ' + esc(c.pantone) + '</span>' : ''), c.prov);
+      else if (['primary', 'accent', 'ink', 'surface'].indexOf(role) >= 0) out += docRow('palette.' + role, FIELD_LABEL['palette.' + role], '<span class="marker">' + esc(marker('palette.' + role)) + '</span>', null);
+    });
+    f.extra.forEach(function (e) { out += docRow('palette.extra', 'Also named', fieldValueHtml('palette.x', e.hex) + ' ' + esc(e.name), e.prov); });
+    f.print_only.forEach(function (p, i) {
+      out += '<div class="doc-row" data-doc-print-only="' + i + '"><div class="dl">' + esc(p.label || 'Print colour') + '</div><div class="dv">' +
+        (p.cmyk ? 'CMYK ' + esc(p.cmyk.join(' ')) : '') + (p.pantone ? (p.cmyk ? ' · ' : '') + 'Pantone ' + esc(p.pantone) : '') +
+        ' <span class="doc-st">print only, no screen value stated</span>' +
+        '<div class="dsrc">' + esc(provLine(p.prov, r.locator)) + '</div>' +
+        (p.derived ? '<div class="dsrc" data-doc-derived>' + esc(p.derived.hex) + ' — ' + esc(p.derived.note) + (p.role ? ' <button type="button" class="xalt" data-doc-derived-use="' + i + '">Use ' + esc(p.derived.hex) + ' as ' + esc(p.role) + '</button>' : '') + '</div>' : '') +
+        (p.note ? '<div class="dsrc">' + esc(p.note) + '</div>' : '') + '</div></div>';
+    });
+    f.named_without_value.forEach(function (n) {
+      out += '<div class="doc-row" data-doc-named="' + esc(n.role) + '"><div class="dl">' + esc(FIELD_LABEL['palette.' + n.role] || n.role) + '</div><div class="dv">Named as “' + esc(n.words) + '” with no value. A colour named in prose is not a value: <span class="marker">' + esc(marker('palette.' + n.role)) + '</span><div class="dsrc">' + esc(provLine(n.prov, r.locator)) + '</div></div></div>';
+    });
+    ['heading', 'body', 'mono'].forEach(function (slot) {
+      var t = f.typography[slot];
+      if (t) out += docRow('typography.' + slot, FIELD_LABEL['typography.' + slot], '<b>' + esc(t.family) + '</b>' + (t.weights && t.weights.length ? ' <span class="muted">' + esc(t.weights.join(', ')) + '</span>' : '') + (t.size ? ' <span class="muted">' + esc(t.size) + (t.line_height ? '/' + esc(t.line_height) : '') + '</span>' : '') + (t.applies ? ' <span class="xtag">' + esc(t.applies) + '</span>' : ''), t.prov);
+      else if (slot !== 'mono') out += docRow('typography.' + slot, FIELD_LABEL['typography.' + slot], '<span class="marker">' + esc(marker('typography.' + slot)) + '</span>', null);
+    });
+    (f.fonts || []).forEach(function (ff) { out += docRow('font-file', 'Font file', esc(ff.family) + ' · ' + esc(ff.url) + (ff.resolved ? '' : ' <span class="xtag weak">relative, not resolvable</span>'), ff.prov); });
+    // Logo: the images the document embeds, the one beside the word "logo" first.
+    if (r.images.length) {
+      out += '<div class="doc-row" data-doc-field="logo_url"><div class="dl">Logo</div><div class="dv">' +
+        (DOC.logoPick >= 0 ? '' : '<span class="marker">' + esc(marker('logo')) + '</span> No embedded image sits beside the word “logo”; pick one below if one of them is it.') +
+        '<div class="doc-imgs">' + r.images.map(function (im, i) {
+          return '<button type="button" data-doc-logo="' + i + '" aria-pressed="' + (DOC.logoPick === i ? 'true' : 'false') + '"><img src="' + esc(DOC.imgUrls[i] || '') + '" alt="">' + esc(im.page ? 'p.' + im.page : (im.line ? '¶ ' + im.line : im.name)) + (im.mentions_logo ? ' · logo' : '') + '</button>';
+        }).join('') + '</div>' +
+        (DOC.logoPick >= 0 ? '<div class="dsrc" data-doc-prov>' + esc(provLine(r.images[DOC.logoPick].prov, r.locator)) + '</div>' : '') +
+        ((DOC.results || []).filter(function (x) { return x.field === 'logo_url'; }).map(function (x) { return '<span class="doc-st" data-doc-status="' + esc(x.status) + '">' + esc(STATUS_WORD[x.status] || x.status) + '</span>'; }).join('')) +
+        '</div></div>';
+    } else out += docRow('logo_url', 'Logo', '<span class="marker">' + esc(marker('logo')) + '</span> The document embeds no logo image. Upload the logo file below.', null);
+    f.logo.rules.forEach(function (lr) { out += docRow('logo-rule', lr.kind === 'clear-space' ? 'Logo clear space' : (lr.kind === 'min-size' ? 'Logo minimum size' : 'Logo misuse'), esc(lr.text), lr.prov); });
+    if (f.voice.tone) out += docRow('voice.tone', 'Tone of voice', esc(f.voice.tone.value), f.voice.tone.prov);
+    else out += docRow('voice.tone', 'Tone of voice', '<span class="marker">' + esc(marker('voice.tone')) + '</span>', null);
+    if (f.voice.preferred.length) out += docRow('voice.preferred', 'Preferred words', esc(f.voice.preferred.map(function (x) { return x.value; }).join(', ')), f.voice.preferred[0].prov);
+    if (f.voice.banned.length) out += docRow('voice.banned', 'Banned phrases', esc(f.voice.banned.map(function (x) { return x.value; }).join(', ')), f.voice.banned[0].prov);
+    else out += docRow('voice.banned', 'Banned phrases', '<span class="marker">' + esc(marker('voice.banned phrases')) + '</span>', null);
+    if (f.voice.no_em_dashes) out += docRow('voice.no_em_dashes', 'Dash rule', 'Never use em or en dashes', f.voice.no_em_dashes.prov);
+    if (f.claims.length) out += docRow('brand_data.claims', 'Claims', f.claims.map(function (c) { return esc(c.value); }).join('<br>'), f.claims[0].prov);
+    Object.keys(f.components).forEach(function (n) {
+      Object.keys(f.components[n]).forEach(function (k) { var x = f.components[n][k]; out += docRow('components', n + ' ' + k, esc(x.value), x.prov); });
+    });
+    Object.keys(f.rounded).forEach(function (k) { out += docRow('components', 'Corner radius ' + k, esc(f.rounded[k].value), f.rounded[k].prov); });
+    Object.keys(f.spacing).forEach(function (k) { out += docRow('components', 'Spacing ' + k, esc(f.spacing[k].value), f.spacing[k].prov); });
+    if (f.rules['image-treatment']) out += docRow('components', 'Image treatment', esc(f.rules['image-treatment'].value), f.rules['image-treatment'].prov);
+    out += '</div>';
+    if (r.notes.length || r.limits.length) out += '<div class="xlimits"><b>What this read could not take</b><ul>' + r.notes.concat(r.limits).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+    out += '<div class="doc-acts">' + (DOC.results
+      ? '<button type="button" class="btn" id="docRevert">Revert</button>'
+      : '<button type="button" class="btn primary" id="docApply">Apply everything the document states</button>') + '</div>';
+    if (DOC.results) out += docRulesPanel();
+    return out;
+  }
+  /* The design hard rules, VISIBLE after an apply: what the exact colours
+     fail, and every text token the platform derived from them. */
+  function docRulesPanel() {
+    var pc = checkPalette();
+    var p = brand.palette, out = '<div class="verdict ' + (pc.errors.length ? 'bad' : (pc.warnings.length ? 'warn' : 'ok')) + '" id="docRules">';
+    out += '<b>' + (pc.errors.length ? 'Hard-rule conflict: these exact colours cannot be activated as stated' : 'The exact colours pass the design rules') + '</b>';
+    if (pc.errors.length) out += '<ul>' + pc.errors.map(function (e) { return '<li data-doc-hardrule="' + esc(e.field) + '">' + esc(e.message) + ' Nothing was swapped: the value is the document\'s, so you decide on step 2.</li>'; }).join('') + '</ul>';
+    var tok = window.BrandContext && window.BrandContext.tokensFor ? window.BrandContext.tokensFor(brand) : null;
+    if (tok) {
+      var worst = function (c) { var a = contrast(c, p.surface || '#ffffff'), b = contrast(c, p.surface_alt || '#ffffff'); return a <= b ? (p.surface || '#ffffff') : (p.surface_alt || '#ffffff'); };
+      var rows = [['--brand-primary-text', p.primary], ['--brand-accent-text', p.accent], ['--brand-ink-muted', p.muted]].filter(function (x) { return x[1] && tok[x[0]] && tok[x[0]].toLowerCase() !== String(x[1]).toLowerCase(); });
+      out += '<div style="margin-top:6px">Exact colours become the tokens <code>--brand-primary</code>, <code>--brand-accent</code>, <code>--brand-ink</code> and <code>--brand-surface</code> unchanged.' +
+        (rows.length ? ' Text tokens adjusted for WCAG AA:' : ' No text token needed adjusting.') + '</div>';
+      if (rows.length) out += '<ul>' + rows.map(function (x) {
+        var bg = worst(x[1]);
+        return '<li data-doc-derived-token="' + esc(x[0]) + '"><code>' + esc(x[0]) + '</code> ' + esc(tok[x[0]]) + ' — DERIVED from ' + esc(x[1]) + ': ' + contrast(x[1], bg) + ':1 on ' + esc(bg) + ' raised to ' + contrast(tok[x[0]], bg) + ':1.</li>';
+      }).join('') + '</ul>';
+    }
+    return out + '</div>';
+  }
+  function docBlock() {
+    var busy = DOC.busy;
+    var out = '<div class="xtract" id="docBlock" data-no-brand-swap><h3>Upload my brand guidelines</h3>' +
+      '<p class="xmeta">Your brand book or style guide states the brand in its own words: its colours and their roles, its typefaces, its logo and clear-space rules, its voice and the words it bans. Upload it as a file, or paste a link to it; either is enough. PDF, Word (.docx), DESIGN.md, JSON design tokens (W3C, Style Dictionary, Tokens Studio, a Figma variables export), CSS, SVG or an image of a style sheet. It is read in this browser, every value keeps the page and line it came from, and nothing is applied until you press Apply.</p>' +
+      '<div class="pair" style="margin-top:11px">' +
+        '<label class="btn primary" id="docFileBtn">' + (busy ? 'Reading...' : 'Upload a file') + '<input type="file" id="docFile" accept=".pdf,.docx,.md,.markdown,.json,.css,.svg,.png,.jpg,.jpeg,.webp,.txt,application/pdf"></label>' +
+        '<span class="pair-or">or paste a link</span>' +
+        '<input type="url" id="docUrl" value="' + esc(DOC.urlDraft) + '" placeholder="https://... your brand book, or a DESIGN.md">' +
+        '<button type="button" class="btn" id="docUrlRun"' + (busy ? ' disabled aria-disabled="true"' : '') + '>' + (busy ? 'Reading...' : 'Read the link') + '</button>' +
+      '</div>' +
+      '<p class="asset-note" role="status" id="docStatus">' + esc(DOC.status || '') + '</p>';
+    if (DOC.error) out += window.LifecycleFailure.html(DOC.error, { title: DOC.errorTitle || 'Nothing was read and nothing was applied' });
+    if (DOC.report) out += docReport(DOC.report);
+    return out + '</div>';
+  }
+  function conflictsHtml() {
+    if (!DOC.conflicts.length) return '';
+    return DOC.conflicts.map(function (c) {
+      var lbl = FIELD_LABEL[c.field] || c.field;
+      return '<div class="doc-conflict" data-doc-conflict="' + esc(c.field) + '"><b>' + esc(lbl) + ': your brand guidelines and ' + esc(c.other.origin === 'preset' ? 'a profile' : 'your site') + ' disagree</b>' +
+        'Guidelines: ' + fieldValueHtml(c.field, c.doc.raw != null ? c.doc.raw : c.doc.value) + ' <span class="muted">(' + esc(provLine(c.doc, '')) + ')</span><br>' +
+        (c.other.origin === 'preset' ? 'Profile: ' : 'Site (' + esc(c.other.origin) + '): ') + fieldValueHtml(c.field, c.other.value) + (c.other.signal ? ' <span class="muted">(' + esc(c.other.signal) + (c.other.source_url ? ' · ' + esc(c.other.source_url) : '') + ')</span>' : '') +
+        '<div class="xalts" style="margin-top:7px"><button type="button" class="xalt" data-doc-take="' + esc(c.field) + '" data-doc-which="keepdoc">Keep the guidelines\' value</button>' +
+        '<button type="button" class="xalt" data-doc-take="' + esc(c.field) + '" data-doc-which="other">Use the other value</button></div></div>';
+    }).join('');
+  }
+
+  /* ── assets: a FILE or a URL, either is enough ── */
+  var IMG_TYPES = /^image\/(png|jpeg|webp|svg\+xml|gif)$/;
+  var IMG_EXT = /\.(png|jpe?g|webp|svg|gif)$/i;
+  var ASSET_RULES = {
+    logo: { what: 'logo', max: 2 * 1048576, minPx: 32 },
+    favicon: { what: 'app icon', max: 1048576, minPx: 48, square: true },
+    image: { what: 'brand image', max: 8 * 1048576, minPx: 120 },
+  };
+  function mb(n) { return (n / 1048576).toFixed(n < 1048576 ? 2 : 1) + ' MB'; }
+  function imageSize(blob) {
+    return new Promise(function (resolve, reject) {
+      var u = URL.createObjectURL(blob), img = new Image(), done = false;
+      img.onload = function () { done = true; URL.revokeObjectURL(u); resolve({ width: img.naturalWidth, height: img.naturalHeight }); };
+      img.onerror = function () { done = true; URL.revokeObjectURL(u); reject(new Error('That file did not open as an image, so it was not used.')); };
+      setTimeout(function () { if (!done) { URL.revokeObjectURL(u); reject(new Error('That image took too long to open, so it was not used.')); } }, 8000);
+      img.src = u;
+    });
+  }
+  /** Validate an image file and return the blob to keep (an SVG is sanitised). */
+  async function checkImage(file, kind) {
+    var rule = ASSET_RULES[kind];
+    if (!IMG_TYPES.test(file.type || '') && !IMG_EXT.test(file.name || '')) throw new Error('A ' + rule.what + ' has to be a PNG, JPG, WebP, SVG or GIF image; “' + file.name + '” is not one of those, so it was not used.');
+    if (file.size > rule.max) throw new Error('“' + file.name + '” is ' + mb(file.size) + '; a ' + rule.what + ' can be at most ' + mb(rule.max) + ', so it was not used.');
+    var blob = file, removed = 0;
+    if (/svg/.test(file.type) || /\.svg$/i.test(file.name)) {
+      var lib = await waitDocLib();
+      var s = lib.sanitizeSvg(await file.text());
+      removed = s.removed;
+      blob = new Blob([s.text], { type: 'image/svg+xml' });
+    }
+    var dim = await imageSize(blob);
+    if (Math.min(dim.width, dim.height) < rule.minPx) throw new Error('That ' + rule.what + ' is ' + dim.width + '×' + dim.height + ' px; at least ' + rule.minPx + ' px on its shorter side is needed, so it was not used.');
+    if (rule.square && Math.abs(dim.width / dim.height - 1) > 0.1) throw new Error('An app icon has to be square; this one is ' + dim.width + '×' + dim.height + ' px, so it was not used.');
+    return { blob: blob, width: dim.width, height: dim.height, removed: removed };
+  }
+  function hostLabel(u) { try { return new URL(u).host; } catch (_) { return u; } }
+  function deviceNote(kind) {
+    if (kind === 'document') return 'Kept on this device only. A brand book is private, so it is never uploaded to the public file store; the values it states are what the brand record keeps.';
+    var what = kind === 'favicon' ? 'app icon' : (kind.indexOf('font') === 0 ? 'font' : (kind === 'image' ? 'image' : (kind === 'document' ? 'guideline document' : 'logo')));
+    var mk = '[DATA REQUIRED BEFORE LAUNCH: hosted ' + (what === 'guideline document' ? 'document' : what) + ' URL, ' + (brand.name || 'this brand') + ']';
+    return 'Kept on this device. The app and its previews use it now; a generated mailer or ad carries ' + mk + ' in its place until it is hosted, because an email cannot reach a file on this device.';
+  }
+  /** Keep a file for this brand: hosted when the account can upload it, else on this device. */
+  async function storeAsset(kind, blob, info) {
+    var BC = window.BrandContext;
+    if (!BC || !BC.files) throw new Error('The brand layer has not loaded yet, so the file could not be kept. Give it a moment and try again.');
+    var lib = await waitDocLib();
+    var sha = await lib.sha256(await blob.arrayBuffer());
+    var meta = await BC.files.put(fileOwnerId(), kind, blob, { name: info.name, sha256: sha, width: info.width, height: info.height, family: info.family, format: info.format });
+    var ref = { id: meta.id, name: meta.name, type: meta.type, size: meta.size, width: info.width || null, height: info.height || null, sha256: sha, hosted_url: '', source: 'upload', from: info.from || 'upload' };
+    if (info.family) ref.family = info.family;
+    if (info.format) ref.format = info.format;
+    // A brand book is private: it stays on this device for every account. Only
+    // what a generated asset references (logo, icon, fonts, imagery) is hosted.
+    if (brand.id && !isLocalId(brand.id) && kind !== 'document') {
+      var h = await BC.files.host(brand.id, Object.assign({ blob: blob }, meta));
+      if (h.hosted) ref.hosted_url = h.url; else ref.host_note = h.reason;
+    }
+    var bf = bfiles();
+    if (kind === 'logo' || kind === 'favicon') {
+      bf[kind] = ref;
+      brand[kind === 'logo' ? 'logo_url' : 'favicon_url'] = ref.hosted_url || '';
+    } else if (kind === 'image') { bf.images = (Array.isArray(bf.images) ? bf.images : []).concat([ref]).slice(-24); }
+    else if (kind.indexOf('font:') === 0) { bf.fonts = bf.fonts || {}; bf.fonts[kind.slice(5)] = ref; }
+    else if (kind === 'document') bf.document = ref;
+    ASSET[kind] = { note: ref.hosted_url ? 'Hosted at ' + hostLabel(ref.hosted_url) + '. Generated mailers and ads use this URL.' : deviceNote(kind) };
+    return ref;
+  }
+  function assetNote(kind) {
+    if (ASSET[kind] && ASSET[kind].note) return ASSET[kind].note;
+    var bf = bfiles();
+    var ref = kind === 'image' ? (Array.isArray(bf.images) ? bf.images.filter(function (x) { return x && x.id && !x.hosted_url; })[0] : null) : (kind.indexOf('font:') === 0 ? (bf.fonts || {})[kind.slice(5)] : bf[kind]);
+    return ref && ref.id && !ref.hosted_url ? deviceNote(kind) : '';
+  }
+  async function onAssetFile(kind, input) {
+    var list = Array.prototype.slice.call(input.files || []);
+    input.value = '';
+    if (!list.length) return;
+    ASSET[kind] = { note: 'Checking ' + list[0].name + '...' }; render();
+    try {
+      if (kind.indexOf('font:') === 0) { await useFontFile(kind.slice(5), list[0]); }
+      else {
+        for (var i = 0; i < list.length; i++) {
+          var ok = await checkImage(list[i], kind);
+          await storeAsset(kind, ok.blob, { name: list[i].name, width: ok.width, height: ok.height });
+          if (kind !== 'image') setOrigin(kind === 'logo' ? 'logo_url' : 'favicon_url', 'user', { file: list[i].name });
+          if (ok.removed) ASSET[kind].note = 'Its scripts and event handlers were removed (' + ok.removed + '); it is only ever shown as an image. ' + ASSET[kind].note;
+        }
+      }
+    } catch (e) { ASSET[kind] = { note: (e && e.message) || 'That file could not be used.' }; }
+    render();
+  }
+  /** A URL the operator pasted: checked to load, used as-is, never re-hosted.
+      Typing already wrote the field, so an address that is refused or does not
+      load puts back the logo or icon that was there (`accepted`, taken when the
+      control was drawn), with its origin: a failed paste never blanks a brand's
+      mark, or hides the uploaded file a blank URL falls back to. */
+  function onAssetUrl(kind, input, accepted) {
+    var v = String(input.value || '').trim();
+    var path = kind === 'logo' ? 'logo_url' : (kind === 'favicon' ? 'favicon_url' : '');
+    function refuse(note) {
+      var had = '';
+      if (path && accepted) {
+        brand[path] = accepted.value;
+        if (accepted.origin) origins()[path] = accepted.origin; else delete origins()[path];
+        lastSeen[path] = normVal(accepted.value);
+        had = accepted.value || (bfiles()[kind] && bfiles()[kind].id ? 'file' : '');
+      }
+      ASSET[kind] = { note: note + (had ? ' The ' + (kind === 'logo' ? 'logo' : 'app icon') + ' you had is kept.' : '') };
+      render();
+    }
+    if (!v) { ASSET[kind] = { note: kind === 'image' ? 'Paste the address of an image first.' : '' }; render(); return; }
+    var u;
+    try { u = new URL(v); } catch (_) { refuse('That is not a web address.'); return; }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') { refuse('Only http and https addresses can be used.'); return; }
+    var img = new Image();
+    img.onload = function () {
+      var own = ownHost(u.host);
+      var bits = [];
+      if (u.protocol !== 'https:') bits.push('This is not an https address, so generated emails will not use it (mail clients block mixed content).');
+      else if (!own) bits.push('It is on ' + u.host + ', which this brand has not declared as its own; generated emails hotlink it as-is.');
+      if (kind === 'image') {
+        bd().brand_assets = (Array.isArray(bd().brand_assets) ? bd().brand_assets : []).concat([{ url: v, role: 'image', alt: '', found_on: 'added by the operator' }]);
+        input.value = '';
+      } else {
+        // The pasted URL replaces an uploaded file for this slot.
+        var bf = bfiles();
+        if (bf[kind] && bf[kind].id && window.BrandContext && window.BrandContext.files) window.BrandContext.files.remove(fileOwnerId(), bf[kind].id).catch(function () {});
+        delete bf[kind];
+      }
+      ASSET[kind] = { note: (img.naturalWidth ? 'Loaded (' + img.naturalWidth + '×' + img.naturalHeight + ' px). ' : 'Loaded. ') + bits.join(' ') };
+      render();
+    };
+    img.onerror = function () { refuse('That address did not load as an image. Check it opens in a browser tab, or upload the file instead.'); };
+    img.src = v;
+  }
+  function ownHost(host) {
+    var h = String(host || '').toLowerCase().replace(/^www\./, '');
+    var mine = [brand.website].concat((brand.regions || []).map(function (r) { return r.store_url; }))
+      .map(function (x) { try { return new URL(x).host.toLowerCase().replace(/^www\./, ''); } catch (_) { return ''; } })
+      .concat((brand.asset_hosts || []).map(function (x) { return String(x).toLowerCase().replace(/^www\./, ''); }))
+      .filter(Boolean);
+    return mine.some(function (m) { return h === m || h.slice(-m.length - 1) === '.' + m; });
+  }
+  async function previewFor(kind) {
+    var bf = bfiles(), ref = bf[kind];
+    var url = kind === 'logo' ? brand.logo_url : brand.favicon_url;
+    if (ref && ref.id && !url && window.BrandContext && window.BrandContext.files) url = await window.BrandContext.files.url(fileOwnerId(), ref.id);
+    return { url: url || '', ref: ref || null };
+  }
+  function assetPair(kind) {
+    var cfg = {
+      logo: { label: 'Logo', path: 'logo_url', ph: 'https://yourbrand.com/logo.svg', note: 'a file or a URL, either is enough' },
+      favicon: { label: 'App icon (favicon)', path: 'favicon_url', ph: 'https://yourbrand.com/icon-512.png', note: 'square, at least 48 px; a file or a URL' },
+      image: { label: 'Brand imagery', path: '', ph: 'https://yourbrand.com/hero.jpg', note: 'hero and lifestyle photographs; files or URLs' },
+    }[kind];
+    var accept = 'image/png,image/jpeg,image/webp,image/svg+xml,image/gif';
+    var imgs = kind === 'image' ? (bfiles().images || []) : [];
+    return '<div class="field" data-asset="' + kind + '"><label>' + esc(cfg.label) + ' <span class="note">' + esc(cfg.note) + '</span></label>' +
+      '<div class="pair">' +
+        '<label class="btn" data-asset-upload="' + kind + '">Upload a file<input type="file" data-asset-file="' + kind + '" accept="' + accept + '"' + (kind === 'image' ? ' multiple' : '') + '></label>' +
+        '<span class="pair-or">or paste a URL</span>' +
+        (cfg.path
+          ? '<input type="url" data-path="' + cfg.path + '" data-asset-url="' + kind + '" value="' + esc(brand[cfg.path] || '') + '" placeholder="' + esc(cfg.ph) + '">'
+          : '<input type="url" data-asset-url="image" placeholder="' + esc(cfg.ph) + '"><button type="button" class="btn" data-asset-add="image" style="padding:9px 14px;font-size:12.5px">Add</button>') +
+      '</div>' +
+      // A brand slot: this is where the brand's OWN mark is meant to show
+      // (platform-identity.spec.js holds every other image to the platform's).
+      '<div class="asset-prev" data-asset-prev="' + kind + '"' + (kind === 'image' ? '' : ' data-brand-slot="' + kind + '"') + '>' + (kind === 'image' && imgs.length ? imgs.length + ' uploaded image(s) for this brand' + (imgs.some(function (x) { return !x.hosted_url; }) ? ' <span class="xtag">on this device</span>' : ' <span class="xtag declared">hosted</span>') : '') + '</div>' +
+      '<p class="asset-note" role="status" data-asset-note="' + kind + '">' + esc(assetNote(kind)) + '</p></div>';
+  }
+  function fontFilePair(slot) {
+    var ref = (bfiles().fonts || {})[slot];
+    var kind = 'font:' + slot;
+    return '<div class="field" data-asset="' + kind + '" style="margin-top:-4px"><label>' + (slot === 'heading' ? 'Heading' : 'Body') + ' font file <span class="note">WOFF2, WOFF, TTF or OTF, or its URL; either is enough</span></label>' +
+      '<div class="pair"><label class="btn" data-asset-upload="' + kind + '">Upload a font<input type="file" data-asset-file="' + kind + '" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"></label>' +
+        '<span class="pair-or">or paste a URL</span>' +
+        '<input type="url" data-font-url="' + slot + '" value="' + esc((ref && ref.url) || '') + '" placeholder="https://yourbrand.com/fonts/brand.woff2">' +
+        '<button type="button" class="btn" data-font-load="' + slot + '" style="padding:9px 14px;font-size:12.5px">Load font</button></div>' +
+      (ref && ref.family ? '<div class="asset-prev" data-asset-prev="' + kind + '"><span style="font-family:\'' + esc(ref.family) + '\',' + GENERIC[slot] + ';font-size:18px;color:var(--ink)">' + esc(ref.family) + ' Aa</span> ' + esc(ref.name || ref.url || '') + (ref.hosted_url ? ' <span class="xtag declared">hosted</span>' : (ref.url ? ' <span class="xtag">url</span>' : ' <span class="xtag">on this device</span>')) + '</div>' : '') +
+      '<p class="asset-note" role="status" data-asset-note="' + kind + '">' + esc(assetNote(kind)) + '</p></div>';
+  }
+  var FONT_EXT = /\.(woff2|woff|ttf|otf)$/i;
+  function familyFromName(name) { return String(name || '').replace(FONT_EXT, '').replace(/[-_ ](regular|bold|medium|light|semibold|italic|book|black|variable|vf|webfont|\d{3})$/ig, '').replace(/[-_]+/g, ' ').trim() || 'Brand Font'; }
+  function customFamily(slot) {
+    var cur = brand.typography[slot];
+    var typed = document.querySelector('[data-custom-family="' + slot + '"]');
+    var v = typed && typed.value.trim();
+    if (v) return v;
+    return cur && cur.family && GOOGLE_FONTS.indexOf(cur.family) < 0 ? cur.family : '';
+  }
+  async function useFontFile(slot, file) {
+    if (!FONT_EXT.test(file.name || '')) throw new Error('A font file has to be WOFF2, WOFF, TTF or OTF; “' + file.name + '” is not, so it was not used.');
+    if (file.size > 4 * 1048576) throw new Error('“' + file.name + '” is ' + mb(file.size) + '; a font file can be at most 4 MB, so it was not used.');
+    var family = customFamily(slot) || familyFromName(file.name);
+    var buf = await file.arrayBuffer();
+    var face;
+    try { face = new FontFace(family, buf); await face.load(); }
+    catch (_) { throw new Error('“' + file.name + '” is not a font this browser can load, so it was not used.'); }
+    document.fonts.add(face);
+    var format = (file.name.match(FONT_EXT) || ['', ''])[1].toLowerCase();
+    var type = { woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', otf: 'font/otf' }[format];
+    var ref = await storeAsset('font:' + slot, new Blob([buf], { type: type }), { name: file.name, family: family, format: format });
+    brand.typography[slot] = selfHostedFont(slot, family, ref.hosted_url, format);
+    setOrigin('typography.' + slot, 'user', { file: file.name });
+  }
+  async function useFontUrl(slot, input) {
+    var v = String(input.value || '').trim();
+    var kind = 'font:' + slot;
+    if (!v) { ASSET[kind] = { note: 'Paste the address of a font file (or a Google Fonts link) first.' }; render(); return; }
+    var u;
+    try { u = new URL(v); } catch (_) { ASSET[kind] = { note: 'That is not a web address.' }; render(); return; }
+    if (u.protocol !== 'https:') { ASSET[kind] = { note: 'A font URL has to be https, because the app and every generated page load it from there.' }; render(); return; }
+    if (u.host === 'fonts.googleapis.com') {
+      var fam = (u.searchParams.get('family') || '').split(':')[0].replace(/\+/g, ' ').trim();
+      if (!fam) { ASSET[kind] = { note: 'That Google Fonts link names no family.' }; render(); return; }
+      brand.typography[slot] = { family: fam, stack: "'" + fam + "'," + GENERIC[slot], google: true, weights: slot === 'heading' ? '500;600;700' : '400;500;600;700' };
+      setOrigin('typography.' + slot, 'user', { url: v });
+      loadPreviewFont(fam);
+      ASSET[kind] = { note: fam + ' will load from Google Fonts on every page and in every generated asset.' };
+      render(); return;
+    }
+    var family = customFamily(slot) || familyFromName(decodeURIComponent(u.pathname.split('/').pop()));
+    ASSET[kind] = { note: 'Loading ' + family + '...' }; render();
+    try {
+      var face = new FontFace(family, 'url(' + JSON.stringify(v) + ')');
+      await face.load();
+      document.fonts.add(face);
+    } catch (_) { ASSET[kind] = { note: 'That address did not load as a font (it must be a WOFF2, WOFF, TTF or OTF file the host lets other sites use). Upload the file instead.' }; render(); return; }
+    var bf = bfiles(); bf.fonts = bf.fonts || {};
+    if (bf.fonts[slot] && bf.fonts[slot].id && window.BrandContext && window.BrandContext.files) window.BrandContext.files.remove(fileOwnerId(), bf.fonts[slot].id).catch(function () {});
+    bf.fonts[slot] = { url: v, family: family, source: 'url', format: (u.pathname.match(FONT_EXT) || ['', ''])[1].toLowerCase() };
+    brand.typography[slot] = selfHostedFont(slot, family, v, bf.fonts[slot].format);
+    setOrigin('typography.' + slot, 'user', { url: v });
+    ASSET[kind] = { note: family + ' loaded from ' + u.host + '. Every generated page and email references this URL.' };
+    render();
+  }
+  /** A family the brand serves itself. `src` is the https file every generated
+      page and email declares in @font-face (brand-runtime.fontFaces); a file
+      kept only on this device has none yet, and assets carry the hosted-font
+      marker instead. */
+  function selfHostedFont(slot, family, src, format) {
+    var t = { family: family, stack: "'" + family + "'," + GENERIC[slot], google: false, weights: (brand.typography[slot] && brand.typography[slot].weights) || '400;600;700' };
+    if (src && /^https:\/\//i.test(src)) { t.src = src; if (format) t.format = format; }
+    return t;
+  }
+  /** Fonts this brand keeps as files: registered so the wizard previews them. */
+  function registerFontRefs() {
+    var fonts = (bfiles().fonts) || {};
+    Object.keys(fonts).forEach(function (slot) {
+      var r = fonts[slot];
+      if (!r || !r.family) return;
+      var src = r.hosted_url || r.url;
+      (src ? Promise.resolve('url(' + JSON.stringify(src) + ')') : (window.BrandContext && window.BrandContext.files ? window.BrandContext.files.get(fileOwnerId(), r.id).then(function (rec) { return rec && rec.blob ? rec.blob.arrayBuffer() : null; }) : Promise.resolve(null)))
+        .then(function (s) { if (!s) return; var f = new FontFace(r.family, s); return f.load().then(function (x) { document.fonts.add(x); paintPreview(); }); })
+        .catch(function () {});
+    });
+  }
+  /** Files kept before the brand had an id move to its id; an account brand then hosts them. */
+  async function adoptPendingFiles() {
+    var BC = window.BrandContext;
+    if (!BC || !BC.files || !brand.id) return;
+    try { await BC.files.adopt(PENDING_ID, brand.id); } catch (_) { return; }
+    if (isLocalId(brand.id)) return;
+    var bf = bfiles(), changed = false;
+    var refs = [['logo', bf.logo], ['favicon', bf.favicon]];    // never the brand book: it is private
+    Object.keys(bf.fonts || {}).forEach(function (s) { refs.push(['font:' + s, bf.fonts[s]]); });
+    (bf.images || []).forEach(function (r) { refs.push(['image', r]); });
+    for (var i = 0; i < refs.length; i++) {
+      var ref = refs[i][1];
+      if (!ref || !ref.id || ref.hosted_url) continue;
+      var rec = await BC.files.get(brand.id, ref.id);
+      if (!rec) continue;
+      var h = await BC.files.host(brand.id, rec);
+      if (!h.hosted) continue;
+      ref.hosted_url = h.url; changed = true;
+      if (refs[i][0] === 'logo' && !brand.logo_url) brand.logo_url = h.url;
+      if (refs[i][0] === 'favicon' && !brand.favicon_url) brand.favicon_url = h.url;
+      if (refs[i][0].indexOf('font:') === 0) {
+        var fs = refs[i][0].slice(5), cur = brand.typography[fs];
+        if (cur && cur.family === ref.family && cur.google === false && !cur.src) brand.typography[fs] = selfHostedFont(fs, ref.family, h.url, ref.format);
+      }
+    }
+    if (changed) { setTimeout(function () { save(true); }, 0); }
+  }
+
+  /* ── wiring, after every render ── */
+  function docAfterRender(c) {
+    if (DOC.conflicts.length && c.firstChild) {
+      var box = document.createElement('div');
+      box.setAttribute('data-no-brand-swap', '');
+      box.innerHTML = conflictsHtml();
+      c.insertBefore(box, c.children[1] || null);
+    }
+    var fi = $('docFile');
+    if (fi) fi.addEventListener('change', function () {
+      var file = fi.files && fi.files[0];
+      fi.value = '';
+      if (!file) return;
+      DOC.source = { blob: file, name: file.name, type: file.type };
+      docRead(function () { return waitDocLib().then(function (lib) { return lib.read(file); }); }, file.name);
+    });
+    var du = $('docUrl');
+    if (du) du.addEventListener('input', function () { DOC.urlDraft = du.value; });
+    var run = $('docUrlRun');
+    if (run) run.addEventListener('click', function () {
+      var url = ($('docUrl') && $('docUrl').value.trim()) || '';
+      if (!url) { DOC.status = 'Paste the address of your brand guidelines first, or upload the file.'; render(); return; }
+      DOC.source = null;
+      docRead(function () { return waitDocLib().then(function (lib) { return lib.readUrl(url, { viaServer: docViaServer }); }); }, url);
+    });
+    var ap = $('docApply'); if (ap) ap.addEventListener('click', docApply);
+    var rv = $('docRevert'); if (rv) rv.addEventListener('click', docRevert);
+    Array.prototype.forEach.call(c.querySelectorAll('[data-doc-logo]'), function (b) {
+      b.addEventListener('click', function () { var i = +b.getAttribute('data-doc-logo'); DOC.logoPick = DOC.logoPick === i ? -1 : i; render(); });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('[data-doc-take]'), function (b) {
+      b.addEventListener('click', function () { docTake(b.getAttribute('data-doc-take'), b.getAttribute('data-doc-which')); });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('[data-doc-derived-use]'), function (b) {
+      b.addEventListener('click', function () { docUseDerived(+b.getAttribute('data-doc-derived-use')); });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('[data-asset-file]'), function (inp) {
+      inp.addEventListener('change', function () { onAssetFile(inp.getAttribute('data-asset-file'), inp); });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('input[data-asset-url]'), function (inp) {
+      var kind = inp.getAttribute('data-asset-url');
+      if (kind === 'image') return;
+      var p = inp.getAttribute('data-path');
+      var o = p && origins()[p];
+      var accepted = { value: (p && brand[p]) || '', origin: o ? JSON.parse(JSON.stringify(o)) : null };
+      inp.addEventListener('change', function () { onAssetUrl(kind, inp, accepted); });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('[data-asset-add]'), function (b) {
+      b.addEventListener('click', function () { onAssetUrl('image', c.querySelector('input[data-asset-url="image"]')); });
+    });
+    Array.prototype.forEach.call(c.querySelectorAll('[data-font-load]'), function (b) {
+      b.addEventListener('click', function () { var s = b.getAttribute('data-font-load'); useFontUrl(s, c.querySelector('[data-font-url="' + s + '"]')); });
+    });
+    ['logo', 'favicon'].forEach(function (kind) {
+      var slot = c.querySelector('[data-asset-prev="' + kind + '"]');
+      if (!slot) return;
+      previewFor(kind).then(function (pv) {
+        if (!pv.url) return;
+        var where = pv.ref && pv.ref.id ? (pv.ref.hosted_url ? '<span class="xtag declared">hosted</span>' : '<span class="xtag">on this device</span>') : '<span class="xtag">url</span>';
+        // Rendered as an <img> only: an SVG is never inlined, so nothing in it can run.
+        slot.innerHTML = '<img alt="" src="' + esc(pv.url) + '"><span>' + esc((pv.ref && pv.ref.name) || hostLabel(pv.url)) + (pv.ref && pv.ref.width ? ' · ' + pv.ref.width + '×' + pv.ref.height + ' px' : '') + '</span>' + where;
+      }).catch(function () {});
+    });
+  }
+
   /* ── persistence ────────────────────────────────────────────────────── */
   async function save(silent) {
     if (busy) return;
@@ -2256,8 +3508,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!brand.slug) brand.slug = slugify(brand.name);
       var r = await api('save', { brand: brand });
       if (r.brand) {
+        var wasPending = !brand.id;
         brand.id = r.brand.id;
         brand.slug = r.brand.slug;
+        if (wasPending && brand.id) adoptPendingFiles();
         if (typeof r.brand.products === 'number') catalogCount = r.brand.products;
       }
       if (!silent) toast('Saved.');
@@ -2298,7 +3552,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (target) {
         var r = await api('get', null, '&id=' + encodeURIComponent(target));
         if (r.brand) {
-          ['id','slug','name','tagline','industry','website','logo_url','status'].forEach(function (k) { brand[k] = r.brand[k] || ''; });
+          ['id','slug','name','tagline','industry','website','logo_url','favicon_url','status'].forEach(function (k) { brand[k] = r.brand[k] || ''; });
           if (r.brand.palette && Object.keys(r.brand.palette).length) brand.palette = Object.assign(brand.palette, r.brand.palette);
           if (r.brand.typography && r.brand.typography.heading) brand.typography = r.brand.typography;
           if (r.brand.voice) brand.voice = Object.assign(brand.voice, r.brand.voice);
@@ -2311,7 +3565,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // {} - and claims are what every generator is allowed to state as
           // fact, so the loss is invisible until an asset comes out with a
           // DATA REQUIRED marker where its proof line was.
-          if (r.brand.brand_data && typeof r.brand.brand_data === 'object') brand.brand_data = r.brand.brand_data;
+          // The saved record's own brand_data, or NONE: the placeholder origins
+          // of the empty form must never be laid over a saved brand's values.
+          var loadedPalette = (r.brand.palette && typeof r.brand.palette === 'object') ? r.brand.palette : {};
+          var loadedType = !!(r.brand.typography && r.brand.typography.heading);
+          brand.brand_data = (r.brand.brand_data && typeof r.brand.brand_data === 'object') ? r.brand.brand_data : {};
+          DEFAULT_FIELDS.forEach(function (f) {
+            var k = f.split('.')[1];
+            var absent = f.indexOf('palette.') === 0 ? !loadedPalette[k] : !loadedType;
+            if (absent && !fieldOrigin(f)) markOrigin(f, 'default');
+          });
+          docLoaded();
           catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
           [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });
           var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);
