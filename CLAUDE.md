@@ -37,6 +37,79 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
 - Known limits, said: English lexicon only; phrase not meaning; no green-claims or Indian (ASCI) pack;
   a testimonial block with the author on its own line (no dash) is not read as an endorsement.
 
+## ⭐ Read my site RENDERS the site, and scores what WE generate against it (2026-10-04) — read `docs/universal-brand-platform.md`
+The operator's words, with a screenshot of `/onboarding` → "Read my brand from my website": *"read my site
+should actually be fetching the exact styling and branding of the website entered and apply that complete
+accurately"*, then *"understand the end goal"*: everything this platform generates for a brand must look
+like it came from the brand's own site, with proof. `op=extract` now opens the site in a headless Chromium
+and measures it; the parser (`brand-extract.js`) runs beside it and is the LABELLED fallback
+(`read.method: 'rendered' | 'parsed'`, `read.renderer: 'chromium' | 'unavailable' | 'blocked' |
+'timeout'`). Still 12/12 functions. Gated by `tests/rendered-brand-read.spec.js`,
+`tests/rendered-read-security.spec.js`, `tests/rendered-read-wizard.spec.js` (all executed).
+- **Modules** (all `api/_shared/`): `render-browser.js` (one launcher: `@sparticuz/chromium` on serverless
+  Linux, preinstalled/registry Chromium locally, says which), `render-net.js` (the browser's ONLY network),
+  `render-capture.js` (measured BY ROLE on the rendered page, never by selector name), `brand-render.js`
+  (the manifest; **`readRendered(url, { browser, viewports, maxPages, deadlineMs })` is the stable entry
+  point** for other callers, e.g. a CI job with Playwright's own Chromium), `design-system.js` (manifest →
+  `brand_data.design_system` + the ONE field patch the wizard and the regression both apply; what every
+  renderer reads), `render-regression.js` (scores OUR renderers against the site).
+- **The "site generator" is our real renderers**, not a throwaway clone: `smart-brain-plan.lpHtml` (served
+  at `/lp/:id`), `calendar-trigger.renderTextVariant` (mailer) and `scripts/lib/motion-ad.js` (ad) consume
+  buttons (default/hover/focus), heading scale, body copy, header + logo, product card, footer and section
+  rhythm at desktop AND phone width. No design system on the record → byte-identical output, so the asset
+  gates measure what they always measured. Shell: `--brand-radius-control` / `--brand-radius-card`.
+- **Found by RUNNING it, none visible in the source**: (1) Chromium FOLLOWS A FULFILLED 3xx WITHOUT CALLING
+  THE ROUTE HANDLER AGAIN - a canary on 127.0.0.1 took 3 connections from a page that only asked a public
+  host for `/bounce`, and the browser opened its own background connections too. Redirects are followed in
+  Node, hop by hop, each hop re-checked; the browser never sees a 3xx; a dead proxy (`127.0.0.1:9`,
+  loopback not bypassed) is the floor. Canary now: 0. (2) With `--single-process` (required on Lambda)
+  CLOSING A CONTEXT KILLS THE BROWSER - a fresh browser per read, pages closed, browser closed in `finally`.
+  (3) `lpHtml` painted tenant zero's two font families for EVERY brand (`FONT_HEAD`/`FONT_BODY` literals).
+  (4) `motion-ad.fontsOf()` put a typography OBJECT into CSS: every onboarded brand's video ad declared
+  `--head:[object Object]`. (5) `applyTokens` never removed an optional token, so reverting left the
+  previous brand's radius on `<html>`. (6) A regression that compares our output with the MANIFEST can
+  never see a wrong manifest value (it is on both sides): the site side is the measurement kept immutable,
+  and repair re-measures the live page. (7) A specimen at a different sub-pixel phase diffed 6-38% on a
+  pixel-identical button; at the source's phase, 0%. (8) A page without a viewport meta is laid out at
+  980px on a phone and its TEXT IS BOOSTED (a 36px heading measured 53.7px): said in `notes`.
+  (9) `readableAsText()` walks one way, so on a mid-tone ground it can return a failing white:
+  `textOnGround()` falls back to `textOn()`.
+- **Colour roles keep the parser's model**: `primary` only from an IDENTITY signal (theme-color, manifest,
+  a `--brand*` property AS COMPUTED on `:root` - runtime-set themes included - a chromatic header or logo
+  fill as rendered); the rendered CTA is ACTION; a disagreement is a conflict, never resolved. A site whose
+  only brand colour is its CTA gets that as primary with `from_role: 'action'`.
+- **The score, defined in code**: tokens within tolerance (CIEDE2000 ≤ 2.3; sizes ±0.5px; letter-spacing
+  ±0.1px; weight/case/family exact; padding ±1px; aspect ±0.03) + pixelmatch on specimens of OUR primary
+  button and display heading (our computed styles, the site's text/width/ground/sub-pixel phase) vs the
+  site's element screenshot. `mismatch = 0.7·tokens-off/tokens + 0.3·regions>3%/regions`, DONE ≤ 0.05.
+  Exempt (listed, not counted): text DERIVED for AA, a dark-neutral section swapped by `sectionGround`.
+  **Repair only RE-MEASURES the source** (computed → text-carrier → filled ancestor → ground); what every
+  re-measure confirms is UNMATCHED with its value and reason. A pixel region over its limit sends every
+  token of that component to be re-measured. **Email is token-only at the site's PHONE values**, a family
+  counts only with a generic fallback, Outlook's dropped radius is said.
+- **Applied completely, reversibly**: the wizard applies the whole patch except fields a person set -
+  `brand_data.field_origin`, precedence `user > document > site-render > site-parse > preset` (compatible
+  with the brand-guide upload branch); `claimedFields()` no longer claims a machine-set field. The panel:
+  score per surface/component, side-by-side screenshots (site vs OUR landing page, mailer, ad), applied,
+  KEPT, hard-rule decisions with both ratios, repairs, unmatched; one-click revert. Device, phone-device
+  and server states all ride the existing save paths. A rendered extract also returns `design_md` through
+  the context pack's own renderer (0 errors / 0 warnings on the official linter, measured).
+- **Security**: GET/HEAD only; no WebSocket/EventSource/beacon/media; documents only on the brand's hosts
+  and allowed by robots.txt; every subresource through `checkUrl` (assertPublicUrl's rules) with the socket
+  PINNED to the checked address (DNS rebinding has nowhere to go); service workers blocked; no downloads,
+  no permissions; byte/request budgets. Open path: 4 reads/address and 24/instance per 10 min, refusal in a
+  sentence, voice forced off, no model reached (tested). `brand.extract` stays free (setup).
+  `BRAND_RENDER=off` is the operator switch; the gate/parser specs use it and say why.
+- **Measured**: function bundle ~116 MB traced (`@vercel/nft` + the `includeFiles` binary pack; gate 220 MB
+  of Vercel's 250). `@sparticuz/chromium` 153 launches under playwright-core 1.63 in this container.
+  `GET /api/brand?op=render-probe` renders a fixed shipped page (no fetch), cached 5 min per instance.
+- **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
+  desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
+  has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
+  scripts), the pipeline `html` stage and the Studio do not read the design system yet; the context pack's
+  own extract stage still parses; a site's font files are hotlinked by our assets and need that host's
+  CORS; local system fonts are what the SERVER's browser has.
+
 ## ⭐ The starter brands are read from their own RENDERED sites, or say why not (2026-10-04)
 The operator, with a screenshot of `/onboarding`'s starter-brand gallery: *"styles need to be correct
 for these too"*. 22 of 40 presets wore the grey placeholder, and several that HAD been read were wrong
