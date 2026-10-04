@@ -373,7 +373,12 @@ A **linked** document is read straight from its host when the host lets a browse
 otherwise through `op=document-fetch` (`api/_shared/brand-document-fetch.js`): Drive / Docs / Dropbox /
 GitHub share links rewritten to their documented download form, `assertPublicUrl()` on every redirect
 hop, at most 4 MB (a Vercel response is capped at 4.5 MB; a bigger book is read as a file). The op stores
-nothing, calls no model, and opens without a session on exactly the rule `extract` uses.
+nothing, calls no model, and opens without a session on exactly the rule `extract` uses - and is not a
+fetch proxy for anyone else: POST only, answered with NO CORS headers on any path, and on the open path
+only for a page of this deployment (Origin, else Referer, on the request's own host) within the open
+rendered read's per-address + per-instance limiter (`brand-render.rateCheck(req, now, 'document')`,
+6 per address and 40 per instance per 10 minutes; refused with a 429 sentence pointing at "Upload a
+file", which sends nothing to the server).
 
 **Where a document ranks.** Every field records the origin of its current value in
 `brand_data.field_origins`:

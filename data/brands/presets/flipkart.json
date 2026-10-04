@@ -60,16 +60,15 @@
       },
       "surface_alt": {
         "value": "#ffffff",
-        "exact": "",
-        "derived": true,
-        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "exact": "#ffffff",
+        "derived": false,
         "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": ""
+          "page": "https://www.flipkart.com/",
+          "role": "product card",
+          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
         }
       },
       "muted": {
@@ -173,14 +172,14 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 40.6,
-      "mismatch": 0.5943,
+      "score": 41.6,
+      "mismatch": 0.584,
       "surfaces": {
         "landing page": {
-          "score": 49.1,
-          "mismatch": 0.5085,
+          "score": 48.5,
+          "mismatch": 0.5154,
           "done": false,
-          "tokens_off": 14,
+          "tokens_off": 20,
           "regions_off": 2
         },
         "mailer": {
