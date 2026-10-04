@@ -1,0 +1,272 @@
+/**
+ * "Read my site" RENDERS the site - executed against fixture sites.
+ * ---------------------------------------------------------------------------
+ * The operator's words, with a screenshot of /onboarding: "read my site should
+ * actually be fetching the exact styling and branding of the website entered
+ * and apply that complete accurately". The stylesheet parser (brand-extract.js)
+ * could not: a utility-first site has no `h1{}` rule to read, a theme whose
+ * colours a script sets at runtime publishes only `var(--…)`, a family a page
+ * LOADS is not one it USES, a CTA styled through `:not()` is invisible to
+ * selector matching, an inline-SVG logo has no URL.
+ *
+ * Every test here starts a real HTTP server on 127.0.0.1 with a fixture site,
+ * reads it through the SHIPPED reader (brand-render.readSite: a fresh Chromium,
+ * route interception, the SSRF policy, the pinned transport), and asserts the
+ * EXACT values the browser computes. The parser is run over the same bytes
+ * beside it, so each test also states what the parser read ("before").
+ *
+ * The one test seam: `policy.allowOrigins`, a Set of EXACT origins (the
+ * fixture server's) that the in-process caller may allow. No request field
+ * reaches it, and every other address - including other ports on 127.0.0.1 -
+ * is still refused (the SSRF test proves it with a canary).
+ *
+ * Run: npx playwright test tests/rendered-brand-read.spec.js --project=desktop-1280
+ */
+const { test, expect } = require('@playwright/test');
+delete process.env.BRAND_RENDER;
+
+const sites = require('./lib/rendered-sites.js');
+const RENDER = require.resolve('../api/_shared/brand-render.js');
+const NET = require.resolve('../api/_shared/render-net.js');
+
+test.describe.configure({ mode: 'serial' });
+test.setTimeout(150000);
+test.beforeAll(() => { delete process.env.BRAND_RENDER; });
+
+async function read(name, opts) {
+  const srv = await sites.serve(sites.siteRoutes(name));
+  try {
+    const br = require(RENDER);
+    const out = await br.readSite(srv.origin + '/', Object.assign({ policy: { allowOrigins: new Set([srv.origin]) }, deadlineMs: 110000 }, opts || {}));
+    return { out, srv };
+  } finally { await srv.close(); }
+}
+
+/** The parser over the same bytes: what "Read my site" returned before. */
+async function parse(name) {
+  const routes = sites.siteRoutes(name);
+  const origin = 'http://parser.example';
+  const bx = require('../api/_shared/brand-extract.js');
+  const fetchImpl = async (u) => {
+    const p = new URL(u).pathname;
+    const r = routes[p];
+    if (!r) return { ok: false, status: 404, body: '', url: u };
+    const body = Buffer.isBuffer(r.body) ? r.body.toString('latin1') : r.body;
+    return { ok: (r.status || 200) < 300, status: r.status || 200, body, url: u, contentType: r.type };
+  };
+  return bx.extractBrand(origin + '/', { brand: { website: origin + '/' }, fetchImpl, voice: false, maxPages: 4 });
+}
+
+const role = (out, k) => out.manifest.read.desktop.roles[k];
+
+test('(a) utility-first: the display heading, the CTA and the card are read as RENDERED, with no h1{} rule anywhere', async () => {
+  const { out } = await read('a');
+  expect(out.ok).toBe(true);
+  expect(out.renderer).toBe('chromium');
+  const d = role(out, 'display');
+  // `text-4xl font-bold tracking-tight` on a <div>: 2.25rem / 2.5rem / 700 / -0.025em.
+  expect(d.type).toMatchObject({ size: 36, weight: 700, line_height: 40, letter_spacing: -0.9, color: '#14281d' });
+  const b = role(out, 'button_primary');
+  expect(b.label).toBe('Shop the range');
+  expect(b.style).toMatchObject({ background: '#0f5132', radius: 8, padding: [12, 24, 12, 24] });
+  expect(b.type).toMatchObject({ size: 16, weight: 600, color: '#ffffff' });
+  const c = role(out, 'card');
+  expect(c.style).toMatchObject({ background: '#ffffff', radius: 12, padding: [16, 16, 16, 16] });
+  expect(c.style.shadow).toContain('rgba(0, 0, 0, 0.1)');
+  expect(c.image).toMatchObject({ aspect: 0.8, fit: 'cover', radius: 8 });
+  expect(c.price.text).toBe('$48.00');
+  expect(c.title.type).toMatchObject({ size: 18, weight: 600, color: '#14281d' });
+  expect(out.manifest.read.mobile.roles.display.type.size).toBe(36);
+  // Every value carries where it was read.
+  expect(out.manifest.colors.primary.source).toMatchObject({ role: 'primary call to action', viewport: 'desktop', signal: 'computed' });
+  expect(out.manifest.colors.primary.source.selector).toContain('a.mt-8.inline-block');
+  expect(out.manifest.colors.primary.value).toBe('#0f5132');
+  // BEFORE: the parser publishes no heading scale for this site at all.
+  const p = await parse('a');
+  const h1Row = (p.fields.typography.scale || []).find((r) => r.slot === 'h1');
+  expect(h1Row && h1Row.px).not.toBe(36);
+});
+
+test('(b) a theme whose colours a script sets at runtime: the computed custom property is the identity, the CTA the action, and the two are a conflict', async () => {
+  const { out } = await read('b');
+  const m = out.manifest;
+  expect(m.colors.primary.value).toBe('#1a4d8f');
+  expect(m.colors.primary.from_role).toBe('identity');
+  expect(m.colors.primary.signal).toContain('--color-brand as computed on :root (set at runtime by script)');
+  expect(m.colors.accent.value).toBe('#b8531f');
+  expect(m.conflicts[0]).toMatchObject({ kind: 'brand_colour_vs_action_colour', identity: { value: '#1a4d8f' }, action: { value: '#b8531f' } });
+  expect(role(out, 'button_primary').style).toMatchObject({ background: '#b8531f', radius: 999, padding: [14, 28, 14, 28] });
+  // BEFORE: the stylesheet only says var(--color-button); the parser cannot see #b8531f.
+  const p = await parse('b');
+  expect(JSON.stringify(p.fields.palette.proposed)).not.toContain('#b8531f');
+  expect(p.fields.palette.proposed.primary || '').not.toBe('#1a4d8f');
+});
+
+test('(c) two families loaded, one used: the heading is the family that RENDERS, with its font file', async () => {
+  const { out } = await read('c');
+  const f = out.manifest.fonts.heading;
+  expect(f.family).toBe('Fixture Display');
+  expect(f.kind).toBe('webfont');
+  expect(f.stack).toBe("'Fixture Display','Georgia',serif");
+  expect(f.files.map((x) => new URL(x.url).pathname)).toEqual(['/fonts/display.ttf']);
+  // The loaded-but-unused family is in the FontFaceSet and nowhere in the manifest's typography.
+  const faces = out.manifest.read.desktop.fonts.faces;
+  expect(faces.some((x) => x.family === 'Fixture Unused' && x.status === 'loaded')).toBe(true);
+  expect(JSON.stringify(out.manifest.fonts)).not.toContain('Fixture Unused');
+  expect(out.manifest.fonts.body.family).toBe('Georgia');
+});
+
+test('(d) a CTA styled only through `.actions > a:not(.ghost)`: fill, case, tracking, and its :hover', async () => {
+  const { out } = await read('d');
+  const b = role(out, 'button_primary');
+  expect(b.style).toMatchObject({ background: '#6a1b9a', radius: 6, padding: [13, 30, 13, 30] });
+  expect(b.type).toMatchObject({ transform: 'uppercase', letter_spacing: 1.5, size: 14, weight: 700, color: '#ffffff' });
+  expect(out.manifest.states.button_primary.hover.background).toBe('#4a148c');
+  const s = role(out, 'button_secondary');
+  expect(s.outlined).toBe(true);
+  expect(s.style).toMatchObject({ border_width: 1, border_color: '#6a1b9a' });
+  // The landing page we generate consumes the hover state.
+  const ds = out.apply['brand_data.design_system'].value;
+  expect(ds.components.button.primary.hover.background).toBe('#4a148c');
+});
+
+test('(e) an inline-SVG logo is the logo, its markup kept, its fill the identity colour', async () => {
+  const { out } = await read('e');
+  const lg = out.manifest.assets.logo;
+  expect(lg.kind).toBe('svg');
+  expect(lg.inline_svg).toContain('<circle');
+  expect(lg.rendered).toMatchObject({ w: 140, h: 36 });
+  expect(out.manifest.colors.primary).toMatchObject({ value: '#c2185b', from_role: 'identity', signal: 'logo mark fill as rendered' });
+  // Our landing page draws it as an IMAGE (a data: URL), never as markup.
+  expect(out.regression.ok).toBe(true);
+  const lp = require('../api/_shared/render-regression.js');
+  const brand = lp.brandFor(out.manifest, null);
+  const rendered = lp.renderOurs(brand, lp.sampleFrom(out.manifest)).lp;
+  expect(rendered).toContain('src="data:image/svg+xml;base64,');
+  expect(rendered).not.toContain('<circle');
+});
+
+test('(f) a dark-neutral hero band: reported with its exact value, never painted as a section by our landing page', async () => {
+  const { out } = await read('f');
+  const hr = out.manifest.hard_rules.find((h) => h.kind === 'dark-section');
+  expect(hr).toMatchObject({ value: '#121212', component: 'hero' });
+  expect(out.regression.hard_rules.swapped[0]).toMatchObject({ component: 'hero', site: '#121212' });
+  const ours = out.regression.hard_rules.swapped[0].ours;
+  const core = require('../api/_shared/brand-workspace-core.js');
+  expect(core.isDarkNeutral(ours)).toBe(false);
+  // The site's light heading cannot sit on the ground we must use: DERIVED, exempt, both ratios shown.
+  const derived = out.regression.hard_rules.derived.find((d) => d.token === 'hero.heading.color');
+  expect(derived.site).toBe('#f5f5f5');
+  expect(derived.ratio_ours).toBeGreaterThanOrEqual(3);
+  const row = out.regression.tokens.find((t) => t.surface === 'landing page' && t.viewport === 'desktop' && t.token === 'colour' && t.component === 'hero heading');
+  expect(row.status).toBe('exempt');
+  expect(row.reason).toContain('WCAG AA');
+});
+
+test('(g) a bot wall and a soft challenge page are labelled `blocked`, and the extract falls back to the parser SAYING so', async () => {
+  const hard = await read('g403');
+  expect(hard.out).toMatchObject({ ok: false, renderer: 'blocked' });
+  expect(hard.out.reason).toContain('HTTP 403');
+  const soft = await read('gsoft');
+  expect(soft.out).toMatchObject({ ok: false, renderer: 'blocked' });
+  // The router's merge: the rendered read failed, so the report is the
+  // parser's, labelled. The parser cannot reach a host here, so it answers
+  // from a stand-in; the LABEL is what is under test.
+  const br = require(RENDER);
+  const bx = require('../api/_shared/brand-extract.js');
+  const real = bx.runExtract;
+  const dns = require('dns').promises;
+  const realLookup = dns.lookup;
+  dns.lookup = async (h, o) => (String(h).endsWith('.example') ? [{ address: '93.184.216.34', family: 4 }] : realLookup(h, o));
+  bx.runExtract = async () => ({ ok: true, start: 'https://walled.example/', pages: [], pages_visited: 1, stylesheets: [], limits: [], notes: [], markers: [], fields: { palette: { proposed: {} } } });
+  try {
+    const out = await br.extractWithRender({ ok: false }, { url: 'https://walled.example/', voice: false }, { readSite: async () => hard.out });
+    expect(out.read).toMatchObject({ method: 'parsed', renderer: 'blocked' });
+    expect(out.read.reason).toContain('HTTP 403');
+    expect(out.read.note).toContain('NOT rendered');
+    expect(out.rendered).toBeUndefined();
+  } finally { bx.runExtract = real; dns.lookup = realLookup; }
+});
+
+test('the regression loop catches a WRONG token, repairs it by re-measuring the site, and converges', async () => {
+  // The seed is the parser's answer for this site's CTA: the parser cannot see
+  // a utility class's colour on the button, and ranks the commonest colour.
+  const seedColour = '#e9f1ec';
+  const { out } = await read('a', { seed: { 'desktop.button_primary.style.background': seedColour } });
+  const g = out.regression;
+  expect(g.seeded).toEqual([{ path: 'desktop.button_primary.style.background', value: seedColour }]);
+  expect(g.iterations[0].tokens_off).toBeGreaterThan(0);
+  expect(g.iterations[0].mismatch).toBeGreaterThan(require('../api/_shared/render-regression.js').MISMATCH_LIMIT);
+  const fix = g.repairs.find((r) => r.component === 'primary button' && r.token === 'background' && r.viewport === 'desktop');
+  expect(fix).toMatchObject({ from: seedColour, to: '#0f5132', strategy: 'computed' });
+  expect(g.done).toBe(true);
+  expect(g.iterations[g.iterations.length - 1].mismatch).toBeLessThanOrEqual(require('../api/_shared/render-regression.js').MISMATCH_LIMIT);
+  // The repaired value is what the operator is offered.
+  expect(out.apply['brand_data.design_system'].value.components.button.primary.desktop.background).toBe('#0f5132');
+});
+
+test('a token our renderer does not reproduce is reported UNMATCHED with its measured value - never invented', async () => {
+  // Fixture h: the CTA turns teal at phone width. Our landing page carries the
+  // button's SHAPE at phone width and its desktop fill - a real gap, said.
+  const routes = sites.siteRoutes('d');
+  routes['/d.css'] = Object.assign({}, routes['/d.css'], { body: routes['/d.css'].body + '@media (max-width:640px){.hero .actions > a:not(.ghost){background:#00796b}}' });
+  const srv = await sites.serve(routes);
+  let out;
+  try {
+    out = await require(RENDER).readSite(srv.origin + '/', { policy: { allowOrigins: new Set([srv.origin]) }, deadlineMs: 110000 });
+  } finally { await srv.close(); }
+  expect(out.manifest.read.mobile.roles.button_primary.style.background).toBe('#00796b');
+  const u = out.regression.unmatched.find((x) => x.surface === 'landing page' && x.viewport === 'mobile' && x.component === 'primary button' && x.token === 'background');
+  expect(u).toBeTruthy();
+  expect(u.best_site_value).toBe('#00796b');
+  expect(u.ours).toBe('#6a1b9a');
+  expect(u.reason).toContain('confirms #00796b');
+  expect(out.regression.done).toBe(false);
+  // Nothing was nudged: the manifest still says what the site renders.
+  expect(out.manifest.read.mobile.roles.button_primary.style.background).toBe('#00796b');
+});
+
+test('every surface is scored per component with the limits stated, and the pixel regions are real', async () => {
+  const { out } = await read('b');
+  const g = out.regression;
+  expect(g.limits).toMatchObject({ pixel_limit: 0.03, mismatch_limit: 0.05 });
+  expect(Object.keys(g.surfaces)).toEqual(['landing page', 'mailer', 'ad creative']);
+  expect(g.surfaces['landing page'].tokens_compared).toBeGreaterThan(40);
+  expect(g.surfaces.mailer.tokens_compared).toBeGreaterThan(10);
+  expect(g.surfaces['ad creative'].tokens_compared).toBeGreaterThan(4);
+  const btn = g.regions.find((r) => r.component === 'primary button (desktop)');
+  expect(btn.comparable).toBe(true);
+  expect(btn.site_size).toEqual(btn.ours_size);
+  expect(btn.ratio).toBeLessThanOrEqual(0.03);
+  expect(g.screenshots.landing_desktop.length).toBeGreaterThan(1000);
+  expect(g.done).toBe(true);
+  // The mailer is compared at the site's PHONE values, never by pixels.
+  expect(g.tokens.filter((t) => t.surface === 'mailer').every((t) => t.viewport === 'email (phone values)')).toBe(true);
+  expect(g.regions.every((r) => !/mailer/.test(r.component))).toBe(true);
+});
+
+test('a rendered extract carries its DESIGN.md, through the context pack\'s own renderer, with the measured components', async () => {
+  const srv = await sites.serve(sites.siteRoutes('b'));
+  const br = require(RENDER);
+  const bx = require('../api/_shared/brand-extract.js');
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const realRun = bx.runExtract, realGuard = core.assertPublicUrl;
+  bx.runExtract = async () => ({ ok: true, start: srv.origin + '/', pages: [srv.origin + '/'], pages_visited: 1, stylesheets: [], limits: [], notes: [], markers: [], fields: { name: { value: 'Harbourlight', candidates: [] } } });
+  // The fixture lives on 127.0.0.1: the router's URL guard is answered for THIS origin only.
+  core.assertPublicUrl = async (u) => { if (!String(u).startsWith(srv.origin)) throw new Error('outside the fixture'); return String(u).replace(/\/$/, ''); };
+  let out;
+  try {
+    out = await br.extractWithRender({ ok: true }, { url: srv.origin + '/' }, {
+      readSite: (u, o) => br.readSite(u + '/', Object.assign({}, o, { policy: { allowOrigins: new Set([srv.origin]) } })),
+    });
+  } finally { bx.runExtract = realRun; core.assertPublicUrl = realGuard; await srv.close(); }
+  expect(out.read).toMatchObject({ method: 'rendered', renderer: 'chromium' });
+  expect(out.fields.palette.proposed).toMatchObject({ primary: '#1a4d8f', accent: '#b8531f', surface: '#ffffff', ink: '#1d1d1f' });
+  const doc = out.design_md;
+  expect(doc).toContain('This was RENDERED');
+  expect(doc).toMatch(/primary: "#1a4d8f"\s+# identity signal — --color-brand as computed on :root/);
+  expect(doc).toContain('| primary button | desktop | background | #b8531f |');
+  expect(doc).toContain('| primary button | desktop | radius | 999px |');
+  expect(doc).not.toContain('It is **not** a browser');
+  expect(Buffer.byteLength(JSON.stringify(out))).toBeLessThan(3800000);
+});

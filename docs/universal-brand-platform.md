@@ -132,16 +132,84 @@ in those excerpts, and so is any evidence quote it did not actually take from th
 outage produces a marker, not a generic tone. `voice.banned` is always empty — a phrase a brand
 refuses to use cannot be observed from the phrases it did use.
 
-**No browser.** Vercel serverless cannot run Playwright, so this is CSS/HTML parsing: it cannot see
-computed styles, JS-injected themes, SPA-rendered headers, or which declaration actually wins the
-cascade (that is approximated by property and selector weighting). Those limits are returned in
-`limits[]` and shown in the wizard, so a thin report reads as "the site did not publish this" rather
-than "the brand has none". `oklch()`/`oklab()` are converted to sRGB (Tailwind v4 ships whole
-palettes in them); `lab()`, `lch()`, `color()` and `color-mix()` are counted and reported as
-unresolved rather than dropped.
+**The parser is now the FALLBACK, not the read (2026-10-04).** On its own this is CSS/HTML parsing:
+it cannot see computed styles, JS-injected themes, SPA-rendered headers, or which declaration actually
+wins the cascade. `op=extract` now RENDERS the site first (next section) and runs this parser beside it
+for the fields a browser does not read (name, tagline, claims, legal entity, regions, storefront,
+sitemap, voice). When the browser cannot read a site the report is this parser's, and it says so:
+`read.method: 'parsed'` with `read.renderer` naming why. `oklch()`/`oklab()` are converted to sRGB;
+`lab()`, `lch()`, `color()` and `color-mix()` are counted and reported as unresolved.
 
 Budgets fit one 120s invocation: crawl 35s + assets 20s + one model call 25s, each reported in
-`notes` when it runs out.
+`notes` when it runs out; the browser read runs in parallel inside its own 100s deadline.
+
+### Read my site RENDERS the site, and scores what we generate against it (2026-10-04)
+
+The operator's words: "read my site should actually be fetching the exact styling and branding of the
+website entered and apply that complete accurately", and then: the end goal is that everything this
+platform generates for the brand looks like it came from the brand's own website, with proof.
+
+```
+URL -> Chromium (render-browser.js) -> DOM / assets / screenshots (render-capture.js)
+    -> DESIGN MANIFEST (brand-render.js) -> OUR renderers fed by it (design-system.js)
+    -> visual regression (render-regression.js) -> repair by RE-MEASURING the site -> DONE
+```
+
+| Module | Role |
+|---|---|
+| `render-browser.js` | one launcher: `@sparticuz/chromium` on serverless Linux, the preinstalled or registry Chromium locally; a fresh browser per read |
+| `render-net.js` | the browser's ONLY network: every request checked by the import guard's rules, the socket pinned to the checked address, redirects followed in Node hop by hop, byte/request budgets, a dead proxy as the floor |
+| `render-capture.js` | what is measured, by ROLE on the rendered page: primary/secondary CTA (default, hover, focus), display heading, h1-h6, body copy, muted text, links, header/logo/nav, footer, product card (image aspect, title, price, badge, grid gap), inputs, section rhythm, imagery, custom properties as computed, the family that RENDERS each role |
+| `brand-render.js` | the manifest (`readRendered(url, { browser, viewports, maxPages, deadlineMs })` is the stable entry point other callers use), the router's merge with the parser, the open-path rate limit, the render probe |
+| `design-system.js` | manifest -> `brand_data.design_system` + the field patch the wizard applies; and what every renderer reads (`resolve`, `lpCss`, `emailTokens`, `adTokens`) |
+| `render-regression.js` | renders OUR landing page (`/lp/:id`), mailer and ad for the brand and compares them per component with the site |
+
+**Every value carries its source**: page URL, element role, selector path, viewport, `signal:
+'computed'`. Colour roles keep the parser's model: `primary` only from an IDENTITY signal (theme-color,
+manifest theme_color, a `--brand*` property as COMPUTED on `:root` - a theme a script sets at runtime is
+just a computed value here - a chromatic header or logo fill as rendered), the rendered CTA is the
+ACTION signal, and a disagreement is a reported conflict. When the CTA is the only brand colour a site
+renders it is the primary and says `from_role: 'action'`.
+
+**The site generator is our own renderers.** `smart-brain-plan.lpHtml` (the page served at `/lp/:id`),
+`calendar-trigger.renderTextVariant` (the mailer) and `scripts/lib/motion-ad.js` (the ad creative)
+consume the measured design system: buttons with hover and focus, the hero heading scale, body copy, the
+header bar and logo, the product card, footer, section rhythm, at desktop and phone width. A brand with
+no design system renders exactly as before. The shell itself reads `--brand-radius-control` and
+`--brand-radius-card`.
+
+**The score** is how close what we GENERATE is to the brand's site, per surface and per component:
+tokens (CIEDE2000 dE <= 2.3 for colour, +-0.5px for sizes, exact weight/case/family, ...) and, for the
+primary button and the display heading, a pixel diff (pixelmatch) of a specimen of OUR element against
+the site's own element screenshot, at the same sub-pixel phase. `mismatch = 0.7 x tokens off / tokens +
+0.3 x regions over 3% / regions`, DONE at <= 0.05. The comparison is against the site AS MEASURED (kept
+immutable), never against the manifest, because a wrong manifest value would be on both sides of that
+comparison. **Repair re-measures the source** (the element, its text carrier, its filled ancestor, the
+composited ground) and corrects the manifest; it never nudges a value toward a target. What every
+re-measurement confirms is reported unmatched, with its value and the reason.
+
+**Email is scored differently, on purpose**: component tokens only, against the site's PHONE values (a
+600px column is a phone), never pixels; a family counts only when a generic fallback follows it;
+Outlook's Word engine drops border-radius and that is said, not hidden.
+
+**Applied completely, reversibly.** After a rendered read the wizard applies the whole patch - colours,
+fonts and scale, radii, logo, favicon, imagery, the design system - except a field a person set
+(`brand_data.field_origin`: `user` > `document` > `site-render` > `site-parse` > `preset`); it lists
+what was kept, shows the hard-rule decisions (dark sections with their exact value; text DERIVED for
+AA with both ratios), the side-by-side screenshots and the score, and reverts in one click. It works in
+every state the wizard supports, because it rides the same save paths.
+
+**Security.** The browser has no network of its own (see `render-net.js`): GET/HEAD only, no
+WebSockets/EventSource/beacons/media, documents only on the brand's own hosts and allowed by robots.txt,
+service workers blocked, downloads off, no permissions, a fresh browser per read. On the open path
+(no account the server can check) the browser read is rate-limited per address (4 / 10 min) and per
+instance (24 / 10 min), refusals said in a sentence, and no model is called. It is free (`brand.extract`
+costs 0: it is setup). `BRAND_RENDER=off` turns the browser read off for a deployment.
+
+**Measured**: the function serving it traces to ~116 MB (Vercel's limit is 250 MB unzipped; a test
+fails over 220 MB). `GET /api/brand?op=render-probe` renders a fixed page shipped with the deployment
+(no fetch), returns the Chromium version, launch time and a screenshot hash, and is cached per
+instance for five minutes.
 
 ### The brand context pack — one durable record per brand
 
@@ -219,10 +287,11 @@ right; these are the remaining places something plausible could have been picked
   reaches past it — so "the extraction was wrong" and "a person picked the wrong one of several"
   stay distinguishable afterwards.
 
-**A stated limit:** a browser extension that reads a live page's COMPUTED CSS (`design-md-chrome`) is
-strictly more accurate — it resolves the cascade and sees runtime themes. Vercel serverless cannot run
-a browser, so this is a stylesheet parse, and that is said in `limits[]` and in the Overview prose so a
-thin section reads as "not observable by this method" rather than "the brand has none".
+**A stated limit, now closed for `op=extract`:** a reader of a live page's COMPUTED CSS is strictly
+more accurate than a stylesheet parse. `op=extract` is now that reader (above), and its DESIGN.md
+(`design_md` on the response) is rendered by this same module from the computed values, with the
+measured components documented in the Components section. The context pack's own extract stage still
+parses, and says so in its Overview prose.
 
 **Knowledge is stored VERBATIM.** Each page keeps its own declared description and its own headings,
 unparaphrased; a page with no description gets a marker instead of a written summary. No LLM runs over

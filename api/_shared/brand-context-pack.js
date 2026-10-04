@@ -446,7 +446,9 @@ function designMdTokens(report, brand) {
    * So a weak candidate is never emitted as a token. It is reported instead,
    * with what it actually proves.
    */
-  const USABLE_CONF = new Set(['declared', 'strong']);
+  // `computed`: read off the RENDERED page by brand-render.js - the family
+  // that actually draws the role, which outranks any declaration.
+  const USABLE_CONF = new Set(['computed', 'declared', 'strong']);
   const pickFont = (slot) => {
     const list = typ[slot] || [];
     const used = list.find((c) => USABLE_CONF.has(c.confidence));
@@ -582,10 +584,15 @@ function designMdTokens(report, brand) {
   // Components are not observable: knowing that `.btn` exists is not the same as
   // knowing this brand's button token set, and the spec's component map expects
   // the latter.
+  const renderedRead = !!(report && report.read && report.read.method === 'rendered');
   omitted.push({
     section: 'components',
-    reason: 'Component tokens are not observable from published HTML and CSS without resolving the cascade '
-      + 'in a browser. Nothing was inferred from class names.',
+    reason: renderedRead
+      ? 'The components were MEASURED in a browser and are documented, with the page, element and viewport '
+        + 'each value came from, in the Components section. They are not emitted as front-matter tokens: this '
+        + 'renderer emits only the token groups whose shape it has checked against the official linter.'
+      : 'Component tokens are not observable from published HTML and CSS without resolving the cascade '
+        + 'in a browser. Nothing was inferred from class names.',
   });
 
   /* ── the selection record ──────────────────────────────────────────────
@@ -749,7 +756,13 @@ function renderDesignMd(report, brand, meta) {
   push('');
   push('### How this was read, and what that costs');
   push('');
-  push('This was produced by parsing the site\'s published HTML and CSS on a server. It is **not** a '
+  if (report && report.read && report.read.method === 'rendered') {
+    push(`This was RENDERED: the site was opened in a headless Chromium (${md.esc(report.read.chromium || '')}) at `
+      + '1440px and 390px, and every value below is the COMPUTED style of the element that plays that role on '
+      + 'the rendered page, after the cascade and after the site\'s own scripts ran, in the fonts that '
+      + 'actually loaded. Each value names the page, the element\'s selector path and the viewport.');
+    push('');
+  } else push('This was produced by parsing the site\'s published HTML and CSS on a server. It is **not** a '
     + 'browser, so it cannot see computed styles, anything JavaScript paints after load, or which of '
     + 'several competing declarations actually wins the cascade. A browser-based extractor '
     + '(for example the `design-md-chrome` extension, which reads the COMPUTED CSS of a live page) is '
@@ -1019,10 +1032,44 @@ function renderDesignMd(report, brand, meta) {
   push('## Components');
   push('');
   const oc = t.omitted.find((x) => x.section === 'components');
-  push(`> ${MARKER('component tokens')}`);
-  push('>');
-  push(`> ${md.esc(oc ? oc.reason : 'Component tokens were not observed.')}`);
-  markers.push(MARKER('component tokens'));
+  const dsys = (() => {
+    try { return report && report.rendered && report.rendered.manifest ? require('./design-system.js').fromManifest(report.rendered.manifest) : null; }
+    catch (_) { return null; }
+  })();
+  if (dsys) {
+    const px = (v) => (v == null || v === '' ? '—' : (typeof v === 'number' ? `${v}px` : String(v)));
+    const c = dsys.components || {};
+    const rows = [];
+    const add = (comp, vp, prop, v) => { if (v != null && v !== '') rows.push([comp, vp, prop, md.esc(String(v))]); };
+    for (const vp of ['desktop', 'mobile']) {
+      const b = c.button && c.button.primary && c.button.primary[vp];
+      if (b) {
+        add('primary button', vp, 'background', b.background); add('primary button', vp, 'label colour', b.color);
+        add('primary button', vp, 'radius', px(b.radius)); add('primary button', vp, 'padding', (b.padding || []).map(px).join(' '));
+        add('primary button', vp, 'type', `${px(b.size)} / ${b.weight} / ${b.transform} / tracking ${px(b.letter_spacing)}`);
+      }
+      const h = c.header && c.header[vp];
+      if (h) { add('header', vp, 'background', h.background); add('header', vp, 'height', px(h.height)); if (h.logo) add('header', vp, 'logo', `${h.logo.kind}, ${px(h.logo.height)} high, ${h.logo.placement}`); }
+      const k = c.card && c.card[vp];
+      if (k && k.box) { add('product card', vp, 'radius', px(k.box.radius)); add('product card', vp, 'shadow', k.box.shadow || 'none'); if (k.image) add('product card', vp, 'image aspect', k.image.aspect); }
+      const f = c.footer && c.footer[vp];
+      if (f) { add('footer', vp, 'background', f.background); add('footer', vp, 'text colour', f.color); }
+      const sec = c.section && c.section[vp];
+      if (sec) { add('section rhythm', vp, 'container', px(sec.container)); add('section rhythm', vp, 'section padding', `${px(sec.pad_top)} / ${px(sec.pad_bottom)}`); }
+    }
+    const hov = c.button && c.button.primary && c.button.primary.hover;
+    if (hov && hov.background) add('primary button', 'desktop', 'hover background', hov.background);
+    push(`Measured in a browser on ${md.esc((dsys.source && dsys.source.url) || '')}. Desktop is 1440px, mobile 390px.`);
+    push('');
+    push(mdTable(['Component', 'Viewport', 'Property', 'Value'], rows));
+    push('');
+    push('_These are documented here rather than emitted as front-matter component tokens (see `omitted`)._');
+  } else {
+    push(`> ${MARKER('component tokens')}`);
+    push('>');
+    push(`> ${md.esc(oc ? oc.reason : 'Component tokens were not observed.')}`);
+    markers.push(MARKER('component tokens'));
+  }
   push('');
 
   /* ══ Do's and Don'ts ════════════════════════════════════════════════════ */
