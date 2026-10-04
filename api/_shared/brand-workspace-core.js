@@ -1506,6 +1506,11 @@ async function deleteWorkspace(auth, id) {
     e.status = 403; throw e;
   }
 
+  // The brand's HOSTED files go first, while the row still exists: the
+  // bucket's delete policy asks is_brand_editor() of this very workspace.
+  // Public objects left behind would stay readable (and billed) forever.
+  const assets = await removeBrandAssets(auth, wsId);
+
   const gone = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,name`, {
     method: 'DELETE', prefer: 'return=representation',
   });
@@ -1530,8 +1535,45 @@ async function deleteWorkspace(auth, id) {
     ok: true,
     deleted: wsId,
     name: (rows[0] && rows[0].name) || ws.name || null,
-    storage_note: `Re-hosted media under brand-review-media/${wsId}/ is not removed by this delete and must be cleared separately.`,
+    storage_removed: assets.removed,
+    storage_note: `Re-hosted media under brand-review-media/${wsId}/ is not removed by this delete and must be cleared separately.`
+      + (assets.note ? ` ${assets.note}` : ''),
   };
+}
+
+/**
+ * Remove every object a brand HOSTED in the public `brand-assets` bucket
+ * (logo, app icon, fonts, imagery - migration 20261004120000), with the
+ * caller's own token, under the workspace's prefix. Resolves
+ * { removed, note }. Throws 502 when objects exist and could not be removed:
+ * a brand is never deleted while its public files would be orphaned.
+ */
+async function removeBrandAssets(auth, wsId) {
+  let e;
+  try { e = env(); } catch (_) { return { removed: 0, note: '' }; }
+  const base = `${e.url}/storage/v1/object`;
+  const headers = { apikey: e.anon, authorization: `Bearer ${auth.token}`, 'Content-Type': 'application/json' };
+  let items;
+  try {
+    const listed = await fetch(`${base}/list/brand-assets`, { method: 'POST', headers, body: JSON.stringify({ prefix: wsId, limit: 1000, offset: 0 }), cache: 'no-store' });
+    // No bucket (the migration not applied yet) is nothing to orphan.
+    if (!listed.ok) return { removed: 0, note: `The brand-assets listing answered ${listed.status}, so no hosted files were found to remove.` };
+    items = await listed.json();
+  } catch (err) {
+    return { removed: 0, note: `Hosted brand files could not be listed (${(err && err.message) || 'storage did not answer'}).` };
+  }
+  const paths = (Array.isArray(items) ? items : []).filter((x) => x && x.name && x.id !== null).map((x) => `${wsId}/${x.name}`);
+  if (!paths.length) return { removed: 0, note: '' };
+  let res;
+  try {
+    res = await fetch(`${base}/brand-assets`, { method: 'DELETE', headers, body: JSON.stringify({ prefixes: paths }), cache: 'no-store' });
+  } catch (_) { res = null; }
+  if (!res || !res.ok) {
+    const er = new Error(`This brand has ${paths.length} hosted file(s) in brand-assets/${wsId}/ that could not be removed (${res ? res.status : 'storage did not answer'}), so nothing was deleted: deleting the brand now would leave them public. Try again.`);
+    er.status = 502;
+    throw er;
+  }
+  return { removed: paths.length, note: '' };
 }
 
 /** Owner or editor. A `viewer` may read a workspace but must not change it. */

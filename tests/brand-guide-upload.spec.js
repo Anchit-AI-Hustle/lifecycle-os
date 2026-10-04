@@ -60,7 +60,7 @@ function serverWorld() {
   const dns = require('dns').promises;
   const realLookup = dns.lookup;
   dns.lookup = async (host, opts) => (/\.example$/.test(String(host)) ? [{ address: '93.184.216.34', family: 4 }] : realLookup(host, opts));
-  const net = { asked: [], escaped: [] };
+  const net = { asked: [], escaped: [], emitted: 0, cancelled: false };
   const realFetch = global.fetch;
   global.fetch = async (url, init) => {
     const u = new URL(String(url));
@@ -69,6 +69,15 @@ function serverWorld() {
       net.asked.push({ url: String(url), redirect: init && init.redirect });
       if (u.pathname === '/book.pdf') return new Response(BOOK, { status: 200, headers: { 'content-type': 'application/pdf', 'content-disposition': 'attachment; filename="harbourlight-brand-book.pdf"' } });
       if (u.pathname === '/to-metadata') return new Response('', { status: 302, headers: { location: 'http://169.254.169.254/latest/meta-data/' } });
+      if (u.pathname === '/endless' || u.pathname === '/liar') {
+        // Chunked, no (or a false) Content-Length, far past the cap: 64 MB if read to the end.
+        net.emitted = 0; net.cancelled = false;
+        const stream = new ReadableStream({
+          pull(c) { if (net.emitted >= 64 * 1048576) { c.close(); return; } net.emitted += 65536; c.enqueue(new Uint8Array(65536)); },
+          cancel() { net.cancelled = true; },
+        });
+        return new Response(stream, { status: 200, headers: u.pathname === '/liar' ? { 'content-type': 'application/pdf', 'content-length': '1000' } : { 'content-type': 'application/pdf' } });
+      }
       if (u.pathname === '/login') return new Response('<html><body>Sign in</body></html>', { status: 200, headers: { 'content-type': 'text/html' } });
       return new Response('', { status: 404 });
     }
@@ -617,12 +626,138 @@ test('for an account brand a file is uploaded to the brand-assets bucket under i
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     const blob = new Blob([bytes], { type: 'image/png' });
     const sha = await window.BrandDocument.sha256(bytes);
-    const hosted = await window.BrandContext.files.host(ws, { blob, type: 'image/png', sha256: sha, id: sha });
-    const device = await window.BrandContext.files.host('local-abc123', { blob, type: 'image/png', sha256: sha, id: sha });
-    return { hosted, device, sha };
+    const hosted = await window.BrandContext.files.host(ws, { blob, type: 'image/png', sha256: sha, id: sha, slot: 'logo' });
+    const device = await window.BrandContext.files.host('local-abc123', { blob, type: 'image/png', sha256: sha, id: sha, slot: 'logo' });
+    // The brand book: private, never offered to the public bucket.
+    const book = await window.BrandContext.files.host(ws, { blob: new Blob(['%PDF-1.4'], { type: 'application/pdf' }), type: 'application/pdf', sha256: 'f'.repeat(64), id: 'f'.repeat(64), slot: 'document' });
+    return { hosted, device, book, sha };
   }, { ws: WSID, b64: LOGO_PNG.toString('base64') });
   expect(out.hosted).toEqual({ hosted: true, url: `https://live.supabase.co/storage/v1/object/public/brand-assets/${WSID}/${out.sha}.png` });
   expect(out.device).toEqual({ hosted: false, reason: 'device' });
+  expect(out.book).toEqual({ hosted: false, reason: 'private' });
   expect(seen).toEqual([{ url: `https://live.supabase.co/storage/v1/object/brand-assets/${WSID}/${out.sha}.png`, method: 'POST', auth: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.c2lnbmF0dXJl', apikey: 'anon-public', type: 'image/png', upsert: 'true', bytes: LOGO_PNG.length }]);
   expect(out.sha).toBe(require('crypto').createHash('sha256').update(LOGO_PNG).digest('hex'));
+});
+
+/* ═══ 10. review round 1 (Codex on 309c5bc), each reproduced first ═════════ */
+
+test('signed in to an account: Apply hosts the logo, and the private brand book is never uploaded', async ({ page }) => {
+  // The account state: the localhost preview (auth.js kind "local"), where the
+  // wizard saves to the SERVER and so a brand has a workspace id to host under.
+  const http = require('http');
+  const srv = http.createServer((req, res) => {
+    const file = path.join(ROOT, (req.url || '/').split('?')[0].replace(/^\//, '') || 'index.html');
+    if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('nf'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    fs.createReadStream(file).pipe(res);
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + srv.address().port;
+  const WSID = '55555555-5555-4555-8555-555555555555';
+  const rows = {};
+  const uploads = [];
+  const saves = [];
+  try {
+    page.on('dialog', (d) => d.dismiss().catch(() => {}));
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, async (route) => {
+      const u = route.request().url();
+      const m = PDFJS_RX.exec(u);
+      if (m) return route.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', 'build', m[1])) });
+      if (/\/storage\/v1\/object\//.test(u)) {
+        // Writes only: the previews then GET the hosted logo from its public URL.
+        if (route.request().method() !== 'GET') uploads.push(new URL(u).pathname);
+        return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"Key":"ok"}' });
+      }
+      if (route.request().resourceType() !== 'script') return route.abort('failed');
+      return route.fulfill({ status: 200, contentType: 'text/javascript', body: 'window.tailwind=window.tailwind||{};' });
+    });
+    await page.route(base + '/api/**', async (route) => {
+      const req = route.request();
+      const u = new URL(req.url());
+      const op = u.searchParams.get('op') || '';
+      const json = (b, s) => route.fulfill({ status: s || 200, contentType: 'application/json', body: JSON.stringify(b) });
+      if (u.searchParams.get('action') !== 'brand') return json({ ok: true });
+      const core = require('../api/_shared/brand-workspace-core.js');
+      const full = (r) => Object.assign({}, r, { tokens: core.tokens(r), fonts_href: core.fontsHref(r), readiness: core.readiness(r, { products: 0 }), products: 0 });
+      if (op === 'save') {
+        const b = (req.postDataJSON() || {}).brand || {};
+        saves.push(b);
+        rows[WSID] = Object.assign({}, b, { id: WSID, slug: b.slug || 'harbourlight' });
+        return json({ ok: true, brand: full(rows[WSID]) });
+      }
+      if (op === 'get') return rows[WSID] ? json({ ok: true, brand: full(rows[WSID]) }) : json({ ok: false, error: 'workspace_not_found' }, 404);
+      if (op === 'active') return json({ ok: true, brand: null, needs_onboarding: true, workspaces: [] });
+      if (op === 'list') return json({ ok: true, workspaces: [], active_id: null });
+      return json({ ok: true, presets: [], pack: null });
+    });
+    await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind === 'local' && window.BrandContext && window.BrandContext.loaded && window.BrandDocument, null, { timeout: 20000 });
+    expect(await page.evaluate(() => window.BrandContext.storage().mode)).toBe('server');
+    await page.evaluate(() => {
+      window.__SUPABASE__ = { url: 'https://live.supabase.co', anonKey: 'anon-public' };
+      window.LifecycleAuth.apiToken = () => 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.c2lnbmF0dXJl';
+    });
+    await page.fill('input[data-path="name"]', 'Harbour Typed');
+    await page.click('[data-go="next"]');                               // saved to the account: the brand has its id
+    await page.waitForSelector('input[type=text][data-path="palette.primary"]');
+    await page.locator('.step-pip[data-step="1"]').click();
+    await readBook(page);
+    await page.click('#docApply');
+    await page.waitForSelector('#docRevert');
+    await expect(page.locator('[data-asset-note="logo"]')).toContainText('Hosted at live.supabase.co');
+    await page.click('[data-go="next"]');
+    await page.waitForSelector('input[type=text][data-path="palette.primary"]');
+    const last = saves[saves.length - 1];
+    const sha = require('crypto').createHash('sha256').update(BOOK).digest('hex');
+    // The logo went to the public bucket under this workspace; the book did not, by any path.
+    expect(uploads.length).toBe(1);
+    expect(uploads[0]).toMatch(new RegExp(`^/storage/v1/object/brand-assets/${WSID}/[0-9a-f]{64}\\.png$`));
+    expect(uploads.join(' '), 'the private brand book was uploaded to a public bucket').not.toContain(sha);
+    expect(last.logo_url).toBe('https://live.supabase.co' + uploads[0].replace('/object/brand-assets/', '/object/public/brand-assets/'));
+    expect(last.brand_data.brand_files.document).toMatchObject({ id: sha, hosted_url: '' });
+    expect(await page.evaluate(async (id) => (await window.BrandContext.files.list(id)).map((f) => f.slot).sort(), WSID)).toEqual(['document', 'logo']);
+  } finally {
+    await new Promise((r) => srv.close(r));
+  }
+});
+
+test('a linked document is cut off at the cap however the host describes it, and the stream is cancelled', async () => {
+  const ask = (url) => callShipped(world.handler, { method: 'POST', url: '/api/public-config?action=brand&op=document-fetch', headers: { origin: HOST }, body: { url } });
+  const cap = require('../api/_shared/brand-document-fetch.js').MAX_BYTES;
+  for (const p of ['/endless', '/liar']) {
+    const out = await ask(NOCORS + p);
+    expect(out.code, p).toBe(413);
+    expect(out.body.message, p).toMatch(/at most 4 MB/);
+    // Read up to the cap and one chunk past it - never the 64 MB on offer.
+    expect(world.net.emitted, `${p}: bytes pulled from the host`).toBeLessThanOrEqual(cap + 3 * 65536);
+    expect(world.net.cancelled, `${p}: the host's stream was not cancelled`).toBe(true);
+  }
+});
+
+test('a typed value the document repeats stays typed, so a later document cannot take it', async ({ page }) => {
+  await open(page, world);
+  await page.fill('input[data-path="tagline"]', 'Light, made by hand');
+  await readBook(page);
+  await page.click('#docApply');
+  await page.waitForSelector('#docRevert');
+  await expect(row(page, 'tagline').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'same');
+  await page.fill('input[data-path="name"]', 'Harbourlight Goods');
+  await page.click('[data-go="next"]');
+  await page.waitForSelector('input[type=text][data-path="palette.primary"]');
+  const origin = await page.evaluate(() => JSON.parse(localStorage.getItem('lifecycle.brand.device.workspaces')).workspaces[0].brand_data.field_origins.tagline.origin);
+  expect(origin).toBe('user');
+});
+
+test('an unticked "never use em dashes" is the operator\'s, and a guideline that says otherwise does not tick it', async ({ page }) => {
+  await open(page, world);
+  await page.locator('.step-pip[data-step="4"]').click();
+  await page.waitForSelector('input[data-path="voice.no_em_dashes"]');
+  await page.uncheck('input[data-path="voice.no_em_dashes"]');
+  await page.locator('.step-pip[data-step="1"]').click();
+  await readBook(page);
+  await page.click('#docApply');
+  await page.waitForSelector('#docRevert');
+  await expect(row(page, 'voice.no_em_dashes').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'kept');
+  await page.locator('.step-pip[data-step="4"]').click();
+  await expect(page.locator('input[data-path="voice.no_em_dashes"]')).not.toBeChecked();
 });
