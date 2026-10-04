@@ -33,6 +33,16 @@ pack size is a product fact, so neither is ever used.
 - Left as found, on purpose: `lifecycle-cohorts.COHORTS` (a new key changes the UK planner's default rotation);
   the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
   cap input until the omnichannel fatigue ledger lands.
+- **Four review findings on #135, fixed in the follow-up, each reproduced by an executed test first (14 mutations):**
+  (a) a bucket was market|week|cohort, so customers due for DIFFERENT products shared one slot and got the first
+  product's creative: one product group per slot now (`cohort.slot_key` keeps same-day ids apart past the 32-char
+  slug), `audience.last_bought` maps every recipient to their own SKU, and a customer due for two groups in one
+  week gets ONE send (`same_week_other_product`). (b) `smart_orders` was one unordered `limit=20000` read: it is
+  paged newest-first now, and a ceiling that IS hit drops the partial oldest day and says `orders before X were not
+  read`. (c)+(d) eligibility read `smart_users` (no engagement fields) and the offering planner read no contacts
+  at all: both read the workspace's own `subscriber_engagement_scores` (`engagementContacts()`), joined by profile
+  id = customer id or the same `hashEmail()` that wrote `email_hash`; suppressed contacts are excluded.
+
 ## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
 `api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|
 flags|thresholds|thresholds-save|regen-approve|flag-dismiss|live-approve` (still 12/12, still two crons), the

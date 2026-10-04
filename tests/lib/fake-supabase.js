@@ -144,8 +144,11 @@ function matchOne(row, col, op, val) {
 function parseQuery(qs) {
   const params = new URLSearchParams(qs || '');
   const filters = [];
-  let select = null; let order = []; let limit = null; let onConflict = null;
+  let select = null; let order = []; let limit = null; let onConflict = null; let offset = 0;
   for (const [k, raw] of params.entries()) {
+    // PostgREST's own paging parameter. Without it a paged reader would be
+    // handed page one again and again and still look like it had read it all.
+    if (k === 'offset') { offset = Number(raw) || 0; continue; }
     if (k === 'select') { select = raw === '*' ? null : raw.split(',').map((s) => s.trim()).filter(Boolean); continue; }
     if (k === 'order') { order = raw.split(',').map((s) => { const [col, dir] = s.split('.'); return { col, desc: dir === 'desc' }; }); continue; }
     if (k === 'limit') { limit = Number(raw); continue; }
@@ -168,7 +171,7 @@ function parseQuery(qs) {
     if (!m) continue;
     filters.push({ col: k, op: m[1], val: m[2] });
   }
-  return { filters, select, order, limit, onConflict };
+  return { filters, select, order, limit, onConflict, offset };
 }
 
 function matches(row, filters) {
@@ -314,6 +317,7 @@ class FakeSupabase {
       let out = rows.filter((r) => seen(r) && matches(r, q.filters));
       for (const o of q.order.slice().reverse()) out = out.slice().sort((a, b) => (o.desc ? -1 : 1) * cmp(a[o.col], b[o.col]));
       const total = out.length;
+      if (q.offset) out = out.slice(q.offset);
       if (q.limit != null) out = out.slice(0, q.limit);
       if (/count=exact/.test(prefer)) {
         const range = headers.range ? String(headers.range) : `0-${Math.max(0, out.length - 1)}`;
