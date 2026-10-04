@@ -222,10 +222,10 @@ function applyFields(m) {
     const f = (m.fonts || {})[slot];
     if (!f || !f.family) return;
     const stack = f.stack || `'${f.family}',${generic}`;
-    put(`typography.${slot}`, {
+    put(`typography.${slot}`, Object.assign({
       family: f.family, stack, google: !!f.google,
       weights: (f.weights && f.weights.length ? f.weights.join(';') : '400;600;700'),
-    }, f.source);
+    }, f.licence === 'brand font' ? { licence: 'brand font', display_name: f.display_name || `${f.family} (brand font)`, fallback_stack: f.fallback_stack || '' } : {}), f.source);
   };
   font('heading', 'Georgia,serif');
   font('body', 'system-ui,-apple-system,Segoe UI,sans-serif');
@@ -627,7 +627,13 @@ function emailTokens(r, pal) {
   const h1 = tm.h1 || tm.display || td.h1 || null;
   const body = tm.body || td.body || null;
   const derived = [];
-  const out = { head: r.head, body: r.body, faces: r.fonts.faces, googleHref: r.fonts.googleHref };
+  // THE FONT LEGAL GATE: a generated email never carries a site's font
+  // binaries - no @font-face pointing at the brand's files, nothing copied.
+  // An openly licensed (Google) family is linked by reference; a brand font
+  // is named first in the stack, so a client that has it installed uses it,
+  // and every other client draws the declared fallback.
+  const brandFonts = ['heading', 'body'].map((s) => ds.fonts && ds.fonts[s]).filter((f) => f && f.family && !f.google && f.licence === 'brand font').map((f) => f.family);
+  const out = { head: r.head, body: r.body, faces: '', googleHref: r.fonts.googleHref, brand_fonts: brandFonts };
   if (h1) out.h1 = { size: h1.size, weight: h1.weight, line_height: h1.line_height, letter_spacing: h1.letter_spacing, transform: h1.transform, color: h1.color };
   if (body) out.text = { size: body.size, line_height: body.line_height, color: body.color };
   if (b) {

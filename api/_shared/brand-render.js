@@ -60,6 +60,7 @@ const DEFAULTS = {
 function MARKER(field, host) { return `[DATA REQUIRED BEFORE LAUNCH: ${field}, ${host || 'this brand'}]`; }
 
 function siteCrawl() { return require('./site-crawl.js'); }
+function stab() { return require('./render-stabilise.js'); }
 function extract() { return require('./brand-extract.js'); }
 function core() { return require('./brand-workspace-core.js'); }
 
@@ -111,8 +112,10 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     page.setDefaultTimeout(Math.max(2000, Math.min(DEFAULTS.navMs, left())));
     const resp = await withTimeout(page.goto(url, { waitUntil: 'domcontentloaded' }), Math.min(DEFAULTS.navMs, left()), `opening ${url}`);
     await page.waitForLoadState('load', { timeout: Math.max(500, Math.min(8000, left() - 2000)) }).catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: Math.max(300, Math.min(DEFAULTS.settleMs, left() - 2000)) }).catch(() => {});
-    await withTimeout(page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true)), Math.min(DEFAULTS.fontsMs, Math.max(200, left() - 2000)), 'web fonts').catch(() => {});
+    // The ONE frozen state (render-stabilise.js), the same one our clone is
+    // measured in: network idle and fonts (bounded), motion zeroed, consent
+    // overlays hidden - never accepted.
+    const firstFreeze = await stab().stabilise(page, { deadline: ctx.deadline, idleMs: DEFAULTS.settleMs, fontsMs: DEFAULTS.fontsMs });
     // Lazy images and below-the-fold components only exist once scrolled to.
     await page.evaluate(async () => {
       const step = window.innerHeight;
@@ -123,10 +126,18 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
       window.scrollTo(0, 0);
       await new Promise((r) => setTimeout(r, 120));
     }).catch(() => {});
+    // Lazy content the scroll brought in may have started its own motion.
+    const again = await stab().stabilise(page, { deadline: ctx.deadline, idleMs: 800, fontsMs: 800 });
+    const stabilised = Object.assign({}, again, {
+      consent_hidden: [].concat(firstFreeze.consent_hidden || [], again.consent_hidden || []),
+      animations_finished: (firstFreeze.animations_finished || 0) + (again.animations_finished || 0),
+      animations_cancelled: (firstFreeze.animations_cancelled || 0) + (again.animations_cancelled || 0),
+    });
     const html = await page.content().catch(() => '');
     const shot = {};
     const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40 }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
     data.__viewport = label;
+    data.stabilised = stabilised;
     // The face the engine actually drew each role in (not the declared stack).
     data.drawn = await drawnFaces(page, {
       display: '[data-lcos-role="display"]', h1: '[data-lcos-role="h1"]', body: '[data-lcos-role="body"]',
@@ -171,6 +182,17 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
         const b = await loc.boundingBox().catch(() => null);
         if (!b || b.width < 2 || b.height < 2 || b.height > 1600) continue;
         shot.parts[role] = await loc.screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
+      }
+      // The same parts again ~500 ms later: whatever differs between the two
+      // is LIVE content (a carousel, a ticker, a countdown) and is masked out
+      // of the perceptual comparison. The text boxes are masked too.
+      shot.text = {};
+      for (const role of Object.keys(shot.parts)) shot.text[role] = await page.evaluate(capture.textRects, `[data-lcos-role="${role}"]`).catch(() => []);
+      await page.waitForTimeout(500);
+      shot.parts2 = {};
+      for (const role of Object.keys(shot.parts)) {
+        if (!shot.parts[role]) continue;
+        shot.parts2[role] = await page.locator(`[data-lcos-role="${role}"]`).first().screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
       }
     }
     return { data, html, shots: shot, states: st, page };
@@ -318,8 +340,19 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     const keep = (used.length ? used : files).slice(0, 6).map((f) => ({ url: f.url, weight: f.weight, style: f.style, format: f.format }));
     const google = keep.some((f) => /fonts\.gstatic\.com/.test(f.url)) || files.some((f) => /fonts\.googleapis\.com/.test(f.sheet));
     const weights = [...new Set(((desk.fonts && desk.fonts.faces) || []).filter((f) => f.family.toLowerCase() === String(fam).toLowerCase() && f.status === 'loaded').map((f) => String(f.weight)))].slice(0, 6);
+    // THE FONT LEGAL GATE (2026-10-04): a family and the URLs its files are
+    // served from are RECORDED; the files are loaded BY REFERENCE to measure
+    // the site and preview our clone, and are never copied or re-hosted into
+    // our storage or into a generated email. A family that is not openly
+    // licensed (not served by Google Fonts) is the brand's own font: shown as
+    // "<family> (brand font)" with the stack the site itself falls back to.
+    const brandFont = t.family_kind === 'webfont' && !google;
     fonts[slot] = {
       family: fam, kind: t.family_kind, stack, google, files: keep, weights,
+      licence: google ? 'open (Google Fonts)' : (brandFont ? 'brand font' : 'system'),
+      display_name: brandFont ? `${fam} (brand font)` : fam,
+      fallback_stack: rest.slice(1).map((f) => (/^(serif|sans-serif|monospace|system-ui|cursive|fantasy|ui-[a-z-]+|-apple-system|blinkmacsystemfont)$/i.test(f) ? f : `'${f.replace(/'/g, '')}'`)).join(',') || 'sans-serif',
+      files_by_reference: true,
       declared_stack: t.stack,
       source: src(desk, roleName, 'desktop', 'font-family', role.selector),
       note: t.family_kind === 'webfont' ? 'Loaded web font, rendering this role.'
@@ -507,9 +540,11 @@ async function readRendered(url, opts) {
     javaScriptEnabled: true, bypassCSP: false, permissions: [], locale: 'en-US', colorScheme: 'light',
   });
   const desktopCtx = await browser.newContext(ctxOpts(vps.desktop, false));
+  await stab().install(desktopCtx);
   ctx.ledger = await net.attach(desktopCtx, ctx);
   ctx.ledger.prefetched.set(home, first);
   const mobileCtx = await browser.newContext(ctxOpts(vps.mobile, true));
+  await stab().install(mobileCtx);
   await net.attach(mobileCtx, ctx);
 
   let partial = false;
@@ -582,6 +617,9 @@ async function readRendered(url, opts) {
     partial = true;
     notes.push(`The byte budget for one read (${Math.round(ctx.budget.max / 1048576)} MB) was spent; ${ctx.budget.aborted} download(s) in flight were stopped. What was measured before that is below.`);
   }
+  // A consent overlay is HIDDEN in this throwaway browser, never accepted.
+  const hidden = [].concat((deskCap.data.stabilised && deskCap.data.stabilised.consent_hidden) || [], (mobCap && mobCap.data.stabilised && mobCap.data.stabilised.consent_hidden) || []);
+  if (hidden.length) notes.push(`${hidden.length} consent overlay(s) were HIDDEN in the reader's throwaway browser, not accepted: nothing was consented to on anyone's behalf, and an overlay's colours are not read as the brand's.`);
   // Every hop counted, including the ones made outside a browser request.
   ctx.ledger.requests = ctx.budget.requests;
   ctx.ledger.bytes = ctx.budget.used;

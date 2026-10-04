@@ -167,6 +167,27 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   design system and are scored; both full-page screenshots pinned (Playwright 1.63 trims `clip` to the
   full-page rect, measured); `engines.node` `24.x`, CI on Node 24 (`npm ci --engine-strict` and 458 specs
   run on 24.21.0 here).
+- **The adopted reference items (2026-10-04), each executed and mutation-verified**: (A) ONE
+  `render-stabilise.js` for the site AND our clone - Date/performance.now/Math.random pinned by an init
+  script (clocks ADVANCE 1 ms per read, so a busy-wait still ends), network idle + fonts bounded, every
+  animation/transition zeroed and the running ones finished or cancelled; a CTA running an infinite
+  colour animation reads as its declared colour, and both sides report the same pinned clock. (B) each
+  part is shot twice ~500 ms apart, on both sides; what changed is LIVE content and is masked. (C) TWO
+  scores with their reasoning in code: STRUCTURAL (tokens; limit 0.95) and PERCEPTUAL (pixelmatch with
+  text boxes and live pixels masked; 1 − worst region; limit 0.97); approval needs both; the panel shows
+  both. (D) MONOTONIC repair: a set of re-measured values is kept only if the composite strictly improves,
+  otherwise every value is put back and logged in `reverted` (a re-measure of a page that changed after
+  it was read does not get kept). (E) FONT LEGAL GATE: a family and its source URLs are recorded and
+  loaded BY REFERENCE to measure and preview; a generated email never carries a site's font files (no
+  `@font-face`); a non-Google family is `<family> (brand font)` with its fallback stack, and the email's
+  drawn fallback is listed EXEMPT with that reason. Consent overlays (fixed/sticky, named or worded as
+  consent, or a known CMP container) are HIDDEN in the throwaway context, never clicked: no consent is
+  given on anyone's behalf and a banner's colours never become the brand's. Measured while building it:
+  the engine reports a drawn face by the FILE's own name, not the CSS alias (a brand font is recognised
+  by the role's declared family), and pixelmatch's default threshold cannot see a dark hue shift
+  (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
+  Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
+  a separate template builder, a TypeScript/Next.js restructure.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
