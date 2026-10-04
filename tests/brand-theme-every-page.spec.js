@@ -157,7 +157,9 @@ async function measure(page, file, name, painted, log) {
   const r = await page.evaluate(H.PROBE + '(' + JSON.stringify(cfg) + ')');
   const themed = await page.evaluate(() => !!document.querySelector('link[data-vh-theme]'));
   let entry = null;
-  if (INVENTORY) {
+  // BRAND_THEME_ATTRIBUTE=0 writes the counts only (fast: what the baseline
+  // tool needs), skipping the per-finding DevTools attribution.
+  if (INVENTORY && process.env.BRAND_THEME_ATTRIBUTE !== '0') {
     const cap = (list, n) => list.slice(0, n);
     const badButtons = r.buttons.filter((b) => !b.ok);
     const items = []
