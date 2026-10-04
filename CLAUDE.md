@@ -104,6 +104,23 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   host omitting or falsifying Content-Length could exhaust the function - it now streams, cancels at
   4 MB, and has one 25 s deadline; a typed value the document repeated flipped to `document` (equal is
   unchanged now); `voice.no_em_dashes` was untracked, so unticking it was not the operator's.
+- **Review round 2 (Codex + the coordinator's own review), executed tests that failed first, mutation-
+  verified**: a self-hosted font now reaches every asset (`typography[slot].src` → `brand-runtime.
+  fontFaces()`, which `design-system.resolve()` adds to the faces the rendered read found, so the mailer,
+  `/lp/:id` and the fallback landing page all declare `@font-face`); a `brand-assets` LISTING that does
+  not answer stops the delete (only "Bucket not found" means nothing to orphan); Apply is all or
+  nothing (a device-store refusal part-way restores the snapshot and removes the kept files); a logo or
+  icon URL that does not load puts the previous value back; the browser streams a CORS download and
+  cancels it at the cap. **`op=document-fetch` is not a fetch proxy**: production opens it without an
+  account, and `/api/public-config` answers `Access-Control-Allow-Origin: *`, so as first shipped any
+  caller could GET any public URL through it. Now POST only (405 sentence), no CORS on that op on any
+  path (the wildcard is removed before anything runs), and on the OPEN path a page of THIS deployment
+  only (`samePageRequest()`: Origin, else Referer, host === the request's host; the device-principal
+  rule still checks presence only) plus the open rendered read's limiter (`brand-render.rateCheck`, its
+  own `document` budget: 6 per address, 40 per instance, per 10 minutes, 429 sentence). Merging #128:
+  `field_origins` (this reader's records) and `field_origin` (the rendered read's map) are written
+  together and read by both sides; a filled field with no recorded origin is the person's on every
+  path; an automatic source never demotes a document value, the person's own pick does.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
@@ -249,6 +266,14 @@ the real reader in Chromium, the real builder, the real gallery).
   1.5:1 against the page or measured on a consent banner, takes the next one the site renders in the
   reader's own order, and records each `passed_over` with why; body copy measured white on a light
   page gives way to the heading/nav text the site renders before anything is derived.
+- **What the read produced (run 37223429183, on the reader with #128 and #130)**: 21 of 40 sites
+  rendered; 12 templates now carry the palette and families their site renders (airtel is
+  `#d40000`, no longer `#000000`) and the 5 hand-verified palettes are kept; 4 rendered with no
+  colour a preset can use (amazon, boat, samsung, spotify) and stay default with that reason; 14
+  refused it (eight HTTP 403s, a Kasada, two Cloudflare and one AWS WAF challenge page, a robots.txt
+  disallow, and a maintenance page the reader labels blocked) and 5 did not answer the reader's
+  first-document request in time. Every one of those 23 says so on its card. An earlier run
+  (37222438100, 14 minutes before) agreed on all 40 verdicts but Netflix (timeout there).
 - **The card paints four NAMED roles** (primary/accent/surface/ink, `*` when derived) and its text is
   measured at AA in Chromium through every ancestor's opacity - the step fades in, and a measurement
   taken mid-fade reads 1:1.
