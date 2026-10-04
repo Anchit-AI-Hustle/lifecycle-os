@@ -169,6 +169,10 @@ const PROVIDERS = [
     fields: [
       { key: 'access_token', label: 'Access token', secret: true, required: true },
       { key: 'ad_account_id', label: 'Ad account id', secret: false, required: true },
+      // The social gateway (2026-10-04) posts to a Page and an Instagram
+      // professional account, and routes Meta's webhooks by these ids.
+      { key: 'page_id', label: 'Facebook Page id', secret: false, required: false },
+      { key: 'ig_user_id', label: 'Instagram professional account id', secret: false, required: false },
     ],
     oauth_note: '[DATA REQUIRED BEFORE LAUNCH: Meta OAuth authorize URL, scopes and app review status for this platform]',
     wired: false,
@@ -202,7 +206,48 @@ const PROVIDERS = [
     ],
     oauth_note: '[DATA REQUIRED BEFORE LAUNCH: TikTok Business OAuth authorize URL and scopes for this platform]',
     wired: false,
-    wired_note: 'Stored for this workspace. The paid-media reader still runs on the deployment credentials.',
+    wired_note: 'Stored for this workspace. The social gateway reads it, and every TikTok Ads call it would make is unverified (TikTok\'s API for Business reference could not be read), so each one refuses with the exact request instead of sending it.',
+  },
+
+  /* ── Social (the social integration gateway, 2026-10-04) ───────────────
+     Signed in with OAuth from the Publishing page; a pasted token is the
+     fallback. Read by api/_shared/social-gateway-core.js and the adapters in
+     api/_shared/adapters/ (tiktok, pinterest, youtube). */
+  {
+    id: 'tiktok', label: 'TikTok', category: 'social',
+    auth_kind: 'oauth', env_default: '',
+    key_url: 'https://developers.tiktok.com',
+    blurb: 'Organic TikTok: upload a video to the creator\'s inbox as a draft, or post it directly; read the account\'s own video counts. Webhooks report when a post completes.',
+    fields: [
+      { key: 'access_token', label: 'Access token', secret: true, required: true },
+    ],
+    wired: true,
+    wired_note: 'Read and written by the social gateway. Every write also needs LIVE_CONNECTORS, this brand\'s publishing toggle and TIKTOK_ALLOW_WRITES on the deployment.',
+  },
+  {
+    id: 'pinterest', label: 'Pinterest', category: 'social',
+    auth_kind: 'oauth', env_default: '',
+    key_url: 'https://developers.pinterest.com',
+    blurb: 'Pins on a board, Pin analytics, paused ad campaigns and ad spend.',
+    fields: [
+      { key: 'access_token', label: 'Access token', secret: true, required: true },
+      { key: 'board_id', label: 'Default board id', secret: false, required: false },
+      { key: 'ad_account_id', label: 'Ad account id', secret: false, required: false },
+    ],
+    wired: true,
+    wired_note: 'Read and written by the social gateway. Every write also needs LIVE_CONNECTORS, this brand\'s publishing toggle and PINTEREST_ALLOW_WRITES on the deployment.',
+  },
+  {
+    id: 'youtube', label: 'YouTube', category: 'social',
+    auth_kind: 'oauth', env_default: '',
+    key_url: 'https://console.cloud.google.com/apis/credentials',
+    blurb: 'Upload videos (always private until a live approval), read their statistics, and read, reply to and moderate comments.',
+    fields: [
+      { key: 'access_token', label: 'Access token', secret: true, required: true },
+      { key: 'refresh_token', label: 'Refresh token', secret: true, required: false },
+    ],
+    wired: true,
+    wired_note: 'Read and written by the social gateway. Every write also needs LIVE_CONNECTORS, this brand\'s publishing toggle and YOUTUBE_ALLOW_WRITES on the deployment.',
   },
 
   /* ── Lifecycle ────────────────────────────────────────────────────────── */
@@ -1015,7 +1060,7 @@ async function handle(req, res) {
     return res.status(200).json({
       ok: true,
       providers: registryView(false),
-      categories: ['ai', 'commerce', 'ads', 'lifecycle'],
+      categories: ['ai', 'commerce', 'ads', 'social', 'lifecycle'],
       secrets_storage: {
         encrypted: cryptoConfigured(),
         store: serviceConfigured(),

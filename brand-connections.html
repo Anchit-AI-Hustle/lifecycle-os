@@ -206,8 +206,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function toast(m) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, 4200); }
 
-  var CAT_LABEL = { ai: 'AI model providers', commerce: 'Commerce', ads: 'Ad platforms', lifecycle: 'Lifecycle and mailer platforms' };
-  var CAT_ORDER = ['ai', 'commerce', 'ads', 'lifecycle'];
+  var CAT_LABEL = { ai: 'AI model providers', commerce: 'Commerce', ads: 'Ad platforms', social: 'Social platforms', lifecycle: 'Lifecycle and mailer platforms' };
+  var CAT_ORDER = ['ai', 'commerce', 'ads', 'social', 'lifecycle'];
 
   var state = { providers: [], connections: {}, routing: { entries: [], use_platform_fallback: true }, storage: {} };
 

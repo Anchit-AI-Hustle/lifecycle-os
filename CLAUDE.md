@@ -37,6 +37,72 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
 - Known limits, said: English lexicon only; phrase not meaning; no green-claims or Indian (ASCI) pack;
   a testimonial block with the author on its own line (no dash) is not read as an endorsement.
 
+## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
+`api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
+`lib/smart-brain/services.js` + `cohort-engine.triggerEligibility()`, gated by `tests/replenishment-model.spec.js`
+(26 executed; 23 mutations each fail it). The roadmap's example assumed "1.5 cups/day": a consumption rate or a
+pack size is a product fact, so neither is ever used.
+- **Per (market, product)**: the empirical inter-purchase interval (median/p25/p75/n) from customers who bought
+  it twice; SKU first, its product type when the SKU is thin. `MIN_REPEAT_CUSTOMERS = 30` (one number for every
+  estimate) or the product reports `insufficient_history` WITH its count. Same-day orders are one occasion.
+  Never pooled across markets (closed source-of-truth).
+- **Per customer**: empirical-Bayes shrinkage on log intervals, `w(k) = tau2 / (tau2 + sigma2/k)`; `tau2 = 0`
+  means customers do not differ and everyone gets the median. Quantity only when the line STATES it and a seeded
+  bootstrap CI of the ratio excludes 1 (proportional only when it contains the mean quantity; otherwise the
+  measured ratio). Trigger at the p25-equivalent point; past p75 a customer is LAPSING - reactivation's job.
+- **The backtest decides** (last 26 weeks held out): the model ships only if its MAE improvement CI is above 0
+  and its hit-rate is not lower; otherwise the baseline (product median for everyone) ships and says why. On the
+  bundled export: `tau2 = 0`, MAE 217.9 vs baseline 217.5 days, hit-rate 0.317 vs 0.318 -> **baseline**.
+- **Whose orders**: the workspace's own `smart_orders`; tenant zero's `data/matrixify` export ONLY through
+  `ownsBundledExport()`, never for a request carrying a person with no workspace, never on the non-tenant-zero
+  planner branch (`allowBundled:false`). No orders = `[DATA REQUIRED BEFORE LAUNCH: order history, this brand]`.
+  That export is SAMPLE data (every email on example.com - detected from the file) and ends 2025-03-30, so as of
+  today 0 customers are due and 3,570 have lapsed; the insight line says exactly that.
+- **Planner**: weekly slots per market x {`Replenishment due: second order` -> `second-order activation`,
+  `... repeat` -> `replenishment`}; audience = due customers passing the same engagement tiers and
+  `frequencyCheck` (no send history = unchecked, never "inside the cap"), never widened to a floor; evidence on
+  `entry.replenishment`; the same `enforceFrequencyCap` pass (now a named export). `predictions`/`contacts` on the
+  analysis are non-enumerable: no customer list on the wire.
+- Left as found, on purpose: `lifecycle-cohorts.COHORTS` (a new key changes the UK planner's default rotation);
+  the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
+  cap input until the omnichannel fatigue ledger lands.
+## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
+`api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|
+flags|thresholds|thresholds-save|regen-approve|flag-dismiss|live-approve` (still 12/12, still two crons), the
+"Social gateway" tab on `/publishing`. Adapters: `meta-adapter.js` (extended: Instagram + Facebook Page comments,
+mentions, insights, Page feed, ad insights, activation), `tiktok-adapter.js` (`tiktok` organic + `tiktok_ads`),
+`pinterest-adapter.js`, `youtube-adapter.js`, and `google-ads-adapter.js` (gained an ad-metrics reader). Gated by
+`tests/social-gateway-executed.spec.js` (33) + `tests/social-gateway-console.spec.js` (4, the page driven over the
+shipped core) over `tests/lib/fake-social-platforms.js`, which answers exactly the documented endpoints and THROWS
+on anything else.
+- **Every call is a row in the adapter's `endpointTable`** with its doc URL; `callEndpoint()` is the one door.
+  `verified:false` REFUSES with the exact request, whatever the switches say, and the hub counts it. Unverified
+  today: all of TikTok Ads (only the SDK was readable; its default status is ENABLE), Pinterest `ad_create` (PAUSED
+  is confirmed for campaigns only) and `campaign_update` (the docs conflict). Google ROAS is not read (the field
+  was not confirmed); YouTube and Pinterest webhooks are refused (no signature scheme confirmed).
+- **The third switch is per platform now**: `META_/TIKTOK_/PINTEREST_/YOUTUBE_/GOOGLE_ADS_ALLOW_WRITES=1`, beside
+  `LIVE_CONNECTORS` and the brand's toggle (`publishAllowance` → `platform_writes_off`). A READ needs only
+  `LIVE_CONNECTORS`. A write that needs a read first (TikTok `creator_info`, YouTube's media bytes) asks
+  `writeRefusal()` BEFORE the read, so a withheld write shows the write, and nothing leaves.
+- **Paid is created PAUSED / DISABLE / private**; going live is its own `<platform>_live_approval` job, and
+  dispatch-core stamps `approved_by` from the SESSION (a request's own claim is overwritten). YouTube activation
+  re-sends every writable status field, because `videos.update` deletes what it omits.
+- **Tokens never leave**: `would_request` URLs are redacted (`access_token`, `appsecret_proof`), and that was a
+  real leak into `dispatch_jobs.result` before this. Refresh rides the existing daily cron
+  (`refreshDueTokens({withinDays:7})`): a refusal marks `needs_reauth` (and `ensureFreshToken` then refuses), a
+  platform that did not answer is retried.
+- **Webhooks**: verified over the raw bytes, recorded once per event id (`social_inbound_events` unique on
+  provider + event id), routed only to the ONE workspace whose connection names the account, logged to
+  `platform_sync_log`. Migration `20261004150000_social_gateway.sql`.
+- **Underperformance** is below the brand's OWN median per platform (3+ creatives, else said) or below an
+  operator's OWN threshold; an absent metric is never a zero; units are never mixed across platforms. A flag
+  OFFERS a metered regeneration (`ads.generate` / `social.post`); approving records who and spends nothing.
+- 21 mutations, each failing the spec (ACTIVE paid writes on three platforms, both signatures uncompared, a
+  switch ignored, an unverified endpoint sent, the approver taken from the request, a duplicate re-processed,
+  YouTube public, absent read as zero, a refused refresh left active, ...).
+- Left as found: `connections` `oauth-start` answers `connections_router_failed` for a phone device session
+  (pre-existing for every OAuth platform); a Google Ads ad is turned on in Google Ads (no enable call confirmed).
+
 ## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
 The operator's words: *"ensure user can upload a document for the design schema to be followed too with
 all details like logo file or url, etc - keep options for files and urls both where either are
@@ -217,6 +283,27 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   design system and are scored; both full-page screenshots pinned (Playwright 1.63 trims `clip` to the
   full-page rect, measured); `engines.node` `24.x`, CI on Node 24 (`npm ci --engine-strict` and 458 specs
   run on 24.21.0 here).
+- **The adopted reference items (2026-10-04), each executed and mutation-verified**: (A) ONE
+  `render-stabilise.js` for the site AND our clone - Date/performance.now/Math.random pinned by an init
+  script (clocks ADVANCE 1 ms per read, so a busy-wait still ends), network idle + fonts bounded, every
+  animation/transition zeroed and the running ones finished or cancelled; a CTA running an infinite
+  colour animation reads as its declared colour, and both sides report the same pinned clock. (B) each
+  part is shot twice ~500 ms apart, on both sides; what changed is LIVE content and is masked. (C) TWO
+  scores with their reasoning in code: STRUCTURAL (tokens; limit 0.95) and PERCEPTUAL (pixelmatch with
+  text boxes and live pixels masked; 1 − worst region; limit 0.97); approval needs both; the panel shows
+  both. (D) MONOTONIC repair: a set of re-measured values is kept only if the composite strictly improves,
+  otherwise every value is put back and logged in `reverted` (a re-measure of a page that changed after
+  it was read does not get kept). (E) FONT LEGAL GATE: a family and its source URLs are recorded and
+  loaded BY REFERENCE to measure and preview; a generated email never carries a site's font files (no
+  `@font-face`); a non-Google family is `<family> (brand font)` with its fallback stack, and the email's
+  drawn fallback is listed EXEMPT with that reason. Consent overlays (fixed/sticky, named or worded as
+  consent, or a known CMP container) are HIDDEN in the throwaway context, never clicked: no consent is
+  given on anyone's behalf and a banner's colours never become the brand's. Measured while building it:
+  the engine reports a drawn face by the FILE's own name, not the CSS alias (a brand font is recognised
+  by the role's declared family), and pixelmatch's default threshold cannot see a dark hue shift
+  (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
+  Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
+  a separate template builder, a TypeScript/Next.js restructure.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
@@ -236,14 +323,19 @@ time, a per-site deadline plus a hard stop) and `scripts/lib/preset-observation.
 manifest. `scripts/observe-preset-brands.js` - a second, older browser reader - is deleted: two
 readers drift. Gated by `tests/preset-harvest.spec.js` (executed: fixture sites on 127.0.0.1 through
 the real reader in Chromium, the real builder, the real gallery).
-- **Runs on GitHub, not here.** This container has no egress to brand hosts; GitHub's runners do.
-  `.github/workflows/harvest-presets.yml` runs on dispatch (`slugs`) and on any same-repo PR that
-  touches the harvester, the mapping, the builder, the reader or itself; it commits
-  `data/brands/observed/` + regenerated `data/brands/presets/` back to the PR (a `[skip harvest]`
-  head commit skips it; the bot's GITHUB_TOKEN push starts no run, so it cannot loop - and starts no
-  CI either, so push a commit after it to get CI on that head). Screenshots, our renderers' shots,
-  the manifest and a report per brand are the run's `preset-harvest-<run id>` artifact; the
-  before/after table is the run summary.
+- **Runs on GitHub, not here; a PR only READS, a dispatch PUBLISHES (2026-10-04).** This container
+  has no egress to brand hosts; GitHub's runners do. `.github/workflows/harvest-presets.yml` on a
+  same-repo PR touching the harvester, mapping, builder, reader or itself reads every site and
+  reports (run summary + `preset-harvest-<run id>` artifact: screenshots, our renderers' shots, the
+  manifest and a report per brand) with a read-only token, failing only on a gate. It used to commit
+  40 brands' data back onto the PR - #131, a document-fetch lockdown, got 5c06501 - and that bot push
+  produced `action_required` runs. Only `workflow_dispatch` from the default branch publishes: a
+  separate job (the only one with write scopes) commits the data onto `claude/harvest-presets-<run
+  id>` and opens its own PR; dispatched elsewhere it reads and says why it did not publish. The data
+  commit carries `[skip ci]`, so no run starts for it and auto-merge (which fires on CI completing)
+  cannot land it: a human reviews, then pushes any commit to start CI. Gated by
+  `tests/harvest-workflow.spec.js`, which runs the publish script in a real clone of a real local
+  remote and asserts which refs moved (mutation-verified six ways).
 - **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
   unavailable` + the reason + `read_attempt`; no palette, type or logo. The preset keeps the neutral
   default and the card says one sentence (`<host> blocked an automated read on <date>.`). No stealth,
@@ -358,6 +450,14 @@ configured project that does not answer falls through and says so (`supabase:{re
   Postgres 16). `supabase/config.toml`: `project_id = "lifecycle-os"`, public sign-ups off, Phone provider on.
   Runbook targets a NEW project `lifecycle-os` (`<project-ref>`); no remote was touched (no access token, egress
   blocks supabase hosts, the org has unpaid invoices).
+- **The spec waits on events, never on the runner's clock (2026-10-04).** Two of its tests timed out in CI
+  with a bare "Test timeout" - what Playwright prints for a NODE-side await, and here the error that failed
+  first was lost with it: `finally` awaited `server.close()`, which keeps a socket the still-open page was
+  using and serves it on keep-alive until it goes quiet. `stopApp()` ends every connection; every wait is
+  bounded and names what it waited for (`within()`, `expect.poll` messages); op=status is HELD by the test
+  and the PAGE clock is moved past the old 6-second release (`page.clock`), not slept towards; a fetch
+  recorder in `wire()` says what the page sent at the moment it sent it. CI now uploads `test-results/`
+  (traces) on failure - `--reporter=list` meant `tests/report/` was never written.
 - Gated by `tests/supabase-phone-accounts.spec.js` (18 executed, incl. Chromium against the shipped handler)
   over `tests/supabase-auth-fake.js` (exactly the endpoints called; throws on anything else). 19 mutations of
   the security checks each fail it. The ten tests that were red on main at the time are fixed by #118's

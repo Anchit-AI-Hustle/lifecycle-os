@@ -19,7 +19,8 @@
       "maxDuration": 120
     },
     "api/brain.js": {
-      "maxDuration": 120
+      "maxDuration": 120,
+      "includeFiles": "data/matrixify/order*.csv"
     },
     "api/ai/pipeline/strategy.js": {
       "maxDuration": 45
@@ -37,7 +38,8 @@
       "maxDuration": 45
     },
     "api/calendar.js": {
-      "maxDuration": 120
+      "maxDuration": 120,
+      "includeFiles": "data/matrixify/order*.csv"
     },
     "api/competitor.js": {
       "maxDuration": 60

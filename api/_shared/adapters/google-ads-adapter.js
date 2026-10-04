@@ -38,9 +38,34 @@ const { AdPlatformAdapter } = require('./base-adapter.js');
 const API_VERSION = String(process.env.GOOGLE_ADS_API_VERSION || 'v18').trim();
 const API = `https://googleads.googleapis.com/${API_VERSION}`;
 
+/*
+ * The social gateway's reader (2026-10-04). ONE call, the REST searchStream
+ * exactly as Google's query cookbook gives it (POST {"query": GAQL}, the
+ * developer-token and login-customer-id headers), and only fields the
+ * ad_group_ad field reference lists as selectable with it. ROAS is NOT read:
+ * the conversion-value-per-cost field was not confirmed for this resource when
+ * this was written, and a ROAS this platform computed from a guess is the
+ * defect the gateway exists to avoid. A paid row from Google therefore carries
+ * spend, impressions, clicks and ctr (Google's ctr is a RATIO, clicks over
+ * impressions; flags compare it only with this brand's other Google ads).
+ */
+const GADS_COOKBOOK = 'https://developers.google.com/google-ads/api/docs/query/cookbook';
+const ENDPOINTS = {
+  ads_search_stream: {
+    method: 'POST', read: true, verified: true, url: `${API}/customers/{customer_id}/googleAds:searchStream`,
+    doc: GADS_COOKBOOK,
+    note: 'Fields: https://developers.google.com/google-ads/api/fields/v25/ad_group_ad (ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros); DURING LAST_7_DAYS / LAST_30_DAYS from https://developers.google.com/google-ads/api/docs/query/structure.',
+  },
+};
+/** The date ranges the reader may ask for: the two the docs show, nothing composed. */
+const DATE_RANGES = ['LAST_7_DAYS', 'LAST_30_DAYS'];
+
 class GoogleAdsAdapter extends AdPlatformAdapter {
   static get id() { return 'google_ads'; }
   static get label() { return 'Google Ads'; }
+  /** The third switch (2026-10-04): every Google Ads write needs it, beside LIVE_CONNECTORS and the brand's toggle. */
+  static get writeSwitch() { return 'GOOGLE_ADS_ALLOW_WRITES'; }
+  static get endpointTable() { return ENDPOINTS; }
 
   static get channels() {
     return [
@@ -314,6 +339,45 @@ class GoogleAdsAdapter extends AdPlatformAdapter {
     };
   }
 
+  /**
+   * Spend, impressions, clicks and CTR per ad, over the last 7 or 30 days.
+   * A metric Google did not return stays absent; ROAS is not read (see top).
+   */
+  async readAdMetrics(range) {
+    const r0 = range || {};
+    const customer = String(r0.customer_id || this.customerId() || '').replace(/[^0-9]/g, '');
+    if (!customer) return { ok: false, note: this.gap('customer id', 'Google Ads ad metrics') };
+    if (r0.since || r0.until) return { ok: false, supported: false, note: `Google Ads metrics are read for ${DATE_RANGES.join(' or ')} only; a custom date range was not composed from GAQL the docs read here did not show.` };
+    const preset = String(r0.date_preset || 'LAST_30_DAYS').toUpperCase();
+    if (DATE_RANGES.indexOf(preset) < 0) return { ok: false, supported: false, note: `date_preset must be one of ${DATE_RANGES.join(', ')}.` };
+    const query = 'SELECT ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros'
+      + ` FROM ad_group_ad WHERE segments.date DURING ${preset}`;
+    const r = await this.callEndpoint('ads_search_stream', { params: { customer_id: customer }, headers: this.headers(), body: { query } });
+    if (!r.ok) return Object.assign({ ok: false }, r);
+    // searchStream answers a list of batches, each with its own results.
+    const batches = Array.isArray(r.data) ? r.data : (r.data && Array.isArray(r.data.results) ? [r.data] : []);
+    const want = new Set((Array.isArray(r0.ad_ids) ? r0.ad_ids : []).map(String).filter(Boolean));
+    const rows = [];
+    for (const b of batches) {
+      for (const x of (b && b.results) || []) {
+        const ad = (x.adGroupAd && x.adGroupAd.ad) || {};
+        const id = ad.id != null ? String(ad.id) : '';
+        if (!id || (want.size && !want.has(id))) continue;
+        const m = x.metrics || {};
+        const values = {};
+        if (isNum(m.costMicros)) values.spend = Number(m.costMicros) / 1e6;
+        if (isNum(m.impressions)) values.impressions = Number(m.impressions);
+        if (isNum(m.clicks)) values.clicks = Number(m.clicks);
+        if (isNum(m.ctr)) values.ctr = Number(m.ctr);
+        rows.push({ external_id: id, kind: 'paid', status: (x.adGroupAd && x.adGroupAd.status) || null, values });
+      }
+    }
+    return {
+      ok: true, rows, date_range: preset,
+      units_note: 'Google reports ctr as a ratio (clicks / impressions) and cost in micros of the account currency; spend here is cost_micros / 1,000,000. ROAS is not read.',
+    };
+  }
+
   async fetchStatus(resourceName) {
     if (!resourceName) return { ok: false, detail: { note: 'no resource name' } };
     const customer = String(resourceName).split('/')[1] || this.customerId();
@@ -325,6 +389,8 @@ class GoogleAdsAdapter extends AdPlatformAdapter {
     return r.ok ? { ok: true, status: 'read', detail: r.raw } : { ok: false, detail: { error: r.error } };
   }
 }
+
+function isNum(v) { return v != null && v !== '' && Number.isFinite(Number(v)); }
 
 function arrayOf(v) { return Array.isArray(v) ? v : (v == null || v === '' ? [] : [v]); }
 

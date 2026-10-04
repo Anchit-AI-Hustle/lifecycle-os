@@ -155,9 +155,19 @@ async function enqueue(auth, workspaceId, spec, context) {
   // operator sees the resolved payload and its gaps before anything is queued.
   const conn = await connections.getConnectionAsService(workspaceId, connectionProviderFor(provider));
   const adapter = new Adapter({ workspaceId, credentials: {}, connection: conn });
+  // The channel rides into the mapping so an adapter whose channels carry
+  // different payloads (a post, a comment reply, a live approval) maps the one
+  // it was asked for. Adapters that ignore it are unaffected.
   const mapped = s.payload && s.skip_mapping
     ? { ok: true, payload: s.payload, warnings: [], missing: [] }
-    : adapter.map(s.asset || s.payload || {}, s.mapping || {});
+    : adapter.map(s.asset || s.payload || {}, Object.assign({}, s.mapping || {}, { channel: channelId }));
+
+  // LIVE APPROVAL is recorded with the operator who gave it (2026-10-04). The
+  // approver is the caller this enqueue authenticated, never a value the
+  // request named: a payload that claimed someone else is overwritten.
+  if (/_live_approval$/.test(channelId)) {
+    mapped.payload = Object.assign({}, mapped.payload, { approved_by: auth.user_id || '' });
+  }
 
   // The brand the copy is linted AS comes from the server, never the request
   // body: the router hands over the brand it resolved for this workspace, and
@@ -399,6 +409,9 @@ function sanitizeResult(result) {
     external_id: result.external_id || null,
     error_class: result.error_class || null,
     endpoint_unverified: !!result.endpoint_unverified,
+    blocked_by: result.blocked_by || undefined,
+    op: result.op || undefined,
+    doc: result.doc || undefined,
     note: result.note ? String(result.note).slice(0, 600) : undefined,
     would_request: result.would_request ? { method: result.would_request.method, url: result.would_request.url, body: redact(result.would_request.body) } : undefined,
     resume: result.resume || undefined,
