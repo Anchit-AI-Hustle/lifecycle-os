@@ -442,13 +442,17 @@ function triggerEligibility(ids, contacts, { messagePriority = 'promotional', no
   const map = contacts instanceof Map ? contacts : new Map();
   const engRows = [];
   const capRows = [];
+  const excluded = new Map();
   for (const id of list) {
     const r = map.get(id);
     if (!r) continue;
+    // Suppressed by the deliverability layer (sunset, unsubscribe, manual):
+    // that decision was made on this contact already and is not re-litigated
+    // because a purchase is predicted.
+    if (r.suppressed) { excluded.set(id, `suppressed${r.suppressed_reason ? ` (${r.suppressed_reason})` : ''}`); continue; }
     if (r.last_open_at || r.last_click_at || r.hard_bounced || r.complained) engRows.push(Object.assign({}, r, { external_profile_id: id }));
     if (r.sends_7d != null && r.sends_7d !== '' && Number.isFinite(Number(r.sends_7d))) capRows.push({ external_profile_id: id, sends_7d: Number(r.sends_7d) });
   }
-  const excluded = new Map();
   const rec = recommendCohorts('replenishment');
   let engagement = { computed: false, checked: 0, note: 'No contact in this audience carries an open or click date, so no engagement tier is applied here; the ESP applies the sunset policy at send time.' };
   if (engRows.length) {

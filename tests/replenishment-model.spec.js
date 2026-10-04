@@ -471,7 +471,9 @@ test('due customers become slots with the right objective, the measured evidence
   const reps = calendar.entries.filter((e) => e.replenishment);
   const second = reps.find((e) => e.cohort.trigger === 'second_order');
   const repeat = reps.find((e) => e.cohort.trigger === 'repeat');
-  expect(second.cohort.name).toBe('Replenishment due: second order');
+  // The name carries the trigger kind AND the product group the slot is for.
+  expect(second.cohort.name).toBe('Replenishment due: second order · Type A');
+  expect(second.cohort.slot_key).toMatch(/^repl-2nd-[0-9a-f]{8}$/);
   expect(second.objective).toBe('second-order activation');
   expect(repeat.objective).toBe('replenishment');
   expect(second.cohort.key).toBe(CE.REPLENISHMENT_COHORT.key);
@@ -509,8 +511,42 @@ test('a due customer already at the cross-channel cap is not in the slot; a slot
 
 /* ═══ 9. whose orders: the gate, executed ════════════════════════════════════ */
 
+/* ═══ 10. review findings on #135, each reproduced first ═══════════════════ */
+
+test('(a) customers due for DIFFERENT products in the same week get separate slots, each carrying its own product', () => {
+  // Codex P1 on #135: the bucket key was market|week|cohort, so customers due
+  // for product A and product B in the same week shared one slot whose hero was
+  // products[0] - every B buyer was sent A's creative.
+  const lines = exactLines();                                   // Type A / SKU-A: p25 30, p75 50
+  for (let i = 0; i < 35; i++) lines.push(L(`bb-${i}`, D0 + i, { sku: 'SKU-B2', type: 'Type B' }), L(`bb-${i}`, D0 + i + 20 + i, { sku: 'SKU-B2', type: 'Type B' }));
+  const S = D0 + 400;
+  for (let i = 0; i < 3; i++) {
+    lines.push(L(`dueA-${i}`, S - 35));
+    lines.push(L(`dueB-${i}`, S - 35, { sku: 'SKU-B2', type: 'Type B' }));
+  }
+  // One repeat customer due for BOTH products in the same week.
+  lines.push(L('both', S - 36), L('both', S - 35, { sku: 'SKU-B2', type: 'Type B' }));
+  const { calendar } = planWith(lines, { startDate: RM.isoOf(S) });
+  const second = calendar.entries.filter((e) => e.replenishment && e.cohort.trigger === 'second_order');
+  expect(second).toHaveLength(2);
+  const forA = second.find((e) => e.heroProduct.title === 'SKU-A title');
+  const forB = second.find((e) => e.heroProduct.title === 'SKU-B2 title');
+  expect(forA.replenishment.audience.customer_ids.sort()).toEqual(['dueA-0', 'dueA-1', 'dueA-2']);
+  expect(forB.replenishment.audience.customer_ids.sort()).toEqual(['dueB-0', 'dueB-1', 'dueB-2']);
+  // Each recipient's own last-bought SKU travels with the audience.
+  expect(forB.replenishment.audience.last_bought['dueB-1']).toBe('SKU-B2');
+  expect(forA.replenishment.audience.last_bought['dueA-1']).toBe('SKU-A');
+  expect(forA.cohort.name).not.toBe(forB.cohort.name);
+  expect(forA.id).not.toBe(forB.id);
+  // A customer due for two products in one week gets ONE replenishment send.
+  const slotsWithBoth = calendar.entries.filter((e) => e.replenishment && e.replenishment.audience.customer_ids.includes('both'));
+  expect(slotsWithBoth).toHaveLength(1);
+  expect(calendar.replenishment.counts.same_week_other_product).toBe(1);
+});
+
 const ENV_KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_ANON_KEY',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SMART_BRAIN_SUPABASE_URL', 'SMART_BRAIN_SUPABASE_SERVICE_ROLE_KEY', 'SMART_BRAIN_SUPABASE_KEY', 'SMART_BRAIN_WORKSPACE_ID'];
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SMART_BRAIN_SUPABASE_URL', 'SMART_BRAIN_SUPABASE_SERVICE_ROLE_KEY', 'SMART_BRAIN_SUPABASE_KEY', 'SMART_BRAIN_WORKSPACE_ID',
+  'CONTACT_HASH_SALT'];
 
 test.describe('whose order history the planner reads', () => {
   const env = envScope(ENV_KEYS);
@@ -610,5 +646,108 @@ test.describe('whose order history the planner reads', () => {
       expect(e.id).toMatch(/_w[0-9a-f]{8}$/);                 // this workspace's id namespace
       expect(e.reach.frequency_cap.status).toBeTruthy();
     }
+  });
+
+  /* ── review findings on #135 ───────────────────────────────────────────── */
+
+  test('(b) more than 20,000 synced orders are read in full, and a ceiling that IS hit is stated, never silent', async () => {
+    // Codex P1 on #135: smart_orders was read with limit=20000 and no paging, so
+    // a larger brand was measured on whichever 20,000 rows came back - silently.
+    test.setTimeout(180000);
+    world();
+    const base = RM.dayOf('2026-01-01');
+    for (let i = 0; i < 12500; i++) {
+      for (const k of [0, 1]) {
+        db.insert('smart_orders', { id: `pg-${i}-${k}`, workspace_id: 'ws-other', user_id: `pg-cust-${i}`, market: 'US', created_at: RM.isoOf(base + (i % 200) + k * 30), product_sku: 'PG-1', metadata: { product_type: 'Paged' } });
+      }
+    }
+    const adapter = new svc.SmartBrainDbAdapter(svc.smartConfig({ workspace_id: 'ws-other' }));
+    const full = await adapter.orderHistory();
+    expect(full.lines.length).toBe(25000);
+    expect(full.truncated).toBe(false);
+    // ownData() reads orders with its own 20,000 cap; it must not hand that on.
+    const data = await adapter.ownData();
+    expect(data.orderHistory.lines.length).toBe(25000);
+    // A deliberately low ceiling: the newest window is read, complete, and SAID.
+    const capped = await new svc.SmartBrainDbAdapter(svc.smartConfig({ workspace_id: 'ws-other', replenishment: { maxOrderRows: 10000, orderPageSize: 3000 } })).orderHistory();
+    expect(capped.truncated).toBe(true);
+    expect(capped.lines.length).toBeLessThan(10000);
+    expect(capped.lines.length).toBeGreaterThan(9000);
+    const from = RM.dayOf(capped.complete_from);
+    expect(Math.min(...capped.lines.map((l) => l.day))).toBe(from);
+    // Every order on or after complete_from is present: the window is complete.
+    const inWindow = db.where('smart_orders', (r) => RM.dayOf(r.created_at) >= from).length;
+    expect(capped.lines.length).toBe(inWindow);
+    const a = RM.analyse(capped);
+    expect(a.source.truncated).toBe(true);
+    expect(a.note).toContain(`orders before ${capped.complete_from} were not read`);
+  });
+
+  function otherWorkspaceDueNow() {
+    const today = RM.dayOf(new Date().toISOString().slice(0, 10));
+    for (let i = 0; i < 40; i++) {
+      for (const back of [85, 55, 25]) {
+        db.insert('smart_orders', { id: `o-${i}-${back}`, workspace_id: 'ws-other', user_id: `other-cust-${i}`, market: 'US', created_at: RM.isoOf(today - back - (i % 3)), product_sku: 'OB-1', metadata: { product_type: 'Other Goods', title: 'Other Goods One' } });
+      }
+    }
+    return today;
+  }
+
+  test('(c)+(d) another workspace\'s audience is filtered by ITS OWN engagement scores, joined by profile id or the same email hash', async () => {
+    // Codex P1 on #135: the offering planner analysed with NO contacts, and the
+    // tenant-zero path read smart_users, which carries none of the engagement
+    // fields - so bounced, complained and capped buyers were all kept.
+    test.setTimeout(120000);
+    world();
+    const today = otherWorkspaceDueNow();
+    // other-cust-0: hard bounce, matched by ESP profile id = customer id.
+    db.insert('subscriber_engagement_scores', { workspace_id: 'ws-other', provider: 'klaviyo', external_profile_id: 'other-cust-0', hard_bounced: true, sends_7d: 0 });
+    // other-cust-1: already at the promotional cap, matched through its email hash.
+    db.insert('smart_users', { id: 'other-cust-1', workspace_id: 'ws-other', email: 'One@Shop.test' });
+    db.insert('subscriber_engagement_scores', { workspace_id: 'ws-other', provider: 'klaviyo', external_profile_id: 'kl-001', email_hash: CE.hashEmail('one@shop.test', 'ws-other'), sends_7d: 2, last_open_at: RM.isoOf(today - 2) });
+    // other-cust-3: suppressed by the deliverability layer.
+    db.insert('subscriber_engagement_scores', { workspace_id: 'ws-other', provider: 'klaviyo', external_profile_id: 'other-cust-3', suppressed: true, suppressed_reason: 'sunset', sends_7d: 0 });
+    // other-cust-2: a complaint in ANOTHER workspace must not leak into this one.
+    db.insert('subscriber_engagement_scores', { workspace_id: 'ws-zero', provider: 'klaviyo', external_profile_id: 'other-cust-2', complained: true, sends_7d: 0 });
+    // A second product group due the same days, whose name shares the slug
+    // prefix a calendar id keeps ("Other Goods" / "Other Gear"): its slots must
+    // not collide with the first group's.
+    for (let i = 0; i < 40; i++) {
+      for (const back of [85, 55, 25]) {
+        db.insert('smart_orders', { id: `g-${i}-${back}`, workspace_id: 'ws-other', user_id: `gear-cust-${i}`, market: 'US', created_at: RM.isoOf(today - back - (i % 3)), product_sku: 'OG-1', metadata: { product_type: 'Other Gear', title: 'Other Gear One' } });
+      }
+    }
+
+    const plan = require(path.join(ROOT, 'api', '_shared', 'smart-brain-plan.js'));
+    const res = await plan.getPlan({ config: { workspace_id: 'ws-other' } });
+    const reps = res.entries.filter((e) => e.replenishment);
+    const ids = reps.flatMap((e) => e.replenishment.audience.customer_ids);
+    expect(ids).not.toContain('other-cust-0');
+    expect(ids).not.toContain('other-cust-1');
+    expect(ids).not.toContain('other-cust-3');
+    expect(ids).toContain('other-cust-2');
+    const reasons = Object.assign({}, ...reps.map((e) => e.reach.eligibility.excluded.reasons));
+    expect(Object.keys(reasons).sort()).toEqual(['at the promotional cap (2 touches in 7 days)', 'hard bounce', 'suppressed (sunset)']);
+    expect(reps.some((e) => e.reach.eligibility.frequency.computed)).toBe(true);
+    // Two product groups, two sets of slots, every id distinct, each hero its own.
+    expect(new Set(reps.map((e) => e.cohort.product_group))).toEqual(new Set(['Other Goods', 'Other Gear']));
+    expect(new Set(reps.map((e) => e.id)).size).toBe(reps.length);
+    for (const e of reps) expect(e.heroProduct.title).toBe(e.cohort.product_group === 'Other Gear' ? 'Other Gear One' : 'Other Goods One');
+  });
+
+  test('(d) tenant zero\'s trigger audience is filtered by its engagement scores, not by smart_users', async () => {
+    test.setTimeout(120000);
+    world();
+    const startDate = '2025-03-31';
+    const due = RM.dueBuckets(RM.analyse(RM.loadBundledExport()), { startDate, days: 14, markets: ['US', 'UK'] });
+    const victim = due.buckets[0].customer_ids[0];
+    db.insert('subscriber_engagement_scores', { workspace_id: 'ws-zero', provider: 'klaviyo', external_profile_id: victim, hard_bounced: true, sends_7d: 0 });
+    // A smart_users row carries none of the engagement fields: it decides nothing.
+    db.insert('smart_users', { id: due.buckets[0].customer_ids[1], workspace_id: 'ws-zero', email: 'x@example.com' });
+    const z = await svc.runDailySmartBrain({ config: { workspace_id: 'ws-zero', markets: ['US', 'UK'] }, startDate, days: 14 });
+    const reps = z.calendar.entries.filter((e) => e.replenishment);
+    expect(reps.length).toBeGreaterThan(0);
+    expect(reps.flatMap((e) => e.replenishment.audience.customer_ids)).not.toContain(victim);
+    expect(reps.some((e) => (e.reach.eligibility.excluded.reasons || {})['hard bounce'] === 1)).toBe(true);
   });
 });

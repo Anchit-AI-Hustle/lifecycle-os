@@ -458,7 +458,10 @@ function freshEntries(config, ctx, startDate, days, brand) {
   // Re-key on date+market so the same slot keeps the same id across daily syncs.
   const cohortLtv = cohortLtvMap(ctx);
   for (const e of calendar.entries) {
-    e.id = stableId(e.date, e.market, e.cohort && e.cohort.name);
+    // A replenishment slot carries `slot_key` (its trigger kind + a hash of its
+    // product group): two product groups due the same day would otherwise share
+    // an id once the cohort name is cut to the id's 32-character slug.
+    e.id = stableId(e.date, e.market, e.cohort && (e.cohort.slot_key || e.cohort.name));
     attachScenarioLayer(e, ctx, cohortLtv);
   }
   return calendar.entries;
@@ -485,14 +488,19 @@ async function ownReplenishment(config, db, brand, start, days, ns) {
   const RM = require('./replenishment-model.js');
   let hist;
   try { hist = await db.orderHistory({ allowBundled: false }); } catch (_) { hist = RM.noHistory(); }
-  const analysis = RM.analyse(hist);
+  // This workspace's own engagement scores (review finding on #135): without
+  // them every due buyer was "unchecked" and kept - bounces, complaints,
+  // suppressed and capped contacts included.
+  let engagement = null;
+  try { engagement = await db.engagementContacts(); } catch (_) { engagement = null; }
+  const analysis = RM.analyse(hist, { contacts: engagement ? engagement.map : [] });
   const markets = ((brand && Array.isArray(brand.regions)) ? brand.regions : []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
   let entries = [];
   let due = null;
   if (analysis.state === 'ok' && markets.length) {
     const rep = replenishmentEntries({ replenishment: analysis, startDate: start, days, markets, brand, config });
     entries = enforceFrequencyCap(rep.entries, start);
-    for (const e of entries) e.id = stableId(e.date, e.market, e.cohort && e.cohort.name, ns);
+    for (const e of entries) e.id = stableId(e.date, e.market, e.cohort && (e.cohort.slot_key || e.cohort.name), ns);
     due = rep.due;
   }
   return { analysis, entries, insight: (due && due.insight) || RM.insight(analysis, due) };
