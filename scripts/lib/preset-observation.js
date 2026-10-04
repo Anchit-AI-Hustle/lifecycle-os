@@ -143,7 +143,7 @@ function paletteFromManifest(manifest) {
   const usable = (value, source, label) => {
     const h = hex(value);
     if (!h) return false;
-    if (CONSENT.test((source && source.selector) || '')) { passedOver.push({ value: h, from: label, why: 'measured on a consent or cookie banner, which is that vendor\'s design, not the brand\'s' }); return false; }
+    if (CONSENT.test((source && source.selector) || '')) { passedOver.push({ value: h, from: label, why: 'measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor\'s)' }); return false; }
     const vsPage = core.contrast(h, surface);
     if (vsPage < 1.5 || (surfaceExact && core.contrast(h, surfaceExact) < 1.5)) { passedOver.push({ value: h, from: label, why: `${Math.min(vsPage, surfaceExact ? core.contrast(h, surfaceExact) : vsPage)}:1 against the page, a tint of the page that cannot carry buttons or bands` }); return false; }
     return true;
@@ -184,7 +184,9 @@ function paletteFromManifest(manifest) {
   if (inkExact && core.contrast(inkExact, surface) >= 4.5) { ink = inkExact; take('ink', inkExact, colors.ink); }
   else {
     const textRoles = [
-      ['display heading', rd.display], ['h1', rd.headings && rd.headings.h1], ['navigation link', rd.nav_link], ['body link', rd.link],
+      // Navigation text first: it is set in the site's running text colour far
+      // more often than a heading, which is often set in the brand colour.
+      ['navigation link', rd.nav_link], ['h1', rd.headings && rd.headings.h1], ['display heading', rd.display], ['body link', rd.link],
     ];
     for (const [name, r] of textRoles) {
       const c = hex(r && r.type && r.type.color);
