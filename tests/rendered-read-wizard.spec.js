@@ -118,8 +118,9 @@ async function callShipped(handler, { method, url, headers, body }) {
   return out;
 }
 
-async function openWizard(page, session, world) {
-  const log = { dialogs: [], errors: [], extract: [] };
+async function openWizard(page, session, world, opts) {
+  const o = opts || {};
+  const log = { dialogs: [], errors: [], extract: [], saves: [] };
   page.on('dialog', (d) => { log.dialogs.push(d.type() + ': ' + d.message()); d.dismiss().catch(() => {}); });
   page.on('pageerror', (e) => log.errors.push(String(e.message || e)));
   await page.addInitScript((seed) => {
@@ -132,9 +133,10 @@ async function openWizard(page, session, world) {
     try {
       if (seed.session) { localStorage.setItem('lifecycle.auth.session', JSON.stringify(seed.session)); localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(seed.users)); }
       else { localStorage.removeItem('lifecycle.auth.session'); localStorage.removeItem('lifecycle.auth.device.users'); }
+      if (seed.deviceRow && !localStorage.getItem(seed.deviceKey)) localStorage.setItem(seed.deviceKey, JSON.stringify({ version: 1, active_id: seed.deviceRow.id, workspaces: [seed.deviceRow] }));
     } catch (_) {}
-  }, seedFor(session));
-  await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
+  }, Object.assign(seedFor(session), o.deviceRow ? { deviceRow: o.deviceRow, deviceKey: 'lifecycle.brand.device.workspaces' + (session === 'device' ? '.' + DEVICE_USER.id : '') } : {}));
+  await page.route(/^https?:\/\/(?!app\.example\.test|127\.0\.0\.1)/, (route) => {
     const u = route.request().url();
     if (/\/auth\/v1\/health/.test(u)) return route.abort('addressunreachable');
     if (route.request().resourceType() !== 'script') return route.abort('failed');
@@ -158,6 +160,23 @@ async function openWizard(page, session, world) {
       if (op === 'status') return json(PROD_STATUS);
       return json({ ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment.' }, 503);
     }
+    // The localhost preview: no Supabase config, so auth.js seats its local
+    // stub and the wizard's brand ops go to the SERVER - answered here from a
+    // server-side store holding the case's brand.
+    if (o.serverBrand && u.pathname === '/api/public-config' && !action) return json({ ok: true });
+    if (o.serverBrand && action === 'brand' && op !== 'extract' && op !== 'presets' && op !== 'defaults') {
+      let sent = {};
+      try { sent = req.postDataJSON() || {}; } catch (_) { sent = {}; }
+      if (op === 'save') {
+        const input = sent.brand || sent;
+        log.saves.push(JSON.parse(JSON.stringify(input)));
+        o.serverBrand = Object.assign({}, o.serverBrand, input, { id: o.serverBrand.id });
+        return json({ ok: true, brand: o.serverBrand });
+      }
+      if (op === 'list') return json({ ok: true, workspaces: [o.serverBrand], active_id: o.serverBrand.id });
+      if (op === 'get' || op === 'active') return json({ ok: true, brand: o.serverBrand });
+      return json({ ok: true });
+    }
     if (u.pathname === '/api/public-config' && (!action || action === 'brand')) {
       let body = {};
       try { body = req.postDataJSON() || {}; } catch (_) { body = {}; }
@@ -167,15 +186,16 @@ async function openWizard(page, session, world) {
     }
     return json({ ok: true, features: [], packs: [] });
   });
-  await page.goto(HOST + '/onboarding.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => {
+  await page.goto((o.local || HOST) + '/onboarding.html' + (o.query || ''), { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction((local) => {
     const a = window.LifecycleAuth; const b = a && a.backend;
     if (!b || b.kind === 'pending') return false;
+    if (local) return b.kind === 'local' && !!window.BrandContext;
     const bc = window.BrandContext;
     if (!bc || !bc.loaded || !bc.storage || !bc.storage().known) return false;
     const rs = bc.storage().read_site;
     return !rs || rs.decided;
-  }, null, { timeout: 20000 });
+  }, !!o.local, { timeout: 20000 });
   await page.waitForSelector('#xRun');
   return log;
 }
@@ -209,7 +229,13 @@ for (const session of ['none', 'device']) {
     try {
       const log = await openWizard(page, session, world);
       // The operator types their own logo URL BEFORE the read.
-      await page.fill('[data-path="logo_url"]', TYPED_LOGO);
+      // A decision landing after boot re-paints the step; the typed value must
+      // be in the MODEL (the input event), not only in an element replaced later.
+      await expect(async () => {
+        await page.fill('[data-path="logo_url"]', TYPED_LOGO);
+        await page.waitForTimeout(400);
+        await expect(page.locator('[data-path="logo_url"]')).toHaveValue(TYPED_LOGO, { timeout: 500 });
+      }).toPass({ timeout: 15000 });
       const before = await tokensOnHtml(page);
       await expect(async () => {
         await page.fill('#xUrl', SITE + '/');
@@ -285,6 +311,107 @@ for (const session of ['none', 'device']) {
       expect(log.errors, 'a page error was thrown').toEqual([]);
       expect(world.net.escaped, 'a request left the test world').toEqual([]);
       expect(world.net.browser.some((u) => /\/app\.css$/.test(u)), 'the browser did not read the site').toBe(true);
+    } finally { world.restore(); }
+  });
+}
+
+/* ── A BRAND SAVED BEFORE FIELD ORIGINS EXISTED (review, 2026-10-04) ────────
+   Data loss, found in review: such a brand records no origin for any field,
+   and the first version of the read treated "no origin" as "nobody's" and
+   overwrote the operator's own palette, logo and name. A non-empty value with
+   no recorded origin is the person's: KEPT, shown beside the site's value, and
+   replaced only when they press "Use your site's". Driven in the two places a
+   saved brand lives: this device's store, and the server (the localhost
+   preview, where the wizard's brand ops go to the server). */
+const LEGACY = {
+  name: 'Old Name Ltd', slug: 'old-name-ltd', tagline: '', industry: '', website: '',
+  logo_url: 'https://cdn.mybrand.example/legacy-logo.png',
+  palette: { primary: '#AA3300', accent: '#225588', ink: '#1A1A1A', surface: '#FFFFFF', surface_alt: '#F4F4F4', muted: '#555555' },
+  typography: {
+    heading: { family: 'Lora', stack: "'Lora',Georgia,serif", google: true, weights: '500;600;700' },
+    body: { family: 'Inter', stack: "'Inter',system-ui,sans-serif", google: true, weights: '400;500;600;700' },
+  },
+  voice: { tone: '', preferred: [], banned: [], no_em_dashes: true, notes: '' },
+  regions: [], brand_data: { claims: [] }, status: 'draft', onboarding_step: 1,
+};
+
+let previewServer = null; let previewBase = '';
+test.beforeAll(async () => {
+  const http = require('http');
+  previewServer = http.createServer((req, res) => {
+    const [u] = (req.url || '/').split('?');
+    const f = path.join(ROOT, u === '/' ? 'index.html' : u.replace(/^\//, ''));
+    if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end('nf'); return; }
+    res.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
+    fs.createReadStream(f).pipe(res);
+  });
+  await new Promise((r) => previewServer.listen(0, '127.0.0.1', r));
+  previewBase = 'http://127.0.0.1:' + previewServer.address().port;
+});
+test.afterAll(async () => { if (previewServer) await new Promise((r) => previewServer.close(r)); });
+
+for (const where of ['device', 'server']) {
+  test(`a brand saved before field origins existed (${where === 'device' ? 'on this device' : 'on the server'}): every value it has is KEPT and offered side by side, never overwritten`, async ({ page }) => {
+    test.setTimeout(170000);
+    require(RENDER).resetRateLimits();
+    const world = serverWorld();
+    try {
+      const id = where === 'device' ? 'local-legacy00001' : 'ws-legacy-0001';
+      const row = Object.assign(JSON.parse(JSON.stringify(LEGACY)), { id }, where === 'device' ? { storage: 'device' } : {});
+      const log = await openWizard(page, where === 'device' ? 'device' : 'none', world, where === 'device'
+        ? { deviceRow: row, query: `?id=${id}&step=1` }
+        : { local: previewBase, serverBrand: row, query: `?id=${id}&step=1` });
+      await expect(page.locator('[data-path="name"]')).toHaveValue('Old Name Ltd', { timeout: 15000 });
+      // (On the server the shell paints from the server's own token payload,
+      // which this stand-in store does not compute; after the read the wizard
+      // paints the brand it holds, on both paths, and that is asserted below.)
+      if (where === 'device') expect((await tokensOnHtml(page)).primary.toLowerCase()).toBe('#aa3300');
+
+      await expect(async () => {
+        await page.fill('#xUrl', SITE + '/');
+        await page.click('#xRun', { timeout: 2000 });
+        await expect(page.locator('.xr[data-read-method]')).toHaveCount(1, { timeout: 140000 });
+      }).toPass({ timeout: 150000 });
+      const panel = page.locator('.xr[data-read-method="rendered"]');
+      await expect(panel).toHaveCount(1);
+
+      // KEPT, each beside the site's value, with no owner recorded said plainly.
+      for (const [field, yours, theirs] of [['palette.primary', '#AA3300', '#0f5132'], ['name', 'Old Name Ltd', 'Verdant Supply'], ['logo_url', LEGACY.logo_url, '']]) {
+        const li = panel.locator(`[data-kept="${field}"]`);
+        await expect(li, `${field} was overwritten`).toHaveCount(1);
+        await expect(li).toHaveAttribute('data-kept-origin', 'unrecorded');
+        await expect(li).toContainText('saved before this read, with no record of who set it');
+        await expect(li.locator('[data-yours]')).toContainText(yours.slice(0, 60));
+        if (theirs) await expect(li.locator('[data-theirs]')).toContainText(theirs);
+        await expect(li.locator('[data-xaccept]')).toHaveCount(1);
+      }
+      expect((await tokensOnHtml(page)).primary.toLowerCase()).toBe('#aa3300');
+      await expect(page.locator('[data-path="name"]')).toHaveValue('Old Name Ltd');
+      // What the brand did NOT have is filled: the measured design system.
+      await expect(panel.locator('[data-applied]')).toContainText('Design system');
+
+      // What was SAVED keeps the person's values.
+      const savedNow = async () => (where === 'device'
+        ? page.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k) || '{}'); return (d.workspaces || [])[0] || null; }, 'lifecycle.brand.device.workspaces.' + DEVICE_USER.id)
+        : log.saves[log.saves.length - 1] || null);
+      await expect.poll(async () => { const w = await savedNow(); return w && w.brand_data && !!w.brand_data.design_system; }, { timeout: 15000 }).toBe(true);
+      const saved = await savedNow();
+      expect(String(saved.palette.primary).toLowerCase()).toBe('#aa3300');
+      expect(saved.name).toBe('Old Name Ltd');
+      expect(saved.logo_url).toBe(LEGACY.logo_url);
+
+      // The person takes the site's primary: now, and only now, it changes.
+      await panel.locator('[data-xaccept="palette.primary"]').click();
+      await expect.poll(async () => (await tokensOnHtml(page)).primary.toLowerCase()).toBe('#0f5132');
+      await expect(page.locator('.xr [data-kept="palette.primary"]')).toHaveCount(0);
+      await expect(page.locator('.xr [data-kept="name"]')).toHaveCount(1);
+      await expect.poll(async () => { const w = await savedNow(); return w && String(w.palette.primary).toLowerCase(); }, { timeout: 15000 }).toBe('#0f5132');
+      const after = await savedNow();
+      expect(after.brand_data.field_origin['palette.primary']).toBe('user');
+      expect(after.name).toBe('Old Name Ltd');
+
+      expect(log.dialogs, 'a native dialog opened').toEqual([]);
+      expect(log.errors, 'a page error was thrown').toEqual([]);
     } finally { world.restore(); }
   });
 }

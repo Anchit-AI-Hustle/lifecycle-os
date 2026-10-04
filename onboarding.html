@@ -316,6 +316,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xr figure img{display:block;width:100%;height:auto}
   .xr figcaption{font-size:10.5px;padding:6px 8px;color:var(--muted)}
   .xr .xr-list{font-size:11.5px;line-height:1.6;margin:6px 0 0 16px}
+  .xr .xr-side{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:3px 0 6px}
+  .xr .xr-side .btn{padding:3px 9px;font-size:11px}
   .xr .xr-note{font-size:11.5px;line-height:1.6;margin-top:9px;color:var(--muted)}
   .xr .xr-rule{margin-top:9px;padding:9px 11px;border-radius:9px;font-size:11.5px;line-height:1.55;border:1px solid var(--line);border-left:3px solid var(--accent)}
   .xr-fallback{border-left:3px solid var(--accent)}
@@ -369,6 +371,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     regions: [],
     brand_data: {}, status: 'draft', onboarding_step: 1
   };
+  /* The starting palette and type above are this wizard's PLACEHOLDERS, not a
+     person's choice, and the record says so (origin 'default'): a read may
+     replace them. A value with NO recorded origin is treated the other way -
+     as the person's own (see ownedByPerson) - because every brand saved before
+     origins existed carries exactly that shape. */
+  var DEFAULT_FIELDS = ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body'];
+  DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
 
   var STEPS = [
     { n: 1, key: 'brand',   label: 'Brand' },
@@ -1141,6 +1150,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
         });
         brand.id = keepId;
+        // What the template filled is the TEMPLATE's (origin 'preset'), so a
+        // read of the brand's own site may replace it; a value the template
+        // did not carry keeps whatever origin it had.
+        ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) markOrigin(k, 'preset'); });
+        if (p.palette) Object.keys(p.palette).forEach(function (k) { markOrigin('palette.' + k, 'preset'); });
+        if (p.typography) ['heading', 'body'].forEach(function (k) { if (p.typography[k]) markOrigin('typography.' + k, 'preset'); });
+        if (p.voice && p.voice.tone) markOrigin('voice.tone', 'preset');
+        if (p.regions) markOrigin('regions', 'preset');
         presetPicked = slug;
         // The preset's website replaces whatever was being typed.
         xUrlDraft = null;
@@ -1659,7 +1676,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!brand.brand_data.field_origin) brand.brand_data.field_origin = {};
     brand.brand_data.field_origin[field] = origin;
   }
-  function ownedByPerson(field) { var o = fieldOrigin(field); return o === 'user' || o === 'document'; }
+  function hasValue(v) {
+    if (v == null) return false;
+    if (typeof v === 'string') return v.trim() !== '';
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return v.family ? true : Object.keys(v).length > 0;
+    return true;
+  }
+  /* Review finding (2026-10-04, data loss): a brand saved before field
+     origins existed has NONE recorded, and the first version of this read its
+     typed palette, logo and name as "no owner" and overwrote them. A non-empty
+     value with no recorded origin is now the person's: kept, and offered as a
+     side-by-side choice they can accept (acceptRendered). Only an EMPTY field,
+     or one a machine or the wizard's placeholder set, is filled automatically. */
+  function ownedByPerson(field) {
+    var o = fieldOrigin(field);
+    if (o === 'user' || o === 'document') return true;
+    if (!o && hasValue(getAt(brand, field))) return true;
+    return false;
+  }
   function getAt(o, path) { return path.split('.').reduce(function (a, k) { return a && typeof a === 'object' ? a[k] : undefined; }, o); }
   function setAt(o, path, v) {
     var ks = path.split('.'), n = o;
@@ -1679,8 +1714,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var fields = (r.rendered && r.rendered.apply) || {};
     var snapshot = JSON.stringify(brand);
     var applied = [], kept = [];
-    Object.keys(fields).forEach(function (f) {
-      if (ownedByPerson(f)) { kept.push({ field: f, origin: fieldOrigin(f) }); return; }
+    var visual = function (f) {
       setAt(brand, f, JSON.parse(JSON.stringify(fields[f].value)));
       var src = fields[f].source || {};
       noteSource(f, {
@@ -1688,6 +1722,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         signal: 'computed: ' + (src.role || f) + (src.selector ? ' (' + src.selector + ')' : '') + (src.viewport ? ' @ ' + src.viewport : ''),
         source_url: src.page || r.start, confidence: 'computed', origin: 'site-render'
       });
+    };
+    Object.keys(fields).forEach(function (f) {
+      if (ownedByPerson(f)) { kept.push({ field: f, origin: fieldOrigin(f), theirs: fields[f].value, take: function () { visual(f); } }); return; }
+      visual(f);
       applied.push(f);
     });
     if (!brand.website) brand.website = r.start;
@@ -1705,33 +1743,61 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     nonVisual.forEach(function (row) {
       var field = row[0], v = row[1];
       if (!v) return;
-      if (ownedByPerson(field)) { kept.push({ field: field, origin: fieldOrigin(field) }); return; }
-      row[2](v);
-      var c = field === 'name' ? pf.name : field === 'tagline' ? pf.tagline : pf.legal.candidates[0];
-      noteSource(field, { value: v, signal: c.signal || '', source_url: c.source_url || '', confidence: c.confidence || '', origin: 'site-parse' });
+      var take = function () {
+        row[2](v);
+        var c = field === 'name' ? pf.name : field === 'tagline' ? pf.tagline : pf.legal.candidates[0];
+        noteSource(field, { value: v, signal: c.signal || '', source_url: c.source_url || '', confidence: c.confidence || '', origin: 'site-parse' });
+      };
+      if (ownedByPerson(field)) { kept.push({ field: field, origin: fieldOrigin(field), theirs: v, take: take }); return; }
+      take();
       applied.push(field);
     });
-    if (pf.social && (pf.social.candidates || []).length && !ownedByPerson('brand_data.social')) {
-      brand.brand_data.social = pf.social.candidates.map(function (x) { return { platform: x.platform, url: x.value, source_url: x.source_url, signal: x.signal }; });
-      markOrigin('brand_data.social', 'site-parse');
-      applied.push('brand_data.social');
+    if (pf.social && (pf.social.candidates || []).length) {
+      var takeSocial = function () {
+        brand.brand_data.social = pf.social.candidates.map(function (x) { return { platform: x.platform, url: x.value, source_url: x.source_url, signal: x.signal }; });
+        markOrigin('brand_data.social', 'site-parse');
+      };
+      if (ownedByPerson('brand_data.social')) kept.push({ field: 'brand_data.social', origin: fieldOrigin('brand_data.social'), theirs: pf.social.candidates.map(function (x) { return x.value; }), take: takeSocial });
+      else { takeSocial(); applied.push('brand_data.social'); }
     }
     if (pf.regions && (pf.regions.candidates || []).length) {
-      if (ownedByPerson('regions')) kept.push({ field: 'regions', origin: fieldOrigin('regions') });
+      if (ownedByPerson('regions')) kept.push({ field: 'regions', origin: fieldOrigin('regions'), theirs: pf.regions.candidates.map(function (x) { return x.value && (x.value.code || x.value.name) || x.value; }), take: function () { applyRegionsFrom(pf); } });
       else { applyRegionsFrom(pf); applied.push('regions'); }
     }
     if (pf.voice && pf.voice.value && pf.voice.value.tone) {
-      if (ownedByPerson('voice.tone')) kept.push({ field: 'voice.tone', origin: fieldOrigin('voice.tone') });
-      else {
+      var takeVoice = function () {
         brand.voice.tone = pf.voice.value.tone;
         (pf.voice.value.preferred || []).forEach(function (w) { if (brand.voice.preferred.indexOf(w) < 0) brand.voice.preferred.push(w); });
         noteSource('voice.tone', { value: pf.voice.value.tone, signal: 'observed from public copy', source_url: (pf.voice.sources || []).join(' '), confidence: 'weak', origin: 'site-parse' });
-        applied.push('voice.tone');
-      }
+      };
+      if (ownedByPerson('voice.tone')) kept.push({ field: 'voice.tone', origin: fieldOrigin('voice.tone'), theirs: pf.voice.value.tone, take: takeVoice });
+      else { takeVoice(); applied.push('voice.tone'); }
     }
     rendered = { report: r, applied: applied, kept: kept, snapshot: snapshot, at: new Date().toISOString(), reverted: false };
     loadRenderedFonts();
     paintShell();
+  }
+  /* The operator takes the site's value for ONE kept field. That is their
+     decision, so the field is recorded as theirs ('user') with what it
+     replaced - the same rule as picking a side of a colour conflict. */
+  function acceptRendered(field) {
+    if (!rendered || rendered.reverted) return;
+    var i = -1;
+    rendered.kept.forEach(function (k, j) { if (k.field === field) i = j; });
+    if (i < 0) return;
+    var k = rendered.kept[i];
+    var before = getAt(brand, field);
+    k.take();
+    markOrigin(field, 'user');
+    var x = brand.brand_data.brand_extraction;
+    if (x && x.applied && x.applied[field]) x.applied[field].replaced = typeof before === 'string' ? before : JSON.stringify(before || null).slice(0, 200);
+    rendered.kept.splice(i, 1);
+    rendered.applied.push(field);
+    if (field.indexOf('typography.') === 0 || field === 'brand_data.design_system') loadRenderedFonts();
+    paintShell();
+    render();
+    toast((RFIELD[field] || field) + ' now uses the value read from your site.');
+    save(true);
   }
   function revertRendered() {
     if (!rendered || rendered.reverted) return;
@@ -1806,7 +1872,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         (c.pixels || []).map(function (p) { return esc(p.component) + ': ' + esc((p.ratio * 100).toFixed(2)) + '%'; }).join('<br>') + '</td></tr>';
     }).join('');
     var appliedL = rendered && !rendered.reverted ? rendered.applied.map(function (f) { return '<li>' + esc(RFIELD[f] || f) + ': <b>' + esc(rShow(getAt(brand, f))) + '</b></li>'; }).join('') : '';
-    var keptL = rendered ? rendered.kept.map(function (k) { return '<li data-kept="' + esc(k.field) + '">' + esc(RFIELD[k.field] || k.field) + ' kept as you set it (' + esc(k.origin === 'document' ? 'from your brand document' : 'you typed it') + '): <b>' + esc(rShow(getAt(brand, k.field))) + '</b></li>'; }).join('') : '';
+    var who = function (o) { return o === 'document' ? 'from your brand document' : o === 'user' ? 'you typed it' : 'saved before this read, with no record of who set it'; };
+    var keptL = rendered ? rendered.kept.map(function (k) {
+      return '<li data-kept="' + esc(k.field) + '" data-kept-origin="' + esc(k.origin || 'unrecorded') + '">' + esc(RFIELD[k.field] || k.field) + ' kept as you set it (' + esc(who(k.origin)) + ').' +
+        '<span class="xr-side"><span data-yours>Yours: <b>' + esc(rShow(getAt(brand, k.field))) + '</b></span><span data-theirs>Your site: <b>' + esc(rShow(k.theirs)) + '</b></span>' +
+        (rendered.reverted ? '' : '<button type="button" class="btn" data-xaccept="' + esc(k.field) + '">Use your site\'s</button>') + '</span></li>';
+    }).join('') : '';
     var rules = (m.hard_rules || []).map(function (h) {
       if (h.kind === 'aa') return '<div class="xr-rule" data-rule="aa"><b>' + esc(h.label) + '</b> for ' + esc(h.token) + ': your ' + esc(h.exact) + ' is ' + esc(String(h.ratio_exact)) + ':1 on ' + esc(h.against) + '; generated assets use ' + esc(h.derived) + ' at ' + esc(String(h.ratio_derived)) + ':1 (WCAG AA ' + esc(String(h.target)) + ':1).</div>';
       return '<div class="xr-rule" data-rule="' + esc(h.kind) + '"><b>' + (h.kind === 'dark-surface' ? 'Dark page surface' : 'Dark section') + ' ' + esc(h.value) + '.</b> ' + esc(h.rule) + '</div>';
@@ -1974,6 +2045,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     var rv = e.target && e.target.closest ? e.target.closest('[data-xrevert]') : null;
     if (rv) { revertRendered(); return; }
+    var acc = e.target && e.target.closest ? e.target.closest('[data-xaccept]') : null;
+    if (acc) { acceptRendered(acc.getAttribute('data-xaccept')); return; }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
     if (run) runExtract();
   });
@@ -2458,6 +2531,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('newBrand').addEventListener('click', function () {
       brand = JSON.parse(JSON.stringify(brand));
       brand.id = ''; brand.slug = ''; brand.name = ''; brand.website = ''; brand.logo_url = ''; brand.tagline = '';
+      // The cleared fields belong to nobody yet; the rest are copied with their origins.
+      if (brand.brand_data && brand.brand_data.field_origin) ['name', 'website', 'logo_url', 'tagline'].forEach(function (k) { delete brand.brand_data.field_origin[k]; });
       catalogCount = null; go(1);
     });
     $('activate').addEventListener('click', async function () {
@@ -2543,7 +2618,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // {} - and claims are what every generator is allowed to state as
           // fact, so the loss is invisible until an asset comes out with a
           // DATA REQUIRED marker where its proof line was.
-          if (r.brand.brand_data && typeof r.brand.brand_data === 'object') brand.brand_data = r.brand.brand_data;
+          // The saved record's own brand_data, or NONE: the placeholder origins
+          // of the empty form must never be laid over a saved brand's values.
+          var loadedPalette = (r.brand.palette && typeof r.brand.palette === 'object') ? r.brand.palette : {};
+          var loadedType = !!(r.brand.typography && r.brand.typography.heading);
+          brand.brand_data = (r.brand.brand_data && typeof r.brand.brand_data === 'object') ? r.brand.brand_data : {};
+          DEFAULT_FIELDS.forEach(function (f) {
+            var k = f.split('.')[1];
+            var absent = f.indexOf('palette.') === 0 ? !loadedPalette[k] : !loadedType;
+            if (absent && !fieldOrigin(f)) markOrigin(f, 'default');
+          });
           catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
           [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });
           var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);

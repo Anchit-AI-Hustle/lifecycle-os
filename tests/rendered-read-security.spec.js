@@ -77,6 +77,7 @@ test('ONE byte budget across concurrent downloads: ten large chunked responses a
   const PER_STREAM = 8 * 1024 * 1024;
   const CAP = 4 * 1024 * 1024;
   const streams = { started: 0, closedEarly: 0 };
+  const waiting = [];
   const home = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Big</title></head><body>
     <h1>A page that asks for far too much</h1><p>Ten downloads at once, each larger than the whole budget for the read.</p>
     <a style="display:inline-block;background:#245;color:#fff;padding:10px 20px" href="/x">Go</a>
@@ -97,7 +98,12 @@ test('ONE byte budget across concurrent downloads: ten large chunked responses a
         }
         done = true; res.end();
       };
-      pump();
+      // A barrier: every stream holds after its headers until all ten have
+      // started (or 3 s pass), so the test measures CONCURRENT downloads on a
+      // loaded machine too, not whichever two happened to start first.
+      waiting.push(pump);
+      if (streams.started >= 10) waiting.splice(0).forEach((f) => f());
+      else setTimeout(() => waiting.splice(0).forEach((f) => f()), 3000);
       return;
     }
     res.writeHead(404); res.end();
@@ -138,6 +144,58 @@ test('robots.txt is read for EVERY document origin first: a start URL that redir
   expect(out.reason).toContain(`${new URL(b.origin).host} disallows this page in its robots.txt`);
   expect(b.hits).toContain('/robots.txt');
   expect(b.hits).not.toContain('/');
+});
+
+test('EVERY redirect hop is a connection charged to the request budget, inside and outside a browser request', async () => {
+  // Review finding (2026-10-04): the request count was charged once per ROUTE,
+  // and a route follows up to 1 + 5 hops in Node - so a page of ten images that
+  // each redirect five times opened sixty connections against a count of ten.
+  const http = require('http');
+  const hits = [];
+  const IMG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+  const home = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hops</title></head><body>
+    <h1>Every picture takes the long way round</h1><p>Ten images, each five redirects from its bytes.</p>
+    <a style="display:inline-block;background:#245;color:#fff;padding:10px 20px" href="/x">Go</a>
+    ${Array.from({ length: 10 }, (_, i) => `<img width="20" height="20" src="/hop/${i}/0">`).join('')}</body></html>`;
+  const server = http.createServer((req, res) => {
+    hits.push(req.url);
+    if (req.url === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('User-agent: *\nAllow: /\n'); return; }
+    if (req.url === '/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(home); return; }
+    const m = /^\/hop\/(\d+)\/(\d+)$/.exec(req.url);
+    if (m) {
+      const k = +m[2];
+      if (k < 5) { res.writeHead(302, { location: `/hop/${m[1]}/${k + 1}` }); res.end(); return; }
+      res.writeHead(200, { 'content-type': 'image/png' }); res.end(IMG); return;
+    }
+    res.writeHead(404); res.end();
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const net = require('../api/_shared/render-net.js');
+  try {
+    // 1. One fetch, outside any browser request: three hops allowed, three made.
+    const policy = { allowOrigins: new Set([origin]), dnsCache: new Map() };
+    const ctx = { policy, budget: net.makeBudget(8 * 1024 * 1024, 3) };
+    const one = await net.fetchFollow(origin + '/hop/9/0', ctx, { kind: 'resource' });
+    expect(one.ok).toBe(false);
+    expect(one.reason).toBe('the request budget for this read is spent');
+    expect(hits.filter((h) => h.startsWith('/hop/9/'))).toHaveLength(3);
+    expect(ctx.budget.requests).toBe(3);
+
+    // 2. A whole read with a budget of 12 connections: the SERVER counts them.
+    hits.length = 0;
+    const CAP = 12;
+    const out = await require('../api/_shared/brand-render.js').readSite(origin + '/', {
+      policy: { allowOrigins: new Set([origin]) }, deadlineMs: 90000, regression: false, maxPages: 0, limits: { maxRequests: CAP },
+    });
+    expect(hits.length, `the server saw ${hits.length} connections: ${hits.join(' ')}`).toBeLessThanOrEqual(CAP);
+    expect(out.ok).toBe(true);
+    const n = out.manifest.network;
+    expect(n.requests).toBeLessThanOrEqual(CAP);
+    expect(n.budget_hit).toBe('request count');
+    expect(out.manifest.partial).toBe(true);
+    expect(out.manifest.notes.join(' ')).toMatch(/request budget for one read \(12 connections, every redirect hop counted\) was spent/);
+  } finally { await new Promise((r) => server.close(() => r())); }
 });
 
 test('the dead proxy is the floor: a request that escapes interception reaches nothing', async () => {
