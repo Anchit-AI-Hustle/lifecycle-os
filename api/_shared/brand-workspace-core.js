@@ -657,7 +657,7 @@ function tokens(brand) {
   const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
   const t = brand && brand.typography ? brand.typography : {};
 
-  return {
+  return Object.assign({
     '--brand-primary': primary,
     '--brand-primary-dark': shade(primary, -0.25),
     '--brand-primary-soft': shade(primary, 0.86),
@@ -690,7 +690,27 @@ function tokens(brand) {
     '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
     '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
     '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-  };
+  }, componentTokens(brand));
+}
+
+/**
+ * The shell's share of the brand's DESIGN SYSTEM (2026-10-04): the corner
+ * radius of its controls and cards as its own site renders them, read by
+ * theme.css through var(--brand-radius-*, <the shell's own value>). A brand
+ * with no measured design system emits nothing, so the shell is unchanged.
+ * brand-context.js carries the same function for the device path.
+ */
+function componentTokens(brand) {
+  const ds = brand && brand.brand_data && brand.brand_data.design_system;
+  const out = {};
+  const comp = (ds && ds.components) || null;
+  if (!comp) return out;
+  const b = comp.button && comp.button.primary && comp.button.primary.desktop;
+  const c = comp.card && comp.card.desktop && comp.card.desktop.box;
+  const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? `${Math.round(v * 100) / 100}px` : '');
+  if (b && n(b.radius)) out['--brand-radius-control'] = n(b.radius);
+  if (c && n(c.radius)) out['--brand-radius-card'] = n(c.radius);
+  return out;
 }
 
 /** Google Fonts stylesheet URL for whichever families are marked google:true. */
@@ -1354,7 +1374,14 @@ function claimedFields(input) {
     }
   }
   if (Array.isArray(b.regions) && b.regions.length) out.push('regions');
-  return out;
+  // A save carries the WHOLE form, including values an automatic read put
+  // there (2026-10-04). The wizard records who set each field in
+  // brand_data.field_origin; a field it says a machine set (site-render,
+  // site-parse, preset, document) is not the operator's and is not claimed,
+  // so the next read - or a brand document - can still update it. A field
+  // with no recorded origin is claimed exactly as before.
+  const fo = (b.brand_data && typeof b.brand_data === 'object' && b.brand_data.field_origin) || {};
+  return out.filter((f) => !fo[f] || fo[f] === 'user');
 }
 
 /**
