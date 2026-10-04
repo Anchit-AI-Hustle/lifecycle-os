@@ -5,7 +5,7 @@
   "start": "https://knickgasm.com",
   "landed": "https://knickgasm.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:21:11.598Z",
+  "read_at": "2026-10-04T17:53:07.907Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -30,33 +30,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 64.4,
-    "mismatch": 0.3565,
+    "score": 49.8,
+    "mismatch": 0.5025,
     "surfaces": {
       "landing page": {
-        "score": 70,
-        "mismatch": 0.3,
+        "score": 61.5,
+        "mismatch": 0.3854,
         "done": false,
-        "tokens_off": 0,
+        "tokens_off": 5,
         "regions_off": 1
       },
       "mailer": {
-        "score": 76.5,
-        "mismatch": 0.2353,
+        "score": 62.9,
+        "mismatch": 0.3714,
         "done": false,
-        "tokens_off": 4,
+        "tokens_off": 26,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 87.5,
-        "mismatch": 0.125,
+        "score": 60,
+        "mismatch": 0.4,
         "done": false,
-        "tokens_off": 1,
+        "tokens_off": 4,
         "regions_off": 0
       }
     },
-    "iterations": 1,
-    "repairs": 0,
+    "iterations": 2,
+    "repairs": 1,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
