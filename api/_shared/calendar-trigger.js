@@ -597,6 +597,15 @@ function _renderVariantBody(o) {
   const subStyle = _E && _E.text
     ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '16px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.55')};color:${_E.text.color || palette.ink};margin:0 0 24px;`
     : `font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;`;
+  // The same tokens for EVERY style (review finding, 2026-10-04: only the
+  // default editorial style read them; visual, pure and founder kept tenant
+  // zero's type). `margin`/`color` are the style's own layout and ground.
+  const h1With = (fallback, margin, color) => (_E && _E.h1
+    ? `font-family:${_E.head};font-size:${_px(_E.h1.size) || '28px'};line-height:${_E.h1.line_height === 'normal' ? 'normal' : (_px(_E.h1.line_height) || '1.25')};color:${color || _E.h1.color || palette.green};margin:${margin};font-weight:${_E.h1.weight || 500};letter-spacing:${_px(_E.h1.letter_spacing) || '0px'};text-transform:${_E.h1.transform || 'none'};`
+    : fallback);
+  const subWith = (fallback, margin) => (_E && _E.text
+    ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '15px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.6')};color:${_E.text.color || palette.ink};margin:${margin};`
+    : fallback);
   const emailHead = _E && (_E.faces || _E.googleHref)
     ? `<head>${_E.googleHref ? `<link rel="stylesheet" href="${esc(_E.googleHref)}">` : ''}${_E.faces ? `<style>${_E.faces}</style>` : ''}</head>` : '';
 
@@ -684,7 +693,7 @@ function _renderVariantBody(o) {
         ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero' })}
       </td></tr>` : '');
     return `<!doctype html>
-<html><body style="margin:0;padding:0;background:${palette.chalk};">
+<html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:36px 16px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
@@ -694,12 +703,12 @@ function _renderVariantBody(o) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
           <tr><td style="padding:34px 26px;text-align:center;">
             <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
-            <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;">${esc(hero_headline)}</div>
+            <div data-ds="h1" style="${h1With(`font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
           </td></tr>
         </table>
       </td></tr>
       <tr><td style="padding:22px 32px 0;">
-        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(hero_subline)}</p>
+        <p data-ds="body" style="${subWith(`font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0;`, '0')}">${esc(hero_subline)}</p>
       </td></tr>
       <!-- Botanical-style lava divider -->
       <tr><td style="padding:20px 32px 0;text-align:center;">
@@ -727,17 +736,17 @@ function _renderVariantBody(o) {
         ${b.heading ? `<strong style="color:${palette.green};">${esc(b.heading)}: </strong>` : ''}${esc(b.body || '')}
       </p>`).join('');
     return `<!doctype html>
-<html><body style="margin:0;padding:0;background:#fff;">
+<html>${emailHead}<body style="margin:0;padding:0;background:#fff;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td align="center" style="padding:40px 16px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0">
       <tr><td style="padding:0 8px;">
         <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())} · ${esc(market)}</p>
-        <h1 style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;">${esc(hero_headline)}</h1>
-        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;">${esc(hero_subline)}</p>
+        <h1 data-ds="h1" style="${h1With(`font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
+        <p data-ds="body" style="${subWith(`font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
         ${textBlocks}
         <p style="font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
-          <a href="${baseUrl}" style="color:${palette.green};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a>
+          <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
         <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
         <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
@@ -750,14 +759,14 @@ function _renderVariantBody(o) {
 
   if (style === 'founder') {
     return `<!doctype html>
-<html><body style="margin:0;padding:0;background:${palette.chalk};">
+<html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:36px 16px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
       ${offerBarRow}${brandHeader}
       <tr><td style="padding:24px 32px 0;">
-        <p style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;">${esc(hero_headline)}</p>
-        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;">${esc(hero_subline)}</p>
+        <p data-ds="h1" style="${h1With(`font-family:'Montserrat','Raleway',Georgia,serif;font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
+        <p data-ds="body" style="${subWith(`font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
         <p style="font-family:'Instrument Sans',sans-serif;font-size:13px;color:#7a6e5a;margin:0;">A note from the detailing table</p>
       </td></tr>
       ${blocks}

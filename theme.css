@@ -223,7 +223,7 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
 
 .vh-card {
   background: var(--vh-panel); border: 1px solid var(--vh-line);
-  border-radius: var(--vh-r-lg); padding: var(--vh-s5);
+  border-radius: var(--brand-radius-card, var(--vh-r-lg)); padding: var(--vh-s5);
   transition: border-color var(--vh-t-mid), transform var(--vh-t-mid), box-shadow var(--vh-t-mid);
 }
 .vh-card:hover { border-color: var(--vh-line-hot); box-shadow: var(--vh-shadow); }
@@ -822,7 +822,7 @@ body::after {
    hover. The glow reuses --vh-line-hot, which is already a brand-derived rgba,
    so no new colour is introduced and nothing needs mixing at runtime. */
 .vh-btn, .btn, [role="button"], :where(button, input[type="submit"]) {
-  border-radius: var(--vh-r-sm);
+  border-radius: var(--brand-radius-control, var(--vh-r-sm));
   transition: transform var(--vh-t-fast) var(--vh-ease-spring),
               box-shadow var(--vh-t-hud) var(--vh-ease-spring),
               border-color var(--vh-t-hud) var(--vh-ease-spring);
