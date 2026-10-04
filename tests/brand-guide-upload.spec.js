@@ -106,6 +106,7 @@ async function callShipped(handler, { method, url, headers, body }) {
   const res = {
     statusCode: 200,
     setHeader(k, v) { out.headers[String(k).toLowerCase()] = v; },
+    removeHeader(k) { delete out.headers[String(k).toLowerCase()]; },
     getHeader(k) { return out.headers[String(k).toLowerCase()]; },
     status(c) { out.code = c; this.statusCode = c; return res; },
     json(b) { out.body = b; out.json = true; if (!out.code) out.code = 200; return res; },
@@ -180,7 +181,9 @@ async function open(page, world, opts) {
       if (action === 'brand' && op === 'document-fetch') {
         let body = {};
         try { body = req.postDataJSON() || {}; } catch (_) { body = {}; }
-        const out = await callShipped(world.handler, { method: req.method(), url: u.pathname + u.search, headers: await req.allHeaders(), body });
+        // The deployment's own host, as Vercel passes it: the op compares the
+        // page's Origin with it.
+        const out = await callShipped(world.handler, { method: req.method(), url: u.pathname + u.search, headers: Object.assign({ host: u.host }, await req.allHeaders()), body });
         log.docFetch.push({ url: body.url, code: out.code });
         if (out.json) return json(out.body, out.code);
         return route.fulfill({ status: out.code, contentType: 'application/octet-stream', headers: { 'x-document-type': out.headers['x-document-type'], 'x-document-name': out.headers['x-document-name'], 'x-document-url': out.headers['x-document-url'] }, body: out.body });
@@ -209,6 +212,10 @@ async function readBook(page) {
 let world;
 test.beforeAll(() => { world = serverWorld(); });
 test.afterAll(() => { if (world) world.restore(); });
+// The open document-fetch path is rate-limited per address and per instance;
+// each test starts with a fresh budget (the limit itself is tested below).
+test.beforeEach(() => { require('../api/_shared/brand-render.js').resetRateLimits(); });
+const OWN_PAGE = { host: 'app.example.test', origin: HOST };
 
 
 /* ═══ 1. the PDF brand book: read, not paraphrased ═══════════════════════ */
@@ -472,7 +479,9 @@ test('a linked document is read directly when its host allows a browser, and thr
 
 /* ═══ 6. the server op: SSRF guard on every hop ═══════════════════════════ */
 test('op=document-fetch refuses loopback, private and metadata addresses, and a redirect onto one', async () => {
-  const ask = (url) => callShipped(world.handler, { method: 'POST', url: '/api/public-config?action=brand&op=document-fetch', headers: { origin: HOST }, body: { url } });
+  // One address per request: this test is about the SSRF guard, not the per-address limit.
+  let n = 0;
+  const ask = (url) => callShipped(world.handler, { method: 'POST', url: '/api/public-config?action=brand&op=document-fetch', headers: Object.assign({ 'x-forwarded-for': '192.0.2.' + (++n) }, OWN_PAGE), body: { url } });
   for (const bad of ['http://127.0.0.1/brand.pdf', 'http://169.254.169.254/latest/meta-data/', 'http://10.0.0.5/book.pdf', 'http://[::1]/x.pdf', 'file:///etc/passwd', 'http://localhost/x.pdf']) {
     const out = await ask(bad);
     expect(out.code, bad).toBe(400);
@@ -489,6 +498,48 @@ test('op=document-fetch refuses loopback, private and metadata addresses, and a 
   const dl = require('../api/_shared/brand-document-fetch.js').downloadUrl;
   expect(dl('https://drive.google.com/file/d/1AbCdEfGhIjKlMnOp/view?usp=sharing')).toBe('https://drive.google.com/uc?export=download&id=1AbCdEfGhIjKlMnOp');
   expect(dl('https://docs.google.com/document/d/1AbCdEfGhIjKlMnOp/edit')).toBe('https://docs.google.com/document/d/1AbCdEfGhIjKlMnOp/export?format=docx');
+  expect(world.net.escaped).toEqual([]);
+});
+
+test('on the open path op=document-fetch is not a fetch proxy: POST only, this app\'s own page only, no CORS, and a per-address limit', async () => {
+  const br = require('../api/_shared/brand-render.js');
+  br.resetRateLimits();
+  const base = '/api/public-config?action=brand&op=document-fetch';
+  const post = (headers) => callShipped(world.handler, { method: 'POST', url: base, headers, body: { url: NOCORS + '/book.pdf' } });
+  const own = Object.assign({ 'x-forwarded-for': '198.51.100.7' }, OWN_PAGE);
+  const before = world.net.asked.length;
+  // A link (GET, the URL in the query string) fetches nothing.
+  const viaGet = await callShipped(world.handler, { method: 'GET', url: base + '&url=' + encodeURIComponent(NOCORS + '/book.pdf'), headers: own });
+  expect(viaGet.code).toBe(405);
+  expect(viaGet.body.message).toMatch(/fetched only when this app's page asks for it/);
+  expect(viaGet.headers['access-control-allow-origin'], 'GET answered with CORS').toBeUndefined();
+  // Another website's page, a script with no page at all, an opaque origin.
+  for (const h of [{ origin: 'https://evil.example' }, { referer: 'https://evil.example/page' }, {}, { origin: 'null' }, { origin: 'http://app.example.test.evil.example' }]) {
+    const out = await post(Object.assign({ host: 'app.example.test', 'x-forwarded-for': '198.51.100.8' }, h));
+    expect(out.code, JSON.stringify(h)).toBe(403);
+    expect(out.body.error).toBe('same_site_page_required');
+    expect(out.body.message).toMatch(/this app's own onboarding page/);
+    expect(out.headers['access-control-allow-origin'], 'a refusal answered with CORS').toBeUndefined();
+  }
+  expect(world.net.asked.length - before, 'a refused request fetched something').toBe(0);
+  // This app's own page: fetched, and answered WITHOUT CORS.
+  const ok = await post(own);
+  expect(ok.code).toBe(200);
+  expect(ok.headers['access-control-allow-origin'], 'the bytes were offered to other sites').toBeUndefined();
+  expect(ok.headers['x-document-name']).toBe('harbourlight-brand-book.pdf');
+  // A browser that sends a Referer and no Origin is the same page.
+  expect((await post({ host: 'app.example.test', referer: HOST + '/onboarding', 'x-forwarded-for': '198.51.100.7' })).code).toBe(200);
+  // The limit: the same per-address limiter as the open rendered read, its own budget.
+  for (let i = 2; i < br.RATES.document.perIp; i++) expect((await post(own)).code).toBe(200);
+  const fetched = world.net.asked.length;
+  const limited = await post(own);
+  expect(limited.code).toBe(429);
+  expect(limited.body.error).toBe('rate_limited');
+  expect(limited.body.message).toMatch(/linked documents in the last 10 minutes/);
+  expect(world.net.asked.length, 'a limited request fetched').toBe(fetched);
+  expect((await post(Object.assign({}, own, { 'x-forwarded-for': '198.51.100.9' }))).code, 'another address was limited').toBe(200);
+  expect(br.rateCheck({ headers: { 'x-forwarded-for': '198.51.100.7' } }), 'documents spent the rendered-read budget').toBeNull();
+  br.resetRateLimits();
   expect(world.net.escaped).toEqual([]);
 });
 
@@ -838,7 +889,7 @@ test('signed in to an account: Apply hosts the logo, and the private brand book 
 });
 
 test('a linked document is cut off at the cap however the host describes it, and the stream is cancelled', async () => {
-  const ask = (url) => callShipped(world.handler, { method: 'POST', url: '/api/public-config?action=brand&op=document-fetch', headers: { origin: HOST }, body: { url } });
+  const ask = (url) => callShipped(world.handler, { method: 'POST', url: '/api/public-config?action=brand&op=document-fetch', headers: OWN_PAGE, body: { url } });
   const cap = require('../api/_shared/brand-document-fetch.js').MAX_BYTES;
   for (const p of ['/endless', '/liar']) {
     const out = await ask(NOCORS + p);

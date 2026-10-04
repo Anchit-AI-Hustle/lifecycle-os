@@ -5,7 +5,7 @@
   "start": "https://www.flipkart.com",
   "landed": "https://www.flipkart.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:13:49.461Z",
+  "read_at": "2026-10-04T18:50:02.495Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -29,18 +29,18 @@
       "h": 844
     }
   },
-  "partial": true,
+  "partial": false,
   "regression": {
     "ok": true,
     "done": false,
-    "score": 40.6,
-    "mismatch": 0.5943,
+    "score": 41.6,
+    "mismatch": 0.584,
     "surfaces": {
       "landing page": {
-        "score": 49.1,
-        "mismatch": 0.5085,
+        "score": 48.5,
+        "mismatch": 0.5154,
         "done": false,
-        "tokens_off": 14,
+        "tokens_off": 20,
         "regions_off": 2
       },
       "mailer": {
@@ -68,9 +68,7 @@
       "message": "The site declares #56adff as its own colour (meta theme-color) but renders its primary call to action in #2a55e5. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
     }
   ],
-  "markers": [
-    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.flipkart.com]"
-  ],
+  "markers": [],
   "logo_url": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png",
   "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
   "assets": [
@@ -190,16 +188,15 @@
     },
     "surface_alt": {
       "value": "#ffffff",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "exact": "#ffffff",
+      "derived": false,
       "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
+        "page": "https://www.flipkart.com/",
+        "role": "product card",
+        "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
       }
     },
     "muted": {
