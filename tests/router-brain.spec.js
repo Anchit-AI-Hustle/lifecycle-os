@@ -78,6 +78,7 @@ const M = {
   logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
   agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
+  ledger: 'api/_shared/contact-ledger.js',
 };
 
 /** The active brand as brain.js resolves it onto req.__brand (home market UK). */
@@ -489,9 +490,41 @@ add('deliverability-domain', { gate: 'user', browser: 'refuse', run: { json: { d
     expect(p[2].method).toBe('POST'); expect(p[2].body[0]).toMatchObject({ workspace_id: H.WS, domain: 'harness.example', role: 'sending', spf: { spf: 1 }, bimi: { bimi: 1 }, grade: 'A' });
   },
 });
-add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email' } },
-  stubs: () => S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' })),
-  expect: (r) => { expect(r.out).toEqual({ ok: true, verdict: 'pass' }); expect(last(M.preflight, 'run')[0]).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email' }); },
+add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email', message_priority: 'transactional', contact_fatigue: { status: 'exempt', forged: true } } },
+  stubs: () => {
+    S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+    S.on(M.ledger, 'evaluateForCaller', async () => ({ status: 'unknown', reason: 'no_history', from: 'ledger' }));
+  },
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, verdict: 'pass' });
+    // The contact-ledger verdict is the SERVER's (2026-10-04): computed for
+    // this caller's workspace by evaluateForCaller, which checks membership
+    // before any ledger read; the body's own `contact_fatigue` is dropped.
+    const ev = last(M.ledger, 'evaluateForCaller');
+    expect(ev[0]).toMatchObject({ ok: true });
+    expect(ev[1]).toBe(H.WS);
+    expect(ev[2]).toMatchObject({ channel: 'email', message_class: 'transactional' });
+    expect(last(M.preflight, 'run')[0]).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email', message_priority: 'transactional', contact_fatigue: { status: 'unknown', reason: 'no_history', from: 'ledger' } });
+  },
+  cases: [{ name: 'a channel that is not a message to a subscriber reads no ledger, and a posted verdict is still dropped', run: { json: { channel: 'facebook_page', contact_fatigue: { status: 'exempt', forged: true } } },
+    expect: (r) => { expect(S.hits(M.ledger)).toEqual([]); expect(last(M.preflight, 'run')[0]).toEqual({ workspaceId: H.WS, channel: 'facebook_page' }); } }],
+});
+add('contact-fatigue', { gate: 'user', browser: 'refuse', run: { json: { op: 'evaluate', channel: 'sms', recipients: [{ external_profile_id: 'P1' }] } },
+  stubs: () => S.on(M.ledger, 'handle', async (op) => (op === 'rules-save' ? { status: 403, body: { ok: false, error: 'forbidden' } } : { status: 200, body: { ok: true, status: 'computed', op } })),
+  expect: (r) => {
+    expect(r.status).toBe(200);
+    expect(r.out).toEqual({ ok: true, status: 'computed', op: 'evaluate' });
+    const a = last(M.ledger, 'handle');
+    expect(a[0]).toBe('evaluate');
+    expect(a[1].workspaceId).toBe(H.WS);
+    expect(a[1].auth).toMatchObject({ ok: true });
+    expect(a[1].body).toMatchObject({ op: 'evaluate', channel: 'sms', recipients: [{ external_profile_id: 'P1' }] });
+  },
+  cases: [
+    { name: 'GET reads the rules by default', run: { method: 'GET', json: undefined }, expect: (r) => { expect(r.status).toBe(200); expect(last(M.ledger, 'handle')[0]).toBe('rules'); } },
+    { name: 'an op that takes a body is refused on GET before the core', run: { method: 'GET', json: undefined, query: { op: 'ingest' } }, expect: (r) => { expect(r.status).toBe(405); expect(r.out.message).toMatch(/op=ingest takes a POST body/); expect(S.hits(M.ledger)).toEqual([]); } },
+    { name: 'the core\'s own status passes through', run: { json: { op: 'rules-save', rules: {} } }, expect: (r) => { expect(r.status).toBe(403); expect(r.out).toEqual({ ok: false, error: 'forbidden' }); } },
+  ],
 });
 add('deliverability-warmup', { gate: 'user', browser: 'refuse', run: { json: { start_on: '2026-10-01', target_daily: 100, days: 3 } },
   stubs: () => { S.on(M.deliver, 'buildWarmupPlan', () => [{ d: 1 }, { d: 2 }, { d: 3 }]); S.on(M.deliver, 'evaluateWarmupSafety', () => ({ safe: true })); },
