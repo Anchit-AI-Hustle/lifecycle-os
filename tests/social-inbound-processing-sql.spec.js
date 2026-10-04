@@ -2,7 +2,7 @@
  * A verified webhook delivery is RECORDED once and PROCESSED once - in the
  * database (2026-10-04, review of #132).
  * ---------------------------------------------------------------------------
- * supabase/migrations/20261004170000_social_inbound_processing.sql is EXECUTED
+ * supabase/migrations/20261004180000_social_inbound_processing.sql is EXECUTED
  * here, after the migration it amends (20261004150000_social_gateway.sql), on
  * a real Postgres (PGlite). Nothing is asserted on the SQL text: every claim is
  * a row written and read back.
@@ -47,7 +47,7 @@ test('the processing state: an existing row resumes, a new row starts received, 
   // Recorded before the migration: whether its ingest finished is not known.
   await db.query(`insert into public.social_inbound_events (workspace_id, provider, event_id) values ($1, 'meta', 'sha256:before')`, [WS]);
 
-  await db.exec(read('20261004170000_social_inbound_processing.sql'));
+  await db.exec(read('20261004180000_social_inbound_processing.sql'));
   const before = (await db.query(`select status, attempts, last_error, processed_at from public.social_inbound_events where event_id = 'sha256:before'`)).rows[0];
   expect(before).toEqual({ status: 'received', attempts: 0, last_error: null, processed_at: null });
 
@@ -64,7 +64,7 @@ test('the processing state: an existing row resumes, a new row starts received, 
   await expect(db.query(`insert into public.social_inbound_events (provider, event_id) values ('tiktok', 'sha256:new')`)).rejects.toThrow(/duplicate key/);
 
   // Applied again: no error, nothing changed.
-  await db.exec(read('20261004170000_social_inbound_processing.sql'));
+  await db.exec(read('20261004180000_social_inbound_processing.sql'));
   const rows = (await db.query(`select event_id, status, attempts from public.social_inbound_events order by event_id`)).rows;
   expect(rows).toEqual([{ event_id: 'sha256:before', status: 'received', attempts: 0 }, { event_id: 'sha256:new', status: 'processed', attempts: 2 }]);
   const idx = (await db.query(`select indexname from pg_indexes where tablename = 'social_inbound_events' and indexname = 'social_inbound_events_unprocessed_idx'`)).rows;
