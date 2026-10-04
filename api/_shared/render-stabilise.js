@@ -55,48 +55,108 @@ async function install(context) {
   await context.addInitScript({ content: INIT });
 }
 
-/** In the page: freeze motion, hide consent overlays, report what was done. */
-function freezeInPage() {
-  const out = { animations_finished: 0, animations_cancelled: 0, consent_hidden: [], clock: '', random: 0 };
+/**
+ * What a consent overlay looks like, shared by the freeze below and by the
+ * role measurement in render-capture.js (which must exclude a consent
+ * container even where nothing hid it). Strings, because both run inside the
+ * page. `names` is matched against an element's id, class and aria-label;
+ * "cookie" alone is NOT a consent name (a bakery's product card is
+ * `cookie-card`), only "cookie" followed by a banner-ish word.
+ */
+const CONSENT = {
+  vendor: '#onetrust-consent-sdk,#onetrust-banner-sdk,#onetrust-pc-sdk,.optanon-alert-box-wrapper,#CybotCookiebotDialog,#CookiebotWidget,#usercentrics-root,#didomi-host,.didomi-popup,.qc-cmp2-container,#truste-consent-track,#truste-consent-content,#truste-consent-button,.truste_overlay,.truste_box_overlay,#consent_blackbar,#teconsent,.cc-window,.cookie-consent,#cookie-law-info-bar,#cmplz-cookiebanner-container,.osano-cm-window,#iubenda-cs-banner,.fc-consent-root',
+  names: '(cookie[-_ ]?(consent|banner|notice|bar|law|popup|modal|dialog|policy|wall|accept|notification|settings|preferences|message|alert|box)|consent|gdpr|ccpa|onetrust|optanon|cookiebot|cybot|didomi|usercentrics|truste|trustarc|iubenda|osano|cmplz|qc-cmp)',
+  words: '\\b(cookies?|consent|gdpr|ccpa|privacy (choices|preferences|settings)|tracking technologies)\\b',
+};
+
+/**
+ * In the page: freeze motion, hide consent overlays, report what was done.
+ *
+ * A page's Content-Security-Policy may forbid inline styles (`style-src` with
+ * no 'unsafe-inline'), and the reader's contexts honour CSP: an injected
+ * <style> is then silently refused (review, 2026-10-04 - an overlay was
+ * REPORTED hidden while it was still painted, and the zero-duration rules did
+ * not apply). So the stylesheet is verified with a probe, the CSSOM route
+ * (`el.style.setProperty`, which a CSP does not govern for script-set
+ * properties) is used where it was refused, every hidden node is VERIFIED with
+ * getComputedStyle (or removed from this throwaway DOM), and a node that could
+ * not be hidden is reported as such, never as hidden.
+ */
+function freezeInPage(cfg) {
+  const c = cfg || {};
+  const out = { animations_finished: 0, animations_cancelled: 0, consent_hidden: [], consent_unhidden: [], freeze_route: '', clock: '', random: 0 };
+  let sheetOk = false;
   try {
-    if (!document.querySelector('style[data-lcos="freeze"]')) {
-      const s = document.createElement('style');
-      s.setAttribute('data-lcos', 'freeze');
-      s.textContent = '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;transition-delay:0s!important;scroll-behavior:auto!important;caret-color:transparent!important}'
-        + '[data-lcos-hidden]{display:none!important}';
-      (document.head || document.documentElement).appendChild(s);
+    let st = document.querySelector('style[data-lcos="freeze"]');
+    if (!st) {
+      st = document.createElement('style');
+      st.setAttribute('data-lcos', 'freeze');
+      st.textContent = '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;transition-delay:0s!important;scroll-behavior:auto!important;caret-color:transparent!important}'
+        + '[data-lcos-probe]{outline-style:dotted!important}';
+      (document.head || document.documentElement).appendChild(st);
     }
-  } catch (_) { /* a CSP that forbids inline style: the animations are still stopped below */ }
+    const probe = document.createElement('i');
+    probe.setAttribute('data-lcos-probe', '1');
+    (document.body || document.documentElement).appendChild(probe);
+    sheetOk = getComputedStyle(probe).outlineStyle === 'dotted';
+    probe.remove();
+  } catch (_) { sheetOk = false; }
+  if (!sheetOk) {
+    for (const el of document.querySelectorAll('*')) {
+      const sty = el.style;
+      if (!sty || typeof sty.setProperty !== 'function') continue;
+      try {
+        sty.setProperty('animation-duration', '0s', 'important');
+        sty.setProperty('animation-delay', '0s', 'important');
+        sty.setProperty('transition-duration', '0s', 'important');
+        sty.setProperty('transition-delay', '0s', 'important');
+      } catch (_) { /* a node that takes no style */ }
+    }
+  }
+  out.freeze_route = sheetOk ? 'stylesheet' : 'cssom (the page\'s Content-Security-Policy refused an injected stylesheet)';
   try {
     for (const a of document.getAnimations()) {
       try {
         const t = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null;
-        if (t && Number.isFinite(t.endTime)) { a.finish(); out.animations_finished += 1; } else { a.cancel(); out.animations_cancelled += 1; }
+        if (t && Number.isFinite(t.endTime) && t.endTime > 0) { a.finish(); out.animations_finished += 1; } else { a.cancel(); out.animations_cancelled += 1; }
       } catch (_) { try { a.cancel(); out.animations_cancelled += 1; } catch (__) { /* gone */ } }
     }
   } catch (_) { /* no Web Animations API */ }
-  // Consent overlays: FIXED or STICKY, and named or worded as consent. The
-  // vendor containers are listed because several render their words into a
-  // shadow root or an iframe where the text test cannot see them.
-  const VENDOR = '#onetrust-consent-sdk,#onetrust-banner-sdk,#CybotCookiebotDialog,#usercentrics-root,#didomi-host,.qc-cmp2-container,#truste-consent-track,.cc-window,.cookie-consent,#cookie-law-info-bar,#cmplz-cookiebanner-container,.osano-cm-window,#iubenda-cs-banner,.fc-consent-root';
-  const WORDS = /\b(cookies?|consent|gdpr|ccpa|privacy (choices|preferences|settings)|tracking technologies)\b/i;
-  const NAMES = /(cookie|consent|gdpr|cmp|onetrust|cookiebot|didomi|usercentrics|truste|iubenda|osano|privacy-banner)/i;
-  const hide = (el, why) => {
-    if (!el || el.hasAttribute('data-lcos-hidden')) return;
-    el.setAttribute('data-lcos-hidden', 'consent');
-    out.consent_hidden.push({ tag: el.tagName.toLowerCase(), id: el.id || '', why });
+  const NAMES = new RegExp(c.names || 'consent', 'i');
+  const WORDS = new RegExp(c.words || 'consent', 'i');
+  const done = new Set();
+  // A wrapper that holds the page itself is never a consent overlay, whatever
+  // its class says (`<div id="app" class="has-consent">`).
+  const structural = (el) => el === document.body || el === document.documentElement || /^(MAIN|NAV|HEADER)$/.test(el.tagName) || !!el.querySelector('main,h1,nav,[role=navigation]');
+  const hide = (el, why, vendor) => {
+    if (!el || done.has(el)) return;
+    done.add(el);
+    // A vendor class on an app wrapper (`<div class="cookie-consent">` around
+    // main/h1/nav) is still the page: hiding it blanked the whole read.
+    if (structural(el)) { out.consent_skipped = (out.consent_skipped || []).concat([{ tag: el.tagName.toLowerCase(), id: el.id || '', why: `${vendor ? 'matches a consent vendor selector' : why} but holds the page itself (main, h1 or nav), so it was left alone` }]); return; }
+    const rec = { tag: el.tagName.toLowerCase(), id: el.id || '', why };
+    try { el.setAttribute('data-lcos-hidden', 'consent'); el.style.setProperty('display', 'none', 'important'); } catch (_) { /* read-only */ }
+    let ok = false, how = 'display:none (inline, important)';
+    try { ok = getComputedStyle(el).display === 'none'; } catch (_) { ok = false; }
+    if (!ok) { try { el.remove(); ok = !document.contains(el); how = 'removed from the throwaway DOM'; } catch (_) { ok = false; } }
+    rec.verified = ok;
+    rec.how = ok ? how : 'could not be hidden';
+    (ok ? out.consent_hidden : out.consent_unhidden).push(rec);
   };
-  try { document.querySelectorAll(VENDOR).forEach((el) => hide(el, 'consent vendor container')); } catch (_) { /* bad selector in an old engine */ }
+  try { if (c.vendor) document.querySelectorAll(c.vendor).forEach((el) => hide(el, 'consent vendor container', true)); } catch (_) { /* bad selector in an old engine */ }
   try {
     const all = document.body ? document.body.querySelectorAll('*') : [];
     for (const el of all) {
-      if (el.closest('[data-lcos-hidden]')) continue;
+      if (done.has(el) || el.closest('[data-lcos-hidden]')) continue;
       const cs = getComputedStyle(el);
-      if (cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+      const overlay = cs.position === 'fixed' || cs.position === 'sticky';
+      const dialog = /^(dialog|alertdialog)$/i.test(el.getAttribute('role') || '') || el.getAttribute('aria-modal') === 'true' || el.tagName === 'DIALOG';
       const named = NAMES.test((el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + (el.getAttribute('aria-label') || ''));
-      const worded = WORDS.test(String(el.innerText || '').slice(0, 1200));
-      if (named || worded) hide(el, named ? 'named as a consent overlay' : 'worded as a consent overlay');
-      if (out.consent_hidden.length > 12) break;
+      if (!overlay && !dialog && !named) continue;
+      const worded = WORDS.test(String(el.innerText || el.textContent || '').slice(0, 1200));
+      if (named && (overlay || dialog || worded)) hide(el, overlay ? 'named as a consent overlay' : (dialog ? 'a consent dialog' : 'named and worded as a consent container'));
+      else if ((overlay || dialog) && worded) hide(el, dialog ? 'a dialog worded as consent' : 'worded as a consent overlay');
+      if (out.consent_hidden.length + out.consent_unhidden.length > 20) break;
     }
   } catch (_) { /* nothing to hide */ }
   out.clock = new Date().toISOString();
@@ -115,10 +175,10 @@ async function stabilise(page, { deadline, idleMs = 2500, fontsMs = 3000 } = {})
     page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true)),
     new Promise((r) => setTimeout(r, Math.max(150, Math.min(fontsMs, left() - 1500)))),
   ]).catch(() => {});
-  const done = await page.evaluate(freezeInPage).catch(() => null);
+  const done = await page.evaluate(freezeInPage, CONSENT).catch(() => null);
   // Two frames, so the frozen styles are painted before anything is read.
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))).catch(() => {});
-  return done || { animations_finished: 0, animations_cancelled: 0, consent_hidden: [], clock: '', random: 0 };
+  return done || { animations_finished: 0, animations_cancelled: 0, consent_hidden: [], consent_unhidden: [], freeze_route: 'not run', clock: '', random: 0 };
 }
 
-module.exports = { install, stabilise, freezeInPage, INIT, EPOCH };
+module.exports = { install, stabilise, freezeInPage, INIT, EPOCH, CONSENT };

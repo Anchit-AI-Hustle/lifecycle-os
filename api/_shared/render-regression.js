@@ -454,7 +454,7 @@ function judge(pairs, ctx) {
       row.status = 'exempt'; row.reason = `hard rule: no dark-neutral section ground. Your site paints ${s.site || p.site}; ours uses ${s.ours || p.ours}.`; return row;
     }
     if (p.surface === 'mailer' && p.kind === 'family' && p.email_fallback === false) { row.status = 'mismatch'; row.reason = 'email: no generic fallback after the family'; return row; }
-    if (p.licence_exempt) { row.status = 'exempt'; row.reason = `font licence: ${p.licence_family || p.site} is the brand's own font, and a generated email never carries a site's font files; it draws in the declared fallback (${p.ours}). Upload your licensed files to use it there.`; return row; }
+    if (p.licence_exempt) { row.status = 'exempt'; row.reason = `font licence: ${p.licence_family || p.site} is the brand's own font, and a generated email never carries a site's font files; it draws in the declared fallback (${p.ours}, the face its fallback stack resolves to). Upload your licensed files to use it there.`; return row; }
     row.status = 'mismatch';
     return row;
   });
@@ -588,6 +588,57 @@ async function specimen(page, hook, siteRole, ground, buf, label) {
   return { component: label, comparable: true, ours_png: shot, pending: { page, sel, site: buf, ground, text } };
 }
 
+/**
+ * A drawn-face row is exempt under the font legal gate ONLY when the role's
+ * family is a brand font AND the face drawn is the one its recorded fallback
+ * stack resolves to here.
+ */
+function licenceExempt(drawn, family, brandFontNames, fallbackFace) {
+  if (!family || !brandFontNames || !brandFontNames.has(String(family).toLowerCase())) return false;
+  if (!fallbackFace || !drawn) return false;
+  return String(drawn).toLowerCase() === String(fallbackFace).toLowerCase();
+}
+
+/** The face each brand font's fallback stack draws on this page's engine. */
+async function fallbackDrawn(page, fonts) {
+  const out = {};
+  const probes = {};
+  for (const slot of ['heading', 'body']) {
+    const f = fonts[slot];
+    if (!f || f.licence !== 'brand font' || !f.fallback_stack) continue;
+    const id = `fb-${slot}`;
+    const ok = await page.evaluate(([pid, stack]) => {
+      const sp = document.createElement('span');
+      sp.setAttribute('data-lcos-fallback', pid);
+      sp.textContent = 'Handgloves 0123';
+      sp.style.setProperty('font-family', stack);
+      sp.style.setProperty('position', 'absolute');
+      sp.style.setProperty('left', '-9999px');
+      document.body.appendChild(sp);
+      return true;
+    }, [id, f.fallback_stack]).catch(() => false);
+    if (ok) probes[id] = { sel: `[data-lcos-fallback="${id}"]`, family: f.family };
+  }
+  if (!Object.keys(probes).length) return out;
+  const drawn = await require('./brand-render.js').drawnFaces(page, Object.fromEntries(Object.entries(probes).map(([k, v]) => [k, v.sel]))).catch(() => ({}));
+  // Keyed by SLOT (review: heading and body can share one brand family with
+  // different fallback stacks; keyed by family, the body's overwrote the heading's).
+  for (const [k, v] of Object.entries(probes)) if (drawn[k] && drawn[k].family) out[k.replace(/^fb-/, '')] = drawn[k].family;
+  return out;
+}
+
+/** The fallback face that applies to a mailer component: heading -> the heading slot, body copy -> body, a button -> the slot whose family it uses. */
+function fallbackFaceFor(component, family, fonts, bySlot) {
+  const f = fonts || {};
+  const c = String(component || '');
+  let slot = /heading|headline|display/.test(c) ? 'heading' : (/body/.test(c) ? 'body' : '');
+  if (!slot) {
+    const fam = String(family || '').toLowerCase();
+    slot = f.body && String(f.body.family).toLowerCase() === fam ? 'body' : (f.heading && String(f.heading.family).toLowerCase() === fam ? 'heading' : 'body');
+  }
+  return (bySlot || {})[slot] || '';
+}
+
 /** The second shots, ~500 ms later, then the masked comparison per region. */
 async function settleRegions(regions, siteSecond, siteText) {
   const pend = regions.filter((g) => g.pending);
@@ -665,6 +716,10 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
     const lpM = await measureSurface(oursCtx, ours.lp, { width: vM.w, height: vM.h }, ctx, `lpm${iter}`);
     const ml = await measureSurface(oursCtx, ours.mailer, { width: 640, height: 900 }, ctx, `mail${iter}`);
     const mailRows = [];
+    // What the brand font's own FALLBACK stack draws on this engine: the only
+    // face the legal gate may excuse (review: a brand font drawn as anything
+    // else - Arial for a Georgia fallback - is a miss, not the gate working).
+    const fallbackFaces = await fallbackDrawn(ml.page, m.fonts || {});
     for (const style of MAILER_STYLES) {
       const m2 = style === 'editorial' ? ml : await measureSurface(oursCtx, ours.mailers[style], { width: 640, height: 900 }, ctx, `mail-${style}${iter}`);
       for (const row of emailPairs(truth.mobile, truth.desktop, m2.hooks)) {
@@ -672,8 +727,10 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
         // working, not a miss (it is listed as exempt with the reason).
         // The engine reports the face by the FILE's own name, not the CSS
         // alias, so the brand font is recognised by the role's declared family.
-        const lic = row.kind === 'face' && brandFontNames.has(String(roleFamily[row.component] || '').toLowerCase());
-        mailRows.push(Object.assign(row, { component: `${style}: ${row.component}` }, lic ? { licence_exempt: true, licence_family: roleFamily[row.component] } : {}));
+        const fam = roleFamily[row.component];
+        const fb = fallbackFaceFor(row.component, fam, m.fonts || {}, fallbackFaces);
+        const lic = row.kind === 'face' && licenceExempt(row.ours, fam, brandFontNames, fb);
+        mailRows.push(Object.assign(row, { component: `${style}: ${row.component}` }, lic ? { licence_exempt: true, licence_family: fam, licence_fallback: fb } : {}));
       }
       if (m2 !== ml) await m2.page.close().catch(() => {});
     }
@@ -826,5 +883,5 @@ function summariseComponents(rows, regions) {
 module.exports = {
   TOLERANCE, PIXEL_LIMIT, MISMATCH_LIMIT, MAX_ITER, STRUCTURAL_LIMIT, PERCEPTUAL_LIMIT,
   deltaE2000, lab, compareToken, pixelRatio, judge, scoreOf, lpPairs, emailPairs, adPairs,
-  sampleFrom, brandFor, brandAsApplied, renderOurs, repair, run, MAILER_STYLES, facePairs,
+  sampleFrom, brandFor, brandAsApplied, renderOurs, repair, run, MAILER_STYLES, facePairs, licenceExempt, fallbackDrawn, fallbackFaceFor,
 };

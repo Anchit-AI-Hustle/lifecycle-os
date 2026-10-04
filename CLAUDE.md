@@ -36,6 +36,19 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
   bank" would have blocked a publisher (statistics are claim-SHAPED only; possessive superlatives WARN).
 - Known limits, said: English lexicon only; phrase not meaning; no green-claims or Indian (ASCI) pack;
   a testimonial block with the author on its own line (no dash) is not read as an endorsement.
+- **Seven review findings on #138, fixed after it merged (each an executed test that failed first,
+  20 mutations caught)**: approved claims dedupe only WITHIN one region scope (a UK register entry
+  had inherited a US study; a GLOBAL send accepts only market-wide approvals); a stated sector or
+  industry nothing recognises is `compliance.sector_unrecognised` WARN naming it (an industry the gate
+  KNOWS has no sector pack, sneakers/news/software…, is `sector_basis: no-regulated-sector` with its
+  basis; fintech/alcohol/CBD are deliberately not on that list); a guaranteed outcome blocks even when
+  "approved" and is never briefed as usable; dispatch lints only as THIS workspace's brand
+  (`dispatch-core.trustedBrand`: `resolve()` answers tenant zero on a failed read), else UNCHECKED and
+  blocked at the queue; the offer is read server-side from the `smart_generated_campaigns` row the job
+  names (`campaign_id`, workspace-scoped; the builder stamps `campaign.offer`), never the body; a
+  recorded offer backs only what it says (`deadlineAgainst`/`stockAgainst`, from an injectable `now`:
+  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted,
+  and a disclosure anywhere in the asset (its hashtags) counts.
 
 ## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
 `api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
@@ -66,6 +79,26 @@ pack size is a product fact, so neither is ever used.
 - Left as found, on purpose: `lifecycle-cohorts.COHORTS` (a new key changes the UK planner's default rotation);
   the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
   cap input until the omnichannel fatigue ledger lands.
+- **Four review findings on #135, fixed in the follow-up, each reproduced by an executed test first (14 mutations):**
+  (a) a bucket was market|week|cohort, so customers due for DIFFERENT products shared one slot and got the first
+  product's creative: one product group per slot now (`cohort.slot_key` keeps same-day ids apart past the 32-char
+  slug), `audience.last_bought` maps every recipient to their own SKU, and a customer due for two groups in one
+  week gets ONE send (`same_week_other_product`). (b) `smart_orders` was one unordered `limit=20000` read: it is
+  paged newest-first now, and a ceiling that IS hit drops the partial oldest day and says `orders before X were not
+  read`. (c)+(d) eligibility read `smart_users` (no engagement fields) and the offering planner read no contacts
+  at all: both read the workspace's own `subscriber_engagement_scores` (`engagementContacts()`), joined by profile
+  id = customer id or the same `hashEmail()` that wrote `email_hash`; suppressed contacts are excluded.
+- **Three more on #141, same discipline (15 mutations).** PostgREST answers at most `max_rows` (1,000 in
+  `supabase/config.toml`) whatever `limit` asks, so "a short page is the end" read every table as 1,000 rows:
+  `selectPaged()` advances by the rows RECEIVED and stops only on an EMPTY page; a failed page throws and becomes a
+  stated window (`read_error`), never "complete"; `ownData()` reads orders once through it; and
+  `tests/lib/fake-supabase.js` now ENFORCES `max_rows` from that file and sends `Content-Range`, because a fake
+  that honours any limit is how this passed. Engagement rows per customer (one per provider, plus email-hash
+  matches) merge through `cohort-engine.mergeContactEvidence()` - any bounce/complaint/suppression excludes, sends
+  sum, newest engagement wins - the same in either row order. And the BUILT campaign carries each recipient's SKU:
+  `audience.personalisation.values` keyed by `hashProfileId()` (never a raw id), the email's hero slot is
+  `{{ replenishment_product_title|default:'<group hero>' }}`.
+
 ## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
 `api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|
 flags|thresholds|thresholds-save|regen-approve|flag-dismiss|live-approve` (still 12/12, still two crons), the
@@ -197,6 +230,19 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   `field_origins` (this reader's records) and `field_origin` (the rendered read's map) are written
   together and read by both sides; a filled field with no recorded origin is the person's on every
   path; an automatic source never demotes a document value, the person's own pick does.
+- **Precedence is decided where the value is WRITTEN (Codex #1 on #127, migration
+  `20261004160000_brand_context_apply_by_origin.sql`).** The save PATCHed every carried field and only
+  then asked whose each was: a stale tab applying a brand book wrote the document's tagline over the one
+  another tab had just TYPED, and the record then said a person typed it. Now `saveExisting()` claims the
+  typed fields FIRST, PATCHes them with the ROW'S OWN value for every other field (conditional on
+  `updated_at`, re-read and retried on a concurrent write, 409 with a sentence after four), and sends
+  every document / site / template field through `brand_context_apply()`, which takes each value's
+  ORIGIN (default `auto`, so the context pack and Suggest are unchanged), refuses any field whose owner
+  outranks it, replaces an equal rank, and runs under a row lock on the workspace. `voice.banned` opens
+  only to a document or a template a person chose, never to a site read. Executed through the SHIPPED
+  `saveWorkspace` over PostgREST modelled on PGlite with the trigger installed: the stale tab, a typed
+  save landing between the stale tab's read and write, and an apply landing between a typed save's
+  claim and its write - each failed before (the document's tagline won), mutation-verified.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
@@ -318,6 +364,36 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
   Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
   a separate template builder, a TypeScript/Next.js restructure.
+- **Review of #134 and the 40-brand harvest found eight more (2026-10-04)**, each a local fixture read
+  through the shipped reader in `tests/rendered-read-defects.spec.js`, each mutation-verified:
+  (1) a page whose CSP has no `'unsafe-inline'` in `style-src` REFUSES an injected `<style>` (the reader
+  honours CSP), so an overlay was reported hidden while still painted: hiding and freezing now go through
+  the CSSOM (`el.style.setProperty(..., 'important')`, which CSP does not govern), the stylesheet is
+  verified with a probe, every hidden node is VERIFIED with `getComputedStyle` (or removed from the
+  throwaway DOM), and one that could not be hidden is reported as such - the test reads the pixels of the
+  screenshot. (2) the font legal gate excuses a drawn face only when it is the face the brand font's
+  recorded FALLBACK stack draws on that engine (a probe span measured by CDP), never "any face".
+  (3) every element inside a consent/cookie/CMP container (vendor ids incl. TrustArc, names, a dialog
+  worded as consent) is excluded from EVERY role measurement in `render-capture.js`, hidden or not; a
+  wrapper that holds `main`/`h1`/`nav` is never one. (4) a call to action must stand off the page:
+  fill (or border) at least **1.5:1** non-text contrast against what is behind it - WCAG 1.4.11 asks 3:1
+  where nothing else identifies a component, and pastel brand buttons lean on their label, so 1.5:1 is the
+  floor below which a fill is a tint (a `#ecf0f4` tab at 1.15:1 was one brand's "primary CTA").
+  (5) a numbered identity token SCALE (`--x-brand-25 ... -900`) gives the step rendered on the logo,
+  header, CTA, links or headings (else the most-rendered step); an unrendered scale proposes nothing.
+  (6) `readSite` threads `perRequestMs` and a separate `firstDocumentMs` to every hop, bounded by the
+  deadline (the harvest gives the home page 30 s; six sites died at the 9 s default). (7) a Google Fonts
+  family the site HOSTS ITSELF is recognised by name (`data/google-fonts/families.json`, 1908 names from
+  google-font-metadata 6.0.8, MIT) and loadable by reference. (8) every face the visible text asks for
+  that is declared and not loaded is loaded and CONFIRMED (`document.fonts.load` + `check`, bounded)
+  before the page is measured. Then, from #140's own CI and review: the harvest's reader process DIED
+  on a runner with no IPv6 route - `pinnedLookup` answered SYNCHRONOUSLY, so a connect that failed at
+  once emitted its error on the socket before http listened (an unhandled `AggregateError`; over https a
+  null-handle crash too, both reproduced locally). The lookup now always answers asynchronously, offers
+  IPv4 first (exactly the addresses `checkUrl` approved), every socket error fails that one request with
+  a sentence, and the read goes on (executed in a child process). A vendor selector on an app wrapper
+  holding main/h1/nav is never hidden or excluded; a scale step is chosen by identity ROLE first, then
+  scale order; the fallback face is keyed by SLOT; the face scan counts only text that renders.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
