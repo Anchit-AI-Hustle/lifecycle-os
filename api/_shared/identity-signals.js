@@ -31,10 +31,13 @@
 
 /** Strength per signal kind. Higher is stronger. */
 const KINDS = {
-  'logo-svg': { score: 100, label: 'logo mark paint (SVG fill/stroke as rendered)' },
-  'logo-image': { score: 96, label: 'logo mark pixels (the rendered logo image)' },
-  'guideline-swatch': { score: 94, label: 'colour swatch the brand publishes, painted and labelled with its own value' },
-  'mask-icon': { score: 92, label: 'pinned-tab mask-icon colour the site declares' },
+  // The MARK is held above anything two declarations could add up to (the
+  // mapping adds at most 24 for agreement): a theme-color and an icon from a
+  // site's previous palette must not outvote the logo it renders today.
+  'logo-svg': { score: 120, label: 'logo mark paint (SVG fill/stroke as rendered)' },
+  'logo-image': { score: 116, label: 'logo mark pixels (the rendered logo image)' },
+  'guideline-swatch': { score: 112, label: 'colour swatch the brand publishes, painted and labelled with its own value' },
+  'mask-icon': { score: 90, label: 'pinned-tab mask-icon colour the site declares' },
   'theme-color': { score: 74, label: 'meta theme-color' },
   'manifest-theme': { score: 72, label: 'web app manifest theme_color' },
   'tile-color': { score: 70, label: 'msapplication-TileColor (meta or browserconfig.xml)' },
@@ -42,11 +45,18 @@ const KINDS = {
   // A wordmark set as TEXT is found by shape (a large or logo-named home
   // link), which is a guess an image or an SVG is not: below a declared token.
   'logo-text': { score: 62, label: 'logo set as text, its colour as rendered' },
+  'logo-dark': { score: 60, label: 'logo mark in a near-black colour (relative luminance under 0.02)' },
   'header': { score: 58, label: 'header background as rendered' },
   'icon': { score: 56, label: 'site icon (favicon / touch icon) pixels' },
   'action': { score: 55, label: 'primary call to action, as rendered' },
   'manifest-background': { score: 40, label: 'web app manifest background_color' },
 };
+
+/**
+ * Values a favicon generator writes when nobody chose one (RealFaviconGenerator
+ * and the Windows tile presets it offers). Never a brand's declaration.
+ */
+const GENERATOR_DEFAULTS = new Set(['#5bbad5', '#da532c', '#2b5797', '#2d89ef', '#00aba9', '#603cba', '#b91d47', '#9f00a7', '#ffc40d', '#1e7145', '#ee1111']);
 
 function rgbOf(hex) {
   const h = String(hex || '').replace('#', '');
@@ -163,4 +173,6 @@ function markIdentity(colours) {
   return { verdict: 'multicolour', colours: groups.slice(0, 5).map((x) => x.hex), chromatic_share: Math.round((chromaticShare / total) * 1000) / 1000 };
 }
 
-module.exports = { KINDS, chromatic, chromaOf, pixelColours, markIdentity, rgbOf, hexOf };
+function lumOf(hex) { const c = rgbOf(hex); return c ? lum(c) : 0; }
+
+module.exports = { KINDS, GENERATOR_DEFAULTS, chromatic, chromaOf, lumOf, pixelColours, markIdentity, rgbOf, hexOf };

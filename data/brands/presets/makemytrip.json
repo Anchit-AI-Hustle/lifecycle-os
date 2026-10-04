@@ -163,6 +163,11 @@
       "url": "https://www.makemytrip.com/flights/",
       "kind": "page",
       "what": "MakeMyTrip flights page"
+    },
+    {
+      "url": "https://careers.makemytrip.com/",
+      "kind": "page",
+      "what": "MakeMyTrip careers site"
     }
   ],
   "offerings": [],

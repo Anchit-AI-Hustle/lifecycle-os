@@ -792,6 +792,32 @@ function capturePage(opts) {
   }
   out.swatches = swatches;
 
+  /* ── the brand's logo SHOWN IN CONTENT (a brand or press page) ─────────
+     A guidelines, press or "our logo" page shows the mark in its body, often
+     in its full colour while the header carries a black one. Asked for only
+     on such pages (`o.contentLogoName`), and an image counts only when its
+     own alt, title, file name or label NAMES the brand - a partner's logo on
+     a newsroom page names the partner. Pixels are read Node-side. */
+  out.content_logos = [];
+  const brandWord = String(o.contentLogoName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (brandWord.length >= 2) {
+    const fold = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let n = 0;
+    for (const el of document.querySelectorAll('main img, main svg, article img, article svg, body img, body svg')) {
+      if (n >= 3) break;
+      if (el.closest('header,nav,footer,[role=banner],[role=navigation],[role=contentinfo]') || el.closest('[data-lcos-role]') === el) continue;
+      if (el.tagName.toLowerCase() === 'svg' && el.closest('svg') !== el) continue;
+      if (!visible(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 60 || r.height < 16 || r.width > 1400) continue;
+      const label = [el.getAttribute('alt'), el.getAttribute('title'), el.getAttribute('aria-label'), el.getAttribute('src'), el.currentSrc, typeof el.className === 'string' ? el.className : (el.className && el.className.baseVal)].join(' ');
+      if (!/logo|wordmark|brand ?mark|logotype/i.test(label) || !fold(label).includes(brandWord)) continue;
+      n += 1;
+      try { el.setAttribute('data-lcos-content-logo', String(n)); } catch (_) { /* read-only */ }
+      out.content_logos.push({ n, selector: path(el), kind: el.tagName.toLowerCase() === 'svg' ? 'svg' : 'img', label: label.replace(/\s+/g, ' ').trim().slice(0, 160), src: el.currentSrc || el.getAttribute('src') || '', ground: ground(el.parentElement || el).color, paints: el.tagName.toLowerCase() === 'svg' ? svgPaint(el) : [] });
+    }
+  }
+
   /* ── colours the page RENDERS, counted (fills, text, borders, svg) ───── */
   const rc = new Map();
   const bump = (c) => { if (!c || c[3] < 0.5) return; const h = hex(c); rc.set(h, (rc.get(h) || 0) + 1); };

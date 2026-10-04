@@ -102,11 +102,11 @@ test.describe.serial('the rendered reader takes identity from the mark and the s
 
   test('a raster logo and a CSS-sprite logo are read from their PIXELS', () => {
     expect(reads['logo-raster'].colors.primary).toEqual(expect.objectContaining({ value: EXPECT['logo-raster'].primary, kind: 'logo-image' }));
-    const css = reads['logo-css'];
-    expect(css.colors.primary).toEqual(expect.objectContaining({ value: EXPECT['logo-css'].primary, kind: 'logo-image' }));
-    expect(css.identity.logo_colours.kind).toBe('css');
+    const sprite = reads['logo-css'];
+    expect(sprite.colors.primary).toEqual(expect.objectContaining({ value: EXPECT['logo-css'].primary, kind: 'logo-image' }));
+    expect(sprite.identity.logo_colours.kind).toBe('css');
     // The sprite's white wordmark is recorded, as a neutral.
-    expect(css.identity.logo_colours.pixels.find((p) => p.hex === '#ffffff')).toEqual(expect.objectContaining({ chromatic: false }));
+    expect(sprite.identity.logo_colours.pixels.find((p) => p.hex === '#ffffff')).toEqual(expect.objectContaining({ chromatic: false }));
   });
 
   test('a multicolour mark proposes nothing; a neutral mark is recorded, never promoted', () => {
@@ -337,6 +337,9 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
     expect(row.palette_source).toBe('verified');
     expect(row.read_from.sort()).toEqual(['127.0.0.1', '127.0.0.2']);
     expect(row.swatches[0]).toEqual(expect.objectContaining({ role: 'primary', value: EXPECT.guidelines.first }));
+    // The brand renders one colour (its swatch and its logo agree; its grey is
+    // a neutral): no accent swatch, rather than the primary painted twice.
+    expect(row.swatches.map((x) => x.role)).toEqual(['primary', 'surface', 'ink']);
     const rec = JSON.parse(fs.readFileSync(path.join(out, 'toyota.json'), 'utf8'));
     expect(core.validatePalette(rec.palette).ok).toBe(true);
     expect(rec.preset.home_attempt.renderer).toBe('blocked');
@@ -365,6 +368,7 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
     await expect(card.locator('.pmeta')).toContainText(new RegExp(`Read from (127\\.0\\.0\\.2, 127\\.0\\.0\\.1|127\\.0\\.0\\.1, 127\\.0\\.0\\.2) on ${DAY}`));
     const bg = await card.locator('.psw[data-role="primary"] i').evaluate((e) => getComputedStyle(e).backgroundColor);
     expect(bg).toBe('rgb(235, 10, 30)');
+    expect(await card.locator('.psw').evaluateAll((els) => els.map((e) => e.getAttribute('data-role')))).toEqual(['primary', 'surface', 'ink']);
   });
 });
 
@@ -399,6 +403,22 @@ test('the builder refuses a palette whose values name a read that produced nothi
   const out2 = tmpDir('genuine-out');
   execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'build-brand-presets.js'), '--observed', ok, '--out', out2], { stdio: 'pipe' });
   expect(JSON.parse(fs.readFileSync(path.join(out2, 'toyota.json'), 'utf8')).palette.primary).toBe('#eb0a1e');
+});
+
+test('the before/after table calls a palette hand-verified only when the builder kept one by that rule', () => {
+  const { report } = require(path.join(ROOT, 'scripts', 'harvest-presets.js'));
+  const dir = tmpDir('report');
+  // A template whose read rendered with no colour, and a hand-verified one.
+  fs.writeFileSync(path.join(dir, 'zara.observed.json'), JSON.stringify({ format: 'preset-observation/3', ok: true, renderer: 'rendered', palette_ok: false }));
+  fs.writeFileSync(path.join(dir, 'apple.observed.json'), JSON.stringify({ format: 'preset-observation/2', ok: true, renderer: 'rendered', palette_ok: true }));
+  const sw = (v) => [{ role: 'primary', value: v }, { role: 'surface', value: '#ffffff' }, { role: 'ink', value: '#111111' }];
+  const after = { presets: [
+    { slug: 'zara', palette_source: 'verified', renderer: null, hand_verified: false, swatches: sw('#000000') },
+    { slug: 'apple', palette_source: 'verified', renderer: null, hand_verified: true, swatches: sw('#0071e3') },
+  ] };
+  const lines = report({ presets: [] }, after, dir).split('\n');
+  expect(lines.find((l) => l.startsWith('| zara '))).not.toMatch(/hand-verified/);
+  expect(lines.find((l) => l.startsWith('| apple '))).toMatch(/hand-verified palette kept/);
 });
 
 /* ═══ 5. the shipped data: every machine-read value says where it was read ═ */

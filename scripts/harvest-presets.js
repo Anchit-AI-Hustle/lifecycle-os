@@ -73,6 +73,7 @@ function args(argv) {
     else if (a === '--source-deadline-ms') out.sourceDeadlineMs = Number(next());
     else if (a === '--retries') out.retries = Number(next());
     else if (a === '--no-sources') out.sources = false;
+    else if (a === '--verbose') out.verbose = true;
     else if (a === '--no-regression') out.regression = false;
     else if (a === '--allow-origin') out.allowOrigins.push(next());
     else if (a === '--observed-at') out.observedAt = next();
@@ -190,6 +191,9 @@ async function readSources(preset, home, opts) {
     } else {
       result = await readPage(reader, s.url, {
         deadlineMs: dl, manifestMs: Math.max(20000, dl - 15000), maxPages: 0, regression: false, mobile: false,
+        // A guidelines or press page shows the brand's logo in its content:
+        // read it when the image names the brand.
+        contentLogoName: preset.name || '',
         firstDocumentMs: opts.firstDocumentMs || HARVEST.firstDocumentMs, perRequestMs: opts.perRequestMs || undefined,
         navMs: opts.navMs || HARVEST.navMs, policy,
       }, opts);
@@ -323,6 +327,14 @@ async function harvest(options) {
         log(`  ${preset.slug.padEnd(20)} ${obs.renderer.padEnd(9)} ${obs.palette.primary}  ${ev.kind || ''} on ${ev.read_url || obs.landed}  ${obs.typography ? obs.typography.heading.family + ' / ' + obs.typography.body.family : '(type not read)'}\n`);
       }
       else log(`  ${preset.slug.padEnd(20)} ${obs.renderer.padEnd(9)} ${String(obs.palette_reason || obs.reason || '').slice(0, 140)}\n`);
+      // The log is the one record a reader without the artifact can see:
+      // every read, every candidate, each page's logo and fonts.
+      if (o.verbose && obs) {
+        for (const r of obs.reads || []) log(`      read ${String(r.role).padEnd(15)} ${String(r.renderer).padEnd(9)} ${r.url}${r.attempts > 1 ? ` (${r.attempts} attempts)` : ''}${r.ok ? '' : ` - ${String(r.reason || '').slice(0, 110)}`}\n`);
+        for (const d of obs.read_details || []) log(`      page ${d.url}  logo ${d.logo ? `${d.logo.kind}:${d.logo.verdict}:${d.logo.hex}` : '-'}  fonts ${d.fonts ? `${d.fonts.heading || '-'} / ${d.fonts.body || '-'}` : '-'}${d.content_logos ? `  content logos ${d.content_logos}` : ''}\n`);
+        const cs = (obs.palette_candidates || []).filter((c) => c.state !== 'neutral').slice(0, 10);
+        if (cs.length) log(`      candidates ${cs.map((c) => `${c.kind}:${c.value}:${c.score}${c.state === 'chosen' ? '*' : (c.state === 'passed over' ? '(x)' : '')}`).join(' ')}\n`);
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.max(1, Math.min(o.concurrency || 1, wanted.length || 1)) }, () => worker()));
@@ -398,7 +410,7 @@ if (require.main === module && !process.argv.includes('--child')) {
     maxPages: a.maxPages == null || Number.isNaN(a.maxPages) ? 2 : a.maxPages,
     regression: a.regression !== false, allowOrigins: a.allowOrigins, observedAt: a.observedAt,
     firstDocumentMs: a.firstDocumentMs, perRequestMs: a.perRequestMs,
-    retries: a.retries, sources: a.sources, sourceDeadlineMs: a.sourceDeadlineMs,
+    retries: a.retries, sources: a.sources, sourceDeadlineMs: a.sourceDeadlineMs, verbose: a.verbose,
   }).then(({ summary }) => {
     console.log(`\n  palette applied: ${summary.palette_applied} of ${summary.requested} (from identity sources: ${summary.from_identity_sources.length})   still default: ${summary.still_default.join(', ') || 'none'}`);
     console.log(`  home pages rendered: ${summary.rendered}   blocked: ${summary.blocked.length}   timeout: ${summary.timeout.length}   unavailable: ${summary.unavailable.length}   not read here: ${summary.environment_failures.length}\n`);

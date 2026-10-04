@@ -141,7 +141,8 @@ jobs:
             --deadline-ms 150000 \
             --source-deadline-ms 75000 \
             --retries 1 \
-            --max-pages 2
+            --max-pages 2 \
+            --verbose
 
       - name: Regenerate the presets from what was read
         if: steps.gate.outputs.skip != 'true'
@@ -153,7 +154,7 @@ jobs:
           npm run brand:check
           npm run build
           npm run test:isolation
-          npx playwright test tests/brand-presets.spec.js tests/preset-harvest.spec.js --project=desktop-1280 --reporter=line
+          npx playwright test tests/brand-presets.spec.js tests/preset-harvest.spec.js tests/preset-identity-sources.spec.js --project=desktop-1280 --reporter=line
 
       - name: Before / after
         if: always() && steps.gate.outputs.skip != 'true'
