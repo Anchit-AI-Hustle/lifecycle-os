@@ -1989,13 +1989,25 @@ function complianceContext(campaign, entry) {
   try { brand = stamped || require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { brand = stamped; }
   let skuClaims = [];
   if (entry) { try { skuClaims = approvedProof(Object.assign({}, entry, { brand })).claims || []; } catch (_) { skuClaims = []; } }
-  const offer = e.offer || (e.decision && e.decision.offer) || null;
+  const offer = e.offer || (e.decision && e.decision.offer) || (campaign && campaign.offer) || null;
   return require('./compliance-lint.js').contextFor({
     brand,
     market: e.market || (campaign && campaign.market) || '',
     approvedClaims: skuClaims,
     offer,
+    // A deadline line is read on the slot's SEND date, not the build date.
+    now: e.date || null,
   });
+}
+
+/**
+ * The offer a campaign was built with, stamped on the campaign record, so the
+ * dispatch gate can read it SERVER-SIDE from smart_generated_campaigns when a
+ * job names the campaign, instead of trusting an offer in a request body.
+ */
+function offerOf(entry) {
+  const o = entry && (entry.offer || (entry.decision && entry.decision.offer));
+  return o && typeof o === 'object' ? JSON.parse(JSON.stringify(o)) : null;
 }
 
 function checkAssetContracts(campaign, entry) {
@@ -2331,6 +2343,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     };
   }
   const campaign = new GenerationService(config).generate(entry);
+  campaign.offer = offerOf(entry);
   let copyMeta = { provider: 'template-fallback', model: null, creatives: 'none' };
   // Agent pipeline trace, surfaced in the console so the reviewer sees which
   // specialist agent produced each part of the mailer.
