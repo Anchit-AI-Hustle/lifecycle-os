@@ -158,8 +158,13 @@ async function enqueue(auth, workspaceId, spec) {
   // Over the brand's own ledger: assertCanWrite above has established that
   // the caller edits this workspace. A channel that is not a message is
   // skipped by the check itself.
+  // Judged at the moment it reaches people: a job's own schedule, else the
+  // send time the platform is handed (a Klaviyo campaign's `send_at`), else
+  // now. Judging a campaign scheduled for 10:00 tomorrow at the 22:15 it was
+  // queued held it for quiet hours it will never send in.
+  const sendsAt = s.scheduled_for || (mapped.payload && mapped.payload.send_at) || null;
   const contactFatigue = touch.channel && mode !== 'draft' ? await ledger.evaluateSend({
-    workspaceId, channel: touch.channel, message_class: touch.message_class, at: s.scheduled_for || null,
+    workspaceId, channel: touch.channel, message_class: touch.message_class, at: sendsAt,
     recipients: touch.recipients_known ? touch.recipients : null, carried: s.contact_ledger || null,
     provider, region: touch.region,
   }) : null;

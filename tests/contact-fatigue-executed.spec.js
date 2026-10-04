@@ -130,6 +130,14 @@ test('an SMS at 10:00 is recorded when the platform accepts it, an email at 11:0
   live();
   db.route((u) => u === 'https://a.klaviyo.com/api/campaigns/', () => ({ data: { id: 'camp-sms-1' } }));
 
+  // A campaign is judged at the time it SENDS (its send_at), not at the time
+  // it was queued: one scheduled for 21:30 UTC tomorrow (after 21:00 in
+  // London, BST or GMT) is held for quiet hours whatever the time is now,
+  // and the 10:00 one below is not, even when this runs at night.
+  const night = await dispatch.enqueue(AUTH_A, 'ws-a', SMS_SPEC({ asset_ref: 'sms-night', payload: { sms_body: 'Late drop. Text STOP to unsubscribe.', list_id: 'L1', send_at: iso(T0 + 11.5 * HOUR) } }));
+  expect(night).toMatchObject({ ok: false, blocked: true });
+  expect(checkOf(night.preflight, 'contact_fatigue').fatigue).toMatchObject({ deferred: 1, by_reason: { quiet_hours: 1 } });
+
   // No history yet: unknown is a WARN with the sentence, never a pass.
   const sms = await dispatch.enqueue(AUTH_A, 'ws-a', SMS_SPEC());
   expect(sms.ok).toBe(true);
@@ -543,8 +551,10 @@ test('a dry run, a campaign that was only created, and a trigger with no stated 
   live();
   db.route((u) => u === 'https://a.klaviyo.com/api/campaigns/', () => ({ data: { id: 'camp-x' } }));
   db.route((u) => u === 'https://a.klaviyo.com/api/events/', () => ({}));
-  // Created, not released (no send_at): nobody has been contacted yet.
-  await dispatch.enqueue(AUTH_A, 'ws-a', SMS_SPEC({ asset_ref: 'sms-created', payload: { sms_body: 'Soon. Text STOP to unsubscribe.', list_id: 'L1' } }));
+  // Created, not released (no send_at): nobody has been contacted yet. The
+  // recipient names no region, so this is judged the same at any hour.
+  const NOREGION = [{ provider: 'klaviyo', external_profile_id: '01KPROFILEBUYER', email: 'buyer@example.test' }];
+  await dispatch.enqueue(AUTH_A, 'ws-a', SMS_SPEC({ asset_ref: 'sms-created', recipients: NOREGION, payload: { sms_body: 'Soon. Text STOP to unsubscribe.', list_id: 'L1' } }));
   // A dry run builds the request and does not send.
   await dispatch.enqueue(AUTH_A, 'ws-a', SMS_SPEC({ asset_ref: 'sms-dry', dry_run: true }));
   // A flow trigger whose message the platform decides.
