@@ -543,9 +543,14 @@ function plainText(s) {
 const TEXT_KEYS = ['subject', 'subject_alt1', 'subject_alt2', 'preheader', 'preview_text', 'hook', 'hero_headline', 'hero_sub',
   'headline', 'title', 'intro_paragraph', 'body_paragraph', 'why_title', 'primary_text', 'description', 'caption', 'script',
   'cta', 'proof_quote', 'proof_author', 'guarantee', 'sms_body', 'body', 'message', 'link_description', 'text', 'overlay_text',
-  'path1', 'path2'];
-const LIST_KEYS = ['headlines', 'descriptions', 'why_bullets', 'benefits', 'badges'];
-const HTML_KEYS = ['html', 'motion_html'];
+  'path1', 'path2',
+  // Every copy field asset-specs.js FIELDS defines (email, landing, ad,
+  // social), and the accessibility text a platform publishes: a Pin's
+  // alt_text is public, and alt text is what a screen reader speaks.
+  'alt_text', 'alt', 'image_alt', 'subject_line', 'from_name', 'cta_text', 'cta_label', 'seo_title', 'meta_description',
+  'og_title', 'og_description', 'h1', 'first_comment', 'cover_text', 'headings', 'hashtags'];
+const LIST_KEYS = ['headlines', 'descriptions', 'why_bullets', 'benefits', 'badges', 'headings', 'hashtags', 'alt_texts'];
+const HTML_KEYS = ['html', 'motion_html', 'body_html'];
 
 function looksLikeHtml(s) { return /<\/?[a-z][\s\S]*?>/i.test(String(s || '')); }
 
@@ -596,24 +601,50 @@ function brandNameOf(brand) {
   return n && !/^\[DATA REQUIRED/.test(n) ? n : 'this brand';
 }
 
-function sectorsOf(brand) {
-  const declared = fieldOf(brand, 'compliance');
-  const explicit = declared && Array.isArray(declared.sectors) ? declared.sectors.map((s) => String(s).toLowerCase().trim()).filter(Boolean) : [];
-  if (explicit.length) {
-    return {
-      sectors: explicit.filter((s) => SECTORS.includes(s)).map((id) => ({ id, from: 'brand record: compliance.sectors' })),
-      unknownDeclared: explicit.filter((s) => !SECTORS.includes(s)),
-      stated: true,
-    };
-  }
-  const industry = [brand && brand.industry, fieldOf(brand, 'sector')].filter((x) => typeof x === 'string' && x.trim()).join(' / ');
-  if (!industry.trim()) return { sectors: [], stated: false, industry: '' };
+/**
+ * Industries this gate KNOWS no shipped sector pack covers, so a brand in one
+ * is classified rather than guessed at. Anything that matches neither this
+ * nor SECTOR_TABLE is UNRECOGNISED and reported as unchecked: "Nootropic
+ * gummies" or "CBD oils" must never fall through as if it were a sneaker
+ * brand. Regulated sectors with no shipped pack (financial services, alcohol,
+ * gambling, tobacco) are deliberately absent, so they are reported too.
+ */
+const NO_SECTOR_PACK = /\b(?:sneakers?|footwear|shoes?|apparel|clothing|fashion|sportswear|streetwear|eyewear|jewel(?:le)?ry|accessories|watches|news|publishing|media|magazines?|journalism|streaming|entertainment|music|gaming|games|software|saas|technology|tech|electronics|devices|hardware|automotive|cars?|travel|hospitality|hotels?|airlines?|telecom(?:munications)?|marketplace|e-?commerce|retail|furniture|home\s+(?:goods|decor)|stationery|toys|education|edtech)\b/i;
+
+function classify(text) {
   const sectors = [];
   for (const row of SECTOR_TABLE) {
-    const m = row.rx.exec(industry);
-    if (m) sectors.push({ id: row.id, from: `brand record: industry "${industry}" names "${m[0]}"` });
+    const m = row.rx.exec(text);
+    if (m) sectors.push({ id: row.id, matched: m[0] });
   }
-  return { sectors, stated: true, industry };
+  return sectors;
+}
+
+function sectorsOf(brand) {
+  const declared = fieldOf(brand, 'compliance');
+  const explicit = declared && Array.isArray(declared.sectors) ? declared.sectors.map((s) => String(s).trim()).filter(Boolean) : [];
+  if (explicit.length) {
+    // An id, or a word the sector table recognises ("pharmaceutical" is a
+    // health sector); anything else is named back as unrecognised.
+    const sectors = [];
+    const unrecognised = [];
+    for (const v of explicit) {
+      const id = v.toLowerCase();
+      if (SECTORS.includes(id)) { sectors.push({ id, from: 'brand record: compliance.sectors' }); continue; }
+      const hits = classify(v);
+      if (hits.length) for (const h of hits) sectors.push({ id: h.id, from: `brand record: compliance.sectors "${v}" names "${h.matched}"` });
+      else unrecognised.push(v);
+    }
+    const unique = sectors.filter((s, i) => sectors.findIndex((x) => x.id === s.id) === i);
+    return { sectors: unique, stated: true, unrecognised, basis: unique.length ? 'regulated' : 'unrecognised', from: 'brand record: compliance.sectors' };
+  }
+  const industry = [brand && brand.industry, fieldOf(brand, 'sector')].filter((x) => typeof x === 'string' && x.trim()).join(' / ');
+  if (!industry.trim()) return { sectors: [], stated: false, unrecognised: [], basis: 'unstated', industry: '' };
+  const sectors = classify(industry).map((h) => ({ id: h.id, from: `brand record: industry "${industry}" names "${h.matched}"` }));
+  if (sectors.length) return { sectors, stated: true, unrecognised: [], basis: 'regulated', industry };
+  const known = NO_SECTOR_PACK.exec(industry);
+  if (known) return { sectors: [], stated: true, unrecognised: [], basis: 'no-regulated-sector', from: `brand record: industry "${industry}" names "${known[0]}"`, industry };
+  return { sectors: [], stated: true, unrecognised: [industry], basis: 'unrecognised', from: `brand record: industry "${industry}"`, industry };
 }
 
 function jurisdictionsFor(market) {
@@ -686,10 +717,16 @@ function approvedClaims(brand, extra, market) {
   if (Array.isArray(ac)) ac.forEach((c, i) => push(c, `brand record: approved_claims[${i}]`));
   if (Array.isArray(extra)) extra.forEach((c, i) => push(c, (c && c.source) || `approved claims library [${i}]`));
 
-  // One row per claim text: the cited copy of a claim wins over an uncited one.
+  // One row per claim text WITHIN ONE REGIONAL SCOPE. The same words approved
+  // for the US (on a study) and for the UK (on a register entry) are two
+  // approvals with two kinds of evidence; merging them handed the UK the US
+  // study and the US the UK register entry, which is the cross-region
+  // transfer the operating contract forbids (master spec §1.5). Rows with an
+  // identical scope merge (the cited copy wins); different scopes never do.
   const byKey = new Map();
   for (const r of rows) {
-    const key = r.text.toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+    const scope = r.regions ? [...new Set(r.regions.map((x) => JURISDICTIONS[x] || x))].sort().join(',') : '*';
+    const key = `${scope}|${r.text.toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ')}`;
     const prev = byKey.get(key);
     if (!prev) { byKey.set(key, r); continue; }
     byKey.set(key, {
@@ -697,13 +734,17 @@ function approvedClaims(brand, extra, market) {
       source: prev.citation ? prev.source : r.source,
       citation: prev.citation || r.citation,
       register: prev.register || r.register,
-      regions: prev.regions && r.regions ? [...new Set([...prev.regions, ...r.regions])] : (prev.regions || r.regions),
+      regions: prev.regions,
     });
   }
   const m = String(market || '').toUpperCase();
+  const one = m && !NOT_ONE_COUNTRY.has(m);
   return [...byKey.values()].map((r) => Object.assign(r, {
     rx: claimRegex(r.text),
-    inRegion: !r.regions || !m || NOT_ONE_COUNTRY.has(m) || r.regions.includes(m) || (JURISDICTIONS[m] && r.regions.some((x) => JURISDICTIONS[x] === JURISDICTIONS[m])),
+    // A region-scoped approval holds only in its own market. A send with no
+    // single market may reach any of them, so only a market-wide approval
+    // (no region scope) holds there.
+    inRegion: !r.regions || (one && (r.regions.includes(m) || (JURISDICTIONS[m] && r.regions.some((x) => JURISDICTIONS[x] === JURISDICTIONS[m])))),
   })).filter((r) => r.rx);
 }
 
@@ -735,7 +776,7 @@ function contextFor(opts) {
     'Detection is by phrase, not by meaning: an implied claim the tables do not list is not found, and a finding is a prompt for a human reading, not a ruling.',
   ];
   if (jur.unsupported) limits.push(`No regulatory pack is shipped for ${jur.unsupported}; only the brand-safety rules ran for this market.`);
-  if (sel.unknownDeclared && sel.unknownDeclared.length) limits.push(`compliance.sectors names ${sel.unknownDeclared.join(', ')}, which no pack here covers.`);
+  if (sel.unrecognised && sel.unrecognised.length) limits.push(`The record names ${sel.unrecognised.map((v) => `"${v}"`).join(', ')}, which no sector here recognises, so no sector pack was chosen for it.`);
   return {
     __compliance_ctx: true,
     brand,
@@ -752,12 +793,20 @@ function contextFor(opts) {
       ends_at: offer.ends_at || offer.expires_at || offer.valid_until || null,
       stock: offer.stock != null && offer.stock !== '' ? offer.stock : (offer.inventory != null && offer.inventory !== '' ? offer.inventory : null),
     },
+    // When the copy is READ: a slot's send date, a job's scheduled time, a
+    // test's clock. Deadline lines are measured from it, not from build time.
+    now: o.now != null && o.now !== '' ? o.now : null,
     selection: {
       brand: brand ? brandNameOf(brand) : null,
       market: market || null,
       jurisdictions: jur.list.map((j) => ({ code: j, from: jur.from })),
       sectors: sel.sectors,
       sector_stated: !!sel.stated,
+      // regulated | no-regulated-sector | unrecognised | unstated, and where
+      // that came from, so "no health pack" is a classification with a basis.
+      sector_basis: sel.basis || (sel.stated ? 'regulated' : 'unstated'),
+      sector_from: sel.from || (sel.sectors[0] && sel.sectors[0].from) || null,
+      sector_unrecognised: sel.unrecognised || [],
       packs: packs.map((p) => ({ id: p.id, label: p.label })),
     },
     unsupportedMarket: jur.unsupported,
@@ -913,11 +962,83 @@ function mergeFindings(list) {
   });
 }
 
+/* ── what a recorded offer backs ─────────────────────────────────────────── */
+
+/**
+ * The moment the copy is read at: an injected `now` (a slot's send date, a
+ * scheduled time, or a test's clock), else the real clock. A date-only value
+ * is the start of that day; `day` is the calendar date AS WRITTEN, so a time
+ * zone in the record is respected rather than converted away.
+ */
+function refPoint(now) {
+  if (now instanceof Date) return refPoint(now.getTime());
+  if (typeof now === 'number' && Number.isFinite(now)) return { ms: now, day: new Date(now).toISOString().slice(0, 10) };
+  const s = now == null ? '' : String(now).trim();
+  const ms = /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(`${s}T00:00:00Z`) : Date.parse(s);
+  if (!s || !Number.isFinite(ms)) return refPoint(Date.now());
+  return { ms, day: /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : new Date(ms).toISOString().slice(0, 10) };
+}
+function endPoint(v) {
+  const s = String(v == null ? '' : v).trim();
+  const ms = /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(`${s}T23:59:59Z`) : Date.parse(s);
+  if (!s || !Number.isFinite(ms)) return null;
+  return { ms, text: s, day: /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : new Date(ms).toISOString().slice(0, 10) };
+}
+const addDays = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
+
+/**
+ * Does the recorded end date back THIS deadline line, read at `now`? "Today
+ * only" needs an offer ending today, "48 hours only" one ending within 48
+ * hours, "this weekend" one ending on the coming Saturday or Sunday; an offer
+ * that has already ended backs nothing. A line with no measurable window
+ * ("limited time") is backed by any end date still ahead.
+ */
+function deadlineAgainst(phrase, endsAt, now) {
+  const end = endPoint(endsAt);
+  if (!end) return { ok: false, why: `"${phrase}" states a deadline, and the end date on record ("${endsAt}") is not a date. Record the real end date, or remove the line.` };
+  const ref = refPoint(now);
+  const p = phrase.toLowerCase();
+  const hours = (end.ms - ref.ms) / 36e5;
+  const said = `the offer on record ends ${end.text}`;
+  if (end.ms < ref.ms) return { ok: false, why: `"${phrase}" promises an offer that has already ended: ${said}, before this send (${ref.day}). Remove it.` };
+  let ok = true;
+  let need = '';
+  const num = (rx) => Number((rx.exec(p) || [])[1]);
+  if (/today|tonight|midnight|last day|final day/.test(p)) { ok = end.day === ref.day; need = `ending on ${ref.day}`; }
+  else if (/tomorrow/.test(p)) { ok = end.day === addDays(ref.day, 1); need = `ending on ${addDays(ref.day, 1)}`; }
+  else if (/\d+[\s-]*hours?/.test(p)) { const n = num(/(\d+)[\s-]*hours?/); ok = hours <= n; need = `ending within ${n} hours`; }
+  else if (/\d+\s+minutes?/.test(p)) { const n = num(/(\d+)\s+minutes?/); ok = hours <= n / 60; need = `ending within ${n} minutes`; }
+  else if (/\d+\s+days?/.test(p)) { const n = num(/(\d+)\s+days?/); ok = hours <= n * 24; need = `ending within ${n} days`; }
+  else if (/final hours/.test(p)) { ok = hours <= 24; need = 'ending within 24 hours'; }
+  else if (/weekend/.test(p)) { const wd = new Date(`${end.day}T00:00:00Z`).getUTCDay(); ok = hours <= 7 * 24 && (wd === 6 || wd === 0); need = 'ending on the coming Saturday or Sunday'; }
+  else if (/this week|soon|clock is ticking|last chance/.test(p)) { ok = hours <= 7 * 24; need = 'ending within 7 days'; }
+  return ok ? { ok: true } : { ok: false, why: `"${phrase}" needs an offer ${need}, and ${said} (read at ${ref.day}). Reword it to the real deadline, or remove it.` };
+}
+
+/** Does the recorded stock back THIS line? A number must BE the number on record. */
+function stockAgainst(phrase, stock) {
+  const n = Number(String(stock).replace(/[^\d.]/g, ''));
+  const m = /(\d[\d,]*)/.exec(phrase);
+  if (m) {
+    const said = Number(m[1].replace(/,/g, ''));
+    if (String(stock).trim() !== '' && Number.isFinite(n) && said === n) return { ok: true };
+    return { ok: false, why: `"${phrase}" states ${said} left, and the stock on record is ${stock}. Use the recorded number, or remove the line.` };
+  }
+  return { ok: false, warn: true, why: `"${phrase}" describes stock in words; the record states ${stock}, and whether the words are true of that number cannot be measured. Confirm it, or state the number.` };
+}
+
 /* ── the linter ──────────────────────────────────────────────────────────── */
 
-function approvedCovering(f, span) {
-  for (const a of f.approvedSpans) if (span.start >= a.start && span.end <= a.end) return a.claim;
-  return null;
+/**
+ * The approved claim covering a span. Several may (a market-wide uncited copy
+ * and a market-scoped cited one): the one carrying what this rule needs, a
+ * `citation` or a `register` entry, is preferred, so a cited approval is never
+ * hidden behind an uncited one with the same words.
+ */
+function approvedCovering(f, span, need) {
+  const all = f.approvedSpans.filter((a) => span.start >= a.start && span.end <= a.end).map((a) => a.claim);
+  if (!all.length) return null;
+  return (need && all.find((c) => c[need])) || all.find((c) => c.citation) || all[0];
 }
 
 function outOfRegionClaim(ctx, text, span) {
@@ -984,6 +1105,13 @@ function lint(asset, opts) {
   } else if (!ctx.selection.sector_stated) {
     raw.push(makeFinding(null, { id: 'compliance.sector_unknown', pack: 'generic', severity: 'WARN', title: 'Sector unknown', scope: 'selection', sources: ['spec.1.9'], fix: `${name}'s record states no industry, so the health, food and supplement rules could not be selected. Set the industry (or compliance.sectors) on the brand record. Only the brand-safety rules ran; this is not a pass.` }));
   }
+  // A sector the record STATES but nothing here recognises is not a
+  // classification: "Nootropic gummies" read as "no health pack applies" would
+  // pass "Cures anxiety". It is unchecked, said, and named.
+  if (ctx.brand && ctx.selection.sector_unrecognised.length) {
+    const named = ctx.selection.sector_unrecognised.map((v) => `"${v}"`).join(', ');
+    raw.push(makeFinding(null, { id: 'compliance.sector_unrecognised', pack: 'generic', severity: 'WARN', title: 'Sector not recognised', scope: 'selection', sources: ['spec.1.9'], fix: `${name}'s record names ${named}, which this gate cannot classify, so any sector rules it is bound by (health, food, supplement, beauty) were NOT checked. Set compliance.sectors to one of ${SECTORS.join(', ')} if one applies, and have this asset reviewed against its sector's rules. This is not a pass.` }));
+  }
   if (ctx.regulated && ctx.unsupportedMarket) {
     raw.push(makeFinding(null, { id: 'compliance.jurisdiction_unsupported', pack: 'generic', severity: 'WARN', title: 'No regulatory pack for this market', scope: 'selection', sources: ['spec.1.9'], fix: `${name} is in a regulated sector (${ctx.sectors.join(', ')}) and no regulatory rule pack is shipped for ${ctx.unsupportedMarket}. Only the brand-safety rules ran; have this asset reviewed against ${ctx.unsupportedMarket}'s rules before it is published.` }));
   }
@@ -1013,6 +1141,7 @@ function lint(asset, opts) {
   }
 
   const sfClaims = [];
+  const assetDisclosed = fields.some((f) => { RX_DISCLOSURE.lastIndex = 0; return RX_DISCLOSURE.test(f.text); });
   const generalBenefit = [];
 
   for (const f of fields) {
@@ -1076,7 +1205,8 @@ function lint(asset, opts) {
     /* 3. health benefit and weight-loss claims */
     const healthClaim = (span, kind) => {
       const sent = sentenceAround(text, span.start, span.end);
-      const covering = approvedCovering(f, span);
+      const covering = approvedCovering(f, span, 'citation');
+      const registered = approvedCovering(f, span, 'register');
       const merge = `cite@${sent.start}`;
       const what = kind === 'weight' ? 'a weight-loss claim' : 'a health claim';
       if (usHealth) {
@@ -1089,7 +1219,7 @@ function lint(asset, opts) {
           let s0 = sent.start;
           while (s0 < sent.end && /\s/.test(text[s0])) s0 += 1;
           raw.push(makeFinding(f, { id: 'uk.cap15.weight_loss_rate', pack: 'uk.cap15', severity: 'BLOCK', title: 'Rate or amount of weight loss', span: { start: s0, end: sent.end }, sources: ['cap.15.6.6', 'reg1924.12b'], fix: 'Remove the rate or amount of weight loss. A food or supplement may not say how much or how fast weight is lost, and no approval makes it acceptable.' }));
-        } else if (covering && covering.register) noteMatched(covering, 'GB NHC Register authorisation');
+        } else if (registered && registered.register) noteMatched(registered, 'GB NHC Register authorisation');
         else raw.push(makeFinding(f, { id: 'uk.cap15.health_claim_unauthorised', pack: 'uk.cap15', severity: 'BLOCK', title: 'Health claim not on the GB NHC Register', span, merge, sources: ['cap.15.1.1', 'reg1924.10.1', 'gb.nhc'], marker: marker('GB NHC Register authorisation', sent.text, name), fix: `"${span.matched}" is ${what}. In the UK only claims authorised on the GB NHC Register may be used: flag it for approval, or use an authorised wording recorded on ${name}'s approved claims with its register entry.` }));
       }
       if (uk12 && !uk15) {
@@ -1116,7 +1246,7 @@ function lint(asset, opts) {
     const claimSpan = (span, kind) => {
       if (inDisease(span)) return;
       const sent = sentenceAround(text, span.start, span.end);
-      const covering = approvedCovering(f, span);
+      const covering = approvedCovering(f, span, kind === 'clinical' ? 'citation' : null);
       const merge = `cite@${sent.start}`;
       if (kind === 'clinical') {
         if (covering && covering.citation) { noteMatched(covering, 'clinical claim'); return; }
@@ -1167,9 +1297,13 @@ function lint(asset, opts) {
     for (const span of softSupers) claimSpan(span, 'soft-superlative');
 
     /* 5. guarantees and an unqualified "best" */
-    const outcomes = allMatches(RX_GUARANTEED_OUTCOME, text).filter((s) => !approvedCovering(f, s));
+    // A guaranteed OUTCOME is prohibited outright (master spec §1.9), so an
+    // approval does not suppress it: "Guaranteed weight loss" on the approved
+    // list, even with a citation, is still a promise nobody can keep.
+    const outcomes = allMatches(RX_GUARANTEED_OUTCOME, text);
     for (const span of outcomes) {
-      raw.push(makeFinding(f, { id: 'generic.guaranteed_outcome', pack: 'generic', severity: 'BLOCK', title: 'Guaranteed outcome', span, sources: ['spec.1.9'].concat(usFtc ? ['ftc.substantiation'] : [], ukCap ? ['cap.3.7'] : []), fix: `Remove "${span.matched}". An outcome may not be promised as guaranteed unless that exact guarantee is an approved claim with its terms.` }));
+      const listed = approvedCovering(f, span);
+      raw.push(makeFinding(f, { id: 'generic.guaranteed_outcome', pack: 'generic', severity: 'BLOCK', title: 'Guaranteed outcome', span, sources: ['spec.1.9'].concat(usFtc ? ['ftc.substantiation'] : [], ukCap ? ['cap.3.7'] : []), fix: `Remove "${span.matched}". An outcome may not be promised as guaranteed${listed ? `, and its place on the approved list (${listed.source}) does not change that: remove it from the list too` : ''}.` }));
     }
     // A customer's "best ... I have owned" inside quotation marks is that
     // customer's opinion; the endorsement rules below are what apply to it.
@@ -1192,16 +1326,29 @@ function lint(asset, opts) {
     for (const [regexes, needs] of [[RX_DEADLINE, 'ends_at'], [RX_SCARCITY, 'stock']]) {
       for (const span of allMatches(regexes, text)) {
         if (overlaps(span, bannedSpans)) continue;
-        if (ctx.offer[needs] != null && ctx.offer[needs] !== '') continue;
         const what = needs === 'ends_at' ? 'offer end date' : 'stock level';
-        raw.push(makeFinding(f, { id: 'generic.unbacked_urgency', pack: 'generic', severity: 'BLOCK', title: needs === 'ends_at' ? 'Deadline with no end date on record' : 'Scarcity with no stock level on record', span, sources: ['spec.1.1'], marker: marker(`${what} behind "${span.matched}"`, ctx.market || 'all markets', name), fix: `"${span.matched}" states ${needs === 'ends_at' ? 'a deadline' : 'a stock level'} that no ${what} on this campaign's offer supports. Remove it, or record the real ${what} on the offer.` }));
+        const recorded = ctx.offer[needs] != null && ctx.offer[needs] !== '' ? ctx.offer[needs] : null;
+        if (recorded == null) {
+          raw.push(makeFinding(f, { id: 'generic.unbacked_urgency', pack: 'generic', severity: 'BLOCK', title: needs === 'ends_at' ? 'Deadline with no end date on record' : 'Scarcity with no stock level on record', span, sources: ['spec.1.1'], marker: marker(`${what} behind "${span.matched}"`, ctx.market || 'all markets', name), fix: `"${span.matched}" states ${needs === 'ends_at' ? 'a deadline' : 'a stock level'} that no ${what} on this campaign's offer supports. Remove it, or record the real ${what} on the offer.` }));
+          continue;
+        }
+        // A value on record backs only what it SAYS: the copy is measured
+        // against it, never waved through because some value exists.
+        const verdict = needs === 'ends_at' ? deadlineAgainst(span.matched, recorded, ctx.now) : stockAgainst(span.matched, recorded);
+        if (verdict.ok) continue;
+        raw.push(makeFinding(f, {
+          id: 'generic.unbacked_urgency', pack: 'generic', severity: verdict.warn ? 'WARN' : 'BLOCK',
+          title: verdict.warn ? 'Scarcity wording that a stock number cannot confirm' : (needs === 'ends_at' ? 'Deadline the offer on record does not support' : 'Stock count that is not the one on record'),
+          span, sources: ['spec.1.1'], fix: verdict.why,
+        }));
       }
     }
 
     /* 7. endorsements */
     if (usFtc || ukCap) {
-      RX_DISCLOSURE.lastIndex = 0;
-      const disclosed = RX_DISCLOSURE.test(text);
+      // A disclosure anywhere in the same asset counts: a post's "#ad" is in
+      // its hashtags field, not in the caption beside it.
+      const disclosed = assetDisclosed;
       const testimonials = [];
       RX_TESTIMONIAL.lastIndex = 0;
       let m;
@@ -1338,7 +1485,9 @@ function brief(opts) {
   }
   if (has(ctx, 'uk.cap12')) lines.push(`- UK: no medicinal claim for an unlicensed product; objective health claims need evidence held before publication. ${cite(['cap.12.11', 'cap.12.1'])}`);
   if (has(ctx, 'uk.cap')) lines.push(`- UK: content by a paid or gifted creator is labelled up front as an ad. ${cite(['cap.2'])}`);
-  const usable = ctx.approved.filter((c) => c.inRegion);
+  // A guaranteed outcome is prohibited even when it sits on the approved
+  // list, so the writer is never handed one as usable.
+  const usable = ctx.approved.filter((c) => c.inRegion && !allMatches(RX_GUARANTEED_OUTCOME, c.text).length);
   if (usable.length) {
     lines.push('APPROVED CLAIMS (word for word, or not at all):');
     for (const c of usable) {

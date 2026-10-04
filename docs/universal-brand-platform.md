@@ -424,10 +424,16 @@ with both contrast ratios; a dark-neutral surface is a hard-rule conflict, never
 restores the brand exactly as it was and removes the files Apply kept. A later site read that replaces a
 document value is held back and shown side by side (`docGuard()`).
 
-On the server the same order is structural (migration `20261004120000_brand_document_origin.sql`):
-`brand_origin_rank()`; `brand_context_apply()` refuses any field owned by an origin that outranks the
-site parser; `saveWorkspace()` claims only typed fields as `user` and records the others through
-`brand_fields_record_origin()`, which never demotes.
+On the server the same order is structural (migrations `20261004120000_brand_document_origin.sql` and
+`20261004160000_brand_context_apply_by_origin.sql`): `brand_origin_rank()`; `brand_context_apply()`
+takes each value's origin (default `auto`, the site parser) and, under a row lock on the workspace,
+refuses any field whose recorded owner outranks it (an equal rank replaces). Saving an existing brand
+(`saveExisting()`): the typed fields are claimed as `user` FIRST; the PATCH carries them and, for every
+field a document, a site read or a template set, the row's OWN value - conditional on `updated_at`, so a
+concurrent save is re-read rather than overwritten; then those fields go through `brand_context_apply()`
+with their origin. A stale tab can therefore never write a document's value over one a person typed in
+another tab, nor leave the record claiming a person typed it. A new brand records non-typed fields
+through `brand_fields_record_origin()`, which never demotes.
 
 ### Every asset is a file OR a URL
 

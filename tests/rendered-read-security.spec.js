@@ -357,6 +357,17 @@ test('the read answers inside the function\'s time: a browser that never finishe
     await br.extractWithRender({ ok: true }, { url: 'https://shop.example/' }, { open: false, readSite: fast });
     expect(asked[1].deadlineMs).toBe(Math.min(100000, br.READ_HARD_MS.account - br.BROWSER_MARGIN_MS));
     expect(br.BROWSER_MARGIN_MS).toBeGreaterThanOrEqual(5000);
+    // The parser running alongside is held to the same cap: a site whose HTML
+    // never finishes arriving is a sentence at the cap, not a request the
+    // platform kills.
+    bx.runExtract = () => new Promise(() => {});
+    const t1 = Date.now();
+    let err = null;
+    try { await br.extractWithRender({ ok: false }, { url: 'https://shop.example/' }, { open: true, req: { headers: { 'x-forwarded-for': '203.0.113.52' } }, readSite: fast, hardMs: 1500 }); }
+    catch (e) { err = e; }
+    expect(Date.now() - t1, 'the response waited for a parser that never finished').toBeLessThan(5000);
+    expect(err && err.status).toBe(504);
+    expect(err.message).toMatch(/published HTML and CSS were not read within 2 s/);
   } finally {
     bx.runExtract = realRun; dns.lookup = realLookup; br.resetRateLimits();
   }
