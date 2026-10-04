@@ -24,6 +24,7 @@
 const {
   smartConfig, SmartBrainDbAdapter, KnowledgeBaseService, AnalysisService,
   CompetitorBenchmarkingService, CalendarIntelligenceService, GenerationService,
+  replenishmentEntries, enforceFrequencyCap,
 } = require('../../lib/smart-brain/services.js');
 const crypto = require('crypto');
 const callLLM = require('./llm.js');
@@ -450,6 +451,10 @@ function freshEntries(config, ctx, startDate, days, brand) {
     feedback: ctx.ownData.feedback,
     brand: brand || null,
   });
+  // The replenishment line in the insights says what the PLAN found (who is
+  // due, who has lapsed, how old the history is), not only what the model
+  // measured - a stale export with nobody due must say so on the console.
+  noteReplenishment(ctx, calendar.replenishment);
   // Re-key on date+market so the same slot keeps the same id across daily syncs.
   const cohortLtv = cohortLtvMap(ctx);
   for (const e of calendar.entries) {
@@ -457,6 +462,40 @@ function freshEntries(config, ctx, startDate, days, brand) {
     attachScenarioLayer(e, ctx, cohortLtv);
   }
   return calendar.entries;
+}
+
+/** Replace the model-only replenishment insight with the plan's own line. */
+function noteReplenishment(ctx, due) {
+  if (!ctx || !ctx.analysis || !due || !due.insight) return;
+  const list = Array.isArray(ctx.analysis.dailyInsights) ? ctx.analysis.dailyInsights : (ctx.analysis.dailyInsights = []);
+  const i = list.findIndex((l) => /^Replenishment/.test(String(l)));
+  if (i >= 0) list[i] = due.insight; else list.push(due.insight);
+  ctx.analysis.replenishment_due = due;
+}
+
+/**
+ * Replenishment slots for a workspace that is NOT tenant zero, from ITS OWN
+ * synced orders. `allowBundled: false` is passed whatever the adapter would
+ * answer: this branch already knows the brand is not tenant zero, so the order
+ * export compiled into this build is never even asked about. A workspace with
+ * no orders gets the explicit no-history state in its insights and no slot.
+ * The same frequency-cap pass the tenant-zero calendar runs is applied here.
+ */
+async function ownReplenishment(config, db, brand, start, days, ns) {
+  const RM = require('./replenishment-model.js');
+  let hist;
+  try { hist = await db.orderHistory({ allowBundled: false }); } catch (_) { hist = RM.noHistory(); }
+  const analysis = RM.analyse(hist);
+  const markets = ((brand && Array.isArray(brand.regions)) ? brand.regions : []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+  let entries = [];
+  let due = null;
+  if (analysis.state === 'ok' && markets.length) {
+    const rep = replenishmentEntries({ replenishment: analysis, startDate: start, days, markets, brand, config });
+    entries = enforceFrequencyCap(rep.entries, start);
+    for (const e of entries) e.id = stableId(e.date, e.market, e.cohort && e.cohort.name, ns);
+    due = rep.due;
+  }
+  return { analysis, entries, insight: (due && due.insight) || RM.insight(analysis, due) };
 }
 
 // ── Scenario layer (medium active + best/conservative/emergency/instant pre-staged) ─
@@ -589,6 +628,8 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
     const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
     fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon, ns) : [];
+    const own = pb.brand ? await ownReplenishment(config, db, pb.brand, start, horizon, ns) : null;
+    if (own) fresh = fresh.concat(own.entries);
     if (!fresh.length) {
       // Carry the SAME keys as the success return below. A caller that reads
       // `plan` got undefined here and rendered its untouched previous screen,
@@ -606,8 +647,9 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
         dailyInsights: [
           `Plan generated from ${pb.brand.name}'s own catalogue (${offs.length} offerings) for its real region(s): ${markets.join(', ')}.`,
           'Confidence figures are DEMO values; reach and feasibility stay DATA REQUIRED until this brand\'s own analytics connect.',
-        ],
+        ].concat(own && own.insight ? [own.insight] : []),
         cohorts: [],
+        replenishment: own ? own.analysis : null,
       },
       competitorBenchmarks: { byChannel: {}, trendingHooks: [] },
       ownData: { feedback: [] },
@@ -789,7 +831,8 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
   if (!pb.isZero) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
     const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
-    const entries = pb.brand ? offeringPlanEntries(pb.brand, offs, todayIso(), config.calendarDays, ns) : [];
+    let entries = pb.brand ? offeringPlanEntries(pb.brand, offs, todayIso(), config.calendarDays, ns) : [];
+    if (pb.brand) entries = entries.concat((await ownReplenishment(config, db, pb.brand, todayIso(), config.calendarDays, ns)).entries);
     if (!entries.length) {
       return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
     }
