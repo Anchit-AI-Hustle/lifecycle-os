@@ -5,7 +5,7 @@
   "start": "https://economictimes.indiatimes.com",
   "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:48:28.441Z",
+  "read_at": "2026-10-04T21:21:52.335Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,21 +33,21 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 58.6,
-    "mismatch": 0.4143,
+    "score": 93.8,
+    "mismatch": 0.0622,
     "surfaces": {
       "landing page": {
-        "score": 61.8,
-        "mismatch": 0.3824,
+        "score": 91.8,
+        "mismatch": 0.0824,
         "done": false,
         "tokens_off": 2,
-        "regions_off": 2
+        "regions_off": 0
       },
       "mailer": {
-        "score": 82.1,
-        "mismatch": 0.1786,
-        "done": false,
-        "tokens_off": 5,
+        "score": 95.8,
+        "mismatch": 0.0417,
+        "done": true,
+        "tokens_off": 1,
         "regions_off": 0
       },
       "ad creative": {

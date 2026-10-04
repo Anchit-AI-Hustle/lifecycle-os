@@ -5,7 +5,7 @@
   "start": "https://razorpay.com",
   "landed": "https://razorpay.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:52:52.292Z",
+  "read_at": "2026-10-04T21:26:37.677Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -37,33 +37,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 48.3,
-    "mismatch": 0.5172,
+    "score": 70.8,
+    "mismatch": 0.292,
     "surfaces": {
       "landing page": {
-        "score": 49.2,
-        "mismatch": 0.5078,
+        "score": 66.4,
+        "mismatch": 0.3359,
         "done": false,
-        "tokens_off": 19,
-        "regions_off": 4
+        "tokens_off": 17,
+        "regions_off": 1
       },
       "mailer": {
-        "score": 69,
-        "mismatch": 0.3099,
+        "score": 87.5,
+        "mismatch": 0.125,
         "done": false,
-        "tokens_off": 22,
+        "tokens_off": 8,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 60,
-        "mismatch": 0.4,
+        "score": 70,
+        "mismatch": 0.3,
         "done": false,
-        "tokens_off": 4,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },
     "iterations": 3,
-    "repairs": 26,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -79,20 +79,6 @@
       "alt": "",
       "found_on": "https://razorpay.com/",
       "signal": "the icon the page declares (link rel=icon)"
-    },
-    {
-      "url": "https://framerusercontent.com/images/96R7VlBEnZsuWetDYK835OeP44.png?scale-down-to=1024&width=1221&height=1046",
-      "role": "hero",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/COBl8AoJHIT0OeKMgtEUONygjGQ.png?scale-down-to=1024&width=1220&height=1046",
-      "role": "hero",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "image rendered on the page"
     },
     {
       "url": "https://framerusercontent.com/images/PgsePDHRiCD1q0DVjDWxvFhkQZ0.png?scale-down-to=512&width=2295&height=279",
@@ -128,6 +114,20 @@
       "alt": "",
       "found_on": "https://razorpay.com/",
       "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/deoBetaoEdkVH4ZWYRHVp64NPU.png?scale-down-to=1024&width=1221&height=1050",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/96R7VlBEnZsuWetDYK835OeP44.png?scale-down-to=1024&width=1221&height=1046",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
     }
   ],
   "palette_ok": true,
@@ -137,7 +137,7 @@
     "ink": "#222222",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#64748a",
+    "muted": "#192839",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -166,7 +166,7 @@
       "source": {
         "page": "https://razorpay.com/",
         "role": "primary call to action",
-        "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
+        "selector": "div.framer-15jsb8y > div.framer-hqgdaz:nth-of-type(1) > div.framer-opyj98:nth-of-type(2) > div.framer-mfaufm-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
@@ -200,13 +200,13 @@
       }
     },
     "muted": {
-      "value": "#64748a",
-      "exact": "#64748a",
+      "value": "#192839",
+      "exact": "#192839",
       "derived": false,
       "source": {
         "page": "https://razorpay.com/",
         "role": "secondary text",
-        "selector": "div.framer-u54ahn:nth-of-type(1) > div.framer-1rs4mzo:nth-of-type(1) > div.framer-ttcpdg:nth-of-type(2) > div.framer-1xnbg6h:nth-of-type(1) > p.framer-text",
+        "selector": "div#undefined-15h83sd > div.framer-0ivRD.framer-1vcylss > div.framer-nq5qff-container:nth-of-type(1) > div > p:nth-of-type(1)",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
@@ -219,7 +219,7 @@
       "source": {
         "page": "https://razorpay.com/",
         "role": "body link",
-        "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-qt6ikm-container:nth-of-type(2) > a.framer-1O3k8.framer-QQaRQ",
+        "selector": "section.framer-19pjcwx > div.framer-wxcwmi:nth-of-type(1) > div.framer-gx2c3c:nth-of-type(2) > div.framer-tg1x7t-container:nth-of-type(2) > a.framer-1O3k8.framer-QQaRQ",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
@@ -326,5 +326,5 @@
       }
     }
   },
-  "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered."
+  "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-15jsb8y > div.framer-hqgdaz:nth-of-type(1) > div.framer-opyj98:nth-of-type(2) > div.framer-mfaufm-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered."
 }

@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www.amazon.com",
       "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
-    }
+    },
+    "logo_signal": "the icon the page declares (link rel=icon)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -58,7 +59,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "amazon.com"
+    "amazon.com",
+    "www.amazon.com",
+    "m.media-amazon.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -298,6 +301,65 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Amazon]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Amazon]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.amazon.com/favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.amazon.com/",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/61i3H2ZHJWL._AC_AIweblab1431263,T1_FMavif_SF1282.5,2052_QL54_.jpg?aicid=homepage-single-creative-card",
+      "role": "hero",
+      "alt": "Prime Big Deals drop Oct 6-7 Exclusively for members",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/91IeRoYYaqL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "MUDJEAN Team USA Soccer Jersey Girls US Soccer Jersey Kids USA Flag Shirt Youth American Shirts Quick Dry Blue 9-10 Year",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/51pWcETrxHL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Spirit Halloween Toddler Bluey Bingo Costume - 2T",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/81KnrRV0waL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Disguise Pokemon Pikachu Costume, Officially Licensed Kids Halloween Dress Up Outfit, Size (7-8)",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/71cTjoklC4L._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Spooktacular Creations Orange Astronaut Costume with Helmet, Space Suit for Toddler with Movable Visor, Kids Astronaut H",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/21+soVrmToL._AIweblab1431263,T1_FMavif_SF1065,132_QL54_._FMpng_.png?aicid=homepage-card-logo",
+      "role": "photograph",
+      "alt": "Amazon Haul",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/710uR5rXbVL._SR427,684_.jpg",
+      "role": "hero",
+      "alt": "Shop fall styles in brown tones",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.amazon.com/favicon.ico",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

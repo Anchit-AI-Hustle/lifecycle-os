@@ -5,7 +5,7 @@
   "start": "https://www.amazon.com",
   "landed": "https://www.amazon.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:49:47.259Z",
+  "read_at": "2026-10-04T21:23:34.422Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -17,6 +17,14 @@
     {
       "url": "https://www.amazon.com/",
       "role": "home"
+    },
+    {
+      "url": "https://www.amazon.com/dp/product/B084KP3NG6?plattr=SCFOOT&ref_=footer_ACB",
+      "role": "product"
+    },
+    {
+      "url": "https://www.amazon.com/hz/mobile/mission?ref_=nav_AccountFlyout_ci_mcx_mi_d_nf",
+      "role": "about"
     }
   ],
   "viewports": {
@@ -25,29 +33,29 @@
       "h": 900
     },
     "mobile": {
-      "w": 390,
-      "h": 844
+      "w": 1001,
+      "h": 2165
     }
   },
   "partial": false,
   "regression": {
     "ok": true,
-    "done": true,
-    "score": 99.1,
-    "mismatch": 0.0095,
+    "done": false,
+    "score": 63.3,
+    "mismatch": 0.3667,
     "surfaces": {
       "landing page": {
+        "score": 56.9,
+        "mismatch": 0.4307,
+        "done": false,
+        "tokens_off": 14,
+        "regions_off": 2
+      },
+      "mailer": {
         "score": 100,
         "mismatch": 0,
         "done": true,
         "tokens_off": 0,
-        "regions_off": 0
-      },
-      "mailer": {
-        "score": 97.7,
-        "mismatch": 0.0227,
-        "done": true,
-        "tokens_off": 1,
         "regions_off": 0
       },
       "ad creative": {
@@ -58,23 +66,75 @@
         "regions_off": 0
       }
     },
-    "iterations": 1,
+    "iterations": 3,
     "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
   "markers": [
     "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.amazon.com]",
-    "[DATA REQUIRED BEFORE LAUNCH: logo, www.amazon.com]",
-    "[DATA REQUIRED BEFORE LAUNCH: favicon, www.amazon.com]",
-    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, www.amazon.com]",
-    "[DATA REQUIRED BEFORE LAUNCH: header bar, www.amazon.com]",
-    "[DATA REQUIRED BEFORE LAUNCH: footer, www.amazon.com]",
-    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.amazon.com]"
+    "[DATA REQUIRED BEFORE LAUNCH: footer, www.amazon.com]"
   ],
-  "logo_url": "",
-  "logo_signal": "",
-  "assets": [],
+  "logo_url": "https://www.amazon.com/favicon.ico",
+  "logo_signal": "the icon the page declares (link rel=icon)",
+  "assets": [
+    {
+      "url": "https://www.amazon.com/favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.amazon.com/",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/61i3H2ZHJWL._AC_AIweblab1431263,T1_FMavif_SF1282.5,2052_QL54_.jpg?aicid=homepage-single-creative-card",
+      "role": "hero",
+      "alt": "Prime Big Deals drop Oct 6-7 Exclusively for members",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/91IeRoYYaqL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "MUDJEAN Team USA Soccer Jersey Girls US Soccer Jersey Kids USA Flag Shirt Youth American Shirts Quick Dry Blue 9-10 Year",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/51pWcETrxHL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Spirit Halloween Toddler Bluey Bingo Costume - 2T",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/81KnrRV0waL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Disguise Pokemon Pikachu Costume, Officially Licensed Kids Halloween Dress Up Outfit, Size (7-8)",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/71cTjoklC4L._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Spooktacular Creations Orange Astronaut Costume with Helmet, Space Suit for Toddler with Movable Visor, Kids Astronaut H",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/21+soVrmToL._AIweblab1431263,T1_FMavif_SF1065,132_QL54_._FMpng_.png?aicid=homepage-card-logo",
+      "role": "photograph",
+      "alt": "Amazon Haul",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/710uR5rXbVL._SR427,684_.jpg",
+      "role": "hero",
+      "alt": "Shop fall styles in brown tones",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
   "palette_ok": false,
   "palette": null,
   "palette_evidence": {
@@ -85,7 +145,7 @@
       "source": {
         "page": "https://www.amazon.com/",
         "role": "page ground",
-        "selector": "body",
+        "selector": "body.a-m-us.a-aui_72554-c",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
@@ -99,19 +159,19 @@
   "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
   "typography": {
     "heading": {
-      "family": "Arial",
-      "stack": "'Arial',sans-serif",
+      "family": "Amazon Ember Modern Display",
+      "stack": "'Amazon Ember Modern Display','Amazon Ember','Arial',sans-serif",
       "google": false,
-      "weights": "600;700",
-      "kind": "local",
-      "loadable": true,
-      "weights_read": false,
-      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "weights": "500;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Amazon Ember Modern Display (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
       "signal": "computed font-family of the heading role",
       "source": {
         "page": "https://www.amazon.com/",
         "role": "display heading (largest text near the top)",
-        "selector": "div.a-container.a-padding-double-large > div.a-row.a-spacing-double-large:nth-of-type(1) > div.a-box.a-alert:nth-of-type(2) > div.a-box-inner > h4",
+        "selector": "div > div.a-cardui-header.theming-card-header > h2.a-spacing-none > div.a-section.experimental-header-title-font > span.wdTitle.a-text-bold",
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"
@@ -130,7 +190,7 @@
       "source": {
         "page": "https://www.amazon.com/",
         "role": "body copy",
-        "selector": "body > div.a-container.a-padding-double-large > div.a-text-center.a-size-mini:nth-of-type(4)",
+        "selector": "div#navFooter > div.navFooterLine.navFooterLinkLine:nth-of-type(5) > span",
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"

@@ -440,12 +440,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "timeout",
+        "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.adidas.com",
-        "reason": "The site could not be opened: timed out."
+        "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.adidas.com blocked an automated read on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -514,33 +514,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 66,
-        "mismatch": 0.3404,
+        "score": 85,
+        "mismatch": 0.15,
         "surfaces": {
           "landing page": {
-            "score": 66.9,
-            "mismatch": 0.3311,
+            "score": 85,
+            "mismatch": 0.15,
             "done": false,
-            "tokens_off": 2,
-            "regions_off": 4
+            "tokens_off": 0,
+            "regions_off": 2
           },
           "mailer": {
-            "score": 94.1,
-            "mismatch": 0.0588,
-            "done": false,
-            "tokens_off": 3,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 87.5,
-            "mismatch": 0.125,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 2,
-        "repairs": 4,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -1011,32 +1011,32 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 41.6,
-        "mismatch": 0.584,
+        "score": 64.4,
+        "mismatch": 0.3556,
         "surfaces": {
           "landing page": {
-            "score": 48.5,
-            "mismatch": 0.5154,
+            "score": 64.3,
+            "mismatch": 0.3569,
             "done": false,
-            "tokens_off": 20,
+            "tokens_off": 13,
             "regions_off": 2
           },
           "mailer": {
-            "score": 45.9,
-            "mismatch": 0.5405,
+            "score": 79.3,
+            "mismatch": 0.2069,
             "done": false,
-            "tokens_off": 20,
+            "tokens_off": 12,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 25,
-            "mismatch": 0.75,
+            "score": 70,
+            "mismatch": 0.3,
             "done": false,
             "tokens_off": 3,
             "regions_off": 0
           }
         },
-        "iterations": 1,
+        "iterations": 3,
         "repairs": 0,
         "mismatch_limit": 0.05
       },
@@ -1173,21 +1173,21 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 47.3,
-        "mismatch": 0.5269,
+        "score": 72.8,
+        "mismatch": 0.2722,
         "surfaces": {
           "landing page": {
-            "score": 51.6,
-            "mismatch": 0.4836,
+            "score": 75.3,
+            "mismatch": 0.2473,
             "done": false,
             "tokens_off": 16,
-            "regions_off": 4
+            "regions_off": 1
           },
           "mailer": {
-            "score": 63.5,
-            "mismatch": 0.3649,
+            "score": 70.1,
+            "mismatch": 0.2985,
             "done": false,
-            "tokens_off": 27,
+            "tokens_off": 20,
             "regions_off": 0
           },
           "ad creative": {
@@ -1199,7 +1199,7 @@
           }
         },
         "iterations": 2,
-        "repairs": 4,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -1402,33 +1402,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 61.1,
-        "mismatch": 0.3887,
+        "score": 65.7,
+        "mismatch": 0.3429,
         "surfaces": {
           "landing page": {
-            "score": 59.6,
-            "mismatch": 0.4041,
+            "score": 61.6,
+            "mismatch": 0.384,
             "done": false,
-            "tokens_off": 11,
+            "tokens_off": 9,
             "regions_off": 4
           },
           "mailer": {
-            "score": 89.7,
-            "mismatch": 0.1029,
-            "done": false,
-            "tokens_off": 7,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 87.5,
-            "mismatch": 0.125,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 3,
-        "repairs": 11,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -1563,29 +1563,29 @@
       "renderer": "rendered",
       "regression": {
         "ok": true,
-        "done": true,
-        "score": 98.8,
-        "mismatch": 0.0125,
+        "done": false,
+        "score": 94.6,
+        "mismatch": 0.0538,
         "surfaces": {
           "landing page": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
+            "score": 94.2,
+            "mismatch": 0.0583,
+            "done": false,
+            "tokens_off": 2,
             "regions_off": 0
           },
           "mailer": {
-            "score": 96.4,
-            "mismatch": 0.0357,
+            "score": 95.8,
+            "mismatch": 0.0417,
             "done": true,
             "tokens_off": 1,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
+            "score": 75,
+            "mismatch": 0.25,
+            "done": false,
+            "tokens_off": 1,
             "regions_off": 0
           }
         },
@@ -1656,9 +1656,9 @@
         "renderer": "rendered",
         "at": "2026-10-04",
         "host": "www.samsung.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
+        "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
-      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)).",
+      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1726,8 +1726,8 @@
       "regression": {
         "ok": true,
         "done": true,
-        "score": 98,
-        "mismatch": 0.0201,
+        "score": 97.8,
+        "mismatch": 0.0217,
         "surfaces": {
           "landing page": {
             "score": 96.9,
@@ -1737,8 +1737,8 @@
             "regions_off": 0
           },
           "mailer": {
-            "score": 98.6,
-            "mismatch": 0.0135,
+            "score": 98.4,
+            "mismatch": 0.0159,
             "done": true,
             "tokens_off": 1,
             "regions_off": 0
@@ -2051,7 +2051,7 @@
       "needs_extraction": false,
       "swatch": [
         "#006341",
-        "#006341",
+        "#000000",
         "#212121",
         "#ffffff"
       ],
@@ -2063,9 +2063,8 @@
         },
         {
           "role": "accent",
-          "value": "#006341",
-          "derived": true,
-          "exact": "#008248"
+          "value": "#000000",
+          "derived": false
         },
         {
           "role": "surface",
@@ -2093,33 +2092,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 54.6,
-        "mismatch": 0.4539,
+        "score": 90.9,
+        "mismatch": 0.0912,
         "surfaces": {
           "landing page": {
-            "score": 57.6,
-            "mismatch": 0.4242,
+            "score": 89.1,
+            "mismatch": 0.1089,
             "done": false,
-            "tokens_off": 11,
-            "regions_off": 3
+            "tokens_off": 3,
+            "regions_off": 1
           },
           "mailer": {
-            "score": 75.4,
-            "mismatch": 0.2464,
-            "done": false,
-            "tokens_off": 17,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 70,
-            "mismatch": 0.3,
-            "done": false,
-            "tokens_off": 3,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
-        "iterations": 3,
-        "repairs": 4,
+        "iterations": 2,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2256,33 +2255,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 81.2,
-        "mismatch": 0.1881,
+        "score": 84,
+        "mismatch": 0.1603,
         "surfaces": {
           "landing page": {
-            "score": 80.6,
-            "mismatch": 0.1944,
+            "score": 82.8,
+            "mismatch": 0.1722,
             "done": false,
-            "tokens_off": 4,
+            "tokens_off": 2,
             "regions_off": 2
           },
           "mailer": {
-            "score": 95.9,
-            "mismatch": 0.0405,
+            "score": 100,
+            "mismatch": 0,
             "done": true,
-            "tokens_off": 3,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 90,
-            "mismatch": 0.1,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 2,
-        "repairs": 2,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2411,12 +2410,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "timeout",
+        "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.netflix.com",
-        "reason": "The site could not be opened: timed out."
+        "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
       },
-      "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.netflix.com blocked an automated read on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2537,7 +2536,7 @@
           "role": "ink",
           "value": "#202020",
           "derived": true,
-          "exact": "#ffffff"
+          "exact": "#c1c1c1"
         }
       ],
       "heading_font": "Airbnb Cereal VF",
@@ -2554,33 +2553,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 51.2,
-        "mismatch": 0.4885,
+        "score": 83.6,
+        "mismatch": 0.1643,
         "surfaces": {
           "landing page": {
-            "score": 56.3,
-            "mismatch": 0.4366,
+            "score": 79.8,
+            "mismatch": 0.2024,
             "done": false,
-            "tokens_off": 8,
-            "regions_off": 2
+            "tokens_off": 6,
+            "regions_off": 1
           },
           "mailer": {
-            "score": 69.1,
-            "mismatch": 0.3091,
-            "done": false,
-            "tokens_off": 17,
+            "score": 97.9,
+            "mismatch": 0.0208,
+            "done": true,
+            "tokens_off": 1,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 62.5,
-            "mismatch": 0.375,
+            "score": 77.8,
+            "mismatch": 0.2222,
             "done": false,
-            "tokens_off": 3,
+            "tokens_off": 2,
             "regions_off": 0
           }
         },
         "iterations": 2,
-        "repairs": 3,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2716,33 +2715,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 63.4,
-        "mismatch": 0.3658,
+        "score": 75.5,
+        "mismatch": 0.2453,
         "surfaces": {
           "landing page": {
-            "score": 64.6,
-            "mismatch": 0.3538,
+            "score": 74.3,
+            "mismatch": 0.2573,
             "done": false,
-            "tokens_off": 5,
-            "regions_off": 4
+            "tokens_off": 3,
+            "regions_off": 3
           },
           "mailer": {
-            "score": 89.2,
-            "mismatch": 0.1081,
-            "done": false,
-            "tokens_off": 8,
+            "score": 98.4,
+            "mismatch": 0.0159,
+            "done": true,
+            "tokens_off": 1,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 90,
-            "mismatch": 0.1,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 3,
-        "repairs": 8,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2764,7 +2763,7 @@
       "sector": "Fintech",
       "blurb": "Payments. Template for a B2B onboarding and activation programme.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
+      "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-15jsb8y > div.framer-hqgdaz:nth-of-type(1) > div.framer-opyj98:nth-of-type(2) > div.framer-mfaufm-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
@@ -2810,33 +2809,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 48.3,
-        "mismatch": 0.5172,
+        "score": 70.8,
+        "mismatch": 0.292,
         "surfaces": {
           "landing page": {
-            "score": 49.2,
-            "mismatch": 0.5078,
+            "score": 66.4,
+            "mismatch": 0.3359,
             "done": false,
-            "tokens_off": 19,
-            "regions_off": 4
+            "tokens_off": 17,
+            "regions_off": 1
           },
           "mailer": {
-            "score": 69,
-            "mismatch": 0.3099,
+            "score": 87.5,
+            "mismatch": 0.125,
             "done": false,
-            "tokens_off": 22,
+            "tokens_off": 8,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 60,
-            "mismatch": 0.4,
+            "score": 70,
+            "mismatch": 0.3,
             "done": false,
-            "tokens_off": 4,
+            "tokens_off": 3,
             "regions_off": 0
           }
         },
         "iterations": 3,
-        "repairs": 26,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,

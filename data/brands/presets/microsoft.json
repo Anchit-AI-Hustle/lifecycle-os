@@ -178,8 +178,8 @@
     "regression": {
       "ok": true,
       "done": true,
-      "score": 98,
-      "mismatch": 0.0201,
+      "score": 97.8,
+      "mismatch": 0.0217,
       "surfaces": {
         "landing page": {
           "score": 96.9,
@@ -189,8 +189,8 @@
           "regions_off": 0
         },
         "mailer": {
-          "score": 98.6,
-          "mismatch": 0.0135,
+          "score": 98.4,
+          "mismatch": 0.0159,
           "done": true,
           "tokens_off": 1,
           "regions_off": 0
