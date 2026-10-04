@@ -5,7 +5,7 @@
   "start": "https://www.spotify.com",
   "landed": "https://open.spotify.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:23:38.326Z",
+  "read_at": "2026-10-04T18:01:41.310Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -37,28 +37,28 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 59,
-    "mismatch": 0.41,
+    "score": 49.5,
+    "mismatch": 0.5049,
     "surfaces": {
       "landing page": {
-        "score": 62.7,
-        "mismatch": 0.3729,
+        "score": 58.3,
+        "mismatch": 0.4167,
         "done": false,
-        "tokens_off": 5,
+        "tokens_off": 9,
         "regions_off": 4
       },
       "mailer": {
-        "score": 66.7,
-        "mismatch": 0.3333,
+        "score": 60,
+        "mismatch": 0.4,
         "done": false,
-        "tokens_off": 5,
+        "tokens_off": 24,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 85.7,
-        "mismatch": 0.1429,
+        "score": 66.7,
+        "mismatch": 0.3333,
         "done": false,
-        "tokens_off": 1,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },

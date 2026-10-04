@@ -5,7 +5,7 @@
   "start": "https://www.apple.com",
   "landed": "https://www.apple.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:21:32.736Z",
+  "read_at": "2026-10-04T17:58:34.784Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -36,22 +36,22 @@
   "partial": false,
   "regression": {
     "ok": true,
-    "done": true,
-    "score": 95.3,
-    "mismatch": 0.0471,
+    "done": false,
+    "score": 91.2,
+    "mismatch": 0.0884,
     "surfaces": {
       "landing page": {
-        "score": 98.3,
-        "mismatch": 0.0167,
+        "score": 98.5,
+        "mismatch": 0.0152,
         "done": true,
         "tokens_off": 1,
         "regions_off": 0
       },
       "mailer": {
-        "score": 82.4,
-        "mismatch": 0.1765,
+        "score": 83.1,
+        "mismatch": 0.169,
         "done": false,
-        "tokens_off": 3,
+        "tokens_off": 12,
         "regions_off": 0
       },
       "ad creative": {
@@ -192,7 +192,7 @@
       "source": {
         "page": "https://www.apple.com/",
         "role": "product card",
-        "selector": "div#_r_s_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
+        "selector": "div#_r_q_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
