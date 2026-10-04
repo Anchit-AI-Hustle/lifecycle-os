@@ -1933,14 +1933,17 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
  * it matched and the regulation it enforces; nothing is rewritten.
  *
  * Which brand the assets are judged as is the brand they were RENDERED as:
- * the slot's own, else the same tenant-zero fallback the template builders
- * use (lib/smart-brain/services.js entryBrand), so judge and renderer agree.
+ * the slot's own; else the brand pinned for this generation or request;
+ * else, ASKED FOR BY NAME (allowTenantZero), tenant zero - which is exactly
+ * what the template builders rendered with no brand on the slot
+ * (lib/smart-brain/services.js entryBrand), so judge and renderer agree.
  */
 function complianceContext(campaign, entry) {
   const e = entry || {};
-  let brand = (e.brand && (e.brand.id || e.brand.slug || e.brand.unresolved === true)) ? e.brand
+  const stamped = (e.brand && (e.brand.id || e.brand.slug || e.brand.unresolved === true)) ? e.brand
     : (campaign && campaign.brand && typeof campaign.brand === 'object' ? campaign.brand : null);
-  if (!brand) { try { brand = require('./brand-runtime.js').defaultBrand(); } catch (_) { brand = null; } }
+  let brand = stamped;
+  try { brand = stamped || require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { brand = stamped; }
   let skuClaims = [];
   if (entry) { try { skuClaims = approvedProof(Object.assign({}, entry, { brand })).claims || []; } catch (_) { skuClaims = []; } }
   const offer = e.offer || (e.decision && e.decision.offer) || null;
