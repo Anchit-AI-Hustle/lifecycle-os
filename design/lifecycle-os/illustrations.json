@@ -1,0 +1,42 @@
+{
+  "_note": "Empty-state and placeholder illustrations, NEW (2026-10-05). 128x96 grid. Every fill and stroke reads a --vh-ill-* token (theme.css DESIGN-SYSTEM:contract), so inline (or through <use> of assets/lifecycle-os/illustrations.svg) an illustration takes the ACTIVE brand's colours and none of its own. The second value in each var() is the fallback a plain <img> shows: a neutral grey by the audit's own lowSat rule, never a hue. scripts/build-design-assets.js writes the sprite and one file per illustration.",
+  "viewBox": "0 0 128 96",
+  "illustrations": [
+    {
+      "name": "empty",
+      "title": "Nothing here yet",
+      "use": "A list, table or library with no rows yet, for a reason that is nobody's fault (a new brand, a filter with no match goes to no-results).",
+      "body": "<ellipse cx=\"64\" cy=\"86\" rx=\"44\" ry=\"5\" style=\"fill:var(--vh-ill-ground,#EEF0F3)\"/><rect x=\"28\" y=\"20\" width=\"62\" height=\"56\" rx=\"8\" transform=\"rotate(-6 59 48)\" style=\"fill:var(--vh-ill-soft,#E3E6EA)\"/><rect x=\"36\" y=\"14\" width=\"62\" height=\"60\" rx=\"8\" style=\"fill:var(--vh-panel,#FFFFFF);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2\"/><rect x=\"46\" y=\"26\" width=\"26\" height=\"6\" rx=\"3\" style=\"fill:var(--vh-ill-primary,#4B5563)\"/><rect x=\"46\" y=\"40\" width=\"42\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-line,#C9CED5)\"/><rect x=\"46\" y=\"50\" width=\"34\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-line,#C9CED5)\"/><rect x=\"46\" y=\"60\" width=\"22\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-line,#C9CED5)\"/><circle cx=\"100\" cy=\"18\" r=\"7\" style=\"fill:var(--vh-ill-accent,#9CA3AF)\"/>"
+    },
+    {
+      "name": "not-connected",
+      "title": "Not connected yet",
+      "use": "A feature that reads a platform or a data source the workspace has not connected. Pair with the Connections action.",
+      "body": "<ellipse cx=\"64\" cy=\"86\" rx=\"44\" ry=\"5\" style=\"fill:var(--vh-ill-ground,#EEF0F3)\"/><rect x=\"12\" y=\"30\" width=\"36\" height=\"36\" rx=\"9\" style=\"fill:var(--vh-panel,#FFFFFF);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2\"/><circle cx=\"30\" cy=\"48\" r=\"8\" style=\"fill:var(--vh-ill-primary,#4B5563)\"/><rect x=\"80\" y=\"30\" width=\"36\" height=\"36\" rx=\"9\" style=\"fill:var(--vh-ill-soft,#E3E6EA);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2\"/><circle cx=\"98\" cy=\"48\" r=\"8\" style=\"fill:var(--vh-ill-accent,#9CA3AF)\"/><path d=\"M48 48h10M70 48h10\" style=\"fill:none;stroke:var(--vh-ill-ink,#6B7280);stroke-width:3;stroke-linecap:round\"/><path d=\"M60 41l4 14M64 41l4 14\" style=\"fill:none;stroke:var(--vh-ill-line,#C9CED5);stroke-width:2;stroke-linecap:round\"/>"
+    },
+    {
+      "name": "no-results",
+      "title": "No match",
+      "use": "A search or a filter that matched nothing. Say what was searched and offer to clear it.",
+      "body": "<ellipse cx=\"64\" cy=\"86\" rx=\"44\" ry=\"5\" style=\"fill:var(--vh-ill-ground,#EEF0F3)\"/><rect x=\"24\" y=\"16\" width=\"58\" height=\"58\" rx=\"8\" style=\"fill:var(--vh-panel,#FFFFFF);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2\"/><rect x=\"34\" y=\"28\" width=\"38\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-soft,#E3E6EA)\"/><rect x=\"34\" y=\"38\" width=\"28\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-soft,#E3E6EA)\"/><circle cx=\"80\" cy=\"52\" r=\"15\" style=\"fill:var(--vh-ill-ground,#EEF0F3);stroke:var(--vh-ill-primary,#4B5563);stroke-width:4\"/><path d=\"M91 63l13 13\" style=\"fill:none;stroke:var(--vh-ill-primary,#4B5563);stroke-width:5;stroke-linecap:round\"/><path d=\"M74 52h12\" style=\"fill:none;stroke:var(--vh-ill-ink,#6B7280);stroke-width:3;stroke-linecap:round\"/>"
+    },
+    {
+      "name": "data-required",
+      "title": "Data required before launch",
+      "use": "Beside a [DATA REQUIRED BEFORE LAUNCH: ...] marker that blocks a whole section: the slot exists and is honestly empty.",
+      "body": "<ellipse cx=\"64\" cy=\"86\" rx=\"44\" ry=\"5\" style=\"fill:var(--vh-ill-ground,#EEF0F3)\"/><path d=\"M36 12h40l16 16v50H36z\" style=\"fill:var(--vh-panel,#FFFFFF);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2;stroke-linejoin:round\"/><path d=\"M76 12v16h16\" style=\"fill:none;stroke:var(--vh-ill-line,#C9CED5);stroke-width:2;stroke-linejoin:round\"/><rect x=\"46\" y=\"24\" width=\"22\" height=\"5\" rx=\"2.5\" style=\"fill:var(--vh-ill-primary,#4B5563)\"/><rect x=\"46\" y=\"38\" width=\"36\" height=\"24\" rx=\"4\" style=\"fill:var(--vh-ill-ground,#EEF0F3);stroke:var(--vh-ill-ink,#6B7280);stroke-width:2;stroke-dasharray:4 3\"/><path d=\"M64 44v7\" style=\"fill:none;stroke:var(--vh-ill-ink,#6B7280);stroke-width:3;stroke-linecap:round\"/><circle cx=\"64\" cy=\"56\" r=\"1.8\" style=\"fill:var(--vh-ill-ink,#6B7280)\"/><rect x=\"46\" y=\"68\" width=\"28\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-soft,#E3E6EA)\"/>"
+    },
+    {
+      "name": "on-device",
+      "title": "Saved on this device",
+      "use": "Local / Demo Mode, a brand kept in this browser: an ordinary state, never an error.",
+      "body": "<ellipse cx=\"64\" cy=\"86\" rx=\"44\" ry=\"5\" style=\"fill:var(--vh-ill-ground,#EEF0F3)\"/><rect x=\"22\" y=\"16\" width=\"84\" height=\"52\" rx=\"7\" style=\"fill:var(--vh-panel,#FFFFFF);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2\"/><rect x=\"30\" y=\"24\" width=\"68\" height=\"36\" rx=\"4\" style=\"fill:var(--vh-ill-soft,#E3E6EA)\"/><path d=\"M52 78h24M64 68v10\" style=\"fill:none;stroke:var(--vh-ill-ink,#6B7280);stroke-width:3;stroke-linecap:round\"/><circle cx=\"64\" cy=\"42\" r=\"11\" style=\"fill:var(--vh-ill-primary,#4B5563)\"/><path d=\"M58.5 42.5l4 4 7-8\" style=\"fill:none;stroke:var(--vh-on-primary,#FFFFFF);stroke-width:3;stroke-linecap:round;stroke-linejoin:round\"/>"
+    },
+    {
+      "name": "done",
+      "title": "All done",
+      "use": "A queue that finished, a check list with nothing left.",
+      "body": "<ellipse cx=\"64\" cy=\"86\" rx=\"44\" ry=\"5\" style=\"fill:var(--vh-ill-ground,#EEF0F3)\"/><rect x=\"30\" y=\"14\" width=\"68\" height=\"62\" rx=\"9\" style=\"fill:var(--vh-panel,#FFFFFF);stroke:var(--vh-ill-line,#C9CED5);stroke-width:2\"/><path d=\"M42 30l4 4 7-8M42 46l4 4 7-8\" style=\"fill:none;stroke:var(--vh-ill-primary,#4B5563);stroke-width:3;stroke-linecap:round;stroke-linejoin:round\"/><rect x=\"58\" y=\"28\" width=\"28\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-line,#C9CED5)\"/><rect x=\"58\" y=\"44\" width=\"22\" height=\"4\" rx=\"2\" style=\"fill:var(--vh-ill-line,#C9CED5)\"/><circle cx=\"96\" cy=\"68\" r=\"14\" style=\"fill:var(--vh-ill-accent,#9CA3AF)\"/><path d=\"M89.5 68.5l4.5 4.5 8-9\" style=\"fill:none;stroke:var(--vh-on-accent,#FFFFFF);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round\"/>"
+    }
+  ]
+}
