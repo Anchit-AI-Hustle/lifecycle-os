@@ -440,12 +440,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "timeout",
+        "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.adidas.com",
-        "reason": "The site could not be opened: timed out."
+        "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.adidas.com blocked an automated read on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1011,14 +1011,14 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 41.6,
-        "mismatch": 0.584,
+        "score": 40.6,
+        "mismatch": 0.5943,
         "surfaces": {
           "landing page": {
-            "score": 48.5,
-            "mismatch": 0.5154,
+            "score": 49.1,
+            "mismatch": 0.5085,
             "done": false,
-            "tokens_off": 20,
+            "tokens_off": 14,
             "regions_off": 2
           },
           "mailer": {
@@ -2411,12 +2411,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "timeout",
+        "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.netflix.com",
-        "reason": "The site could not be opened: timed out."
+        "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
       },
-      "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.netflix.com blocked an automated read on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2554,15 +2554,15 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 51.2,
-        "mismatch": 0.4885,
+        "score": 50.5,
+        "mismatch": 0.4952,
         "surfaces": {
           "landing page": {
-            "score": 56.3,
-            "mismatch": 0.4366,
+            "score": 54.6,
+            "mismatch": 0.4537,
             "done": false,
-            "tokens_off": 8,
-            "regions_off": 2
+            "tokens_off": 9,
+            "regions_off": 3
           },
           "mailer": {
             "score": 69.1,
@@ -2580,7 +2580,7 @@
           }
         },
         "iterations": 2,
-        "repairs": 3,
+        "repairs": 4,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,

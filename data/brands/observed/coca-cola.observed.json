@@ -5,7 +5,7 @@
   "start": "https://www.coca-cola.com",
   "landed": "https://www.coca-cola.com/us/en",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:51:37.763Z",
+  "read_at": "2026-10-04T21:22:22.367Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
