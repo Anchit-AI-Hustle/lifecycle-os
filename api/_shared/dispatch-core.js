@@ -131,6 +131,47 @@ async function workspaceBrand(workspaceId) {
 }
 
 /**
+ * The brand a workspace's copy is linted AS: the candidate only when it IS
+ * this workspace's record (its id), else the workspace's own row read as the
+ * service, else null - never somebody else's.
+ *
+ * brand-runtime.resolve() answers tenant zero when it cannot read a
+ * workspace, so a transient RLS or database failure for a supplement brand
+ * would otherwise be linted with a sneaker brand's packs and its disease
+ * claims would queue. Same defect class as "a carried record could claim to
+ * be tenant zero" (2026-09-29). A null here is UNCHECKED at the gate.
+ */
+async function trustedBrand(workspaceId, candidate) {
+  const id = String(workspaceId || '');
+  if (candidate && typeof candidate === 'object' && id && String(candidate.id || '') === id) return candidate;
+  if (!id) return null;
+  const own = await workspaceBrand(id);
+  return own && String(own.id || '') === id ? own : null;
+}
+
+/**
+ * The offer behind a job's urgency lines, read SERVER-SIDE from the campaign
+ * record the job names, in THIS workspace: the offer the builder stamped on
+ * it (smart-brain-plan offerOf), else its calendar entry's. Never the request
+ * body's, which is the caller's claim about its own offer.
+ */
+async function campaignOffer(workspaceId, s) {
+  const ref = String(s.campaign_id || (/^campaign_/.test(String(s.asset_ref || '')) ? s.asset_ref : '') || '').trim();
+  if (!ref || !workspaceId) return null;
+  try {
+    const ws = encodeURIComponent(workspaceId);
+    const rows = await rest(`smart_generated_campaigns?select=payload&id=eq.${encodeURIComponent(ref)}&workspace_id=eq.${ws}&limit=1`);
+    const p = Array.isArray(rows) && rows[0] ? rows[0].payload : null;
+    if (!p || typeof p !== 'object') return null;
+    if (p.offer && typeof p.offer === 'object') return p.offer;
+    if (!p.calendar_entry_id) return null;
+    const e = await rest(`smart_calendar_entries?select=payload&id=eq.${encodeURIComponent(p.calendar_entry_id)}&workspace_id=eq.${ws}&limit=1`);
+    const ep = Array.isArray(e) && e[0] ? e[0].payload : null;
+    return (ep && (ep.offer || (ep.decision && ep.decision.offer))) || null;
+  } catch (_) { return null; }
+}
+
+/**
  * Create a job. Runs the preflight gate FIRST, so a send that would damage the
  * sending domain never becomes a queued job that a later retry might release.
  *
@@ -173,14 +214,19 @@ async function enqueue(auth, workspaceId, spec, context) {
   // body: the router hands over the brand it resolved for this workspace, and
   // any other caller gets the workspace's own row. A body-supplied brand,
   // approved-claims list or offer would let a send choose its own rule pack.
-  const brand = (c.brand && typeof c.brand === 'object') ? c.brand : await workspaceBrand(workspaceId);
+  const brand = await trustedBrand(workspaceId, c.brand);
   const market = String(s.market || s.region || (s.asset && (s.asset.market || s.asset.region)) || '');
+  const offer = await campaignOffer(workspaceId, s);
 
   const preflight = await require('./preflight-core.js').run({
     workspaceId, provider, channel: channelId, mode,
     payload: mapped.payload, mapping_missing: mapped.missing, connection: conn,
     segment: s.segment || null, audience_size: s.audience_size,
-    brand, market,
+    brand, market, offer,
+    // A send with no readable brand is UNCHECKED, and at the queue that blocks.
+    require_brand: true,
+    // Deadline lines are read when the mail goes out.
+    now: mode === 'schedule' && s.scheduled_for ? s.scheduled_for : null,
   });
 
   if (preflight.verdict === 'block' && !s.override_preflight) {
@@ -580,6 +626,6 @@ async function jobDetail(auth, workspaceId, jobId) {
 
 module.exports = {
   enqueue, drain, runJob, cancel, ingestWebhook, listJobs, jobDetail,
-  deriveIdempotencyKey, backoffMs, claim, countRunnable,
+  deriveIdempotencyKey, backoffMs, claim, countRunnable, trustedBrand,
   BATCH, BASE_BACKOFF_MS, MAX_BACKOFF_MS, LEASE_MS,
 };
