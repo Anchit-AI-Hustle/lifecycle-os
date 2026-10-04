@@ -75,8 +75,18 @@ function apply(file, begin, end, body) {
    layer sets that inline on <html> and wins, but before it paints - signed
    out, or a page that never loads brand-context - this :root default is what
    keeps the text visible instead of unset. */
-const { readableAsText } = require('../api/_shared/brand-workspace-core.js');
+const { readableAsText, tokens: brandTokens } = require('../api/_shared/brand-workspace-core.js');
 const SURFACE_ALT = P.surface_alt || '#ffffff';
+/* The design-system contract's DERIVED tokens (design/lifecycle-os/CONTRACT.md):
+   on-primary, the section band and the text on it, state colours as text, the
+   focus ring. Taken from tokens() itself - the function brand-context.js paints
+   with - so the no-brand fallback and the live token are one computation. */
+const DERIVED = brandTokens(BRAND);
+const derivedLines = ['--brand-primary-dark', '--brand-primary-soft', '--brand-primary-tint', '--brand-accent-soft',
+  '--brand-surface-sunken', '--brand-on-primary', '--brand-on-accent', '--brand-band', '--brand-on-band',
+  '--brand-band-accent', '--brand-on-band-accent', '--brand-ok-text', '--brand-warn-text', '--brand-err-text', '--brand-focus',
+  '--brand-line', '--brand-line-strong']
+  .map((k) => `  ${k}: ${DERIVED[k]};`).join('\n');
 
 const cssBody = `  --vh-green:  var(--brand-primary, ${P.primary});
   --vh-lava:   var(--brand-accent,  ${P.accent});
@@ -84,10 +94,11 @@ const cssBody = `  --vh-green:  var(--brand-primary, ${P.primary});
   --vh-chalk:  var(--brand-surface, ${P.surface});
   --vh-muted-ink: var(--brand-ink-muted, ${P.muted});
   --vh-hairline:  var(--brand-line,      ${P.line});
-  --vh-font-head: var(--brand-font-heading, ${T.heading && T.heading.stack});
+  --vh-font-head: var(--brand-font-head, ${T.heading && T.heading.stack});
   --vh-font-body: var(--brand-font-body,    ${T.body && T.body.stack});
   --brand-primary-text: ${readableAsText(P.primary, SURFACE_ALT)};
-  --brand-accent-text:  ${readableAsText(P.accent, SURFACE_ALT)};`;
+  --brand-accent-text:  ${readableAsText(P.accent, SURFACE_ALT)};
+${derivedLines}`;
 apply('theme.css', BEGIN('palette'), END('palette'), cssBody);
 
 // ── 2. CLAUDE.md: the Brand Constants block ─────────────────────────────────

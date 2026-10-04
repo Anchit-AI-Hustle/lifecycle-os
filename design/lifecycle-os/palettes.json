@@ -1,0 +1,41 @@
+{
+  "_note": "The palettes the design system is RUN against: tests/design-system.spec.js renders /design-system under every one of them, and scripts/build-design-system.js computes each one's token values with tokens() (api/_shared/brand-workspace-core.js) for design/lifecycle-os/tokens.json and the Design System artifact's themes. Tenant zero's palette is READ from data/brands/_default.json at build time, never copied here. Every other palette is a stress case defined for the gate (NEW, 2026-10-05), not any company's record.",
+  "palettes": [
+    {
+      "id": "neutral",
+      "name": "Lifecycle OS neutral",
+      "why": "The platform's own colours (the mark's ink and tile, assets/lifecycle-os-mark.svg) run through the same contract, so the system has a face that is nobody's brand. No page ships this palette; it is what tokens() derives from the mark's neutrals.",
+      "palette": { "primary": "#24292E", "ink": "#24292E", "surface": "#FFFFFF", "surface_alt": "#F5F6F8" }
+    },
+    {
+      "id": "tenant-zero",
+      "name": "Example brand (tenant zero)",
+      "why": "The shipped default record. Read from data/brands/_default.json; this is also what theme.css falls back to when no brand is active (the BRAND-SYNC block).",
+      "from": "data/brands/_default.json"
+    },
+    {
+      "id": "red",
+      "name": "Red primary, deep brown accent",
+      "why": "The shape of the operator's 2026-10-05 report (/studio with a red-primary brand active: red bands, dark brown panels, unreadable cards). Synthetic values, not that brand's record. A deep brown is a brand colour, not a neutral, so it may be a band.",
+      "palette": { "primary": "#C8102E", "accent": "#5B3A29", "ink": "#1F1A17", "surface": "#FFFFFF", "surface_alt": "#FFF8F2" }
+    },
+    {
+      "id": "pale",
+      "name": "Pale primary and accent",
+      "why": "Light brand colours that are invisible as raw text on white, light state colours, and a muted grey that fails on its own: every text token has to be derived. The contrast-rendered gate's HOSTILE palette plus light state colours.",
+      "palette": { "primary": "#F3B6B1", "accent": "#BFDCF5", "ink": "#1A1A1A", "surface": "#FFFFFF", "surface_alt": "#FFFFFF", "muted": "#C8CCD0", "ok": "#A8E0B8", "warn": "#F7E08A", "err": "#F4A6A0" }
+    },
+    {
+      "id": "near-black",
+      "name": "Near-black primary",
+      "why": "A brand whose primary and accent are dark neutrals. Its buttons may be near-black (a control); no SECTION may be: --brand-band falls through to the surface.",
+      "palette": { "primary": "#16161A", "accent": "#2B2B30", "ink": "#111111", "surface": "#FFFFFF", "surface_alt": "#F7F7F8" }
+    },
+    {
+      "id": "bare",
+      "name": "Bare brand (no palette)",
+      "why": "A record with no colours at all. tokens() fills it from its own fallbacks; a bare record cannot be ACTIVATED (validatePalette), but it is painted while a draft is being built.",
+      "palette": {}
+    }
+  ]
+}

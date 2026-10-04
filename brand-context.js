@@ -567,6 +567,7 @@
     var muted = p.muted || shade(ink, 0.35);
     var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
     var t = brand && brand.typography ? brand.typography : {};
+    var states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
     return Object.assign({
       '--brand-primary': primary,
       '--brand-primary-dark': shade(primary, -0.25),
@@ -584,13 +585,55 @@
       '--brand-surface-alt': surfaceAlt,
       '--brand-line': shade(ink, 0.84),
       '--brand-line-strong': shade(ink, 0.68),
-      '--brand-ok': p.ok || '#1a7f37',
-      '--brand-warn': p.warn || '#c9a227',
-      '--brand-err': p.err || '#c0392b',
+      '--brand-ok': states.ok,
+      '--brand-warn': states.warn,
+      '--brand-err': states.err,
       '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
       '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
       '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-    }, componentTokensFor(brand));
+    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states), componentTokensFor(brand));
+  }
+  /* Mirrors sectionGround() / textOn() / contractTokens() on the server: the
+     design-system contract's derived tokens (design/lifecycle-os/CONTRACT.md).
+     A brand band is never a dark neutral, text on it is derived, a state colour
+     used as text is held to TEXT_AA, the focus ring to the 3:1 non-text floor. */
+  function sectionGroundFor() {
+    for (var i = 0; i < arguments.length; i++) {
+      var h = normHex(arguments[i]);
+      if (h && !isDarkNeutral(h)) return arguments[i];
+    }
+    return '#ffffff';
+  }
+  function textOnFor(ground, surface, ink, target) {
+    return readableAsText(readableOn(ground, ink || '#111111', surface || '#ffffff'), ground, target || 4.5);
+  }
+  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states) {
+    var band = normHex(sectionGroundFor(primary, accent, surface)) || '#ffffff';
+    var bandAccent = normHex(sectionGroundFor(accent, primary, surface)) || '#ffffff';
+    var text = [ink, readableAsText(muted || shade(ink, 0.35), worstSurface, TEXT_AA),
+      readableAsText(primary, worstSurface, TEXT_AA), readableAsText(accent, worstSurface, TEXT_AA),
+      readableAsText(states.ok, worstSurface, TEXT_AA), readableAsText(states.warn, worstSurface, TEXT_AA),
+      readableAsText(states.err, worstSurface, TEXT_AA)];
+    return {
+      '--brand-surface-sunken': sunkenSurfaceFor(surface, surfaceAlt, text),
+      '--brand-band': band,
+      '--brand-on-band': textOnFor(band, surface, ink, TEXT_AA),
+      '--brand-band-accent': bandAccent,
+      '--brand-on-band-accent': textOnFor(bandAccent, surface, ink, TEXT_AA),
+      '--brand-ok-text': readableAsText(states.ok, worstSurface, TEXT_AA),
+      '--brand-warn-text': readableAsText(states.warn, worstSurface, TEXT_AA),
+      '--brand-err-text': readableAsText(states.err, worstSurface, TEXT_AA),
+      '--brand-focus': readableAsText(accent, worstSurface, 3),
+    };
+  }
+  function sunkenSurfaceFor(surface, surfaceAlt, textColours) {
+    var base = luminance(surface) <= luminance(surfaceAlt || surface) ? surface : surfaceAlt;
+    var best = normHex(base) || '#ffffff';
+    for (var t = 0.005; t <= 0.0401; t += 0.005) {
+      var c = shade(base, -t);
+      if (textColours.every(function (x) { return contrast(x, c) >= 4.5; })) best = c; else break;
+    }
+    return best;
   }
   /** Mirrors componentTokens() on the server: the measured control/card radii. */
   function componentTokensFor(brand) {
@@ -1135,6 +1178,12 @@
     '--warn': '--brand-warn',
     '--font-head': '--brand-font-head', '--font-body': '--brand-font-body',
     '--sans': '--brand-font-body', '--mono': '--brand-font-mono',
+    // Pages (index, about, data-analysis, brand-demo, this file's own report
+    // panel) read --brand-font-heading, a name tokens() never emitted, so the
+    // active brand's heading face never reached them (design/lifecycle-os/
+    // CONTRACT.md). The contract's name is --brand-font-head; this keeps the
+    // other spelling working.
+    '--brand-font-heading': '--brand-font-head',
   };
 
   function applyTokens(tokens) {
