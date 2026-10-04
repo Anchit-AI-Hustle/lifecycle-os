@@ -108,7 +108,10 @@ function dsCss(spec) {
     const t = ds.adTokens(r);
     if (!t) return '';
     const px = (v) => (v == null || !Number.isFinite(+v) ? '' : `${Math.round(+v * 100) / 100}px`);
-    const out = [t.faces || ''];
+    // A Google family is LOADED, not merely named: the import comes first in
+    // the sheet, as @import must. Review finding (2026-10-04): it was named and
+    // never loaded, so the ad drew its fallback.
+    const out = [t.googleHref ? `@import url("${String(t.googleHref).replace(/["\\<>]/g, '')}");` : '', t.faces || ''];
     if (t.cta) {
       const p = (spec.brand && spec.brand.palette) || {};
       const tx = ds.textOnGround(t.cta.color, t.cta.background || p.accent || p.primary, p.surface, p.ink, t.cta.size, t.cta.weight);
