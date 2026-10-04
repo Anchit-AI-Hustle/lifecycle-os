@@ -65,9 +65,14 @@ function systemPrompt(ctx) {
   const t = ctx.tokens;
   const legal = ctx.legal;
   const text = ctx.mailerType === 'text';
-  const logo = b.logo_url && !text
-    ? `<img src="${b.logo_url}" alt="${esc(b.name)}" height="30" style="display:block;border:0;height:30px;width:auto">`
-    : `<span style="font-family:${t.headingStack};font-size:22px;letter-spacing:.14em;color:${t.onSurface}">${esc(b.name)}</span>`;
+  // https only, and an uploaded logo with no hosted URL yet is named by its
+  // marker - never embedded (2026-10-04, brand-runtime.hostedMarker).
+  const logoUrl = brandRuntime.httpsUrl(b.logo_url);
+  const pendingLogo = !logoUrl && Array.isArray(b.pending_hosting) && b.pending_hosting.includes('logo');
+  const logo = logoUrl && !text
+    ? `<img src="${logoUrl}" alt="${esc(b.name)}" height="30" style="display:block;border:0;height:30px;width:auto">`
+    : `<span style="font-family:${t.headingStack};font-size:22px;letter-spacing:.14em;color:${t.onSurface}">${esc(b.name)}</span>`
+      + (pendingLogo && !text ? ` followed by the line ${brandRuntime.hostedMarker('logo', b)} (the logo is an uploaded file with no hosted URL yet: never embed it as data:/base64)` : '');
   return `You are the HTML execution engine for ${b.name}'s email programme. You produce COMPLETE, conversion-optimised, email-client-safe HTML that implements the creative plan EXACTLY: no rewrites, no truncation, no invented content.
 
 ${ctx.briefing}
@@ -304,10 +309,15 @@ function heuristicHtml(ctx, o) {
   const eyebrow = (txt, fg) => `<p style="margin:0 0 8px;font-family:${F};font-size:13px;line-height:1.4;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${fg}">${esc(txt)}</p>`;
 
   const facts = ctx.facts;
+  const logoHref = brandRuntime.httpsUrl(b.logo_url);
+  const logoPending = !logoHref && Array.isArray(b.pending_hosting) && b.pending_hosting.includes('logo');
   const header = section(t.surface,
-    ((b.logo_url && !text)
-      ? `<img src="${esc(b.logo_url)}" alt="${esc(b.name)}" height="30" style="display:block;margin:0 auto;border:0;height:30px;width:auto">`
-      : `<p style="margin:0;font-family:${H};font-size:22px;line-height:1.3;letter-spacing:.14em;text-transform:uppercase;color:${t.onSurface};text-align:center">${esc(b.name)}</p>`)
+    ((logoHref && !text)
+      ? `<img src="${esc(logoHref)}" alt="${esc(b.name)}" height="30" style="display:block;margin:0 auto;border:0;height:30px;width:auto">`
+      : `<p style="margin:0;font-family:${H};font-size:22px;line-height:1.3;letter-spacing:.14em;text-transform:uppercase;color:${t.onSurface};text-align:center">${esc(b.name)}</p>`
+        // The brand's logo is an uploaded FILE on the operator's device with
+        // no hosted URL yet: the slot says so, in the spec's own words.
+        + ((logoPending && !text) ? `<p style="margin:6px 0 0;font-family:${F};font-size:12px;line-height:1.4;color:${t.mutedOnSurface};text-align:center" data-marker="hosted-logo">${esc(brandRuntime.hostedMarker('logo', b))}</p>` : ''))
     + (facts.foundedLine ? `<p style="margin:6px 0 0;font-family:${F};font-size:12px;line-height:1.4;letter-spacing:.08em;color:${t.mutedOnSurface};text-align:center">${esc(facts.foundedLine)}</p>` : ''),
     'padding:18px 32px;text-align:center');
   // The brand's OWN shipping claim, once, beside the first CTA; nothing when the

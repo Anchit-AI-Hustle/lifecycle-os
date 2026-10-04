@@ -5,7 +5,7 @@
   "start": "https://www.amazon.com",
   "landed": "https://www.amazon.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:21:58.317Z",
+  "read_at": "2026-10-04T18:13:40.132Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -25,8 +25,8 @@
       "h": 900
     },
     "mobile": {
-      "w": 390,
-      "h": 844
+      "w": 398,
+      "h": 862
     }
   },
   "partial": false,
@@ -64,12 +64,16 @@
   },
   "conflicts": [],
   "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.heading, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: logo, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: favicon, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: primary call to action, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: header bar, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: footer, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, www.amazon.com]",
     "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.amazon.com]"
   ],
   "logo_url": "",
@@ -85,7 +89,7 @@
       "source": {
         "page": "https://www.amazon.com/",
         "role": "page ground",
-        "selector": "body",
+        "selector": "canvas (no background declared)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
@@ -97,46 +101,7 @@
     }
   },
   "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
-  "typography": {
-    "heading": {
-      "family": "Arial",
-      "stack": "'Arial',sans-serif",
-      "google": false,
-      "weights": "600;700",
-      "kind": "local",
-      "loadable": true,
-      "weights_read": false,
-      "note": "A system font stack: each device picks the face, exactly as on the site.",
-      "signal": "computed font-family of the heading role",
-      "source": {
-        "page": "https://www.amazon.com/",
-        "role": "display heading (largest text near the top)",
-        "selector": "div.a-container.a-padding-double-large > div.a-row.a-spacing-double-large:nth-of-type(1) > div.a-box.a-alert:nth-of-type(2) > div.a-box-inner > h4",
-        "viewport": "desktop",
-        "property": "font-family",
-        "signal": "computed"
-      }
-    },
-    "body": {
-      "family": "Arial",
-      "stack": "'Arial',sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "kind": "local",
-      "loadable": true,
-      "weights_read": false,
-      "note": "A system font stack: each device picks the face, exactly as on the site.",
-      "signal": "computed font-family of the body copy role",
-      "source": {
-        "page": "https://www.amazon.com/",
-        "role": "body copy",
-        "selector": "body > div.a-container.a-padding-double-large > div.a-text-center.a-size-mini:nth-of-type(4)",
-        "viewport": "desktop",
-        "property": "font-family",
-        "signal": "computed"
-      }
-    }
-  },
+  "typography": null,
   "read_attempt": {
     "renderer": "rendered",
     "at": "2026-10-04",
