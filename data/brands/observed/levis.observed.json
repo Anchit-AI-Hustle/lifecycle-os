@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "levis",
@@ -20,5 +20,52 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.levi.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.levi.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.levi.com (blocked), www.levistrauss.com (not shown to be the brand's). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.levi.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.levi.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.levi.com/US/en_US/",
+      "role": "identity source",
+      "what": "Levi's US store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.levi.com",
+        "registrable": "levi.com",
+        "website_host": "www.levi.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.levistrauss.com/",
+      "role": "identity source",
+      "what": "Levi Strauss & Co. corporate site (linked from levi.com)",
+      "kind": "page",
+      "owned": null,
+      "at": "2026-10-04",
+      "attempts": 0,
+      "renderer": "refused",
+      "ok": false,
+      "reason": "www.levistrauss.com is not under levi.com, and no page read on levi.com links to it, so it is not shown to be the brand's own"
+    }
+  ]
 }

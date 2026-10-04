@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www.sony.com",
       "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: electronics.sony.com (blocked), www.sony.net (not shown to be the brand's)."
   },
   "palette": {
     "primary": "#2B2B2B",

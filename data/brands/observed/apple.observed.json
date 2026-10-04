@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "apple",
   "start": "https://www.apple.com",
   "landed": "https://www.apple.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:49:13.988Z",
+  "read_at": "2026-10-04T23:19:36.925Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.apple.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.apple.com/"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.apple.com",
+    "role": "home",
+    "landed": "https://www.apple.com/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -130,6 +153,44 @@
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "action",
+      "value": "#0071e3",
+      "score": 55,
+      "state": "chosen",
+      "page": "https://www.apple.com/"
+    },
+    {
+      "kind": "action",
+      "value": "#2997ff",
+      "score": 55,
+      "state": "outranked",
+      "page": "https://www.apple.com/"
+    },
+    {
+      "kind": "header",
+      "value": "#4a4a4c",
+      "score": 58,
+      "state": "neutral",
+      "page": "https://www.apple.com/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.apple.com",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#ffffff"
+      },
+      "fonts": {
+        "heading": "SF Pro Display",
+        "body": "SF Pro Display"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": true,
   "palette": {
     "primary": "#0071e3",
@@ -155,12 +216,22 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.apple.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
       }
     },
     "primary": {
       "value": "#0071e3",
       "exact": "#0071e3",
       "derived": false,
+      "kind": "action",
+      "strength": 55,
+      "score": 55,
       "from_role": "action",
       "signal": "the primary call to action, as rendered: the only brand colour this site renders",
       "source": {
@@ -170,7 +241,23 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
-      }
+      },
+      "read_url": "https://www.apple.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
+      },
+      "outranked": [
+        {
+          "value": "#2997ff",
+          "kind": "action",
+          "signal": "the primary call to action, as rendered",
+          "score": 55,
+          "page": "https://www.apple.com/"
+        }
+      ]
     },
     "ink": {
       "value": "#1d1d1f",
@@ -183,6 +270,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://www.apple.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
       }
     },
     "surface_alt": {
@@ -192,10 +286,17 @@
       "source": {
         "page": "https://www.apple.com/",
         "role": "product card",
-        "selector": "div#_r_s_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
+        "selector": "div#_r_q_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.apple.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
       }
     },
     "muted": {
@@ -209,12 +310,22 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://www.apple.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
       }
     },
     "accent": {
       "value": "#2997ff",
       "exact": "#2997ff",
       "derived": false,
+      "kind": "action",
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered",
       "source": {
         "page": "https://www.apple.com/",
         "role": "secondary call to action",
@@ -223,7 +334,13 @@
         "property": "background-color",
         "signal": "computed"
       },
-      "from_role": "action"
+      "read_url": "https://www.apple.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.apple.com"
+      }
     },
     "line": {
       "value": "#e4e4e4",

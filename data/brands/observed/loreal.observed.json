@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "loreal",
@@ -20,5 +20,58 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.loreal.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.loreal.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.loreal.com (blocked), www.loreal.com (unavailable). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.loreal.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.loreal.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
+    },
+    {
+      "url": "https://www.loreal.com/en/press-release/",
+      "role": "identity source",
+      "what": "L'Oreal Groupe newsroom",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe : Press Releases\", whose first heading reads \"Press Releases\"). Nothing was read from it."
+    },
+    {
+      "url": "https://www.loreal.com/en/group/",
+      "role": "identity source",
+      "what": "L'Oreal Groupe about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "www.loreal.com answered HTTP 404 for that address."
+    }
+  ]
 }

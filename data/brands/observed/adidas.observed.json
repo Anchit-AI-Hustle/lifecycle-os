@@ -1,18 +1,18 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "adidas",
   "start": "https://www.adidas.com",
   "landed": "https://www.adidas.com",
   "observed_at": "2026-10-04",
-  "renderer": "timeout",
-  "reason": "The site could not be opened: timed out.",
+  "renderer": "blocked",
+  "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
   "read_attempt": {
-    "renderer": "timeout",
+    "renderer": "blocked",
     "at": "2026-10-04",
     "host": "www.adidas.com",
-    "reason": "The site could not be opened: timed out."
+    "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -20,5 +20,52 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.adidas.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.adidas.com (blocked), www.adidas-group.com (not shown to be the brand's). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.adidas.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.adidas.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.adidas.com/us",
+      "role": "identity source",
+      "what": "adidas US store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.adidas.com",
+        "registrable": "adidas.com",
+        "website_host": "www.adidas.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.adidas-group.com/en/",
+      "role": "identity source",
+      "what": "adidas Group corporate site (linked from adidas.com)",
+      "kind": "page",
+      "owned": null,
+      "at": "2026-10-04",
+      "attempts": 0,
+      "renderer": "refused",
+      "ok": false,
+      "reason": "www.adidas-group.com is not under adidas.com, and no page read on adidas.com links to it, so it is not shown to be the brand's own"
+    }
+  ]
 }

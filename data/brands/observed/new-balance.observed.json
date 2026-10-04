@@ -1,24 +1,555 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "new-balance",
   "start": "https://www.newbalance.com",
-  "landed": "https://www.newbalance.com",
+  "landed": "https://jobs.newbalance.com/global/en",
   "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T23:19:54.378Z",
   "renderer": "blocked",
   "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
-  "read_attempt": {
+  "reads": [
+    {
+      "url": "https://www.newbalance.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.newbalance.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://jobs.newbalance.com/global/en",
+      "role": "identity source",
+      "what": "New Balance careers site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "url": "https://www.newbalance.com/about-us.html",
+      "role": "identity source",
+      "what": "New Balance about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    }
+  ],
+  "design_read": {
+    "url": "https://jobs.newbalance.com/global/en",
+    "role": "identity source",
+    "landed": "https://jobs.newbalance.com/global/en"
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://jobs.newbalance.com/global/en",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, jobs.newbalance.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, jobs.newbalance.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, jobs.newbalance.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, jobs.newbalance.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), jobs.newbalance.com]"
+  ],
+  "logo_url": "https://cdn.phenompeople.com/CareerConnectResources/NEBAGLOBAL/images/nblogo-1768415616024.png",
+  "logo_signal": "the logo element as rendered (div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo)",
+  "assets": [
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/NEBAGLOBAL/images/nblogo-1768415616024.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "the logo element as rendered (div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo)"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/pp/NEBAGLOBAL/images/NBHQ_01HERO_DESKTOP_LookingSWDusk_np_01_RB-1768417359059.jpg",
+      "role": "hero",
+      "alt": "NBHQ_01HERO_DESKTOP_LookingSWDusk_np_01_RB",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/images/cropChild-WrnXX-1771341025506.png",
+      "role": "photograph",
+      "alt": "cropChild-WrnXX",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/images/AMSOfficePic-1727783404953.jpg",
+      "role": "photograph",
+      "alt": "AMSOfficePic",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/images/Taiwan-1674064638207.jpg",
+      "role": "photograph",
+      "alt": "Taiwan",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/images/China2-1672854316823.jpg",
+      "role": "photograph",
+      "alt": "China2",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/images/Untitleddesign29-1675278103132.jpg",
+      "role": "photograph",
+      "alt": "Untitleddesign29",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/images/Myproject43-1679525855084.jpg",
+      "role": "photograph",
+      "alt": "img1",
+      "found_on": "https://jobs.newbalance.com/global/en",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "logo-image",
+      "value": "#d02030",
+      "score": 140,
+      "state": "chosen",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#cf0a2c",
+      "score": 90,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#008000",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#000000",
+      "score": 66,
+      "state": "neutral",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#3b5998",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#0077b5",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#dd4b39",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#e4405f",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#bd081c",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#4a76a8",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#df2029",
+      "score": 90,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#026466",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#0088cc",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "token",
+      "value": "#25d366",
+      "score": 66,
+      "state": "outranked",
+      "page": "https://jobs.newbalance.com/global/en"
+    },
+    {
+      "kind": "icon",
+      "value": "#dd1a32",
+      "score": 80,
+      "state": "outranked",
+      "page": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/en_global/desktop/assets/images/h/apple-touch-icon.png"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://jobs.newbalance.com/global/en",
+      "logo": {
+        "kind": "img",
+        "verdict": "colour",
+        "hex": "#d02030"
+      },
+      "fonts": {
+        "heading": "ITCGaramondStd-BkCond",
+        "body": ""
+      },
+      "content_logos": 0
+    }
+  ],
+  "home_attempt": {
     "renderer": "blocked",
     "at": "2026-10-04",
     "host": "www.newbalance.com",
     "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
   },
-  "reader": {
-    "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+  "palette_ok": true,
+  "palette": {
+    "primary": "#d02030",
+    "accent": "#008000",
+    "ink": "#681018",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#681018",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
   },
-  "note": "www.newbalance.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://jobs.newbalance.com/global/en",
+        "role": "page ground",
+        "selector": "body.home-page.home",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://jobs.newbalance.com/global/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      }
+    },
+    "primary": {
+      "value": "#d02030",
+      "exact": "#d02030",
+      "derived": false,
+      "kind": "logo-image",
+      "strength": 116,
+      "score": 140,
+      "from_role": "identity",
+      "signal": "logo pixels as rendered (84% of its coloured pixels)",
+      "source": {
+        "page": "https://jobs.newbalance.com/global/en",
+        "role": "logo",
+        "selector": "div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo",
+        "viewport": "desktop",
+        "property": "pixels",
+        "signal": "computed"
+      },
+      "read_url": "https://jobs.newbalance.com/global/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      },
+      "corroborated_by": [
+        {
+          "kind": "token",
+          "value": "#cf0a2c",
+          "signal": "--brand-color-primary as computed on :root",
+          "page": "https://jobs.newbalance.com/global/en"
+        },
+        {
+          "kind": "icon",
+          "value": "#dd1a32",
+          "signal": "site icon pixels (apple-touch-icon-precomposed)",
+          "page": "https://cdn.phenompeople.com/CareerConnectResources/prod/NEBAGLOBAL/en_global/desktop/assets/images/h/apple-touch-icon.png"
+        }
+      ],
+      "outranked": [
+        {
+          "value": "#008000",
+          "kind": "token",
+          "signal": "--glassdoor-brand-color as computed on :root",
+          "score": 66,
+          "page": "https://jobs.newbalance.com/global/en"
+        },
+        {
+          "value": "#3b5998",
+          "kind": "token",
+          "signal": "--facebook-brand-color as computed on :root",
+          "score": 66,
+          "page": "https://jobs.newbalance.com/global/en"
+        },
+        {
+          "value": "#0077b5",
+          "kind": "token",
+          "signal": "--linkedin-brand-color as computed on :root",
+          "score": 66,
+          "page": "https://jobs.newbalance.com/global/en"
+        },
+        {
+          "value": "#dd4b39",
+          "kind": "token",
+          "signal": "--googleplus-brand-color as computed on :root",
+          "score": 66,
+          "page": "https://jobs.newbalance.com/global/en"
+        }
+      ]
+    },
+    "ink": {
+      "value": "#681018",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED from #d02030: the read found no text colour that reads on #ffffff, so the primary is darkened until it does (12.53:1).",
+      "source": {
+        "page": "https://jobs.newbalance.com/global/en",
+        "role": "logo",
+        "selector": "div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo",
+        "viewport": "desktop",
+        "property": "pixels",
+        "signal": "computed"
+      },
+      "read_url": "https://jobs.newbalance.com/global/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "https://jobs.newbalance.com/global/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      }
+    },
+    "muted": {
+      "value": "#681018",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "https://jobs.newbalance.com/global/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      }
+    },
+    "accent": {
+      "value": "#008000",
+      "exact": "#008000",
+      "derived": false,
+      "kind": "token",
+      "from_role": "identity",
+      "signal": "--glassdoor-brand-color as computed on :root",
+      "source": {
+        "page": "https://jobs.newbalance.com/global/en",
+        "role": "custom property",
+        "selector": ":root",
+        "viewport": "desktop",
+        "property": "--glassdoor-brand-color",
+        "signal": "computed"
+      },
+      "read_url": "https://jobs.newbalance.com/global/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "jobs.newbalance.com",
+        "registrable": "newbalance.com",
+        "website_host": "www.newbalance.com"
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary and accent are nearly the same tone; the two will not read as distinct."
+  ],
+  "typography": null,
+  "source": "www.newbalance.com refused an automated read (blocked); read the brand's own https://jobs.newbalance.com/global/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #d02030 from logo pixels as rendered (84% of its coloured pixels) (div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo). Agreed by token, icon."
 }

@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "times-of-india",
   "start": "https://timesofindia.indiatimes.com",
   "landed": "https://timesofindia.indiatimes.com/us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:48:52.617Z",
+  "read_at": "2026-10-04T23:19:26.015Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://timesofindia.indiatimes.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://timesofindia.indiatimes.com/us"
+    }
+  ],
+  "design_read": {
+    "url": "https://timesofindia.indiatimes.com",
+    "role": "home",
+    "landed": "https://timesofindia.indiatimes.com/us"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -33,15 +56,15 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 55.8,
-    "mismatch": 0.4419,
+    "score": 85.8,
+    "mismatch": 0.1419,
     "surfaces": {
       "landing page": {
-        "score": 49.3,
-        "mismatch": 0.5074,
+        "score": 79.3,
+        "mismatch": 0.2074,
         "done": false,
         "tokens_off": 8,
-        "regions_off": 2
+        "regions_off": 0
       },
       "mailer": {
         "score": 83.7,
@@ -59,7 +82,7 @@
       }
     },
     "iterations": 2,
-    "repairs": 2,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -87,7 +110,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134653915.jpg?photoid=134653915&imgsize=520907&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134675881.jpg?photoid=134675881&imgsize=93712&width=220&resizemode=4",
       "role": "hero",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
@@ -101,38 +124,61 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134675881.jpg?photoid=134675881&imgsize=93712&width=600&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134680179.jpg?photoid=134680179&imgsize=85376&width=600&resizemode=4",
       "role": "hero",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134678780.jpg?photoid=134678780&imgsize=1967316&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134683005.jpg?photoid=134683005&imgsize=90708&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134676387.jpg?photoid=134676387&imgsize=1476619&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134669210.jpg?photoid=134669210&imgsize=2324778&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134678353.jpg?photoid=134678353&imgsize=144226&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134680412.jpg?photoid=134680412&imgsize=30500&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "theme-color",
+      "value": "#af2c2c",
+      "score": 74,
+      "state": "chosen",
+      "page": "https://timesofindia.indiatimes.com/us"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://timesofindia.indiatimes.com",
+      "logo": {
+        "kind": "img",
+        "verdict": "neutral",
+        "hex": "#1a1a1a"
+      },
+      "fonts": {
+        "heading": "Rethink Sans",
+        "body": "Rethink Sans"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": true,
   "palette": {
     "primary": "#af2c2c",
-    "accent": "#af2c2c",
     "ink": "#1a1a1a",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -154,12 +200,22 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "primary": {
       "value": "#af2c2c",
       "exact": "#af2c2c",
       "derived": false,
+      "kind": "theme-color",
+      "strength": 74,
+      "score": 74,
       "from_role": "identity",
       "signal": "meta theme-color",
       "source": {
@@ -169,6 +225,13 @@
         "viewport": "desktop",
         "property": "content",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "ink": {
@@ -182,6 +245,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "surface_alt": {
@@ -196,6 +266,13 @@
         "viewport": "",
         "property": "",
         "signal": ""
+      },
+      "read_url": "https://timesofindia.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "muted": {
@@ -209,20 +286,27 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://timesofindia.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "accent": {
-      "value": "#af2c2c",
+      "value": "",
       "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://timesofindia.indiatimes.com/us",
-        "role": "theme-color",
-        "selector": "meta[name=theme-color]",
-        "viewport": "desktop",
-        "property": "content",
-        "signal": "computed"
+      "derived": false,
+      "absent": true,
+      "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+      "read_url": "https://timesofindia.indiatimes.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "timesofindia.indiatimes.com"
       }
     },
     "line": {
@@ -282,9 +366,7 @@
       }
     }
   },
-  "palette_warnings": [
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_warnings": [],
   "typography": {
     "heading": {
       "family": "Rethink Sans",

@@ -26,12 +26,22 @@
           "viewport": "desktop",
           "property": "background-color",
           "signal": "computed"
+        },
+        "read_url": "https://www.coca-cola.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.coca-cola.com"
         }
       },
       "primary": {
         "value": "#ea0000",
         "exact": "#ea0000",
         "derived": false,
+        "kind": "token",
+        "strength": 66,
+        "score": 66,
         "from_role": "identity",
         "signal": "--color-icon-brand-primary-regular as computed on :root",
         "source": {
@@ -41,7 +51,21 @@
           "viewport": "desktop",
           "property": "--color-icon-brand-primary-regular",
           "signal": "computed"
-        }
+        },
+        "read_url": "https://www.coca-cola.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.coca-cola.com"
+        },
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "--color-icon-neutral-on_brand-primary-default as computed on :root",
+            "why": "1.16:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
       },
       "ink": {
         "value": "#000000",
@@ -54,6 +78,13 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.coca-cola.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.coca-cola.com"
         }
       },
       "surface_alt": {
@@ -68,6 +99,13 @@
           "viewport": "",
           "property": "",
           "signal": ""
+        },
+        "read_url": "https://www.coca-cola.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.coca-cola.com"
         }
       },
       "muted": {
@@ -82,20 +120,27 @@
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
+        },
+        "read_url": "https://www.coca-cola.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.coca-cola.com"
         }
       },
       "accent": {
-        "value": "#ea0000",
-        "exact": "#ffffff",
-        "derived": true,
-        "note": "The second colour the reader found (#ffffff) is a tint of the page (1.16:1), so the accent repeats the primary.",
-        "source": {
-          "page": "https://www.coca-cola.com/us/en",
-          "role": "custom property",
-          "selector": ":root",
-          "viewport": "desktop",
-          "property": "--color-icon-brand-primary-regular",
-          "signal": "computed"
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://www.coca-cola.com",
+        "read_role": "home",
+        "observed_at": "2026-10-04",
+        "owned": {
+          "how": "website",
+          "host": "www.coca-cola.com"
         }
       },
       "line": {
@@ -175,35 +220,48 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 81.2,
-      "mismatch": 0.1881,
+      "score": 84,
+      "mismatch": 0.1603,
       "surfaces": {
         "landing page": {
-          "score": 80.6,
-          "mismatch": 0.1944,
+          "score": 82.8,
+          "mismatch": 0.1722,
           "done": false,
-          "tokens_off": 4,
+          "tokens_off": 2,
           "regions_off": 2
         },
         "mailer": {
-          "score": 95.9,
-          "mismatch": 0.0405,
+          "score": 100,
+          "mismatch": 0,
           "done": true,
-          "tokens_off": 3,
+          "tokens_off": 0,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 90,
-          "mismatch": 0.1,
-          "done": false,
-          "tokens_off": 1,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         }
       },
       "iterations": 2,
-      "repairs": 2,
+      "repairs": 0,
       "mismatch_limit": 0.05
     },
+    "read_from": [
+      "https://www.coca-cola.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.coca-cola.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      }
+    ],
     "typography_evidence": {
       "heading": {
         "page": "https://www.coca-cola.com/us/en",
@@ -227,7 +285,6 @@
   },
   "palette": {
     "primary": "#ea0000",
-    "accent": "#ea0000",
     "ink": "#000000",
     "surface": "#eeeeee",
     "surface_alt": "#eeeeee",

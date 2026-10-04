@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www.bmw.com",
       "reason": "The site could not be opened: timed out."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: www.bmw.com (timeout), www.bmwgroup.com (not shown to be the brand's)."
   },
   "palette": {
     "primary": "#2B2B2B",

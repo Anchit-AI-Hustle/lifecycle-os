@@ -1,12 +1,35 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "knickgasm",
   "start": "https://knickgasm.com",
   "landed": "https://knickgasm.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:48:41.129Z",
+  "read_at": "2026-10-04T23:19:14.380Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://knickgasm.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://knickgasm.com/en-us"
+    }
+  ],
+  "design_read": {
+    "url": "https://knickgasm.com",
+    "role": "home",
+    "landed": "https://knickgasm.com/en-us"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -30,33 +53,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 56.7,
-    "mismatch": 0.4331,
+    "score": 92.5,
+    "mismatch": 0.0752,
     "surfaces": {
       "landing page": {
-        "score": 61.5,
-        "mismatch": 0.3854,
+        "score": 94.9,
+        "mismatch": 0.0512,
         "done": false,
-        "tokens_off": 5,
-        "regions_off": 1
+        "tokens_off": 3,
+        "regions_off": 0
       },
       "mailer": {
-        "score": 80,
-        "mismatch": 0.2,
+        "score": 90,
+        "mismatch": 0.1,
         "done": false,
-        "tokens_off": 14,
+        "tokens_off": 7,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 60,
-        "mismatch": 0.4,
+        "score": 70,
+        "mismatch": 0.3,
         "done": false,
-        "tokens_off": 4,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },
-    "iterations": 2,
-    "repairs": 1,
+    "iterations": 1,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -123,10 +146,40 @@
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "action",
+      "value": "#111111",
+      "score": 55,
+      "state": "chosen",
+      "page": "https://knickgasm.com/en-us"
+    },
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://knickgasm.com/en-us"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://knickgasm.com",
+      "logo": {
+        "kind": "img",
+        "verdict": "neutral",
+        "hex": "#000000"
+      },
+      "fonts": {
+        "heading": "Instrument Sans",
+        "body": "Instrument Sans"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": true,
   "palette": {
     "primary": "#111111",
-    "accent": "#111111",
     "ink": "#000000",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -148,14 +201,24 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://knickgasm.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
       }
     },
     "primary": {
       "value": "#111111",
       "exact": "#111111",
       "derived": false,
+      "kind": "action",
+      "strength": 55,
+      "score": 55,
       "from_role": "action",
-      "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome",
+      "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (its logo mark is #000000, also neutral)",
       "source": {
         "page": "https://knickgasm.com/en-us",
         "role": "primary call to action",
@@ -163,7 +226,21 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
-      }
+      },
+      "read_url": "https://knickgasm.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
+      },
+      "passed_over": [
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
     },
     "ink": {
       "value": "#000000",
@@ -176,6 +253,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://knickgasm.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
       }
     },
     "surface_alt": {
@@ -189,6 +273,13 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://knickgasm.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
       }
     },
     "muted": {
@@ -199,24 +290,31 @@
       "source": {
         "page": "https://knickgasm.com/en-us",
         "role": "secondary text",
-        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
+        "selector": "div#swiper-wrapper-f7de054d92ceb416 > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://knickgasm.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
       }
     },
     "accent": {
-      "value": "#111111",
+      "value": "",
       "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://knickgasm.com/en-us",
-        "role": "primary call to action",
-        "selector": "div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
+      "derived": false,
+      "absent": true,
+      "note": "The site renders no chromatic colour at all; this preset has no accent rather than one the site does not use.",
+      "read_url": "https://knickgasm.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "knickgasm.com"
       }
     },
     "line": {
@@ -276,19 +374,17 @@
       }
     }
   },
-  "palette_warnings": [
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_warnings": [],
   "typography": {
     "heading": {
       "family": "Instrument Sans",
       "stack": "'Instrument Sans',sans-serif",
-      "google": false,
+      "google": true,
       "weights": "500;600",
       "kind": "webfont",
-      "loadable": false,
+      "loadable": true,
       "weights_read": true,
-      "note": "Instrument Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts.",
       "signal": "computed font-family of the heading role",
       "source": {
         "page": "https://knickgasm.com/en-us",
@@ -302,12 +398,12 @@
     "body": {
       "family": "Instrument Sans",
       "stack": "'Instrument Sans',sans-serif",
-      "google": false,
+      "google": true,
       "weights": "500;600",
       "kind": "webfont",
-      "loadable": false,
+      "loadable": true,
       "weights_read": true,
-      "note": "Instrument Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "note": "Google Fonts family the site hosts itself; the app loads it from Google Fonts.",
       "signal": "computed font-family of the body copy role",
       "source": {
         "page": "https://knickgasm.com/en-us",
@@ -319,5 +415,5 @@
       }
     }
   },
-  "source": "Rendered https://knickgasm.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline). Headings Instrument Sans, body Instrument Sans, as rendered."
+  "source": "Rendered https://knickgasm.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (its logo mark is #000000, also neutral) (div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline). Headings Instrument Sans, body Instrument Sans, as rendered."
 }

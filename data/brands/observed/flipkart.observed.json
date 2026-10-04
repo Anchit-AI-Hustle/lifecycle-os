@@ -1,12 +1,53 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "flipkart",
   "start": "https://www.flipkart.com",
   "landed": "https://www.flipkart.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:50:02.495Z",
+  "read_at": "2026-10-04T23:20:37.664Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.flipkart.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.flipkart.com/"
+    },
+    {
+      "url": "https://stories.flipkart.com/",
+      "role": "identity source",
+      "what": "Flipkart Stories, the company's own news site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "stories.flipkart.com",
+        "registrable": "flipkart.com",
+        "website_host": "www.flipkart.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://stories.flipkart.com/"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.flipkart.com",
+    "role": "home",
+    "landed": "https://www.flipkart.com/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -122,11 +163,83 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://rukminim2.flixcart.com/fk-p-flap/1600/780/image/84f268d004c490c5.png?q=80",
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/920/448/image/c0b65ca665be6ebe.jpg?q=80",
       "role": "hero",
       "alt": "Image",
       "found_on": "https://www.flipkart.com/",
       "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "theme-color",
+      "value": "#56adff",
+      "score": 74,
+      "state": "chosen",
+      "page": "https://www.flipkart.com/"
+    },
+    {
+      "kind": "action",
+      "value": "#2a55e5",
+      "score": 55,
+      "state": "outranked",
+      "page": "https://www.flipkart.com/"
+    },
+    {
+      "kind": "icon",
+      "value": "#ffe70d",
+      "score": 56,
+      "state": "passed over",
+      "page": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png"
+    },
+    {
+      "kind": "icon",
+      "value": "#ffe70d",
+      "score": 56,
+      "state": "passed over",
+      "page": "https://stories.flipkart.com/apple-touch-icon.png"
+    },
+    {
+      "kind": "action",
+      "value": "#f4f5f5",
+      "score": 55,
+      "state": "passed over",
+      "page": "https://stories.flipkart.com/"
+    },
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://stories.flipkart.com/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.flipkart.com",
+      "logo": {
+        "kind": "text",
+        "verdict": "multicolour",
+        "hex": "#472d1e #5e4c33 #1e2945 #563f26"
+      },
+      "fonts": {
+        "heading": "inter_bold",
+        "body": "inter_regular"
+      },
+      "content_logos": 0
+    },
+    {
+      "url": "https://stories.flipkart.com/",
+      "logo": {
+        "kind": "img",
+        "verdict": "multicolour",
+        "hex": "#1642b9 #fedd14 #5071ca #8098d9 #c4cfed"
+      },
+      "fonts": {
+        "heading": "Inter",
+        "body": "rionaSans"
+      },
+      "content_logos": 0
     }
   ],
   "palette_ok": true,
@@ -154,12 +267,22 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.flipkart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
       }
     },
     "primary": {
       "value": "#56adff",
       "exact": "#56adff",
       "derived": false,
+      "kind": "theme-color",
+      "strength": 74,
+      "score": 74,
       "from_role": "identity",
       "signal": "meta theme-color",
       "source": {
@@ -169,7 +292,40 @@
         "viewport": "desktop",
         "property": "content",
         "signal": "computed"
-      }
+      },
+      "read_url": "https://www.flipkart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
+      },
+      "outranked": [
+        {
+          "value": "#2a55e5",
+          "kind": "action",
+          "signal": "the primary call to action, as rendered",
+          "score": 55,
+          "page": "https://www.flipkart.com/"
+        }
+      ],
+      "passed_over": [
+        {
+          "value": "#ffe70d",
+          "from": "site icon pixels (apple-touch-icon)",
+          "why": "1.26:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#f4f5f5",
+          "from": "the reader's accent",
+          "why": "1.09:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
     },
     "ink": {
       "value": "#333333",
@@ -184,6 +340,13 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://www.flipkart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
       }
     },
     "surface_alt": {
@@ -193,10 +356,17 @@
       "source": {
         "page": "https://www.flipkart.com/",
         "role": "product card",
-        "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+        "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(3) > div.css-g5y9jx > div > div",
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.flipkart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
       }
     },
     "muted": {
@@ -211,12 +381,22 @@
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
+      },
+      "read_url": "https://www.flipkart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
       }
     },
     "accent": {
       "value": "#2a55e5",
       "exact": "#2a55e5",
       "derived": false,
+      "kind": "action",
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered",
       "source": {
         "page": "https://www.flipkart.com/",
         "role": "primary call to action",
@@ -225,7 +405,13 @@
         "property": "background-color",
         "signal": "computed"
       },
-      "from_role": "action"
+      "read_url": "https://www.flipkart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.flipkart.com"
+      }
     },
     "line": {
       "value": "#e4e4e4",

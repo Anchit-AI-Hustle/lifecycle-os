@@ -18,7 +18,8 @@
       "at": "2026-10-04",
       "host": "www.loreal.com",
       "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: www.loreal.com (blocked), www.loreal.com (unavailable)."
   },
   "palette": {
     "primary": "#2B2B2B",

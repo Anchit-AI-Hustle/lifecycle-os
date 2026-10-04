@@ -1,12 +1,53 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "boat",
   "start": "https://www.boat-lifestyle.com",
   "landed": "https://www.boat-lifestyle.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:50:36.862Z",
+  "read_at": "2026-10-04T23:21:46.528Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.boat-lifestyle.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.boat-lifestyle.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.boat-lifestyle.com/"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/pages/about-us",
+      "role": "identity source",
+      "what": "boAt about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.boat-lifestyle.com",
+        "registrable": "boat-lifestyle.com",
+        "website_host": "www.boat-lifestyle.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "www.boat-lifestyle.com answered HTTP 404 for that address."
+    }
+  ],
+  "design_read": {
+    "url": "https://www.boat-lifestyle.com",
+    "role": "home",
+    "landed": "https://www.boat-lifestyle.com/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -33,37 +74,40 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 44.5,
-    "mismatch": 0.5549,
+    "score": 70.5,
+    "mismatch": 0.2947,
     "surfaces": {
       "landing page": {
-        "score": 48.1,
-        "mismatch": 0.5193,
+        "score": 74.4,
+        "mismatch": 0.2558,
         "done": false,
-        "tokens_off": 26,
-        "regions_off": 4
+        "tokens_off": 19,
+        "regions_off": 0
       },
       "mailer": {
-        "score": 57.1,
-        "mismatch": 0.4286,
+        "score": 50,
+        "mismatch": 0.5,
         "done": false,
-        "tokens_off": 30,
+        "tokens_off": 20,
         "regions_off": 0
       },
       "ad creative": {
         "score": 66.7,
         "mismatch": 0.3333,
         "done": false,
-        "tokens_off": 3,
+        "tokens_off": 1,
         "regions_off": 0
       }
     },
-    "iterations": 2,
-    "repairs": 4,
+    "iterations": 3,
+    "repairs": 0,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
-  "markers": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.boat-lifestyle.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, www.boat-lifestyle.com]"
+  ],
   "logo_url": "https://www.boat-lifestyle.com/cdn/shop/files/32x32_256x256.png_32x32_2d0995d9-ec86-4c14-b928-71101777194c_96x96.png?v=1647426716",
   "logo_signal": "the icon the page declares (link rel=shortcut icon)",
   "assets": [
@@ -124,6 +168,37 @@
       "signal": "image rendered on the page"
     }
   ],
+  "palette_candidates": [
+    {
+      "kind": "theme-color",
+      "value": "#ffffff",
+      "score": 74,
+      "state": "passed over",
+      "page": "https://www.boat-lifestyle.com/"
+    },
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://www.boat-lifestyle.com/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.boat-lifestyle.com",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#000000"
+      },
+      "fonts": {
+        "heading": "Metropolis",
+        "body": "Metropolis"
+      },
+      "content_logos": 0
+    }
+  ],
   "palette_ok": false,
   "palette": null,
   "palette_evidence": {
@@ -138,25 +213,27 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.boat-lifestyle.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.boat-lifestyle.com"
       }
     },
     "primary": {
       "value": "",
       "passed_over": [
         {
-          "value": "#ecf0f4",
-          "from": "the reader's primary",
-          "why": "1.15:1 against the page, a tint of the page that cannot carry buttons or bands"
-        },
-        {
           "value": "#ffffff",
-          "from": "the header background",
+          "from": "meta theme-color",
           "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
         }
       ]
     }
   },
-  "palette_reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#ffffff from meta theme-color: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
   "typography": {
     "heading": {
       "family": "Metropolis",
@@ -201,7 +278,7 @@
     "renderer": "rendered",
     "at": "2026-10-04",
     "host": "www.boat-lifestyle.com",
-    "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+    "reason": "the rendered site shows no brand colour a preset can use (#ffffff from meta theme-color: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
   },
-  "note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
+  "note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ffffff from meta theme-color: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

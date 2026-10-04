@@ -1,24 +1,438 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "netflix",
   "start": "https://www.netflix.com",
-  "landed": "https://www.netflix.com",
+  "landed": "https://brand.netflix.com/en/",
   "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T23:26:52.573Z",
   "renderer": "timeout",
   "reason": "The site could not be opened: timed out.",
-  "read_attempt": {
+  "reads": [
+    {
+      "url": "https://www.netflix.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.netflix.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://brand.netflix.com/en/",
+      "role": "identity source",
+      "what": "Netflix brand site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "brand.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://brand.netflix.com/en/"
+    },
+    {
+      "url": "https://about.netflix.com/en",
+      "role": "identity source",
+      "what": "About Netflix",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "about.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://about.netflix.com/en"
+    }
+  ],
+  "design_read": {
+    "url": "https://brand.netflix.com/en/",
+    "role": "identity source",
+    "landed": "https://brand.netflix.com/en/"
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://brand.netflix.com/en/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, brand.netflix.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, brand.netflix.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: header bar, brand.netflix.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: footer, brand.netflix.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, brand.netflix.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), brand.netflix.com]"
+  ],
+  "logo_url": "https://brand.netflix.com/favicon.ico",
+  "logo_signal": "the icon the page declares (link rel=shortcut icon)",
+  "assets": [
+    {
+      "url": "https://brand.netflix.com/favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://brand.netflix.com/en/",
+      "signal": "the icon the page declares (link rel=shortcut icon)"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "icon",
+      "value": "#b1060f",
+      "score": 56,
+      "state": "outranked",
+      "page": "https://brand.netflix.com/favicon.ico"
+    },
+    {
+      "kind": "theme-color",
+      "value": "#000000",
+      "score": 74,
+      "state": "passed over",
+      "page": "https://brand.netflix.com/en/"
+    },
+    {
+      "kind": "manifest-theme",
+      "value": "#000000",
+      "score": 72,
+      "state": "passed over",
+      "page": "https://brand.netflix.com/manifest.json"
+    },
+    {
+      "kind": "manifest-background",
+      "value": "#ffffff",
+      "score": 40,
+      "state": "passed over",
+      "page": "https://brand.netflix.com/manifest.json"
+    },
+    {
+      "kind": "logo-image",
+      "value": "#e50914",
+      "score": 128,
+      "state": "chosen",
+      "page": "https://about.netflix.com/en"
+    },
+    {
+      "kind": "action",
+      "value": "#e50914",
+      "score": 67,
+      "state": "outranked",
+      "page": "https://about.netflix.com/en"
+    },
+    {
+      "kind": "header",
+      "value": "#000000",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://about.netflix.com/en"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://brand.netflix.com/en/",
+      "logo": {
+        "kind": "css",
+        "verdict": "multicolour",
+        "hex": "#b0060f #e40914 #2d4b87 #881325 #8b020d"
+      },
+      "fonts": {
+        "heading": "Netflix Sans",
+        "body": ""
+      },
+      "content_logos": 0
+    },
+    {
+      "url": "https://about.netflix.com/en",
+      "logo": {
+        "kind": "img",
+        "verdict": "colour",
+        "hex": "#e50914"
+      },
+      "fonts": {
+        "heading": "NetflixSansMedium",
+        "body": "NetflixSansLight"
+      },
+      "content_logos": 0
+    }
+  ],
+  "home_attempt": {
     "renderer": "timeout",
     "at": "2026-10-04",
     "host": "www.netflix.com",
     "reason": "The site could not be opened: timed out."
   },
-  "reader": {
-    "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+  "palette_ok": true,
+  "palette": {
+    "primary": "#e50914",
+    "ink": "#670409",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#670409",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
   },
-  "note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#000000",
+      "derived": true,
+      "note": "DERIVED: the site paints its page #000000, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
+      "source": {
+        "page": "https://brand.netflix.com/en/",
+        "role": "page ground",
+        "selector": "body",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://brand.netflix.com/en/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "brand.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      }
+    },
+    "primary": {
+      "value": "#e50914",
+      "exact": "#e50914",
+      "derived": false,
+      "kind": "logo-image",
+      "strength": 116,
+      "score": 128,
+      "from_role": "identity",
+      "signal": "logo pixels as rendered (76% of its coloured pixels)",
+      "source": {
+        "page": "https://about.netflix.com/en",
+        "role": "logo",
+        "selector": "nav.ckFQvh:nth-of-type(1) > nav.biOMIy > div.eiMvAw:nth-of-type(1) > a.link__StyledAnchor-sc-c174240f-0.erTzER > img.gWgyCG",
+        "viewport": "desktop",
+        "property": "pixels",
+        "signal": "computed"
+      },
+      "read_url": "https://about.netflix.com/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "about.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      },
+      "corroborated_by": [
+        {
+          "kind": "action",
+          "value": "#e50914",
+          "signal": "the primary call to action, as rendered",
+          "page": "https://about.netflix.com/en"
+        }
+      ],
+      "outranked": [
+        {
+          "value": "#b1060f",
+          "kind": "icon",
+          "signal": "site icon pixels (shortcut icon)",
+          "score": 56,
+          "page": "https://brand.netflix.com/favicon.ico"
+        }
+      ],
+      "passed_over": [
+        {
+          "value": "#000000",
+          "from": "meta theme-color",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#ffffff",
+          "from": "web app manifest background_color",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    },
+    "ink": {
+      "value": "#670409",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED from #e50914: the read found no text colour that reads on #ffffff, so the primary is darkened until it does (13.14:1).",
+      "source": {
+        "page": "https://about.netflix.com/en",
+        "role": "logo",
+        "selector": "nav.ckFQvh:nth-of-type(1) > nav.biOMIy > div.eiMvAw:nth-of-type(1) > a.link__StyledAnchor-sc-c174240f-0.erTzER > img.gWgyCG",
+        "viewport": "desktop",
+        "property": "pixels",
+        "signal": "computed"
+      },
+      "read_url": "https://about.netflix.com/en",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "about.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "https://brand.netflix.com/en/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "brand.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      }
+    },
+    "muted": {
+      "value": "#670409",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "https://brand.netflix.com/en/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "brand.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      }
+    },
+    "accent": {
+      "value": "",
+      "exact": "",
+      "derived": false,
+      "absent": true,
+      "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+      "read_url": "https://brand.netflix.com/en/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "brand.netflix.com",
+        "registrable": "netflix.com",
+        "website_host": "www.netflix.com"
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [],
+  "typography": null,
+  "source": "www.netflix.com refused an automated read (timeout); read the brand's own https://brand.netflix.com/en/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #e50914 from logo pixels as rendered (76% of its coloured pixels) (nav.ckFQvh:nth-of-type(1) > nav.biOMIy > div.eiMvAw:nth-of-type(1) > a.link__StyledAnchor-sc-c174240f-0.erTzER > img.gWgyCG) on https://about.netflix.com/en. Agreed by action."
 }

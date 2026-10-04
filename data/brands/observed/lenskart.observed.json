@@ -1,12 +1,53 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "lenskart",
   "start": "https://www.lenskart.com",
   "landed": "https://www.lenskart.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:50:43.793Z",
+  "read_at": "2026-10-04T23:22:28.746Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.lenskart.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.lenskart.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.lenskart.com/en-us"
+    },
+    {
+      "url": "https://www.lenskart.com/about-us",
+      "role": "identity source",
+      "what": "Lenskart about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.lenskart.com",
+        "registrable": "lenskart.com",
+        "website_host": "www.lenskart.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "www.lenskart.com answered HTTP 404 for that address."
+    }
+  ],
+  "design_read": {
+    "url": "https://www.lenskart.com",
+    "role": "home",
+    "landed": "https://www.lenskart.com/en-us"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
@@ -37,8 +78,8 @@
   "regression": {
     "ok": true,
     "done": true,
-    "score": 98.8,
-    "mismatch": 0.0125,
+    "score": 98.7,
+    "mismatch": 0.0135,
     "surfaces": {
       "landing page": {
         "score": 100,
@@ -48,8 +89,8 @@
         "regions_off": 0
       },
       "mailer": {
-        "score": 96.4,
-        "mismatch": 0.0357,
+        "score": 95.8,
+        "mismatch": 0.0417,
         "done": true,
         "tokens_off": 1,
         "regions_off": 0
@@ -135,19 +176,32 @@
       "signal": "image rendered on the page"
     }
   ],
-  "palette_ok": true,
-  "palette": {
-    "primary": "#4d4d4d",
-    "accent": "#4d4d4d",
-    "ink": "#000042",
-    "surface": "#ffffff",
-    "surface_alt": "#ffffff",
-    "muted": "#000042",
-    "line": "#e4e4e4",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
-  },
+  "palette_candidates": [
+    {
+      "kind": "header",
+      "value": "#4d4d4d",
+      "score": 58,
+      "state": "neutral",
+      "page": "https://www.lenskart.com/en-us"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.lenskart.com",
+      "logo": {
+        "kind": "img",
+        "verdict": "neutral",
+        "hex": "#151515"
+      },
+      "fonts": {
+        "heading": "__Plus_Jakarta_Sans_7aabe8",
+        "body": ""
+      },
+      "content_logos": 0
+    }
+  ],
+  "palette_ok": false,
+  "palette": null,
   "palette_evidence": {
     "surface": {
       "value": "#ffffff",
@@ -160,140 +214,27 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.lenskart.com",
+      "read_role": "home",
+      "observed_at": "2026-10-04",
+      "owned": {
+        "how": "website",
+        "host": "www.lenskart.com"
       }
     },
     "primary": {
-      "value": "#4d4d4d",
-      "exact": "#4d4d4d",
-      "derived": false,
-      "from_role": "identity",
-      "signal": "header background as rendered; the site renders no other colour that reads on its page",
-      "source": {
-        "page": "https://www.lenskart.com/en-us",
-        "role": "header",
-        "selector": "div#header > nav.sc-d63abe48-1.lfbqwn",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
-    "ink": {
-      "value": "#000042",
-      "exact": "",
-      "derived": true,
-      "from_role": "display heading",
-      "note": "The read found no body copy; the display heading text the site renders (#000042) is the ink.",
-      "source": {
-        "page": "https://www.lenskart.com/en-us",
-        "role": "display heading",
-        "selector": "div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
-      }
-    },
-    "surface_alt": {
-      "value": "#ffffff",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
-      }
-    },
-    "muted": {
-      "value": "#000042",
-      "exact": "",
-      "derived": true,
-      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": ""
-      }
-    },
-    "accent": {
-      "value": "#4d4d4d",
-      "exact": "",
-      "derived": true,
-      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
-      "source": {
-        "page": "https://www.lenskart.com/en-us",
-        "role": "header",
-        "selector": "div#header > nav.sc-d63abe48-1.lfbqwn",
-        "viewport": "desktop",
-        "property": "background-color",
-        "signal": "computed"
-      }
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "warn": {
-      "value": "#c9a227",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
-    },
-    "err": {
-      "value": "#c0392b",
-      "exact": "",
-      "derived": false,
-      "note": "functional token shared by every preset, not a colour read from this brand",
-      "source": {
-        "page": "",
-        "role": "",
-        "selector": "",
-        "viewport": "",
-        "property": "",
-        "signal": "functional"
-      }
+      "value": "",
+      "passed_over": []
     }
   },
-  "palette_warnings": [
-    "Primary and accent are nearly the same tone; the two will not read as distinct."
-  ],
+  "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
   "typography": null,
-  "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no other colour that reads on its page (div#header > nav.sc-d63abe48-1.lfbqwn)."
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "www.lenskart.com",
+    "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+  },
+  "note": "www.lenskart.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. The preset stays on the neutral default."
 }

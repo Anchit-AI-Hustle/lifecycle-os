@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "sony",
@@ -20,5 +20,52 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.sony.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.sony.com blocked an automated read on 2026-10-04. Its own other material was tried too: electronics.sony.com (blocked), www.sony.net (not shown to be the brand's). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.sony.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.sony.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://electronics.sony.com/",
+      "role": "identity source",
+      "what": "Sony Electronics store front",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "electronics.sony.com",
+        "registrable": "sony.com",
+        "website_host": "www.sony.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "electronics.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.sony.net/",
+      "role": "identity source",
+      "what": "Sony Group global portal (linked from sony.com)",
+      "kind": "page",
+      "owned": null,
+      "at": "2026-10-04",
+      "attempts": 0,
+      "renderer": "refused",
+      "ok": false,
+      "reason": "www.sony.net is not under sony.com, and no page read on sony.com links to it, so it is not shown to be the brand's own"
+    }
+  ]
 }

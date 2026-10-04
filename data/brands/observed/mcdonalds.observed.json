@@ -1,5 +1,5 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "mcdonalds",
@@ -20,5 +20,58 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.mcdonalds.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.mcdonalds.com blocked an automated read on 2026-10-04. Its own other material was tried too: corporate.mcdonalds.com (blocked), corporate.mcdonalds.com (blocked). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.mcdonalds.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.mcdonalds.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html",
+      "role": "identity source",
+      "what": "McDonald's media assets: logos",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "corporate.mcdonalds.com",
+        "registrable": "mcdonalds.com",
+        "website_host": "www.mcdonalds.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "corporate.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
+      "role": "identity source",
+      "what": "McDonald's corporate site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "corporate.mcdonalds.com",
+        "registrable": "mcdonalds.com",
+        "website_host": "www.mcdonalds.com"
+      },
+      "at": "2026-10-04",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "corporate.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    }
+  ]
 }

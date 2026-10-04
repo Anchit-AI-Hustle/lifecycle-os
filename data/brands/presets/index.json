@@ -346,40 +346,38 @@
       "label": "Nike",
       "sector": "Sportswear",
       "blurb": "Global sportswear. Template for a drop-led lifecycle: launch, restock and franchise anniversaries.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.nike.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-04",
+      "source": "www.nike.com refused an automated read (blocked); read the brand's own https://about.nike.com/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div.css-1g29ua3:nth-of-type(2) > div.css-1ncvbdy > ul.css-1ael3wi > li.css-1swgu3s:nth-of-type(1) > a.css-lpu0nl-f-ui-3). Headings FuturaNike, body Helvetica Neue, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
         "#111111",
-        "#FFFFFF"
+        "#111111",
+        "#333333",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#111111",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#333333",
+          "derived": true,
+          "exact": "#808080"
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "about.nike.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -393,22 +391,17 @@
           "what": "Nike newsroom"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_font": "FuturaNike",
+      "body_font": "Helvetica Neue",
+      "heading_stack": "'FuturaNike','FuturaNike',sans-serif",
+      "body_stack": "'Helvetica Neue','Helvetica Neue','Helvetica',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.nike.com",
-        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
-      },
-      "read_note": "www.nike.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "FuturaNike (brand font, shown in fallback)",
+      "body_line": "Helvetica Neue (system font)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -483,12 +476,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "timeout",
+        "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.adidas.com",
-        "reason": "The site could not be opened: timed out."
+        "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.adidas.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.adidas.com (blocked), www.adidas-group.com (not shown to be the brand's).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -509,7 +502,7 @@
       "sector": "Sportswear",
       "blurb": "Sportswear. Template for sponsorship-led and event-led pushes.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)).",
+      "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (its logo mark is #ffffff, also neutral) (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)) on https://www.puma.com.",
       "palette_source": "verified",
       "typography_source": "default",
       "needs_extraction": false,
@@ -526,12 +519,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#191919",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -543,7 +530,9 @@
           "exact": ""
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.puma.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -566,33 +555,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 66,
-        "mismatch": 0.3404,
+        "score": 85,
+        "mismatch": 0.15,
         "surfaces": {
           "landing page": {
-            "score": 66.9,
-            "mismatch": 0.3311,
+            "score": 85,
+            "mismatch": 0.15,
             "done": false,
-            "tokens_off": 2,
-            "regions_off": 4
+            "tokens_off": 0,
+            "regions_off": 2
           },
           "mailer": {
-            "score": 94.1,
-            "mismatch": 0.0588,
-            "done": false,
-            "tokens_off": 3,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 87.5,
-            "mismatch": 0.125,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 2,
-        "repairs": 4,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -612,40 +601,43 @@
       "label": "New Balance",
       "sector": "Sportswear",
       "blurb": "Footwear. Template for a width and fit driven catalogue with long-running silhouettes.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.newbalance.com.",
-      "palette_source": "default",
+      "verified_at": "2026-10-04",
+      "source": "www.newbalance.com refused an automated read (blocked); read the brand's own https://jobs.newbalance.com/global/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #d02030 from logo pixels as rendered (84% of its coloured pixels) (div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo). Agreed by token, icon.",
+      "palette_source": "verified",
       "typography_source": "default",
-      "needs_extraction": true,
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#d02030",
+        "#008000",
+        "#681018",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#d02030",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#008000",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#681018",
+          "derived": true,
+          "exact": ""
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "jobs.newbalance.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -667,14 +659,9 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.newbalance.com",
-        "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-      },
-      "read_note": "www.newbalance.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -754,7 +741,7 @@
         "host": "www.zara.com",
         "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.zara.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.zara.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.zara.com (blocked), www.zara.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -840,7 +827,7 @@
         "host": "www2.hm.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04. Its own other material was tried too: www2.hm.com (timeout), career.hm.com (blocked), hmgroup.com (not shown to be the brand's).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -921,7 +908,7 @@
         "host": "www.uniqlo.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04. Its own other material was tried too: www.uniqlo.com (timeout), www.uniqlo.com (timeout).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1002,7 +989,7 @@
         "host": "www.levi.com",
         "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.levi.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.levi.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.levi.com (blocked), www.levistrauss.com (not shown to be the brand's).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1078,12 +1065,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "blocked",
+        "renderer": "rendered",
         "at": "2026-10-04",
-        "host": "www.myntra.com",
-        "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
+        "host": "jobs.myntra.com",
+        "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
-      "read_note": "www.myntra.com blocked an automated read on 2026-10-04.",
+      "read_note": "jobs.myntra.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. Its own other material was tried too: jobs.myntra.com (rendered), www.myntra.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1138,7 +1125,9 @@
           "exact": "#ffffff"
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.flipkart.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -1264,7 +1253,7 @@
         "host": "www.amazon.com",
         "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
-      "read_note": "www.amazon.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+      "read_note": "www.amazon.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. Its own other material was tried too: www.aboutamazon.com (not shown to be the brand's).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1286,13 +1275,13 @@
       "sector": "Beauty",
       "blurb": "Beauty retail. Template for a replenishment and shade-led catalogue.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.nykaa.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #fc2779 from logo mark fill as rendered (div#headerMenu > a.logo.css-kus7g9 > svg). Headings Inter, body Inter, as rendered.",
+      "source": "Rendered https://www.nykaa.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #fc2779 from logo mark paint as rendered (100% of its coloured area) (div#headerMenu > a.logo.css-kus7g9 > svg). Headings Inter, body Inter, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
         "#fc2779",
-        "#e80071",
+        "#fc2779",
         "#001325",
         "#f3f3f3"
       ],
@@ -1300,11 +1289,6 @@
         {
           "role": "primary",
           "value": "#fc2779",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#e80071",
           "derived": false
         },
         {
@@ -1318,50 +1302,52 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.nykaa.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "Inter",
       "body_font": "Inter",
       "heading_stack": "'Inter','Roboto','Arial',sans-serif",
       "body_stack": "'Inter','Inter',sans-serif",
-      "heading_google": false,
-      "body_google": false,
-      "heading_line": "Inter (brand font, shown in fallback)",
-      "body_line": "Inter (brand font, shown in fallback)",
+      "heading_google": true,
+      "body_google": true,
+      "heading_line": "Inter",
+      "body_line": "Inter",
       "read_attempt": null,
       "read_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
         "done": false,
-        "score": 47.3,
-        "mismatch": 0.5269,
+        "score": 78.3,
+        "mismatch": 0.2171,
         "surfaces": {
           "landing page": {
-            "score": 51.6,
-            "mismatch": 0.4836,
+            "score": 74.8,
+            "mismatch": 0.2516,
             "done": false,
-            "tokens_off": 16,
-            "regions_off": 4
+            "tokens_off": 9,
+            "regions_off": 2
           },
           "mailer": {
-            "score": 63.5,
-            "mismatch": 0.3649,
-            "done": false,
-            "tokens_off": 27,
-            "regions_off": 0
-          },
-          "ad creative": {
-            "score": 60,
-            "mismatch": 0.4,
+            "score": 94.6,
+            "mismatch": 0.0541,
             "done": false,
             "tokens_off": 4,
             "regions_off": 0
+          },
+          "ad creative": {
+            "score": 90,
+            "mismatch": 0.1,
+            "done": false,
+            "tokens_off": 1,
+            "regions_off": 0
           }
         },
-        "iterations": 2,
-        "repairs": 4,
+        "iterations": 3,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -1437,12 +1423,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "blocked",
+        "renderer": "rendered",
         "at": "2026-10-04",
-        "host": "www.sephora.com",
-        "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+        "host": "newsroom.sephora.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www.sephora.com blocked an automated read on 2026-10-04.",
+      "read_note": "newsroom.sephora.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: newsroom.sephora.com (rendered), www.sephora.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1524,7 +1510,7 @@
         "host": "www.loreal.com",
         "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
       },
-      "read_note": "www.loreal.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.loreal.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.loreal.com (blocked), www.loreal.com (unavailable).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1562,12 +1548,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#00aeef",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -1578,38 +1558,40 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "mamaearth.in"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "Open Sans",
       "body_font": "Open Sans",
       "heading_stack": "'Open Sans',sans-serif",
       "body_stack": "'Open Sans',sans-serif",
-      "heading_google": false,
-      "body_google": false,
-      "heading_line": "Open Sans (brand font, shown in fallback)",
-      "body_line": "Open Sans (brand font, shown in fallback)",
+      "heading_google": true,
+      "body_google": true,
+      "heading_line": "Open Sans",
+      "body_line": "Open Sans",
       "read_attempt": null,
       "read_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
         "done": false,
-        "score": 61.1,
-        "mismatch": 0.3887,
+        "score": 68.2,
+        "mismatch": 0.3177,
         "surfaces": {
           "landing page": {
-            "score": 59.6,
-            "mismatch": 0.4041,
+            "score": 67.2,
+            "mismatch": 0.3277,
             "done": false,
             "tokens_off": 11,
-            "regions_off": 4
+            "regions_off": 3
           },
           "mailer": {
-            "score": 89.7,
-            "mismatch": 0.1029,
+            "score": 88.2,
+            "mismatch": 0.1176,
             "done": false,
-            "tokens_off": 7,
+            "tokens_off": 8,
             "regions_off": 0
           },
           "ad creative": {
@@ -1621,7 +1603,7 @@
           }
         },
         "iterations": 3,
-        "repairs": 11,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -1695,9 +1677,9 @@
         "renderer": "rendered",
         "at": "2026-10-04",
         "host": "www.boat-lifestyle.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+        "reason": "the rendered site shows no brand colour a preset can use (#ffffff from meta theme-color: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "read_note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ffffff from meta theme-color: 1:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: www.boat-lifestyle.com (unavailable).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1717,113 +1699,8 @@
       "label": "Lenskart",
       "sector": "Eyewear",
       "blurb": "Eyewear. Template for a prescription-led purchase with a long repeat cycle.",
-      "verified_at": "2026-10-04",
-      "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no other colour that reads on its page (div#header > nav.sc-d63abe48-1.lfbqwn).",
-      "palette_source": "verified",
-      "typography_source": "default",
-      "needs_extraction": false,
-      "swatch": [
-        "#4d4d4d",
-        "#4d4d4d",
-        "#000042",
-        "#ffffff"
-      ],
-      "swatches": [
-        {
-          "role": "primary",
-          "value": "#4d4d4d",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#4d4d4d",
-          "derived": true,
-          "exact": ""
-        },
-        {
-          "role": "surface",
-          "value": "#ffffff",
-          "derived": false
-        },
-        {
-          "role": "ink",
-          "value": "#000042",
-          "derived": true,
-          "exact": ""
-        }
-      ],
-      "read_from": [],
-      "hand_verified": false,
-      "identity_sources": [
-        {
-          "url": "https://www.lenskart.com/about-us",
-          "kind": "page",
-          "what": "Lenskart about page"
-        }
-      ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "heading_google": false,
-      "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": null,
-      "read_note": "",
-      "renderer": "rendered",
-      "regression": {
-        "ok": true,
-        "done": true,
-        "score": 98.8,
-        "mismatch": 0.0125,
-        "surfaces": {
-          "landing page": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
-            "regions_off": 0
-          },
-          "mailer": {
-            "score": 96.4,
-            "mismatch": 0.0357,
-            "done": true,
-            "tokens_off": 1,
-            "regions_off": 0
-          },
-          "ad creative": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
-            "regions_off": 0
-          }
-        },
-        "iterations": 1,
-        "repairs": 0,
-        "mismatch_limit": 0.05
-      },
-      "has_catalog": false,
-      "catalog_kind": "placeholder",
-      "placeholder_products": 16,
-      "offering_kinds": [
-        "product",
-        "service"
-      ],
-      "offering_count": 0
-    },
-    {
-      "slug": "samsung",
-      "name": "Samsung",
-      "tagline": "",
-      "industry": "Consumer technology",
-      "website": "https://www.samsung.com",
-      "label": "Samsung",
-      "sector": "Consumer technology",
-      "blurb": "Consumer electronics. Template for a flagship launch plus trade-in programme.",
       "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.samsung.com.",
+      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.lenskart.com.",
       "palette_source": "default",
       "typography_source": "default",
       "needs_extraction": true,
@@ -1859,14 +1736,9 @@
       "hand_verified": false,
       "identity_sources": [
         {
-          "url": "https://www.samsung.com/be/about-us/brand-identity/logo/",
+          "url": "https://www.lenskart.com/about-us",
           "kind": "page",
-          "what": "Samsung brand identity: logo"
-        },
-        {
-          "url": "https://news.samsung.com/global/",
-          "kind": "page",
-          "what": "Samsung Newsroom"
+          "what": "Lenskart about page"
         }
       ],
       "heading_font": "system-ui",
@@ -1880,12 +1752,117 @@
       "read_attempt": {
         "renderer": "rendered",
         "at": "2026-10-04",
-        "host": "www.samsung.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
+        "host": "www.lenskart.com",
+        "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
-      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)).",
+      "read_note": "www.lenskart.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. Its own other material was tried too: www.lenskart.com (unavailable).",
       "renderer": null,
       "regression": null,
+      "has_catalog": false,
+      "catalog_kind": "placeholder",
+      "placeholder_products": 16,
+      "offering_kinds": [
+        "product",
+        "service"
+      ],
+      "offering_count": 0
+    },
+    {
+      "slug": "samsung",
+      "name": "Samsung",
+      "tagline": "",
+      "industry": "Consumer technology",
+      "website": "https://www.samsung.com",
+      "label": "Samsung",
+      "sector": "Consumer technology",
+      "blurb": "Consumer electronics. Template for a flagship launch plus trade-in programme.",
+      "verified_at": "2026-10-04",
+      "source": "Rendered https://www.samsung.com/us/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #1429a0 from the brand's logo shown on its own page (\"In een grijze rechthoek staat een Samsung-lettermerk in de kleur Samsu\") (div.st-feature-benefit.padding-top--0 > div.st-feature-benefit__wrap > div.st-feature-benefit__img-wrap.st-feature-benefit--video-autoplay:nth-of-type(2) > div.image.image--dyn-height > img.image__main.responsive-img:nth-of-type(2)). Headings SamsungOne, body SamsungOne, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
+      "swatch": [
+        "#1429a0",
+        "#1429a0",
+        "#000000",
+        "#ffffff"
+      ],
+      "swatches": [
+        {
+          "role": "primary",
+          "value": "#1429a0",
+          "derived": false
+        },
+        {
+          "role": "surface",
+          "value": "#ffffff",
+          "derived": false
+        },
+        {
+          "role": "ink",
+          "value": "#000000",
+          "derived": false
+        }
+      ],
+      "read_from": [
+        "www.samsung.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.samsung.com/be/about-us/brand-identity/logo/",
+          "kind": "page",
+          "what": "Samsung brand identity: logo"
+        },
+        {
+          "url": "https://news.samsung.com/global/",
+          "kind": "page",
+          "what": "Samsung Newsroom"
+        }
+      ],
+      "heading_font": "SamsungOne",
+      "body_font": "SamsungOne",
+      "heading_stack": "'SamsungOne','arial',sans-serif",
+      "body_stack": "'SamsungOne','arial',sans-serif",
+      "heading_google": false,
+      "body_google": false,
+      "heading_line": "SamsungOne (brand font, shown in fallback)",
+      "body_line": "SamsungOne (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": "rendered",
+      "regression": {
+        "ok": true,
+        "done": false,
+        "score": 78.9,
+        "mismatch": 0.2109,
+        "surfaces": {
+          "landing page": {
+            "score": 80.5,
+            "mismatch": 0.1952,
+            "done": false,
+            "tokens_off": 4,
+            "regions_off": 2
+          },
+          "mailer": {
+            "score": 89.6,
+            "mismatch": 0.1045,
+            "done": false,
+            "tokens_off": 7,
+            "regions_off": 0
+          },
+          "ad creative": {
+            "score": 88.9,
+            "mismatch": 0.1111,
+            "done": false,
+            "tokens_off": 1,
+            "regions_off": 0
+          }
+        },
+        "iterations": 2,
+        "repairs": 0,
+        "mismatch_limit": 0.05
+      },
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 8,
@@ -1904,7 +1881,7 @@
       "sector": "Software",
       "blurb": "Software and devices. Template for a seat-based subscription lifecycle.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #0078d4 from the primary call to action, as rendered (store-button#action-occ033 > a). Headings segoeui, body segoeui, as rendered.",
+      "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #0078d4 from the primary call to action, as rendered: the only brand colour this site renders (store-button#action-occ033 > a). Headings segoeui, body segoeui, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
@@ -1921,12 +1898,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#0078d4",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -1937,7 +1908,9 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.microsoft.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "segoeui",
@@ -1953,22 +1926,22 @@
       "renderer": "rendered",
       "regression": {
         "ok": true,
-        "done": true,
-        "score": 98,
-        "mismatch": 0.0201,
+        "done": false,
+        "score": 69,
+        "mismatch": 0.3102,
         "surfaces": {
           "landing page": {
-            "score": 96.9,
-            "mismatch": 0.0308,
-            "done": true,
+            "score": 67.8,
+            "mismatch": 0.3215,
+            "done": false,
             "tokens_off": 2,
-            "regions_off": 0
+            "regions_off": 2
           },
           "mailer": {
-            "score": 98.6,
-            "mismatch": 0.0135,
+            "score": 100,
+            "mismatch": 0,
             "done": true,
-            "tokens_off": 1,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
@@ -1979,8 +1952,8 @@
             "regions_off": 0
           }
         },
-        "iterations": 1,
-        "repairs": 0,
+        "iterations": 2,
+        "repairs": 2,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2062,7 +2035,7 @@
         "host": "www.sony.com",
         "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.sony.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.sony.com blocked an automated read on 2026-10-04. Its own other material was tried too: electronics.sony.com (blocked), www.sony.net (not shown to be the brand's).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2143,7 +2116,7 @@
         "host": "www.tesla.com",
         "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.tesla.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.tesla.com blocked an automated read on 2026-10-04. Its own other material was tried too: ir.tesla.com (blocked), shop.tesla.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2225,7 +2198,7 @@
         "host": "www.bmw.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04. Its own other material was tried too: www.bmw.com (timeout), www.bmwgroup.com (not shown to be the brand's).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2246,40 +2219,37 @@
       "label": "Toyota",
       "sector": "Automotive",
       "blurb": "Automotive. Template for a model-year calendar plus after-sales servicing.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.toyota.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-04",
+      "source": "www.toyota.com refused an automated read (blocked); read the brand's own https://brand.toyota.com/guidelines/visual/brand-colors in Chromium 153.0.8010.12 on 2026-10-04. Primary #eb0a1e from logo pixels as rendered (92% of its coloured pixels) (nav.component-track-input.aa-brandhub-header > div.tmna-nav-container-fluid.container-fluid > div.header__top:nth-of-type(1) > a.tmna-nav-brand.navbar-brand > img.tmna-nav-brand-logo.brand-logo:nth-of-type(1)). Agreed by icon, action. Headings toyotaType-Book, body toyotaType-Book, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#eb0a1e",
+        "#eb0a1e",
+        "#000000",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#eb0a1e",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
+          "value": "#000000",
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "brand.toyota.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -2293,22 +2263,17 @@
           "what": "Toyota newsroom"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_font": "toyotaType-Book",
+      "body_font": "toyotaType-Book",
+      "heading_stack": "'toyotaType-Book','Arial',sans-serif",
+      "body_stack": "'toyotaType-Book','Arial',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.toyota.com",
-        "reason": "www.toyota.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"New Cars, Trucks, SUVs & Hybrids | Toyota Official Site\"). Nothing was read from it."
-      },
-      "read_note": "www.toyota.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "toyotaType-Book (brand font, shown in fallback)",
+      "body_line": "toyotaType-Book (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -2329,27 +2294,26 @@
       "sector": "Food and beverage",
       "blurb": "Coffee retail. Template for a rewards programme and a seasonal menu calendar.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.starbucks.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #006341 from meta theme-color (meta[name=theme-color]). Headings SoDoSans, body SoDoSans, as rendered.",
+      "source": "Rendered https://www.starbucks.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #006241 from logo mark paint as rendered (100% of its coloured area) (div.flex > div.sb-globalNav__logoContainer:nth-of-type(1) > div.sb-globalNav__logo.mr3 > a.block > svg). Agreed by theme-color. Headings SoDoSans, body SoDoSans, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
-        "#006341",
-        "#006341",
+        "#006241",
+        "#008046",
         "#212121",
         "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#006341",
+          "value": "#006241",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#006341",
-          "derived": true,
-          "exact": "#008248"
+          "value": "#008046",
+          "derived": false
         },
         {
           "role": "surface",
@@ -2363,7 +2327,9 @@
           "exact": "#ffffff"
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.starbucks.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "SoDoSans",
@@ -2380,33 +2346,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 54.6,
-        "mismatch": 0.4539,
+        "score": 87.4,
+        "mismatch": 0.1261,
         "surfaces": {
           "landing page": {
-            "score": 57.6,
-            "mismatch": 0.4242,
+            "score": 89.1,
+            "mismatch": 0.1089,
             "done": false,
-            "tokens_off": 11,
-            "regions_off": 3
+            "tokens_off": 3,
+            "regions_off": 1
           },
           "mailer": {
-            "score": 75.4,
-            "mismatch": 0.2464,
+            "score": 89.2,
+            "mismatch": 0.1077,
             "done": false,
-            "tokens_off": 17,
+            "tokens_off": 7,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 70,
-            "mismatch": 0.3,
-            "done": false,
-            "tokens_off": 3,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
-        "iterations": 3,
-        "repairs": 4,
+        "iterations": 2,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2488,7 +2454,7 @@
         "host": "www.mcdonalds.com",
         "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.mcdonalds.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.mcdonalds.com blocked an automated read on 2026-10-04. Its own other material was tried too: corporate.mcdonalds.com (blocked), corporate.mcdonalds.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2527,12 +2493,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#ea0000",
-          "derived": true,
-          "exact": "#ffffff"
-        },
-        {
           "role": "surface",
           "value": "#eeeeee",
           "derived": false
@@ -2543,7 +2503,9 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.coca-cola.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "TCCC-UnityText",
@@ -2560,33 +2522,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 81.2,
-        "mismatch": 0.1881,
+        "score": 84,
+        "mismatch": 0.1603,
         "surfaces": {
           "landing page": {
-            "score": 80.6,
-            "mismatch": 0.1944,
+            "score": 82.8,
+            "mismatch": 0.1722,
             "done": false,
-            "tokens_off": 4,
+            "tokens_off": 2,
             "regions_off": 2
           },
           "mailer": {
-            "score": 95.9,
-            "mismatch": 0.0405,
+            "score": 100,
+            "mismatch": 0,
             "done": true,
-            "tokens_off": 3,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 90,
-            "mismatch": 0.1,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 2,
-        "repairs": 2,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -2667,7 +2629,7 @@
         "host": "www.nestle.com",
         "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.nestle.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.nestle.com blocked an automated read on 2026-10-04. Its own other material was tried too: www.nestle.com (blocked), www.nestle.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2687,40 +2649,40 @@
       "label": "Netflix",
       "sector": "Streaming",
       "blurb": "Streaming. Template for a renewal, win-back and churn-risk lifecycle.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.netflix.com.",
-      "palette_source": "default",
+      "verified_at": "2026-10-04",
+      "source": "www.netflix.com refused an automated read (timeout); read the brand's own https://brand.netflix.com/en/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #e50914 from logo pixels as rendered (76% of its coloured pixels) (nav.ckFQvh:nth-of-type(1) > nav.biOMIy > div.eiMvAw:nth-of-type(1) > a.link__StyledAnchor-sc-c174240f-0.erTzER > img.gWgyCG) on https://about.netflix.com/en. Agreed by action.",
+      "palette_source": "verified",
       "typography_source": "default",
-      "needs_extraction": true,
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#e50914",
+        "#e50914",
+        "#670409",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#e50914",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": "#000000"
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#670409",
+          "derived": true,
+          "exact": ""
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "about.netflix.com",
+        "brand.netflix.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -2742,14 +2704,9 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "timeout",
-        "at": "2026-10-04",
-        "host": "www.netflix.com",
-        "reason": "The site could not be opened: timed out."
-      },
-      "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
-      "renderer": null,
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": "timeout",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -2769,40 +2726,45 @@
       "label": "Spotify",
       "sector": "Streaming",
       "blurb": "Audio streaming. Template for a free-to-paid upgrade and retention programme.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.spotify.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-04",
+      "source": "Rendered https://open.spotify.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #1ed760 from the brand's logo shown on its own page (\"https://developer-assets.spotifycdn.com/images/guidelines/design/logo.\") (main#main > div.sc-7eae9c62-0.iIIOGP > div.sc-2b38a360-0.sc-7a43f055-3 > p.e-10202-text.encore-text-body-medium:nth-of-type(38) > img.e-10202-legacy-image.e-10202-legacy-image--fluid) on https://developer.spotify.com/documentation/design. Agreed by icon. Headings SpotifyMixUI, body SpotifyMixUI, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#1ed760",
+        "#8c20df",
+        "#333333",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#1ed760",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#8c20df",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": "#121212"
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#333333",
+          "derived": true,
+          "exact": "#ffffff"
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "developer.spotify.com",
+        "www.spotify.com"
+      ],
       "hand_verified": false,
       "identity_sources": [
         {
@@ -2816,23 +2778,49 @@
           "what": "Spotify newsroom"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_font": "SpotifyMixUI",
+      "body_font": "SpotifyMixUI",
+      "heading_stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "body_stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "rendered",
-        "at": "2026-10-04",
-        "host": "open.spotify.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
+      "heading_line": "SpotifyMixUI (brand font, shown in fallback)",
+      "body_line": "SpotifyMixUI (brand font, shown in fallback)",
+      "read_attempt": null,
+      "read_note": "",
+      "renderer": "rendered",
+      "regression": {
+        "ok": true,
+        "done": false,
+        "score": 67.8,
+        "mismatch": 0.3221,
+        "surfaces": {
+          "landing page": {
+            "score": 73.3,
+            "mismatch": 0.2667,
+            "done": false,
+            "tokens_off": 9,
+            "regions_off": 2
+          },
+          "mailer": {
+            "score": 68.3,
+            "mismatch": 0.3167,
+            "done": false,
+            "tokens_off": 19,
+            "regions_off": 0
+          },
+          "ad creative": {
+            "score": 75,
+            "mismatch": 0.25,
+            "done": false,
+            "tokens_off": 2,
+            "regions_off": 0
+          }
+        },
+        "iterations": 3,
+        "repairs": 0,
+        "mismatch_limit": 0.05
       },
-      "read_note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands).",
-      "renderer": null,
-      "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
       "placeholder_products": 3,
@@ -2852,7 +2840,7 @@
       "sector": "Travel",
       "blurb": "Travel marketplace. Template for a two-sided lifecycle with a seasonal booking window.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark fill as rendered (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg). Headings Airbnb Cereal VF, body Airbnb Cereal VF, as rendered.",
+      "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark paint as rendered (100% of its coloured area) (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg). Headings Airbnb Cereal VF, body Airbnb Cereal VF, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
@@ -2869,12 +2857,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#ff385c",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -2883,10 +2865,12 @@
           "role": "ink",
           "value": "#202020",
           "derived": true,
-          "exact": "#ffffff"
+          "exact": "#c1c1c1"
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.airbnb.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "Airbnb Cereal VF",
@@ -2903,33 +2887,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 51.2,
-        "mismatch": 0.4885,
+        "score": 93.8,
+        "mismatch": 0.0625,
         "surfaces": {
           "landing page": {
-            "score": 56.3,
-            "mismatch": 0.4366,
-            "done": false,
-            "tokens_off": 8,
-            "regions_off": 2
-          },
-          "mailer": {
-            "score": 69.1,
-            "mismatch": 0.3091,
-            "done": false,
-            "tokens_off": 17,
-            "regions_off": 0
-          },
-          "ad creative": {
-            "score": 62.5,
-            "mismatch": 0.375,
+            "score": 92.5,
+            "mismatch": 0.075,
             "done": false,
             "tokens_off": 3,
             "regions_off": 0
+          },
+          "mailer": {
+            "score": 95.8,
+            "mismatch": 0.0417,
+            "done": true,
+            "tokens_off": 1,
+            "regions_off": 0
+          },
+          "ad creative": {
+            "score": 75,
+            "mismatch": 0.25,
+            "done": false,
+            "tokens_off": 1,
+            "regions_off": 0
           }
         },
-        "iterations": 2,
-        "repairs": 3,
+        "iterations": 1,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -3010,7 +2994,7 @@
         "host": "www.makemytrip.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04. Its own other material was tried too: www.makemytrip.com (timeout), careers.makemytrip.com (timeout).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -3032,13 +3016,13 @@
       "sector": "Fintech",
       "blurb": "Payments infrastructure. Template for a developer-led B2B activation lifecycle.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://stripe.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #533afd from the primary call to action, as rendered (section.hds-color-mode.hero-section-container:nth-of-type(1) > div.section-container.hero-section__layout:nth-of-type(1) > div.hero-section__layout-grid > div.hds-button-group.hero-section__actions:nth-of-type(2) > a.hds-button.hds-button--primary:nth-of-type(1)). Headings sohne-var, body sohne-var, as rendered.",
+      "source": "Rendered https://stripe.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #533afd from --hds-color-core-brand-600 as computed on :root: the step of --hds-color-core-brand-* the site renders on its primary call to action (:root). Agreed by icon, action. Headings sohne-var, body sohne-var, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
         "#533afd",
-        "#533afd",
+        "#adadff",
         "#64748d",
         "#ffffff"
       ],
@@ -3050,9 +3034,8 @@
         },
         {
           "role": "accent",
-          "value": "#533afd",
-          "derived": true,
-          "exact": ""
+          "value": "#adadff",
+          "derived": false
         },
         {
           "role": "surface",
@@ -3065,7 +3048,9 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "stripe.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "sohne-var",
@@ -3082,33 +3067,33 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 63.4,
-        "mismatch": 0.3658,
+        "score": 76,
+        "mismatch": 0.2403,
         "surfaces": {
           "landing page": {
-            "score": 64.6,
-            "mismatch": 0.3538,
+            "score": 74.3,
+            "mismatch": 0.2573,
             "done": false,
-            "tokens_off": 5,
-            "regions_off": 4
+            "tokens_off": 3,
+            "regions_off": 3
           },
           "mailer": {
-            "score": 89.2,
-            "mismatch": 0.1081,
-            "done": false,
-            "tokens_off": 8,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 90,
-            "mismatch": 0.1,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
         "iterations": 3,
-        "repairs": 8,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -3130,25 +3115,25 @@
       "sector": "Fintech",
       "blurb": "Payments. Template for a B2B onboarding and activation programme.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
+      "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #3395ff from logo mark paint as rendered (100% of its coloured area) (div.framer-1q9w5ld-container:nth-of-type(1) > a.framer-2P3kL.framer-1f4o9py > div.framer-l60v55 > div.svgContainer > svg). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
+        "#3395ff",
         "#305eff",
-        "#2950da",
         "#222222",
         "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#305eff",
+          "value": "#3395ff",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#2950da",
+          "value": "#305eff",
           "derived": false
         },
         {
@@ -3162,7 +3147,9 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "razorpay.com"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "TASA Orbiter Display SemiBold",
@@ -3170,42 +3157,42 @@
       "heading_stack": "'TASA Orbiter Display SemiBold','TASA Orbiter Display SemiBold Placeholder',sans-serif",
       "body_stack": "'Inter','Inter Placeholder',sans-serif",
       "heading_google": false,
-      "body_google": false,
+      "body_google": true,
       "heading_line": "TASA Orbiter Display SemiBold (brand font, shown in fallback)",
-      "body_line": "Inter (brand font, shown in fallback)",
+      "body_line": "Inter",
       "read_attempt": null,
       "read_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
         "done": false,
-        "score": 48.3,
-        "mismatch": 0.5172,
+        "score": 70.9,
+        "mismatch": 0.291,
         "surfaces": {
           "landing page": {
-            "score": 49.2,
-            "mismatch": 0.5078,
+            "score": 68.6,
+            "mismatch": 0.3141,
             "done": false,
-            "tokens_off": 19,
-            "regions_off": 4
+            "tokens_off": 15,
+            "regions_off": 2
           },
           "mailer": {
-            "score": 69,
-            "mismatch": 0.3099,
+            "score": 84.3,
+            "mismatch": 0.1571,
             "done": false,
-            "tokens_off": 22,
+            "tokens_off": 11,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 60,
-            "mismatch": 0.4,
+            "score": 70,
+            "mismatch": 0.3,
             "done": false,
-            "tokens_off": 4,
+            "tokens_off": 3,
             "regions_off": 0
           }
         },
         "iterations": 3,
-        "repairs": 26,
+        "repairs": 0,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,
@@ -3287,7 +3274,7 @@
         "host": "paytm.com",
         "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
       },
-      "read_note": "paytm.com blocked an automated read on 2026-10-04.",
+      "read_note": "paytm.com blocked an automated read on 2026-10-04. Its own other material was tried too: paytm.com (blocked), ir.paytm.com (blocked).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -3309,7 +3296,7 @@
       "sector": "Telecom",
       "blurb": "Telecom. Template for a recharge and plan-renewal lifecycle.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.airtel.in/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #d40000 from logo mark fill as rendered (div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i). Headings TondoBold, body Tondo, as rendered.",
+      "source": "Rendered https://www.airtel.in/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #d40000 from logo mark paint as rendered (100% of its coloured area) (div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i). Headings TondoBold, body Tondo, as rendered.",
       "palette_source": "verified",
       "typography_source": "verified",
       "needs_extraction": false,
@@ -3326,12 +3313,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#d40000",
-          "derived": true,
-          "exact": "#e3e5ff"
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -3342,7 +3323,9 @@
           "derived": false
         }
       ],
-      "read_from": [],
+      "read_from": [
+        "www.airtel.in"
+      ],
       "hand_verified": false,
       "identity_sources": [],
       "heading_font": "TondoBold",
@@ -3359,8 +3342,8 @@
       "regression": {
         "ok": true,
         "done": true,
-        "score": 100,
-        "mismatch": 0,
+        "score": 98,
+        "mismatch": 0.0204,
         "surfaces": {
           "landing page": {
             "score": 100,
@@ -3370,10 +3353,10 @@
             "regions_off": 0
           },
           "mailer": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
+            "score": 93.9,
+            "mismatch": 0.0606,
+            "done": false,
+            "tokens_off": 4,
             "regions_off": 0
           },
           "ad creative": {
