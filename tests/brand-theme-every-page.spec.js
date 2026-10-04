@@ -14,24 +14,55 @@
  * tests/lib/brand-theme-harness.js appPages()) and renders each under five
  * device brands, the way production serves a phone sign-in: tenant zero, a red
  * primary on white, a pale primary, a near-black primary, and a bare record.
+ * The Mailer Studio is also DRIVEN through every wizard state it reaches
+ * without a backend, because one load only measures its first screen.
  *
  * Measured in Chromium with getComputedStyle (inheritance, every inherited
  * opacity, translucent and gradient grounds resolved), over the whole document:
- *   (a) every visible text run reaches 4.5:1 on its effective ground (3:1 at
- *       24px+ or 18.66px bold); a gradient is judged at its worst stop
- *   (b) no panel ground is a dark neutral (the validatePalette rule), nor dark
- *       in a hue no brand token carries
- *   (c) the page follows the active brand's tokens: the brand is painted, the
- *       shell resolves it, every primary button's ground is the brand's
- *       primary (or its hover shade, or its accent), every chromatic colour
- *       carries the hue of a brand token, every family is the brand's
- *   (d) no colour literal of tenant zero's palette or the sibling's while
- *       another brand is active
- * Each case first asserts that it measured a non-trivial number of text runs
- * and grounds: a check that inspects nothing passes everything.
+ *   (a) text      every visible text run reaches 4.5:1 on its effective ground
+ *                 (3:1 at 24px+ or 18.66px bold); a gradient at its worst stop
+ *   (b) ground    no panel ground is a dark neutral (validatePalette's rule),
+ *                 nor dark in a hue no brand token carries
+ *   (c) foreign   every chromatic colour carries the hue of a brand token
+ *       button    every primary button's ground is a brand token
+ *       font      every family is the brand's heading / body / mono family
+ *       unpainted the active brand is painted at all
+ *   (d) forbidden no exact hex of tenant zero's or the sibling's palette while
+ *                 another brand is active
+ * Each measurement first asserts it judged a non-trivial number of text runs
+ * and grounds (kind `floor`): a check that inspects nothing passes everything.
  *
- * Inventory: BRAND_THEME_INVENTORY=<dir> writes one JSON file per page with
- * every failing pair and the stylesheet / inline style and LINE that set it.
+ * THE RATCHET. tests/brand-theme-baseline.json holds, per page (and per Studio
+ * sequence), the count of findings of each kind summed over the five palettes,
+ * for the pages not fixed yet. A count that RISES fails; a page that reaches
+ * zero must leave the file (the test says so); a page not in the file must be
+ * clean. The file only shrinks - the same ratchet as check-executed-tests.js.
+ *
+ * ── HOW TO FIX A PAGE ──────────────────────────────────────────────────────
+ * 1. See every finding on one page, under one palette, with no ratchet (scoped
+ *    runs are strict and print file:line for each finding):
+ *      BRAND_THEME_PAGES=credits.html BRAND_THEME_PALETTES=red-primary \
+ *      BRAND_THEME_INVENTORY=/tmp/bt npx playwright test \
+ *        tests/brand-theme-every-page.spec.js --project=desktop-1280
+ *    (/tmp/bt/<page>.json then holds each finding with the rule and LINE that
+ *    set it.) Palettes: tenant-zero, red-primary, pale, near-black, bare.
+ * 2. The common fixes, all through design/lifecycle-os/CONTRACT.md:
+ *    - font      the page's body/heading font rule names a family:
+ *                font-family: var(--vh-font-body) / var(--vh-font-head)
+ *                (they resolve --brand-font-body / --brand-font-head).
+ *    - forbidden, foreign   a hex / rgb() literal -> the token for its role:
+ *                ground var(--vh-bg|--vh-panel|--vh-panel-2), text
+ *                var(--vh-ink|--vh-ink-dim|--vh-*-text), fill var(--vh-primary)
+ *                with var(--vh-on-primary), edge var(--vh-line|--vh-accent).
+ *    - ground    a dark panel/section -> var(--vh-panel) with --vh-ink text,
+ *                or a brand section via .vh-band (var(--vh-band)/--vh-on-band).
+ *                A page-level DARK THEME block (html[data-theme=...] repainting
+ *                grounds dark) is deleted: the app is light-only.
+ *    - text      color:var(--brand-primary|--brand-accent) -> the *-text
+ *                token; faded text (opacity, a light grey) -> --vh-ink-dim.
+ * 3. Re-run the page with all palettes, then lower (or delete) its entry in
+ *    tests/brand-theme-baseline.json. `node tests/lib/brand-theme-baseline.js
+ *    <inventory dir>` prints the counts an inventory run measured.
  *
  * Run: npx playwright test tests/brand-theme-every-page.spec.js --project=desktop-1280
  */
@@ -41,9 +72,14 @@ const path = require('path');
 const H = require('./lib/brand-theme-harness');
 
 const { kept: PAGES, excluded: EXCLUDED } = H.appPages();
-const NAMES = Object.keys(H.PALETTES);
+const ALL_PALETTES = Object.keys(H.PALETTES);
+const NAMES = process.env.BRAND_THEME_PALETTES ? process.env.BRAND_THEME_PALETTES.split(',') : ALL_PALETTES;
+const SCOPED = NAMES.length !== ALL_PALETTES.length;
 const INVENTORY = process.env.BRAND_THEME_INVENTORY || '';
 const ONLY = process.env.BRAND_THEME_PAGES ? new Set(process.env.BRAND_THEME_PAGES.split(',')) : null;
+const BASELINE_FILE = path.join(__dirname, 'brand-theme-baseline.json');
+const BASELINE = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8'));
+const KINDS = ['unpainted', 'floor', 'text', 'ground', 'forbidden', 'foreign', 'button', 'font', 'pageerror'];
 
 // Every case opens its own browser contexts and shares nothing, so the pages
 // can be measured side by side (a file's tests run serially by default).
@@ -70,23 +106,36 @@ test('the page list is enumerated from the repo, and every exclusion has a reaso
   }
 });
 
+test('the baseline only names pages and kinds that exist', () => {
+  const keys = new Set(PAGES.concat(STUDIO_SEQUENCES.map(studioKey)));
+  for (const [k, counts] of Object.entries(BASELINE)) {
+    if (k.startsWith('_')) continue;
+    expect(keys.has(k), `${k} is in tests/brand-theme-baseline.json but is not a page or Studio sequence`).toBe(true);
+    for (const [kind, n] of Object.entries(counts)) {
+      expect(KINDS, `${k}: unknown kind ${kind}`).toContain(kind);
+      expect(Number.isInteger(n) && n > 0, `${k}.${kind} must be a positive count (delete a zero)`).toBe(true);
+    }
+  }
+});
+
 function summarise(list, fmt, n) { return list.slice(0, n || 10).map(fmt).join('\n'); }
 
-/** Every finding of one probe run, as sentences; [] when the page is clean. */
+/** Every finding of one probe run: [{ kind, n, message }], [] when clean. */
 function findingsOf(tag, r, cfg, painted, themed) {
   const out = [];
+  const add = (kind, n, message) => { if (n) out.push({ kind, n, message: tag + message }); };
   const want = cfg.tokens['--brand-primary'].toLowerCase();
   const badButtons = r.buttons.filter((b) => !b.ok);
-  if (!painted) out.push(tag + 'the active brand was never painted on this page (--brand-primary is not ' + want + ')');
-  if (r.text < MIN_TEXT) out.push(tag + `measured only ${r.text} text runs (floor ${MIN_TEXT}): the probe saw nothing to judge`);
-  if (r.ground < MIN_GROUND) out.push(tag + `measured only ${r.ground} grounds (floor ${MIN_GROUND})`);
-  if (themed && r.chrome.vhGreen !== want) out.push(tag + `theme.css resolves --vh-green to ${r.chrome.vhGreen}, not the brand's ${want}`);
-  if (r.textFails.length) out.push(tag + `${r.textFails.length} unreadable text runs:\n` + summarise(r.textFails, (f) => `    "${f.text}" ${f.ratio}:1 (needs ${f.need}) ${f.fg} on ${f.bg}, ${f.size}px · ${f.sel}`));
-  if (r.groundFails.length) out.push(tag + `${r.groundFails.length} dark panel grounds:\n` + summarise(r.groundFails, (f) => `    ${f.bg} ${f.w}x${f.h} · ${f.sel}`));
-  if (r.forbidden.length) out.push(tag + `${r.forbidden.length} colours of another brand:\n` + summarise(r.forbidden, (f) => `    ${f.prop} ${f.color} (${f.label}) · ${f.sel}`));
-  if (r.foreign.length) out.push(tag + `${r.foreign.length} colours no brand token carries:\n` + summarise(r.foreign, (f) => `    ${f.prop} ${f.color} · ${f.sel}`));
-  if (badButtons.length) out.push(tag + `${badButtons.length} primary buttons not on a brand token:\n` + summarise(badButtons, (f) => `    ${f.grounds.join(' → ')} · ${f.sel}`));
-  if (r.fonts.length) out.push(tag + `${r.fonts.length} text runs in a family that is not the brand's:\n` + summarise(r.fonts, (f) => `    ${f.family} · ${f.sel}`));
+  add('unpainted', painted ? 0 : 1, 'the active brand was never painted on this page (--brand-primary is not ' + want + ')');
+  add('floor', r.text < MIN_TEXT ? 1 : 0, `measured only ${r.text} text runs (floor ${MIN_TEXT}): the probe saw nothing to judge`);
+  add('floor', r.ground < MIN_GROUND ? 1 : 0, `measured only ${r.ground} grounds (floor ${MIN_GROUND})`);
+  add('unpainted', themed && r.chrome.vhGreen !== want ? 1 : 0, `theme.css resolves --vh-green to ${r.chrome.vhGreen}, not the brand's ${want}`);
+  add('text', r.textFails.length, `${r.textFails.length} unreadable text runs:\n` + summarise(r.textFails, (f) => `    "${f.text}" ${f.ratio}:1 (needs ${f.need}) ${f.fg} on ${f.bg}, ${f.size}px · ${f.sel}`));
+  add('ground', r.groundFails.length, `${r.groundFails.length} dark panel grounds:\n` + summarise(r.groundFails, (f) => `    ${f.bg} ${f.w}x${f.h} · ${f.sel}`));
+  add('forbidden', r.forbidden.length, `${r.forbidden.length} colours of another brand:\n` + summarise(r.forbidden, (f) => `    ${f.prop} ${f.color} (${f.label}) · ${f.sel}`));
+  add('foreign', r.foreign.length, `${r.foreign.length} colours no brand token carries:\n` + summarise(r.foreign, (f) => `    ${f.prop} ${f.color} · ${f.sel}`));
+  add('button', badButtons.length, `${badButtons.length} primary buttons not on a brand token:\n` + summarise(badButtons, (f) => `    ${f.grounds.join(' → ')} · ${f.sel}`));
+  add('font', r.fonts.length, `${r.fonts.length} text runs in a family that is not the brand's:\n` + summarise(r.fonts, (f) => `    ${f.family} · ${f.sel}`));
   return out;
 }
 
@@ -111,7 +160,7 @@ async function measure(page, file, name, painted, log) {
     entry = {
       painted, counts: { text: r.text, textChrome: r.textChrome, ground: r.ground, unmeasured: r.unmeasured },
       totals: { text: r.textFails.length, ground: r.groundFails.length, forbidden: r.forbidden.length, foreign: r.foreign.length, button: badButtons.length, font: r.fonts.length },
-      chrome: r.chrome, errors: (log && log.errors || []).slice(0, 5),
+      chrome: r.chrome, errors: ((log && log.errors) || []).slice(0, 5),
       items: items.map((i) => Object.assign({ kind: i.kind, source: i.source || null }, i.f)),
     };
   }
@@ -120,14 +169,43 @@ async function measure(page, file, name, painted, log) {
 function writeInventory(key, record) {
   if (!INVENTORY) return;
   fs.mkdirSync(INVENTORY, { recursive: true });
-  fs.writeFileSync(path.join(INVENTORY, key.replace(/[\/]/g, '__') + '.json'), JSON.stringify(record, null, 1));
+  fs.writeFileSync(path.join(INVENTORY, key.replace(/[^a-z0-9._-]+/gi, '_') + '.json'), JSON.stringify(record, null, 1));
+}
+
+/**
+ * The verdict for one page or sequence. A scoped run (fewer palettes) is
+ * strict: it is how a page is fixed. A full run holds the page to its
+ * baseline: no kind may rise, and a page at zero must leave the file.
+ */
+function countsOf(findings) {
+  const counts = {};
+  for (const f of findings) counts[f.kind] = (counts[f.kind] || 0) + f.n;
+  return counts;
+}
+function verdict(key, findings) {
+  const counts = countsOf(findings);
+  const all = findings.map((f) => f.message).join('\n');
+  const base = BASELINE[key];
+  if (SCOPED || !base) {
+    expect(findings, (base ? '' : `${key} is not in tests/brand-theme-baseline.json, so it must be clean.\n`) + all).toEqual([]);
+    return;
+  }
+  const rose = KINDS.filter((k) => (counts[k] || 0) > (base[k] || 0));
+  const detail = rose.map((k) => `${k}: ${counts[k]} now, ${base[k] || 0} in the baseline`).join('; ');
+  expect(rose, `${key} got worse (${detail}):\n` + findings.filter((f) => rose.includes(f.kind)).map((f) => f.message).join('\n')).toEqual([]);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  expect(total, `${key} is clean now: delete its entry from tests/brand-theme-baseline.json`).toBeGreaterThan(0);
+  const fell = KINDS.filter((k) => (counts[k] || 0) < (base[k] || 0));
+  if (fell.length) {
+    test.info().annotations.push({ type: 'ratchet', description: `${key}: lower the baseline to ${JSON.stringify(counts)}` });
+  }
 }
 
 for (const file of PAGES) {
   if (ONLY && !ONLY.has(file)) continue;
   test(`${file} wears the active brand and is readable under every palette`, async ({ browser }) => {
     test.setTimeout(240000);
-    const failures = [];
+    const findings = [];
     const record = { file, palettes: {} };
     for (const name of NAMES) {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -138,13 +216,14 @@ for (const file of PAGES) {
         const painted = await H.open(page, file, name);
         const m = await measure(page, file, name, painted, log);
         if (m.entry) record.palettes[name] = m.entry;
-        failures.push(...findingsOf(`[${name}] `, m.r, m.cfg, painted, m.themed));
+        findings.push(...findingsOf(`[${name}] `, m.r, m.cfg, painted, m.themed));
       } finally {
         await context.close();
       }
     }
+    record.key = file; record.kinds = countsOf(findings); record.palettesMeasured = NAMES;
     writeInventory(file, record);
-    expect(failures, failures.join('\n')).toEqual([]);
+    verdict(file, findings);
   });
 }
 
@@ -222,12 +301,13 @@ const STUDIO_SEQUENCES = [
   ['step 2: products', 'step 3: generating'],
   ['step 4: review', 'step 4: content preview', 'step 4: prompts', 'step 4: upload a design', 'step 5: final output gate'],
 ];
+function studioKey(seq) { return 'studio: ' + seq.join(' → '); }
 
 if (!ONLY || ONLY.has(STUDIO)) {
   for (const seq of STUDIO_SEQUENCES) {
     test(`the Mailer Studio wears the active brand through: ${seq.join(' → ')}`, async ({ browser }) => {
       test.setTimeout(300000);
-      const failures = [];
+      const findings = [];
       const record = { file: STUDIO + ' :: ' + seq.join(' → '), palettes: {} };
       let measured = 0;
       for (const name of NAMES) {
@@ -242,16 +322,17 @@ if (!ONLY || ONLY.has(STUDIO)) {
             const m = await measure(page, STUDIO, name, painted, log);
             measured++;
             if (m.entry) record.palettes[name + ' · ' + state] = m.entry;
-            failures.push(...findingsOf(`[${name} · ${state}] `, m.r, m.cfg, painted, m.themed));
+            findings.push(...findingsOf(`[${name} · ${state}] `, m.r, m.cfg, painted, m.themed));
           }
-          if (log.errors.length) failures.push(`[${name}] the Studio threw while being driven: ${log.errors[0]}`);
+          if (log.errors.length) findings.push({ kind: 'pageerror', n: 1, message: `[${name}] the Studio threw while being driven: ${log.errors[0]}` });
         } finally {
           await context.close();
         }
       }
       expect(measured).toBe(seq.length * NAMES.length);
-      writeInventory('studio--' + seq[0].replace(/[^a-z0-9]+/gi, '-'), record);
-      expect(failures, failures.join('\n')).toEqual([]);
+      record.key = studioKey(seq); record.kinds = countsOf(findings); record.palettesMeasured = NAMES;
+      writeInventory('studio--' + seq[0], record);
+      verdict(studioKey(seq), findings);
     });
   }
 }
