@@ -139,7 +139,8 @@ test('(e) an inline-SVG logo is the logo, its markup kept, its fill the identity
   expect(lg.kind).toBe('svg');
   expect(lg.inline_svg).toContain('<circle');
   expect(lg.rendered).toMatchObject({ w: 140, h: 36 });
-  expect(out.manifest.colors.primary).toMatchObject({ value: '#c2185b', from_role: 'identity', signal: 'logo mark fill as rendered' });
+  // The mark's paint by AREA (2026-10-05), not the first shape's fill.
+  expect(out.manifest.colors.primary).toMatchObject({ value: '#c2185b', from_role: 'identity', kind: 'logo-svg', signal: expect.stringMatching(/^logo mark paint as rendered/) });
   // Our landing page draws it as an IMAGE (a data: URL), never as markup.
   expect(out.regression.ok).toBe(true);
   const lp = require('../api/_shared/render-regression.js');

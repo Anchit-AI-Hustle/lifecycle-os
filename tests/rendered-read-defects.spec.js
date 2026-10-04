@@ -334,7 +334,10 @@ p a{color:var(--acme-brand-300)}.cta{display:inline-block;margin:0 40px;backgrou
   expect(out.ok).toBe(true);
   expect(out.manifest.read.desktop.roles.link.type.color).toBe('#7b83ff');
   expect(out.manifest.colors.primary.value).toBe('#3a44d6');
-  expect(out.manifest.colors.primary.signal).toMatch(/--acme-brand-500 .* renders on its logo mark/);
+  // The mark paints #3a44d6 itself (the strongest signal since 2026-10-05);
+  // the scale's own proposal is that same step, never the link tint.
+  const step = out.manifest.identity.candidates.find((c) => c.kind === 'token');
+  expect(step.signal).toMatch(/--acme-brand-500 .* renders on its logo mark/);
 });
 
 /* ── 12. the fallback face per SLOT ──────────────────────────────────────── */

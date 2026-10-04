@@ -35,11 +35,13 @@ const KINDS = {
   'logo-image': { score: 96, label: 'logo mark pixels (the rendered logo image)' },
   'guideline-swatch': { score: 94, label: 'colour swatch the brand publishes, painted and labelled with its own value' },
   'mask-icon': { score: 92, label: 'pinned-tab mask-icon colour the site declares' },
-  'logo-text': { score: 80, label: 'logo set as text, its colour as rendered' },
   'theme-color': { score: 74, label: 'meta theme-color' },
   'manifest-theme': { score: 72, label: 'web app manifest theme_color' },
   'tile-color': { score: 70, label: 'msapplication-TileColor (meta or browserconfig.xml)' },
   'token': { score: 66, label: 'brand colour token as computed on :root' },
+  // A wordmark set as TEXT is found by shape (a large or logo-named home
+  // link), which is a guess an image or an SVG is not: below a declared token.
+  'logo-text': { score: 62, label: 'logo set as text, its colour as rendered' },
   'header': { score: 58, label: 'header background as rendered' },
   'icon': { score: 56, label: 'site icon (favicon / touch icon) pixels' },
   'action': { score: 55, label: 'primary call to action, as rendered' },
