@@ -176,33 +176,33 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 66.9,
-      "mismatch": 0.3309,
+      "score": 66,
+      "mismatch": 0.3404,
       "surfaces": {
         "landing page": {
-          "score": 70,
-          "mismatch": 0.3,
+          "score": 66.9,
+          "mismatch": 0.3311,
           "done": false,
-          "tokens_off": 0,
+          "tokens_off": 2,
           "regions_off": 4
         },
         "mailer": {
-          "score": 80,
-          "mismatch": 0.2,
+          "score": 94.1,
+          "mismatch": 0.0588,
           "done": false,
           "tokens_off": 3,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 100,
-          "mismatch": 0,
-          "done": true,
-          "tokens_off": 0,
+          "score": 87.5,
+          "mismatch": 0.125,
+          "done": false,
+          "tokens_off": 1,
           "regions_off": 0
         }
       },
-      "iterations": 1,
-      "repairs": 0,
+      "iterations": 2,
+      "repairs": 4,
       "mismatch_limit": 0.05
     }
   },
