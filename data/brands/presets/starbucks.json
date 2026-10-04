@@ -173,40 +173,40 @@
         "role": "product"
       },
       {
-        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=fo.QxrHDpzqXue6q4gBzKHB_ZiuQrCB8bIB5EtB5xZ0-1791134606-1.0.1.1-T3GuocCwNmnpBM57KK5ALKtARsnZRdVYOLxGnbbI7oQ",
+        "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=uZW6aYyVW5o6WycdpEb8Lg2csmCRTJDIJcgGMIj6MFU-1791139897-1.0.1.1-XZL3alq3Dc_J49OdS6yWsVODzugBeDOUvIjyu1358u8",
         "role": "about"
       }
     ],
     "regression": {
       "ok": true,
       "done": false,
-      "score": 62.8,
-      "mismatch": 0.3718,
+      "score": 54.6,
+      "mismatch": 0.4539,
       "surfaces": {
         "landing page": {
-          "score": 63.5,
-          "mismatch": 0.3648,
+          "score": 57.6,
+          "mismatch": 0.4242,
           "done": false,
-          "tokens_off": 5,
+          "tokens_off": 11,
           "regions_off": 3
         },
         "mailer": {
-          "score": 87.5,
-          "mismatch": 0.125,
+          "score": 75.4,
+          "mismatch": 0.2464,
           "done": false,
-          "tokens_off": 2,
+          "tokens_off": 17,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 87.5,
-          "mismatch": 0.125,
+          "score": 70,
+          "mismatch": 0.3,
           "done": false,
-          "tokens_off": 1,
+          "tokens_off": 3,
           "regions_off": 0
         }
       },
-      "iterations": 2,
-      "repairs": 2,
+      "iterations": 3,
+      "repairs": 4,
       "mismatch_limit": 0.05
     },
     "conflicts": [

@@ -255,7 +255,9 @@ function report(beforeIndex, afterIndex, observedDir) {
     try { obs = JSON.parse(fs.readFileSync(path.join(observedDir, `${p.slug}.observed.json`), 'utf8')); } catch (_) { obs = null; }
     const read = obs ? (obs.renderer || (obs.ok ? 'rendered (old format)' : 'not read (old format)')) : 'not attempted';
     const reg = obs && obs.regression ? (obs.regression.score != null ? obs.regression.score : (obs.regression.similarity != null ? obs.regression.similarity : JSON.stringify(obs.regression).slice(0, 60))) : '-';
-    rows.push(`| ${p.slug} | ${cell(read)}${p.palette_source === 'default' ? ' (default kept)' : ''} | ${arrow(sw(b, 'primary'), sw(p, 'primary'))} | ${arrow(sw(b, 'accent'), sw(p, 'accent'))} | ${arrow(sw(b, 'surface'), sw(p, 'surface'))} | ${arrow(sw(b, 'ink'), sw(p, 'ink'))} | ${arrow(b.heading_font, p.heading_font)} | ${arrow(b.body_font, p.body_font)} | ${cell(reg)} |`);
+    const kept = p.palette_source === 'default' ? ' (default kept)'
+      : (obs && obs.renderer === 'rendered' && !p.renderer ? ' (hand-verified palette kept)' : '');
+    rows.push(`| ${p.slug} | ${cell(read)}${kept} | ${arrow(sw(b, 'primary'), sw(p, 'primary'))} | ${arrow(sw(b, 'accent'), sw(p, 'accent'))} | ${arrow(sw(b, 'surface'), sw(p, 'surface'))} | ${arrow(sw(b, 'ink'), sw(p, 'ink'))} | ${arrow(b.heading_font, p.heading_font)} | ${arrow(b.body_font, p.body_font)} | ${cell(reg)} |`);
   }
   return rows.join('\n') + '\n';
 }

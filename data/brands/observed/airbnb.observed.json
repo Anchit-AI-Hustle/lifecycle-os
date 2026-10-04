@@ -5,7 +5,7 @@
   "start": "https://www.airbnb.com",
   "landed": "https://www.airbnb.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:23:47.028Z",
+  "read_at": "2026-10-04T18:52:09.387Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,33 +33,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 66.4,
-    "mismatch": 0.3362,
+    "score": 51.2,
+    "mismatch": 0.4885,
     "surfaces": {
       "landing page": {
-        "score": 68.1,
-        "mismatch": 0.3189,
+        "score": 56.3,
+        "mismatch": 0.4366,
         "done": false,
-        "tokens_off": 1,
-        "regions_off": 3
+        "tokens_off": 8,
+        "regions_off": 2
       },
       "mailer": {
-        "score": 85.7,
-        "mismatch": 0.1429,
+        "score": 69.1,
+        "mismatch": 0.3091,
         "done": false,
-        "tokens_off": 2,
+        "tokens_off": 17,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 62.5,
+        "mismatch": 0.375,
+        "done": false,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },
     "iterations": 2,
-    "repairs": 1,
+    "repairs": 3,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -76,6 +76,34 @@
       "alt": "",
       "found_on": "https://www.airbnb.com/",
       "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://a0.muscache.com/im/pictures/AirbnbPlatformAssets/AirbnbPlatformAssets-search-bar-icons/original/f50ce552-509c-4f54-af4c-605c5220d906.png?im_w=240",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.airbnb.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://a0.muscache.com/im/pictures/airbnb-platform-assets/AirbnbPlatformAssets-search-bar-icons/original/4aae4ed7-5939-4e76-b100-e69440ebeae4.png?im_w=240",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.airbnb.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://a0.muscache.com/im/pictures/airbnb-platform-assets/AirbnbPlatformAssets-search-bar-icons/original/e47ab655-027b-4679-b2e6-df1c99a5c33d.png?im_w=240",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.airbnb.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://a0.muscache.com/im/pictures/airbnb-platform-assets/AirbnbPlatformAssets-search-bar-icons/original/3d67e9a9-520a-49ee-b439-7b3a75ea814d.png?im_w=240",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.airbnb.com/",
+      "signal": "image rendered on the page"
     }
   ],
   "palette_ok": true,

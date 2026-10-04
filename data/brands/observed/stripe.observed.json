@@ -5,7 +5,7 @@
   "start": "https://stripe.com",
   "landed": "https://stripe.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:24:36.437Z",
+  "read_at": "2026-10-04T18:53:18.888Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -17,10 +17,6 @@
     {
       "url": "https://stripe.com/",
       "role": "home"
-    },
-    {
-      "url": "https://stripe.com/about",
-      "role": "about"
     }
   ],
   "viewports": {
@@ -33,37 +29,37 @@
       "h": 844
     }
   },
-  "partial": false,
+  "partial": true,
   "regression": {
     "ok": true,
     "done": false,
-    "score": 69.1,
-    "mismatch": 0.3087,
+    "score": 63.4,
+    "mismatch": 0.3658,
     "surfaces": {
       "landing page": {
-        "score": 70,
-        "mismatch": 0.3,
+        "score": 64.6,
+        "mismatch": 0.3538,
         "done": false,
-        "tokens_off": 0,
+        "tokens_off": 5,
         "regions_off": 4
       },
       "mailer": {
-        "score": 93.8,
-        "mismatch": 0.0625,
+        "score": 89.2,
+        "mismatch": 0.1081,
         "done": false,
-        "tokens_off": 1,
+        "tokens_off": 8,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 90,
+        "mismatch": 0.1,
+        "done": false,
+        "tokens_off": 1,
         "regions_off": 0
       }
     },
     "iterations": 3,
-    "repairs": 6,
+    "repairs": 8,
     "mismatch_limit": 0.05
   },
   "conflicts": [

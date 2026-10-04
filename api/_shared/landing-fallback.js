@@ -118,6 +118,10 @@ function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null,
   const t = b.typography || {};
   const HEAD = (t.heading && t.heading.stack) || 'Georgia, serif';
   const BODY = (t.body && t.body.stack) || "system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif";
+  // A family the brand supplied as a file is declared, or the stacks above name
+  // a font no visitor's browser has (brand-runtime.fontFaces, 2026-10-04).
+  let FACES = '';
+  try { FACES = require('./brand-runtime.js').fontFaces(t) || ''; } catch (_) { FACES = ''; }
 
   // Region + store from the BRAND's own record; the shipped catalogue is tenant
   // zero's, so only tenant zero may pick a hero product from it.
@@ -140,7 +144,7 @@ function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null,
   const claims = (Array.isArray(b.claims) ? b.claims : []).filter(Boolean).slice(0, 3);
   const bene = claims.map((c) => [c, '']);
 
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(name)} · ${e(bName)}</title><style>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(name)} · ${e(bName)}</title><style>${FACES}
 :root{--g:${P};--lava:${ACC};--ink:${INK};--chalk:${SURF};--line:rgba(0,0,0,.14)}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--chalk);color:var(--ink);font:16px/1.6 ${BODY};overflow-x:hidden}h1,h2,h3,.eyebrow{font-family:${HEAD};color:var(--g)}.eyebrow{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--lava);font-weight:700}
 .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--line)}.brandmark{font-family:${HEAD};font-weight:700;letter-spacing:.2em;color:var(--g)}
 .cta{display:inline-block;background:var(--g);color:var(--chalk);text-decoration:none;font-weight:700;padding:13px 24px;border-radius:8px}
