@@ -82,10 +82,55 @@ function mix(a, b, p) {
 
 function fontsOf(spec) {
   const t = ((spec && spec.brand) || {}).typography || {};
+  // A brand record's typography slot is an OBJECT ({family, stack, ...}). This
+  // read `t.heading` straight into a CSS custom property, so every onboarded
+  // brand's video ad declared `--head:[object Object]` and fell back to the
+  // engine's default face. The stack is the value; a bare string (the older
+  // shape callers passed) is still accepted.
+  const stackOf = (v) => (v && typeof v === 'object' ? (v.stack || (v.family ? `'${v.family}',sans-serif` : '')) : (typeof v === 'string' ? v : ''));
   return {
-    head: t.heading || t.head || "'Montserrat','Raleway',Georgia,serif",
-    body: t.body || "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
+    head: stackOf(t.heading) || stackOf(t.head) || "'Montserrat','Raleway',Georgia,serif",
+    body: stackOf(t.body) || "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
   };
+}
+
+/**
+ * The brand's design system for this creative (2026-10-04): the call to
+ * action takes the brand's own button (fill, label colour derived for AA,
+ * radius, weight, case, tracking) and the headline its own weight, case and
+ * tracking, at the site's PHONE values. Absent: '' and the creative is as it
+ * was. Loaded lazily so this script stays usable outside the api tree.
+ */
+function dsCss(spec) {
+  try {
+    const ds = require('../../api/_shared/design-system.js');
+    const r = ds.resolve((spec && spec.brand) || null);
+    const t = ds.adTokens(r);
+    if (!t) return '';
+    const px = (v) => (v == null || !Number.isFinite(+v) ? '' : `${Math.round(+v * 100) / 100}px`);
+    const out = [t.faces || ''];
+    if (t.cta) {
+      const p = (spec.brand && spec.brand.palette) || {};
+      const tx = ds.textOnGround(t.cta.color, t.cta.background || p.accent || p.primary, p.surface, p.ink, t.cta.size, t.cta.weight);
+      const parts = [];
+      if (t.cta.background) parts.push(`background:${t.cta.background}`);
+      parts.push(`color:${tx.value}`);
+      if (t.cta.radius != null) parts.push(`border-radius:${px(t.cta.radius)}`);
+      if (t.cta.weight) parts.push(`font-weight:${t.cta.weight}`);
+      if (t.cta.transform) parts.push(`text-transform:${t.cta.transform}`);
+      if (t.cta.letter_spacing != null) parts.push(`letter-spacing:${px(t.cta.letter_spacing)}`);
+      if (t.cta.border_width) parts.push(`border:${px(t.cta.border_width)} solid ${t.cta.border_color || 'currentColor'}`);
+      out.push(`.cta .btn{${parts.join(';')}}`);
+    }
+    if (t.headline) {
+      const parts = [];
+      if (t.headline.weight) parts.push(`font-weight:${t.headline.weight}`);
+      if (t.headline.transform) parts.push(`text-transform:${t.headline.transform}`);
+      if (t.headline.letter_spacing != null) parts.push(`letter-spacing:${px(t.headline.letter_spacing)}`);
+      if (parts.length) out.push(`.type h2,.cta h3{${parts.join(';')}}`);
+    }
+    return out.join('\n');
+  } catch (_) { return ''; }
 }
 function brandNameOf(spec) {
   return ((spec && spec.brand && spec.brand.name) || (spec && spec.product) || 'the brand');
@@ -188,7 +233,7 @@ function renderMotionAd(spec) {
     ${bg}
     <div class="veil"></div>
     <div class="type">
-      <h2 class="kin">${esc(s.headline)}</h2>
+      <h2 class="kin"${i === 0 ? ' data-ds="headline"' : ''}>${esc(s.headline)}</h2>
       ${s.sub ? `<p class="kin" style="animation-delay:.12s">${esc(s.sub)}</p>` : ''}
     </div>
   </section>`);
@@ -288,7 +333,7 @@ function renderMotionAd(spec) {
               iPhones the blur behind the sound pill was simply absent. The
               prefixed form is what the phone in question actually reads. */
            -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
-</style></head>
+</style>${(() => { const c = dsCss(spec); return c ? `<style id="ds">${c}</style>` : ''; })()}</head>
 <body>
 <div class="stage" role="img" aria-label="${esc(spec.product || BRAND_NAME)} advertisement">
 ${sceneHtml.join('\n')}
@@ -296,7 +341,7 @@ ${sceneCss.length ? `<style>${sceneCss.join('\n')}</style>` : ''}
   <div class="cta">
     <h3>${esc(spec.ctaHeadline || spec.cta || 'Lace-up something better')}</h3>
     ${spec.offer ? `<div class="offer">${esc(spec.offer)}</div>` : ''}
-    <span class="btn">${esc(spec.cta || 'Shop now')}</span>
+    <span class="btn" data-ds="button-primary">${esc(spec.cta || 'Shop now')}</span>
     ${spec.footnote ? `<div class="fn">${esc(spec.footnote)}</div>` : ''}
   </div>
   <div class="bar"></div>

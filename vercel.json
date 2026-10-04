@@ -46,7 +46,8 @@
       "maxDuration": 60
     },
     "api/public-config.js": {
-      "maxDuration": 120
+      "maxDuration": 120,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     }
   },
   "redirects": [
