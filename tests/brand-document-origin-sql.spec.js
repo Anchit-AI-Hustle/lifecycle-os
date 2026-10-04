@@ -62,6 +62,7 @@ async function database() {
   await db.exec(PLATFORM);
   await db.exec(fs.readFileSync(path.join(MIG, '20260814100000_brand_context_packs.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(MIG, '20261004120000_brand_document_origin.sql'), 'utf8'));
+  await db.exec(fs.readFileSync(path.join(MIG, '20261004160000_brand_context_apply_by_origin.sql'), 'utf8'));
   await db.query(`insert into public.brand_workspaces (id, owner_id, name, palette) values ($1, $2, 'Harbourlight Goods', '{"primary":"#111111"}')`, [WS, OWNER]);
   return {
     db,
@@ -283,4 +284,181 @@ test('the brand-assets bucket is public-read with editor-scoped writes under the
   // Re-running the migration is a no-op, not an error (idempotent, like every one here).
   await d.db.exec(fs.readFileSync(path.join(MIG, '20261004120000_brand_document_origin.sql'), 'utf8'));
   expect((await d.db.query(`select count(*)::int as n from pg_policies where policyname like 'brand_assets_%'`)).rows[0].n).toBe(4);
+});
+
+/* ═══ two tabs: a stale document save never overwrites what a person typed ══
+   The SHIPPED saveWorkspace, over PostgREST modelled on the same PGlite
+   database (the migrations executed, the updated_at trigger installed), so
+   the PATCH, the claim and brand_context_apply run against real Postgres. A
+   `before` hook lets a test land another tab's write at an exact point. */
+async function saveWorld() {
+  const d = await database();
+  await d.db.exec(`
+    alter table public.brand_workspaces
+      add column if not exists slug text, add column if not exists asset_hosts jsonb not null default '[]'::jsonb,
+      add column if not exists catalog_source jsonb not null default '{}'::jsonb, add column if not exists status text default 'draft',
+      add column if not exists onboarding_step int default 1, add column if not exists created_at timestamptz default now();
+    update public.brand_workspaces set tagline = 'Old line', palette = '{"primary":"#111111","accent":"#b8531f"}'::jsonb, updated_at = now();
+    create or replace function public.touch_brand_workspace() returns trigger language plpgsql as $t$
+      begin new.updated_at = clock_timestamp(); return new; end $t$;
+    create trigger brand_workspaces_touch before update on public.brand_workspaces
+      for each row execute function public.touch_brand_workspace();
+  `);
+  const JSONB = new Set(['palette', 'typography', 'voice', 'regions', 'asset_hosts', 'catalog_source', 'brand_data']);
+  const calls = [];
+  const hooks = { before: null };
+  const real = global.fetch;
+  global.fetch = async (url, init) => {
+    const u = new URL(String(url));
+    const method = (init && init.method) || 'GET';
+    const body = init && init.body ? JSON.parse(init.body) : null;
+    const call = { method, path: u.pathname, query: u.search, body };
+    calls.push(call);
+    if (hooks.before) await hooks.before(call);
+    await d.as(OWNER);
+    const ok = (b) => new Response(JSON.stringify(b), { status: 200, headers: { 'content-type': 'application/json' } });
+    const eq = (k) => { const v = u.searchParams.get(k); return v && v.startsWith('eq.') ? v.slice(3) : null; };
+    if (u.pathname === '/rest/v1/brand_workspaces' && method === 'GET') {
+      const rows = (await d.db.query('select to_jsonb(w) as j from public.brand_workspaces w where id = $1', [eq('id')])).rows;
+      return ok(rows.map((r) => r.j));
+    }
+    if (u.pathname === '/rest/v1/brand_workspaces' && method === 'PATCH') {
+      const cols = Object.keys(body);
+      const args = [eq('id')];
+      const sets = cols.map((c) => { args.push(JSON.stringify(body[c]) === undefined ? null : (JSONB.has(c) ? JSON.stringify(body[c]) : body[c])); return `${c} = $${args.length}${JSONB.has(c) ? '::jsonb' : ''}`; });
+      let where = 'id = $1';
+      if (eq('updated_at')) { args.push(eq('updated_at')); where += ` and updated_at = $${args.length}::timestamptz`; }
+      const rows = (await d.db.query(`update public.brand_workspaces w set ${sets.join(', ')} where ${where} returning to_jsonb(w) as j`, args)).rows;
+      return ok(rows.map((r) => r.j));
+    }
+    const rpc = /^\/rest\/v1\/rpc\/(\w+)$/.exec(u.pathname);
+    if (rpc && rpc[1] === 'brand_fields_claim_user') {
+      return ok((await d.db.query('select public.brand_fields_claim_user($1, $2::text[]) as r', [body.p_workspace, body.p_fields])).rows[0].r);
+    }
+    if (rpc && rpc[1] === 'brand_context_apply') {
+      return ok((await d.db.query('select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r', [body.p_workspace, JSON.stringify(body.p_fields), JSON.stringify(body.p_source || {})])).rows[0].r);
+    }
+    if (rpc && rpc[1] === 'brand_fields_record_origin') {
+      return ok((await d.db.query('select public.brand_fields_record_origin($1, $2::jsonb) as r', [body.p_workspace, JSON.stringify(body.p_fields)])).rows[0].r);
+    }
+    throw new Error('unexpected request ' + method + ' ' + u.pathname);
+  };
+  const saved = { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY };
+  process.env.SUPABASE_URL = 'https://fixture.supabase.co';
+  process.env.SUPABASE_ANON_KEY = 'anon';
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const auth = { token: 'user-jwt', user_id: OWNER };
+  return {
+    d, core, auth, calls, hooks,
+    row: async () => (await d.db.query('select to_jsonb(w) as j from public.brand_workspaces w where id = $1', [WS])).rows[0].j,
+    restore() {
+      global.fetch = real;
+      if (saved.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = saved.url;
+      if (saved.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = saved.anon;
+    },
+  };
+}
+const BOOK = { source: 'harbourlight-brand-book.pdf', page: 1, line: 3 };
+const typedSave = (tagline) => ({ id: WS, name: 'Harbourlight Goods', tagline, palette: { primary: '#111111', accent: '#b8531f' },
+  // The colours are the form's untouched placeholders (origin 'default'): nobody's.
+  brand_data: { field_origins: { name: { origin: 'user' }, tagline: { origin: 'user' }, 'palette.primary': { origin: 'default' }, 'palette.accent': { origin: 'default' } } } });
+const staleDocumentSave = () => ({ id: WS, name: 'Harbourlight Goods', tagline: 'Light, made by hand', palette: { primary: '#1a6b3c', accent: '#b8531f' },
+  brand_data: { field_origins: { name: { origin: 'user' },
+    tagline: Object.assign({ origin: 'document', quote: 'Tagline: Light, made by hand', value: 'Light, made by hand' }, BOOK),
+    'palette.primary': Object.assign({ origin: 'document', quote: 'Primary - Harbour Green / HEX #1A6B3C', value: '#1a6b3c' }, BOOK, { page: 2, line: 2 }),
+    'palette.accent': { origin: 'default' } } } });
+
+test('two tabs: a stale tab saving a guideline document never overwrites a value the other tab typed, and the record never says a person typed a document value', async () => {
+  const w = await saveWorld();
+  try {
+    // Tab B: the person types a tagline and saves.
+    await w.core.saveWorkspace(w.auth, typedSave('Typed in tab B'));
+    expect((await w.d.origin('tagline')).origin).toBe('user');
+    // Tab A, opened before that, applies a brand book and saves its stale form.
+    const out = await w.core.saveWorkspace(w.auth, staleDocumentSave());
+    const row = await w.row();
+    expect(row.tagline, 'the stale document save overwrote what tab B typed').toBe('Typed in tab B');
+    expect((await w.d.origin('tagline')).origin).toBe('user');
+    // A field nobody typed takes the document's value, recorded as the document's.
+    expect(row.palette.primary).toBe('#1a6b3c');
+    expect(await w.d.origin('palette.primary')).toMatchObject({ origin: 'document', source_url: 'harbourlight-brand-book.pdf#page=2' });
+    // What a person owns was never in a write that could replace it: the PATCH
+    // carried the row's own tagline, and the database refused the document's.
+    const patch = w.calls.filter((c) => c.method === 'PATCH').pop();
+    expect(patch.body.tagline).toBe('Typed in tab B');
+    expect(patch.query).toMatch(/updated_at=eq\./);
+    const apply = w.calls.filter((c) => /rpc\/brand_context_apply$/.test(c.path)).pop();
+    expect(apply.body.p_source.tagline.origin).toBe('document');
+    expect(out.tagline, 'the save answered with a value the database does not hold').toBe('Typed in tab B');
+  } finally { w.restore(); }
+});
+
+test('two tabs, interleaved: a typed save that lands between the stale tab\'s read and its write is not lost, and the stale write retries on the fresh row', async () => {
+  const w = await saveWorld();
+  try {
+    let landed = false;
+    w.hooks.before = async (call) => {
+      // Tab B's typed save lands exactly between tab A's read and tab A's PATCH.
+      if (!landed && call.method === 'PATCH') {
+        landed = true;
+        w.hooks.before = null;
+        await w.core.saveWorkspace(w.auth, typedSave('Typed in tab B, mid-save'));
+      }
+    };
+    await w.core.saveWorkspace(w.auth, staleDocumentSave());
+    expect(landed).toBe(true);
+    const row = await w.row();
+    expect(row.tagline).toBe('Typed in tab B, mid-save');
+    expect((await w.d.origin('tagline')).origin).toBe('user');
+    expect(row.palette.primary).toBe('#1a6b3c');
+    // Tab A's first PATCH matched nothing (the row had moved on) and it read again.
+    const aPatches = w.calls.filter((c) => c.method === 'PATCH');
+    expect(aPatches.length).toBe(3);   // A (refused: stale), B, A (on the fresh row)
+  } finally { w.restore(); }
+});
+
+test('an apply landing between a typed save\'s claim and its write cannot take the field: the claim comes first', async () => {
+  const w = await saveWorld();
+  try {
+    let landed = false;
+    w.hooks.before = async (call) => {
+      // Tab A's document apply runs while tab B is between its claim and its PATCH.
+      if (!landed && call.method === 'PATCH') {
+        landed = true;
+        w.hooks.before = null;
+        await w.d.as(OWNER);
+        const r = (await w.d.db.query(`select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r`, [WS, JSON.stringify({ tagline: 'Light, made by hand' }), JSON.stringify({ tagline: { origin: 'document' } })])).rows[0].r;
+        expect(r.skipped_user_owned).toEqual(['tagline']);
+      }
+    };
+    await w.core.saveWorkspace(w.auth, typedSave('Typed in tab B'));
+    expect(landed).toBe(true);
+    expect((await w.row()).tagline).toBe('Typed in tab B');
+    expect((await w.d.origin('tagline')).origin).toBe('user');
+  } finally { w.restore(); }
+});
+
+test('brand_context_apply by origin: a document outranks a site read, a site read cannot take a document value, equal ranks replace, and voice.banned opens only to a document or a template', async () => {
+  const d = await database();
+  await d.as(OWNER);
+  const apply = async (fields, source) => (await d.db.query(`select public.brand_context_apply($1, $2::jsonb, $3::jsonb) as r`, [WS, JSON.stringify(fields), JSON.stringify(source || {})])).rows[0].r;
+  // A site read first, then a document over it: the document wins and is recorded.
+  expect((await apply({ 'palette.primary': '#00a651' }, { 'palette.primary': { origin: 'site-render', source_url: 'https://harbourlight.example/' } })).applied).toEqual(['palette.primary']);
+  expect((await d.origin('palette.primary')).origin).toBe('site-render');
+  expect((await apply({ 'palette.primary': '#1a6b3c' }, { 'palette.primary': { origin: 'document', source_url: 'book.pdf#page=2' } })).applied).toEqual(['palette.primary']);
+  expect((await d.palette()).primary).toBe('#1a6b3c');
+  // A site read (no origin sent: `auto`, every existing caller) cannot take it back.
+  const back = await apply({ 'palette.primary': '#00a651' });
+  expect(back.skipped_user_owned).toEqual(['palette.primary']);
+  expect(back.kept).toEqual([{ field: 'palette.primary', origin: 'document' }]);
+  expect((await apply({ 'palette.primary': '#00a651' }, { 'palette.primary': { origin: 'site-render' } })).skipped_user_owned).toEqual(['palette.primary']);
+  // A newer document replaces an older one.
+  expect((await apply({ 'palette.primary': '#0b5130' }, { 'palette.primary': { origin: 'document' } })).applied).toEqual(['palette.primary']);
+  expect((await d.palette()).primary).toBe('#0b5130');
+  // voice.banned: never from a site read, from a document or a template.
+  expect((await apply({ 'voice.banned': ['hurry'] })).ignored_not_applicable).toEqual(['voice.banned']);
+  expect((await apply({ 'voice.banned': ['hurry'] }, { 'voice.banned': { origin: 'site-render' } })).ignored_not_applicable).toEqual(['voice.banned']);
+  expect((await apply({ 'voice.banned': ['hurry'] }, { 'voice.banned': { origin: 'document' } })).applied).toEqual(['voice.banned']);
+  // An origin the door does not know (a person's claim is not made here) is ignored.
+  expect((await apply({ tagline: 'X' }, { tagline: { origin: 'user' } })).ignored_not_applicable).toEqual(['tagline']);
 });

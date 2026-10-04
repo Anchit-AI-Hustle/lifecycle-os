@@ -1503,21 +1503,111 @@ async function claimUserOwnedFields(auth, workspaceId, input) {
   return n;
 }
 
-async function saveWorkspace(auth, input) {
-  const id = str(input && input.id);
-  if (id) {
+/* ── A SAVE OF AN EXISTING BRAND (review of PR #127, 2026-10-04) ────────────
+   The save used to PATCH every field it carried and only then ask the
+   database whose each one was. Two tabs: tab B saves a tagline the person
+   typed; tab A, opened earlier, applies a brand guideline and saves. A's PATCH
+   wrote the document's tagline over B's, the provenance check then (rightly)
+   kept `user`, and the record said a person typed a value no person typed.
+   Now, in this order:
+     1. What the person TYPED is claimed first (brand_fields_claim_user), so an
+        automatic write landing before the PATCH below already finds it owned.
+     2. The PATCH carries the typed fields, and for every field another source
+        set it carries the ROW'S OWN value - never the incoming one. It is
+        conditional on the row's updated_at; if another save landed in
+        between, the row is read again (a lost update is not a save).
+     3. Every field another source set goes through brand_context_apply() -
+        by origin, under the workspace row lock - which refuses any field
+        whose recorded owner outranks it (user > document > site-render >
+        site-parse > preset). The precedence is decided where the value is
+        written, not before or after it. */
+const SAVE_ATTEMPTS = 4;
+
+/** `input` with each listed field replaced by the row's own value (or removed when the row has none). */
+function withRowValues(input, existing, fields) {
+  const b = JSON.parse(JSON.stringify(input || {}));
+  const prev = existing || {};
+  for (const f of fields) {
+    const dot = f.indexOf('.');
+    if (dot < 0) {
+      if (prev[f] !== undefined && prev[f] !== null) b[f] = JSON.parse(JSON.stringify(prev[f])); else delete b[f];
+      continue;
+    }
+    const col = f.slice(0, dot), leaf = f.slice(dot + 1);
+    const was = prev[col] && typeof prev[col] === 'object' ? prev[col][leaf] : undefined;
+    b[col] = b[col] && typeof b[col] === 'object' ? Object.assign({}, b[col]) : {};
+    if (was !== undefined && was !== null) b[col][leaf] = JSON.parse(JSON.stringify(was)); else delete b[col][leaf];
+  }
+  return b;
+}
+
+function valueAt(row, f) {
+  const dot = f.indexOf('.');
+  if (dot < 0) return row[f];
+  const col = row[f.slice(0, dot)];
+  return col && typeof col === 'object' ? col[f.slice(dot + 1)] : undefined;
+}
+
+async function claimTypedFields(auth, workspaceId, input) {
+  const fields = claimedFields(input);
+  if (!fields.length) return 0;
+  try {
+    await restAs(auth.token, 'rpc/brand_fields_claim_user', { method: 'POST', body: { p_workspace: workspaceId, p_fields: fields } });
+  } catch (err) {
+    console.warn('[brand] field provenance not recorded:', (err && err.message) || err);
+  }
+  return fields.length;
+}
+
+async function saveExisting(auth, id, input) {
+  await claimTypedFields(auth, id, input);
+  const others = recordedOrigins(input);
+  const otherFields = Object.keys(others);
+  let saved = null, full = null;
+  for (let attempt = 0; attempt < SAVE_ATTEMPTS && !saved; attempt++) {
     const existing = await getWorkspace(auth, id);
     if (!existing) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
-    const row = buildRow(input, existing);
-    const saved = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}&select=${SELECT_COLS}`, {
+    full = buildRow(input, existing);              // every value as it will be stored (and the design rules checked on it)
+    const row = otherFields.length ? buildRow(withRowValues(input, existing, otherFields), existing) : full;
+    const guard = existing.updated_at ? `&updated_at=eq.${encodeURIComponent(existing.updated_at)}` : '';
+    const out = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}${guard}&select=${SELECT_COLS}`, {
       method: 'PATCH', body: row, prefer: 'return=representation',
     });
-    // What a person typed is theirs from now on: no automatic run may overwrite
-    // it, and the refusal lives in the database rather than in call order.
-    await claimUserOwnedFields(auth, id, input);
-    invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
-    return Array.isArray(saved) ? saved[0] : saved;
+    const rows = Array.isArray(out) ? out : (out ? [out] : []);
+    if (rows.length) saved = rows[0];
+    else if (!guard) { const e = new Error('Nothing was saved - the brand may have been removed, or a policy refused it.'); e.status = 409; throw e; }
   }
+  if (!saved) {
+    const e = new Error('This brand kept changing in another tab or window while it was being saved, so nothing here was written over it. Reload the brand and save again.');
+    e.status = 409; e.code = 'save_conflict';
+    throw e;
+  }
+  if (otherFields.length) {
+    const fields = {}, source = {};
+    for (const f of otherFields) {
+      const v = valueAt(full, f);
+      if (v === undefined || v === null || v === '') continue;
+      fields[f] = v;
+      source[f] = Object.assign({ origin: others[f].origin }, others[f]);
+    }
+    if (Object.keys(fields).length) {
+      try {
+        await restAs(auth.token, 'rpc/brand_context_apply', { method: 'POST', body: { p_workspace: id, p_fields: fields, p_source: source } });
+      } catch (err) {
+        const e = new Error(`What you typed was saved, but the values from ${otherFields.length === 1 ? 'one other source' : 'your other sources'} (a brand guideline document, a site read or a template) were not: the database refused them (${(err && err.message) || 'no answer'}). Save again.`);
+        e.status = (err && err.status) || 502;
+        throw e;
+      }
+      saved = (await getWorkspace(auth, id)) || saved;
+    }
+  }
+  invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
+  return saved;
+}
+
+async function saveWorkspace(auth, input) {
+  const id = str(input && input.id);
+  if (id) return saveExisting(auth, id, input);
   const row = buildRow(input, null);
   row.owner_id = auth.user_id;
   const created = await restAs(auth.token, `brand_workspaces?select=${SELECT_COLS}`, {
