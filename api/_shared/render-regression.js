@@ -439,7 +439,7 @@ async function repair(rows, manifest, live, tried) {
       fixed = true;
       break;
     }
-    if (!fixed) unmatched.push({ row, reason: `every re-measurement of the source (${list.join(', ')}) confirms ${current}; the difference is in how our ${row.surface} consumes it` });
+    if (!fixed && row.via !== 'pixels') unmatched.push({ row, reason: `every re-measurement of the source (${list.join(', ')}) confirms ${current}; the difference is in how our ${row.surface} consumes it` });
   }
   return { repairs, unmatched };
 }
@@ -488,6 +488,13 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
   // A seed overrides manifest values BEFORE the first comparison. It exists to
   // prove the loop catches a wrong value (the tests seed the parser's
   // frequency-ranked colour); production passes none.
+  // THE TRUTH is the site as measured at read time, kept immutable. The
+  // manifest is what FEEDS our renderers; it starts equal to the truth, and a
+  // seed or a wrong read makes them differ. Comparing our output against the
+  // manifest could never see a wrong manifest value (both sides would carry
+  // it) - so the site side of every comparison is the truth, and repair
+  // re-measures the live page to correct the manifest.
+  const truth = JSON.parse(JSON.stringify(m.read || {}));
   const seeded = [];
   if (seed) {
     for (const [p, v] of Object.entries(seed)) {
@@ -518,10 +525,10 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
     const ml = await measureSurface(oursCtx, ours.mailer, { width: 640, height: 900 }, ctx, `mail${iter}`);
     const ad = await measureSurface(oursCtx, ours.ad, { width: 405, height: 720 }, ctx, `ad${iter}`);
     const rows = judge([]
-      .concat(lpPairs(m.read.desktop, lpD.hooks, 'desktop'))
-      .concat(m.read.mobile ? lpPairs(m.read.mobile, lpM.hooks, 'mobile') : [])
-      .concat(emailPairs(m.read.mobile, m.read.desktop, ml.hooks))
-      .concat(adPairs(m.read.mobile || m.read.desktop, ad.hooks)), { swapped: lpDecisions.swapped });
+      .concat(lpPairs(truth.desktop, lpD.hooks, 'desktop'))
+      .concat(truth.mobile ? lpPairs(truth.mobile, lpM.hooks, 'mobile') : [])
+      .concat(emailPairs(truth.mobile, truth.desktop, ml.hooks))
+      .concat(adPairs(truth.mobile || truth.desktop, ad.hooks)), { swapped: lpDecisions.swapped });
     // Pixels: the primary button and the display heading, both viewports.
     const regions = [];
     const shots = (live && live.shots) || {};
@@ -547,7 +554,13 @@ async function run({ browser, manifest, live, brand, seed, deadline }) {
     iterations.push({ iteration: iter, mismatch: overall.mismatch, score: overall.score, tokens_off: overall.tokens_off, regions_off: overall.regions_off });
     const repairable = rows.filter((x) => x.status === 'mismatch');
     if (overall.done && !repairable.length) break;
-    const { repairs, unmatched } = await repair(rows, m, live, tried);
+    // A pixel region over its limit sends EVERY token of that component to be
+    // re-measured, even ones that compared clean: the pixels are the evidence
+    // no token names (a gradient, a shadow, a value the role read got wrong).
+    const failedRegions = regions.filter((g) => g.comparable && g.ratio > PIXEL_LIMIT);
+    const suspect = rows.map((x) => (x.status === 'match' && x.surface === 'landing page'
+      && failedRegions.some((g) => g.component.startsWith(x.component) && g.viewport === x.viewport)) ? Object.assign({}, x, { status: 'mismatch', via: 'pixels' }) : x);
+    const { repairs, unmatched } = await repair(suspect, m, live, tried);
     last.unmatched = unmatched;
     allRepairs.push(...repairs.map((x) => Object.assign({ iteration: iter }, x)));
     if (!repairs.length) break;

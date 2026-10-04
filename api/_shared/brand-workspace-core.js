@@ -1834,6 +1834,14 @@ async function sessionCheckable() {
   };
 }
 
+/**
+ * The operator's switch for the rendered read. Default ON. `BRAND_RENDER=off`
+ * makes "Read my site" parse published HTML and CSS only - for a deployment
+ * whose function cannot run the browser, and for test suites that exercise
+ * the gate rather than the reader. Read at call time.
+ */
+function renderOff() { return /^(off|0|false|no)$/i.test(String(process.env.BRAND_RENDER || '')); }
+
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
 async function handle(req, res) {
@@ -1869,6 +1877,16 @@ async function handle(req, res) {
 
   if (op === 'validate-palette') {
     return res.status(200).json(Object.assign({ ok: true }, validatePalette(body.palette || q.palette || {})));
+  }
+
+  // `render-probe` is unauthenticated, like `defaults`: it proves the browser
+  // launches on THIS deployment by rendering a fixed page shipped with it
+  // (nothing is fetched, so it is neither an SSRF vector nor a free crawler),
+  // and its answer is cached per instance for five minutes so it cannot be
+  // used to burn CPU. GET-only callers (a status check, a monitor) can read it.
+  if (op === 'render-probe') {
+    if (renderOff()) return res.status(200).json({ ok: false, renderer: 'unavailable', reason: 'BRAND_RENDER=off on this deployment: Read my site reads published HTML and CSS only.' });
+    return res.status(200).json(await require('./brand-render.js').renderProbe());
   }
 
   const auth = await requireUser(req);
@@ -1931,7 +1949,12 @@ async function handle(req, res) {
 
   if (openWithoutBackend) {
     try {
-      const out = await require('./brand-extract.js').runExtract(
+      // RENDERED FIRST (2026-10-04): the site is opened in a headless browser
+      // and measured as it renders; the parser runs alongside and is the
+      // labelled fallback. On THIS path - no account the server can check -
+      // the browser read is rate-limited per address and per instance, and it
+      // calls no model whatever happens (voice stays OFF below).
+      const out = await require('./brand-render.js').extractWithRender(
         { ok: false, token: '', user_id: '', email: '' },
         {
           url: str(body.url || q.url, 500),
@@ -1940,6 +1963,7 @@ async function handle(req, res) {
           voice: false,
           max_pages: body.max_pages || q.max_pages,
         },
+        { open: true, req, render: !renderOff() && body.render !== false },
       );
       // Neutral about WHO is here: the server cannot tell a visitor from a
       // person signed in on the device (neither sends a token), and "read
@@ -2188,12 +2212,12 @@ async function handle(req, res) {
       }
       case 'extract': {
         const wantsVoice = (body.voice !== undefined ? body.voice : q.voice) !== false && String(q.voice || '') !== 'false';
-        const out = await require('./brand-extract.js').runExtract(auth, {
+        const out = await require('./brand-render.js').extractWithRender(auth, {
           url: str(body.url || q.url, 500),
           workspace_id: str(body.workspace_id || q.workspace_id),
           voice: wantsVoice && !spend,
           max_pages: body.max_pages || q.max_pages,
-        });
+        }, { open: false, req, render: !renderOff() && body.render !== false });
         const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
         return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
       }
@@ -2218,7 +2242,7 @@ async function handle(req, res) {
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest',
+            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'render-probe', 'suggest',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
