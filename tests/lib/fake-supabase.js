@@ -67,7 +67,7 @@ const DEFAULTS = {
   workspace_connections: { status: 'active', config: {}, secret_fields: [], secret_hint: '' },
   platform_webhook_events: { verified: false, processed_at: null },
   social_creative_flags: { status: 'open', decided_by: null, decided_at: null },
-  social_inbound_events: { items: [] },
+  social_inbound_events: { items: [], status: 'received', attempts: 0 },   // + 20261004170000
 };
 
 /** Tables whose rows are scoped to a workspace for RLS. */
