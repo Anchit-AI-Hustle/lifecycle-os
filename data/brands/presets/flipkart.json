@@ -8,36 +8,254 @@
     "label": "Flipkart",
     "sector": "Marketplace",
     "blurb": "General marketplace. Template for category-wide sale events and a membership tier.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.flipkart.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.flipkart.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #56adff from meta theme-color (meta[name=theme-color]). Headings inter_bold, body inter_regular, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "page ground",
+          "selector": "canvas (no background declared)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "primary": {
+        "value": "#56adff",
+        "exact": "#56adff",
+        "derived": false,
+        "from_role": "identity",
+        "signal": "meta theme-color",
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "theme-color",
+          "selector": "meta[name=theme-color]",
+          "viewport": "desktop",
+          "property": "content",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#333333",
+        "exact": "#ffffff",
+        "derived": true,
+        "from_role": "navigation link",
+        "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the navigation link text the site renders (#333333) reads there, so it is the ink.",
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "navigation link",
+          "selector": "div.H5bs2Y > div.CXZSEo > div.LhEIN3:nth-of-type(1) > div.wszdrO > a.K05FV0",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "product card",
+          "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(4) > div.css-g5y9jx > div > div",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "muted": {
+        "value": "#333333",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "body copy",
+          "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "accent": {
+        "value": "#2a55e5",
+        "exact": "#2a55e5",
+        "derived": false,
+        "source": {
+          "page": "https://www.flipkart.com/",
+          "role": "primary call to action",
+          "selector": "div.H5bs2Y > div.CXZSEo > div.qjYSan:nth-of-type(2) > div.BSliuJ:nth-of-type(2) > a.BHnOJf",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "from_role": "action"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.flipkart.com/",
+        "role": "home"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 51.5,
+      "mismatch": 0.4853,
+      "surfaces": {
+        "landing page": {
+          "score": 54.3,
+          "mismatch": 0.4569,
+          "done": false,
+          "tokens_off": 13,
+          "regions_off": 2
+        },
+        "mailer": {
+          "score": 57.1,
+          "mismatch": 0.4286,
+          "done": false,
+          "tokens_off": 3,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 33.3,
+          "mismatch": 0.6667,
+          "done": false,
+          "tokens_off": 2,
+          "regions_off": 0
+        }
+      },
+      "iterations": 1,
+      "repairs": 0,
+      "mismatch_limit": 0.05
+    },
+    "conflicts": [
+      {
+        "kind": "brand_colour_vs_action_colour",
+        "message": "The site declares #56adff as its own colour (meta theme-color) but renders its primary call to action in #2a55e5. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.flipkart.com/",
+        "role": "h1",
+        "selector": "div > a > div.css-g5y9jx > div.css-g5y9jx.r-1awozwy > h1.css-146c3p1.r-dnmrzs",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://www.flipkart.com/",
+        "role": "body copy",
+        "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#56adff",
+    "accent": "#2a55e5",
+    "ink": "#333333",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#333333",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "inter_bold",
+      "stack": "'inter_bold',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "inter_bold (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "inter_regular",
+      "stack": "'inter_regular','fallback-inter_regular','Arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "inter_regular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -52,7 +270,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "flipkart.com"
+    "flipkart.com",
+    "static-assets-web.flixcart.com",
+    "rukminim2.flixcart.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -286,12 +506,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Flipkart]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Flipkart]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Flipkart]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Flipkart]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Flipkart]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/26/22/image/d2ecfddf891a3922.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/46/18/image/31f7e3af490c225f.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/29/22/image/7ab4040af860941d.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/36/18/image/5a9ff48eef96b876.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/profile-6bae67.svg",
+      "role": "photograph",
+      "alt": "Login",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/header_cart_v4-6ac9a8.svg",
+      "role": "photograph",
+      "alt": "Cart",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/920/448/image/93526a5a4881e8b7.jpg?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

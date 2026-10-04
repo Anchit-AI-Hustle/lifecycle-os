@@ -20,7 +20,6 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const { chooseSchema } = require(path.join(ROOT, 'scripts', 'observe-preset-brands.js'));
 const DIR = path.join(ROOT, 'data', 'brands', 'presets');
 const index = JSON.parse(fs.readFileSync(path.join(DIR, 'index.json'), 'utf8'));
 const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'));
@@ -167,16 +166,9 @@ test('every preset passes the palette gate, except the one known blocker', () =>
 });
 
 /* ═══ the gallery cannot render a default as if it were verified ══════════ */
-
-test('the gallery labels a default card and orders it after the verified ones', () => {
-  const html = fs.readFileSync(path.join(ROOT, 'onboarding.html'), 'utf8');
-  expect(html).toMatch(/palette_source === 'default'/);
-  expect(html).toMatch(/Default palette, not this brand/);
-  // Sorted so a verified card is never pushed below forty placeholders.
-  expect(html).toMatch(/PRESETS\.slice\(\)\.sort/);
-  // And the operator is told at the moment of the click, not only on the card.
-  expect(html).toMatch(/neutral default, not/);
-});
+// Executed in tests/preset-harvest.spec.js: the real /onboarding gallery is
+// driven in Chromium over the shipped index, and every default card must carry
+// the "Default palette, not this brand's" chip and the reason it is one.
 
 /* ═══ a colour is taken from the page, or it is not taken ════════════════ */
 
@@ -188,98 +180,10 @@ const HAND_PRIMARY = {
   apple: '#0071e3',
 };
 
-test('a theme-color is the primary, and a review widget colour is not', () => {
-  const out = chooseSchema({
-    landed: 'https://www.starbucks.com/',
-    observed_at: '2026-09-30',
-    theme: '#006341',
-    surface: '#ffffff',
-    ink: '#000000',
-    vars: [
-      { name: '--colorGreenAccent', hex: '#00754a', selector: ':root' },
-      { name: '--jdgm-primary-color', hex: '#00aeef', selector: ':root' },
-    ],
-    paints: [{ hex: '#ff00aa', n: 12, sample: 'm_prod_labels best-seller' }],
-    headingFont: 'SoDoSans, Helvetica, Arial, sans-serif',
-    bodyFont: 'SoDoSans, Helvetica, Arial, sans-serif',
-    logoUrl: 'https://www.starbucks.com/apple-touch-icon.png',
-    images: [{ url: 'https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-1.jpg', alt: 'A gift card', w: 1440, role: 'photograph' }],
-  });
-  expect(out).toBeTruthy();
-  expect(out.palette.primary).toBe('#006341');
-  expect(out.palette.accent).toBe('#00754a');
-  expect(out.evidence.primary.signal).toMatch(/theme-color/);
-  expect(out.typography.heading.family).toBe('SoDoSans');
-  expect(out.logo_url).toMatch(/^https:\/\//);
-  expect(out.assets.map((a) => a.url)).toContain('https://content-prod-live.cert.starbucks.com/binary/v2/asset/137-1.jpg');
-});
-
-test('a monochrome mark uses the logo colour, not a colour remembered for the brand', () => {
-  const out = chooseSchema({
-    landed: 'https://www.nike.com/',
-    observed_at: '2026-09-30',
-    surface: '#ffffff',
-    ink: '#111111',
-    logoIsVector: true,
-    logoColor: '#111111',
-    headingFont: '"Nike Futura ND", Helvetica, Arial, sans-serif',
-    bodyFont: '"Helvetica Now Text", Helvetica, Arial, sans-serif',
-    logoUrl: 'https://www.nike.com/android-icon-192x192.png',
-  });
-  expect(out.palette.primary).toBe('#111111');
-  expect(out.evidence.primary.signal).toMatch(/home logo/);
-  expect(out.typography.body.family).toBe('Helvetica Now Text');
-});
-
-test('a pressed-state grey and a hidden player are not the brand colour', () => {
-  const out = chooseSchema({
-    landed: 'https://brand.example/',
-    observed_at: '2026-09-30',
-    surface: '#ffffff',
-    ink: '#111111',
-    vars: [
-      { name: '--color-icon-action-on_brand-primary-pressed', hex: '#d5d5d5', selector: ':root' },
-      { name: '--palette-bg-primary-disabled', hex: '#f2f2f2', selector: ':root' },
-      { name: '--vc-clr-primary', hex: '#642afb', selector: ':root' },
-      { name: '--primary-text-color', hex: '#0f1111', selector: ':root' },
-    ],
-    paints: [{ hex: '#2b333f', n: 9, sample: 'vjs-modal-dialog vjs-hidden' }],
-    logoIsVector: true,
-    logoColor: '#111111',
-  });
-  expect(out.palette.primary).toBe('#111111');
-  expect(out.evidence.primary.signal).toMatch(/home logo/);
-});
-
-test('a campaign photograph is not the logo, and a chart bar is not the primary', () => {
-  const out = chooseSchema({
-    landed: 'https://brand.example/',
-    observed_at: '2026-09-30',
-    surface: '#ffffff',
-    ink: '#111111',
-    logoIsVector: true,
-    logoColor: '#111111',
-    logoUrl: 'https://static.example/a/images/nike-just-do-it.png',
-    images: [{ url: 'https://www.example.com/android-icon-192x192.png', alt: '', role: 'photograph' }],
-    paints: [
-      { hex: '#7f7dfc', n: 31, sample: 'billing-plan-graphic__bar' },
-      { hex: '#533afd', n: 6, sample: 'hds-button hds-button--primary' },
-    ],
-  });
-  expect(out.palette.primary).toBe('#533afd');
-  expect(out.evidence.primary.signal).toMatch(/button/);
-  expect(out.logo_url).toBe('https://www.example.com/android-icon-192x192.png');
-});
-
-test('a page that published no usable primary is not given one', () => {
-  expect(chooseSchema({
-    landed: 'https://example.com/',
-    theme: '#ffffff',
-    surface: '#ffffff',
-    ink: '#111111',
-    vars: [{ name: '--jdgm-primary-color', hex: '#00aeef', selector: ':root' }],
-  })).toBeNull();
-});
+// What a page's colours MEAN (identity, action, monochrome, nothing at all) is
+// decided by the one rendered reader, api/_shared/brand-render.js, and mapped
+// onto a preset by scripts/lib/preset-observation.js. Both are executed in
+// tests/preset-harvest.spec.js, over fixture sites in real Chromium.
 
 test('the five hand-verified palettes stay the colours that were read for them', () => {
   for (const [slug, hex] of Object.entries(HAND_PRIMARY)) {
@@ -294,8 +198,15 @@ test('an observed template carries that observation and nothing else', () => {
     if (!fs.existsSync(obsPath)) continue;
     const obs = JSON.parse(fs.readFileSync(obsPath, 'utf8'));
     const preset = load(row.slug);
-    if (!obs.ok) {
+    if (!obs.ok || obs.palette_ok === false) {
       expect(row.palette_source, `${row.slug} was given a brand colour from a page that was not read`).toBe('default');
+      // A read that did not produce a palette says why, in the observation
+      // and on the card (the rendered reader's format; the 2026-09-30 one
+      // carried only a note).
+      if (obs.format === 'preset-observation/2') {
+        expect(['blocked', 'timeout', 'unavailable', 'rendered']).toContain(obs.read_attempt.renderer);
+        expect(row.read_note, `${row.slug} is a default with no reason on its card`).toBeTruthy();
+      }
       continue;
     }
     expect(row.palette_source, row.slug).toBe('verified');

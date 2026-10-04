@@ -1,10 +1,24 @@
 {
+  "format": "preset-observation/2",
   "ok": false,
+  "palette_ok": false,
   "slug": "myntra",
   "start": "https://www.myntra.com",
-  "landed": "https://www.myntra.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Site Maintenance",
-  "note": "The page did not serve the brand site (status 200, title \"Site Maintenance\"). Nothing was filled in from it."
+  "landed": "https://www.myntra.com",
+  "observed_at": "2026-10-04",
+  "renderer": "blocked",
+  "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it.",
+  "read_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-04",
+    "host": "www.myntra.com",
+    "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "",
+    "browser": "",
+    "chromium": ""
+  },
+  "note": "www.myntra.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }

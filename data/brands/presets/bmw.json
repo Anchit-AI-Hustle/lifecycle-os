@@ -8,90 +8,40 @@
     "label": "BMW",
     "sector": "Automotive",
     "blurb": "Automotive. Template for a dealer-assisted funnel and a servicing lifecycle.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://www.bmwusa.com/ on 2026-09-30. Primary #000000 from meta msapplication-TileColor.",
-    "needs_extraction": false,
-    "palette_source": "verified",
-    "typography_source": "verified",
-    "logo_signal": "img on the page whose address or alt says logo",
-    "palette_evidence": {
-      "surface": {
-        "value": "#ffffff",
-        "signal": "light page surface; the page ground was not a light colour",
-        "source_url": "https://www.bmwusa.com/"
-      },
-      "ink": {
-        "value": "#414141",
-        "signal": "computed color of body",
-        "source_url": "https://www.bmwusa.com/"
-      },
-      "surface_alt": {
-        "value": "#f6f6f6",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://www.bmwusa.com/"
-      },
-      "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://www.bmwusa.com/"
-      },
-      "primary": {
-        "value": "#000000",
-        "signal": "meta msapplication-TileColor",
-        "source_url": "https://www.bmwusa.com/"
-      },
-      "accent": {
-        "value": "#1c69d4",
-        "signal": "computed background of cmp-button     ",
-        "source_url": "https://www.bmwusa.com/"
-      },
-      "line": {
-        "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "ok": {
-        "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "warn": {
-        "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "err": {
-        "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      }
-    },
-    "typography_evidence": {
-      "heading": "computed font-family of h1",
-      "body": "computed font-family of body"
+    "verified_at": null,
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.bmw.com.",
+    "needs_extraction": true,
+    "palette_source": "default",
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "timeout",
+      "at": "2026-10-04",
+      "host": "www.bmw.com",
+      "reason": "The site could not be opened: timed out."
     }
   },
   "palette": {
-    "primary": "#000000",
-    "accent": "#1c69d4",
-    "ink": "#414141",
-    "surface": "#ffffff",
-    "surface_alt": "#f6f6f6",
-    "muted": "#666666",
+    "primary": "#2B2B2B",
+    "accent": "#5A5A5A",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F5F5",
+    "muted": "#6A6A6A",
+    "line": "#E4E4E4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "bmwTypeNextWeb",
-      "stack": "'bmwTypeNextWeb', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "bmwTypeNextWeb",
-      "stack": "'bmwTypeNextWeb', \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -108,9 +58,7 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "bmw.com",
-    "www.bmwusa.com",
-    "bmw.scene7.com"
+    "bmw.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -168,69 +116,12 @@
   ],
   "offerings": [],
   "data_gaps": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand palette, BMW]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography, BMW]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, BMW]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, BMW]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, BMW]"
   ],
-  "brand_assets": [
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/images/logo-icons/BMW/BMW_White_Logo.svg.asset.1695740583851.svg",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://www.bmwusa.com/",
-      "role": "share",
-      "alt": "",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/images/logo-icons/BMW/BMW_Grey_Logo.svg.asset.1695740583799.svg",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/brand-logo/bmw-i/BMW_i_100px_white.png.asset.1691600505452.png",
-      "role": "logo",
-      "alt": "BMW i",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/brand-logo/bmw-m/BMW_M_Grey-Colour_RGB_new.SVG.asset.1695372898767.SVG",
-      "role": "logo",
-      "alt": "BMW M",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://bmw.scene7.com/is/image/BMW/GLobal-Nav-photo?wid=1500&hei=823",
-      "role": "photograph",
-      "alt": "Shop Inventory",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://bmw.scene7.com/is/image/BMW/MyBMW_App?wid=2185&hei=956",
-      "role": "photograph",
-      "alt": "A man leans on the hood of his BMW as he uses his mobile phone.",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://bmw.scene7.com/is/image/BMW/BMW-SEPTEMBER2026-OFFERS-X5-xDrive40i:16to7?fmt=webp&wid=1504&hei=658",
-      "role": "photograph",
-      "alt": "The BMW X5 parked dramatically on an asphalt surface.",
-      "found_on": "https://www.bmwusa.com/",
-      "signal": "img on the page"
-    }
-  ],
-  "logo_url": "https://www.bmwusa.com/content/dam/bmw/marketUS/common/images/logo-icons/BMW/BMW_White_Logo.svg.asset.1695740583851.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

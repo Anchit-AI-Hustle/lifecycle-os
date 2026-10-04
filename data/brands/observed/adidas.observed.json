@@ -1,10 +1,24 @@
 {
+  "format": "preset-observation/2",
   "ok": false,
+  "palette_ok": false,
   "slug": "adidas",
   "start": "https://www.adidas.com",
-  "landed": "https://www.adidas.com/",
-  "observed_at": "2026-09-30",
-  "status": 403,
-  "title": "adidas",
-  "note": "The page did not serve the brand site (status 403, title \"adidas\"). Nothing was filled in from it."
+  "landed": "https://www.adidas.com",
+  "observed_at": "2026-10-04",
+  "renderer": "blocked",
+  "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
+  "read_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-04",
+    "host": "www.adidas.com",
+    "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "",
+    "browser": "",
+    "chromium": ""
+  },
+  "note": "www.adidas.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }
