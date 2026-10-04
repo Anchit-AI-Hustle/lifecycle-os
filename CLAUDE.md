@@ -290,14 +290,19 @@ time, a per-site deadline plus a hard stop) and `scripts/lib/preset-observation.
 manifest. `scripts/observe-preset-brands.js` - a second, older browser reader - is deleted: two
 readers drift. Gated by `tests/preset-harvest.spec.js` (executed: fixture sites on 127.0.0.1 through
 the real reader in Chromium, the real builder, the real gallery).
-- **Runs on GitHub, not here.** This container has no egress to brand hosts; GitHub's runners do.
-  `.github/workflows/harvest-presets.yml` runs on dispatch (`slugs`) and on any same-repo PR that
-  touches the harvester, the mapping, the builder, the reader or itself; it commits
-  `data/brands/observed/` + regenerated `data/brands/presets/` back to the PR (a `[skip harvest]`
-  head commit skips it; the bot's GITHUB_TOKEN push starts no run, so it cannot loop - and starts no
-  CI either, so push a commit after it to get CI on that head). Screenshots, our renderers' shots,
-  the manifest and a report per brand are the run's `preset-harvest-<run id>` artifact; the
-  before/after table is the run summary.
+- **Runs on GitHub, not here; a PR only READS, a dispatch PUBLISHES (2026-10-04).** This container
+  has no egress to brand hosts; GitHub's runners do. `.github/workflows/harvest-presets.yml` on a
+  same-repo PR touching the harvester, mapping, builder, reader or itself reads every site and
+  reports (run summary + `preset-harvest-<run id>` artifact: screenshots, our renderers' shots, the
+  manifest and a report per brand) with a read-only token, failing only on a gate. It used to commit
+  40 brands' data back onto the PR - #131, a document-fetch lockdown, got 5c06501 - and that bot push
+  produced `action_required` runs. Only `workflow_dispatch` from the default branch publishes: a
+  separate job (the only one with write scopes) commits the data onto `claude/harvest-presets-<run
+  id>` and opens its own PR; dispatched elsewhere it reads and says why it did not publish. The data
+  commit carries `[skip ci]`, so no run starts for it and auto-merge (which fires on CI completing)
+  cannot land it: a human reviews, then pushes any commit to start CI. Gated by
+  `tests/harvest-workflow.spec.js`, which runs the publish script in a real clone of a real local
+  remote and asserts which refs moved (mutation-verified six ways).
 - **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
   unavailable` + the reason + `read_attempt`; no palette, type or logo. The preset keeps the neutral
   default and the card says one sentence (`<host> blocked an automated read on <date>.`). No stealth,
