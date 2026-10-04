@@ -376,7 +376,7 @@
         "renderer": "blocked",
         "at": "2026-10-04",
         "host": "www.nike.com",
-        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"NOTHING COMPLICATED ABOUT IT.\"). Nothing was read from it."
+        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
       },
       "read_note": "www.nike.com blocked an automated read on 2026-10-04.",
       "renderer": null,
@@ -971,7 +971,7 @@
       "swatch": [
         "#56adff",
         "#2a55e5",
-        "#000000",
+        "#333333",
         "#ffffff"
       ],
       "swatches": [
@@ -992,7 +992,7 @@
         },
         {
           "role": "ink",
-          "value": "#000000",
+          "value": "#333333",
           "derived": true,
           "exact": "#ffffff"
         }
@@ -1011,28 +1011,28 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 60.7,
-        "mismatch": 0.3933,
+        "score": 51.5,
+        "mismatch": 0.4853,
         "surfaces": {
           "landing page": {
-            "score": 60.7,
-            "mismatch": 0.3933,
+            "score": 54.3,
+            "mismatch": 0.4569,
             "done": false,
-            "tokens_off": 4,
-            "regions_off": 1
+            "tokens_off": 13,
+            "regions_off": 2
           },
           "mailer": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
+            "score": 57.1,
+            "mismatch": 0.4286,
+            "done": false,
+            "tokens_off": 3,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 100,
-            "mismatch": 0,
-            "done": true,
-            "tokens_off": 0,
+            "score": 33.3,
+            "mismatch": 0.6667,
+            "done": false,
+            "tokens_off": 2,
             "regions_off": 0
           }
         },
@@ -1173,12 +1173,12 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 58.6,
-        "mismatch": 0.4137,
+        "score": 58.3,
+        "mismatch": 0.4167,
         "surfaces": {
           "landing page": {
-            "score": 59.8,
-            "mismatch": 0.4018,
+            "score": 59.4,
+            "mismatch": 0.4057,
             "done": false,
             "tokens_off": 8,
             "regions_off": 4
@@ -1563,16 +1563,16 @@
       "renderer": "rendered",
       "regression": {
         "ok": true,
-        "done": false,
-        "score": 70,
-        "mismatch": 0.3,
+        "done": true,
+        "score": 100,
+        "mismatch": 0,
         "surfaces": {
           "landing page": {
-            "score": 70,
-            "mismatch": 0.3,
-            "done": false,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
             "tokens_off": 0,
-            "regions_off": 2
+            "regions_off": 0
           },
           "mailer": {
             "score": 100,
@@ -1656,9 +1656,9 @@
         "renderer": "rendered",
         "at": "2026-10-04",
         "host": "www.samsung.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)"
+        "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
       },
-      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's).",
+      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)).",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2052,7 +2052,7 @@
       "swatch": [
         "#006341",
         "#006341",
-        "#006242",
+        "#212121",
         "#ffffff"
       ],
       "swatches": [
@@ -2074,7 +2074,7 @@
         },
         {
           "role": "ink",
-          "value": "#006242",
+          "value": "#212121",
           "derived": true,
           "exact": "#ffffff"
         }
@@ -2411,12 +2411,12 @@
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
       "read_attempt": {
-        "renderer": "blocked",
+        "renderer": "timeout",
         "at": "2026-10-04",
         "host": "www.netflix.com",
-        "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+        "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.netflix.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2506,14 +2506,14 @@
       "sector": "Travel",
       "blurb": "Travel marketplace. Template for a two-sided lifecycle with a seasonal booking window.",
       "verified_at": "2026-10-04",
-      "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark fill as rendered (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg).",
+      "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark fill as rendered (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg). Headings Airbnb Cereal VF, body Airbnb Cereal VF, as rendered.",
       "palette_source": "verified",
-      "typography_source": "default",
+      "typography_source": "verified",
       "needs_extraction": false,
       "swatch": [
         "#ff385c",
         "#ff385c",
-        "#222222",
+        "#202020",
         "#ffffff"
       ],
       "swatches": [
@@ -2535,47 +2535,47 @@
         },
         {
           "role": "ink",
-          "value": "#222222",
+          "value": "#202020",
           "derived": true,
-          "exact": ""
+          "exact": "#ffffff"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "heading_font": "Airbnb Cereal VF",
+      "body_font": "Airbnb Cereal VF",
+      "heading_stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
+      "body_stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
+      "heading_line": "Airbnb Cereal VF (brand font, shown in fallback)",
+      "body_line": "Airbnb Cereal VF (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
         "done": false,
-        "score": 62.1,
-        "mismatch": 0.3792,
+        "score": 66.4,
+        "mismatch": 0.3362,
         "surfaces": {
           "landing page": {
-            "score": 63.6,
-            "mismatch": 0.3636,
+            "score": 68.1,
+            "mismatch": 0.3189,
             "done": false,
-            "tokens_off": 3,
+            "tokens_off": 1,
             "regions_off": 3
           },
           "mailer": {
-            "score": 84.6,
-            "mismatch": 0.1538,
+            "score": 85.7,
+            "mismatch": 0.1429,
             "done": false,
             "tokens_off": 2,
             "regions_off": 0
           },
           "ad creative": {
-            "score": 85.7,
-            "mismatch": 0.1429,
-            "done": false,
-            "tokens_off": 1,
+            "score": 100,
+            "mismatch": 0,
+            "done": true,
+            "tokens_off": 0,
             "regions_off": 0
           }
         },
@@ -2716,14 +2716,14 @@
       "regression": {
         "ok": true,
         "done": false,
-        "score": 68.3,
-        "mismatch": 0.3173,
+        "score": 69.1,
+        "mismatch": 0.3087,
         "surfaces": {
           "landing page": {
-            "score": 68.8,
-            "mismatch": 0.3123,
+            "score": 70,
+            "mismatch": 0.3,
             "done": false,
-            "tokens_off": 1,
+            "tokens_off": 0,
             "regions_off": 4
           },
           "mailer": {
@@ -2742,7 +2742,7 @@
           }
         },
         "iterations": 3,
-        "repairs": 4,
+        "repairs": 6,
         "mismatch_limit": 0.05
       },
       "has_catalog": false,

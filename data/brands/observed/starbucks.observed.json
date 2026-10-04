@@ -5,7 +5,7 @@
   "start": "https://www.starbucks.com",
   "landed": "https://www.starbucks.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:10:09.917Z",
+  "read_at": "2026-10-04T17:23:27.421Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -23,7 +23,7 @@
       "role": "product"
     },
     {
-      "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=erisC.KT8TgvR27CvgRelbbkzeUV8Oy2PEf0oiFo48s-1791133808-1.0.1.1-nDBvNrTcxB4H1x41Wy0.qpLfHW.Upp9y6duXa9.IM54",
+      "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=fo.QxrHDpzqXue6q4gBzKHB_ZiuQrCB8bIB5EtB5xZ0-1791134606-1.0.1.1-T3GuocCwNmnpBM57KK5ALKtARsnZRdVYOLxGnbbI7oQ",
       "role": "about"
     }
   ],
@@ -136,7 +136,7 @@
   "palette": {
     "primary": "#006341",
     "accent": "#006341",
-    "ink": "#006242",
+    "ink": "#212121",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
     "muted": "#006242",
@@ -175,15 +175,15 @@
       }
     },
     "ink": {
-      "value": "#006242",
+      "value": "#212121",
       "exact": "#ffffff",
       "derived": true,
-      "from_role": "h1",
-      "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the h1 text the site renders (#006242) reads there, so it is the ink.",
+      "from_role": "navigation link",
+      "note": "The body copy as rendered (#ffffff) measures 1:1 on #ffffff; the navigation link text the site renders (#212121) reads there, so it is the ink.",
       "source": {
         "page": "https://www.starbucks.com/",
-        "role": "h1",
-        "selector": "div.sb-contentColumn__inner > div.md-flex > div.py5.flex:nth-of-type(2) > div > h1.sb-heading.mb4",
+        "role": "navigation link",
+        "selector": "div.sb-globalNav__wrapper:nth-of-type(2) > div.flex.flex-shrink-none:nth-of-type(1) > ul.flex > li.sb-globalNav__desktopListItem.flex:nth-of-type(1) > a.sb-globalNav__desktopLink.inline-block",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"

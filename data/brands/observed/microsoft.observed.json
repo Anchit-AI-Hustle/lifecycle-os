@@ -5,7 +5,7 @@
   "start": "https://www.microsoft.com",
   "landed": "https://www.microsoft.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:09:41.533Z",
+  "read_at": "2026-10-04T17:23:02.419Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",

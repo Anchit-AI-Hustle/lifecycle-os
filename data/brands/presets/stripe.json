@@ -182,14 +182,14 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 68.3,
-      "mismatch": 0.3173,
+      "score": 69.1,
+      "mismatch": 0.3087,
       "surfaces": {
         "landing page": {
-          "score": 68.8,
-          "mismatch": 0.3123,
+          "score": 70,
+          "mismatch": 0.3,
           "done": false,
-          "tokens_off": 1,
+          "tokens_off": 0,
           "regions_off": 4
         },
         "mailer": {
@@ -208,7 +208,7 @@
         }
       },
       "iterations": 3,
-      "repairs": 4,
+      "repairs": 6,
       "mismatch_limit": 0.05
     },
     "conflicts": [

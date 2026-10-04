@@ -9,10 +9,10 @@
     "sector": "Travel",
     "blurb": "Travel marketplace. Template for a two-sided lifecycle with a seasonal booking window.",
     "verified_at": "2026-10-04",
-    "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark fill as rendered (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg).",
+    "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark fill as rendered (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg). Headings Airbnb Cereal VF, body Airbnb Cereal VF, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
-    "typography_source": "default",
+    "typography_source": "verified",
     "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
       "surface": {
@@ -44,15 +44,14 @@
         }
       },
       "ink": {
-        "value": "#222222",
-        "exact": "",
+        "value": "#202020",
+        "exact": "#ffffff",
         "derived": true,
-        "from_role": "display heading",
-        "note": "The read found no body copy; the display heading text the site renders (#222222) is the ink.",
+        "note": "DERIVED from #6c6c6c: no text colour reached 4.5:1 on the primary #ff385c, so the ink is darkened until it does (still 16.29:1 on the page).",
         "source": {
           "page": "https://www.airbnb.com/",
-          "role": "display heading",
-          "selector": "div > div.c1dbtjd2.atm_26_1qgma6g > div.cff48sj.atm_lb_fyhuej > div > h2.hifxi0b.atm_c8_21sjza",
+          "role": "body copy",
+          "selector": "span#unified-search-microphone-prompt",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -73,17 +72,17 @@
         }
       },
       "muted": {
-        "value": "#222222",
+        "value": "#6c6c6c",
         "exact": "",
         "derived": true,
         "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
         "source": {
-          "page": "",
-          "role": "",
-          "selector": "",
-          "viewport": "",
-          "property": "",
-          "signal": ""
+          "page": "https://www.airbnb.com/",
+          "role": "body copy",
+          "selector": "span#unified-search-microphone-prompt",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
         }
       },
       "accent": {
@@ -173,43 +172,61 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 62.1,
-      "mismatch": 0.3792,
+      "score": 66.4,
+      "mismatch": 0.3362,
       "surfaces": {
         "landing page": {
-          "score": 63.6,
-          "mismatch": 0.3636,
+          "score": 68.1,
+          "mismatch": 0.3189,
           "done": false,
-          "tokens_off": 3,
+          "tokens_off": 1,
           "regions_off": 3
         },
         "mailer": {
-          "score": 84.6,
-          "mismatch": 0.1538,
+          "score": 85.7,
+          "mismatch": 0.1429,
           "done": false,
           "tokens_off": 2,
           "regions_off": 0
         },
         "ad creative": {
-          "score": 85.7,
-          "mismatch": 0.1429,
-          "done": false,
-          "tokens_off": 1,
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
           "regions_off": 0
         }
       },
       "iterations": 2,
       "repairs": 1,
       "mismatch_limit": 0.05
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.airbnb.com/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div > div.c1dbtjd2.atm_26_1qgma6g > div.cff48sj.atm_lb_fyhuej > div > h2.hifxi0b.atm_c8_21sjza",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://www.airbnb.com/",
+        "role": "body copy",
+        "selector": "span#unified-search-microphone-prompt",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
     }
   },
   "palette": {
     "primary": "#ff385c",
     "accent": "#ff385c",
-    "ink": "#222222",
+    "ink": "#202020",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#222222",
+    "muted": "#6c6c6c",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -217,16 +234,22 @@
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Airbnb Cereal VF",
+      "stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
       "google": false,
-      "weights": "600;700"
+      "weights": "600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Airbnb Cereal VF (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Airbnb Cereal VF",
+      "stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Airbnb Cereal VF (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {

@@ -17,7 +17,7 @@
       "renderer": "rendered",
       "at": "2026-10-04",
       "host": "www.samsung.com",
-      "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is that vendor's design, not the brand's)"
+      "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
     },
     "logo_signal": "the icon the page declares (link rel=apple-touch-icon)"
   },
@@ -61,8 +61,7 @@
   "asset_hosts": [
     "samsung.com",
     "resources.samsung.com",
-    "images.samsung.com",
-    "consent.trustarc.com"
+    "images.samsung.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -192,6 +191,27 @@
       "signal": "image rendered on the page"
     },
     {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/S26Ultra_SCOM-146440_SCOM_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "Galaxy S26 Ultra",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Feature-Card_Galaxy-Z-Flip8_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Z Flip8",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/HOME_Feature-Card_Galaxy-Watch-U2_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Watch Ultra2",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
       "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$LazyLoad_Home_JPG$",
       "role": "photograph",
       "alt": "amsung Vision AI",
@@ -202,27 +222,6 @@
       "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
       "role": "photograph",
       "alt": "Enabling better living",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/footer/Footer_GetShopApp_082025.png?$ORIGIN_PNG$",
-      "role": "photograph",
-      "alt": "Get Shop Samusng App",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://images.samsung.com/is/content/samsung/assets/us/footer/text-banner-2.svg",
-      "role": "photograph",
-      "alt": "Never miss a thing. Sign up for texts to be notified about our best offers",
-      "found_on": "https://www.samsung.com/us/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://consent.trustarc.com/get?name=samsungblack_logo.png",
-      "role": "hero",
-      "alt": "Samsung",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }
