@@ -17,9 +17,9 @@ app in the brand being defined:
 
 | Step | What it captures |
 |---|---|
-| 1. Brand | name, tagline, industry, website, logo URL |
+| 1. Brand | name, tagline, industry, website; logo, app icon and imagery (a file or a URL); start from the site, the brand's guideline document, or a preset |
 | 2. Colour schema | primary, accent, ink, page surface, card surface, secondary text |
-| 3. Typography | heading + body family (Google or self-hosted) |
+| 3. Typography | heading + body family (Google, a font file, or a font URL) |
 | 4. Voice | tone, preferred vocabulary, **banned phrases**, dash rule, notes |
 | 5. Data & catalog | regions + store URLs, and a catalog import |
 | 6. Review | readiness report, then **Activate** |
@@ -326,6 +326,84 @@ Ops: `context-build` · `context-step` (CRON_SECRET) · `context-pack` · `conte
 downloads the file) · `context-list` · `context-apply`. Also drivable from the KB router as
 `/api/kb?action=ingest-site`.
 
+### Brand guidelines document (2026-10-04)
+
+Step 1 offers a third way to start, beside "Read my brand from my website" and the preset gallery:
+**Upload my brand guidelines** - as a file, or by pasting a link; either is enough.
+
+| Format | How it is read (in the browser, `brand-document.js`) | Provenance |
+|---|---|---|
+| PDF | pdf.js 4.10.38 (jsdelivr, `isEvalSupported:false`): text by page and line, embedded images | file · page · line · verbatim line |
+| Word `.docx` | unzipped with the browser's `DecompressionStream`; paragraphs, tables, shaded swatch cells, embedded images with their alt text, footers | file · paragraph |
+| `DESIGN.md` | front matter (`colors`, `typography`, `rounded`, `spacing`, `components`) + the prose sections | file · line |
+| JSON tokens | W3C DTCG (`$value`/`$type`, aliases), Style Dictionary / Tokens Studio (`value`/`type`), Figma variables export (`valuesByMode`) | file · line |
+| CSS | custom properties, `@font-face`, `font-family` on h1-h3 / body | file · line |
+| SVG | sanitised, its `<text>` read by the same rules, filled shapes tied to the label beside them | file · text element |
+| PNG / JPG / WebP | no text layer and no OCR: said so; offered as the logo | - |
+
+**Read, never paraphrased.** A role (primary, accent, text, page surface, card surface, secondary
+text, success/warning/error) takes a value only when the document STATES a screen value for it: a hex,
+or an RGB triple. A CMYK or Pantone value with no hex is reported as print-only; a CMYK conversion is
+offered labelled `DERIVED from CMYK …` and is never applied by Apply, and no hex is ever computed for a
+Pantone. A colour named in prose without a value is reported with its marker. Typefaces come with the
+weights, size and leading the line states; a document that names one typeface for everything fills both
+slots and says so. Logo clear-space and minimum-size rules, misuse rules, tone, preferred and banned
+words, the dash rule, claims, tagline, website and legal entity are read from labelled lines and the
+lists under their headings. Button, card, radius, spacing, container and image-treatment rules come out
+in the DESIGN.md component shape. Anything not stated is a `[DATA REQUIRED BEFORE LAUNCH: …]` marker.
+
+A **linked** document is read straight from its host when the host lets a browser read it (CORS);
+otherwise through `op=document-fetch` (`api/_shared/brand-document-fetch.js`): Drive / Docs / Dropbox /
+GitHub share links rewritten to their documented download form, `assertPublicUrl()` on every redirect
+hop, at most 4 MB (a Vercel response is capped at 4.5 MB; a bigger book is read as a file). The op stores
+nothing, calls no model, and opens without a session on exactly the rule `extract` uses.
+
+**Where a document ranks.** Every field records the origin of its current value in
+`brand_data.field_origins`:
+
+```
+user (typed, or the operator's explicit choice) 50
+document                                        40
+site-render (a browser read of the site)        30
+site-parse  (today's CSS/HTML read; = auto)     20
+preset                                          10
+default (a wizard placeholder)                   0
+```
+
+**Apply everything the document states** fills each stated field unless the operator typed it, and lists
+every outcome; a typed field shows both values with a "Use the document's" button, and a field where the
+site read disagrees shows the site's value beside it. The design rules stay visible after Apply: exact
+colours become the `--brand-*` tokens; text tokens adjusted for WCAG AA are listed `DERIVED from <exact>`
+with both contrast ratios; a dark-neutral surface is a hard-rule conflict, never swapped. **Revert**
+restores the brand exactly as it was and removes the files Apply kept. A later site read that replaces a
+document value is held back and shown side by side (`docGuard()`).
+
+On the server the same order is structural (migration `20261004120000_brand_document_origin.sql`):
+`brand_origin_rank()`; `brand_context_apply()` refuses any field owned by an origin that outranks the
+site parser; `saveWorkspace()` claims only typed fields as `user` and records the others through
+`brand_fields_record_origin()`, which never demotes.
+
+### Every asset is a file OR a URL
+
+Logo, app icon, brand imagery, heading and body fonts (WOFF2, WOFF, TTF, OTF, a font URL or a Google
+Fonts link) and the guide itself each have an "Upload a file" control beside a "Paste a URL" field.
+Files are validated (type, size, an image's dimensions, a square app icon, a font the browser actually
+loads) and refused in a sentence. An SVG is sanitised and only ever shown as `<img>`.
+
+| State | Where the file lives | What a generated asset references |
+|---|---|---|
+| Signed-in account, project reachable | logo, icon, fonts, imagery: `brand-assets` bucket, `<workspace_id>/<sha256>.<ext>` (public read, editor writes); the brand book: IndexedDB only | the hosted https URL |
+| Anything else (no database, signed out, a phone sign-in on the device) | IndexedDB, under the same per-account namespace as the device brands | `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]` |
+
+The guideline document itself is private and never leaves the device in any state; only the values it
+states go on the brand record. Deleting an account brand removes its hosted objects first, and is
+refused (nothing deleted) if storage will not remove them. A linked document is streamed and cut off at
+4 MB whatever its Content-Length says, within one 25 s deadline.
+
+The shell paints a device logo and registers device fonts (FontFace API) from IndexedDB; `carry()`
+sends only `pending_hosting` (names, never bytes) and drops a non-https logo URL. Deleting a brand
+deletes its files.
+
 ### Catalog import
 Three routes, all operator-supplied:
 - **Storefront** — GETs `{store}/products.json` (Shopify and compatible), read-only, no credentials.
@@ -346,7 +424,7 @@ Three routes, all operator-supplied:
 `/api/brand` → `/api/public-config?action=brand&op=…`
 
 `defaults` · `presets` · `list` · `active` · `get` · `save` · `activate` · `delete` ·
-`catalog-import` · `catalog` · `readiness` · `validate-palette` · `extract` ·
+`catalog-import` · `catalog` · `readiness` · `validate-palette` · `extract` · `document-fetch` ·
 `context-build` · `context-step` · `context-pack` · `context-design` · `context-list` · `context-apply`
 
 Reads and writes go through PostgREST **with the caller's JWT**, so the RLS policies in
@@ -618,6 +696,9 @@ All logic lives under `api/_shared/`, which Vercel excludes from the count. Frie
 | `api/_shared/kb-url.js` | the ONE definition of a knowledge row's identity, so the two writers cannot drift |
 | `supabase/migrations/20260814100000_brand_context_packs.sql` | the pack, the field provenance, and the SQL that refuses to overwrite a user's field |
 | `api/_shared/site-crawl.js` | the one crawler the catalogue import, the brand extraction and the pack all ride on |
+| `brand-document.js` | **reads a brand guideline document in the browser** - values with file, page and line |
+| `api/_shared/brand-document-fetch.js` | fetches a LINKED guideline document past a host with no CORS, behind the SSRF guard |
+| `supabase/migrations/20261004120000_brand_document_origin.sql` | origin ranks, the automatic door by rank, `brand_fields_record_origin()`, the `brand-assets` bucket |
 | `api/_shared/credit-catalog.js` | **what every feature costs** |
 | `api/_shared/credits-core.js` | the meter: hold / settle / release / grant / usage |
 | `api/_shared/telesuite-core.js` | TeleSuite registry + every operation |

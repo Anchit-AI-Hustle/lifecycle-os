@@ -259,7 +259,16 @@ function setPath(o, p, v) {
 function originOf(brand, field) {
   const bd = (brand && brand.brand_data) || {};
   const fo = bd.field_origin || {};
-  if (fo[field]) return fo[field];
+  // The onboarding wizard keeps its per-field record in `field_origins`
+  // ({origin, source, page, line, quote}); a field a brand guideline document
+  // set is `document` there. Both maps are read, and the higher origin wins,
+  // so a render can never step over a document or a person through the map it
+  // did not write.
+  const fos = bd.field_origins && typeof bd.field_origins === 'object' ? bd.field_origins : {};
+  const rec = fos[field] && typeof fos[field] === 'object' ? String(fos[field].origin || '') : '';
+  if (fo[field] || rec) {
+    return (ORIGIN_RANK[rec] || 0) > (ORIGIN_RANK[fo[field]] || 0) ? rec : (fo[field] || rec);
+  }
   const ap = (bd.brand_extraction && bd.brand_extraction.applied) || {};
   if (ap[field] && ap[field].origin) return ap[field].origin;
   return '';
@@ -342,8 +351,21 @@ function resolve(brand) {
     // painted tenant zero's two families for every brand until this existed.
     head: withFallback(headStack, 'Georgia,serif') || LEGACY.head,
     body: withFallback(bodyStack, 'system-ui,-apple-system,Segoe UI,sans-serif') || LEGACY.body,
-    fonts: ds ? fontCss(ds) : { faces: '', googleHref: '' },
+    fonts: withOwnFaces(ds ? fontCss(ds) : { faces: '', googleHref: '' }, t),
   };
+}
+
+/**
+ * Font loading meets in brand-runtime.fontImport()/fontFaces(): a font the
+ * brand supplied as a FILE (uploaded and hosted, or an https URL the operator
+ * gave, typography[slot].src) is declared beside the faces the rendered read
+ * found, whether or not a design system was measured.
+ */
+function withOwnFaces(fonts, t) {
+  let own = '';
+  try { own = require('./brand-runtime.js').fontFaces(t) || ''; } catch (_) { own = ''; }
+  if (!own) return fonts;
+  return { faces: (fonts.faces || '') + own, googleHref: fonts.googleHref || '' };
 }
 
 /** Text that sits on `ground`: the site's own colour when it clears AA there, else derived. */

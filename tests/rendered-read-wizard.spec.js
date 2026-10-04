@@ -139,6 +139,10 @@ async function openWizard(page, session, world, opts) {
   await page.route(/^https?:\/\/(?!app\.example\.test|127\.0\.0\.1)/, (route) => {
     const u = route.request().url();
     if (/\/auth\/v1\/health/.test(u)) return route.abort('addressunreachable');
+    // The operator's own logo is a real image on their CDN: the wizard checks
+    // that a pasted logo URL loads, and puts back the previous value when it
+    // does not (a rejected URL is never saved), so a typed logo here must load.
+    if (u.startsWith('https://cdn.mybrand.example/')) return route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64') });
     if (route.request().resourceType() !== 'script') return route.abort('failed');
     const esm = /\+esm|\.mjs(\?|$)|esm\.sh|\/es\//.test(u);
     return route.fulfill({ status: 200, contentType: 'text/javascript', body: esm ? 'const noop=()=>{};export default new Proxy({},{get:()=>noop});export const animate=noop,scroll=noop,inView=noop,stagger=noop,spring=noop,motion=new Proxy({},{get:()=>noop});' : 'window.tailwind=window.tailwind||{};' });
