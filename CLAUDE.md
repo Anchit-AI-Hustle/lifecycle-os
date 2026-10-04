@@ -304,7 +304,9 @@ the real reader in Chromium, the real builder, the real gallery).
   head commit message, so a human commit that quotes it skips CI too - this change's own first commit
   did, and started no run at all. Gated by
   `tests/harvest-workflow.spec.js`, which runs the publish script in a real clone of a real local
-  remote and asserts which refs moved (mutation-verified six ways).
+  remote and asserts which refs moved (mutation-verified seven ways). The first real dispatch found
+  that `gh run download` refuses to overwrite a file that exists, so the read job's data is downloaded
+  beside the tree and replaces observed/ and presets/ whole; the spec's fake gh refuses the same way.
 - **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
   unavailable` + the reason + `read_attempt`; no palette, type or logo. The preset keeps the neutral
   default and the card says one sentence (`<host> blocked an automated read on <date>.`). No stealth,
