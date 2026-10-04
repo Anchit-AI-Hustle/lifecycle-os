@@ -450,6 +450,8 @@ add('dispatch-enqueue', { gate: 'user', browser: 'refuse', run: { json: { asset_
     const a = last(M.dispatch, 'enqueue');
     expect(a[0]).toMatchObject({ ok: true, user_id: H.USER_ID }); expect(a[0].token).toBe(H.SESSION);
     expect(a[1]).toBe(H.WS); expect(a[2]).toEqual({ asset_id: 'asset_1', channel: 'email' });
+    // The compliance gate lints the copy as the brand the ROUTER resolved.
+    expect(a[3].brand).toMatchObject({ name: BRAND.name, __resolved_for: H.WS });
   },
   cases: [{ name: 'a refused enqueue is a 409', run: { json: { asset_id: 'asset_1' } }, stubs: () => S.on(M.dispatch, 'enqueue', async () => ({ ok: false, error: 'mapping_missing' })), expect: (r) => { expect(r.status).toBe(409); expect(r.out.error).toBe('mapping_missing'); } }],
 });
@@ -491,7 +493,23 @@ add('deliverability-domain', { gate: 'user', browser: 'refuse', run: { json: { d
 });
 add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email' } },
   stubs: () => S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' })),
-  expect: (r) => { expect(r.out).toEqual({ ok: true, verdict: 'pass' }); expect(last(M.preflight, 'run')[0]).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email' }); },
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, verdict: 'pass' });
+    const a = last(M.preflight, 'run')[0];
+    expect(a).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email', brand: expect.objectContaining({ name: BRAND.name, __resolved_for: H.WS }) });
+  },
+  cases: [{
+    // A body that names its own brand, approves its own claims or states its
+    // own offer end date would choose which compliance rules it is held to.
+    name: 'the body cannot choose the brand, the approved claims or the offer the copy is linted against',
+    run: { json: { asset_id: 'a1', channel: 'email', brand: { name: 'Picked By Caller', industry: 'Custom sneakers' }, approved_claims: ['Clinically proven'], offer: { ends_at: '2026-10-05' } } },
+    expect: (r) => {
+      const a = last(M.preflight, 'run')[0];
+      expect(a.brand.name).toBe(BRAND.name);
+      expect(a.approved_claims).toBeUndefined();
+      expect(a.offer).toBeUndefined();
+    },
+  }],
 });
 add('deliverability-warmup', { gate: 'user', browser: 'refuse', run: { json: { start_on: '2026-10-01', target_daily: 100, days: 3 } },
   stubs: () => { S.on(M.deliver, 'buildWarmupPlan', () => [{ d: 1 }, { d: 2 }, { d: 3 }]); S.on(M.deliver, 'evaluateWarmupSafety', () => ({ safe: true })); },
