@@ -125,7 +125,7 @@ test.describe.serial('the rendered harvest of fixture sites', () => {
 
     const read = (slug) => JSON.parse(fs.readFileSync(path.join(observed, `${slug}.observed.json`), 'utf8'));
     const a = read('new-balance');
-    expect(a.format).toBe('preset-observation/2');
+    expect(a.format).toBe('preset-observation/3');
     expect(a.renderer).toBe('rendered');
     expect(a.observed_at).toBe(DAY);
     expect(a.reader.module).toBe('api/_shared/brand-render.js');
@@ -299,8 +299,17 @@ test('a site that renders nothing coloured gets no primary, and a monochrome one
   expect(mono.ok).toBe(true);
   expect(mono.palette.primary).toBe('#111111');
   expect(mono.evidence.primary.source.selector).toBe('main > a.buy');
-  expect(mono.evidence.accent.derived).toBe(true);
-  expect(mono.evidence.accent.note).toMatch(/one brand colour/);
+  // No second colour: no accent at all, never the primary repeated
+  // (2026-10-05; a card used to paint the primary twice and call one of them
+  // the accent).
+  expect(mono.palette.accent).toBeUndefined();
+  expect(mono.evidence.accent.absent).toBe(true);
+  expect(mono.evidence.accent.note).toMatch(/no chromatic colour at all; this preset has no accent/);
+  // One brand colour on a site that does render one: no accent either.
+  const one = obsLib.paletteFromManifest(manifest({ colors: { primary: { value: '#c8102e', from_role: 'identity', signal: 'meta theme-color' }, surface: { value: '#ffffff' }, ink: { value: '#1a1a1a' } } }));
+  expect(one.palette.accent).toBeUndefined();
+  expect(one.evidence.accent.note).toMatch(/one brand colour; this preset has no accent rather than the primary repeated/);
+  expect(core.validatePalette(one.palette).ok).toBe(true);
 });
 
 /* Found by the first real harvest (2026-10-04): the reader's "brand colour"
@@ -338,8 +347,10 @@ test('a tint of the page is passed over for the next colour the site renders, an
       surface: { value: '#f2f2f2' }, ink: { value: '#1a1a1a' },
     } }));
     expect(out.ok).toBe(true);
-    expect(out.palette.accent, `${accent} on ${selector}`).toBe('#006341');
-    expect(out.evidence.accent.derived).toBe(true);
+    expect(out.palette.primary).toBe('#006341');
+    // Not taken, and not replaced by the primary repeated: no accent.
+    expect(out.palette.accent, `${accent} on ${selector}`).toBeUndefined();
+    expect(out.evidence.accent.absent).toBe(true);
     expect(out.evidence.accent.exact).toBe(accent);
     expect(out.evidence.accent.note).toMatch(why);
   }
@@ -409,7 +420,10 @@ test('the shipped gallery paints every card from its index, and says why each de
   expect(cards.length).toBeGreaterThan(30);
   for (const c of cards) {
     const row = index.presets.find((p) => p.slug === c.slug);
-    expect(c.swatches.map((s) => s.role)).toEqual(['primary', 'accent', 'surface', 'ink']);
+    // The roles the preset HAS, in this order: a brand with no second colour
+    // shows no accent swatch rather than its primary twice.
+    expect(c.swatches.map((s) => s.role)).toEqual(['primary', 'accent', 'surface', 'ink'].filter((r) => row.swatches.some((x) => x.role === r)));
+    expect(c.swatches.map((s) => s.role)).toEqual(expect.arrayContaining(['primary', 'surface', 'ink']));
     for (const s of c.swatches) {
       expect(rgbHex(s.bg), `${c.slug} ${s.role}`).toBe(String(row.swatches.find((x) => x.role === s.role).value).toLowerCase());
     }

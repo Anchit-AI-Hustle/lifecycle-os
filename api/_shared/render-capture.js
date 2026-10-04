@@ -364,7 +364,92 @@ function capturePage(opts) {
     const m = scope.querySelector('[class*=logo i] img,[class*=logo i] svg,img[alt*=logo i],[id*=logo i] img,[id*=logo i] svg');
     if (m && visible(m)) { logoEl = m; logoKind = m.tagName.toLowerCase() === 'svg' ? 'svg' : 'img'; }
   }
+  // A logo painted as a CSS BACKGROUND (a sprite on a link or span named for
+  // the logo) has no <img> or <svg> to find: one large storefront's whole
+  // mark is `a#nav-logo-sprites`. Its pixels are read Node-side from the
+  // element's screenshot, like a raster logo's.
+  if (!logoEl) {
+    const named = Array.from(scope.querySelectorAll('[class*=logo i],[id*=logo i]')).find((el) => {
+      if (!visible(el)) return false;
+      const r = el.getBoundingClientRect();
+      if (r.width < 20 || r.height < 10 || r.width > 480 || r.height > 220) return false;
+      const bi = getComputedStyle(el).backgroundImage || '';
+      return /url\(/.test(bi) || !!el.querySelector('img,svg');
+    });
+    if (named) {
+      const inner = named.querySelector('img,svg');
+      if (inner && visible(inner)) { logoEl = inner; logoKind = inner.tagName.toLowerCase() === 'svg' ? 'svg' : 'img'; } else { logoEl = named; logoKind = 'css'; }
+    }
+  }
   if (!logoEl && homeLinks[0] && textOf(homeLinks[0]).length > 1) { logoEl = homeLinks[0]; logoKind = 'text'; }
+  /**
+   * Every colour an inline SVG PAINTS, by the screen area it covers: fills
+   * and strokes as computed (currentColor and CSS-set fills resolved), a
+   * gradient's stops, and the shapes a <use> draws from a <symbol>. Neutrals
+   * are kept and labelled in Node, never dropped here.
+   */
+  function svgPaint(root) {
+    const acc = new Map();
+    const add = (css, area, kind) => {
+      const c = rgba(css);
+      if (!c || c[3] < 0.3 || !(area > 0)) return;
+      const h = hex(c);
+      const e = acc.get(h) || { hex: h, area: 0, kinds: [] };
+      e.area += area;
+      if (!e.kinds.includes(kind)) e.kinds.push(kind);
+      acc.set(h, e);
+    };
+    const stopsOf = (paint) => {
+      const m = /url\(\s*["']?#([^"')]+)["']?\s*\)/.exec(String(paint || ''));
+      if (!m) return null;
+      const g = root.ownerDocument.getElementById(m[1]);
+      if (!g) return [];
+      return Array.from(g.querySelectorAll('stop')).map((s) => getComputedStyle(s).stopColor).filter(Boolean);
+    };
+    const paintOne = (el, area, inheritFill) => {
+      const s = getComputedStyle(el);
+      let fill = s.fill;
+      // A shape inside a <symbol> is styled in the symbol's own context: one
+      // that sets no fill of its own (computed as the initial black) takes the
+      // fill of the <use> that draws it.
+      if (inheritFill && !el.getAttribute('fill') && /^rgba?\(\s*0\s*,\s*0\s*,\s*0\s*(,\s*1\s*)?\)$/.test(String(fill))) fill = inheritFill;
+      if (fill && fill !== 'none') {
+        const stops = stopsOf(fill);
+        if (stops) stops.forEach((c) => add(c, area / Math.max(1, stops.length), 'gradient-stop'));
+        else add(fill, area * (parseFloat(s.fillOpacity) > 0.05 || s.fillOpacity === '' ? 1 : 0), 'fill');
+      }
+      const sw = parseFloat(s.strokeWidth) || 0;
+      if (s.stroke && s.stroke !== 'none' && sw > 0) {
+        const r = el.getBoundingClientRect();
+        const len = 2 * (r.width + r.height);
+        const stops = stopsOf(s.stroke);
+        if (stops) stops.forEach((c) => add(c, (len * sw) / Math.max(1, stops.length), 'gradient-stop'));
+        else add(s.stroke, len * sw, 'stroke');
+      }
+    };
+    const SHAPES = 'path,rect,circle,ellipse,polygon,polyline,line,text';
+    for (const el of root.querySelectorAll(SHAPES + ',use')) {
+      if (el.closest('defs,symbol,clipPath,mask,pattern,marker')) continue;
+      const r = el.getBoundingClientRect();
+      const area = r.width * r.height;
+      if (!(area > 0)) continue;
+      if (el.tagName.toLowerCase() === 'use') {
+        const ref = (el.getAttribute('href') || el.getAttribute('xlink:href') || '').replace(/^#/, '');
+        const target = ref ? root.ownerDocument.getElementById(ref) : null;
+        const inner = target ? Array.from(target.querySelectorAll(SHAPES)) : [];
+        const useFill = getComputedStyle(el).fill;
+        if (!inner.length) { paintOne(el, area, ''); continue; }
+        let total = 0;
+        const boxes = inner.map((s) => { let b = { width: 1, height: 1 }; try { b = s.getBBox(); } catch (_) { /* not rendered */ } const a = Math.max(1, b.width * b.height); total += a; return a; });
+        inner.forEach((s, i) => paintOne(s, area * (boxes[i] / total), useFill));
+        continue;
+      }
+      paintOne(el, area, '');
+    }
+    const total = [...acc.values()].reduce((n, e) => n + e.area, 0) || 1;
+    return [...acc.values()].sort((a, b) => b.area - a.area).slice(0, 12)
+      .map((e) => ({ hex: e.hex, share: Math.round((e.area / total) * 1000) / 1000, kinds: e.kinds }));
+  }
   if (logoEl) {
     const r = logoEl.getBoundingClientRect();
     const hb = header ? header.getBoundingClientRect() : null;
@@ -376,9 +461,22 @@ function capturePage(opts) {
       rendered: { w: Math.round(r.width), h: Math.round(r.height) },
       placement: centre ? 'center' : (hb && r.left - hb.left < hb.width * 0.4 ? 'left' : 'right'),
       inline_svg: logoKind === 'svg' ? String(logoEl.outerHTML || '').slice(0, 60000) : '',
-      svg_fill: logoKind === 'svg' ? (() => { const f = logoEl.querySelector('[fill]:not([fill=none])'); const c = f ? rgba(getComputedStyle(f).fill) : null; return c && c[3] > 0 ? hex(c) : ''; })() : '',
+      // The colours the mark PAINTS, by area (fills, strokes, gradient stops).
+      paints: logoKind === 'svg' ? svgPaint(logoEl) : [],
+      // The colour behind the mark, so a pixel read of its screenshot can
+      // tell the mark from its ground.
+      ground: ground(logoEl.parentElement || logoEl).color,
+      background_image: logoKind === 'css' ? String(getComputedStyle(logoEl).backgroundImage || '').slice(0, 300) : '',
+      named: /logo|brand/i.test((logoEl.id || '') + ' ' + (typeof logoEl.className === 'string' ? logoEl.className : '') + ' ' + (logoEl.getAttribute('aria-label') || '') + ' ' + (logoEl.getAttribute('alt') || '')),
       type: logoKind === 'text' ? typeOf(textCarrier(logoEl)) : null,
     });
+    // `svg_fill`: the mark's own colour - the chromatic paint covering the
+    // most area, else the paint covering the most area, else (a mark whose
+    // shapes could not be measured) the first declared fill, as before.
+    const paints = out.roles.logo.paints || [];
+    const chroma = (h) => { const c = rgba(h) || [0, 0, 0, 1]; const mx = Math.max(c[0], c[1], c[2]), mn = Math.min(c[0], c[1], c[2]); return (mx - mn) / 255 >= 0.14 && lumRgb(c) < 0.9; };
+    const firstFill = () => { const f = logoEl.querySelector('[fill]:not([fill=none])'); const c = f ? rgba(getComputedStyle(f).fill) : null; return c && c[3] > 0 ? hex(c) : ''; };
+    out.roles.logo.svg_fill = logoKind === 'svg' ? ((paints.find((p) => chroma(p.hex)) || paints[0] || {}).hex || firstFill()) : '';
   }
   // Nav links: the commonest link style in the header that is not the logo or a filled button.
   if (header) {
@@ -591,6 +689,12 @@ function capturePage(opts) {
   out.meta.manifest_url = mf ? mf.href : '';
   const tc = document.querySelector('meta[name=theme-color]');
   out.meta.theme_color = tc ? (() => { const c = rgba(tc.getAttribute('content')); return c && c[3] > 0 ? hex(c) : ''; })() : '';
+  // The colour a site declares for its pinned tile (Windows/Edge): the meta,
+  // and the browserconfig.xml it points at (fetched Node-side).
+  const tile = document.querySelector('meta[name=msapplication-TileColor i]');
+  out.meta.tile_color = tile ? (() => { const c = rgba(tile.getAttribute('content')); return c && c[3] > 0 ? hex(c) : ''; })() : '';
+  const msc = document.querySelector('meta[name=msapplication-config i]');
+  out.meta.ms_config = msc && !/^none$/i.test(msc.getAttribute('content') || '') ? (() => { try { return new URL(msc.getAttribute('content'), location.href).toString(); } catch (_) { return ''; } })() : '';
   out.meta.lang = document.documentElement.lang || '';
   // Without a viewport meta a phone lays the DESKTOP page out at 980px and
   // scales it (and boosts text); phone values read from such a page describe
@@ -636,6 +740,58 @@ function capturePage(opts) {
       if (out.links.length >= 300) break;
     } catch (_) { /* not a URL */ }
   }
+  /* ── colour SWATCHES a page publishes about itself ─────────────────────
+     A brand-guidelines or press page shows its colours as a painted block
+     LABELLED with its own value ("Toyota Red ... HEX EB0A1E"). A swatch is
+     taken only when both halves agree: a hex (or RGB triple) written in the
+     text AND a block painted that colour in the same small card. A value
+     written with nothing painted, or a block painted with no value beside
+     it, is not one. Document order is kept: guidelines list the main colour
+     first. */
+  const SW_HEX = /(?:#|\bhex(?:adecimal)?\b\s*:?\s*#?)([0-9a-f]{6})\b/gi;
+  const SW_RGB = /\bR(?:GB)?\s*:?\s*(\d{1,3})[\s,/]+(?:G\s*:?\s*)?(\d{1,3})[\s,/]+(?:B\s*:?\s*)?(\d{1,3})\b/gi;
+  const swatches = [];
+  const swSeen = new Set();
+  const near = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) <= 9;
+  for (const el of textEls) {
+    if (swatches.length >= 24) break;
+    // Own text nodes joined with a space: "RGB 235 10 30<br>HEX EB0A1E" is two
+    // values, not "30HEX".
+    const t = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join(' ');
+    const named = [];
+    for (const m of t.matchAll(SW_HEX)) named.push(m[1].toLowerCase());
+    for (const m of t.matchAll(SW_RGB)) { const v = [+m[1], +m[2], +m[3]]; if (v.every((x) => x <= 255)) named.push(hex(v.concat([1])).slice(1)); }
+    if (!named.length) continue;
+    for (const h of named) {
+      const want = rgba('#' + h);
+      if (!want || swSeen.has(h)) continue;
+      // The card: this element and up to four ancestors, while it stays small.
+      let card = el, painted = null;
+      for (let i = 0; card && i < 5 && !painted; i++, card = card.parentElement) {
+        const cr = card.getBoundingClientRect();
+        if (cr.width > Math.min(720, VW * 0.7) && i > 0) break;
+        for (const cand of [card].concat(Array.from(card.querySelectorAll('*')).slice(0, 60))) {
+          if (!visible(cand)) continue;
+          const r = cand.getBoundingClientRect();
+          if (r.width < 16 || r.height < 16) continue;
+          const cs = getComputedStyle(cand);
+          const bg = rgba(cand instanceof SVGElement ? cs.fill : cs.backgroundColor);
+          if (bg && bg[3] >= 0.95 && near(bg, want)) { painted = cand; break; }
+        }
+      }
+      if (!painted) continue;
+      swSeen.add(h);
+      const pr = painted.getBoundingClientRect();
+      const card2 = painted.contains(el) ? painted : (el.parentElement || el);
+      swatches.push({
+        hex: '#' + h, painted: hex(rgba(painted instanceof SVGElement ? getComputedStyle(painted).fill : getComputedStyle(painted).backgroundColor)),
+        label: textOf(card2).replace(SW_HEX, ' ').replace(SW_RGB, ' ').replace(/\s+/g, ' ').trim().slice(0, 90),
+        selector: path(painted), area: Math.round(pr.width * pr.height), top: Math.round(pr.top + window.scrollY),
+      });
+    }
+  }
+  out.swatches = swatches;
+
   /* ── colours the page RENDERS, counted (fills, text, borders, svg) ───── */
   const rc = new Map();
   const bump = (c) => { if (!c || c[3] < 0.5) return; const h = hex(c); rc.set(h, (rc.get(h) || 0) + 1); };
