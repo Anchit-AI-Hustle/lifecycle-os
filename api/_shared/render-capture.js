@@ -66,10 +66,50 @@ function capturePage(opts) {
     return [0, 1, 2].map((i) => (top[i] * top[3] + under[i] * under[3] * (1 - top[3])) / a).concat([a]);
   }
   const px = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : null; };
+  function lumRgb(c) { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); }
+  function contrastRgb(a, b) { const x = lumRgb(a), y = lumRgb(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  /*
+   * A CALL TO ACTION IS A SHAPE THAT STANDS OFF THE PAGE. WCAG 1.4.11 asks a
+   * UI component's boundary for 3:1 against what is next to it when nothing
+   * else identifies it; brand buttons in pastels lean on their label, so 3:1
+   * would reject real CTAs. 1.5:1 is the floor kept here: below it a fill is a
+   * TINT of the page (a tab, a chip, a pale pill - one brand's "primary CTA"
+   * was a #ecf0f4 tab at 1.15:1), not a control that asks to be pressed. A
+   * border counts the same way for an outlined control.
+   */
+  const CONTROL_MIN_CONTRAST = Number(o.controlContrast) > 1 ? Number(o.controlContrast) : 1.5;
+
+  /* ── consent containers: never measured, whatever hid them or not ────── */
+  // Review finding from the 40-brand harvest (2026-10-04): one brand's primary
+  // was measured on its cookie banner and another's accent came off a TrustArc
+  // consent button. Every element inside a consent/cookie/CMP container is
+  // excluded from EVERY role here, in the reader itself, whether or not the
+  // freeze managed to hide it (render-stabilise CONSENT is the shared shape).
+  const cc = o.consent || {};
+  const C_NAMES = new RegExp(cc.names || '(consent|onetrust|cookiebot|didomi|truste|trustarc)', 'i');
+  const C_WORDS = new RegExp(cc.words || '\\b(cookies?|consent)\\b', 'i');
+  const structuralEl = (el) => el === document.body || el === document.documentElement || /^(MAIN|NAV|HEADER)$/.test(el.tagName) || !!el.querySelector('main,h1,nav,[role=navigation]');
+  const consentRoots = [];
+  try { if (cc.vendor) document.querySelectorAll(cc.vendor).forEach((el) => { if (!structuralEl(el)) consentRoots.push(el); }); } catch (_) { /* bad selector */ }
+  try { document.querySelectorAll('[data-lcos-hidden]').forEach((el) => consentRoots.push(el)); } catch (_) { /* none */ }
+  for (const el of (document.body ? document.body.querySelectorAll('*') : [])) {
+    if (consentRoots.some((r) => r.contains(el))) continue;
+    const dialog = /^(dialog|alertdialog)$/i.test(el.getAttribute('role') || '') || el.getAttribute('aria-modal') === 'true' || el.tagName === 'DIALOG';
+    const named = C_NAMES.test((el.id || '') + ' ' + (typeof el.className === 'string' ? el.className : '') + ' ' + (el.getAttribute('aria-label') || ''));
+    if (!dialog && !named) continue;
+    if (structuralEl(el)) continue;
+    if (!C_WORDS.test(String(el.textContent || '').slice(0, 1500)) && !named) continue;
+    if (dialog && !named && !C_WORDS.test(String(el.textContent || '').slice(0, 1500))) continue;
+    consentRoots.push(el);
+    if (consentRoots.length > 30) break;
+  }
+  function inConsent(el) { for (const r of consentRoots) if (r === el || r.contains(el)) return true; return false; }
+  out.consent_excluded = consentRoots.slice(0, 12).map((el) => ({ tag: el.tagName.toLowerCase(), id: el.id || '', cls: (typeof el.className === 'string' ? el.className : '').slice(0, 60) }));
 
   /* ── element helpers ─────────────────────────────────────────────────── */
   function visible(el) {
     if (!el || el.nodeType !== 1) return false;
+    if (inConsent(el)) return false;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return false;
     const s = getComputedStyle(el);
@@ -383,28 +423,31 @@ function capturePage(opts) {
     const bg = rgba(s.backgroundColor) || [0, 0, 0, 0];
     const grad = s.backgroundImage && s.backgroundImage !== 'none' && /gradient\(/.test(s.backgroundImage);
     const g = rgba(ground(el.parentElement || el).color);
-    const filled = (bg[3] > 0.5 && (Math.abs(bg[0] - g[0]) + Math.abs(bg[1] - g[1]) + Math.abs(bg[2] - g[2]) > 24)) || grad;
+    const fillSeen = bg[3] > 0.5 ? over(bg, g) : null;
+    const fillContrast = fillSeen ? contrastRgb(fillSeen, g) : 1;
+    const filled = (bg[3] > 0.5 && fillContrast >= CONTROL_MIN_CONTRAST) || grad;
     const bw = s.borderTopStyle !== 'none' ? parseFloat(s.borderTopWidth) || 0 : 0;
-    const outlined = !filled && bw >= 1 && (rgba(s.borderTopColor) || [0, 0, 0, 0])[3] > 0.3;
-    if (!filled && !outlined) continue;
+    const bcol = rgba(s.borderTopColor) || [0, 0, 0, 0];
+    const outlined = !filled && bw >= 1 && bcol[3] > 0.3 && contrastRgb(over(bcol, g), g) >= CONTROL_MIN_CONTRAST;
+    if (!filled && !outlined) { if (bg[3] > 0.5) out.notes.push(`A control filled ${hex(fillSeen)} at ${Math.round(fillContrast * 100) / 100}:1 against the page was not taken as a call to action (under ${CONTROL_MIN_CONTRAST}:1).`); continue; }
     const top = r.top + window.scrollY;
     const fold = top < VH ? 1.6 : (top < VH * 2 ? 1 : 0.6);
     const rgb = bg[3] > 0 ? bg : g;
     const mx = Math.max(rgb[0], rgb[1], rgb[2]), mn = Math.min(rgb[0], rgb[1], rgb[2]);
     const chroma = (mx - mn) / 255;
     const score = (filled ? 2 : 1) * Math.sqrt(r.width * r.height) * fold * (1 + chroma) * (inChrome(el) ? 0.7 : 1);
-    ctl.push({ el, score, filled, outlined, sig: [s.backgroundColor, s.color, s.borderTopColor, s.borderTopLeftRadius].join('|') });
+    ctl.push({ el, score, filled, outlined, contrast: Math.round(fillContrast * 100) / 100, sig: [s.backgroundColor, s.color, s.borderTopColor, s.borderTopLeftRadius].join('|') });
   }
   ctl.sort((a, b) => b.score - a.score);
   const btnRecord = (c, role) => {
     const carrier = c.el.tagName === 'INPUT' ? c.el : textCarrier(c.el);
-    return record(c.el, role, { style: boxStyle(c.el), type: typeOf(carrier), label: (c.el.tagName === 'INPUT' ? c.el.value : textOf(c.el)).slice(0, 40), filled: c.filled, outlined: c.outlined, over_media: underMedia(c.el) });
+    return record(c.el, role, { style: boxStyle(c.el), type: typeOf(carrier), label: (c.el.tagName === 'INPUT' ? c.el.value : textOf(c.el)).slice(0, 40), filled: c.filled, outlined: c.outlined, ground_contrast: c.contrast, contrast_floor: CONTROL_MIN_CONTRAST, over_media: underMedia(c.el) });
   };
   const primary = ctl.find((c) => c.filled) || ctl[0];
   if (primary) out.roles.button_primary = btnRecord(primary, 'button-primary');
   const secondary = ctl.find((c) => c !== primary && c.sig !== (primary && primary.sig));
   if (secondary) out.roles.button_secondary = btnRecord(secondary, 'button-secondary');
-  out.roles.button_candidates = ctl.slice(0, 6).map((c) => ({ selector: path(c.el), score: Math.round(c.score), filled: c.filled }));
+  out.roles.button_candidates = ctl.slice(0, 6).map((c) => ({ selector: path(c.el), score: Math.round(c.score), filled: c.filled, ground_contrast: c.contrast }));
 
   /* ── body links ─────────────────────────────────────────────────────── */
   const lg = new Map();
@@ -593,6 +636,21 @@ function capturePage(opts) {
       if (out.links.length >= 300) break;
     } catch (_) { /* not a URL */ }
   }
+  /* ── colours the page RENDERS, counted (fills, text, borders, svg) ───── */
+  const rc = new Map();
+  const bump = (c) => { if (!c || c[3] < 0.5) return; const h = hex(c); rc.set(h, (rc.get(h) || 0) + 1); };
+  let seenEls = 0;
+  for (const el of all) {
+    if (seenEls > 3000) break;
+    if (!visible(el)) continue;
+    seenEls += 1;
+    const s = getComputedStyle(el);
+    bump(rgba(s.backgroundColor));
+    if (ownText(el).length) bump(rgba(s.color));
+    if (s.borderTopStyle !== 'none' && parseFloat(s.borderTopWidth) >= 1) bump(rgba(s.borderTopColor));
+    if (el instanceof SVGElement && s.fill && s.fill !== 'none') bump(rgba(s.fill));
+  }
+  out.rendered_colors = [...rc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 80).map(([h, n]) => ({ hex: h, n }));
   out.page_height = Math.round(document.documentElement.scrollHeight);
   return out;
 }
