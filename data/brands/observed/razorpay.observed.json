@@ -5,7 +5,7 @@
   "start": "https://razorpay.com",
   "landed": "https://razorpay.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:02:31.480Z",
+  "read_at": "2026-10-04T18:16:41.619Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -37,8 +37,8 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 46.8,
-    "mismatch": 0.5317,
+    "score": 48.3,
+    "mismatch": 0.5172,
     "surfaces": {
       "landing page": {
         "score": 49.2,
@@ -48,10 +48,10 @@
         "regions_off": 4
       },
       "mailer": {
-        "score": 64.8,
-        "mismatch": 0.3521,
+        "score": 69,
+        "mismatch": 0.3099,
         "done": false,
-        "tokens_off": 25,
+        "tokens_off": 22,
         "regions_off": 0
       },
       "ad creative": {

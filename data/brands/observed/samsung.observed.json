@@ -5,7 +5,7 @@
   "start": "https://www.samsung.com",
   "landed": "https://www.samsung.com/us/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:00:44.875Z",
+  "read_at": "2026-10-04T18:15:01.287Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -98,30 +98,30 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_MicroRGB_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "Enabling better living",
+      "alt": "Micro RGB R95H",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/footer/Footer_GetShopApp_082025.png?$ORIGIN_PNG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_OLED_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "Get Shop Samusng App",
+      "alt": "OLED S95H",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/content/samsung/assets/us/footer/text-banner-2.svg",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_MiniLED_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "Never miss a thing. Sign up for texts to be notified about our best offers",
+      "alt": "Mini LED M80H",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://consent.trustarc.com/get?name=samsungblack_logo.png",
-      "role": "hero",
-      "alt": "Samsung",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_FramePro_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "The Frame Pro",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }

@@ -5,7 +5,7 @@
   "start": "https://timesofindia.indiatimes.com",
   "landed": "https://timesofindia.indiatimes.com/us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:58:08.463Z",
+  "read_at": "2026-10-04T18:12:41.612Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -87,7 +87,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134677289.jpg?photoid=134677289&imgsize=154674&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134553390.jpg?photoid=134553390&imgsize=921314&width=220&resizemode=4",
       "role": "hero",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
@@ -115,7 +115,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134653729.jpg?photoid=134653729&imgsize=142316&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134618288.jpg?photoid=134618288&imgsize=2413110&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",

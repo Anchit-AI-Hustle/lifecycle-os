@@ -5,7 +5,7 @@
   "start": "https://knickgasm.com",
   "landed": "https://knickgasm.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:57:57.817Z",
+  "read_at": "2026-10-04T18:12:31.276Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -30,8 +30,8 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 49.8,
-    "mismatch": 0.5025,
+    "score": 56.7,
+    "mismatch": 0.4331,
     "surfaces": {
       "landing page": {
         "score": 61.5,
@@ -41,10 +41,10 @@
         "regions_off": 1
       },
       "mailer": {
-        "score": 62.9,
-        "mismatch": 0.3714,
+        "score": 80,
+        "mismatch": 0.2,
         "done": false,
-        "tokens_off": 26,
+        "tokens_off": 14,
         "regions_off": 0
       },
       "ad creative": {
@@ -199,7 +199,7 @@
       "source": {
         "page": "https://knickgasm.com/en-us",
         "role": "secondary text",
-        "selector": "div#swiper-wrapper-e1b2f17ee5eee912 > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
+        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
