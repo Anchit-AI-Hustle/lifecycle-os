@@ -1140,6 +1140,16 @@ function approvedProofBrief(entry) {
   return `${head}\n${have.join('\n')}\n${rule}`;
 }
 
+/**
+ * The compliance rules this slot's copy is linted against, briefed to the
+ * writer from the SAME context checkAssetContracts() builds (brand, market,
+ * approved claims, offer), so the writer and the gate cannot disagree about
+ * which rules apply or what the mandated disclaimer says.
+ */
+function complianceBrief(entry) {
+  try { return require('./compliance-lint.js').brief(complianceContext(null, entry)); } catch (_) { return ''; }
+}
+
 function copyPrompt(entry, fw = null, brief = null) {
   const fwLine = fw
     ? `\nCOPY FRAMEWORK: structure the copy with the ${fw.name} framework (${fw.full || fw.name}); the opening beat lands in the subject + hero_headline, the middle beats across intro_paragraph and body_paragraph in order, and the final beat on the cta. Do NOT name the framework in the copy, let the structure do the work.`
@@ -1159,6 +1169,8 @@ WHO THIS IS FOR:
 ${audienceBrief(entry)}
 
 ${approvedProofBrief(entry)}
+
+${complianceBrief(entry)}
 
 ${MAILER_COMPONENTS}
 
@@ -1956,18 +1968,81 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
  * fit is how a sentence becomes a fragment nobody wrote. The operator sees what
  * is wrong and with which rule.
  */
-function checkAssetContracts(campaign) {
+/*
+ * The brand safety and regulatory compliance gate runs in the SAME pass
+ * (compliance-lint.js), so the review panel reads one verdict per asset and
+ * the copywriter was briefed with the same rules (copyPrompt). Its findings
+ * join the asset's contract violations, each carrying its rule id, the words
+ * it matched and the regulation it enforces; nothing is rewritten.
+ *
+ * Which brand the assets are judged as is the brand they were RENDERED as:
+ * the slot's own; else the brand pinned for this generation or request;
+ * else, ASKED FOR BY NAME (allowTenantZero), tenant zero - which is exactly
+ * what the template builders rendered with no brand on the slot
+ * (lib/smart-brain/services.js entryBrand), so judge and renderer agree.
+ */
+function complianceContext(campaign, entry) {
+  const e = entry || {};
+  const stamped = (e.brand && (e.brand.id || e.brand.slug || e.brand.unresolved === true)) ? e.brand
+    : (campaign && campaign.brand && typeof campaign.brand === 'object' ? campaign.brand : null);
+  let brand = stamped;
+  try { brand = stamped || require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { brand = stamped; }
+  let skuClaims = [];
+  if (entry) { try { skuClaims = approvedProof(Object.assign({}, entry, { brand })).claims || []; } catch (_) { skuClaims = []; } }
+  const offer = e.offer || (e.decision && e.decision.offer) || null;
+  return require('./compliance-lint.js').contextFor({
+    brand,
+    market: e.market || (campaign && campaign.market) || '',
+    approvedClaims: skuClaims,
+    offer,
+  });
+}
+
+function checkAssetContracts(campaign, entry) {
   const contracts = require('./asset-contracts.js');
+  const compliance = require('./compliance-lint.js');
   const summary = { checked: 0, blocking: 0, warnings: 0, by_contract: {}, violations: [] };
+  const ctx = complianceContext(campaign, entry);
+  const comp = {
+    checked: 0, blocking: 0, warnings: 0, verdict: 'pass',
+    packs: ctx.selection.packs, selection: ctx.selection, limits: ctx.limits, findings: [],
+  };
+  summary.compliance = comp;
+  const selectionSeen = new Set();
 
   const judge = (asset, label) => {
     if (!asset) return;
     const verdict = contracts.check(asset);
     asset.contract_check = verdict;
+    // Compliance reads every asset, governed by a contract or not.
+    const cl = compliance.lint(asset, ctx);
+    asset.compliance_check = cl;
+    if (cl.fields) comp.checked += 1;
+    for (const f of cl.findings) {
+      const level = f.severity === 'BLOCK' ? 'block' : 'warn';
+      const v = {
+        level, slot: f.field || 'compliance', rule: f.id, compliance: true,
+        message: `${f.title}${f.matched ? ` ("${f.matched}")` : ''}: ${f.fix}`,
+        matched: f.matched, offsets: f.offsets, citation: f.citation, offer: f.offer, marker: f.marker,
+      };
+      if (f.scope === 'selection') {
+        // What could not be checked is one fact about the campaign, not one per asset.
+        if (selectionSeen.has(f.id)) continue;
+        selectionSeen.add(f.id);
+        summary.violations.push({ asset: 'campaign', contract: 'compliance', ...v });
+      } else {
+        verdict.violations.push(v);
+        if (level === 'block') { verdict.blocking += 1; verdict.ok = false; }
+        summary.violations.push({ asset: label, contract: verdict.contract || 'compliance', ...v });
+      }
+      if (level === 'block') { summary.blocking += 1; comp.blocking += 1; } else { summary.warnings += 1; comp.warnings += 1; }
+      comp.findings.push(Object.assign({ asset: f.scope === 'selection' ? 'campaign' : label }, f));
+    }
     if (!verdict.contract) return;             // nothing governs this type yet
     summary.checked += 1;
     summary.by_contract[verdict.contract] = (summary.by_contract[verdict.contract] || 0) + 1;
     for (const v of verdict.violations) {
+      if (v.compliance) continue;              // counted above
       if (v.level === 'block') summary.blocking += 1; else summary.warnings += 1;
       summary.violations.push({ asset: label, contract: verdict.contract, ...v });
     }
@@ -1979,6 +2054,7 @@ function checkAssetContracts(campaign) {
   ((campaign.assets && campaign.assets.landing_pages) || []).forEach((lp, i) =>
     judge(lp, `landing:${lp.variant || 'A'}#${i}`));
 
+  comp.verdict = comp.blocking ? 'block' : (comp.warnings ? 'warn' : 'pass');
   campaign.contract_check = summary;
   return summary;
 }
@@ -2363,8 +2439,9 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   attachMasterPrompts(campaign, entry);
   reportCatalogGaps(campaign, entry, trace);
   reportProofGap(campaign, entry, trace);
-  // Last, because it judges the FINISHED artefacts rather than the plan.
-  checkAssetContracts(campaign);
+  // Last, because it judges the FINISHED artefacts rather than the plan. The
+  // entry names whose brand, which market and which offer they are judged as.
+  checkAssetContracts(campaign, entry);
   return campaign;
 }
 

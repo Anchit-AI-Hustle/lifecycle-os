@@ -122,14 +122,23 @@ function backoffMs(attempt, retryAfterMs) {
 
 /* ── enqueue ──────────────────────────────────────────────────────────────── */
 
+/** The workspace's own brand row, read as the service; null when it cannot be read. */
+async function workspaceBrand(workspaceId) {
+  try {
+    const env = serviceEnv();
+    return await require('./workspace-scope.js').brandForWorkspace(env, workspaceId);
+  } catch (_) { return null; }
+}
+
 /**
  * Create a job. Runs the preflight gate FIRST, so a send that would damage the
  * sending domain never becomes a queued job that a later retry might release.
  *
  * @returns {Promise<{ok:boolean, job?:Object, preflight?:Object, deduped?:boolean}>}
  */
-async function enqueue(auth, workspaceId, spec) {
+async function enqueue(auth, workspaceId, spec, context) {
   const s = spec || {};
+  const c = context || {};
   await brandCore.assertCanWrite(auth, workspaceId, 'publish to a connected platform');
 
   const channelId = String(s.channel || '');
@@ -160,14 +169,34 @@ async function enqueue(auth, workspaceId, spec) {
     mapped.payload = Object.assign({}, mapped.payload, { approved_by: auth.user_id || '' });
   }
 
+  // The brand the copy is linted AS comes from the server, never the request
+  // body: the router hands over the brand it resolved for this workspace, and
+  // any other caller gets the workspace's own row. A body-supplied brand,
+  // approved-claims list or offer would let a send choose its own rule pack.
+  const brand = (c.brand && typeof c.brand === 'object') ? c.brand : await workspaceBrand(workspaceId);
+  const market = String(s.market || s.region || (s.asset && (s.asset.market || s.asset.region)) || '');
+
   const preflight = await require('./preflight-core.js').run({
     workspaceId, provider, channel: channelId, mode,
     payload: mapped.payload, mapping_missing: mapped.missing, connection: conn,
     segment: s.segment || null, audience_size: s.audience_size,
+    brand, market,
   });
 
   if (preflight.verdict === 'block' && !s.override_preflight) {
     return { ok: false, blocked: true, preflight, mapped, message: preflight.blocking.join(' ') };
+  }
+  // Overriding a COMPLIANCE block is a regulatory decision, so it needs a
+  // reason in words, not the default note: the licence, register entry or
+  // legal sign-off the copy rests on. The reason and the operator's id are
+  // written to preflight_audits beside every finding that was overridden.
+  if (preflight.verdict === 'block' && s.override_preflight
+    && preflight.checks.some((x) => x.id === 'compliance' && x.status === 'block')
+    && !String(s.override_note || '').trim()) {
+    return {
+      ok: false, blocked: true, preflight, mapped, error: 'override_reason_required',
+      message: 'A compliance block can be overridden only with a reason: say why this copy may run as written (for example the licence, register entry or legal sign-off it rests on). The reason is recorded against your account on the audit.',
+    };
   }
 
   const idempotencyKey = String(s.idempotency_key || deriveIdempotencyKey({
