@@ -409,7 +409,9 @@ function markCandidates(desk, decl) {
       else if (v.verdict === 'neutral') notes.push(`The logo mark paints ${v.hex}, a neutral: recorded, never proposed as the brand colour.`);
       else if (v.verdict === 'multicolour') notes.push(`The logo mark paints several colours (${v.colours.join(', ')}) and none dominates, so it proposes no single brand colour.`);
     }
-    if ((logo.pixels || []).length) {
+    // A wordmark set as TEXT is read by its text colour below; its pixels are
+    // glyph edges on a ground, not an image's colours.
+    if ((logo.pixels || []).length && logo.kind !== 'text') {
       const v = id.markIdentity(logo.pixels);
       if (v.verdict === 'colour') push('logo-image', v.hex, `logo pixels as rendered (${Math.round(v.share_of_chromatic * 100)}% of its coloured pixels)`, src(desk, 'logo', 'desktop', 'pixels', sel), { mark: v });
       else if (v.verdict === 'neutral' && logo.kind !== 'svg') notes.push(`The logo's pixels are ${v.hex}, a neutral: recorded, never proposed as the brand colour.`);
