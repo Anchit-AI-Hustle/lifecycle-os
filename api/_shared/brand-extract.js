@@ -2101,6 +2101,18 @@ function homeMarket(input) {
 
 const ABOUT_RX = /\/(?:about|about-us|our-story|story|who-we-are|mission|pages\/about)/i;
 
+/** Identity pages first: home, about, contact, legal, then listings, then products. */
+function pageRank(u) {
+  const p = (() => { try { return new URL(u).pathname.toLowerCase(); } catch (_) { return ''; } })();
+  if (p === '/' || p === '') return 100;
+  if (ABOUT_RX.test(p)) return 90;
+  if (/\/(?:contact|contact-us|pages\/contact)/.test(p)) return 80;
+  if (LEGAL_DOC_RX.test(p)) return 70;
+  if (/\/(?:pages|blog|collections)\//.test(p)) return 30;
+  if (/\/products?\//.test(p)) return 10;
+  return 50;
+}
+
 function voiceSamples(ctx) {
   const { html, url, isHome } = ctx;
   const out = [];
@@ -2324,16 +2336,9 @@ async function extractBrand(startUrl, opts) {
   // Identity pages first. A BFS that just takes the first N links off a store
   // homepage fills its budget with products and never reaches /about or the
   // policy pages, which is where the legal entity and half the claims live.
-  const rank = (u) => {
-    const p = (() => { try { return new URL(u).pathname.toLowerCase(); } catch (_) { return ''; } })();
-    if (p === '/' || p === '') return 100;
-    if (ABOUT_RX.test(p)) return 90;
-    if (/\/(?:contact|contact-us|pages\/contact)/.test(p)) return 80;
-    if (LEGAL_DOC_RX.test(p)) return 70;
-    if (/\/(?:pages|blog|collections)\//.test(p)) return 30;
-    if (/\/products?\//.test(p)) return 10;
-    return 50;
-  };
+  // The ranking lives at module scope (pageRank) so the rendered reader
+  // (brand-render.js) prefers exactly the pages this crawl prefers.
+  const rank = pageRank;
 
   const crawl = await siteCrawl.crawlSite(startUrl, {
     brand, fetchImpl: pageFetch, rank,
@@ -2897,7 +2902,7 @@ async function runExtract(auth, { url, workspace_id, voice = true, max_pages } =
 }
 
 module.exports = {
-  extractBrand, runExtract, observeVoice, MARKER, DEFAULTS,
+  extractBrand, runExtract, observeVoice, MARKER, DEFAULTS, pageRank,
   // colour
   parseColor, isNeutral, relLum, satOf,
   // css
