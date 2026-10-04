@@ -33,7 +33,11 @@
  * ---------------------------------------------------------------------------
  */
 
-const crypto = require('crypto');
+// The caps, the message classes and the per-workspace salted hash all live in
+// contact-fatigue.js (2026-10-04): this module counts an ESP's per-contact
+// `sends_7d` snapshot against the SAME numbers the contact ledger, the planners
+// and the preflight gate use, instead of a second copy of them.
+const fatigue = require('./contact-fatigue.js');
 
 /* ── the cohorts ──────────────────────────────────────────────────────────── */
 
@@ -52,8 +56,11 @@ const COHORTS = [
 
 const COHORT_BY_KEY = new Map(COHORTS.map((c) => [c.key, c]));
 
-/** Frequency caps, per docs/campaign-orchestration-master-spec.md. */
-const FREQUENCY = { promotional_per_7d: 2, absolute_per_7d: 3 };
+/** Frequency caps, per docs/campaign-orchestration-master-spec.md - read from the one policy. */
+const FREQUENCY = Object.freeze({
+  promotional_per_7d: fatigue.DEFAULT_RULES.promotional_per_7d,
+  absolute_per_7d: fatigue.DEFAULT_RULES.absolute_per_7d,
+});
 
 /* ── scoring ──────────────────────────────────────────────────────────────── */
 
@@ -188,8 +195,7 @@ function scoreContacts(contacts, { now = Date.now(), inactiveDays = 180 } = {}) 
  * exactly that reason.
  */
 function hashEmail(email, workspaceId) {
-  const salt = String(process.env.CONTACT_HASH_SALT || workspaceId || '');
-  return crypto.createHash('sha256').update(`${salt}:${String(email).trim().toLowerCase()}`).digest('hex');
+  return fatigue.hashEmail(email, workspaceId);
 }
 
 /* ── send-time optimisation ───────────────────────────────────────────────── */
@@ -383,13 +389,15 @@ function recommendCohorts(messagePriority) {
  * push together - the common failure is counting each channel separately and
  * shipping three times the intended pressure.
  */
-function frequencyCheck(scored, { messagePriority = 'promotional' } = {}) {
+function frequencyCheck(scored, { messagePriority = 'promotional', rules = null } = {}) {
   const rows = Array.isArray(scored) ? scored : [];
   if (!rows.length) return { ok: true, computed: false, over: 0, note: 'No contacts scored, so frequency could not be checked.' };
 
-  const cap = messagePriority === 'transactional' ? Infinity
-    : messagePriority === 'promotional' ? FREQUENCY.promotional_per_7d
-      : FREQUENCY.absolute_per_7d;
+  // promotional / re-engagement -> the preferred cap; a high-intent trigger ->
+  // the absolute cap; transactional -> never capped. Until 2026-10-04 anything
+  // that was not literally 'promotional' got the absolute cap, so a
+  // re-engagement BROADCAST was allowed a third send a week with no override.
+  const cap = fatigue.capFor(fatigue.classOf(messagePriority), rules);
 
   const over = rows.filter((s) => Number(s.sends_7d || 0) >= cap);
   return {

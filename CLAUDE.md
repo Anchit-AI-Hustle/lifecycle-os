@@ -4,6 +4,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ One contact ledger, one fatigue policy, every channel (2026-10-04) — read `docs/publishing-and-deliverability.md` ("Contact fatigue")
+The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
+suppress scheduled marketing emails or WhatsApp messages for 48 hours."* `api/_shared/contact-fatigue.js` (the
+policy and the judge, no I/O) + `contact-ledger.js` (storage) + `20261004093700_contact_ledger_fatigue.sql`, gated
+by `tests/contact-fatigue-executed.spec.js` (16, executed over the fake PostgREST, which now models this table's
+dedupe index, CHECKs and service-role-only grant; 20 mutations, each restoring one defect, fail it or a router spec). The SQL itself was applied and probed on PostgreSQL 16.4
+(PGlite, scratchpad): every constraint, grant and policy behaved as declared.
+- **The cap was computed in four places and they disagreed.** cohort-engine `FREQUENCY` (and anything not
+  literally `promotional` got the ABSOLUTE cap, so a re-engagement broadcast was allowed a third send);
+  services.js hard-coded `{2,3}` and counted a slot only if it CARRIED A DISCOUNT, so a cohort could be planned
+  daily with every slot SAFE (spec §10: caps apply to promotional AND lifecycle marketing); scenario-model's
+  `SEGMENT_SEND_CEILING: 4`, one above the absolute cap (`best` scheduled Champions 4/week); the mailer calendar
+  had no cap at all (cadence up to 7/week); and the V1 plan reset its cadence on Mondays, so Fri-Sat-Sun +
+  Mon-Tue-Wed was six in a rolling week. All read the policy now: one `planCaps()` pass, the spec's statuses,
+  and the V1 / mailer-calendar rows carry the rolling cap they never had.
+- **Defaults, stated in code, editable per brand within the spec** (`contact_fatigue_rules`, `op=rules-save`):
+  preferred 2 / absolute 3 marketing touches per person per rolling 7 days ACROSS channels (a brand may tighten,
+  never loosen - normalised on every READ too, so a hand-written row cannot either); promotional held to the
+  preferred cap, triggered-lifecycle to the absolute; transactional never counted, never held, never starts a
+  cool-down; after a promotional SMS/WhatsApp no promotional email/WhatsApp/SMS for 48 h; quiet hours 21:00-08:00
+  (TCPA's window) in the recipient's zone for SMS/WhatsApp/push, only when the region is known - a multi-zone
+  region (US) is quiet if any zone is; unknown is said. `event_map` is EMPTY: no ESP's event vocabulary is
+  assumed; a brand names which of its events are sends.
+- **Enforced in two places.** Dispatch preflight: ONE new check, `contact_fatigue` - a held-back recipient BLOCKS
+  (overridable, recorded) with how many, why and when they clear; unavailable / no history / platform-resolved
+  audience WARNS, never passes; quiet hours are judged even with no history. The planners: every Smart Brain slot
+  (both paths), mailer-calendar row and V1 row carries `frequency_cap`; Smart Brain and the mailer calendar also
+  carry `eligibility` (ledger + the plan's own earlier sends), and `planned_recipients` is the ELIGIBLE count or
+  null - the console printed `planned_recipients||0`, i.e. "→ 0 recipients" for a count nobody measured.
+  Daily sync patches a stored slot's contact state without dropping its prebuilt assets.
+- **The ledger is fed only by what reached a person**: a dispatch the platform accepted (scheduled -> at its
+  send time; a Klaviyo campaign only CREATED, a dry run, a refusal, a trigger with no stated `message_channel`
+  record nothing) and ingested ESP events (idempotent on `(workspace, source, source_ref, subject_key)`).
+  Hashes only; a profile id that is an address/number is hashed as one; a long digit id becomes `h:<sha>`.
+- **Found by running it.** A gate input is a request BODY (`Object.assign({workspaceId}, b)`), so a check that
+  read the ledger for `i.workspaceId` would have answered "did brand X contact this address?" to anyone naming X.
+  The check reads NO store; dispatch (after `assertCanWrite`) and the router (`evaluateForCaller`: membership via
+  RLS first) hand it the verdict, and a posted `contact_fatigue` is dropped. And `CONTACT_HASH_SALT ||
+  workspaceId` made the salt the SAME for every workspace once the env var was set: mixed in now (unchanged when
+  unset). Profile ids are namespaced by ESP: the same id from two platforms is two people.
+- **Device mode** (production: no database): the ledger is "unavailable (this deployment has no workspace
+  database configured)", never 0; rules a device brand edits are KEPT beside it (`LCStore`, deleted with the
+  brand) and carried by `brand-context.js` on every brain/calendar POST; `op=evaluate` judges the history a
+  request carries. Known limits: the Smart Brain cohort has no member list until the ESP profile feed (B3), so
+  a slot is judged on the ledger's people tagged with its cohort plus its size (or `partial` with no size);
+  WebEngage dumps are not yet mapped into the ledger (needs the brand's `event_map`).
+
 ## ⭐ The starter brands are read from their own RENDERED sites, or say why not (2026-10-04)
 The operator, with a screenshot of `/onboarding`'s starter-brand gallery: *"styles need to be correct
 for these too"*. 22 of 40 presets wore the grey placeholder, and several that HAD been read were wrong
