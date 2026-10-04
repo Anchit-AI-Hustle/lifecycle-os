@@ -39,7 +39,11 @@
 # the data PR waits, unmerged, for a human: auto-merge.yml fires only when CI
 # completes, and CI starts on the next commit a person pushes (an empty one is
 # enough). A human's commit does not carry the marker, so real CI is never
-# skipped. `[skip harvest]` on a PR head still skips the read.
+# skipped - unless its message QUOTES it: GitHub matches the marker anywhere in
+# the head commit's message, body included. This change's own first commit
+# described the marker in its body and started no CI, no SiS guard and no
+# read. Write "the skip-ci marker" in prose. `[skip harvest]` on a PR head
+# still skips the read.
 #
 # LEAST PRIVILEGE. The read job is read-only. The publish job alone holds
 # `contents: write` (its own branch), `pull-requests: write` (its own PR) and
