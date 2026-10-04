@@ -34,6 +34,193 @@ pack size is a product fact, so neither is ever used.
   the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
   cap input until the omnichannel fatigue ledger lands.
 
+## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
+The operator's words: *"ensure user can upload a document for the design schema to be followed too with
+all details like logo file or url, etc - keep options for files and urls both where either are
+required"*. `brand-document.js` (browser) + `onboarding.html` step 1 "Upload my brand guidelines" +
+`brand-context.js` (`BrandContext.files`, `.provenance`) + `api/_shared/brand-document-fetch.js` on
+`?action=brand&op=document-fetch` (still 12/12) + migration `20261004120000_brand_document_origin.sql`.
+Gated by `tests/brand-guide-upload.spec.js` (15, Chromium, documents built byte by byte in
+`tests/brand-guide-fixtures.js`) and `tests/brand-document-origin-sql.spec.js` (6, the migration
+EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
+- **Read in the browser, never paraphrased.** PDF via pdf.js 4.10.38 from jsdelivr (the same CDN the pages
+  use; `isEvalSupported:false`, so CVE-2024-4367's font-eval path is closed), DOCX unzipped with the
+  browser's own `DecompressionStream`, DESIGN.md (our own format), W3C DTCG / Style Dictionary / Tokens
+  Studio / Figma-variables JSON, CSS custom properties + `@font-face`, SVG text + labelled swatches, and
+  an image (no text layer: says so, offers it as the logo). Every value carries file or URL, page, line
+  and the verbatim line. Vercel caps a request body at 4.5 MB and brand books are bigger, so a FILE is
+  never uploaded to be parsed; only a LINKED document whose host sends no CORS goes through the server
+  op, behind `assertPublicUrl` on EVERY hop (`redirect:'manual'`), capped at 4 MB, opened on the same rule
+  as `extract` and nowhere else.
+- **Zero fabrication, in the rules themselves.** A role takes a STATED screen value only: a hex, or an
+  RGB triple (its notation). CMYK/Pantone-only colours are `print_only` - a conversion is offered labelled
+  `DERIVED from CMYK …` and is never applied by Apply; Pantone gets no computed hex at all. A colour named
+  in prose ("a soft grey colour") is `named_without_value` with the marker. A line that states a
+  COMPONENT colour ("Buttons: background #1A6B3C") feeds the component, never a palette role - the first
+  cut let "Buttons background" become the page surface. DESIGN.md tokens marked DERIVED (and `on-*` /
+  `*-text`) are skipped, not taken as stated.
+- **One order of origins, in three places** (SQL `brand_origin_rank()`, `brand-workspace-core
+  ORIGIN_RANK`, `brand-context.js ORIGIN_RANK`): `user 50 > document 40 > site-render 30 > site-parse 20
+  (= auto) > preset 10 > default 0`. The wizard keeps them per field in `brand_data.field_origins`
+  (typing → `user`, captured before the wizard's own handler; an explicit choice between two sources →
+  `user`). `saveWorkspace()` claims only `user`/unknown fields as typed and records the rest through
+  `brand_fields_record_origin()`, which NEVER demotes; `brand_context_apply()` (the automatic door) now
+  refuses every origin that outranks the site parser, by rank. A brand saved before origins existed has
+  none recorded, so everything filled on it is treated as typed (conservative).
+- **Apply / Revert.** Apply fills every field the document states except a typed one, lists each outcome
+  (`applied`, `kept, you typed it` with a "Use the document's" button, `already this`, `added to yours`,
+  `not in the document`), stores the logo the document puts beside the word "logo" and the guide itself
+  as files, writes `brand_data.design_components` (DESIGN.md component shape: `button-primary`
+  `{backgroundColor,textColor,rounded,padding,textTransform}`, `container.width`, `logo.clearSpace`,
+  `rounded`, `spacing`, `rules` + a parallel `provenance`), and shows the hard rules: exact colours as
+  tokens, AA text tokens `DERIVED from <exact>` with both ratios, a dark-neutral surface as a hard-rule
+  conflict (never swapped). Revert restores the pre-apply snapshot and removes the files it added.
+- **A later "Read my site" never overwrites a document value silently.** `docGuard()` runs FIRST in every
+  `render()`: a document-owned field changed by anything but typing (a site Use, a preset) is restored and
+  both values are shown side by side with a button each. It needs no edit to the site-read code, which
+  another branch is rewriting.
+- **File OR URL**: logo, app icon (`favicon_url`, now loaded and saved by the wizard), brand imagery,
+  heading/body fonts (WOFF2/WOFF/TTF/OTF file, a font URL, or a Google Fonts link) and the guide itself.
+  "Upload a file" is a LABEL around a hidden input (no dead click for the sweep); refusals are sentences
+  (type, size, < 32 px logo, non-square icon, a file the browser cannot load as a font). An uploaded SVG is
+  sanitised (scripts, `foreignObject`, `on*`, `javascript:`/external hrefs removed) and only ever shown as
+  `<img>`. A DELIVERY asset (logo, icon, fonts, imagery) is HOSTED for an account with a reachable
+  project (`brand-assets` bucket, PUBLIC read, `<workspace_id>/<sha256>.<ext>`, editor-scoped writes) and
+  otherwise kept in IndexedDB (localStorage caps ~5 MB) under `deviceKey()` - another person on the
+  browser sees none, deleting the brand deletes them, and a file chosen before the brand had an id moves
+  to it on first save (`files.adopt`). **The brand book itself is private and is never hosted**, for any
+  account: `files.host()` refuses every slot but the delivery ones (review, 2026-10-04 - the first cut
+  sent the whole PDF into the public bucket). Deleting an account brand removes its `brand-assets/<ws>/`
+  objects FIRST (the delete policy needs the row) and refuses rather than orphan public files.
+- **Review round 1, each reproduced by an executed test first and mutation-verified**: the brand book
+  in the public bucket (above); `op=document-fetch` buffered the whole body before checking the cap, so a
+  host omitting or falsifying Content-Length could exhaust the function - it now streams, cancels at
+  4 MB, and has one 25 s deadline; a typed value the document repeated flipped to `document` (equal is
+  unchanged now); `voice.no_em_dashes` was untracked, so unticking it was not the operator's.
+- **Review round 2 (Codex + the coordinator's own review), executed tests that failed first, mutation-
+  verified**: a self-hosted font now reaches every asset (`typography[slot].src` → `brand-runtime.
+  fontFaces()`, which `design-system.resolve()` adds to the faces the rendered read found, so the mailer,
+  `/lp/:id` and the fallback landing page all declare `@font-face`); a `brand-assets` LISTING that does
+  not answer stops the delete (only "Bucket not found" means nothing to orphan); Apply is all or
+  nothing (a device-store refusal part-way restores the snapshot and removes the kept files); a logo or
+  icon URL that does not load puts the previous value back; the browser streams a CORS download and
+  cancels it at the cap. **`op=document-fetch` is not a fetch proxy**: production opens it without an
+  account, and `/api/public-config` answers `Access-Control-Allow-Origin: *`, so as first shipped any
+  caller could GET any public URL through it. Now POST only (405 sentence), no CORS on that op on any
+  path (the wildcard is removed before anything runs), and on the OPEN path a page of THIS deployment
+  only (`samePageRequest()`: Origin, else Referer, host === the request's host; the device-principal
+  rule still checks presence only) plus the open rendered read's limiter (`brand-render.rateCheck`, its
+  own `document` budget: 6 per address, 40 per instance, per 10 minutes, 429 sentence). Merging #128:
+  `field_origins` (this reader's records) and `field_origin` (the rendered read's map) are written
+  together and read by both sides; a filled field with no recorded origin is the person's on every
+  path; an automatic source never demotes a document value, the person's own pick does.
+- **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
+  (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
+  `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
+  that marker in the header. Executed: the shipped html stage, every provider down, for a carried brand
+  whose logo is on the device - no `;base64,`/`data:image`/`blob:` in the mailer.
+- **Found by running it**: Playwright's `route.fulfill` answers a cross-origin read permissively, so the
+  "host sends no CORS" case read the PDF directly and never reached the server op - modelled as the
+  failure a browser sees (`route.abort`). A second account was invisible to the namespace test until the
+  device user map held both people (auth.js rejects a session whose user is not on the device).
+- **Known limits, said not hidden**: no OCR (a raster style sheet's colours are not tied to roles); a
+  logo drawn as vector paths in a PDF is not lifted out; colour swatches DRAWN in a PDF are not read
+  (pdf.js converts CMYK fills to RGB before the operator list, so a drawn value cannot be told from a
+  derived one); the optional LLM structuring pass was not built (rule-based only); a pasted URL on a host
+  the brand has not declared is said, not blocked; per-row product images on the catalogue step stay URL
+  columns in the CSV/JSON; Brand Input (`brand.html`, the legacy brand kit) keeps its URL-only guide field.
+
+## ⭐ Read my site RENDERS the site, and scores what WE generate against it (2026-10-04) — read `docs/universal-brand-platform.md`
+The operator's words, with a screenshot of `/onboarding` → "Read my brand from my website": *"read my site
+should actually be fetching the exact styling and branding of the website entered and apply that complete
+accurately"*, then *"understand the end goal"*: everything this platform generates for a brand must look
+like it came from the brand's own site, with proof. `op=extract` now opens the site in a headless Chromium
+and measures it; the parser (`brand-extract.js`) runs beside it and is the LABELLED fallback
+(`read.method: 'rendered' | 'parsed'`, `read.renderer: 'chromium' | 'unavailable' | 'blocked' |
+'timeout'`). Still 12/12 functions. Gated by `tests/rendered-brand-read.spec.js`,
+`tests/rendered-read-security.spec.js`, `tests/rendered-read-wizard.spec.js` (all executed).
+- **Modules** (all `api/_shared/`): `render-browser.js` (one launcher: `@sparticuz/chromium` on serverless
+  Linux, preinstalled/registry Chromium locally, says which), `render-net.js` (the browser's ONLY network),
+  `render-capture.js` (measured BY ROLE on the rendered page, never by selector name), `brand-render.js`
+  (the manifest; **`readRendered(url, { browser, viewports, maxPages, deadlineMs })` is the stable entry
+  point** for other callers, e.g. a CI job with Playwright's own Chromium), `design-system.js` (manifest →
+  `brand_data.design_system` + the ONE field patch the wizard and the regression both apply; what every
+  renderer reads), `render-regression.js` (scores OUR renderers against the site).
+- **The "site generator" is our real renderers**, not a throwaway clone: `smart-brain-plan.lpHtml` (served
+  at `/lp/:id`), `calendar-trigger.renderTextVariant` (mailer) and `scripts/lib/motion-ad.js` (ad) consume
+  buttons (default/hover/focus), heading scale, body copy, header + logo, product card, footer and section
+  rhythm at desktop AND phone width. No design system on the record → byte-identical output, so the asset
+  gates measure what they always measured. Shell: `--brand-radius-control` / `--brand-radius-card`.
+- **Found by RUNNING it, none visible in the source**: (1) Chromium FOLLOWS A FULFILLED 3xx WITHOUT CALLING
+  THE ROUTE HANDLER AGAIN - a canary on 127.0.0.1 took 3 connections from a page that only asked a public
+  host for `/bounce`, and the browser opened its own background connections too. Redirects are followed in
+  Node, hop by hop, each hop re-checked; the browser never sees a 3xx; a dead proxy (`127.0.0.1:9`,
+  loopback not bypassed) is the floor. Canary now: 0. (2) With `--single-process` (required on Lambda)
+  CLOSING A CONTEXT KILLS THE BROWSER - a fresh browser per read, pages closed, browser closed in `finally`.
+  (3) `lpHtml` painted tenant zero's two font families for EVERY brand (`FONT_HEAD`/`FONT_BODY` literals).
+  (4) `motion-ad.fontsOf()` put a typography OBJECT into CSS: every onboarded brand's video ad declared
+  `--head:[object Object]`. (5) `applyTokens` never removed an optional token, so reverting left the
+  previous brand's radius on `<html>`. (6) A regression that compares our output with the MANIFEST can
+  never see a wrong manifest value (it is on both sides): the site side is the measurement kept immutable,
+  and repair re-measures the live page. (7) A specimen at a different sub-pixel phase diffed 6-38% on a
+  pixel-identical button; at the source's phase, 0%. (8) A page without a viewport meta is laid out at
+  980px on a phone and its TEXT IS BOOSTED (a 36px heading measured 53.7px): said in `notes`.
+  (9) `readableAsText()` walks one way, so on a mid-tone ground it can return a failing white:
+  `textOnGround()` falls back to `textOn()`.
+- **Colour roles keep the parser's model**: `primary` only from an IDENTITY signal (theme-color, manifest,
+  a `--brand*` property AS COMPUTED on `:root` - runtime-set themes included - a chromatic header or logo
+  fill as rendered); the rendered CTA is ACTION; a disagreement is a conflict, never resolved. A site whose
+  only brand colour is its CTA gets that as primary with `from_role: 'action'`.
+- **The score, defined in code**: tokens within tolerance (CIEDE2000 ≤ 2.3; sizes ±0.5px; letter-spacing
+  ±0.1px; weight/case/family exact; padding ±1px; aspect ±0.03) + pixelmatch on specimens of OUR primary
+  button and display heading (our computed styles, the site's text/width/ground/sub-pixel phase) vs the
+  site's element screenshot. `mismatch = 0.7·tokens-off/tokens + 0.3·regions>3%/regions`, DONE ≤ 0.05.
+  Exempt (listed, not counted): text DERIVED for AA, a dark-neutral section swapped by `sectionGround`.
+  **Repair only RE-MEASURES the source** (computed → text-carrier → filled ancestor → ground); what every
+  re-measure confirms is UNMATCHED with its value and reason. A pixel region over its limit sends every
+  token of that component to be re-measured. **Email is token-only at the site's PHONE values**, a family
+  counts only with a generic fallback, Outlook's dropped radius is said.
+- **Applied completely, reversibly**: the wizard applies the whole patch except fields a person set -
+  `brand_data.field_origin`, precedence `user > document > site-render > site-parse > preset` (compatible
+  with the brand-guide upload branch); `claimedFields()` no longer claims a machine-set field. The panel:
+  score per surface/component, side-by-side screenshots (site vs OUR landing page, mailer, ad), applied,
+  KEPT, hard-rule decisions with both ratios, repairs, unmatched; one-click revert. Device, phone-device
+  and server states all ride the existing save paths. A rendered extract also returns `design_md` through
+  the context pack's own renderer (0 errors / 0 warnings on the official linter, measured).
+- **Security**: GET/HEAD only; no WebSocket/EventSource/beacon/media; documents only on the brand's hosts
+  and allowed by robots.txt; every subresource through `checkUrl` (assertPublicUrl's rules) with the socket
+  PINNED to the checked address (DNS rebinding has nowhere to go); service workers blocked; no downloads,
+  no permissions; byte/request budgets. Open path: 4 reads/address and 24/instance per 10 min, refusal in a
+  sentence, voice forced off, no model reached (tested). `brand.extract` stays free (setup).
+  `BRAND_RENDER=off` is the operator switch; the gate/parser specs use it and say why.
+- **Measured**: function bundle ~116 MB traced (`@vercel/nft` + the `includeFiles` binary pack; gate 220 MB
+  of Vercel's 250). `@sparticuz/chromium` 153 launches under playwright-core 1.63 in this container.
+  `GET /api/brand?op=render-probe` renders a fixed shipped page (no fetch), cached 5 min per instance.
+- **Two review rounds on #128, each finding reproduced by an executed test first and mutation-verified**
+  (the security and data-loss half merged in #128 at `d720cb0`; the rest is its follow-up PR):
+  ONE byte budget per read, taken chunk by chunk with every in-flight download aborted at the cap (ten
+  concurrent 8 MB chunked streams against 4 MB: kept ≤ 4 MB, labelled partial); EVERY transport hop
+  (1 + 5 redirects per route, and robots/start/manifest outside any route) charged to the request budget
+  before its socket opens (the server counts ≤ 12 on a 12-connection read of ten five-hop images);
+  robots.txt read for EVERY document origin before its first document (a cached promise per origin; no
+  rules read = refused, never allow-all); a brand saved BEFORE `field_origin` existed keeps every non-empty
+  value (no recorded origin = the person's), shown beside the site's value with "Use your site's"; the
+  wizard's starting palette/type are origin `default`, a template's `preset`. Follow-up: the read is
+  SCORED AS IT WILL BE APPLIED (the workspace on the server path, the bounded draft + origins the wizard
+  carries otherwise; `regression.applied_as`); the regression compares the face each surface DREW (CDP
+  `CSS.getPlatformFontsForNode`), which found two more defects on the spot - the email button's computed
+  stack (`"Erica One", Georgia`) closed its own `style="..."` attribute and dropped family, size and
+  radius in every mailer style, and the ad set its CTA in the body face; all four mailer styles read the
+  design system and are scored; both full-page screenshots pinned (Playwright 1.63 trims `clip` to the
+  full-page rect, measured); `engines.node` `24.x`, CI on Node 24 (`npm ci --engine-strict` and 458 specs
+  run on 24.21.0 here).
+- **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
+  desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
+  has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
+  scripts), the pipeline `html` stage and the Studio do not read the design system yet; the context pack's
+  own extract stage still parses; a site's font files are hotlinked by our assets and need that host's
+  CORS; local system fonts are what the SERVER's browser has.
+
 ## ⭐ The starter brands are read from their own RENDERED sites, or say why not (2026-10-04)
 The operator, with a screenshot of `/onboarding`'s starter-brand gallery: *"styles need to be correct
 for these too"*. 22 of 40 presets wore the grey placeholder, and several that HAD been read were wrong
@@ -72,6 +259,14 @@ the real reader in Chromium, the real builder, the real gallery).
   1.5:1 against the page or measured on a consent banner, takes the next one the site renders in the
   reader's own order, and records each `passed_over` with why; body copy measured white on a light
   page gives way to the heading/nav text the site renders before anything is derived.
+- **What the read produced (run 37223429183, on the reader with #128 and #130)**: 21 of 40 sites
+  rendered; 12 templates now carry the palette and families their site renders (airtel is
+  `#d40000`, no longer `#000000`) and the 5 hand-verified palettes are kept; 4 rendered with no
+  colour a preset can use (amazon, boat, samsung, spotify) and stay default with that reason; 14
+  refused it (eight HTTP 403s, a Kasada, two Cloudflare and one AWS WAF challenge page, a robots.txt
+  disallow, and a maintenance page the reader labels blocked) and 5 did not answer the reader's
+  first-document request in time. Every one of those 23 says so on its card. An earlier run
+  (37222438100, 14 minutes before) agreed on all 40 verdicts but Netflix (timeout there).
 - **The card paints four NAMED roles** (primary/accent/surface/ink, `*` when derived) and its text is
   measured at AA in Chromium through every ancestor's opacity - the step fades in, and a measurement
   taken mid-fade reads 1:1.
