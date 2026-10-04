@@ -6,13 +6,13 @@
   "start": "https://www.netflix.com",
   "landed": "https://www.netflix.com",
   "observed_at": "2026-10-04",
-  "renderer": "blocked",
-  "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it.",
+  "renderer": "timeout",
+  "reason": "The site could not be opened: timed out.",
   "read_attempt": {
-    "renderer": "blocked",
+    "renderer": "timeout",
     "at": "2026-10-04",
     "host": "www.netflix.com",
-    "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+    "reason": "The site could not be opened: timed out."
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -20,5 +20,5 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.netflix.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }
