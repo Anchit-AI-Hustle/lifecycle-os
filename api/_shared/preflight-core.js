@@ -63,15 +63,20 @@ function complianceCheck(i, payload) {
     return check('compliance', COMPLIANCE_LABEL, 'skip', 'This channel carries no copy to lint.');
   }
   if (!i.brand || typeof i.brand !== 'object') {
-    return check('compliance', COMPLIANCE_LABEL, 'warn',
-      'No brand record reached the gate, so its banned phrases, its approved claims and the rule packs for its sector and markets could not be selected. This is not a pass.',
-      'Publish from an active brand workspace so the brand record is read before the send.');
+    // Unchecked, never linted as somebody else. At the queue (require_brand)
+    // that BLOCKS: a supplement's copy must not go out because its own
+    // record could not be read for a moment. The block is overridable with
+    // a reason, like every other one here.
+    return check('compliance', COMPLIANCE_LABEL, i.require_brand ? 'block' : 'warn',
+      'This workspace\'s brand record could not be read, so its banned phrases, its approved claims and the rule packs for its sector and markets could not be selected, and the copy was not linted as any other brand. This is not a pass.',
+      'Retry once the brand record can be read, or override with the reason this copy may run unchecked.');
   }
   const r = lintCore.lint(payload, {
     brand: i.brand,
     market: i.market || i.region || '',
     approvedClaims: i.approved_claims,
     offer: i.offer,
+    now: i.now || null,
   });
   const top = r.findings.filter((f) => f.severity === 'BLOCK').concat(r.findings.filter((f) => f.severity !== 'BLOCK'));
   const detail = r.findings.length
