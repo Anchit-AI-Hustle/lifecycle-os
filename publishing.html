@@ -158,6 +158,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .verdict .big{font-family:var(--head);font-size:22px;font-weight:600}
   .fixrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
   .fixrow:last-child{border-bottom:0}
+
+  /* Social gateway (2026-10-04) */
+  .gw-sw{display:flex;gap:6px;flex-wrap:wrap}
+  .gw-ep{font-size:12px}
+  .gw-ep summary{cursor:pointer;font-weight:600;color:var(--ink)}
+  .gw-days{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+  .gw-day{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:12px;background:var(--card)}
+  .gw-day b{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:600}
 </style>
 </head>
 <body>
@@ -175,6 +183,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button class="tab" role="tab" aria-selected="false" data-panel="publish">Publisher</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="domain">Domain strength</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="jobs">Dispatch log</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="gateway">Social gateway</button>
   </div>
 
   <div id="msg"></div>
@@ -284,6 +293,72 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div id="jobs-out" class="muted" style="margin-top:12px">Loading&hellip;</div>
     </div>
   </section>
+
+  <!-- ─────────────── Social gateway (2026-10-04) ─────────────── -->
+  <section class="panel" id="panel-gateway">
+    <p class="muted" style="margin-bottom:14px">
+      Read and update Meta (Instagram and Facebook), TikTok, Pinterest, YouTube and Google Ads for this brand.
+      Every paid write is created paused, as a draft or as a private video; turning one on is a separate approval
+      below, recorded with your account. Nothing is sent until LIVE_CONNECTORS, this brand&rsquo;s live publishing
+      and the platform&rsquo;s own write switch are all on, and a call that was not confirmed against the
+      platform&rsquo;s documentation refuses whatever the switches say.
+    </p>
+    <div id="gw-state" class="muted">Open this tab to load the gateway.</div>
+    <div class="grid" id="gw-platforms"></div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>Read from a platform</h3>
+      <p class="muted">Reads need LIVE_CONNECTORS and a connected account, nothing more: reading is not publishing. Metrics are kept so a creative can be compared with this brand&rsquo;s own history.</p>
+      <div class="grid">
+        <div><label for="gw-read-provider">Platform</label><select id="gw-read-provider"></select></div>
+        <div><label for="gw-read-kind">What</label>
+          <select id="gw-read-kind">
+            <option value="ad_metrics">Ad spend, CTR and ROAS</option>
+            <option value="post_metrics">Organic post metrics</option>
+            <option value="comments">Comments</option>
+            <option value="mentions">Mentions</option>
+          </select></div>
+      </div>
+      <label for="gw-read-ids">Post, media or ad ids (comma separated, where the platform needs them)</label>
+      <input type="text" id="gw-read-ids" placeholder="e.g. 17890000000000000">
+      <div class="row"><button id="gw-read">Read now</button></div>
+      <div id="gw-read-out" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Underperforming creatives</h3>
+      <p class="muted">A creative is flagged when it sits below this brand&rsquo;s own median for its platform (three or more creatives are needed for a median), or below a threshold you set. A flag OFFERS a regeneration at its credit price; nothing is regenerated, spent or published until an editor approves it.</p>
+      <div class="row"><button id="gw-compute">Recompute flags</button></div>
+      <div id="gw-flags" class="muted" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Your thresholds (optional)</h3>
+      <p class="muted">No platform publishes a universal &ldquo;good&rdquo; CTR or ROAS, so none is assumed here. Leave a field empty to rely on the brand&rsquo;s own median alone. A platform reports CTR in its own unit (Meta as a percentage, Google as a ratio), and a flag only ever compares a creative with others on the same platform.</p>
+      <div class="grid">
+        <div><label for="gw-t-paid-ctr_min">Paid: CTR at least</label><input type="number" step="any" min="0" id="gw-t-paid-ctr_min"></div>
+        <div><label for="gw-t-paid-roas_min">Paid: ROAS at least</label><input type="number" step="any" min="0" id="gw-t-paid-roas_min"></div>
+        <div><label for="gw-t-organic-views_min">Organic: views at least</label><input type="number" step="any" min="0" id="gw-t-organic-views_min"></div>
+        <div><label for="gw-t-organic-reach_min">Organic: reach at least</label><input type="number" step="any" min="0" id="gw-t-organic-reach_min"></div>
+        <div><label for="gw-t-organic-impressions_min">Organic: impressions at least</label><input type="number" step="any" min="0" id="gw-t-organic-impressions_min"></div>
+        <div><label for="gw-t-organic-likes_min">Organic: likes at least</label><input type="number" step="any" min="0" id="gw-t-organic-likes_min"></div>
+      </div>
+      <div class="row"><button id="gw-save-thresholds">Save thresholds</button></div>
+    </div>
+
+    <div class="card">
+      <h3>Drafts awaiting live approval</h3>
+      <p class="muted">Paused ads, draft campaigns and private videos this brand created. Approving one queues its own job, stamped with your account, behind the same three switches. A Google Ads ad is created paused and turned on in Google Ads itself: the call that would enable it was not re-read from Google&rsquo;s documentation here, so it is not offered.</p>
+      <div id="gw-drafts" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h3>Inbox</h3>
+      <p class="muted">Webhook deliveries whose signature was verified and whose account this brand connected: comments, mentions and publish status. A delivery for an account nobody connected is kept unrouted, never guessed onto a brand.</p>
+      <div class="row"><button id="gw-refresh">Refresh</button></div>
+      <div id="gw-inbox" class="muted" style="margin-top:12px"></div>
+    </div>
+  </section>
 </div>
 
 <!-- Preflight modal -->
@@ -351,6 +426,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         p.classList.toggle('on', p.id === 'panel-' + t.dataset.panel);
       });
       if (t.dataset.panel === 'jobs') loadJobs();
+      if (t.dataset.panel === 'gateway') loadGateway();
     });
   });
 
@@ -674,6 +750,248 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { var r = await call(BRAIN + 'dispatch-drain', {}); note('info', 'Ran ' + r.ran + ' job(s); ' + r.remaining + ' still runnable.'); loadJobs(); }
     catch (e) { note('err', e.message); }
     this.disabled = false;
+  });
+
+  /* ── social gateway (2026-10-04) ──────────────────────────────────────
+     Every call goes through call(), so a signed-out visitor is told what
+     needs sign-in before anything is sent. A brand kept on this device has
+     no server workspace and so no platform account: the gateway answers its
+     honest status, and everything that would read or write a platform is a
+     disabled control carrying that reason, never a failure frame. */
+  var GW = BRAIN + 'social-gateway&op=';
+  var GW_STATUS = null;
+  var GW_DEVICE = false;
+  var GW_BUTTONS = ['gw-read', 'gw-compute', 'gw-save-thresholds', 'gw-refresh'];
+  var GW_DEVICE_WHY = 'Platform accounts are connected through encrypted credentials kept with a brand workspace on the server. This brand is kept on this device, so no platform account is connected to it yet, and there is nothing to read, flag or approve.';
+
+  function gwStatusLine(el, text) {
+    if (window.LifecycleStatus && window.LifecycleStatus.show) window.LifecycleStatus.show(el, text);
+    else el.textContent = text;
+  }
+  /** A refusal for an ordinary state (signed out, no database) is a status line, never a red banner. */
+  function gwFail(e, lead) {
+    var S = window.LifecycleStatus;
+    if (S && S.ordinary && S.ordinary(e)) { S.show(document.getElementById('msg'), e); return; }
+    note('err', (lead || '') + ((e && e.message) || String(e)));
+  }
+  function chip(cls, text) { return '<span class="chip ' + cls + '">' + esc(text) + '</span>'; }
+  function onOff(v) { return v === null || v === undefined ? 'n/a' : (v ? 'on' : 'off'); }
+
+  async function loadGateway() {
+    var state = document.getElementById('gw-state');
+    state.textContent = 'Loading the gateway…';
+    try {
+      GW_STATUS = await call(GW + 'status');
+    } catch (e) {
+      document.getElementById('gw-platforms').innerHTML = '';
+      window.LifecycleFailure.show(state, e, { title: 'The social gateway could not be loaded' });
+      return;
+    }
+    GW_DEVICE = !GW_STATUS.workspace_id;
+    renderGatewayPlatforms();
+    GW_BUTTONS.forEach(function (id) {
+      var b = document.getElementById(id);
+      b.disabled = GW_DEVICE;
+      b.title = GW_DEVICE ? GW_DEVICE_WHY : '';
+    });
+    if (GW_DEVICE) {
+      gwStatusLine(state, GW_DEVICE_WHY);
+      ['gw-flags', 'gw-drafts', 'gw-inbox'].forEach(function (id) { gwStatusLine(document.getElementById(id), GW_DEVICE_WHY); });
+      return;
+    }
+    if (GW_STATUS.store && GW_STATUS.store.reachable === false) note('warn', GW_STATUS.store.note);
+    state.textContent = GW_STATUS.note || '';
+    loadThresholds();
+    loadFlags();
+    loadDrafts();
+    loadInbox();
+  }
+
+  function renderGatewayPlatforms() {
+    var ps = (GW_STATUS && GW_STATUS.platforms) || [];
+    document.getElementById('gw-read-provider').innerHTML = ps.map(function (p) {
+      return '<option value="' + esc(p.id) + '">' + esc(p.label) + (p.connected ? '' : ' (not connected)') + '</option>';
+    }).join('');
+    document.getElementById('gw-platforms').innerHTML = ps.map(function (p) {
+      var chips = [p.connected ? chip('on', 'connected') : chip('off', 'not connected')];
+      if (p.status === 'needs_reauth') chips.push(chip('bad', 'reconnect'));
+      if (p.connected) chips.push(p.can_write_now ? chip('on', 'writes on') : chip('warn', 'writes withheld'));
+      if (p.unverified_operations && p.unverified_operations.length) chips.push(chip('warn', p.unverified_operations.length + ' unverified'));
+      var sw = p.switches || {};
+      var eps = p.endpoints || [];
+      var verified = eps.filter(function (x) { return x.verified; }).length;
+      return '<div class="conn">'
+        + '<div class="hd"><span class="nm">' + esc(p.label) + '</span><span>' + chips.join(' ') + '</span></div>'
+        + (p.account ? '<div class="muted">Account: ' + esc(p.account) + '</div>' : '')
+        + '<div class="gw-sw muted">LIVE_CONNECTORS ' + onOff(sw.live_connectors)
+        + ' &middot; brand publishing ' + onOff(sw.workspace_publishing)
+        + (p.write_switch ? ' &middot; ' + esc(p.write_switch) + ' ' + onOff(sw.platform_writes) : '') + '</div>'
+        + ((p.next && p.next.length) ? '<ul class="checklist">' + p.next.map(function (n) { return '<li><span class="dot warn"></span><span>' + esc(n) + '</span></li>'; }).join('') + '</ul>' : '')
+        + (eps.length ? '<details class="gw-ep"><summary>' + verified + ' verified, ' + (eps.length - verified) + ' unverified call(s)</summary>'
+          + '<table><thead><tr><th>Call</th><th>Method</th><th>State</th><th>Source</th></tr></thead><tbody>'
+          + eps.map(function (x) {
+            return '<tr><td><code>' + esc(x.op) + '</code></td><td>' + esc(x.method) + (x.read ? ' (read)' : '') + '</td>'
+              + '<td>' + (x.verified ? chip('on', 'verified') : chip('warn', 'unverified')) + '</td>'
+              + '<td>' + (x.doc ? '<a href="' + esc(x.doc) + '" target="_blank" rel="noopener">docs</a>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></details>' : '')
+        + (p.webhook && p.webhook.callback
+          ? '<div class="muted">Webhook callback <code>' + esc(p.webhook.callback) + '</code>' + (p.webhook.verification ? ': ' + esc(p.webhook.verification) : '') + '</div>'
+          : '<div class="muted">Webhooks: no signature scheme was confirmed for ' + esc(p.label) + ', so its deliveries are refused rather than accepted unverified.</div>')
+        + '</div>';
+    }).join('');
+  }
+
+  async function loadThresholds() {
+    try {
+      var r = await call(GW + 'thresholds');
+      var t = r.thresholds || {};
+      ['paid', 'organic'].forEach(function (kind) {
+        ((r.keys && r.keys[kind]) || []).forEach(function (k) {
+          var el = document.getElementById('gw-t-' + kind + '-' + k);
+          if (el) el.value = (t[kind] && t[kind][k] != null) ? t[kind][k] : '';
+        });
+      });
+    } catch (e) { gwFail(e, 'Your thresholds could not be read: '); }
+  }
+
+  function renderFlags(flags) {
+    var el = document.getElementById('gw-flags');
+    if (!flags.length) { el.innerHTML = '<p class="muted">No creative is flagged. A platform with fewer than three creatives reporting a metric has no median yet, so nothing is compared against one.</p>'; return; }
+    // The calendar strip: which planned days carry a flagged creative.
+    var days = {};
+    flags.forEach(function (f) { var d = f.slot_date || 'no calendar slot'; days[d] = (days[d] || 0) + 1; });
+    el.innerHTML = '<div class="gw-days">' + Object.keys(days).sort().map(function (d) {
+      return '<span class="gw-day"><b>' + esc(d) + '</b>' + days[d] + ' flagged</span>';
+    }).join('') + '</div>'
+      + '<table><thead><tr><th>Creative</th><th>Why</th><th>Offer</th><th></th></tr></thead><tbody>'
+      + flags.map(function (f) {
+        var offer = f.offer || {};
+        var open = !f.status || f.status === 'open';
+        return '<tr><td>' + esc((f.provider || '') + ' · ' + (f.kind || '')) + '<div class="muted"><code>' + esc(f.external_id) + '</code>' + (f.asset_ref ? ' · ' + esc(f.asset_ref) : '') + '</div></td>'
+          + '<td class="muted">' + esc(f.reason) + '</td>'
+          + '<td class="muted">' + esc(offer.label || 'Regenerate') + ': ' + esc(offer.credits != null ? offer.credits : '?') + ' credits</td>'
+          + '<td>' + (open && f.id
+            ? '<div class="row" style="margin-top:0"><button data-gw-flag="regen-approve" data-id="' + esc(f.id) + '">Approve regeneration</button>'
+              + '<button data-gw-flag="flag-dismiss" data-id="' + esc(f.id) + '">Dismiss</button></div>'
+            : chip(f.status === 'regen_approved' ? 'on' : 'off', f.status || 'computed')) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  async function loadFlags() {
+    var el = document.getElementById('gw-flags');
+    try { var r = await call(GW + 'flags'); renderFlags(r.flags || []); }
+    catch (e) { window.LifecycleFailure.show(el, e, { title: 'Flags could not be loaded' }); }
+  }
+
+  async function loadDrafts() {
+    var el = document.getElementById('gw-drafts');
+    var map = (GW_STATUS && GW_STATUS.live_approval) || {};
+    try {
+      var r = await call(BRAIN + 'dispatch-list');
+      var all = r.jobs || [];
+      var drafts = all.filter(function (j) { return map[j.channel] && j.status === 'succeeded' && j.external_id && j.external_status !== 'creative_only'; });
+      var approvals = all.filter(function (j) { return /_live_approval$/.test(j.channel || ''); });
+      if (!drafts.length && !approvals.length) { el.innerHTML = '<p class="muted">No paused ad, draft campaign or private video has been created for this brand yet.</p>'; return; }
+      el.innerHTML = '<table><thead><tr><th>Draft</th><th>On the platform</th><th></th></tr></thead><tbody>'
+        + drafts.map(function (j) {
+          return '<tr><td>' + esc(j.channel) + '<div class="muted"><code>' + esc(j.external_id) + '</code></div></td>'
+            + '<td>' + chip('off', j.external_status || 'paused') + '</td>'
+            + '<td><button data-gw-live="' + esc(j.id) + '">Approve going live</button></td></tr>';
+        }).join('')
+        + approvals.map(function (j) {
+          return '<tr><td>' + esc(j.channel) + '<div class="muted"><code>' + esc(j.external_id || '') + '</code></div></td>'
+            + '<td>' + chip(j.status === 'succeeded' ? 'on' : j.status === 'failed' || j.status === 'blocked' ? 'bad' : 'off', j.status) + '</td>'
+            + '<td class="muted">' + esc(j.last_error || '') + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    } catch (e) { window.LifecycleFailure.show(el, e, { title: 'Drafts could not be loaded' }); }
+  }
+
+  async function loadInbox() {
+    var el = document.getElementById('gw-inbox');
+    try {
+      var r = await call(GW + 'inbox');
+      var ev = r.events || [];
+      if (!ev.length) { el.innerHTML = '<p class="muted">No verified delivery has been routed to this brand yet.</p>'; return; }
+      el.innerHTML = '<table><thead><tr><th>Received</th><th>Platform</th><th>What</th></tr></thead><tbody>'
+        + ev.map(function (x) {
+          var items = Array.isArray(x.items) ? x.items : [];
+          var what = items.map(function (i) { return (i.kind || 'event') + (i.text ? ': ' + i.text : (i.status ? ': ' + i.status : '')); }).join(' · ');
+          return '<tr><td>' + esc(String(x.received_at || '').replace('T', ' ').slice(0, 16)) + '</td><td>' + esc(x.provider) + '</td>'
+            + '<td class="muted">' + esc(what || x.event_type || x.kind) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    } catch (e) { window.LifecycleFailure.show(el, e, { title: 'The inbox could not be loaded' }); }
+  }
+
+  document.getElementById('gw-read').addEventListener('click', async function () {
+    var out = document.getElementById('gw-read-out');
+    var btn = this;
+    btn.disabled = true;
+    try {
+      var ids = document.getElementById('gw-read-ids').value.trim();
+      var r = await call(GW + 'read', { provider: document.getElementById('gw-read-provider').value, kind: document.getElementById('gw-read-kind').value, ids: ids || undefined, ad_ids: ids || undefined });
+      var rows = r.metrics || r.rows || r.comments || r.mentions || [];
+      if (!r.ok) {
+        gwStatusLine(out, r.note || r.error || 'Nothing was read.');
+      } else {
+        out.innerHTML = '<p class="muted">' + rows.length + ' row(s) read' + (r.snapshots && r.snapshots.stored ? ', ' + r.snapshots.stored + ' kept for comparison' : '') + '.</p>'
+          + (rows.length ? '<table><tbody>' + rows.slice(0, 50).map(function (x) {
+            return '<tr><td><code>' + esc(x.external_id || x.id || '') + '</code></td><td class="muted">' + esc(x.values ? JSON.stringify(x.values) : (x.text || '')) + '</td></tr>';
+          }).join('') + '</tbody></table>' : '');
+      }
+    } catch (e) { window.LifecycleFailure.show(out, e, { title: 'The read could not be made' }); }
+    btn.disabled = GW_DEVICE;
+  });
+
+  document.getElementById('gw-compute').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true;
+    try {
+      var r = await call(GW + 'underperformance', {});
+      var unavailable = (r.groups || []).filter(function (g) { return !g.available; });
+      note('info', (r.flags || []).length + ' creative flag(s) from ' + (r.creatives || 0) + ' creative(s).' + (unavailable.length ? ' ' + unavailable.map(function (g) { return g.reason; }).join(' ') : ''));
+      await loadFlags();
+    } catch (e) { gwFail(e); }
+    btn.disabled = GW_DEVICE;
+  });
+
+  document.getElementById('gw-save-thresholds').addEventListener('click', async function () {
+    var btn = this;
+    btn.disabled = true;
+    var t = { paid: {}, organic: {} };
+    [].slice.call(document.querySelectorAll('[id^="gw-t-"]')).forEach(function (el) {
+      var m = /^gw-t-(paid|organic)-(.+)$/.exec(el.id);
+      if (m && el.value !== '') t[m[1]][m[2]] = Number(el.value);
+    });
+    try { await call(GW + 'thresholds-save', { thresholds: t }); note('ok', 'Thresholds saved for this brand. Recompute flags to apply them.'); }
+    catch (e) { gwFail(e); }
+    btn.disabled = GW_DEVICE;
+  });
+
+  document.getElementById('gw-refresh').addEventListener('click', function () { loadInbox(); });
+
+  document.getElementById('gw-flags').addEventListener('click', async function (ev) {
+    var b = ev.target.closest('button[data-gw-flag]'); if (!b) return;
+    var op = b.dataset.gwFlag;
+    if (op === 'regen-approve' && !window.confirm('Approve this regeneration?\n\nIt runs from the console that made the creative and spends credits there, on your session. Nothing is published.')) return;
+    b.disabled = true;
+    try {
+      var r = await call(GW + op, { flag_id: b.dataset.id });
+      note(op === 'regen-approve' ? 'ok' : 'info', op === 'regen-approve'
+        ? 'Regeneration approved. ' + ((r.next && r.next.how) || '') + ' Price: ' + ((r.next && r.next.credits != null) ? r.next.credits : '?') + ' credits.'
+        : 'Flag dismissed.');
+      await loadFlags();
+    } catch (e) { gwFail(e); b.disabled = false; }
+  });
+
+  document.getElementById('gw-drafts').addEventListener('click', async function (ev) {
+    var b = ev.target.closest('button[data-gw-live]'); if (!b) return;
+    if (!window.confirm('Approve this draft going live?\n\nA paused ad starts spending and a private video becomes public. The approval is recorded with your account and runs behind the same three switches.')) return;
+    b.disabled = true;
+    try {
+      var r = await call(GW + 'live-approve', { job_id: b.dataset.gwLive });
+      note('warn', 'Live approval queued as its own job (' + (r.live_channel || '') + '). Run the queue, or wait for the next drain, to send it.');
+      await loadDrafts();
+    } catch (e) { gwFail(e); b.disabled = false; }
   });
 
   /* ── boot ───────────────────────────────────────────────────────────── */

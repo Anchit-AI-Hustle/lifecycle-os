@@ -4,6 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
+`api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|
+flags|thresholds|thresholds-save|regen-approve|flag-dismiss|live-approve` (still 12/12, still two crons), the
+"Social gateway" tab on `/publishing`. Adapters: `meta-adapter.js` (extended: Instagram + Facebook Page comments,
+mentions, insights, Page feed, ad insights, activation), `tiktok-adapter.js` (`tiktok` organic + `tiktok_ads`),
+`pinterest-adapter.js`, `youtube-adapter.js`, and `google-ads-adapter.js` (gained an ad-metrics reader). Gated by
+`tests/social-gateway-executed.spec.js` (33) + `tests/social-gateway-console.spec.js` (4, the page driven over the
+shipped core) over `tests/lib/fake-social-platforms.js`, which answers exactly the documented endpoints and THROWS
+on anything else.
+- **Every call is a row in the adapter's `endpointTable`** with its doc URL; `callEndpoint()` is the one door.
+  `verified:false` REFUSES with the exact request, whatever the switches say, and the hub counts it. Unverified
+  today: all of TikTok Ads (only the SDK was readable; its default status is ENABLE), Pinterest `ad_create` (PAUSED
+  is confirmed for campaigns only) and `campaign_update` (the docs conflict). Google ROAS is not read (the field
+  was not confirmed); YouTube and Pinterest webhooks are refused (no signature scheme confirmed).
+- **The third switch is per platform now**: `META_/TIKTOK_/PINTEREST_/YOUTUBE_/GOOGLE_ADS_ALLOW_WRITES=1`, beside
+  `LIVE_CONNECTORS` and the brand's toggle (`publishAllowance` → `platform_writes_off`). A READ needs only
+  `LIVE_CONNECTORS`. A write that needs a read first (TikTok `creator_info`, YouTube's media bytes) asks
+  `writeRefusal()` BEFORE the read, so a withheld write shows the write, and nothing leaves.
+- **Paid is created PAUSED / DISABLE / private**; going live is its own `<platform>_live_approval` job, and
+  dispatch-core stamps `approved_by` from the SESSION (a request's own claim is overwritten). YouTube activation
+  re-sends every writable status field, because `videos.update` deletes what it omits.
+- **Tokens never leave**: `would_request` URLs are redacted (`access_token`, `appsecret_proof`), and that was a
+  real leak into `dispatch_jobs.result` before this. Refresh rides the existing daily cron
+  (`refreshDueTokens({withinDays:7})`): a refusal marks `needs_reauth` (and `ensureFreshToken` then refuses), a
+  platform that did not answer is retried.
+- **Webhooks**: verified over the raw bytes, recorded once per event id (`social_inbound_events` unique on
+  provider + event id), routed only to the ONE workspace whose connection names the account, logged to
+  `platform_sync_log`. Migration `20261004150000_social_gateway.sql`.
+- **Underperformance** is below the brand's OWN median per platform (3+ creatives, else said) or below an
+  operator's OWN threshold; an absent metric is never a zero; units are never mixed across platforms. A flag
+  OFFERS a metered regeneration (`ads.generate` / `social.post`); approving records who and spends nothing.
+- 21 mutations, each failing the spec (ACTIVE paid writes on three platforms, both signatures uncompared, a
+  switch ignored, an unverified endpoint sent, the approver taken from the request, a duplicate re-processed,
+  YouTube public, absent read as zero, a refused refresh left active, ...).
+- Left as found: `connections` `oauth-start` answers `connections_router_failed` for a phone device session
+  (pre-existing for every OAuth platform); a Google Ads ad is turned on in Google Ads (no enable call confirmed).
+
 ## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
 The operator's words: *"ensure user can upload a document for the design schema to be followed too with
 all details like logo file or url, etc - keep options for files and urls both where either are

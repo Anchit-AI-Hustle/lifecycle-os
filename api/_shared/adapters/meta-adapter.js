@@ -29,6 +29,14 @@
  * social-push-core.js. The OAuth dialog and token endpoints were read from
  * Meta's "Manually Build a Login Flow" documentation on 2026-08-18; see
  * `sources` on the auth block.
+ *
+ * THE SOCIAL GATEWAY (2026-10-04). Comments, replies, moderation, mentions,
+ * media insights, Page feed posts, ad insights and the LIVE APPROVAL of a
+ * paused ad go through ENDPOINTS below, each read on 2026-10-04 in Meta's own
+ * documentation (developers.facebook.com, via the Context7 documentation index,
+ * because the docs host itself is blocked from this build environment) and
+ * named per entry. Every write among them is behind all three switches:
+ * LIVE_CONNECTORS, the workspace's publishing toggle and META_ALLOW_WRITES.
  * ---------------------------------------------------------------------------
  */
 
@@ -39,9 +47,88 @@ const { AdPlatformAdapter } = require('./base-adapter.js');
 const VER = String(process.env.META_GRAPH_VERSION || 'v25.0').trim();
 const GRAPH = `https://graph.facebook.com/${VER}`;
 
+const IG_DOCS = 'https://developers.facebook.com/documentation/instagram-platform';
+const GRAPH_DOCS = 'https://developers.facebook.com/docs/graph-api/reference';
+
+/**
+ * The gateway's Meta calls. `verified: true` means the method, path and the
+ * fields this adapter sends were read on the named page. Instagram via Facebook
+ * Login is served from graph.facebook.com (the comments reference states the
+ * host per login type), which is the host this repo already uses.
+ */
+const ENDPOINTS = {
+  ig_comments_list: {
+    method: 'GET', url: `${GRAPH}/{ig_media_id}/comments`, verified: true,
+    doc: `${IG_DOCS}/comment-moderation (GET /<IG_MEDIA_ID>/comments; response fields id, text, timestamp)`,
+    scopes: ['instagram_basic', 'instagram_manage_comments', 'pages_read_engagement'],
+  },
+  ig_comment_reply: {
+    method: 'POST', url: `${GRAPH}/{ig_comment_id}/replies`, verified: true,
+    doc: `${IG_DOCS}/comment-moderation (POST /<IG_COMMENT_ID>/replies, body: message)`,
+    scopes: ['instagram_basic', 'instagram_manage_comments', 'pages_read_engagement'],
+  },
+  ig_comment_hide: {
+    method: 'POST', url: `${GRAPH}/{ig_comment_id}`, verified: true,
+    doc: `${IG_DOCS}/instagram-graph-api/reference/ig-comment (POST /<IG_COMMENT_ID>?hide=<BOOLEAN>)`,
+    scopes: ['instagram_basic', 'instagram_manage_comments', 'pages_read_engagement'],
+  },
+  ig_tags: {
+    method: 'GET', url: `${GRAPH}/{ig_user_id}/tags`, verified: true,
+    doc: `${IG_DOCS}/instagram-api-with-facebook-login/mentions (GET /{ig-user-id}/tags: media the account is tagged in)`,
+    scopes: ['instagram_basic', 'instagram_manage_comments', 'pages_read_engagement'],
+  },
+  ig_mentioned_comment: {
+    method: 'GET', url: `${GRAPH}/{ig_user_id}`, verified: true,
+    doc: `${IG_DOCS}/instagram-graph-api/reference/ig-user/mentioned_comment (fields=mentioned_comment.comment_id(<id>){timestamp,like_count,text,id})`,
+    scopes: ['instagram_basic', 'instagram_manage_comments', 'pages_read_engagement'],
+  },
+  ig_media_insights: {
+    method: 'GET', url: `${GRAPH}/{ig_media_id}/insights`, verified: true,
+    doc: `${IG_DOCS}/insights (GET /<INSTAGRAM_MEDIA_ID>/insights?metric=...; reach, likes, comments and views are named there)`,
+    scopes: ['instagram_basic', 'instagram_manage_insights', 'pages_read_engagement'],
+  },
+  page_feed_post: {
+    method: 'POST', url: `${GRAPH}/{page_id}/feed`, verified: true,
+    doc: `${GRAPH_DOCS}/page/feed (POST /{page-id}/feed: message, link, published, scheduled_publish_time 10 minutes to 75 days ahead)`,
+    scopes: ['pages_manage_posts', 'pages_read_engagement', 'pages_show_list'],
+  },
+  page_object_comments: {
+    method: 'GET', url: `${GRAPH}/{object_id}/comments`, verified: true,
+    doc: `${GRAPH_DOCS}/object/comments and ${GRAPH_DOCS}/page-post/comments (GET /{page-post-id}/comments)`,
+    scopes: ['pages_read_engagement', 'pages_read_user_content'],
+  },
+  page_comment_reply: {
+    method: 'POST', url: `${GRAPH}/{comment_id}/comments`, verified: true,
+    doc: `${GRAPH_DOCS}/object/comments (POST /{object-id}/comments, body: message; Page token, MODERATE task)`,
+    scopes: ['pages_manage_engagement'],
+  },
+  page_comment_hide: {
+    method: 'POST', url: `${GRAPH}/{comment_id}`, verified: true,
+    doc: `${GRAPH_DOCS}/comment (Updating: POST /{comment_id}, is_hidden, Page comments only)`,
+    scopes: ['pages_manage_engagement'],
+  },
+  ad_insights: {
+    method: 'GET', url: `${GRAPH}/{act_id}/insights`, verified: true,
+    doc: `${GRAPH_DOCS}/adaccount/insights (GET /act_{ad-account-id}/insights: fields, level, date_preset, time_range). Field names are the ones ad-insights-core.js already reads.`,
+    scopes: ['ads_read'],
+  },
+  ad_activate: {
+    method: 'POST', url: `${GRAPH}/{ad_id}`, verified: true,
+    doc: `${GRAPH_DOCS}/adgroup (status enum ACTIVE, PAUSED, DELETED, ARCHIVED; "Other statuses can be used for update")`,
+    scopes: ['ads_management'],
+  },
+};
+
+/** Insight fields for the gateway's paid read: the ones this repo already requests. */
+const AD_FIELDS = 'ad_id,ad_name,spend,impressions,clicks,ctr,purchase_roas,date_start,date_stop';
+/** The media metrics named on the insights page. */
+const IG_MEDIA_METRICS = 'reach,likes,comments,views';
+
 class MetaAdapter extends AdPlatformAdapter {
   static get id() { return 'meta'; }
   static get label() { return 'Meta (Facebook, Instagram, Ads)'; }
+  static get writeSwitch() { return 'META_ALLOW_WRITES'; }
+  static get endpointTable() { return ENDPOINTS; }
 
   static get channels() {
     return [
@@ -69,6 +156,19 @@ class MetaAdapter extends AdPlatformAdapter {
         asset_kinds: ['ad', 'ad_set'],
         constraints: { primary_text_max: 125, headline_max: 40, description_max: 30, media: 'required' },
       },
+      // The social gateway's channels (2026-10-04). Each is a write through the
+      // queue and the three switches; a reply is a message to a real customer.
+      {
+        id: 'facebook_page_feed',
+        label: 'Facebook Page feed post (text or link; draft or scheduled)',
+        asset_kinds: ['social_post'],
+        constraints: { message_or_link: 'required', scheduled_window: '10 minutes to 75 days ahead' },
+      },
+      { id: 'instagram_comment_reply', label: 'Reply to an Instagram comment', asset_kinds: ['comment_reply'], constraints: { message: 'required' } },
+      { id: 'facebook_comment_reply', label: 'Reply to a Facebook Page comment', asset_kinds: ['comment_reply'], constraints: { message: 'required' } },
+      { id: 'instagram_comment_moderation', label: 'Hide or unhide an Instagram comment', asset_kinds: ['comment_moderation'], constraints: { action: 'hide | unhide' } },
+      { id: 'facebook_comment_moderation', label: 'Hide or unhide a Facebook Page comment', asset_kinds: ['comment_moderation'], constraints: { action: 'hide | unhide' } },
+      { id: 'meta_live_approval', label: 'Live approval: set a paused Meta ad ACTIVE', asset_kinds: ['live_approval'], constraints: { approved_by: 'required' } },
     ];
   }
 
@@ -85,13 +185,13 @@ class MetaAdapter extends AdPlatformAdapter {
           META_APP_SECRET: 'The app secret. Used in the token exchange and to sign appsecret_proof.',
         },
       },
-      endpoints: {
+      endpoints: Object.assign({
         authorize: `https://www.facebook.com/${VER}/dialog/oauth`,
         token: `${GRAPH}/oauth/access_token`,
         inspect: `${GRAPH}/debug_token`,
         api_base: GRAPH,
         ad_library: `${GRAPH}/ads_archive`,
-      },
+      }, ENDPOINTS),
       authorize_params: ['client_id', 'redirect_uri', 'state', 'scope', 'response_type=code'],
       // Comma or space separated in the dialog. Meta returns the GRANTED set,
       // which is what gets stored - a user can untick a permission on the
@@ -104,6 +204,11 @@ class MetaAdapter extends AdPlatformAdapter {
         { value: 'instagram_basic', why: 'Resolve the Instagram business account behind the Page.' },
         { value: 'instagram_content_publish', why: 'Publish a container to Instagram.' },
         { value: 'business_management', why: 'Resolve which ad accounts and Pages the person actually administers.' },
+        { value: 'instagram_manage_comments', why: 'Read, reply to and hide comments on the brand\'s Instagram media, and read @mentions.' },
+        { value: 'instagram_manage_insights', why: 'Read reach, likes, comments and views on the brand\'s Instagram media.' },
+        { value: 'pages_manage_engagement', why: 'Reply to and hide comments on the brand\'s Facebook Page.' },
+        { value: 'pages_read_user_content', why: 'Read the comments people leave on the brand\'s Page posts.' },
+        { value: 'pages_show_list', why: 'List the Pages the person manages; Meta requires it to publish to a Page feed.' },
       ],
       default_scopes: ['ads_read', 'pages_read_engagement', 'instagram_basic'],
       token_lifetime: {
@@ -123,6 +228,7 @@ class MetaAdapter extends AdPlatformAdapter {
         'developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow — dialog and token endpoints, read 2026-08-18 via search summaries.',
         'This repo already calls graph.facebook.com/<ver>/act_<id>/insights (ads-live-core.js) and the IG /media + /media_publish and Page /photos shapes (social-push-core.js).',
         'developers.facebook.com/docs/marketing-api — campaign/adset/adcreative/ad object names.',
+        'Social gateway (2026-10-04): every entry of the endpoint table names the Meta documentation page it was read on, through the Context7 index of developers.facebook.com.',
       ],
     };
   }
@@ -133,10 +239,19 @@ class MetaAdapter extends AdPlatformAdapter {
       case 'instagram_feed':
       case 'instagram_reel': return ['instagram_basic', 'instagram_content_publish'];
       case 'facebook_page': return ['pages_manage_posts'];
-      case 'meta_ad': return ['ads_management'];
+      case 'facebook_page_feed': return ['pages_manage_posts', 'pages_read_engagement'];
+      case 'instagram_comment_reply':
+      case 'instagram_comment_moderation': return ['instagram_manage_comments'];
+      case 'facebook_comment_reply':
+      case 'facebook_comment_moderation': return ['pages_manage_engagement'];
+      case 'meta_ad':
+      case 'meta_live_approval': return ['ads_management'];
       default: return [];
     }
   }
+
+  /** The connection's non-secret settings (Page id, IG account id, ad account). */
+  cfg() { return (this.ctx.connection && this.ctx.connection.config && typeof this.ctx.connection.config === 'object') ? this.ctx.connection.config : {}; }
 
   /* ── credentials ────────────────────────────────────────────────────────── */
 
@@ -223,6 +338,7 @@ class MetaAdapter extends AdPlatformAdapter {
     const d = m.defaults || {};
     const warnings = [];
     const missing = [];
+    if (GATEWAY_CHANNELS.has(String(m.channel || ''))) return this.mapGateway(String(m.channel), a, d);
 
     const pick = (target, fallback) => {
       const src = f[target];
@@ -251,9 +367,9 @@ class MetaAdapter extends AdPlatformAdapter {
         image_url: image,
         video_url: video,
         link,
-        ig_user_id: String(d.ig_user_id || this.credentials.ig_user_id || ''),
-        page_id: String(d.page_id || this.credentials.page_id || ''),
-        ad_account_id: String(d.ad_account_id || this.credentials.account_id || ''),
+        ig_user_id: String(d.ig_user_id || this.cfg().ig_user_id || this.credentials.ig_user_id || ''),
+        page_id: String(d.page_id || this.cfg().page_id || this.credentials.page_id || ''),
+        ad_account_id: String(d.ad_account_id || this.cfg().ad_account_id || this.credentials.account_id || ''),
         headline: String(pick('headline', a.headline || '') || ''),
         description: String(pick('description', a.description || '') || ''),
       },
@@ -262,8 +378,88 @@ class MetaAdapter extends AdPlatformAdapter {
     };
   }
 
+  /**
+   * The gateway channels' payloads. Pure, like map(): the same asset always
+   * yields the same payload, so the idempotency key derived from it is stable.
+   * A missing fact is a marker, never a placeholder.
+   */
+  mapGateway(channel, a, d) {
+    const missing = [];
+    const warnings = [];
+    if (channel === 'facebook_page_feed') {
+      const message = String(a.message || a.caption || (a.copy && a.copy.caption) || '');
+      const link = String(a.link || a.url || '');
+      const when = a.scheduled_publish_time || a.scheduled_for || '';
+      const at = when ? (Number.isFinite(Number(when)) ? Number(when) : Math.floor(Date.parse(when) / 1000)) : null;
+      if (!message && !link) missing.push(this.gap('post message or link', 'Facebook Page post'));
+      return {
+        ok: missing.length === 0,
+        payload: {
+          page_id: String(d.page_id || this.cfg().page_id || this.credentials.page_id || ''),
+          message,
+          link,
+          // A scheduled post is created unpublished with its time; an asset may
+          // also ask for an unpublished (draft) post outright. Never inferred.
+          scheduled_publish_time: Number.isFinite(at) && at > 0 ? at : null,
+          published: Number.isFinite(at) && at > 0 ? false : a.published !== false,
+        },
+        warnings,
+        missing,
+      };
+    }
+    if (/_comment_reply$/.test(channel)) {
+      const commentId = String(a.comment_id || '');
+      const message = String(a.message || a.reply || '');
+      if (!commentId) missing.push(this.gap('comment id', 'comment reply'));
+      if (!message) missing.push(this.gap('reply text', 'comment reply'));
+      return { ok: missing.length === 0, payload: { comment_id: commentId, message }, warnings, missing };
+    }
+    if (/_comment_moderation$/.test(channel)) {
+      const commentId = String(a.comment_id || '');
+      const action = String(a.action || '').toLowerCase();
+      if (!commentId) missing.push(this.gap('comment id', 'comment moderation'));
+      if (action !== 'hide' && action !== 'unhide') missing.push(this.gap('moderation action (hide or unhide)', 'comment moderation'));
+      return { ok: missing.length === 0, payload: { comment_id: commentId, action }, warnings, missing };
+    }
+    // meta_live_approval
+    const externalId = String(a.external_id || '');
+    if (!externalId) missing.push(this.gap('ad id to activate', 'live approval'));
+    return {
+      ok: missing.length === 0,
+      payload: { external_id: externalId, object: 'ad', approved_by: String(a.approved_by || ''), source_job_id: String(a.source_job_id || ''), note: String(a.note || '').slice(0, 300) },
+      warnings,
+      missing,
+    };
+  }
+
+  validateGateway(channelId, p) {
+    const errors = [];
+    if (channelId === 'facebook_page_feed') {
+      if (!p.page_id) errors.push('The Facebook Page id is not set on this connection.');
+      if (!p.message && !p.link) errors.push('A Page post needs a message or a link (Meta requires one of them).');
+      if (p.scheduled_publish_time != null) {
+        const ahead = Number(p.scheduled_publish_time) * 1000 - Date.now();
+        // Meta's own window for scheduled_publish_time, from the feed reference.
+        if (!(ahead >= 10 * 60 * 1000 && ahead <= 75 * 24 * 3600 * 1000)) errors.push('scheduled_publish_time must be between 10 minutes and 75 days from now (Meta\'s documented window).');
+      }
+    } else if (/_comment_reply$/.test(channelId)) {
+      if (!p.comment_id) errors.push('A comment id is required.');
+      if (!p.message) errors.push('Reply text is required.');
+    } else if (/_comment_moderation$/.test(channelId)) {
+      if (!p.comment_id) errors.push('A comment id is required.');
+      if (p.action !== 'hide' && p.action !== 'unhide') errors.push('The moderation action must be hide or unhide.');
+    } else if (channelId === 'meta_live_approval') {
+      if (!p.external_id) errors.push('The id of the paused ad to activate is required.');
+      // Live approval is recorded with the operator who gave it. A job without
+      // one did not come through the approval step and is refused.
+      if (!p.approved_by) errors.push('A live approval must carry the operator who approved it.');
+    }
+    return { ok: errors.length === 0, errors, warnings: [] };
+  }
+
   validatePayload(channelId, payload) {
     const p = payload || {};
+    if (GATEWAY_CHANNELS.has(channelId)) return this.validateGateway(channelId, p);
     const errors = [];
     const warnings = [];
     const ch = MetaAdapter.channel(channelId);
@@ -298,8 +494,190 @@ class MetaAdapter extends AdPlatformAdapter {
       case 'instagram_reel': return this.publishInstagram(channelId, payload);
       case 'facebook_page': return this.publishPage(payload);
       case 'meta_ad': return this.createAd(payload);
+      case 'facebook_page_feed': return this.publishPageFeed(payload);
+      case 'instagram_comment_reply': return this.replyToComment(Object.assign({ surface: 'instagram' }, payload));
+      case 'facebook_comment_reply': return this.replyToComment(Object.assign({ surface: 'facebook' }, payload));
+      case 'instagram_comment_moderation': return this.moderateComment(Object.assign({ surface: 'instagram' }, payload));
+      case 'facebook_comment_moderation': return this.moderateComment(Object.assign({ surface: 'facebook' }, payload));
+      case 'meta_live_approval': return this.activate(payload);
       default: return { ok: false, error: `Unknown Meta channel "${channelId}".`, error_class: 'validation' };
     }
+  }
+
+  /* ── the social gateway ─────────────────────────────────────────────────── */
+
+  /** A Page feed post: published now, scheduled, or created unpublished. */
+  async publishPageFeed(p) {
+    const body = { published: p.published !== false };
+    if (p.message) body.message = p.message;
+    if (p.link) body.link = p.link;
+    if (p.scheduled_publish_time) { body.scheduled_publish_time = p.scheduled_publish_time; body.published = false; }
+    const r = await this.callEndpoint('page_feed_post', { params: { page_id: p.page_id }, query: this.authParams(), body });
+    if (!r.ok) return r;
+    return {
+      ok: true, sent: true, external_id: (r.raw && r.raw.id) || '',
+      status: body.scheduled_publish_time ? 'scheduled' : (body.published ? 'published' : 'unpublished'),
+      raw: r.raw,
+    };
+  }
+
+  async replyToComment(spec) {
+    const s = spec || {};
+    const ig = s.surface !== 'facebook';
+    const r = ig
+      ? await this.callEndpoint('ig_comment_reply', { params: { ig_comment_id: s.comment_id }, query: this.authParams(), body: { message: s.message } })
+      : await this.callEndpoint('page_comment_reply', { params: { comment_id: s.comment_id }, query: this.authParams(), body: { message: s.message } });
+    return r.ok ? { ok: true, sent: true, external_id: (r.raw && r.raw.id) || '', status: 'replied', raw: r.raw } : r;
+  }
+
+  async moderateComment(spec) {
+    const s = spec || {};
+    const hide = s.action === 'hide';
+    const r = s.surface !== 'facebook'
+      ? await this.callEndpoint('ig_comment_hide', { params: { ig_comment_id: s.comment_id }, query: Object.assign({ hide: String(hide) }, this.authParams()) })
+      : await this.callEndpoint('page_comment_hide', { params: { comment_id: s.comment_id }, query: this.authParams(), body: { is_hidden: hide } });
+    return r.ok ? { ok: true, sent: true, external_id: String(s.comment_id), status: hide ? 'hidden' : 'unhidden', raw: r.raw } : r;
+  }
+
+  /** LIVE APPROVAL: a PAUSED ad becomes ACTIVE. Reached only through the queue. */
+  async activate(spec) {
+    const s = spec || {};
+    if (!s.approved_by) return { ok: false, sent: false, error_class: 'validation', error: 'A live approval must carry the operator who approved it.' };
+    const r = await this.callEndpoint('ad_activate', { params: { ad_id: s.external_id }, query: this.authParams(), body: { status: 'ACTIVE' } });
+    return r.ok ? { ok: true, sent: true, external_id: String(s.external_id), status: 'active', raw: r.raw } : r;
+  }
+
+  async listComments(ref) {
+    const r0 = ref || {};
+    const ig = r0.surface !== 'facebook';
+    const r = ig
+      ? await this.callEndpoint('ig_comments_list', { params: { ig_media_id: r0.object_id }, query: Object.assign({ fields: 'id,text,timestamp' }, this.authParams()) })
+      : await this.callEndpoint('page_object_comments', { params: { object_id: r0.object_id }, query: this.authParams() });
+    if (!r.ok) return Object.assign({ ok: false }, r);
+    const rows = (r.data && r.data.data) || [];
+    return {
+      ok: true,
+      comments: rows.map((c) => ({ id: c.id, text: c.text != null ? c.text : (c.message != null ? c.message : null), at: c.timestamp || c.created_time || null, object_id: r0.object_id, surface: ig ? 'instagram' : 'facebook' })),
+    };
+  }
+
+  /**
+   * @mentions. Two documented reads: the media the account is TAGGED in, and -
+   * for a comment id a mentions webhook delivered - that comment's text.
+   */
+  async listMentions(ref) {
+    const r0 = ref || {};
+    const igUser = String(r0.ig_user_id || this.cfg().ig_user_id || this.credentials.ig_user_id || '');
+    if (r0.comment_id) {
+      const r = await this.callEndpoint('ig_mentioned_comment', {
+        params: { ig_user_id: igUser },
+        query: Object.assign({ fields: `mentioned_comment.comment_id(${String(r0.comment_id).replace(/[^0-9A-Za-z_]/g, '')}){timestamp,like_count,text,id}` }, this.authParams()),
+      });
+      if (!r.ok) return Object.assign({ ok: false }, r);
+      const mc = r.data && r.data.mentioned_comment;
+      return { ok: true, mentions: mc ? [{ kind: 'comment', id: mc.id, text: mc.text != null ? mc.text : null, at: mc.timestamp || null }] : [] };
+    }
+    const r = await this.callEndpoint('ig_tags', { params: { ig_user_id: igUser }, query: this.authParams() });
+    if (!r.ok) return Object.assign({ ok: false }, r);
+    return { ok: true, mentions: ((r.data && r.data.data) || []).map((m) => ({ kind: 'tagged_media', id: m.id })) };
+  }
+
+  /**
+   * Organic metrics for Instagram media. A metric the platform did not return
+   * is ABSENT, never zero: Meta answers an empty set when insights are not yet
+   * available, and that is "not known", not "nobody saw it".
+   */
+  async readPostMetrics(refs) {
+    const r0 = refs || {};
+    if (r0.surface === 'facebook') return { ok: false, supported: false, note: 'Facebook Page post insights were not wired in this platform: only Instagram media insights were read in Meta\'s documentation for it.' };
+    const ids = (Array.isArray(r0.ids) ? r0.ids : [r0.id]).filter(Boolean).slice(0, 25);
+    if (!ids.length) return { ok: false, note: 'No Instagram media ids were given.' };
+    const metrics = [];
+    for (const id of ids) {
+      const r = await this.callEndpoint('ig_media_insights', { params: { ig_media_id: id }, query: Object.assign({ metric: IG_MEDIA_METRICS }, this.authParams()) });
+      if (!r.ok) return Object.assign({ ok: false }, r, { partial: metrics });
+      const values = {};
+      for (const row of (r.data && r.data.data) || []) {
+        const v = row.total_value && row.total_value.value != null ? row.total_value.value
+          : (Array.isArray(row.values) && row.values[0] && row.values[0].value != null ? row.values[0].value : null);
+        if (v != null && Number.isFinite(Number(v))) values[row.name] = Number(v);
+      }
+      metrics.push({ external_id: String(id), kind: 'organic', surface: 'instagram', values });
+    }
+    return { ok: true, metrics };
+  }
+
+  /**
+   * Paid performance per ad. ROAS is Meta's own purchase_roas when Meta
+   * returned one, and null otherwise - never computed from a guess at revenue.
+   */
+  async readAdMetrics(range) {
+    const r0 = range || {};
+    const acct = this.actPath(r0.ad_account_id || this.cfg().ad_account_id || this.credentials.account_id || '');
+    if (acct === 'act_') return { ok: false, note: this.gap('ad account id', 'Meta ad metrics') };
+    const query = Object.assign({ level: 'ad', fields: AD_FIELDS }, this.authParams());
+    if (r0.since && r0.until) query.time_range = JSON.stringify({ since: r0.since, until: r0.until });
+    else query.date_preset = r0.date_preset || 'last_30d';
+    const r = await this.callEndpoint('ad_insights', { params: { act_id: acct }, query });
+    if (!r.ok) return Object.assign({ ok: false }, r);
+    return {
+      ok: true,
+      rows: ((r.data && r.data.data) || []).map((x) => {
+        const roas = Array.isArray(x.purchase_roas) && x.purchase_roas.length === 1 && Number.isFinite(Number(x.purchase_roas[0].value))
+          ? Number(x.purchase_roas[0].value) : null;
+        return {
+          external_id: String(x.ad_id || ''),
+          name: x.ad_name || '',
+          kind: 'paid',
+          values: dropNulls({
+            spend: num(x.spend), impressions: num(x.impressions), clicks: num(x.clicks),
+            ctr: num(x.ctr),                        // Meta reports ctr as a percentage
+            roas,
+          }),
+          period: { start: x.date_start || null, stop: x.date_stop || null },
+        };
+      }),
+    };
+  }
+
+  /** access_token (+ appsecret_proof) as a plain object for callEndpoint's query. */
+  authParams() {
+    const out = { access_token: this.token() };
+    const pr = this.proof();
+    if (pr) out.appsecret_proof = pr;
+    return out;
+  }
+
+  /* ── webhooks: who, and what ────────────────────────────────────────────── */
+
+  webhookAccountId(event) {
+    const e = event || {};
+    return (Array.isArray(e.entry) && e.entry[0] && e.entry[0].id) ? String(e.entry[0].id) : null;
+  }
+
+  webhookItems(event) {
+    const e = event || {};
+    const out = [];
+    for (const entry of Array.isArray(e.entry) ? e.entry : []) {
+      for (const c of Array.isArray(entry.changes) ? entry.changes : []) {
+        const v = c.value || {};
+        const field = String(c.field || '');
+        const kind = field === 'mentions' ? 'mention'
+          : field === 'comments' ? 'comment'
+            : field === 'feed' && v.item === 'comment' ? 'comment'
+              : 'other';
+        out.push({
+          kind,
+          field,
+          surface: e.object === 'instagram' ? 'instagram' : e.object === 'page' ? 'facebook' : String(e.object || ''),
+          account_id: entry.id != null ? String(entry.id) : null,
+          object_id: String(v.comment_id || v.id || v.media_id || v.post_id || '') || null,
+          parent_id: String((v.media && v.media.id) || v.media_id || v.post_id || '') || null,
+          text: v.text != null ? String(v.text).slice(0, 2000) : (v.message != null ? String(v.message).slice(0, 2000) : null),
+        });
+      }
+    }
+    return out;
   }
 
   /**
@@ -542,5 +920,17 @@ function valueAt(obj, path) {
   return String(path || '').split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
+/** The channels the social gateway added; their payloads are not post-shaped. */
+const GATEWAY_CHANNELS = new Set([
+  'facebook_page_feed', 'instagram_comment_reply', 'facebook_comment_reply',
+  'instagram_comment_moderation', 'facebook_comment_moderation', 'meta_live_approval',
+]);
+
+/** A platform number, or null when it did not send one. Never a 0 for "absent". */
+function num(v) { if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
+function dropNulls(o) { const out = {}; for (const k of Object.keys(o)) if (o[k] != null) out[k] = o[k]; return out; }
+
 module.exports = MetaAdapter;
 module.exports.valueAt = valueAt;
+module.exports.ENDPOINTS = ENDPOINTS;
+module.exports.GATEWAY_CHANNELS = GATEWAY_CHANNELS;
