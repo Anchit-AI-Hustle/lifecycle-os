@@ -685,29 +685,47 @@ async function readSite(url, opts) {
  * this path is open.
  */
 const RATE = { perIp: 4, global: 24, windowMs: 10 * 60 * 1000 };
-const rateLog = { ip: new Map(), all: [] };
+/* The same limiter, one budget per KIND of open request (2026-10-04): the
+   rendered read above, and `document` - a brand guideline the operator LINKED,
+   fetched for the browser by op=document-fetch when its host sends no CORS.
+   Separate budgets, so one cannot spend the other's. */
+const RATES = {
+  render: RATE,
+  document: { perIp: 6, global: 40, windowMs: 10 * 60 * 1000 },
+};
+const RATE_SENTENCE = {
+  render: {
+    ip: (n, m) => `This address has asked for ${n} rendered reads in the last ${m} minutes, the most this server renders for one visitor without an account it can check. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`,
+    all: (n, m) => `This server has rendered ${n} sites for visitors without a checkable account in the last ${m} minutes, its limit. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`,
+  },
+  document: {
+    ip: (n, m) => `This address has asked this server to fetch ${n} linked documents in the last ${m} minutes, the most it fetches for one visitor without an account it can check. Download the file and choose it with "Upload a file" (nothing is sent to the server then), or try the link again in a few minutes.`,
+    all: (n, m) => `This server has fetched ${n} linked documents for visitors without a checkable account in the last ${m} minutes, its limit. Download the file and choose it with "Upload a file" (nothing is sent to the server then), or try the link again in a few minutes.`,
+  },
+};
+const rateLogs = {};
+function rateLogOf(kind) { return rateLogs[kind] || (rateLogs[kind] = { ip: new Map(), all: [] }); }
 function clientIp(req) {
   const h = (req && req.headers) || {};
   const fwd = String(h['x-forwarded-for'] || h['x-real-ip'] || '').split(',')[0].trim();
   return fwd || (req && req.socket && req.socket.remoteAddress) || 'unknown';
 }
 /** null when allowed (and counted); a sentence when refused. */
-function rateCheck(req, now) {
+function rateCheck(req, now, kind) {
+  const k = RATES[kind] ? kind : 'render';
+  const lim = RATES[k];
+  const rateLog = rateLogOf(k);
   const t = now || Date.now();
-  const cut = t - RATE.windowMs;
+  const cut = t - lim.windowMs;
   rateLog.all = rateLog.all.filter((x) => x > cut);
   const ip = clientIp(req);
   const mine = (rateLog.ip.get(ip) || []).filter((x) => x > cut);
-  if (mine.length >= RATE.perIp) {
-    return `This address has asked for ${mine.length} rendered reads in the last ${RATE.windowMs / 60000} minutes, the most this server renders for one visitor without an account it can check. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`;
-  }
-  if (rateLog.all.length >= RATE.global) {
-    return `This server has rendered ${rateLog.all.length} sites for visitors without a checkable account in the last ${RATE.windowMs / 60000} minutes, its limit. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`;
-  }
+  if (mine.length >= lim.perIp) return RATE_SENTENCE[k].ip(mine.length, lim.windowMs / 60000);
+  if (rateLog.all.length >= lim.global) return RATE_SENTENCE[k].all(rateLog.all.length, lim.windowMs / 60000);
   mine.push(t); rateLog.ip.set(ip, mine); rateLog.all.push(t);
   return null;
 }
-function resetRateLimits() { rateLog.ip.clear(); rateLog.all = []; }
+function resetRateLimits() { Object.keys(rateLogs).forEach((k) => { delete rateLogs[k]; }); }
 
 /**
  * The render probe: proves the browser launches HERE, on a FIXED page shipped
@@ -846,6 +864,43 @@ function fitResponse(out, maxBytes) {
  * `read.renderer` is 'chromium' or why not ('unavailable' | 'blocked' |
  * 'timeout').
  */
+/**
+ * The brand a read is SCORED as: the record as it stands (the workspace on
+ * the server path, the wizard's draft on the device/open path) with WHO set
+ * each field, so the regression renders the brand exactly as the read will be
+ * applied to it - a person's own logo, colour or type kept (review,
+ * 2026-10-04). Bounded like brand-runtime.carriedBrand: short strings, hex
+ * colours, two font records, an origin map over known fields; nothing nested
+ * passes through.
+ */
+const SCORING_FIELDS = new Set(['name', 'tagline', 'website', 'logo_url', 'favicon_url',
+  'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
+  'typography.heading', 'typography.body', 'brand_data.design_system', 'brand_data.imagery', 'brand_data.social',
+  'brand_data.legal_entity', 'regions', 'voice.tone']);
+const SCORING_ORIGINS = new Set(['user', 'document', 'site-render', 'site-parse', 'preset', 'default']);
+function scoringBrand(src) {
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return null;
+  const s = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+  const url = (v) => (/^https?:\/\//i.test(s(v, 600)) ? s(v, 600) : '');
+  const hex = (v) => (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(s(v, 9)) ? s(v, 9) : '');
+  const palette = {};
+  for (const k of ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted']) { const h = hex(src.palette && src.palette[k]); if (h) palette[k] = h; }
+  const typography = {};
+  for (const k of ['heading', 'body']) {
+    const f = src.typography && src.typography[k];
+    if (f && typeof f === 'object' && s(f.family, 80)) typography[k] = { family: s(f.family, 80), stack: s(f.stack, 240), google: f.google === true };
+  }
+  const raw = (src.field_origin && typeof src.field_origin === 'object' && src.field_origin)
+    || (src.brand_data && typeof src.brand_data === 'object' && src.brand_data.field_origin && typeof src.brand_data.field_origin === 'object' && src.brand_data.field_origin) || {};
+  const fieldOrigin = {};
+  for (const k of Object.keys(raw).slice(0, 80)) if (SCORING_FIELDS.has(k) && SCORING_ORIGINS.has(raw[k])) fieldOrigin[k] = raw[k];
+  return {
+    name: s(src.name, 120), tagline: s(src.tagline, 300), website: url(src.website),
+    logo_url: url(src.logo_url), favicon_url: url(src.favicon_url), palette, typography,
+    brand_data: { field_origin: fieldOrigin },
+  };
+}
+
 async function extractWithRender(auth, args, opts) {
   const o = opts || {};
   const bx = require('./brand-extract.js');
@@ -896,7 +951,7 @@ async function extractWithRender(auth, args, opts) {
 }
 
 module.exports = {
-  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces,
-  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, PROBE_HTML,
+  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
+  extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };

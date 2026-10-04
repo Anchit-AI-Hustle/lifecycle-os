@@ -86,6 +86,8 @@ function serverWorld() {
   rn.transport = async (url) => {
     const u = new URL(url);
     net.browser.push(url);
+    // The logo the operator typed is on their own CDN; the scored landing page shows it.
+    if (u.hostname === 'cdn.mybrand.example') return { status: 200, headers: { 'content-type': 'image/png' }, body: sites.PNG_1x1 };
     if (u.origin !== SITE) { net.escaped.push(url); return { error: 'not in the test world' }; }
     const r = ROUTES[u.pathname];
     if (!r) return { status: 404, headers: { 'content-type': 'text/plain' }, body: Buffer.from('nf') };
@@ -139,6 +141,10 @@ async function openWizard(page, session, world, opts) {
   await page.route(/^https?:\/\/(?!app\.example\.test|127\.0\.0\.1)/, (route) => {
     const u = route.request().url();
     if (/\/auth\/v1\/health/.test(u)) return route.abort('addressunreachable');
+    // The operator's own logo is a real image on their CDN: the wizard checks
+    // that a pasted logo URL loads, and puts back the previous value when it
+    // does not (a rejected URL is never saved), so a typed logo here must load.
+    if (u.startsWith('https://cdn.mybrand.example/')) return route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64') });
     if (route.request().resourceType() !== 'script') return route.abort('failed');
     const esm = /\+esm|\.mjs(\?|$)|esm\.sh|\/es\//.test(u);
     return route.fulfill({ status: 200, contentType: 'text/javascript', body: esm ? 'const noop=()=>{};export default new Proxy({},{get:()=>noop});export const animate=noop,scroll=noop,inView=noop,stagger=noop,spring=noop,motion=new Proxy({},{get:()=>noop});' : 'window.tailwind=window.tailwind||{};' });
@@ -248,6 +254,10 @@ for (const session of ['none', 'device']) {
       const sent = log.extract[0];
       expect(sent.code, JSON.stringify(sent.body).slice(0, 400)).toBe(200);
       expect(sent.body.read).toMatchObject({ method: 'rendered', renderer: 'chromium' });
+      // The brand as it stands travels with the read, with who set each field,
+      // and the score is of the brand AS IT WILL BE APPLIED: the typed logo kept.
+      expect(sent.sent.brand).toMatchObject({ logo_url: TYPED_LOGO, field_origin: { logo_url: 'user' } });
+      expect(sent.body.rendered.regression.applied_as.kept.map((k) => k.field)).toContain('logo_url');
       if (session === 'device') {
         expect(sent.headers['x-lifecycle-token'] || String(sent.headers.authorization || '').replace(/^Bearer /, '')).toBe(DEVICE_TOKEN);
         expect(sent.body.signed_out).toBeUndefined();

@@ -5,7 +5,7 @@
   "start": "https://www.apple.com",
   "landed": "https://www.apple.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:21:32.736Z",
+  "read_at": "2026-10-04T18:49:13.988Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -37,21 +37,21 @@
   "regression": {
     "ok": true,
     "done": true,
-    "score": 95.3,
-    "mismatch": 0.0471,
+    "score": 99.3,
+    "mismatch": 0.0068,
     "surfaces": {
       "landing page": {
-        "score": 98.3,
-        "mismatch": 0.0167,
+        "score": 98.5,
+        "mismatch": 0.0152,
         "done": true,
         "tokens_off": 1,
         "regions_off": 0
       },
       "mailer": {
-        "score": 82.4,
-        "mismatch": 0.1765,
-        "done": false,
-        "tokens_off": 3,
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
         "regions_off": 0
       },
       "ad creative": {
