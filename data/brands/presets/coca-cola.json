@@ -8,36 +8,251 @@
     "label": "Coca-Cola",
     "sector": "Food and beverage",
     "blurb": "Beverages. Template for a brand-led calendar with no direct catalogue.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.coca-cola.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.coca-cola.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #ea0000 from --color-icon-brand-primary-regular as computed on :root (:root). Headings TCCC-UnityText, body TCCC-UnityText, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the logo element as rendered (div > div.cmp-adaptive-image.cmp-image > a.cmp-image__link > picture > img.cmp-image__image)",
+    "palette_evidence": {
+      "primary": {
+        "value": "#ea0000",
+        "exact": "#ea0000",
+        "derived": false,
+        "source": {
+          "page": "https://www.coca-cola.com/us/en",
+          "role": "custom property",
+          "selector": ":root",
+          "viewport": "desktop",
+          "property": "--color-icon-brand-primary-regular",
+          "signal": "computed"
+        },
+        "from_role": "identity",
+        "signal": "--color-icon-brand-primary-regular as computed on :root"
+      },
+      "surface": {
+        "value": "#eeeeee",
+        "exact": "#eeeeee",
+        "derived": false,
+        "source": {
+          "page": "https://www.coca-cola.com/us/en",
+          "role": "page ground",
+          "selector": "body.page.basicpage",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#000000",
+        "exact": "#000000",
+        "derived": false,
+        "source": {
+          "page": "https://www.coca-cola.com/us/en",
+          "role": "body copy",
+          "selector": "div#teaser-b4baa4a408 > div.cmp-teaser__content:nth-of-type(1) > div.cmp-teaser__description:nth-of-type(1) > p",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "surface_alt": {
+        "value": "#eeeeee",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "muted": {
+        "value": "#666666",
+        "exact": "#ffffff",
+        "derived": true,
+        "note": "DERIVED from #ffffff: secondary text as rendered measures 1.16:1, adjusted to AA.",
+        "source": {
+          "page": "https://www.coca-cola.com/us/en",
+          "role": "secondary text",
+          "selector": "div.teaser.hero > div.cmp-teaser > div.cmp-teaser__content:nth-of-type(1) > div.cmp-teaser__description:nth-of-type(1) > p",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "accent": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.coca-cola.com/us/en",
+          "role": "primary call to action",
+          "selector": "div.teaser.hero > div.cmp-teaser > div.cmp-teaser__content:nth-of-type(1) > div.cmp-teaser__action-container:nth-of-type(2) > a.cmp-teaser__action-link",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "from_role": "action"
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.coca-cola.com/us/en",
+        "role": "home"
+      },
+      {
+        "url": "https://www.coca-cola.com/us/en/about-us/faq",
+        "role": "about"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 83.3,
+      "mismatch": 0.1669,
+      "surfaces": {
+        "landing page": {
+          "score": 82.5,
+          "mismatch": 0.1746,
+          "done": false,
+          "tokens_off": 2,
+          "regions_off": 2
+        },
+        "mailer": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        }
+      },
+      "iterations": 1,
+      "repairs": 0,
+      "mismatch_limit": 0.05
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.coca-cola.com/us/en",
+        "role": "h1",
+        "selector": "div.container.responsivegrid:nth-of-type(1) > div.cmp-container > div.text:nth-of-type(1) > div.cmp-text > h1",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://www.coca-cola.com/us/en",
+        "role": "body copy",
+        "selector": "div#teaser-b4baa4a408 > div.cmp-teaser__content:nth-of-type(1) > div.cmp-teaser__description:nth-of-type(1) > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#ea0000",
+    "accent": "#ffffff",
+    "ink": "#000000",
+    "surface": "#eeeeee",
+    "surface_alt": "#eeeeee",
+    "muted": "#666666",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "TCCC-UnityText",
+      "stack": "'TCCC-UnityText',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "TCCC-UnityText (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "TCCC-UnityText",
+      "stack": "'TCCC-UnityText',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "TCCC-UnityText (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -52,7 +267,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "coca-cola.com"
+    "coca-cola.com",
+    "www.coca-cola.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -197,12 +413,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Coca-Cola]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Coca-Cola]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Coca-Cola]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Coca-Cola]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Coca-Cola]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/global/icons/Coke-company-logo-black.svg",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "the logo element as rendered (div > div.cmp-adaptive-image.cmp-image > a.cmp-image__link > picture > img.cmp-image__image)"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/homepage/fall-football-banner-dt.png/width1960.png",
+      "role": "hero",
+      "alt": "Coca-Cola Big Wins fall football promo banner displaying prizes like tickets, a Fanatics gift card, jacket, and LG TV.",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/hero-banners/fanta-halloween-coming-for-you-banner-dt.png/width1960.png",
+      "role": "hero",
+      "alt": "Spooky Fanta Halloween cans inside a rustic metal chest, surrounded by floating Ghost Face figures on an orange backdrop",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/campaign-cards/fall-hockey-campaign-card-us-dt.png/width1960.png",
+      "role": "photograph",
+      "alt": "Friday For The Win promo tile featuring a chilled Coca-Cola bottle on the ice alongside a hockey puck and stick",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/campaign-cards/soccer-always-on-campaign-dt.png/width1960.png",
+      "role": "photograph",
+      "alt": "Coca-Cola soccer campaign banner featuring a woman drinking from a glass bottle amidst a cheering stadium crowd.",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/homepage/america250-paint-the-nation-campaign-dt.png/width1960.png",
+      "role": "photograph",
+      "alt": "Patriotic brick wall mural featuring the Coca-Cola and America250 logos with red, white, and blue flag map details.",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/offerings/landing-page/desktop/coke-offering-refreshing-films.jpg/width1960.jpg",
+      "role": "photograph",
+      "alt": "refreshing films",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.coca-cola.com/content/dam/onexp/us/en/offerings/landing-page/desktop/coke-offering-vending.jpg/width1960.jpg",
+      "role": "photograph",
+      "alt": "drinking coca-cola in car",
+      "found_on": "https://www.coca-cola.com/us/en",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.coca-cola.com/content/dam/onexp/global/icons/Coke-company-logo-black.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

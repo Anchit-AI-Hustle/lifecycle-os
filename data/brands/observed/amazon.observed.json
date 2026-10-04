@@ -1,63 +1,129 @@
 {
-  "ok": false,
+  "format": "preset-observation/2",
+  "ok": true,
   "slug": "amazon",
   "start": "https://www.amazon.com",
   "landed": "https://www.amazon.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Amazon.com. Spend less. Smile more.",
-  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
-  "snapshot_summary": {
-    "theme": "",
-    "logoColor": "",
-    "paints": [
-      {
-        "hex": "#cc0c39",
-        "n": 36,
-        "sample": "_badgeLabel_1eik7_1"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:50:49.122Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://www.amazon.com/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": {
+      "w": 390,
+      "h": 844
+    }
+  },
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": true,
+    "score": 100,
+    "mismatch": 0,
+    "surfaces": {
+      "landing page": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
       },
-      {
-        "hex": "#2b333f",
-        "n": 4,
-        "sample": "vjs-modal-dialog vjs-hidden  vjs-text-track-settings"
+      "mailer": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
       },
-      {
-        "hex": "#ffd814",
-        "n": 2,
-        "sample": "nav-action-signin-button"
-      },
-      {
-        "hex": "#febd69",
-        "n": 1,
-        "sample": "nav-search-submit nav-sprite"
-      },
-      {
-        "hex": "#232f3e",
-        "n": 1,
-        "sample": "nav-sprite"
-      },
-      {
-        "hex": "#0064f9",
-        "n": 1,
-        "sample": "dcl-container-inner"
-      },
-      {
-        "hex": "#0578ff",
-        "n": 1,
-        "sample": "theming-card-background"
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
       }
-    ],
-    "vars": [
-      {
-        "name": "--primary-text-color",
-        "hex": "#0f1111",
-        "selector": ".dcl-container"
-      },
-      {
-        "name": "--primary-text-color",
-        "hex": "#0f1111",
-        "selector": ".dcl-container"
+    },
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: logo, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: favicon, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: header bar, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: footer, www.amazon.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.amazon.com]"
+  ],
+  "logo_url": "",
+  "logo_signal": "",
+  "assets": [],
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {},
+  "palette_reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+  "typography": {
+    "heading": {
+      "family": "Arial",
+      "stack": "'Arial',sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "kind": "local",
+      "loadable": true,
+      "weights_read": false,
+      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.amazon.com/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div.a-container.a-padding-double-large > div.a-row.a-spacing-double-large:nth-of-type(1) > div.a-box.a-alert:nth-of-type(2) > div.a-box-inner > h4",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
       }
-    ]
-  }
+    },
+    "body": {
+      "family": "Arial",
+      "stack": "'Arial',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "local",
+      "loadable": true,
+      "weights_read": false,
+      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.amazon.com/",
+        "role": "body copy",
+        "selector": "body > div.a-container.a-padding-double-large > div.a-text-center.a-size-mini:nth-of-type(4)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-04",
+    "host": "www.amazon.com",
+    "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+  },
+  "note": "www.amazon.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. The preset stays on the neutral default."
 }

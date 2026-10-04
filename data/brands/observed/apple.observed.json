@@ -1,129 +1,329 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "apple",
   "start": "https://www.apple.com",
   "landed": "https://www.apple.com/",
-  "observed_at": "2026-09-30",
-  "status": 0,
-  "title": "Apple",
-  "source": "Read from https://www.apple.com/ on 2026-09-30. Primary #0071e3 from computed background of button (9 elements).",
-  "palette": {
-    "primary": "#0071e3",
-    "accent": "#1d1d1f",
-    "ink": "#1d1d1f",
-    "surface": "#ffffff",
-    "surface_alt": "#f5f5f7",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:50:19.688Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "computed background of body",
-      "source_url": "https://www.apple.com/"
-    },
-    "ink": {
-      "value": "#1d1d1f",
-      "signal": "computed color of body",
-      "source_url": "https://www.apple.com/"
-    },
-    "surface_alt": {
-      "value": "#f5f5f7",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://www.apple.com/"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://www.apple.com/"
-    },
-    "primary": {
-      "value": "#0071e3",
-      "signal": "computed background of button (9 elements)",
-      "source_url": "https://www.apple.com/"
-    },
-    "accent": {
-      "value": "#1d1d1f",
-      "signal": "text colour, used where the brand publishes no second colour",
-      "source_url": "https://www.apple.com/"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    }
-  },
-  "typography": {
-    "heading": {
-      "family": "SF Pro Text",
-      "stack": "'SF Pro Text', \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
-    },
-    "body": {
-      "family": "SF Pro Text",
-      "stack": "'SF Pro Text', \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
-  },
-  "logo_url": "https://www.apple.com/ac/structured-data/images/open_graph_logo.png?202609042047",
-  "logo_signal": "img on the page whose address or alt says logo",
-  "assets": [
+  "pages": [
     {
-      "url": "https://www.apple.com/ac/structured-data/images/open_graph_logo.png?202609042047",
-      "role": "logo",
-      "alt": "iPhone 18 Pro, burgundy color (dark red), back exterior, Pro Fusion camera system at top, Apple logo in center, Side exterior, Side button, ",
-      "found_on": "https://www.apple.com/",
-      "signal": "img on the page whose address or alt says logo"
+      "url": "https://www.apple.com/",
+      "role": "home"
     },
+    {
+      "url": "https://www.apple.com/us/shop/goto/product/MW5G3",
+      "role": "product"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": {
+      "w": 390,
+      "h": 844
+    }
+  },
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": true,
+    "score": 95.3,
+    "mismatch": 0.0471,
+    "surfaces": {
+      "landing page": {
+        "score": 98.3,
+        "mismatch": 0.0167,
+        "done": true,
+        "tokens_off": 1,
+        "regions_off": 0
+      },
+      "mailer": {
+        "score": 82.4,
+        "mismatch": 0.1765,
+        "done": false,
+        "tokens_off": 3,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      }
+    },
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: favicon, www.apple.com]"
+  ],
+  "logo_url": "",
+  "logo_signal": "",
+  "assets": [
     {
       "url": "https://www.apple.com/v/homepage/images/iphone-18-pro/a/hero_iphone_18_pro__fqe1motd0ymy_largetall.jpg",
       "role": "hero",
-      "alt": "iPhone 18 Pro, burgundy color (dark red), back exterior, Pro Fusion camera system at top, Apple logo in center, Side exterior, Side button, ",
+      "alt": "iPhone 18 Pro, burgundy color (dark red), back exterior, Pro Fusion camera system at top, Apple logo in center, Side ext",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://www.apple.com/v/homepage/images/iphone-duo/a/hero_iphone_duo_announce__fh4u8yzndpe2_largetall.jpg",
       "role": "hero",
       "alt": "iPhone Duo, held by two hands in landscape orientation, unfolded, interior display features Home Screen",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://www.apple.com/v/homepage/images/logos/apple-watch-series-12/a/hero_logo_apple_watch_series_12__eze8r897c5me_large.png",
-      "role": "logo",
+      "role": "photograph",
       "alt": "",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://www.apple.com/v/homepage/images/apple-watch-series-12/a/hero_apple_watch_series_12__n9rln7bzvwya_largetall.jpg",
-      "role": "hero",
-      "alt": "Two Apple Watch Series 12 devices, aluminum case, dark bronze color, olive Sport Band, one showing front of watch with Heart Rate app, one s",
+      "role": "photograph",
+      "alt": "Two Apple Watch Series 12 devices, aluminum case, dark bronze color, olive Sport Band, one showing front of watch with H",
       "found_on": "https://www.apple.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/logos/apple-watch-ultra-4/a/promo_logo_apple_watch_ultra_4__bc6ish8cjaeq_large.png",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/apple-watch-ultra-4/a/promo_apple_watch_ultra_4__e4r3qertak2u_large.jpg",
+      "role": "photograph",
+      "alt": "Apple Watch Ultra 4, titanium case, natural color, right exterior, Digital Crown, raised side button, digital watch face",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/macbook-air-m5/a/promo_macbook_air_m5__e5xk2yysqiie_large.jpg",
+      "role": "photograph",
+      "alt": "Two open MacBook Air laptops in sky blue color forming arrow shape, emphasizing narrow profile",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.apple.com/v/homepage/images/logos/ipad-air-m4/a/promo_logo_ipad_air__dqdj4ni03quu_large.png",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.apple.com/",
+      "signal": "image rendered on the page"
     }
-  ]
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#0071e3",
+    "accent": "#2997ff",
+    "ink": "#1d1d1f",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#6c6c6d",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#0071e3",
+      "exact": "#0071e3",
+      "derived": false,
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "primary call to action",
+        "selector": "section.section.section-hero:nth-of-type(1) > div.tile-wrapper.theme-dark:nth-of-type(1) > div.tile-content:nth-of-type(1) > div.tile-ctas:nth-of-type(2) > a.button:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "page ground",
+        "selector": "body.ac-nav-overlap.globalnav-scrim",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#1d1d1f",
+      "exact": "#1d1d1f",
+      "derived": false,
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "body copy",
+        "selector": "section.section.section-promo:nth-of-type(2) > div.tile-wrapper:nth-of-type(4) > div.tile-content:nth-of-type(1) > div.tile-copy-wrapper:nth-of-type(1) > p.tile-subhead.typography-tile-subhead",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "product card",
+        "selector": "div#_r_o_-gallery-item-0 > div.row > div.rf-recommendations-accessory.rf-recommendations-accessory-inline:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "muted": {
+      "value": "#6c6c6d",
+      "exact": "#6c6c6d",
+      "derived": false,
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "secondary text",
+        "selector": "li#footnote-1",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#2997ff",
+      "exact": "#2997ff",
+      "derived": false,
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "secondary call to action",
+        "selector": "section.section.section-hero:nth-of-type(1) > div.tile-wrapper.theme-dark:nth-of-type(1) > div.tile-content:nth-of-type(1) > div.tile-ctas:nth-of-type(2) > a.button.button-secondary:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Accent text on the surface is 3.02:1. Keep accent for fills and rules, not body copy."
+  ],
+  "typography": {
+    "heading": {
+      "family": "SF Pro Display",
+      "stack": "'SF Pro Display','SF Pro Icons','Helvetica Neue','Helvetica','Arial',sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "kind": "local",
+      "loadable": true,
+      "weights_read": false,
+      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "display heading (largest text near the top)",
+        "selector": "section.section.section-hero:nth-of-type(1) > div.tile-wrapper.theme-dark:nth-of-type(1) > div.tile-content:nth-of-type(1) > div.tile-copy-wrapper:nth-of-type(1) > h2.tile-headline.typography-tile-headline",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "SF Pro Display",
+      "stack": "'SF Pro Display','SF Pro Icons','Helvetica Neue','Helvetica','Arial',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "local",
+      "loadable": true,
+      "weights_read": false,
+      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.apple.com/",
+        "role": "body copy",
+        "selector": "section.section.section-promo:nth-of-type(2) > div.tile-wrapper:nth-of-type(4) > div.tile-content:nth-of-type(1) > div.tile-copy-wrapper:nth-of-type(1) > p.tile-subhead.typography-tile-subhead",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://www.apple.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #0071e3 from the primary call to action, as rendered: the only brand colour this site renders (section.section.section-hero:nth-of-type(1) > div.tile-wrapper.theme-dark:nth-of-type(1) > div.tile-content:nth-of-type(1) > div.tile-ctas:nth-of-type(2) > a.button:nth-of-type(1)). Headings SF Pro Display, body SF Pro Display, as rendered."
 }

@@ -8,90 +8,222 @@
     "label": "Airbnb",
     "sector": "Travel",
     "blurb": "Travel marketplace. Template for a two-sided lifecycle with a seasonal booking window.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://www.airbnb.com/ on 2026-09-30. Primary #ff385c from computed color of the home logo.",
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.airbnb.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ff385c from logo mark fill as rendered (header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg).",
     "needs_extraction": false,
     "palette_source": "verified",
-    "typography_source": "verified",
-    "logo_signal": "touch icon or favicon the page links",
+    "typography_source": "default",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
-      "surface": {
-        "value": "#ffffff",
-        "signal": "computed background of body",
-        "source_url": "https://www.airbnb.com/"
-      },
-      "ink": {
-        "value": "#222222",
-        "signal": "computed color of body",
-        "source_url": "https://www.airbnb.com/"
-      },
-      "surface_alt": {
-        "value": "#f7f7f7",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://www.airbnb.com/"
-      },
-      "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://www.airbnb.com/"
-      },
       "primary": {
         "value": "#ff385c",
-        "signal": "computed color of the home logo",
-        "source_url": "https://www.airbnb.com/"
+        "exact": "#ff385c",
+        "derived": false,
+        "source": {
+          "page": "https://www.airbnb.com/",
+          "role": "logo",
+          "selector": "header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg",
+          "viewport": "desktop",
+          "property": "fill",
+          "signal": "computed"
+        },
+        "from_role": "identity",
+        "signal": "logo mark fill as rendered"
+      },
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.airbnb.com/",
+          "role": "page ground",
+          "selector": "body.with-new-header",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#420e18",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED from #a6243c: no text colour reached 4.5:1 on the primary #ff385c, so the ink is darkened until it does (still 16.06:1 on the page).",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "muted": {
+        "value": "#a6243c",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
       },
       "accent": {
-        "value": "#222222",
-        "signal": "text colour, used where the brand publishes no second colour",
-        "source_url": "https://www.airbnb.com/"
+        "value": "#ff385c",
+        "exact": "",
+        "derived": true,
+        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+        "source": {
+          "page": "https://www.airbnb.com/",
+          "role": "logo",
+          "selector": "header.c2zxfaj.atm_9s_1txwivl > div.l12pedmr.atm_1wn1q82_1dgapyx:nth-of-type(1) > a.c14nx9r4.atm_kd_glywfm > div.lk02if7.atm_9s_glywfm:nth-of-type(1) > svg",
+          "viewport": "desktop",
+          "property": "fill",
+          "signal": "computed"
+        }
       },
       "line": {
         "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "ok": {
         "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "warn": {
         "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "err": {
         "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       }
     },
-    "typography_evidence": {
-      "heading": "computed font-family of h1",
-      "body": "computed font-family of body"
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.airbnb.com/",
+        "role": "home"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 62.1,
+      "mismatch": 0.3792,
+      "surfaces": {
+        "landing page": {
+          "score": 63.6,
+          "mismatch": 0.3636,
+          "done": false,
+          "tokens_off": 3,
+          "regions_off": 3
+        },
+        "mailer": {
+          "score": 84.6,
+          "mismatch": 0.1538,
+          "done": false,
+          "tokens_off": 2,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 85.7,
+          "mismatch": 0.1429,
+          "done": false,
+          "tokens_off": 1,
+          "regions_off": 0
+        }
+      },
+      "iterations": 2,
+      "repairs": 1,
+      "mismatch_limit": 0.05
     }
   },
   "palette": {
     "primary": "#ff385c",
-    "accent": "#222222",
-    "ink": "#222222",
+    "accent": "#ff385c",
+    "ink": "#420e18",
     "surface": "#ffffff",
-    "surface_alt": "#f7f7f7",
-    "muted": "#666666",
+    "surface_alt": "#ffffff",
+    "muted": "#a6243c",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "Airbnb Cereal VF",
-      "stack": "'Airbnb Cereal VF', Circular, -apple-system, BlinkMacSystemFont, Roboto",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "Airbnb Cereal VF",
-      "stack": "'Airbnb Cereal VF', Circular, -apple-system, BlinkMacSystemFont, Roboto",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -216,21 +348,14 @@
   ],
   "brand_assets": [
     {
-      "url": "https://a0.muscache.com/im/pictures/AirbnbPlatformAssets/AirbnbPlatformAssets-Favicons/original/d1fcc0b3-865f-485a-b28b-43ca0bf7c891.png?im_w=240",
+      "url": "https://a0.muscache.com/airbnb/static/icons/apple-touch-icon-180x180-bcbe0e3960cd084eb8eaf1353cf3c730.png",
       "role": "logo",
       "alt": "",
       "found_on": "https://www.airbnb.com/",
-      "signal": "touch icon or favicon the page links"
-    },
-    {
-      "url": "https://a0.muscache.com/im/pictures/fe7217ff-0b24-438d-880d-b94722c75bf5.jpg?im_w=1200",
-      "role": "share",
-      "alt": "",
-      "found_on": "https://www.airbnb.com/",
-      "signal": "img on the page"
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
     }
   ],
-  "logo_url": "https://a0.muscache.com/im/pictures/AirbnbPlatformAssets/AirbnbPlatformAssets-Favicons/original/d1fcc0b3-865f-485a-b28b-43ca0bf7c891.png?im_w=240",
+  "logo_url": "https://a0.muscache.com/airbnb/static/icons/apple-touch-icon-180x180-bcbe0e3960cd084eb8eaf1353cf3c730.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

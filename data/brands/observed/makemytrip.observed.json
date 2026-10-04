@@ -1,10 +1,24 @@
 {
+  "format": "preset-observation/2",
   "ok": false,
+  "palette_ok": false,
   "slug": "makemytrip",
   "start": "https://www.makemytrip.com",
   "landed": "https://www.makemytrip.com",
-  "observed_at": "2026-09-30",
-  "status": 0,
-  "title": "",
-  "note": "page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.makemytrip.com/"
+  "observed_at": "2026-10-04",
+  "renderer": "timeout",
+  "reason": "The site could not be opened: timed out.",
+  "read_attempt": {
+    "renderer": "timeout",
+    "at": "2026-10-04",
+    "host": "www.makemytrip.com",
+    "reason": "The site could not be opened: timed out."
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "",
+    "browser": "",
+    "chromium": ""
+  },
+  "note": "www.makemytrip.com did not finish rendering within the read's time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }

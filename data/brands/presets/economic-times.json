@@ -10,7 +10,13 @@
     "blurb": "Business and markets journalism. Subscription and newsletter lifecycle rather than a product catalogue.",
     "verified_at": "2026-08-10",
     "source": "economictimes.indiatimes.com homepage CSS (dominant #d51131/#ed193b, Montserrat + Faustina)",
-    "logo_signal": "img on the page whose address or alt says logo"
+    "read_attempt": {
+      "renderer": "rendered",
+      "at": "2026-10-04",
+      "host": "economictimes.indiatimes.com",
+      "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+    },
+    "logo_signal": "the logo element as rendered (tr:nth-of-type(1) > td > div.header:nth-of-type(1) > a.et_logo:nth-of-type(1) > img)"
   },
   "palette": {
     "primary": "#D51131",
@@ -122,63 +128,14 @@
   ],
   "brand_assets": [
     {
-      "url": "https://img.etimg.com/photo/msid-100067830/et-logo.jpg",
+      "url": "https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg",
       "role": "logo",
-      "alt": "More",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://economictimes.indiatimes.com/photo/65498029.cms",
-      "role": "share",
       "alt": "",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-640,height-480,imgsize-547643,resizemode-75,msid-134284001/et-msme-awards-26.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-60826,resizemode-75,msid-133702117/et-sme-business-growth-summit.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-90538,resizemode-75,msid-133708611/et-ai-hackathon-agentic-edition-presented-by-accenture.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-82433,resizemode-75,msid-131766596/payoneer.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-51932,resizemode-75,msid-133540877/visa-payments-in-motion-2026-commercial-payments-event.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://img.etimg.com/thumb/width-200,height-150,imgsize-10098,resizemode-75,msid-133562562/the-founders-behind-the-formula-insights-on-innovation-leadership-industry.jpg",
-      "role": "photograph",
-      "alt": "spotlight menu image 0",
-      "found_on": "https://economictimes.indiatimes.com/",
-      "signal": "img on the page"
+      "found_on": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
+      "signal": "the logo element as rendered (tr:nth-of-type(1) > td > div.header:nth-of-type(1) > a.et_logo:nth-of-type(1) > img)"
     }
   ],
-  "logo_url": "https://img.etimg.com/photo/msid-100067830/et-logo.jpg",
+  "logo_url": "https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

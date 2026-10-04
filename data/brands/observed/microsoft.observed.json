@@ -1,150 +1,327 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "microsoft",
   "start": "https://www.microsoft.com",
   "landed": "https://www.microsoft.com/en-us",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Microsoft – AI, Cloud, Productivity, Computing, Gaming & Apps",
-  "source": "Read from https://www.microsoft.com/en-us on 2026-09-30. Primary #0078d4 from css custom property --sa-primary-blue.",
-  "palette": {
-    "primary": "#0078d4",
-    "accent": "#279ab9",
-    "ink": "#000000",
-    "surface": "#ffffff",
-    "surface_alt": "#f6f6f6",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:52:06.372Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "computed background of body",
-      "source_url": "https://www.microsoft.com/en-us"
+  "pages": [
+    {
+      "url": "https://www.microsoft.com/en-us",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
     },
-    "ink": {
-      "value": "#000000",
-      "signal": "computed color of body",
-      "source_url": "https://www.microsoft.com/en-us"
-    },
-    "surface_alt": {
-      "value": "#f6f6f6",
-      "signal": "no card colour was declared; a light neutral so the schema is complete",
-      "source_url": "https://www.microsoft.com/en-us"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://www.microsoft.com/en-us"
-    },
-    "primary": {
-      "value": "#0078d4",
-      "signal": "css custom property --sa-primary-blue",
-      "source_url": "https://www.microsoft.com/en-us"
-    },
-    "accent": {
-      "value": "#279ab9",
-      "signal": "css custom property --sa-border-accent",
-      "source_url": "https://www.microsoft.com/en-us"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
+    "mobile": {
+      "w": 390,
+      "h": 844
     }
   },
-  "typography": {
-    "heading": {
-      "family": "Segoe UI Variable Text",
-      "stack": "'Segoe UI Variable Text', \"Segoe UI\", segoeui, \"Helvetica Neue\", helvetica",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": true,
+    "score": 95.3,
+    "mismatch": 0.0471,
+    "surfaces": {
+      "landing page": {
+        "score": 96.6,
+        "mismatch": 0.0339,
+        "done": true,
+        "tokens_off": 2,
+        "regions_off": 0
+      },
+      "mailer": {
+        "score": 88.9,
+        "mismatch": 0.1111,
+        "done": false,
+        "tokens_off": 2,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      }
     },
-    "body": {
-      "family": "Segoe UI Variable Text",
-      "stack": "'Segoe UI Variable Text', \"Segoe UI\", segoeui, \"Helvetica Neue\", helvetica",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
   },
-  "logo_url": "https://www.microsoft.com/favicon.ico?v2",
-  "logo_signal": "img on the page whose address or alt says logo",
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.microsoft.com]"
+  ],
+  "logo_url": "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png",
+  "logo_signal": "the logo element as rendered (uhf-brand.uhf-breakpoint--desktop > div > div > a.uhf-microsoft-logo > img)",
   "assets": [
     {
-      "url": "https://www.microsoft.com/favicon.ico?v2",
-      "role": "logo",
-      "alt": "Microsoft",
-      "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
       "url": "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png",
-      "role": "photograph",
-      "alt": "Microsoft",
+      "role": "logo",
+      "alt": "",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "the logo element as rendered (uhf-brand.uhf-breakpoint--desktop > div > div > a.uhf-microsoft-logo > img)"
     },
     {
       "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/MSCOM-FY26-Evergreen-Hero-Light-Background-Desktop?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=1920&hei=2150&qlt=80&fit=constrain",
       "role": "hero",
       "alt": "",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Laptop-SnapdragonX2-13-2Ed-Violet-Attract-1?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
-      "role": "photograph",
+      "role": "hero",
       "alt": "A floating Surface Laptop, 13-inch (2nd Edition) in the color Violet.",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Pro-SnapdragonX2-12-2Ed-Violet-Attract?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
-      "role": "photograph",
+      "role": "hero",
       "alt": "A floating Surface Pro, 12-inch (2nd Edition) in the color Violet.",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-M365-Icon-Bounce?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
-      "role": "photograph",
+      "role": "hero",
       "alt": "Word, Power Point, Excel and other apps included in a Microsoft 365 subscription.",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Promo-Surface-Mouse-2Ed-Platinum-Homepage?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
-      "role": "photograph",
+      "role": "hero",
       "alt": "A top-down view of a Surface Mouse (2nd Edition).",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Card-Front-Xbox-Controllers-Black-Closeup?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
-      "role": "photograph",
+      "role": "hero",
       "alt": "A closeup of the buttons of a black XBOX Wireless Controller.",
       "found_on": "https://www.microsoft.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/455749-Card-Promo-Vertical-Xbox-Game-Pass?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=900&hei=1200&qlt=100&fit=constrain",
+      "role": "hero",
+      "alt": "Games available in Game Pass include Call of Duty Black Ops 7.",
+      "found_on": "https://www.microsoft.com/en-us",
+      "signal": "image rendered on the page"
     }
-  ]
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#e6effd",
+    "accent": "#0078d4",
+    "ink": "#17253d",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#17253d",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#e6effd",
+      "exact": "#e6effd",
+      "derived": false,
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "primary call to action",
+        "selector": "store-base-ui-shell > div.msstore-chatonpage > div.msstore-chatonpage__pills-container:nth-of-type(3) > div.msstore-chatonpage__pills-wrapper > button.msstore-chatonpage__prompt-pill:nth-of-type(3)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "page ground",
+        "selector": "body.reimagine-store-tenant-page.reimagine-shared-components-page",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#17253d",
+      "exact": "#17253d",
+      "derived": false,
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "body copy",
+        "selector": "store-heading-block#heading-block-oc4c6b > div > div > em",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      }
+    },
+    "muted": {
+      "value": "#17253d",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "body copy",
+        "selector": "store-heading-block#heading-block-oc4c6b > div > div > em",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#0078d4",
+      "exact": "#0078d4",
+      "derived": false,
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "secondary call to action",
+        "selector": "store-button#action-occ033 > a",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary on the page surface is 1.16:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see."
+  ],
+  "typography": {
+    "heading": {
+      "family": "segoeui",
+      "stack": "'segoeui','Helvetica Neue','helvetica','arial',sans-serif",
+      "google": false,
+      "weights": "400;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "segoeui (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "h1",
+        "selector": "store-heading-block#heading-block-oce3b6 > h1",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "segoeui",
+      "stack": "'segoeui','Helvetica Neue','helvetica','arial',sans-serif",
+      "google": false,
+      "weights": "400;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "segoeui (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.microsoft.com/en-us",
+        "role": "body copy",
+        "selector": "store-heading-block#heading-block-oc4c6b > div > div > em",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://www.microsoft.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #e6effd from the primary call to action, as rendered: the only brand colour this site renders (store-base-ui-shell > div.msstore-chatonpage > div.msstore-chatonpage__pills-container:nth-of-type(3) > div.msstore-chatonpage__pills-wrapper > button.msstore-chatonpage__prompt-pill:nth-of-type(3)). Headings segoeui, body segoeui, as rendered."
 }

@@ -8,88 +8,256 @@
     "label": "Airtel",
     "sector": "Telecom",
     "blurb": "Telecom. Template for a recharge and plan-renewal lifecycle.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://www.airtel.in/ on 2026-09-30. Primary #000000 from meta theme-color.",
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.airtel.in/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #d40000 from logo mark fill as rendered (div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i). Headings TondoBold, body Tondo, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
-    "typography_source": "default",
-    "logo_signal": "touch icon or favicon the page links",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
     "palette_evidence": {
+      "primary": {
+        "value": "#d40000",
+        "exact": "#d40000",
+        "derived": false,
+        "source": {
+          "page": "https://www.airtel.in/",
+          "role": "logo",
+          "selector": "div#wt-header-c > div.wt-row.unset:nth-of-type(2) > div.wt-col.wt-tbr-c > a.wt-header-oai-a > svg.wt-header-afi-i",
+          "viewport": "desktop",
+          "property": "fill",
+          "signal": "computed"
+        },
+        "from_role": "identity",
+        "signal": "logo mark fill as rendered"
+      },
       "surface": {
         "value": "#ffffff",
-        "signal": "light page surface; the page ground was not a light colour",
-        "source_url": "https://www.airtel.in/"
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.airtel.in/",
+          "role": "page ground",
+          "selector": "canvas (no background declared)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
       },
       "ink": {
-        "value": "#696b6f",
-        "signal": "computed color of body",
-        "source_url": "https://www.airtel.in/"
+        "value": "#000000",
+        "exact": "#000000",
+        "derived": false,
+        "source": {
+          "page": "https://www.airtel.in/",
+          "role": "body copy",
+          "selector": "div#hero-banner-content-1 > div.wt-col.hero-banner-subheading:nth-of-type(2) > p.wt-typography",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
       },
       "surface_alt": {
-        "value": "#f7f7fa",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://www.airtel.in/"
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
       },
       "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://www.airtel.in/"
-      },
-      "primary": {
-        "value": "#000000",
-        "signal": "meta theme-color",
-        "source_url": "https://www.airtel.in/"
+        "value": "#292c31",
+        "exact": "#292c31",
+        "derived": false,
+        "source": {
+          "page": "https://www.airtel.in/",
+          "role": "secondary text",
+          "selector": "h4#hero-banner-content-0",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
       },
       "accent": {
-        "value": "#696b6f",
-        "signal": "text colour, used where the brand publishes no second colour",
-        "source_url": "https://www.airtel.in/"
+        "value": "#e3e5ff",
+        "exact": "#e3e5ff",
+        "derived": false,
+        "source": {
+          "page": "https://www.airtel.in/",
+          "role": "primary call to action",
+          "selector": "button#primaryCta-2",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "from_role": "action"
       },
       "line": {
         "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "ok": {
         "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "warn": {
         "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "err": {
         "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.airtel.in/",
+        "role": "home"
+      },
+      {
+        "url": "https://www.airtel.in/about-bharti/equity?icid=header",
+        "role": "about"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": true,
+      "score": 100,
+      "mismatch": 0,
+      "surfaces": {
+        "landing page": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        },
+        "mailer": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        }
+      },
+      "iterations": 1,
+      "repairs": 0,
+      "mismatch_limit": 0.05
+    },
+    "conflicts": [
+      {
+        "kind": "brand_colour_vs_action_colour",
+        "message": "The site declares #d40000 as its own colour (logo mark fill as rendered) but renders its primary call to action in #e3e5ff. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.airtel.in/",
+        "role": "display heading (largest text near the top)",
+        "selector": "h4#hero-banner-content-0",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://www.airtel.in/",
+        "role": "body copy",
+        "selector": "div#hero-banner-content-1 > div.wt-col.hero-banner-subheading:nth-of-type(2) > p.wt-typography",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
       }
     }
   },
   "palette": {
-    "primary": "#000000",
-    "accent": "#696b6f",
-    "ink": "#696b6f",
+    "primary": "#d40000",
+    "accent": "#e3e5ff",
+    "ink": "#000000",
     "surface": "#ffffff",
-    "surface_alt": "#f7f7fa",
-    "muted": "#666666",
+    "surface_alt": "#ffffff",
+    "muted": "#292c31",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "TondoBold",
+      "stack": "'TondoBold',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "TondoBold (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Tondo",
+      "stack": "'Tondo',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Tondo (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -213,63 +381,63 @@
   ],
   "brand_assets": [
     {
-      "url": "https://assets.airtel.in/static-assets/new-home/img/favicon-32x32.png",
+      "url": "https://assets.airtel.in/static-assets/new-home/img/favicon.ico",
       "role": "logo",
       "alt": "",
       "found_on": "https://www.airtel.in/",
-      "signal": "touch icon or favicon the page links"
-    },
-    {
-      "url": "https://assets.airtel.in/static-assets/home-recast/images/wifi.gif",
-      "role": "photograph",
-      "alt": "Expert Wi-Fi",
-      "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
     },
     {
       "url": "https://assets.airtel.in/static-assets/home-recast/images/switch-to-airtel-web.png",
-      "role": "photograph",
+      "role": "hero",
       "alt": "switch to airtel image",
       "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/offer-icon.png",
+      "role": "photograph",
+      "alt": "offer icon",
+      "found_on": "https://www.airtel.in/",
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-1.png",
       "role": "photograph",
       "alt": "recommendations slide icon image",
       "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://assets.airtel.in/static-assets/home-recast/images/recomended-priority-postpaid.jpg",
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-2.png",
       "role": "photograph",
       "alt": "recommendations slide icon image",
       "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-3.png",
       "role": "photograph",
       "alt": "recommendations slide icon image",
       "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://assets.airtel.in/static-assets/home-recast/images/recommendations-slide-4.png",
+      "url": "https://assets.airtel.in/static-assets/home-recast/images/wifi.png",
       "role": "photograph",
-      "alt": "recommendations slide icon image",
+      "alt": "wifi image",
       "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://assets.airtel.in/static-assets/misc/img/b2b-airtel-office-internet.svg",
       "role": "photograph",
       "alt": "",
       "found_on": "https://www.airtel.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     }
   ],
-  "logo_url": "https://assets.airtel.in/static-assets/new-home/img/favicon-32x32.png",
+  "logo_url": "https://assets.airtel.in/static-assets/new-home/img/favicon.ico",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

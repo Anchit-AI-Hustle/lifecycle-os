@@ -8,90 +8,40 @@
     "label": "L'Oreal",
     "sector": "Beauty",
     "blurb": "Beauty group. Template for a house of brands with separate audiences per label.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://www.loreal.com/en/ on 2026-09-30. Primary #3d3d3d from meta theme-color.",
-    "needs_extraction": false,
-    "palette_source": "verified",
-    "typography_source": "verified",
-    "logo_signal": "touch icon or favicon the page links",
-    "palette_evidence": {
-      "surface": {
-        "value": "#ffffff",
-        "signal": "light page surface; the page ground was not a light colour",
-        "source_url": "https://www.loreal.com/en/"
-      },
-      "ink": {
-        "value": "#3d3d3d",
-        "signal": "computed color of body",
-        "source_url": "https://www.loreal.com/en/"
-      },
-      "surface_alt": {
-        "value": "#f4f4f4",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://www.loreal.com/en/"
-      },
-      "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://www.loreal.com/en/"
-      },
-      "primary": {
-        "value": "#3d3d3d",
-        "signal": "meta theme-color",
-        "source_url": "https://www.loreal.com/en/"
-      },
-      "accent": {
-        "value": "#3d3d3d",
-        "signal": "the brand publishes one colour",
-        "source_url": "https://www.loreal.com/en/"
-      },
-      "line": {
-        "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "ok": {
-        "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "warn": {
-        "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      },
-      "err": {
-        "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
-      }
-    },
-    "typography_evidence": {
-      "heading": "computed font-family of h1",
-      "body": "computed font-family of body"
+    "verified_at": null,
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.loreal.com.",
+    "needs_extraction": true,
+    "palette_source": "default",
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "blocked",
+      "at": "2026-10-04",
+      "host": "www.loreal.com",
+      "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
     }
   },
   "palette": {
-    "primary": "#3d3d3d",
-    "accent": "#3d3d3d",
-    "ink": "#3d3d3d",
-    "surface": "#ffffff",
-    "surface_alt": "#f4f4f4",
-    "muted": "#666666",
+    "primary": "#2B2B2B",
+    "accent": "#5A5A5A",
+    "ink": "#111111",
+    "surface": "#FFFFFF",
+    "surface_alt": "#F5F5F5",
+    "muted": "#6A6A6A",
+    "line": "#E4E4E4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "Halesworth",
-      "stack": "'Halesworth', \"Times New Roman\", Times, serif",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "HelveticaNowDisplay",
-      "stack": "'HelveticaNowDisplay', Arial, Helvetica, sans-serif",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -108,8 +58,7 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "loreal.com",
-    "www.loreal.com"
+    "loreal.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -342,41 +291,12 @@
   ],
   "offerings": [],
   "data_gaps": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand palette, L'Oreal]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography, L'Oreal]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, L'Oreal]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, L'Oreal]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, L'Oreal]"
   ],
-  "brand_assets": [
-    {
-      "url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/favicon.png?rev=503d752598f04623ba1832d6e6fbea32",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://www.loreal.com/en/",
-      "signal": "touch icon or favicon the page links"
-    },
-    {
-      "url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/1-home/2026/rif/2025-annual-results-l-oreal-groupe-desk.jpg?rev=f3ea0dd9e08445f68bfa584716867bda",
-      "role": "share",
-      "alt": "",
-      "found_on": "https://www.loreal.com/en/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/6-careers/2026/hr-campaign-life-is-too-short-for-a-boring-career/homepage-lits-banner-desk.jpg?rev=7771d64a2f244a79be3f284622f9ec61",
-      "role": "hero",
-      "alt": "Life is too Short HR Campaign - Hero Banner with 5 Candidates Male & Female",
-      "found_on": "https://www.loreal.com/en/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/essentiality-of-beauty/2025/kv-eob-hero-banner.jpg?rev=dd55e356b9834341bed1e3d626ac2c35",
-      "role": "hero",
-      "alt": "",
-      "found_on": "https://www.loreal.com/en/",
-      "signal": "img on the page"
-    }
-  ],
-  "logo_url": "https://www.loreal.com/-/media/project/loreal/brand-sites/corp/master/lcorp/favicon.png?rev=503d752598f04623ba1832d6e6fbea32",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

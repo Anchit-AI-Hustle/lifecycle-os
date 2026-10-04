@@ -8,36 +8,245 @@
     "label": "boAt",
     "sector": "Consumer electronics",
     "blurb": "D2C audio and wearables. Template for a launch and accessory attach lifecycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.boat-lifestyle.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.boat-lifestyle.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #ecf0f4 from the primary call to action, as rendered: the only brand colour this site renders (tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)). Headings Metropolis, body Metropolis, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=shortcut icon)",
+    "palette_evidence": {
+      "primary": {
+        "value": "#ecf0f4",
+        "exact": "#ecf0f4",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "primary call to action",
+          "selector": "tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered: the only brand colour this site renders"
+      },
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "page ground",
+          "selector": "html.js",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#4e5358",
+        "exact": "#4e5358",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "body copy",
+          "selector": "div.article-list.article-layout--columns:nth-of-type(2) > div.article:nth-of-type(1) > div.article__inner > div.article--details:nth-of-type(2) > div.user-content:nth-of-type(2)",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "surface_alt": {
+        "value": "#e3e3e3",
+        "exact": "#e3e3e3",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "product card",
+          "selector": "product-list.product-list.product-list--center > div.small-grids > div.product-list__inner > product-item.product-item.two-point-o:nth-of-type(1) > div.product__wrapper",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "muted": {
+        "value": "#666666",
+        "exact": "#666666",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "secondary text",
+          "selector": "div#MultiCarousel_press1 > div.custom_press_slider.MultiCarousel-inner > div.item.active:nth-of-type(1) > div.press-content:nth-of-type(1) > p",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "accent": {
+        "value": "#ecf0f4",
+        "exact": "",
+        "derived": true,
+        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "primary call to action",
+          "selector": "tabs-nav.tabs-nav.tabs-nav--center > scrollable-content.tabs-nav__scroller.hide-scrollbar > div.tabs-nav__scroller-inner > div.tabs-nav__item-list > button.tabs-nav__item.heading:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.boat-lifestyle.com/",
+        "role": "home"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 57.7,
+      "mismatch": 0.4227,
+      "surfaces": {
+        "landing page": {
+          "score": 58.3,
+          "mismatch": 0.4167,
+          "done": false,
+          "tokens_off": 12,
+          "regions_off": 4
+        },
+        "mailer": {
+          "score": 76.5,
+          "mismatch": 0.2353,
+          "done": false,
+          "tokens_off": 4,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 87.5,
+          "mismatch": 0.125,
+          "done": false,
+          "tokens_off": 1,
+          "regions_off": 0
+        }
+      },
+      "iterations": 2,
+      "repairs": 1,
+      "mismatch_limit": 0.05
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "h1",
+        "selector": "div#shopify-section-header > store-header.header.header--bordered > div.container:nth-of-type(1) > div.header__wrapper > h1.header__logo",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "body copy",
+        "selector": "div.article-list.article-layout--columns:nth-of-type(2) > div.article:nth-of-type(1) > div.article__inner > div.article--details:nth-of-type(2) > div.user-content:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#ecf0f4",
+    "accent": "#ecf0f4",
+    "ink": "#4e5358",
+    "surface": "#ffffff",
+    "surface_alt": "#e3e3e3",
+    "muted": "#666666",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Metropolis",
+      "stack": "'Metropolis',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;500;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Metropolis (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Metropolis",
+      "stack": "'Metropolis',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Metropolis (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -52,7 +261,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "boat-lifestyle.com"
+    "boat-lifestyle.com",
+    "www.boat-lifestyle.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -153,12 +363,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, boAt]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, boAt]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/32x32_256x256.png_32x32_2d0995d9-ec86-4c14-b928-71101777194c_96x96.png?v=1647426716",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "the icon the page declares (link rel=shortcut icon)"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/boAt_logo_black_24889e30-925c-4185-a028-9fef497a8e44.svg?v=1732879339",
+      "role": "photograph",
+      "alt": "boAt logo black 24889e30 925c 4185 a028 9fef497a8e44",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Desktop-LIVE_de2f267e-6e75-4adb-91d2-3176fa083b3d.png?v=1790760755",
+      "role": "hero",
+      "alt": "Mobile new 1",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Desktop-LIVE_7ca3481e-90e7-4a5f-bb2f-baf4b2393ada.png?v=1790605286",
+      "role": "hero",
+      "alt": "Mobile LIVE a157b81b 87b0 4d3d a2d0 a70a464f32f4",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Desktop-_crest_ai.png?v=1790239392",
+      "role": "hero",
+      "alt": "Mobile crest ai",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/boAt_Nirvana_751_ANC_mobile.png?v=1791087409",
+      "role": "hero",
+      "alt": "boAt Nirvana 751 ANC mobile",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Apex_PB400_mobile_24b71997-d1dc-4168-b0d7-3072e8d4f086.png?v=1791088052",
+      "role": "hero",
+      "alt": "Apex PB400 mobile 24b71997 d1dc 4168 b0d7 3072e8d4f086",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.boat-lifestyle.com/cdn/shop/files/Lunar_Discovery_NEO_mobile.png?v=1791088105",
+      "role": "hero",
+      "alt": "Lunar Discovery NEO mobile",
+      "found_on": "https://www.boat-lifestyle.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.boat-lifestyle.com/cdn/shop/files/32x32_256x256.png_32x32_2d0995d9-ec86-4c14-b928-71101777194c_96x96.png?v=1647426716",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
