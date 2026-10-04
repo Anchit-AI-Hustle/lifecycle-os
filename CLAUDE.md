@@ -149,6 +149,24 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
 - **Measured**: function bundle ~116 MB traced (`@vercel/nft` + the `includeFiles` binary pack; gate 220 MB
   of Vercel's 250). `@sparticuz/chromium` 153 launches under playwright-core 1.63 in this container.
   `GET /api/brand?op=render-probe` renders a fixed shipped page (no fetch), cached 5 min per instance.
+- **Two review rounds on #128, each finding reproduced by an executed test first and mutation-verified**
+  (the security and data-loss half merged in #128 at `d720cb0`; the rest is its follow-up PR):
+  ONE byte budget per read, taken chunk by chunk with every in-flight download aborted at the cap (ten
+  concurrent 8 MB chunked streams against 4 MB: kept ≤ 4 MB, labelled partial); EVERY transport hop
+  (1 + 5 redirects per route, and robots/start/manifest outside any route) charged to the request budget
+  before its socket opens (the server counts ≤ 12 on a 12-connection read of ten five-hop images);
+  robots.txt read for EVERY document origin before its first document (a cached promise per origin; no
+  rules read = refused, never allow-all); a brand saved BEFORE `field_origin` existed keeps every non-empty
+  value (no recorded origin = the person's), shown beside the site's value with "Use your site's"; the
+  wizard's starting palette/type are origin `default`, a template's `preset`. Follow-up: the read is
+  SCORED AS IT WILL BE APPLIED (the workspace on the server path, the bounded draft + origins the wizard
+  carries otherwise; `regression.applied_as`); the regression compares the face each surface DREW (CDP
+  `CSS.getPlatformFontsForNode`), which found two more defects on the spot - the email button's computed
+  stack (`"Erica One", Georgia`) closed its own `style="..."` attribute and dropped family, size and
+  radius in every mailer style, and the ad set its CTA in the body face; all four mailer styles read the
+  design system and are scored; both full-page screenshots pinned (Playwright 1.63 trims `clip` to the
+  full-page rect, measured); `engines.node` `24.x`, CI on Node 24 (`npm ci --engine-strict` and 458 specs
+  run on 24.21.0 here).
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build

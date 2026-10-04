@@ -1240,6 +1240,24 @@ async function listWorkspaces(auth) {
   return Array.isArray(rows) ? rows : [];
 }
 
+/**
+ * The brand a signed-in read is scored as: the WORKSPACE as it stands on the
+ * server when the caller can read it (a device principal has none there), else
+ * the draft the request carries. Either way through brand-render.scoringBrand,
+ * so it is bounded the same way.
+ */
+async function scoringBrandFor(auth, body, q) {
+  const render = require('./brand-render.js');
+  const wsId = str((body && body.workspace_id) || (q && q.workspace_id));
+  if (wsId && auth && auth.ok && auth.token && auth.mode !== 'device' && !/^local-/.test(wsId)) {
+    try {
+      const row = await module.exports.getWorkspace(auth, wsId);
+      if (row) return render.scoringBrand(row);
+    } catch (_) { /* unreadable: the carried draft below */ }
+  }
+  return render.scoringBrand(body && body.brand);
+}
+
 async function getWorkspace(auth, id) {
   const rows = await restAs(auth.token, `brand_workspaces?select=${SELECT_COLS}&id=eq.${encodeURIComponent(id)}&limit=1`);
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
@@ -2183,7 +2201,7 @@ async function handle(req, res) {
           voice: false,
           max_pages: body.max_pages || q.max_pages,
         },
-        { open: true, req, render: !renderOff() && body.render !== false },
+        { open: true, req, render: !renderOff() && body.render !== false, brand: require('./brand-render.js').scoringBrand(body.brand) },
       );
       // Neutral about WHO is here: the server cannot tell a visitor from a
       // person signed in on the device (neither sends a token), and "read
@@ -2437,7 +2455,7 @@ async function handle(req, res) {
           workspace_id: str(body.workspace_id || q.workspace_id),
           voice: wantsVoice && !spend,
           max_pages: body.max_pages || q.max_pages,
-        }, { open: false, req, render: !renderOff() && body.render !== false });
+        }, { open: false, req, render: !renderOff() && body.render !== false, brand: await module.exports.scoringBrandFor(auth, body, q) });
         const extra = (spend && wantsVoice) ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {};
         return res.status(out && out.ok === false && out.error ? 400 : 200).json(Object.assign({}, out, extra));
       }
@@ -2491,7 +2509,7 @@ module.exports = {
   // catalog
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
-  listWorkspaces, getWorkspace, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
+  listWorkspaces, getWorkspace, scoringBrandFor, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
   importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,

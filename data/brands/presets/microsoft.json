@@ -178,21 +178,21 @@
     "regression": {
       "ok": true,
       "done": true,
-      "score": 95.3,
-      "mismatch": 0.0471,
+      "score": 98,
+      "mismatch": 0.0201,
       "surfaces": {
         "landing page": {
-          "score": 96.6,
-          "mismatch": 0.0339,
+          "score": 96.9,
+          "mismatch": 0.0308,
           "done": true,
           "tokens_off": 2,
           "regions_off": 0
         },
         "mailer": {
-          "score": 88.9,
-          "mismatch": 0.1111,
-          "done": false,
-          "tokens_off": 2,
+          "score": 98.6,
+          "mismatch": 0.0135,
+          "done": true,
+          "tokens_off": 1,
           "regions_off": 0
         },
         "ad creative": {
