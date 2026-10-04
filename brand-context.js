@@ -454,12 +454,20 @@
     var src = f && typeof f === 'object' ? f : {};
     var family = str(src.family, 64);
     if (!family) return null;
-    return {
+    var out = {
       family: family,
       stack: str(src.stack, 200) || ("'" + family + "'," + fallback),
       google: src.google !== false,
       weights: str(src.weights, 40) || '400;600;700',
     };
+    // Mirrors the server: a self-hosted family's https FILE, for @font-face.
+    var file = str(src.src, 300);
+    if (out.google === false && /^https:\/\/[^\s"'()<>]+$/i.test(file)) {
+      out.src = file;
+      var fmt = str(src.format, 12).toLowerCase();
+      if (/^(woff2|woff|truetype|opentype|ttf|otf)$/.test(fmt)) out.format = fmt;
+    }
+    return out;
   }
   function normalizeTypography(input) {
     var src = input && typeof input === 'object' ? input : {};
@@ -678,8 +686,27 @@
       regions: brand.regions || [],
       tokens: tokensFor(brand),
       fonts_href: fontsHrefFor(brand),
+      files: filesSummaryFor(brand),
       storage: 'device',
     }, extra || {});
+  }
+  /** Mirrors filesSummary() on the server: ids, family names and https URLs only. */
+  function filesSummaryFor(brand) {
+    var f = brand && brand.brand_data && brand.brand_data.brand_files;
+    if (!f || typeof f !== 'object') return {};
+    var https = function (u) { return (typeof u === 'string' && /^https:\/\//i.test(u.trim())) ? u.trim().slice(0, 500) : ''; };
+    var one = function (x) { return (x && typeof x === 'object') ? { id: str(x.id, 80), hosted_url: https(x.hosted_url), url: https(x.url) } : null; };
+    var out = {};
+    if (one(f.logo)) out.logo = one(f.logo);
+    if (one(f.favicon)) out.favicon = one(f.favicon);
+    var fonts = f.fonts && typeof f.fonts === 'object' ? f.fonts : {};
+    var fo = {};
+    ['heading', 'body', 'mono'].forEach(function (slot) {
+      var x = fonts[slot];
+      if (x && typeof x === 'object') fo[slot] = Object.assign(one(x), { family: str(x.family, 64), format: str(x.format, 16) });
+    });
+    if (Object.keys(fo).length) out.fonts = fo;
+    return out;
   }
 
   /* ── the device store ─────────────────────────────────────────────────── */
@@ -861,6 +888,8 @@
         writeDevice(d);
         writeSide('catalog', id, null);
         writeSide('pack', id, null);
+        // Its uploaded files go with it (logo, icon, fonts, imagery, the guide).
+        try { await files.removeBrand(id); } catch (e) { log(e); }
         return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
       case 'readiness':
         id = str(q.get('id') || body.id);
@@ -1294,6 +1323,245 @@
     } catch (e) { log(e); }
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     BRAND FILES, AND WHERE A FIELD CAME FROM (2026-10-04)
+
+     The operator can give the brand's logo, app icon, fonts, imagery and its
+     guideline document as a FILE or as a URL (onboarding.html). A file has
+     two homes:
+       - HOSTED, when an account with a reachable project can upload it (the
+         `brand-assets` bucket, key <workspace_id>/<sha256>.<ext>, migration
+         20261004120000): its https URL goes on the record, and generated
+         mailers and ads reference that URL.
+       - THIS DEVICE, otherwise (production now: no database, Supabase
+         paused): IndexedDB, not localStorage - a logo and two fonts already
+         pass the ~5 MB localStorage gives a page. The shell and the previews
+         paint from it; a generated asset carries the hosted-URL marker in its
+         place (carry() sends `pending_hosting`, never the bytes).
+     Files live under the SAME per-account namespace as the brands
+     (deviceKey(): another person signing in on this browser sees none of
+     them), and deleting a brand deletes its files.
+
+     The record holds a REFERENCE, never bytes: brand_data.brand_files =
+       { logo:{id,name,type,size,width,height,sha256,hosted_url,url,source},
+         favicon:{...}, fonts:{heading:{...,family,format}, body:{...}},
+         images:[{...}], document:{...} }
+
+     FIELD ORIGINS - the device twin of brand_field_provenance. One order,
+     the same as SQL brand_origin_rank() and brand-workspace-core ORIGIN_RANK:
+       user 50 > document 40 > site-render 30 > site-parse 20 > preset 10 > default 0
+     kept per field in brand_data.field_origins. A value may replace another
+     only when its origin ranks at least as high; a person's explicit choice
+     is `user`. */
+  var ORIGIN_RANK = { user: 50, document: 40, 'site-render': 30, 'site-parse': 20, auto: 20, preset: 10, default: 0 };
+  function originRank(o) { return Object.prototype.hasOwnProperty.call(ORIGIN_RANK, o) ? ORIGIN_RANK[o] : -1; }
+  /** May a value from `incoming` replace one whose origin is `current`? */
+  function mayReplace(current, incoming) { return !current || originRank(incoming) >= originRank(current); }
+
+  /** The kinds of uploaded file a record holds with no hosted URL yet. */
+  function pendingHosting(row) {
+    var f = row && row.brand_data && row.brand_data.brand_files;
+    if (!f || typeof f !== 'object') return [];
+    var https = function (u) { return /^https:\/\//i.test(String(u || '')); };
+    var unhosted = function (x) { return x && typeof x === 'object' && x.id && !https(x.hosted_url); };
+    var out = [];
+    if (unhosted(f.logo) && !https(row.logo_url)) out.push('logo');
+    if (unhosted(f.favicon) && !https(row.favicon_url)) out.push('icon');
+    var fonts = f.fonts && typeof f.fonts === 'object' ? f.fonts : {};
+    if (Object.keys(fonts).some(function (k) { return unhosted(fonts[k]); })) out.push('font');
+    if (Array.isArray(f.images) && f.images.some(unhosted)) out.push('image');
+    return out;
+  }
+
+  var FILES_DB = 'lifecycle-brand-files', FILES_STORE = 'files';
+  var filesDbPromise = null;
+  function filesDb() {
+    if (filesDbPromise) return filesDbPromise;
+    filesDbPromise = new Promise(function (resolve, reject) {
+      try {
+        if (typeof indexedDB === 'undefined') throw new Error('This browser has no IndexedDB, so files cannot be kept on this device.');
+        var req = indexedDB.open(FILES_DB, 1);
+        req.onupgradeneeded = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains(FILES_STORE)) db.createObjectStore(FILES_STORE, { keyPath: 'key' }).createIndex('owner', 'owner', { unique: false });
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error || new Error('This browser refused to open its file store (IndexedDB).')); };
+        req.onblocked = function () { reject(new Error('The file store is open in another tab with an older version. Close other tabs of this app and try again.')); };
+      } catch (e) { reject(e); }
+    });
+    filesDbPromise.catch(function () { filesDbPromise = null; });
+    return filesDbPromise;
+  }
+  function filesTx(mode, fn) {
+    return filesDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var t = db.transaction(FILES_STORE, mode);
+        var holder = {};
+        fn(t.objectStore(FILES_STORE), holder);
+        t.oncomplete = function () { resolve(holder.value); };
+        t.onerror = function () { reject(t.error || new Error('The file store refused the change.')); };
+        t.onabort = function () { reject(t.error || new Error('The file store refused the change (storage full or blocked).')); };
+      });
+    });
+  }
+  function filesOwner(brandId) { return deviceKey() + '|' + String(brandId || ''); }
+  var SINGLE_SLOT = { logo: 1, favicon: 1, 'font:heading': 1, 'font:body': 1, 'font:mono': 1, document: 1 };
+  /** The slots whose files a generated asset references, and so may be hosted publicly. */
+  var HOSTABLE = { logo: 1, favicon: 1, image: 1, 'font:heading': 1, 'font:body': 1, 'font:mono': 1 };
+  var objectUrls = {};
+  function byOwner(store, owner, cb) {
+    var req = store.index('owner').openCursor(IDBKeyRange.only(owner));
+    req.onsuccess = function () { var c = req.result; if (c) { cb(c); c.continue(); } };
+  }
+  function meta(rec) { if (!rec) return null; var m = Object.assign({}, rec); delete m.blob; delete m.key; delete m.owner; return m; }
+  var files = {
+    /** Keep a file for a brand. Single slots (logo, icon, a font slot, the guide) replace the previous one. */
+    put: function (brandId, slot, blob, info) {
+      var i = info || {};
+      if (!brandId) return Promise.reject(new Error('A file needs a brand to belong to.'));
+      if (!(blob instanceof Blob)) return Promise.reject(new Error('Nothing to keep: no file was given.'));
+      var owner = filesOwner(brandId);
+      var id = String(i.sha256 || '').slice(0, 64) || ('f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+      var rec = {
+        key: owner + '|' + slot + '|' + id, owner: owner, brand_id: String(brandId), slot: slot, id: id,
+        name: str(i.name, 160) || 'file', type: blob.type || str(i.type, 80), size: blob.size,
+        width: i.width || null, height: i.height || null, family: str(i.family, 64), format: str(i.format, 16),
+        sha256: str(i.sha256, 64), added_at: new Date().toISOString(), blob: blob,
+      };
+      return filesTx('readwrite', function (store) {
+        if (SINGLE_SLOT[slot]) byOwner(store, owner, function (c) { if (c.value.slot === slot && c.value.key !== rec.key) c.delete(); });
+        store.put(rec);
+      }).then(function () { return meta(rec); });
+    },
+    get: function (brandId, id) {
+      var owner = filesOwner(brandId);
+      return filesTx('readonly', function (store, h) {
+        byOwner(store, owner, function (c) { if (c.value.id === id && !h.value) h.value = c.value; });
+      });
+    },
+    list: function (brandId) {
+      var owner = filesOwner(brandId);
+      return filesTx('readonly', function (store, h) {
+        h.value = [];
+        byOwner(store, owner, function (c) { h.value.push(meta(c.value)); });
+      });
+    },
+    remove: function (brandId, id) {
+      var owner = filesOwner(brandId);
+      return filesTx('readwrite', function (store, h) {
+        h.value = 0;
+        byOwner(store, owner, function (c) { if (c.value.id === id) { c.delete(); h.value++; } });
+      });
+    },
+    /** Delete every file a brand keeps on this device (its delete runs this). */
+    removeBrand: function (brandId) {
+      if (!brandId) return Promise.resolve(0);
+      var owner = filesOwner(brandId);
+      return filesTx('readwrite', function (store, h) {
+        h.value = 0;
+        byOwner(store, owner, function (c) { c.delete(); h.value++; });
+      });
+    },
+    /** Files kept for a brand before it had an id move to the id it was saved under. */
+    adopt: function (fromId, toId) {
+      if (!fromId || !toId || fromId === toId) return Promise.resolve(0);
+      var from = filesOwner(fromId), to = filesOwner(toId);
+      return filesTx('readwrite', function (store, h) {
+        h.value = 0;
+        byOwner(store, from, function (c) {
+          var v = Object.assign({}, c.value, { owner: to, brand_id: String(toId) });
+          v.key = to + '|' + v.slot + '|' + v.id;
+          store.put(v); c.delete(); h.value++;
+        });
+      });
+    },
+    /** A blob: URL for painting (cached per file), or '' when there is no such file. */
+    url: function (brandId, id) {
+      var k = filesOwner(brandId) + '|' + id;
+      if (objectUrls[k]) return Promise.resolve(objectUrls[k]);
+      return files.get(brandId, id).then(function (rec) {
+        if (!rec || !rec.blob) return '';
+        objectUrls[k] = URL.createObjectURL(rec.blob);
+        return objectUrls[k];
+      });
+    },
+    /**
+     * Host a kept file for an ACCOUNT brand: the brand-assets bucket, with the
+     * person's own token, under <workspace_id>/<sha256>.<ext>. Resolves
+     * { hosted:true, url } or { hosted:false, reason } - never throws, because
+     * a file that could not be hosted is still kept here and marked.
+     */
+    host: function (workspaceId, rec) {
+      var cfg = window.__SUPABASE__ || {};
+      var t = token();
+      // The bucket is PUBLIC: only delivery assets (logo, icon, fonts,
+      // imagery) go there. A brand book is private and stays on the device,
+      // whoever is signed in (review finding, 2026-10-04).
+      if (!rec || !HOSTABLE[rec.slot]) return Promise.resolve({ hosted: false, reason: 'private' });
+      if (!workspaceId || isDeviceId(workspaceId)) return Promise.resolve({ hosted: false, reason: 'device' });
+      if (!cfg.url || !cfg.anonKey) return Promise.resolve({ hosted: false, reason: 'no_storage' });
+      if (!t || t.split('.').length !== 3) return Promise.resolve({ hosted: false, reason: 'no_account_token' });
+      var ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'font/woff2': 'woff2', 'font/woff': 'woff', 'font/ttf': 'ttf', 'font/otf': 'otf', 'application/pdf': 'pdf' }[rec.type] || 'bin';
+      var objectPath = encodeURIComponent(workspaceId) + '/' + (rec.sha256 || rec.id) + '.' + ext;
+      var base = String(cfg.url).replace(/\/+$/, '');
+      return fetch(base + '/storage/v1/object/brand-assets/' + objectPath, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + t, apikey: cfg.anonKey, 'Content-Type': rec.type || 'application/octet-stream', 'x-upsert': 'true' },
+        body: rec.blob,
+      }).then(function (r) {
+        if (!r.ok) return { hosted: false, reason: 'storage_' + r.status };
+        return { hosted: true, url: base + '/storage/v1/object/public/brand-assets/' + objectPath };
+      }, function () { return { hosted: false, reason: 'storage_unreachable' }; });
+    },
+    namespace: function () { return deviceKey(); },
+  };
+
+  /** Paint a brand's own logo and fonts from its files (shell + any page). */
+  var registeredFaces = {};
+  function paintBrandFiles(brand) {
+    try {
+      var summary = (brand && brand.files) || {};
+      var id = brand && brand.id;
+      if (!id) return;
+      // The logo: a hosted https URL already paints through logo_url; a file
+      // kept on this device paints from IndexedDB.
+      var logo = summary.logo;
+      if (logo && logo.id && !httpUrl(brand.logo_url)) {
+        var src = logo.hosted_url || logo.url;
+        (src ? Promise.resolve(src) : files.url(id, logo.id)).then(function (u) {
+          if (!u) return;
+          document.querySelectorAll('.lnav-brandlogo').forEach(function (slot) {
+            while (slot.firstChild) slot.removeChild(slot.firstChild);
+            var img = document.createElement('img');
+            img.src = u; img.alt = '';
+            slot.appendChild(img);
+            slot.setAttribute('data-brand-slot', 'logo-file');
+            slot.hidden = false;
+          });
+        }).catch(log);
+      }
+      // Fonts: registered with the FontFace API under the family the record
+      // names, only while this brand is the one painted.
+      var fonts = summary.fonts || {};
+      Object.keys(fonts).forEach(function (slot) {
+        var fx = fonts[slot];
+        if (!fx || !fx.family || (!fx.id && !fx.hosted_url && !fx.url)) return;
+        var key = id + '|' + slot + '|' + (fx.id || fx.hosted_url || fx.url);
+        if (registeredFaces[key] || typeof FontFace === 'undefined') return;
+        registeredFaces[key] = true;
+        var source = fx.hosted_url || fx.url
+          ? Promise.resolve('url(' + JSON.stringify(fx.hosted_url || fx.url) + ')')
+          : files.get(id, fx.id).then(function (rec) { return rec && rec.blob ? rec.blob.arrayBuffer() : null; });
+        source.then(function (s) {
+          if (!s) { registeredFaces[key] = false; return; }
+          var face = new FontFace(fx.family, s);
+          return face.load().then(function (f) { document.fonts.add(f); document.documentElement.setAttribute('data-brand-font-' + slot, fx.family); });
+        }).catch(function (e) { registeredFaces[key] = false; log(e); });
+      });
+    } catch (e) { log(e); }
+  }
+
   function paint(brand) {
     if (!brand) return;
     applyTokens(brand.tokens);
@@ -1301,6 +1569,7 @@
     applyChrome(brand);
     relabel(brand);
     document.documentElement.setAttribute('data-brand', brand.slug || '');
+    paintBrandFiles(brand);
   }
 
   /* ── data ──────────────────────────────────────────────────────────────── */
@@ -1341,7 +1610,10 @@
       if (deviceIdIn(o) || (await resolveMode()) === 'device') return deviceApi(op, o);
     }
     if (DEVICE_SERVER_OPS[op] && deviceIdIn(o)) return deviceServerApi(op, o);
-    return serverApi(op, o);
+    var out = await serverApi(op, o);
+    // An account brand's files kept on THIS device (not yet hosted) go with it.
+    if (op === 'delete' && out && out.ok !== false) { try { await files.removeBrand(str((o.body || {}).id)); } catch (e) { log(e); } }
+    return out;
   }
 
   /* ── THE SERVER READS, THE DEVICE KEEPS (2026-10-03) ──────────────────────
@@ -1953,6 +2225,12 @@
     for (var i = 0; i < pick.length; i++) if (b[pick[i]] !== undefined && b[pick[i]] !== null) out[pick[i]] = b[pick[i]];
     var data = b.brand_data && typeof b.brand_data === 'object' ? b.brand_data : {};
     ['claims', 'offerings', 'competitors'].forEach(function (k) { if (out[k] === undefined && data[k] !== undefined) out[k] = data[k]; });
+    // An uploaded file with no hosted URL travels as its NAME only (never the
+    // bytes): the generators print [DATA REQUIRED BEFORE LAUNCH: hosted logo
+    // URL, <brand>] in its place (brand-runtime.hostedMarker, 2026-10-04).
+    if (!/^https:\/\//i.test(String(out.logo_url || ''))) delete out.logo_url;
+    var pend = pendingHosting(deviceFind(readDevice(), b.id) || b);
+    if (pend.length) out.pending_hosting = pend;
     return out;
   }
 
@@ -1988,6 +2266,10 @@
       active: function () { return readDevice().active_id || ''; },
       count: function () { return readDevice().workspaces.length; },
     },
+    // Uploaded brand files (IndexedDB, per account) and field origins (2026-10-04).
+    files: files,
+    provenance: { RANK: ORIGIN_RANK, rank: originRank, mayReplace: mayReplace, pendingHosting: pendingHosting },
+    paintFiles: paintBrandFiles,
     tokensFor: tokensFor,
     fontsHrefFor: fontsHrefFor,
     validatePalette: validatePalette,
