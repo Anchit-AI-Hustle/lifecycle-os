@@ -75,6 +75,16 @@ pack size is a product fact, so neither is ever used.
   read`. (c)+(d) eligibility read `smart_users` (no engagement fields) and the offering planner read no contacts
   at all: both read the workspace's own `subscriber_engagement_scores` (`engagementContacts()`), joined by profile
   id = customer id or the same `hashEmail()` that wrote `email_hash`; suppressed contacts are excluded.
+- **Three more on #141, same discipline (15 mutations).** PostgREST answers at most `max_rows` (1,000 in
+  `supabase/config.toml`) whatever `limit` asks, so "a short page is the end" read every table as 1,000 rows:
+  `selectPaged()` advances by the rows RECEIVED and stops only on an EMPTY page; a failed page throws and becomes a
+  stated window (`read_error`), never "complete"; `ownData()` reads orders once through it; and
+  `tests/lib/fake-supabase.js` now ENFORCES `max_rows` from that file and sends `Content-Range`, because a fake
+  that honours any limit is how this passed. Engagement rows per customer (one per provider, plus email-hash
+  matches) merge through `cohort-engine.mergeContactEvidence()` - any bounce/complaint/suppression excludes, sends
+  sum, newest engagement wins - the same in either row order. And the BUILT campaign carries each recipient's SKU:
+  `audience.personalisation.values` keyed by `hashProfileId()` (never a raw id), the email's hero slot is
+  `{{ replenishment_product_title|default:'<group hero>' }}`.
 
 ## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
 `api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|

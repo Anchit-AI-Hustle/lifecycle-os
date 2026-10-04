@@ -544,6 +544,41 @@ test('(a) customers due for DIFFERENT products in the same week get separate slo
   expect(calendar.replenishment.counts.same_week_other_product).toBe(1);
 });
 
+test('(#141-3) a BUILT campaign carries each recipient\'s own SKU as merge data keyed by a hashed profile id, and the hero slot uses it', () => {
+  // Codex P2 on #141: `audience.last_bought` lived only on the calendar entry;
+  // GenerationService rebuilt the audience without it, so the campaign that
+  // goes to the ESP still had one static hero for everyone in the group.
+  const lines = exactLines();                                   // SKU-A, Type A: enough history
+  const S = D0 + 400;
+  lines.push(L('cust-7f3a', S - 35));                           // last bought SKU-A
+  lines.push(L('cust-9b2c', S - 34, { sku: 'SKU-C' }));          // last bought SKU-C, same type
+  const { calendar } = planWith(lines, { startDate: RM.isoOf(S) });
+  const slot = calendar.entries.find((e) => e.replenishment && e.replenishment.audience.customer_ids.includes('cust-9b2c'));
+  expect(slot.replenishment.audience.customer_ids.sort()).toEqual(['cust-7f3a', 'cust-9b2c']);
+  slot.brand = { id: 'ws-test', name: 'TestBrand' };            // what the plan stamps before building
+  const built = new svc.GenerationService(svc.smartConfig({})).generate(slot);
+  const p = built.audience.personalisation;
+  expect(p.keyed_by).toBe('profile_hash');
+  expect(p.values).toEqual({
+    [CE.hashProfileId('cust-7f3a', 'ws-test')]: { sku: 'SKU-A', title: 'SKU-A title' },
+    [CE.hashProfileId('cust-9b2c', 'ws-test')]: { sku: 'SKU-C', title: 'SKU-C title' },
+  });
+  expect(p.fallback).toEqual({ sku: slot.heroProduct.sku, title: slot.heroProduct.title });
+  // The ESP-bound message carries the same data.
+  expect(built.platform_ready.lifecycle_messaging[0].audience.personalisation.values).toEqual(p.values);
+  // The hero slot names the recipient's own product, the group hero only as fallback.
+  const tag = `{{ ${p.field}|default:'${slot.heroProduct.title}' }}`;
+  expect(built.assets.email.html).toContain(`>${tag}</h2>`);
+  expect(built.assets.email.subject).toContain(tag);
+  // No raw customer id anywhere in what is built.
+  const wire = JSON.stringify(built);
+  expect(wire).not.toContain('cust-7f3a');
+  expect(wire).not.toContain('cust-9b2c');
+  // A slot that is not a trigger keeps its static hero.
+  const plain = calendar.entries.find((e) => !e.replenishment);
+  expect(new svc.GenerationService(svc.smartConfig({})).generate(plain).assets.email.html).not.toContain(p.field);
+});
+
 const ENV_KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_ANON_KEY',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SMART_BRAIN_SUPABASE_URL', 'SMART_BRAIN_SUPABASE_SERVICE_ROLE_KEY', 'SMART_BRAIN_SUPABASE_KEY', 'SMART_BRAIN_WORKSPACE_ID',
   'CONTACT_HASH_SALT'];
@@ -750,4 +785,75 @@ test.describe('whose order history the planner reads', () => {
     expect(reps.flatMap((e) => e.replenishment.audience.customer_ids)).not.toContain(victim);
     expect(reps.some((e) => (e.reach.eligibility.excluded.reasons || {})['hard bounce'] === 1)).toBe(true);
   });
+
+  /* ── review findings on #141 ───────────────────────────────────────────── */
+
+  test('(#141-1) the server caps every page at max_rows; orders and profiles past it are still read, and a failed page is not a complete read', async () => {
+    // Codex P1 on #141: supabase/config.toml sets max_rows = 1000, so a request
+    // for a 10,000-row page answers 1,000 and `page.length < limit` ended the
+    // read there - orders AND engagement profiles silently cut at 1,000, and
+    // ownData() took its own capped read for a complete one.
+    test.setTimeout(180000);
+    world();
+    expect(db.maxRows).toBe(1000);                              // read from supabase/config.toml
+    const base = RM.dayOf('2026-01-01');
+    for (let i = 0; i < 1300; i++) {
+      for (const k of [0, 1]) db.insert('smart_orders', { id: `mx-${String(i).padStart(4, '0')}-${k}`, workspace_id: 'ws-other', user_id: `mx-cust-${i}`, market: 'US', created_at: RM.isoOf(base + (i % 90) + k * 30), product_sku: 'MX-1', metadata: { product_type: 'Maxed' } });
+    }
+    for (let i = 0; i < 1500; i++) {
+      db.insert('subscriber_engagement_scores', { id: `ev-${String(i).padStart(4, '0')}`, workspace_id: 'ws-other', provider: 'klaviyo', external_profile_id: `mx-cust-${i}`, sends_7d: 0, hard_bounced: i === 1499 });
+    }
+    // The fake answers like the server: a 10,000-row request returns 1,000.
+    const raw = await (await fetch(`${BASE}/rest/v1/smart_orders?select=id&limit=10000`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } })).json();
+    expect(raw.length).toBe(1000);
+    const adapter = new svc.SmartBrainDbAdapter(svc.smartConfig({ workspace_id: 'ws-other' }));
+    const data = await adapter.ownData();
+    expect(data.orders.length).toBe(2600);
+    expect(data.orderHistory.lines.length).toBe(2600);
+    expect(data.orderHistory.truncated).toBe(false);
+    expect(data.engagement.rows).toBe(1500);
+    expect(data.engagement.map.get('mx-cust-1499').hard_bounced).toBe(true);
+    // A page that FAILS part-way: what was read is a stated window, never "complete".
+    const { response } = require('./lib/fake-supabase.js');
+    const rest = db.rest.bind(db);
+    db.rest = (table, qs, ...rest2) => ((table === 'smart_orders' && /(^|&)offset=2000(&|$)/.test(qs)) ? response(503, { message: 'fixture: page 3 is down' }) : rest(table, qs, ...rest2));
+    const broken = await new svc.SmartBrainDbAdapter(svc.smartConfig({ workspace_id: 'ws-other' })).orderHistory();
+    expect(broken.truncated).toBe(true);
+    expect(broken.read_error).toBeTruthy();
+    expect(broken.lines.length).toBeLessThan(2000);
+    expect(broken.lines.length).toBe(db.where('smart_orders', (r) => RM.dayOf(r.created_at) >= RM.dayOf(broken.complete_from)).length);
+  });
+
+  for (const order of ['clean row first', 'flagged row first']) {
+    test(`(#141-2) evidence from two providers merges fail-closed, whatever the row order (${order})`, async () => {
+      // Codex P1 on #141: one profile can have a row per provider, and the
+      // reader kept whichever row came last in an arbitrary order - a clean row
+      // could erase another provider's complaint, bounce, suppression or sends.
+      world();
+      const now = Date.now();
+      const recent = new Date(now - 3 * 86400000).toISOString();
+      const [first, second] = order === 'clean row first' ? ['e1', 'e2'] : ['e2', 'e1'];
+      const put = (id, row) => db.insert('subscriber_engagement_scores', Object.assign({ id, workspace_id: 'ws-other' }, row));
+      // A: clean in one provider, a spam complaint in the other.
+      put(`${first}-a`, { provider: 'klaviyo', external_profile_id: 'cust-a', sends_7d: 0, last_open_at: recent });
+      put(`${second}-a`, { provider: 'webengage', external_profile_id: 'cust-a', complained: true, sends_7d: 0 });
+      // B: one send in each provider - two cross-channel touches, at the promotional cap.
+      put(`${first}-b`, { provider: 'klaviyo', external_profile_id: 'cust-b', sends_7d: 1, last_open_at: recent });
+      put(`${second}-b`, { provider: 'webengage', external_profile_id: 'cust-b', sends_7d: 1 });
+      // C: a recent open in one provider, an old one in the other - engaged.
+      put(`${first}-c`, { provider: 'klaviyo', external_profile_id: 'cust-c', sends_7d: 0, last_open_at: recent });
+      put(`${second}-c`, { provider: 'webengage', external_profile_id: 'cust-c', sends_7d: 0, last_open_at: '2023-01-01T00:00:00Z' });
+      // D: clean under its profile id, unsubscribed under its email hash elsewhere.
+      db.insert('smart_users', { id: 'cust-d', workspace_id: 'ws-other', email: 'd@shop.test' });
+      put(`${first}-d`, { provider: 'klaviyo', external_profile_id: 'cust-d', sends_7d: 0, last_open_at: recent });
+      put(`${second}-d`, { provider: 'webengage', external_profile_id: 'we-d', email_hash: CE.hashEmail('d@shop.test', 'ws-other'), suppressed: true, suppressed_reason: 'unsubscribed', sends_7d: 0 });
+      const ev = await new svc.SmartBrainDbAdapter(svc.smartConfig({ workspace_id: 'ws-other' })).engagementContacts();
+      const e = CE.triggerEligibility(['cust-a', 'cust-b', 'cust-c', 'cust-d'], RM.contactsIndex(ev.map), { messagePriority: 'promotional', now });
+      expect(e.eligible_ids).toEqual(['cust-c']);
+      expect(e.excluded.reasons).toEqual({ 'spam complaint': 1, 'at the promotional cap (2 touches in 7 days)': 1, 'suppressed (unsubscribed)': 1 });
+      expect(ev.map.get('cust-b').sends_7d).toBe(2);
+      expect(ev.map.get('cust-c').last_open_at).toBe(recent);
+      expect(ev.map.get('cust-a').providers).toEqual(['klaviyo', 'webengage']);
+    });
+  }
 });

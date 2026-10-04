@@ -207,6 +207,56 @@ function hashEmail(email, workspaceId) {
   return crypto.createHash('sha256').update(`${salt}:${String(email).trim().toLowerCase()}`).digest('hex');
 }
 
+/**
+ * A pseudonymous key for a CUSTOMER/profile id, with the same per-workspace
+ * salt as `hashEmail`. Used where an ESP needs per-recipient data (merge
+ * fields) and nothing in the payload should be the raw id - which, for a
+ * store, is sometimes an email address.
+ */
+function hashProfileId(id, workspaceId) {
+  const salt = String(process.env.CONTACT_HASH_SALT || workspaceId || '');
+  return crypto.createHash('sha256').update(`${salt}:profile:${String(id)}`).digest('hex');
+}
+
+/**
+ * One customer's engagement evidence from SEVERAL rows - one per provider, or
+ * one found by profile id and another by email hash - merged so that no row
+ * can erase another's warning, and so that the answer is the same whatever
+ * order the rows arrive in:
+ *   hard_bounced / complained / suppressed   any row says so -> merged says so
+ *   suppressed_reason                        every distinct reason, sorted
+ *   sends_7d / sends_30d                     summed: the cap is CROSS-CHANNEL,
+ *                                            so one touch per provider is two
+ *   last_open_at / last_click_at / last_send_at   the most recent wins
+ */
+function mergeContactEvidence(rows) {
+  const list = (Array.isArray(rows) ? rows : []).filter(Boolean);
+  const truthy = (v) => v === true || v === 'true' || v === 't' || v === 1;
+  const latest = (k) => {
+    let best = null; let bt = -Infinity;
+    for (const r of list) { const t = Date.parse(r[k]); if (Number.isFinite(t) && t > bt) { bt = t; best = r[k]; } }
+    return best;
+  };
+  const sum = (k) => {
+    const vals = list.map((r) => r[k]).filter((v) => v != null && v !== '' && Number.isFinite(Number(v)));
+    return vals.length ? vals.reduce((a, v) => a + Number(v), 0) : null;
+  };
+  const reasons = [...new Set(list.filter((r) => truthy(r.suppressed) && r.suppressed_reason).map((r) => String(r.suppressed_reason)))].sort();
+  return {
+    providers: [...new Set(list.map((r) => r.provider).filter(Boolean).map(String))].sort(),
+    rows: list.length,
+    hard_bounced: list.some((r) => truthy(r.hard_bounced)),
+    complained: list.some((r) => truthy(r.complained)),
+    suppressed: list.some((r) => truthy(r.suppressed)),
+    suppressed_reason: reasons.length ? reasons.join(', ') : null,
+    sends_7d: sum('sends_7d'),
+    sends_30d: sum('sends_30d'),
+    last_open_at: latest('last_open_at'),
+    last_click_at: latest('last_click_at'),
+    last_send_at: latest('last_send_at'),
+  };
+}
+
 /* ── send-time optimisation ───────────────────────────────────────────────── */
 
 /**
@@ -526,7 +576,7 @@ function analyseAudience(contacts, opts = {}) {
 
 module.exports = {
   COHORTS, COHORT_BY_KEY, FREQUENCY, REPLENISHMENT_COHORT,
-  scoreContacts, quintileScorer, hashEmail, daysSince,
+  scoreContacts, quintileScorer, hashEmail, hashProfileId, mergeContactEvidence, daysSince,
   bestSendHour, optimalSendTime,
   sunsetCandidates, segmentHealth, recommendCohorts, frequencyCheck, triggerEligibility,
   analyseAudience,
