@@ -1379,6 +1379,8 @@
   }
   function filesOwner(brandId) { return deviceKey() + '|' + String(brandId || ''); }
   var SINGLE_SLOT = { logo: 1, favicon: 1, 'font:heading': 1, 'font:body': 1, 'font:mono': 1, document: 1 };
+  /** The slots whose files a generated asset references, and so may be hosted publicly. */
+  var HOSTABLE = { logo: 1, favicon: 1, image: 1, 'font:heading': 1, 'font:body': 1, 'font:mono': 1 };
   var objectUrls = {};
   function byOwner(store, owner, cb) {
     var req = store.index('owner').openCursor(IDBKeyRange.only(owner));
@@ -1465,6 +1467,10 @@
     host: function (workspaceId, rec) {
       var cfg = window.__SUPABASE__ || {};
       var t = token();
+      // The bucket is PUBLIC: only delivery assets (logo, icon, fonts,
+      // imagery) go there. A brand book is private and stays on the device,
+      // whoever is signed in (review finding, 2026-10-04).
+      if (!rec || !HOSTABLE[rec.slot]) return Promise.resolve({ hosted: false, reason: 'private' });
       if (!workspaceId || isDeviceId(workspaceId)) return Promise.resolve({ hosted: false, reason: 'device' });
       if (!cfg.url || !cfg.anonKey) return Promise.resolve({ hosted: false, reason: 'no_storage' });
       if (!t || t.split('.').length !== 3) return Promise.resolve({ hosted: false, reason: 'no_account_token' });

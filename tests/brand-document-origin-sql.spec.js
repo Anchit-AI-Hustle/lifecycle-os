@@ -207,6 +207,51 @@ test('a save claims only typed fields as the operator\'s and records a document\
   }
 });
 
+test('deleting an account brand removes its hosted files under its workspace prefix first, and refuses to orphan them', async () => {
+  // The shipped deleteWorkspace, with PostgREST and Storage modelled at the network.
+  const core = require('../api/_shared/brand-workspace-core.js');
+  const saved = { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY };
+  process.env.SUPABASE_URL = 'https://fixture.supabase.co';
+  process.env.SUPABASE_ANON_KEY = 'anon';
+  const real = global.fetch;
+  const run = async (storageDelete) => {
+    const calls = [];
+    global.fetch = async (url, init) => {
+      const u = new URL(String(url));
+      const method = (init && init.method) || 'GET';
+      calls.push({ method, path: u.pathname, body: init && init.body ? JSON.parse(init.body) : null, auth: init && init.headers && init.headers.authorization });
+      const ok = (b) => new Response(JSON.stringify(b), { status: 200, headers: { 'content-type': 'application/json' } });
+      if (u.pathname === '/rest/v1/brand_workspaces' && method === 'GET') return ok([{ id: WS, owner_id: OWNER, name: 'Harbourlight Goods' }]);
+      if (u.pathname === '/storage/v1/object/list/brand-assets') return ok([{ name: 'aaa.png', id: '1' }, { name: 'bbb.woff2', id: '2' }, { name: 'folder', id: null }]);
+      if (u.pathname === '/storage/v1/object/brand-assets' && method === 'DELETE') return storageDelete === 200 ? ok([]) : new Response('{"message":"denied"}', { status: storageDelete });
+      if (u.pathname === '/rest/v1/brand_workspaces' && method === 'DELETE') return ok([{ id: WS, name: 'Harbourlight Goods' }]);
+      throw new Error('unexpected request ' + method + ' ' + u.pathname);
+    };
+    let result = null, error = null;
+    try { result = await core.deleteWorkspace({ token: 'user-jwt', user_id: OWNER }, WS); } catch (e) { error = e; }
+    return { calls, result, error };
+  };
+  try {
+    const okRun = await run(200);
+    expect(okRun.error).toBeNull();
+    expect(okRun.result.storage_removed).toBe(2);
+    const order = okRun.calls.map((c) => c.method + ' ' + c.path);
+    expect(order).toEqual(['GET /rest/v1/brand_workspaces', 'POST /storage/v1/object/list/brand-assets', 'DELETE /storage/v1/object/brand-assets', 'DELETE /rest/v1/brand_workspaces']);
+    expect(okRun.calls[1].body).toMatchObject({ prefix: WS });
+    expect(okRun.calls[2].body).toEqual({ prefixes: [`${WS}/aaa.png`, `${WS}/bbb.woff2`] });
+    expect(okRun.calls[2].auth).toBe('Bearer user-jwt');
+    // Storage refuses: the brand is NOT deleted, and the sentence says why.
+    const refused = await run(403);
+    expect(refused.error && refused.error.status).toBe(502);
+    expect(refused.error.message).toMatch(/2 hosted file\(s\).*nothing was deleted/);
+    expect(refused.calls.some((c) => c.method === 'DELETE' && c.path === '/rest/v1/brand_workspaces')).toBe(false);
+  } finally {
+    global.fetch = real;
+    if (saved.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = saved.url;
+    if (saved.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = saved.anon;
+  }
+});
+
 test('the brand-assets bucket is public-read with editor-scoped writes under the workspace prefix', async () => {
   const d = await database();
   const b = await d.one(`select id, public from storage.buckets where id = 'brand-assets'`);

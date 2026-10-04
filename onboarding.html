@@ -2276,7 +2276,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var lastSeen = {};
   var TRACKED = ['name', 'tagline', 'website', 'logo_url', 'favicon_url',
     'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
-    'typography.heading', 'typography.body', 'typography.mono', 'voice.tone', 'voice.preferred', 'voice.banned',
+    'typography.heading', 'typography.body', 'typography.mono', 'voice.tone', 'voice.preferred', 'voice.banned', 'voice.no_em_dashes',
     'brand_data.legal_entity', 'brand_data.claims'];
   var FIELD_LABEL = { name: 'Brand name', tagline: 'Tagline', website: 'Website', logo_url: 'Logo', favicon_url: 'App icon',
     'palette.primary': 'Primary', 'palette.accent': 'Accent', 'palette.ink': 'Text', 'palette.surface': 'Page surface',
@@ -2293,6 +2293,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (f.indexOf('typography.') === 0) return brand.typography[f.slice(11)] || null;
     if (f === 'voice.tone') return brand.voice.tone || '';
     if (f === 'voice.preferred' || f === 'voice.banned') return brand.voice[f.slice(6)] || [];
+    if (f === 'voice.no_em_dashes') return brand.voice.no_em_dashes !== false;
     if (f === 'brand_data.legal_entity') return bd().legal_entity || '';
     if (f === 'brand_data.claims') return bd().claims || [];
     return brand[f] || '';
@@ -2302,6 +2303,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     else if (f.indexOf('typography.') === 0) brand.typography[f.slice(11)] = v;
     else if (f === 'voice.tone') brand.voice.tone = v;
     else if (f === 'voice.preferred' || f === 'voice.banned') brand.voice[f.slice(6)] = v;
+    else if (f === 'voice.no_em_dashes') brand.voice.no_em_dashes = v !== false;
     else if (f === 'brand_data.legal_entity') bd().legal_entity = v;
     else if (f === 'brand_data.claims') bd().claims = v;
     else { brand[f] = v; if (f === 'name' && !brand.id) brand.slug = slugify(v); }
@@ -2319,7 +2321,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function originOf(f) {
     var r = origins()[f];
     if (r && r.origin) return r.origin;
-    return (legacyOrigins && filled(getField(f))) ? 'user' : '';
+    var v = getField(f);
+    // An unticked "never use em dashes" is a choice too: the default is ticked.
+    return (legacyOrigins && (filled(v) || v === false)) ? 'user' : '';
   }
   function rankOf(o) { var p = window.BrandContext && window.BrandContext.provenance; return p ? p.rank(o) : ({ user: 50, document: 40, 'site-render': 30, 'site-parse': 20, preset: 10, default: 0 })[o]; }
   function setOrigin(f, origin, extra) { origins()[f] = Object.assign({ origin: origin, at: new Date().toISOString() }, extra || {}); lastSeen[f] = normVal(getField(f)); }
@@ -2486,7 +2490,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     function offer(field, value, p, opts) {
       var cur = getField(field), o = originOf(field);
       var row = { field: field, value: value, prov: p, previous: cur, previous_origin: o };
-      if (normVal(cur) === normVal(value) && filled(cur)) { row.status = 'same'; setOrigin(field, 'document', provRecord(p, value)); }
+      // Equal is UNCHANGED: a value the operator typed stays theirs even when a
+      // document says the same thing, so a later document cannot take it.
+      if (normVal(cur) === normVal(value) && filled(cur)) { row.status = 'same'; if (rankOf(o) < rankOf('document')) setOrigin(field, 'document', provRecord(p, value)); }
       else if (o === 'user') row.status = 'kept';
       else {
         setField(field, value);
@@ -2534,7 +2540,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (f.voice.tone) offer('voice.tone', f.voice.tone.value, f.voice.tone.prov);
       mergeList('voice.preferred', f.voice.preferred);
       mergeList('voice.banned', f.voice.banned);
-      if (f.voice.no_em_dashes) { brand.voice.no_em_dashes = true; results.push({ field: 'voice.no_em_dashes', value: 'never use em or en dashes', prov: f.voice.no_em_dashes.prov, status: 'applied' }); }
+      if (f.voice.no_em_dashes) offer('voice.no_em_dashes', true, f.voice.no_em_dashes.prov);
       mergeList('brand_data.claims', f.claims);
       // Components the renderers read: the DESIGN.md component shape, plain
       // values beside their provenance.
@@ -2786,6 +2792,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function hostLabel(u) { try { return new URL(u).host; } catch (_) { return u; } }
   function deviceNote(kind) {
+    if (kind === 'document') return 'Kept on this device only. A brand book is private, so it is never uploaded to the public file store; the values it states are what the brand record keeps.';
     var what = kind === 'favicon' ? 'app icon' : (kind.indexOf('font') === 0 ? 'font' : (kind === 'image' ? 'image' : (kind === 'document' ? 'guideline document' : 'logo')));
     var mk = '[DATA REQUIRED BEFORE LAUNCH: hosted ' + (what === 'guideline document' ? 'document' : what) + ' URL, ' + (brand.name || 'this brand') + ']';
     return 'Kept on this device. The app and its previews use it now; a generated mailer or ad carries ' + mk + ' in its place until it is hosted, because an email cannot reach a file on this device.';
@@ -2800,7 +2807,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var ref = { id: meta.id, name: meta.name, type: meta.type, size: meta.size, width: info.width || null, height: info.height || null, sha256: sha, hosted_url: '', source: 'upload', from: info.from || 'upload' };
     if (info.family) ref.family = info.family;
     if (info.format) ref.format = info.format;
-    if (brand.id && !isLocalId(brand.id)) {
+    // A brand book is private: it stays on this device for every account. Only
+    // what a generated asset references (logo, icon, fonts, imagery) is hosted.
+    if (brand.id && !isLocalId(brand.id) && kind !== 'document') {
       var h = await BC.files.host(brand.id, Object.assign({ blob: blob }, meta));
       if (h.hosted) ref.hosted_url = h.url; else ref.host_note = h.reason;
     }
@@ -2986,7 +2995,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { await BC.files.adopt(PENDING_ID, brand.id); } catch (_) { return; }
     if (isLocalId(brand.id)) return;
     var bf = bfiles(), changed = false;
-    var refs = [['logo', bf.logo], ['favicon', bf.favicon], ['document', bf.document]];
+    var refs = [['logo', bf.logo], ['favicon', bf.favicon]];    // never the brand book: it is private
     Object.keys(bf.fonts || {}).forEach(function (s) { refs.push(['font:' + s, bf.fonts[s]]); });
     (bf.images || []).forEach(function (r) { refs.push(['image', r]); });
     for (var i = 0; i < refs.length; i++) {
