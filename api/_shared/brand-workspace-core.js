@@ -2048,9 +2048,9 @@ async function sessionCheckable() {
  * sentence as JSON. The browser reads the file; this only carries it past a
  * host that sends no CORS headers. See brand-document-fetch.js.
  */
-async function sendDocument(res, body, q) {
+async function sendDocument(res, body) {
   try {
-    const out = await require('./brand-document-fetch.js').fetchDocument(str(body.url || q.url, 2000));
+    const out = await require('./brand-document-fetch.js').fetchDocument(str(body.url, 2000));
     res.setHeader('Content-Type', 'application/octet-stream');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Document-Type', out.content_type);
@@ -2073,6 +2073,48 @@ async function sendDocument(res, body, q) {
  * the gate rather than the reader. Read at call time.
  */
 function renderOff() { return /^(off|0|false|no)$/i.test(String(process.env.BRAND_RENDER || '')); }
+
+/**
+ * Did this request come from a page served by THIS deployment? The Origin
+ * header (or, when a browser sends none, the Referer) must name the same host
+ * the request was sent to. A browser always sends Origin on a cross-site POST
+ * and a page cannot forge it, so another website cannot make its visitors'
+ * browsers use an endpoint that answers this; a script outside a browser can
+ * send any header it likes, which is what the per-address limit is for.
+ */
+function samePageRequest(req) {
+  const h = (req && req.headers) || {};
+  const own = String(h['x-forwarded-host'] || h.host || '').split(',')[0].trim().toLowerCase();
+  if (!own) return false;
+  const from = String(h.origin || h.referer || '').trim();
+  if (!from || from === 'null') return false;
+  try { return new URL(from).host.toLowerCase() === own; } catch (_) { return false; }
+}
+
+/**
+ * The door rules for op=document-fetch, checked BEFORE anything is fetched
+ * (2026-10-04, review). The op fetches a URL it is given and hands the bytes
+ * back, so on a deployment where it opens without an account (no backend to
+ * check one against) it must not become a free fetch proxy for the internet:
+ *   - POST only: a link or an <img> cannot trigger it.
+ *   - No CORS on this op at all: another site's script cannot read the bytes.
+ *   - On the OPEN path, a same-site page only (samePageRequest), and the same
+ *     per-address + per-instance limiter the open rendered read uses
+ *     (brand-render.rateCheck, its own `document` budget).
+ * Returns a refusal to send, or null to go on.
+ */
+function documentFetchRefusal(req, open) {
+  if (String(req.method || 'GET').toUpperCase() !== 'POST') {
+    return { status: 405, body: { ok: false, error: 'post_required', message: 'A linked brand guideline is fetched only when this app\'s page asks for it (a POST from the onboarding page); a link or an address typed into a browser does not fetch it.' } };
+  }
+  if (!open) return null;
+  if (!samePageRequest(req)) {
+    return { status: 403, body: { ok: false, error: 'same_site_page_required', message: 'Without a signed-in account, a linked document is fetched only for this app\'s own onboarding page. This request did not come from it, so nothing was fetched.' } };
+  }
+  const limited = require('./brand-render.js').rateCheck(req, Date.now(), 'document');
+  if (limited) return { status: 429, body: { ok: false, error: 'rate_limited', message: limited } };
+  return null;
+}
 
 /* ── the router (mounted at /api/public-config?action=brand) ──────────────── */
 
@@ -2109,6 +2151,17 @@ async function handle(req, res) {
 
   if (op === 'validate-palette') {
     return res.status(200).json(Object.assign({ ok: true }, validatePalette(body.palette || q.palette || {})));
+  }
+
+  // op=document-fetch answers WITHOUT CORS on every path: the router's
+  // wildcard is taken off before anything else, so no other site's script can
+  // read what it fetched (see documentFetchRefusal).
+  if (op === 'document-fetch') {
+    res.removeHeader('Access-Control-Allow-Origin');
+    res.removeHeader('Access-Control-Allow-Headers');
+    res.removeHeader('Access-Control-Allow-Methods');
+    const early = documentFetchRefusal(req, false);
+    if (early) return res.status(early.status).json(early.body);
   }
 
   // `render-probe` is unauthenticated, like `defaults`: it proves the browser
@@ -2184,7 +2237,11 @@ async function handle(req, res) {
   const spend = auth.ok ? require('./credits-core.js').spenderRefusal(auth) : null;
   const VOICE_SKIPPED_NOTE = 'The tone of voice was not observed: that step is the only one that needs a language model, and this mobile-number sign-in has no credit wallet because its number is not on the operator\'s list. Everything else was read from the site exactly as always.';
 
-  if (openWithoutBackend && op === 'document-fetch') return sendDocument(res, body, q);
+  if (openWithoutBackend && op === 'document-fetch') {
+    const refused = documentFetchRefusal(req, true);
+    if (refused) return res.status(refused.status).json(refused.body);
+    return sendDocument(res, body);
+  }
   if (openWithoutBackend) {
     try {
       // RENDERED FIRST (2026-10-04): the site is opened in a headless browser
@@ -2462,7 +2519,7 @@ async function handle(req, res) {
       // The bytes of a brand guideline document the operator LINKED, for the
       // browser to read (brand-document.js). See brand-document-fetch.js.
       case 'document-fetch': {
-        return sendDocument(res, body, q);
+        return sendDocument(res, body);
       }
       case 'suggest': {
         // Options for ONE field, written from this brand's own record. Nothing
@@ -2496,6 +2553,7 @@ async function handle(req, res) {
 }
 
 module.exports = {
+  samePageRequest, documentFetchRefusal,
   handle,
   requireUser,
   restAs,
