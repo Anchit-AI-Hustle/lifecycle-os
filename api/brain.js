@@ -867,7 +867,9 @@ module.exports = async function handler(req, res) {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         if (!__wsId) return res.status(409).json({ ok: false, error: 'no_active_brand', message: 'Activate a brand before publishing.' });
-        const out = await require('./_shared/dispatch-core.js').enqueue(auth, __wsId, b);
+        // The brand the copy is linted as is the one resolved for this
+        // workspace here, never one the body names (compliance-lint.js).
+        const out = await require('./_shared/dispatch-core.js').enqueue(auth, __wsId, b, { brand: req.__brand || null });
         return res.status(out.ok ? 200 : 409).json(out);
       }
 
@@ -934,7 +936,11 @@ module.exports = async function handler(req, res) {
       case 'deliverability-preflight': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
-        return res.json(await require('./_shared/preflight-core.js').run(Object.assign({ workspaceId: __wsId }, b)));
+        // Brand, approved claims and offer are the SERVER's: a body that named
+        // its own brand or approved its own claims would pick its own rule pack.
+        return res.json(await require('./_shared/preflight-core.js').run(Object.assign({ workspaceId: __wsId }, b, {
+          brand: req.__brand || null, approved_claims: undefined, offer: undefined,
+        })));
       }
 
       case 'deliverability-warmup': {

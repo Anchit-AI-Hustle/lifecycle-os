@@ -924,6 +924,44 @@ function analysisPanelHTML(a){
     </div>`;
 }
 
+/* BRAND SAFETY AND COMPLIANCE, ABOVE THE ASSETS (2026-10-04).
+ *
+ * The builder lints every asset with compliance-lint.js in the same pass as
+ * the asset contracts and leaves the verdict on campaign.contract_check
+ * .compliance. A reviewer approving a slot needs to see a disease claim or an
+ * unapproved statistic BEFORE reading the mailer it sits in, with the rule it
+ * breaks, the regulation that rule enforces and the fix; the mandated text
+ * (an FDA disclaimer) is shown so it can be copied in, never inserted for them.
+ */
+function complianceHTML(campaign){
+  const comp = campaign && campaign.contract_check && campaign.contract_check.compliance;
+  if(!comp) return '';
+  const findings = Array.isArray(comp.findings) ? comp.findings : [];
+  const packs = (comp.packs || []).map(p => esc(p.label || p.id)).join(' · ');
+  const head = comp.verdict === 'block'
+    ? `<b>Blocked:</b> ${comp.blocking} compliance finding(s) must be fixed before this campaign can be published${comp.warnings ? `, and ${comp.warnings} to review` : ''}.`
+    : comp.verdict === 'warn' ? `<b>${comp.warnings} compliance finding(s) to review.</b> Nothing blocks.`
+    : `<b>No compliance findings</b> across ${comp.checked} asset(s).`;
+  const rows = findings.map(f => {
+    const cites = (f.citation || []).map(c => c.url && /^https?:/.test(c.url)
+      ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.cite)}</a>` : esc(c.cite)).join('; ');
+    return `<li class="cmp-row" data-severity="${esc(f.severity)}" data-rule="${esc(f.id)}">
+      <span class="cmp-sev" style="font-size:10px;font-weight:700;border-left:3px solid ${f.severity === 'BLOCK' ? 'var(--vh-err)' : 'var(--vh-warn)'};padding-left:5px">${esc(f.severity)}</span>
+      <b>${esc(f.title)}</b> <span class="pvnote" style="margin:0">${esc(f.asset || '')}${f.field ? ' · ' + esc(f.field) : ''} · <code>${esc(f.id)}</code></span>
+      ${f.matched ? `<div class="cmp-match">“${esc(f.matched)}”</div>` : ''}
+      <div class="pvnote" style="margin:2px 0 0">${esc(f.fix || '')}</div>
+      ${f.offer ? `<div class="pvnote cmp-offer" style="margin:2px 0 0">Required text: <code>${esc(f.offer)}</code></div>` : ''}
+      ${f.marker ? `<div class="pvnote" style="margin:2px 0 0"><code>${esc(f.marker)}</code></div>` : ''}
+      ${cites ? `<div class="pvnote" style="margin:2px 0 0">Source: ${cites}</div>` : ''}
+    </li>`;
+  }).join('');
+  return `<div class="pvnote cmp-panel" data-verdict="${esc(comp.verdict)}" style="margin-top:6px;border:1px solid var(--vh-line);border-radius:8px;padding:8px 10px;background:var(--vh-panel-2);color:var(--vh-ink)">
+    <div>Brand safety and compliance: ${head}</div>
+    <div class="pvnote" style="margin:2px 0 0">Rule packs: ${packs || '—'}</div>
+    ${rows ? `<ul class="cmp-list" style="margin:6px 0 0;padding-left:18px">${rows}</ul>` : ''}
+  </div>`;
+}
+
 function renderPreview(payload, e, i, opts){
   opts = opts || {};
   const campaign  = payload.campaign || {};
@@ -1061,7 +1099,8 @@ function renderPreview(payload, e, i, opts){
       <button type="button" class="btn sm secondary" onclick="closeExp(${i})" title="Collapse">✕</button>
     </div>
     <div class="pvnote">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
-    ${(() => { const tr = payload.agent_trace || campaign.agent_trace; if(!Array.isArray(tr)||!tr.length) return ''; return `<div class="pvnote" style="margin-top:4px">Agent pipeline: ${tr.map(a=>`<span class="pill" style="background:${a.ok?'var(--vh-panel-tan)':'#3a1414'};color:${a.ok?'#0a7d33':'#ffd9d0'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`; })()}
+    ${complianceHTML(campaign)}
+    ${(() => { const tr = payload.agent_trace || campaign.agent_trace; if(!Array.isArray(tr)||!tr.length) return ''; return `<div class="pvnote" style="margin-top:4px">Agent pipeline:${tr.map(a=>`<span class="pill" style="background:${a.ok?'var(--vh-panel-tan)':'#3a1414'};color:${a.ok?'#0a7d33':'#ffd9d0'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`; })()}
     ${(() => {
       // When copy fell back to the template (no LLM provider answered), show the
       // EXACT reason inline so the cause is visible — not buried in a tooltip.
