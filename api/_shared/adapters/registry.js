@@ -21,6 +21,9 @@ const GoogleAdsAdapter = require('./google-ads-adapter.js');
 const KlaviyoAdapter = require('./klaviyo-adapter.js');
 const WebEngageAdapter = require('./webengage-adapter.js');
 const { BrazeAdapter, ActiveCampaignAdapter, CustomerIoAdapter } = require('./extensible-crm.js');
+const { TikTokAdapter, TikTokAdsAdapter } = require('./tiktok-adapter.js');
+const PinterestAdapter = require('./pinterest-adapter.js');
+const YouTubeAdapter = require('./youtube-adapter.js');
 
 /** Adapter id -> class. */
 const ADAPTERS = {
@@ -31,6 +34,11 @@ const ADAPTERS = {
   braze: BrazeAdapter,
   activecampaign: ActiveCampaignAdapter,
   customerio: CustomerIoAdapter,
+  // The social integration gateway (2026-10-04).
+  tiktok: TikTokAdapter,
+  tiktok_ads: TikTokAdsAdapter,
+  pinterest: PinterestAdapter,
+  youtube: YouTubeAdapter,
 };
 
 /**
@@ -47,6 +55,10 @@ const CONNECTION_PROVIDER = {
   braze: 'braze',
   activecampaign: 'activecampaign',
   customerio: 'customerio',
+  tiktok: 'tiktok',
+  tiktok_ads: 'tiktok_ads',
+  pinterest: 'pinterest',
+  youtube: 'youtube',
 };
 
 function adapterFor(id) {
@@ -55,6 +67,35 @@ function adapterFor(id) {
 
 function connectionProviderFor(adapterId) {
   return CONNECTION_PROVIDER[String(adapterId || '').toLowerCase()] || String(adapterId || '');
+}
+
+/**
+ * The deployment switch a write to this platform needs: the adapter's own, or
+ * the standing read-only rule's escape hatch for the three guarded platforms.
+ */
+function writeSwitchOf(A) {
+  if (A.writeSwitch) return A.writeSwitch;
+  const base = A.auth && A.auth.endpoints && A.auth.endpoints.api_base;
+  const guarded = typeof base === 'string' ? require('../read-only-egress.js').platformFor(base) : null;
+  return guarded ? guarded.allowEnv : null;
+}
+
+/** The adapter that reads a workspace_connections provider row, or null. */
+function adapterIdForConnection(provider) {
+  const want = String(provider || '').toLowerCase();
+  return Object.keys(CONNECTION_PROVIDER).find((id) => CONNECTION_PROVIDER[id] === want) || null;
+}
+
+/**
+ * Every declared call of an adapter, for the hub's endpoint table: what it
+ * is, where it was read, and whether it is allowed to leave this deployment.
+ */
+function endpointRows(A) {
+  const table = A.endpointTable || {};
+  return Object.keys(table).map((op) => {
+    const e = table[op] || {};
+    return { op, method: e.method, url: e.url, verified: e.verified === true, read: e.method === 'GET' || e.read === true, doc: e.doc || null, note: e.note || null, scopes: e.scopes || [] };
+  });
 }
 
 /** Which adapter owns a channel id, or null. */
@@ -119,6 +160,12 @@ function registryView() {
       // integrations are proven and which are scaffolding they are testing.
       endpoints_verified: unverified.length === 0 && auth.endpoints_verified !== false,
       unverified_operations: unverified,
+      // The deployment switch a write needs beyond LIVE_CONNECTORS and the
+      // workspace toggle, and whether it is on - a boolean, never a value.
+      write_switch: writeSwitchOf(A),
+      write_switch_on: writeSwitchOf(A) ? process.env[writeSwitchOf(A)] === '1' : null,
+      endpoint_table: endpointRows(A),
+      webhook: auth.webhooks || null,
       sources: auth.sources || [],
     };
   });
@@ -130,6 +177,9 @@ module.exports = {
   adapterFor,
   adapterForChannel,
   connectionProviderFor,
+  adapterIdForConnection,
+  endpointRows,
+  writeSwitchOf,
   allChannels,
   registryView,
 };

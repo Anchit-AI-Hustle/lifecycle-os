@@ -133,7 +133,7 @@ const PUBLIC_OPS = {
 // brain.js actions that call requireUser (or a core that does).
 const BRAIN_GATED = new Set(['dispatch-enqueue', 'dispatch-drain', 'dispatch-list', 'dispatch-detail', 'dispatch-cancel',
   'deliverability-domain', 'deliverability-preflight', 'deliverability-warmup', 'cohort-optimize', 'domain', 'logo',
-  'daily-calendar', 'revenue-analysis', 'platform-agents', 'journey', 'shopify', 'telesuite']);
+  'daily-calendar', 'revenue-analysis', 'platform-agents', 'journey', 'shopify', 'telesuite', 'social-gateway']);
 // calendar.js features on the credit meter (credits.metered → enforce → 401).
 const CALENDAR_GATED = new Set(['generate', 'lifecycle-generate', 'lifecycle-build-mailer', 'trigger-mailer', 'triggermailer']);
 // The brain's MODEL actions (api/brain.js MODEL_FEATURE): on the credit meter,

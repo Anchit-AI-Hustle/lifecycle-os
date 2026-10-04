@@ -33,6 +33,42 @@ pack size is a product fact, so neither is ever used.
 - Left as found, on purpose: `lifecycle-cohorts.COHORTS` (a new key changes the UK planner's default rotation);
   the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
   cap input until the omnichannel fatigue ledger lands.
+## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
+`api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|
+flags|thresholds|thresholds-save|regen-approve|flag-dismiss|live-approve` (still 12/12, still two crons), the
+"Social gateway" tab on `/publishing`. Adapters: `meta-adapter.js` (extended: Instagram + Facebook Page comments,
+mentions, insights, Page feed, ad insights, activation), `tiktok-adapter.js` (`tiktok` organic + `tiktok_ads`),
+`pinterest-adapter.js`, `youtube-adapter.js`, and `google-ads-adapter.js` (gained an ad-metrics reader). Gated by
+`tests/social-gateway-executed.spec.js` (33) + `tests/social-gateway-console.spec.js` (4, the page driven over the
+shipped core) over `tests/lib/fake-social-platforms.js`, which answers exactly the documented endpoints and THROWS
+on anything else.
+- **Every call is a row in the adapter's `endpointTable`** with its doc URL; `callEndpoint()` is the one door.
+  `verified:false` REFUSES with the exact request, whatever the switches say, and the hub counts it. Unverified
+  today: all of TikTok Ads (only the SDK was readable; its default status is ENABLE), Pinterest `ad_create` (PAUSED
+  is confirmed for campaigns only) and `campaign_update` (the docs conflict). Google ROAS is not read (the field
+  was not confirmed); YouTube and Pinterest webhooks are refused (no signature scheme confirmed).
+- **The third switch is per platform now**: `META_/TIKTOK_/PINTEREST_/YOUTUBE_/GOOGLE_ADS_ALLOW_WRITES=1`, beside
+  `LIVE_CONNECTORS` and the brand's toggle (`publishAllowance` → `platform_writes_off`). A READ needs only
+  `LIVE_CONNECTORS`. A write that needs a read first (TikTok `creator_info`, YouTube's media bytes) asks
+  `writeRefusal()` BEFORE the read, so a withheld write shows the write, and nothing leaves.
+- **Paid is created PAUSED / DISABLE / private**; going live is its own `<platform>_live_approval` job, and
+  dispatch-core stamps `approved_by` from the SESSION (a request's own claim is overwritten). YouTube activation
+  re-sends every writable status field, because `videos.update` deletes what it omits.
+- **Tokens never leave**: `would_request` URLs are redacted (`access_token`, `appsecret_proof`), and that was a
+  real leak into `dispatch_jobs.result` before this. Refresh rides the existing daily cron
+  (`refreshDueTokens({withinDays:7})`): a refusal marks `needs_reauth` (and `ensureFreshToken` then refuses), a
+  platform that did not answer is retried.
+- **Webhooks**: verified over the raw bytes, recorded once per event id (`social_inbound_events` unique on
+  provider + event id), routed only to the ONE workspace whose connection names the account, logged to
+  `platform_sync_log`. Migration `20261004150000_social_gateway.sql`.
+- **Underperformance** is below the brand's OWN median per platform (3+ creatives, else said) or below an
+  operator's OWN threshold; an absent metric is never a zero; units are never mixed across platforms. A flag
+  OFFERS a metered regeneration (`ads.generate` / `social.post`); approving records who and spends nothing.
+- 21 mutations, each failing the spec (ACTIVE paid writes on three platforms, both signatures uncompared, a
+  switch ignored, an unverified endpoint sent, the approver taken from the request, a duplicate re-processed,
+  YouTube public, absent read as zero, a refused refresh left active, ...).
+- Left as found: `connections` `oauth-start` answers `connections_router_failed` for a phone device session
+  (pre-existing for every OAuth platform); a Google Ads ad is turned on in Google Ads (no enable call confirmed).
 
 ## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
 The operator's words: *"ensure user can upload a document for the design schema to be followed too with
@@ -214,6 +250,27 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   design system and are scored; both full-page screenshots pinned (Playwright 1.63 trims `clip` to the
   full-page rect, measured); `engines.node` `24.x`, CI on Node 24 (`npm ci --engine-strict` and 458 specs
   run on 24.21.0 here).
+- **The adopted reference items (2026-10-04), each executed and mutation-verified**: (A) ONE
+  `render-stabilise.js` for the site AND our clone - Date/performance.now/Math.random pinned by an init
+  script (clocks ADVANCE 1 ms per read, so a busy-wait still ends), network idle + fonts bounded, every
+  animation/transition zeroed and the running ones finished or cancelled; a CTA running an infinite
+  colour animation reads as its declared colour, and both sides report the same pinned clock. (B) each
+  part is shot twice ~500 ms apart, on both sides; what changed is LIVE content and is masked. (C) TWO
+  scores with their reasoning in code: STRUCTURAL (tokens; limit 0.95) and PERCEPTUAL (pixelmatch with
+  text boxes and live pixels masked; 1 − worst region; limit 0.97); approval needs both; the panel shows
+  both. (D) MONOTONIC repair: a set of re-measured values is kept only if the composite strictly improves,
+  otherwise every value is put back and logged in `reverted` (a re-measure of a page that changed after
+  it was read does not get kept). (E) FONT LEGAL GATE: a family and its source URLs are recorded and
+  loaded BY REFERENCE to measure and preview; a generated email never carries a site's font files (no
+  `@font-face`); a non-Google family is `<family> (brand font)` with its fallback stack, and the email's
+  drawn fallback is listed EXEMPT with that reason. Consent overlays (fixed/sticky, named or worded as
+  consent, or a known CMP container) are HIDDEN in the throwaway context, never clicked: no consent is
+  given on anyone's behalf and a banner's colours never become the brand's. Measured while building it:
+  the engine reports a drawn face by the FILE's own name, not the CSS alias (a brand font is recognised
+  by the role's declared family), and pixelmatch's default threshold cannot see a dark hue shift
+  (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
+  Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
+  a separate template builder, a TypeScript/Next.js restructure.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
