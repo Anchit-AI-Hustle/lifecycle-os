@@ -846,6 +846,43 @@ function fitResponse(out, maxBytes) {
  * `read.renderer` is 'chromium' or why not ('unavailable' | 'blocked' |
  * 'timeout').
  */
+/**
+ * The brand a read is SCORED as: the record as it stands (the workspace on
+ * the server path, the wizard's draft on the device/open path) with WHO set
+ * each field, so the regression renders the brand exactly as the read will be
+ * applied to it - a person's own logo, colour or type kept (review,
+ * 2026-10-04). Bounded like brand-runtime.carriedBrand: short strings, hex
+ * colours, two font records, an origin map over known fields; nothing nested
+ * passes through.
+ */
+const SCORING_FIELDS = new Set(['name', 'tagline', 'website', 'logo_url', 'favicon_url',
+  'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
+  'typography.heading', 'typography.body', 'brand_data.design_system', 'brand_data.imagery', 'brand_data.social',
+  'brand_data.legal_entity', 'regions', 'voice.tone']);
+const SCORING_ORIGINS = new Set(['user', 'document', 'site-render', 'site-parse', 'preset', 'default']);
+function scoringBrand(src) {
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return null;
+  const s = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+  const url = (v) => (/^https?:\/\//i.test(s(v, 600)) ? s(v, 600) : '');
+  const hex = (v) => (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(s(v, 9)) ? s(v, 9) : '');
+  const palette = {};
+  for (const k of ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted']) { const h = hex(src.palette && src.palette[k]); if (h) palette[k] = h; }
+  const typography = {};
+  for (const k of ['heading', 'body']) {
+    const f = src.typography && src.typography[k];
+    if (f && typeof f === 'object' && s(f.family, 80)) typography[k] = { family: s(f.family, 80), stack: s(f.stack, 240), google: f.google === true };
+  }
+  const raw = (src.field_origin && typeof src.field_origin === 'object' && src.field_origin)
+    || (src.brand_data && typeof src.brand_data === 'object' && src.brand_data.field_origin && typeof src.brand_data.field_origin === 'object' && src.brand_data.field_origin) || {};
+  const fieldOrigin = {};
+  for (const k of Object.keys(raw).slice(0, 80)) if (SCORING_FIELDS.has(k) && SCORING_ORIGINS.has(raw[k])) fieldOrigin[k] = raw[k];
+  return {
+    name: s(src.name, 120), tagline: s(src.tagline, 300), website: url(src.website),
+    logo_url: url(src.logo_url), favicon_url: url(src.favicon_url), palette, typography,
+    brand_data: { field_origin: fieldOrigin },
+  };
+}
+
 async function extractWithRender(auth, args, opts) {
   const o = opts || {};
   const bx = require('./brand-extract.js');
@@ -896,7 +933,7 @@ async function extractWithRender(auth, args, opts) {
 }
 
 module.exports = {
-  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces,
+  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
   extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };

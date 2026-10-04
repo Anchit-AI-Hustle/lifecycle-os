@@ -111,6 +111,37 @@ const C_HOME = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta
 <a class="cta" href="/books">See the books</a>
 <footer>Rosehip Press, 9 Mill Yard.</footer></body></html>`;
 
+/* ── h: the heading family comes from GOOGLE FONTS ──────────────────────────
+   The site links fonts.googleapis.com; the stylesheet names fonts.gstatic.com.
+   Both hosts are answered in-process by googleFontsTransport() below (the
+   fixture's own OFL font file), so every surface that LOADS the family draws
+   it, and a surface that only NAMES it draws its fallback. */
+const H_HOME = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ember Street</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Erica+One&display=swap">
+<style>body{margin:0;font-family:Verdana,sans-serif;font-size:16px;line-height:1.6;color:#222222;background:#ffffff}
+header{padding:20px 48px}header a{color:#222222;text-decoration:none}
+h1{font-family:'Erica One',Georgia,serif;font-size:56px;line-height:1.1;font-weight:400;color:#8a2a0b;margin:40px 48px 16px}
+p{margin:0 48px 16px;max-width:640px}
+.cta{display:inline-block;margin:8px 48px;background:#8a2a0b;color:#ffffff;padding:12px 26px;border-radius:4px;text-decoration:none;font-family:'Erica One',Georgia,serif;font-size:18px}
+footer{padding:32px 48px;background:#f6efe9;color:#222222}</style></head><body>
+<header><a href="/">Ember Street</a></header>
+<h1>Grilled over open fire</h1>
+<p>Everything on the menu meets the coals at some point, from the bread in the morning to the peaches at the end of the night.</p>
+<p>We book half the tables and keep the rest for whoever walks in first.</p>
+<a class="cta" href="/menu">See the menu</a>
+<footer>Ember Street, 4 Dock Road.</footer></body></html>`;
+const GOOGLE_CSS = "@font-face{font-family:'Erica One';font-style:normal;font-weight:400;font-display:swap;src:url(https://fonts.gstatic.com/s/ericaone/v1/ericaone.ttf) format('truetype')}";
+/** A render-net transport that answers the two Google Fonts hosts in-process. */
+function googleFontsTransport(real) {
+  return async (url, opts) => {
+    const u = new URL(url);
+    if (u.hostname === 'fonts.googleapis.com') return { status: 200, headers: { 'content-type': 'text/css; charset=utf-8', 'access-control-allow-origin': '*' }, body: Buffer.from(GOOGLE_CSS) };
+    if (u.hostname === 'fonts.gstatic.com') return { status: 200, headers: { 'content-type': 'font/ttf', 'access-control-allow-origin': '*' }, body: DISPLAY_TTF };
+    return real(url, opts);
+  };
+}
+const GOOGLE_ORIGINS = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
+
 /* ── d: CTA only through a compound :not() selector, with :hover ─────────── */
 const D_CSS = `body{margin:0;font-family:Verdana,sans-serif;background:#ffffff;color:#222;font-size:16px;line-height:1.6}
 header{display:flex;justify-content:space-between;padding:16px 32px;background:#ffffff}
@@ -173,6 +204,7 @@ function siteRoutes(name) {
     });
   }
   if (name === 'd') return Object.assign(base, { '/': page(D_HOME), '/d.css': css(D_CSS) });
+  if (name === 'h') return Object.assign(base, { '/': page(H_HOME) });
   if (name === 'e') return Object.assign(base, { '/': page(E_HOME) });
   if (name === 'f') return Object.assign(base, { '/': page(F_HOME) });
   if (name === 'g403') return Object.assign(base, { '/': { status: 403, type: 'text/html', body: '<h1>Forbidden</h1>' } });
@@ -242,4 +274,4 @@ function canary() {
   });
 }
 
-module.exports = { siteRoutes, ssrfRoutes, serve, canary, A_HOME, B_HOME, C_HOME, D_HOME, E_HOME, F_HOME, A_CSS, B_CSS, C_CSS, D_CSS, PNG_1x1 };
+module.exports = { siteRoutes, ssrfRoutes, serve, canary, googleFontsTransport, GOOGLE_ORIGINS, A_HOME, B_HOME, C_HOME, D_HOME, E_HOME, F_HOME, H_HOME, A_CSS, B_CSS, C_CSS, D_CSS, PNG_1x1 };

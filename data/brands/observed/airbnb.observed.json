@@ -5,7 +5,7 @@
   "start": "https://www.airbnb.com",
   "landed": "https://www.airbnb.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:23:47.028Z",
+  "read_at": "2026-10-04T18:15:58.540Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -33,33 +33,33 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 66.4,
-    "mismatch": 0.3362,
+    "score": 49.8,
+    "mismatch": 0.5019,
     "surfaces": {
       "landing page": {
-        "score": 68.1,
-        "mismatch": 0.3189,
+        "score": 52.9,
+        "mismatch": 0.4707,
         "done": false,
-        "tokens_off": 1,
+        "tokens_off": 10,
         "regions_off": 3
       },
       "mailer": {
-        "score": 85.7,
-        "mismatch": 0.1429,
+        "score": 69.1,
+        "mismatch": 0.3091,
         "done": false,
-        "tokens_off": 2,
+        "tokens_off": 17,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 62.5,
+        "mismatch": 0.375,
+        "done": false,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },
     "iterations": 2,
-    "repairs": 1,
+    "repairs": 4,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -122,13 +122,13 @@
     },
     "ink": {
       "value": "#202020",
-      "exact": "#ffffff",
+      "exact": "#c1c1c1",
       "derived": true,
       "note": "DERIVED from #6c6c6c: no text colour reached 4.5:1 on the primary #ff385c, so the ink is darkened until it does (still 16.29:1 on the page).",
       "source": {
         "page": "https://www.airbnb.com/",
         "role": "body copy",
-        "selector": "span#unified-search-microphone-prompt",
+        "selector": "span#unified-search-microphone-prompt > span.ta3me7i.atm_c8_1ht44t7",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
@@ -156,7 +156,7 @@
       "source": {
         "page": "https://www.airbnb.com/",
         "role": "body copy",
-        "selector": "span#unified-search-microphone-prompt",
+        "selector": "span#unified-search-microphone-prompt > span.ta3me7i.atm_c8_1ht44t7",
         "viewport": "desktop",
         "property": "color",
         "signal": "computed"
@@ -270,7 +270,7 @@
       "source": {
         "page": "https://www.airbnb.com/",
         "role": "body copy",
-        "selector": "span#unified-search-microphone-prompt",
+        "selector": "span#unified-search-microphone-prompt > span.ta3me7i.atm_c8_1ht44t7",
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"
