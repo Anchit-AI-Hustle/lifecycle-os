@@ -67,12 +67,14 @@ const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-sans-
 const SAME = 5;
 /** A second colour has to be at least this far from the primary to be one. */
 const DISTINCT = 10;
+/** A page that styles no links shows the engine's defaults. */
+const UA_LINK = new Set(['#0000ee', '#551a8b', '#0000ff']);
 /** Each other KIND of signal that agrees raises a candidate by this much. */
 const CORROBORATION = 12;
 /** What can be a SECOND brand colour: an action or link colour the site
     renders, or a declared identity colour. Not an icon tile, a header fill or
     a splash background - those are surfaces, not a brand's second colour. */
-const ACCENT_KINDS = new Set(['action', 'link', 'logo-svg', 'logo-image', 'guideline-swatch', 'mask-icon', 'logo-text', 'theme-color', 'manifest-theme', 'tile-color', 'token']);
+const ACCENT_KINDS = new Set(['action', 'link', 'logo-svg', 'logo-image', 'logo-dark', 'guideline-swatch', 'mask-icon', 'logo-text', 'theme-color', 'manifest-theme', 'tile-color', 'token']);
 
 function hostOf(url) {
   try { return new URL(String(url || '')).hostname; } catch (_) { return String(url || ''); }
@@ -149,6 +151,8 @@ function candidatesOf(read) {
   const add = (value, kind, signal, source, label, extra) => {
     const v = hex(value);
     if (!v) return;
+    // The browser's own default link colours are the engine's, not the brand's.
+    if (kind === 'link' && UA_LINK.has(v)) return;
     out.push(Object.assign({ value: v, kind, strength: strengthOf(kind), signal, source: sourceOf({ source }), label: label || signal, read }, extra || {}));
   };
   if (read.image) {
@@ -248,7 +252,7 @@ function paletteFromReads(readsIn) {
     const agree = new Map();
     for (const o of chromaticC) if (o !== c && family(o.kind) !== family(c.kind) && dE(o.value, c.value) <= SAME && !agree.has(family(o.kind))) agree.set(family(o.kind), o);
     c.corroborated_by = [...agree.values()].slice(0, 4).map((o) => ({ kind: o.kind, value: o.value, signal: o.signal, page: o.source.page || readRef(o.read).read_url }));
-    c.score = c.strength + CORROBORATION * Math.min(3, agree.size);
+    c.score = c.strength + CORROBORATION * Math.min(2, agree.size);
   }
   chromaticC.sort((a, b) => b.score - a.score || b.strength - a.strength);
   let chosen = chromaticC[0] || null;
@@ -266,8 +270,15 @@ function paletteFromReads(readsIn) {
   }
   const seen = new Set();
   const passed = passedOver.filter((p) => { const k = p.value + p.why; if (seen.has(k)) return false; seen.add(k); return true; });
+  // Every candidate weighed, for the record and the harvest log.
+  const considered = all.slice(0, 40).map((c) => ({
+    kind: c.kind, value: c.value, score: c.score != null ? c.score : c.strength,
+    state: c === chosen ? 'chosen' : (passedOver.some((p) => p.value === c.value && p.from === c.label) ? 'passed over' : (signals.chromatic(c.value) ? 'outranked' : 'neutral')),
+    page: c.source.page || readRef(c.read).read_url,
+  }));
   if (!chosen) {
     return {
+      considered,
       ok: false, palette: null, evidence: Object.assign(evidence, { primary: { value: '', passed_over: passed } }),
       reason: passed.length
         ? `the rendered site shows no brand colour a preset can use (${passed.map((p) => `${p.value} from ${p.from}: ${p.why}`).join('; ')})`
@@ -388,11 +399,11 @@ function paletteFromReads(readsIn) {
     }
   }
   if (!gate.ok) {
-    return { ok: false, palette: null, evidence, gate: { errors: gate.errors, warnings: gate.warnings }, reason: `the colours it renders fail the palette gate (${gate.errors.map((e) => e.message).join(' ')})` };
+    return { considered, ok: false, palette: null, evidence, gate: { errors: gate.errors, warnings: gate.warnings }, reason: `the colours it renders fail the palette gate (${gate.errors.map((e) => e.message).join(' ')})` };
   }
   const out = Object.assign({}, palette, gate.palette);
   if (!accent) delete out.accent;
-  return { ok: true, palette: out, evidence, gate: { errors: [], warnings: gate.warnings } };
+  return { considered, ok: true, palette: out, evidence, gate: { errors: [], warnings: gate.warnings } };
 }
 
 /** One manifest on its own: the home page read alone. */
@@ -584,6 +595,19 @@ function observationFromReads(preset, home, sources, observedAt) {
   const host = hostOf(landed);
   const pal = paletteFromReads(reads);
   const type = manifest ? typographyFromManifest(manifest) : null;
+  // What each page's own logo and fonts were, for the record (and the log).
+  const perRead = reads.map((r) => {
+    const m = r.manifest;
+    if (!m) return { url: r.url, logo: r.mark ? { kind: 'file', verdict: r.mark.verdict, hex: r.mark.hex || '' } : null };
+    const lc = m.identity && m.identity.logo_colours;
+    const v = lc ? signals.markIdentity((lc.paints && lc.paints.length ? lc.paints : lc.pixels) || []) : null;
+    return {
+      url: r.url,
+      logo: lc ? { kind: lc.kind, verdict: v.verdict, hex: v.hex || (v.colours || []).join(' ') } : null,
+      fonts: m.fonts ? { heading: (m.fonts.heading || {}).family || '', body: (m.fonts.body || {}).family || '' } : null,
+      content_logos: ((m.read && m.read.desktop && m.read.desktop.content_logos) || []).length,
+    };
+  });
   const assets = manifest ? assetsFromManifest(manifest) : { logo_url: '', logo_signal: '', assets: [] };
   const homeRow = rows[0];
   const base = {
@@ -609,6 +633,8 @@ function observationFromReads(preset, home, sources, observedAt) {
     logo_url: assets.logo_url,
     logo_signal: assets.logo_signal,
     assets: assets.assets,
+    palette_candidates: pal.considered || [],
+    read_details: perRead,
   };
   if (!homeOk) base.home_attempt = { renderer: homeRow.renderer, at: observedAt, host: hostOf(preset.website), reason: homeRow.reason };
   if (!pal.ok) {

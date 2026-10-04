@@ -816,6 +816,11 @@
           "what": "H&M US store front"
         },
         {
+          "url": "https://career.hm.com/",
+          "kind": "page",
+          "what": "H&M careers site"
+        },
+        {
           "url": "https://hmgroup.com/",
           "kind": "page",
           "what": "H&M Group corporate site (linked from hm.com)"
@@ -2984,6 +2989,11 @@
           "url": "https://www.makemytrip.com/flights/",
           "kind": "page",
           "what": "MakeMyTrip flights page"
+        },
+        {
+          "url": "https://careers.makemytrip.com/",
+          "kind": "page",
+          "what": "MakeMyTrip careers site"
         }
       ],
       "heading_font": "system-ui",

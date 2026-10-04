@@ -188,7 +188,7 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     // fallback (one brand's own DIN read as system-ui). Every family the
     // measured text asks for is loaded and CONFIRMED first, bounded.
     const facesWaited = await ensureFaces(page, Math.max(500, Math.min(8000, left() - 6000)));
-    const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40, consent: stab().CONSENT }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
+    const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40, consent: stab().CONSENT, contentLogoName: ctx.contentLogoName || '' }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
     data.faces_waited = facesWaited;
     data.__viewport = label;
     data.stabilised = stabilised;
@@ -204,6 +204,10 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     if (data.roles && data.roles.logo) {
       const png = await page.locator('[data-lcos-role="logo"]').first().screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
       data.roles.logo.pixels = identity().pixelColours(png, data.roles.logo.ground);
+    }
+    for (const cl of data.content_logos || []) {
+      const png = await page.locator(`[data-lcos-content-logo="${cl.n}"]`).first().screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
+      cl.pixels = identity().pixelColours(png, cl.ground);
     }
     // Interaction states, read AFTER the state is applied, with transitions
     // switched off so the final state is what is read.
@@ -399,7 +403,18 @@ function markCandidates(desk, decl) {
   const push = (kind, value, signal, source, extra) => {
     const v = core().normHex(value);
     if (!v) return;
-    out.push(Object.assign({ value: v.toLowerCase(), kind, signal, role: 'identity', neutral: !id.chromatic(v), source }, extra || {}));
+    // A favicon generator's DEFAULT (RealFaviconGenerator writes mask-icon
+    // #5bbad5 and TileColor #da532c unless told otherwise) is a value nobody
+    // at the brand chose: not a declaration. One brand's pinned-tab colour was
+    // exactly #5bbad5 and it became its "primary".
+    if ((kind === 'mask-icon' || kind === 'tile-color') && id.GENERATOR_DEFAULTS.has(v.toLowerCase())) {
+      notes.push(`The ${kind === 'mask-icon' ? 'mask-icon colour' : 'tile colour'} ${v.toLowerCase()} is a favicon generator's default, not a colour the brand declared; it is not used.`);
+      return;
+    }
+    // A near-black mark (as dark as body text) reads as the brand's dark ink
+    // as much as its colour: kept, below a brighter colour the site declares.
+    const k = /^logo-(svg|image)$/.test(kind) && id.chromatic(v) && id.lumOf(v) < 0.02 ? 'logo-dark' : kind;
+    out.push(Object.assign({ value: v.toLowerCase(), kind: k, signal: k === 'logo-dark' ? `${signal}; near-black, so a brighter colour the site declares outranks it` : signal, role: 'identity', neutral: !id.chromatic(v), source }, extra || {}));
   };
   if (logo) {
     const sel = logo.selector;
@@ -422,6 +437,10 @@ function markCandidates(desk, decl) {
     if (logo.kind === 'text' && logo.type && logo.type.color && (logo.named || (logo.type.size || 0) >= 20)) {
       push('logo-text', logo.type.color, 'logo set as text, its colour as rendered', src(desk, 'logo', 'desktop', 'color', sel));
     }
+  }
+  for (const cl of desk.content_logos || []) {
+    const v = id.markIdentity((cl.paints || []).length ? cl.paints : (cl.pixels || []));
+    if (v.verdict === 'colour') push('logo-image', v.hex, `the brand's logo shown on its own page ("${String(cl.label).slice(0, 70)}")`, src(desk, 'content logo', 'desktop', (cl.paints || []).length ? 'fill' : 'pixels', cl.selector), { mark: v });
   }
   for (const i of (desk.assets && desk.assets.icons) || []) {
     if (/mask-icon/i.test(i.rel || '') && i.color) push('mask-icon', identityHex(i.color), 'mask-icon colour the site declares (link rel=mask-icon color)', { page: desk.url, role: 'mask-icon', selector: 'link[rel=mask-icon]', viewport: '', property: 'color', signal: 'declared' });
@@ -824,6 +843,9 @@ async function readRendered(url, opts) {
   const ctx = {
     policy, deadline, transport: o.transport, perRequestMs: Number(o.perRequestMs) > 0 ? Number(o.perRequestMs) : undefined, limits,
     navMs: Number(o.navMs) > 0 ? Number(o.navMs) : undefined,
+    // A brand's own guidelines/press page: read the logo it shows in content
+    // when that image names the brand (render-capture content_logos).
+    contentLogoName: typeof o.contentLogoName === 'string' ? o.contentLogoName.slice(0, 60) : '',
     budget: net.makeBudget((limits && limits.maxBytesTotal) || net.LIMITS.maxBytesTotal, limits && limits.maxRequests),
     inScope: (u) => sc.inScope(u, hosts) || (policy.allowOrigins && (() => { try { return policy.allowOrigins.has(new URL(u).origin); } catch (_) { return false; } })()),
     robotsFor: (u) => {
@@ -1008,7 +1030,7 @@ async function readSite(url, opts) {
         browser, policy: o.policy, transport: o.transport, keepPages: true, limits: o.limits,
         // Threaded through (review: the first document of six starter sites
         // died at the 9 s default because readSite dropped these).
-        perRequestMs: o.perRequestMs, firstDocumentMs: o.firstDocumentMs, navMs: o.navMs, mobile: o.mobile,
+        perRequestMs: o.perRequestMs, firstDocumentMs: o.firstDocumentMs, navMs: o.navMs, mobile: o.mobile, contentLogoName: o.contentLogoName,
         deadlineMs: Math.max(15000, Math.min(o.manifestMs || 62000, left() - 25000)),
         maxPages: o.maxPages, renderer: info,
       }), Math.max(10000, left() - 5000), 'reading the site');
