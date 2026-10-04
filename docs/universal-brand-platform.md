@@ -323,8 +323,13 @@ loads) and refused in a sentence. An SVG is sanitised and only ever shown as `<i
 
 | State | Where the file lives | What a generated asset references |
 |---|---|---|
-| Signed-in account, project reachable | `brand-assets` bucket, `<workspace_id>/<sha256>.<ext>` (public read, editor writes) | the hosted https URL |
+| Signed-in account, project reachable | logo, icon, fonts, imagery: `brand-assets` bucket, `<workspace_id>/<sha256>.<ext>` (public read, editor writes); the brand book: IndexedDB only | the hosted https URL |
 | Anything else (no database, signed out, a phone sign-in on the device) | IndexedDB, under the same per-account namespace as the device brands | `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]` |
+
+The guideline document itself is private and never leaves the device in any state; only the values it
+states go on the brand record. Deleting an account brand removes its hosted objects first, and is
+refused (nothing deleted) if storage will not remove them. A linked document is streamed and cut off at
+4 MB whatever its Content-Length says, within one 25 s deadline.
 
 The shell paints a device logo and registers device fonts (FontFace API) from IndexedDB; `carry()`
 sends only `pending_hosting` (names, never bytes) and drops a non-https logo URL. Deleting a brand

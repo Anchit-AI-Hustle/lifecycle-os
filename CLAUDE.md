@@ -54,10 +54,19 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   "Upload a file" is a LABEL around a hidden input (no dead click for the sweep); refusals are sentences
   (type, size, < 32 px logo, non-square icon, a file the browser cannot load as a font). An uploaded SVG is
   sanitised (scripts, `foreignObject`, `on*`, `javascript:`/external hrefs removed) and only ever shown as
-  `<img>`. A file is HOSTED for an account with a reachable project (`brand-assets` bucket,
-  `<workspace_id>/<sha256>.<ext>`, editor-scoped writes) and otherwise kept in IndexedDB (localStorage
-  caps ~5 MB) under `deviceKey()` - another person on the browser sees none, deleting the brand deletes
-  them, and a file chosen before the brand had an id moves to it on first save (`files.adopt`).
+  `<img>`. A DELIVERY asset (logo, icon, fonts, imagery) is HOSTED for an account with a reachable
+  project (`brand-assets` bucket, PUBLIC read, `<workspace_id>/<sha256>.<ext>`, editor-scoped writes) and
+  otherwise kept in IndexedDB (localStorage caps ~5 MB) under `deviceKey()` - another person on the
+  browser sees none, deleting the brand deletes them, and a file chosen before the brand had an id moves
+  to it on first save (`files.adopt`). **The brand book itself is private and is never hosted**, for any
+  account: `files.host()` refuses every slot but the delivery ones (review, 2026-10-04 - the first cut
+  sent the whole PDF into the public bucket). Deleting an account brand removes its `brand-assets/<ws>/`
+  objects FIRST (the delete policy needs the row) and refuses rather than orphan public files.
+- **Review round 1, each reproduced by an executed test first and mutation-verified**: the brand book
+  in the public bucket (above); `op=document-fetch` buffered the whole body before checking the cap, so a
+  host omitting or falsifying Content-Length could exhaust the function - it now streams, cancels at
+  4 MB, and has one 25 s deadline; a typed value the document repeated flipped to `document` (equal is
+  unchanged now); `voice.no_em_dashes` was untracked, so unticking it was not the operator's.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
