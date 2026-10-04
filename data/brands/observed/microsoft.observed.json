@@ -5,7 +5,7 @@
   "start": "https://www.microsoft.com",
   "landed": "https://www.microsoft.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:00:39.045Z",
+  "read_at": "2026-10-04T18:15:08.724Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -32,9 +32,9 @@
   "partial": true,
   "regression": {
     "ok": true,
-    "done": false,
-    "score": 91.9,
-    "mismatch": 0.0805,
+    "done": true,
+    "score": 98,
+    "mismatch": 0.0201,
     "surfaces": {
       "landing page": {
         "score": 96.9,
@@ -44,10 +44,10 @@
         "regions_off": 0
       },
       "mailer": {
-        "score": 86.5,
-        "mismatch": 0.1351,
-        "done": false,
-        "tokens_off": 10,
+        "score": 98.6,
+        "mismatch": 0.0135,
+        "done": true,
+        "tokens_off": 1,
         "regions_off": 0
       },
       "ad creative": {

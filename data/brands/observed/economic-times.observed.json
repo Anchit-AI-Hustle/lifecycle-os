@@ -5,7 +5,7 @@
   "start": "https://economictimes.indiatimes.com",
   "landed": "https://economictimes.indiatimes.com/defaultinterstitial.cms",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T17:57:37.915Z",
+  "read_at": "2026-10-04T18:12:11.223Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",

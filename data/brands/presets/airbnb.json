@@ -45,13 +45,13 @@
       },
       "ink": {
         "value": "#202020",
-        "exact": "#ffffff",
+        "exact": "#c1c1c1",
         "derived": true,
         "note": "DERIVED from #6c6c6c: no text colour reached 4.5:1 on the primary #ff385c, so the ink is darkened until it does (still 16.29:1 on the page).",
         "source": {
           "page": "https://www.airbnb.com/",
           "role": "body copy",
-          "selector": "span#unified-search-microphone-prompt",
+          "selector": "span#unified-search-microphone-prompt > span.ta3me7i.atm_c8_1ht44t7",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -79,7 +79,7 @@
         "source": {
           "page": "https://www.airbnb.com/",
           "role": "body copy",
-          "selector": "span#unified-search-microphone-prompt",
+          "selector": "span#unified-search-microphone-prompt > span.ta3me7i.atm_c8_1ht44t7",
           "viewport": "desktop",
           "property": "color",
           "signal": "computed"
@@ -172,21 +172,21 @@
     "regression": {
       "ok": true,
       "done": false,
-      "score": 48.5,
-      "mismatch": 0.5154,
+      "score": 49.8,
+      "mismatch": 0.5019,
       "surfaces": {
         "landing page": {
-          "score": 54.6,
-          "mismatch": 0.4537,
+          "score": 52.9,
+          "mismatch": 0.4707,
           "done": false,
-          "tokens_off": 9,
+          "tokens_off": 10,
           "regions_off": 3
         },
         "mailer": {
-          "score": 63.6,
-          "mismatch": 0.3636,
+          "score": 69.1,
+          "mismatch": 0.3091,
           "done": false,
-          "tokens_off": 20,
+          "tokens_off": 17,
           "regions_off": 0
         },
         "ad creative": {
@@ -213,7 +213,7 @@
       "body": {
         "page": "https://www.airbnb.com/",
         "role": "body copy",
-        "selector": "span#unified-search-microphone-prompt",
+        "selector": "span#unified-search-microphone-prompt > span.ta3me7i.atm_c8_1ht44t7",
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"

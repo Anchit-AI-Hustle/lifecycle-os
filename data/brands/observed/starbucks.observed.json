@@ -5,7 +5,7 @@
   "start": "https://www.starbucks.com",
   "landed": "https://www.starbucks.com/",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:01:11.844Z",
+  "read_at": "2026-10-04T18:15:36.490Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -23,7 +23,7 @@
       "role": "product"
     },
     {
-      "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=SjASusxzZErREIH26BbNoxEYc80TYbMM5SpKHLAeXOU-1791136870-1.0.1.1-GJ1mauTTwOGdDv2F_41Xu8.egbyNY2XeLV.99pPgrHA",
+      "url": "https://www.starbucks.com/about-us/?__cf_chl_rt_tk=CqmpZjrqxwYB4kGjePdkKMCU7y5xor7ox5.nmRqiF7I-1791137735-1.0.1.1-RAbUEV374NB2zighPm2DQhGHvlWeSnjeKlNctB_7CUc",
       "role": "about"
     }
   ],
@@ -41,8 +41,8 @@
   "regression": {
     "ok": true,
     "done": false,
-    "score": 55.1,
-    "mismatch": 0.4489,
+    "score": 54.6,
+    "mismatch": 0.4539,
     "surfaces": {
       "landing page": {
         "score": 57.6,
@@ -59,10 +59,10 @@
         "regions_off": 0
       },
       "ad creative": {
-        "score": 80,
-        "mismatch": 0.2,
+        "score": 70,
+        "mismatch": 0.3,
         "done": false,
-        "tokens_off": 2,
+        "tokens_off": 3,
         "regions_off": 0
       }
     },

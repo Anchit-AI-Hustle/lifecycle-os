@@ -5,7 +5,7 @@
   "start": "https://www.lenskart.com",
   "landed": "https://www.lenskart.com/en-us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:00:07.155Z",
+  "read_at": "2026-10-04T18:14:37.463Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -36,34 +36,34 @@
   "partial": true,
   "regression": {
     "ok": true,
-    "done": true,
-    "score": 98.8,
-    "mismatch": 0.0125,
+    "done": false,
+    "score": 53.8,
+    "mismatch": 0.4625,
     "surfaces": {
       "landing page": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
-        "regions_off": 0
+        "score": 58.3,
+        "mismatch": 0.4167,
+        "done": false,
+        "tokens_off": 4,
+        "regions_off": 2
       },
       "mailer": {
-        "score": 96.4,
-        "mismatch": 0.0357,
-        "done": true,
-        "tokens_off": 1,
+        "score": 71.4,
+        "mismatch": 0.2857,
+        "done": false,
+        "tokens_off": 8,
         "regions_off": 0
       },
       "ad creative": {
-        "score": 100,
-        "mismatch": 0,
-        "done": true,
-        "tokens_off": 0,
+        "score": 75,
+        "mismatch": 0.25,
+        "done": false,
+        "tokens_off": 1,
         "regions_off": 0
       }
     },
-    "iterations": 1,
-    "repairs": 0,
+    "iterations": 3,
+    "repairs": 4,
     "mismatch_limit": 0.05
   },
   "conflicts": [],
@@ -139,10 +139,10 @@
   "palette": {
     "primary": "#4d4d4d",
     "accent": "#4d4d4d",
-    "ink": "#000042",
+    "ink": "#363636",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
-    "muted": "#000042",
+    "muted": "#363636",
     "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
@@ -178,18 +178,17 @@
       }
     },
     "ink": {
-      "value": "#000042",
+      "value": "#363636",
       "exact": "",
       "derived": true,
-      "from_role": "display heading",
-      "note": "The read found no body copy; the display heading text the site renders (#000042) is the ink.",
+      "note": "DERIVED from #4d4d4d: the read found no text colour that reads on #ffffff, so the primary is darkened until it does (12.08:1).",
       "source": {
-        "page": "https://www.lenskart.com/en-us",
-        "role": "display heading",
-        "selector": "div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq",
-        "viewport": "desktop",
-        "property": "color",
-        "signal": "computed"
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
       }
     },
     "surface_alt": {
@@ -207,7 +206,7 @@
       }
     },
     "muted": {
-      "value": "#000042",
+      "value": "#363636",
       "exact": "",
       "derived": true,
       "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
