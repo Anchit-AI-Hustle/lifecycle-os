@@ -326,7 +326,14 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   family the site HOSTS ITSELF is recognised by name (`data/google-fonts/families.json`, 1908 names from
   google-font-metadata 6.0.8, MIT) and loadable by reference. (8) every face the visible text asks for
   that is declared and not loaded is loaded and CONFIRMED (`document.fonts.load` + `check`, bounded)
-  before the page is measured.
+  before the page is measured. Then, from #140's own CI and review: the harvest's reader process DIED
+  on a runner with no IPv6 route - `pinnedLookup` answered SYNCHRONOUSLY, so a connect that failed at
+  once emitted its error on the socket before http listened (an unhandled `AggregateError`; over https a
+  null-handle crash too, both reproduced locally). The lookup now always answers asynchronously, offers
+  IPv4 first (exactly the addresses `checkUrl` approved), every socket error fails that one request with
+  a sentence, and the read goes on (executed in a child process). A vendor selector on an app wrapper
+  holding main/h1/nav is never hidden or excluded; a scale step is chosen by identity ROLE first, then
+  scale order; the fallback face is keyed by SLOT; the face scan counts only text that renders.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build

@@ -132,12 +132,26 @@ async function checkUrl(raw, policy) {
  * a literal). With no approved address it fails the connect.
  */
 function pinnedLookup(addresses) {
+  // IPv4 FIRST, then IPv6: a runner with no IPv6 route (GitHub's) must not
+  // spend the connect on addresses it cannot reach while an approved IPv4 one
+  // exists. Both families are still offered when Node asks for all of them,
+  // so Happy Eyeballs can fall back either way. Nothing here widens what
+  // checkUrl() approved: these are exactly its addresses, reordered.
+  const ordered = Array.isArray(addresses)
+    ? addresses.filter((a) => a && a.family === 4).concat(addresses.filter((a) => a && a.family !== 4))
+    : [];
   return function lookup(hostname, opts, cb) {
     const done = typeof opts === 'function' ? opts : cb;
     const o = typeof opts === 'object' && opts ? opts : {};
-    if (!Array.isArray(addresses) || !addresses.length) return done(new Error(`no validated address for ${hostname}`));
-    if (o.all) return done(null, addresses.map((a) => ({ address: a.address, family: a.family })));
-    return done(null, addresses[0].address, addresses[0].family);
+    // ALWAYS asynchronous. Answering synchronously let a connect that failed
+    // at once (every address unreachable) emit its error on the socket before
+    // http had attached a listener: an UNHANDLED 'error' that killed the whole
+    // read process (found by the harvest on a runner with no IPv6 route).
+    setImmediate(() => {
+      if (!ordered.length) return done(new Error(`no validated address for ${hostname}`));
+      if (o.all) return done(null, ordered.map((a) => ({ address: a.address, family: a.family })));
+      return done(null, ordered[0].address, ordered[0].family);
+    });
   };
 }
 
@@ -253,9 +267,25 @@ function transport(url, { addresses, method = 'GET', timeoutMs = LIMITS.perReque
       src.on('error', (e) => finish({ error: (e && e.message) || 'the response could not be read' }));
     });
     req.on('timeout', () => { req.destroy(new Error('timed out')); });
-    req.on('error', (e) => finish({ error: (e && e.message) || 'request failed' }));
+    req.on('error', (e) => finish({ error: networkError(e) }));
+    // Belt and braces: whatever the socket emits, this request fails, the
+    // read goes on (a socket with no 'error' listener takes the process down).
+    req.on('socket', (sock) => { sock.on('error', (e) => finish({ error: networkError(e) })); });
     req.end();
   });
+}
+
+/** A network failure as a sentence (an AggregateError carries no message of its own). */
+function networkError(e) {
+  if (!e) return 'request failed';
+  if (e.errors && e.errors.length) {
+    const codes = [...new Set(e.errors.map((x) => x && (x.code || x.message)).filter(Boolean))];
+    return `could not connect to any approved address (${codes.join(', ') || e.code || 'unreachable'})`;
+  }
+  if (e.syscall === 'connect' || /^(ENETUNREACH|EHOSTUNREACH|EAFNOSUPPORT|EADDRNOTAVAIL|ECONNREFUSED)$/.test(String(e.code || ''))) {
+    return `could not connect to any approved address (${e.code || 'unreachable'})`;
+  }
+  return e.message || e.code || 'request failed';
 }
 
 /** Headers handed back to the browser. Cookies and transfer framing are not. */
