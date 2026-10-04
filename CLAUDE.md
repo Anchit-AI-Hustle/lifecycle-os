@@ -325,6 +325,14 @@ configured project that does not answer falls through and says so (`supabase:{re
   Postgres 16). `supabase/config.toml`: `project_id = "lifecycle-os"`, public sign-ups off, Phone provider on.
   Runbook targets a NEW project `lifecycle-os` (`<project-ref>`); no remote was touched (no access token, egress
   blocks supabase hosts, the org has unpaid invoices).
+- **The spec waits on events, never on the runner's clock (2026-10-04).** Two of its tests timed out in CI
+  with a bare "Test timeout" - what Playwright prints for a NODE-side await, and here the error that failed
+  first was lost with it: `finally` awaited `server.close()`, which keeps a socket the still-open page was
+  using and serves it on keep-alive until it goes quiet. `stopApp()` ends every connection; every wait is
+  bounded and names what it waited for (`within()`, `expect.poll` messages); op=status is HELD by the test
+  and the PAGE clock is moved past the old 6-second release (`page.clock`), not slept towards; a fetch
+  recorder in `wire()` says what the page sent at the moment it sent it. CI now uploads `test-results/`
+  (traces) on failure - `--reporter=list` meant `tests/report/` was never written.
 - Gated by `tests/supabase-phone-accounts.spec.js` (18 executed, incl. Chromium against the shipped handler)
   over `tests/supabase-auth-fake.js` (exactly the endpoints called; throws on anything else). 19 mutations of
   the security checks each fail it. The ten tests that were red on main at the time are fixed by #118's

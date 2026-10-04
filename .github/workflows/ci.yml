@@ -105,10 +105,16 @@ jobs:
         run: npx playwright install --with-deps
       - name: Run Playwright suite
         run: npx playwright test --reporter=list
+      # `--reporter=list` replaces the config's html reporter, so tests/report/
+      # is never written and this step used to upload nothing ("No files were
+      # found"). The trace, video and error context of each failed test are
+      # in test-results/ - the only way to see which wait a CI timeout was in.
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
-          path: tests/report/
+          path: |
+            tests/report/
+            test-results/
           retention-days: 7
