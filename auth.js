@@ -1662,7 +1662,12 @@
       <style>
         :root { --lsb-w: 248px; }
         @media (min-width: 961px) { body { margin-left: var(--lsb-w) !important; } }
-        #lifecycle-nav { font-family: 'Inter', system-ui, sans-serif; }
+        /* The rail is the TOOL's chrome in the BRAND's colours and type: every colour
+           below is a contract token (design/lifecycle-os/CONTRACT.md), never a
+           literal. It used to paint the active row in tenant zero's red with its
+           purple edge, and the phone bar near-black under near-black text, for
+           every brand. */
+        #lifecycle-nav { font-family: var(--vh-font-body, system-ui, sans-serif); }
 
         /* Mobile top bar — FIXED so it stays pinned while the page scrolls.
            (A sticky element can't hold here: its wrapper #lifecycle-nav is only
@@ -1673,14 +1678,14 @@
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           height: calc(50px + env(safe-area-inset-top, 0px));
           padding: env(safe-area-inset-top, 0px) 14px 0;
-          background: rgba(7,14,11,0.97); backdrop-filter: blur(14px);
+          background: var(--vh-bg); backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-bottom: 1px solid rgba(171,135,67,0.18);
+          border-bottom: 1px solid var(--vh-line);
         }
         #lifecycle-nav .lnav-mbar-spacer { display: none; }
         #lifecycle-nav .lnav-burger {
-          background: transparent; border: 1px solid rgba(171,135,67,0.25);
-          color: #111111; border-radius: 8px; width: 34px; height: 34px;
+          background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink); border-radius: 8px; width: 34px; height: 34px;
           font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
@@ -1689,10 +1694,10 @@
         #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
         #lifecycle-nav .lnav-backdrop {
-          position: fixed; inset: 0; z-index: 109; background: rgba(0,0,0,0.55);
+          position: fixed; inset: 0; z-index: 109; background: var(--vh-ink);
           opacity: 0; pointer-events: none; transition: opacity .2s;
         }
-        #lifecycle-nav.open .lnav-backdrop { opacity: 1; pointer-events: auto; }
+        #lifecycle-nav.open .lnav-backdrop { opacity: .5; pointer-events: auto; }
 
         /* Sidebar */
         #lifecycle-nav .lnav-side {
@@ -1706,7 +1711,7 @@
              every ? chip measured 4.44:1 against this hardcoded tint. It
              also means the rail re-skins with the workspace like the rest
              of the app instead of staying one tenant's colour. */
-          background: var(--brand-surface, #f4f2ec); border-right: 1px solid var(--brand-line, rgba(171,135,67,0.18));
+          background: var(--vh-bg); border-right: 1px solid var(--vh-line);
           padding: 16px 12px 12px;
         }
         /* The wordmark is the PLATFORM's: mark + name in the rail's own ink,
@@ -1722,9 +1727,9 @@
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
-        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: var(--vh-ink, inherit); font-weight: 600; }
+        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: var(--los-font-wordmark, system-ui, sans-serif); font-size: 14.5px; letter-spacing: -0.01em; color: var(--vh-ink, inherit); font-weight: 700; }
         #lifecycle-nav .lnav-brand .lnav-brandrow { display: flex; align-items: center; gap: 5px; min-width: 0; }
-        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* The brand slot: the ACTIVE brand's own logo (brand.logo_url) or, with
            none on the record, a monogram of its name on a neutral chip. It is
            never any other tenant's file - brand-context.fillBrandSlot() is the
@@ -1742,11 +1747,11 @@
         #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
         #lifecycle-nav .lnav-collapse {
           flex-shrink: 0; width: 26px; height: 26px; margin-bottom: 16px;
-          background: transparent; border: 1px solid rgba(171,135,67,0.22); border-radius: 7px;
-          color: #556059; cursor: pointer; font-size: 14px; line-height: 1;
+          background: transparent; border: 1px solid var(--vh-line); border-radius: 7px;
+          color: var(--vh-ink-dim); cursor: pointer; font-size: 14px; line-height: 1;
           display: flex; align-items: center; justify-content: center; transition: all .12s;
         }
-        #lifecycle-nav .lnav-collapse:hover { border-color: #6A33D8; color: #111111; }
+        #lifecycle-nav .lnav-collapse:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
 
         /* ── Collapsed (icon-only) rail — desktop only ── */
         @media (min-width: 961px) {
@@ -1781,7 +1786,7 @@
         html.lnav-collapsed #lifecycle-nav .lnav-region { display: none; }
         #lifecycle-nav .lnav-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
         #lifecycle-nav .lnav-scroll::-webkit-scrollbar { width: 6px; }
-        #lifecycle-nav .lnav-scroll::-webkit-scrollbar-thumb { background: rgba(171,135,67,0.25); border-radius: 6px; }
+        #lifecycle-nav .lnav-scroll::-webkit-scrollbar-thumb { background: var(--vh-line); border-radius: 6px; }
 
         #lifecycle-nav .lnav-ic { width: 18px; height: 18px; flex-shrink: 0; }
         #lifecycle-nav .lnav-brandic { width: 18px; height: 18px; }
@@ -1789,25 +1794,25 @@
         #lifecycle-nav .lnav-section {
           padding: 14px 11px 5px; margin-top: 4px;
           font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-          color: var(--brand-ink-muted, #5a6169);
+          color: var(--vh-ink-dim);
         }
         html.lnav-collapsed #lifecycle-nav .lnav-section {
           text-align: center; padding: 10px 0 4px; font-size: 0;
         }
         html.lnav-collapsed #lifecycle-nav .lnav-section::before {
-          content: ''; display: inline-block; width: 18px; height: 1px; background: rgba(171,135,67,0.3);
+          content: ''; display: inline-block; width: 18px; height: 1px; background: var(--vh-line-hot);
         }
         #lifecycle-nav .lnav-link {
           display: flex; align-items: center; gap: 11px;
           padding: 7px 11px; margin: 1px 0; border-radius: 9px;
-          font-size: 13px; color: #556059; text-decoration: none;
+          font-size: 13px; color: var(--vh-ink-dim); text-decoration: none;
           border: 1px solid transparent; transition: all .12s;
         }
         #lifecycle-nav .lnav-link:focus-visible,
         #lifecycle-nav .lnav-ghead:focus-visible,
         #lifecycle-nav .lnav-i:focus-visible,
         #lifecycle-nav .lnav-info-item:focus-visible {
-          outline: 1px solid #6A33D8; outline-offset: 1px;
+          outline: 2px solid var(--vh-focus); outline-offset: 1px;
         }
         /* Labels wrap to at most TWO lines instead of truncating mid-word
            ("Calen…", "UK Non-Eng…"). Shared by links AND group headers.
@@ -1824,39 +1829,42 @@
           line-height: 1.4; padding: 1px 4px; border-radius: 4px; white-space: nowrap;
         }
         #lifecycle-nav .lnav-ver.v1 {
-          color: #48524c; background: rgba(139,156,147,0.08);
+          color: var(--vh-ink-dim); background: var(--vh-panel-2);
         }
         #lifecycle-nav .lnav-ver.v2 {
-          color: rgba(171,135,67,0.8); background: rgba(171,135,67,0.1);
+          color: var(--vh-accent-text); background: var(--vh-panel-2);
         }
         html.lnav-collapsed #lifecycle-nav .lnav-ver { display: none; }
-        #lifecycle-nav .lnav-link:hover { color: #111111; background: rgba(171,135,67,0.08); }
-        /* Current item = the STRONGEST, darkest highlight: solid deep-purple fill
-           with chalk text (chalk #FFFFFF on green #D0473E is high-contrast and fully
-           legible) plus a bold lava left-accent. Applies to the active panel AND the
-           active sub-item, so the selected sub-item reads darker than its parent. */
+        #lifecycle-nav .lnav-link:hover { color: var(--vh-ink); background: var(--vh-panel-2); }
+        /* Current item = the STRONGEST highlight: the ACTIVE brand's primary as
+           a control fill, its label and icon in the derived on-primary colour
+           (it was tenant zero's red with a purple icon, 1.5:1, for every brand).
+           Applies to the active panel AND the active sub-item, so the selected
+           sub-item reads stronger than its parent. */
         #lifecycle-nav .lnav-link.active {
-          color: #FFFFFF; background: #D0473E; border-color: rgba(171,135,67,0.55);
-          box-shadow: inset 3px 0 0 #6A33D8; font-weight: 600;
+          color: var(--vh-on-primary); background: var(--vh-primary); border-color: var(--vh-primary);
+          font-weight: 600;
         }
-        #lifecycle-nav .lnav-link.active .lnav-ic { color: #6A33D8; }
+        #lifecycle-nav .lnav-link.active .lnav-ic,
+        #lifecycle-nav .lnav-link.active .lnav-ver { color: var(--vh-on-primary); background: transparent; }
 
         /* Groups */
         #lifecycle-nav .lnav-group { margin: 6px 0 2px; }
         #lifecycle-nav .lnav-ghead {
           width: 100%; display: flex; align-items: center; gap: 11px;
           padding: 7px 11px; border: none; background: transparent; cursor: pointer;
-          font-family: inherit; font-size: 13px; color: #556059; text-align: left; border-radius: 9px;
+          font-family: inherit; font-size: 13px; color: var(--vh-ink-dim); text-align: left; border-radius: 9px;
         }
-        #lifecycle-nav .lnav-ghead:hover { background: rgba(171,135,67,0.06); color: #111111; }
+        #lifecycle-nav .lnav-ghead:hover { background: var(--vh-panel-2); color: var(--vh-ink); }
         /* Parent of the active sub-item ALSO reads as selected, but LIGHTER than
-           the sub-item: a lava-tint fill + faint lava accent, so both show and the
-           sub-item stays the darker/stronger of the two. */
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: var(--brand-primary-text, #c6433b); background: rgba(171,135,67,0.13); box-shadow: inset 3px 0 0 rgba(171,135,67,0.55); }
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: #6A33D8; }
-        #lifecycle-nav .lnav-caret { width: 15px; height: 15px; color: #48524c; transition: transform .18s; }
+           the sub-item: the sunken panel (the ground every text token clears AA
+           on) with the primary as a left edge, so both show and the sub-item
+           stays the stronger of the two. */
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: var(--vh-primary-text); background: var(--vh-panel-2); box-shadow: inset 3px 0 0 var(--vh-primary); }
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: var(--vh-primary-text); }
+        #lifecycle-nav .lnav-caret { width: 15px; height: 15px; color: var(--vh-ink-dim); transition: transform .18s; }
         #lifecycle-nav .lnav-group.open .lnav-caret { transform: rotate(180deg); }
-        #lifecycle-nav .lnav-gbody { display: none; padding-left: 14px; margin-left: 8px; border-left: 1px solid rgba(171,135,67,0.14); }
+        #lifecycle-nav .lnav-gbody { display: none; padding-left: 14px; margin-left: 8px; border-left: 1px solid var(--vh-line); }
         #lifecycle-nav .lnav-group.open .lnav-gbody { display: block; }
         #lifecycle-nav .lnav-gbody .lnav-link { font-size: 12.5px; padding: 6px 10px; }
 
@@ -1866,78 +1874,78 @@
         #lifecycle-nav .lnav-item > .lnav-ghead { flex: 1; min-width: 0; }
         #lifecycle-nav .lnav-i {
           flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
-          background: transparent; border: 1px solid rgba(171,135,67,0.28);
-          color: var(--brand-ink-muted, #5a6169); font-family: inherit; font-size: 10.5px; font-weight: 700; line-height: 1;
+          background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink-dim); font-family: inherit; font-size: 10.5px; font-weight: 700; line-height: 1;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
           transition: all .12s; padding: 0;
         }
-        #lifecycle-nav .lnav-i:hover { border-color: #6A33D8; color: #111111; }
-        #lifecycle-nav .lnav-i.on { background: rgba(171,135,67,0.2); border-color: #6A33D8; color: #111111; }
-        #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed rgba(171,135,67,0.28); }
+        #lifecycle-nav .lnav-i:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-i.on { background: var(--vh-panel-2); border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed var(--vh-line-hot); }
         #lifecycle-nav .lnav-info.open { display: block; }
         #lifecycle-nav .lnav-info-item {
           width: 100%; display: flex; align-items: center; gap: 8px;
           background: transparent; border: none; cursor: pointer; text-align: left;
-          font-family: inherit; font-size: 11.5px; color: #8b9c93;
+          font-family: inherit; font-size: 11.5px; color: var(--vh-ink-dim);
           padding: 5px 8px; border-radius: 7px; transition: all .12s;
         }
-        #lifecycle-nav .lnav-info-item:hover { color: #111111; background: rgba(171,135,67,0.08); }
+        #lifecycle-nav .lnav-info-item:hover { color: var(--vh-ink); background: var(--vh-panel-2); }
         #lifecycle-nav .lnav-info-n {
           flex-shrink: 0; width: 15px; height: 15px; border-radius: 4px;
-          background: rgba(171,135,67,0.14); color: #6A33D8;
+          background: var(--vh-panel-2); color: var(--vh-accent-text);
           font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center;
         }
 
         /* ── Feature info panel (overlay) ── */
         #lifecycle-nav .lnav-ipanel-backdrop {
-          position: fixed; inset: 0; z-index: 125; background: rgba(0,0,0,0.6);
+          position: fixed; inset: 0; z-index: 125; background: var(--vh-ink); opacity: .5;
           display: none;
         }
         #lifecycle-nav .lnav-ipanel {
           position: fixed; z-index: 126;
           top: 50%; left: 50%; transform: translate(-50%, -50%);
           width: min(560px, 94vw); max-height: min(78vh, 720px);
-          background: #ffffff; border: 1px solid rgba(171,135,67,0.3);
-          border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+          background: var(--vh-panel); border: 1px solid var(--vh-line-hot);
+          border-radius: 14px; box-shadow: var(--vh-lift-2);
           display: none; flex-direction: column; overflow: hidden;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: var(--vh-font-body, system-ui, sans-serif);
         }
         #lifecycle-nav.ipanel-open .lnav-ipanel-backdrop { display: block; }
         #lifecycle-nav.ipanel-open .lnav-ipanel { display: flex; }
         #lifecycle-nav .lnav-ipanel-head {
           display: flex; align-items: flex-start; gap: 12px;
-          padding: 18px 20px 12px; border-bottom: 1px solid rgba(171,135,67,0.16);
+          padding: 18px 20px 12px; border-bottom: 1px solid var(--vh-line);
         }
         #lifecycle-nav .lnav-ipanel-eyebrow {
           font-size: 10px; font-weight: 700; letter-spacing: 0.16em;
-          text-transform: uppercase; color: #6A33D8; margin-bottom: 3px;
+          text-transform: uppercase; color: var(--vh-accent-text); margin-bottom: 3px;
         }
         #lifecycle-nav .lnav-ipanel-title {
-          font-family: 'Lora', Georgia, serif; font-size: 18px; font-weight: 600;
-          color: #111111; letter-spacing: -0.01em; flex: 1;
+          font-family: var(--vh-font-head, Georgia, serif); font-size: 18px; font-weight: 600;
+          color: var(--vh-heading, var(--vh-ink)); letter-spacing: -0.01em; flex: 1;
         }
         #lifecycle-nav .lnav-ipanel-htxt { flex: 1; min-width: 0; }
         #lifecycle-nav .lnav-ipanel-close {
           flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
-          background: transparent; border: 1px solid rgba(171,135,67,0.25);
-          color: #556059; font-size: 15px; line-height: 1; cursor: pointer;
+          background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink-dim); font-size: 15px; line-height: 1; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
         }
-        #lifecycle-nav .lnav-ipanel-close:hover { border-color: #6A33D8; color: #111111; }
+        #lifecycle-nav .lnav-ipanel-close:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
         #lifecycle-nav .lnav-ipanel-body {
           padding: 16px 20px 20px; overflow-y: auto; scrollbar-width: thin;
-          font-size: 13px; line-height: 1.65; color: #556059;
+          font-size: 13px; line-height: 1.65; color: var(--vh-ink-dim);
         }
         #lifecycle-nav .lnav-ipanel-body p { margin: 0 0 10px; }
         #lifecycle-nav .lnav-ipanel-q {
-          font-family: 'Lora', Georgia, serif; font-size: 14.5px; font-weight: 600;
-          color: #111111; margin: 18px 0 6px; padding-top: 12px;
-          border-top: 1px solid rgba(171,135,67,0.16);
+          font-family: var(--vh-font-head, Georgia, serif); font-size: 14.5px; font-weight: 600;
+          color: var(--vh-ink); margin: 18px 0 6px; padding-top: 12px;
+          border-top: 1px solid var(--vh-line);
         }
         #lifecycle-nav .lnav-ipanel-q:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
         #lifecycle-nav .lnav-ipanel-note {
-          font-size: 11.5px; color: #6A33D8; background: rgba(171,135,67,0.08);
-          border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
+          font-size: 11.5px; color: var(--vh-accent-text); background: var(--vh-panel-2);
+          border: 1px solid var(--vh-line); border-radius: 8px;
           padding: 8px 12px; margin: 0 0 14px;
         }
         #lifecycle-nav .lnav-steps { margin: 0; padding: 0 0 0 4px; list-style: none; counter-reset: lstep; }
@@ -1948,41 +1956,41 @@
         #lifecycle-nav .lnav-steps li::before {
           content: counter(lstep); position: absolute; left: 0; top: 1px;
           width: 22px; height: 22px; border-radius: 50%;
-          background: rgba(171,135,67,0.16); border: 1px solid rgba(171,135,67,0.35);
-          color: #6A33D8; font-size: 10.5px; font-weight: 700;
+          background: var(--vh-panel-2); border: 1px solid var(--vh-line-hot);
+          color: var(--vh-accent-text); font-size: 10.5px; font-weight: 700;
           display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-steps li:not(:last-child)::after {
           content: ''; position: absolute; left: 10.5px; top: 26px; bottom: 2px;
-          width: 1px; background: rgba(171,135,67,0.18);
+          width: 1px; background: var(--vh-line);
         }
-        #lifecycle-nav .lnav-steps b { display: block; color: #111111; font-size: 12.5px; margin-bottom: 2px; }
-        #lifecycle-nav .lnav-steps .lnav-step-d { display: block; font-size: 12px; color: #556059; }
+        #lifecycle-nav .lnav-steps b { display: block; color: var(--vh-ink); font-size: 12.5px; margin-bottom: 2px; }
+        #lifecycle-nav .lnav-steps .lnav-step-d { display: block; font-size: 12px; color: var(--vh-ink-dim); }
         #lifecycle-nav .lnav-steps .lnav-step-via {
-          display: inline-block; margin-top: 4px; font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; color: var(--brand-ink-muted, #5a6169); background: rgba(171,135,67,0.08);
+          display: inline-block; margin-top: 4px; font-family: var(--vh-font-mono, monospace);
+          font-size: 10px; color: var(--vh-ink-dim); background: var(--vh-panel-2);
           border-radius: 5px; padding: 2px 7px;
         }
 
         /* User footer */
         #lifecycle-nav .lnav-user {
           display: flex; align-items: center; gap: 9px; margin-top: 8px;
-          padding: 10px 8px 4px; border-top: 1px solid rgba(171,135,67,0.14); font-size: 12px; color: #556059;
+          padding: 10px 8px 4px; border-top: 1px solid var(--vh-line); font-size: 12px; color: var(--vh-ink-dim);
         }
         #lifecycle-nav .lnav-avatar { width: 28px; height: 28px; border-radius: 50%;
           /* The workspace's own colours, not one tenant's. The initials sit
              on the primary end of the gradient, so they take --brand-on-
              primary, which is contrast-computed per brand - hardcoded white
              disappears for any brand with a light primary. */
-          background: linear-gradient(135deg,var(--brand-accent,#6A33D8),var(--brand-primary,#D0473E));
+          background: var(--vh-primary);
           display: flex; align-items: center; justify-content: center;
-          color: var(--brand-on-primary, #FFFFFF); font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+          color: var(--vh-on-primary); font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
         #lifecycle-nav .lnav-avatar img { width: 100%; height: 100%; object-fit: cover; }
         #lifecycle-nav .lnav-uname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid rgba(171,135,67,0.25);
-          color: #556059; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
-        #lifecycle-nav .lnav-signout:hover { border-color: #6A33D8; color: #111111; }
-        #lifecycle-nav .lnav-signin { color: #7a5f28; text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink-dim); cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
+        #lifecycle-nav .lnav-signout:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
         #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
@@ -1998,11 +2006,11 @@
           background: var(--vh-panel-2); color: var(--vh-ink);
           border: 1px solid var(--vh-line); box-shadow: inset 3px 0 0 var(--vh-warn);
         }
-        #lifecycle-nav .lnav-signin-note[data-kind="signed-out"] { box-shadow: inset 3px 0 0 var(--vh-lava); }
+        #lifecycle-nav .lnav-signin-note[data-kind="signed-out"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
         #lifecycle-nav .lnav-signin-note[data-kind="failed"] { box-shadow: none; padding: 0; border: 0; background: transparent; }
-        #lifecycle-nav .lnav-signin-note code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+        #lifecycle-nav .lnav-signin-note code { font-family: var(--vh-font-mono, monospace); font-size: 10.5px; }
         #lifecycle-nav .lnav-signin-note b { color: var(--vh-ink); }
-        #lifecycle-nav .lnav-signin-note[data-kind="expired"] { box-shadow: inset 3px 0 0 var(--vh-lava); }
+        #lifecycle-nav .lnav-signin-note[data-kind="expired"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
         /* Mobile number + PIN sign-in (2026-09-28): an inline panel in the
            rail, on the current page - no navigation, no dialog. Brand tokens
            only: the primary button takes the brand's primary with its
@@ -2016,15 +2024,15 @@
         #lifecycle-nav .lnav-mauth .lnav-mauth-row { display: flex; gap: 6px; }
         #lifecycle-nav .lnav-mauth select, #lifecycle-nav .lnav-mauth input { width: 100%; box-sizing: border-box; min-width: 0;
           font: inherit; font-size: 13px; padding: 7px 8px; border-radius: 6px; border: 1px solid var(--vh-line);
-          background: var(--vh-panel, #ffffff); color: var(--vh-ink); }
+          background: var(--vh-panel); color: var(--vh-ink); }
         #lifecycle-nav .lnav-mauth select { width: 84px; flex: none; }
-        #lifecycle-nav .lnav-mauth input:focus, #lifecycle-nav .lnav-mauth select:focus { outline: 2px solid var(--vh-lava); outline-offset: 1px; }
+        #lifecycle-nav .lnav-mauth input:focus, #lifecycle-nav .lnav-mauth select:focus { outline: 2px solid var(--vh-focus); outline-offset: 1px; }
         #lifecycle-nav .lnav-mauth .lnav-mauth-pin { letter-spacing: .45em; text-align: center; font-size: 16px; }
         #lifecycle-nav .lnav-mauth .lnav-mauth-note { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--vh-ink); }
         #lifecycle-nav .lnav-mauth .lnav-mauth-actions { display: flex; gap: 6px; margin-top: 10px; }
         #lifecycle-nav .lnav-mauth button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 10px; border-radius: 6px;
           cursor: pointer; border: 1px solid var(--vh-line); background: transparent; color: var(--vh-ink); }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-go { flex: 1; background: var(--brand-primary, var(--vh-lava)); color: var(--brand-on-primary, #ffffff); border-color: transparent; }
+        #lifecycle-nav .lnav-mauth .lnav-mauth-go { flex: 1; background: var(--vh-primary); color: var(--vh-on-primary); border-color: transparent; }
         #lifecycle-nav .lnav-mauth button[disabled] { opacity: .6; cursor: progress; }
         #lifecycle-nav .lnav-mauth .vh-status { margin: 0 0 6px; }
         #lifecycle-nav .lnav-mauth .lnav-mauth-err { margin-top: 8px; }
@@ -2039,7 +2047,7 @@
           #lifecycle-nav .lnav-side {
             width: min(var(--lsb-w), 86vw); height: 100dvh;
             transform: translateX(-100%); transition: transform .24s ease;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            box-shadow: var(--vh-lift-2);
             padding-top: calc(16px + env(safe-area-inset-top, 0px));
           }
           #lifecycle-nav.open .lnav-side { transform: translateX(0); }
@@ -2757,7 +2765,7 @@
       // Being signed out is an ordinary state, not a fault. Only the two
       // states someone has to FIX wear the warning colour.
       'box-shadow:inset 0 3px 0 ' + (kind === 'signed-out'
-        ? 'var(--vh-accent,#6A33D8)' : 'var(--vh-warn,#c9a227)'),
+        ? 'var(--vh-accent)' : 'var(--vh-warn)'),
       'font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)',
       'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
     ].join(';');
