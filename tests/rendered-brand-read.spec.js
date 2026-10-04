@@ -429,3 +429,126 @@ test('the server path scores the WORKSPACE as it stands; a device or anonymous c
     expect((await core.scoringBrandFor({ ok: false }, { brand: { name: 'x', logo_url: 'javascript:alert(1)' } }, {})).logo_url).toBe('');
   } finally { core.getWorkspace = real; }
 });
+
+/* ── THE ADOPTED REFERENCE ITEMS (2026-10-04), each executed ─────────────── */
+
+test('A + B: a page IN MOTION is measured frozen - the declared colour, the pinned clock on BOTH sides - and its live pixels are masked out', async () => {
+  const { out } = await read('i');
+  expect(out.ok).toBe(true);
+  // A: the CTA runs an infinite colour animation; frozen, it reads as declared.
+  expect(role(out, 'button_primary').style.background).toBe('#245c3a');
+  // The SAME frozen clock on the site and on our clone.
+  const g = out.regression;
+  expect(out.manifest.read.desktop.stabilised.clock).toMatch(/^2026-01-01T00:00:00/);
+  expect(g.stabilised.source.clock).toMatch(/^2026-01-01T00:00:00/);
+  expect(g.stabilised.ours.clock).toMatch(/^2026-01-01T00:00:00/);
+  // B: the badge inside the CTA changes colour every 50 ms (live content).
+  // It is masked out of the perceptual comparison, on the site's side.
+  const btn = g.regions.find((r) => r.component === 'primary button (desktop)');
+  expect(btn.comparable).toBe(true);
+  expect(btn.masked.volatile, 'no live pixels were found').toBeGreaterThan(200);
+  expect(btn.ratio, `perceptual ${btn.ratio} (raw ${btn.raw_ratio})`).toBeLessThanOrEqual(0.03);
+});
+
+test('C: STRUCTURAL and PERCEPTUAL are separate scores with stated limits, and approval needs BOTH', async () => {
+  const rr = require('../api/_shared/render-regression.js');
+  expect(rr.STRUCTURAL_LIMIT).toBe(0.95);
+  expect(rr.PERCEPTUAL_LIMIT).toBe(0.97);
+  const rows = Array.from({ length: 40 }, (_, i) => ({ status: i < 1 ? 'mismatch' : 'match' }));
+  const clean = [{ comparable: true, ratio: 0.004, component: 'primary button (desktop)' }];
+  const shapeOff = [{ comparable: true, ratio: 0.08, component: 'primary button (desktop)' }];
+  const a = rr.scoreOf(rows, clean);
+  expect(a.structural).toMatchObject({ score: 97.5, limit: 95, pass: true });
+  expect(a.perceptual).toMatchObject({ score: 99.6, limit: 97, pass: true });
+  expect(a.approved).toBe(true);
+  // Every token in tolerance, a shape our button does not have: NOT approved.
+  const b = rr.scoreOf(rows.map(() => ({ status: 'match' })), shapeOff);
+  expect(b.structural.pass).toBe(true);
+  expect(b.perceptual).toMatchObject({ pass: false, worst_region: 'primary button (desktop)' });
+  expect(b.approved).toBe(false);
+  // Pixels clean, three tokens in forty off: NOT approved either.
+  const c = rr.scoreOf(rows.map((r, i) => ({ status: i < 3 ? 'mismatch' : 'match' })), clean);
+  expect(c.structural.pass).toBe(false);
+  expect(c.approved).toBe(false);
+});
+
+test('D: a repair is KEPT only if the composite strictly improves; one that does not is put back and logged', async () => {
+  // The site changes AFTER it was measured (its CTA turns #d4e157). A wrong
+  // manifest value sends the button to be re-measured; the re-measured value
+  // is the changed page's, it does not bring our output closer to the site as
+  // measured, so it is reverted - never kept to chase a number.
+  const srv = await sites.serve(sites.siteRoutes('a'));
+  const br = require(RENDER);
+  const rr = require('../api/_shared/render-regression.js');
+  let g, final;
+  try {
+    await require('../api/_shared/render-browser.js').withBrowser(async (browser) => {
+      const m = await br.readRendered(srv.origin + '/', { browser, policy: { allowOrigins: new Set([srv.origin]) }, keepPages: true, deadlineMs: 60000, maxPages: 0 });
+      const live = m.__live;
+      await live.desktopPage.evaluate(() => { document.querySelector('[data-lcos-role="button-primary"]').style.setProperty('background-color', '#d4e157', 'important'); });
+      g = await rr.run({ browser, manifest: m, live, seed: { 'desktop.button_primary.style.background': '#00ff00' }, deadline: Date.now() + 100000 });
+      final = m.read.desktop.roles.button_primary.style.background;
+    });
+  } finally { await srv.close(); }
+  const tried = g.reverted.find((x) => x.token === 'background' && x.to === '#d4e157');
+  expect(tried, JSON.stringify(g.reverted)).toBeTruthy();
+  expect(tried.reason).toMatch(/did not strictly improve|could be scored/);
+  expect(g.repairs.some((x) => x.to === '#d4e157')).toBe(false);
+  expect(final).toBe('#00ff00');
+  // Each scored iteration's composite is recorded, and none is worse than the first.
+  expect(g.iterations.length).toBeGreaterThan(1);
+});
+
+test('E: the font legal gate - a brand font is recorded with its source URLs and loaded by REFERENCE to measure, never copied into a generated email', async () => {
+  const { out } = await read('c');
+  const f = out.manifest.fonts.heading;
+  expect(f).toMatchObject({ family: 'Fixture Display', licence: 'brand font', display_name: 'Fixture Display (brand font)', fallback_stack: "'Georgia',serif", files_by_reference: true });
+  expect(new URL(f.files[0].url).pathname).toBe('/fonts/display.ttf');
+  // What the wizard applies names it as a brand font, with its fallback, and carries URLs only.
+  expect(out.apply['typography.heading'].value).toMatchObject({ licence: 'brand font', display_name: 'Fixture Display (brand font)' });
+  expect(JSON.stringify(out.apply)).not.toMatch(/data:font|base64,AAEAAA/);
+  // Our renderers: the landing-page preview loads the file BY REFERENCE (to
+  // measure it); no mailer style carries an @font-face or the file's URL.
+  const rr = require('../api/_shared/render-regression.js');
+  const ours = rr.renderOurs(rr.brandFor(out.manifest), rr.sampleFrom(out.manifest));
+  expect(ours.lp).toContain('/fonts/display.ttf');
+  for (const [style, rendered] of Object.entries(ours.mailers)) {
+    expect(rendered, `${style} mailer embeds a font face`).not.toContain('@font-face');
+    expect(rendered, `${style} mailer references the brand's font file`).not.toContain('display.ttf');
+    expect(rendered, `${style} mailer does not name the family first`).toContain("'Fixture Display'");
+  }
+  // A file the OPERATOR supplied (uploaded, or a URL they gave) is theirs to
+  // license, and does reach the email - while the site's file still does not.
+  const own = rr.renderOurs(rr.brandFor(out.manifest, {
+    typography: { heading: { family: 'Fixture Display', stack: "'Fixture Display',Georgia,serif", google: false, src: 'https://cdn.mybrand.example/licensed/display.woff2', format: 'woff2' } },
+    brand_data: { field_origin: { 'typography.heading': 'user' } },
+  }), rr.sampleFrom(out.manifest));
+  for (const [style, rendered] of Object.entries(own.mailers)) {
+    expect(rendered, `${style} mailer lost the operator's licensed file`).toContain('https://cdn.mybrand.example/licensed/display.woff2');
+    expect(rendered, `${style} mailer references the site's font file`).not.toContain('/fonts/display.ttf');
+  }
+  // The email's drawn fallback is the gate working, said as such - not a miss.
+  // (The engine names a drawn face by its FILE: this fixture's "Fixture Display" is the OFL file "Erica One".)
+  const rows = out.regression.tokens.filter((t) => t.surface === 'mailer' && t.token === 'drawn face' && /: heading$/.test(t.component));
+  expect(rows.length).toBe(4);
+  for (const t of rows) {
+    expect(t.status).toBe('exempt');
+    expect(t.reason).toMatch(/^font licence: Fixture Display is the brand's own font/);
+  }
+});
+
+test('a consent overlay is HIDDEN, never accepted, and its colours are never read as the brand\'s', async () => {
+  const srv = await sites.serve(sites.siteRoutes('j'));
+  let out;
+  try {
+    out = await require(RENDER).readSite(srv.origin + '/', { policy: { allowOrigins: new Set([srv.origin]) }, deadlineMs: 110000, regression: false });
+  } finally { await srv.close(); }
+  expect(out.ok).toBe(true);
+  expect(srv.hits.some((h) => /consent\/accept/.test(h)), 'the reader followed "Accept"').toBe(false);
+  const hidden = out.manifest.read.desktop.stabilised.consent_hidden;
+  expect(hidden.map((x) => x.id)).toContain('cookie-banner');
+  expect(out.manifest.notes.join(' ')).toMatch(/consent overlay\(s\) were HIDDEN in the reader's throwaway browser, not accepted/);
+  expect(role(out, 'button_primary').style.background).toBe('#2f4f8f');
+  const m = JSON.stringify({ colors: out.manifest.colors, roles: out.manifest.read.desktop.roles, apply: out.apply });
+  expect(m).not.toContain('#ff6a00');
+});
