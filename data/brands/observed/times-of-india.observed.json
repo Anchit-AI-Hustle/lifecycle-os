@@ -5,7 +5,7 @@
   "start": "https://timesofindia.indiatimes.com",
   "landed": "https://timesofindia.indiatimes.com/us",
   "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:12:41.612Z",
+  "read_at": "2026-10-04T18:48:52.617Z",
   "renderer": "rendered",
   "reader": {
     "module": "api/_shared/brand-render.js",
@@ -87,7 +87,7 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134553390.jpg?photoid=134553390&imgsize=921314&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134653915.jpg?photoid=134653915&imgsize=520907&width=220&resizemode=4",
       "role": "hero",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
@@ -101,28 +101,28 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134678353.jpg?photoid=134678353&imgsize=144226&width=600&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134675881.jpg?photoid=134675881&imgsize=93712&width=600&resizemode=4",
       "role": "hero",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134677880.jpg?photoid=134677880&imgsize=122238&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134678780.jpg?photoid=134678780&imgsize=1967316&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134618288.jpg?photoid=134618288&imgsize=2413110&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134676387.jpg?photoid=134676387&imgsize=1476619&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134677173.jpg?photoid=134677173&imgsize=86362&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134678353.jpg?photoid=134678353&imgsize=144226&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
