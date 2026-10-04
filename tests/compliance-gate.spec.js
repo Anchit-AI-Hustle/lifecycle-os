@@ -475,6 +475,120 @@ test('validation never rewrites copy: every field the gate read is byte for byte
   expect(strip(campaign)).toBe(before);
 });
 
+/* ═══ review findings on #138 (the linter), each failing before its fix ═════ */
+
+test('REVIEW P1: one claim approved separately per region keeps its evidence per region; a UK approval never inherits a US study', () => {
+  const brand = Object.assign({}, CALMROOT, {
+    approved_claims: [
+      { text: SLEEP_CLAIM, citation: { source: 'Calmroot sleep trial report (fixture)', url: SLEEP_URL }, regions: ['US'] },
+      { text: SLEEP_CLAIM, register: 'GB NHC Register', regions: ['UK'] },
+    ],
+  });
+  // The UK approval is a register entry with no study behind it, so the
+  // clinical half of the sentence has nothing to cite in the UK.
+  const uk = lintAs(brand, 'UK', { html: `<p>${SLEEP_CLAIM}.</p>` });
+  expect(ruleIds(uk.findings)).toContain('generic.uncited_clinical_claim');
+  expect(JSON.stringify(uk.findings)).not.toContain(SLEEP_URL);
+  expect(JSON.stringify(uk.matched_claims)).not.toContain(SLEEP_URL);
+  const ukBrief = cl.brief({ brand, market: 'UK' });
+  expect(ukBrief).not.toContain(SLEEP_URL);
+  expect(ukBrief).toContain(`"${SLEEP_CLAIM}" [approved on the brand record; no evidence citation, so never present it as clinical or scientific] [GB NHC Register]`);
+  // The US keeps its own evidence, and the UK's register entry is not the US's.
+  const us = lintAs(brand, 'US', { html: `<p>${SLEEP_CLAIM}. ${cl.DISCLAIMER_SINGULAR}</p>` });
+  expect(us.findings).toEqual([]);
+  expect(us.matched_claims.map((c) => [c.citation && c.citation.url, c.register])).toEqual([[SLEEP_URL, null]]);
+  // A market-wide uncited string beside a US-cited copy: the US uses the cited one.
+  const both = Object.assign({}, CALMROOT, { claims: [SLEEP_CLAIM], approved_claims: [{ text: SLEEP_CLAIM, citation: { source: 'study', url: SLEEP_URL }, regions: ['US'] }] });
+  expect(lintAs(both, 'US', { html: `<p>${SLEEP_CLAIM}. ${cl.DISCLAIMER_SINGULAR}</p>` }).findings).toEqual([]);
+  expect(ruleIds(lintAs(both, 'UK', { html: `<p>${SLEEP_CLAIM}.</p>` }).findings)).toContain('generic.uncited_clinical_claim');
+  // A send with no single market may reach the UK: a US-only study is not its evidence.
+  const global = lintAs(brand, 'GLOBAL', { html: `<p>${SLEEP_CLAIM}. ${cl.DISCLAIMER_SINGULAR}</p>` });
+  expect(ruleIds(global.findings)).toContain('generic.uncited_clinical_claim');
+  expect(JSON.stringify(global.matched_claims)).not.toContain(SLEEP_URL);
+});
+
+test('REVIEW P1: a sector the gate cannot classify is reported UNCHECKED, naming the value, and never treated as classified', () => {
+  const declared = Object.assign({}, NORTHLINE, { compliance: { sectors: ['cannabis'] } });
+  const r = lintAs(declared, 'US', { subject: 'Cures anxiety' });
+  expect(r.verdict).toBe('warn');
+  expect(r.findings.map((f) => [f.id, f.severity])).toEqual([['compliance.sector_unrecognised', 'WARN']]);
+  expect(r.findings[0].fix).toContain('"cannabis"');
+  expect(r.selection.sector_basis).toBe('unrecognised');
+
+  const industry = Object.assign({}, NORTHLINE, { industry: 'Nootropic gummies' });
+  const r2 = lintAs(industry, 'US', { subject: 'Cures anxiety' });
+  expect(r2.findings.map((f) => f.id)).toEqual(['compliance.sector_unrecognised']);
+  expect(r2.findings[0].fix).toContain('"Nootropic gummies"');
+
+  // A value the table does recognise is classified, so its packs apply.
+  const pharma = Object.assign({}, NORTHLINE, { compliance: { sectors: ['pharmaceutical'] } });
+  const r3 = lintAs(pharma, 'US', { subject: 'Cures anxiety' });
+  expect(r3.packs).toContain('us.fda-ftc.health');
+  expect(r3.findings.map((f) => f.id)).toEqual(['us.fda.disease_claim']);
+  // A sector the record names that IS recognised beside one that is not: both said.
+  const mixed = Object.assign({}, NORTHLINE, { compliance: { sectors: ['food', 'tobacco'] } });
+  const r4 = lintAs(mixed, 'US', { subject: 'Cures anxiety' });
+  expect(r4.findings.map((f) => f.id).sort()).toEqual(['compliance.sector_unrecognised', 'us.fda.disease_claim']);
+
+  // An industry the gate KNOWS carries no shipped sector pack is classified as such, with its basis.
+  const sneaker = lintAs(NORTHLINE, 'US', { subject: 'Grail drop' });
+  expect(sneaker.findings).toEqual([]);
+  expect(sneaker.selection.sector_basis).toBe('no-regulated-sector');
+  expect(sneaker.selection.sector_from).toBe('brand record: industry "Custom sneakers / D2C" names "sneakers"');
+});
+
+test('REVIEW P2: a guaranteed outcome BLOCKS even when it is on the approved list with a citation', () => {
+  const brand = Object.assign({}, CALMROOT, {
+    approved_claims: [{ text: 'Guaranteed weight loss in 30 days', citation: { source: 'fixture', url: 'https://example.org/calmroot/wl' }, regions: ['US'] }],
+  });
+  const r = lintAs(brand, 'US', { subject: 'Guaranteed weight loss in 30 days' });
+  expect(ruleIds(r.findings)).toContain('generic.guaranteed_outcome');
+  expect(r.verdict).toBe('block');
+  const g = r.findings.find((f) => ruleIds([f]).includes('generic.guaranteed_outcome'));
+  expect(g.severity).toBe('BLOCK');
+  // And the writer is never handed it as usable.
+  const brief = cl.brief({ brand, market: 'US' });
+  expect(brief).not.toContain('"Guaranteed weight loss in 30 days"');
+  expect(brief).toContain('Never promise a guaranteed result or outcome.');
+});
+
+test('REVIEW P1: a recorded offer backs only what it says: the deadline window and the stock number are compared with the copy, from an injectable now', () => {
+  const at = (subject, offer, now) => lintAs(NORTHLINE, 'US', { subject }, { offer, now: now || '2026-10-01T10:00:00Z' });
+  const urgency = (r) => r.findings.filter((f) => f.id === 'generic.unbacked_urgency').map((f) => [f.severity, f.matched]);
+  // 2026-10-01 is a Thursday.
+  expect(urgency(at('Today only', { ends_at: '2026-12-31' }))).toEqual([['BLOCK', 'Today only']]);
+  expect(urgency(at('Today only', { ends_at: '2026-10-01T23:59:00Z' }))).toEqual([]);
+  expect(urgency(at('Ends tonight', { ends_at: '2026-10-01T23:30:00-04:00' }))).toEqual([]);
+  expect(urgency(at('Ends tonight', { ends_at: '2026-10-02T23:30:00Z' }))).toEqual([['BLOCK', 'Ends tonight']]);
+  expect(urgency(at('48 hours only', { ends_at: '2026-10-02T20:00:00Z' }))).toEqual([]);
+  expect(urgency(at('48 hours only', { ends_at: '2026-10-04T10:00:00Z' }))).toEqual([['BLOCK', '48 hours only']]);
+  expect(urgency(at('Ends this weekend', { ends_at: '2026-10-04T23:00:00Z' }))).toEqual([]);
+  expect(urgency(at('Ends this weekend', { ends_at: '2026-10-07T23:00:00Z' }))).toEqual([['BLOCK', 'Ends this weekend']]);
+  // An offer that has already ended backs no deadline at all.
+  const ended = at('Limited time offer', { ends_at: '2026-09-30T23:00:00Z' });
+  expect(urgency(ended)).toEqual([['BLOCK', 'Limited time offer']]);
+  expect(ended.findings[0].fix).toMatch(/ended/);
+  // Stock: the number in the copy is the number on record, or it is not backed.
+  expect(urgency(at('Only 500 left', { stock: 1 }))).toEqual([['BLOCK', 'Only 500 left']]);
+  expect(urgency(at('Only 3 left', { stock: 40 }))).toEqual([['BLOCK', 'Only 3 left']]);
+  expect(urgency(at('Only 1 left', { stock: 1 }))).toEqual([]);
+  // A qualitative line cannot be measured against a number: said, not passed.
+  expect(urgency(at('Selling fast', { stock: 40 }))).toEqual([['WARN', 'Selling fast']]);
+});
+
+test('REVIEW P2: alt text and every copy field asset-specs defines are linted (a Pin carries alt_text publicly)', () => {
+  const fields = ['alt_text', 'alt', 'image_alt', 'subject_line', 'from_name', 'cta_text', 'cta_label', 'seo_title', 'meta_description', 'og_title', 'og_description', 'h1', 'first_comment', 'cover_text'];
+  for (const k of fields) {
+    const r = lintAs(CALMROOT, 'US', { [k]: 'Cures anxiety' });
+    expect(r.findings.map((f) => [f.id, f.field]), k).toEqual([['us.fda.disease_claim', k]]);
+  }
+  expect(lintAs(CALMROOT, 'US', { headings: ['Calm, nightly', 'Cures anxiety'] }).findings.map((f) => f.field)).toEqual(['headings[1]']);
+  expect(lintAs(CALMROOT, 'US', { body_html: '<p>It cures anxiety.</p>' }).findings.map((f) => f.field)).toEqual(['body_html']);
+  // A disclosure in the hashtags is read too, so a disclosed creator post is not warned.
+  expect(lintAs(NORTHLINE, 'US', { caption: 'Worn by Jordan Lee all season.', hashtags: ['#ad', '#northline'] }).findings).toEqual([]);
+  expect(lintAs(NORTHLINE, 'US', { caption: 'Worn by Jordan Lee all season.', hashtags: '#ad #northline' }).findings).toEqual([]);
+});
+
 /* ═══ 4. the preflight gate and the queue ═══════════════════════════════════ */
 
 const CONN = { oauth_scopes: ['campaigns:write', 'templates:write'], config: { publishing_enabled: true }, secret_fields: ['access_token'], status: 'active' };
@@ -508,10 +622,16 @@ test('the preflight gate BLOCKS on a compliance finding and carries every findin
   expect(silent.checks.find((x) => x.id === 'compliance').status).toBe('skip');
 });
 
-test('the queue: a compliance block never becomes a job; an override needs a reason, and the audit keeps who, why and every finding', async () => {
+/**
+ * The dispatch queue over the in-memory PostgREST (tests/lib/fake-supabase.js):
+ * a supplement workspace with a Klaviyo connection, read as the service. `fn`
+ * gets the world; the environment and fetch are restored whatever happens.
+ */
+async function withQueue(fn) {
   const { FakeSupabase, envScope, SERVICE_KEY, ANON_KEY, BASE } = require('./lib/fake-supabase.js');
   const connections = require(path.join(ROOT, 'api', '_shared', 'workspace-connections-core.js'));
   const dispatch = require(path.join(ROOT, 'api', '_shared', 'dispatch-core.js'));
+  const wsScope = require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js'));
   const ENV = envScope(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'SUPABASE_ANON_KEY', 'CONNECTION_SECRET_KEY', 'LIVE_CONNECTORS']);
   ENV.save();
   const realFetch = global.fetch;
@@ -534,16 +654,29 @@ test('the queue: a compliance block never becomes a job; an override needs a rea
     db.insert('workspace_connection_secrets', Object.assign({ connection_id: conn.id, workspace_id: WS }, connections.encryptSecrets({ access_token: 'kl-access-1' })));
     db.install();
     connections._resolvedCache.clear();
+    wsScope.invalidate();
     const AUTH = { ok: true, token: 'tok-c', user_id: 'user-c', email: 'c@example.test' };
     const SPEC = (extra) => Object.assign({
       channel: 'klaviyo_email', skip_mapping: true, asset_ref: 'mailer-c1', message_priority: 'transactional', market: 'US',
       payload: { subject: 'Cures anxiety', html: '<p>Your calm is in the post.</p><a href="https://calmroot.example/u">Unsubscribe</a>', from_email: 'hello@calmroot.example', list_id: 'L1' },
     }, extra || {});
+    await fn({ db, dispatch, WS, AUTH, SPEC });
+    expect(db.external(), 'the gate sent nothing anywhere').toHaveLength(0);
+    db.restore();
+  } finally {
+    global.fetch = realFetch;
+    ENV.restore();
+    require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js')).invalidate();
+  }
+}
+const complianceOf = (out) => out.preflight.checks.find((x) => x.id === 'compliance');
 
+test('the queue: a compliance block never becomes a job; an override needs a reason, and the audit keeps who, why and every finding', async () => {
+  await withQueue(async ({ db, dispatch, WS, AUTH, SPEC }) => {
     const refused = await dispatch.enqueue(AUTH, WS, SPEC());
     expect(refused).toMatchObject({ ok: false, blocked: true });
     expect(refused.message).toMatch(/Brand safety and compliance: 1 blocking/);
-    const check = refused.preflight.checks.find((x) => x.id === 'compliance');
+    const check = complianceOf(refused);
     expect(check.status).toBe('block');
     expect(check.findings.map((f) => [f.id, f.matched])).toEqual([['us.fda.disease_claim', 'Cures anxiety']]);
     expect(db.table('dispatch_jobs')).toHaveLength(0);
@@ -564,16 +697,76 @@ test('the queue: a compliance block never becomes a job; an override needs a rea
     expect(audited.findings[0]).toMatchObject({ id: 'us.fda.disease_claim', matched: 'Cures anxiety', severity: 'BLOCK' });
     expect(audited.findings[0].citation.map((c) => c.cite)).toEqual(['21 CFR 101.93(g)', '21 U.S.C. 343(r)(6)', 'FTC Health Products Compliance Guidance (December 2022); FTC Act sections 5 and 12 (15 U.S.C. 45, 52)']);
 
-    // The brand the ROUTER resolved outranks the row: a sneaker brand's copy is not held to the supplement pack.
-    const sneaker = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-c2' }), { brand: NORTHLINE });
+    // The brand the ROUTER resolved for THIS workspace is the one linted as.
+    const sneaker = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-c2' }), { brand: Object.assign({}, NORTHLINE, { id: WS }) });
     expect(sneaker.ok).toBe(true);
-    expect(sneaker.preflight.checks.find((x) => x.id === 'compliance')).toMatchObject({ status: 'pass', packs: ['generic', 'us.ftc'] });
-    expect(db.external(), 'the gate sent nothing anywhere').toHaveLength(0);
-    db.restore();
-  } finally {
-    global.fetch = realFetch;
-    ENV.restore();
-  }
+    expect(complianceOf(sneaker)).toMatchObject({ status: 'pass', packs: ['generic', 'us.ftc'] });
+  });
+});
+
+/* ═══ review findings on #138, each failing before its fix ═════════════════ */
+
+test('REVIEW P1: a brand that is not this workspace\'s (resolve()\'s tenant-zero fallback) is never linted as; the workspace\'s own row is read, and with no readable row the send is UNCHECKED and blocked, never passed', async () => {
+  await withQueue(async ({ db, dispatch, WS, AUTH, SPEC }) => {
+    // brand-runtime.resolve() hands back tenant zero (a record with no id)
+    // when it cannot read the workspace. Linted as that, a supplement's
+    // disease claim would pass under a sneaker brand's packs.
+    const fallback = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-f1' }), { brand: TENANT_ZERO });
+    expect(fallback).toMatchObject({ ok: false, blocked: true });
+    expect(complianceOf(fallback).packs).toContain('us.fda-ftc.health');
+    expect(complianceOf(fallback).findings.map((f) => f.id)).toEqual(['us.fda.disease_claim']);
+    // Another workspace's brand record is not this workspace's either.
+    const foreign = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-f2' }), { brand: NORTHLINE });
+    expect(complianceOf(foreign).status).toBe('block');
+    expect(complianceOf(foreign).selection.brand).toBe('Calmroot');
+
+    // The workspace row cannot be read at all: unchecked, and a block an
+    // operator can override with a reason, never a pass as somebody else.
+    // (The service read of the row is what fails; the caller's own membership
+    // read, which the queue makes first, still answers.)
+    const wsScope = require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js'));
+    const realRead = wsScope.brandForWorkspace;
+    wsScope.brandForWorkspace = async () => null;
+    try {
+      const down = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-f3', payload: Object.assign(SPEC().payload, { subject: 'Your order is on its way' }) }), { brand: TENANT_ZERO });
+      expect(down).toMatchObject({ ok: false, blocked: true });
+      expect(complianceOf(down)).toMatchObject({ status: 'block' });
+      expect(complianceOf(down).detail).toMatch(/could not be read/);
+      expect(complianceOf(down).findings).toBeUndefined();
+      expect(db.table('dispatch_jobs').filter((j) => j.asset_ref === 'mailer-f3')).toHaveLength(0);
+    } finally { wsScope.brandForWorkspace = realRead; }
+  });
+});
+
+test('REVIEW P1: a backed deadline and stock line pass at dispatch, because the offer is read SERVER-SIDE from the campaign the job names; a body-supplied offer is never read', async () => {
+  test.setTimeout(120_000);
+  const today = new Date().toISOString().slice(0, 10);
+  const offer = { code: 'NL10', pct: 0.1, depth: 'light', why: 'test', ends_at: `${today}T23:59:59Z`, stock: 10 };
+  // The builder stamps the offer it built with on the campaign it persists.
+  const entry = Object.assign(slot(NORTHLINE, 'US'), { offer });
+  const campaign = await sbPlan.buildCampaign(entry, smartConfig({}), { noLLM: true, withCreatives: false });
+  expect(campaign.offer).toMatchObject({ ends_at: offer.ends_at, stock: 10 });
+
+  await withQueue(async ({ db, dispatch, WS, AUTH, SPEC }) => {
+    db.insert('smart_generated_campaigns', { id: campaign.campaign_id, workspace_id: WS, payload: campaign, status: 'approved' });
+    const urgent = (extra) => SPEC(Object.assign({ payload: Object.assign(SPEC().payload, { subject: 'Today only: only 10 left' }) }, extra));
+    const brand = { brand: Object.assign({}, NORTHLINE, { id: WS }) };
+
+    const backed = await dispatch.enqueue(AUTH, WS, urgent({ asset_ref: 'mailer-o1', campaign_id: campaign.campaign_id }), brand);
+    expect(complianceOf(backed).findings || []).toEqual([]);
+    expect(backed.ok).toBe(true);
+
+    // No campaign named: nothing on record backs the lines.
+    const unbacked = await dispatch.enqueue(AUTH, WS, urgent({ asset_ref: 'mailer-o2' }), brand);
+    expect(complianceOf(unbacked).findings.map((f) => f.id)).toEqual(['generic.unbacked_urgency', 'generic.unbacked_urgency']);
+    // An offer in the request body is the caller's claim, not the record's.
+    const bodyOffer = await dispatch.enqueue(AUTH, WS, urgent({ asset_ref: 'mailer-o3', offer }), brand);
+    expect(complianceOf(bodyOffer).status).toBe('block');
+    // Another workspace's campaign is not read.
+    db.insert('smart_generated_campaigns', { id: 'campaign_elsewhere', workspace_id: 'ws-other', payload: campaign, status: 'approved' });
+    const elsewhere = await dispatch.enqueue(AUTH, WS, urgent({ asset_ref: 'mailer-o4', campaign_id: 'campaign_elsewhere' }), brand);
+    expect(complianceOf(elsewhere).status).toBe('block');
+  });
 });
 
 /* ═══ 5. the writer is briefed with the rules the gate applies ══════════════ */

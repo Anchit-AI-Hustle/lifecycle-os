@@ -67,6 +67,8 @@ function args(argv) {
     else if (a === '--concurrency') out.concurrency = Number(next());
     else if (a === '--deadline-ms') out.deadlineMs = Number(next());
     else if (a === '--max-pages') out.maxPages = Number(next());
+    else if (a === '--first-document-ms') out.firstDocumentMs = Number(next());
+    else if (a === '--per-request-ms') out.perRequestMs = Number(next());
     else if (a === '--no-regression') out.regression = false;
     else if (a === '--allow-origin') out.allowOrigins.push(next());
     else if (a === '--observed-at') out.observedAt = next();
@@ -102,6 +104,10 @@ async function readOne(preset, opts) {
     deadlineMs: opts.deadlineMs,
     maxPages: opts.maxPages,
     regression: opts.regression !== false,
+    // A brand's home page is often the slowest document it serves; the
+    // harvest gives it 30 s (the reader's per-request default is 9 s).
+    firstDocumentMs: opts.firstDocumentMs || 30000,
+    perRequestMs: opts.perRequestMs || undefined,
     policy: allow.length ? { allowOrigins: new Set(allow) } : undefined,
   });
 }
@@ -189,6 +195,7 @@ async function harvest(options) {
   const observedAt = o.observedAt || new Date().toISOString().slice(0, 10);
   const opts = {
     deadlineMs: o.deadlineMs, maxPages: o.maxPages, regression: o.regression,
+    firstDocumentMs: o.firstDocumentMs, perRequestMs: o.perRequestMs,
     allowOrigins: o.allowOrigins || [], artifacts: o.artifacts || '', observedAt, readerPath: o.readerPath,
   };
   if (opts.artifacts) fs.mkdirSync(opts.artifacts, { recursive: true });
@@ -277,6 +284,7 @@ if (require.main === module && !process.argv.includes('--child')) {
     concurrency: a.concurrency || 3, deadlineMs: a.deadlineMs || 120000,
     maxPages: a.maxPages == null || Number.isNaN(a.maxPages) ? 2 : a.maxPages,
     regression: a.regression !== false, allowOrigins: a.allowOrigins, observedAt: a.observedAt,
+    firstDocumentMs: a.firstDocumentMs, perRequestMs: a.perRequestMs,
   }).then(({ summary }) => {
     console.log(`\n  rendered: ${summary.rendered} (palette applied: ${summary.palette_applied})   blocked: ${summary.blocked.length}   timeout: ${summary.timeout.length}   unavailable: ${summary.unavailable.length}   not read here: ${summary.environment_failures.length}\n`);
     if (summary.unknown_slugs.length) { console.error(`  Unknown slug(s): ${summary.unknown_slugs.join(', ')}`); process.exitCode = 1; }

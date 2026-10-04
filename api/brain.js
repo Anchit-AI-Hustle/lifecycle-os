@@ -950,8 +950,15 @@ module.exports = async function handler(req, res) {
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         // Brand, approved claims and offer are the SERVER's: a body that named
         // its own brand or approved its own claims would pick its own rule pack.
+        // And the brand must be THIS workspace's: resolve() answers tenant
+        // zero when it cannot read one, which would lint a supplement's copy
+        // as a sneaker brand's. With no workspace, only a brand the request
+        // carried as its own (a device brand) is used.
+        const pfBrand = __wsId
+          ? await require('./_shared/dispatch-core.js').trustedBrand(__wsId, req.__brand)
+          : (req.__brand && req.__brand.carried === true ? req.__brand : null);
         return res.json(await require('./_shared/preflight-core.js').run(Object.assign({ workspaceId: __wsId }, b, {
-          brand: req.__brand || null, approved_claims: undefined, offer: undefined,
+          brand: pfBrand, approved_claims: undefined, offer: undefined, now: undefined, require_brand: undefined,
         })));
       }
 
