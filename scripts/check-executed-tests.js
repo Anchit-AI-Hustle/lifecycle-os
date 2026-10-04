@@ -80,7 +80,6 @@ const BASELINE = {
   'smart-brain-assets.spec.js': 5,
   'studio.spec.js': 5,
   'brand-catalog-scope.spec.js': 4,
-  'brand-presets.spec.js': 4,
   'reference-intel.spec.js': 4,
   'workspace-connections.spec.js': 4,
   'asset-vs-element-prompts.spec.js': 3,

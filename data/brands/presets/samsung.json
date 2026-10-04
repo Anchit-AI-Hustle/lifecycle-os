@@ -12,7 +12,14 @@
     "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.samsung.com.",
     "needs_extraction": true,
     "palette_source": "default",
-    "typography_source": "default"
+    "typography_source": "default",
+    "read_attempt": {
+      "renderer": "rendered",
+      "at": "2026-10-04",
+      "host": "www.samsung.com",
+      "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
+    },
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -52,7 +59,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "samsung.com"
+    "samsung.com",
+    "resources.samsung.com",
+    "images.samsung.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -159,6 +168,65 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Samsung]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Samsung]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/app_ico.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-30073/HOME_TS12_Hero-KV_1920x1080_pc_updated.jpg?imwidth=1366",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Hero-KV_Galaxy-Z_Fold8-Z-Fold8-Z-Flip8_PC_1920x1080_LTR.jpg?$LazyLoad_Home_JPG$",
+      "role": "photograph",
+      "alt": "S26",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/S26Ultra_SCOM-146440_SCOM_HPWebTile_560x560.jpg?$560_560_JPG$",
+      "role": "photograph",
+      "alt": "Galaxy S26 Ultra",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/wsc20200001-29701/HOME_Feature-Card_Galaxy-Z-Flip8_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Z Flip8",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/HOME_Feature-Card_Galaxy-Watch-U2_560x560.png?$560_560_PNG$",
+      "role": "photograph",
+      "alt": "Galaxy Watch Ultra2",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/0924/CFB-Scom-DT-092426-NT.jpg?$LazyLoad_Home_JPG$",
+      "role": "photograph",
+      "alt": "amsung Vision AI",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$LazyLoad_Home_JPG$",
+      "role": "photograph",
+      "alt": "Enabling better living",
+      "found_on": "https://www.samsung.com/us/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/app_ico.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

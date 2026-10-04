@@ -1,10 +1,24 @@
 {
+  "format": "preset-observation/2",
   "ok": false,
+  "palette_ok": false,
   "slug": "tesla",
   "start": "https://www.tesla.com",
-  "landed": "https://www.tesla.com/",
-  "observed_at": "2026-09-30",
-  "status": 403,
-  "title": "Access Denied",
-  "note": "The page did not serve the brand site (status 403, title \"Access Denied\"). Nothing was filled in from it."
+  "landed": "https://www.tesla.com",
+  "observed_at": "2026-10-04",
+  "renderer": "blocked",
+  "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
+  "read_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-04",
+    "host": "www.tesla.com",
+    "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+  },
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "",
+    "browser": "",
+    "chromium": ""
+  },
+  "note": "www.tesla.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
 }

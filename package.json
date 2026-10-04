@@ -27,7 +27,7 @@
     "seed:assets": "node scripts/seed-brand-assets.js",
     "attribution": "node scripts/order-attribution.js",
     "harvest:presets": "node scripts/harvest-presets.js",
-    "observe:presets": "node scripts/observe-preset-brands.js",
+    "observe:presets": "node scripts/harvest-presets.js",
     "build:july": "node scripts/build-july-mailers.js && node scripts/build-july-studio.js",
     "mobile:sync": "cap sync",
     "mobile:android": "cap sync android && cd android && ./gradlew assembleDebug",

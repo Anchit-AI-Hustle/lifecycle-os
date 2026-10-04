@@ -151,13 +151,22 @@ test('a blocked network reports itself rather than returning an empty site', asy
   expect(out.note).toMatch(/says nothing about the site/i);
 });
 
-test('the runner writes nothing for a brand it could not read', () => {
-  const runner = fs.readFileSync(path.join(ROOT, 'scripts', 'harvest-presets.js'), 'utf8');
-  const block = runner.slice(runner.indexOf('if (!out.reachable)'), runner.indexOf('const file ='));
-  expect(block).toMatch(/continue;/);
-  expect(block).not.toMatch(/writeFileSync/);
-  // And a run that read nothing at all is a failure, not a success with zeros.
-  expect(runner).toMatch(/if \(!done\.length\) process\.exitCode = 1/);
+test('the preset harvester writes nothing for a brand THIS environment could not read', async () => {
+  // Executed, through the real scheduler and its child process. A reader that
+  // is not there (or a browser that will not launch) is a fact about this
+  // machine, not about the brand: no observation is written, and the run
+  // reports it as an environment failure rather than as a blocked site.
+  const os = require('os');
+  const { harvest: run } = require(path.join(ROOT, 'scripts', 'harvest-presets.js'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'preset-harvest-env-'));
+  fs.writeFileSync(path.join(dir, 'index.json'), JSON.stringify({ presets: [{ slug: 'nike', name: 'Nike', website: 'https://www.nike.com' }] }));
+  const out = path.join(dir, 'observed');
+  const res = await run({ index: path.join(dir, 'index.json'), out, readerPath: path.join(dir, 'no-such-reader.js'), concurrency: 1, quiet: true });
+  expect(res.summary.environment_failures.map((f) => f.slug)).toEqual(['nike']);
+  expect(res.summary.environment_failures[0].reason).toMatch(/not installed/);
+  expect(res.summary.blocked).toEqual([]);
+  expect(res.summary.rendered).toBe(0);
+  expect(fs.readdirSync(out), 'an observation was written for a read that never happened').toEqual([]);
 });
 
 /* ═══ the same rule, enforced on the finished asset ═══════════════════════ */

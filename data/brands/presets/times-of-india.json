@@ -9,7 +9,8 @@
     "sector": "News & publishing",
     "blurb": "Mass-reach general news. High-frequency editorial lifecycle across many verticals.",
     "verified_at": "2026-08-10",
-    "source": "timesofindia.indiatimes.com homepage (theme-color #af2c2c, masthead red #e21b22, Rethink Sans)"
+    "source": "timesofindia.indiatimes.com homepage (theme-color #af2c2c, masthead red #e21b22, Rethink Sans)",
+    "logo_signal": "the logo element as rendered (div#header-masthead > div.contentwrapper > a > img)"
   },
   "palette": {
     "primary": "#E21B22",
@@ -112,62 +113,63 @@
   ],
   "brand_assets": [
     {
-      "url": "https://static.toiimg.com/photo/47529300.cms",
-      "role": "share",
-      "alt": "",
-      "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
-    },
-    {
       "url": "https://static.toiimg.com/photo/79638690.cms",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "the logo element as rendered (div#header-masthead > div.contentwrapper > a > img)"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-123518384,width-205,resizemode-4/123518384.jpg",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134675822.jpg?photoid=134675822&imgsize=11843136&width=220&resizemode=4",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/131635405.jpg?photoid=131635405&width=320&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134584388.jpg?photoid=134584388&imgsize=49296&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134677880.jpg?photoid=134677880&imgsize=122238&width=600&resizemode=4",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/134677173.jpg?photoid=134677173&imgsize=86362&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134586848.jpg?photoid=134586848&imgsize=138930&width=600&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134653729.jpg?photoid=134653729&imgsize=142316&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://static.toiimg.com/thumb/134588801.jpg?photoid=134588801&imgsize=62612&width=220&resizemode=4",
+      "url": "https://static.toiimg.com/thumb/134676386.jpg?photoid=134676386&imgsize=109759&width=220&resizemode=4",
       "role": "photograph",
       "alt": "",
       "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://static.toiimg.com/photo/87458172.cms",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://static.toiimg.com/thumb/msid-132676654,imgsize-638114,width-800,resizemode-4/132676654.jpg",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://static.toiimg.com/thumb/134587452.jpg?photoid=134587452&imgsize=322568&width=300&resizemode=4",
-      "role": "photograph",
-      "alt": "OMG! Vance Torches Trump's New America.gov On Debut | ‘Don’t Let It Be A Clusterf*ck!’ | Watch Why",
-      "found_on": "https://timesofindia.indiatimes.com/us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     }
   ],
+  "logo_url": "https://static.toiimg.com/photo/79638690.cms",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

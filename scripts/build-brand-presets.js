@@ -25,7 +25,16 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const OUT = path.join(ROOT, 'data/brands/presets');
+const { readSentence } = require('./lib/preset-observation.js');
+/* `--out` and `--observed` exist for the harvest tests, which build a preset
+   library from fixture observations into a temporary directory. The shipped
+   build passes neither. */
+function cliDir(flag, fallback) {
+  const i = process.argv.indexOf(flag);
+  return i >= 0 && process.argv[i + 1] ? path.resolve(process.argv[i + 1]) : fallback;
+}
+const OUT = cliDir('--out', path.join(ROOT, 'data/brands/presets'));
+const OBSERVED = cliDir('--observed', path.join(ROOT, 'data', 'brands', 'observed'));
 fs.mkdirSync(OUT, { recursive: true });
 
 const RIGHTS = 'Template only. Public brand attributes observed from the brand\'s own site for building and demonstration; this is not a licence to use the brand\'s marks. Replace with your own approved guidelines before running a real programme.';
@@ -377,16 +386,35 @@ const HAND_VERIFIED = new Set(['knickgasm', 'economic-times', 'times-of-india', 
  * Copy an observation onto a preset. Hand-verified profiles keep the palette
  * and type that were read when they were written; an observation may only add
  * the logo and the image URLs. A template takes the observed palette and type
- * only when chooseSchema already passed the palette gate (`palette_ok`).
+ * only when the observation passed the palette gate (`palette_ok`).
+ *
+ * Two formats arrive here. `preset-observation/2` is written by
+ * scripts/harvest-presets.js from the platform's rendered reader
+ * (api/_shared/brand-render.js): every value carries its page, role, selector
+ * and viewport, and a read that did not happen carries `renderer`
+ * (blocked | timeout | unavailable) and the reason, which the gallery shows.
+ * The unversioned format is the 2026-09-30 observer's, still read so a partial
+ * re-harvest does not wipe the brands it did not touch.
  */
 function absorbObservation(rec) {
   // Kept OUT of the presets directory: every reader of it treats each
-  // *.json there as a brand record (see observe-preset-brands.js).
-  const file = path.join(ROOT, 'data', 'brands', 'observed', `${rec.slug}.observed.json`);
+  // *.json there as a brand record (CLAUDE.md, 2026-10-03).
+  const file = path.join(OBSERVED, `${rec.slug}.observed.json`);
   if (!fs.existsSync(file)) return;
   let obs;
   try { obs = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (_) { return; }
-  if (!obs || !obs.ok) return;
+  if (!obs) return;
+  const v2 = obs.format === 'preset-observation/2';
+
+  // A read that did not happen is still a fact about the read: which state,
+  // when, and why. It carries no colour, so nothing below runs for it.
+  if (v2 && obs.read_attempt && (obs.renderer !== 'rendered' || !obs.palette_ok) && !HAND_VERIFIED.has(rec.slug)) {
+    rec.preset.read_attempt = {
+      renderer: obs.read_attempt.renderer, at: obs.read_attempt.at || obs.observed_at || null,
+      host: obs.read_attempt.host || '', reason: String(obs.read_attempt.reason || '').slice(0, 400),
+    };
+  }
+  if (!obs.ok) return;
 
   const assets = (obs.assets || []).filter((a) => a && /^https:\/\//i.test(a.url)).slice(0, 8);
   if (assets.length) rec.brand_assets = assets.map((a) => ({
@@ -410,21 +438,34 @@ function absorbObservation(rec) {
 
   rec.palette = Object.assign({}, obs.palette);
   rec.preset.palette_source = 'verified';
-  rec.preset.palette_evidence = obs.evidence || {};
+  rec.preset.palette_evidence = (v2 ? obs.palette_evidence : obs.evidence) || {};
   rec.preset.verified_at = obs.observed_at || null;
   rec.preset.needs_extraction = false;
   rec.preset.source = obs.source || rec.preset.source;
+  delete rec.preset.read_attempt;
+  if (v2) {
+    rec.preset.renderer = 'rendered';
+    rec.preset.reader = obs.reader || null;
+    rec.preset.read_pages = (obs.pages || []).slice(0, 4);
+    rec.preset.regression = obs.regression || null;
+    if ((obs.conflicts || []).length) rec.preset.conflicts = obs.conflicts.slice(0, 4);
+  }
 
   const type = obs.typography || {};
   if (type.heading && type.heading.family && type.body && type.body.family) {
-    rec.typography = {
-      heading: { family: type.heading.family, stack: type.heading.stack, google: !!type.heading.google, weights: type.heading.weights || '600;700' },
-      body: { family: type.body.family, stack: type.body.stack, google: !!type.body.google, weights: type.body.weights || '400;500;600' },
+    const slot = (t, w) => {
+      const out = { family: t.family, stack: t.stack, google: !!t.google, weights: t.weights || w };
+      // The family the role renders in, and whether this app can load it. A
+      // brand's own web font is named and shown in the site's fallback stack;
+      // it is never swapped for a lookalike.
+      if (v2) Object.assign(out, { kind: t.kind || '', loadable: !!t.loadable, note: t.note || '' });
+      return out;
     };
+    rec.typography = { heading: slot(type.heading, '600;700'), body: slot(type.body, '400;500;600') };
     rec.preset.typography_source = 'verified';
-    rec.preset.typography_evidence = {
-      heading: type.heading.signal || '', body: type.body.signal || '',
-    };
+    rec.preset.typography_evidence = v2
+      ? { heading: type.heading.source || {}, body: type.body.source || {} }
+      : { heading: type.heading.signal || '', body: type.body.signal || '' };
   }
 
   // A photograph the site published is NOT the photograph of a placeholder
@@ -436,6 +477,17 @@ function absorbObservation(rec) {
   // photographs stay in `brand_assets`, each with the page it was found on,
   // and a placeholder row stays image-free until a real catalogue arrives.
   rec.data_gaps = (rec.data_gaps || []).filter((g) => !/brand palette|typography/.test(g));
+}
+
+/** How a family renders in this app: by name, or named and shown in fallback. */
+function fontLine(t) {
+  if (!t || !t.family) return '';
+  if (t.google) return t.family;
+  const system = t.kind === 'local' || t.kind === 'generic'
+    || /^(system-ui|-apple-system|blinkmacsystemfont|segoe ui|helvetica|helvetica neue|arial|georgia|times new roman|verdana|tahoma)$/i.test(t.family);
+  if (system) return `${t.family} (system font)`;
+  // Served from the brand's own host, which this app does not load.
+  return `${t.family} (brand font, shown in fallback)`;
 }
 
 let n = 0;
@@ -458,7 +510,22 @@ const index = PRESETS.map((p) => ({
   typography_source: p.preset.typography_source || 'verified',
   needs_extraction: !!p.preset.needs_extraction,
   swatch: [p.palette.primary, p.palette.accent, p.palette.ink, p.palette.surface],
+  // The four roles the card paints, each named, and whether the value is the
+  // one the site renders or DERIVED from it (kept exact in palette_evidence).
+  swatches: ['primary', 'accent', 'surface', 'ink'].map((role) => {
+    const ev = (p.preset.palette_evidence || {})[role] || {};
+    return { role, value: p.palette[role], derived: !!ev.derived, exact: ev.derived ? (ev.exact || '') : undefined };
+  }),
   heading_font: p.typography.heading.family, body_font: p.typography.body.family,
+  heading_stack: p.typography.heading.stack, body_stack: p.typography.body.stack,
+  heading_google: p.typography.heading.google !== false, body_google: p.typography.body.google !== false,
+  heading_line: fontLine(p.typography.heading), body_line: fontLine(p.typography.body),
+  read_attempt: p.preset.read_attempt || null,
+  // One sentence the gallery prints as it is: why this card is still on the
+  // default ("<host> blocked an automated read on <date>.").
+  read_note: p.preset.palette_source === 'default' ? readSentence(p.preset.read_attempt) : '',
+  renderer: p.preset.renderer || null,
+  regression: p.preset.regression || null,
   has_catalog: !!(p.catalog_source && p.catalog_source.kind !== 'none' && p.catalog_source.kind !== 'placeholder'),
   catalog_kind: (p.catalog_source && p.catalog_source.kind) || 'none',
   placeholder_products: (p.catalog_placeholder || []).length,
