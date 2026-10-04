@@ -194,8 +194,23 @@ jobs:
       - name: Fetch the data the read job regenerated
         env:
           GH_TOKEN: ${{ github.token }}
-        # Both paths share data/brands, so the artifact's root is that folder.
-        run: gh run download "${{ github.run_id }}" --repo "${{ github.repository }}" --name "preset-data-${{ github.run_id }}" --dir data/brands
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          DL: ${{ runner.temp }}/preset-data
+        # Both uploaded paths share data/brands, so the artifact's root is
+        # that folder: observed/ and presets/. `gh run download` refuses to
+        # overwrite a file that exists (found by the first real dispatch:
+        # "open .../adidas.observed.json: file exists"), so it downloads
+        # beside the tree, and the two folders are then replaced WHOLE - the
+        # tree is exactly what the read job produced.
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" --repo "$REPO" --name "preset-data-$RUN_ID" --dir "$DL"
+          test -f "$DL/presets/index.json" || { echo "The artifact holds no presets/index.json." >&2; exit 1; }
+          test -d "$DL/observed" || { echo "The artifact holds no observed/ folder." >&2; exit 1; }
+          rm -rf data/brands/observed data/brands/presets
+          cp -R "$DL/observed" data/brands/observed
+          cp -R "$DL/presets" data/brands/presets
 
       - name: Publish on a branch of its own
         env:
