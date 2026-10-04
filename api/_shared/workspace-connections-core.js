@@ -1099,6 +1099,25 @@ async function handle(req, res) {
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
 
+  // A phone sign-in with no Supabase identity (kept on the device, or in
+  // Neon) has its brands on the device, and a platform credential is kept
+  // encrypted with a brand workspace on the server. Reading its active
+  // workspace through RLS THREW here (restAs refuses a phone account), and
+  // public-config answered a bare 500 `connections_router_failed` for every
+  // Connect press and every /connections load (2026-10-04). The honest
+  // answer: nothing is connected, and why nothing can be from here.
+  if (auth.provider === 'mobile-pin' && auth.mode !== 'supabase') {
+    const message = 'Platform accounts are connected through credentials kept encrypted with a brand workspace on the server. This brand is kept on this device, so no platform account is connected to it, and none can be connected from here.';
+    if (op === 'list') {
+      return res.status(200).json({
+        ok: true, workspace_id: null, storage: 'device', note: message,
+        connections: [], routing: { entries: [], use_platform_fallback: true },
+        providers: registryView(true), secrets_storage: { encrypted: cryptoConfigured(), store: serviceConfigured() },
+      });
+    }
+    return res.status(409).json({ ok: false, error: 'device_account', storage: 'device', message });
+  }
+
   const workspaceId = str(q.workspace_id || body.workspace_id) || await brandCore.activeWorkspaceId(auth);
   if (!workspaceId) {
     return res.status(409).json({
