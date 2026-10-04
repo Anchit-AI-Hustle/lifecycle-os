@@ -115,6 +115,13 @@ the real reader in Chromium, the real builder, the real gallery).
   1.5:1 against the page or measured on a consent banner, takes the next one the site renders in the
   reader's own order, and records each `passed_over` with why; body copy measured white on a light
   page gives way to the heading/nav text the site renders before anything is derived.
+- **What the read produced (run 37222438100, on the reader as merged in #128)**: 21 of 40 sites
+  rendered; 12 templates now carry the palette and families their site renders (airtel is
+  `#d40000`, no longer `#000000`) and the 5 hand-verified palettes are kept; 4 rendered with no
+  colour a preset can use (amazon, boat, samsung, spotify) and stay default with that reason; 13
+  refused it (eight HTTP 403s, a Kasada, two Cloudflare and one AWS WAF challenge page, and a
+  maintenance page the reader labels blocked) and 6 did not answer the reader's first-document
+  request in time. Every one of those 23 says so on its card.
 - **The card paints four NAMED roles** (primary/accent/surface/ink, `*` when derived) and its text is
   measured at AA in Chromium through every ancestor's opacity - the step fades in, and a measurement
   taken mid-fade reads 1:1.
