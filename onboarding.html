@@ -1901,9 +1901,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function rShow(v) {
     if (v == null) return '';
     if (typeof v === 'string') return v.length > 80 ? v.slice(0, 77) + '...' : v;
-    if (v.family) return v.family;
+    if (v.family) return v.licence === 'brand font' ? (v.display_name || v.family + ' (brand font)') + (v.fallback_stack ? ', falls back to ' + v.fallback_stack : '') : v.family;
     if (Array.isArray(v)) return v.length + ' item(s)';
     return 'measured';
+  }
+  /* STRUCTURAL (tokens) and PERCEPTUAL (pixels, text and live content
+     masked) are separate numbers with separate limits; approval needs both. */
+  function twoScores(g) {
+    var st = g.structural, pc = g.perceptual;
+    if (!st || !pc) return '';
+    return '<span class="xtag computed" data-structural="' + esc(String(st.score)) + '">Structural ' + esc(String(st.score)) + '% (limit ' + esc(String(st.limit)) + '%)</span>' +
+      '<span class="xtag computed" data-perceptual="' + esc(String(pc.score)) + '">Perceptual ' + esc(String(pc.score)) + '% (limit ' + esc(String(pc.limit)) + '%)</span>' +
+      (g.approved ? '<span class="xtag computed" data-approved="true">Approved: both clear their limit</span>'
+        : '<span class="xtag flag" data-approved="false">Not approved: ' + esc(!st.pass ? 'structural' : 'perceptual') + ' is under its limit</span>');
   }
   function xRenderedPanel() {
     if (!extraction || !extraction.read) return '';
@@ -1942,12 +1952,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).join('');
     var conf = (m.conflicts || []).map(function (c) { return '<div class="xr-rule" data-rule="conflict"><b>Brand colour and button colour differ.</b> ' + esc(c.message) + '</div>'; }).join('');
     var unmatched = (g.unmatched || []).map(function (u) { return '<li>' + esc(u.surface) + ' / ' + esc(u.viewport) + ' / ' + esc(u.component) + ' ' + esc(u.token) + ': your site ' + esc(String(u.best_site_value)) + ', ours ' + esc(String(u.ours)) + '. ' + esc(u.reason) + '</li>'; }).join('');
-    var repairs = (g.repairs || []).map(function (x) { return '<li>' + esc(x.component) + ' ' + esc(x.token) + ' (' + esc(x.viewport) + '): ' + esc(String(x.from)) + ' &rarr; ' + esc(String(x.to)) + ', re-measured by ' + esc(x.strategy) + '</li>'; }).join('');
+    var repairs = (g.repairs || []).map(function (x) { return '<li>' + esc(x.component) + ' ' + esc(x.token) + ' (' + esc(x.viewport) + '): ' + esc(String(x.from)) + ' &rarr; ' + esc(String(x.to)) + ', re-measured by ' + esc(x.strategy) + '</li>'; }).join('') +
+      (g.reverted || []).map(function (x) { return '<li data-reverted>' + esc(x.component) + ' ' + esc(x.token) + ' (' + esc(x.viewport) + '): ' + esc(String(x.to)) + ' was tried and put back. ' + esc(x.reason || '') + '</li>'; }).join('');
     var gs = g.screenshots || {};
     return '<div class="xr" data-read-method="rendered" data-render-score="' + esc(String(g.score == null ? '' : g.score)) + '" data-no-brand-swap>' +
       '<h3>' + (rendered && rendered.reverted ? 'Rendered, then reverted' : 'Rendered in Chromium and applied to this brand') + '</h3>' +
       '<p class="xr-note">Read at 1440px and 390px in ' + esc(rd.chromium ? 'Chromium ' + rd.chromium : 'Chromium') + ' (' + esc(String(Math.round((rd.wall_ms || 0) / 100) / 10)) + 's). Every value carries the page, the element and the viewport it was read from. The score is how close what this platform GENERATES for you - your landing page, mailer and ad - is to your own site, per component.</p>' +
-      '<div class="xr-row"><span class="xr-score" data-score>' + esc(String(g.score == null ? '-' : g.score)) + '%</span>' + surfRow +
+      '<div class="xr-row"><span class="xr-score" data-score>' + esc(String(g.score == null ? '-' : g.score)) + '%</span>' + twoScores(g) + surfRow +
         (rendered && !rendered.reverted ? '<button type="button" class="btn" data-xrevert>Revert to before the read</button>' : '') + '</div>' +
       '<div class="xr-pairs">' +
         fig(shots.desktop && shots.desktop.fold && shots.desktop.fold.data, 'Your site, 1440px') + fig(gs.landing_desktop, 'Our landing page for you, 1440px') +
