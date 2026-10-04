@@ -8,90 +8,225 @@
     "label": "Puma",
     "sector": "Sportswear",
     "blurb": "Sportswear. Template for sponsorship-led and event-led pushes.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://us.puma.com/us/en on 2026-09-30. Primary #27455c from computed background of SPAN (10 elements).",
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://us.puma.com/us/en in Chromium 153.0.8010.12 on 2026-10-04. Primary #191919 from the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome (div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)).",
     "needs_extraction": false,
     "palette_source": "verified",
-    "typography_source": "verified",
-    "logo_signal": "img on the page whose address or alt says logo",
+    "typography_source": "default",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon-precomposed)",
     "palette_evidence": {
+      "primary": {
+        "value": "#191919",
+        "exact": "#191919",
+        "derived": false,
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome",
+        "source": {
+          "page": "https://us.puma.com/us/en",
+          "role": "primary call to action",
+          "selector": "div#slots-1 > a.tw-4m0ihd.tw-hlsw0v > div.flex.flex-col > div.flex.flex-wrap > a.tw-8ko3k8.tw-3kjpe5:nth-of-type(2)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
       "surface": {
         "value": "#ffffff",
-        "signal": "computed background of body",
-        "source_url": "https://us.puma.com/us/en"
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://us.puma.com/us/en",
+          "role": "page ground",
+          "selector": "body.en",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
       },
       "ink": {
         "value": "#191919",
-        "signal": "computed color of body",
-        "source_url": "https://us.puma.com/us/en"
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED from #191919: the read measured no body copy colour, so the text colour is the primary taken to 7:1 on #ffffff.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
       },
       "surface_alt": {
-        "value": "#f6f7f8",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://us.puma.com/us/en"
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://us.puma.com/us/en",
+          "role": "product card",
+          "selector": "ul#product-list-items > li:nth-of-type(1) > div.relative.w-full",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
       },
       "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://us.puma.com/us/en"
-      },
-      "primary": {
-        "value": "#27455c",
-        "signal": "computed background of SPAN (10 elements)",
-        "source_url": "https://us.puma.com/us/en"
+        "value": "#191919",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
       },
       "accent": {
         "value": "#191919",
-        "signal": "text colour, used where the brand publishes no second colour",
-        "source_url": "https://us.puma.com/us/en"
+        "exact": "",
+        "derived": true,
+        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
       },
       "line": {
         "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "ok": {
         "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "warn": {
         "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "err": {
         "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       }
     },
-    "typography_evidence": {
-      "heading": "computed font-family of h1",
-      "body": "computed font-family of body"
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://us.puma.com/us/en",
+        "role": "home"
+      },
+      {
+        "url": "https://us.puma.com/us/en/collections/lifestyle/suede-collection?offset=24",
+        "role": "collection"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 66.9,
+      "mismatch": 0.3309,
+      "surfaces": {
+        "landing page": {
+          "score": 70,
+          "mismatch": 0.3,
+          "done": false,
+          "tokens_off": 0,
+          "regions_off": 4
+        },
+        "mailer": {
+          "score": 80,
+          "mismatch": 0.2,
+          "done": false,
+          "tokens_off": 3,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        }
+      },
+      "iterations": 1,
+      "repairs": 0,
+      "mismatch_limit": 0.05
     }
   },
   "palette": {
-    "primary": "#27455c",
+    "primary": "#191919",
     "accent": "#191919",
     "ink": "#191919",
     "surface": "#ffffff",
-    "surface_alt": "#f6f7f8",
-    "muted": "#666666",
+    "surface_alt": "#ffffff",
+    "muted": "#191919",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "FFDINforPuma",
-      "stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "600;700"
     },
     "body": {
-      "family": "FFDINforPuma",
-      "stack": "'FFDINforPuma', Inter, -apple-system, system-ui, BlinkMacSystemFont",
+      "family": "system-ui",
+      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
       "google": false,
       "weights": "400;500;600"
     }
@@ -294,63 +429,63 @@
   ],
   "brand_assets": [
     {
-      "url": "https://us.puma.com/assets/puma-logo-1200x630.jpg",
+      "url": "https://us.puma.com/assets/apple-touch-icon-152x152.png",
       "role": "logo",
-      "alt": "Four black football boots with iridescent blue/purple soles and light blue logos float against a dark background.",
+      "alt": "",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page whose address or alt says logo"
+      "signal": "the icon the page declares (link rel=apple-touch-icon-precomposed)"
     },
     {
-      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1280/cms/images/b97a17a7344b9d82fbeb825945f0114be794d3de?_a=BAMAPqiu0",
-      "role": "photograph",
-      "alt": "Close-up rear view of a person moving along a concrete sidewalk while wearing black leggings and bright lime-green Deviate Pure shoes. The o",
+      "url": "https://images.puma.com/video/upload/so_0s/w_426/cms/videos/6f5b1ff9898f907b945d1f68f404d82fe45b0229.jpg",
+      "role": "hero",
+      "alt": "A lifestyle scene highlights blue suede PUMA sneakers with tan soles, styled with bold socks and casual looks, set again",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313904/13/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Men's-Running-Shoes",
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1920/cms/images/f42bd3fe707312a08027066ce35c5d848ad580dc?_a=BAMAPqkS0",
       "role": "photograph",
-      "alt": "Deviate Pure NITRO™ Men's Running Shoes, Sunny Lime-PUMA Black, extralarge",
+      "alt": "Two blue FUTURE football boots with green details on the cleats are covered in blue flames and floating in the air befor",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/313905/11/sv01/fnd/PNA/fmt/png/Deviate-Pure-NITRO%E2%84%A2-Women's-Running-Shoes",
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1536/cms/images/f9219ed1adc67f6a1f79b40ae3c0e8eb9626e555?_a=BAMAPqkS0",
       "role": "photograph",
-      "alt": "Deviate Pure NITRO™ Women's Running Shoes, Sunny Lime-Light Lime, extralarge",
+      "alt": "White Puma basketball shoe with purple detailing, neon yellow accents, and black laces, shown floating against a dark ba",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312126/21/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Women's-Road-Running-Shoes",
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1536/cms/images/b94465259f0b00206b413d928dd9bc60e0faf965?_a=BAMAPqkS0",
       "role": "photograph",
-      "alt": "MagMax NITRO™ 2 Women's Road Running Shoes, Sunny Lime-Lime Squeeze, extralarge",
+      "alt": "PUMA Homura OG+ sneakers featured as the focal point, showcasing the shoe’s distinctive silhouette, premium detailing an",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/312125/20/sv01/fnd/PNA/fmt/png/MagMax-NITRO%E2%84%A2-2-Men's-Road-Running-Shoes",
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1536/cms/images/2e66213a90b0c6b0712708aee01cc12173cc283f?_a=BAMAPqkS0",
       "role": "photograph",
-      "alt": "MagMax NITRO™ 2 Men's Road Running Shoes, Sunny Lime-PUMA Silver, extralarge",
+      "alt": "Girl on a bike and a guy are talking",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311141/13/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Women's-Road-Running-Shoes",
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1536/cms/images/d15f88c8b4166e8ae2d8497747efd6cc5d8c3e51?_a=BAMAROkS0",
       "role": "photograph",
-      "alt": "Velocity NITRO™ 4 Women's Road Running Shoes, Apple Spritz-Deep Plum, extralarge",
+      "alt": "CLASSICS CLUB",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.puma.com/image/upload/f_auto,q_auto,b_rgb:fafafa,w_450,h_450/global/311140/16/sv01/fnd/PNA/fmt/png/Velocity-NITRO%E2%84%A2-4-Men's-Road-Running-Shoes",
+      "url": "https://images.puma.com/image/upload/c_scale,f_auto,q_auto:best,w_1536/cms/images/ba65d21c64cf45055750e7dee4fe7eb84fa3d9ad?_a=BAMAROkS0",
       "role": "photograph",
-      "alt": "Velocity NITRO™ 4 Men's Road Running Shoes, Apple Spritz-Lux Lime, extralarge",
+      "alt": "speedcat-ss26",
       "found_on": "https://us.puma.com/us/en",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     }
   ],
-  "logo_url": "https://us.puma.com/assets/puma-logo-1200x630.jpg",
+  "logo_url": "https://us.puma.com/assets/apple-touch-icon-152x152.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

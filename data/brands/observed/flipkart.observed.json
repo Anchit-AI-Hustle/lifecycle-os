@@ -1,10 +1,330 @@
 {
-  "ok": false,
+  "format": "preset-observation/2",
+  "ok": true,
   "slug": "flipkart",
   "start": "https://www.flipkart.com",
   "landed": "https://www.flipkart.com/",
-  "observed_at": "2026-09-30",
-  "status": 529,
-  "title": "Online Shopping India | Buy Mobiles, Electronics, Appliances, Clothing and More Online at Flipkart.com",
-  "note": "The page did not serve the brand site (status 529, title \"Online Shopping India | Buy Mobiles, Electronics, Appliances, Clothing and More Online at Flipkart.com\"). Nothing was filled in from it."
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:51:11.075Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://www.flipkart.com/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": {
+      "w": 390,
+      "h": 844
+    }
+  },
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 51.5,
+    "mismatch": 0.4853,
+    "surfaces": {
+      "landing page": {
+        "score": 54.3,
+        "mismatch": 0.4569,
+        "done": false,
+        "tokens_off": 13,
+        "regions_off": 2
+      },
+      "mailer": {
+        "score": 57.1,
+        "mismatch": 0.4286,
+        "done": false,
+        "tokens_off": 3,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 33.3,
+        "mismatch": 0.6667,
+        "done": false,
+        "tokens_off": 2,
+        "regions_off": 0
+      }
+    },
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [
+    {
+      "kind": "brand_colour_vs_action_colour",
+      "message": "The site declares #56adff as its own colour (meta theme-color) but renders its primary call to action in #2a55e5. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+    }
+  ],
+  "markers": [],
+  "logo_url": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png",
+  "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+  "assets": [
+    {
+      "url": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/26/22/image/d2ecfddf891a3922.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/46/18/image/31f7e3af490c225f.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/29/22/image/7ab4040af860941d.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/36/18/image/5a9ff48eef96b876.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/profile-6bae67.svg",
+      "role": "photograph",
+      "alt": "Login",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/header_cart_v4-6ac9a8.svg",
+      "role": "photograph",
+      "alt": "Cart",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://rukminim2.flixcart.com/fk-p-flap/1600/780/image/84f268d004c490c5.png?q=80",
+      "role": "hero",
+      "alt": "Image",
+      "found_on": "https://www.flipkart.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#56adff",
+    "accent": "#2a55e5",
+    "ink": "#333333",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#333333",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#56adff",
+      "exact": "#56adff",
+      "derived": false,
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "theme-color",
+        "selector": "meta[name=theme-color]",
+        "viewport": "desktop",
+        "property": "content",
+        "signal": "computed"
+      },
+      "from_role": "identity",
+      "signal": "meta theme-color"
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "page ground",
+        "selector": "canvas (no background declared)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#333333",
+      "exact": "#ffffff",
+      "derived": true,
+      "note": "DERIVED from #ffffff: the body copy as rendered measures 1:1 on #ffffff, so it is darkened until it reads (12.63:1).",
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "body copy",
+        "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "product card",
+        "selector": "div.css-g5y9jx > div.grid-formation.grid-column-4:nth-of-type(1) > div.css-g5y9jx > div > div",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "muted": {
+      "value": "#333333",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "body copy",
+        "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#2a55e5",
+      "exact": "#2a55e5",
+      "derived": false,
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "primary call to action",
+        "selector": "div.H5bs2Y > div.CXZSEo > div.qjYSan:nth-of-type(2) > div.BSliuJ:nth-of-type(2) > a.BHnOJf",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary on the page surface is 2.38:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see."
+  ],
+  "typography": {
+    "heading": {
+      "family": "inter_bold",
+      "stack": "'inter_bold',sans-serif",
+      "google": false,
+      "weights": "700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "inter_bold (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "h1",
+        "selector": "div > a > div.css-g5y9jx > div.css-g5y9jx.r-1awozwy > h1.css-146c3p1.r-dnmrzs",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "inter_regular",
+      "stack": "'inter_regular','fallback-inter_regular','Arial',sans-serif",
+      "google": false,
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "inter_regular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.flipkart.com/",
+        "role": "body copy",
+        "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://www.flipkart.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #56adff from meta theme-color (meta[name=theme-color]). Headings inter_bold, body inter_regular, as rendered."
 }

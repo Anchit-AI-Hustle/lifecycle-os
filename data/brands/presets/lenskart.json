@@ -8,20 +8,212 @@
     "label": "Lenskart",
     "sector": "Eyewear",
     "blurb": "Eyewear. Template for a prescription-led purchase with a long repeat cycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.lenskart.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default"
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://www.lenskart.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #4d4d4d from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#header > nav.sc-d63abe48-1.lfbqwn).",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "default",
+    "logo_signal": "the logo element as rendered (nav.sc-d63abe48-1.lfbqwn > div.sc-53a42e28-6.dVEcKX:nth-of-type(1) > span.sc-e7280ca8-1.gSONMG > a > img.sc-e7280ca8-5.kxMBpo)",
+    "palette_evidence": {
+      "primary": {
+        "value": "#4d4d4d",
+        "exact": "#4d4d4d",
+        "derived": false,
+        "from_role": "identity",
+        "signal": "header background as rendered; the site renders no chromatic brand colour and no filled call to action",
+        "source": {
+          "page": "https://www.lenskart.com/en-us",
+          "role": "header",
+          "selector": "div#header > nav.sc-d63abe48-1.lfbqwn",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.lenskart.com/en-us",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#4d4d4d",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED from #4d4d4d: the read measured no body copy colour, so the text colour is the primary taken to 7:1 on #ffffff.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "muted": {
+        "value": "#4d4d4d",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "accent": {
+        "value": "#4d4d4d",
+        "exact": "",
+        "derived": true,
+        "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.lenskart.com/en-us",
+        "role": "home"
+      },
+      {
+        "url": "https://www.lenskart.com/en-us/eyeglasses/collection/all-eyeglasses.html",
+        "role": "collection"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 70,
+      "mismatch": 0.3,
+      "surfaces": {
+        "landing page": {
+          "score": 70,
+          "mismatch": 0.3,
+          "done": false,
+          "tokens_off": 0,
+          "regions_off": 2
+        },
+        "mailer": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 100,
+          "mismatch": 0,
+          "done": true,
+          "tokens_off": 0,
+          "regions_off": 0
+        }
+      },
+      "iterations": 1,
+      "repairs": 0,
+      "mismatch_limit": 0.05
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#4d4d4d",
+    "accent": "#4d4d4d",
+    "ink": "#4d4d4d",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#4d4d4d",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
@@ -52,7 +244,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "lenskart.com"
+    "lenskart.com",
+    "assets.lenskart.com",
+    "static5.lenskart.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -242,12 +436,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Lenskart]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Lenskart]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Lenskart]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Lenskart]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Lenskart]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://assets.lenskart.com/images/2026/01/14/Vector-3.svg",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "the logo element as rendered (nav.sc-d63abe48-1.lfbqwn > div.sc-53a42e28-6.dVEcKX:nth-of-type(1) > span.sc-e7280ca8-1.gSONMG > a > img.sc-e7280ca8-5.kxMBpo)"
+    },
+    {
+      "url": "https://assets.lenskart.com/images/2026/01/15/Heart.svg",
+      "role": "photograph",
+      "alt": "Wishlist",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://assets.lenskart.com/images/2026/01/15/local_mall-1.svg",
+      "role": "photograph",
+      "alt": "Cart",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://assets.lenskart.com/images/2026/01/15/Account-Icon.svg",
+      "role": "photograph",
+      "alt": "User",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static5.lenskart.com/media/uploads/Desktop-topbanner-Bold27aug2026ps.png",
+      "role": "hero",
+      "alt": "Shop Bold Acetate collection",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static5.lenskart.com/media/uploads/Desktop-topbanner-Amore27aug2026ps.png",
+      "role": "hero",
+      "alt": "Shop Amore collection",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static5.lenskart.com/media/uploads/Desktop-topbanner-hustlr27aug2026ps.png",
+      "role": "hero",
+      "alt": "Shop Hustlr collection",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://assets.lenskart.com/images/2026/01/05/IconChevronBackward.svg",
+      "role": "hero",
+      "alt": "Previous",
+      "found_on": "https://www.lenskart.com/en-us",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://assets.lenskart.com/images/2026/01/14/Vector-3.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

@@ -1,57 +1,331 @@
 {
-  "ok": false,
+  "format": "preset-observation/2",
+  "ok": true,
   "slug": "toi-health-fitness",
   "start": "https://timesofindia.indiatimes.com/life-style/health-fitness",
   "landed": "https://timesofindia.indiatimes.com/life-style/health-fitness",
-  "observed_at": "2026-09-30",
-  "status": 0,
-  "title": "Health and Fitness, Health Tips, Exercises & Workout Tips, Diet & Wellness | Times of India Lifestyle",
-  "note": "The page loaded, and it did not publish a primary colour that passes the palette gate. The preset is left on the neutral default rather than given a colour the page did not declare.",
-  "snapshot_summary": {
-    "theme": "",
-    "logoColor": "",
-    "paints": [
-      {
-        "hex": "#f44141",
-        "n": 3,
-        "sample": "active"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:50:06.510Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
+  },
+  "pages": [
+    {
+      "url": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": {
+      "w": 390,
+      "h": 844
+    }
+  },
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 85,
+    "mismatch": 0.15,
+    "surfaces": {
+      "landing page": {
+        "score": 85,
+        "mismatch": 0.15,
+        "done": false,
+        "tokens_off": 0,
+        "regions_off": 2
       },
-      {
-        "hex": "#1967d2",
-        "n": 2,
-        "sample": "fc-button-background"
+      "mailer": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
       },
-      {
-        "hex": "#d92200",
-        "n": 1,
-        "sample": "getapp"
-      },
-      {
-        "hex": "#cf5899",
-        "n": 1,
-        "sample": "pregnancyicon"
-      },
-      {
-        "hex": "#9575b4",
-        "n": 1,
-        "sample": "ovulicon"
-      },
-      {
-        "hex": "#fb9b5b",
-        "n": 1,
-        "sample": "bmiicon"
-      },
-      {
-        "hex": "#fffaef",
-        "n": 1,
-        "sample": "nl_wrap"
-      },
-      {
-        "hex": "#fff3d9",
-        "n": 1,
-        "sample": "head"
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
       }
-    ],
-    "vars": []
-  }
+    },
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: header bar, timesofindia.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: footer, timesofindia.indiatimes.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), timesofindia.indiatimes.com]"
+  ],
+  "logo_url": "https://static.toiimg.com/photo/123402429.cms",
+  "logo_signal": "the logo element as rendered (div.nl_subscribe > div.logo_heading:nth-of-type(2) > div.nl_logo:nth-of-type(1) > a > img)",
+  "assets": [
+    {
+      "url": "https://static.toiimg.com/photo/123402429.cms",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "the logo element as rendered (div.nl_subscribe > div.logo_heading:nth-of-type(2) > div.nl_logo:nth-of-type(1) > a > img)"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-132455411,imgsize-30772,width-606,height-340,resizemode-75/132455411.jpg",
+      "role": "hero",
+      "alt": "10 ‘boring’ and low-effort habits to transform by 2027",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131909408,imgsize-49292,width-301,height-222,resizemode-75/131909408.jpg",
+      "role": "hero",
+      "alt": "5 signs of a healthy gut, an NHS doc explains",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131905221,imgsize-117748,width-301,height-222/131905221.jpg",
+      "role": "hero",
+      "alt": "Woman's appendix removed, but she only had food poisoning",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131904045,imgsize-215318,width-301,height-222/131904045.jpg",
+      "role": "hero",
+      "alt": "Krispy Kreme issues urgent recall of World Cup doughnuts",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131891867,imgsize-38680,width-301,height-222,resizemode-75/131891867.jpg",
+      "role": "hero",
+      "alt": "Taking creatine? 5 things you should know first",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131890667,imgsize-264402,width-301,height-222/131890667.jpg",
+      "role": "hero",
+      "alt": "British mother of three sheds 14st without exercise",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://static.toiimg.com/thumb/msid-131886782,imgsize-190142,width-301,height-222/131886782.jpg",
+      "role": "hero",
+      "alt": "This pre-bed snack could be ruining your sleep",
+      "found_on": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#f44141",
+    "accent": "#f44141",
+    "ink": "#191919",
+    "surface": "#f4f4f4",
+    "surface_alt": "#f4f4f4",
+    "muted": "#666666",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#f44141",
+      "exact": "#f44141",
+      "derived": false,
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "primary call to action",
+        "selector": "div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
+    },
+    "surface": {
+      "value": "#f4f4f4",
+      "exact": "#f4f4f4",
+      "derived": false,
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "page ground",
+        "selector": "body#fullscreen",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#191919",
+      "exact": "#666666",
+      "derived": true,
+      "note": "DERIVED from #666666: no text colour reached 4.5:1 on the primary #f44141, so the ink is darkened until it does (still 15.99:1 on the page).",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "body copy",
+        "selector": "div.fix_wrapper.ent_footer_wrapper > div.level2.footer_social:nth-of-type(5) > div.footer_social_in > div.column > div.copyright:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#f4f4f4",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      }
+    },
+    "muted": {
+      "value": "#666666",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "body copy",
+        "selector": "div.fix_wrapper.ent_footer_wrapper > div.level2.footer_social:nth-of-type(5) > div.footer_social_in > div.column > div.copyright:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#f44141",
+      "exact": "",
+      "derived": true,
+      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "primary call to action",
+        "selector": "div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Accent text on the surface is 3.36:1. Keep accent for fills and rules, not body copy.",
+    "Primary and accent are nearly the same tone; the two will not read as distinct."
+  ],
+  "typography": {
+    "heading": {
+      "family": "Verdana",
+      "stack": "'Verdana','arial',sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "kind": "local",
+      "loadable": true,
+      "weights_read": false,
+      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "h1",
+        "selector": "div#mainwrapper > div.ent_middle.clearfix:nth-of-type(6) > div.fix_wrapper.clearfix:nth-of-type(1) > div.featuredWrap > h1.h1tags",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "Verdana",
+      "stack": "'Verdana','arial',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "local",
+      "loadable": true,
+      "weights_read": false,
+      "note": "A system font stack: each device picks the face, exactly as on the site.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://timesofindia.indiatimes.com/life-style/health-fitness",
+        "role": "body copy",
+        "selector": "div.fix_wrapper.ent_footer_wrapper > div.level2.footer_social:nth-of-type(5) > div.footer_social_in > div.column > div.copyright:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://timesofindia.indiatimes.com/life-style/health-fitness in Chromium 153.0.8010.12 on 2026-10-04. Primary #f44141 from the primary call to action, as rendered: the only brand colour this site renders (div.fix_wrapper.clearfix:nth-of-type(1) > div.nmainnav.clearfix:nth-of-type(2) > ul.submainnav > li:nth-of-type(5) > a.active). Headings Verdana, body Verdana, as rendered."
 }

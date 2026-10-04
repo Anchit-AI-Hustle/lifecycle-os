@@ -8,87 +8,250 @@
     "label": "Razorpay",
     "sector": "Fintech",
     "blurb": "Payments. Template for a B2B onboarding and activation programme.",
-    "verified_at": "2026-09-30",
-    "source": "Read from https://razorpay.com/ on 2026-09-30. Primary #305eff from computed background of framer-1ozmtm0 (45 elements).",
+    "verified_at": "2026-10-04",
+    "source": "Rendered https://razorpay.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #305eff from the primary call to action, as rendered: the only brand colour this site renders (div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ). Headings TASA Orbiter Display SemiBold, body Inter, as rendered.",
     "needs_extraction": false,
     "palette_source": "verified",
-    "typography_source": "default",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=icon)",
     "palette_evidence": {
-      "surface": {
-        "value": "#ffffff",
-        "signal": "computed background of body",
-        "source_url": "https://razorpay.com/"
-      },
-      "ink": {
-        "value": "#000000",
-        "signal": "computed color of body",
-        "source_url": "https://razorpay.com/"
-      },
-      "surface_alt": {
-        "value": "#f8fafc",
-        "signal": "computed light background repeated on the page",
-        "source_url": "https://razorpay.com/"
-      },
-      "muted": {
-        "value": "#666666",
-        "signal": "secondary text token that clears AA; the page did not declare one",
-        "source_url": "https://razorpay.com/"
-      },
       "primary": {
         "value": "#305eff",
-        "signal": "computed background of framer-1ozmtm0 (45 elements)",
-        "source_url": "https://razorpay.com/"
+        "exact": "#305eff",
+        "derived": false,
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "primary call to action",
+          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-zgv6cg-container:nth-of-type(1) > a.framer-Xb7Ou.framer-QQaRQ",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered: the only brand colour this site renders"
+      },
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        }
+      },
+      "ink": {
+        "value": "#222222",
+        "exact": "#222222",
+        "derived": false,
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "body copy",
+          "selector": "div.framer-m55ugu:nth-of-type(2) > div.framer-1vo146e > div.framer-kpwivd > div.framer-hi6lvp:nth-of-type(2) > p.framer-text",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        }
+      },
+      "muted": {
+        "value": "#64748a",
+        "exact": "#64748a",
+        "derived": false,
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "secondary text",
+          "selector": "div.framer-u54ahn:nth-of-type(1) > div.framer-1rs4mzo:nth-of-type(1) > div.framer-ttcpdg:nth-of-type(2) > div.framer-1xnbg6h:nth-of-type(1) > p.framer-text",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        }
       },
       "accent": {
-        "value": "#ffbfbf",
-        "signal": "computed background of framer-5w61c2",
-        "source_url": "https://razorpay.com/"
+        "value": "#2950da",
+        "exact": "#2950da",
+        "derived": false,
+        "source": {
+          "page": "https://razorpay.com/",
+          "role": "body link",
+          "selector": "div.framer-191o9y5 > div.framer-rk6u69:nth-of-type(1) > div.framer-1nsgzu1:nth-of-type(2) > div.framer-qt6ikm-container:nth-of-type(2) > a.framer-1O3k8.framer-QQaRQ",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "from_role": "link"
       },
       "line": {
         "value": "#e4e4e4",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "ok": {
         "value": "#1a7f37",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "warn": {
         "value": "#c9a227",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
       },
       "err": {
         "value": "#c0392b",
-        "signal": "functional token shared by every preset, not a colour read from this brand",
-        "source_url": ""
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "env",
+      "chromium": "153.0.8010.12"
+    },
+    "read_pages": [
+      {
+        "url": "https://razorpay.com/",
+        "role": "home"
+      },
+      {
+        "url": "https://razorpay.com/about/",
+        "role": "about"
+      }
+    ],
+    "regression": {
+      "ok": true,
+      "done": false,
+      "score": 59.5,
+      "mismatch": 0.405,
+      "surfaces": {
+        "landing page": {
+          "score": 59.8,
+          "mismatch": 0.4018,
+          "done": false,
+          "tokens_off": 8,
+          "regions_off": 4
+        },
+        "mailer": {
+          "score": 82.4,
+          "mismatch": 0.1765,
+          "done": false,
+          "tokens_off": 3,
+          "regions_off": 0
+        },
+        "ad creative": {
+          "score": 87.5,
+          "mismatch": 0.125,
+          "done": false,
+          "tokens_off": 1,
+          "regions_off": 0
+        }
+      },
+      "iterations": 3,
+      "repairs": 4,
+      "mismatch_limit": 0.05
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://razorpay.com/",
+        "role": "h1",
+        "selector": "div.framer-dbcp77:nth-of-type(1) > div.framer-1tezxao > div.ssr-variant.hidden-6wsqng:nth-of-type(1) > div.framer-1skhacy > h1.framer-text.framer-styles-preset-3ermk9",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "body": {
+        "page": "https://razorpay.com/",
+        "role": "body copy",
+        "selector": "div.framer-m55ugu:nth-of-type(2) > div.framer-1vo146e > div.framer-kpwivd > div.framer-hi6lvp:nth-of-type(2) > p.framer-text",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
       }
     }
   },
   "palette": {
     "primary": "#305eff",
-    "accent": "#ffbfbf",
-    "ink": "#000000",
+    "accent": "#2950da",
+    "ink": "#222222",
     "surface": "#ffffff",
-    "surface_alt": "#f8fafc",
-    "muted": "#666666",
+    "surface_alt": "#ffffff",
+    "muted": "#64748a",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "TASA Orbiter Display SemiBold",
+      "stack": "'TASA Orbiter Display SemiBold','TASA Orbiter Display SemiBold Placeholder',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "600",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "TASA Orbiter Display SemiBold (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Inter",
+      "stack": "'Inter','Inter Placeholder',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Inter (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -168,62 +331,63 @@
   ],
   "brand_assets": [
     {
-      "url": "https://framerusercontent.com/assets/KJ1tqmJ8dStXoXj7xeNbsNv6uQ.png",
-      "role": "share",
+      "url": "https://framerusercontent.com/images/CU1m0xFonUl76ZeaW0IdkQ0M.png",
+      "role": "logo",
       "alt": "",
       "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/PgsePDHRiCD1q0DVjDWxvFhkQZ0.png?scale-down-to=512&width=2295&height=279",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/2G9eJ6Jm2vAoH14bNQ0SLl8uow.webp?scale-down-to=1024&width=1793&height=2000",
-      "role": "photograph",
-      "alt": "blob_yobfpt.webp",
-      "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/nKNFP0ohnaUiL7ukr0zuBsnoU.png?scale-down-to=1024&width=1201&height=2206",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/DLAzb4nnb07TfXrwvOc0UtME8.png?scale-down-to=512&width=1312&height=762",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/YP8jogvJToMEAzQelSO7hKWo8.png?scale-down-to=1024&width=1198&height=1046",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://framerusercontent.com/images/deoBetaoEdkVH4ZWYRHVp64NPU.png?scale-down-to=1024&width=1221&height=1050",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
+      "signal": "the icon the page declares (link rel=icon)"
     },
     {
       "url": "https://framerusercontent.com/images/96R7VlBEnZsuWetDYK835OeP44.png?scale-down-to=1024&width=1221&height=1046",
-      "role": "photograph",
+      "role": "hero",
       "alt": "",
       "found_on": "https://razorpay.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/COBl8AoJHIT0OeKMgtEUONygjGQ.png?scale-down-to=1024&width=1220&height=1046",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/PgsePDHRiCD1q0DVjDWxvFhkQZ0.png?scale-down-to=512&width=2295&height=279",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/2G9eJ6Jm2vAoH14bNQ0SLl8uow.webp?scale-down-to=1024&width=1793&height=2000",
+      "role": "hero",
+      "alt": "blob_yobfpt.webp",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/nKNFP0ohnaUiL7ukr0zuBsnoU.png?scale-down-to=1024&width=1201&height=2206",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/DLAzb4nnb07TfXrwvOc0UtME8.png?scale-down-to=512&width=1312&height=762",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://framerusercontent.com/images/YP8jogvJToMEAzQelSO7hKWo8.png?scale-down-to=1024&width=1198&height=1046",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://razorpay.com/",
+      "signal": "image rendered on the page"
     }
   ],
+  "logo_url": "https://framerusercontent.com/images/CU1m0xFonUl76ZeaW0IdkQ0M.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

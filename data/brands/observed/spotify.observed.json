@@ -1,150 +1,285 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "spotify",
   "start": "https://www.spotify.com",
   "landed": "https://open.spotify.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Spotify - Web Player: Music for everyone",
-  "source": "Read from https://open.spotify.com/ on 2026-09-30. Primary #121212 from manifest theme_color.",
-  "palette": {
-    "primary": "#121212",
-    "accent": "#1ed760",
-    "ink": "#111111",
-    "surface": "#ffffff",
-    "surface_alt": "#f8f8f8",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:52:42.965Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "light page surface; the page ground was not a light colour",
-      "source_url": "https://open.spotify.com/"
+  "pages": [
+    {
+      "url": "https://open.spotify.com/",
+      "role": "home"
     },
-    "ink": {
-      "value": "#111111",
-      "signal": "body text that clears AA on the page surface",
-      "source_url": "https://open.spotify.com/"
+    {
+      "url": "https://www.spotify.com/us/about-us/contact/",
+      "role": "about"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
     },
-    "surface_alt": {
-      "value": "#f8f8f8",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://open.spotify.com/"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://open.spotify.com/"
-    },
-    "primary": {
-      "value": "#121212",
-      "signal": "manifest theme_color",
-      "source_url": "https://open.spotify.com/"
-    },
-    "accent": {
-      "value": "#1ed760",
-      "signal": "computed background of e-10860-overflow-wrap-anywhere e-10860-button-primary__inner encore-br",
-      "source_url": "https://open.spotify.com/"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
+    "mobile": {
+      "w": 812,
+      "h": 1758
     }
   },
-  "typography": {
-    "heading": {
-      "family": "SpotifyMixUI",
-      "stack": "'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 59,
+    "mismatch": 0.41,
+    "surfaces": {
+      "landing page": {
+        "score": 62.7,
+        "mismatch": 0.3729,
+        "done": false,
+        "tokens_off": 5,
+        "regions_off": 4
+      },
+      "mailer": {
+        "score": 66.7,
+        "mismatch": 0.3333,
+        "done": false,
+        "tokens_off": 5,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 85.7,
+        "mismatch": 0.1429,
+        "done": false,
+        "tokens_off": 1,
+        "regions_off": 0
+      }
     },
-    "body": {
-      "family": "SpotifyMixUI",
-      "stack": "'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl, CircularSp-Grek",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
+    "iterations": 3,
+    "repairs": 4,
+    "mismatch_limit": 0.05
   },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.spotify.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.spotify.com]"
+  ],
   "logo_url": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png",
-  "logo_signal": "touch icon or favicon the page links",
+  "logo_signal": "the icon the page declares (link rel=icon)",
   "assets": [
     {
       "url": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png",
       "role": "logo",
       "alt": "",
       "found_on": "https://open.spotify.com/",
-      "signal": "touch icon or favicon the page links"
-    },
-    {
-      "url": "https://open.spotifycdn.com/cdn/images/download-page-image-mac.fec937cc.png",
-      "role": "share",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://i.scdn.co/image/ab6742d3000052b76ca413a1f520797f0b1068d1",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://i.scdn.co/image/ab67616d00001e025cf234eeb7a2edf44bf64a46",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://i.scdn.co/image/ab67616d00001e02025dc6c56e95fccbda35dd3f",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://i.scdn.co/image/ab67616d00001e02b09eea420767969b6729962b",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://i.scdn.co/image/ab67616d00001e02ac2975341ab46e756632bba9",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://i.scdn.co/image/ab6742d3000052b7326b9dabe6ac59739d58754c",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://open.spotify.com/",
-      "signal": "img on the page"
+      "signal": "the icon the page declares (link rel=icon)"
     }
-  ]
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#000000",
+    "accent": "#000000",
+    "ink": "#333333",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#333333",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#000000",
+      "exact": "#000000",
+      "derived": false,
+      "from_role": "identity",
+      "signal": "header background as rendered; the site renders no chromatic brand colour and no filled call to action",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "header",
+        "selector": "div#global-nav-bar",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#121212",
+      "derived": true,
+      "note": "DERIVED: the site paints its page #121212, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "page ground",
+        "selector": "html.encore-dark-theme.encore-layout-themes",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#333333",
+      "exact": "#ffffff",
+      "derived": true,
+      "note": "DERIVED from #ffffff: the body copy as rendered measures 1:1 on #ffffff, so it is darkened until it reads (12.63:1).",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "body copy",
+        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      }
+    },
+    "muted": {
+      "value": "#333333",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "body copy",
+        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#000000",
+      "exact": "",
+      "derived": true,
+      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary and accent are nearly the same tone; the two will not read as distinct."
+  ],
+  "typography": {
+    "heading": {
+      "family": "SpotifyMixUI",
+      "stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "SpotifyMixUI (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "h1",
+        "selector": "div:nth-of-type(1) > header.zp4sQi3GjiBGds7TWwKc > div._G444vwwRlS1vfvzWvSD > div.YDTtS1uhCcuSKEndASSg:nth-of-type(1) > h1.e-10860-text.encore-text-body-medium-bold",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "SpotifyMixUI",
+      "stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "SpotifyMixUI (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "body copy",
+        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://open.spotify.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #000000 from header background as rendered; the site renders no chromatic brand colour and no filled call to action (div#global-nav-bar). Headings SpotifyMixUI, body SpotifyMixUI, as rendered."
 }

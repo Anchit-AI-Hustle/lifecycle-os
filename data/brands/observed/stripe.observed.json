@@ -1,150 +1,333 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "stripe",
   "start": "https://stripe.com",
   "landed": "https://stripe.com/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Stripe | Financial Infrastructure to Grow Your Revenue",
-  "source": "Read from https://stripe.com/ on 2026-09-30. Primary #533afd from computed background of hds-button hds-button--primary (8 elements).",
-  "palette": {
-    "primary": "#533afd",
-    "accent": "#000000",
-    "ink": "#000000",
-    "surface": "#ffffff",
-    "surface_alt": "#f8fafd",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:53:48.148Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "light page surface; the page ground was not a light colour",
-      "source_url": "https://stripe.com/"
+  "pages": [
+    {
+      "url": "https://stripe.com/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
     },
-    "ink": {
-      "value": "#000000",
-      "signal": "computed color of body",
-      "source_url": "https://stripe.com/"
-    },
-    "surface_alt": {
-      "value": "#f8fafd",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://stripe.com/"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://stripe.com/"
-    },
-    "primary": {
-      "value": "#533afd",
-      "signal": "computed background of hds-button hds-button--primary (8 elements)",
-      "source_url": "https://stripe.com/"
-    },
-    "accent": {
-      "value": "#000000",
-      "signal": "text colour, used where the brand publishes no second colour",
-      "source_url": "https://stripe.com/"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
+    "mobile": {
+      "w": 390,
+      "h": 844
     }
   },
-  "typography": {
-    "heading": {
-      "family": "sohne-var",
-      "stack": "'sohne-var', \"SF Pro Display\", sans-serif",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
+  "partial": true,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 69.1,
+    "mismatch": 0.3087,
+    "surfaces": {
+      "landing page": {
+        "score": 70,
+        "mismatch": 0.3,
+        "done": false,
+        "tokens_off": 0,
+        "regions_off": 4
+      },
+      "mailer": {
+        "score": 93.8,
+        "mismatch": 0.0625,
+        "done": false,
+        "tokens_off": 1,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      }
     },
-    "body": {
-      "family": "sohne-var",
-      "stack": "'sohne-var', \"SF Pro Display\", sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
+    "iterations": 3,
+    "repairs": 6,
+    "mismatch_limit": 0.05
   },
-  "logo_url": "https://images.stripeassets.com/fzn2n1nzq965/1hgcBNd12BfT9VLgbId7By/01d91920114b124fb4cf6d448f9f06eb/favicon.svg",
-  "logo_signal": "img on the page whose address or alt says logo",
+  "conflicts": [
+    {
+      "kind": "brand_colour_vs_action_colour",
+      "message": "The site declares #f5f5ff as its own colour (--hds-color-core-brand-25 as computed on :root) but renders its primary call to action in #533afd. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+    }
+  ],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), stripe.com]"
+  ],
+  "logo_url": "https://images.stripeassets.com/fzn2n1nzq965/4vVgZi0ZMoEzOhkcv7EVwK/8cce6fdcf2733b2ec8e99548908847ed/favicon.png?w=180&h=180",
+  "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
   "assets": [
     {
-      "url": "https://images.stripeassets.com/fzn2n1nzq965/1hgcBNd12BfT9VLgbId7By/01d91920114b124fb4cf6d448f9f06eb/favicon.svg",
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/4vVgZi0ZMoEzOhkcv7EVwK/8cce6fdcf2733b2ec8e99548908847ed/favicon.png?w=180&h=180",
       "role": "logo",
-      "alt": "Aerial view of a street intersection where the crosswalks form a slanted parallelogram, imitating the Stripe logo.",
-      "found_on": "https://stripe.com/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/stripe.37119086.jpg",
-      "role": "share",
       "alt": "",
       "found_on": "https://stripe.com/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://b.stripecdn.com/mkt-ssr-statics/assets/_next/static/media/wave-fallback-desktop-1x.fba6fa88.webp",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://stripe.com/",
-      "signal": "img on the page"
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
     },
     {
       "url": "https://images.stripeassets.com/fzn2n1nzq965/1Vf8oT9Fm6dEwpnEx5PgK1/055956f38d7fd8b0cc7419692ef29778/bento-terminal.png?w=308&fm=webp&q=90",
       "role": "photograph",
       "alt": "",
       "found_on": "https://stripe.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/6BTjJGdjfGVA8brPwj7p3M/fcf084ff85142366e118fe85ee78b632/payments-electric-kettle.jpg?w=80&fm=webp&q=90",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://images.stripeassets.com/fzn2n1nzq965/5Dr3Oc550drIrxyzzXgFbq/f6e4fb0b8b4b40d73e94fdf7c9bc7028/payments-hoodie.jpg?w=80&q=90",
       "role": "photograph",
       "alt": "",
       "found_on": "https://stripe.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://images.stripeassets.com/fzn2n1nzq965/1UE1lPgwbfQRH586XfTWKM/f90bfc79f87b3e60a4189cc0f5a03228/showflix-streaming.jpg?w=80&q=90",
       "role": "photograph",
       "alt": "",
       "found_on": "https://stripe.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://images.stripeassets.com/fzn2n1nzq965/vYmk6v8n7oDAwbDpwhjV6/846f9b3e214549b8f14e2b8c8cfe9343/payment-bento-background.jpg?w=860&fm=webp&q=80",
       "role": "photograph",
       "alt": "",
       "found_on": "https://stripe.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.stripeassets.com/fzn2n1nzq965/m9HBEK464p46FeNIhs2PV/f5054a93c8a0a6aabdd1c47675d610ae/wave_crop.jpg?w=296&q=80",
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/3NcSrMqMgaKe75QNr8wZI8/46d520dfc48c5b9f1c59dcde9460b58c/connect-bento-card-background-image.jpg?w=1232&fm=webp&q=90",
       "role": "photograph",
       "alt": "",
       "found_on": "https://stripe.com/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://images.stripeassets.com/fzn2n1nzq965/2YFdgdFPeIiDpmQbhHPAx8/186752498bf713fea245f31bcec84f8a/sessions-2026-on-demand-bg.png?w=1632&fm=webp&q=90",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://stripe.com/",
+      "signal": "image rendered on the page"
     }
-  ]
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#f5f5ff",
+    "accent": "#533afd",
+    "ink": "#5f6e86",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#6a768b",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#f5f5ff",
+      "exact": "#f5f5ff",
+      "derived": false,
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "custom property",
+        "selector": ":root",
+        "viewport": "desktop",
+        "property": "--hds-color-core-brand-25",
+        "signal": "computed"
+      },
+      "from_role": "identity",
+      "signal": "--hds-color-core-brand-25 as computed on :root"
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "page ground",
+        "selector": "canvas (no background declared)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#5f6e86",
+      "exact": "#64748d",
+      "derived": true,
+      "note": "DERIVED from #64748d: no text colour reached 4.5:1 on the primary #f5f5ff, so the ink is darkened until it does (still 5.17:1 on the page).",
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "body copy",
+        "selector": "div.testimonial-carousel-container:nth-of-type(2) > div:nth-of-type(1) > div.testimonial-carousel__cards > div.testimonial-card.testimonial-carousel__card:nth-of-type(1) > q.testimonial-card__quote",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      }
+    },
+    "muted": {
+      "value": "#6a768b",
+      "exact": "#7d8ba4",
+      "derived": true,
+      "note": "DERIVED from #7d8ba4: secondary text as rendered measures 3.44:1, adjusted to AA.",
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "secondary text",
+        "selector": "span#stat-payments-volume-description",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#533afd",
+      "exact": "#533afd",
+      "derived": false,
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "primary call to action",
+        "selector": "section.hds-color-mode.hero-section-container:nth-of-type(1) > div.section-container.hero-section__layout:nth-of-type(1) > div.hero-section__layout-grid > div.hds-button-group.hero-section__actions:nth-of-type(2) > a.hds-button.hds-button--primary:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action"
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary on the page surface is 1.08:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see."
+  ],
+  "typography": {
+    "heading": {
+      "family": "sohne-var",
+      "stack": "'sohne-var','SF Pro Display',sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "sohne-var (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "h1",
+        "selector": "main#main-content > section.hds-color-mode.hero-section-container:nth-of-type(1) > div.section-container.hero-section__layout:nth-of-type(1) > div.hero-section__layout-grid > h1.hds-heading.hero-section__title:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "sohne-var",
+      "stack": "'sohne-var','SF Pro Display',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "sohne-var (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://stripe.com/",
+        "role": "body copy",
+        "selector": "div.testimonial-carousel-container:nth-of-type(2) > div:nth-of-type(1) > div.testimonial-carousel__cards > div.testimonial-card.testimonial-carousel__card:nth-of-type(1) > q.testimonial-card__quote",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://stripe.com/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #f5f5ff from --hds-color-core-brand-25 as computed on :root (:root). Headings sohne-var, body sohne-var, as rendered."
 }

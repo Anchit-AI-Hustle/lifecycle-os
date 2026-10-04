@@ -1,150 +1,328 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "mamaearth",
   "start": "https://mamaearth.in",
   "landed": "https://mamaearth.in/",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Mamaearth Natural Skin & Hair Care Products- Get 25% Off Now",
-  "source": "Read from https://mamaearth.in/ on 2026-09-30. Primary #00aeef from computed background of hdt-announcement-bar hdt-s-gradient  hdt-announcement_bar_hide_on_mobl (11 elements).",
-  "palette": {
-    "primary": "#00aeef",
-    "accent": "#1d1d1d",
-    "ink": "#1d1d1d",
-    "surface": "#ffffff",
-    "surface_alt": "#f4f6f8",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:51:33.815Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "computed background of body",
-      "source_url": "https://mamaearth.in/"
+  "pages": [
+    {
+      "url": "https://mamaearth.in/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
     },
-    "ink": {
-      "value": "#1d1d1d",
-      "signal": "computed color of body",
-      "source_url": "https://mamaearth.in/"
-    },
-    "surface_alt": {
-      "value": "#f4f6f8",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://mamaearth.in/"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://mamaearth.in/"
-    },
-    "primary": {
-      "value": "#00aeef",
-      "signal": "computed background of hdt-announcement-bar hdt-s-gradient  hdt-announcement_bar_hide_on_mobl (11 elements)",
-      "source_url": "https://mamaearth.in/"
-    },
-    "accent": {
-      "value": "#1d1d1d",
-      "signal": "text colour, used where the brand publishes no second colour",
-      "source_url": "https://mamaearth.in/"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
+    "mobile": {
+      "w": 390,
+      "h": 844
     }
   },
-  "typography": {
-    "heading": {
-      "family": "Open Sans",
-      "stack": "'Open Sans', sans-serif",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
+  "partial": false,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 70.9,
+    "mismatch": 0.2906,
+    "surfaces": {
+      "landing page": {
+        "score": 70.7,
+        "mismatch": 0.2931,
+        "done": false,
+        "tokens_off": 7,
+        "regions_off": 3
+      },
+      "mailer": {
+        "score": 88.2,
+        "mismatch": 0.1176,
+        "done": false,
+        "tokens_off": 2,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 100,
+        "mismatch": 0,
+        "done": true,
+        "tokens_off": 0,
+        "regions_off": 0
+      }
     },
-    "body": {
-      "family": "Open Sans",
-      "stack": "'Open Sans', sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
   },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: footer, mamaearth.in]"
+  ],
   "logo_url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
-  "logo_signal": "img on the page whose address or alt says logo",
+  "logo_signal": "the logo element as rendered (a.hdt-inline-flex.hdt-align-center > div.hdt-brand-box.header-logo-text-enabled > div.hdt-brand-logo:nth-of-type(2) > picture.hdt-logo-default:nth-of-type(1) > img.hdt-logo-img)",
   "assets": [
     {
       "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
       "role": "logo",
-      "alt": "Mamaearth",
-      "found_on": "https://mamaearth.in/",
-      "signal": "img on the page whose address or alt says logo"
-    },
-    {
-      "url": "https://mamaearth.in/cdn/shop/files/mamaearth-og-image.jpg?v=1787645067",
-      "role": "share",
       "alt": "",
       "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
+      "signal": "the logo element as rendered (a.hdt-inline-flex.hdt-align-center > div.hdt-brand-box.header-logo-text-enabled > div.hdt-brand-logo:nth-of-type(2) > picture.hdt-logo-default:nth-of-type(1) > img.hdt-logo-img)"
     },
     {
-      "url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=110",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://mamaearth.in/cdn/shop/files/b2g2_genric_desktop.jpg?v=1790654097&width=1400",
-      "role": "photograph",
+      "url": "https://mamaearth.in/cdn/shop/files/b1g1-desktop.jpg?v=1790851465&width=1600",
+      "role": "hero",
       "alt": "Mamaearth",
       "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://mamaearth.in/cdn/shop/files/REDEEM35_new_buy2_desktop_generic.jpg?v=1790654676&width=1400",
-      "role": "photograph",
+      "url": "https://mamaearth.in/cdn/shop/files/REDEEM35_new_buy2_desktop_generic.jpg?v=1790654676&width=1600",
+      "role": "hero",
       "alt": "Mamaearth",
       "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://mamaearth.in/cdn/shop/files/flaxseed-desktop-new.jpg?v=1783748411&width=1600",
-      "role": "photograph",
+      "role": "hero",
       "alt": "Mamaearth",
       "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://mamaearth.in/cdn/shop/files/Tea-tree-face-wash-desktop.jpg?v=1780754685&width=1600",
-      "role": "photograph",
+      "role": "hero",
       "alt": "Mamaearth",
       "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
-      "url": "https://mamaearth.in/cdn/shop/files/rice_fw_150ml.jpg?v=1777974776&width=300",
-      "role": "photograph",
-      "alt": "Rice Dewy Bright Face Wash for glass skin",
+      "url": "https://mamaearth.in/cdn/shop/files/Group_1_small.svg?v=1772934478",
+      "role": "hero",
+      "alt": "Best Sellers",
       "found_on": "https://mamaearth.in/",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/flash-sale-unse_small.svg?v=1779262321",
+      "role": "hero",
+      "alt": "Flash Sale",
+      "found_on": "https://mamaearth.in/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://mamaearth.in/cdn/shop/files/Group_8_small.svg?v=1772934622",
+      "role": "hero",
+      "alt": "Hair",
+      "found_on": "https://mamaearth.in/",
+      "signal": "image rendered on the page"
     }
-  ]
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#00aeef",
+    "accent": "#00aeef",
+    "ink": "#1d1d1d",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#737373",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#00aeef",
+      "exact": "#00aeef",
+      "derived": false,
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "primary call to action",
+        "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered: the only brand colour this site renders"
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "page ground",
+        "selector": "body.hdt-page-type-index.template-index",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#1d1d1d",
+      "exact": "#1d1d1d",
+      "derived": false,
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "body copy",
+        "selector": "div#profile-description > div.metafield-rich_text_field > p:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "product card",
+        "selector": "hdt-slider#Slider-tab_item_template_3naXxd > div.hdt-slider__viewport.hdt-relative > div.hdt-slider__container > hdt-card-product.hdt-card-product.hdt-slider__slide:nth-of-type(1) > div.hdt-card-product__wrapper",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "muted": {
+      "value": "#737373",
+      "exact": "#ffffff",
+      "derived": true,
+      "note": "DERIVED from #ffffff: secondary text as rendered measures 1:1, adjusted to AA.",
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "secondary text",
+        "selector": "hdt-card-product.hdt-card-product.hdt-slider__slide:nth-of-type(2) > div.hdt-card-product__wrapper > div.hdt-card-product__media.hdt-relative:nth-of-type(1) > div.m_prod_label:nth-of-type(1) > div.m_prod_labels.most-loved-sunscreen:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#00aeef",
+      "exact": "",
+      "derived": true,
+      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "primary call to action",
+        "selector": "form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary on the page surface is 2.53:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see.",
+    "Accent text on the surface is 2.53:1. Keep accent for fills and rules, not body copy.",
+    "Primary and accent are nearly the same tone; the two will not read as distinct."
+  ],
+  "typography": {
+    "heading": {
+      "family": "Open Sans",
+      "stack": "'Open Sans',sans-serif",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Open Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "h1",
+        "selector": "div#profile-description > div.metafield-rich_text_field > h1",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "Open Sans",
+      "stack": "'Open Sans',sans-serif",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Open Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://mamaearth.in/",
+        "role": "body copy",
+        "selector": "div#profile-description > div.metafield-rich_text_field > p:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://mamaearth.in/ in Chromium 153.0.8010.12 on 2026-10-04. Primary #00aeef from the primary call to action, as rendered: the only brand colour this site renders (form#\\[object\\ HTMLInputElement\\] > hdt-tooltip.hdt-ultra_btn_parent > button.hdt-card-product__btn-ultra.hdt-pr_btn). Headings Open Sans, body Open Sans, as rendered."
 }

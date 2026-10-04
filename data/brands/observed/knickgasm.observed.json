@@ -1,150 +1,323 @@
 {
+  "format": "preset-observation/2",
   "ok": true,
-  "palette_ok": true,
   "slug": "knickgasm",
   "start": "https://knickgasm.com",
   "landed": "https://knickgasm.com/en-us",
-  "observed_at": "2026-09-30",
-  "status": 200,
-  "title": "Knickgasm: Custom Sneakers India",
-  "source": "Read from https://knickgasm.com/en-us on 2026-09-30. Primary #d0473e from css custom property --color-primary.",
-  "palette": {
-    "primary": "#d0473e",
-    "accent": "#000000",
-    "ink": "#111111",
-    "surface": "#ffffff",
-    "surface_alt": "#f9f9f9",
-    "muted": "#666666",
-    "ok": "#1a7f37",
-    "warn": "#c9a227",
-    "err": "#c0392b"
+  "observed_at": "2026-10-04",
+  "read_at": "2026-10-04T16:49:57.752Z",
+  "renderer": "rendered",
+  "reader": {
+    "module": "api/_shared/brand-render.js",
+    "manifest_version": "design-manifest/1",
+    "browser": "env",
+    "chromium": "153.0.8010.12"
   },
-  "evidence": {
-    "surface": {
-      "value": "#ffffff",
-      "signal": "computed background of body",
-      "source_url": "https://knickgasm.com/en-us"
-    },
-    "ink": {
-      "value": "#111111",
-      "signal": "computed color of body",
-      "source_url": "https://knickgasm.com/en-us"
-    },
-    "surface_alt": {
-      "value": "#f9f9f9",
-      "signal": "computed light background repeated on the page",
-      "source_url": "https://knickgasm.com/en-us"
-    },
-    "muted": {
-      "value": "#666666",
-      "signal": "secondary text token that clears AA; the page did not declare one",
-      "source_url": "https://knickgasm.com/en-us"
-    },
-    "primary": {
-      "value": "#d0473e",
-      "signal": "css custom property --color-primary",
-      "source_url": "https://knickgasm.com/en-us"
-    },
-    "accent": {
-      "value": "#000000",
-      "signal": "css custom property --shopify-chat-accent-bg-color",
-      "source_url": "https://knickgasm.com/en-us"
-    },
-    "line": {
-      "value": "#e4e4e4",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "ok": {
-      "value": "#1a7f37",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "warn": {
-      "value": "#c9a227",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
-    },
-    "err": {
-      "value": "#c0392b",
-      "signal": "functional token shared by every preset, not a colour read from this brand",
-      "source_url": ""
+  "pages": [
+    {
+      "url": "https://knickgasm.com/en-us",
+      "role": "home"
     }
-  },
-  "typography": {
-    "heading": {
-      "family": "Instrument Sans",
-      "stack": "'Instrument Sans', sans-serif",
-      "google": false,
-      "weights": "600;700",
-      "signal": "computed font-family of h1"
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
     },
-    "body": {
-      "family": "Instrument Sans",
-      "stack": "'Instrument Sans', sans-serif",
-      "google": false,
-      "weights": "400;500;600",
-      "signal": "computed font-family of body"
-    }
+    "mobile": null
   },
-  "logo_url": "",
-  "logo_signal": "",
+  "partial": true,
+  "regression": {
+    "ok": true,
+    "done": false,
+    "score": 64.4,
+    "mismatch": 0.3565,
+    "surfaces": {
+      "landing page": {
+        "score": 70,
+        "mismatch": 0.3,
+        "done": false,
+        "tokens_off": 0,
+        "regions_off": 1
+      },
+      "mailer": {
+        "score": 76.5,
+        "mismatch": 0.2353,
+        "done": false,
+        "tokens_off": 4,
+        "regions_off": 0
+      },
+      "ad creative": {
+        "score": 87.5,
+        "mismatch": 0.125,
+        "done": false,
+        "tokens_off": 1,
+        "regions_off": 0
+      }
+    },
+    "iterations": 1,
+    "repairs": 0,
+    "mismatch_limit": 0.05
+  },
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), knickgasm.com]"
+  ],
+  "logo_url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332&width=165",
+  "logo_signal": "the logo element as rendered (div.header__logo.text-center:nth-of-type(1) > h1.my-0.inline-flex > a.logo-img.no-underline > span.header__normal-logo.inline-flex > img.header__normal-logo)",
   "assets": [
     {
       "url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332&width=165",
-      "role": "photograph",
-      "alt": "Knickgasm",
+      "role": "logo",
+      "alt": "",
       "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
+      "signal": "the logo element as rendered (div.header__logo.text-center:nth-of-type(1) > h1.my-0.inline-flex > a.logo-img.no-underline > span.header__normal-logo.inline-flex > img.header__normal-logo)"
     },
     {
       "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-Force-1-Cartooned-x-Coffee-Dip-Rope-Laces-Knickgasm-6546.jpg?v=1761395937&width=720",
       "role": "photograph",
       "alt": "Nike Air Force 1 Cartooned x Coffee Dip (Rope Laces) Knickgasm",
       "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-Force-1-Cartooned-x-Coffee-Dip-Rope-Laces-Knickgasm-9333.jpg?v=1774092169&width=720",
-      "role": "photograph",
-      "alt": "Nike Air Force 1 Cartooned x Coffee Dip (Rope Laces) Knickgasm",
-      "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://knickgasm.com/cdn/shop/files/54E1720D-A21E-4617-9ACE-B3311BFBFA6A.jpg?v=1734159516&width=720",
       "role": "photograph",
       "alt": "BMW Custom x Nike Air Force 1",
       "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://knickgasm.com/cdn/shop/files/FullSizeRender_5820c636-c177-4a62-ac50-e4c6d40a6a3a.jpg?v=1790368425&width=720",
       "role": "photograph",
       "alt": "Barca x Nike Air Force 1",
       "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-force-1-x-Dior-Custom-Knickgasm-6605.jpg?v=1734418208&width=720",
       "role": "photograph",
       "alt": "Nike Air force 1 x Dior Custom Knickgasm",
       "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
-    },
-    {
-      "url": "https://knickgasm.com/cdn/shop/files/Nike-Air-force-1-x-Dior-Custom-Knickgasm-3893.jpg?v=1734418209&width=720",
-      "role": "photograph",
-      "alt": "Nike Air force 1 x Dior Custom Knickgasm",
-      "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
     },
     {
       "url": "https://knickgasm.com/cdn/shop/files/Nike-Court-Vison-x-Cartoon-Knickgasm-2715.jpg?v=1746788152&width=720",
       "role": "photograph",
       "alt": "Nike Court Vison x Cartoon Knickgasm",
       "found_on": "https://knickgasm.com/en-us",
-      "signal": "img on the page"
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/D6CF755B-A887-405D-8D45-F7289D9DCC8A.jpg?v=1763931392&width=720",
+      "role": "photograph",
+      "alt": "RAW x Nike Air Force 1",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://knickgasm.com/cdn/shop/files/4F583E60-F52C-4E1B-ACFA-312CA49736B7.jpg?v=1754678480&width=720",
+      "role": "photograph",
+      "alt": "Jägermeister x Nike Air Force 1",
+      "found_on": "https://knickgasm.com/en-us",
+      "signal": "image rendered on the page"
     }
-  ]
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#111111",
+    "accent": "#111111",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#737373",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "primary": {
+      "value": "#111111",
+      "exact": "#111111",
+      "derived": false,
+      "from_role": "action",
+      "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome",
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "primary call to action",
+        "selector": "div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "page ground",
+        "selector": "body.gradient.rounded-style",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "ink": {
+      "value": "#000000",
+      "exact": "#000000",
+      "derived": false,
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "body copy",
+        "selector": "div.jdgm-cards-wrapper > div.jdgm-videos-container > div.jdgm-card.jdgm-media-card:nth-of-type(1) > div.jdgm-text:nth-of-type(1) > p",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "product card",
+        "selector": "div.section.pt-min > div.fluid_container > grid-custom.flex.flex-cols > div.product-item.product__item-js:nth-of-type(1) > div.product-item__wrapper.hover_zoom",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      }
+    },
+    "muted": {
+      "value": "#737373",
+      "exact": "#ffffff",
+      "derived": true,
+      "note": "DERIVED from #ffffff: secondary text as rendered measures 1:1, adjusted to AA.",
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "secondary text",
+        "selector": "div.topbar-item.w-full:nth-of-type(1) > slide-section.swiper.bls__swiper > div.swiper-wrapper:nth-of-type(2) > div.swiper-slide.text-center:nth-of-type(2) > div.px-15",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      }
+    },
+    "accent": {
+      "value": "#111111",
+      "exact": "",
+      "derived": true,
+      "note": "The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary and accent are nearly the same tone; the two will not read as distinct."
+  ],
+  "typography": {
+    "heading": {
+      "family": "Instrument Sans",
+      "stack": "'Instrument Sans',sans-serif",
+      "google": false,
+      "weights": "500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Instrument Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "display heading (largest text near the top)",
+        "selector": "div.swiper-slide.swiper-slide-visible:nth-of-type(1) > div.sec__inner.flex > div.sec__content.relative:nth-of-type(2) > div.sec__content-inner.w-full > h2.sec__content-heading.heading-letter-spacing",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    },
+    "body": {
+      "family": "Instrument Sans",
+      "stack": "'Instrument Sans',sans-serif",
+      "google": false,
+      "weights": "500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Instrument Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://knickgasm.com/en-us",
+        "role": "body copy",
+        "selector": "div.jdgm-cards-wrapper > div.jdgm-videos-container > div.jdgm-card.jdgm-media-card:nth-of-type(1) > div.jdgm-text:nth-of-type(1) > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      }
+    }
+  },
+  "source": "Rendered https://knickgasm.com/en-us in Chromium 153.0.8010.12 on 2026-10-04. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour, so its identity is monochrome (div.fluid_container > div.img-container.flex:nth-of-type(2) > div.sec__content-inner.flex-1:nth-of-type(1) > div.sec__content-btn.align-center:nth-of-type(2) > a.inline-flex.no-underline). Headings Instrument Sans, body Instrument Sans, as rendered."
 }
