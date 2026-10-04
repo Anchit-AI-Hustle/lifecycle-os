@@ -1118,8 +1118,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         return { role: r, value: (p.swatch || [])[[0, 1, 3, 2][i]] || '' };
       });
       var siteHost = esc((p.website || '').replace(/^https?:\/\//, '').replace(/\/.*$/, ''));
+      /* Where the values were READ: the home page, or - when it refused an
+         automated reader - the brand's other own pages (its guidelines,
+         press or newsroom page), named on the card. */
+      var readHosts = (p.read_from && p.read_from.length) ? p.read_from.map(esc).join(', ') : siteHost;
       return '<button type="button" class="preset' + (isDefault ? ' pdefault' : '') + '" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
-        '<div class="pswatch" aria-label="' + (isDefault ? 'Default palette' : 'Palette read from ' + siteHost) + '">' + sw.map(function (s) {
+        '<div class="pswatch" aria-label="' + (isDefault ? 'Default palette' : 'Palette read from ' + readHosts) + '">' + sw.map(function (s) {
           var t = s.role + ' ' + s.value + (s.derived ? ' (derived' + (s.exact ? ' from ' + s.exact : '') + ')' : '');
           return '<span class="psw" data-role="' + esc(s.role) + '" title="' + esc(t) + '"><i style="background:' + esc(s.value) + '"></i><b>' + esc(s.role) + (s.derived ? '*' : '') + '</b></span>';
         }).join('') + '</div>' +
@@ -1134,7 +1138,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           (isDefault
             ? 'Press Read my site above to fill the real values from ' + siteHost + '.'
               + (p.placeholder_products ? ' Ships with ' + p.placeholder_products + ' placeholder products so the layouts render; they are not this brand\'s.' : '')
-            : (p.verified_at ? 'Read from ' + siteHost + ' on ' + esc(p.verified_at) + '. ' : '') +
+            : (p.verified_at ? 'Read from ' + readHosts + ' on ' + esc(p.verified_at) + '. ' : '') +
               'Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
               (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
               (p.has_catalog ? ' &middot; live feed' : '')) +

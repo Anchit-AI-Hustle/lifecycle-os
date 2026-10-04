@@ -189,7 +189,12 @@ header{padding:16px 40px}h1{font:700 48px Georgia,serif;color:#1c1e54;margin:40p
   const p = out.manifest.colors.primary;
   expect(p.value).toBe('#635bff');
   expect(p.from_role).toBe('identity');
-  expect(p.signal).toMatch(/--hds-color-core-brand-500 as computed on :root: the step of --hds-color-core-brand-\* the site renders on its (logo mark|primary call to action)/);
+  // The mark itself paints #635bff (the strongest signal since 2026-10-05);
+  // the scale still proposes exactly that step, never its palest.
+  const step = out.manifest.identity.candidates.find((c) => c.kind === 'token');
+  expect(step.value).toBe('#635bff');
+  expect(step.signal).toMatch(/--hds-color-core-brand-500 as computed on :root: the step of --hds-color-core-brand-\* the site renders on its (logo mark|primary call to action)/);
+  expect(out.manifest.identity.candidates.some((c) => c.value === '#f5f5ff')).toBe(false);
   expect(out.manifest.notes.join(' ')).toMatch(/--acme-brand-\* is a scale of 2 steps and none of them is rendered on the page, so it proposes no brand colour/);
 });
 
