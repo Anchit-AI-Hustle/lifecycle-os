@@ -24,6 +24,7 @@
 const {
   smartConfig, SmartBrainDbAdapter, KnowledgeBaseService, AnalysisService,
   CompetitorBenchmarkingService, CalendarIntelligenceService, GenerationService,
+  applyContactPolicy,
   replenishmentEntries, enforceFrequencyCap,
 } = require('../../lib/smart-brain/services.js');
 const crypto = require('crypto');
@@ -442,7 +443,7 @@ async function buildContext(config, db) {
 // code to offer and says so, which is correct - it must never fall back to a
 // literal, because a code the brand never created fails at the customer's
 // checkout.
-function freshEntries(config, ctx, startDate, days, brand) {
+function freshEntries(config, ctx, startDate, days, brand, contactLedger) {
   const calendar = new CalendarIntelligenceService(config).generate({
     analysis: ctx.analysis,
     competitorBenchmarks: ctx.competitorBenchmarks,
@@ -450,6 +451,7 @@ function freshEntries(config, ctx, startDate, days, brand) {
     days,
     feedback: ctx.ownData.feedback,
     brand: brand || null,
+    contactLedger: contactLedger || null,
   });
   // The replenishment line in the insights says what the PLAN found (who is
   // due, who has lapsed, how old the history is), not only what the model
@@ -600,6 +602,30 @@ function materialDiff(oldPayload, fresh) {
   return diffs;
 }
 
+// The contact-policy state of a slot (2026-10-04): the plan-time cap, the
+// per-slot eligibility and the planned recipients that follow from it.
+function contactStateOf(p) {
+  const r = (p && p.reach) || {};
+  const e = r.eligibility || {};
+  const c = r.frequency_cap || {};
+  return JSON.stringify([e.status || null, e.eligible == null ? null : e.eligible, e.suppressed == null ? null : e.suppressed,
+    e.deferred == null ? null : e.deferred, e.reason || null, e.by_reason || null, c.status || null, c.sends_in_rolling_7d == null ? null : c.sends_in_rolling_7d]);
+}
+function contactStateChanged(oldPayload, fresh) {
+  return !!(fresh && fresh.reach && fresh.reach.eligibility) && contactStateOf(oldPayload) !== contactStateOf(fresh);
+}
+function withContactState(payload, fresh) {
+  if (!fresh || !fresh.reach) return payload;
+  payload.reach = Object.assign({}, payload.reach || {}, {
+    eligibility: fresh.reach.eligibility,
+    frequency_cap: fresh.reach.frequency_cap,
+    planned_recipients: fresh.reach.planned_recipients == null ? null : fresh.reach.planned_recipients,
+  });
+  if (fresh.message_class) payload.message_class = fresh.message_class;
+  if (fresh.feasibility) payload.feasibility = fresh.feasibility;
+  return payload;
+}
+
 // ── Retention / eviction (runs once per daily sync) ─────────────────────────
 // Without this, smart_brain_runs (one row per sync), smart_feedback, and
 // archived calendar rows grow unbounded over long enterprise cycles.
@@ -617,11 +643,31 @@ async function pruneOldRecords(config, db) {
 
 // ── Daily sync (the smart-brain daily review loop) ──────────────────────────
 
-async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
+/**
+ * The brand's contact rules and ledger for a plan starting `start` (2026-10-04):
+ * its workspace's own ledger, or the history and rules a device brand's
+ * request carried. Never throws: an unreadable ledger is a STATE every slot
+ * then states ("eligibility unknown"), not a failed plan.
+ */
+async function planContactLedger(config, contact, start) {
+  try {
+    return await require('./contact-ledger.js').contextFor({
+      workspaceId: (config && config.workspace_id) || null,
+      carried: (contact && contact.ledger) || null,
+      policy: (contact && contact.policy) || null,
+      since: Date.parse(`${start}T00:00:00Z`) - 9 * 86400000,
+    });
+  } catch (e) {
+    return { available: false, reason: 'store_unreachable', note: String((e && e.message) || e).slice(0, 160) };
+  }
+}
+
+async function syncDaily({ config: cfg = {}, days, persist = true, contact = null } = {}) {
   const config = smartConfig(cfg);
   const db = new SmartBrainDbAdapter(config);
   const horizon = days || config.calendarDays;
   const start = todayIso();
+  const contactLedger = await planContactLedger(config, contact, start);
   // Near-term slots inside this window get their prebuilt assets regenerated on
   // EVERY sync (fresh creatives vs. the latest competitor + campaign data), even
   // without a material plan change.
@@ -638,6 +684,10 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
     fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon, ns) : [];
     const own = pb.brand ? await ownReplenishment(config, db, pb.brand, start, horizon, ns) : null;
     if (own) fresh = fresh.concat(own.entries);
+    // The same plan-time cap and per-slot eligibility the shipped planner
+    // applies: a brand planned from its own offerings is held to the same
+    // contact rules as tenant zero.
+    applyContactPolicy(fresh, contactLedger, null, start, config);
     if (!fresh.length) {
       // Carry the SAME keys as the success return below. A caller that reads
       // `plan` got undefined here and rendered its untouched previous screen,
@@ -676,7 +726,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
       if (codes.length) zeroCfg = Object.assign({}, config, { markets: codes });
     } catch (_) { /* keep the shipped default if the record is unreadable */ }
     ctx = await buildContext(zeroCfg, db);
-    fresh = freshEntries(zeroCfg, ctx, start, horizon, pb.brand || require('./brand-runtime.js').defaultBrand());
+    fresh = freshEntries(zeroCfg, ctx, start, horizon, pb.brand || require('./brand-runtime.js').defaultBrand(), contactLedger);
   }
 
   const changes = [];
@@ -734,7 +784,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
       // freshness window: drop the prebuilt marker so the queue regenerates its
       // mailer/ads/landing against the latest competitor + campaign data. Keep
       // the (unchanged) plan payload; only the marker is stripped.
-      const payload = { ...(existing.payload || {}) };
+      const payload = withContactState({ ...(existing.payload || {}) }, entry);
       delete payload[PREBUILD_MARKER];
       const log = Array.isArray(existing.change_log) ? existing.change_log.slice(-30) : [];
       log.push({ at: nowIso(), kind: 'refresh_queued', detail: 'Daily freshness refresh: assets queued to rebuild against latest data.' });
@@ -743,6 +793,20 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
         patch: { status: 'tentative', payload, change_log: log, updated_at: nowIso() },
       });
       changes.push({ id: entry.id, kind: 'refresh_queued', detail: `${entry.date} ${entry.market}: queued daily asset refresh.` });
+    } else if (contactStateChanged(existing.payload || {}, entry)) {
+      // Nothing to re-plan or rebuild, but who may be contacted on this slot
+      // moved (a send went out yesterday; a brand tightened its rules). The
+      // slot SAYS so the same day: only the contact fields are patched, so the
+      // prebuilt assets are kept rather than rebuilt for a count.
+      const before = ((existing.payload || {}).reach || {}).eligibility || {};
+      const log = Array.isArray(existing.change_log) ? existing.change_log.slice(-30) : [];
+      const detail = `Contact rules: ${before.label || 'eligibility not evaluated'} → ${entry.reach.eligibility.label}; cap ${entry.reach.frequency_cap.status}.`;
+      log.push({ at: nowIso(), kind: 'contact_rules', detail });
+      updates.push({
+        id: entry.id,
+        patch: { payload: withContactState({ ...(existing.payload || {}) }, entry), change_log: log, updated_at: nowIso() },
+      });
+      changes.push({ id: entry.id, kind: 'contact_rules', detail: `${entry.date} ${entry.market}: ${detail}` });
     }
   }
 
@@ -778,7 +842,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
     persistence.pruned = await pruneOldRecords(config, db);
   }
 
-  const plan = await getPlan({ config: cfg, _ctxFallback: { config, db, ctx, fresh } });
+  const plan = await getPlan({ config: cfg, _ctxFallback: { config, db, ctx, fresh }, contact });
   return {
     ok: true,
     mode: db.connected ? 'db-linked' : 'local-fallback',
@@ -795,7 +859,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true } = {}) {
 
 // ── Read current plan ───────────────────────────────────────────────────────
 
-async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
+async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null } = {}) {
   const config = _ctxFallback?.config || smartConfig(cfg);
   const db = _ctxFallback?.db || new SmartBrainDbAdapter(config);
   if (db.connected) {
@@ -844,6 +908,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
     if (!entries.length) {
       return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
     }
+    applyContactPolicy(entries, await planContactLedger(config, contact, todayIso()), null, todayIso(), config);
     return {
       ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false,
       entries: entries.map((e) => ({ ...e, status: 'tentative' })),
@@ -857,7 +922,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null } = {}) {
     if (codes.length) cfg2 = Object.assign({}, config, { markets: codes });
   } catch (_) {}
   const ctx = _ctxFallback?.ctx || await buildContext(cfg2, db);
-  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays, pb.brand || require('./brand-runtime.js').defaultBrand());
+  const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays, pb.brand || require('./brand-runtime.js').defaultBrand(), await planContactLedger(config, contact, todayIso()));
   return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, status: 'tentative' })) };
 }
 

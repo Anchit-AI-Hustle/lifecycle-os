@@ -159,6 +159,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .fixrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
   .fixrow:last-child{border-bottom:0}
 
+  /* What a sign-in grants (2026-10-04): the operator picks the write capabilities. */
+  .caps{display:flex;flex-direction:column;gap:3px;margin-top:2px}
+  .caps .cap{display:flex;gap:7px;align-items:flex-start;margin:0;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink)}
+  .caps .cap input{width:auto;margin-top:2px}
+
   /* Social gateway (2026-10-04) */
   .gw-sw{display:flex;gap:6px;flex-wrap:wrap}
   .gw-ep{font-size:12px}
@@ -247,6 +252,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <input type="text" id="domain-send" placeholder="mail.yourbrand.com">
         </div>
       </div>
+      <label for="recipients">Recipients (optional)</label>
+      <textarea id="recipients" spellcheck="false" style="min-height:64px" placeholder="One per line: an ESP profile id, an email address or a phone number"></textarea>
+      <p class="muted">Lets the preflight check each person against the contact ledger. Addresses and numbers are hashed on arrival and never stored as typed. Leave empty for a list or segment the platform resolves; the gate then says it could not check who.</p>
       <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;margin-top:14px">
         <input type="checkbox" id="dryrun" checked style="width:auto">
         Dry run &mdash; build the exact request and do not send it
@@ -256,6 +264,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <button id="btn-dispatch" disabled data-credit-feature="dispatch_publish">Dispatch</button>
       </div>
       <p class="muted" style="margin-top:8px">Preflight runs before anything is queued. A blocked send can be overridden, and the override is recorded against your account with the reason.</p>
+    </div>
+
+    <div class="card" id="contact-card">
+      <h3>Contact rules</h3>
+      <p class="muted">One set of rules across email, SMS, WhatsApp, push and in-app. The preflight gate holds every send to them against this brand's contact ledger, and the calendars show each slot's eligibility.</p>
+      <ul id="cr-describe" class="muted" style="margin:8px 0 0 18px;padding:0"></ul>
+      <div id="cr-ledger" class="muted" style="margin-top:8px"></div>
+      <details id="cr-edit" style="margin-top:10px">
+        <summary>Edit this brand's rules</summary>
+        <p class="muted">A brand may tighten the caps, never loosen them past the campaign contract (2 promotional, 3 in all, per person per rolling 7 days). Transactional messages are never counted or held.</p>
+        <div class="grid">
+          <div><label for="cr-pref">Promotional cap per 7 days</label><input type="number" id="cr-pref" min="0" max="2"></div>
+          <div><label for="cr-abs">Absolute cap per 7 days</label><input type="number" id="cr-abs" min="0" max="3"></div>
+          <div><label for="cr-cool">SMS and WhatsApp cool-down, hours</label><input type="number" id="cr-cool" min="0" max="168"></div>
+          <div><label for="cr-qs">Quiet hours start (local hour)</label><input type="number" id="cr-qs" min="0" max="23"></div>
+          <div><label for="cr-qe">Quiet hours end (local hour)</label><input type="number" id="cr-qe" min="0" max="23"></div>
+        </div>
+        <div class="row"><button id="btn-rules-save">Save rules</button></div>
+        <div id="cr-status" style="margin-top:8px"></div>
+      </details>
     </div>
   </section>
 
@@ -319,8 +347,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             <option value="mentions">Mentions</option>
           </select></div>
       </div>
-      <label for="gw-read-ids">Post, media or ad ids (comma separated, where the platform needs them)</label>
+      <label for="gw-read-ids">Post, media or ad ids (comma separated); for comments, the one post or video they are on</label>
       <input type="text" id="gw-read-ids" placeholder="e.g. 17890000000000000">
+      <label for="gw-read-surface">Meta surface (comments)</label>
+      <select id="gw-read-surface"><option value="instagram">Instagram media</option><option value="facebook">Facebook Page post</option></select>
       <div class="row"><button id="gw-read">Read now</button></div>
       <div id="gw-read-out" style="margin-top:10px"></div>
     </div>
@@ -478,6 +508,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             + '. These paths were implemented from the platform’s conventions and not re-read from its documentation. Confirm them before a first live send.</div>'
           : '')
         + (p.platform_prereq && !connected ? '<div class="muted">' + esc(p.platform_prereq.what || '') + '</div>' : '')
+        + capsHtml(p)
         + '<div class="row">'
         + (p.auth_kind === 'oauth'
           ? '<button data-act="connect" data-p="' + esc(p.id) + '">' + (connected ? 'Reconnect' : 'Connect') + '</button>'
@@ -490,13 +521,34 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).join('');
   }
 
+  /**
+   * The write capabilities a sign-in can grant (2026-10-04). Reading is always
+   * requested; each ticked capability adds the scopes its channels need, which
+   * the server reads from the adapter itself. Shown with the scopes it asks
+   * for, so the consent screen holds no surprise.
+   */
+  function capsHtml(p) {
+    if (p.auth_kind !== 'oauth') return '';
+    var caps = (p.capabilities || []).filter(function (k) { return k.scopes && k.scopes.length; });
+    if (!caps.length) return '';
+    return '<div class="caps" data-caps-for="' + esc(p.id) + '"><div class="muted">Grant at sign-in (reading is always asked for):</div>'
+      + caps.map(function (k) {
+        return '<label class="cap"><input type="checkbox" data-cap="' + esc(k.id) + '"><span>' + esc(k.label)
+          + ' <span class="muted">(' + esc(k.scopes.join(', ')) + ')</span></span></label>';
+      }).join('') + '</div>';
+  }
+  function chosenCaps(p) {
+    return [].slice.call(document.querySelectorAll('#hub [data-caps-for="' + p + '"] input[data-cap]:checked'))
+      .map(function (i) { return i.dataset.cap; });
+  }
+
   document.getElementById('hub').addEventListener('click', async function (ev) {
     var b = ev.target.closest('button[data-act]'); if (!b) return;
     var act = b.dataset.act, p = b.dataset.p;
     b.disabled = true;
     try {
       if (act === 'connect') {
-        var r = await call(CONN + '&op=oauth-start', { provider: p, return_to: '/publishing' });
+        var r = await call(CONN + '&op=oauth-start', { provider: p, capabilities: chosenCaps(p), return_to: '/publishing' });
         window.location.href = r.url;
         return;
       }
@@ -516,7 +568,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         note(c.ok ? 'ok' : 'warn', c.note || (c.connected ? 'Connected.' : 'Not connected.'));
       }
       CONNECTED = {}; await loadHub();
-    } catch (e) { note('err', e.message); }
+    } catch (e) { gwFail(e); }
     b.disabled = false;
   });
 
@@ -554,17 +606,101 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { return JSON.parse(raw); } catch (e) { throw new Error(label + ' is not valid JSON: ' + e.message); }
   }
 
+  /* ── contact rules (2026-10-04) ─────────────────────────────────────── */
+
+  // A brand kept on this device keeps its rules here, beside the brand (the
+  // device KEEPS, the server READS); they travel with each request it makes.
+  var RULES_KEY = 'contact_fatigue_rules';
+  function keptPolicy() {
+    try { var v = window.LCStore && window.LCStore.get(RULES_KEY); return v ? JSON.parse(v) : null; } catch (_) { return null; }
+  }
+  function keepPolicy(rules) {
+    try { return !!(window.LCStore && window.LCStore.set(RULES_KEY, JSON.stringify(rules))); } catch (_) { return false; }
+  }
+  /** One recipient per line: an address, a number, or an ESP profile id. */
+  function readRecipients() {
+    var raw = (document.getElementById('recipients').value || '').split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!raw.length) return undefined;
+    return raw.slice(0, 10000).map(function (s) {
+      if (s.indexOf('@') >= 0) return { email: s };
+      if (/^\+?[\d\s().-]{7,24}$/.test(s)) return { phone: s };
+      return { external_profile_id: s };
+    });
+  }
+  function statusLine(el, text) {
+    el.innerHTML = window.LifecycleStatus ? window.LifecycleStatus.html('', text) : '<div class="vh-status" role="status">' + esc(text) + '</div>';
+  }
+  function showRules(r) {
+    var rules = r.rules || {};
+    document.getElementById('cr-describe').innerHTML = (r.describe || []).map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('');
+    var led = r.ledger || {};
+    document.getElementById('cr-ledger').textContent = led.available
+      ? 'Ledger: ' + (led.note || '')
+      : 'Ledger unavailable: ' + (led.note || led.reason || 'not loaded') + '. Eligibility reads "unknown" until it can be read; no suppression is shown as zero.';
+    document.getElementById('cr-pref').value = rules.promotional_per_7d;
+    document.getElementById('cr-abs').value = rules.absolute_per_7d;
+    document.getElementById('cr-cool').value = rules.cooldowns && rules.cooldowns[0] ? rules.cooldowns[0].hours : 0;
+    document.getElementById('cr-qs').value = rules.quiet_hours ? rules.quiet_hours.start : '';
+    document.getElementById('cr-qe').value = rules.quiet_hours ? rules.quiet_hours.end : '';
+  }
+  async function loadRules() {
+    try {
+      showRules(await call(BRAIN + 'contact-fatigue', { op: 'rules', contact_policy: keptPolicy() || undefined }));
+    } catch (e) {
+      if (window.LifecycleStatus && window.LifecycleStatus.ordinary(e)) window.LifecycleStatus.show(document.getElementById('cr-ledger'), e, { title: 'The contact rules' });
+      else window.LifecycleFailure.show(document.getElementById('cr-ledger'), e, { title: 'The contact rules could not be loaded' });
+    }
+  }
+  document.getElementById('btn-rules-save').addEventListener('click', async function () {
+    var out = document.getElementById('cr-status');
+    var num = function (id) { var v = document.getElementById(id).value; return v === '' ? undefined : Number(v); };
+    var cool = num('cr-cool');
+    var rules = {
+      promotional_per_7d: num('cr-pref'), absolute_per_7d: num('cr-abs'),
+      cooldowns: cool ? [{ after_channels: ['sms', 'whatsapp'], suppress_channels: ['email', 'whatsapp', 'sms'], hours: cool }] : [],
+      quiet_hours: { start: num('cr-qs'), end: num('cr-qe') },
+    };
+    this.disabled = true;
+    try {
+      var r = await call(BRAIN + 'contact-fatigue', { op: 'rules-save', rules: rules });
+      var kept = r.storage === 'device' ? keepPolicy(r.rules) : true;
+      var adj = (r.adjustments || []).map(function (a) { return a.field + ': ' + a.why; });
+      statusLine(out, (r.storage === 'device'
+        ? (kept ? 'Saved on this device beside the brand; they travel with each request it makes.' : 'This browser refused to store the rules, so they were not kept.')
+        : 'Saved for this brand.') + (adj.length ? ' Not taken as asked: ' + adj.join('; ') + '.' : ''));
+      showRules({ rules: r.rules, describe: r.describe, ledger: (await call(BRAIN + 'contact-fatigue', { op: 'summary' }).catch(function () { return {}; })) });
+    } catch (e) {
+      if (window.LifecycleStatus && window.LifecycleStatus.ordinary(e)) window.LifecycleStatus.show(out, e, { title: 'Saving the contact rules' });
+      else window.LifecycleFailure.show(out, e, { title: 'The contact rules could not be saved' });
+    }
+    this.disabled = false;
+  });
+  // The campaign a generated asset belongs to: its own campaign_id, else the
+  // campaign its id is minted under (campaign_<hash>_email). The queue reads
+  // THAT campaign's offer on the server, so a "today only" the offer backs is
+  // not blocked for want of a record, and the offer itself is never sent.
+  function campaignIdOf(asset) {
+    var a = asset && typeof asset === 'object' ? asset : {};
+    if (a.campaign_id) return String(a.campaign_id);
+    var m = /^(campaign_[A-Za-z0-9]+)(?:_|$)/.exec(String(a.id || ''));
+    return m ? m[1] : undefined;
+  }
+
   function dispatchSpec(channel) {
     var mode = document.getElementById('sendmode').value;
     var when = document.getElementById('when').value;
+    var asset = readJson('asset', 'The asset');
     return {
       channel: channel,
       mode: mode,
       scheduled_for: mode === 'schedule' && when ? new Date(when).toISOString() : undefined,
-      asset: readJson('asset', 'The asset'),
+      campaign_id: campaignIdOf(asset),
+      asset: asset,
       mapping: readJson('mapping', 'The mapping'),
       message_priority: document.getElementById('priority').value,
       sending_domain: document.getElementById('domain-send').value.trim(),
+      recipients: readRecipients(),
+      contact_policy: keptPolicy() || undefined,
       dry_run: document.getElementById('dryrun').checked
     };
   }
@@ -580,9 +716,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         provider: (CHANNELS.find(function (c) { return c.channel === selected[0]; }) || {}).adapter,
         channel: selected[0],
         mode: spec.mode,
+        scheduled_for: spec.scheduled_for,
+        campaign_id: spec.campaign_id,
         payload: spec.asset,
         message_priority: spec.message_priority,
-        sending_domain: spec.sending_domain
+        sending_domain: spec.sending_domain,
+        scheduled_for: spec.scheduled_for,
+        recipients: spec.recipients,
+        contact_policy: spec.contact_policy
       });
       lastPreflight = pf;
       showPreflight(pf);
@@ -786,10 +927,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (window.LifecycleStatus && window.LifecycleStatus.show) window.LifecycleStatus.show(el, text);
     else el.textContent = text;
   }
-  /** A refusal for an ordinary state (signed out, no database) is a status line, never a red banner. */
+  /**
+   * A refusal for an ordinary state (signed out, no database, a brand kept on
+   * this device) is a status line in the accent rule, never a red banner.
+   */
   function gwFail(e, lead) {
     var S = window.LifecycleStatus;
     if (S && S.ordinary && S.ordinary(e)) { S.show(document.getElementById('msg'), e); return; }
+    if (S && S.show && e && e.payload && e.payload.storage === 'device') { S.show(document.getElementById('msg'), e.payload.message || e.message); return; }
     note('err', (lead || '') + ((e && e.message) || String(e)));
   }
   function chip(cls, text) { return '<span class="chip ' + cls + '">' + esc(text) + '</span>'; }
@@ -940,13 +1085,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { window.LifecycleFailure.show(el, e, { title: 'The inbox could not be loaded' }); }
   }
 
+  /**
+   * What each read op takes (2026-10-04, review of #132): metrics take a list
+   * of ids, ad metrics a list of ad ids, comments the ONE object they are on
+   * (object_id, plus Meta's surface), a mention the comment it names. Sending
+   * ids to a comment read left object_id empty, and every comment read failed.
+   */
+  function readRequest(provider, kind, ids) {
+    var first = String(ids || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean)[0];
+    var req = { provider: provider, kind: kind };
+    if (kind === 'post_metrics' && ids) req.ids = ids;
+    if (kind === 'ad_metrics' && ids) req.ad_ids = ids;
+    if (kind === 'comments') { if (first) req.object_id = first; req.surface = document.getElementById('gw-read-surface').value; }
+    if (kind === 'mentions' && first) req.comment_id = first;
+    return req;
+  }
+
   document.getElementById('gw-read').addEventListener('click', async function () {
     var out = document.getElementById('gw-read-out');
     var btn = this;
     btn.disabled = true;
     try {
       var ids = document.getElementById('gw-read-ids').value.trim();
-      var r = await call(GW + 'read', { provider: document.getElementById('gw-read-provider').value, kind: document.getElementById('gw-read-kind').value, ids: ids || undefined, ad_ids: ids || undefined });
+      var r = await call(GW + 'read', readRequest(document.getElementById('gw-read-provider').value, document.getElementById('gw-read-kind').value, ids));
       var rows = r.metrics || r.rows || r.comments || r.mentions || [];
       if (!r.ok) {
         gwStatusLine(out, r.note || r.error || 'Nothing was read.');
@@ -1018,7 +1179,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   if (params.get('oauth') === 'denied') note('warn', 'The sign-in was cancelled or refused at ' + params.get('provider') + '.');
   if (params.get('oauth') === 'error') note('err', 'The connection did not complete: ' + (params.get('reason') || 'unknown') + '.');
 
-  function boot() { loadHub(); }
+  function boot() { loadHub(); loadRules(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>

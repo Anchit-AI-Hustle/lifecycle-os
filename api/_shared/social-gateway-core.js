@@ -315,11 +315,25 @@ function computeUnderperformance(rows, thresholds) {
   for (const key of Object.keys(groups)) {
     const [provider, kind, surface] = key.split('|');
     const members = groups[key];
-    const metrics = kind === 'paid' ? PAID_METRICS.slice() : [ORGANIC_PRIMARY.find((m) => members.filter((r) => isNum(r.values[m])).length >= MIN_ROWS_FOR_MEDIAN) || ORGANIC_PRIMARY.find((m) => members.some((r) => isNum(r.values[m])))].filter(Boolean);
+    // Organic: the median is taken on ONE primary metric (the first the group
+    // reports often enough), and EVERY metric the operator set a threshold for
+    // is evaluated against that threshold too (2026-10-04, review of #132:
+    // reach/impressions/likes thresholds were silently ignored whenever the
+    // creatives also reported views). Paid: CTR and ROAS, both ways.
+    const primary = kind === 'paid' ? null
+      : (ORGANIC_PRIMARY.find((m) => members.filter((r) => isNum(r.values[m])).length >= MIN_ROWS_FOR_MEDIAN) || ORGANIC_PRIMARY.find((m) => members.some((r) => isNum(r.values[m]))) || null);
+    const metrics = kind === 'paid' ? PAID_METRICS.slice() : [primary].filter(Boolean);
+    if (kind !== 'paid') for (const m of ORGANIC_PRIMARY) if (thresholdFor(t, kind, m) != null && metrics.indexOf(m) < 0) metrics.push(m);
     for (const metric of metrics) {
       const vals = members.filter((r) => isNum(r.values[metric]));
       const g = { provider, kind, surface: surface || null, metric, rows: vals.length };
-      if (vals.length >= MIN_ROWS_FOR_MEDIAN) {
+      if (kind !== 'paid' && metric !== primary) {
+        // A threshold-only metric: judged against the operator's number, and
+        // a creative that does not report it is not judged at all.
+        g.available = false;
+        g.basis = 'operator_threshold';
+        g.reason = `${metric} is judged against the threshold set for this brand only; the median is taken on ${primary || 'no metric'}.`;
+      } else if (vals.length >= MIN_ROWS_FOR_MEDIAN) {
         g.available = true;
         g.median = round(median(vals.map((r) => Number(r.values[metric]))));
         for (const r of vals) {
@@ -517,7 +531,12 @@ async function liveApprove(auth, workspaceId, body) {
  *   - the workspace is the one whose connection names the account the event
  *     is about; an account nobody connected is kept unrouted, not guessed;
  *   - a routed event is written to platform_sync_log, and a publish-status
- *     event reconciles the job whose external id it names.
+ *     event reconciles the job whose external id it names;
+ *   - a REDELIVERY of an event whose processing never finished RESUMES it
+ *     (2026-10-04, review of #132). The receiver answers 500 when the ingest
+ *     after this record fails, precisely so the platform retries; a retry
+ *     that met the dedupe and got 200 dropped the event for good. Only an
+ *     event marked `processed` (markInbound, after the ingest) stops here.
  *
  * Never throws: a store that is down is reported, and the receiver goes on.
  */
@@ -529,6 +548,7 @@ async function recordInbound(provider, adapter, event, bytes) {
     const accountId = adapter.webhookAccountId(event);
     const workspaceId = accountId ? await workspaceForAccount(provider, accountId) : null;
     const first = items[0] || {};
+    let resumed = null;
     try {
       await svc('social_inbound_events', {
         method: 'POST',
@@ -541,24 +561,55 @@ async function recordInbound(provider, adapter, event, bytes) {
         prefer: 'return=minimal',
       });
     } catch (err) {
-      if (err.duplicate) return { recorded: false, duplicate: true, event_id: eventId, workspace_id: workspaceId };
-      throw err;
+      if (!err.duplicate) throw err;
+      const rows = await svc(`social_inbound_events?provider=eq.${enc(provider)}&event_id=eq.${enc(eventId)}&select=status,attempts,workspace_id&limit=1`);
+      const row = Array.isArray(rows) && rows[0];
+      if (!row || row.status === 'processed') return { recorded: false, duplicate: true, processed: true, event_id: eventId, workspace_id: row ? row.workspace_id : workspaceId };
+      resumed = row;
     }
+    // The workspace a resumed event was routed to when it was first recorded.
+    const routedTo = resumed ? (resumed.workspace_id || null) : workspaceId;
     let reconciled = 0;
     for (const it of items) {
-      if (it.kind !== 'publish_status' || !it.object_id || !workspaceId) continue;
-      const done = await svc(`dispatch_jobs?workspace_id=eq.${enc(workspaceId)}&provider=eq.${enc(provider)}&external_id=eq.${enc(it.object_id)}&select=id`, {
+      if (it.kind !== 'publish_status' || !it.object_id || !routedTo) continue;
+      const done = await svc(`dispatch_jobs?workspace_id=eq.${enc(routedTo)}&provider=eq.${enc(provider)}&external_id=eq.${enc(it.object_id)}&select=id`, {
         method: 'PATCH', body: { external_status: String(it.status || 'updated').slice(0, 80), updated_at: new Date().toISOString() }, prefer: 'return=representation',
       }).catch(() => []);
       reconciled += Array.isArray(done) ? done.length : 0;
     }
-    if (workspaceId) {
-      await syncLog(workspaceId, provider, `webhook:${first.field || 'event'}`, true, items.length, `Verified delivery ${eventId.slice(0, 19)}`, { event_id: eventId, items: items.map((i) => ({ kind: i.kind, object_id: i.object_id })) }).catch(() => {});
+    if (routedTo && !resumed) {
+      await syncLog(routedTo, provider, `webhook:${first.field || 'event'}`, true, items.length, `Verified delivery ${eventId.slice(0, 19)}`, { event_id: eventId, items: items.map((i) => ({ kind: i.kind, object_id: i.object_id })) }).catch(() => {});
     }
-    return { recorded: true, duplicate: false, event_id: eventId, workspace_id: workspaceId, items: items.length, reconciled };
+    return {
+      recorded: !resumed, duplicate: !!resumed, resumed: !!resumed, processed: false,
+      event_id: eventId, workspace_id: routedTo, attempts: resumed ? Number(resumed.attempts || 0) : 0,
+      items: items.length, reconciled,
+    };
   } catch (err) {
     return { recorded: false, reason: 'store_failed', note: String((err && err.message) || err).slice(0, 200) };
   }
+}
+
+/**
+ * After the ingest: `processed` (a redelivery is then only acknowledged) or
+ * `failed` with the reason (a redelivery resumes). A `processed` row is never
+ * set back to `failed` by a slower attempt. Returns whether a row was written.
+ */
+async function markInbound(provider, inbound, outcome, note) {
+  if (!inbound || !inbound.event_id || !serviceEnv()) return false;
+  if (outcome !== 'processed' && outcome !== 'failed') throw new Error(`markInbound: unknown outcome "${outcome}"`);
+  const now = new Date().toISOString();
+  const guard = outcome === 'failed' ? '&status=neq.processed' : '';
+  await svc(`social_inbound_events?provider=eq.${enc(provider)}&event_id=eq.${enc(inbound.event_id)}${guard}`, {
+    method: 'PATCH',
+    body: {
+      status: outcome, attempts: Number(inbound.attempts || 0) + 1,
+      last_error: outcome === 'failed' ? String(note || 'the ingest did not complete').slice(0, 300) : null,
+      processed_at: outcome === 'processed' ? now : null,
+    },
+    prefer: 'return=minimal',
+  });
+  return true;
 }
 
 /** The workspace whose connection names this platform account, or null. */
@@ -703,6 +754,7 @@ module.exports = {
   status,
   read,
   recordInbound,
+  markInbound,
   refreshDueTokens,
   computeUnderperformance,
   normalizeThresholds,
