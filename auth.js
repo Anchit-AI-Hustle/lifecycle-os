@@ -460,6 +460,9 @@
       if (!e) return false;
       if (typeof e === 'object' && e.ordinary === true) return true;
       var code = codeOf(e);
+      // A device brand cannot hold encrypted platform credentials. That is a
+      // state of this sign-in, said as a status, never a red frame.
+      if (code === 'device_account') return true;
       if (PHONE_ONLY[code]) { var s = session(); return !!(s && s.provider === 'mobile-pin'); }
       if (ORDINARY[code]) return !!refusal('This');
       return false;
@@ -479,6 +482,10 @@
       var o = opts || {};
       var code = codeOf(e);
       if (typeof e === 'object' && e.ordinary === true && e.lead) return statusHtml(e.lead, e.body);
+      if (code === 'device_account') {
+        var dm = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
+        return statusHtml('Kept on this device.', dm);
+      }
       if (PHONE_ONLY[code]) {
         var m = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
         if (!m || /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/.test(m)) m = WALLET;

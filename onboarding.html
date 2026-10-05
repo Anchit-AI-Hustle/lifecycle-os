@@ -1627,7 +1627,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      it. The remedy that works is to sign in again. */
   function staleSessionSentence(st) {
     var host = st && st.host ? ' (' + st.host + ')' : '';
-    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Sign out and sign in with Gmail, and then this works.';
+    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Sign out and continue with Gmail, and then this works.';
   }
 
   function extractBlock() {
