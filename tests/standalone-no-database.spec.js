@@ -15,6 +15,8 @@
 //      a model.
 //   4. brand-chat with the carried brand answers the scripted reply, unmetered.
 //   5. With DATABASE_URL set, a token that is not in app_sessions is still 401.
+//   6. A phone stub with no mode:'device' is still refused (the list), even
+//      though Neon is unset. Only a device principal is unmetered.
 //
 // Run: npx playwright test tests/standalone-no-database.spec.js --project=desktop-1280
 const { test, expect } = require('@playwright/test');
@@ -97,6 +99,8 @@ test.describe('standalone: no DATABASE_URL', () => {
     expect(JSON.stringify(r.out)).not.toMatch(/Oldest Brand|knickgasm/i);
     expect(w.llm.calls.map((c) => c.stage)).toContain('kicksgpt');
     expect(r.out.credits && r.out.credits.charged, 'a standalone turn was metered').toBe(0);
+    expect(r.out.credits && r.out.credits.unmetered, 'the receipt did not say the turn was unmetered').toBe(true);
+    expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)), 'a standalone turn took a credit hold').toEqual([]);
   });
 
   test('generate.js admits the same device session and does not 503 credits_unavailable', async () => {
@@ -121,6 +125,31 @@ test.describe('standalone: no DATABASE_URL', () => {
     expect(r.out.unavailable).toBe('standalone');
     expect(r.out.unmetered).toBe(true);
     expect(String(r.out.message)).toMatch(/Local \/ Demo Mode/i);
+  });
+
+  test('a phone stub with no mode:device is still refused, even with no DATABASE_URL', async () => {
+    // The faucet the list exists to shut. An unlisted mobile-pin caller — or
+    // a stub that only says provider:'mobile-pin' — must not run free just
+    // because this process has no Neon URL. Only auth.mode === 'device' is
+    // unmetered. Restoring `isDeviceAuth || standaloneMode()` in meter()
+    // fails this (and the sibling in mobile-pin-signin.spec.js).
+    const credits = require(path.join(A.ROOT, 'api/_shared/credits-core.js'));
+    const m = await credits.meter(
+      { query: {}, body: {}, headers: pageHeaders() },
+      'analytics.run',
+      { auth: { ok: true, provider: 'mobile-pin', user_id: 'aaaaaaaa-0000-4000-8000-000000000001', email: '' } },
+    );
+    expect(m).toMatchObject({ ok: false, status: 403, error: 'credits_require_account' });
+    expect(m.unmetered, 'an unlisted phone was treated as a device principal').toBeUndefined();
+    expect(w.db.calls.filter((c) => /rpc\/credit_hold|credit_wallets/.test(c.url)), 'a wallet was touched for a phone stub').toEqual([]);
+
+    const core = require(path.join(A.ROOT, 'api/_shared/brand-workspace-core.js'));
+    const device = await core.requireUser({
+      headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }),
+    });
+    expect(device.mode).toBe('device');
+    const free = await credits.meter({ query: {}, body: {} }, 'analytics.run', { auth: device });
+    expect(free).toMatchObject({ ok: true, unmetered: true, charged: 0, mode: 'device' });
   });
 });
 
