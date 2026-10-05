@@ -589,6 +589,52 @@ test('REVIEW P2: alt text and every copy field asset-specs defines are linted (a
   expect(lintAs(NORTHLINE, 'US', { caption: 'Worn by Jordan Lee all season.', hashtags: '#ad #northline' }).findings).toEqual([]);
 });
 
+test('REVIEW #144 P1: an industry naming a regulated sector no pack covers is UNCHECKED even beside a known-safe word; "no regulated sector" needs the WHOLE industry to be known', () => {
+  for (const [industry, term] of [['CBD e-commerce', 'CBD'], ['Alcohol retail', 'Alcohol'], ['Gambling games', 'Gambling'], ['Cannabis software', 'Cannabis'], ['Vape accessories', 'Vape'], ['Crypto trading apps', 'Crypto']]) {
+    const r = lintAs(Object.assign({}, NORTHLINE, { industry }), 'US', { subject: 'Cures anxiety' });
+    expect(r.verdict, industry).toBe('warn');
+    expect(r.findings.map((f) => f.id), industry).toEqual(['compliance.sector_unrecognised']);
+    expect(r.findings[0].fix, industry).toContain(`"${term}"`);
+    expect(r.selection.sector_basis, industry).toBe('unrecognised');
+  }
+  // An unknown word beside a known one is not known.
+  const mixed = lintAs(Object.assign({}, NORTHLINE, { industry: 'Sneakers and nootropics' }), 'US', { subject: 'Cures anxiety' });
+  expect(mixed.findings.map((f) => f.id)).toEqual(['compliance.sector_unrecognised']);
+  expect(mixed.findings[0].fix).toContain('"Sneakers and nootropics"');
+  // A pack sector still selects its pack, and an unsupported one beside it is still said.
+  const sup = lintAs(Object.assign({}, NORTHLINE, { industry: 'Supplements e-commerce' }), 'US', { subject: 'Cures anxiety' });
+  expect(sup.findings.map((f) => f.id)).toEqual(['us.fda.disease_claim']);
+  const both = lintAs(Object.assign({}, NORTHLINE, { industry: 'CBD supplements' }), 'US', { subject: 'Cures anxiety' });
+  expect(both.findings.map((f) => f.id).sort()).toEqual(['compliance.sector_unrecognised', 'us.fda.disease_claim']);
+  // So does a value stated in compliance.sectors.
+  const stated = lintAs(Object.assign({}, NORTHLINE, { compliance: { sectors: ['alcohol'] } }), 'US', 'x');
+  expect(stated.findings.map((f) => f.id)).toEqual(['compliance.sector_unrecognised']);
+  // An industry made only of known words keeps its classification.
+  for (const brand of [NORTHLINE, TENANT_ZERO, Object.assign({}, NORTHLINE, { industry: 'Business news / digital publishing' }), Object.assign({}, NORTHLINE, { industry: 'E-commerce marketplace' })]) {
+    const r = lintAs(brand, 'US', { subject: 'Grail drop' });
+    expect(r.selection.sector_basis, brand.industry).toBe('no-regulated-sector');
+    expect(r.findings, brand.industry).toEqual([]);
+  }
+});
+
+test('REVIEW #144 P1: a disclosure covers only the surface it ships on: another variant\'s "Sponsored" or a metadata field never clears an endorsement', () => {
+  const variants = lintAs(NORTHLINE, 'US', { variants: [{ subject: 'Sponsored: the new drop' }, { subject: 'Worn by Jordan Lee all season' }] });
+  expect(variants.findings.map((f) => [f.id, f.field])).toEqual([['us.ftc.endorsement_disclosure', 'variants[1].subject']]);
+  const meta = lintAs(NORTHLINE, 'US', { caption: 'Worn by Jordan Lee all season.', meta_description: 'Sponsored content', alt_text: '#ad', first_comment: '#ad' });
+  expect(meta.findings.map((f) => [f.id, f.field])).toEqual([['us.ftc.endorsement_disclosure', 'caption']]);
+  // A search snippet is read on its own, so the post's disclosure does not reach it; alt text is read with the post.
+  const snippet = lintAs(NORTHLINE, 'US', { caption: 'New colourway #ad', meta_description: 'Worn by Jordan Lee all season', alt_text: 'Worn by Jordan Lee on court' });
+  expect(snippet.findings.map((f) => [f.id, f.field])).toEqual([['us.ftc.endorsement_disclosure', 'meta_description']]);
+  const rsa = lintAs(NORTHLINE, 'US', { headlines: ['Worn by Jordan Lee', 'Sponsored'] });
+  expect(rsa.findings.map((f) => [f.id, f.field])).toEqual([['us.ftc.endorsement_disclosure', 'headlines[0]']]);
+  const ukVariants = lintAs(NORTHLINE, 'UK', { variants: [{ subject: '#ad Our new drop' }, { subject: 'Our brand ambassador Jordan Lee breaks them in' }] });
+  expect(ukVariants.findings.map((f) => [f.id, f.field])).toEqual([['uk.cap.endorsement_identifiable', 'variants[1].subject']]);
+  // Companion fields that ship together still count.
+  expect(lintAs(NORTHLINE, 'US', { caption: 'Worn by Jordan Lee all season.', hashtags: ['#ad'] }).findings).toEqual([]);
+  expect(lintAs(NORTHLINE, 'US', { subject: 'Worn by Jordan Lee', preheader: 'Paid partnership with Jordan Lee' }).findings).toEqual([]);
+  expect(lintAs(NORTHLINE, 'US', { variants: [{ subject: 'Worn by Jordan Lee #ad' }] }).findings).toEqual([]);
+});
+
 /* ═══ 4. the preflight gate and the queue ═══════════════════════════════════ */
 
 const CONN = { oauth_scopes: ['campaigns:write', 'templates:write'], config: { publishing_enabled: true }, secret_fields: ['access_token'], status: 'active' };
@@ -766,6 +812,83 @@ test('REVIEW P1: a backed deadline and stock line pass at dispatch, because the 
     db.insert('smart_generated_campaigns', { id: 'campaign_elsewhere', workspace_id: 'ws-other', payload: campaign, status: 'approved' });
     const elsewhere = await dispatch.enqueue(AUTH, WS, urgent({ asset_ref: 'mailer-o4', campaign_id: 'campaign_elsewhere' }), brand);
     expect(complianceOf(elsewhere).status).toBe('block');
+  });
+});
+
+test('REVIEW #144 P1: publishing a generated asset from /publishing names its campaign, and the queue reads THAT campaign\'s offer: the page\'s own enqueue resolves the recorded end date and stock', async ({ page }) => {
+  test.setTimeout(180_000);
+  // "Today only" is measured against the clock at enqueue: never straddle UTC midnight.
+  const msToMidnight = 86_400_000 - (Date.now() % 86_400_000);
+  if (msToMidnight < 120_000) await new Promise((r) => setTimeout(r, msToMidnight + 1000));
+  const today = new Date().toISOString().slice(0, 10);
+  const offer = { code: 'NL10', pct: 0.1, depth: 'light', why: 'test', ends_at: `${today}T23:59:59Z`, stock: 10 };
+  const campaign = await sbPlan.buildCampaign(Object.assign(slot(NORTHLINE, 'US'), { offer }), smartConfig({}), { noLLM: true, withCreatives: false });
+  const registry = require(path.join(ROOT, 'api', '_shared', 'adapters', 'registry.js'));
+  await withQueue(async ({ db, dispatch, WS, AUTH }) => {
+    db.insert('smart_generated_campaigns', { id: campaign.campaign_id, workspace_id: WS, payload: campaign, status: 'approved' });
+    const brand = Object.assign({}, NORTHLINE, { id: WS });
+    const sent = { preflight: null, enqueue: null, enqueued: null };
+    const thrown = [];
+    page.on('pageerror', (e) => thrown.push(String(e.message || e)));
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => (route.request().resourceType() === 'script'
+      ? route.fulfill({ status: 200, contentType: 'text/javascript', body: '' })
+      : route.abort('failed')));
+    await page.route(/\/api\//, async (route) => {
+      const u = new URL(route.request().url());
+      const action = u.searchParams.get('action') || '';
+      const op = u.searchParams.get('op') || '';
+      const json = (status, body) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+      if (action === 'connections' && op === 'publish-registry') return json(200, { ok: true, platforms: registry.registryView(), channels: registry.allChannels() });
+      if (action === 'connections' && op === 'list') return json(200, { ok: true, connections: [{ provider: 'klaviyo', configured: true, config: { publishing_enabled: true } }] });
+      if (action === 'deliverability-preflight') { sent.preflight = route.request().postDataJSON(); return json(200, { ok: true, verdict: 'pass', score: 100, checks: [] }); }
+      if (action === 'dispatch-enqueue') {
+        sent.enqueue = route.request().postDataJSON();
+        // The SHIPPED queue core answers the page's own request body.
+        sent.enqueued = await dispatch.enqueue(AUTH, WS, sent.enqueue, { brand });
+        return json(sent.enqueued.ok ? 200 : 409, sent.enqueued);
+      }
+      if (action === 'dispatch-list') return json(200, { ok: true, jobs: [] });
+      return json(200, { ok: true });
+    });
+    await page.goto(base + '/publishing.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind === 'local', null, { timeout: 15000 });
+    // The generated mailer as the console hands it over: its id carries its campaign.
+    const email = campaign.assets.email;
+    const asset = { id: email.id, subject: 'Today only: only 10 left', preview_text: email.preheader, html: '<table><tr><td><p>Today only: only 10 left.</p><a href="https://northline.example/u">Unsubscribe</a></td></tr></table>' };
+    await page.locator('.tab[data-panel="publish"]').click();
+    await expect(page.locator('#channels input[data-ch="klaviyo_email"]')).toBeEnabled();
+    await page.locator('#asset').fill(JSON.stringify(asset));
+    await page.locator('#mapping').fill(JSON.stringify({ field_map: {}, defaults: { list_id: 'L1', from_email: 'hello@northline.example' } }));
+    await page.locator('#channels input[data-ch="klaviyo_email"]').check();
+    await page.locator('#btn-preflight').click();
+    await expect(page.locator('#pf-modal')).toHaveClass(/\bon\b/);
+    await page.locator('#pf-proceed').click();
+    await expect.poll(() => !!(sent.enqueued), { timeout: 15000 }).toBe(true);
+    expect(sent.preflight.campaign_id).toBe(campaign.campaign_id);
+    expect(sent.enqueue.campaign_id).toBe(campaign.campaign_id);
+    expect(sent.enqueue.offer).toBeUndefined();
+    // The offer the queue measured the lines against is the campaign's record.
+    expect(complianceOf(sent.enqueued).selection.offer).toEqual({ ends_at: offer.ends_at, stock: 10 });
+    expect(complianceOf(sent.enqueued).findings || [], JSON.stringify(complianceOf(sent.enqueued))).toEqual([]);
+    expect(sent.enqueued.ok).toBe(true);
+    expect(db.table('dispatch_jobs')).toHaveLength(1);
+    expect(thrown).toEqual([]);
+  });
+  // The queue also reads the campaign from the asset itself, for a caller that sends only the asset.
+  await withQueue(async ({ db, dispatch, WS, AUTH, SPEC }) => {
+    db.insert('smart_generated_campaigns', { id: campaign.campaign_id, workspace_id: WS, payload: campaign, status: 'approved' });
+    const out = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-a1', asset: { id: campaign.assets.email.id }, payload: Object.assign(SPEC().payload, { subject: 'Today only: only 10 left' }) }), { brand: Object.assign({}, NORTHLINE, { id: WS }) });
+    expect(complianceOf(out).selection.offer).toEqual({ ends_at: offer.ends_at, stock: 10 });
+    expect(complianceOf(out).findings || []).toEqual([]);
+    // A job that names one campaign for an asset minted under ANOTHER cannot say
+    // which record backs its lines, so none does.
+    const crossed = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-a2', campaign_id: campaign.campaign_id, asset: { id: 'campaign_0ther0000000_email' }, payload: Object.assign(SPEC().payload, { subject: 'Today only: only 10 left' }) }), { brand: Object.assign({}, NORTHLINE, { id: WS }) });
+    expect(complianceOf(crossed).selection.offer).toEqual({ ends_at: null, stock: null });
+    expect(complianceOf(crossed).status).toBe('block');
+    // A schedule already in the past goes out at once, so "today only" is read
+    // from the clock, never from the past date the request chose.
+    const past = await dispatch.enqueue(AUTH, WS, SPEC({ asset_ref: 'mailer-a3', mode: 'schedule', scheduled_for: '2020-01-01T09:00:00Z', asset: { id: campaign.assets.email.id }, payload: Object.assign(SPEC().payload, { subject: 'Today only: only 10 left' }) }), { brand: Object.assign({}, NORTHLINE, { id: WS }) });
+    expect(complianceOf(past).findings || []).toEqual([]);
   });
 });
 

@@ -95,6 +95,66 @@ function complianceCheck(i, payload) {
 }
 
 /**
+ * Contact fatigue (2026-10-04): the cross-channel contact ledger, judged by the
+ * one contact policy (contact-fatigue.js) - caps across channels, the SMS /
+ * WhatsApp cool-down, quiet hours in the recipient's region. A recipient held
+ * back BLOCKS (overridable, and the override is recorded like any other); a
+ * ledger that is unavailable, or has no history, or a send whose recipients
+ * the platform resolves, WARNS with the sentence - never passes. A channel
+ * that is not a message to a subscriber, and a draft, are skipped.
+ */
+async function contactFatigueCheck(i, priority) {
+  const fatigue = require('./contact-fatigue.js');
+  const label = 'Contact fatigue';
+  if (priority === 'draft' || i.mode === 'draft') return check('contact_fatigue', label, 'skip', 'A draft is not sent, so it contacts nobody.');
+  const channel = fatigue.channelOf(i.message_channel || i.channel);
+  if (!channel) {
+    return check('contact_fatigue', label, 'skip', `${i.channel || 'This channel'} is not itself a message to a subscriber (an ad, a post, a profile update, or a trigger whose message the platform's flow decides). State message_channel on the dispatch to judge it against the contact ledger.`);
+  }
+  let ev;
+  try {
+    // A trusted caller (the dispatch queue, after its write check; the router,
+    // after a membership check) hands over the verdict over the brand's own
+    // ledger. On its own this check reads NO store - its input can come from a
+    // request body - and judges only the history the request carried.
+    ev = i.contact_fatigue || await require('./contact-ledger.js').evaluateSend({
+      workspaceId: i.workspaceId || null, readStore: false, channel, message_class: i.message_class || priority, at: i.scheduled_for || null,
+      recipients: i.recipients || i.contacts || null, carried: i.contact_ledger || null, policy: i.contact_policy || null,
+      provider: i.provider || null, region: i.region || null,
+    });
+  } catch (err) {
+    return check('contact_fatigue', label, 'warn', `The contact ledger could not be checked (${String((err && err.message) || err).slice(0, 160)}). This is not a pass.`, 'Re-run the preflight once the workspace database answers.');
+  }
+  const summary = {
+    status: ev.status, eligible: ev.eligible, suppressed: ev.suppressed, deferred: ev.deferred,
+    by_reason: ev.by_reason, earliest_allowed_at: ev.earliest_allowed_at, total: ev.total,
+    channel: ev.channel, message_class: ev.message_class, reason: ev.reason || null,
+  };
+  let out;
+  if (ev.status === 'exempt' || ev.status === 'not_a_message') out = check('contact_fatigue', label, 'pass', ev.note);
+  else if (ev.status === 'computed' && !(ev.suppressed + ev.deferred)) {
+    out = check('contact_fatigue', label, ev.quiet_hours_unchecked || ev.truncated || ev.recipients_unchecked ? 'warn' : 'pass', ev.note,
+      ev.quiet_hours_unchecked ? 'Sync each recipient\'s region so quiet hours can be checked.' : undefined);
+  } else if (ev.status === 'computed') {
+    out = check('contact_fatigue', label, 'block', ev.note,
+      `Reduce: exclude the ${ev.suppressed + ev.deferred} held-back recipient(s) and send to the ${ev.eligible} eligible. Or delay${ev.earliest_allowed_at ? ` until ${ev.earliest_allowed_at}` : ''}. An override is recorded against your account with the reason.`);
+  } else if (ev.deferred) {
+    // History could not be judged, but quiet hours could: a send scheduled
+    // into the recipients' night is held whatever the ledger says.
+    out = check('contact_fatigue', label, 'block', `${ev.note} This is not a pass.`,
+      `Delay until ${ev.earliest_allowed_at}, when it is no longer quiet hours where they are. An override is recorded against your account with the reason.`);
+  } else {
+    out = check('contact_fatigue', label, 'warn', `${ev.note} This is not a pass.`,
+      ev.reason === 'recipients_unknown' ? 'Attach the recipient list (profile ids, or addresses hashed on arrival) so each person can be checked.'
+        : ev.reason === 'no_history' ? 'Sends are recorded as they go out; until then nothing here can be checked.'
+          : ev.reason === 'not_supplied' ? 'Run the preflight from the publishing console or the dispatch queue, which read this brand\'s own contact ledger.'
+            : 'Connect this brand to a workspace database so its contact ledger can be read.');
+  }
+  out.fatigue = summary;
+  return out;
+}
+
+/**
  * @returns {Promise<{verdict:'pass'|'warn'|'block', score:number, checks:Array, blocking:string[]}>}
  */
 async function run(input) {
@@ -259,6 +319,8 @@ async function run(input) {
       (audience && audience.note) || '[DATA REQUIRED BEFORE LAUNCH: eligible segment size] No engagement data was supplied, so segment quality could not be assessed. This is not a pass.',
       'Sync engagement from the connected ESP so cohorts and bounce risk can be computed.'));
   }
+
+  checks.push(await contactFatigueCheck(i, priority));
 
   /* ── 3: content ───────────────────────────────────────────────────────── */
 

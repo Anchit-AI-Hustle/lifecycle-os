@@ -67,7 +67,7 @@ function body(req) {
  * The conversational actions: each turn answers FOR a brand and may spend a
  * model call. See the browser-attribution rule in the handler.
  */
-const CHATS = /^(agent-chat|agent-analyze|team-chat|brand-chat|console-chat|platform-agents)$/;
+const CHATS = /^(agent-chat|agent-analyze|team-chat|brand-chat|console-chat|platform-agents|revenue-os)$/;
 
 /**
  * Actions that need no workspace and no session to answer honestly, so the
@@ -135,6 +135,7 @@ const MODEL_FEATURE = {
   tts: ['POST', 'audio.tts'],
   'social-run-daily': ['POST', 'social.daily_run'],
   'platform-agents': [null, 'analytics.report'],
+  'revenue-os': ['GET', 'analytics.report'],
 };
 
 /** The catalog key this request would spend, or null (a read, a 405, or not a model action). */
@@ -281,7 +282,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -954,12 +955,55 @@ module.exports = async function handler(req, res) {
         // zero when it cannot read one, which would lint a supplement's copy
         // as a sneaker brand's. With no workspace, only a brand the request
         // carried as its own (a device brand) is used.
+        const dispatchCore = require('./_shared/dispatch-core.js');
         const pfBrand = __wsId
-          ? await require('./_shared/dispatch-core.js').trustedBrand(__wsId, req.__brand)
+          ? await dispatchCore.trustedBrand(__wsId, req.__brand)
           : (req.__brand && req.__brand.carried === true ? req.__brand : null);
-        return res.json(await require('./_shared/preflight-core.js').run(Object.assign({ workspaceId: __wsId }, b, {
-          brand: pfBrand, approved_claims: undefined, offer: undefined, now: undefined, require_brand: undefined,
-        })));
+        // The offer is the one the queue will read: the named campaign's
+        // record in THIS workspace (the page sends the asset as `payload`),
+        // so preflight and enqueue measure a deadline line against the same
+        // value, and it is never the body's own.
+        const pfOffer = __wsId
+          ? await dispatchCore.campaignOffer(__wsId, { campaign_id: b.campaign_id, asset_ref: b.asset_ref, asset: b.payload })
+          : null;
+        const input = Object.assign({ workspaceId: __wsId }, b, {
+          brand: pfBrand, approved_claims: undefined, offer: pfOffer || undefined,
+          // Deadline lines are read when the mail goes out, as at the queue.
+          now: dispatchCore.readAt(b.mode, b.scheduled_for) || undefined,
+          require_brand: undefined,
+        });
+        // The contact-ledger verdict is the server's to compute, never the
+        // body's: a posted `contact_fatigue` is dropped, and the brand's own
+        // ledger is read only for a workspace this caller belongs to
+        // (evaluateForCaller); anyone else is judged over the history the
+        // request carried. A channel that is not a message is left to the
+        // check, which skips it (2026-10-04).
+        delete input.contact_fatigue;
+        const fatigue = require('./_shared/contact-fatigue.js');
+        const msgChannel = fatigue.channelOf(b.message_channel || b.channel);
+        if (msgChannel && String(b.mode || '') !== 'draft') {
+          input.contact_fatigue = await require('./_shared/contact-ledger.js').evaluateForCaller(auth, __wsId, {
+            channel: msgChannel, message_class: b.message_class || b.message_priority, at: b.scheduled_for || null,
+            recipients: b.recipients || b.contacts || null, carried: b.contact_ledger || null, policy: b.contact_policy || null,
+            provider: b.provider || null, region: b.region || null,
+          });
+        }
+        return res.json(await require('./_shared/preflight-core.js').run(input));
+      }
+
+      // ── CONTACT FATIGUE (2026-10-04) ───────────────────────────────────
+      // The one contact policy and its cross-channel ledger:
+      // op=rules|rules-save|evaluate|summary|ingest. A signed-in caller only;
+      // a brand with no server workspace (a phone sign-in's device brand)
+      // keeps its rules on the device and is evaluated over the history its
+      // request carries. Logic in _shared/contact-ledger.js.
+      case 'contact-fatigue': {
+        const auth = __auth || await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth || !auth.ok) return res.status((auth && auth.status) || 401).json(Object.assign({ ok: false }, auth || {}));
+        const op = String(b.op || req.query.op || 'rules');
+        if (req.method !== 'POST' && op !== 'rules' && op !== 'summary') return res.status(405).json({ ok: false, error: 'POST only', message: `op=${op} takes a POST body.` });
+        const out = await require('./_shared/contact-ledger.js').handle(op, { auth, workspaceId: __wsId, body: b });
+        return res.status(out.status || 200).json(out.body);
       }
 
       case 'deliverability-warmup': {
@@ -1425,6 +1469,49 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         return res.json(one ? await pa.runAgent(one, shared) : await pa.runAll(Object.assign({ platforms: req.query.platforms || b.platforms }, shared)));
       }
 
+      case 'revenue-os': {
+        // Commercial control loop above the source-specific analysts:
+        // grounded actions -> deterministic ranking -> measured outcomes -> learning.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const ros = require('./_shared/revenue-os-core.js');
+        const op = String(req.query.op || b.op || 'run').toLowerCase();
+
+        if (op === 'track') {
+          if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+          try {
+            return res.json(await ros.trackOutcome(Object.assign({}, b, {
+              market: b.market || req.query.market || __homeMarket(),
+            })));
+          } catch (e) {
+            return res.status(e && e.status || 500).json({ ok: false, error: String(e && e.message || e) });
+          }
+        }
+        if (op !== 'run') return res.status(400).json({ ok: false, error: 'unknown revenue-os op' });
+        if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'GET only for revenue-os run' });
+
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+
+        return res.json(await ros.run({
+          market: req.query.market || b.market || __homeMarket(),
+          days: Number(req.query.days || b.days) || 30,
+          hours: Number(req.query.hours || b.hours) || 720,
+          since: req.query.since || b.since,
+          until: req.query.until || b.until,
+          question: req.query.question || b.question || '',
+          tier: req.query.tier || b.tier || 'standard',
+          platforms: req.query.platforms || b.platforms,
+          brand,
+        }));
+      }
+
       case 'journey': {
         // Link-by-link attribution across platforms. The join key is the link,
         // because it is the only identifier every platform actually writes.
@@ -1469,7 +1556,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         return res.json({ ok: true, ...(await osb.dashboard()) });
 
       default:
-        return res.status(400).json({ ok: false, error: 'Unknown action', actions: ['status', 'config', 'kb', 'kb-patterns', 'analyze', 'cohorts', 'library', 'scores', 'benchmarks', 'calendar', 'calendar-generate', 'calendar-review', 'festivals', 'festivals-extract', 'feedback', 'mvt', 'generate', 'assets', 'asset', 'campaigns', 'review', 'decide', 'recalibrate', 'confidence', 'agents', 'agent-upsert', 'agent-sync', 'agent-chat', 'agent-analyze', 'team-chat', 'agent-sessions', 'brand-chat', 'brand-tools', 'klaviyo', 'webengage-sync', 'webengage-report', 'video-generate', 'video-status', 'mailer-assets', 'mailer-assets-status', 'social-run-daily', 'social-list', 'social-approve', 'social-skip', 'console-chat', 'alerts-anomaly', 'alerts-pulse', 'alerts-eod', 'alerts-preview', 'access-narrative', 'snowflake-sync', 'snowflake-metrics', 'cron', 'os-connectors', 'os-connector-sync', 'os-run-daily-job', 'os-dashboard'] });
+        return res.status(400).json({ ok: false, error: 'Unknown action', actions: ['status', 'config', 'kb', 'kb-patterns', 'analyze', 'cohorts', 'library', 'scores', 'benchmarks', 'calendar', 'calendar-generate', 'calendar-review', 'festivals', 'festivals-extract', 'feedback', 'mvt', 'generate', 'assets', 'asset', 'campaigns', 'review', 'decide', 'recalibrate', 'confidence', 'agents', 'agent-upsert', 'agent-sync', 'agent-chat', 'agent-analyze', 'team-chat', 'agent-sessions', 'brand-chat', 'brand-tools', 'klaviyo', 'webengage-sync', 'webengage-report', 'video-generate', 'video-status', 'mailer-assets', 'mailer-assets-status', 'social-run-daily', 'social-list', 'social-approve', 'social-skip', 'console-chat', 'alerts-anomaly', 'alerts-pulse', 'alerts-eod', 'alerts-preview', 'access-narrative', 'snowflake-sync', 'snowflake-metrics', 'cron', 'os-connectors', 'os-connector-sync', 'os-run-daily-job', 'os-dashboard', 'contact-fatigue'] });
     }
   } catch (err) {
     console.error('[api/brain]', action, err);
