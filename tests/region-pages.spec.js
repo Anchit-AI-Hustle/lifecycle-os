@@ -61,11 +61,12 @@ const PAGES = [
   // had no nav, no brand tokens and no market control - only whatever their
   // own markup hardcoded.
   'playbook.html', 'connector-3d.html', 'landing-page-agent.html',
+  'storefront-3d.html',
 ];
 
-/* storefront-3d.html is deliberately excluded: it carries an explicit comment
-   saying it is a public, sign-in-free demo and loads no auth.js by design.
-   It is not part of the signed-in app, so it has no shell to put a picker in. */
+/* storefront-3d.html now loads auth.js so /3d carries the shared rail and
+   market picker. It stays a public storefront; the rail is how a visitor
+   leaves it. */
 
 for (const p of PAGES) {
   test(`${p} carries the shared market picker and follows it`, async ({ page }) => {
