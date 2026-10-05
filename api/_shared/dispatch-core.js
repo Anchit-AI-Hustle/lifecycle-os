@@ -122,14 +122,95 @@ function backoffMs(attempt, retryAfterMs) {
 
 /* ── enqueue ──────────────────────────────────────────────────────────────── */
 
+/** The workspace's own brand row, read as the service; null when it cannot be read. */
+async function workspaceBrand(workspaceId) {
+  try {
+    const env = serviceEnv();
+    return await require('./workspace-scope.js').brandForWorkspace(env, workspaceId);
+  } catch (_) { return null; }
+}
+
+/**
+ * The brand a workspace's copy is linted AS: the candidate only when it IS
+ * this workspace's record (its id), else the workspace's own row read as the
+ * service, else null - never somebody else's.
+ *
+ * brand-runtime.resolve() answers tenant zero when it cannot read a
+ * workspace, so a transient RLS or database failure for a supplement brand
+ * would otherwise be linted with a sneaker brand's packs and its disease
+ * claims would queue. Same defect class as "a carried record could claim to
+ * be tenant zero" (2026-09-29). A null here is UNCHECKED at the gate.
+ */
+async function trustedBrand(workspaceId, candidate) {
+  const id = String(workspaceId || '');
+  if (candidate && typeof candidate === 'object' && id && String(candidate.id || '') === id) return candidate;
+  if (!id) return null;
+  const own = await workspaceBrand(id);
+  return own && String(own.id || '') === id ? own : null;
+}
+
+/**
+ * The campaign a job's asset belongs to: the id the job names, the one
+ * the asset names, or the campaign an asset id is minted under
+ * (`campaign_<hash>_email`, `campaign_<hash>_meta_static`), when they agree. /publishing sends
+ * the asset under `asset`, so reading only the top of the spec found nothing
+ * there and every backed deadline line blocked.
+ */
+function campaignRefOf(s) {
+  const spec = s || {};
+  const a = spec.asset && typeof spec.asset === 'object' ? spec.asset : {};
+  const p = spec.payload && typeof spec.payload === 'object' ? spec.payload : {};
+  const minted = (id) => { const m = /^(campaign_[A-Za-z0-9]+)(?:_|$)/.exec(String(id || '').trim()); return m ? m[1] : ''; };
+  const named = [spec.campaign_id, a.campaign_id, p.campaign_id, minted(a.id), minted(p.id), minted(spec.asset_ref)]
+    .map((x) => String(x || '').trim()).filter(Boolean);
+  const distinct = named.filter((x, i) => named.indexOf(x) === i);
+  // Two different campaigns named for one asset: nothing says which record
+  // backs its lines, so none does (its urgency lines are then unbacked).
+  return distinct.length === 1 ? distinct[0] : '';
+}
+
+/**
+ * When a job's copy is READ: its schedule, unless that is already past (the
+ * job then goes out at once, so "today only" is measured from now, never from
+ * a past date the request chose). Null means the clock.
+ */
+function readAt(mode, scheduledFor) {
+  if (mode !== 'schedule' || !scheduledFor) return null;
+  const t = Date.parse(scheduledFor);
+  return Number.isFinite(t) && t > Date.now() ? scheduledFor : null;
+}
+
+/**
+ * The offer behind a job's urgency lines, read SERVER-SIDE from the campaign
+ * record the job names, in THIS workspace: the offer the builder stamped on
+ * it (smart-brain-plan offerOf), else its calendar entry's. Never the request
+ * body's, which is the caller's claim about its own offer.
+ */
+async function campaignOffer(workspaceId, s) {
+  const ref = campaignRefOf(s);
+  if (!ref || !workspaceId) return null;
+  try {
+    const ws = encodeURIComponent(workspaceId);
+    const rows = await rest(`smart_generated_campaigns?select=payload&id=eq.${encodeURIComponent(ref)}&workspace_id=eq.${ws}&limit=1`);
+    const p = Array.isArray(rows) && rows[0] ? rows[0].payload : null;
+    if (!p || typeof p !== 'object') return null;
+    if (p.offer && typeof p.offer === 'object') return p.offer;
+    if (!p.calendar_entry_id) return null;
+    const e = await rest(`smart_calendar_entries?select=payload&id=eq.${encodeURIComponent(p.calendar_entry_id)}&workspace_id=eq.${ws}&limit=1`);
+    const ep = Array.isArray(e) && e[0] ? e[0].payload : null;
+    return (ep && (ep.offer || (ep.decision && ep.decision.offer))) || null;
+  } catch (_) { return null; }
+}
+
 /**
  * Create a job. Runs the preflight gate FIRST, so a send that would damage the
  * sending domain never becomes a queued job that a later retry might release.
  *
  * @returns {Promise<{ok:boolean, job?:Object, preflight?:Object, deduped?:boolean}>}
  */
-async function enqueue(auth, workspaceId, spec) {
+async function enqueue(auth, workspaceId, spec, context) {
   const s = spec || {};
+  const c = context || {};
   await brandCore.assertCanWrite(auth, workspaceId, 'publish to a connected platform');
 
   const channelId = String(s.channel || '');
@@ -146,9 +227,27 @@ async function enqueue(auth, workspaceId, spec) {
   // operator sees the resolved payload and its gaps before anything is queued.
   const conn = await connections.getConnectionAsService(workspaceId, connectionProviderFor(provider));
   const adapter = new Adapter({ workspaceId, credentials: {}, connection: conn });
+  // The channel rides into the mapping so an adapter whose channels carry
+  // different payloads (a post, a comment reply, a live approval) maps the one
+  // it was asked for. Adapters that ignore it are unaffected.
   const mapped = s.payload && s.skip_mapping
     ? { ok: true, payload: s.payload, warnings: [], missing: [] }
-    : adapter.map(s.asset || s.payload || {}, s.mapping || {});
+    : adapter.map(s.asset || s.payload || {}, Object.assign({}, s.mapping || {}, { channel: channelId }));
+
+  // LIVE APPROVAL is recorded with the operator who gave it (2026-10-04). The
+  // approver is the caller this enqueue authenticated, never a value the
+  // request named: a payload that claimed someone else is overwritten.
+  if (/_live_approval$/.test(channelId)) {
+    mapped.payload = Object.assign({}, mapped.payload, { approved_by: auth.user_id || '' });
+  }
+
+  // The brand the copy is linted AS comes from the server, never the request
+  // body: the router hands over the brand it resolved for this workspace, and
+  // any other caller gets the workspace's own row. A body-supplied brand,
+  // approved-claims list or offer would let a send choose its own rule pack.
+  const brand = await trustedBrand(workspaceId, c.brand);
+  const market = String(s.market || s.region || (s.asset && (s.asset.market || s.asset.region)) || '');
+  const offer = await campaignOffer(workspaceId, s);
 
   // The touch this job will make, judged against the contact ledger by the
   // preflight gate and kept on the job (hashed recipients only) so the ledger
@@ -179,6 +278,18 @@ async function enqueue(auth, workspaceId, spec) {
 
   if (preflight.verdict === 'block' && !s.override_preflight) {
     return { ok: false, blocked: true, preflight, mapped, message: preflight.blocking.join(' ') };
+  }
+  // Overriding a COMPLIANCE block is a regulatory decision, so it needs a
+  // reason in words, not the default note: the licence, register entry or
+  // legal sign-off the copy rests on. The reason and the operator's id are
+  // written to preflight_audits beside every finding that was overridden.
+  if (preflight.verdict === 'block' && s.override_preflight
+    && preflight.checks.some((x) => x.id === 'compliance' && x.status === 'block')
+    && !String(s.override_note || '').trim()) {
+    return {
+      ok: false, blocked: true, preflight, mapped, error: 'override_reason_required',
+      message: 'A compliance block can be overridden only with a reason: say why this copy may run as written (for example the licence, register entry or legal sign-off it rests on). The reason is recorded against your account on the audit.',
+    };
   }
 
   const idempotencyKey = String(s.idempotency_key || deriveIdempotencyKey({
@@ -395,6 +506,9 @@ function sanitizeResult(result) {
     external_id: result.external_id || null,
     error_class: result.error_class || null,
     endpoint_unverified: !!result.endpoint_unverified,
+    blocked_by: result.blocked_by || undefined,
+    op: result.op || undefined,
+    doc: result.doc || undefined,
     note: result.note ? String(result.note).slice(0, 600) : undefined,
     would_request: result.would_request ? { method: result.would_request.method, url: result.would_request.url, body: redact(result.would_request.body) } : undefined,
     resume: result.resume || undefined,
@@ -563,6 +677,6 @@ async function jobDetail(auth, workspaceId, jobId) {
 
 module.exports = {
   enqueue, drain, runJob, cancel, ingestWebhook, listJobs, jobDetail,
-  deriveIdempotencyKey, backoffMs, claim, countRunnable,
+  deriveIdempotencyKey, backoffMs, claim, countRunnable, trustedBrand, campaignOffer, campaignRefOf, readAt,
   BATCH, BASE_BACKOFF_MS, MAX_BACKOFF_MS, LEASE_MS,
 };

@@ -73,10 +73,23 @@ function project(extraEnv) {
   return f;
 }
 
+/**
+ * A wait that ends. Every Node-side wait in this file goes through it, so a
+ * wait that cannot finish fails with a sentence naming what it waited for -
+ * never as a bare "Test timeout", which is all Playwright can print for a
+ * promise it did not make (CI, 2026-10-04: two tests ended that way, and the
+ * error that came first was lost with them).
+ */
+function within(promise, ms, what) {
+  let timer;
+  const late = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Gave up after ' + ms + ' ms waiting for ' + what)), ms); });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
+
 /** The shipped handler, called the way Vercel calls it. */
 function auth(op, body, headers) {
   const handler = require('../api/public-config.js');
-  return new Promise((resolve, reject) => {
+  return within(new Promise((resolve, reject) => {
     const res = {
       statusCode: 200, headers: {},
       setHeader(k, v) { this.headers[k] = v; }, removeHeader() {}, getHeader(k) { return this.headers[k]; },
@@ -88,7 +101,7 @@ function auth(op, body, headers) {
       method: body ? 'POST' : 'GET', query: { action: 'auth', op },
       headers: Object.assign({ 'x-forwarded-for': '203.0.113.7' }, headers || {}), body: body || undefined,
     }, res)).catch(reject);
-  });
+  }), 30000, 'op=' + op + ' to answer through the shipped handler');
 }
 const bearer = (t) => ({ authorization: 'Bearer ' + t });
 async function signUp(f, phone, name, pin) {
@@ -478,11 +491,57 @@ function appServer(log) {
   });
 }
 
+/** The app on 127.0.0.1, on a port the OS picks. */
+async function startApp(log) {
+  const srv = appServer(log);
+  await within(new Promise((r) => srv.listen(0, '127.0.0.1', r)), 10000, 'the app server to listen');
+  return { srv, base: 'http://127.0.0.1:' + srv.address().port };
+}
+
+/**
+ * Stop the app server WITHOUT waiting on the browser. `server.close()` alone
+ * resolves only when every connection has ended, and it closes only the idle
+ * ones: a socket the page was using at that moment stays open and goes on
+ * serving the page's next requests over keep-alive (measured on Node 20 and
+ * 22). The page is still open here - its fixture closes it after the test -
+ * so a test whose page was still talking waited in `finally` until the test
+ * timeout, and the assertion that had failed first was never reported.
+ * closeAllConnections() ends those sockets; the page is discarded next anyway.
+ */
+async function stopApp(srv) {
+  const closed = new Promise((r) => srv.close(() => r()));
+  srv.closeAllConnections();
+  // Never throws: a throw from `finally` would replace the test's own error.
+  await Promise.race([closed, new Promise((r) => setTimeout(r, 5000))]);
+}
+
 async function wire(page, f, log) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e.message || e)));
   page.on('dialog', (d) => { errors.push('dialog: ' + d.message()); d.dismiss().catch(() => {}); });
   await page.addInitScript(() => {
+    // EVERY fetch the page makes, recorded at the moment it is made, with the
+    // headers it is made with. This runs before any page script, so auth.js
+    // and brand-context.js wrap THIS function and whatever token they add is
+    // seen here, before any network latency: "was a token sent?" is a fact
+    // about the page, not a race between a request and the test's next read.
+    // `settled` turns true when the response (or the failure) comes back, so
+    // a test can wait for the page's calls to finish instead of sleeping.
+    const nativeFetch = window.fetch && window.fetch.bind(window);
+    if (nativeFetch) {
+      const calls = [];
+      window.__fetches = calls;
+      window.fetch = function (input, init) {
+        const h = new Headers((input && typeof input === 'object' && input.headers) || undefined);
+        try { new Headers((init && init.headers) || undefined).forEach((v, k) => h.set(k, v)); } catch (_) { /* unreadable headers: recorded without them */ }
+        const dd = window.__lcDeviceDecided;
+        const rec = { url: String((input && input.url) || input), token: h.get('x-lifecycle-token') || '', authorization: h.get('authorization') || '', afterDeviceGate: !!(dd && dd.done), settled: false };
+        calls.push(rec);
+        const p = nativeFetch(input, init);
+        p.then(() => { rec.settled = true; }, () => { rec.settled = true; });
+        return p;
+      };
+    }
     // The supabase-js CDN is not reachable here: a stand-in that records what
     // the page hands it (setSession) and is otherwise anonymous.
     window.__SET_SESSION__ = [];
@@ -531,6 +590,11 @@ async function wire(page, f, log) {
   return errors;
 }
 
+/** Calls the page made that carried `token` (as X-Lifecycle-Token or as the bearer). */
+const fetchesWith = (page, token) => page.evaluate((t) => (window.__fetches || []).filter((c) => c.token === t || c.authorization === 'Bearer ' + t).map((c) => c.url), token);
+/** Every call the page has made so far has been answered (or has failed). */
+const callsSettled = (page) => page.evaluate(() => (window.__fetches || []).every((c) => c.settled));
+
 const readState = (page) => page.evaluate(() => {
   const a = window.LifecycleAuth || {};
   let stored = null; try { stored = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null'); } catch (_) {}
@@ -554,9 +618,7 @@ test('SUPABASE MODE IN THE BROWSER: sign up in the rail, the session survives a 
   test.setTimeout(180_000);
   const f = project();
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   try {
     const errors = await wire(page, f, log);
     await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
@@ -675,7 +737,7 @@ test('SUPABASE MODE IN THE BROWSER: sign up in the rail, the session survives a 
     expect((await readState(page)).stored).toBeNull();
     expect(errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
   } finally {
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -684,9 +746,7 @@ test('a Supabase phone session whose project went away is KEPT and said, never s
   const f = project();
   const s = await signUp(f);
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   try {
     await wire(page, f, log);
     await page.addInitScript((sess) => { localStorage.setItem('lifecycle.auth.session', JSON.stringify(sess)); }, {
@@ -702,7 +762,7 @@ test('a Supabase phone session whose project went away is KEPT and said, never s
     expect(st.umode).toMatch(/not answering right now/);
     expect(st.storage.mode, 'an unverifiable session wrote to an account it cannot reach').toBe('device');
   } finally {
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -732,9 +792,7 @@ for (const fault of ['abort', 503, 429, 400]) {
     const f = project();
     const s = await signUp(f);
     const log = [];
-    const srv = appServer(log);
-    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-    const base = 'http://127.0.0.1:' + srv.address().port;
+    const { srv, base } = await startApp(log);
     try {
       // BEFORE: this browser's clock says the token has run out, and so does the service.
       f.access.get(s.token).exp = Math.floor(Date.now() / 1000) - 30;
@@ -773,7 +831,7 @@ for (const fault of ['abort', 503, 429, 400]) {
       expect(st.stored.refresh_token).toBe(cur.refresh_token);
       expect(st.session).toMatchObject({ mode: 'supabase', verified: false });
     } finally {
-      await new Promise((r) => srv.close(r));
+      await stopApp(srv);
     }
   });
 }
@@ -783,20 +841,23 @@ test('REVIEW P1: a renewal the service REFUSES (refresh token revoked) still end
   const f = project();
   const s = await signUp(f);
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   try {
     for (const row of f.sessions.values()) row.revoked = true;   // signed out everywhere, elsewhere
     await openWithSession(page, f, log, base, s, { expires_at: Math.floor(Date.now() / 1000) - 30 });
     await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => !!document.querySelector('#lnav-signin'), null, { timeout: 20000 });
+    // In order, each an event: the page asks the auth service to renew the
+    // expired pair, the service refuses it, and the page ends the session.
+    await expect.poll(() => log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url)).length, {
+      timeout: 30000, message: 'the page never asked the auth service to renew the expired session',
+    }).toBeGreaterThan(0);
+    await expect(page.locator('#lnav-signin-note'), 'a refused renewal did not end the session with the note').toHaveText(/expired or was signed out/, { timeout: 30000 });
+    await expect(page.locator('#lnav-signin')).toBeAttached();
     const st = await readState(page);
     expect(st.stored).toBeNull();
     expect(st.session).toBeNull();
-    expect(await page.evaluate(() => (document.getElementById('lnav-signin-note') || {}).textContent || '')).toMatch(/expired or was signed out/);
   } finally {
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -806,9 +867,7 @@ for (const locks of [true, false]) {
     const f = project();
     const s = await signUp(f);
     const log = [];
-    const srv = appServer(log);
-    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-    const base = 'http://127.0.0.1:' + srv.address().port;
+    const { srv, base } = await startApp(log);
     const context = await browser.newContext();
     try {
       if (!locks) await context.addInitScript(() => { try { Object.defineProperty(navigator, 'locks', { value: undefined, configurable: true }); } catch (_) {} });
@@ -829,7 +888,14 @@ for (const locks of [true, false]) {
       await seed.close();
       await Promise.all([a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' }), b.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' })]);
       await Promise.all([settled(a), settled(b)]);
-      await a.waitForTimeout(1500);
+      // Both tabs on ONE renewed pair, every call they made answered - the
+      // state the race ends in, waited for instead of slept towards.
+      await expect.poll(async () => {
+        const [x, y] = [await readState(a), await readState(b)];
+        const pair = x.stored && x.stored.refresh_token !== s.refresh_token ? x.stored.token : null;
+        return !!pair && !!x.session && !!y.session && x.session.token === pair && y.session.token === pair
+          && x.session.verified === true && y.session.verified === true && (await callsSettled(a)) && (await callsSettled(b));
+      }, { timeout: 30000, message: 'the two tabs never settled on one renewed, verified pair' }).toBe(true);
       const sa = await readState(a);
       const sb = await readState(b);
       const stored = sa.stored;
@@ -845,7 +911,7 @@ for (const locks of [true, false]) {
       if (locks) expect(log.filter((l) => l.browser && /grant_type=refresh_token/.test(l.url)).length, 'with Web Locks only ONE tab spends the refresh token').toBe(1);
     } finally {
       await context.close();
-      await new Promise((r) => srv.close(r));
+      await stopApp(srv);
     }
   });
 }
@@ -929,16 +995,14 @@ test('REVIEW P1 (cross-tab sign-out): signing out in one tab ends the session in
   const f = project();
   const s = await signUp(f);
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   const { context, a, b } = await twoTabs(browser, f, log, base, s, { state: 'verified' });
   try {
     await a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
     await b.goto(base + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
     for (const p of [a, b]) await p.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 20000 });
     await a.locator('#lnav-signout').evaluate((el) => el.click());
-    await b.waitForFunction(() => !window.LifecycleAuth.session, null, { timeout: 5000 }).catch(() => {});
+    await expect.poll(() => b.evaluate(() => !window.LifecycleAuth.session), { timeout: 20000, message: 'the other tab kept the signed-out session' }).toBe(true);
     const st = await readState(b);
     expect(st.session, 'the other tab kept the signed-out session').toBeNull();
     expect(st.apiToken).toBe('');
@@ -947,7 +1011,7 @@ test('REVIEW P1 (cross-tab sign-out): signing out in one tab ends the session in
     expect(await b.evaluate(() => window.LifecycleAuth.backend.kind)).toBe('signed-out');
   } finally {
     await context.close();
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -956,9 +1020,7 @@ test('REVIEW (failed renew): a scheduled renewal that cannot be made marks the s
   const f = project();
   const s = await signUp(f);
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   // Verified, with an access token that runs out in 90 s.
   const soon = Math.floor(Date.now() / 1000) + 90;
   f.access.get(s.token).exp = soon;
@@ -979,7 +1041,7 @@ test('REVIEW (failed renew): a scheduled renewal that cannot be made marks the s
     expect(st.apiToken, 'a dead access token is still sent').toBe('');
     expect(st.storage.mode, 'brands stayed on the server path with a session nobody can check').toBe('device');
     // The sibling learns the same state from the record, without its own renewal.
-    await b.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === false, null, { timeout: 5000 });
+    await b.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === false, null, { timeout: 20000 });
 
     // The service is back: tab A's retry renews and re-checks; tab B ADOPTS
     // the verified state (its own clock is not advanced at all).
@@ -988,7 +1050,15 @@ test('REVIEW (failed renew): a scheduled renewal that cannot be made marks the s
     const checksBefore = log.filter((l) => l.query && l.query.op === 'me').length;
     await a.clock.fastForward('01:30');
     await a.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 10000 });
-    await b.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 5000 });
+    await b.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.verified === true, null, { timeout: 20000 });
+    // Both tabs quiet before anything is counted: every call either made has
+    // been answered, and neither holds or waits for the renewal lock. A
+    // second check, if a tab made one, has reached the server by then.
+    const quiet = (p) => p.evaluate(async () => {
+      const locks = navigator.locks && navigator.locks.query ? await navigator.locks.query() : { held: [], pending: [] };
+      return (window.__fetches || []).every((c) => c.settled) && !(locks.held || []).length && !(locks.pending || []).length;
+    });
+    await expect.poll(async () => (await quiet(a)) && (await quiet(b)), { timeout: 20000, message: 'the two tabs never went quiet after the recovery' }).toBe(true);
     const sa = await readState(a); const sb = await readState(b);
     expect(sa.stored.state).toBe('verified');
     expect(sb.session.token).toBe(sa.stored.token);
@@ -998,11 +1068,10 @@ test('REVIEW (failed renew): a scheduled renewal that cannot be made marks the s
     // ONE tab renewed and checked; the other became verified by ADOPTING the
     // record it wrote, not by checking again itself (the clock is the
     // context's, so both tabs' retries fall due together).
-    await a.waitForTimeout(500);
     expect(log.filter((l) => l.query && l.query.op === 'me').length - checksBefore, 'both tabs re-checked instead of one adopting the other\'s verified state').toBe(1);
   } finally {
     await context.close();
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -1048,9 +1117,7 @@ test('REVIEW (cross-tab adopt): another person signing in in another tab replace
   // account id tells the two sessions apart.
   const priya = await signUp(f, '9811111111', 'Ravi', '6082');
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   const { context, a, b } = await twoTabs(browser, f, log, base, ravi, { state: 'verified' });
   try {
     await a.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
@@ -1061,7 +1128,9 @@ test('REVIEW (cross-tab adopt): another person signing in in another tab replace
       token: priya.token, refresh_token: priya.refresh_token, expires_at: priya.expires_at, user: priya.user, mode: 'supabase', expires: null, provider: 'mobile-pin',
       state: 'verified', storage: { mode: 'supabase', host: new URL(f.url).hostname, message: '' },
     });
-    await b.waitForFunction((id) => window.LifecycleAuth.session && window.LifecycleAuth.session.user && window.LifecycleAuth.session.user.id === id, priya.user.id, { timeout: 5000 }).catch(() => {});
+    await expect.poll(() => b.evaluate(() => window.LifecycleAuth.session && window.LifecycleAuth.session.user && window.LifecycleAuth.session.user.id), {
+      timeout: 20000, message: 'the other tab still holds the previous person',
+    }).toBe(priya.user.id);
     const st = await readState(b);
     expect(await b.evaluate(() => window.LifecycleAuth.session && window.LifecycleAuth.session.user.id), 'the other tab still holds the previous person').toBe(priya.user.id);
     expect(await b.evaluate(() => window.LifecycleAuth.session.user.phone)).toBe('+919811111111');
@@ -1071,7 +1140,7 @@ test('REVIEW (cross-tab adopt): another person signing in in another tab replace
     expect(await b.evaluate(() => window.BrandContext && window.BrandContext.device && window.BrandContext.device.key ? window.BrandContext.device.key() : '')).toMatch(new RegExp(priya.user.id + '$'));
   } finally {
     await context.close();
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -1079,9 +1148,7 @@ test('REVIEW (device -> Supabase): a device account made while the project was d
   test.setTimeout(150_000);
   const f = project();
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   try {
     await wire(page, f, log);
     // 1. The project is down: the account and a brand are made ON THIS DEVICE.
@@ -1104,14 +1171,14 @@ test('REVIEW (device -> Supabase): a device account made while the project was d
     const deviceToken = st.session.token;
     await page.evaluate(() => window.BrandContext.api('save', { body: { brand: { name: 'Ravi Kicks', palette: { primary: '#2f6fdf', accent: '#c2410c', ink: '#1f2937', surface: '#ffffff' } } } }));
 
-    // 2. The project comes back (after this page's own calls have settled, so
-    //    every call counted below belongs to the boot that follows).
-    await page.waitForLoadState('networkidle').catch(() => {});
-    await page.waitForTimeout(1500);
+    // 2. The project comes back. The boot that follows opens its own URL, so
+    //    every call it makes names it (the Referer) and a late call from the
+    //    first boot - one already on its way - is never counted as its own.
+    await expect.poll(() => callsSettled(page), { timeout: 20000, message: 'the first boot\'s calls never finished' }).toBe(true);
     f.down = false; f.healthy = true;
     require('../api/_shared/mobile-auth-core.js')._reset();
-    const mark = log.length;
-    await page.reload({ waitUntil: 'domcontentloaded' });
+    const secondBoot = (l) => /[?&]boot=2(&|$)/.test(l.referer || '');
+    await page.goto(base + '/onboarding.html?boot=2', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.session && window.LifecycleAuth.session.transition === 'supabase', null, { timeout: 15000 });
     st = await readState(page);
     expect(st.name).toBe('Ravi');
@@ -1122,7 +1189,9 @@ test('REVIEW (device -> Supabase): a device account made while the project was d
     expect(await page.evaluate(() => (window.BrandContext.device.list() || []).map((w) => w.name))).toEqual(['Ravi Kicks']);
     const refusal = await page.evaluate(() => window.LifecycleAuth.serverActionRefusal('Generating the plan'));
     expect(refusal, 'a server action would be sent and refused with a bare 401').toBeTruthy();
-    expect(log.slice(mark).filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token was sent to a server that refuses it').toEqual([]);
+    expect(log.filter(secondBoot).length, 'no call of the second boot reached the server - the check below would be empty').toBeGreaterThan(0);
+    expect(log.filter(secondBoot).filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token was sent to a server that refuses it').toEqual([]);
+    expect(await fetchesWith(page, deviceToken), 'the page made a call carrying the device token').toEqual([]);
 
     // 3. Moving: the same number and PIN create the account in the project,
     //    and this device's brands are OFFERED for sync - nothing is uploaded.
@@ -1139,7 +1208,7 @@ test('REVIEW (device -> Supabase): a device account made while the project was d
     await page.waitForFunction(() => window.BrandContext.storage().mode === 'server' && window.BrandContext.storage().device_count === 1, null, { timeout: 10000 });
     expect(f.tables.brand_workspaces, 'a device brand was uploaded unasked').toEqual([]);
   } finally {
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -1178,9 +1247,7 @@ test('REVIEW (device wait): with op=status answering after EIGHT seconds, the st
   test.setTimeout(150_000);
   const f = project();
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   try {
     await wire(page, f, log);
     const deviceToken = 'h'.repeat(43);
@@ -1190,19 +1257,40 @@ test('REVIEW (device wait): with op=status answering after EIGHT seconds, the st
       localStorage.setItem('lifecycle.auth.device.users', JSON.stringify({ '+919876543210': { id: 'dev-0011223344556677', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Ravi', salt: '00', hash: '00', iterations: 1, tries: 0, lockedUntil: null } }));
       localStorage.setItem('lifecycle.auth.session', JSON.stringify({ token: tok, user: { id: 'dev-0011223344556677', name: 'Ravi', phone: '+919876543210' }, mode: 'device', expires: new Date(Date.now() + 86400000).toISOString(), provider: 'mobile-pin', storage: { mode: 'device' } }));
     }, deviceToken);
-    // The auth status answers late.
-    await page.route(/\/api\/public-config\?action=auth&op=status/, async (route) => { await new Promise((r) => setTimeout(r, 8000)); return route.fallback(); });
+    // op=status is HELD until the test lets it answer. It used to be held for
+    // eight seconds of the RUNNER's time while the test slept six and a half,
+    // so on a loaded runner "past the old release point" and "before the
+    // answer" were whatever the scheduler made them. Now the page's own clock
+    // is moved past the old 6-second release while the answer is held, and
+    // the answer comes at 8 s of the page's time - the original scenario, in
+    // the time the code under test reads.
+    let asked; const statusAsked = new Promise((r) => { asked = r; });
+    let release; const statusReleased = new Promise((r) => { release = r; });
+    await page.route(/\/api\/public-config\?action=auth&op=status/, async (route) => { asked(); await statusReleased; return route.fallback(); });
+    await page.clock.install();
     await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(6500);
+    await within(statusAsked, 30000, 'the page to ask op=status');
+
     // Past the old release point, before the answer: still nothing sent with it.
-    expect(log.filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token went out at the 6-second release').toEqual([]);
+    await page.clock.fastForward(6500);
+    expect(await fetchesWith(page, deviceToken), 'the device token went out at the 6-second release').toEqual([]);
     expect(await page.evaluate(() => window.LifecycleAuth.apiToken()), 'apiToken() offered the device token before the decision').toBe('');
-    await page.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.transition === 'supabase', null, { timeout: 15000 });
-    await page.waitForTimeout(1500);
+    expect(log.filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token reached the server before the decision').toEqual([]);
+
+    // The answer arrives at 8 s: the project is up, the move is offered.
+    await page.clock.fastForward(1500);
+    release();
+    await page.waitForFunction(() => window.LifecycleAuth.session && window.LifecycleAuth.session.transition === 'supabase', null, { timeout: 30000 });
+    // The calls held for the decision are released now - without the token.
+    // Waited for until every one of them has been answered, not slept towards.
+    await expect.poll(() => page.evaluate(() => !!(window.__lcDeviceDecided && window.__lcDeviceDecided.done)), { timeout: 20000, message: 'the held calls were never released' }).toBe(true);
+    await expect.poll(() => callsSettled(page), { timeout: 30000, message: 'the released calls never finished' }).toBe(true);
+    expect(await page.evaluate(() => (window.__fetches || []).filter((c) => c.afterDeviceGate && /\/api\//.test(c.url)).length), 'no call was held and released - the checks below would be empty').toBeGreaterThan(0);
+    expect(await fetchesWith(page, deviceToken), 'the page made a call carrying the device token').toEqual([]);
     expect(log.filter((l) => l.token === deviceToken || l.authorization === 'Bearer ' + deviceToken), 'the device token was sent').toEqual([]);
     expect((await readState(page)).umode).toMatch(/same number and PIN/);
   } finally {
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });
 
@@ -1227,9 +1315,7 @@ test('REVIEW (device wait, no SDK): when the supabase-js CDN does not load, the 
   const f = project();
   f.down = true; f.healthy = false;   // production's measured state: the project does not answer
   const log = [];
-  const srv = appServer(log);
-  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + srv.address().port;
+  const { srv, base } = await startApp(log);
   try {
     await wire(page, f, log);
     const deviceToken = 'k'.repeat(43);
@@ -1245,6 +1331,6 @@ test('REVIEW (device wait, no SDK): when the supabase-js CDN does not load, the 
     expect(await page.evaluate(() => window.LifecycleAuth.apiToken())).toBe(deviceToken);
     await expect.poll(() => log.filter((l) => l.token === deviceToken).length, { timeout: 15000 }).toBeGreaterThan(0);
   } finally {
-    await new Promise((r) => srv.close(r));
+    await stopApp(srv);
   }
 });

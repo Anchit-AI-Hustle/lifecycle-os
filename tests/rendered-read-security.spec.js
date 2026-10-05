@@ -323,6 +323,56 @@ test('the open path rate-limits the browser read per address and says so in a se
   }
 });
 
+test('the read answers inside the function\'s time: a browser that never finishes is reported as a timeout with the parser\'s fields, and the browser\'s own deadline sits inside the cap', async () => {
+  test.setTimeout(30000);
+  const br = require('../api/_shared/brand-render.js');
+  br.resetRateLimits();
+  const bx = require('../api/_shared/brand-extract.js');
+  const realRun = bx.runExtract;
+  const dns = require('dns').promises;
+  const realLookup = dns.lookup;
+  dns.lookup = async (h, o) => (String(h).endsWith('.example') ? [{ address: '93.184.216.34', family: 4 }] : realLookup(h, o));
+  bx.runExtract = async () => ({ ok: true, start: 'https://shop.example/', pages: ['https://shop.example/'], pages_visited: 1, stylesheets: [], limits: [], notes: [], markers: [], fields: { name: { value: 'Shop' }, palette: { proposed: {} } } });
+  const asked = [];
+  const never = (url, opts) => { asked.push(opts); return new Promise(() => {}); };
+  try {
+    // The shipped caps answer inside the function's 120 s (vercel.json), with room to send the response.
+    const fnMax = require('../vercel.json').functions['api/public-config.js'].maxDuration * 1000;
+    expect(br.READ_HARD_MS.open).toBeLessThanOrEqual(fnMax - 10000);
+    expect(br.READ_HARD_MS.account).toBeLessThanOrEqual(fnMax - 10000);
+    const t0 = Date.now();
+    const out = await br.extractWithRender({ ok: false }, { url: 'https://shop.example/' }, { open: true, req: { headers: { 'x-forwarded-for': '203.0.113.50' } }, readSite: never, hardMs: 1500 });
+    const took = Date.now() - t0;
+    expect(took, 'the response waited for a browser that never finished').toBeLessThan(5000);
+    expect(out.ok).toBe(true);
+    expect(out.read).toMatchObject({ method: 'parsed', renderer: 'timeout' });
+    expect(out.read.reason).toMatch(/did not finish within 2 s on this server/);
+    expect(out.fields.name.value).toBe('Shop');
+    // The browser is given a deadline INSIDE the cap, so it normally ends partial, not cut off.
+    expect(asked[0].deadlineMs, "a deadline at or past the cap").toBeLessThan(1500 + 1);
+    asked.length = 0;
+    const fast = async (url, opts) => { asked.push(opts); return { ok: false, renderer: 'timeout', reason: 'stand-in' }; };
+    await br.extractWithRender({ ok: false }, { url: 'https://shop.example/' }, { open: true, req: { headers: { 'x-forwarded-for': '203.0.113.51' } }, readSite: fast });
+    expect(asked[0].deadlineMs).toBe(Math.min(100000, br.READ_HARD_MS.open - br.BROWSER_MARGIN_MS));
+    await br.extractWithRender({ ok: true }, { url: 'https://shop.example/' }, { open: false, readSite: fast });
+    expect(asked[1].deadlineMs).toBe(Math.min(100000, br.READ_HARD_MS.account - br.BROWSER_MARGIN_MS));
+    expect(br.BROWSER_MARGIN_MS).toBeGreaterThanOrEqual(5000);
+    // The parser running alongside is held to the same cap: a site whose HTML
+    // never finishes arriving is a sentence at the cap, not a request the
+    // platform kills.
+    bx.runExtract = () => new Promise(() => {});
+    const t1 = Date.now();
+    let err = null;
+    try { await br.extractWithRender({ ok: false }, { url: 'https://shop.example/' }, { open: true, req: { headers: { 'x-forwarded-for': '203.0.113.52' } }, readSite: fast, hardMs: 1500 }); }
+    catch (e) { err = e; }
+    expect(Date.now() - t1, 'the response waited for a parser that never finished').toBeLessThan(5000);
+    expect(err && err.status).toBe(504);
+    expect(err.message).toMatch(/published HTML and CSS were not read within 2 s/);
+  } finally {
+    bx.runExtract = realRun; dns.lookup = realLookup; br.resetRateLimits();
+  }
+});
+
 test('the browser read reaches no language model, on any path', async () => {
   const LLM = require.resolve('../api/_shared/llm.js');
   const saved = require.cache[LLM];

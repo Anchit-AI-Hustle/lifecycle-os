@@ -1270,6 +1270,20 @@ async function productCount(auth, id) {
   } catch (_) { return 0; }
 }
 
+/**
+ * Does this workspace own tenant zero's SHIPPED material (the built catalogue,
+ * the 3D storefront, the audio beds)? The server's answer, stamped on every
+ * brand payload as `owns_shipped` so the browser never decides it from a slug:
+ * `brand_workspaces.slug` is unique per OWNER only, so any owner can save
+ * tenant zero's slug, and a slug was all brand-context.js and brand-catalog.js
+ * read (2026-10-05). Same helper that gates the bundled sales export - the
+ * oldest workspace - so the catalogue and the export cannot disagree.
+ */
+async function ownsShipped(wsId) {
+  if (!wsId) return false;
+  try { return !!(await require('./market-analytics.js').ownsBundledExport(wsId)); } catch (_) { return false; }
+}
+
 async function activeWorkspaceId(auth) {
   const rows = await restAs(auth.token, `brand_user_prefs?select=active_workspace_id&user_id=eq.${encodeURIComponent(auth.user_id)}&limit=1`);
   return (Array.isArray(rows) && rows[0] && rows[0].active_workspace_id) || null;
@@ -1503,21 +1517,108 @@ async function claimUserOwnedFields(auth, workspaceId, input) {
   return n;
 }
 
-async function saveWorkspace(auth, input) {
-  const id = str(input && input.id);
-  if (id) {
+/* ── A SAVE OF AN EXISTING BRAND (reviews of PRs #127 and #143, 2026-10-04) ──
+   The save used to PATCH every field it carried and only then ask the
+   database whose each one was. Two tabs: tab B saves a tagline the person
+   typed; tab A, opened earlier, applies a brand guideline and saves. A's PATCH
+   wrote the document's tagline over B's, the provenance check then (rightly)
+   kept `user`, and the record said a person typed a value no person typed.
+   A first fix split the save into a claim, a PATCH and an apply, and review
+   found what splitting cost: a claim committed before a write that then
+   failed; the wizard's placeholders (origin 'default') still riding the PATCH
+   over another tab's document value; and the design rules judging the
+   INCOMING palette rather than the one that would be stored. So it is ONE
+   decision and ONE statement:
+     1. Read the row and who owns each field.
+     2. Work out the EFFECTIVE row: what the person typed; each value another
+        source set (document > site-render > site-parse > preset) only where
+        it ranks at least as high as the recorded owner; the row's OWN value
+        everywhere else - every placeholder included.
+     3. Check the design rules on THAT (buildRow), so a refused document
+        colour cannot block a save and an applied one cannot slip through.
+     4. brand_workspace_save() writes it, claims the typed fields and records
+        each applied value's origin in one transaction under the row lock, and
+        answers `stale` if the row or any owner the decision rested on moved
+        since step 1 - then the save starts again from step 1. */
+const SAVE_ATTEMPTS = 4;
+/* Every dotted field a save can carry (the paths carriedFields() emits). */
+const SAVE_FIELDS = ['name', 'tagline', 'legal_name', 'industry', 'website', 'logo_url', 'favicon_url',
+  'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
+  'typography.heading', 'typography.body', 'typography.mono',
+  'voice.tone', 'voice.preferred', 'voice.notes', 'voice.banned',
+  'brand_data.claims', 'brand_data.social', 'brand_data.legal_entity', 'regions'];
+
+/** `input` with each listed field replaced by the row's own value (or removed when the row has none). */
+function withRowValues(input, existing, fields) {
+  const b = JSON.parse(JSON.stringify(input || {}));
+  const prev = existing || {};
+  for (const f of fields) {
+    const dot = f.indexOf('.');
+    if (dot < 0) {
+      if (prev[f] !== undefined && prev[f] !== null) b[f] = JSON.parse(JSON.stringify(prev[f])); else delete b[f];
+      continue;
+    }
+    const col = f.slice(0, dot), leaf = f.slice(dot + 1);
+    const was = prev[col] && typeof prev[col] === 'object' ? prev[col][leaf] : undefined;
+    b[col] = b[col] && typeof b[col] === 'object' ? Object.assign({}, b[col]) : {};
+    if (was !== undefined && was !== null) b[col][leaf] = JSON.parse(JSON.stringify(was)); else delete b[col][leaf];
+  }
+  return b;
+}
+
+/** The fields the save says nobody chose: the wizard's placeholders. */
+function placeholderFields(input) {
+  return SAVE_FIELDS.filter((f) => { const r = fieldOriginOf(input, f); return !!r && r.origin === 'default'; });
+}
+
+/** Who owns each field of this brand now, as the database records it. */
+async function fieldOwners(auth, id) {
+  const rows = await restAs(auth.token, `brand_field_provenance?select=field,origin&workspace_id=eq.${encodeURIComponent(id)}`);
+  const out = {};
+  for (const r of (Array.isArray(rows) ? rows : [])) if (r && r.field) out[r.field] = String(r.origin || '');
+  return out;
+}
+
+async function saveExisting(auth, id, input) {
+  const typed = claimedFields(input);
+  const others = recordedOrigins(input);
+  const placeholders = placeholderFields(input);
+  for (let attempt = 0; attempt < SAVE_ATTEMPTS; attempt++) {
     const existing = await getWorkspace(auth, id);
     if (!existing) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
-    const row = buildRow(input, existing);
-    const saved = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}&select=${SELECT_COLS}`, {
-      method: 'PATCH', body: row, prefer: 'return=representation',
+    const owners = await fieldOwners(auth, id);
+    const seen = {}, applied = {}, keepRow = placeholders.slice();
+    for (const [f, rec] of Object.entries(others)) {
+      const have = owners[f] || '';
+      seen[f] = have || null;
+      if (!have || (ORIGIN_RANK[rec.origin] || 0) >= (ORIGIN_RANK[have] || 0)) applied[f] = rec;
+      else keepRow.push(f);
+    }
+    // The design rules are checked HERE, on what will be stored.
+    const row = buildRow(keepRow.length ? withRowValues(input, existing, keepRow) : input, existing);
+    const out = await restAs(auth.token, 'rpc/brand_workspace_save', {
+      method: 'POST',
+      body: { p_workspace: id, p_expected: existing.updated_at || null, p_seen: seen, p_row: row, p_typed: typed, p_origins: applied },
     });
-    // What a person typed is theirs from now on: no automatic run may overwrite
-    // it, and the refusal lives in the database rather than in call order.
-    await claimUserOwnedFields(auth, id, input);
-    invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
-    return Array.isArray(saved) ? saved[0] : saved;
+    if (out && out.ok && out.row) {
+      invalidateBrandCaches({ userId: auth.user_id, workspaceId: id });
+      return out.row;
+    }
+    if (out && out.error === 'not_found') { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
+    if (!out || out.error !== 'stale') {
+      const e = new Error(`The brand could not be saved (${(out && (out.error || out.message)) || 'no answer from the database'}). Nothing was changed.`);
+      e.status = 502; throw e;
+    }
+    // Another save landed between the read and the write: decide again on the fresh row.
   }
+  const e = new Error('This brand kept changing in another tab or window while it was being saved, so nothing here was written over it. Reload the brand and save again.');
+  e.status = 409; e.code = 'save_conflict';
+  throw e;
+}
+
+async function saveWorkspace(auth, input) {
+  const id = str(input && input.id);
+  if (id) return saveExisting(auth, id, input);
   const row = buildRow(input, null);
   row.owner_id = auth.user_id;
   const created = await restAs(auth.token, `brand_workspaces?select=${SELECT_COLS}`, {
@@ -2291,7 +2392,8 @@ async function handle(req, res) {
       case 'list': {
         const rows = await listWorkspaces(auth);
         const active = await activeWorkspaceId(auth);
-        return res.status(200).json({ ok: true, workspaces: rows.map((w) => shellPayload(w)), active_id: active, user: { id: auth.user_id, email: auth.email } });
+        const owned = await Promise.all(rows.map((w) => ownsShipped(w.id)));
+        return res.status(200).json({ ok: true, workspaces: rows.map((w, i) => shellPayload(w, { owns_shipped: owned[i] })), active_id: active, user: { id: auth.user_id, email: auth.email } });
       }
       case 'active': {
         const id = await activeWorkspaceId(auth);
@@ -2306,7 +2408,7 @@ async function handle(req, res) {
         const products = await productCount(auth, id);
         return res.status(200).json({
           ok: true,
-          brand: shellPayload(ws, { readiness: readiness(ws, { products }), products }),
+          brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }),
           needs_onboarding: false,
           user: { id: auth.user_id, email: auth.email },
         });
@@ -2315,17 +2417,17 @@ async function handle(req, res) {
         const ws = await getWorkspace(auth, str(q.id || body.id));
         if (!ws) return res.status(404).json({ ok: false, error: 'workspace_not_found' });
         const products = await productCount(auth, ws.id);
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products }) });
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
       }
       case 'save': {
         const ws = await saveWorkspace(auth, body.brand || body);
         const products = ws && ws.id ? await productCount(auth, ws.id) : 0;
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products }) });
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws && ws.id) }) });
       }
       case 'activate': {
         const ws = await setActive(auth, str(body.id || q.id));
         const products = await productCount(auth, ws.id);
-        return res.status(200).json({ ok: true, brand: shellPayload(ws, { readiness: readiness(ws, { products }), products }) });
+        return res.status(200).json({ ok: true, brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
       }
       case 'delete': {
         return res.status(200).json(await deleteWorkspace(auth, str(body.id || q.id)));
@@ -2568,7 +2670,7 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
   listWorkspaces, getWorkspace, scoringBrandFor, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation,
+  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation, ownsShipped,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
   carriedFields, recordedOrigins, ORIGIN_RANK,

@@ -76,7 +76,7 @@ const M = {
   gif: 'api/_shared/gif-core.js', engine: 'api/_shared/ads-insight-engine.js', catalogServer: 'api/_shared/brand-catalog-server.js',
   sbplan: 'api/_shared/smart-brain-plan.js', universe: 'api/_shared/competitor-universe.js', domainIntel: 'api/_shared/domain-intel.js',
   logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
-  agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', journey: 'api/_shared/journey-core.js',
+  agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', revenueOs: 'api/_shared/revenue-os-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
   ledger: 'api/_shared/contact-ledger.js',
 };
@@ -451,6 +451,8 @@ add('dispatch-enqueue', { gate: 'user', browser: 'refuse', run: { json: { asset_
     const a = last(M.dispatch, 'enqueue');
     expect(a[0]).toMatchObject({ ok: true, user_id: H.USER_ID }); expect(a[0].token).toBe(H.SESSION);
     expect(a[1]).toBe(H.WS); expect(a[2]).toEqual({ asset_id: 'asset_1', channel: 'email' });
+    // The compliance gate lints the copy as the brand the ROUTER resolved.
+    expect(a[3].brand).toMatchObject({ name: BRAND.name, __resolved_for: H.WS });
   },
   cases: [{ name: 'a refused enqueue is a 409', run: { json: { asset_id: 'asset_1' } }, stubs: () => S.on(M.dispatch, 'enqueue', async () => ({ ok: false, error: 'mapping_missing' })), expect: (r) => { expect(r.status).toBe(409); expect(r.out.error).toBe('mapping_missing'); } }],
 });
@@ -660,6 +662,7 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
     S.on(M.sbplan, 'syncDaily', async () => ({ mode: 'db-linked', changes: [1] }));
     S.on(M.universe, 'refreshDueWorkspaces', async () => ({ due: 1, refreshed: 1, added: 0, note: 'n' }));
     S.on(M.snowflake, 'runSync', async () => ({ ok: true, connected: false }));
+    S.on(M.gateway, 'refreshDueTokens', async () => ({ ok: true, due: 2, refreshed: 1, needs_reauth: 1, retry: 0 }));
     S.on(CORE, 'logRun', async () => 'run_cron');
     db.rows.smart_calendar = [{ id: 'slot_due' }];
   },
@@ -671,6 +674,9 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
     expect(last(M.generate, 'generateForSlot')).toEqual(['slot_due', { persist: true }]);
     expect(last(M.sbplan, 'syncDaily')[0]).toEqual({ persist: true });
     expect(last(M.universe, 'refreshDueWorkspaces')[0]).toEqual({ maxWorkspaces: 3 });
+    // The social gateway's token refresh rides this cron (both Hobby crons are taken): due within 7 days.
+    expect(last(M.gateway, 'refreshDueTokens')[0]).toEqual({ withinDays: 7 });
+    expect(r.out.steps.social_tokens).toEqual({ ok: true, due: 2, refreshed: 1, needs_reauth: 1, retry: 0 });
     expect(last(CORE, 'logRun')[0]).toBe('cron');
     // The prebuild chain is kicked at the deployment's own URL, with the scheduler secret.
     const kick = guard.calls.find((c) => c.url.startsWith(H.SELF_BASE_URL));
@@ -712,6 +718,31 @@ add('platform-agents', { gate: 'user', model: 'analytics.report', browser: 'refu
   expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: BRAND }); },
   cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toBe(BRAND); } }],
 });
+add('revenue-os', { gate: 'user', model: 'analytics.report', browser: 'refuse', run: { method: 'GET', query: { days: '21', question: 'what makes money?' } },
+  stubs: () => {
+    S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND);
+    S.on(M.revenueOs, 'run', async () => ({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] }));
+    S.on(M.revenueOs, 'trackOutcome', async (input) => ({ ok: true, tracked: input.action_id, market: input.market }));
+  },
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] });
+    expect(last(M.revenueOs, 'run')[0]).toEqual({
+      market: 'UK', days: 21, hours: 720, since: undefined, until: undefined,
+      question: 'what makes money?', tier: 'standard', platforms: undefined, brand: BRAND,
+    });
+  },
+  cases: [
+    { name: 'POST track closes the recommendation-to-outcome loop without running the model', run: { json: { op: 'track', action_id: 'rev_0123456789abcdef', status: 'measured' } },
+      expect: (r) => {
+        expect(r.out).toEqual({ ok: true, tracked: 'rev_0123456789abcdef', market: 'UK' });
+        const input = last(M.revenueOs, 'trackOutcome')[0];
+        expect(input).toMatchObject({ op: 'track', action_id: 'rev_0123456789abcdef', status: 'measured', market: 'UK' });
+        expect(S.hits(M.revenueOs, 'run')).toEqual([]);
+      } },
+    { name: 'unknown op is rejected before the core runs', run: { method: 'GET', query: { op: 'wat' } },
+      expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.revenueOs)).toEqual([]); } },
+  ],
+});
 add('journey', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { days: '30', since: '2026-01-01' } },
   stubs: () => S.on(M.journey, 'linkLedger', async () => ({ ok: true, links: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, links: [] }); expect(last(M.journey, 'linkLedger')[0]).toEqual({ market: 'UK', days: 30, since: '2026-01-01', until: undefined }); },
@@ -740,6 +771,19 @@ add('os-run-daily-job', { gate: 'cron-flag', browser: 'refuse', run: { method: '
 add('os-dashboard', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   stubs: () => S.on(M.osb, 'dashboard', async () => ({ kpis: {} })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, kpis: {} }); },
+});
+add('social-gateway', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
+  stubs: () => S.on(M.gateway, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
+  expect: (r) => {
+    // The verified caller and the workspace SCOPING resolved are handed over;
+    // the core never re-reads a workspace from the request.
+    expect(r.out).toEqual({ ok: true, op: 'status', ws: H.WS, user: H.USER_ID });
+    const a = last(M.gateway, 'handle');
+    expect(a[2].auth).toMatchObject({ ok: true, user_id: H.USER_ID });
+    expect(a[2].auth.token).toBe(H.SESSION);
+  },
+  cases: [{ name: 'a POST hands the parsed body through for a write op', run: { json: { job_id: 'j9' }, query: { op: 'live-approve' } },
+    expect: (r) => { expect(r.out.op).toBe('live-approve'); const a = last(M.gateway, 'handle'); expect(a[2].body).toMatchObject({ job_id: 'j9' }); } }],
 });
 add('dispatch-webhook', { gate: 'signature', browser: 'n/a',
   run: { raw: 'not json at all', contentType: 'application/json', auth: 'none', origin: false, query: { provider: 'meta' } },
@@ -1019,7 +1063,7 @@ test.describe('the router', () => {
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
       'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
-      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });

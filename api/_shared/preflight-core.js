@@ -15,6 +15,9 @@
  *   3. CONTENT                spam signals, unsubscribe, link and image checks
  *   4. CREDENTIAL             connected, not expired, not revoked
  *   5. SCOPE                  the grant actually covers this action
+ *   6. COMPLIANCE             the brand's banned phrases, unapproved claims and
+ *                             the regulatory rule packs its record selects
+ *                             (compliance-lint.js); it can block
  *
  * ── WHY "UNKNOWN" IS NEVER "PASS" ──────────────────────────────────────────
  * Every check returns pass | warn | block | skip, and a check that could not be
@@ -44,6 +47,51 @@ const EMAIL_CHANNELS = /(_email|_campaign|mailer|klaviyo_sms|webengage_email|web
 
 function check(id, label, status, detail, remediation) {
   return { id, label, status, detail, remediation: remediation || undefined };
+}
+
+const COMPLIANCE_LABEL = 'Brand safety and compliance';
+
+/**
+ * The compliance check. A payload with no copy has nothing to lint (skip); a
+ * gate that never learned whose brand this is cannot pick its rule packs, and
+ * says so (warn, never pass). The findings ride on the check, so the audit
+ * row keeps every rule id, matched phrase and citation that was overridden.
+ */
+function complianceCheck(i, payload) {
+  const lintCore = require('./compliance-lint.js');
+  if (!lintCore.fieldsOf(payload || {}).length) {
+    return check('compliance', COMPLIANCE_LABEL, 'skip', 'This channel carries no copy to lint.');
+  }
+  if (!i.brand || typeof i.brand !== 'object') {
+    // Unchecked, never linted as somebody else. At the queue (require_brand)
+    // that BLOCKS: a supplement's copy must not go out because its own
+    // record could not be read for a moment. The block is overridable with
+    // a reason, like every other one here.
+    return check('compliance', COMPLIANCE_LABEL, i.require_brand ? 'block' : 'warn',
+      'This workspace\'s brand record could not be read, so its banned phrases, its approved claims and the rule packs for its sector and markets could not be selected, and the copy was not linted as any other brand. This is not a pass.',
+      'Retry once the brand record can be read, or override with the reason this copy may run unchecked.');
+  }
+  const r = lintCore.lint(payload, {
+    brand: i.brand,
+    market: i.market || i.region || '',
+    approvedClaims: i.approved_claims,
+    offer: i.offer,
+    now: i.now || null,
+  });
+  const top = r.findings.filter((f) => f.severity === 'BLOCK').concat(r.findings.filter((f) => f.severity !== 'BLOCK'));
+  const detail = r.findings.length
+    ? `${r.blocking} blocking, ${r.warnings} warning(s): ${top.slice(0, 3).map((f) => `${f.title}${f.matched ? ` ("${f.matched}")` : ''}`).join('; ')}${top.length > 3 ? `; and ${top.length - 3} more` : ''}.`
+    : `No findings in ${r.fields} copy field(s). Rule packs: ${r.packs.join(', ')}.`;
+  // The mandated text (the FDA disclaimer) is quoted in the remediation an
+  // operator reads, whichever finding offered it.
+  const offered = r.findings.find((f) => f.offer);
+  const out = check('compliance', COMPLIANCE_LABEL, r.verdict, detail,
+    top.length ? `${top[0].fix}${offered ? ` Required text: ${offered.offer}` : ''}` : undefined);
+  out.findings = r.findings;
+  out.packs = r.packs;
+  out.selection = r.selection;
+  out.limits = r.limits;
+  return out;
 }
 
 /**
@@ -308,6 +356,15 @@ async function run(input) {
   } else {
     checks.push(check('content_spam', 'Content spam signals', 'skip', 'This channel carries no message body to analyse.'));
   }
+
+  /* ── 6: brand safety + regulatory compliance ──────────────────────────── */
+
+  // The deterministic linter (compliance-lint.js), with the rule packs the
+  // BRAND's own record selects: its banned phrases, its approved claims, its
+  // sector and the market this send goes to. It can BLOCK, and a block is
+  // overridden like every other one here: with the operator's id and reason
+  // on the audit (dispatch-core requires the reason for this check).
+  checks.push(complianceCheck(i, payload));
 
   /* ── verdict ──────────────────────────────────────────────────────────── */
 
