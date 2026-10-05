@@ -67,7 +67,7 @@ function body(req) {
  * The conversational actions: each turn answers FOR a brand and may spend a
  * model call. See the browser-attribution rule in the handler.
  */
-const CHATS = /^(agent-chat|agent-analyze|team-chat|brand-chat|console-chat|platform-agents)$/;
+const CHATS = /^(agent-chat|agent-analyze|team-chat|brand-chat|console-chat|platform-agents|revenue-os)$/;
 
 /**
  * Actions that need no workspace and no session to answer honestly, so the
@@ -135,6 +135,7 @@ const MODEL_FEATURE = {
   tts: ['POST', 'audio.tts'],
   'social-run-daily': ['POST', 'social.daily_run'],
   'platform-agents': [null, 'analytics.report'],
+  'revenue-os': ['GET', 'analytics.report'],
 };
 
 /** The catalog key this request would spend, or null (a read, a 405, or not a model action). */
@@ -1434,6 +1435,49 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         };
         const one = req.query.platform || b.platform;
         return res.json(one ? await pa.runAgent(one, shared) : await pa.runAll(Object.assign({ platforms: req.query.platforms || b.platforms }, shared)));
+      }
+
+      case 'revenue-os': {
+        // Commercial control loop above the source-specific analysts:
+        // grounded actions -> deterministic ranking -> measured outcomes -> learning.
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const ros = require('./_shared/revenue-os-core.js');
+        const op = String(req.query.op || b.op || 'run').toLowerCase();
+
+        if (op === 'track') {
+          if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+          try {
+            return res.json(await ros.trackOutcome(Object.assign({}, b, {
+              market: b.market || req.query.market || __homeMarket(),
+            })));
+          } catch (e) {
+            return res.status(e && e.status || 500).json({ ok: false, error: String(e && e.message || e) });
+          }
+        }
+        if (op !== 'run') return res.status(400).json({ ok: false, error: 'unknown revenue-os op' });
+        if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'GET only for revenue-os run' });
+
+        let brand = null;
+        if (__wsId) {
+          const wsScope = require('./_shared/workspace-scope.js');
+          brand = await wsScope.brandForWorkspace({
+            url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+            key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+          }, __wsId).catch(() => null);
+        }
+
+        return res.json(await ros.run({
+          market: req.query.market || b.market || __homeMarket(),
+          days: Number(req.query.days || b.days) || 30,
+          hours: Number(req.query.hours || b.hours) || 720,
+          since: req.query.since || b.since,
+          until: req.query.until || b.until,
+          question: req.query.question || b.question || '',
+          tier: req.query.tier || b.tier || 'standard',
+          platforms: req.query.platforms || b.platforms,
+          brand,
+        }));
       }
 
       case 'journey': {
