@@ -881,6 +881,7 @@ function analyseCore(h, holdoutWeeks, minN) {
     history_start: h.history_start, history_end: h.history_end,
     lines: (h.lines || []).length, customers: h.customers || 0,
     dropped: h.dropped || {}, excluded_orders: h.excluded_orders || null,
+    truncated: !!h.truncated, complete_from: h.complete_from || null, read_error: h.read_error || null,
   };
   let out;
   if (!h.lines || !h.lines.length) {
@@ -930,20 +931,32 @@ function analyseCore(h, holdoutWeeks, minN) {
     };
     hidden(out, 'predictions', predictions);
   }
+  if (source.truncated) {
+    const why = source.read_error ? `the order read failed part-way (${source.read_error})` : 'the read ceiling was reached';
+    out.note += ` Only the newest ${source.lines} order lines were read because ${why}: orders before ${source.complete_from || 'the newest page'} were not read, so a customer's earlier purchases can be missing and some repeat buyers read as first-time.`;
+  }
   return out;
 }
 
-/** Contact rows by id, kept only when they carry engagement or send history. */
+/**
+ * Contact evidence by customer id, kept only when it carries engagement, send
+ * or suppression history. Takes either rows carrying their own id, or a Map
+ * already keyed by CUSTOMER id - which is what
+ * SmartBrainDbAdapter.engagementContacts() builds from the workspace's
+ * subscriber_engagement_scores (an engagement row's own id is a profile id,
+ * not a customer id, so the key is the join's, not the row's).
+ */
 function contactsIndex(rows) {
   const map = new Map();
-  for (const r of Array.isArray(rows) ? rows : []) {
-    if (!r) continue;
-    const id = r.id != null ? String(r.id) : (r.customer_id != null ? String(r.customer_id) : null);
-    if (!id) continue;
+  const entries = rows instanceof Map
+    ? [...rows.entries()]
+    : (Array.isArray(rows) ? rows : []).map((r) => [r && (r.id != null ? r.id : r.customer_id), r]);
+  for (const [key, r] of entries) {
+    if (!r || key == null || key === '') continue;
     const hasSends = r.sends_7d != null && r.sends_7d !== '' && Number.isFinite(Number(r.sends_7d));
-    const hasEng = !!(r.last_open_at || r.last_click_at || r.hard_bounced || r.complained);
+    const hasEng = !!(r.last_open_at || r.last_click_at || r.hard_bounced || r.complained || r.suppressed);
     if (!hasSends && !hasEng) continue;
-    map.set(id, r);
+    map.set(String(key), r);
   }
   return map;
 }
@@ -958,15 +971,28 @@ function contactsIndex(rows) {
  * EARLIEST trigger date in it, so nobody in a bucket is mailed after their own
  * trigger. Customers whose total order count is one are split from repeat
  * customers: for them the next order is Order #2, which is a different job.
+ *
+ * ONE PRODUCT GROUP PER BUCKET (review finding on #135). The key used to be
+ * market|week|cohort, so customers due for different products in the same
+ * week shared one slot - and the slot's single hero was the first product's,
+ * so every buyer of the second product was sent the first one's creative. The
+ * group is part of the key now, and `last_bought` maps every customer in a
+ * bucket to the SKU they last bought in that group, so the claim "each
+ * recipient sees the product they bought" is carried as data, not asserted.
+ *
+ * ONE REPLENISHMENT SEND PER CUSTOMER PER WEEK. A customer due for two product
+ * groups in the same week is planned for the one due FIRST, and the other is
+ * counted (`same_week_other_product`), so splitting buckets by product cannot
+ * double the pressure on one person.
  */
 function dueBuckets(analysis, { startDate, days = 90, markets = null, bucketDays = BUCKET_DAYS } = {}) {
   const preds = (analysis && analysis.predictions) || [];
   const S = dayOf(startDate);
   const E = S + Math.max(1, Number(days) || 1);
   const allow = Array.isArray(markets) && markets.length ? new Set(markets.map((m) => marketOf(m))) : null;
-  const counts = { due: 0, lapsed: 0, not_yet: 0, out_of_market: 0 };
+  const counts = { due: 0, lapsed: 0, not_yet: 0, out_of_market: 0, same_week_other_product: 0 };
   const outOfMarket = {};
-  const buckets = new Map();
+  const firstPerWeek = new Map();
   for (const p of preds) {
     if (p.trigger_day >= E) { counts.not_yet += 1; continue; }
     if (p.lapse_day < S) { counts.lapsed += 1; continue; }
@@ -974,17 +1000,37 @@ function dueBuckets(analysis, { startDate, days = 90, markets = null, bucketDays
     counts.due += 1;
     const sendDay = Math.max(p.trigger_day, S);
     const week = Math.floor((sendDay - S) / bucketDays);
+    const k = `${p.market}|${p.customer_id}|${week}`;
+    const cur = firstPerWeek.get(k);
+    if (!cur || p.trigger_day < cur.p.trigger_day || (p.trigger_day === cur.p.trigger_day && p.group < cur.p.group)) firstPerWeek.set(k, { p, sendDay, week });
+  }
+  counts.same_week_other_product = counts.due - firstPerWeek.size;
+
+  const fitByKey = new Map(((analysis && analysis.products) || []).map((f) => [f.key, f]));
+  const buckets = new Map();
+  for (const { p, sendDay, week } of firstPerWeek.values()) {
     const cohort = p.total_orders <= 1 ? 'second_order' : 'repeat';
-    const bk = `${p.market}|${week}|${cohort}`;
+    const bk = `${p.market}|${week}|${cohort}|${p.group}`;
     let b = buckets.get(bk);
-    if (!b) { b = { market: p.market, week, cohort, sendDay, customers: new Set(), byKey: new Map() }; buckets.set(bk, b); }
+    if (!b) {
+      const g = fitByKey.get(p.group);
+      b = {
+        market: p.market, week, cohort, sendDay, group: p.group,
+        group_label: (g && g.value) || (p.product && (p.product.type || p.product.sku)) || p.group,
+        customers: new Set(), byKey: new Map(), lastBought: new Map(), skus: new Map(),
+      };
+      buckets.set(bk, b);
+    }
     if (sendDay < b.sendDay) b.sendDay = sendDay;
     b.customers.add(p.customer_id);
     const k = b.byKey.get(p.key) || { key: p.key, level: p.level, due: 0, customers: new Set(), lastBought: new Map() };
     if (!k.customers.has(p.customer_id)) { k.customers.add(p.customer_id); k.due += 1; }
     b.byKey.set(p.key, k);
-    // What these customers last bought IN THIS GROUP - the slot's hero is
-    // chosen per group, so a slot about one product never shows another's.
+    if (p.product && p.product.sku) {
+      b.lastBought.set(p.customer_id, p.product.sku);
+      if (!b.skus.has(p.product.sku)) b.skus.set(p.product.sku, p.product.title || null);
+    }
+    // What these customers last bought IN THIS GROUP - the slot's hero.
     if (p.product && (p.product.sku || p.product.type)) {
       const hk = p.product.sku || `type:${p.product.type}`;
       const hero = k.lastBought.get(hk) || Object.assign({ count: 0 }, p.product);
@@ -992,14 +1038,17 @@ function dueBuckets(analysis, { startDate, days = 90, markets = null, bucketDays
       k.lastBought.set(hk, hero);
     }
   }
-  const fitByKey = new Map(((analysis && analysis.products) || []).map((f) => [f.key, f]));
   const list = [...buckets.values()].map((b) => ({
     market: b.market,
     cohort: b.cohort,
     week: b.week,
+    group: b.group,
+    group_label: b.group_label,
     send_date: isoOf(b.sendDay),
     window: { from: isoOf(S + b.week * bucketDays), to: isoOf(Math.min(E, S + (b.week + 1) * bucketDays) - 1) },
     customer_ids: [...b.customers].sort(),
+    last_bought: Object.fromEntries([...b.lastBought.entries()].sort((x, y) => (x[0] < y[0] ? -1 : 1))),
+    skus: Object.fromEntries(b.skus),
     products: [...b.byKey.values()].sort((x, y) => y.due - x.due || (x.key < y.key ? -1 : 1)).map((k) => {
       const f = fitByKey.get(k.key) || {};
       return {
@@ -1015,7 +1064,10 @@ function dueBuckets(analysis, { startDate, days = 90, markets = null, bucketDays
           .slice(0, 3),
       };
     }),
-  })).sort((x, y) => (x.send_date < y.send_date ? -1 : x.send_date > y.send_date ? 1 : (x.market < y.market ? -1 : x.market > y.market ? 1 : (x.cohort < y.cohort ? -1 : 1))));
+  })).sort((x, y) => (x.send_date < y.send_date ? -1 : x.send_date > y.send_date ? 1
+    : x.market < y.market ? -1 : x.market > y.market ? 1
+      : x.cohort < y.cohort ? -1 : x.cohort > y.cohort ? 1
+        : (x.group < y.group ? -1 : x.group > y.group ? 1 : 0)));
   const lastDay = analysis && analysis.source && analysis.source.history_end ? dayOf(analysis.source.history_end) : null;
   return {
     as_of: isoOf(S),

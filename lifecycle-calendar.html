@@ -347,7 +347,7 @@ async function generatePlan() {
       : 'NOT persisted (' + ((data.persistence && data.persistence.reason) || 'no Supabase') + ') - plan is in-memory only';
     $('planMeta').textContent =
       'Generated ' + data.total_sends_planned + ' sends · ' + data.start_date + ' +' + data.days + 'd · cadence ' +
-      data.cadence_per_week + '/wk · ' + persistNote;
+      data.cadence_per_week + '/wk · ' + persistNote + contactSummary(data);
     $('gridSection').style.display = '';
     $('tableSection').style.display = '';
     renderCalendar(data.start_date, data.days);
@@ -401,6 +401,35 @@ function renderCalendar(startStr, days) {
   });
 }
 
+// The contact rules on each row (2026-10-04): the plan-time frequency cap for
+// this cohort and the row's eligibility against the contact ledger. Unknown
+// and unavailable are said in words, never as 0 suppressed.
+function contactCell(p) {
+  var cap = p.frequency_cap || {};
+  var el = p.eligibility || {};
+  var capLine = cap.status
+    ? '<div class="text-[10px] mt-1" data-cap="' + escAttr(cap.status) + '" title="' + escAttr(cap.action || '') + '">Cap: ' + escAttr(String(cap.status).replace(/_/g, ' ')) + ' · ' + escAttr(String(cap.sends_in_rolling_7d)) + ' in 7 days</div>'
+    : '';
+  var elLine = el.label
+    ? '<div class="text-[10px] text-ink-mute" data-eligibility="' + escAttr(el.status || '') + '" title="' + escAttr(el.note || '') + '">' + escAttr(el.label) + '</div>'
+    : '';
+  return capLine + elLine;
+}
+
+/** One sentence for the plan: how many rows the cap holds back, and what the ledger could say. */
+function contactSummary(data) {
+  var f = (data && data.meta && data.meta.frequency) || null;
+  if (!f) return '';
+  var parts = [];
+  if (f.blocked) parts.push(f.blocked + ' send(s) over the absolute cap (not launch ready)');
+  if (f.reduce_audience) parts.push(f.reduce_audience + ' above the preferred cap (needs a recorded override)');
+  var led = f.ledger || {};
+  var ledger = led.available
+    ? (led.workspace_touches ? 'eligibility judged against ' + led.workspace_touches + ' recorded touch(es)' : 'eligibility unknown: no send history yet')
+    : 'eligibility unknown: the contact ledger is unavailable (' + (led.note || led.reason || 'not loaded') + ')';
+  return ' · Contact rules: ' + (parts.length ? parts.join('; ') + '; ' : 'every send inside the caps; ') + ledger + '.';
+}
+
 function renderTable(filter) {
   const f = String(filter || '').toLowerCase();
   const rows = STATE.plan.filter((p) =>
@@ -418,7 +447,7 @@ function renderTable(filter) {
   $('planTable').innerHTML = rows.map((p) =>
     '<tr data-id="' + escAttr(p.id) + '">' +
       '<td class="font-mono text-[11px]">' + p.date + '<div class="text-[10px] text-ink-mute">09:00 UTC</div></td>' +
-      '<td><span class="pill co-' + COHORT_SHORT[p.cohort_key] + '">' + COHORT_SHORT[p.cohort_key] + '</span><div class="text-[10px] text-ink-mute mt-1">' + escAttr(p.cohort_label) + '</div></td>' +
+      '<td><span class="pill co-' + COHORT_SHORT[p.cohort_key] + '">' + COHORT_SHORT[p.cohort_key] + '</span><div class="text-[10px] text-ink-mute mt-1">' + escAttr(p.cohort_label) + '</div>' + contactCell(p) + '</td>' +
       '<td class="text-[12px]">' + escAttr(p.play_key.replace(/_/g, ' ')) + '<div class="text-[10px] text-ink-mute">' + escAttr(p.template_style || '') + '</div></td>' +
       '<td><span class="pill pt-' + escAttr(p.product_type) + '">' + escAttr(p.product_type) + '</span></td>' +
       '<td class="text-[11px] ' + (p.purchase_mode === 'one_time_only' ? 'pm-one' : 'pm-sub') + '">' + (p.purchase_mode === 'one_time_only' ? 'one-time' : 'sub-first') + '</td>' +

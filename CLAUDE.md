@@ -4,6 +4,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ One contact ledger, one fatigue policy, every channel (2026-10-04) — read `docs/publishing-and-deliverability.md` ("Contact fatigue")
+The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
+suppress scheduled marketing emails or WhatsApp messages for 48 hours."* `api/_shared/contact-fatigue.js` (the
+policy and the judge, no I/O) + `contact-ledger.js` (storage) + `20261004093700_contact_ledger_fatigue.sql`, gated
+by `tests/contact-fatigue-executed.spec.js` (16, executed over the fake PostgREST, which now models this table's
+dedupe index, CHECKs and service-role-only grant; 20 mutations, each restoring one defect, fail it or a router spec). The SQL itself was applied and probed on PostgreSQL 16.4
+(PGlite, scratchpad): every constraint, grant and policy behaved as declared.
+- **The cap was computed in four places and they disagreed.** cohort-engine `FREQUENCY` (and anything not
+  literally `promotional` got the ABSOLUTE cap, so a re-engagement broadcast was allowed a third send);
+  services.js hard-coded `{2,3}` and counted a slot only if it CARRIED A DISCOUNT, so a cohort could be planned
+  daily with every slot SAFE (spec §10: caps apply to promotional AND lifecycle marketing); scenario-model's
+  `SEGMENT_SEND_CEILING: 4`, one above the absolute cap (`best` scheduled Champions 4/week); the mailer calendar
+  had no cap at all (cadence up to 7/week); and the V1 plan reset its cadence on Mondays, so Fri-Sat-Sun +
+  Mon-Tue-Wed was six in a rolling week. All read the policy now: one `planCaps()` pass, the spec's statuses,
+  and the V1 / mailer-calendar rows carry the rolling cap they never had.
+- **Defaults, stated in code, editable per brand within the spec** (`contact_fatigue_rules`, `op=rules-save`):
+  preferred 2 / absolute 3 marketing touches per person per rolling 7 days ACROSS channels (a brand may tighten,
+  never loosen - normalised on every READ too, so a hand-written row cannot either); promotional held to the
+  preferred cap, triggered-lifecycle to the absolute; transactional never counted, never held, never starts a
+  cool-down; after a promotional SMS/WhatsApp no promotional email/WhatsApp/SMS for 48 h; quiet hours 21:00-08:00
+  (TCPA's window) in the recipient's zone for SMS/WhatsApp/push, only when the region is known - a multi-zone
+  region (US) is quiet if any zone is; unknown is said. `event_map` is EMPTY: no ESP's event vocabulary is
+  assumed; a brand names which of its events are sends.
+- **Enforced in two places.** Dispatch preflight: ONE new check, `contact_fatigue` - a held-back recipient BLOCKS
+  (overridable, recorded) with how many, why and when they clear; unavailable / no history / platform-resolved
+  audience WARNS, never passes; quiet hours are judged even with no history. The planners: every Smart Brain slot
+  (both paths), mailer-calendar row and V1 row carries `frequency_cap`; Smart Brain and the mailer calendar also
+  carry `eligibility` (ledger + the plan's own earlier sends), and `planned_recipients` is the ELIGIBLE count or
+  null - the console printed `planned_recipients||0`, i.e. "→ 0 recipients" for a count nobody measured.
+  Daily sync patches a stored slot's contact state without dropping its prebuilt assets.
+- **The ledger is fed only by what reached a person**: a dispatch the platform accepted (scheduled -> at its
+  send time; a Klaviyo campaign only CREATED, a dry run, a refusal, a trigger with no stated `message_channel`
+  record nothing) and ingested ESP events (idempotent on `(workspace, source, source_ref, subject_key)`).
+  Hashes only; a profile id that is an address/number is hashed as one; a long digit id becomes `h:<sha>`.
+- **Found by running it.** A gate input is a request BODY (`Object.assign({workspaceId}, b)`), so a check that
+  read the ledger for `i.workspaceId` would have answered "did brand X contact this address?" to anyone naming X.
+  The check reads NO store; dispatch (after `assertCanWrite`) and the router (`evaluateForCaller`: membership via
+  RLS first) hand it the verdict, and a posted `contact_fatigue` is dropped. And `CONTACT_HASH_SALT ||
+  workspaceId` made the salt the SAME for every workspace once the env var was set: mixed in now (unchanged when
+  unset). Profile ids are namespaced by ESP: the same id from two platforms is two people.
+- **Device mode** (production: no database): the ledger is "unavailable (this deployment has no workspace
+  database configured)", never 0; rules a device brand edits are KEPT beside it (`LCStore`, deleted with the
+  brand) and carried by `brand-context.js` on every brain/calendar POST; `op=evaluate` judges the history a
+  request carries. Known limits: the Smart Brain cohort has no member list until the ESP profile feed (B3), so
+  a slot is judged on the ledger's people tagged with its cohort plus its size (or `partial` with no size);
+  WebEngage dumps are not yet mapped into the ledger (needs the brand's `event_map`).
+## ⭐ A brand's product photos come from ITS catalogue, in every page (2026-10-05)
+A momos brand's Google ads were composed over tenant zero's sneaker photos: `ad-campaigns.html` did not
+load `brand-catalog.js` and fetched `/data/catalog/products_*` for every brand. Gated by
+`tests/catalog-provenance.spec.js` (executed, mutation-verified).
+- **`brand-catalog.js` is the only browser code that fetches `/data/catalog/`, and only for tenant zero.**
+  A device brand reads the catalogue kept beside it (`BrandContext.deviceCatalog`); before this the
+  resolver asked the server, which keeps no rows for a device brand, so an import never reached a page.
+  `describe()` is the caption, `marker()` the gap, `storeBase()`/`productUrl()` the brand's own store.
+- **Tenant zero is the SERVER's answer, never a slug.** `owns_shipped` is stamped on every brand payload
+  (`ownsShipped()` = `ownsBundledExport`, the oldest workspace). A slug is owner-writable and the KNICKGASM
+  preset hands it to anyone (it survives a rename): a device brand owns no shipped material, it owns what
+  it imports. Server side, a workspace record that only claims the slug is undecided (`null`).
+- No photo of the brand's product → its own ground + `[DATA REQUIRED BEFORE LAUNCH: product image, <brand>,
+  <region>]` on the creative, its label and its `data_gaps`; no AI backdrop (an invented product image).
+
 ## ⭐ A deterministic compliance gate runs before anything is published (2026-10-04)
 `api/_shared/compliance-lint.js`, gated by `tests/compliance-gate.spec.js` (23 tests, executed, 25
 mutations each caught). Rule PACKS keyed by jurisdiction x sector, selected from the ACTIVE brand's
@@ -47,8 +108,22 @@ disclaimer VERBATIM, linked by asterisk or adjacent; FTC Health Products Complia
   blocked at the queue; the offer is read server-side from the `smart_generated_campaigns` row the job
   names (`campaign_id`, workspace-scoped; the builder stamps `campaign.offer`), never the body; a
   recorded offer backs only what it says (`deadlineAgainst`/`stockAgainst`, from an injectable `now`:
-  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted,
-  and a disclosure anywhere in the asset (its hashtags) counts.
+  the slot's send date, a job's schedule); `alt_text` and every `asset-specs` copy field are linted.
+- **Three more on #144, fixed after it merged (20 mutations caught)**: ONE matching word classified a
+  whole industry, so "CBD e-commerce", "Alcohol retail", "Financial technology" read as no regulated
+  sector. Regulated words no pack covers (`UNSUPPORTED_SECTORS`: cannabis/CBD, alcohol, gambling,
+  tobacco/vape, firearms, crypto/financial) are read FIRST and named in the WARN; `no-regulated-sector`
+  needs EVERY word of the industry known (`SAFE_SECTOR_WORD` / `QUALIFIER_WORD`). The server-side offer
+  lookup never ran in the product: `/publishing` sends the asset under `asset`, so `dispatchSpec` now
+  names `campaign_id` (from the asset's own, or the `campaign_<hash>_email` id it is minted under),
+  `dispatch-core.campaignRefOf` reads it from `spec.asset` too (two disagreeing campaigns back nothing),
+  and the preflight route reads the same offer as the queue (`selection.offer` shows what the lines were
+  measured against); proven by driving `publishing.html` in Chromium into the shipped `enqueue`. Found
+  in self-review: a schedule already PAST measured "today only" from that past date and went out now;
+  `readAt()` uses the schedule only when it is still ahead. And a disclosure is scoped to the SURFACE it
+  ships on: each email variant, each RSA headline/description, each subject alternative is its own;
+  metadata (`meta_description`, `og_*`, alt text, `first_comment`) never discloses for anything else;
+  companions that ship together (caption + hashtags, subject + preheader + body) still do.
 
 ## ⭐ Replenishment triggers are MEASURED from the brand's own orders, never assumed (2026-10-04)
 `api/_shared/replenishment-model.js` + `SmartBrainDbAdapter.orderHistory()` / `replenishmentEntries()` in
@@ -79,6 +154,26 @@ pack size is a product fact, so neither is ever used.
 - Left as found, on purpose: `lifecycle-cohorts.COHORTS` (a new key changes the UK planner's default rotation);
   the copywriter is not briefed with the interval (generator files are other PRs'); per-contact `sends_7d` is the
   cap input until the omnichannel fatigue ledger lands.
+- **Four review findings on #135, fixed in the follow-up, each reproduced by an executed test first (14 mutations):**
+  (a) a bucket was market|week|cohort, so customers due for DIFFERENT products shared one slot and got the first
+  product's creative: one product group per slot now (`cohort.slot_key` keeps same-day ids apart past the 32-char
+  slug), `audience.last_bought` maps every recipient to their own SKU, and a customer due for two groups in one
+  week gets ONE send (`same_week_other_product`). (b) `smart_orders` was one unordered `limit=20000` read: it is
+  paged newest-first now, and a ceiling that IS hit drops the partial oldest day and says `orders before X were not
+  read`. (c)+(d) eligibility read `smart_users` (no engagement fields) and the offering planner read no contacts
+  at all: both read the workspace's own `subscriber_engagement_scores` (`engagementContacts()`), joined by profile
+  id = customer id or the same `hashEmail()` that wrote `email_hash`; suppressed contacts are excluded.
+- **Three more on #141, same discipline (15 mutations).** PostgREST answers at most `max_rows` (1,000 in
+  `supabase/config.toml`) whatever `limit` asks, so "a short page is the end" read every table as 1,000 rows:
+  `selectPaged()` advances by the rows RECEIVED and stops only on an EMPTY page; a failed page throws and becomes a
+  stated window (`read_error`), never "complete"; `ownData()` reads orders once through it; and
+  `tests/lib/fake-supabase.js` now ENFORCES `max_rows` from that file and sends `Content-Range`, because a fake
+  that honours any limit is how this passed. Engagement rows per customer (one per provider, plus email-hash
+  matches) merge through `cohort-engine.mergeContactEvidence()` - any bounce/complaint/suppression excludes, sends
+  sum, newest engagement wins - the same in either row order. And the BUILT campaign carries each recipient's SKU:
+  `audience.personalisation.values` keyed by `hashProfileId()` (never a raw id), the email's hero slot is
+  `{{ replenishment_product_title|default:'<group hero>' }}`.
+
 ## ⭐ The Social Integration Gateway: view and update, draft first (2026-10-04)
 `api/_shared/social-gateway-core.js` on `brain.js ?action=social-gateway&op=status|read|inbox|underperformance|
 flags|thresholds|thresholds-save|regen-approve|flag-dismiss|live-approve` (still 12/12, still two crons), the
@@ -113,8 +208,28 @@ on anything else.
 - 21 mutations, each failing the spec (ACTIVE paid writes on three platforms, both signatures uncompared, a
   switch ignored, an unverified endpoint sent, the approver taken from the request, a duplicate re-processed,
   YouTube public, absent read as zero, a refused refresh left active, ...).
-- Left as found: `connections` `oauth-start` answers `connections_router_failed` for a phone device session
-  (pre-existing for every OAuth platform); a Google Ads ad is turned on in Google Ads (no enable call confirmed).
+- Left as found: a Google Ads ad is turned on in Google Ads (no enable call confirmed).
+- **Review of #132 (same day), each fix executed and mutation-checked (13):**
+  - **Connect asks for what the operator chose.** It had sent no scopes, so the read-only `default_scopes`
+    were the whole grant and every write channel was blocked at preflight. The hub ticks write
+    CAPABILITIES (`registry.js` `CHANNEL_CAPABILITY`: post / comments / ads / send), and `oauth-start`
+    requests the read defaults plus `requiredScopes()` of exactly those channels, intersected with what
+    the adapter declares (`not_requested` names any gap).
+  - **Recorded once is not processed once.** The receiver 500s a failed ingest so the platform retries,
+    and the retry met the dedupe and got 200: the event was lost. `social_inbound_events.status`
+    (`received|processed|failed`, migration `20261004180000`): a redelivery of an unprocessed event
+    RESUMES the ingest; only `processed` short-circuits.
+  - Organic flags judge EVERY metric the operator set a threshold for (the median stays on one primary
+    metric). The console sends a comment read its `object_id`.
+  - **Two migrations, one version - twice in a day, and no test noticed.** The CLI keys
+    `schema_migrations` by the digits before the first `_`, so a shared version is ONE migration to it.
+    `tests/migration-versions.spec.js` gates the SET of files: 14-digit versions (the 13 date-only files
+    are a closed list - renaming an applied one re-applies it), unique even when padded to 14 digits,
+    each a real UTC time no later than the newest commit. A new migration takes a version later than
+    every one on main AT MERGE TIME, not at branch time.
+  - A device phone sign-in at the connections router read its workspace through RLS, which throws:
+    `connections_router_failed` (500) on every Connect and every /connections load. `list` answers
+    nothing connected and why; every other op is `409 device_account` with the same sentence.
 
 ## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
 The operator's words: *"ensure user can upload a document for the design schema to be followed too with
@@ -197,18 +312,24 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   together and read by both sides; a filled field with no recorded origin is the person's on every
   path; an automatic source never demotes a document value, the person's own pick does.
 - **Precedence is decided where the value is WRITTEN (Codex #1 on #127, migration
-  `20261004160000_brand_context_apply_by_origin.sql`).** The save PATCHed every carried field and only
+  `20261004160000_brand_context_apply_by_origin.sql`, then `20261004170000_brand_workspace_save.sql`).** The save PATCHed every carried field and only
   then asked whose each was: a stale tab applying a brand book wrote the document's tagline over the one
-  another tab had just TYPED, and the record then said a person typed it. Now `saveExisting()` claims the
-  typed fields FIRST, PATCHes them with the ROW'S OWN value for every other field (conditional on
-  `updated_at`, re-read and retried on a concurrent write, 409 with a sentence after four), and sends
-  every document / site / template field through `brand_context_apply()`, which takes each value's
-  ORIGIN (default `auto`, so the context pack and Suggest are unchanged), refuses any field whose owner
-  outranks it, replaces an equal rank, and runs under a row lock on the workspace. `voice.banned` opens
-  only to a document or a template a person chose, never to a site read. Executed through the SHIPPED
-  `saveWorkspace` over PostgREST modelled on PGlite with the trigger installed: the stale tab, a typed
-  save landing between the stale tab's read and write, and an apply landing between a typed save's
-  claim and its write - each failed before (the document's tagline won), mutation-verified.
+  another tab had just TYPED, and the record then said a person typed it. A first fix split the save into
+  claim / PATCH / apply, and review of #143 found what splitting cost: a claim committed before a write
+  that then FAILED; the wizard's placeholders (origin `default`) still riding the PATCH over another tab's
+  document value; the design rules judging the INCOMING palette, not the one that would be stored. Now
+  it is one decision and one statement: `saveExisting()` reads the row and who owns each field, builds
+  the EFFECTIVE row (typed values; another source's value only where it ranks at least as high as the
+  owner; the row's own value everywhere else, placeholders included), runs `buildRow()`'s design rules on
+  THAT, and `brand_workspace_save()` writes it, claims the typed fields and records each applied origin
+  in ONE transaction under the row lock - answering `stale` (decide again, 409 after four) if the row
+  or any owner the decision rested on moved. Owner only, as the table's update policy. The automatic
+  door `brand_context_apply()` also takes each value's ORIGIN (default `auto`, so the context pack and
+  Suggest are unchanged) and runs under the lock; `voice.banned` opens only to a document or a template.
+  Executed through the SHIPPED `saveWorkspace` over PostgREST modelled on PGlite with the trigger
+  installed: the stale tab, three interleavings (a typed save, a typed colour against a placeholder, an
+  owner recorded without a row change), an apply landing mid-save, a refused save claiming nothing, and
+  the rules on the stored palette - each failed before, mutation-verified.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
@@ -330,6 +451,36 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
   Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
   a separate template builder, a TypeScript/Next.js restructure.
+- **Review of #134 and the 40-brand harvest found eight more (2026-10-04)**, each a local fixture read
+  through the shipped reader in `tests/rendered-read-defects.spec.js`, each mutation-verified:
+  (1) a page whose CSP has no `'unsafe-inline'` in `style-src` REFUSES an injected `<style>` (the reader
+  honours CSP), so an overlay was reported hidden while still painted: hiding and freezing now go through
+  the CSSOM (`el.style.setProperty(..., 'important')`, which CSP does not govern), the stylesheet is
+  verified with a probe, every hidden node is VERIFIED with `getComputedStyle` (or removed from the
+  throwaway DOM), and one that could not be hidden is reported as such - the test reads the pixels of the
+  screenshot. (2) the font legal gate excuses a drawn face only when it is the face the brand font's
+  recorded FALLBACK stack draws on that engine (a probe span measured by CDP), never "any face".
+  (3) every element inside a consent/cookie/CMP container (vendor ids incl. TrustArc, names, a dialog
+  worded as consent) is excluded from EVERY role measurement in `render-capture.js`, hidden or not; a
+  wrapper that holds `main`/`h1`/`nav` is never one. (4) a call to action must stand off the page:
+  fill (or border) at least **1.5:1** non-text contrast against what is behind it - WCAG 1.4.11 asks 3:1
+  where nothing else identifies a component, and pastel brand buttons lean on their label, so 1.5:1 is the
+  floor below which a fill is a tint (a `#ecf0f4` tab at 1.15:1 was one brand's "primary CTA").
+  (5) a numbered identity token SCALE (`--x-brand-25 ... -900`) gives the step rendered on the logo,
+  header, CTA, links or headings (else the most-rendered step); an unrendered scale proposes nothing.
+  (6) `readSite` threads `perRequestMs` and a separate `firstDocumentMs` to every hop, bounded by the
+  deadline (the harvest gives the home page 30 s; six sites died at the 9 s default). (7) a Google Fonts
+  family the site HOSTS ITSELF is recognised by name (`data/google-fonts/families.json`, 1908 names from
+  google-font-metadata 6.0.8, MIT) and loadable by reference. (8) every face the visible text asks for
+  that is declared and not loaded is loaded and CONFIRMED (`document.fonts.load` + `check`, bounded)
+  before the page is measured. Then, from #140's own CI and review: the harvest's reader process DIED
+  on a runner with no IPv6 route - `pinnedLookup` answered SYNCHRONOUSLY, so a connect that failed at
+  once emitted its error on the socket before http listened (an unhandled `AggregateError`; over https a
+  null-handle crash too, both reproduced locally). The lookup now always answers asynchronously, offers
+  IPv4 first (exactly the addresses `checkUrl` approved), every socket error fails that one request with
+  a sentence, and the read goes on (executed in a child process). A vendor selector on an app wrapper
+  holding main/h1/nav is never hidden or excluded; a scale step is chosen by identity ROLE first, then
+  scale order; the fallback face is keyed by SLOT; the face scan counts only text that renders.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build

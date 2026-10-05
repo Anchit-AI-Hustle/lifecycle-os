@@ -40,7 +40,7 @@
 const crypto = require('crypto');
 const brandCore = require('./brand-workspace-core.js');
 const connections = require('./workspace-connections-core.js');
-const { adapterFor, connectionProviderFor } = require('./adapters/registry.js');
+const { adapterFor, connectionProviderFor, capabilityOf } = require('./adapters/registry.js');
 
 const STATE_TTL_MS = 10 * 60 * 1000;
 // Refresh this far before the stated expiry. A Klaviyo token lives ten minutes,
@@ -188,12 +188,24 @@ async function beginAuthorization(req, auth, workspaceId, input) {
   const vault = vaultUnavailable();
   if (vault) throw vault;
 
-  // Requested scopes: whatever the caller asked for, intersected with what the
-  // adapter declares. A scope this platform cannot explain is not requested -
-  // over-asking is the fastest way to fail a platform's app review.
+  // Requested scopes: whatever the caller asked for (or the read defaults),
+  // PLUS what each write capability the operator chose needs - every one read
+  // from the adapter's own requiredScopes() for the channels of that
+  // capability (2026-10-04) - intersected with what the adapter declares. A
+  // scope this platform cannot explain is not requested: over-asking is the
+  // fastest way to fail a platform's app review.
   const declared = (spec.scopes || []).map((s) => s.value);
-  const asked = Array.isArray(input && input.scopes) && input.scopes.length ? input.scopes : (spec.default_scopes || declared);
+  const base = Array.isArray(input && input.scopes) && input.scopes.length ? input.scopes : (spec.default_scopes || declared);
+  const caps = Array.isArray(input && input.capabilities) ? input.capabilities.map(String) : [];
+  const namedChannels = Array.isArray(input && input.channels) ? input.channels.map(String) : [];
+  const chosen = (Adapter.channels || []).filter((c) => c.supported !== false
+    && (caps.indexOf(capabilityOf(c.id)) >= 0 || namedChannels.indexOf(c.id) >= 0));
+  const asked = [];
+  for (const sc of base.concat(...chosen.map((c) => Adapter.requiredScopes(c.id, 'write') || []))) {
+    if (asked.indexOf(sc) < 0) asked.push(sc);
+  }
   const scopes = asked.filter((s) => declared.indexOf(s) >= 0);
+  const notRequested = asked.filter((s) => declared.indexOf(s) < 0);
   if (!scopes.length) { const e = new Error('No recognised scopes were requested.'); e.status = 400; throw e; }
 
   const state = base64Url(crypto.randomBytes(32));
@@ -235,7 +247,13 @@ async function beginAuthorization(req, auth, workspaceId, input) {
   // The same requirement for any other Google surface (YouTube), declared by the adapter.
   for (const [k, v] of Object.entries(spec.extra_authorize_params || {})) params.set(k, String(v));
 
-  return { ok: true, url: `${spec.endpoints.authorize}?${params.toString()}`, state, scopes, redirect_uri: redirectUri };
+  return {
+    ok: true, url: `${spec.endpoints.authorize}?${params.toString()}`, state, scopes, redirect_uri: redirectUri,
+    channels: chosen.map((c) => c.id),
+    // A scope a chosen channel needs that the adapter does not declare is
+    // never requested; it is named here so the gap is not silent.
+    not_requested: notRequested,
+  };
 }
 
 function clientIdFor(provider) {

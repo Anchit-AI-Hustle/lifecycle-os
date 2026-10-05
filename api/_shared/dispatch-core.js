@@ -150,13 +150,44 @@ async function trustedBrand(workspaceId, candidate) {
 }
 
 /**
+ * The campaign a job's asset belongs to: the id the job names, the one
+ * the asset names, or the campaign an asset id is minted under
+ * (`campaign_<hash>_email`, `campaign_<hash>_meta_static`), when they agree. /publishing sends
+ * the asset under `asset`, so reading only the top of the spec found nothing
+ * there and every backed deadline line blocked.
+ */
+function campaignRefOf(s) {
+  const spec = s || {};
+  const a = spec.asset && typeof spec.asset === 'object' ? spec.asset : {};
+  const p = spec.payload && typeof spec.payload === 'object' ? spec.payload : {};
+  const minted = (id) => { const m = /^(campaign_[A-Za-z0-9]+)(?:_|$)/.exec(String(id || '').trim()); return m ? m[1] : ''; };
+  const named = [spec.campaign_id, a.campaign_id, p.campaign_id, minted(a.id), minted(p.id), minted(spec.asset_ref)]
+    .map((x) => String(x || '').trim()).filter(Boolean);
+  const distinct = named.filter((x, i) => named.indexOf(x) === i);
+  // Two different campaigns named for one asset: nothing says which record
+  // backs its lines, so none does (its urgency lines are then unbacked).
+  return distinct.length === 1 ? distinct[0] : '';
+}
+
+/**
+ * When a job's copy is READ: its schedule, unless that is already past (the
+ * job then goes out at once, so "today only" is measured from now, never from
+ * a past date the request chose). Null means the clock.
+ */
+function readAt(mode, scheduledFor) {
+  if (mode !== 'schedule' || !scheduledFor) return null;
+  const t = Date.parse(scheduledFor);
+  return Number.isFinite(t) && t > Date.now() ? scheduledFor : null;
+}
+
+/**
  * The offer behind a job's urgency lines, read SERVER-SIDE from the campaign
  * record the job names, in THIS workspace: the offer the builder stamped on
  * it (smart-brain-plan offerOf), else its calendar entry's. Never the request
  * body's, which is the caller's claim about its own offer.
  */
 async function campaignOffer(workspaceId, s) {
-  const ref = String(s.campaign_id || (/^campaign_/.test(String(s.asset_ref || '')) ? s.asset_ref : '') || '').trim();
+  const ref = campaignRefOf(s);
   if (!ref || !workspaceId) return null;
   try {
     const ws = encodeURIComponent(workspaceId);
@@ -218,15 +249,36 @@ async function enqueue(auth, workspaceId, spec, context) {
   const market = String(s.market || s.region || (s.asset && (s.asset.market || s.asset.region)) || '');
   const offer = await campaignOffer(workspaceId, s);
 
+  // The touch this job will make, judged against the contact ledger by the
+  // preflight gate and kept on the job (hashed recipients only) so the ledger
+  // records it once the platform accepts it (2026-10-04).
+  const ledger = require('./contact-ledger.js');
+  const touch = ledger.touchSpecFor({ workspaceId, channel: channelId, spec: s, payload: mapped.payload, provider });
+  // Over the brand's own ledger: assertCanWrite above has established that
+  // the caller edits this workspace. A channel that is not a message is
+  // skipped by the check itself.
+  // Judged at the moment it reaches people: a job's own schedule, else the
+  // send time the platform is handed (a Klaviyo campaign's `send_at`), else
+  // now. Judging a campaign scheduled for 10:00 tomorrow at the 22:15 it was
+  // queued held it for quiet hours it will never send in.
+  const sendsAt = s.scheduled_for || (mapped.payload && mapped.payload.send_at) || null;
+  const contactFatigue = touch.channel && mode !== 'draft' ? await ledger.evaluateSend({
+    workspaceId, channel: touch.channel, message_class: touch.message_class, at: sendsAt,
+    recipients: touch.recipients_known ? touch.recipients : null, carried: s.contact_ledger || null,
+    provider, region: touch.region,
+  }) : null;
+
   const preflight = await require('./preflight-core.js').run({
     workspaceId, provider, channel: channelId, mode,
     payload: mapped.payload, mapping_missing: mapped.missing, connection: conn,
     segment: s.segment || null, audience_size: s.audience_size,
+    message_channel: touch.channel || undefined, message_class: touch.message_class,
+    contact_fatigue: contactFatigue || undefined,
     brand, market, offer,
     // A send with no readable brand is UNCHECKED, and at the queue that blocks.
     require_brand: true,
     // Deadline lines are read when the mail goes out.
-    now: mode === 'schedule' && s.scheduled_for ? s.scheduled_for : null,
+    now: readAt(mode, s.scheduled_for),
   });
 
   if (preflight.verdict === 'block' && !s.override_preflight) {
@@ -269,6 +321,7 @@ async function enqueue(auth, workspaceId, spec, context) {
     dry_run: !!s.dry_run,
     created_by: auth.user_id || null,
     max_attempts: Math.min(Math.max(Number(s.max_attempts) || 5, 1), 10),
+    contact_touch: touch,
   };
 
   let job;
@@ -413,6 +466,9 @@ async function runJob(job) {
     }, { ok: true, http_status: 200, request_digest: digest, response_head: sanitizeResult(result) });
 
     await logSync(job, true, result);
+    // One touch per known recipient into the contact ledger. Like the sync
+    // log, recording must never fail a send that has already gone out.
+    await require('./contact-ledger.js').recordDispatch(job, result).catch(() => null);
     return { id: job.id, ok: true };
   }
 
@@ -626,6 +682,6 @@ async function jobDetail(auth, workspaceId, jobId) {
 
 module.exports = {
   enqueue, drain, runJob, cancel, ingestWebhook, listJobs, jobDetail,
-  deriveIdempotencyKey, backoffMs, claim, countRunnable, trustedBrand,
+  deriveIdempotencyKey, backoffMs, claim, countRunnable, trustedBrand, campaignOffer, campaignRefOf, readAt,
   BATCH, BASE_BACKOFF_MS, MAX_BACKOFF_MS, LEASE_MS,
 };
