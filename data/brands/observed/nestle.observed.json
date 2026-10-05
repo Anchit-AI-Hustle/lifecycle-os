@@ -1,16 +1,16 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "nestle",
   "start": "https://www.nestle.com",
   "landed": "https://www.nestle.com",
-  "observed_at": "2026-10-04",
+  "observed_at": "2026-10-05",
   "renderer": "blocked",
   "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
   "read_attempt": {
     "renderer": "blocked",
-    "at": "2026-10-04",
+    "at": "2026-10-05",
     "host": "www.nestle.com",
     "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
   },
@@ -20,5 +20,112 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.nestle.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.nestle.com blocked an automated read on 2026-10-05. Its own other material was tried too: www.nestle.com (blocked), www.nestle.com (blocked), www.nestle.com (blocked), www.nestle.com (blocked), www.nestle.com (blocked). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.nestle.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.nestle.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.nestle.com/media",
+      "role": "identity source",
+      "what": "Nestle media page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.nestle.com",
+        "registrable": "nestle.com",
+        "website_host": "www.nestle.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.nestle.com/about",
+      "role": "identity source",
+      "what": "Nestle about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.nestle.com",
+        "registrable": "nestle.com",
+        "website_host": "www.nestle.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.nestle.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.nestle.com",
+        "registrable": "nestle.com",
+        "website_host": "www.nestle.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.nestle.com answered HTTP 403 for /apple-touch-icon.png. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.nestle.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.nestle.com",
+        "registrable": "nestle.com",
+        "website_host": "www.nestle.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.nestle.com answered HTTP 403 for /favicon.svg. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.nestle.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.nestle.com",
+        "registrable": "nestle.com",
+        "website_host": "www.nestle.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.nestle.com answered HTTP 403 for /favicon.ico. That is the site refusing an automated reader."
+    }
+  ]
 }

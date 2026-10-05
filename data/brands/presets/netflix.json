@@ -8,42 +8,388 @@
     "label": "Netflix",
     "sector": "Streaming",
     "blurb": "Streaming. Template for a renewal, win-back and churn-risk lifecycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.netflix.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
-      "renderer": "timeout",
-      "at": "2026-10-04",
+    "verified_at": "2026-10-05",
+    "source": "www.netflix.com refused an automated read (blocked); read the brand's own https://jobs.netflix.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #b1060f from the brand's logo shown on its own page (\"netflix N logo /_next/image?url=%2Fimages%2Flogomark.png&w=256&q=75 ht\") (body > div:nth-of-type(6) > div:nth-of-type(1) > div > img). Agreed by icon. Headings Netflix Sans, body Netflix Sans, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the logo element as rendered (div:nth-of-type(2) > div:nth-of-type(2) > div.styles-module-scss-module__LMhtda__left:nth-of-type(2) > a.styles-module-scss-module__LMhtda__logo > img.styles-module-scss-module__LMhtda__logo)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#080202",
+        "derived": true,
+        "note": "DERIVED: the site paints its page #080202, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
+        "source": {
+          "page": "https://jobs.netflix.com/",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        }
+      },
+      "primary": {
+        "value": "#b1060f",
+        "exact": "#b1060f",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 128,
+        "from_role": "identity",
+        "signal": "the brand's logo shown on its own page (\"netflix N logo /_next/image?url=%2Fimages%2Flogomark.png&w=256&q=75 ht\")",
+        "source": {
+          "page": "https://jobs.netflix.com/",
+          "role": "content logo",
+          "selector": "body > div:nth-of-type(6) > div:nth-of-type(1) > div > img",
+          "viewport": "desktop",
+          "property": "pixels",
+          "signal": "computed"
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        },
+        "corroborated_by": [
+          {
+            "kind": "icon",
+            "value": "#b1060f",
+            "signal": "site icon pixels (icon)",
+            "page": "https://jobs.netflix.com/favicon.ico?favicon.0zj3sr.~gbejd.ico"
+          }
+        ],
+        "outranked": [
+          {
+            "value": "#e50914",
+            "kind": "action",
+            "signal": "the primary call to action, as rendered",
+            "score": 55,
+            "page": "https://jobs.netflix.com/"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#000000",
+            "from": "meta theme-color",
+            "why": "1.02:1 against the page, a tint of the page that cannot carry buttons or bands"
+          },
+          {
+            "value": "#ffffff",
+            "from": "web app manifest background_color",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#080202",
+        "exact": "#080202",
+        "derived": true,
+        "from_role": "page ground",
+        "note": "The site paints its page #080202 with light text on it. On this preset's light surface that dark ground is the text colour (20.59:1); the body copy as rendered (#f7f5f5) does not read there.",
+        "source": {
+          "page": "https://jobs.netflix.com/",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        }
+      },
+      "muted": {
+        "value": "#716b6b",
+        "exact": "#fceeee",
+        "derived": true,
+        "note": "DERIVED from #fceeee: secondary text as rendered measures 1.13:1, adjusted to AA.",
+        "source": {
+          "page": "https://jobs.netflix.com/",
+          "role": "secondary text",
+          "selector": "body > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(3)",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        }
+      },
+      "accent": {
+        "value": "#e50914",
+        "exact": "#e50914",
+        "derived": false,
+        "kind": "action",
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered",
+        "source": {
+          "page": "https://jobs.netflix.com/",
+          "role": "primary call to action",
+          "selector": "div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(2) > div:nth-of-type(3) > button.styles-module-scss-module___Vo9eG__full",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "blocked",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://jobs.netflix.com/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "conflicts": [
+      {
+        "kind": "brand_colour_vs_action_colour",
+        "message": "The site declares #b1060f as its own colour (the brand's logo shown on its own page (\"netflix N logo /_next/image?url=%2Fimages%2Flogomark.png&w=256&q=75 ht\")) but renders its primary call to action in #e50914. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
+    "read_from": [
+      "https://jobs.netflix.com/"
+    ],
+    "reads": [
+      {
+        "url": "https://www.netflix.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "blocked",
+        "owned": "website",
+        "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+      },
+      {
+        "url": "https://www.netflix.com/login",
+        "role": "identity source",
+        "what": "Netflix sign-in page",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+      },
+      {
+        "url": "https://jobs.netflix.com/",
+        "role": "identity source",
+        "what": "Netflix jobs site",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://brand.netflix.com/en/",
+        "role": "identity source",
+        "what": "Netflix brand site",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.netflix.com/apple-touch-icon.png",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.netflix.com disallows /apple-touch-icon.png in its robots.txt, and this platform honours it."
+      },
+      {
+        "url": "https://www.netflix.com/favicon.svg",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.svg)",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.netflix.com disallows /favicon.svg in its robots.txt, and this platform honours it."
+      },
+      {
+        "url": "https://www.netflix.com/favicon.ico",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.ico)",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.netflix.com disallows /favicon.ico in its robots.txt, and this platform honours it."
+      }
+    ],
+    "home_attempt": {
+      "renderer": "blocked",
+      "at": "2026-10-05",
       "host": "www.netflix.com",
-      "reason": "The site could not be opened: timed out."
+      "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://jobs.netflix.com/",
+        "role": "display heading (largest text near the top)",
+        "selector": "body > div:nth-of-type(2) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(3)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://jobs.netflix.com/",
+        "role": "body copy",
+        "selector": "body > div:nth-of-type(7) > div > div:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#b1060f",
+    "accent": "#e50914",
+    "ink": "#080202",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#716b6b",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Netflix Sans",
+      "stack": "'Netflix Sans',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;700;900",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Netflix Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Netflix Sans",
+      "stack": "'Netflix Sans',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;700;900",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Netflix Sans (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -58,7 +404,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "netflix.com"
+    "netflix.com",
+    "jobs.netflix.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -105,24 +452,58 @@
   ],
   "identity_sources": [
     {
+      "url": "https://www.netflix.com/login",
+      "kind": "page",
+      "what": "Netflix sign-in page"
+    },
+    {
+      "url": "https://jobs.netflix.com/",
+      "kind": "page",
+      "what": "Netflix jobs site"
+    },
+    {
       "url": "https://brand.netflix.com/en/",
       "kind": "page",
       "what": "Netflix brand site"
-    },
-    {
-      "url": "https://about.netflix.com/en",
-      "kind": "page",
-      "what": "About Netflix"
     }
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Netflix]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Netflix]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Netflix]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Netflix]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Netflix]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://jobs.netflix.com/svg/logo.svg",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://jobs.netflix.com/",
+      "signal": "the logo element as rendered (div:nth-of-type(2) > div:nth-of-type(2) > div.styles-module-scss-module__LMhtda__left:nth-of-type(2) > a.styles-module-scss-module__LMhtda__logo > img.styles-module-scss-module__LMhtda__logo)"
+    },
+    {
+      "url": "https://jobs.netflix.com/svg/icons/search.svg",
+      "role": "photograph",
+      "alt": "Netflix Map Pin",
+      "found_on": "https://jobs.netflix.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://jobs.netflix.com/_next/image?url=%2Fimages%2Fsearch-background.jpg&w=1920&q=75",
+      "role": "hero",
+      "alt": "Search Image",
+      "found_on": "https://jobs.netflix.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://jobs.netflix.com/_next/image?url=%2Fimages%2Flogomark.png&w=96&q=75",
+      "role": "hero",
+      "alt": "netflix N logo",
+      "found_on": "https://jobs.netflix.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://jobs.netflix.com/svg/logo.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
