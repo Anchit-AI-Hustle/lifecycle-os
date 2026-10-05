@@ -221,6 +221,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="tab" role="tab" aria-selected="false" data-tab="plan">30-60-90</button>
     <button type="button" class="tab" role="tab" aria-selected="false" data-tab="week1">Week one</button>
     <button type="button" class="tab" role="tab" aria-selected="false" data-tab="competitive">Competitive</button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="revenue">Revenue loop</button>
     <button type="button" class="tab" role="tab" aria-selected="false" data-tab="gaps">Open gaps</button>
   </nav>
 
@@ -285,6 +286,41 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div id="go-competitive"></div>
   </section>
 
+  <section class="panel" id="panel-revenue">
+    <h2>Revenue control loop</h2>
+    <p class="sub">Grounded platform actions are ranked against measured outcomes. Views and content volume are leading indicators; realised incremental revenue and guardrails decide what the system learns to scale.</p>
+    <div class="policy" id="go-revenue-status" style="margin-top:0">
+      <b>Load on demand.</b>
+      <div id="go-revenue-status-text" style="margin-top:5px">Open this tab to run the grounded platform analysts and build the current commercial action queue.</div>
+    </div>
+    <div class="strip" id="go-revenue-strip"></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="phase">Commercial loop</div>
+      <div id="go-revenue-loop" style="display:flex;gap:7px;flex-wrap:wrap"></div>
+    </div>
+    <div class="two" style="margin-bottom:16px">
+      <div class="card">
+        <h2 style="font-size:15px">Eight operating owners</h2>
+        <p class="sub" style="margin-bottom:8px">Responsibilities, not eight redundant model calls. The controller stays deterministic where the evidence allows it.</p>
+        <div id="go-revenue-roles"></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:15px">Measurement contract</h2>
+        <p class="sub" style="margin-bottom:8px">What may become a business result, and what must remain an unknown.</p>
+        <div id="go-revenue-contract"></div>
+      </div>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th>#</th><th>Action</th><th>Owner</th><th>Platform</th><th>Target</th>
+        <th>Score</th><th>Evidence</th><th>Approval</th><th>Measurement</th>
+      </tr></thead>
+      <tbody id="go-revenue-body">
+        <tr><td colspan="9" class="empty">Revenue OS has not been run in this session.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
   <section class="panel" id="panel-gaps">
     <h2>Open gaps</h2>
     <p class="sub">What is missing before any of this can be launched on real numbers.</p>
@@ -304,6 +340,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   var DATA = null;
   var expFilter = "all";
+  var revenueLoaded = false;
+  var revenueLoading = false;
 
   // Checklist ticks are namespaced by brand AND by growth model. The keys are
   // positional (surface-0-0, week-1-2), so a single global key would carry a
@@ -573,6 +611,107 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).join("");
   }
 
+  function money(v){
+    if (v == null || v === "" || !isFinite(Number(v))) return "—";
+    try { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(Number(v)); }
+    catch(e){ return String(Math.round(Number(v) * 100) / 100); }
+  }
+
+  function renderRevenue(d){
+    revenueLoaded = true;
+    revenueLoading = false;
+
+    var c = d.controller || {};
+    var coverage = d.source_coverage || {};
+    var learning = d.learning && d.learning.global || {};
+    el("go-revenue-status").classList.remove("err");
+    el("go-revenue-status-text").textContent = d.note || "Revenue OS is current.";
+
+    var cards = [
+      { label:"Measured actions", value:c.measured_actions == null ? "—" : c.measured_actions, note:"Outcome ledger only" },
+      { label:"Realised incremental revenue", value:c.realised_incremental_revenue == null ? "—" : money(c.realised_incremental_revenue), note:"Measured, never forecast here" },
+      { label:"Realised ROI", value:c.north_star_value == null ? "—" : Number(c.north_star_value).toFixed(2) + "×", note:"Revenue / measured action cost" },
+      { label:"Source coverage", value:(coverage.connected == null ? "—" : coverage.connected + "/" + coverage.total), note:"Connected grounded analysts" },
+      { label:"Measured learning samples", value:learning.measured_samples == null ? "—" : learning.measured_samples, note:"Unmeasured actions do not train priority" },
+      { label:"Queued actions", value:c.queued_actions == null ? "—" : c.queued_actions, note:"Ranked by evidence + effort + risk" }
+    ];
+    el("go-revenue-strip").innerHTML = cards.map(function(m){
+      return '<div class="metric"><div class="lbl">' + esc(m.label) + '</div>'
+        + '<div class="val">' + esc(m.value) + '</div>'
+        + '<div class="note">' + esc(m.note) + '</div></div>';
+    }).join("");
+
+    el("go-revenue-loop").innerHTML = (d.operating_loop || []).map(function(x, i){
+      return '<span class="tag">' + esc((i + 1) + ". " + x) + '</span>';
+    }).join("");
+
+    el("go-revenue-roles").innerHTML = (d.roles || []).map(function(r){
+      return '<div class="tier"><b>' + esc(r.label) + '</b>'
+        + '<p>' + esc(r.owns || "") + '</p>'
+        + '<div class="src">' + esc(r.queued_actions || 0) + ' queued action(s)</div></div>';
+    }).join("") || '<div class="empty">No role workload was returned.</div>';
+
+    var mc = d.measurement_contract || {};
+    var ap = d.approval_policy || {};
+    el("go-revenue-contract").innerHTML =
+      '<div class="tier"><b>Revenue truth</b><p>' + esc(mc.revenue_truth || "—") + '</p></div>'
+      + '<div class="tier"><b>Attribution</b><p>' + esc(mc.attribution_rule || "—") + '</p></div>'
+      + '<div class="tier"><b>Missing data</b><p>' + esc(mc.missing_data_rule || "—") + '</p></div>'
+      + '<div class="tier"><b>Approval boundary</b><p>' + esc(ap.default || "—") + '</p></div>';
+
+    var q = d.opportunity_queue || [];
+    if (!q.length){
+      el("go-revenue-body").innerHTML = '<tr><td colspan="9" class="empty">No grounded action is ready. Connect the blocked source or wait for measured evidence; the controller will not invent work.</td></tr>';
+      return;
+    }
+    el("go-revenue-body").innerHTML = q.map(function(x, i){
+      var mp = x.measurement_plan || {};
+      return '<tr>'
+        + '<td class="score">' + esc(i + 1) + '</td>'
+        + '<td><b>' + esc(x.action) + '</b><div class="why">' + esc(x.why || "") + '</div><div class="src">' + esc(x.action_id || "") + '</div></td>'
+        + '<td>' + esc(x.role_owner || "—") + '</td>'
+        + '<td>' + esc(x.platform || x.platform_id || "—") + '</td>'
+        + '<td>' + esc(x.target_metric || "define before launch") + '</td>'
+        + '<td class="score">' + esc(x.rank_score == null ? "—" : x.rank_score) + '</td>'
+        + '<td><span class="tag">' + esc(x.evidence_grade || "—") + '</span></td>'
+        + '<td>' + (x.human_approval_required ? '<span class="pill pill-blocked">Human review</span>' : '<span class="pill pill-ready">Analysis-safe</span>') + '</td>'
+        + '<td><div class="why">' + esc(mp.success_rule || "—") + '</div></td>'
+        + '</tr>';
+    }).join("");
+  }
+
+  function revenueFailed(e){
+    revenueLoading = false;
+    el("go-revenue-status").classList.add("err");
+    el("go-revenue-status-text").textContent = "Revenue OS could not be loaded. " + window.LifecycleFailure.sentence(e);
+    window.LifecycleFailure.show(el("go-revenue-body"), e,
+      { title:"The measured revenue loop could not be loaded", colspan:9 });
+  }
+
+  function loadRevenue(){
+    if (revenueLoaded || revenueLoading) return;
+    revenueLoading = true;
+    el("go-revenue-status-text").textContent = "Running grounded platform analysts and reading measured outcomes…";
+    var headers = { "Content-Type":"application/json" };
+    try {
+      var s = window.LifecycleAuth && window.LifecycleAuth.session;
+      if (s && s.access_token) headers.Authorization = "Bearer " + s.access_token;
+    } catch(e){ /* endpoint will return the honest auth failure */ }
+
+    fetch("/api/brain?action=revenue-os", { headers:headers })
+      .then(function(r){
+        return r.json().then(function(d){
+          if (!r.ok) throw new Error((d && (d.message || d.error)) || ("HTTP " + r.status));
+          return d;
+        });
+      })
+      .then(function(d){
+        if (!d || !d.ok) throw new Error((d && (d.message || d.error)) || "Revenue OS returned no result.");
+        renderRevenue(d);
+      })
+      .catch(revenueFailed);
+  }
+
   function renderGaps(d){
     var g = d.gaps || [];
     el("go-gaps").innerHTML = g.length
@@ -615,6 +754,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       for (var j = 0; j < panels.length; j++){
         panels[j].classList.toggle("on", panels[j].id === "panel-" + name);
       }
+      if (name === "revenue") loadRevenue();
       return;
     }
 
