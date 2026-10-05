@@ -29,6 +29,10 @@ const path = require('path');
 const { COHORTS, PLAYS, purchaseModeForProductType } = require('./lifecycle-cohorts.js');
 const { buildEntryAnalysis, explainConfidence } = require('./output-reasoning.js');
 const catalogImage = require('./catalog-image.js');
+// The one contact policy (2026-10-04). This planner had NO cap: a cadence of up
+// to 7 a week put 7 marketing sends on the same cohort in a rolling 7 days,
+// more than double the spec's absolute cap, and every row read 'planned'.
+const fatigue = require('./contact-fatigue.js');
 
 // ─── Date + festival helpers (duplicated from calendar-generate.js on purpose:
 //     that module stays untouched; these are tiny and stable) ─────────────────
@@ -363,8 +367,33 @@ async function generateLifecycleCalendar(input = {}) {
 
   plan.sort((a, b) => (a.date + a.cohort_key).localeCompare(b.date + b.cohort_key));
 
+  // Every row is a scheduled marketing send to a cohort, so every row COUNTS
+  // (spec §10: caps apply to promotional and lifecycle marketing). Each row
+  // gets the plan-time cap for its cohort and its ELIGIBILITY against the
+  // contact ledger - the brand's own, or the history the request carried.
+  const contact = await lifecycleContactContext(input);
+  const slots = plan.map((r) => ({
+    date: r.date, at: `${r.date}T${String(r.send_hour_utc).padStart(2, '0')}:00:00Z`,
+    time_basis: `${String(r.send_hour_utc).padStart(2, '0')}:00 UTC, the row's planned send hour`,
+    market: r.market, cohort_key: r.cohort_key, cohort_size: null,
+    channel: 'email', message_class: 'promotional', who: `"${r.cohort_label}" (${r.market})`,
+  }));
+  const caps = fatigue.planCaps(slots, contact.rules, { planStart: startStr });
+  const elig = fatigue.eligibilityForPlan(slots, contact);
+  plan.forEach((r, i) => {
+    r.message_class = 'promotional';
+    r.frequency_cap = caps[i];
+    r.eligibility = Object.assign(elig[i], { label: fatigue.eligibilityLabel(elig[i]) });
+  });
+
   const dist = (field) => plan.reduce((m, r) => { m[r[field]] = (m[r[field]] || 0) + 1; return m; }, {});
+  const capCount = (st) => plan.filter((r) => r.frequency_cap && r.frequency_cap.status === st).length;
   const meta = {
+    frequency: {
+      blocked: capCount('BLOCKED'), reduce_audience: capCount('REDUCE_AUDIENCE'), safe: capCount('SAFE'),
+      rules: fatigue.describeRules(contact.rules),
+      ledger: { available: !!contact.available, source: contact.source || null, reason: contact.reason || null, note: contact.note || null, workspace_touches: contact.workspace_touches == null ? null : contact.workspace_touches },
+    },
     by_cohort: dist('cohort_key'),
     play_distribution: dist('play_key'),
     product_type_distribution: dist('product_type'),
@@ -386,6 +415,22 @@ async function generateLifecycleCalendar(input = {}) {
     persisted: persistence.persisted,
     persistence,
   };
+}
+
+/** The contact rules + ledger this plan is judged against. Never throws. */
+async function lifecycleContactContext(input) {
+  const i = input || {};
+  const c = i.contact || {};
+  try {
+    return await require('./contact-ledger.js').contextFor({
+      workspaceId: i.workspace_id || null,
+      carried: c.ledger || null,
+      policy: c.policy || null,
+      since: Date.parse(i.start_date || new Date().toISOString()) - 9 * 86400000,
+    });
+  } catch (e) {
+    return { available: false, reason: 'store_unreachable', note: String((e && e.message) || e).slice(0, 160), rules: fatigue.normaliseRules({}).rules };
+  }
 }
 
 // ─── Persistence (guarded upsert — never clobbers built mailers) ─────────────
