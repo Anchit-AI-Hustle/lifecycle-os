@@ -94,9 +94,11 @@ function pickCampaignHubLP(slot, products, brand) {
   // its angles, its copy, its Shopify image URLs. There is no brand-agnostic
   // version of "Naruto on an Air Force 1", so any other brand must never be
   // served these pages - it falls through to the brand-derived generator.
-  const slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
-  const isZero = !brand || brand.is_default || slug === 'knickgasm';
-  if (!isZero) return null;
+  // The hub is tenant zero's content library. No brand, or a workspace that
+  // only claims the slug, does not receive it (isTenantZeroBrand !== true).
+  let zero = null;
+  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(brand); } catch (_) { zero = null; }
+  if (zero !== true) return null;
   const hay = [slot.theme, slot.angle, slot.cohort_id, slot.festival,
     ...(products || []).flatMap((p) => [p.title, p.category, ...((p.tags) || [])])].filter(Boolean).join(' ').toLowerCase();
   // Only consider the Hub for design/fandom/occasion intents (the themes the

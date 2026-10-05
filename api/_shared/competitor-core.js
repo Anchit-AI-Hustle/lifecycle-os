@@ -861,8 +861,8 @@ async function appendBrands(list, nowIso) {
 // therefore refused for any brand that is not tenant zero; that brand's own
 // competitors must be added or discovered for it.
 async function seedBrands(nowIso, brand) {
-  const slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
-  const isTenantZero = !brand || slug === 'knickgasm';
+  let isTenantZero = false;
+  try { isTenantZero = require('./brand-catalog-server.js').isTenantZeroBrand(brand) === true; } catch (_) { isTenantZero = false; }
   if (!isTenantZero) {
     return {
       ok: true, skipped: true, added: 0,
