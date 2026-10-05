@@ -166,8 +166,11 @@ function focusFor(dateIso, facts) {
   };
 }
 
-function festivalFor(dateIso) {
-  const list = festivalsUK();
+function festivalFor(dateIso, market, brand) {
+  // The run's own market's moments (market-moments.js): tenant zero's whole
+  // list for its UK programme, the public moments of the brand's HOME market
+  // for anyone else (2026-10-05). It read the UK list for every brand.
+  const list = (market && brand) ? require('./market-moments.js').momentsFor(market, brand) : festivalsUK();
   const mmdd = dateIso.slice(5);
   const exact = list.find((f) => f.date === mmdd);
   if (exact) return { ...exact, upcoming: false };
@@ -523,7 +526,7 @@ async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line 
   // product; use it (HD), preferring the catalog gallery, and fall back ONLY to
   // the on-brand SVG placeholder. Diffusion is never used for a product shot.
   let real = null;
-  try { real = (catalogImage && catalogImage.imagesFor(ctx.focus.product, ctx.market || 'UK', { width: 1200, brand: ctx.brand })[0]) || null; } catch (_) { real = null; }
+  try { real = (catalogImage && catalogImage.imagesFor(ctx.focus.product, ctx.market, { width: 1200, brand: ctx.brand })[0]) || null; } catch (_) { real = null; }
   if (!real && ctx.focus.product && ctx.focus.product.image) {
     try { real = (catalogImage && catalogImage.hd(ctx.focus.product.image, 1200)) || ctx.focus.product.image; } catch (_) { real = ctx.focus.product.image; }
   }
@@ -644,7 +647,7 @@ function buildPosts(ctx, ideology, strategy, content, hero, av, keys) {
           crop: hero.crops[spec.aspect] || null, provider: hero.provider || null,
         };
     return {
-      date: ctx.date, market: MARKET, key,
+      date: ctx.date, market: ctx.market, key,
       platform: spec.platform, format: spec.format,
       theme: ideology.theme,
       objective: st.objective, cta: st.cta, link: st.link,
@@ -752,11 +755,17 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
   const __gate = require('./brand-catalog-server.js')
     .tenantZeroData('data/product-types.json', { brand: __brand, workspaceId });
   const facts = __gate.data || { store: { base_url: '', product_url_pattern: '{base}/products/{handle}' }, types: {}, __denied: __gate.source === 'none', __reason: __gate.reason || '' };
+  // The market this run is FOR: the Social OS programme's own UK market for
+  // tenant zero (its shipped product facts are priced in GBP), the brand's
+  // HOME market for every other brand - never another company's UK.
+  const __zero = require('./brand-catalog-server.js').isTenantZeroBrand(__brand) !== false;
+  const runMarket = __zero ? MARKET : (require('./brand-locale.js').homeMarket(__brand) || '');
   const ctx = {
     date: iso, dry_run: dry_run === true,
     brand: __brand,
+    market: runMarket,
     focus: focusFor(iso, facts),
-    festival: festivalFor(iso),
+    festival: runMarket ? festivalFor(iso, runMarket, __brand || require('./brand-runtime.js').defaultBrand()) : null,
     recentThemes: await recentThemes(14),
   };
   const keys = resolveKeys(platforms);
@@ -818,7 +827,7 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
   // 8. Sanitize — EVERY string through the brand scrub.
   posts = deepScrub(posts);
   const pkg = deepScrub({
-    ok: true, date: iso, market: MARKET, dry_run: ctx.dry_run,
+    ok: true, date: iso, market: ctx.market, dry_run: ctx.dry_run,
     focus: { type: ctx.focus.type, label: ctx.focus.label, purchase_mode: ctx.focus.purchase_mode, product: ctx.focus.product },
     calendar_moment: ctx.festival ? { name: ctx.festival.name, date: ctx.festival.date, upcoming: !!ctx.festival.upcoming } : null,
     ideology, hypothesis,

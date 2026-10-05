@@ -224,7 +224,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="eyebrow">Lifecycle OS · KNICKGASM Brain</div>
       <h1>KNICKGASM Brain</h1>
       <p style="color:#556059;margin:.1em 0 .4em;font-size:14px">Agentic campaign planning, cohort orchestration, and content generation</p>
-      <p>This engine keeps a tentative <b>90-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at 03:30 UTC, or manually below). Approving a slot generates the full funnel: mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
+      <p>This engine keeps a tentative <b>90-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at <span id="cronAt">03:30 UTC</span>, or manually below). Approving a slot generates the full funnel: mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
     </div>
     <div id="autobar">
       <button type="button" id="sync" class="btn">🔄 Run Daily Sync</button>
@@ -253,6 +253,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <span class="btn sm" style="cursor:default;pointer-events:none" title="One mode: an agentic pipeline powered by the premium model cascade">🤖 Agentic</span>
         <button type="button" id="runAgentic" class="btn" onclick="runAgentic()">🤖 Run Agentic Flow</button>
       </div>
+      <p id="agenticWhy" class="vh-status" role="status" hidden></p>
       <div id="agenticOut" class="feed"><p style="color:#48524c">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
     </div>
 
@@ -463,15 +464,61 @@ function refusalOf(data){
 // execution surface (Run Agentic Flow) and the reviewer decides per row.
 const TIER = 'maxpower';
 function setTier(){ /* single mode: premium only */ }
-// Region for the agentic flow comes from the Rolling-calendar region chips
-// (single source of truth) — the agentic section no longer has its own selector.
+// Region for the agentic flow: a region chip the reviewer turned on in the
+// Rolling calendar, else the market chosen in the rail, else the ACTIVE
+// BRAND'S HOME market - all through RegionContext, so the market is always one
+// the brand's own record lists (2026-10-05). It used to fall to a literal 'US'
+// whenever there were no plan rows (so no chips), and knew four typed markets:
+// an Indian momos brand whose rail said "Market: India (IN)" pressed Run
+// Agentic Flow and read "Running agentic flow - Premium, US". A brand with no
+// market on its record gets the marker and the button says why it is off;
+// nothing is sent.
+async function regionReady(){
+  const RC = window.RegionContext;
+  if(!RC || RC.loaded) return RC || null;
+  try { await Promise.race([RC.ready(), new Promise(r => setTimeout(r, 8000))]); } catch(_) {}
+  return window.RegionContext || null;
+}
 function agenticMarket(){
-  var chip = document.querySelector('.mkchip.on:not([data-mkt="all"])');
-  var m = chip ? chip.getAttribute('data-mkt') : (ALL_MKTS[0] || '');
-  return ({ US:'US', UK:'UK', Global:'GLOBAL', India:'IN' })[m] || 'US';
+  const RC = window.RegionContext;
+  const chip = document.querySelector('#mktfilter .mkchip.on:not([data-mkt="all"])');
+  const picked = chip ? chip.getAttribute('data-mkt') : '';
+  if(RC){
+    const c = picked ? RC.resolve(picked) : '';
+    if(c) return { market: c, marker: '' };
+    const m = RC.region || RC.home;
+    if(m) return { market: m, marker: '' };
+    return { market: '', marker: RC.marker('home market') };
+  }
+  return { market: '', marker: '[DATA REQUIRED BEFORE LAUNCH: home market, this brand]' };
+}
+/* The button is OFF, with its reason beside it, while the brand has no market. */
+function gateAgentic(){
+  const btn = $('runAgentic'), why = $('agenticWhy');
+  if(!btn) return;
+  const RC = window.RegionContext;
+  if(!RC || !RC.loaded) return;
+  const pick = agenticMarket();
+  if(pick.market){
+    btn.disabled = false; btn.removeAttribute('aria-disabled'); btn.removeAttribute('title');
+    if(why){ why.hidden = true; why.textContent = ''; }
+    return;
+  }
+  const reason = pick.marker + ' This brand has no market on its record, so there is no market to plan for. Add its regions in Brand setup.';
+  btn.disabled = true; btn.setAttribute('aria-disabled', 'true'); btn.title = reason;
+  if(why){ why.hidden = false; why.textContent = reason; }
 }
 async function runAgentic(){
-  const out = $('agenticOut'), market = agenticMarket();
+  const out = $('agenticOut');
+  await regionReady();
+  const pick = agenticMarket();
+  if(!pick.market){
+    // The marker, in the accent rule, and nothing leaves the page.
+    gateAgentic();
+    out.innerHTML = `<p class="vh-status" role="status">${esc(pick.marker)} This brand has no market on its record, so the agentic run has no market to plan for. Add its regions in Brand setup.</p>`;
+    return;
+  }
+  const market = pick.market;
   // Decided BEFORE anything is sent (2026-09-29): a sign-in kept only in this
   // browser cannot be verified by the server, and the run writes for a brand
   // the server has no row for, so the sentence is shown and nothing leaves.
@@ -491,7 +538,12 @@ async function runAgentic(){
     const runDays = (SELECTED_DAYS === 'all') ? 90 : Number(SELECTED_DAYS) || 7;
     const r = await fetch('/api/brain?action=agentic-run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ market, tier: TIER, days: runDays, withCreatives: false })});
     const d = await safeJson(r);
-    if(!d.ok){ window.LifecycleFailure.show(out, d, { title: 'The agentic run did not complete' }); return; }
+    if(!d.ok){
+      // The server's own refusal for a market the brand does not list is a
+      // statement about the brand's record, not a fault: the accent rule.
+      if(d.error === 'market_required' || d.error === 'market_not_served'){ out.innerHTML = `<p class="vh-status" role="status">${esc(d.message || d.marker || '')}</p>`; return; }
+      window.LifecycleFailure.show(out, d, { title: 'The agentic run did not complete' }); return;
+    }
     const stages = (d.stages||[]).map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--vh-panel-tan)"><b>${s.ok?'✓':'✗'} ${esc(s.stage)}</b> — ${esc(s.summary||'')}</div>`).join('');
     const ideas = (d.ideation&&d.ideation.ideas||[]).map(i=>`<li><b>${esc(i.title)}</b> — ${esc(i.action||i.why||'')} <span style="color:#48524c">(${esc(i.impact||'')}/${esc(i.effort||'')})</span></li>`).join('');
     // One row per DAY the run actually produced assets for. This is the thing
@@ -526,7 +578,15 @@ async function runAgentic(){
 // Region filter — multi-select. Empty set OR 'all' = every market.
 let SELECTED_MKT = new Set();   // filled from the plan's own markets; empty = all of them
 let ALL_MKTS = [];
-function mktKey(m){ const s=String(m||'').toLowerCase(); if(s.startsWith('uk')) return 'UK'; if(s.startsWith('us')) return 'US'; if(/^in|india/.test(s)) return 'India'; if(/global|eu|au|me|row|rest/.test(s)) return 'Global'; return (m||'').toUpperCase(); }
+// A plan row's market as ONE code per market, whatever spelling the row used
+// ("India" and IN, GB and UK), through RegionContext's equivalence table. The
+// old version knew four typed markets and filed AU, EU and ME under "Global".
+function mktKey(m){
+  const RC = window.RegionContext;
+  if(RC && RC.family) return RC.resolve(m) || RC.family(m) || String(m||'').toUpperCase();
+  return String(m||'').toUpperCase();
+}
+function mktName(k){ const RC = window.RegionContext; return (RC && RC.name) ? RC.name(k) : k; }
 function mktVisible(e){ return SELECTED_MKT.size===0 || SELECTED_MKT.has(mktKey(e.market)); }
 window.toggleMkt = function(mkt){
   if(mkt==='all'){ SELECTED_MKT.clear(); }
@@ -556,7 +616,7 @@ function buildMktChips(){
     host.insertBefore(btn, anchor);
   };
   if(ALL_MKTS.length > 1) add('all', 'All');
-  ALL_MKTS.forEach(m => add(m, m));
+  ALL_MKTS.forEach(m => add(m, mktName(m)));
   // A single-region brand needs no region filter at all.
   host.style.display = ALL_MKTS.length > 1 ? '' : 'none';
 }
@@ -614,10 +674,20 @@ function slotVisible(e){ return mktVisible(e) && durVisible(e) && catVisible(e);
 // Revenue-feasibility badge for a slot (spec §24a). Colours: green feasible,
 // amber needs-reach, red not-feasible, blue data-required. Never blank when a
 // feasibility verdict exists, so tiny cohorts are never shown as viable.
+function fmtMoney(n, currency){
+  const RC = window.RegionContext;
+  const loc = (RC && RC.localeOf) ? (RC.localeOf().locale || undefined) : undefined;
+  if(!currency) return Number(n).toLocaleString(loc);
+  try { return new Intl.NumberFormat(loc, { style:'currency', currency, maximumFractionDigits:0 }).format(Number(n)); }
+  catch(_){ return currency + ' ' + Math.round(Number(n)); }
+}
 function feasBadge(f){
   if(!f || !f.status) return '';
   const m = { 'FEASIBLE':['#e8f3ec','#0a7d33'], 'REQUIRES MORE ELIGIBLE REACH':['#3a2f12','#7a5f28'], 'NOT FEASIBLE':['#3a1c1c','#e89a9a'], 'DATA REQUIRED':['#1b2b33','#9fd0e6'] }[f.status] || ['#22323a','#556059'];
-  const rev = (f.projected_revenue!=null) ? ` · ~$${f.projected_revenue}` : '';
+  // The figure is printed in the currency the planner computed it in (the
+  // record's `currency`), in the brand's number format. A typed '$' labelled
+  // every brand's projection as dollars whatever it was.
+  const rev = (f.projected_revenue!=null) ? ` · ~${esc(fmtMoney(f.projected_revenue, f.currency))}` : '';
   return `<br><span class="pill" style="background:${m[0]};color:${m[1]};font-size:10px" title="${esc(f.note||'')}">${esc(f.status)}${rev}</span>`;
 }
 // Who this slot may actually reach (2026-10-04): the contact ledger's verdict
@@ -1423,6 +1493,39 @@ async function viewEntry(i, forceRegen){
 }
 window.viewEntry = viewEntry;
 
+/* THE MODE CARD STATES THE REAL MODE (2026-10-05). It read "DB (empty)" for a
+   phone sign-in on a deployment with no database at all, because the server
+   reported its own Supabase env as linked. A sign-in kept on this device, or a
+   brand kept on this device, is Local / Demo Mode: nothing is in a database. */
+function onThisDevice(data){
+  if(data && (data.mode === 'device' || data.storage === 'device')) return true;
+  try {
+    const s = window.LifecycleAuth && window.LifecycleAuth.session;
+    if(s && s.provider === 'mobile-pin' && s.mode === 'device') return true;
+    const b = window.BrandContext && window.BrandContext.brand;
+    return !!(b && b.storage === 'device');
+  } catch(_) { return false; }
+}
+function modeLabel(data){
+  if(onThisDevice(data)) return 'Local / Demo Mode (on this device)';
+  if(data && data.mode === 'db-linked') return data.stored ? 'DB-linked' : 'DB (empty)';
+  return 'Preview';
+}
+/* The daily cron runs at 03:30 UTC (vercel.json); the line says when that is
+   in the brand's own home time zone, from its record. */
+function paintCronTime(){
+  const el = $('cronAt'); const RC = window.RegionContext;
+  if(!el || !RC || !RC.localeOf) return;
+  const l = RC.localeOf(RC.home);
+  if(!l.timeZone){ el.textContent = '03:30 UTC'; return; }
+  try {
+    const at = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 3, 30));
+    const local = new Intl.DateTimeFormat(l.locale || undefined, { timeZone: l.timeZone, hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' }).format(at);
+    el.textContent = local + ' (03:30 UTC)';
+  } catch(_) { el.textContent = '03:30 UTC'; }
+}
+if(window.RegionContext) window.RegionContext.onChange(function(){ gateAgentic(); paintCronTime(); });
+else window.addEventListener('regioncontext:change', function(){ gateAgentic(); paintCronTime(); });
 async function loadPlan(){
   const ticket = claimPlan();
   const btn = $('refresh'); const label = btn ? btn.textContent : '';
@@ -1433,11 +1536,13 @@ async function loadPlan(){
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Failed to load plan');
     if(!stillCurrent(ticket)) return data;   // a newer action already owns the screen
-    $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
     let rows = data.entries || data.plan || [];
+    // The mode is decided once auth.js has seated the session: a phone
+    // sign-in kept on this device has no database at all, and the card says so.
+    await deviceSessionReady();
+    $('mode').textContent = modeLabel(data);
     // A phone sign-in has no stored plan on the server; the one its last
     // Daily Sync computed is kept on this device.
-    if(!rows.length) await deviceSessionReady();
     const kept = rows.length ? null : readDevicePlan();
     if(kept){ rows = kept.entries; data.entries = rows; data.device_plan_at = kept.at; }
     PLAN = applyDecisions(rows);
@@ -1457,6 +1562,7 @@ async function loadPlan(){
     }
     renderPlan();
     if(data.device_plan_at) $('changes').innerHTML = '<p>This plan and your approvals are kept on this device for this sign-in. Run Daily Sync to rebuild it from the latest data.</p>';
+    else if(onThisDevice(data)) $('changes').innerHTML = '<p class="vh-status">Local / Demo Mode: this sign-in keeps its brand on this device and there is no database to store a calendar in, so the plan is computed for this brand each time. Run Daily Sync to build it; it is kept on this device.</p>';
     else if(data.mode !== 'db-linked') $('changes').innerHTML = '<p>⚠️ Supabase env not linked — plan is a stateless preview; assets generate on demand but the calendar itself is not persisted.</p>';
     return data;
   }catch(e){
@@ -1480,7 +1586,7 @@ async function autoGenerateOnLoad(){
   if(!data) return;
   const entries = data.entries || [];
   const anyPrebuilt = entries.some(e => e && e.__prebuilt && e.__prebuilt.campaign_id);
-  const needsGen = data.mode === 'db-linked' && (!data.stored || !entries.length || !anyPrebuilt);
+  const needsGen = (data.mode === 'db-linked' || data.mode === 'device') && (!data.stored || !entries.length || !anyPrebuilt);
   if(!needsGen) return;
   // Run once per browser session: if the persist/prebuild is still converging
   // (or failing), reloads should not re-kick a fresh sync every time.
@@ -1509,7 +1615,7 @@ async function runSync(){
     // unattributable request with an `error` code and the planner explains an
     // empty brand with a `note`; both used to render as a silent no-op.
     const refusal = refusalOf(data);
-    $('mode').textContent = data.mode === 'db-linked' ? 'DB-linked' : 'Preview';
+    $('mode').textContent = modeLabel(Object.assign({ stored: true }, data));
     if(data.synced_at) $('lastsync').textContent = new Date(data.synced_at).toLocaleString();
     $('insights').innerHTML = (data.insights||[]).map(x=>`<p>• ${esc(x)}</p>`).join('') || '<p>No insights returned by this sync.</p>';
     // Accept either key. `plan` is the success shape; the refusal and
