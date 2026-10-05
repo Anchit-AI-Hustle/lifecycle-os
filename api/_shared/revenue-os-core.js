@@ -334,7 +334,7 @@ function buildPlan({ intelligence, outcomes, market = 'US', brand = null } = {})
       always_review: ['claims', 'publishing', 'media spend or bid changes', 'pricing or offers', 'customer-facing replies', 'account connections', 'destructive actions'],
     },
     note: opportunities.length
-      ? 'The queue is ranked from grounded platform actions plus this workspace\\'s measured outcomes. No expected revenue is fabricated.'
+      ? 'The queue is ranked from grounded platform actions plus this workspace\'s measured outcomes. No expected revenue is fabricated.'
       : 'No executable opportunity was produced. Connect missing sources or wait for grounded platform actions; Revenue OS does not invent work to keep itself busy.',
   };
 }
