@@ -629,6 +629,12 @@
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
           if (!isOwnApi(url)) return nativeFetch(input, init);
 
+          // Restore the Supabase session before the first authenticated API
+          // request. Public config/auth bootstrap must never wait on itself.
+          if (new URL(url, location.href).pathname !== '/api/public-config' && !authReady.settled) {
+            return authReady.promise.then(function () { return window.fetch(input, init); });
+          }
+
           // A DEVICE session waits for the boot to decide whether its token is
           // one the server accepts (review finding, 2026-10-03): with the
           // account database answering, it is refused, and the first API
@@ -670,14 +676,14 @@
             if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
             var req = new Request(input, init || undefined);
             if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
-            if (!req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
+            if (window.LifecycleAuth?.session?.provider === 'mobile-pin' && !req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
             return nativeFetch(req);
           }
 
           var opts = Object.assign({}, init || {});
           var headers = new Headers((opts && opts.headers) || {});
           if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
-          if (!headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
+          if (window.LifecycleAuth?.session?.provider === 'mobile-pin' && !headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
           opts.headers = headers;
           return nativeFetch(input, opts);
         } catch (_) {
@@ -3135,7 +3141,8 @@
   function restoreReturnTo() {
     let target = null;
     try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
-    if (!target) return;
+    if (!target || !target.startsWith('/') || target.startsWith('//')) return;
+    if (new URL(target, location.origin).origin !== location.origin) return;
     const targetPath = target.split('?')[0].split('#')[0];
     // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
     // `/` and `/index.html` are the same app page: a bounce between them after
@@ -4033,9 +4040,15 @@
     return panel;
   }
 
+  function clearGoogleAccountCache() {
+    try { window.BrandContext?.clearCache?.(); } catch (_) {}
+    try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
+  }
+
   /** A Google session is the sign-in. The access token is the Supabase JWT. */
   function applySupabaseUser(session) {
     if (!session || !session.user) return;
+    if (window.LifecycleAuth.user && window.LifecycleAuth.user.id !== session.user.id) clearGoogleAccountCache();
     window.LifecycleAuth.session = session;
     window.LifecycleAuth.user = session.user;
     applyAccessMode(session.user);
@@ -4049,7 +4062,7 @@
   /** Google's JWT when that is the session; a stored phone token otherwise. */
   function sessionApiToken() {
     const s = window.LifecycleAuth && window.LifecycleAuth.session;
-    if (s && s.access_token && s.provider !== 'mobile-pin') return s.access_token;
+    if (s && s.access_token && s.provider !== 'mobile-pin') return s.expires_at && s.expires_at * 1000 <= Date.now() ? '' : s.access_token;
     return mauthApiToken();
   }
 
@@ -4065,6 +4078,7 @@
       // `backendState()` resolves on the first one, whichever it is.
       backend: backendSnapshot('pending'),
       backendState: () => backendFirst,
+      ready: () => authReady.promise,
       // Google is the sign-in (2026-10-05). openPanel remains for a stored
       // phone session's own panel; the Sign in chip does not call it.
       openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
@@ -4168,7 +4182,7 @@
       window.LifecycleAuth.client = client;
       supabaseState = (await authHostReachable(config.url)) ? 'reachable' : 'unreachable';
       if (client.auth && typeof client.auth.onAuthStateChange === 'function') {
-        client.auth.onAuthStateChange(async (_event, sess) => {
+        client.auth.onAuthStateChange((_event, sess) => {
           if (sess && sess.user) {
             applySupabaseUser(sess);
             restoreReturnTo();
@@ -4177,11 +4191,12 @@
           // A null session from the SDK must not sign out a stored phone account.
           if (window.LifecycleAuth.session && window.LifecycleAuth.session.provider === 'mobile-pin') return;
           if (window.LifecycleAuth.user) {
+            clearGoogleAccountCache();
             window.LifecycleAuth.session = null;
             window.LifecycleAuth.user = null;
             applyAccessMode(null);
             setRailUser(null);
-            await gateSignedOut();
+            void gateSignedOut();
           }
         });
       }
@@ -4278,7 +4293,7 @@
     } else {
       await gateSignedOut();
     }
-    client.auth.onAuthStateChange(async (_event, sess) => {
+    client.auth.onAuthStateChange((_event, sess) => {
       window.LifecycleAuth.session = sess;
       window.LifecycleAuth.user = sess?.user || null;
       applyAccessMode(sess?.user || null);

@@ -83,7 +83,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
   .mkchip{border:1px solid rgba(171,135,67,.4);background:transparent;color:#111111;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
   .mkchip:hover{border-color:var(--lava);color:#111111}
-  .mkchip.on{background:var(--violet,#D0473E);color:var(--brand-on-primary,#fff);border-color:var(--lava)}
+  .mkchip.on{background:var(--brand-primary,#D0473E);color:var(--brand-on-primary,#fff);border-color:var(--lava)}
   .akbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 10px;padding:8px 0;border-bottom:1px solid rgba(171,135,67,.18)}
   /* Prompt bar. The kind chip is part of the button, not a tooltip: an operator
      copying in a hurry reads the button, never the title attribute. */
@@ -93,7 +93,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pknote{margin:0 0 10px;font-size:11px}
   .akstatus{font-size:12px;font-weight:700}
   .akstatus.approved{color:#0a7d33} .akstatus.rejected{color:#b91c1c}
-  .btn.ok{background:#1d6b45;color:#111111}.btn.no{background:transparent;color:#b91c1c;border:1px solid rgba(232,154,154,.4)}
+  .btn.ok{background:var(--brand-primary);color:var(--brand-on-primary)}.btn.no{background:transparent;color:#b91c1c;border:1px solid rgba(232,154,154,.4)}
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:16px;padding:18px}
   .card h2{font-size:16px;margin:0 0 8px}.metric{font-size:30px;color:#111111;font-weight:800}.label{font-size:11px;color:#48524c;letter-spacing:.12em;text-transform:uppercase}
   .wide{grid-column:span 4}.two{grid-column:span 2}
@@ -142,7 +142,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .an-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
   .an-chip{background:rgba(171,135,67,.12);border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:4px 11px;font-size:11.5px;color:#111111}
   .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
-  .st.tentative{background:rgba(171,135,67,.16);color:var(--vh-ink)}.st.approved{background:rgba(29,107,69,.3);color:#0a7d33}.st.final{background:#1d6b45;color:#111111}.st.rejected{background:rgba(180,60,60,.22);color:#b91c1c}
+  .st.tentative{background:rgba(171,135,67,.16);color:var(--vh-ink)}.st.approved{background:rgba(29,107,69,.3);color:#0a7d33}.st.final{background:var(--brand-primary);color:var(--brand-on-primary)}.st.rejected{background:rgba(180,60,60,.22);color:#b91c1c}
   .feed{max-height:300px;overflow:auto}.feed p{margin:6px 0;font-size:13px;border-left:2px solid rgba(171,135,67,.35);padding-left:10px}
   .conf{font-variant-numeric:tabular-nums}
   .sbspin{display:inline-block;width:11px;height:11px;border:2px solid rgba(171,135,67,.35);border-top-color:var(--vh-ink);border-radius:50%;animation:sbspin .7s linear infinite;vertical-align:-1px}
@@ -437,6 +437,13 @@ let PLAN_STATE = { kind: 'loading', message: '' };
 let PLAN_SEQ = 0;
 function claimPlan(){ return ++PLAN_SEQ; }
 function stillCurrent(ticket){ return ticket === PLAN_SEQ; }
+function activePlanBrand(){ return window.BrandContext && window.BrandContext.brand; }
+function planScope(){
+  const brand = activePlanBrand();
+  const user = window.LifecycleAuth && window.LifecycleAuth.user;
+  return (user && user.id || '') + ':' + (brand && brand.id || '');
+}
+
 function sbState(kind, message){
   const el = $('syncstate');
   if(!el) return;
@@ -598,11 +605,11 @@ let ALL_CATS = [];
 function catBucket(e){
   const off = e.offering || (e.payload && e.payload.offering) || {};
   const hp = e.heroProduct || {};
-  const raw = off.kind || hp.kind || hp.category || hp.type || 'product';
+  const raw = off.kind && off.kind !== 'product' ? off.kind : off.type || hp.category || hp.type || off.kind || 'product';
   return String(raw).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product';
 }
 function catLabel(b){
-  const nice = { product: 'Products', event: 'Events', programme: 'Programmes', section: 'Sections', plan: 'Plans', service: 'Services' };
+  const nice = { 'fresh-cuts': 'Fresh Cuts', 'marinated-ready-to-cook': 'Marinated & Ready-to-Cook', 'cold-cuts-deli': 'Cold Cuts / Deli', 'platters-boxes': 'Platters & Boxes', product: 'Products', event: 'Events', programme: 'Programmes', section: 'Sections', plan: 'Plans', service: 'Services' };
   if (nice[b]) return nice[b];
   return b.replace(/-/g, ' ').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
 }
@@ -1429,6 +1436,7 @@ async function viewEntry(i, forceRegen){
   // One expansion open at a time.
   document.querySelectorAll('.exprow').forEach(r=>{ if(r!==row) r.style.display='none'; });
   row.style.display='';
+  const previewScope = planScope();
   if(forceRegen) delete PREVIEW_CACHE[e.id];
   if(PREVIEW_CACHE[e.id]){ renderPreview(PREVIEW_CACHE[e.id], e, i, { target: body, persisted: (e.status==='approved'||e.status==='final') }); body.setAttribute('data-loaded','1'); return; }
   body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Generating the full funnel (mailer, ads & landing page) — usually 10–30s…</p>`;
@@ -1441,6 +1449,7 @@ async function viewEntry(i, forceRegen){
     const r = await fetch(`${API}?action=smart-brain-preview`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: entryPayload, reviewer: reviewerEmail() })});
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Preview failed');
+    if(previewScope !== planScope()) return;
     PREVIEW_CACHE[e.id] = data;
     // Once a slot is approved/final, the server returns the FINAL saved campaign,
     // so the reviewer always sees exactly what ships (never a fresh regeneration).
@@ -1476,6 +1485,8 @@ async function loadPlan(){
   if(btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
   sbState('busy', 'Reading the stored plan…');
   try{
+    await deviceSessionReady();
+    if(!stillCurrent(ticket)) return null;
     if(await signedOutPlan(ticket, 'Loading the plan')) return null;
     const r = await fetch(`${API}?action=smart-brain-plan`);
     const data = await safeJson(r);
@@ -1491,6 +1502,7 @@ async function loadPlan(){
     // A phone sign-in has no stored plan on the server; the one its last
     // Daily Sync computed is kept on this device.
     if(!rows.length) await deviceSessionReady();
+    if(!stillCurrent(ticket)) return null;
     const kept = rows.length ? null : readDevicePlan();
     if(kept){ rows = kept.entries; data.entries = rows; data.device_plan_at = kept.at; }
     PLAN = applyDecisions(rows);
@@ -1882,7 +1894,24 @@ async function exportPlan(){
 $('sync').addEventListener('click', runSync);
 $('refresh').addEventListener('click', loadPlan);
 $('export').addEventListener('click', exportPlan);
-autoGenerateOnLoad();
+let displayedScope = null;
+function onPlanBrandChange(){
+  const scope = planScope();
+  if(scope === displayedScope) return;
+  displayedScope = scope;
+  claimPlan();
+  PLAN = [];
+  Object.keys(PREVIEW_CACHE).forEach(k => delete PREVIEW_CACHE[k]);
+  clearPreview();
+  PLAN_STATE = { kind: 'empty', message: 'Loading the active brand’s calendar…' };
+  buildMktChips(); buildCatChips(); renderPlan();
+  loadPlan();
+}
+window.addEventListener('brandcontext:change', onPlanBrandChange);
+(async function bootPlan(){
+  await deviceSessionReady();
+  if(displayedScope === null){ displayedScope = planScope(); autoGenerateOnLoad(); }
+})();
 </script>
 </body>
 </html>
