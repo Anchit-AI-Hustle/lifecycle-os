@@ -198,6 +198,56 @@ function hashEmail(email, workspaceId) {
   return fatigue.hashEmail(email, workspaceId);
 }
 
+/**
+ * A pseudonymous key for a CUSTOMER/profile id, with the same per-workspace
+ * salt as `hashEmail`. Used where an ESP needs per-recipient data (merge
+ * fields) and nothing in the payload should be the raw id - which, for a
+ * store, is sometimes an email address.
+ */
+function hashProfileId(id, workspaceId) {
+  const salt = String(process.env.CONTACT_HASH_SALT || workspaceId || '');
+  return crypto.createHash('sha256').update(`${salt}:profile:${String(id)}`).digest('hex');
+}
+
+/**
+ * One customer's engagement evidence from SEVERAL rows - one per provider, or
+ * one found by profile id and another by email hash - merged so that no row
+ * can erase another's warning, and so that the answer is the same whatever
+ * order the rows arrive in:
+ *   hard_bounced / complained / suppressed   any row says so -> merged says so
+ *   suppressed_reason                        every distinct reason, sorted
+ *   sends_7d / sends_30d                     summed: the cap is CROSS-CHANNEL,
+ *                                            so one touch per provider is two
+ *   last_open_at / last_click_at / last_send_at   the most recent wins
+ */
+function mergeContactEvidence(rows) {
+  const list = (Array.isArray(rows) ? rows : []).filter(Boolean);
+  const truthy = (v) => v === true || v === 'true' || v === 't' || v === 1;
+  const latest = (k) => {
+    let best = null; let bt = -Infinity;
+    for (const r of list) { const t = Date.parse(r[k]); if (Number.isFinite(t) && t > bt) { bt = t; best = r[k]; } }
+    return best;
+  };
+  const sum = (k) => {
+    const vals = list.map((r) => r[k]).filter((v) => v != null && v !== '' && Number.isFinite(Number(v)));
+    return vals.length ? vals.reduce((a, v) => a + Number(v), 0) : null;
+  };
+  const reasons = [...new Set(list.filter((r) => truthy(r.suppressed) && r.suppressed_reason).map((r) => String(r.suppressed_reason)))].sort();
+  return {
+    providers: [...new Set(list.map((r) => r.provider).filter(Boolean).map(String))].sort(),
+    rows: list.length,
+    hard_bounced: list.some((r) => truthy(r.hard_bounced)),
+    complained: list.some((r) => truthy(r.complained)),
+    suppressed: list.some((r) => truthy(r.suppressed)),
+    suppressed_reason: reasons.length ? reasons.join(', ') : null,
+    sends_7d: sum('sends_7d'),
+    sends_30d: sum('sends_30d'),
+    last_open_at: latest('last_open_at'),
+    last_click_at: latest('last_click_at'),
+    last_send_at: latest('last_send_at'),
+  };
+}
+
 /* ── send-time optimisation ───────────────────────────────────────────────── */
 
 /**
@@ -377,6 +427,8 @@ function recommendCohorts(messagePriority) {
       return { cohorts: ['champions', 'engaged_30', 'engaged_60', 'slipping'], why: 'A high-intent trigger justifies reaching a slipping contact.' };
     case 're_engagement':
       return { cohorts: ['slipping'], why: 'Re-engagement targets the slipping tier only. Sending it to the inactive tier is what a sunset policy exists to prevent.' };
+    case 'replenishment':
+      return { cohorts: ['champions', 'engaged_30', 'engaged_60', 'slipping'], why: 'A replenishment trigger is personal and timed to a purchase the customer is about to make, so it may reach a slipping contact; it still never goes to the inactive tier, because a predicted purchase does not repair a sending reputation.' };
     default:
       return { cohorts: ['champions', 'engaged_30', 'engaged_60'], why: 'Promotional volume stays inside the 60-day engaged window to protect placement.' };
   }
@@ -413,6 +465,77 @@ function frequencyCheck(scored, { messagePriority = 'promotional', rules = null 
   };
 }
 
+/* ── trigger audiences ────────────────────────────────────────────────────── */
+
+/**
+ * Who in a TRIGGER audience (replenishment) may actually be mailed, decided by
+ * the same engagement tiers and the same cross-channel cap every other send
+ * uses: `scoreContacts` + `recommendCohorts('replenishment')`, and
+ * `frequencyCheck` asked about each person.
+ *
+ * A contact is judged only on evidence its row carries. With no open or click
+ * date there is no engagement tier; with no send count there is no cap check.
+ * Such a contact is neither passed (that would report "inside the cap" for a
+ * count nobody has) nor dropped (that would lose a customer to missing data):
+ * it is kept and counted as unchecked, and the note names the ESP's send-time
+ * suppression as where the check then happens.
+ */
+function triggerEligibility(ids, contacts, { messagePriority = 'promotional', now = Date.now() } = {}) {
+  const list = Array.isArray(ids) ? ids.map(String) : [];
+  const map = contacts instanceof Map ? contacts : new Map();
+  const engRows = [];
+  const capRows = [];
+  const excluded = new Map();
+  for (const id of list) {
+    const r = map.get(id);
+    if (!r) continue;
+    // Suppressed by the deliverability layer (sunset, unsubscribe, manual):
+    // that decision was made on this contact already and is not re-litigated
+    // because a purchase is predicted.
+    if (r.suppressed) { excluded.set(id, `suppressed${r.suppressed_reason ? ` (${r.suppressed_reason})` : ''}`); continue; }
+    if (r.last_open_at || r.last_click_at || r.hard_bounced || r.complained) engRows.push(Object.assign({}, r, { external_profile_id: id }));
+    if (r.sends_7d != null && r.sends_7d !== '' && Number.isFinite(Number(r.sends_7d))) capRows.push({ external_profile_id: id, sends_7d: Number(r.sends_7d) });
+  }
+  const rec = recommendCohorts('replenishment');
+  let engagement = { computed: false, checked: 0, note: 'No contact in this audience carries an open or click date, so no engagement tier is applied here; the ESP applies the sunset policy at send time.' };
+  if (engRows.length) {
+    const s = scoreContacts(engRows, { now });
+    const allowed = new Set(rec.cohorts);
+    let out = 0;
+    for (const row of s.scored) {
+      if (allowed.has(row.cohort_key)) continue;
+      out += 1;
+      excluded.set(row.external_profile_id, row.hard_bounced ? 'hard bounce' : row.complained ? 'spam complaint' : `engagement tier ${row.cohort_key}`);
+    }
+    engagement = { computed: true, checked: engRows.length, excluded: out, allowed_tiers: rec.cohorts, why: rec.why };
+  }
+  let frequency = { computed: false, checked: 0, cap: FREQUENCY, note: `No contact in this audience carries a 7-day send count, so the cross-channel cap (${FREQUENCY.promotional_per_7d} promotional / ${FREQUENCY.absolute_per_7d} absolute per rolling 7 days) is enforced by ESP send-time suppression, not asserted here.` };
+  if (capRows.length) {
+    const whole = frequencyCheck(capRows, { messagePriority });
+    let out = 0;
+    for (const row of capRows) {
+      if (excluded.has(row.external_profile_id)) continue;
+      if (frequencyCheck([row], { messagePriority }).ok) continue;
+      out += 1;
+      excluded.set(row.external_profile_id, `at the ${messagePriority} cap (${row.sends_7d} touches in 7 days)`);
+    }
+    frequency = { computed: true, checked: capRows.length, excluded: out, cap: whole.cap, note: whole.note };
+  }
+  const reasons = {};
+  for (const why of excluded.values()) reasons[why] = (reasons[why] || 0) + 1;
+  const eligible = list.filter((id) => !excluded.has(id));
+  const unchecked = list.filter((id) => !map.has(id)).length;
+  return {
+    eligible_ids: eligible,
+    audience: list.length,
+    eligible: eligible.length,
+    excluded: { count: excluded.size, reasons },
+    unchecked,
+    engagement,
+    frequency,
+  };
+}
+
 /* ── the whole picture ────────────────────────────────────────────────────── */
 
 /**
@@ -445,9 +568,9 @@ function analyseAudience(contacts, opts = {}) {
 }
 
 module.exports = {
-  COHORTS, COHORT_BY_KEY, FREQUENCY,
-  scoreContacts, quintileScorer, hashEmail, daysSince,
+  COHORTS, COHORT_BY_KEY, FREQUENCY, REPLENISHMENT_COHORT,
+  scoreContacts, quintileScorer, hashEmail, hashProfileId, mergeContactEvidence, daysSince,
   bestSendHour, optimalSendTime,
-  sunsetCandidates, segmentHealth, recommendCohorts, frequencyCheck,
+  sunsetCandidates, segmentHealth, recommendCohorts, frequencyCheck, triggerEligibility,
   analyseAudience,
 };

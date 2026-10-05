@@ -188,6 +188,30 @@ comparison. **Repair re-measures the source** (the element, its text carrier, it
 composited ground) and corrects the manifest; it never nudges a value toward a target. What every
 re-measurement confirms is reported unmatched, with its value and the reason.
 
+**Measured in one frozen state, scored twice.** Before anything is measured, the site and our clone go
+through the same `render-stabilise.js`: the page clock and `Math.random` pinned by an init script,
+network idle and fonts awaited (bounded), every animation and transition zeroed, consent overlays HIDDEN
+(never accepted). Each compared element is shot twice ~500 ms apart on both sides; pixels that changed
+are live content and are masked. The report carries two scores with their limits: **STRUCTURAL** (the
+tokens above; at least 95% within tolerance) and **PERCEPTUAL** (pixelmatch with text boxes and live
+pixels masked; the worst region at most 3% different). Approval needs both, and the wizard shows both.
+A repair is **kept only if the composite strictly improves**; otherwise it is put back and listed under
+`reverted`.
+
+**What is never measured, and what a call to action is.** Every element inside a consent, cookie or CMP
+container is excluded from every role, whether or not the overlay could be hidden; hiding works through
+the CSSOM (so a strict Content-Security-Policy cannot defeat it) and is verified before it is reported.
+A control is a call to action only if its fill or border stands at least 1.5:1 off the page behind it.
+A numbered brand token scale contributes the step the site renders on its identity elements. A Google
+Fonts family the site hosts itself is recognised by name, and a face still loading is waited for before
+the page is measured. `readSite` takes `perRequestMs` and `firstDocumentMs`, both bounded by the deadline.
+
+**Fonts: by reference, never copied.** The site's families and the URLs of their files are recorded and
+loaded by reference to measure the site and preview our landing page. No site font file is ever copied
+or re-hosted, and a generated email carries no `@font-face`: a family that is not openly licensed is
+shown as "<family> (brand font)" with the site's own fallback stack, and the email draws that fallback
+(listed exempt, with the reason, until the operator uploads licensed files).
+
 **Email is scored differently, on purpose**: component tokens only, against the site's PHONE values (a
 600px column is a phone), never pixels; a family counts only when a generic fallback follows it;
 Outlook's Word engine drops border-radius and that is said, not hidden.
@@ -400,10 +424,19 @@ with both contrast ratios; a dark-neutral surface is a hard-rule conflict, never
 restores the brand exactly as it was and removes the files Apply kept. A later site read that replaces a
 document value is held back and shown side by side (`docGuard()`).
 
-On the server the same order is structural (migration `20261004120000_brand_document_origin.sql`):
-`brand_origin_rank()`; `brand_context_apply()` refuses any field owned by an origin that outranks the
-site parser; `saveWorkspace()` claims only typed fields as `user` and records the others through
-`brand_fields_record_origin()`, which never demotes.
+On the server the same order is structural (migrations `20261004120000_brand_document_origin.sql` and
+`20261004160000_brand_context_apply_by_origin.sql`, `20261004170000_brand_workspace_save.sql`): `brand_origin_rank()`; `brand_context_apply()`
+takes each value's origin (default `auto`, the site parser) and, under a row lock on the workspace,
+refuses any field whose recorded owner outranks it (an equal rank replaces). Saving an existing brand
+(`saveExisting()`) is ONE decision written in ONE statement: read the row and who owns each field; build
+the effective row (what was typed; a document / site / template value only where it ranks at least as
+high as the recorded owner; the row's own value everywhere else, the wizard's placeholders included);
+check the design rules on that; then `brand_workspace_save()` writes it, claims the typed fields and
+records each applied origin in one transaction under the row lock, or answers `stale` when the row or an
+owner the decision rested on moved (the save decides again). A stale tab can therefore never write a
+document's value or a placeholder over what a person set in another tab, a refused save claims nothing,
+and a colour that will not be stored cannot block a save. A new brand records non-typed fields
+through `brand_fields_record_origin()`, which never demotes.
 
 ### Every asset is a file OR a URL
 

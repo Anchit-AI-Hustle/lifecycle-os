@@ -131,6 +131,25 @@ EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
   `field_origins` (this reader's records) and `field_origin` (the rendered read's map) are written
   together and read by both sides; a filled field with no recorded origin is the person's on every
   path; an automatic source never demotes a document value, the person's own pick does.
+- **Precedence is decided where the value is WRITTEN (Codex #1 on #127, migration
+  `20261004160000_brand_context_apply_by_origin.sql`, then `20261004170000_brand_workspace_save.sql`).** The save PATCHed every carried field and only
+  then asked whose each was: a stale tab applying a brand book wrote the document's tagline over the one
+  another tab had just TYPED, and the record then said a person typed it. A first fix split the save into
+  claim / PATCH / apply, and review of #143 found what splitting cost: a claim committed before a write
+  that then FAILED; the wizard's placeholders (origin `default`) still riding the PATCH over another tab's
+  document value; the design rules judging the INCOMING palette, not the one that would be stored. Now
+  it is one decision and one statement: `saveExisting()` reads the row and who owns each field, builds
+  the EFFECTIVE row (typed values; another source's value only where it ranks at least as high as the
+  owner; the row's own value everywhere else, placeholders included), runs `buildRow()`'s design rules on
+  THAT, and `brand_workspace_save()` writes it, claims the typed fields and records each applied origin
+  in ONE transaction under the row lock - answering `stale` (decide again, 409 after four) if the row
+  or any owner the decision rested on moved. Owner only, as the table's update policy. The automatic
+  door `brand_context_apply()` also takes each value's ORIGIN (default `auto`, so the context pack and
+  Suggest are unchanged) and runs under the lock; `voice.banned` opens only to a document or a template.
+  Executed through the SHIPPED `saveWorkspace` over PostgREST modelled on PGlite with the trigger
+  installed: the stale tab, three interleavings (a typed save, a typed colour against a placeholder, an
+  owner recorded without a row change), an apply landing mid-save, a refused save claiming nothing, and
+  the rules on the stored palette - each failed before, mutation-verified.
 - **Never base64 in a generated asset.** `carry()` sends `pending_hosting:['logo'|'icon'|'font'|'image']`
   (names only) and drops a non-https `logo_url`; `brand-runtime` keeps `logo_url` https-only and prints
   `[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, <brand>]`; the pipeline html stage's own renderer writes
@@ -231,6 +250,57 @@ and measures it; the parser (`brand-extract.js`) runs beside it and is the LABEL
   design system and are scored; both full-page screenshots pinned (Playwright 1.63 trims `clip` to the
   full-page rect, measured); `engines.node` `24.x`, CI on Node 24 (`npm ci --engine-strict` and 458 specs
   run on 24.21.0 here).
+- **The adopted reference items (2026-10-04), each executed and mutation-verified**: (A) ONE
+  `render-stabilise.js` for the site AND our clone - Date/performance.now/Math.random pinned by an init
+  script (clocks ADVANCE 1 ms per read, so a busy-wait still ends), network idle + fonts bounded, every
+  animation/transition zeroed and the running ones finished or cancelled; a CTA running an infinite
+  colour animation reads as its declared colour, and both sides report the same pinned clock. (B) each
+  part is shot twice ~500 ms apart, on both sides; what changed is LIVE content and is masked. (C) TWO
+  scores with their reasoning in code: STRUCTURAL (tokens; limit 0.95) and PERCEPTUAL (pixelmatch with
+  text boxes and live pixels masked; 1 − worst region; limit 0.97); approval needs both; the panel shows
+  both. (D) MONOTONIC repair: a set of re-measured values is kept only if the composite strictly improves,
+  otherwise every value is put back and logged in `reverted` (a re-measure of a page that changed after
+  it was read does not get kept). (E) FONT LEGAL GATE: a family and its source URLs are recorded and
+  loaded BY REFERENCE to measure and preview; a generated email never carries a site's font files (no
+  `@font-face`); a non-Google family is `<family> (brand font)` with its fallback stack, and the email's
+  drawn fallback is listed EXEMPT with that reason. Consent overlays (fixed/sticky, named or worded as
+  consent, or a known CMP container) are HIDDEN in the throwaway context, never clicked: no consent is
+  given on anyone's behalf and a banner's colours never become the brand's. Measured while building it:
+  the engine reports a drawn face by the FILE's own name, not the CSS alias (a brand font is recognised
+  by the role's declared family), and pixelmatch's default threshold cannot see a dark hue shift
+  (`#123456` vs `#0f5132` reads identical) - the structural ΔE channel is what catches colour.
+  Rejected on purpose: frequency-ranked colour clustering, preset spacing buckets, an LLM patch step,
+  a separate template builder, a TypeScript/Next.js restructure.
+- **Review of #134 and the 40-brand harvest found eight more (2026-10-04)**, each a local fixture read
+  through the shipped reader in `tests/rendered-read-defects.spec.js`, each mutation-verified:
+  (1) a page whose CSP has no `'unsafe-inline'` in `style-src` REFUSES an injected `<style>` (the reader
+  honours CSP), so an overlay was reported hidden while still painted: hiding and freezing now go through
+  the CSSOM (`el.style.setProperty(..., 'important')`, which CSP does not govern), the stylesheet is
+  verified with a probe, every hidden node is VERIFIED with `getComputedStyle` (or removed from the
+  throwaway DOM), and one that could not be hidden is reported as such - the test reads the pixels of the
+  screenshot. (2) the font legal gate excuses a drawn face only when it is the face the brand font's
+  recorded FALLBACK stack draws on that engine (a probe span measured by CDP), never "any face".
+  (3) every element inside a consent/cookie/CMP container (vendor ids incl. TrustArc, names, a dialog
+  worded as consent) is excluded from EVERY role measurement in `render-capture.js`, hidden or not; a
+  wrapper that holds `main`/`h1`/`nav` is never one. (4) a call to action must stand off the page:
+  fill (or border) at least **1.5:1** non-text contrast against what is behind it - WCAG 1.4.11 asks 3:1
+  where nothing else identifies a component, and pastel brand buttons lean on their label, so 1.5:1 is the
+  floor below which a fill is a tint (a `#ecf0f4` tab at 1.15:1 was one brand's "primary CTA").
+  (5) a numbered identity token SCALE (`--x-brand-25 ... -900`) gives the step rendered on the logo,
+  header, CTA, links or headings (else the most-rendered step); an unrendered scale proposes nothing.
+  (6) `readSite` threads `perRequestMs` and a separate `firstDocumentMs` to every hop, bounded by the
+  deadline (the harvest gives the home page 30 s; six sites died at the 9 s default). (7) a Google Fonts
+  family the site HOSTS ITSELF is recognised by name (`data/google-fonts/families.json`, 1908 names from
+  google-font-metadata 6.0.8, MIT) and loadable by reference. (8) every face the visible text asks for
+  that is declared and not loaded is loaded and CONFIRMED (`document.fonts.load` + `check`, bounded)
+  before the page is measured. Then, from #140's own CI and review: the harvest's reader process DIED
+  on a runner with no IPv6 route - `pinnedLookup` answered SYNCHRONOUSLY, so a connect that failed at
+  once emitted its error on the socket before http listened (an unhandled `AggregateError`; over https a
+  null-handle crash too, both reproduced locally). The lookup now always answers asynchronously, offers
+  IPv4 first (exactly the addresses `checkUrl` approved), every socket error fails that one request with
+  a sentence, and the read goes on (executed in a child process). A vendor selector on an app wrapper
+  holding main/h1/nav is never hidden or excluded; a scale step is chosen by identity ROLE first, then
+  scale order; the fallback face is keyed by SLOT; the face scan counts only text that renders.
 - **Known limits, said not hidden**: our landing page carries the button's SHAPE at phone width and its
   desktop fill (a site whose CTA changes colour on phones is reported unmatched, tested); the landing page
   has no nav row to compare; `flagship-mailer.js`, `landing-page.js`, `ad-creative.js` (tenant-zero build
@@ -250,14 +320,23 @@ time, a per-site deadline plus a hard stop) and `scripts/lib/preset-observation.
 manifest. `scripts/observe-preset-brands.js` - a second, older browser reader - is deleted: two
 readers drift. Gated by `tests/preset-harvest.spec.js` (executed: fixture sites on 127.0.0.1 through
 the real reader in Chromium, the real builder, the real gallery).
-- **Runs on GitHub, not here.** This container has no egress to brand hosts; GitHub's runners do.
-  `.github/workflows/harvest-presets.yml` runs on dispatch (`slugs`) and on any same-repo PR that
-  touches the harvester, the mapping, the builder, the reader or itself; it commits
-  `data/brands/observed/` + regenerated `data/brands/presets/` back to the PR (a `[skip harvest]`
-  head commit skips it; the bot's GITHUB_TOKEN push starts no run, so it cannot loop - and starts no
-  CI either, so push a commit after it to get CI on that head). Screenshots, our renderers' shots,
-  the manifest and a report per brand are the run's `preset-harvest-<run id>` artifact; the
-  before/after table is the run summary.
+- **Runs on GitHub, not here; a PR only READS, a dispatch PUBLISHES (2026-10-04).** This container
+  has no egress to brand hosts; GitHub's runners do. `.github/workflows/harvest-presets.yml` on a
+  same-repo PR touching the harvester, mapping, builder, reader or itself reads every site and
+  reports (run summary + `preset-harvest-<run id>` artifact: screenshots, our renderers' shots, the
+  manifest and a report per brand) with a read-only token, failing only on a gate. It used to commit
+  40 brands' data back onto the PR - #131, a document-fetch lockdown, got 5c06501 - and that bot push
+  produced `action_required` runs. Only `workflow_dispatch` from the default branch publishes: a
+  separate job (the only one with write scopes) commits the data onto `claude/harvest-presets-<run
+  id>` and opens its own PR; dispatched elsewhere it reads and says why it did not publish. The data
+  commit carries `[skip ci]`, so no run starts for it and auto-merge (which fires on CI completing)
+  cannot land it: a human reviews, then pushes any commit to start CI. GitHub matches the marker ANYWHERE in the
+  head commit message, so a human commit that quotes it skips CI too - this change's own first commit
+  did, and started no run at all. Gated by
+  `tests/harvest-workflow.spec.js`, which runs the publish script in a real clone of a real local
+  remote and asserts which refs moved (mutation-verified seven ways). The first real dispatch found
+  that `gh run download` refuses to overwrite a file that exists, so the read job's data is downloaded
+  beside the tree and replaces observed/ and presets/ whole; the spec's fake gh refuses the same way.
 - **A blocked read is an observation, not an empty one.** `renderer: rendered|blocked|timeout|
   unavailable` + the reason + `read_attempt`; no palette, type or logo. The preset keeps the neutral
   default and the card says one sentence (`<host> blocked an automated read on <date>.`). No stealth,
@@ -372,6 +451,14 @@ configured project that does not answer falls through and says so (`supabase:{re
   Postgres 16). `supabase/config.toml`: `project_id = "lifecycle-os"`, public sign-ups off, Phone provider on.
   Runbook targets a NEW project `lifecycle-os` (`<project-ref>`); no remote was touched (no access token, egress
   blocks supabase hosts, the org has unpaid invoices).
+- **The spec waits on events, never on the runner's clock (2026-10-04).** Two of its tests timed out in CI
+  with a bare "Test timeout" - what Playwright prints for a NODE-side await, and here the error that failed
+  first was lost with it: `finally` awaited `server.close()`, which keeps a socket the still-open page was
+  using and serves it on keep-alive until it goes quiet. `stopApp()` ends every connection; every wait is
+  bounded and names what it waited for (`within()`, `expect.poll` messages); op=status is HELD by the test
+  and the PAGE clock is moved past the old 6-second release (`page.clock`), not slept towards; a fetch
+  recorder in `wire()` says what the page sent at the moment it sent it. CI now uploads `test-results/`
+  (traces) on failure - `--reporter=list` meant `tests/report/` was never written.
 - Gated by `tests/supabase-phone-accounts.spec.js` (18 executed, incl. Chromium against the shipped handler)
   over `tests/supabase-auth-fake.js` (exactly the endpoints called; throws on anything else). 19 mutations of
   the security checks each fail it. The ten tests that were red on main at the time are fixed by #118's

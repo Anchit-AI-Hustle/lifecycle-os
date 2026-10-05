@@ -102,10 +102,22 @@ function tenantZeroSlug() {
 function isTenantZeroBrand(brand) {
   if (!brand) return null;
   if (brand.is_default) return true;
+  // The server's own determination, when the record carries it
+  // (brand-runtime.resolve stamps it from the oldest workspace).
+  if (brand.owns_shipped === true) return true;
+  if (brand.owns_shipped === false) return false;
   const slug = String(brand.slug || brand.name || '').toLowerCase().trim();
   if (!slug) return null;
   const zero = tenantZeroSlug();
-  return !!zero && slug === zero;
+  const claims = !!zero && slug === zero;
+  // A WORKSPACE record (it has an id) that merely carries tenant zero's slug
+  // is not thereby tenant zero: `brand_workspaces.slug` is unique per OWNER,
+  // so any owner can save it (2026-10-05). Undecided, so resolve() asks the
+  // workspace rule (ownsBundledExport) and the sync paths use what that
+  // pinned. A record with no id is the shipped file's own, and a carried
+  // device record has its slug re-keyed (brand-runtime.carriedBrand).
+  if (claims && brand.id) return null;
+  return claims;
 }
 
 // ── the shipped files (tenant zero's own catalogue) ────────────────────────
@@ -274,6 +286,11 @@ function tenantZeroData(rel, { brand = null, workspaceId = null } = {}) {
     const scope = currentScope();
     if (scope && scope.brand && isTenantZeroBrand(scope.brand) === false) {
       return { data: null, source: 'none', reason: noCatalogueReason(scope.brand, scope.key) };
+    }
+    // A workspace record that only CLAIMS tenant zero's slug: shipped only if
+    // the workspace rule already pinned it as the owner.
+    if (brand && brand.id && !(scope && scope.source === 'shipped')) {
+      return { data: null, source: 'none', reason: noCatalogueReason(brand, workspaceId) };
     }
   }
   return { data: readJsonRel(rel), source: 'shipped', reason: '' };

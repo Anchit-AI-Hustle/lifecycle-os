@@ -39,6 +39,24 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * PostgREST's max_rows, read from the project's own supabase/config.toml: the
+ * real server answers at most this many rows per request WHATEVER limit the
+ * request asked for. A fake that honoured any limit let a paged reader stop on
+ * "fewer rows than I asked for" and pass, while the real server cut every read
+ * at 1,000 (#141 review). null when the file sets none.
+ */
+const MAX_ROWS = (() => {
+  try {
+    const toml = fs.readFileSync(path.join(__dirname, '..', '..', 'supabase', 'config.toml'), 'utf8');
+    const api = /\[api\]([\s\S]*?)(\n\[|$)/.exec(toml);
+    const m = api && /^\s*max_rows\s*=\s*(\d+)/m.exec(api[1]);
+    return m ? Number(m[1]) : null;
+  } catch (_) { return null; }
+})();
 
 const SERVICE_KEY = 'service-role-key-for-tests';
 const ANON_KEY = 'anon-key-for-tests';
@@ -91,6 +109,8 @@ const DEFAULTS = {
   dispatch_jobs: { status: 'queued', attempt_count: 0, max_attempts: 5, lease_owner: null, lease_expires_at: null, external_id: null, external_status: null, result: null, last_error: null, completed_at: null, retry_after_at: null, dry_run: false },
   workspace_connections: { status: 'active', config: {}, secret_fields: [], secret_hint: '' },
   platform_webhook_events: { verified: false, processed_at: null },
+  social_creative_flags: { status: 'open', decided_by: null, decided_at: null },
+  social_inbound_events: { items: [], status: 'received', attempts: 0 },   // + 20261004180000
 };
 
 /** Tables whose rows are scoped to a workspace for RLS. */
@@ -132,9 +152,22 @@ function cmp(a, b) {
   return sa < sb ? -1 : sa > sb ? 1 : 0;   // ISO timestamps compare correctly as strings
 }
 
+/**
+ * A column, or a JSON path into one (`config->>page_id`, `config->a->>b`), the
+ * way PostgREST reads a filter key. `->>` yields text, which is what an
+ * eq filter compares against.
+ */
+function fieldOf(row, col) {
+  if (!/->/.test(col)) return row[col];
+  const parts = col.split(/->>?/);
+  let v = row[parts[0]];
+  for (const k of parts.slice(1)) v = v == null ? undefined : v[k];
+  return v == null ? v : (/->>[^>]*$/.test(col) && typeof v !== 'string' ? String(v) : v);
+}
+
 /** One PostgREST filter expression (`col.op.value` form, as used inside or=()). */
 function matchOne(row, col, op, val) {
-  const v = row[col];
+  const v = fieldOf(row, col);
   switch (op) {
     case 'eq': return String(v) === String(val) && v != null;
     case 'neq': return String(v) !== String(val);
@@ -154,8 +187,11 @@ function matchOne(row, col, op, val) {
 function parseQuery(qs) {
   const params = new URLSearchParams(qs || '');
   const filters = [];
-  let select = null; let order = []; let limit = null; let onConflict = null;
+  let select = null; let order = []; let limit = null; let onConflict = null; let offset = 0;
   for (const [k, raw] of params.entries()) {
+    // PostgREST's own paging parameter. Without it a paged reader would be
+    // handed page one again and again and still look like it had read it all.
+    if (k === 'offset') { offset = Number(raw) || 0; continue; }
     if (k === 'select') { select = raw === '*' ? null : raw.split(',').map((s) => s.trim()).filter(Boolean); continue; }
     if (k === 'order') { order = raw.split(',').map((s) => { const [col, dir] = s.split('.'); return { col, desc: dir === 'desc' }; }); continue; }
     if (k === 'limit') { limit = Number(raw); continue; }
@@ -178,7 +214,7 @@ function parseQuery(qs) {
     if (!m) continue;
     filters.push({ col: k, op: m[1], val: m[2] });
   }
-  return { filters, select, order, limit, onConflict };
+  return { filters, select, order, limit, onConflict, offset };
 }
 
 function matches(row, filters) {
@@ -208,6 +244,7 @@ class FakeSupabase {
     this.rpcFailures = {};    // rpc fn -> http status
     this.rpc = {};            // fn -> (args) => value | Response
     this.clock = Date.now();  // strictly increasing, so `order=created_at.desc` never ties
+    this.maxRows = MAX_ROWS;  // the server's per-request cap (supabase/config.toml [api] max_rows)
   }
 
   /** A timestamp later than every one handed out before it. */
@@ -324,12 +361,17 @@ class FakeSupabase {
       let out = rows.filter((r) => seen(r) && matches(r, q.filters));
       for (const o of q.order.slice().reverse()) out = out.slice().sort((a, b) => (o.desc ? -1 : 1) * cmp(a[o.col], b[o.col]));
       const total = out.length;
+      const from = q.offset || 0;
+      if (from) out = out.slice(from);
       if (q.limit != null) out = out.slice(0, q.limit);
+      if (this.maxRows != null) out = out.slice(0, this.maxRows);
+      // PostgREST states the range it actually served, `*` for an uncounted total.
+      const served = out.length ? `${from}-${from + out.length - 1}` : '*';
       if (/count=exact/.test(prefer)) {
         const range = headers.range ? String(headers.range) : `0-${Math.max(0, out.length - 1)}`;
         return response(206, out.map((r) => project(r, q.select)), { 'content-range': `${range}/${total}` });
       }
-      return response(200, out.map((r) => project(r, q.select)));
+      return response(200, out.map((r) => project(r, q.select)), { 'content-range': `${served}/*` });
     }
 
     if (method !== 'GET' && SERVICE_WRITE_ONLY.has(table) && who !== 'service') {
@@ -533,4 +575,4 @@ function envScope(keys) {
   };
 }
 
-module.exports = { FakeSupabase, installCreditsRpc, makeReq, makeRes, envScope, response, SERVICE_KEY, ANON_KEY, BASE, uuid, nowIso };
+module.exports = { FakeSupabase, installCreditsRpc, makeReq, makeRes, envScope, response, SERVICE_KEY, ANON_KEY, BASE, MAX_ROWS, uuid, nowIso };

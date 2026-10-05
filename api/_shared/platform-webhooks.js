@@ -29,7 +29,14 @@
  *         2. hand the bytes and the headers to the adapter's verifyWebhook,
  *            which fails closed with no secret and compares in constant time.
  *         3. only then parse the bytes as JSON.
- *         4. hand the event to dispatch-core.ingestWebhook (record + reconcile).
+ *         4. social-gateway-core.recordInbound: once per event id (2026-10-04),
+ *            routed to the brand that owns the account, logged to
+ *            platform_sync_log. A redelivery of a PROCESSED event is
+ *            answered and not re-processed; a redelivery of one whose
+ *            ingest never finished resumes it.
+ *         5. hand the event to dispatch-core.ingestWebhook (record + reconcile),
+ *            then mark the event processed - or failed, answering 500 so the
+ *            platform retries into step 4's resume.
  *
  * RESPONSE SEMANTICS. A refused POST answers 200 with `processed:false` and a
  * reason, plus one structured log line: Meta retries every non-200 for hours
@@ -45,6 +52,8 @@ const { adapterFor } = require('./adapters/registry.js');
 // Called through the module object at call time (dispatch.ingestWebhook), never
 // through a destructured binding, so a test can replace it on the cache entry.
 const dispatch = require('./dispatch-core.js');
+// Same rule: called as gateway.recordInbound(...) at call time.
+const gateway = require('./social-gateway-core.js');
 
 const LOG_AT = 'platform_webhook';
 
@@ -100,9 +109,39 @@ async function receive(req, res) {
       return refuse(res, 200, provider, 'not_json', 'The signature verified but the body is not a JSON object, so there is no event to act on.', { verified: true });
     }
 
-    // 4. the verified event, to the queue.
-    const out = await dispatch.ingestWebhook(provider, event, { headers: (req && req.headers) || {}, bytes: raw.bytes, note: check.note });
-    return res.status(200).json(Object.assign({ ok: true, processed: true, verified: true, provider }, out || {}));
+    // 4. once per event (2026-10-04): the social gateway records the delivery
+    //    under its event id - the digest of these verified bytes unless the
+    //    platform names one - routes it to the brand that owns the account and
+    //    logs it to platform_sync_log. A redelivery stops here, processed once.
+    //    A store that is down is a 500, so the platform retries into the dedupe.
+    const inbound = await gateway.recordInbound(provider, adapter, event, raw.bytes);
+    if (inbound && inbound.duplicate && inbound.processed) {
+      logLine({ provider, event: 'duplicate_delivery', event_id: inbound.event_id, status: 200 });
+      return res.status(200).json({ ok: true, processed: false, duplicate: true, verified: true, provider, event_id: inbound.event_id });
+    }
+    if (inbound && inbound.reason === 'store_failed') {
+      logLine({ provider, reason: 'store_failed', processed: false, status: 500 });
+      return res.status(500).json({ ok: false, processed: false, verified: true, provider, reason: 'store_failed' });
+    }
+
+    // 5. the verified event, to the queue - and only then is it processed. A
+    //    failure here is recorded on the event and answered 500: the
+    //    platform's retry then RESUMES at step 4 instead of being told the
+    //    event was a duplicate of something that never finished.
+    let out;
+    try {
+      out = await dispatch.ingestWebhook(provider, event, { headers: (req && req.headers) || {}, bytes: raw.bytes, note: check.note });
+    } catch (err) {
+      await gateway.markInbound(provider, inbound, 'failed', String((err && err.message) || err)).catch(() => false);
+      throw err;
+    }
+    const marked = await gateway.markInbound(provider, inbound, 'processed').catch(() => false);
+    return res.status(200).json(Object.assign({ ok: true, processed: true, verified: true, provider }, out || {}, {
+      inbound: inbound ? {
+        recorded: !!inbound.recorded, resumed: !!inbound.resumed, marked_processed: !!marked,
+        event_id: inbound.event_id || null, routed: !!inbound.workspace_id, reason: inbound.reason || undefined,
+      } : undefined,
+    }));
   } catch (err) {
     logLine({ provider, reason: 'receiver_failed', processed: false, status: 500, error: String((err && err.message) || err).slice(0, 300) });
     return res.status(500).json({ ok: false, processed: false, provider: provider || null, reason: 'receiver_failed' });

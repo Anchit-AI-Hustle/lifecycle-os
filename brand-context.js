@@ -73,11 +73,28 @@
      section with data-shipped-for="<slug>" (and data-shipped-label="<what>"),
      and it is replaced by the DATA REQUIRED marker for any other active brand. */
   var SHIPPED_SLUG = 'knickgasm';
+  /* WHO IS TENANT ZERO IS THE SERVER'S DETERMINATION, NEVER A SLUG (2026-10-05).
+     This read `slug === 'knickgasm'`, and a slug is the client's: an account
+     owner may save any slug (unique per owner only), and a brand made on this
+     device from the KNICKGASM preset in the gallery carries that slug - and
+     KEEPS it when renamed, so "Deli Chic" started from that template was
+     handed tenant zero's catalogue, storefront and audio. The server already
+     refuses a carried slug (brand-runtime.carriedBrand re-keys it). Now:
+       - a brand on this device owns no shipped material, whatever it is
+         called: it owns what it imports (its store feed is one click away on
+         the setup page, and that copy is its own, with its own provenance);
+       - an account brand owns it only when the server says so: `owns_shipped`
+         is stamped on op=active/get/list/save/activate by the same helper that
+         gates the bundled sales export (market-analytics.ownsBundledExport,
+         the oldest workspace);
+       - the shipped default shell (op=defaults: is_default, no id) is the
+         shipped brand itself. */
   function isTenantZero(b) {
     b = b || state.brand;
     if (!b) return false;
-    if (b.is_default) return true;
-    return String(b.slug || '').toLowerCase() === SHIPPED_SLUG;
+    if (isDeviceId(b.id)) return false;
+    if (b.owns_shipped === true) return true;
+    return b.is_default === true && !b.id;
   }
   /* No brand at all (a signed-out preview) keeps the shipped default. */
   function ownsShipped() { return !state.brand || isTenantZero(state.brand); }
@@ -91,7 +108,9 @@
     nodes.forEach(function (el) {
       if (el.getAttribute('data-shipped-gated') === '1') return;
       var owner = String(el.getAttribute('data-shipped-for') || '').toLowerCase();
-      if (owner && owner === slug) return;
+      // Tenant zero's material is decided above (by the server, not the slug);
+      // a slug that merely SAYS it is the shipped one is not let through here.
+      if (owner && owner === slug && owner !== SHIPPED_SLUG) return;
       var what = el.getAttribute('data-shipped-label') || 'this material';
       el.setAttribute('data-shipped-gated', '1');
       el.innerHTML = '<div class="card p-5" data-shipped-marker style="border:1px solid var(--brand-line,#e5e5e5);border-radius:14px;padding:20px;background:var(--brand-surface-alt,#fff)">' +
