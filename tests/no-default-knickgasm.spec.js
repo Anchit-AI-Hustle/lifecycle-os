@@ -76,6 +76,32 @@ test('a workspace that only claims the knickgasm slug is not handed tenant zero\
   const seededUndecided = await competitor.seedBrands(new Date().toISOString(), undecided);
   expect(seededUndecided.skipped).toBe(true);
   expect(seededUndecided.added).toBe(0);
+  const kit = {
+    ...impostor,
+    website: 'https://delichic.co.in',
+    palette: { forest_green: '#14532d', lava: '#b45309', near_black: '#1c1917', chalk: '#fafaf9' },
+    typography: { headings: { fallback: 'Georgia,serif' }, body: { fallback: 'Arial,sans-serif' } },
+  };
+  const copy = { subject: 'Hello', preheader: 'Hi', headline: 'Hello', subheadline: 'There', body_intro: 'A', story: 'B', cta_primary: 'Shop', cta_secondary: 'See', landing: {} };
+  const html = brain.mailerHtml({ market: 'IN', theme: 'welcome', festival: '' }, copy, [{ title: 'Thali', price: 10, type: 'meal' }], kit, '/agent');
+  const lp = brain.landingHtml({ market: 'IN', theme: 'welcome' }, copy, [{ title: 'Thali', price: 10 }], kit, '/agent');
+  expect(html).toContain('Deli Chic');
+  expect(html).toContain('delichic.co.in');
+  expect(html).not.toMatch(/knickgasm/i);
+  expect(lp).not.toMatch(/knickgasm/i);
+  const sent = brain.campaignObjects(
+    { id: 's1', channel: 'email', market: 'IN', theme: 'welcome', slot_date: '2026-10-05', angle: 'hello' },
+    { subject: 'Hello', preheader: 'Hi', headline: 'Hello', google: { headlines: [], descriptions: [] } },
+    null, [], kit,
+  )[0].campaign_object.message;
+  expect(sent.from_name).toBe('Deli Chic');
+  expect(sent.from_email).toBe('hello@delichic.co.in');
+  const owned = brain.mailerHtml(
+    { market: 'US', theme: 'drop' }, copy, [{ title: 'Pair', price: 10, type: 'kicks' }],
+    { is_default: true, name: 'KNICKGASM', palette: kit.palette, typography: kit.typography }, '/agent',
+  );
+  expect(owned).toMatch(/KNICKGASM/);
+  expect(owned).toMatch(/knickgasm\.com/);
   expect(seeded.skipped).toBe(true);
   expect(seeded.added).toBe(0);
 });
