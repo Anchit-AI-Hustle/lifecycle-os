@@ -365,6 +365,43 @@ test('icons and illustrations: currentColor or tokens, no hue of their own, the 
   }
 });
 
+/* "For ANY palette" is a claim about every palette the brand layer accepts, so
+   it is EXECUTED over thousands of them: a seeded sweep of random valid
+   palettes through the shipped tokens(). The first sweep of this kind found a
+   near-white primary on a lavender page whose primary-text read 4.28:1 on the
+   brand's own page surface (text was tuned against whichever surface the RAW
+   primary read worse on). That palette is pinned below, so the sweep can never
+   be reseeded past it. */
+test('every derived pairing holds for thousands of random valid palettes', () => {
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const hex6 = (lo, span) => '#' + [0, 0, 0].map(() => Math.floor(lo + rnd() * span).toString(16).padStart(2, '0')).join('');
+  const pinned = { primary: '#fcfaf5', accent: '#df13d4', ink: '#23331d', surface: '#f3edff', surface_alt: '#ffffff', muted: '#38e811', err: '#dbc53f', warn: '#38f13c', ok: '#1d48ff' };
+  const palettes = [pinned];
+  for (let i = 0; palettes.length < 4000 && i < 60000; i++) {
+    const p = { primary: hex6(0, 256), accent: hex6(0, 256), ink: hex6(0, 70), surface: hex6(232, 24), surface_alt: rnd() < 0.5 ? '#ffffff' : hex6(240, 16), muted: hex6(0, 256), ok: hex6(0, 256), warn: hex6(0, 256), err: hex6(0, 256) };
+    if (core.validatePalette(p).ok) palettes.push(p);
+  }
+  expect(palettes.length, 'the sweep found too few valid palettes to prove anything').toBeGreaterThan(3000);
+  const TEXT = ['--brand-ink', '--brand-ink-muted', '--brand-primary-text', '--brand-accent-text', '--brand-ok-text', '--brand-warn-text', '--brand-err-text'];
+  const bad = [];
+  for (const p of palettes) {
+    const t = core.tokens({ palette: p });
+    const grounds = { surface: t['--brand-surface'], 'surface-alt': t['--brand-surface-alt'], sunken: t['--brand-surface-sunken'] };
+    for (const k of TEXT) for (const [gn, g] of Object.entries(grounds)) {
+      const q = core.contrast(t[k], g);
+      if (q < 4.5) bad.push(`${k} on ${gn} ${q}:1 ${JSON.stringify(p)}`);
+    }
+    if (core.isDarkNeutral(t['--brand-band'])) bad.push(`band ${t['--brand-band']} is a dark neutral ${JSON.stringify(p)}`);
+    if (core.isDarkNeutral(t['--brand-band-accent'])) bad.push(`accent band ${t['--brand-band-accent']} is a dark neutral ${JSON.stringify(p)}`);
+    if (core.contrast(t['--brand-on-band'], t['--brand-band']) < 4.5) bad.push(`on-band ${core.contrast(t['--brand-on-band'], t['--brand-band'])}:1 ${JSON.stringify(p)}`);
+    if (core.contrast(t['--brand-on-band-accent'], t['--brand-band-accent']) < 4.5) bad.push(`on-band-accent ${JSON.stringify(p)}`);
+    if (core.contrast(t['--brand-on-primary'], t['--brand-primary']) < 4.5) bad.push(`on-primary ${JSON.stringify(p)}`);
+    for (const g of [grounds.surface, grounds['surface-alt']]) if (core.contrast(t['--brand-focus'], g) < 3) bad.push(`focus ${core.contrast(t['--brand-focus'], g)}:1 ${JSON.stringify(p)}`);
+  }
+  expect(bad.length, `${bad.length} failing pairings over ${palettes.length} palettes:\n  ${bad.slice(0, 8).join('\n  ')}`).toBe(0);
+});
+
 test('the generated files match their sources: tokens.json, CONTRACT.md, sprites, the sheet grids', () => {
   for (const [rel, body] of Object.entries(ds.outputs())) {
     expect(fs.readFileSync(path.join(ROOT, rel), 'utf8'), `${rel} drifted: run node scripts/build-design-system.js`).toBe(body);

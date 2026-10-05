@@ -137,13 +137,13 @@ Lifecycle OS owns. Every other colour on a screen is a ROLE, resolved per brand:
 | Sunken panel (status, failure, notice) | `--vh-panel-2` | `sunkenSurface()`: darkened only while every text token keeps 4.5:1 |
 | Brand band (a section in the brand's colour) | `--vh-band` / `--vh-on-band` | `sectionGround(primary, accent, surface)` / `textOn(band)` |
 | Body text, headings, icons | `--vh-ink` / `--vh-heading` | `palette.ink` |
-| Secondary text | `--vh-ink-dim` | `readableAsText(muted, worst surface, 4.9)` |
-| Brand colour as text, links | `--vh-primary-text`, `--vh-link`, `--vh-accent-text` | `readableAsText(colour, worst surface, 4.9)` |
+| Secondary text | `--vh-ink-dim` | `readableOnSurfaces(muted, [surface, surface_alt], 4.9)` |
+| Brand colour as text, links | `--vh-primary-text`, `--vh-link`, `--vh-accent-text` | `readableOnSurfaces(colour, [surface, surface_alt], 4.9)` |
 | Primary control fill and its label | `--vh-primary` / `--vh-on-primary` | `palette.primary` / `readableOn(...)`, held to 4.5:1 at activation |
-| State words and dots | `--vh-ok-text`, `--vh-warn-text`, `--vh-err-text` | `readableAsText(state, worst surface, 4.9)` |
+| State words and dots | `--vh-ok-text`, `--vh-warn-text`, `--vh-err-text` | `readableOnSurfaces(state, [surface, surface_alt], 4.9)` |
 | State edges and fills | `--vh-ok`, `--vh-warn`, `--vh-err` | `palette.ok/warn/err` (never text) |
 | Lines | `--vh-line`, `--vh-line-hot` | `shade(ink, .84)`, `shade(ink, .68)` |
-| Focus ring | `--vh-focus` | `readableAsText(accent, worst surface, 3)` |
+| Focus ring | `--vh-focus` | `readableOnSurfaces(accent, [surface, surface_alt], 3)` |
 
 The rules (each one enforced by `tests/design-system.spec.js`):
 

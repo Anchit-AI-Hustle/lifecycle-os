@@ -1010,7 +1010,7 @@ body::after {
         colour this file decided for itself, which is how one tenant's red
         ended up on every other tenant's rail.
      2. TEXT IS DERIVED FOR ITS GROUND. Brand-coloured text uses a *-text token
-        (adjusted to TEXT_AA against the worst surface by tokens()); text on a
+        (held to TEXT_AA on both surfaces by tokens()); text on a
         brand fill uses an on-* token. Never `color: var(--brand-primary)`.
      3. NO SECTION IS A DARK NEUTRAL. A brand-coloured band paints --vh-band
         (sectionGround(): the primary, else the accent, else the surface, so a
