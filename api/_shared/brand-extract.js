@@ -487,7 +487,7 @@ const ROLE_WEIGHT = { action: 4, identity: 4, chrome: 3, ground: 3, heading: 2, 
  * `brand`, `surface` or `bg`: `--brand-text` is the brand's text colour and
  * `--on-surface` is Material's word for body ink, and both belong in `ink`.
  */
-const FILL_ROLE_WORD = '(?:primary|secondary|accent|cta|action|btn|button|link|success|ok|warn|warning|error|err|danger|info)';
+const FILL_ROLE_WORD = '(?:primary|secondary|accent|cta|action|btn|button|link|band|success|ok|warn|warning|error|err|danger|info)';
 const RX_DERIVED_TEXT = new RegExp(`(?:^|-)on-${FILL_ROLE_WORD}(?:-|$)|(?:^|-)${FILL_ROLE_WORD}-(?:text|fg|foreground|contrast)$`);
 
 function tokenNameRole(name) {
@@ -509,6 +509,11 @@ function tokenNameRole(name) {
   if (/(?:^|-)(?:success|ok|warn|warning|error|err|danger|info)(?:-|$)/.test(n)) return 'status';
   if (/(?:^|-)(?:accent|cta|action|btn|button|link|highlight)(?:-|$)/.test(n)) return 'action';
   if (/(?:^|-)secondary(?:-|$)/.test(n)) return 'muted';
+  // A section band is a ground derived from the brand colour (sectionGround),
+  // not the colour itself. --brand-band carries the same hex as the primary
+  // on this repo's own theme.css; filing it as identity proposed that hex as
+  // the brand colour.
+  if (/(?:^|-)band(?:-|$)/.test(n)) return 'support';
   // --brand, --brand-primary, --color-brand, --brand-blue: the site naming its OWN colour.
   if (/brand/.test(n)) return 'identity';
   if (/(?:^|-)(?:primary|theme)(?:-|$)/.test(n)) return 'action';
