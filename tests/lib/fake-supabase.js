@@ -39,6 +39,24 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * PostgREST's max_rows, read from the project's own supabase/config.toml: the
+ * real server answers at most this many rows per request WHATEVER limit the
+ * request asked for. A fake that honoured any limit let a paged reader stop on
+ * "fewer rows than I asked for" and pass, while the real server cut every read
+ * at 1,000 (#141 review). null when the file sets none.
+ */
+const MAX_ROWS = (() => {
+  try {
+    const toml = fs.readFileSync(path.join(__dirname, '..', '..', 'supabase', 'config.toml'), 'utf8');
+    const api = /\[api\]([\s\S]*?)(\n\[|$)/.exec(toml);
+    const m = api && /^\s*max_rows\s*=\s*(\d+)/m.exec(api[1]);
+    return m ? Number(m[1]) : null;
+  } catch (_) { return null; }
+})();
 
 const SERVICE_KEY = 'service-role-key-for-tests';
 const ANON_KEY = 'anon-key-for-tests';
@@ -59,6 +77,36 @@ const UNIQUE = {
   social_metric_snapshots: [['workspace_id', 'provider', 'kind', 'external_id', 'captured_on']],
   social_creative_flags: [['workspace_id', 'provider', 'external_id', 'metric', 'basis']],
   social_gateway_settings: [['workspace_id']],
+  contact_touch_ledger: [['workspace_id', 'source', 'source_ref', 'subject_key']],  // contact_touch_dedupe_idx
+  contact_fatigue_rules: [['workspace_id']],                                       // primary key
+};
+
+/**
+ * Tables whose writes are the SERVICE ROLE's alone: the migration grants
+ * `authenticated` SELECT and declares no write policy, so PostgREST answers a
+ * user's insert with 42501. Modelled because the contact ledger's "a member
+ * cannot hand-edit what reached a customer" is exactly that grant.
+ */
+const SERVICE_WRITE_ONLY = new Set(['contact_touch_ledger']);
+
+/**
+ * CHECK constraints, from 20261004093700_contact_ledger_fatigue.sql, with the
+ * constraint names Postgres reports. A row that violates one aborts the whole
+ * statement (400 / 23514), so "no raw PII is stored" is enforced by the store
+ * the module writes to, not only by the module.
+ */
+const HEX64 = /^[0-9a-f]{64}$/;
+const CHECKS = {
+  contact_touch_ledger: [
+    ['contact_touch_channel_chk', (r) => ['email', 'sms', 'whatsapp', 'push', 'in_app'].indexOf(r.channel) >= 0],
+    ['contact_touch_class_chk', (r) => ['promotional', 'transactional', 'triggered-lifecycle'].indexOf(r.message_class) >= 0],
+    ['contact_touch_source_chk', (r) => ['dispatch', 'esp_event'].indexOf(r.source) >= 0],
+    ['contact_touch_identity_chk', (r) => r.external_profile_id != null || r.email_hash != null || r.phone_hash != null],
+    ['contact_touch_email_hash_chk', (r) => r.email_hash == null || HEX64.test(r.email_hash)],
+    ['contact_touch_phone_hash_chk', (r) => r.phone_hash == null || HEX64.test(r.phone_hash)],
+    ['contact_touch_profile_not_pii_chk', (r) => r.external_profile_id == null || (!/@/.test(r.external_profile_id) && !/^\+?[0-9\s().-]{7,24}$/.test(r.external_profile_id))],
+    ['contact_touch_subject_key_chk', (r) => HEX64.test(String(r.subject_key || ''))],
+  ],
 };
 
 /** Column defaults the migrations declare, applied on insert the way Postgres would. */
@@ -67,13 +115,14 @@ const DEFAULTS = {
   workspace_connections: { status: 'active', config: {}, secret_fields: [], secret_hint: '' },
   platform_webhook_events: { verified: false, processed_at: null },
   social_creative_flags: { status: 'open', decided_by: null, decided_at: null },
-  social_inbound_events: { items: [] },
+  social_inbound_events: { items: [], status: 'received', attempts: 0 },   // + 20261004180000
 };
 
 /** Tables whose rows are scoped to a workspace for RLS. */
 const WORKSPACE_SCOPED = new Set([
   'dispatch_jobs', 'dispatch_attempts', 'preflight_audits', 'platform_sync_log', 'platform_webhook_events',
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
+  'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
 ]);
 
@@ -144,8 +193,11 @@ function matchOne(row, col, op, val) {
 function parseQuery(qs) {
   const params = new URLSearchParams(qs || '');
   const filters = [];
-  let select = null; let order = []; let limit = null; let onConflict = null;
+  let select = null; let order = []; let limit = null; let onConflict = null; let offset = 0;
   for (const [k, raw] of params.entries()) {
+    // PostgREST's own paging parameter. Without it a paged reader would be
+    // handed page one again and again and still look like it had read it all.
+    if (k === 'offset') { offset = Number(raw) || 0; continue; }
     if (k === 'select') { select = raw === '*' ? null : raw.split(',').map((s) => s.trim()).filter(Boolean); continue; }
     if (k === 'order') { order = raw.split(',').map((s) => { const [col, dir] = s.split('.'); return { col, desc: dir === 'desc' }; }); continue; }
     if (k === 'limit') { limit = Number(raw); continue; }
@@ -168,7 +220,7 @@ function parseQuery(qs) {
     if (!m) continue;
     filters.push({ col: k, op: m[1], val: m[2] });
   }
-  return { filters, select, order, limit, onConflict };
+  return { filters, select, order, limit, onConflict, offset };
 }
 
 function matches(row, filters) {
@@ -198,6 +250,7 @@ class FakeSupabase {
     this.rpcFailures = {};    // rpc fn -> http status
     this.rpc = {};            // fn -> (args) => value | Response
     this.clock = Date.now();  // strictly increasing, so `order=created_at.desc` never ties
+    this.maxRows = MAX_ROWS;  // the server's per-request cap (supabase/config.toml [api] max_rows)
   }
 
   /** A timestamp later than every one handed out before it. */
@@ -314,29 +367,46 @@ class FakeSupabase {
       let out = rows.filter((r) => seen(r) && matches(r, q.filters));
       for (const o of q.order.slice().reverse()) out = out.slice().sort((a, b) => (o.desc ? -1 : 1) * cmp(a[o.col], b[o.col]));
       const total = out.length;
+      const from = q.offset || 0;
+      if (from) out = out.slice(from);
       if (q.limit != null) out = out.slice(0, q.limit);
+      if (this.maxRows != null) out = out.slice(0, this.maxRows);
+      // PostgREST states the range it actually served, `*` for an uncounted total.
+      const served = out.length ? `${from}-${from + out.length - 1}` : '*';
       if (/count=exact/.test(prefer)) {
         const range = headers.range ? String(headers.range) : `0-${Math.max(0, out.length - 1)}`;
         return response(206, out.map((r) => project(r, q.select)), { 'content-range': `${range}/${total}` });
       }
-      return response(200, out.map((r) => project(r, q.select)));
+      return response(200, out.map((r) => project(r, q.select)), { 'content-range': `${served}/*` });
+    }
+
+    if (method !== 'GET' && SERVICE_WRITE_ONLY.has(table) && who !== 'service') {
+      return response(403, { code: '42501', message: `permission denied for table ${table}` });
     }
 
     if (method === 'POST') {
       const list = Array.isArray(body) ? body : [body];
+      // A CHECK violation aborts the statement: nothing from the batch lands.
+      for (const incoming of list) {
+        for (const [name, ok] of (CHECKS[table] || [])) {
+          if (!ok(incoming || {})) return response(400, { code: '23514', message: `new row for relation "${table}" violates check constraint "${name}"` });
+        }
+      }
       const saved = [];
       for (const incoming of list) {
         const row = Object.assign({ id: uuid(), created_at: this.tick() }, DEFAULTS[table] || {}, incoming);
         const keys = q.onConflict ? [q.onConflict] : (UNIQUE[table] || []);
         let merged = false;
+        let ignored = false;
         for (const cols of keys) {
           if (!cols.every((c) => row[c] != null)) continue;
           const hit = rows.find((r) => cols.every((c) => String(r[c]) === String(row[c])));
           if (!hit) continue;
           if (/resolution=merge-duplicates/.test(prefer)) { Object.assign(hit, incoming); saved.push(hit); merged = true; break; }
+          if (/resolution=ignore-duplicates/.test(prefer)) { ignored = true; break; }
           return duplicate(table, cols);
         }
-        if (merged) continue;
+        if (merged || ignored) continue;
         rows.push(row);
         saved.push(row);
       }
@@ -511,4 +581,4 @@ function envScope(keys) {
   };
 }
 
-module.exports = { FakeSupabase, installCreditsRpc, makeReq, makeRes, envScope, response, SERVICE_KEY, ANON_KEY, BASE, uuid, nowIso };
+module.exports = { FakeSupabase, installCreditsRpc, makeReq, makeRes, envScope, response, SERVICE_KEY, ANON_KEY, BASE, MAX_ROWS, uuid, nowIso };
