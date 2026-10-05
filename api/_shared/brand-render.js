@@ -317,6 +317,14 @@ function src(capt, role, viewport, property, selector) {
   return { page: capt && capt.url, role, selector: selector || '', viewport, property, signal: 'computed' };
 }
 
+/**
+ * A token named for ANOTHER company's brand (`--brand-facebook: #3b5998`,
+ * `--color-brand-linkedin`) is that network's colour, declared for a share
+ * button: never this brand's identity. One careers site's tokens offered
+ * seven social networks' colours as "brand" colours.
+ */
+const SOCIAL_TOKEN = /(?:^|[-_])(facebook|fb|twitter|linkedin|instagram|insta|pinterest|youtube|yt|whatsapp|google|tiktok|snapchat|reddit|vk|vkontakte|telegram|tumblr|xing|weibo|wechat|line|discord|github|apple|amazon|paypal|spotify|x-twitter)(?:$|[-_])/i;
+
 /** Identity candidates, in the order the rule ranks them. */
 function identityCandidates(desk, manifestThemeColor) {
   const bx = extract();
@@ -342,14 +350,14 @@ function identityCandidates(desk, manifestThemeColor) {
   const stepped = new Map();
   const plain = [];
   for (const [name, v] of Object.entries(desk.custom_properties || {})) {
-    if (!v.hex || bx.tokenNameRole(name) !== 'identity') continue;
+    if (!v.hex || bx.tokenNameRole(name) !== 'identity' || SOCIAL_TOKEN.test(name)) continue;
     const m = /^(.*?)[-_](\d{1,4})$/.exec(name);
     if (m) { const fam = m[1]; if (!stepped.has(fam)) stepped.set(fam, []); stepped.get(fam).push({ name, v, step: +m[2] }); } else plain.push({ name, v });
   }
   const scaleNotes = [];
   const ordered = [];
   for (const [name, v] of Object.entries(desk.custom_properties || {})) {
-    if (!v.hex || bx.tokenNameRole(name) !== 'identity') continue;
+    if (!v.hex || bx.tokenNameRole(name) !== 'identity' || SOCIAL_TOKEN.test(name)) continue;
     const m = /^(.*?)[-_](\d{1,4})$/.exec(name);
     const members = m ? stepped.get(m[1]) : null;
     if (!members || members.length < 2) { ordered.push({ name, v, signal: `${name} as computed on :root${v.inline ? ' (set at runtime by script)' : ''}` }); continue; }
@@ -438,6 +446,12 @@ function markCandidates(desk, decl) {
       push('logo-text', logo.type.color, 'logo set as text, its colour as rendered', src(desk, 'logo', 'desktop', 'color', sel));
     }
   }
+  // The main heading set in a chromatic colour (one brand sets every heading
+  // in its navy while its header and buttons are grey). Neutral: nothing.
+  const rd = desk.roles || {};
+  const head = (rd.headings && rd.headings.h1) || rd.display || null;
+  const headColour = head && head.type && head.type.color;
+  if (headColour && id.chromatic(headColour)) push('heading-text', headColour, 'main heading text colour as rendered', src(desk, rd.headings && rd.headings.h1 ? 'h1' : 'display heading', 'desktop', 'color', head.selector));
   for (const cl of desk.content_logos || []) {
     const v = id.markIdentity((cl.paints || []).length ? cl.paints : (cl.pixels || []));
     if (v.verdict === 'colour') push('logo-image', v.hex, `the brand's logo shown on its own page ("${String(cl.label).slice(0, 70)}")`, src(desk, 'content logo', 'desktop', (cl.paints || []).length ? 'fill' : 'pixels', cl.selector), { mark: v });
@@ -537,7 +551,11 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     identityCandidates(desk, manifestJson && manifestJson.theme_color ? { value: manifestJson.theme_color, url: manifestJson.url } : null),
     markCandidates(desk, Object.assign({ manifest: manifestJson }, declared || {})),
   );
-  const identity = idc.find((c) => !c.neutral) || null;
+  // A heading's colour is the weakest identity signal: it names the primary
+  // only when the site renders no chromatic call to action either.
+  const actionChromatic = !!action && require('./identity-signals.js').chromatic(action);
+  const identity = idc.find((c) => !c.neutral && c.kind !== 'heading-text')
+    || (actionChromatic ? null : idc.find((c) => !c.neutral && c.kind === 'heading-text')) || null;
   for (const n of (idc.scale_notes || [])) notes.push(n);
   for (const n of (idc.mark_notes || [])) notes.push(n);
   const conflicts = [];
@@ -691,6 +709,17 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
       logo_colours: rd.logo ? { kind: rd.logo.kind, paints: rd.logo.paints || [], pixels: rd.logo.pixels || [], selector: rd.logo.selector } : null,
       swatches: (desk.swatches || []).slice(0, 24),
     },
+    // The filled call to action on the OTHER pages read (a product page's
+    // "Add to bag"): action colours the home page did not show. The reader
+    // does not promote them; a caller may weigh them as action signals.
+    actions_elsewhere: (extra || []).map((e) => {
+      const b = e.data && e.data.roles && e.data.roles.button_primary;
+      const bg = b && b.style && b.style.background;
+      return bg ? { value: bg, page: e.data.url, role: e.role, selector: b.selector, label: b.label || '', filled: !!b.filled } : null;
+    }).filter((x) => x && x.filled).slice(0, 4),
+    // What the page was, for anyone checking the read: its title, its main
+    // heading and its HTTP status.
+    page_seen: { title: String((desk.title || '')).slice(0, 120), h1: String(((rd.headings && rd.headings.h1) || rd.display || {}).text || '').slice(0, 120), status: desk.status || 0, text_chars: rd.body ? rd.body.chars || 0 : 0 },
     // Every host the page links to: how a page on another domain is shown to
     // be the brand's (its own site links to it).
     link_hosts: [...new Set((desk.links || []).map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch (_) { return ''; } }).filter(Boolean))].slice(0, 200),
@@ -725,17 +754,18 @@ async function imageColours(context, url, ctx, opts) {
   const o = opts || {};
   if (!/^https?:\/\//i.test(String(url || ''))) return null;
   const r = await net.fetchFollow(url, ctx, { kind: 'resource' }).catch(() => null);
-  if (!r || !r.ok || r.status >= 300 || !r.body || !r.body.length) return null;
+  if (!r || !r.ok) return { url, pixels: [], error: (r && r.reason) || 'no answer' };
+  if (r.status >= 300 || !r.body || !r.body.length) return { url, pixels: [], status: r.status, error: `HTTP ${r.status}` };
   const type = String((r.headers && (r.headers['content-type'] || r.headers['Content-Type'])) || '').split(';')[0].trim().toLowerCase();
   const sniff = r.body.slice(0, 256).toString('utf8');
   const mime = /^image\//.test(type) ? type : (/<svg[\s>]/i.test(sniff) ? 'image/svg+xml' : (r.body[0] === 0x89 && r.body[1] === 0x50 ? 'image/png' : ''));
-  if (!mime || r.body.length > (o.maxBytes || 1500000)) return null;
+  if (!mime || r.body.length > (o.maxBytes || 1500000)) return { url, pixels: [], status: r.status, error: mime ? 'larger than this reader draws' : `not an image (${type || 'no content type'})` };
   const page = await context.newPage();
   try {
     const box = o.box || 240;
     await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}img{display:block;max-width:${box}px;max-height:${box}px;width:auto;height:auto}img[src$=".svg"],img.svg{width:${box}px;height:${box}px;object-fit:contain}</style></head><body><img id="i" class="${mime === 'image/svg+xml' ? 'svg' : ''}" src="data:${mime};base64,${r.body.toString('base64')}"></body></html>`, { waitUntil: 'load', timeout: 5000 });
     const ok = await page.evaluate(() => { const i = document.getElementById('i'); return !!(i && i.complete && i.naturalWidth > 0); }).catch(() => false);
-    if (!ok) return null;
+    if (!ok) return { url, pixels: [], status: r.status, error: 'the browser could not draw it' };
     const png = await page.locator('#i').screenshot({ omitBackground: true, timeout: 4000 }).catch(() => null);
     return { url: r.finalUrl || url, type: mime, pixels: identity().pixelColours(png, '') };
   } finally {
@@ -761,9 +791,24 @@ async function readImage(url, opts) {
         budget: net.makeBudget(8 * 1048576, 12), perRequestMs: Number(o.perRequestMs) > 0 ? Number(o.perRequestMs) : undefined,
         inScope: () => false, robotsFor: () => Promise.resolve([]),
       };
+      // robots.txt first, as for any document this reader opens: an image
+      // read on its own (not as part of a page) is a request of ours.
+      let target;
+      try { target = new URL(url); } catch (_) { return { ok: false, renderer: 'unavailable', reason: 'That is not a valid URL.', wall_ms: Date.now() - t0 }; }
+      const robotsFetch = async (u) => {
+        const r = await net.fetchFollow(u, ctx, { kind: 'resource' });
+        return r.ok && r.status >= 200 && r.status < 300 ? { ok: true, status: r.status, body: r.body.toString('utf8') } : { ok: false, status: r.status || 0, body: '' };
+      };
+      const rules = await siteCrawl().robotsInfo(target.origin, robotsFetch, 6000).then((r) => r.disallow, () => []);
+      if (!net.robotsAllows(rules, url)) return { ok: false, renderer: 'blocked', reason: `${target.hostname} disallows ${target.pathname} in its robots.txt, and this platform honours it.`, wall_ms: Date.now() - t0 };
       const context = await browser.newContext({ viewport: { width: 320, height: 320 }, deviceScaleFactor: 1, serviceWorkers: 'block', javaScriptEnabled: false, offline: true, acceptDownloads: false });
       const got = await imageColours(context, url, ctx, { box: 240 });
-      if (!got || !got.pixels.length) return { ok: false, renderer: 'unavailable', reason: `${url} did not answer with an image this reader could draw.`, wall_ms: Date.now() - t0 };
+      if (!got || !got.pixels || !got.pixels.length) {
+        const st = got && got.status;
+        if (st === 401 || st === 403 || st === 429 || st === 503) return { ok: false, renderer: 'blocked', reason: `${target.hostname} answered HTTP ${st} for ${target.pathname}. That is the site refusing an automated reader.`, wall_ms: Date.now() - t0 };
+        if (got && /timed? ?out/i.test(String(got.error || ''))) return { ok: false, renderer: 'timeout', reason: `${target.hostname} did not answer for ${target.pathname} in time.`, wall_ms: Date.now() - t0 };
+        return { ok: false, renderer: 'unavailable', reason: `${url} did not answer with an image this reader could draw (${(got && got.error) || 'no answer'}).`, wall_ms: Date.now() - t0 };
+      }
       return { ok: true, renderer: 'chromium', renderer_info: info, image: got, mark: identity().markIdentity(got.pixels), wall_ms: Date.now() - t0 };
     }, { prefer: o.prefer });
   } catch (e) {
@@ -793,7 +838,7 @@ async function readDeclarations(context, desk, manifestJson, ctx) {
   for (const ic of [svg, raster].filter(Boolean)) {
     if (left() < 6000) break;
     const got = await imageColours(context, ic.url, ctx).catch(() => null);
-    if (got && got.pixels.length) out.icons.push({ url: got.url, rel: ic.rel || 'icon', type: got.type, pixels: got.pixels });
+    if (got && got.pixels && got.pixels.length) out.icons.push({ url: got.url, rel: ic.rel || 'icon', type: got.type, pixels: got.pixels });
   }
   return out;
 }

@@ -45,6 +45,9 @@ const KINDS = {
   // A wordmark set as TEXT is found by shape (a large or logo-named home
   // link), which is a guess an image or an SVG is not: below a declared token.
   'logo-text': { score: 62, label: 'logo set as text, its colour as rendered' },
+  // A chromatic colour the site sets its main heading in: weaker than any
+  // declaration (headings are often just dark text), stronger than a link.
+  'heading-text': { score: 45, label: 'main heading text colour as rendered' },
   'logo-dark': { score: 60, label: 'logo mark in a near-black colour (relative luminance under 0.02)' },
   'header': { score: 58, label: 'header background as rendered' },
   'icon': { score: 56, label: 'site icon (favicon / touch icon) pixels' },
@@ -156,11 +159,19 @@ function markIdentity(colours) {
     return { verdict: 'neutral', hex: list[0].hex, chromatic_share: Math.round((chromaticShare / total) * 1000) / 1000 };
   }
   // Fold near-identical chromatic colours (a gradient's two close stops, an
-  // anti-aliased variant) into the largest.
+  // anti-aliased variant) into the largest. An anti-aliased EDGE is the fill
+  // mixed with its ground, which keeps the fill's HUE and loses its chroma:
+  // one brand's blue logo read as five blues (#1642b9 #5071ca #8098d9 ...)
+  // and was called multicolour. Same hue (within 14 degrees) is one colour.
   const groups = [];
   for (const c of chroma.slice().sort((a, b) => b.share - a.share)) {
     const rc = rgbOf(c.hex);
-    const g = groups.find((x) => { const gc = rgbOf(x.hex); return Math.abs(gc[0] - rc[0]) + Math.abs(gc[1] - rc[1]) + Math.abs(gc[2] - rc[2]) <= 24; });
+    const g = groups.find((x) => {
+      const gc = rgbOf(x.hex);
+      if (Math.abs(gc[0] - rc[0]) + Math.abs(gc[1] - rc[1]) + Math.abs(gc[2] - rc[2]) <= 24) return true;
+      const d = Math.abs(hueOf(gc) - hueOf(rc));
+      return Math.min(d, 360 - d) <= 14;
+    });
     if (g) g.share += c.share; else groups.push({ hex: c.hex, share: c.share });
   }
   groups.sort((a, b) => b.share - a.share);
@@ -173,6 +184,18 @@ function markIdentity(colours) {
   return { verdict: 'multicolour', colours: groups.slice(0, 5).map((x) => x.hex), chromatic_share: Math.round((chromaticShare / total) * 1000) / 1000 };
 }
 
+/** Hue in degrees (0..360) of an [r,g,b]. */
+function hueOf(c) {
+  const [r, g, b] = c.map((v) => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (!d) return 0;
+  let h;
+  if (mx === r) h = ((g - b) / d) % 6;
+  else if (mx === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
 function lumOf(hex) { const c = rgbOf(hex); return c ? lum(c) : 0; }
 
-module.exports = { KINDS, GENERATOR_DEFAULTS, chromatic, chromaOf, lumOf, pixelColours, markIdentity, rgbOf, hexOf };
+module.exports = { KINDS, GENERATOR_DEFAULTS, chromatic, chromaOf, lumOf, hueOf, pixelColours, markIdentity, rgbOf, hexOf };

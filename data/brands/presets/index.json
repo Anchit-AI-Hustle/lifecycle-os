@@ -58,6 +58,7 @@
       "body_line": "Instrument Sans",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -124,6 +125,7 @@
       "body_line": "Faustina",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -191,6 +193,7 @@
       "body_line": "Rethink Sans",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -258,6 +261,7 @@
       "body_line": "Rethink Sans",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -325,6 +329,7 @@
       "body_line": "SF Pro Text (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -408,6 +413,7 @@
         "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
       },
       "read_note": "www.nike.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -489,6 +495,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -562,6 +569,7 @@
       "body_line": "system-ui (system font)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "Monochrome: www.puma.com renders no brand colour beyond black and white, so the primary is the #191919 of its call to action.",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -674,6 +682,7 @@
         "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.newbalance.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -755,6 +764,7 @@
         "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.zara.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -841,6 +851,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -922,6 +933,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1003,6 +1015,7 @@
         "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.levi.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1084,6 +1097,7 @@
         "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
       },
       "read_note": "www.myntra.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1157,6 +1171,7 @@
       "body_line": "inter_regular (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1265,6 +1280,7 @@
         "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
       "read_note": "www.amazon.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1331,6 +1347,7 @@
       "body_line": "Inter (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1443,6 +1460,7 @@
         "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.sephora.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1505,9 +1523,9 @@
           "what": "L'Oreal Groupe newsroom"
         },
         {
-          "url": "https://www.loreal.com/en/group/",
+          "url": "https://careers.loreal.com/",
           "kind": "page",
-          "what": "L'Oreal Groupe about page"
+          "what": "L'Oreal Groupe careers site"
         }
       ],
       "heading_font": "system-ui",
@@ -1525,6 +1543,7 @@
         "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
       },
       "read_note": "www.loreal.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1591,6 +1610,7 @@
       "body_line": "Open Sans (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1698,6 +1718,7 @@
         "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
       "read_note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1771,6 +1792,7 @@
       "body_line": "system-ui (system font)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1884,6 +1906,7 @@
         "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
       },
       "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1950,6 +1973,7 @@
       "body_line": "segoeui (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2063,6 +2087,7 @@
         "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.sony.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2144,6 +2169,7 @@
         "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.tesla.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2226,6 +2252,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2308,6 +2335,7 @@
         "reason": "www.toyota.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"New Cars, Trucks, SUVs & Hybrids | Toyota Official Site\"). Nothing was read from it."
       },
       "read_note": "www.toyota.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2376,6 +2404,7 @@
       "body_line": "SoDoSans (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2472,6 +2501,11 @@
           "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
           "kind": "page",
           "what": "McDonald's corporate site"
+        },
+        {
+          "url": "https://careers.mcdonalds.com/",
+          "kind": "page",
+          "what": "McDonald's careers site"
         }
       ],
       "heading_font": "system-ui",
@@ -2489,6 +2523,7 @@
         "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.mcdonalds.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2556,6 +2591,7 @@
       "body_line": "TCCC-UnityText (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2668,6 +2704,7 @@
         "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.nestle.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2749,6 +2786,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2831,6 +2869,7 @@
         "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
       "read_note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2899,6 +2938,7 @@
       "body_line": "Airbnb Cereal VF (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2994,6 +3034,11 @@
           "url": "https://careers.makemytrip.com/",
           "kind": "page",
           "what": "MakeMyTrip careers site"
+        },
+        {
+          "url": "https://investors.makemytrip.com/",
+          "kind": "page",
+          "what": "MakeMyTrip investor relations"
         }
       ],
       "heading_font": "system-ui",
@@ -3011,6 +3056,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -3078,6 +3124,7 @@
       "body_line": "sohne-var (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -3175,6 +3222,7 @@
       "body_line": "Inter (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -3288,6 +3336,7 @@
         "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
       },
       "read_note": "paytm.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -3355,6 +3404,7 @@
       "body_line": "Tondo (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
