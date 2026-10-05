@@ -289,6 +289,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.levi.com/US/en_US/",
+      "kind": "page",
+      "what": "Levi's US store front"
+    },
+    {
+      "url": "https://www.levistrauss.com/",
+      "kind": "page",
+      "what": "Levi Strauss & Co. corporate site (linked from levi.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Levi's]",

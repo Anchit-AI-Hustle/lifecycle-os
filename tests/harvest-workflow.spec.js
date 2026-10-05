@@ -9,8 +9,13 @@
 //   pull_request       read and report (summary + artifact), commit nothing;
 //                      the job holds a read-only token.
 //   workflow_dispatch  read, then a SEPARATE job publishes onto
-//                      `claude/harvest-presets-<run id>` with its own PR, and
-//                      only when dispatched on the default branch.
+//                      `claude/harvest-presets-<run id>`: with its own PR when
+//                      dispatched on the default branch; with NO PR when
+//                      dispatched on another branch (2026-10-05: a PR that
+//                      changes the reader must carry the data that reader
+//                      produced, and the artifact was the only copy - one a
+//                      reviewer's sandbox cannot download). Never an existing
+//                      branch, either way.
 //   the bot's commit   carries `[skip ci]`, so GitHub starts no run for it.
 //
 // Same split as workflows-guarantees.spec.js, stated per test:
@@ -255,13 +260,23 @@ test('a dispatch on the default branch publishes on claude/harvest-presets-<run 
   expect(fields.body).toMatch(new RegExp(`run ${RUN_ID}`));
 });
 
-test('a dispatch on any other branch reads and reports only: nothing is pushed anywhere', () => {
+test('a dispatch on any other branch publishes on its own new branch, opens no PR, and moves no existing branch', () => {
   const w = world({ checkoutRef: 'claude/document-fetch-lockdown' });
   const before = refs(w.remote);
   const r = publish(w, { ref: 'claude/document-fetch-lockdown' });
   expect(r.status, r.stderr).toBe(0);
-  expect(r.stdout).toMatch(/Dispatched on claude\/document-fetch-lockdown, not main: read and reported only/);
-  expect(refs(w.remote)).toEqual(before);
+  expect(r.stdout).toMatch(/Dispatched on claude\/document-fetch-lockdown, not main: published on claude\/harvest-presets-987654321 only\. No PR was opened/);
+  const after = refs(w.remote);
+  const branch = `claude/harvest-presets-${RUN_ID}`;
+  // Exactly one new ref; the dispatching branch and main did not move.
+  expect(Object.keys(after).sort()).toEqual([...Object.keys(before), branch].sort());
+  for (const [name, sha] of Object.entries(before)) expect(after[name], `${name} moved`).toBe(sha);
+  // On top of the tree that was read (the dispatching branch), data only.
+  expect(git(w.remote, 'rev-parse', `${branch}~1`)).toBe(before['claude/document-fetch-lockdown']);
+  expect(git(w.remote, 'diff', '--name-only', `${branch}~1`, branch).split('\n').sort())
+    .toEqual(['data/brands/observed/airtel.observed.json', 'data/brands/presets/index.json']);
+  expect(git(w.remote, 'log', '-1', '--format=%B', branch)).toContain('[skip ci]');
+  // And no PR: the branch that dispatched takes the data itself.
   expect(ghCalls(w.ghLog)).toEqual([]);
 });
 

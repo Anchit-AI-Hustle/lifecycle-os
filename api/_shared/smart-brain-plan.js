@@ -1278,7 +1278,7 @@ function brandPal(entry) {
   const p = (b && b.palette) || {};
   return {
     name: (b && b.name) || '',
-    P: p.primary || '#D0473E', ACC: p.accent || '#6A33D8',
+    P: p.primary || '#D0473E', ACC: p.accent || p.primary || '#6A33D8',
     INK: p.ink || '#111111', SURF: p.surface || '#FFFFFF',
     SURF2: p.surface_alt || '#F6F6F6', LINE: p.line || '#E5E5E5',
   };

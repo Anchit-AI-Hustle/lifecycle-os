@@ -214,7 +214,8 @@
         "selector": "store-heading-block#heading-block-oce3b6 > h1",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.microsoft.com/en-us",
@@ -222,7 +223,8 @@
         "selector": "store-heading-block#heading-block-oc4c6b > div > div > em",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
@@ -328,6 +330,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Microsoft]",
