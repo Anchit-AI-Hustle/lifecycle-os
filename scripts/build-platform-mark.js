@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------
  *   node scripts/build-platform-mark.js          render every target
  *   node scripts/build-platform-mark.js --list   print the target table
+ *   node scripts/build-platform-mark.js --logos  render the logo set only (lockups, wordmark, mono)
  *
  * WHY. This is a universal brand platform: any brand onboards and the whole app
  * runs as that brand. The app CHROME - the browser-tab icon, the touch icon,
@@ -61,6 +62,61 @@ for (const [bucket, scale] of Object.entries(DENSITY)) {
   TARGETS.push({ file: `android/app/src/main/res/mipmap-${bucket}/ic_launcher.png`, w: px, h: px, kind: 'any', use: 'Android legacy launcher' });
   TARGETS.push({ file: `android/app/src/main/res/mipmap-${bucket}/ic_launcher_round.png`, w: px, h: px, kind: 'round', use: 'Android legacy round launcher' });
   TARGETS.push({ file: `android/app/src/main/res/mipmap-${bucket}/ic_launcher_foreground.png`, w: fg, h: fg, kind: 'glyph', use: 'Android adaptive-icon foreground' });
+}
+
+/* ── The logo set (2026-10-05, design/lifecycle-os/DESIGN.md "Logo") ─────────
+   Every lockup is a string transform of the ONE mark file plus the wordmark,
+   so a lockup cannot drift from the tab icon. The wordmark is set in the
+   system sans (--los-font-wordmark), never a tenant's face, and carries a
+   fixed textLength so its width is the same on every machine that renders it;
+   the glyph shapes are that machine's system sans, which is why the PNGs are
+   rendered once here and committed. Colours are the mark's three neutrals and
+   nothing else (the audit's lowSat rule, tests/design-system.spec.js). */
+const WORDMARK = 'Lifecycle OS';
+const WORDMARK_FONT = "system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+const LOGO_SET = [
+  { file: 'assets/lifecycle-os/logos/lockup-horizontal.svg', kind: 'horizontal', use: 'Mark + wordmark on one line: page headers, documents, the share card.' },
+  { file: 'assets/lifecycle-os/logos/lockup-stacked.svg', kind: 'stacked', use: 'Mark above the wordmark: square placements, splash, about page.' },
+  { file: 'assets/lifecycle-os/logos/wordmark.svg', kind: 'wordmark', use: 'The name alone, where the mark already appears nearby.' },
+  { file: 'assets/lifecycle-os/logos/mark-mono.svg', kind: 'mono', use: 'One ink, no tile fill: single-colour print, embossing, a fax-grade copy.' },
+  { file: 'assets/lifecycle-os/logos/mark-glyph.svg', kind: 'glyph', use: 'The loop alone in currentColor: inline on a brand band in --vh-on-band, or as a CSS mask (.los-mark-on-band).' },
+];
+const LOGO_RASTERS = [
+  { file: 'assets/lifecycle-os/logos/lockup-horizontal.png', from: 'horizontal', w: 1296, h: 256 },
+  { file: 'assets/lifecycle-os/logos/lockup-stacked.png', from: 'stacked', w: 480, h: 336 },
+  { file: 'assets/lifecycle-os/logos/wordmark.png', from: 'wordmark', w: 992, h: 192 },
+  { file: 'assets/lifecycle-os/logos/mark-mono-512.png', from: 'mono', w: 512, h: 512 },
+];
+
+/** The mark's inner content (tile + glyph), with the SVG wrapper and comment stripped. */
+function markParts(svg) {
+  const src = svg || fs.readFileSync(SVG_PATH, 'utf8');
+  const tile = (src.match(/<rect id="tile"[^>]*\/>/) || [])[0];
+  const glyph = (src.match(/<g id="glyph">[\s\S]*?<\/g>/) || [])[0];
+  if (!tile || !glyph) throw new Error('lifecycle-os-mark.svg lost its tile or glyph');
+  return { tile, glyph };
+}
+
+/** One logo-set SVG, by kind. Literal neutrals only: an <img> cannot read the page. */
+function logoSvg(kind, svg) {
+  const t = tokens(svg);
+  const { tile, glyph } = markParts(svg);
+  const lit = (s) => s.replace(/var\(--los-ink, (#[0-9A-Fa-f]{6})\)/g, '$1').replace(/var\(--los-tile, (#[0-9A-Fa-f]{6})\)/g, '$1').replace(/var\(--los-line, (#[0-9A-Fa-f]{6})\)/g, '$1');
+  const mark = (x, y, size) => `<g transform="translate(${x} ${y}) scale(${size / 64})">${lit(tile)}${lit(glyph)}</g>`;
+  const word = (x, y, size, len, anchor) => `<text x="${x}" y="${y}" font-family="${WORDMARK_FONT}" font-size="${size}" font-weight="700" fill="${t.ink}" textLength="${len}" lengthAdjust="spacingAndGlyphs"${anchor ? ` text-anchor="${anchor}"` : ''}>${WORDMARK}</text>`;
+  const open = (w, h, label) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${label}"><title>${label}</title>`;
+  if (kind === 'horizontal') return open(324, 64, WORDMARK) + mark(0, 0, 64) + word(80, 44, 34, 240) + '</svg>\n';
+  if (kind === 'stacked') return open(240, 168, WORDMARK) + mark(72, 4, 96) + word(120, 150, 30, 204, 'middle') + '</svg>\n';
+  if (kind === 'wordmark') return open(248, 48, WORDMARK) + word(4, 36, 34, 240) + '</svg>\n';
+  if (kind === 'mono') {
+    const monoTile = `<rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="${t.ink}" stroke-width="3"/>`;
+    return open(64, 64, WORDMARK + ' mark, one ink') + monoTile + lit(glyph) + '</svg>\n';
+  }
+  if (kind === 'glyph') {
+    const g = glyph.replace(/var\(--los-ink, #[0-9A-Fa-f]{6}\)/g, 'currentColor');
+    return open(64, 64, WORDMARK + ' mark') + g + '</svg>\n';
+  }
+  throw new Error('unknown logo kind ' + kind);
 }
 
 /** The mark's own colours, read from its <style> block. */
@@ -122,7 +178,10 @@ async function render() {
   try {
     const context = await browser.newContext({ deviceScaleFactor: 1 });
     const page = await context.newPage();
-    for (const target of TARGETS) {
+    // --logos renders the logo set only, so adding a lockup does not
+    // re-encode every committed icon raster.
+    const ONLY_LOGOS = process.argv.includes('--logos');
+    for (const target of (ONLY_LOGOS ? [] : TARGETS)) {
       await page.setViewportSize({ width: target.w, height: target.h });
       await page.setContent(documentFor(target, svg), { waitUntil: 'load' });
       const png = await page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: target.w, height: target.h }, type: 'png' });
@@ -131,10 +190,25 @@ async function render() {
       fs.writeFileSync(out, png);
       console.log(`${target.file.padEnd(62)} ${String(target.w).padStart(4)}x${String(target.h).padEnd(4)} ${target.kind.padEnd(9)} ${png.length} bytes`);
     }
+    // The logo set: SVGs written from the mark, then their rasters.
+    for (const l of LOGO_SET) {
+      const out = path.join(ROOT, l.file);
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, logoSvg(l.kind, svg));
+      console.log(`${l.file.padEnd(62)} ${l.kind}`);
+    }
+    for (const r of LOGO_RASTERS) {
+      await page.setViewportSize({ width: r.w, height: r.h });
+      const inner = logoSvg(r.from, svg).replace(/ width="\d+" height="\d+"/, ` width="${r.w}" height="${r.h}"`);
+      await page.setContent(`<!doctype html><meta charset="utf-8"><style>html,body{margin:0;padding:0;background:transparent;width:${r.w}px;height:${r.h}px;overflow:hidden}svg{display:block}</style><body>${inner}</body>`, { waitUntil: 'load' });
+      const png = await page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: r.w, height: r.h }, type: 'png' });
+      fs.writeFileSync(path.join(ROOT, r.file), png);
+      console.log(`${r.file.padEnd(62)} ${String(r.w).padStart(4)}x${String(r.h).padEnd(4)} ${png.length} bytes`);
+    }
     // The adaptive icon's background is a colour RESOURCE, and it is the tile
     // colour so the launcher reads as the same object as the tab icon.
     const colour = path.join(ANDROID_RES, 'values', 'ic_launcher_background.xml');
-    if (fs.existsSync(path.dirname(colour))) {
+    if (!ONLY_LOGOS && fs.existsSync(path.dirname(colour))) {
       fs.writeFileSync(colour, `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">${tokens(svg).tile}</color>\n</resources>\n`);
       console.log(`${path.relative(ROOT, colour).padEnd(62)} background ${tokens(svg).tile}`);
     }
@@ -143,11 +217,13 @@ async function render() {
   }
 }
 
-module.exports = { TARGETS, SVG_PATH, tokens, variant, documentFor };
+module.exports = { TARGETS, SVG_PATH, tokens, variant, documentFor, LOGO_SET, LOGO_RASTERS, logoSvg, markParts, WORDMARK, WORDMARK_FONT };
 
 if (require.main === module) {
   if (process.argv.includes('--list')) {
     for (const t of TARGETS) console.log(`${t.file.padEnd(62)} ${t.w}x${t.h} ${t.kind} - ${t.use}`);
+    for (const l of LOGO_SET) console.log(`${l.file.padEnd(62)} ${l.kind} - ${l.use}`);
+    for (const r of LOGO_RASTERS) console.log(`${r.file.padEnd(62)} ${r.w}x${r.h} from ${r.from}`);
   } else {
     render().catch((e) => { console.error(e); process.exit(1); });
   }
