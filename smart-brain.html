@@ -1423,15 +1423,41 @@ async function viewEntry(i, forceRegen){
 }
 window.viewEntry = viewEntry;
 
+// Signed out is a state, not a fault. Said before the request, in the accent
+// rule, so the calendar never opens on "Could not load the plan: sign_in_required".
+// This read starts from the page script, and auth.js is deferred, so
+// LifecycleStatus does not exist until this function yields once.
+async function signedOutPlan(ticket, what){
+  const deadline = Date.now() + 8000;
+  while(!(window.LifecycleStatus && window.LifecycleStatus.decide)){
+    if(Date.now() > deadline) return false;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  const stop = await window.LifecycleStatus.decide(what);
+  if(!stop || !stillCurrent(ticket)) return !!stop;
+  PLAN = [];
+  PLAN_STATE = { kind: 'empty', message: stop.message };
+  renderPlan();
+  const el = $('syncstate');
+  if(el){ el.hidden = false; el.className = 'actstate'; window.LifecycleStatus.show(el, stop); }
+  return true;
+}
+
 async function loadPlan(){
   const ticket = claimPlan();
   const btn = $('refresh'); const label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Refreshing…'; }
   sbState('busy', 'Reading the stored plan…');
   try{
+    if(await signedOutPlan(ticket, 'Loading the plan')) return null;
     const r = await fetch(`${API}?action=smart-brain-plan`);
     const data = await safeJson(r);
-    if(!data.ok) throw new Error(data.error || 'Failed to load plan');
+    if(!data.ok){
+      const err = new Error(data.message || data.error || 'Failed to load plan');
+      err.code = data.error || '';
+      err.payload = data;
+      throw err;
+    }
     if(!stillCurrent(ticket)) return data;   // a newer action already owns the screen
     $('mode').textContent = data.mode === 'db-linked' ? (data.stored ? 'DB-linked' : 'DB (empty)') : 'Preview';
     let rows = data.entries || data.plan || [];
@@ -1462,9 +1488,14 @@ async function loadPlan(){
   }catch(e){
     if(!stillCurrent(ticket)) return null;
     PLAN = [];
-    PLAN_STATE = { kind: 'error', message: e.message };
+    const said = (window.LifecycleFailure && window.LifecycleFailure.sentence(e)) || e.message;
+    const ordinary = window.LifecycleStatus && window.LifecycleStatus.ordinary && window.LifecycleStatus.ordinary(e);
+    PLAN_STATE = { kind: ordinary ? 'empty' : 'error', message: said };
     renderPlan();
-    sbState('err', 'Could not load the plan: ' + e.message);
+    if(ordinary && window.LifecycleStatus.show){
+      const el = $('syncstate');
+      if(el){ el.hidden = false; el.className = 'actstate'; window.LifecycleStatus.show(el, e); }
+    }else sbState('err', 'Could not load the plan: ' + said);
     return null;
   }
   finally{ if(btn){ btn.disabled = false; btn.textContent = label; } }
@@ -1501,6 +1532,7 @@ async function runSync(){
   $('sync').disabled = true; $('sync').textContent = 'Reviewing latest data…';
   sbState('busy', 'Reviewing the latest data and rebuilding the rolling calendar…');
   try{
+    if(await signedOutPlan(ticket, 'Daily Sync')) return;
     const r = await fetch(`${API}?action=smart-brain-sync-daily`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
     const data = await safeJson(r);
     if(!data.ok) throw new Error(data.error || 'Sync failed');

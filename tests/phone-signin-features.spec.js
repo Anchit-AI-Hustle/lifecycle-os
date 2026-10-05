@@ -599,13 +599,13 @@ test('signed out on production, the three are off with a sentence naming the sig
   try {
     const log = await openWizard(page, world, { session: false, query: '?id=' + BRAND_ID + '&step=4' });
     await page.waitForSelector('[data-suggest-off="voice.tone"]');
-    await expect(page.locator('p[data-needs-account="suggest"]')).toContainText(/sign in with your mobile number and PIN/i);
+    await expect(page.locator('p[data-needs-account="suggest"]')).toContainText(/sign in with Google/i);
     await page.click('.step-pip[data-step="5"]');
     await expect(page.locator('#doImport')).toBeDisabled();
-    await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/sign in with your mobile number and PIN/i);
+    await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/sign in with Google/i);
     await page.click('.step-pip[data-step="6"]');
     await expect(page.locator('#packBuild')).toBeDisabled();
-    await expect(page.locator('p[data-needs-account="context-pack"]')).toContainText(/sign in with your mobile number and PIN/i);
+    await expect(page.locator('p[data-needs-account="context-pack"]')).toContainText(/sign in with Google/i);
     expect((await stepState(page, '#packBuild')).failures).toBe(0);
     expect(log.api.filter((x) => /^(suggest|catalog-import|context-)/.test(x.op))).toEqual([]);
     expect(world.llm.calls).toBe(0);

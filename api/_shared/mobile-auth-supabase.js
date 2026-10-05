@@ -608,7 +608,7 @@ async function me(cfg, req) {
   if (u.network || u.status >= 500) {
     return { status: 503, body: { ok: false, error: 'backend_unreachable', mode: 'supabase', host: cfg.host, message: 'The account service (' + cfg.host + ') is not answering, so your sign-in cannot be checked right now.' } };
   }
-  return { status: 401, body: { ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.' } };
+  return { status: 401, body: { ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with Google.' } };
 }
 
 /** POST /auth/v1/logout?scope=local (this session) or global (every session of this account). */
