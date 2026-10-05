@@ -1090,7 +1090,7 @@ test.describe('the router', () => {
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
       'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
-      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });
