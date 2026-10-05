@@ -723,8 +723,9 @@ test.afterAll(async () => { if (server) await new Promise((r) => server.close(r)
 
 /**
  * Every page that LOADS auth.js - a <script src>, not a mention. campaign.html
- * and storefront-3d.html say "auth.js" in a comment explaining why they
- * deliberately do not load it, so they have no rail and no Sign in chip.
+ * says "auth.js" in a comment explaining why it deliberately does not load it
+ * (it document.write()s an artefact over itself), so it has no rail and no
+ * Sign in chip.
  */
 const PAGES = fs.readdirSync(ROOT)
   .filter((f) => f.endsWith('.html') && !f.startsWith('_'))

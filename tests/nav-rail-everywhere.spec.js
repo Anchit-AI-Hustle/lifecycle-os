@@ -118,7 +118,6 @@ const EXCLUDED = {
   'landing-pages/final/knickgasm-uk-presell-grail-drop-v1.html': 'rendered landing artefact behind /lp/grail-drop-v1, framed by /templates',
   'landing-pages/final/knickgasm-uk-presell-grail-drop-v2.html': 'rendered landing artefact behind /lp/grail-drop-v2, framed by /templates',
   'landing-pages/final/lp_all_in_one_agent_v2.html': 'rendered landing artefact, framed by /templates',
-  'storefront-3d.html': 'full-bleed WebGL storefront WEBSITE (/3d), framed by /templates; its own header says why it carries no auth.js',
   'campaign.html': 'campaign-variant renderer (/c/:theme/:variant) that document.write()s the artefact over itself; its own header says why',
   'lifecycle-usa-d2c-dashboard.html': 'embedded inside /data-analysis?tab=review as an <iframe>; its standalone routes redirect there',
   // Retired routes: meta-refresh / location.replace stubs that vercel.json also
@@ -127,12 +126,9 @@ const EXCLUDED = {
   'data-analysis-contrast.html': 'redirect stub; vercel.json redirects it to /data-analysis',
   'mailer-discovery.html': 'redirect stub (location.replace) to /competitor-benchmarking.html#discover',
   // Documents, not app surfaces.
-  'privacy.html': 'legal page, bare by rule (auth.js isOpenPage names it)',
-  'terms.html': 'legal page, bare by rule (auth.js isOpenPage names it)',
   'styleguide.html': 'isolated 3D style-guide specimens; bare by instruction',
   'docs/deck.html': 'full-screen slide deck (/deck): body{overflow:hidden}, a rail would cover the slide',
   'docs/prd-deck.html': 'full-screen slide deck (/prd-deck): same',
-  'playbook/index.html': 'static playbook sub-site (index + dossiers + features); its in-app counterpart playbook.html at /playbook-single carries the shell',
   'ads-masterclass.html': 'unrouted lesson document: no rewrite, no rail row, no link anywhere in the app',
 };
 
@@ -365,7 +361,8 @@ test('the sweep covers a real page list, and every excluded page exists for the 
   // A sweep over nothing passes everything.
   expect(SWEPT.length, 'too few app pages to sweep').toBeGreaterThan(45);
   for (const f of ['index.html', 'research.html', 'smart-brain.html', 'template-gallery.html', 'premium-experience.html',
-    'lifecycle-usa-july-calendar-mailer-studio.html', 'lifecycle_mailer_architect_v34.html', 'onboarding.html']) {
+    'lifecycle-usa-july-calendar-mailer-studio.html', 'lifecycle_mailer_architect_v34.html', 'onboarding.html',
+    'privacy.html', 'terms.html', 'storefront-3d.html', 'playbook/index.html']) {
     expect(SWEPT, `${f} is not in the sweep`).toContain(f);
   }
   // An exclusion for a file that no longer exists is a stale exclusion, and a
@@ -378,6 +375,32 @@ test('the sweep covers a real page list, and every excluded page exists for the 
   const landed = (vercel.rewrites || []).map((r) => String(r.destination).split('?')[0]).filter((d) => d.endsWith('.html')).map((d) => d.replace(/^\//, ''));
   const unaccounted = landed.filter((f) => fs.existsSync(path.join(ROOT, f)) && !SWEPT.includes(f) && !EXCLUDED[f]);
   expect(unaccounted, 'rewrite destinations neither swept nor excluded').toEqual([]);
+});
+
+test('the rail is a labelled landmark with a skip link to the page content', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const page = await ctx.newPage();
+  await open(page, 'privacy.html', { config: WITH_BACKEND, reachable: true });
+  const a11y = await page.evaluate(() => {
+    const side = document.querySelector('#lifecycle-nav .lnav-side');
+    const skip = document.querySelector('#lifecycle-nav .lnav-skip');
+    const chip = document.getElementById('lnav-signin');
+    return {
+      label: side && (side.getAttribute('aria-label') || ''),
+      role: side && side.getAttribute('role'),
+      skip: skip && (skip.textContent || '').trim(),
+      href: skip && skip.getAttribute('href'),
+      target: !!(document.getElementById('lc-content') || document.querySelector('main, [role="main"]')),
+      chip: chip && (chip.textContent || '').trim(),
+    };
+  });
+  await ctx.close();
+  expect(a11y.role).toBe('navigation');
+  expect(a11y.label).toMatch(/main navigation/i);
+  expect(a11y.skip).toMatch(/skip to main content/i);
+  expect(a11y.href).toBe('#lc-content');
+  expect(a11y.target, 'no main-content target for the skip link').toBe(true);
+  expect(a11y.chip).toBe('Sign in with Gmail');
 });
 
 /* ═══ 1. the rail is rendered, anchored, uncovered, on every app page ══════ */
@@ -494,7 +517,8 @@ test('Sign-in pressed while the config is stalled waits, and never calls a healt
       expect(end.note).toBe(false);
       const call = await page.evaluate(() => (window.__oauthCalls || [])[0] || null);
       expect(call.provider).toBe('google');
-      expect(call.options.redirectTo).toMatch(/\/research\.html$/);
+      expect(call.options.redirectTo).toMatch(/\/$/);
+      expect(call.options.queryParams.prompt).toBe('select_account');
     } else {
       await page.waitForFunction(() => {
         const n = document.getElementById('lnav-signin-note');

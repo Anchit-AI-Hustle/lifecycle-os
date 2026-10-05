@@ -14,11 +14,13 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "blocked",
-      "at": "2026-10-04",
-      "host": "www.sephora.com",
-      "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+      "renderer": "rendered",
+      "at": "2026-10-05",
+      "host": "newsroom.sephora.com",
+      "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands)"
+    },
+    "read_sources_note": "Its own other material was tried too: newsroom.sephora.com (image), newsroom.sephora.com (rendered).",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -58,7 +60,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "sephora.com"
+    "sephora.com",
+    "newsroom.sephora.com",
+    "www.lawnmowerlawnmower.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -292,14 +296,14 @@
   ],
   "identity_sources": [
     {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-192x192.png",
+      "kind": "image",
+      "what": "Sephora newsroom icon"
+    },
+    {
       "url": "https://newsroom.sephora.com/",
       "kind": "page",
       "what": "Sephora newsroom"
-    },
-    {
-      "url": "https://www.sephora.com/beauty/about-us",
-      "kind": "page",
-      "what": "Sephora about page"
     }
   ],
   "offerings": [],
@@ -310,6 +314,65 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Sephora]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Sephora]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-180x180.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://www.lawnmowerlawnmower.com/se-news/se-newsroom-logo-2024.png",
+      "role": "hero",
+      "alt": "Sephora Newsroom",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/09/heartsnothate_logo.png",
+      "role": "hero",
+      "alt": "Project Hearts Not Hate Logo",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/08/Hand-holding-Sephora-shopping-bag.jpg",
+      "role": "hero",
+      "alt": "Hand holding Sephora shopping bag",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/07/Sephora_OliveYoung.jpg",
+      "role": "hero",
+      "alt": "Sephora and Olive Young",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/04/sephora-accelerate.png",
+      "role": "photograph",
+      "alt": "Sephora Accelerate",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/04/sephora-squad.png",
+      "role": "photograph",
+      "alt": "Sephora Squad",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://newsroom.sephora.com/wp-content/uploads/2026/04/my-sephora-storefront.png",
+      "role": "photograph",
+      "alt": "My Sephora Storefront",
+      "found_on": "https://newsroom.sephora.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-180x180.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

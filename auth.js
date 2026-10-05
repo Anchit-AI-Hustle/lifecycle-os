@@ -6,11 +6,15 @@
  *   1. Bootstraps a Supabase client from window.__SUPABASE__ (set in HTML head)
  *      OR from the /api/public-config endpoint at runtime. The client persists
  *      the session and accepts the Google OAuth callback.
- *   2. SIGN-IN IS GOOGLE, THROUGH SUPABASE AUTH (2026-10-05). The rail's
- *      "Sign in" chip starts Google sign-in and never hands the browser to a
- *      host that is not there. A stored mobile-number session from before this
- *      change still restores, and the panel that created it is still in this
- *      file for that session, but nothing in the product offers it as login.
+ *   2. SIGN-IN IS GMAIL, THROUGH SUPABASE GOOGLE AUTH (2026-10-05). The rail's
+ *      "Sign in with Gmail" chip starts Google sign-in (the Gmail account
+ *      picker) and never hands the browser to a host that is not there. redirectTo is
+ *      the origin root (the Site URL) so a missing wildcard allowlist cannot
+ *      400 the bounce; rememberReturnTo / restoreReturnTo send the person
+ *      back to the page they pressed from. A stored mobile-number session
+ *      from before this change still restores, and the panel that created it
+ *      is still in this file for that session, but nothing in the product
+ *      offers it as login.
  *   3. Renders a shared left rail with cross-step navigation so any stage
  *      can jump to any other stage.
  *   4. Provides window.LifecycleAuth.{client, session, user, signOut,
@@ -2001,6 +2005,16 @@
         #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid var(--vh-line-hot);
           color: var(--vh-ink-dim); cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
         #lifecycle-nav .lnav-signout:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-skip {
+          position: absolute; left: -999px; top: 8px; z-index: 200;
+          background: var(--vh-panel); color: var(--vh-ink);
+          border: 1px solid var(--vh-line-hot); border-radius: 8px;
+          padding: 8px 12px; font: inherit; font-size: 13px; font-weight: 700;
+          text-decoration: none;
+        }
+        #lifecycle-nav .lnav-skip:focus {
+          left: 8px; outline: 2px solid var(--vh-focus); outline-offset: 2px;
+        }
         #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
         html.lnav-collapsed #lifecycle-nav .lnav-signin-with { display: none; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
@@ -2067,13 +2081,14 @@
           html.lnav-collapsed { --lsb-w: 248px; }
         }
       </style>
+      <a class="lnav-skip" href="#lc-content">Skip to main content</a>
       <div class="lnav-mbar">
-        <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation">☰</button>
+        <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation" aria-expanded="false" aria-controls="lnav-side">☰</button>
         <a class="lnav-mbrand" href="/">${LOGO_SVG} <span style="margin-left:8px" class="lnav-mbrand-label">Lifecycle OS</span></a>
       </div>
       <div class="lnav-mbar-spacer"></div>
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
-      <aside class="lnav-side">
+      <aside class="lnav-side" id="lnav-side" role="navigation" aria-label="Main navigation">
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
             ${LOGO_SVG}
@@ -2098,6 +2113,7 @@
       </div>
     `;
     document.body.insertBefore(wrap, document.body.firstChild);
+    bindSkipTarget(wrap);
     // Signal to embedded apps (e.g. Mailer Studio) that they're rendering
     // inside the Lifecycle OS shell, so they can hide their own duplicate
     // header / tabs / sign-out chrome.
@@ -2227,7 +2243,14 @@
     }
 
     // Mobile drawer open/close
-    const setOpen = (o) => wrap.classList.toggle('open', o);
+    const setOpen = (o) => {
+      wrap.classList.toggle('open', o);
+      const burger = wrap.querySelector('#lnav-burger');
+      if (burger) {
+        burger.setAttribute('aria-expanded', o ? 'true' : 'false');
+        burger.setAttribute('aria-label', o ? 'Close navigation' : 'Open navigation');
+      }
+    };
     wrap.querySelector('#lnav-burger')?.addEventListener('click', () => setOpen(true));
     wrap.querySelector('#lnav-backdrop')?.addEventListener('click', () => setOpen(false));
     document.addEventListener('keydown', (e) => {
@@ -2302,9 +2325,32 @@
   }
 
   // The user block at the foot of the rail: the account chip + sign-out when a
-  // session exists, a "Sign in" link otherwise. It is the ONLY part of the rail
-  // that depends on the session, which is why it can be swapped in place (see
-  // setRailUser) instead of the whole rail waiting for the session to resolve.
+  // session exists, a "Sign in with Gmail" link otherwise. It is the ONLY part
+  // of the rail that depends on the session, which is why it can be swapped in
+  // place (see setRailUser) instead of the whole rail waiting for the session
+  // to resolve. The visible words are Gmail; the provider underneath is Google.
+  const SIGN_IN_LABEL = 'Sign in with Gmail';
+  function bindSkipTarget(wrap) {
+    const skip = wrap && wrap.querySelector('.lnav-skip');
+    if (!skip) return;
+    const resolve = () => document.getElementById('lc-content')
+      || document.querySelector('main, [role="main"]')
+      || wrap.nextElementSibling;
+    const mark = (t) => {
+      if (!t) return null;
+      if (!t.id) t.id = 'lc-content';
+      return t;
+    };
+    mark(resolve());
+    skip.addEventListener('click', (e) => {
+      const t = mark(resolve());
+      if (!t) return;
+      e.preventDefault();
+      if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+      try { t.focus({ preventScroll: true }); } catch (_) { try { t.focus(); } catch (__) {} }
+      try { t.scrollIntoView({ block: 'start' }); } catch (_) {}
+    });
+  }
   function escHtml(v) {
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
@@ -2312,9 +2358,13 @@
   function signInLabelHtml() {
     return 'Sign in<span class="lnav-signin-with"> with Gmail</span>';
   }
-  function paintSignInLabel(btn) {
-    if (!btn || btn.dataset.busy) return;
+  function paintSignInLabel(btn, opts) {
+    if (!btn) return;
+    // A press in flight owns the label ("Checking sign-in…"). clearSignInNote
+    // must not take it back; the press itself restores with { force: true }.
+    if (btn.dataset.busy && !(opts && opts.force)) return;
     btn.innerHTML = signInLabelHtml();
+    btn.setAttribute('aria-label', SIGN_IN_LABEL);
     btn.removeAttribute('title');
   }
   function railUserHtml(user) {
@@ -2333,7 +2383,7 @@
     return user
       ? `<div class="lnav-user"${user.phone ? ` title="${escHtml(user.phone)}"` : ''}>${avatar}<span class="lnav-uname">${escHtml(display)}</span>
            <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
-      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/">${signInLabelHtml()}</a></div>`;
+      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/" aria-label="${escHtml(SIGN_IN_LABEL)}">${signInLabelHtml()}</a></div>`;
   }
   function wireRailUser(root) {
     const signinBtn = root.querySelector('#lnav-signin');
@@ -2557,14 +2607,63 @@
   }
 
   /**
+   * What this Auth project publishes about its providers.
+   *
+   * GET /auth/v1/settings is public (the same document Sign in with Gmail
+   * reads before it navigates). `external.google === false` is the live
+   * production state on 2026-10-05: GoTrue then answers authorize with
+   * 400 validation_failed "Unsupported provider: provider is not enabled",
+   * and because signInWithOAuth NAVIGATES the person sees that JSON instead
+   * of a sentence. Unreadable settings fail OPEN - a CORS miss, a timeout
+   * or a harness that only answers /health must not block a working project.
+   * Never prefetch /auth/v1/authorize: that call spends the PKCE verifier.
+   */
+  const SETTINGS_CACHE = new Map();
+  function authSettings(url, anonKey) {
+    if (!url) return Promise.resolve(null);
+    const key = String(url);
+    if (SETTINGS_CACHE.has(key)) return SETTINGS_CACHE.get(key);
+    const probe = (async () => {
+      const ctl = new AbortController();
+      const timer = setTimeout(function () { ctl.abort(); }, 4000);
+      try {
+        const res = await fetch(url.replace(/\/+$/, '') + '/auth/v1/settings', {
+          headers: {
+            apikey: anonKey || '',
+            Authorization: 'Bearer ' + (anonKey || ''),
+          },
+          signal: ctl.signal,
+        });
+        if (!res.ok) return null;
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!ct.includes('application/json')) return null;
+        return await res.json();
+      } catch (e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    SETTINGS_CACHE.set(key, probe);
+    return probe;
+  }
+  function googleProviderOff(settings) {
+    if (!settings || typeof settings !== 'object') return false;
+    const ext = settings.external;
+    if (!ext || typeof ext !== 'object') return false;
+    return ext.google === false;
+  }
+
+  /**
    * Start Google sign-in, but never hand the browser to a host that is not
-   * there. Resolves to null when the redirect has been started, otherwise to
-   * `{ kind, message, html }` naming the state that refused it. The sentence
-   * is signedOutSentence()'s - the SAME words the standing bar shows for that
-   * state - because two hand-written copies of "the project is gone" had
-   * already drifted: the bar said "most likely deleted, renamed or paused"
-   * (the network cannot tell them apart) and this path said "deleted or
-   * renamed", a claim the code cannot make.
+   * there, or to a project whose Google provider is off. Resolves to null
+   * when the redirect has been started, otherwise to `{ kind, message, html }`
+   * naming the state that refused it. The sentence is signedOutSentence()'s -
+   * the SAME words the standing bar shows for that state - because two
+   * hand-written copies of "the project is gone" had already drifted: the
+   * bar said "most likely deleted, renamed or paused" (the network cannot
+   * tell them apart) and this path said "deleted or renamed", a claim the
+   * code cannot make.
    */
   async function signInRefusal() {
     // Never diagnose a boot still in flight (see authReady). This also covers
@@ -2575,16 +2674,19 @@
       const s = signedOutSentence(kind);
       return { kind: kind, message: s.text, html: s.html };
     }
+    const cfg = window.__SUPABASE__ || {};
+    const settings = await authSettings(cfg.url, cfg.anonKey);
+    if (googleProviderOff(settings)) {
+      const s = signedOutSentence('provider-off');
+      return { kind: 'provider-off', message: s.text, html: s.html };
+    }
     rememberReturnTo();
     const client = window.LifecycleAuth && window.LifecycleAuth.client;
     if (!(client && client.auth && typeof client.auth.signInWithOAuth === 'function')) {
       const s = signedOutSentence('sdk');
       return { kind: 'sdk', message: s.text, html: s.html };
     }
-    const { error } = await client.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: location.origin + location.pathname },
-    });
+    const { error } = await client.auth.signInWithOAuth(googleSignInOptions());
     if (!error) return null;
     const message = 'Sign-in failed: ' + (error.message || error);
     return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
@@ -2603,6 +2705,7 @@
    */
   function showSignInRefusal(wrap, btn, refusal) {
     btn.textContent = 'Sign-in unavailable';
+    btn.setAttribute('aria-label', 'Sign-in unavailable');
     btn.title = refusal.message;
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
     let note = wrap.querySelector('#lnav-signin-note');
@@ -2638,11 +2741,12 @@
       const waited = !authReady.settled;
       if (waited && btn) {
         btn.textContent = 'Checking sign-in…';
+        btn.setAttribute('aria-label', 'Checking sign-in');
         btn.setAttribute('aria-busy', 'true');
       }
       const refusal = await signInRefusal();
       if (waited && btn) {
-        paintSignInLabel(btn);
+        paintSignInLabel(btn, { force: true });
         btn.removeAttribute('aria-busy');
       }
       if (!refusal) return '';
@@ -2695,7 +2799,7 @@
 
   /**
    * ONE sentence per signed-out state, keyed by `kind`
-   * (unconfigured | unreachable | sdk | signed-out).
+   * (unconfigured | unreachable | sdk | signed-out | provider-off).
    *
    * Two surfaces explain why sign-in is not happening: the standing bar at the
    * top of every page and the note under the rail's Sign-in button. They were
@@ -2709,13 +2813,14 @@
    * bar has always used, `text` is the same words with no markup.
    */
   function signedOutSentence(kind) {
-    // THREE states someone can fix, not one, and naming the wrong one sends
+    // FOUR states someone can fix, not one, and naming the wrong one sends
     // the reader to check the thing that is not broken. `unconfigured` is a
     // missing env var on the deployment; `unreachable` is a project that no
     // longer answers, and its host is worth printing because that is the value
     // that has to change; `sdk` is the supabase-js CDN not loading;
-    // `signed-out` is the ordinary case where everything works and this
-    // visitor simply has no session.
+    // `provider-off` is a reachable project whose Google provider is disabled
+    // (GoTrue 400 validation_failed); `signed-out` is the ordinary case where
+    // everything works and this visitor simply has no session.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
     // 2026-10-05: sign-in is Google, and Google needs this Supabase project.
@@ -2732,6 +2837,13 @@
         + 'what this browser holds. <b>Sign in with Gmail</b> (the Sign in with Gmail '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
+    } else if (kind === 'provider-off' && host) {
+      html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
+        + '</code>). Sign in with Gmail cannot start because the Auth server refuses it with '
+        + '<code>validation_failed</code>: provider is not enabled. In the Supabase dashboard open '
+        + '<b>Authentication → Providers → Google</b>, turn the provider on, set the Client ID and '
+        + 'Client Secret from a Google Cloud OAuth web client, and add the Authorized redirect URI '
+        + '<code>https://' + host + '/auth/v1/callback</code>. Then reload. Every page stays open.';
     } else if (kind === 'unreachable' && host) {
       // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
       // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
@@ -2767,7 +2879,19 @@
    */
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
-    if (existing) return existing;
+    if (existing) {
+      // Sign-in may learn a more specific state (Google is off) after boot
+      // already painted "signed out". force:true is a request for the
+      // explanation, so the bar's words have to match the chip's.
+      if (opts && opts.force && existing.getAttribute('data-kind') !== kind) {
+        existing.setAttribute('data-kind', kind);
+        var existingTxt = existing.querySelector('#lc-authnotice-text');
+        if (existingTxt) existingTxt.innerHTML = signedOutSentence(kind).html;
+        existing.style.boxShadow = 'inset 0 3px 0 ' + (kind === 'signed-out'
+          ? 'var(--vh-accent)' : 'var(--vh-warn)');
+      }
+      return existing;
+    }
     // Dismissed for this tab? Check before building anything.
     if (!(opts && opts.force)) {
       try { if (sessionStorage.getItem('lc-authnotice-hid')) return null; } catch (e) { /* private mode */ }
@@ -2944,9 +3068,32 @@
     } catch (_) {}
     return false;
   }
-  // Remember where the user was so we can send them back after Google bounces
-  // them to the Supabase Site URL (which happens when the exact path is not in
-  // the redirect allow-list).
+  /**
+   * Google OAuth options. redirectTo is ALWAYS the origin root: that is the
+   * Site URL every deployment already allowlists. A per-page pathname 400s
+   * when the wildcard is missing (docs/oauth-redirect-migration.md) and the
+   * person lands on Chrome's error with no in-app sentence. rememberReturnTo
+   * / restoreReturnTo send them back to the page they pressed from.
+   * prompt=select_account is the Gmail picker: without it a browser already
+   * signed into one Google account never offers another.
+   */
+  function googleSignInOptions() {
+    return {
+      provider: 'google',
+      options: {
+        redirectTo: location.origin + '/',
+        queryParams: { prompt: 'select_account' },
+      },
+    };
+  }
+  function sameAppPath(a, b) {
+    const norm = (p) => {
+      p = String(p || '/');
+      if (p === '' || p === '/index.html') return '/';
+      return p;
+    };
+    return norm(a) === norm(b);
+  }
   function rememberReturnTo() {
     try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
   }
@@ -2956,7 +3103,9 @@
     if (!target) return;
     const targetPath = target.split('?')[0].split('#')[0];
     // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
-    if (targetPath && targetPath !== location.pathname) {
+    // `/` and `/index.html` are the same app page: a bounce between them after
+    // the Site-URL callback would loop.
+    if (targetPath && !sameAppPath(targetPath, location.pathname)) {
       location.replace(target);
     }
   }
@@ -3884,6 +4033,8 @@
       // Google is the sign-in (2026-10-05). openPanel remains for a stored
       // phone session's own panel; the Sign in chip does not call it.
       openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
+      googleSignInOptions,
+      restoreReturnTo,
       // Why an action that needs the server cannot run right now, or null.
       // See serverActions(): pages ask BEFORE sending, and throw the answer.
       serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),
