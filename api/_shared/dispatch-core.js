@@ -274,6 +274,11 @@ async function enqueue(auth, workspaceId, spec, context) {
     segment: s.segment || null, audience_size: s.audience_size,
     message_channel: touch.channel || undefined, message_class: touch.message_class,
     contact_fatigue: contactFatigue || undefined,
+    brand, market, offer,
+    // A send with no readable brand is UNCHECKED, and at the queue that blocks.
+    require_brand: true,
+    // Deadline lines are read when the mail goes out.
+    now: readAt(mode, s.scheduled_for),
   });
 
   if (preflight.verdict === 'block' && !s.override_preflight) {
