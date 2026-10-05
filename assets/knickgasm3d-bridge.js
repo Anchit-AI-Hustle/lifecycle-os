@@ -285,11 +285,11 @@ export async function mountKnickgasm3D(el, opts) {
   const tier = detectTier(opts.tier || el.getAttribute('data-tier'));
 
   // Loading state.
-  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:${el.clientHeight || 320}px;font-family:${theme.bodyFont};color:${theme.accent}">Lacing the scene…</div>`;
+  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:${el.clientHeight || 320}px;font-family:var(--vh-font-body, ${theme.bodyFont});color:var(--vh-accent-text, ${theme.accent})">Lacing the scene…</div>`;
 
   const products = await loadCatalog(route.region);
   if (!products.length) {
-    el.innerHTML = `<div style="padding:28px;font-family:${theme.bodyFont};color:${theme.surface};background:${theme.ink};border-radius:14px">Catalog is briefly unavailable. Please refresh.</div>`;
+    el.innerHTML = `<div style="padding:28px;font-family:var(--vh-font-body, ${theme.bodyFont});color:var(--vh-ink, ${theme.ink});background:var(--vh-panel-2, ${theme.surface});border-left:4px solid var(--vh-accent, ${theme.accent});border-radius:14px">Catalog is briefly unavailable. Please refresh.</div>`;
     return () => {};
   }
 

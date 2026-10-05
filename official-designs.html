@@ -13,29 +13,29 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <meta name="theme-color" content="#D0473E">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <style>
   /* Light app chrome (dark text on light bg). The 3D SCENE itself renders in
      both variations via the dark/light toggle below. */
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; }
+  body { font-family: var(--vh-font-body); background: var(--vh-bg); color: var(--vh-ink); }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 24px 70px; }
-  .badge { display: inline-block; border: 1px solid rgba(171,135,67,.4); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--vh-ink); font-weight: 700; margin-bottom: 10px; }
+  .badge { display: inline-block; border: 1px solid var(--vh-line-hot); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--vh-ink); font-weight: 700; margin-bottom: 10px; }
   .eyebrow { color: var(--vh-ink); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
-  h1 { font-family: 'Lora', serif; font-size: 34px; line-height: 1.05; margin: 8px 0 10px; color: #111111; }
+  h1 { font-family: var(--vh-font-head); font-size: 34px; line-height: 1.05; margin: 8px 0 10px; color: var(--vh-heading); }
   h1 em { font-style: italic; color: var(--vh-ink); }
-  p { color: #556059; line-height: 1.6; max-width: 760px; }
-  .stage { margin: 20px 0; border: 1px solid rgba(171,135,67,.22); border-radius: 16px; overflow: hidden; height: 66vh; min-height: 460px; position: relative; background: var(--vh-panel-tan); }
+  p { color: var(--vh-ink-dim); line-height: 1.6; max-width: 760px; }
+  .stage { margin: 20px 0; border: 1px solid var(--vh-line); border-radius: 16px; overflow: hidden; height: 66vh; min-height: 460px; position: relative; background: var(--vh-panel-2); }
   .controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
-  .grp { display: inline-flex; gap: 6px; align-items: center; padding: 4px; border: 1px solid rgba(171,135,67,.22); border-radius: 12px; }
-  .grp .lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #48524c; font-weight: 700; padding: 0 6px; }
-  .btn { border: 1px solid transparent; border-radius: 9px; background: transparent; color: #556059; padding: 8px 13px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; }
-  .btn:hover { color: #111111; }
-  .btn.active { background: #D0473E; color: #FFFFFF; }
-  .btn.solid { background: #6A33D8; color: #ffffff; text-decoration: none; }
-  .note { font-size: 12px; color: #556059; background: rgba(171,135,67,.05); border: 1px solid rgba(171,135,67,.16); border-radius: 12px; padding: 14px 16px; margin-top: 16px; line-height: 1.6; }
-  .note b { color: #111111; }
-  code { font-family: monospace; font-size: 12px; background: rgba(23,23,23,.06); color: #111111; padding: 1px 5px; border-radius: 5px; }
+  .grp { display: inline-flex; gap: 6px; align-items: center; padding: 4px; border: 1px solid var(--vh-line); border-radius: 12px; }
+  .grp .lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--vh-ink-dim); font-weight: 700; padding: 0 6px; }
+  .btn { border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--vh-ink-dim); padding: 8px 13px; font-weight: 700; cursor: pointer; font-family: inherit; font-size: 13px; }
+  .btn:hover { color: var(--vh-ink); }
+  .btn.active { background: var(--vh-primary); color: var(--vh-on-primary); }
+  .btn.solid { background: var(--vh-primary); color: var(--vh-on-primary); text-decoration: none; }
+  .btn.solid:hover { background: var(--brand-primary-dark); color: var(--vh-on-primary); }
+  .note { font-size: 12px; color: var(--vh-ink-dim); background: var(--vh-panel-2); border: 1px solid var(--vh-line); border-radius: 12px; padding: 14px 16px; margin-top: 16px; line-height: 1.6; }
+  .note b { color: var(--vh-ink); }
+  code { font-family: var(--vh-font-mono); font-size: 12px; background: var(--vh-panel); color: var(--vh-ink); padding: 1px 5px; border-radius: 5px; }
 </style>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
@@ -62,7 +62,7 @@
       <button type="button" class="btn active" data-variant="light">Light</button>
       <button type="button" class="btn" data-variant="dark">Dark</button>
     </div>
-    <button type="button" class="btn" id="toggleTier" style="border-color:rgba(171,135,67,.3)">Force 2D preview</button>
+    <button type="button" class="btn" id="toggleTier" style="border-color:var(--vh-line-hot)">Force 2D preview</button>
     <a href="/landing-pages#threed" class="btn solid">Landing templates →</a>
   </div>
 
