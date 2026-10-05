@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, HTTPException, Header, status
 from pydantic import BaseModel
 
-app = FastAPI(title="Knickgasm Inbound Email Capture Engine")
+app = FastAPI(title="Inbound Email Capture")
 logger = logging.getLogger("dtc_data_engine")
 
 class InboundMailPayload(BaseModel):
@@ -133,7 +133,7 @@ async def process_incoming_mail(
 #
 #     # Store the binary snapshot payload directly to S3
 #     s3_client = boto3.client('s3')
-#     bucket_name = "knickgasm-competitor-intelligence-vault"
+#     bucket_name = os.environ["SNAPSHOT_BUCKET"]
 #     object_key = f"snapshots/{mailer_id}.png"
 #     
 #     s3_client.put_object(
