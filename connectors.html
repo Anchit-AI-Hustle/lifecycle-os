@@ -123,6 +123,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:820px){.cards{grid-template-columns:1fr}h1{font-size:28px}}
 </style>
+<script src="/brand-context.js?early=1"></script>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
 <body>
@@ -170,14 +171,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var aiState = { providers:[], connections:{}, routing:{entries:[],use_platform_fallback:true}, storage:{}, device:false, note:"" };
 
   function authToken(){
-    try { var a=window.LifecycleAuth; return a&&a.session&&a.session.access_token ? a.session.access_token : ""; } catch(e){ return ""; }
+    try { if(window.BrandContext&&window.BrandContext.token)return window.BrandContext.token()||""; } catch(e){}
+    try { var a=window.LifecycleAuth; return a&&a.session&&a.session.access_token ? a.session.access_token : ""; } catch(e2){ return ""; }
+  }
+  function activeWorkspaceId(){
+    try { return window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.id ? String(window.BrandContext.brand.id) : ""; } catch(e){ return ""; }
   }
   function aiEscAttr(s){ return esc(s).replace(/'/g,"&#39;"); }
   function aiApi(op, body){
-    var headers={"Content-Type":"application/json"}, t=authToken();
+    var headers={"Content-Type":"application/json"}, t=authToken(), ws=activeWorkspaceId();
     if(t) headers.Authorization="Bearer "+t;
-    return fetch(AI_API+"&op="+encodeURIComponent(op),{
-      method:body?"POST":"GET",headers:headers,cache:"no-store",body:body?JSON.stringify(body):undefined
+    var url=AI_API+"&op="+encodeURIComponent(op)+(ws?"&workspace_id="+encodeURIComponent(ws):"");
+    return fetch(url,{
+      method:body?"POST":"GET",headers:headers,cache:"no-store",body:body?JSON.stringify(Object.assign({workspace_id:ws||undefined},body)):undefined
     }).then(function(r){return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok){var e=new Error(j.message||j.error||("HTTP "+r.status));e.payload=j;throw e;} return j;
     });});
@@ -317,7 +323,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       el.className="banner err"; el.textContent="Workspace AI keys cannot be stored until CONNECTION_SECRET_KEY and the Supabase service role are configured. Nothing is written unencrypted.";
     }
   }
-  function aiLoad(){
+  function aiLoad(attempt){
+    attempt=attempt||0;
+    if(!authToken()&&attempt<10){
+      return new Promise(function(resolve){setTimeout(function(){resolve(aiLoad(attempt+1));},200);});
+    }
     return aiApi("list").then(function(d){
       aiState.providers=d.providers||[]; aiState.routing=d.routing||{entries:[],use_platform_fallback:true}; aiState.storage=d.secrets_storage||{}; aiState.device=d.storage==="device"; aiState.note=d.note||""; aiState.connections={};
       (d.connections||[]).forEach(function(c){aiState.connections[c.provider]=c;});
@@ -362,7 +372,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         extra: 'Ensure the SUPABASE env vars are set. The registry seeds from supabase/migrations/20260706_lifecycle_os_backbone.sql.',
       });
     });
-    aiLoad();
+    aiLoad(0);
   }
 
   document.addEventListener("DOMContentLoaded", function(){
