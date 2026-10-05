@@ -3,19 +3,14 @@
  * auth.js — Lifecycle OS shared auth + cross-step navigation header.
  *
  * Drop this <script> into any page in the project. It:
- *   1. Bootstraps an ANONYMOUS Supabase client from window.__SUPABASE__ (set in
- *      HTML head) OR from the /api/public-config endpoint at runtime, for the
- *      pages that read anon-open tables. It never holds a Supabase session.
- *   2. SIGN-IN IS A MOBILE NUMBER AND A 4-DIGIT PIN (2026-09-28). The rail's
- *      "Sign in" chip opens an inline panel on the current page: country code
- *      + number, then the PIN, then (for a new number) a name - one Continue
- *      button whose label changes. Accounts live in the Neon database when
- *      DATABASE_URL is set and answering (mode 'server', verified with
- *      op=me on every boot), otherwise in this browser (mode 'device', same
- *      state machine and lockout, PBKDF2-hashed PIN). The UI says which, in
- *      one sentence. The Google/Supabase OAuth sign-in this file used to run
- *      is COMMENTED OUT below, not deleted, and nothing can produce a
- *      Supabase session any more: the mobile+PIN session is the one source.
+ *   1. Bootstraps a Supabase client from window.__SUPABASE__ (set in HTML head)
+ *      OR from the /api/public-config endpoint at runtime. The client persists
+ *      the session and accepts the Google OAuth callback.
+ *   2. SIGN-IN IS GOOGLE, THROUGH SUPABASE AUTH (2026-10-05). The rail's
+ *      "Sign in" chip starts Google sign-in and never hands the browser to a
+ *      host that is not there. A stored mobile-number session from before this
+ *      change still restores, and the panel that created it is still in this
+ *      file for that session, but nothing in the product offers it as login.
  *   3. Renders a shared left rail with cross-step navigation so any stage
  *      can jump to any other stage.
  *   4. Provides window.LifecycleAuth.{client, session, user, signOut,
@@ -431,7 +426,7 @@
         state = 'signed-out';
         lead = 'Not run: you are signed out.';
         body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
-          + 'Sign in with your mobile number and 4-digit PIN (the Sign in chip in the menu), then try again; '
+          + 'Sign in with Google (the Sign in chip in the menu), then try again; '
           + 'everything else on this page keeps working.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
@@ -512,11 +507,27 @@
      * bounded by the same 8 s brand-context.js allows the gate.
      */
     function decide(what, opts) {
-      var a = window.LifecycleAuth;
-      var first = a && typeof a.backendState === 'function' ? a.backendState() : null;
       var settled = function () { return verified(8000).then(function () { return refusal(what, opts); }); };
-      if (!first || !(a.backend && a.backend.kind === 'pending')) return settled();
-      return Promise.race([first, new Promise(function (r) { setTimeout(r, 8000); })])
+      var a = window.LifecycleAuth;
+      var kind = a && a.backend && a.backend.kind;
+      // Already decided: answer now. `pending`, or auth.js not assigned yet
+      // (a deferred script, and the page's own load already asked), waits for
+      // the first real decision. Treating "not assigned" as decided is what
+      // sent /brain's plan request out signed-out and painted the empty
+      // preview ("no sends", "env not linked") over the sign-in sentence.
+      if (kind && kind !== 'pending') return settled();
+      var first = a && typeof a.backendState === 'function' ? a.backendState() : null;
+      var wait = first || new Promise(function (resolve) {
+        var done = false;
+        var finish = function () { if (done) return; done = true; window.removeEventListener('lifecycleauth:backend', onEvent); resolve(); };
+        var onEvent = function (ev) {
+          var k = ev && ev.detail && ev.detail.kind;
+          if (k && k !== 'pending') finish();
+        };
+        window.addEventListener('lifecycleauth:backend', onEvent);
+        setTimeout(finish, 8000);
+      });
+      return Promise.race([wait, new Promise(function (r) { setTimeout(r, 8000); })])
         .then(settled, settled);
     }
 
@@ -2321,32 +2332,10 @@
       // a deployment with no client at all, which sent an unconfigured
       // deployment's visitor to the homepage instead of telling them why.
       e.preventDefault();
-      // 2026-09-28: the chip opens the mobile+PIN panel on THIS page. No
-      // navigation, no dialog, no Google. The panel needs nothing from boot
-      // (not the config, not the SDK), so there is nothing to wait for; it
-      // asks the server where accounts are saved and says so in one line.
-      mauthOpenPanel(root, { from: signinBtn });
-      /* ── DISABLED 2026-09-28: the Google sign-in press. Mobile+PIN sign-in
-         replaced it; kept for the record.
-      if (signinBtn.dataset.busy) return;
-      signinBtn.dataset.busy = '1';
-      try {
-        const waited = !authReady.settled;
-        if (waited) {
-          signinBtn.textContent = 'Checking sign-in…';
-          signinBtn.setAttribute('aria-busy', 'true');
-        }
-        const refusal = await signInRefusal();
-        if (waited) {
-          signinBtn.textContent = 'Sign in';
-          signinBtn.removeAttribute('aria-busy');
-        }
-        if (!refusal) return;   // the browser is on its way to Google
-        showSignInRefusal(root, signinBtn, refusal);
-      } finally {
-        delete signinBtn.dataset.busy;
-      }
-      ── */
+      // 2026-10-05: Google is the only sign-in. A press during boot waits
+      // (the chip says so) and is diagnosed only once the host is known, so
+      // a slow config fetch is never reported as a missing project.
+      beginGoogleSignIn(root);
     };
     const signoutBtn = root.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
@@ -2424,40 +2413,37 @@
     if (w) w.remove();
   }
 
-  // Shown while an OAuth callback is being exchanged, so the login wall never
-  // flashes over a successful sign-in that is a beat away from resolving.
-  // ── DISABLED 2026-09-28: injectSigningInOverlay() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function injectSigningInOverlay() {
-  //     if (document.getElementById('lifecycle-signingin')) return;
-  //     const el = document.createElement('div');
-  //     el.id = 'lifecycle-signingin';
-  //     el.innerHTML = `
-  //       <style>
-  //         #lifecycle-signingin {
-  //           position: fixed; inset: 0; z-index: 9999; background: #ffffff;
-  //           display: flex; flex-direction: column; align-items: center; justify-content: center;
-  //           gap: 18px; font-family: 'Inter', system-ui, sans-serif; color: #FFFFFF;
-  //         }
-  //         #lifecycle-signingin .lsi-ring {
-  //           width: 40px; height: 40px; border-radius: 50%;
-  //           border: 3px solid rgba(171,135,67,0.25); border-top-color: #6A33D8;
-  //           animation: lsi-spin 0.8s linear infinite;
-  //         }
-  //         @keyframes lsi-spin { to { transform: rotate(360deg); } }
-  //         #lifecycle-signingin .lsi-t { font-size: 13.5px; color: #556059; letter-spacing: 0.02em; }
-  //       </style>
-  //       <div class="lsi-ring"></div>
-  //       <div class="lsi-t">Completing sign-in…</div>
-  //     `;
-  //     document.body.appendChild(el);
-  //   }
-  // ── end of disabled injectSigningInOverlay()
-  // ── DISABLED 2026-09-28: removeSigningInOverlay() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function removeSigningInOverlay() {
-  //     const el = document.getElementById('lifecycle-signingin');
-  //     if (el) el.remove();
-  //   }
-  // ── end of disabled removeSigningInOverlay()
+  // Shown while an OAuth callback is being exchanged, so a signed-out bar
+  // never flashes over a sign-in that is a beat away from resolving.
+  function injectSigningInOverlay() {
+    if (document.getElementById('lifecycle-signingin')) return;
+    const el = document.createElement('div');
+    el.id = 'lifecycle-signingin';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `
+      <style>
+        #lifecycle-signingin {
+          position: fixed; inset: 0; z-index: 9999; background: var(--vh-surface, #ffffff);
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 18px; font-family: var(--vh-font-body, system-ui, sans-serif); color: var(--vh-ink, #111111);
+        }
+        #lifecycle-signingin .lsi-ring {
+          width: 40px; height: 40px; border-radius: 50%;
+          border: 3px solid var(--vh-line, #ebebeb); border-top-color: var(--vh-accent, #6A33D8);
+          animation: lsi-spin 0.8s linear infinite;
+        }
+        @keyframes lsi-spin { to { transform: rotate(360deg); } }
+        #lifecycle-signingin .lsi-t { font-size: 13.5px; letter-spacing: 0.02em; }
+      </style>
+      <div class="lsi-ring"></div>
+      <div class="lsi-t">Completing sign-in…</div>
+    `;
+    (document.body || document.documentElement).appendChild(el);
+  }
+  function removeSigningInOverlay() {
+    const el = document.getElementById('lifecycle-signingin');
+    if (el) el.remove();
+  }
 
   // ─── Supabase bootstrap ─────────────────────────────────────────────
   async function loadSupabaseSDK() {
@@ -2550,17 +2536,15 @@
    * - the same four the standing bar names, decided the same way, so the bar
    * and the sign-in button can never disagree about what is wrong.
    */
-  // ── DISABLED 2026-09-28: signedOutState() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function signedOutState() {
-  //     const cfg = window.__SUPABASE__ || {};
-  //     if (!cfg.url) return 'unconfigured';
-  //     // A URL but no client: the SDK never loaded (boot()'s catch). This used to
-  //     // be reported as "no Supabase configuration", which sends the operator to
-  //     // check an env var that is set.
-  //     if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
-  //     return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
-  //   }
-  // ── end of disabled signedOutState()
+  async function signedOutState() {
+    const cfg = window.__SUPABASE__ || {};
+    if (!cfg.url) return 'unconfigured';
+    // A URL but no client: the SDK never loaded (boot()'s catch). This used to
+    // be reported as "no Supabase configuration", which sends the operator to
+    // check an env var that is set.
+    if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
+    return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
+  }
 
   /**
    * Start Google sign-in, but never hand the browser to a host that is not
@@ -2572,34 +2556,34 @@
    * (the network cannot tell them apart) and this path said "deleted or
    * renamed", a claim the code cannot make.
    */
-  // ── DISABLED 2026-09-28: signInRefusal() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function signInRefusal() {
-  //     // Never diagnose a boot still in flight (see authReady). This also covers
-  //     // window.__startGoogleSignIn__, which pages and tests call directly.
-  //     await authReady.promise;
-  //     const kind = await signedOutState();
-  //     if (kind !== 'signed-out') {
-  //       const s = signedOutSentence(kind);
-  //       return { kind: kind, message: s.text, html: s.html };
-  //     }
-  //     rememberReturnTo();
-  //     const { error } = await window.LifecycleAuth.client.auth.signInWithOAuth({
-  //       provider: 'google',
-  //       options: { redirectTo: location.origin + location.pathname },
-  //     });
-  //     if (!error) return null;
-  //     const message = 'Sign-in failed: ' + (error.message || error);
-  //     return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
-  //   }
-  // ── end of disabled signInRefusal()
+  async function signInRefusal() {
+    // Never diagnose a boot still in flight (see authReady). This also covers
+    // window.__startGoogleSignIn__, which pages and tests call directly.
+    await authReady.promise;
+    const kind = await signedOutState();
+    if (kind !== 'signed-out') {
+      const s = signedOutSentence(kind);
+      return { kind: kind, message: s.text, html: s.html };
+    }
+    rememberReturnTo();
+    const client = window.LifecycleAuth && window.LifecycleAuth.client;
+    if (!(client && client.auth && typeof client.auth.signInWithOAuth === 'function')) {
+      const s = signedOutSentence('sdk');
+      return { kind: 'sdk', message: s.text, html: s.html };
+    }
+    const { error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: location.origin + location.pathname },
+    });
+    if (!error) return null;
+    const message = 'Sign-in failed: ' + (error.message || error);
+    return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
+  }
 
   /** String form of signInRefusal(): '' on success, the sentence on refusal. */
-  // ── DISABLED 2026-09-28: startGoogleSignIn() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function startGoogleSignIn() {
-  //     const r = await signInRefusal();
-  //     return r ? r.message : '';
-  //   }
-  // ── end of disabled startGoogleSignIn()
+  async function startGoogleSignIn() {
+    return beginGoogleSignIn(document.getElementById('lifecycle-nav'));
+  }
 
   /**
    * Say why sign-in did not happen, where the user is looking: a note under
@@ -2607,31 +2591,67 @@
    * bar brought back into view (re-shown if it had been dismissed) so the two
    * explanations are visibly the same one.
    */
-  // ── DISABLED 2026-09-28: showSignInRefusal() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function showSignInRefusal(wrap, btn, refusal) {
-  //     btn.textContent = 'Sign-in unavailable';
-  //     btn.title = refusal.message;
-  //     btn.setAttribute('aria-describedby', 'lnav-signin-note');
-  //     let note = wrap.querySelector('#lnav-signin-note');
-  //     if (!note) {
-  //       note = document.createElement('div');
-  //       note.id = 'lnav-signin-note';
-  //       note.className = 'lnav-signin-note';
-  //       note.setAttribute('role', 'alert');
-  //       const footer = btn.closest('.lnav-user') || btn;
-  //       footer.insertAdjacentElement('afterend', note);
-  //     }
-  //     note.setAttribute('data-kind', refusal.kind);
-  //     note.innerHTML = refusal.html;
-  //     if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
-  //     const bar = injectSignedOutNotice(refusal.kind, { force: true });
-  //     if (!bar) return;
-  //     try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
-  //     bar.style.outline = '2px solid var(--vh-warn)';
-  //     bar.style.outlineOffset = '-2px';
-  //     setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
-  //   }
-  // ── end of disabled showSignInRefusal()
+  function showSignInRefusal(wrap, btn, refusal) {
+    btn.textContent = 'Sign-in unavailable';
+    btn.title = refusal.message;
+    btn.setAttribute('aria-describedby', 'lnav-signin-note');
+    let note = wrap.querySelector('#lnav-signin-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'lnav-signin-note';
+      note.className = 'lnav-signin-note';
+      note.setAttribute('role', 'alert');
+      const footer = btn.closest('.lnav-user') || btn;
+      footer.insertAdjacentElement('afterend', note);
+    }
+    note.setAttribute('data-kind', refusal.kind);
+    note.innerHTML = refusal.html;
+    if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
+    const bar = injectSignedOutNotice(refusal.kind, { force: true });
+    if (!bar) return;
+    try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
+    bar.style.outline = '2px solid var(--vh-warn)';
+    bar.style.outlineOffset = '-2px';
+    setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
+  }
+
+  /**
+   * The Sign in chip and LifecycleAuth.openSignIn share this. Returns '' when
+   * Google has been asked to take over, otherwise the sentence that refused it.
+   */
+  async function beginGoogleSignIn(root) {
+    const nav = root || document.getElementById('lifecycle-nav');
+    const btn = nav && nav.querySelector('#lnav-signin');
+    if (btn && btn.dataset.busy) return '';
+    if (btn) btn.dataset.busy = '1';
+    try {
+      const waited = !authReady.settled;
+      if (waited && btn) {
+        btn.textContent = 'Checking sign-in…';
+        btn.setAttribute('aria-busy', 'true');
+      }
+      const refusal = await signInRefusal();
+      if (waited && btn) {
+        btn.textContent = 'Sign in';
+        btn.removeAttribute('aria-busy');
+      }
+      if (!refusal) return '';
+      if (btn && nav) showSignInRefusal(nav, btn, refusal);
+      return refusal.message || '';
+    } catch (err) {
+      const message = 'Sign-in failed: ' + ((err && err.message) || err);
+      if (btn && nav) {
+        showSignInRefusal(nav, btn, {
+          kind: 'failed',
+          message: message,
+          html: window.LifecycleFailure.html(err instanceof Error ? err : new Error(message), { title: 'Sign-in failed' }),
+        });
+      }
+      return message;
+    } finally {
+      if (btn) delete btn.dataset.busy;
+    }
+  }
 
   async function getConfig() {
     if (window.__SUPABASE__?.url && window.__SUPABASE__?.anonKey) return window.__SUPABASE__;
@@ -2688,19 +2708,18 @@
     // visitor simply has no session.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
-    // 2026-09-28: sign-in is a mobile number and a PIN (auth.js's own panel),
-    // so none of these states blocks signing in any more. Each says what the
-    // Supabase state means for DATA on this page, and that sign-in is unaffected.
+    // 2026-10-05: sign-in is Google, and Google needs this Supabase project.
+    // Each state says what is wrong and that the pages stay open.
     var html;
     if (kind === 'sdk') {
       html = '<b>The Supabase library did not load.</b> auth.js loads '
         + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
-        + 'outage will all do this. Every page is still open and usable, and signing in with your mobile '
-        + 'number does not need it; only data a page reads straight from the database is unavailable until '
-        + 'it loads. Retry on a different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
+        + 'outage will all do this. Every page is still open and usable. Sign in with Google needs that '
+        + 'library, so it cannot run until it loads. Retry on a different network or allow '
+        + '<code>cdn.jsdelivr.net</code>, then reload.';
     } else if (kind === 'signed-out') {
       html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Sign in with your mobile number and a 4-digit PIN</b> (the Sign in '
+        + 'what this browser holds. <b>Sign in with Google</b> (the Sign in '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
     } else if (kind === 'unreachable' && host) {
@@ -2710,15 +2729,14 @@
       html = '<b>Running without a workspace database.</b> The database this deployment points at (<code>' + host
         + '</code>) cannot be reached - its Supabase project has most '
         + 'likely been deleted, renamed or paused, or the self-hosted stack is down. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
-        + 'still works and keeps your brands on this device. Point <code>SUPABASE_URL</code> '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Google needs that '
+        + 'database, so it cannot run until the database answers. Point <code>SUPABASE_URL</code> '
         + 'and <code>SUPABASE_ANON_KEY</code> at a live backend to restore saved work.';
     } else {
       html = '<b>Running without a workspace database.</b> This deployment has no <code>SUPABASE_URL</code> / '
         + '<code>SUPABASE_ANON_KEY</code> set. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
-        + 'still works and keeps your brands on this device. Set them on the deployment to '
-        + 'restore saved work.';
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Google needs those '
+        + 'values. Set them on the deployment to restore saved work.';
     }
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
@@ -2907,37 +2925,31 @@
   // ?error=, or an implicit #access_token). During this window we must NOT
   // flash the login wall — detectSessionInUrl is exchanging the code and
   // onAuthStateChange will fire SIGNED_IN momentarily.
-  // ── DISABLED 2026-09-28: oauthCallbackInProgress() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function oauthCallbackInProgress() {
-  //     try {
-  //       const sp = new URLSearchParams(location.search || '');
-  //       if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
-  //       const hash = location.hash || '';
-  //       if (/access_token=|error=/.test(hash)) return true;
-  //     } catch (_) {}
-  //     return false;
-  //   }
-  // ── end of disabled oauthCallbackInProgress()
+  function oauthCallbackInProgress() {
+    try {
+      const sp = new URLSearchParams(location.search || '');
+      if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
+      const hash = location.hash || '';
+      if (/access_token=|error=/.test(hash)) return true;
+    } catch (_) {}
+    return false;
+  }
   // Remember where the user was so we can send them back after Google bounces
   // them to the Supabase Site URL (which happens when the exact path is not in
   // the redirect allow-list).
-  // ── DISABLED 2026-09-28: rememberReturnTo() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function rememberReturnTo() {
-  //     try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
-  //   }
-  // ── end of disabled rememberReturnTo()
-  // ── DISABLED 2026-09-28: restoreReturnTo() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function restoreReturnTo() {
-  //     let target = null;
-  //     try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
-  //     if (!target) return;
-  //     const targetPath = target.split('?')[0].split('#')[0];
-  //     // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
-  //     if (targetPath && targetPath !== location.pathname) {
-  //       location.replace(target);
-  //     }
-  //   }
-  // ── end of disabled restoreReturnTo()
+  function rememberReturnTo() {
+    try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
+  }
+  function restoreReturnTo() {
+    let target = null;
+    try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
+    if (!target) return;
+    const targetPath = target.split('?')[0].split('#')[0];
+    // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
+    if (targetPath && targetPath !== location.pathname) {
+      location.replace(target);
+    }
+  }
 
   /* ═══════════════════════════════════════════════════════════════════════════
      SIGN IN / SIGN UP WITH A MOBILE NUMBER AND A 4-DIGIT PIN (2026-09-28)
@@ -3620,7 +3632,7 @@
       (btn.closest('.lnav-user') || btn).insertAdjacentElement('afterend', note);
     }
     note.setAttribute('data-kind', 'expired');
-    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with your mobile number and PIN.';
+    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with Google.';
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
   }
 
@@ -3827,9 +3839,28 @@
     return panel;
   }
 
+  /** A Google session is the sign-in. The access token is the Supabase JWT. */
+  function applySupabaseUser(session) {
+    if (!session || !session.user) return;
+    window.LifecycleAuth.session = session;
+    window.LifecycleAuth.user = session.user;
+    applyAccessMode(session.user);
+    setBackendState('signed-in', { supabase: 'reachable' });
+    removeLoginWall();
+    removeSigningInOverlay();
+    const bar = document.getElementById('lc-authnotice');
+    if (bar) bar.remove();
+    setRailUser(session.user);
+  }
+  /** Google's JWT when that is the session; a stored phone token otherwise. */
+  function sessionApiToken() {
+    const s = window.LifecycleAuth && window.LifecycleAuth.session;
+    if (s && s.access_token && s.provider !== 'mobile-pin') return s.access_token;
+    return mauthApiToken();
+  }
+
   async function init() {
-    // 2026-09-28: the Google guard's direct entry point is gone with the guard.
-    // window.__startGoogleSignIn__ = startGoogleSignIn;
+    window.__startGoogleSignIn__ = startGoogleSignIn;
     window.LifecycleAuth = {
       client: null,
       session: null,
@@ -3840,23 +3871,24 @@
       // `backendState()` resolves on the first one, whichever it is.
       backend: backendSnapshot('pending'),
       backendState: () => backendFirst,
-      // Mobile number + PIN (2026-09-28): open the inline panel on this page;
-      // the token the SERVER can check (server mode only, '' otherwise); and
-      // the rules, exposed so the parity test can hold this copy to the
-      // server's. `status()` answers where accounts are saved right now.
-      openSignIn: (opts) => mauthOpenPanel(null, opts),
+      // Google is the sign-in (2026-10-05). openPanel remains for a stored
+      // phone session's own panel; the Sign in chip does not call it.
+      openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
       // Why an action that needs the server cannot run right now, or null.
       // See serverActions(): pages ask BEFORE sending, and throw the answer.
       serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),
-      apiToken: mauthApiToken,
+      apiToken: sessionApiToken,
       mobile: {
         SESSION_KEY: MAUTH_SESSION_KEY, USERS_KEY: MAUTH_USERS_KEY,
         rules: { PIN_LEN: MAUTH.PIN_LEN, WEAK_PINS: MAUTH.WEAK_PINS.slice(), MAX_TRIES: MAUTH.MAX_TRIES, LOCK_MINUTES: MAUTH.LOCK_MINUTES, SESSION_DAYS: MAUTH.SESSION_DAYS, DEFAULT_CC: MAUTH.DEFAULT_CC, PHONE_CC: MAUTH.PHONE_CC, normPhone: mauthNormPhone, phoneError: mauthPhoneError, pinError: mauthPinError },
         status: mauthStatus,
         deviceEnter: mauthDeviceEnter,
+        openPanel: (opts) => mauthOpenPanel(null, opts),
       },
       signOut: async () => {
-        // if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();   // DISABLED 2026-09-28: there is no Supabase session to end
+        try {
+          if (window.LifecycleAuth.client && window.LifecycleAuth.client.auth) await window.LifecycleAuth.client.auth.signOut();
+        } catch (_) { /* the session is dropped from this browser either way */ }
         await mauthSignOut();
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
@@ -3923,25 +3955,55 @@
         }
         if (isOpenPage()) { injectTopbar(null); setBackendState('unconfigured'); return; }
         // NO WORKSPACE DATABASE AT ALL. The app runs on whatever local state it
-        // has, and SAYS so. Signing in with a mobile number still works: the
-        // account goes to the Neon database when DATABASE_URL is set, else to
-        // this device.
+        // has, and SAYS so. Google sign-in needs that database, so the notice
+        // names the missing values and the pages stay open.
         injectTopbar(null);
         injectSignedOutNotice('unconfigured');
         setBackendState('unconfigured');
         return;
       }
     } else {
-      // AN ANONYMOUS CLIENT ONLY (2026-09-28). A few pages read anon-open
-      // tables through it; it never holds a session. persistSession:false so a
-      // Supabase session left in localStorage from before this change is not
-      // read back, detectSessionInUrl:false so an OAuth callback is inert.
+      // The client holds the Google session (2026-10-05). persistSession reads
+      // it back on the next page; detectSessionInUrl exchanges the OAuth code.
       const sdk = await loadSupabaseSDK();
       const client = sdk.createClient(config.url, config.anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
       });
       window.LifecycleAuth.client = client;
       supabaseState = (await authHostReachable(config.url)) ? 'reachable' : 'unreachable';
+      if (client.auth && typeof client.auth.onAuthStateChange === 'function') {
+        client.auth.onAuthStateChange(async (_event, sess) => {
+          if (sess && sess.user) {
+            applySupabaseUser(sess);
+            restoreReturnTo();
+            return;
+          }
+          // A null session from the SDK must not sign out a stored phone account.
+          if (window.LifecycleAuth.session && window.LifecycleAuth.session.provider === 'mobile-pin') return;
+          if (window.LifecycleAuth.user) {
+            window.LifecycleAuth.session = null;
+            window.LifecycleAuth.user = null;
+            applyAccessMode(null);
+            setRailUser(null);
+            await gateSignedOut();
+          }
+        });
+      }
+      if (oauthCallbackInProgress()) injectSigningInOverlay();
+      let googleSession = null;
+      try {
+        if (client.auth && typeof client.auth.getSession === 'function') {
+          const got = await client.auth.getSession();
+          googleSession = got && got.data && got.data.session;
+        }
+      } catch (_) { googleSession = null; }
+      if (googleSession && googleSession.user) {
+        applySupabaseUser(googleSession);
+        authReady.settle();
+        restoreReturnTo();
+        return;
+      }
+      removeSigningInOverlay();
     }
 
     // A SERVER-MODE SESSION IS CHECKED WITH THE DATABASE, every boot. Three

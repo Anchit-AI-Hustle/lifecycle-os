@@ -443,12 +443,10 @@ test('the rail is up while /api/public-config is still stalled, on every kind of
   }
 });
 
-/* SINCE 2026-09-28 the rail's Sign in opens the mobile+PIN panel on the page
-   (tests/mobile-pin-signin.spec.js); the Google guard and its "Checking
-   sign-in…" wait are commented out with it. The four cases below keep their
-   claims - a press during boot never diagnoses a healthy backend as broken, a
-   sign-in seats the chip IN PLACE, the rail never waits on the session lookup -
-   re-targeted at the session source that exists now. */
+/* SINCE 2026-10-05 the rail's Sign in starts Google. A press during boot
+   waits (the chip says "Checking sign-in…") and is diagnosed only once the
+   host is known. A phone session that already exists still seats the chip
+   in place through its own panel. */
 
 /** A stored server-mode mobile+PIN session, as a returning visitor's browser holds it. */
 const STORED = (name) => ({
@@ -459,15 +457,13 @@ const STORED = (name) => ({
 });
 const SERVER_STATUS = { status: 200, body: { ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' } };
 
-test('Sign-in pressed while the config is stalled opens the panel at once, and never calls a healthy backend broken', async ({ browser }) => {
+test('Sign-in pressed while the config is stalled waits, and never calls a healthy backend broken', async ({ browser }) => {
   test.setTimeout(120_000);
-  // The rail is up before the config answers (test above), so its button can
-  // be pressed while boot is still in flight. The panel needs nothing from
-  // boot - not the config, not the SDK - so it opens at once; and no note may
-  // diagnose the stalled config as "unconfigured" or the unbuilt client as
-  // "sdk" (the Codex finding on 8c9245e, still guarded). Two backends, one
-  // press each, 400 ms into a 5 s stall; every note kind the page ever renders
-  // is recorded, not just the last one on screen.
+  // The rail is up before the config answers, so its button can be pressed
+  // while boot is still in flight. The press waits: the chip says so, and no
+  // note may diagnose the stalled config as "unconfigured" or the unbuilt
+  // client as "sdk". Once boot settles, a healthy host starts Google and a
+  // dead host is named. The PIN panel stays closed either way.
   const sdk = () => ({
     getSession: async () => ({ data: { session: null } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
@@ -486,16 +482,29 @@ test('Sign-in pressed while the config is stalled opens the panel at once, and n
     const panelMid = await page.evaluate(() => !!document.getElementById('lnav-mauth'));
     expect(configAnswered.at, `${label}: the config had already answered, so this measured a settled boot`).toBeNull();
     expect(mid.configSeen).toBe(false);
-    expect(panelMid, `${label}: the panel did not open while boot was in flight`).toBe(true);
+    expect(panelMid, `${label}: the PIN panel opened while boot was in flight`).toBe(false);
     expect(mid.note, `${label}: a refusal note was rendered while boot was still in flight`).toBe(false);
-    expect(mid.text, `${label}: the chip changed its words for a press that needs no wait`).toBe('Sign in');
-    // Boot settles: nothing is handed to Google either way, and no note ever
-    // named a deployment fault.
+    expect(mid.text, `${label}: the chip did not say it was waiting`).toBe('Checking sign-in…');
+    expect(mid.oauthCalls, `${label}: Google was started before the host was known`).toBe(0);
     await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending', null, { timeout: 15000 });
-    const end = await readSignIn(page);
-    expect(end.oauthCalls, `${label}: the browser was handed to Google`).toBe(0);
-    expect(end.note).toBe(false);
-    expect(await page.evaluate(() => !!document.getElementById('lnav-mauth')), `${label}: boot settling closed the panel`).toBe(true);
+    if (reachable) {
+      await page.waitForFunction(() => (window.__oauthCalls || []).length > 0, null, { timeout: 8000 });
+      const end = await readSignIn(page);
+      expect(end.oauthCalls).toBe(1);
+      expect(end.note).toBe(false);
+      const call = await page.evaluate(() => (window.__oauthCalls || [])[0] || null);
+      expect(call.provider).toBe('google');
+      expect(call.options.redirectTo).toMatch(/\/research\.html$/);
+    } else {
+      await page.waitForFunction(() => {
+        const n = document.getElementById('lnav-signin-note');
+        return n && n.getAttribute('data-kind') === 'unreachable';
+      }, null, { timeout: 8000 });
+      const end = await readSignIn(page);
+      expect(end.oauthCalls, `${label}: the browser was handed to a dead host`).toBe(0);
+      expect(end.kind).toBe('unreachable');
+    }
+    expect(await page.evaluate(() => !!document.getElementById('lnav-mauth')), `${label}: the PIN panel opened`).toBe(false);
     const kinds = await page.evaluate(() => window.__noteKinds.slice());
     expect(kinds.filter((k) => k === 'unconfigured' || k === 'sdk'),
       `${label}: a boot in flight was diagnosed as a deployment fault (notes seen: ${kinds.join(', ')})`).toEqual([]);
@@ -522,7 +531,9 @@ test('a sign-in completing in the panel seats the chip in place, with no note be
   await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: false, auth });
   await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind === 'unreachable', null, { timeout: 10000 });
   await page.evaluate(() => { window.__railBefore = document.querySelector('#lifecycle-nav .lnav-side'); });
-  await pressSignIn(page);
+  // The Sign in chip starts Google. This case is the stored-phone panel,
+  // opened the way a phone session opens it.
+  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
   await page.waitForSelector('#lnav-mauth', { timeout: 5000 });
   await page.fill('#lnav-mauth-phone', '9876543210');
   await page.click('#lnav-mauth-go');
