@@ -282,7 +282,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -949,7 +949,29 @@ module.exports = async function handler(req, res) {
       case 'deliverability-preflight': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
-        const input = Object.assign({ workspaceId: __wsId }, b);
+        // Brand, approved claims and offer are the SERVER's: a body that named
+        // its own brand or approved its own claims would pick its own rule pack.
+        // And the brand must be THIS workspace's: resolve() answers tenant
+        // zero when it cannot read one, which would lint a supplement's copy
+        // as a sneaker brand's. With no workspace, only a brand the request
+        // carried as its own (a device brand) is used.
+        const dispatchCore = require('./_shared/dispatch-core.js');
+        const pfBrand = __wsId
+          ? await dispatchCore.trustedBrand(__wsId, req.__brand)
+          : (req.__brand && req.__brand.carried === true ? req.__brand : null);
+        // The offer is the one the queue will read: the named campaign's
+        // record in THIS workspace (the page sends the asset as `payload`),
+        // so preflight and enqueue measure a deadline line against the same
+        // value, and it is never the body's own.
+        const pfOffer = __wsId
+          ? await dispatchCore.campaignOffer(__wsId, { campaign_id: b.campaign_id, asset_ref: b.asset_ref, asset: b.payload })
+          : null;
+        const input = Object.assign({ workspaceId: __wsId }, b, {
+          brand: pfBrand, approved_claims: undefined, offer: pfOffer || undefined,
+          // Deadline lines are read when the mail goes out, as at the queue.
+          now: dispatchCore.readAt(b.mode, b.scheduled_for) || undefined,
+          require_brand: undefined,
+        });
         // The contact-ledger verdict is the server's to compute, never the
         // body's: a posted `contact_fatigue` is dropped, and the brand's own
         // ledger is read only for a workspace this caller belongs to

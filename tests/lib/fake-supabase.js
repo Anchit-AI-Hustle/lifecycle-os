@@ -72,6 +72,11 @@ const UNIQUE = {
   oauth_authorization_states: [['state']],
   credit_wallets: [['user_id', 'workspace_id']],
   domain_health_profiles: [['workspace_id', 'domain', 'role']],
+  // 20261004150000_social_gateway.sql
+  social_inbound_events: [['provider', 'event_id']],                             // social_inbound_events_dedupe_idx
+  social_metric_snapshots: [['workspace_id', 'provider', 'kind', 'external_id', 'captured_on']],
+  social_creative_flags: [['workspace_id', 'provider', 'external_id', 'metric', 'basis']],
+  social_gateway_settings: [['workspace_id']],
   contact_touch_ledger: [['workspace_id', 'source', 'source_ref', 'subject_key']],  // contact_touch_dedupe_idx
   contact_fatigue_rules: [['workspace_id']],                                       // primary key
 };
@@ -118,6 +123,7 @@ const WORKSPACE_SCOPED = new Set([
   'dispatch_jobs', 'dispatch_attempts', 'preflight_audits', 'platform_sync_log', 'platform_webhook_events',
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
   'contact_touch_ledger', 'contact_fatigue_rules',
+  'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
 ]);
 
 function uuid() { return crypto.randomUUID(); }
