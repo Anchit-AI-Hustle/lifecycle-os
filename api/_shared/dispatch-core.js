@@ -249,15 +249,31 @@ async function enqueue(auth, workspaceId, spec, context) {
   const market = String(s.market || s.region || (s.asset && (s.asset.market || s.asset.region)) || '');
   const offer = await campaignOffer(workspaceId, s);
 
+  // The touch this job will make, judged against the contact ledger by the
+  // preflight gate and kept on the job (hashed recipients only) so the ledger
+  // records it once the platform accepts it (2026-10-04).
+  const ledger = require('./contact-ledger.js');
+  const touch = ledger.touchSpecFor({ workspaceId, channel: channelId, spec: s, payload: mapped.payload, provider });
+  // Over the brand's own ledger: assertCanWrite above has established that
+  // the caller edits this workspace. A channel that is not a message is
+  // skipped by the check itself.
+  // Judged at the moment it reaches people: a job's own schedule, else the
+  // send time the platform is handed (a Klaviyo campaign's `send_at`), else
+  // now. Judging a campaign scheduled for 10:00 tomorrow at the 22:15 it was
+  // queued held it for quiet hours it will never send in.
+  const sendsAt = s.scheduled_for || (mapped.payload && mapped.payload.send_at) || null;
+  const contactFatigue = touch.channel && mode !== 'draft' ? await ledger.evaluateSend({
+    workspaceId, channel: touch.channel, message_class: touch.message_class, at: sendsAt,
+    recipients: touch.recipients_known ? touch.recipients : null, carried: s.contact_ledger || null,
+    provider, region: touch.region,
+  }) : null;
+
   const preflight = await require('./preflight-core.js').run({
     workspaceId, provider, channel: channelId, mode,
     payload: mapped.payload, mapping_missing: mapped.missing, connection: conn,
     segment: s.segment || null, audience_size: s.audience_size,
-    brand, market, offer,
-    // A send with no readable brand is UNCHECKED, and at the queue that blocks.
-    require_brand: true,
-    // Deadline lines are read when the mail goes out.
-    now: readAt(mode, s.scheduled_for),
+    message_channel: touch.channel || undefined, message_class: touch.message_class,
+    contact_fatigue: contactFatigue || undefined,
   });
 
   if (preflight.verdict === 'block' && !s.override_preflight) {
@@ -300,6 +316,7 @@ async function enqueue(auth, workspaceId, spec, context) {
     dry_run: !!s.dry_run,
     created_by: auth.user_id || null,
     max_attempts: Math.min(Math.max(Number(s.max_attempts) || 5, 1), 10),
+    contact_touch: touch,
   };
 
   let job;
@@ -444,6 +461,9 @@ async function runJob(job) {
     }, { ok: true, http_status: 200, request_digest: digest, response_head: sanitizeResult(result) });
 
     await logSync(job, true, result);
+    // One touch per known recipient into the contact ledger. Like the sync
+    // log, recording must never fail a send that has already gone out.
+    await require('./contact-ledger.js').recordDispatch(job, result).catch(() => null);
     return { id: job.id, ok: true };
   }
 

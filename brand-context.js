@@ -255,6 +255,8 @@
      ══════════════════════════════════════════════════════════════════════════ */
 
   var DEVICE_KEY = 'lifecycle.brand.device.workspaces';
+  // Where publishing.html keeps a device brand's contact rules (LCStore, per brand id).
+  var CONTACT_RULES_KEY = 'contact_fatigue_rules';
   var DEVICE_PREFIX = 'local-';
   /* THE DEVICE STORE IS PER ACCOUNT (review finding, 2026-09-29). A browser is
      shared: a family laptop, a shop's till, an agency's meeting-room machine.
@@ -909,6 +911,9 @@
         writeSide('pack', id, null);
         // Its uploaded files go with it (logo, icon, fonts, imagery, the guide).
         try { await files.removeBrand(id); } catch (e) { log(e); }
+        // The contact rules a device brand keeps (2026-10-04, publishing.html,
+        // under LCStore's per-brand key) go with it too.
+        try { localStorage.removeItem(CONTACT_RULES_KEY + '::' + id); } catch (_) {}
         return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
       case 'readiness':
         id = str(q.get('id') || body.id);
@@ -2083,6 +2088,13 @@
        no page has to remember. Never overwrites a `brand` the page sent, and
        only for a phone sign-in: nobody else's request is touched. */
     var CARRY_ROUTERS = /^(?:https?:\/\/[^/]+)?\/api\/(?:brain|calendar|ai\/)/;
+    /* The device brand's own CONTACT RULES travel the same way (2026-10-04):
+       kept beside the brand on this device (publishing.html), read by the
+       server for that request alone, so the calendars and the gate hold this
+       brand to its own caps, cool-downs and quiet hours. */
+    function keptContactRules() {
+      try { var v = store.get(CONTACT_RULES_KEY); var o = v ? JSON.parse(v) : null; return o && typeof o === 'object' ? o : null; } catch (_) { return null; }
+    }
     function carryInto(url, init) {
       try {
         if (!init || !CARRY_ROUTERS.test(url) || String(init.method || 'GET').toUpperCase() !== 'POST' || typeof init.body !== 'string') return init;
@@ -2092,6 +2104,7 @@
         var rec = carry();
         if (!rec) return init;
         body.brand = rec;
+        if (body.contact_policy === undefined) { var cr = keptContactRules(); if (cr) body.contact_policy = cr; }
         return Object.assign({}, init, { body: JSON.stringify(body) });
       } catch (_) { return init; }
     }

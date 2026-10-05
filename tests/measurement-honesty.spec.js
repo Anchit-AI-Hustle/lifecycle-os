@@ -400,13 +400,24 @@ test('no literal discount code survives in the planners', () => {
   }
 });
 
-test('the promotional cap counts the discount, not the code string', () => {
+test('the cap counts every marketing send: not the code string, and not only a discount', () => {
   // Keying the cap on a code was safe only while codes were invented for every
   // slot. Once they come from the brand, a brand with none would have had every
-  // send counted as non-promotional and the cap silently disabled.
-  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'lib', 'smart-brain', 'services.js'), 'utf8');
-  const line = (src.match(/const isPromo = [^\n]*/) || [''])[0];
-  expect(line).toMatch(/offer\.pct|offer\.depth/);
+  // send counted as non-promotional and the cap silently disabled. The fix that
+  // followed counted a slot only when it CARRIED A DISCOUNT, so a nurture send
+  // with none still "did not count toward the cap" - a cohort could be planned
+  // daily with every slot SAFE. Spec §10: caps apply to promotional AND
+  // lifecycle marketing, excluding only transactional (contact-fatigue.js,
+  // 2026-10-04). EXECUTED now: this used to read services.js for `isPromo`.
+  // Champions carries a discount and, with no brand, no code; Nurture carries
+  // NO discount at all (post-purchase: protect margin). Both are marketing.
+  for (const [cohort, pct] of [['Champions', 0.15], ['Nurture', 0]]) {
+    const plan = planWith([{ name: cohort, count: 5000 }], 5);          // one cohort, every day, no brand
+    expect(plan.entries.every((e) => !(e.offer && e.offer.code)), 'no brand means no code').toBe(true);
+    expect(plan.entries.every((e) => Number(e.offer.pct) === pct), `${cohort} offer`).toBe(true);
+    expect(plan.entries.map((e) => e.reach.frequency_cap.sends_in_rolling_7d), cohort).toEqual([1, 2, 3, 4, 5]);
+    expect(plan.entries.map((e) => e.reach.frequency_cap.status), cohort).toEqual(['SAFE', 'SAFE', 'REDUCE_AUDIENCE', 'BLOCKED', 'BLOCKED']);
+  }
 });
 
 test('a feasibility verdict needs a target the brand actually set', () => {

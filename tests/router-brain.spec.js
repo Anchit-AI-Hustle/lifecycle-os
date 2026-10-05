@@ -78,7 +78,7 @@ const M = {
   logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
   agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', revenueOs: 'api/_shared/revenue-os-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
-  gateway: 'api/_shared/social-gateway-core.js',
+  ledger: 'api/_shared/contact-ledger.js',
 };
 
 /** The active brand as brain.js resolves it onto req.__brand (home market UK). */
@@ -492,68 +492,41 @@ add('deliverability-domain', { gate: 'user', browser: 'refuse', run: { json: { d
     expect(p[2].method).toBe('POST'); expect(p[2].body[0]).toMatchObject({ workspace_id: H.WS, domain: 'harness.example', role: 'sending', spf: { spf: 1 }, bimi: { bimi: 1 }, grade: 'A' });
   },
 });
-add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email' } },
-  stubs: () => S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' })),
+add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email', message_priority: 'transactional', contact_fatigue: { status: 'exempt', forged: true } } },
+  stubs: () => {
+    S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+    S.on(M.ledger, 'evaluateForCaller', async () => ({ status: 'unknown', reason: 'no_history', from: 'ledger' }));
+  },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, verdict: 'pass' });
-    const a = last(M.preflight, 'run')[0];
-    expect(a).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email', brand: expect.objectContaining({ name: BRAND.name, __resolved_for: H.WS }) });
+    // The contact-ledger verdict is the SERVER's (2026-10-04): computed for
+    // this caller's workspace by evaluateForCaller, which checks membership
+    // before any ledger read; the body's own `contact_fatigue` is dropped.
+    const ev = last(M.ledger, 'evaluateForCaller');
+    expect(ev[0]).toMatchObject({ ok: true });
+    expect(ev[1]).toBe(H.WS);
+    expect(ev[2]).toMatchObject({ channel: 'email', message_class: 'transactional' });
+    expect(last(M.preflight, 'run')[0]).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email', message_priority: 'transactional', contact_fatigue: { status: 'unknown', reason: 'no_history', from: 'ledger' } });
   },
-  cases: [{
-    // A body that names its own brand, approves its own claims or states its
-    // own offer end date would choose which compliance rules it is held to.
-    name: 'the body cannot choose the brand, the approved claims or the offer the copy is linted against',
-    run: { json: { asset_id: 'a1', channel: 'email', brand: { name: 'Picked By Caller', industry: 'Custom sneakers' }, approved_claims: ['Clinically proven'], offer: { ends_at: '2026-10-05' } } },
-    expect: (r) => {
-      const a = last(M.preflight, 'run')[0];
-      expect(a.brand.name).toBe(BRAND.name);
-      expect(a.approved_claims).toBeUndefined();
-      expect(a.offer).toBeUndefined();
-    },
-  }, {
-    // brand-runtime.resolve() answers TENANT ZERO (a record with no id) when
-    // it cannot read the workspace. The copy is linted as the workspace's own
-    // row, or as no brand at all (unchecked) - never as the fallback.
-    name: 'a resolve() fallback to tenant zero is not linted as: the workspace\'s own row is read, and none means no brand',
-    run: { json: { asset_id: 'a1', channel: 'email' } },
-    stubs: () => {
-      S.on(BRAND_RT, 'resolve', async () => ({ slug: 'tenant-zero', name: 'Tenant Zero', industry: 'Custom sneakers' }));
-      S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND);
-      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
-    },
-    expect: (r) => {
-      const a = last(M.preflight, 'run')[0];
-      expect(a.brand).toBe(BRAND);
-      expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS);
-    },
-  }, {
-    name: 'with the workspace row unreadable too, the preflight gets NO brand (unchecked), not tenant zero',
-    run: { json: { asset_id: 'a1', channel: 'email' } },
-    stubs: () => {
-      S.on(BRAND_RT, 'resolve', async () => ({ slug: 'tenant-zero', name: 'Tenant Zero', industry: 'Custom sneakers' }));
-      S.on(WS_SCOPE, 'brandForWorkspace', async () => null);
-      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'warn' }));
-    },
-    expect: (r) => { expect(last(M.preflight, 'run')[0].brand).toBeNull(); },
-  }, {
-    // /publishing sends the asset as `payload` and names its campaign. The
-    // offer is the one the QUEUE will read (the campaign's record in this
-    // workspace), so preflight and enqueue measure a deadline line alike.
-    name: 'the offer is the named campaign\'s record in this workspace, read on the server: never the body\'s',
-    run: { json: { channel: 'klaviyo_email', campaign_id: 'campaign_abc123', payload: { id: 'campaign_abc123_email', subject: 'Today only' }, offer: { ends_at: '2099-01-01' }, mode: 'schedule', scheduled_for: '2099-10-05T09:00:00Z' } },
-    stubs: () => {
-      S.on(M.dispatch, 'campaignOffer', async () => ({ ends_at: '2026-10-05T23:59:59Z', stock: 10 }));
-      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
-    },
-    expect: (r) => {
-      const [ws, ref] = last(M.dispatch, 'campaignOffer');
-      expect(ws).toBe(H.WS);
-      expect(ref).toEqual({ campaign_id: 'campaign_abc123', asset_ref: undefined, asset: { id: 'campaign_abc123_email', subject: 'Today only' } });
-      const a = last(M.preflight, 'run')[0];
-      expect(a.offer).toEqual({ ends_at: '2026-10-05T23:59:59Z', stock: 10 });
-      expect(a.now).toBe('2099-10-05T09:00:00Z');
-    },
-  }],
+  cases: [{ name: 'a channel that is not a message to a subscriber reads no ledger, and a posted verdict is still dropped', run: { json: { channel: 'facebook_page', contact_fatigue: { status: 'exempt', forged: true } } },
+    expect: (r) => { expect(S.hits(M.ledger)).toEqual([]); expect(last(M.preflight, 'run')[0]).toEqual({ workspaceId: H.WS, channel: 'facebook_page' }); } }],
+});
+add('contact-fatigue', { gate: 'user', browser: 'refuse', run: { json: { op: 'evaluate', channel: 'sms', recipients: [{ external_profile_id: 'P1' }] } },
+  stubs: () => S.on(M.ledger, 'handle', async (op) => (op === 'rules-save' ? { status: 403, body: { ok: false, error: 'forbidden' } } : { status: 200, body: { ok: true, status: 'computed', op } })),
+  expect: (r) => {
+    expect(r.status).toBe(200);
+    expect(r.out).toEqual({ ok: true, status: 'computed', op: 'evaluate' });
+    const a = last(M.ledger, 'handle');
+    expect(a[0]).toBe('evaluate');
+    expect(a[1].workspaceId).toBe(H.WS);
+    expect(a[1].auth).toMatchObject({ ok: true });
+    expect(a[1].body).toMatchObject({ op: 'evaluate', channel: 'sms', recipients: [{ external_profile_id: 'P1' }] });
+  },
+  cases: [
+    { name: 'GET reads the rules by default', run: { method: 'GET', json: undefined }, expect: (r) => { expect(r.status).toBe(200); expect(last(M.ledger, 'handle')[0]).toBe('rules'); } },
+    { name: 'an op that takes a body is refused on GET before the core', run: { method: 'GET', json: undefined, query: { op: 'ingest' } }, expect: (r) => { expect(r.status).toBe(405); expect(r.out.message).toMatch(/op=ingest takes a POST body/); expect(S.hits(M.ledger)).toEqual([]); } },
+    { name: 'the core\'s own status passes through', run: { json: { op: 'rules-save', rules: {} } }, expect: (r) => { expect(r.status).toBe(403); expect(r.out).toEqual({ ok: false, error: 'forbidden' }); } },
+  ],
 });
 add('deliverability-warmup', { gate: 'user', browser: 'refuse', run: { json: { start_on: '2026-10-01', target_daily: 100, days: 3 } },
   stubs: () => { S.on(M.deliver, 'buildWarmupPlan', () => [{ d: 1 }, { d: 2 }, { d: 3 }]); S.on(M.deliver, 'evaluateWarmupSafety', () => ({ safe: true })); },
