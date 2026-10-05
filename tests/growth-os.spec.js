@@ -133,6 +133,10 @@ test('Revenue loop loads on demand and never fabricates expected revenue', async
   const errors = await open(page);
 
   await expect(page.locator('#go-revenue-strip .metric')).toHaveCount(0);
+  await page.evaluate(() => {
+    window.LifecycleAuth = window.LifecycleAuth || {};
+    window.LifecycleAuth.session = { access_token: 'growth-os-test-token' };
+  });
   await page.locator('#go-tabs [data-tab="revenue"]').click();
 
   await expect(page.locator('#go-revenue-strip .metric')).toHaveCount(6);
@@ -146,6 +150,26 @@ test('Revenue loop loads on demand and never fabricates expected revenue', async
   expect(rows.join(' ')).toContain('rev_');
   expect(rows.join(' ')).not.toMatch(/expected revenue\s*[₹$£€]?\s*\d/i);
 
+  expect(errors).toEqual([]);
+});
+
+test('Revenue loop stays neutral and makes no request while signed out', async ({ page }) => {
+  const errors = await open(page);
+  let revenueRequests = 0;
+  page.on('request', (req) => {
+    if (/\/api\/brain\?action=revenue-os/.test(req.url())) revenueRequests += 1;
+  });
+
+  await page.evaluate(() => {
+    window.LifecycleAuth = window.LifecycleAuth || {};
+    window.LifecycleAuth.session = null;
+  });
+  await page.locator('#go-tabs [data-tab="revenue"]').click();
+
+  await expect(page.locator('#go-revenue-status')).not.toHaveClass(/err/);
+  await expect(page.locator('#go-revenue-status-text')).toContainText('Sign in and activate a brand');
+  await expect(page.locator('#go-revenue-body .vh-failure')).toHaveCount(0);
+  expect(revenueRequests).toBe(0);
   expect(errors).toEqual([]);
 });
 
