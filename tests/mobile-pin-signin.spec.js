@@ -824,14 +824,14 @@ async function open(page, file, opts) {
   return log;
 }
 
-/** Press the rail's Sign-in; dispatch the click where a fixed element overlaps the footer. */
+/**
+ * Open the stored-phone panel. Since 2026-10-05 the Sign in chip starts Google
+ * and does not open this panel; the scenarios below still drive the panel the
+ * product keeps for a phone session that already exists.
+ */
 async function pressSignIn(page) {
-  const btn = page.locator('#lnav-signin');
-  await btn.waitFor({ state: 'attached', timeout: 15000 });
-  try { await btn.click({ timeout: 4000 }); } catch (e) {
-    if (!/intercepts pointer events|Timeout/.test(String(e.message))) throw e;
-    await btn.evaluate((el) => el.click());
-  }
+  await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.mobile && window.LifecycleAuth.mobile.openPanel), null, { timeout: 15000 });
+  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
   await page.waitForSelector('#lnav-mauth', { state: 'attached', timeout: 5000 });
 }
 
@@ -974,7 +974,9 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   expect(log.dialogs).toEqual([]);
   expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
   expect(a.oauth).toBe(0);
-  expect(a.google).toBe(false);
+  // The standing bar names Google, which is the sign-in. Opening the stored
+  // phone panel does not start it.
+  expect(a.google).toBe(true);
 });
 
 test('SERVER MODE: the account goes to the database, the token travels in the header, op=me validates every boot, a 401 clears it, an unreachable database is SAID', async ({ page }) => {
@@ -1035,7 +1037,7 @@ test('SERVER MODE: the account goes to the database, the token travels in the he
   // reads the public site with the model off. ON is what the server does.
   expect(a.storage.serverOpen, 'the wizard says OFF where the server reads the site').toBe(true);
   // Opening the panel in this state warns that a sign-up here is a SEPARATE account.
-  await page.evaluate(() => window.LifecycleAuth.openSignIn());
+  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
   await expect(page.locator('#lnav-mauth-mode')).toContainText(/separate account on this device only/, { timeout: 8000 });
   await expect(page.locator('#lnav-mauth-mode')).toContainText(/ep-fixture\.neon\.tech/);
   await page.click('#lnav-mauth-cancel');
@@ -1440,35 +1442,22 @@ test('PROD DRIVE: five wrong PINs arriving at once THROUGH THE SHIPPED HANDLER e
   expect(still.body.message).toMatch(/Too many wrong PINs\. Try again in 15 minutes\./);
 });
 
-test('REVIEW P2: the privacy policy describes the sign-in that exists (a mobile number, a PIN hash, where each is kept) and no longer says a Google profile authenticates or Supabase Auth holds the session', async ({ page }) => {
+test('REVIEW: the privacy policy describes Google as the sign-in, and keeps the withdrawn mobile PIN only as history', async ({ page }) => {
   await page.goto(base + '/privacy.html', { waitUntil: 'domcontentloaded' });
   const policy = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
-  expect(policy.length).toBeGreaterThan(1500);
-  // What IS collected, and where it goes.
-  expect(policy).toMatch(/mobile number/i);
-  expect(policy).toMatch(/4-digit PIN/);
-  expect(policy).toMatch(/salted hash of your PIN, never the PIN itself/i);
-  expect(policy).toMatch(/Neon/);
-  expect(policy).toMatch(/browser's local storage/i);
-  expect(policy).toMatch(/90 days/);
-  expect(policy).toMatch(/not verified by SMS/i);
-  expect(policy).toMatch(/private to that account/i);
-  // What the old policy claimed and the app no longer does.
-  expect(policy).not.toMatch(/Your Google profile is used/i);
-  expect(policy).not.toMatch(/Authentication is handled by Supabase Auth/i);
-  expect(policy).not.toMatch(/your user id and email/i);
-  expect(policy).not.toMatch(/obtained through your Google sign-in/i);
-  expect(policy).not.toMatch(/Google user data we access/i);
-  // Google is named ONLY inside the block marked historical, and that block
-  // says the sign-in was withdrawn and names the date.
-  const google = await page.evaluate(() => Array.from(document.querySelectorAll('p, li, h2')).filter((el) => /Google/.test(el.textContent)).map((el) => ({ historical: !!el.closest('[data-historical]'), snippet: el.textContent.slice(0, 80) })));
-  expect(google.length).toBeGreaterThan(0);
-  expect(google.filter((g) => !g.historical), 'Google is still described as a live part of sign-in').toEqual([]);
-  expect(await page.evaluate(() => (document.querySelector('[data-historical]') || {}).textContent || '')).toMatch(/withdrawn on 28 September 2026/);
+  expect(policy.length).toBeGreaterThan(800);
+  expect(policy).toMatch(/Sign-in is with Google/i);
+  expect(policy).toMatch(/openid/);
+  expect(policy).toMatch(/Limited Use/i);
+  const historical = await page.evaluate(() => (document.querySelector('[data-historical]') || {}).textContent || '');
+  expect(historical).toMatch(/4-digit PIN/);
+  expect(historical).toMatch(/salted hash of the PIN, never the PIN itself/i);
+  expect(historical).toMatch(/withdrawn on 5 October 2026/);
+  expect(historical).toMatch(/not verified by SMS/i);
   expect(await page.evaluate(() => document.querySelector('title').textContent)).toMatch(/Privacy/);
 });
 
-test('EVERY page that loads auth.js: pressing Sign in opens the panel on that page, never calls signInWithOAuth, never navigates, shows no Google button', async ({ page }) => {
+test('EVERY page that loads auth.js: pressing Sign in starts Google on that page, never opens the PIN panel, never navigates', async ({ page }) => {
   test.setTimeout(900_000);
   expect(PAGES.length, 'no pages carrying auth.js were found').toBeGreaterThan(20);
   const failures = [];
@@ -1476,13 +1465,19 @@ test('EVERY page that loads auth.js: pressing Sign in opens the panel on that pa
   for (const f of PAGES) {
     let log;
     try { log = await open(page, f); } catch (e) { failures.push(`${f}: auth.js never decided a backend state: ${String(e.message).split('\n')[0]}`); continue; }
-    try { await pressSignIn(page); } catch (e) { failures.push(`${f}: the Sign in chip could not be pressed: ${String(e.message).split('\n')[0]}`); continue; }
+    const btn = page.locator('#lnav-signin');
+    try {
+      await btn.waitFor({ state: 'attached', timeout: 15000 });
+      await btn.evaluate((el) => el.click());
+    } catch (e) { failures.push(`${f}: the Sign in chip could not be pressed: ${String(e.message).split('\n')[0]}`); continue; }
     pressed++;
+    await page.waitForFunction(() => (window.__OAUTH_CALLS__ || []).length > 0 || !!document.getElementById('lnav-signin-note'), null, { timeout: 8000 }).catch(() => {});
     const a = await readAuth(page);
     const here = await page.evaluate(() => location.pathname);
-    if (!a.panel) failures.push(`${f}: no inline panel opened`);
-    if (a.oauth) failures.push(`${f}: signInWithOAuth was called (${a.oauth}x)`);
-    if (a.google) failures.push(`${f}: a "Sign in with Google" control is still offered`);
+    if (a.panel) failures.push(`${f}: the mobile PIN panel opened`);
+    if (!a.oauth) failures.push(`${f}: signInWithOAuth was not called`);
+    const call = await page.evaluate(() => (window.__OAUTH_CALLS__ || [])[0] || null);
+    if (call && call.provider !== 'google') failures.push(`${f}: provider was ${call && call.provider}`);
     if (!here.endsWith('/' + f)) failures.push(`${f}: pressing Sign in navigated to ${here}`);
     if (log.navigations.some((u) => /authorize/.test(u))) failures.push(`${f}: the browser was sent to an OAuth authorize URL`);
     if (log.dialogs.length) failures.push(`${f}: a native dialog opened: ${log.dialogs.join(' | ')}`);

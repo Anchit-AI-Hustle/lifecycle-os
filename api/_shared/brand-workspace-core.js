@@ -153,7 +153,7 @@ async function verifyCaller(req) {
       message: 'You are not signed in, so this could not be saved to your account. '
         + (v.reason === 'no_database'
           ? 'A sign-in kept on this device only cannot be checked by the server.'
-          : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
+          : 'Your sign-in has expired or was signed out. Sign in again with Google.'),
       hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
       mobile_reason: v.reason,
     };

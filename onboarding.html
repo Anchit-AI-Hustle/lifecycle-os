@@ -465,11 +465,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   /* A brand kept on this device (its id is `local-…`, brand-context.js). */
   function isLocalId(id) { return typeof id === 'string' && id.indexOf('local-') === 0; }
-  /* The clause that names what has to change. Signing in with a mobile number
-     and PIN is the remedy on every deployment now (2026-10-03): a phone
-     sign-in's token is sent, and the server acts for it whether the account is
-     in a database or kept on this device. */
-  function accountClause() { return 'you sign in with your mobile number and PIN'; }
+  /* The clause that names what has to change. Sign-in is Google (2026-10-05). */
+  function accountClause() { return 'you sign in with Google'; }
   /* The mobile+PIN session, if that is who is here. */
   function phoneSession() { var s = storageInfo(); return (s && s.session) || null; }
   /* SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). The
@@ -1610,7 +1607,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // every deployment now - a server-mode sign-in is verified, and a
       // device-mode one is admitted as the person on this page.
       lead = 'Needs your sign-in.';
-      body = 'Sign in with your mobile number and PIN (the Sign in chip in the menu) and it reads your site'
+      body = 'Sign in with Google (the Sign in chip in the menu) and it reads your site'
         + (rs.state === 'backend-answers' ? ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.' : '.');
     } else {
       // supabase-js did not load, so this page cannot tell whether the server
@@ -1626,7 +1623,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      it. The remedy that works is to sign in again. */
   function staleSessionSentence(st) {
     var host = st && st.host ? ' (' + st.host + ')' : '';
-    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Signing out and entering your number again creates the account there, and then this works.';
+    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Sign out and sign in with Google, and then this works.';
   }
 
   function extractBlock() {
