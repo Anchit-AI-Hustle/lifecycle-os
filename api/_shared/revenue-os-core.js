@@ -406,41 +406,68 @@ async function trackOutcome(input = {}) {
     throw e;
   }
 
-  const incrementalRevenue = finite(input.incremental_revenue);
-  const cost = finite(input.cost);
-  let roi = finite(input.roi);
-  if (roi === null && incrementalRevenue !== null && cost !== null && cost > 0) {
+  // A recommendation is updated several times over its life. Upsert semantics
+  // must not erase the original recommendation time, baseline, experiment id,
+  // or measured revenue just because a later transition omitted those fields.
+  // The SELECT is workspace-scoped by supa.js, so an action id from another
+  // brand cannot be used to borrow or overwrite its state.
+  const existingRows = await supa.select('analytics_action_outcomes', {
+    filters: { action_id: 'eq.' + actionId },
+    limit: 1,
+  }).catch(() => []);
+  const existing = Array.isArray(existingRows) && existingRows[0] ? existingRows[0] : {};
+
+  const present = (key) => Object.prototype.hasOwnProperty.call(input, key);
+  const numeric = (key) => present(key) ? finite(input[key]) : finite(existing[key]);
+  const textValue = (key, fallback = null) => present(key)
+    ? (input[key] == null || input[key] === '' ? null : String(input[key]))
+    : (existing[key] == null || existing[key] === '' ? fallback : existing[key]);
+
+  const incrementalRevenue = numeric('incremental_revenue');
+  const cost = numeric('cost');
+  let roi = numeric('roi');
+  if (!present('roi') && incrementalRevenue !== null && cost !== null && cost > 0) {
     roi = incrementalRevenue / cost;
   }
 
   const now = new Date().toISOString();
-  const metadata = Object.assign(cleanMetadata(input.metadata), {
+  const inputMetadata = cleanMetadata(input.metadata);
+  const oldMetadata = existing.metadata && typeof existing.metadata === 'object' && !Array.isArray(existing.metadata)
+    ? existing.metadata : {};
+  const metadata = Object.assign({}, oldMetadata, inputMetadata, {
     source: 'revenue-os',
-    role_owner: input.role_owner || undefined,
-    platform_id: input.platform_id || undefined,
+    role_owner: input.role_owner || oldMetadata.role_owner || undefined,
+    platform_id: input.platform_id || oldMetadata.platform_id || undefined,
   });
 
+  const transitionTime = (field, matchingStatus) => {
+    if (present(field)) return input[field] || null;
+    if (existing[field]) return existing[field];
+    return status === matchingStatus ? now : null;
+  };
+
   const row = {
-    action_type: String(input.action_type || input.role_owner || 'revenue_os_recommendation'),
+    action_type: textValue('action_type', input.role_owner || existing.action_type || 'revenue_os_recommendation'),
     action_id: actionId,
-    channel: input.channel || input.platform_id || null,
-    market: String(input.market || 'US').toUpperCase(),
-    owner: input.owner || input.role_owner || null,
+    channel: textValue('channel', input.platform_id || existing.channel || null),
+    market: String(input.market || existing.market || 'US').toUpperCase(),
+    owner: textValue('owner', input.role_owner || existing.owner || null),
     status,
-    recommended_at: input.recommended_at || now,
-    approved_at: input.approved_at || (status === 'approved' ? now : null),
-    launched_at: input.launched_at || (status === 'launched' ? now : null),
-    measured_at: input.measured_at || (status === 'measured' ? now : null),
-    baseline_metric: input.baseline_metric || null,
-    baseline_value: finite(input.baseline_value),
-    observed_metric: input.observed_metric || input.baseline_metric || null,
-    observed_value: finite(input.observed_value),
+    recommended_at: input.recommended_at || existing.recommended_at || now,
+    approved_at: transitionTime('approved_at', 'approved'),
+    launched_at: transitionTime('launched_at', 'launched'),
+    measured_at: transitionTime('measured_at', 'measured'),
+    baseline_metric: textValue('baseline_metric'),
+    baseline_value: numeric('baseline_value'),
+    observed_metric: textValue('observed_metric', input.baseline_metric || existing.observed_metric || existing.baseline_metric || null),
+    observed_value: numeric('observed_value'),
     incremental_revenue: incrementalRevenue,
     cost,
     roi,
-    experiment_id: input.experiment_id || null,
-    guardrail_breach: asBoolean(input.guardrail_breach),
-    rolled_back: status === 'rolled_back' || asBoolean(input.rolled_back),
+    experiment_id: textValue('experiment_id'),
+    guardrail_breach: present('guardrail_breach') ? asBoolean(input.guardrail_breach) : !!existing.guardrail_breach,
+    rolled_back: status === 'rolled_back'
+      || (present('rolled_back') ? asBoolean(input.rolled_back) : !!existing.rolled_back),
     metadata,
     updated_at: now,
   };
@@ -453,7 +480,7 @@ async function trackOutcome(input = {}) {
     ok: true,
     workspace_id: workspaceId,
     outcome: Array.isArray(rows) && rows[0] ? rows[0] : row,
-    note: 'Only measured values supplied by the caller are stored. Revenue OS does not backfill missing impact with estimates.',
+    note: 'Only measured values supplied by the caller are stored. Later state transitions preserve earlier baseline and impact fields instead of replacing them with nulls.',
   };
 }
 
