@@ -76,7 +76,7 @@ const M = {
   gif: 'api/_shared/gif-core.js', engine: 'api/_shared/ads-insight-engine.js', catalogServer: 'api/_shared/brand-catalog-server.js',
   sbplan: 'api/_shared/smart-brain-plan.js', universe: 'api/_shared/competitor-universe.js', domainIntel: 'api/_shared/domain-intel.js',
   logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
-  agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', journey: 'api/_shared/journey-core.js',
+  agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', revenueOs: 'api/_shared/revenue-os-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
   gateway: 'api/_shared/social-gateway-core.js',
 };
@@ -745,6 +745,31 @@ add('platform-agents', { gate: 'user', model: 'analytics.report', browser: 'refu
   expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: BRAND }); },
   cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toBe(BRAND); } }],
 });
+add('revenue-os', { gate: 'user', model: 'analytics.report', browser: 'refuse', run: { method: 'GET', query: { days: '21', question: 'what makes money?' } },
+  stubs: () => {
+    S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND);
+    S.on(M.revenueOs, 'run', async () => ({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] }));
+    S.on(M.revenueOs, 'trackOutcome', async (input) => ({ ok: true, tracked: input.action_id, market: input.market }));
+  },
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] });
+    expect(last(M.revenueOs, 'run')[0]).toEqual({
+      market: 'UK', days: 21, hours: 720, since: undefined, until: undefined,
+      question: 'what makes money?', tier: 'standard', platforms: undefined, brand: BRAND,
+    });
+  },
+  cases: [
+    { name: 'POST track closes the recommendation-to-outcome loop without running the model', run: { json: { op: 'track', action_id: 'rev_0123456789abcdef', status: 'measured' } },
+      expect: (r) => {
+        expect(r.out).toEqual({ ok: true, tracked: 'rev_0123456789abcdef', market: 'UK' });
+        const input = last(M.revenueOs, 'trackOutcome')[0];
+        expect(input).toMatchObject({ op: 'track', action_id: 'rev_0123456789abcdef', status: 'measured', market: 'UK' });
+        expect(S.hits(M.revenueOs, 'run')).toEqual([]);
+      } },
+    { name: 'unknown op is rejected before the core runs', run: { method: 'GET', query: { op: 'wat' } },
+      expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.revenueOs)).toEqual([]); } },
+  ],
+});
 add('journey', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { days: '30', since: '2026-01-01' } },
   stubs: () => S.on(M.journey, 'linkLedger', async () => ({ ok: true, links: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, links: [] }); expect(last(M.journey, 'linkLedger')[0]).toEqual({ market: 'UK', days: 30, since: '2026-01-01', until: undefined }); },
@@ -1065,7 +1090,7 @@ test.describe('the router', () => {
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
       'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
-      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });

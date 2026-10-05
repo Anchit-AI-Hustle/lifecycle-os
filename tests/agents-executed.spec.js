@@ -153,6 +153,28 @@ add('platform-agents', { run: { method: 'GET', query: { days: '7' } }, anonymous
     expect(w.llm.calls.length).toBe(connected.length);
     for (const a of r.out.agents.filter((x) => !x.connected)) { expect(a.analysed).toBe(false); expect(a.action_items[0].action).toMatch(/^Connect /); }
   } });
+add('revenue-os', { run: { method: 'GET', query: { days: '7' } }, anonymous: 'refuse',
+  phone: (r) => {
+    expect(r.status).toBe(200); expect(r.out.ok).toBe(true);
+    expect(r.out.system).toBe('Lifecycle OS Revenue OS');
+    expect(r.out.operating_loop).toEqual([
+      'demand', 'idea', 'content', 'distribution', 'engagement',
+      'lead', 'conversion', 'revenue', 'attribution', 'learning',
+    ]);
+    expect(Array.isArray(r.out.roles)).toBe(true);
+    expect(r.out.roles).toHaveLength(8);
+    expect(Array.isArray(r.out.opportunity_queue)).toBe(true);
+    // Revenue OS is a controller above the grounded platform analysts. It may
+    // call the model only for platform agents that actually have data; it does
+    // not add a second "CEO" model call of its own.
+    const connected = r.out.source_coverage && Number(r.out.source_coverage.connected || 0);
+    expect(w.llm.calls.length).toBe(connected);
+    for (const x of r.out.opportunity_queue) {
+      expect(x.expected_revenue).toBeNull();
+      expect(x.execution_mode).toBe('recommend_only');
+      expect(x.measurement_plan).toBeTruthy();
+    }
+  } });
 add('social-list', { run: { method: 'GET', query: { date: '2026-10-01' } }, anonymous: 'demo',
   phone: (r) => { expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, posts: [] }); } });
 add('social-run-daily', { run: { json: { dry_run: true, platforms: ['instagram'], date: '2026-10-01', brand: BRAND } }, anonymous: 'refuse',
