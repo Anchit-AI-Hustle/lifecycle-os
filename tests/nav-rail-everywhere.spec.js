@@ -400,7 +400,7 @@ test('the rail is a labelled landmark with a skip link to the page content', asy
   expect(a11y.skip).toMatch(/skip to main content/i);
   expect(a11y.href).toBe('#lc-content');
   expect(a11y.target, 'no main-content target for the skip link').toBe(true);
-  expect(a11y.chip).toBe('Sign in with Google');
+  expect(a11y.chip).toBe('Sign in with Gmail');
 });
 
 /* ═══ 1. the rail is rendered, anchored, uncovered, on every app page ══════ */

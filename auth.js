@@ -6,9 +6,9 @@
  *   1. Bootstraps a Supabase client from window.__SUPABASE__ (set in HTML head)
  *      OR from the /api/public-config endpoint at runtime. The client persists
  *      the session and accepts the Google OAuth callback.
- *   2. SIGN-IN IS GOOGLE, THROUGH SUPABASE AUTH (2026-10-05). The rail's
- *      "Sign in with Google" chip starts Google sign-in (Gmail account picker)
- *      and never hands the browser to a host that is not there. redirectTo is
+ *   2. SIGN-IN IS GMAIL, THROUGH SUPABASE GOOGLE AUTH (2026-10-05). The rail's
+ *      "Sign in with Gmail" chip starts Google sign-in (the Gmail account
+ *      picker) and never hands the browser to a host that is not there. redirectTo is
  *      the origin root (the Site URL) so a missing wildcard allowlist cannot
  *      400 the bounce; rememberReturnTo / restoreReturnTo send the person
  *      back to the page they pressed from. A stored mobile-number session
@@ -430,7 +430,7 @@
         state = 'signed-out';
         lead = 'Not run: you are signed out.';
         body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
-          + 'Sign in with Google (the Sign in chip in the menu), then try again; '
+          + 'Sign in with Gmail (the Sign in with Gmail chip in the menu), then try again; '
           + 'everything else on this page keeps working.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
@@ -2016,6 +2016,7 @@
           left: 8px; outline: 2px solid var(--vh-focus); outline-offset: 2px;
         }
         #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        html.lnav-collapsed #lifecycle-nav .lnav-signin-with { display: none; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
         #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
@@ -2324,11 +2325,11 @@
   }
 
   // The user block at the foot of the rail: the account chip + sign-out when a
-  // session exists, a "Sign in with Google" link otherwise. It is the ONLY part
+  // session exists, a "Sign in with Gmail" link otherwise. It is the ONLY part
   // of the rail that depends on the session, which is why it can be swapped in
   // place (see setRailUser) instead of the whole rail waiting for the session
-  // to resolve.
-  const SIGN_IN_LABEL = 'Sign in with Google';
+  // to resolve. The visible words are Gmail; the provider underneath is Google.
+  const SIGN_IN_LABEL = 'Sign in with Gmail';
   function bindSkipTarget(wrap) {
     const skip = wrap && wrap.querySelector('.lnav-skip');
     if (!skip) return;
@@ -2353,6 +2354,19 @@
   function escHtml(v) {
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+  /** The only sign-in a visitor is offered. Gmail is a Google account. */
+  function signInLabelHtml() {
+    return 'Sign in<span class="lnav-signin-with"> with Gmail</span>';
+  }
+  function paintSignInLabel(btn, opts) {
+    if (!btn) return;
+    // A press in flight owns the label ("Checking sign-in…"). clearSignInNote
+    // must not take it back; the press itself restores with { force: true }.
+    if (btn.dataset.busy && !(opts && opts.force)) return;
+    btn.innerHTML = signInLabelHtml();
+    btn.setAttribute('aria-label', SIGN_IN_LABEL);
+    btn.removeAttribute('title');
+  }
   function railUserHtml(user) {
     // Two user shapes reach here: a mobile+PIN user {id, phone, name} (the one
     // sign-in since 2026-09-28) and the localhost "Local preview" stub, which
@@ -2369,7 +2383,7 @@
     return user
       ? `<div class="lnav-user"${user.phone ? ` title="${escHtml(user.phone)}"` : ''}>${avatar}<span class="lnav-uname">${escHtml(display)}</span>
            <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
-      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/" aria-label="${SIGN_IN_LABEL}">${SIGN_IN_LABEL}</a></div>`;
+      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/" aria-label="${escHtml(SIGN_IN_LABEL)}">${signInLabelHtml()}</a></div>`;
   }
   function wireRailUser(root) {
     const signinBtn = root.querySelector('#lnav-signin');
@@ -2403,7 +2417,7 @@
     const btn = scope.querySelector('#lnav-signin');
     if (btn) {
       btn.removeAttribute('aria-describedby');
-      if (!btn.dataset.busy) { btn.textContent = SIGN_IN_LABEL; btn.removeAttribute('title'); }
+      paintSignInLabel(btn);
     }
   }
 
@@ -2595,7 +2609,7 @@
   /**
    * What this Auth project publishes about its providers.
    *
-   * GET /auth/v1/settings is public (the same document Sign in with Google
+   * GET /auth/v1/settings is public (the same document Sign in with Gmail
    * reads before it navigates). `external.google === false` is the live
    * production state on 2026-10-05: GoTrue then answers authorize with
    * 400 validation_failed "Unsupported provider: provider is not enabled",
@@ -2691,6 +2705,7 @@
    */
   function showSignInRefusal(wrap, btn, refusal) {
     btn.textContent = 'Sign-in unavailable';
+    btn.setAttribute('aria-label', 'Sign-in unavailable');
     btn.title = refusal.message;
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
     let note = wrap.querySelector('#lnav-signin-note');
@@ -2726,11 +2741,12 @@
       const waited = !authReady.settled;
       if (waited && btn) {
         btn.textContent = 'Checking sign-in…';
+        btn.setAttribute('aria-label', 'Checking sign-in');
         btn.setAttribute('aria-busy', 'true');
       }
       const refusal = await signInRefusal();
       if (waited && btn) {
-        btn.textContent = SIGN_IN_LABEL;
+        paintSignInLabel(btn, { force: true });
         btn.removeAttribute('aria-busy');
       }
       if (!refusal) return '';
@@ -2813,17 +2829,17 @@
     if (kind === 'sdk') {
       html = '<b>The Supabase library did not load.</b> auth.js loads '
         + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
-        + 'outage will all do this. Every page is still open and usable. Sign in with Google needs that '
+        + 'outage will all do this. Every page is still open and usable. Sign in with Gmail needs that '
         + 'library, so it cannot run until it loads. Retry on a different network or allow '
         + '<code>cdn.jsdelivr.net</code>, then reload.';
     } else if (kind === 'signed-out') {
       html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Sign in with Google</b> (the Sign in '
+        + 'what this browser holds. <b>Sign in with Gmail</b> (the Sign in with Gmail '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
     } else if (kind === 'provider-off' && host) {
       html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
-        + '</code>). Sign in with Google cannot start because the Auth server refuses it with '
+        + '</code>). Sign in with Gmail cannot start because the Auth server refuses it with '
         + '<code>validation_failed</code>: provider is not enabled. In the Supabase dashboard open '
         + '<b>Authentication → Providers → Google</b>, turn the provider on, set the Client ID and '
         + 'Client Secret from a Google Cloud OAuth web client, and add the Authorized redirect URI '
@@ -2835,13 +2851,13 @@
       html = '<b>Running without a workspace database.</b> The database this deployment points at (<code>' + host
         + '</code>) cannot be reached - its Supabase project has most '
         + 'likely been deleted, renamed or paused, or the self-hosted stack is down. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Google needs that '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Gmail needs that '
         + 'database, so it cannot run until the database answers. Point <code>SUPABASE_URL</code> '
         + 'and <code>SUPABASE_ANON_KEY</code> at a live backend to restore saved work.';
     } else {
       html = '<b>Running without a workspace database.</b> This deployment has no <code>SUPABASE_URL</code> / '
         + '<code>SUPABASE_ANON_KEY</code> set. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Google needs those '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Gmail needs those '
         + 'values. Set them on the deployment to restore saved work.';
     }
     var tmp = document.createElement('div');
@@ -3775,7 +3791,7 @@
       (btn.closest('.lnav-user') || btn).insertAdjacentElement('afterend', note);
     }
     note.setAttribute('data-kind', 'expired');
-    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with Google.';
+    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with Gmail.';
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
   }
 
