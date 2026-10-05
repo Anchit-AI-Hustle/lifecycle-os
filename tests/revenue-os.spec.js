@@ -1,10 +1,11 @@
 const { test, expect } = require('@playwright/test');
-const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const MODULE = path.join(ROOT, 'api', '_shared', 'revenue-os-core.js');
 const revenue = require(MODULE);
+const dataAnalysis = require('../api/_shared/data-analysis-core.js');
+const supa = require('../api/_shared/supa.js');
 
 function intelligence(actions) {
   return {
@@ -151,10 +152,67 @@ test('run accepts injected grounded snapshots and makes no connector or model de
   expect(plan.opportunity_queue[0].role_owner).toBe('conversion');
 });
 
-test('outcome tracking is workspace-scoped and upserts by workspace plus action id', () => {
-  const src = fs.readFileSync(MODULE, 'utf8');
-  expect(src).toMatch(/dataAnalysis\.activeWorkspace\(\)/);
-  expect(src).toMatch(/supa\.insert\('analytics_action_outcomes'/);
-  expect(src).toMatch(/upsertOn:\s*'workspace_id,action_id'/);
-  expect(src).not.toMatch(/input\.workspace_id/);
+test('outcome tracking executes a workspace-scoped upsert and preserves prior measurement state', async () => {
+  const originalWorkspace = dataAnalysis.activeWorkspace;
+  const originalSelect = supa.select;
+  const originalInsert = supa.insert;
+  const calls = { select: null, insert: null };
+
+  dataAnalysis.activeWorkspace = async () => 'ws-a';
+  supa.select = async (table, opts) => {
+    calls.select = { table, opts };
+    return [{
+      action_id: 'rev_0123456789abcdef',
+      action_type: 'conversion',
+      channel: 'meta',
+      market: 'US',
+      owner: 'conversion',
+      status: 'launched',
+      recommended_at: '2026-10-01T00:00:00.000Z',
+      launched_at: '2026-10-02T00:00:00.000Z',
+      baseline_metric: 'conversion_rate',
+      baseline_value: 0.02,
+      experiment_id: 'exp-7',
+      metadata: { platform_id: 'meta', original: true },
+    }];
+  };
+  supa.insert = async (table, rows, opts) => {
+    calls.insert = { table, rows, opts };
+    return rows.map((row) => Object.assign({ workspace_id: 'ws-a' }, row));
+  };
+
+  try {
+    const out = await revenue.trackOutcome({
+      action_id: 'rev_0123456789abcdef',
+      status: 'measured',
+      workspace_id: 'ws-evil',
+      observed_value: 0.026,
+      incremental_revenue: 4200,
+      cost: 1200,
+      metadata: { measured_by: 'experiment' },
+    });
+
+    expect(calls.select.table).toBe('analytics_action_outcomes');
+    expect(calls.select.opts.filters).toEqual({ action_id: 'eq.rev_0123456789abcdef' });
+    expect(calls.insert.table).toBe('analytics_action_outcomes');
+    expect(calls.insert.opts).toEqual({ upsertOn: 'workspace_id,action_id' });
+
+    const row = calls.insert.rows[0];
+    expect(row).not.toHaveProperty('workspace_id');
+    expect(row.recommended_at).toBe('2026-10-01T00:00:00.000Z');
+    expect(row.launched_at).toBe('2026-10-02T00:00:00.000Z');
+    expect(row.baseline_metric).toBe('conversion_rate');
+    expect(row.baseline_value).toBe(0.02);
+    expect(row.experiment_id).toBe('exp-7');
+    expect(row.observed_value).toBe(0.026);
+    expect(row.incremental_revenue).toBe(4200);
+    expect(row.roi).toBe(3.5);
+    expect(row.metadata).toMatchObject({ original: true, platform_id: 'meta', measured_by: 'experiment', source: 'revenue-os' });
+    expect(out.workspace_id).toBe('ws-a');
+    expect(out.outcome.workspace_id).toBe('ws-a');
+  } finally {
+    dataAnalysis.activeWorkspace = originalWorkspace;
+    supa.select = originalSelect;
+    supa.insert = originalInsert;
+  }
 });
