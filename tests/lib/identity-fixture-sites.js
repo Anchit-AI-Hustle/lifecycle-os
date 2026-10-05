@@ -42,6 +42,10 @@ const EXPECT = {
   declared: { mask: '#cf0a2c', tile: '#cf0a2c', manifestBg: '#fafafa' },
   guidelines: { first: '#eb0a1e', second: '#58595b' },
   'logo-file': { primary: '#eb0a1e' },
+  'heading-navy': { primary: '#000042', header: '#4d4d4d' },
+  'social-tokens': { primary: '#d02030', social: ['#3b5998', '#0077b5', '#e4405f'] },
+  'product-cta': { action: '#e4002b' },
+  'walled-icons': { icon: '#c41230' },
 };
 
 const HEAD = (title, extra) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title>
@@ -76,6 +80,18 @@ const PAGES = {
   declared: () => `${HEAD('Arch Runner', '<link rel="mask-icon" href="/mask.svg" color="#cf0a2c"><meta name="msapplication-config" content="/browserconfig.xml"><link rel="manifest" href="/site.webmanifest">')}<style>${BASE_CSS}.cta{background:#111111}</style></head><body>
 <header><a href="/"><svg width="80" height="40" viewBox="0 0 80 40"><path d="M0 0h80v40H0z" fill="#000000"/></svg></a>${NAV}</header>
 <main><h1>Run your way</h1>${BODY_COPY}<p><a class="cta" href="/shop">Shop running</a></p></main></body></html>`,
+  'heading-navy': () => `${HEAD('Clear Frames')}<style>${BASE_CSS}header{background:#4d4d4d;border:0}header nav a{color:#ffffff}h1{color:#000042}</style></head><body>
+<header><a href="/"><svg width="120" height="36" viewBox="0 0 120 36"><path d="M0 0h120v36H0z" fill="#151515"/></svg></a>${NAV}</header>
+<main><h1>Eyewear for every face</h1>${BODY_COPY}</main></body></html>`,
+  'social-tokens': () => `${HEAD('Arch Careers')}<style>:root{--brand-primary:#d02030;--brand-facebook:#3b5998;--brand-linkedin:#0077b5;--color-brand-instagram:#e4405f}${BASE_CSS}.share a{display:inline-block;margin-right:8px;padding:6px 10px;color:#fff;text-decoration:none}</style></head><body>
+<header><a href="/"><svg width="80" height="40" viewBox="0 0 80 40"><path d="M0 0h80v40H0z" fill="#000000"/></svg></a>${NAV}</header>
+<main><h1 style="color:var(--brand-primary)">Join the team</h1>${BODY_COPY}<p class="share"><a style="background:var(--brand-facebook)" href="/f">Share</a><a style="background:var(--brand-linkedin)" href="/l">Post</a></p></main></body></html>`,
+  'product-cta': () => `${HEAD('Loud Audio')}<style>${BASE_CSS}</style></head><body>
+<header><a href="/"><svg width="110" height="36" viewBox="0 0 110 36"><path d="M0 0h110v36H0z" fill="#000000"/></svg></a>${NAV}</header>
+<main><h1>Sound you can feel</h1>${BODY_COPY}<p><a href="/products/rockerz-450">See the headphones</a></p></main></body></html>`,
+  'product-cta/product': () => `${HEAD('Rockerz 450')}<style>${BASE_CSS}.buy{display:inline-block;background:#e4002b;color:#fff;padding:16px 36px;border:0;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none}</style></head><body>
+<header><a href="/"><svg width="110" height="36" viewBox="0 0 110 36"><path d="M0 0h110v36H0z" fill="#000000"/></svg></a>${NAV}</header>
+<main><h1>Rockerz 450</h1>${BODY_COPY}<p><a class="buy" href="/cart/add">Add to cart</a></p></main></body></html>`,
   guidelines: () => `${HEAD('Brand guidelines: colour')}<style>${BASE_CSS}.sw{display:inline-block;width:220px;margin:0 16px 16px 0;vertical-align:top;font-size:14px}.chip{height:120px;border-radius:4px}</style></head><body>
 <header><a href="/"><svg width="80" height="40" viewBox="0 0 80 40"><path d="M0 0h80v40H0z" fill="#000000"/></svg></a>${NAV}</header>
 <main><h1>Colour</h1><p>Our palette is red, white, black and grey. Red sits at the heart of the brand and is used to bring focus to key elements.</p>
@@ -103,8 +119,16 @@ function handler(kind, opts) {
   return (req, res) => {
     const u = new URL(req.url, 'http://x');
     const send = (status, type, body) => { res.writeHead(status, { 'content-type': type, 'cache-control': 'no-store' }); res.end(body); };
-    if (u.pathname === '/robots.txt') return send(200, 'text/plain', 'User-agent: *\nAllow: /\n');
+    if (u.pathname === '/robots.txt') return send(200, 'text/plain', kind === 'walled-icons' ? 'User-agent: *\nDisallow: /apple-touch-icon.png\n' : 'User-agent: *\nAllow: /\n');
     if (kind === 'walled') return send(403, 'text/html; charset=utf-8', '<!doctype html><title>Access Denied</title><h1>Access Denied</h1><p>You don\'t have permission to access this server.</p>');
+    // A walled site that still serves its own icon; robots.txt disallows the
+    // touch icon, which the reader must therefore not fetch.
+    if (kind === 'walled-icons') {
+      if (u.pathname === '/favicon.svg') return send(200, 'image/svg+xml', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M2 6h28v20H2z" fill="#c41230"/></svg>');
+      if (u.pathname === '/apple-touch-icon.png') { (o.hits || (o.hits = [])).push(u.pathname); return send(200, 'image/png', png(64, 64, [[0, 0, 64, 64, '#00ff00']])); }
+      return send(403, 'text/html; charset=utf-8', '<!doctype html><title>Access Denied</title><h1>Access Denied</h1>');
+    }
+    if (kind === 'product-cta' && u.pathname === '/products/rockerz-450') return send(200, 'text/html; charset=utf-8', PAGES['product-cta/product']());
     const asset = ASSETS[kind] && ASSETS[kind][u.pathname];
     if (asset) { const a = asset(); return send(200, a.type, a.body); }
     if (u.pathname === '/' || u.pathname === '' || u.pathname === '/brand/colour') {

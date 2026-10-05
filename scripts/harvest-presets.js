@@ -166,8 +166,23 @@ async function readOne(preset, opts) {
  * phone width (only the identity they declare is wanted); a logo file is
  * drawn and its pixels read.
  */
+/**
+ * The site's own icons at their WELL-KNOWN paths, read when its home page did
+ * not render (a 403, a bot challenge, a timeout). A browser asks every site
+ * for these; they are the brand's own mark on its own origin, and the image
+ * read honours robots.txt like any document read.
+ */
+const WELL_KNOWN_ICONS = ['/apple-touch-icon.png', '/favicon.svg', '/favicon.ico'];
+function wellKnownIcons(preset) {
+  let origin = '';
+  try { origin = new URL(preset.website).origin; } catch (_) { return []; }
+  return WELL_KNOWN_ICONS.map((p) => ({ url: origin + p, kind: 'image', what: `the site's own icon at its well-known path (${p})` }));
+}
+
 async function readSources(preset, home, opts) {
-  const list = (preset.identity_sources || []).filter((s) => s && s.url).slice(0, HARVEST.maxSources);
+  const homeRendered = !!(home && home.ok && home.manifest);
+  const list = (preset.identity_sources || []).filter((s) => s && s.url).slice(0, HARVEST.maxSources)
+    .concat(homeRendered ? [] : wellKnownIcons(preset));
   if (!list.length || opts.sources === false) return [];
   const { reader, error } = loadReader(opts);
   if (error) return list.map((s) => ({ url: s.url, kind: s.kind || 'page', what: s.what || '', result: error }));
@@ -177,17 +192,24 @@ async function readSources(preset, home, opts) {
   const homeReg = ownershipLib.registrableDomain(ownershipLib.hostOf(preset.website));
   const ordered = list.slice().sort((a, b) => (ownershipLib.registrableDomain(ownershipLib.hostOf(a.url)) === homeReg ? 0 : 1) - (ownershipLib.registrableDomain(ownershipLib.hostOf(b.url)) === homeReg ? 0 : 1));
   const out = [];
+  const silent = new Set();
   const dl = opts.sourceDeadlineMs || HARVEST.sourceDeadlineMs;
   for (const s of ordered) {
     const kind = s.kind === 'image' ? 'image' : 'page';
     const owned = ownershipLib.ownership(s.url, preset.website, evidence);
     if (!owned.ok) { out.push({ url: s.url, kind, what: s.what || '', refused: owned.reason }); continue; }
+    const origin = (() => { try { return new URL(s.url).origin; } catch (_) { return ''; } })();
+    if (kind === 'image' && silent.has(origin)) {
+      out.push({ url: s.url, kind, what: s.what || '', owned, result: { ok: false, renderer: 'timeout', reason: `not tried: ${new URL(s.url).hostname} did not answer the previous image read in time` }, attempts: 0 });
+      continue;
+    }
     let result;
     if (kind === 'image') {
       result = typeof reader.readImage === 'function'
-        ? await reader.readImage(s.url, { deadlineMs: Math.min(dl, 40000), policy, perRequestMs: opts.firstDocumentMs || HARVEST.firstDocumentMs })
+        ? await reader.readImage(s.url, { deadlineMs: Math.min(dl, 40000), policy, perRequestMs: 15000 })
         : { ok: false, renderer: 'unavailable', code: 'reader_missing', reason: 'The rendered reader has no readImage.' };
       result.attempts = 1;
+      if (result.renderer === 'timeout') silent.add(origin);
     } else {
       result = await readPage(reader, s.url, {
         deadlineMs: dl, manifestMs: Math.max(20000, dl - 15000), maxPages: 0, regression: false, mobile: false,
@@ -269,7 +291,7 @@ function runChild(preset, opts) {
     // The hard stop covers every read the child makes: the home page and its
     // retry, then each identity source and its retry.
     const tries = 1 + Math.max(0, opts.retries == null ? HARVEST.retries : opts.retries);
-    const nSources = opts.sources === false ? 0 : Math.min(HARVEST.maxSources, (preset.identity_sources || []).length);
+    const nSources = opts.sources === false ? 0 : Math.min(HARVEST.maxSources, (preset.identity_sources || []).length) + WELL_KNOWN_ICONS.length;
     const hard = Math.max(30000, (opts.deadlineMs || HARVEST.deadlineMs) * tries + nSources * (opts.sourceDeadlineMs || HARVEST.sourceDeadlineMs) * tries + 60000);
     const timer = setTimeout(() => {
       if (done) return;
@@ -394,7 +416,7 @@ function report(beforeIndex, afterIndex, observedDir) {
   return rows.join('\n') + '\n';
 }
 
-module.exports = { harvest, report, readOne, readSources, isEnvFailure, isTimeout, loopbackOrigins, HARVEST };
+module.exports = { harvest, report, readOne, readSources, wellKnownIcons, isEnvFailure, isTimeout, loopbackOrigins, HARVEST, WELL_KNOWN_ICONS };
 
 if (require.main === module && !process.argv.includes('--child')) {
   const a = args(process.argv.slice(2));

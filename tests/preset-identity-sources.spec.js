@@ -74,12 +74,12 @@ test.describe.serial('the rendered reader takes identity from the mark and the s
 
   test.beforeAll(async () => {
     test.setTimeout(240_000);
-    sites = await startSites(['logo-svg', 'logo-raster', 'logo-css', 'multicolour', 'neutral-logo', 'consent', 'tint', 'declared', 'guidelines']);
+    sites = await startSites(['logo-svg', 'logo-raster', 'logo-css', 'multicolour', 'neutral-logo', 'consent', 'tint', 'declared', 'guidelines', 'heading-navy', 'social-tokens', 'product-cta']);
     const { chromium } = require('playwright-core');
     browser = await chromium.launch({ executablePath: process.env.BRAND_RENDER_CHROMIUM });
     const allow = new Set(Object.values(sites.origins));
     for (const k of Object.keys(sites.origins)) {
-      reads[k] = await br.readRendered(`${sites.origins[k]}/`, { browser, policy: { allowOrigins: allow }, maxPages: 0, mobile: false, screenshots: false, deadlineMs: 40000 });
+      reads[k] = await br.readRendered(`${sites.origins[k]}/`, { browser, policy: { allowOrigins: allow }, maxPages: k === 'product-cta' ? 1 : 0, mobile: false, screenshots: false, deadlineMs: 40000 });
     }
   });
   test.afterAll(async () => { if (browser) await browser.close(); if (sites) await sites.close(); });
@@ -153,6 +153,80 @@ test.describe.serial('the rendered reader takes identity from the mark and the s
     // Written but painted something else: not a swatch.
     expect(JSON.stringify(m.identity)).not.toContain('#123456');
   });
+
+  test('a chromatic heading is a weak identity signal, and never outranks a coloured call to action', () => {
+    const m = reads['heading-navy'];
+    expect(m.identity.candidates.map((c) => `${c.kind}:${c.value}`)).toEqual([`heading-text:${EXPECT['heading-navy'].primary}`]);
+    expect(m.colors.primary).toEqual(expect.objectContaining({ value: EXPECT['heading-navy'].primary, kind: 'heading-text' }));
+    // The grey header is not a colour at all.
+    expect(JSON.stringify(m.identity.candidates)).not.toContain(EXPECT['heading-navy'].header);
+    expect(m.page_seen).toEqual(expect.objectContaining({ title: 'Clear Frames', h1: 'Eyewear for every face', status: 200 }));
+    // A heading colour beside a chromatic CTA: the CTA, never the heading.
+    const withCta = obsLib.paletteFromManifest(Object.assign({}, m, { read: { desktop: { roles: Object.assign({}, m.read.desktop.roles, { button_primary: { selector: 'main a.buy', style: { background: '#e4002b' } } }) } } }));
+    expect(withCta.palette.primary).toBe('#e4002b');
+  });
+
+  test('a token named for another network (--brand-facebook) is never this brand\'s colour', () => {
+    const m = reads['social-tokens'];
+    expect(m.colors.primary).toEqual(expect.objectContaining({ value: EXPECT['social-tokens'].primary, kind: 'token' }));
+    const all = JSON.stringify(m.identity.candidates);
+    for (const h of EXPECT['social-tokens'].social) expect(all, h).not.toContain(h);
+  });
+
+  test('the call to action on another page the reader opened is an action signal', () => {
+    const m = reads['product-cta'];
+    expect(m.colors.primary).toBeUndefined();
+    expect(m.actions_elsewhere).toEqual([expect.objectContaining({ value: EXPECT['product-cta'].action, role: 'product', label: 'Add to cart' })]);
+    const pal = obsLib.paletteFromManifest(m);
+    expect(pal.palette.primary).toBe(EXPECT['product-cta'].action);
+    expect(pal.evidence.primary.kind).toBe('action');
+    expect(pal.evidence.primary.source.page).toMatch(/\/products\/rockerz-450$/);
+  });
+});
+
+test('an anti-aliased logo is one colour: tints of one hue fold together', () => {
+  // One brand's blue logo, read from its pixels: the fill and four edge tints.
+  const v = signals.markIdentity([{ hex: '#1642b9', share: 0.4 }, { hex: '#fedd14', share: 0.15 }, { hex: '#5071ca', share: 0.15 }, { hex: '#8098d9', share: 0.1 }, { hex: '#c4cfed', share: 0.05 }]);
+  expect(v).toEqual(expect.objectContaining({ verdict: 'colour', hex: '#1642b9' }));
+  // Four DIFFERENT hues stay four.
+  expect(signals.markIdentity([{ hex: '#f25022', share: 0.25 }, { hex: '#7fba00', share: 0.25 }, { hex: '#00a4ef', share: 0.25 }, { hex: '#ffb900', share: 0.25 }]).verdict).toBe('multicolour');
+});
+
+test('typography comes from every page read, slot by slot, each naming its page', () => {
+  const f = (family, kind) => ({ family, kind: kind || 'webfont', google: false, stack: `'${family}',sans-serif`, source: { page: 'x', role: 'h1', selector: 'h1' } });
+  const t = obsLib.typographyFromReads([
+    { url: 'https://brand.example/', manifest: manifest({ fonts: { heading: f('Brand Display') } }) },
+    { url: 'https://about.brand.example/', manifest: manifest({ fonts: { heading: f('Other Display'), body: f('Brand Text') } }) },
+  ]);
+  expect(t.heading).toEqual(expect.objectContaining({ family: 'Brand Display', read_url: 'https://brand.example/' }));
+  expect(t.body).toEqual(expect.objectContaining({ family: 'Brand Text', read_url: 'https://about.brand.example/' }));
+  // Nobody rendered body copy: the heading face, said so.
+  const only = obsLib.typographyFromReads([{ url: 'https://brand.example/', manifest: manifest({ fonts: { heading: f('Brand Display') } }) }]);
+  expect(only.body.family).toBe('Brand Display');
+  expect(only.body.note).toMatch(/No body copy was rendered/);
+  expect(obsLib.typographyFromReads([{ url: 'u', manifest: manifest({ fonts: {} }) }])).toBeNull();
+});
+
+test('a dark site\'s own ground is the ink on the light surface, not a darkened primary', () => {
+  const out = obsLib.paletteFromManifest(manifest({ colors: {
+    primary: { value: '#e50914', from_role: 'identity', signal: 'logo', kind: 'logo-image' },
+    surface: { value: '#141414', source: { page: 'https://brand.example/', role: 'page ground', selector: 'body' } }, ink: { value: '#ffffff' },
+  } }));
+  expect(out.palette.surface).toBe('#ffffff');
+  expect(out.palette.ink).toBe('#141414');
+  expect(out.evidence.ink).toEqual(expect.objectContaining({ derived: true, exact: '#141414', from_role: 'page ground' }));
+});
+
+test('an accent must stand off the page (3:1), and a declared value is the exact one a logo\'s pixels agree with', () => {
+  const out = obsLib.paletteFromManifest(manifest({ identity: { candidates: [
+    cand('token', '#533afd', ':root'), cand('token', '#adadff', ':root'), cand('token', '#0a8f3c', ':root'),
+  ] } }));
+  expect(out.palette.primary).toBe('#533afd');
+  // The pale lavender (1.9:1) is a tint, not a second colour.
+  expect(out.palette.accent).toBe('#0a8f3c');
+  const px = obsLib.paletteFromManifest(manifest({ identity: { candidates: [cand('logo-image', '#d02030', 'header a img'), cand('token', '#cf0a2c', ':root')] } }));
+  expect(px.palette.primary).toBe('#cf0a2c');
+  expect(px.evidence.primary).toEqual(expect.objectContaining({ kind: 'logo-image', drawn: '#d02030', exact_from: expect.objectContaining({ kind: 'token' }) }));
 });
 
 test('a mark\'s colours: one dominant colour, neutral, or multicolour, by area', () => {
@@ -207,8 +281,9 @@ test('the strongest signal wins, the ones that agree are recorded, the ones it o
   expect(out.evidence.primary.kind).toBe('logo-image');
   expect(out.evidence.primary.corroborated_by.map((c) => c.kind)).toContain('action');
   expect(out.evidence.primary.outranked).toEqual([expect.objectContaining({ value: '#56adff', kind: 'theme-color' })]);
-  // The theme-color is a second colour the site DECLARES: the accent.
-  expect(out.palette.accent).toBe('#56adff');
+  // The theme-color is a colour the site declares, but at 2.3:1 on white it
+  // cannot carry a fill or a rule: no accent rather than a tint.
+  expect(out.palette.accent).toBeUndefined();
 });
 
 test('a brand colour seen on a consent banner is taken from the mark that agrees with it, never from the banner', () => {
@@ -313,10 +388,11 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
   let sites;
   let observed;
   let built;
+  const iconSite = { hits: [] };
 
   test.beforeAll(async () => {
     logoHost = await startSites(['logo-file'], { host: '127.0.0.2' });
-    sites = await startSites(['walled', ['guidelines', { links: [`${logoHost.origins['logo-file']}/logo.png`] }], ['logo-svg', { name: 'slow', slowFirstMs: 3500 }]]);
+    sites = await startSites(['walled', ['guidelines', { links: [`${logoHost.origins['logo-file']}/logo.png`] }], ['logo-svg', { name: 'slow', slowFirstMs: 3500 }], ['walled-icons', iconSite]]);
   });
   test.afterAll(async () => { if (sites) await sites.close(); if (logoHost) await logoHost.close(); });
 
@@ -330,6 +406,9 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
         { url: `${sites.origins.guidelines}/brand/colour`, kind: 'page', what: 'brand guidelines: colour' },
       ] },
       { slug: 'flipkart', name: 'Flipkart', website: `${sites.origins.slow}/` },
+      // Walled, with no listed sources: the site's own icons at their
+      // well-known paths are read, robots.txt honoured.
+      { slug: 'levis', name: "Levi's", website: `${sites.origins['walled-icons']}/` },
     ] };
     fs.writeFileSync(path.join(dir, 'index.json'), JSON.stringify(index));
     observed = path.join(dir, 'observed');
@@ -365,6 +444,21 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
     expect(f.renderer).toBe('rendered');
     expect(f.reads[0].attempts).toBe(2);
     expect(f.palette.primary).toBe(EXPECT['logo-svg'].primary);
+
+    const l = read('levis');
+    expect(l.renderer).toBe('blocked');
+    expect(l.palette_ok).toBe(true);
+    expect(l.palette.primary).toBe(EXPECT['walled-icons'].icon);
+    expect(l.palette_evidence.primary).toEqual(expect.objectContaining({ kind: 'logo-image', read_role: 'identity source', read_url: `${sites.origins['walled-icons']}/favicon.svg` }));
+    const lr = Object.fromEntries(l.reads.map((r) => [new URL(r.url).pathname, r]));
+    expect(lr['/favicon.svg']).toEqual(expect.objectContaining({ renderer: 'image', ok: true }));
+    // robots.txt disallows the touch icon: refused before any request for it.
+    expect(lr['/apple-touch-icon.png']).toEqual(expect.objectContaining({ renderer: 'blocked', ok: false }));
+    expect(lr['/apple-touch-icon.png'].reason).toMatch(/robots\.txt/);
+    expect(iconSite.hits).toEqual([]);
+    expect(lr['/favicon.ico']).toEqual(expect.objectContaining({ renderer: 'blocked' }));
+    // A home page that rendered is not followed by icon reads.
+    expect(f.reads.map((r) => r.role)).toEqual(['home']);
   });
 
   test('the builder applies that palette, names where it was read, and the gallery shows it', async ({ page }) => {
@@ -408,6 +502,8 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
     const bg = await card.locator('.psw[data-role="primary"] i').evaluate((e) => getComputedStyle(e).backgroundColor);
     expect(bg).toBe('rgb(235, 10, 30)');
     expect(await card.locator('.psw').evaluateAll((els) => els.map((e) => e.getAttribute('data-role')))).toEqual(['primary', 'surface', 'ink']);
+    // The card says the home page refused and where the values came from.
+    await expect(card.locator('.pwhy')).toHaveText(/127\.0\.0\.1 refused an automated read \(blocked\); these values come from the brand's own 127\.0\.0\.[12], 127\.0\.0\.[12]\./);
   });
 });
 

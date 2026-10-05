@@ -368,7 +368,7 @@ const TEMPLATE_BRANDS = [
   { slug: 'amazon', name: 'Amazon', industry: 'E-commerce marketplace', website: 'https://www.amazon.com', host: 'amazon.com', sector: 'Marketplace', blurb: 'General marketplace. Template for a subscription plus replenishment lifecycle.', offering_kinds: ['product', 'plan'], identity_sources: [{ url: 'https://www.aboutamazon.com/', kind: 'page', what: 'About Amazon, the company\'s own news site (linked from amazon.com)' }] },
   { slug: 'nykaa', name: 'Nykaa', industry: 'Beauty retail', website: 'https://www.nykaa.com', host: 'nykaa.com', sector: 'Beauty', blurb: 'Beauty retail. Template for a replenishment and shade-led catalogue.' },
   { slug: 'sephora', name: 'Sephora', industry: 'Beauty retail', website: 'https://www.sephora.com', host: 'sephora.com', sector: 'Beauty', blurb: 'Beauty retail. Template for a loyalty-tier and sampling led programme.', offering_kinds: ['product', 'plan'], identity_sources: [{ url: 'https://newsroom.sephora.com/', kind: 'page', what: 'Sephora newsroom' }, { url: 'https://www.sephora.com/beauty/about-us', kind: 'page', what: 'Sephora about page' }] },
-  { slug: 'loreal', name: "L'Oreal", industry: 'Beauty and personal care', website: 'https://www.loreal.com', host: 'loreal.com', sector: 'Beauty', blurb: 'Beauty group. Template for a house of brands with separate audiences per label.', identity_sources: [{ url: 'https://www.loreal.com/en/press-release/', kind: 'page', what: 'L\'Oreal Groupe newsroom' }, { url: 'https://www.loreal.com/en/group/', kind: 'page', what: 'L\'Oreal Groupe about page' }] },
+  { slug: 'loreal', name: "L'Oreal", industry: 'Beauty and personal care', website: 'https://www.loreal.com', host: 'loreal.com', sector: 'Beauty', blurb: 'Beauty group. Template for a house of brands with separate audiences per label.', identity_sources: [{ url: 'https://www.loreal.com/en/press-release/', kind: 'page', what: 'L\'Oreal Groupe newsroom' }, { url: 'https://careers.loreal.com/', kind: 'page', what: 'L\'Oreal Groupe careers site' }] },
   { slug: 'mamaearth', name: 'Mamaearth', industry: 'Beauty and personal care', website: 'https://mamaearth.in', host: 'mamaearth.in', sector: 'Beauty', blurb: 'D2C personal care. Template for a replenishment cycle with strong claim governance.' },
   { slug: 'boat', name: 'boAt', industry: 'Consumer electronics', website: 'https://www.boat-lifestyle.com', host: 'boat-lifestyle.com', sector: 'Consumer electronics', blurb: 'D2C audio and wearables. Template for a launch and accessory attach lifecycle.', identity_sources: [{ url: 'https://www.boat-lifestyle.com/pages/about-us', kind: 'page', what: 'boAt about page' }] },
   { slug: 'lenskart', name: 'Lenskart', industry: 'Eyewear retail', website: 'https://www.lenskart.com', host: 'lenskart.com', sector: 'Eyewear', blurb: 'Eyewear. Template for a prescription-led purchase with a long repeat cycle.', offering_kinds: ['product', 'service'], identity_sources: [{ url: 'https://www.lenskart.com/about-us', kind: 'page', what: 'Lenskart about page' }] },
@@ -379,13 +379,13 @@ const TEMPLATE_BRANDS = [
   { slug: 'bmw', name: 'BMW', industry: 'Automotive', website: 'https://www.bmw.com', host: 'bmw.com', sector: 'Automotive', blurb: 'Automotive. Template for a dealer-assisted funnel and a servicing lifecycle.', offering_kinds: ['product', 'service'], identity_sources: [{ url: 'https://www.bmw.com/en/index.html', kind: 'page', what: 'BMW.com (English)' }, { url: 'https://www.bmwgroup.com/en.html', kind: 'page', what: 'BMW Group corporate site (linked from bmw.com)' }] },
   { slug: 'toyota', name: 'Toyota', industry: 'Automotive', website: 'https://www.toyota.com', host: 'toyota.com', sector: 'Automotive', blurb: 'Automotive. Template for a model-year calendar plus after-sales servicing.', offering_kinds: ['product', 'service'], identity_sources: [{ url: 'https://brand.toyota.com/guidelines/visual/brand-colors', kind: 'page', what: 'Toyota brand guidelines: brand colours' }, { url: 'https://pressroom.toyota.com/', kind: 'page', what: 'Toyota newsroom' }] },
   { slug: 'starbucks', name: 'Starbucks', industry: 'Food and beverage', website: 'https://www.starbucks.com', host: 'starbucks.com', sector: 'Food and beverage', blurb: 'Coffee retail. Template for a rewards programme and a seasonal menu calendar.', offering_kinds: ['product', 'plan'] },
-  { slug: 'mcdonalds', name: "McDonald's", industry: 'Food and beverage', website: 'https://www.mcdonalds.com', host: 'mcdonalds.com', sector: 'Food and beverage', blurb: 'Quick service restaurants. Template for an app-led offer and visit-frequency programme.', offering_kinds: ['product', 'plan'], identity_sources: [{ url: 'https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html', kind: 'page', what: 'McDonald\'s media assets: logos' }, { url: 'https://corporate.mcdonalds.com/corpmcd/home.html', kind: 'page', what: 'McDonald\'s corporate site' }] },
+  { slug: 'mcdonalds', name: "McDonald's", industry: 'Food and beverage', website: 'https://www.mcdonalds.com', host: 'mcdonalds.com', sector: 'Food and beverage', blurb: 'Quick service restaurants. Template for an app-led offer and visit-frequency programme.', offering_kinds: ['product', 'plan'], identity_sources: [{ url: 'https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html', kind: 'page', what: 'McDonald\'s media assets: logos' }, { url: 'https://corporate.mcdonalds.com/corpmcd/home.html', kind: 'page', what: 'McDonald\'s corporate site' }, { url: 'https://careers.mcdonalds.com/', kind: 'page', what: 'McDonald\'s careers site' }] },
   { slug: 'coca-cola', name: 'Coca-Cola', industry: 'Food and beverage', website: 'https://www.coca-cola.com', host: 'coca-cola.com', sector: 'Food and beverage', blurb: 'Beverages. Template for a brand-led calendar with no direct catalogue.' },
   { slug: 'nestle', name: 'Nestle', industry: 'Food and beverage', website: 'https://www.nestle.com', host: 'nestle.com', sector: 'Food and beverage', blurb: 'FMCG group. Template for a house of brands sold through retail rather than direct.', identity_sources: [{ url: 'https://www.nestle.com/media', kind: 'page', what: 'Nestle media page' }, { url: 'https://www.nestle.com/about', kind: 'page', what: 'Nestle about page' }] },
   { slug: 'netflix', name: 'Netflix', industry: 'Streaming media', website: 'https://www.netflix.com', host: 'netflix.com', sector: 'Streaming', blurb: 'Streaming. Template for a renewal, win-back and churn-risk lifecycle.', offering_kinds: ['plan', 'programme'], identity_sources: [{ url: 'https://brand.netflix.com/en/', kind: 'page', what: 'Netflix brand site' }, { url: 'https://about.netflix.com/en', kind: 'page', what: 'About Netflix' }] },
   { slug: 'spotify', name: 'Spotify', industry: 'Streaming media', website: 'https://www.spotify.com', host: 'spotify.com', sector: 'Streaming', blurb: 'Audio streaming. Template for a free-to-paid upgrade and retention programme.', offering_kinds: ['plan', 'programme'], identity_sources: [{ url: 'https://developer.spotify.com/documentation/design', kind: 'page', what: 'Spotify design and branding guidelines' }, { url: 'https://newsroom.spotify.com/', kind: 'page', what: 'Spotify newsroom' }] },
   { slug: 'airbnb', name: 'Airbnb', industry: 'Travel marketplace', website: 'https://www.airbnb.com', host: 'airbnb.com', sector: 'Travel', blurb: 'Travel marketplace. Template for a two-sided lifecycle with a seasonal booking window.', offering_kinds: ['service'] },
-  { slug: 'makemytrip', name: 'MakeMyTrip', industry: 'Travel marketplace', website: 'https://www.makemytrip.com', host: 'makemytrip.com', sector: 'Travel', blurb: 'Travel booking. Template for a trip-cycle lifecycle with strong seasonality.', offering_kinds: ['service', 'plan'], identity_sources: [{ url: 'https://www.makemytrip.com/flights/', kind: 'page', what: 'MakeMyTrip flights page' }, { url: 'https://careers.makemytrip.com/', kind: 'page', what: 'MakeMyTrip careers site' }] },
+  { slug: 'makemytrip', name: 'MakeMyTrip', industry: 'Travel marketplace', website: 'https://www.makemytrip.com', host: 'makemytrip.com', sector: 'Travel', blurb: 'Travel booking. Template for a trip-cycle lifecycle with strong seasonality.', offering_kinds: ['service', 'plan'], identity_sources: [{ url: 'https://www.makemytrip.com/flights/', kind: 'page', what: 'MakeMyTrip flights page' }, { url: 'https://careers.makemytrip.com/', kind: 'page', what: 'MakeMyTrip careers site' }, { url: 'https://investors.makemytrip.com/', kind: 'page', what: 'MakeMyTrip investor relations' }] },
   { slug: 'stripe', name: 'Stripe', industry: 'Financial technology', website: 'https://stripe.com', host: 'stripe.com', sector: 'Fintech', blurb: 'Payments infrastructure. Template for a developer-led B2B activation lifecycle.', offering_kinds: ['plan', 'service'] },
   { slug: 'razorpay', name: 'Razorpay', industry: 'Financial technology', website: 'https://razorpay.com', host: 'razorpay.com', sector: 'Fintech', blurb: 'Payments. Template for a B2B onboarding and activation programme.', offering_kinds: ['plan', 'service'] },
   { slug: 'paytm', name: 'Paytm', industry: 'Financial technology', website: 'https://paytm.com', host: 'paytm.com', sector: 'Fintech', blurb: 'Consumer payments. Template for a transaction-frequency and reactivation programme.', offering_kinds: ['service', 'plan'], identity_sources: [{ url: 'https://paytm.com/about-us', kind: 'page', what: 'Paytm about page' }, { url: 'https://ir.paytm.com/', kind: 'page', what: 'Paytm investor relations' }] },
@@ -527,6 +527,23 @@ function absorbObservation(rec) {
   rec.data_gaps = (rec.data_gaps || []).filter((g) => !/brand palette|typography/.test(g));
 }
 
+/** One or two sentences for a read card (see `palette_note`). */
+function paletteNote(p) {
+  const out = [];
+  const ev = (p.preset.palette_evidence || {}).primary || {};
+  let host = '';
+  try { host = new URL(p.website).hostname; } catch (_) { host = p.website; }
+  if (/monochrome/.test(String(ev.signal || ''))) {
+    out.push(`Monochrome: ${host} renders no brand colour beyond black and white, so the primary is the ${p.palette.primary} of its call to action.`);
+  }
+  const home = p.preset.home_attempt;
+  const from = (p.preset.read_from || []).map((u) => { try { return new URL(u).hostname; } catch (_) { return ''; } }).filter((h, i, a) => h && a.indexOf(h) === i);
+  if (home && from.length) {
+    out.push(`${home.host || host} refused an automated read (${home.renderer}); these values come from the brand's own ${from.join(', ')}.`);
+  }
+  return out.join(' ');
+}
+
 /** How a family renders in this app: by name, or named and shown in fallback. */
 function fontLine(t) {
   if (!t || !t.family) return '';
@@ -579,6 +596,9 @@ const index = PRESETS.map((p) => ({
   // One sentence the gallery prints as it is: why this card is still on the
   // default ("<host> blocked an automated read on <date>.").
   read_note: p.preset.palette_source === 'default' ? [readSentence(p.preset.read_attempt), p.preset.read_sources_note || ''].filter(Boolean).join(' ') : '',
+  // On a card that WAS read: what a reader would otherwise mistake for an
+  // error - a black primary, or values read off pages other than the home.
+  palette_note: p.preset.palette_source === 'default' ? '' : paletteNote(p),
   renderer: p.preset.renderer || null,
   regression: p.preset.regression || null,
   has_catalog: !!(p.catalog_source && p.catalog_source.kind !== 'none' && p.catalog_source.kind !== 'placeholder'),

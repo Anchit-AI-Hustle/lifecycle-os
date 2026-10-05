@@ -74,7 +74,9 @@ const CORROBORATION = 12;
 /** What can be a SECOND brand colour: an action or link colour the site
     renders, or a declared identity colour. Not an icon tile, a header fill or
     a splash background - those are surfaces, not a brand's second colour. */
-const ACCENT_KINDS = new Set(['action', 'link', 'logo-svg', 'logo-image', 'logo-dark', 'guideline-swatch', 'mask-icon', 'logo-text', 'theme-color', 'manifest-theme', 'tile-color', 'token']);
+const ACCENT_KINDS = new Set(['action', 'link', 'logo-svg', 'logo-image', 'logo-dark', 'guideline-swatch', 'mask-icon', 'logo-text', 'theme-color', 'manifest-theme', 'tile-color', 'token', 'heading-text']);
+/** Signals that state an exact value (a declaration, a vector paint). */
+const DECLARED_KINDS = new Set(['logo-svg', 'guideline-swatch', 'mask-icon', 'theme-color', 'manifest-theme', 'tile-color', 'token']);
 
 function hostOf(url) {
   try { return new URL(String(url || '')).hostname; } catch (_) { return String(url || ''); }
@@ -174,6 +176,11 @@ function candidatesOf(read) {
   if (btn) add(btn, 'action', 'the primary call to action, as rendered', { page, role: 'primary call to action', selector: rd.button_primary.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' }, 'the primary call to action', { from_role: 'action' });
   const hdr = rd.header && rd.header.style ? rd.header.style.background : '';
   if (hdr) add(hdr, 'header', 'header background as rendered', { page, role: 'header', selector: rd.header.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' }, 'the header background', { from_role: 'identity' });
+  // The filled call to action on the other pages the reader opened (a
+  // product page's "Add to bag").
+  for (const a of m.actions_elsewhere || []) {
+    add(a.value, 'action', `the primary call to action on the ${a.role || 'other'} page, as rendered`, { page: a.page || page, role: 'primary call to action', selector: a.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' }, `the call to action on ${a.page || 'another page'}`, { from_role: 'action' });
+  }
   // One value from one kind of signal in one read is one candidate.
   const seen = new Set();
   return out.filter((c) => { const k = `${c.kind}|${c.value}`; if (seen.has(k)) return false; seen.add(k); return true; });
@@ -285,7 +292,15 @@ function paletteFromReads(readsIn) {
         : 'The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.',
     };
   }
-  const primary = chosen.value;
+  // A logo read from its PIXELS gives the colour as drawn (compressed,
+  // resampled). When a colour the site DECLARES agrees with it, the declared
+  // hex is the exact value; the pixels are why it is the brand's.
+  let exactFrom = null;
+  if (!monochrome && chosen.kind === 'logo-image') {
+    exactFrom = chromaticC.filter((c) => c !== chosen && DECLARED_KINDS.has(c.kind) && dE(c.value, chosen.value) <= SAME)
+      .sort((a, b) => dE(a.value, chosen.value) - dE(b.value, chosen.value))[0] || null;
+  }
+  const primary = exactFrom ? exactFrom.value : chosen.value;
   const signalText = monochrome
     ? `the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome${monochrome.logo ? ` (its logo mark is ${monochrome.logo}, also neutral)` : ''}`
     : chosen.signal;
@@ -294,6 +309,13 @@ function paletteFromReads(readsIn) {
     from_role: chosen.kind === 'action' ? 'action' : 'identity', signal: signalText, source: chosen.source,
   }, readRef(chosen.read));
   if ((chosen.corroborated_by || []).length) evidence.primary.corroborated_by = chosen.corroborated_by;
+  if (exactFrom) {
+    Object.assign(evidence.primary, {
+      exact_from: { kind: exactFrom.kind, signal: exactFrom.signal, page: exactFrom.source.page || readRef(exactFrom.read).read_url, selector: exactFrom.source.selector || '' },
+      drawn: chosen.value,
+      signal: `${chosen.signal}; exact value ${primary} as the site declares it (${exactFrom.signal}), which the logo's pixels (${chosen.value}) agree with`,
+    });
+  }
   const outranked = chromaticC.filter((c) => c !== chosen && dE(c.value, primary) > SAME).slice(0, 4)
     .map((c) => ({ value: c.value, kind: c.kind, signal: c.signal, score: c.score, page: c.source.page || readRef(c.read).read_url }));
   if (outranked.length) evidence.primary.outranked = outranked;
@@ -323,7 +345,16 @@ function paletteFromReads(readsIn) {
       }, designRef);
       break;
     }
-    if (!ink && inkExact) {
+    if (!ink && surfaceExact && surfaceExact !== surface && core.contrast(surfaceExact, surface) >= 7) {
+      // A dark site, flipped to a light surface: the dark ground the site
+      // paints is a colour it renders, and it reads as text on the light one.
+      ink = surfaceExact;
+      evidence.ink = Object.assign({
+        value: surfaceExact, exact: surfaceExact, derived: true, from_role: 'page ground',
+        note: `The site paints its page ${surfaceExact} with light text on it. On this preset's light surface that dark ground is the text colour (${core.contrast(surfaceExact, surface)}:1); the body copy as rendered (${inkExact || 'none read'}) does not read there.`,
+        source: sourceOf(colors.surface),
+      }, designRef);
+    } else if (!ink && inkExact) {
       // Light text from a dark page, now on a light one: taken well past AA,
       // so body copy reads as body copy and not as a faded caption.
       ink = core.readableAsText(inkExact, surface, 12);
@@ -357,7 +388,9 @@ function paletteFromReads(readsIn) {
 
   // accent: a SECOND colour the brand renders - an identity or action colour
   // clearly apart from the primary. None: no accent, and the reason.
-  const second = chromaticC.filter((c) => c !== chosen && dE(c.value, primary) > DISTINCT && ACCENT_KINDS.has(c.kind))
+  // A second colour carries fills, rules and chips, so it has to stand off
+  // the page: 3:1 (WCAG 1.4.11 non-text contrast). A pale tint is not one.
+  const second = chromaticC.filter((c) => c !== chosen && dE(c.value, primary) > DISTINCT && ACCENT_KINDS.has(c.kind) && core.contrast(c.value, surface) >= 3)
     .sort((a, b) => b.score - a.score)[0] || null;
   let accent = '';
   if (second) {
@@ -450,6 +483,29 @@ function typographyFromManifest(manifest) {
   const body = slotFrom(fonts.body, 'body');
   if (!heading && body) heading = Object.assign({}, body, { note: `${body.note} The site renders no distinct heading face, so headings use the body face.`, signal: 'the body copy face; no distinct heading face was rendered' });
   if (!heading || !body) return null;
+  return { heading, body };
+}
+
+/**
+ * Typography from every page read: each slot from the first page (home page
+ * first) whose role rendered a family. A careers or press page that renders
+ * the brand's heading face fills the slot the home page could not, and says
+ * which page it came from. A body face nobody rendered is the heading face,
+ * said so - never a lookalike.
+ */
+function typographyFromReads(reads) {
+  const pages = (reads || []).filter((r) => r && r.manifest);
+  let heading = null, body = null, headingPage = '', bodyPage = '';
+  for (const r of pages) {
+    const f = r.manifest.fonts || {};
+    if (!heading && f.heading && f.heading.family) { heading = slotFrom(f.heading, 'heading'); headingPage = r.url; }
+    if (!body && f.body && f.body.family) { body = slotFrom(f.body, 'body'); bodyPage = r.url; }
+  }
+  if (!heading && !body) return null;
+  if (!heading) heading = Object.assign({}, body, { note: `${body.note} The site renders no distinct heading face, so headings use the body face.`, signal: 'the body copy face; no distinct heading face was rendered' }), headingPage = bodyPage;
+  if (!body) body = Object.assign({}, heading, { note: `${heading.note} No body copy was rendered on the pages read, so body text uses the heading face.`, signal: 'the heading face; no body copy was rendered on the pages read' }), bodyPage = headingPage;
+  heading.read_url = headingPage;
+  body.read_url = bodyPage;
   return { heading, body };
 }
 
@@ -594,7 +650,7 @@ function observationFromReads(preset, home, sources, observedAt) {
   const landed = manifest ? (manifest.url || preset.website) : preset.website;
   const host = hostOf(landed);
   const pal = paletteFromReads(reads);
-  const type = manifest ? typographyFromManifest(manifest) : null;
+  const type = typographyFromReads(reads);
   // What each page's own logo and fonts were, for the record (and the log).
   const perRead = reads.map((r) => {
     const m = r.manifest;
@@ -606,6 +662,7 @@ function observationFromReads(preset, home, sources, observedAt) {
       logo: lc ? { kind: lc.kind, verdict: v.verdict, hex: v.hex || (v.colours || []).join(' ') } : null,
       fonts: m.fonts ? { heading: (m.fonts.heading || {}).family || '', body: (m.fonts.body || {}).family || '' } : null,
       content_logos: ((m.read && m.read.desktop && m.read.desktop.content_logos) || []).length,
+      seen: m.page_seen || null,
     };
   });
   const assets = manifest ? assetsFromManifest(manifest) : { logo_url: '', logo_signal: '', assets: [] };
@@ -682,5 +739,5 @@ function observationFromRead(preset, result, observedAt) {
 module.exports = {
   FORMAT, RENDERERS, SEMANTIC,
   observationFromRead, observationFromReads, failureObservation, failureRenderer, readSentence, sourcesSentence,
-  paletteFromManifest, paletteFromReads, candidatesOf, typographyFromManifest, assetsFromManifest, regressionSummary, hostOf,
+  paletteFromManifest, paletteFromReads, candidatesOf, typographyFromManifest, typographyFromReads, assetsFromManifest, regressionSummary, hostOf,
 };
