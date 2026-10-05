@@ -26,6 +26,7 @@ const {
   CompetitorBenchmarkingService, CalendarIntelligenceService, GenerationService,
   applyContactPolicy,
   replenishmentEntries, enforceFrequencyCap,
+  objectiveFor, offerDecision,
 } = require('../../lib/smart-brain/services.js');
 const crypto = require('crypto');
 const callLLM = require('./llm.js');
@@ -285,6 +286,144 @@ async function planningBrand(config, db) {
 const EMPTY_PLAN_NOTE = '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, this workspace, all] '
   + 'The plan generates only from this brand\'s own offerings and data; nothing is borrowed from another brand. '
   + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+
+// A brand with no catalogue and no orders still gets a calendar. The jobs are
+// the lifecycle sequence (education, second order, retention, expansion,
+// reactivation), one a day, so each audience is touched about once a week.
+// Product, price, audience size and revenue stay unmarked.
+const LIFECYCLE_STRATEGY = [
+  { name: 'Never Purchased', rules: ['No order on record.', 'Teach the brand. Do not name a product, a price or an offer code the record does not hold.'] },
+  { name: 'New Customers', rules: ['One order on record.', 'The job is the second order, before the habit lapses.'] },
+  { name: 'Need Attention', rules: ['Still buying, with the gap between orders stretching.', 'Hold them. A win-back is the more expensive send.'] },
+  { name: 'Champions', rules: ['Best customers by recency, frequency and value.', 'Expansion. A discount is not the job.'] },
+  { name: 'At Risk', rules: ['Bought before, and has now gone quiet.', 'Bring them back. Replenish only where their own history says they are due.'] },
+  { name: 'Hibernating', rules: ['Quiet for longer than At Risk.', 'They already know the brand, so this is a return, not an introduction.'] },
+  { name: 'Lost', rules: ['Quiet long enough that an earlier reactivation has had its turn.', 'One send, then leave them alone.'] },
+];
+
+function strategyPlay(name) {
+  return {
+    'Never Purchased': 'Education for people who have not bought: one idea, and no offer code this brand has not published.',
+    'New Customers': 'Second-order activation for people who bought once. The next purchase is the whole job.',
+    'Need Attention': 'Pre-lapse retention: a reason to buy again while the customer is still active.',
+    Champions: 'Premium expansion for the best customers. A bundle only when the catalogue names one.',
+    'At Risk': 'Reactivation for lapsing buyers.',
+    Hibernating: 'Reactivation for buyers who have been quiet longer. Same job as At Risk, a later stage.',
+    Lost: 'A final reactivation for the buyers who have been gone the longest. After this send they are left alone.',
+  }[name] || 'Lifecycle send for this audience.';
+}
+
+function strategyCta(objective) {
+  const o = String(objective || '').toLowerCase();
+  if (/education/.test(o)) return 'Learn more';
+  if (/second-order|activation/.test(o)) return 'Order again';
+  if (/pre-lapse|retention/.test(o)) return 'Stay with us';
+  if (/premium|bundle|expansion/.test(o)) return 'See more';
+  if (/reactivat/.test(o)) return 'Come back';
+  return 'Open';
+}
+
+function declaredMarkets(brand) {
+  const codes = ((brand && Array.isArray(brand.regions)) ? brand.regions : [])
+    .map((r) => String((r && r.code) || '').toUpperCase()).filter(Boolean);
+  return codes.length ? { markets: codes, declared: true } : { markets: ['UNDECLARED'], declared: false };
+}
+
+function strategyNote(brand, marketInfo) {
+  const where = marketInfo.declared ? marketInfo.markets.join(', ') : 'home market undeclared';
+  const name = (brand && brand.name) || 'this brand';
+  return '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, ' + name + ', ' + where + '] '
+    + 'The rolling calendar is still built, from lifecycle strategy: education, second order, pre-lapse retention, expansion and reactivation, one job a day. '
+    + 'Product, price, audience size and revenue stay unmarked until this brand\'s own catalogue and analytics are connected.';
+}
+
+/**
+ * Lifecycle calendar for a brand whose catalogue and orders produced nothing.
+ * One job per day per market, rotated on the absolute date so a sync does not
+ * churn ids. No product, no price, no audience count, no revenue.
+ */
+function strategyPlanEntries(brand, startDate, days, ns) {
+  const marketInfo = declaredMarkets(brand);
+  const note = strategyNote(brand, marketInfo);
+  const name = (brand && brand.name) || 'this brand';
+  const entries = [];
+  for (let i = 0; i < days; i++) {
+    const date = addDaysIso(startDate, i);
+    const epoch = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86400000) || i;
+    const job = LIFECYCLE_STRATEGY[epoch % LIFECYCLE_STRATEGY.length];
+    const objective = objectiveFor(job.name, null);
+    const offer = offerDecision(job.name, objective, brand);
+    for (const market of marketInfo.markets) {
+      const where = marketInfo.declared ? market : 'home market undeclared';
+      const hero = {
+        title: `[DATA REQUIRED BEFORE LAUNCH: product catalogue, ${name}, ${where}]`,
+        sku: null, handle: null, category: null, placeholder: true,
+      };
+      const play = strategyPlay(job.name);
+      const why = `${play} Planned for ${name} (${where}) from the lifecycle strategy, because this brand has no catalogue and no order history to plan from.`;
+      const confidence = {
+        score: 0.35,
+        label: 'exploratory',
+        factors: [{ label: 'Lifecycle strategy, no measured performance', delta: 0, detail: 'No catalogue or analytics are connected, so this score is a planning prior, not a result.' }],
+      };
+      entries.push({
+        id: stableId(date, market, job.name, ns),
+        date, market,
+        status: 'needs_human_verification',
+        confidence: confidence.score,
+        strategy_only: true,
+        strategy_note: note,
+        cohort: { name: job.name, size: null, estimated: true, rules: job.rules },
+        objective,
+        theme: objective,
+        heroProduct: hero,
+        heroOffering: null,
+        channels: ['email', 'meta', 'google', 'landing_page'],
+        cta: strategyCta(objective),
+        cta_url: null,
+        offer,
+        why,
+        analysis: buildEntryAnalysis({
+          cohort: { name: job.name, size: null },
+          product: hero,
+          channels: ['email', 'meta', 'google', 'landing_page'],
+          objective,
+          market: where,
+          confidence,
+          dataSource: 'lifecycle-strategy',
+        }),
+        reach: {
+          cohort_size: null,
+          cohort_size_estimated: true,
+          planned_recipients: null,
+          widen_note: `[DATA REQUIRED BEFORE LAUNCH: real eligible-segment size for "${job.name}" in ${where}. Reach is never estimated.]`,
+        },
+        feasibility: {
+          status: 'DATA REQUIRED',
+          projected_revenue: null,
+          daily_target: null,
+          per_send_target: null,
+          currency: null,
+          note: `No analytics are connected for ${name}. Revenue is not estimated.`,
+        },
+        data_gaps: [
+          `[DATA REQUIRED BEFORE LAUNCH: product catalogue, ${name}, ${where}]`,
+          `[DATA REQUIRED BEFORE LAUNCH: destination URL, ${name}, ${where}]`,
+          `[DATA REQUIRED BEFORE LAUNCH: real eligible-segment size, ${job.name}, ${where}]`,
+        ].concat(offer.data_gaps || []),
+        demo_numbers: false,
+      });
+    }
+  }
+  return entries;
+}
+
+/** Catalogue and order slots win. Strategy fills a plan that would otherwise be empty. */
+function withStrategyFallback(brand, entries, start, days, ns) {
+  const list = Array.isArray(entries) ? entries : [];
+  if (list.length || !brand) return { source: list.length ? 'data' : 'empty', entries: list };
+  return { source: 'lifecycle-strategy', entries: strategyPlanEntries(brand, start, days, ns) };
+}
 
 // ── Brand-true planning for non-tenant-zero workspaces ─────────────────────
 // The plan for any other workspace is built from THAT brand's OWN offerings
@@ -677,13 +816,18 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
   // shipped context (catalogue, analytics, moments) describes tenant zero only
   // and is never synthesized into another brand's workspace.
   const pb = await planningBrand(config, db);
-  let ctx, fresh;
+  let ctx, fresh, planned = { source: 'data' };
   if (!pb.isZero) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
     const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
     fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon, ns) : [];
     const own = pb.brand ? await ownReplenishment(config, db, pb.brand, start, horizon, ns) : null;
     if (own) fresh = fresh.concat(own.entries);
+    // No catalogue and no orders: still build the rolling window from the
+    // lifecycle sequence. A missing brand record stays empty (nothing to
+    // name the plan after).
+    planned = withStrategyFallback(pb.brand, fresh, start, horizon, ns);
+    fresh = planned.entries;
     // The same plan-time cap and per-slot eligibility the shipped planner
     // applies: a brand planned from its own offerings is held to the same
     // contact rules as tenant zero.
@@ -700,12 +844,18 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       };
     }
     const markets = Array.from(new Set(fresh.map((e) => e.market)));
+    const strategyInsight = planned.source === 'lifecycle-strategy';
     ctx = {
       analysis: {
-        dailyInsights: [
-          `Plan generated from ${pb.brand.name}'s own catalogue (${offs.length} offerings) for its real region(s): ${markets.join(', ')}.`,
-          'Confidence figures are DEMO values; reach and feasibility stay DATA REQUIRED until this brand\'s own analytics connect.',
-        ].concat(own && own.insight ? [own.insight] : []),
+        dailyInsights: (strategyInsight
+          ? [
+            `Rolling calendar built from lifecycle strategy for ${pb.brand.name}: education, second order, pre-lapse retention, expansion, reactivation. One job a day, each audience about once a week.`,
+            strategyNote(pb.brand, declaredMarkets(pb.brand)),
+          ]
+          : [
+            `Plan generated from ${pb.brand.name}'s own catalogue (${offs.length} offerings) for its real region(s): ${markets.join(', ')}.`,
+            'Confidence figures are DEMO values; reach and feasibility stay DATA REQUIRED until this brand\'s own analytics connect.',
+          ]).concat(own && own.insight ? [own.insight] : []),
         cohorts: [],
         replenishment: own ? own.analysis : null,
       },
@@ -843,7 +993,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
   }
 
   const plan = await getPlan({ config: cfg, _ctxFallback: { config, db, ctx, fresh }, contact });
-  return {
+  const out = {
     ok: true,
     mode: db.connected ? 'db-linked' : 'local-fallback',
     synced_at: nowIso(),
@@ -855,6 +1005,11 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     plan: plan.entries,
     persistence,
   };
+  if (planned.source === 'lifecycle-strategy') {
+    out.plan_source = 'lifecycle-strategy';
+    out.note = strategyNote(pb.brand, declaredMarkets(pb.brand));
+  }
+  return out;
 }
 
 // ── Read current plan ───────────────────────────────────────────────────────
@@ -897,22 +1052,29 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
   }
   // Stateless preview: no DB (or empty table) — generate on the fly. The
   // shipped catalogue describes tenant zero only, so any other workspace plans
-  // from ITS OWN offerings and regions (demo numbers, real catalogue), or gets
-  // an honest empty state when it has none.
+  // from ITS OWN offerings and regions (demo numbers, real catalogue). A brand
+  // with neither offerings nor orders still gets the lifecycle-strategy
+  // calendar. Only a missing brand record is an empty plan.
   const pb = await planningBrand(config, db);
   if (!pb.isZero) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
     const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
-    let entries = pb.brand ? offeringPlanEntries(pb.brand, offs, todayIso(), config.calendarDays, ns) : [];
-    if (pb.brand) entries = entries.concat((await ownReplenishment(config, db, pb.brand, todayIso(), config.calendarDays, ns)).entries);
+    const start = todayIso();
+    let entries = pb.brand ? offeringPlanEntries(pb.brand, offs, start, config.calendarDays, ns) : [];
+    if (pb.brand) entries = entries.concat((await ownReplenishment(config, db, pb.brand, start, config.calendarDays, ns)).entries);
+    const planned = withStrategyFallback(pb.brand, entries, start, config.calendarDays, ns);
+    entries = planned.entries;
     if (!entries.length) {
       return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
     }
-    applyContactPolicy(entries, await planContactLedger(config, contact, todayIso()), null, todayIso(), config);
+    applyContactPolicy(entries, await planContactLedger(config, contact, start), null, start, config);
     return {
       ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false,
+      plan_source: planned.source,
       entries: entries.map((e) => ({ ...e, status: 'tentative' })),
-      note: `Plan generated from ${pb.brand.name}'s own catalogue and regions. Confidence figures are DEMO until real analytics connect.`,
+      note: planned.source === 'lifecycle-strategy'
+        ? strategyNote(pb.brand, declaredMarkets(pb.brand))
+        : `Plan generated from ${pb.brand.name}'s own catalogue and regions. Confidence figures are DEMO until real analytics connect.`,
     };
   }
   let cfg2 = config;
@@ -3196,6 +3358,8 @@ module.exports = {
   // thing that stops two brands sharing a primary key, so it is asserted on
   // directly rather than inferred from a full sync.
   __test_offeringPlanEntries: offeringPlanEntries,
+  __test_strategyPlanEntries: strategyPlanEntries,
+  __test_withStrategyFallback: withStrategyFallback,
   __test_workspaceNs: workspaceNs,
   // Executed by tests/agents-review.spec.js inside a request scope: which
   // brand a slot is stamped with, and whether the plan is tenant zero's.
