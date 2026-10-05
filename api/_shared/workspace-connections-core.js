@@ -987,17 +987,18 @@ async function checkConnection(auth, workspaceId, providerId) {
       ok: false, connected: false,
       note: 'The stored secret could not be read. It was encrypted under a different CONNECTION_SECRET_KEY than this deployment now holds, so it has to be entered again.',
     };
-  } else if (reg.category === 'ai' && secrets.api_key) {
+  } else if (reg.category === 'ai' && (secrets.api_key || (reg.llm_provider === 'ollama' && (row.config || {}).base_url))) {
     const callLLM = require('./llm.js');
     const bases = {};
     const cfg = row.config || {};
     if (reg.llm_provider === 'cloudflare' && cfg.account_id) bases.cloudflare = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cfg.account_id)}/ai/v1`;
     if (reg.llm_provider === 'ollama' && cfg.base_url) bases.ollama = String(cfg.base_url).replace(/\/+$/, '') + '/v1';
+    const key = secrets.api_key || (reg.llm_provider === 'ollama' ? 'ollama' : '');
     try {
       const r = await callLLM({
         systemPrompt: 'Reply with the single word: ok', userMessage: 'ping',
         maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
-        overrides: { order: [reg.llm_provider], models: {}, keys: { [reg.llm_provider]: secrets.api_key }, bases, fallback: false },
+        overrides: { order: [reg.llm_provider], models: {}, keys: { [reg.llm_provider]: key }, bases, fallback: false },
       });
       result = { ok: true, connected: true, note: `Answered on ${r.model}.` };
     } catch (err) {
@@ -1015,7 +1016,9 @@ async function checkConnection(auth, workspaceId, providerId) {
   } else if (reg.category === 'ai') {
     result = {
       ok: false, connected: false,
-      would_request: { note: `A live check needs a ${reg.label} key on this brand. Without one, generations use the platform default and there is nothing of yours to test.` },
+      would_request: { note: reg.llm_provider === 'ollama'
+        ? 'A live Ollama check needs a saved public base URL. A token is optional.'
+        : `A live check needs a ${reg.label} key on this brand. Without one, generations use the platform default and there is nothing of yours to test.` },
     };
   } else if (reg.id === 'klaviyo') {
     // The one non-AI platform this repo has a real client for. Ask it for its
