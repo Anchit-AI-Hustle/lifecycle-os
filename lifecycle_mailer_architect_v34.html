@@ -2073,11 +2073,12 @@ function buildCatFilters(){
 /* Load the ACTIVE workspace's catalogue. Region follows the Studio's own market
    selection, so a UK campaign picks from the UK catalogue. */
 function catRegion(){
+  /* The MARKET, as the brand names it. brand-catalog.js maps it to tenant
+     zero's three shipped files; folding IN into "global" here (2026-10-05)
+     meant a brand's own IN catalogue never matched its own IN market. */
   var m=(window.S&&(S.market||(S.markets&&S.markets[0])))||_homeMkt();
-  m=String(m).toUpperCase();
-  if(m==='UK'||m==='GB')return 'uk';
-  if(m==='US'||m==='USA')return 'us';
-  return 'global';
+  m=String(m||'').toLowerCase();
+  return m||'global';
 }
 /* The ONE place the catalogue is installed. Everything that renders products
    reads the module-scoped CAT, so there has to be a single setter for it rather

@@ -338,6 +338,13 @@ async function resolve(req, opts) {
     // Normalise BEFORE caching, so every consumer of the cached row sees the
     // same shape and the hoist cost is paid once per TTL rather than per read.
     const brand = ws ? normalizeBrand(ws) : defaultBrand();
+    // Whether THIS workspace owns tenant zero's shipped material is the
+    // server's determination (the oldest workspace), stamped on the record so
+    // brand-catalog-server.isTenantZeroBrand() never reads it off the slug,
+    // which the workspace's owner wrote (2026-10-05).
+    if (ws && brand && brand.id) {
+      try { brand.owns_shipped = await brandCore.ownsShipped(brand.id); } catch (_) { brand.owns_shipped = false; }
+    }
     CACHE.set(key, { brand, at: Date.now() });
     return brand;
   } catch (_) {
