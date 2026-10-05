@@ -19,12 +19,13 @@ const MIME = {
 };
 
 const core = require('../api/_shared/growth-os-core.js');
+const revenueCore = require('../api/_shared/revenue-os-core.js');
 const DEFAULT_BRAND = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/brands/_default.json'), 'utf8'));
 
 // The tabs the page ships, and the id of the panel each one must reveal.
 const TABS = [
   'experiments', 'funnel', 'surfaces', 'kpis',
-  'cohorts', 'plan', 'week1', 'competitive', 'gaps',
+  'cohorts', 'plan', 'week1', 'competitive', 'revenue', 'gaps',
 ];
 
 let server;
@@ -38,6 +39,29 @@ test.beforeAll(async () => {
       const params = new URLSearchParams(qs || '');
       if (params.get('action') === 'growth-os') {
         const payload = core.build(DEFAULT_BRAND, { kind: params.get('kind') || undefined });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(payload));
+      }
+      if (params.get('action') === 'revenue-os') {
+        const payload = revenueCore.buildPlan({
+          market: 'US',
+          brand: DEFAULT_BRAND,
+          intelligence: {
+            coverage: { total: 7, connected: 5, blocked: 2, analysed: 5 },
+            action_queue: [
+              { platform:'Meta Ads', platform_id:'meta', action:'Test the landing-page CTA hierarchy', why:'Paid traffic is reaching the page; validate the next conversion step.', target_metric:'conversion_rate', priority:'P1', effort:'low' },
+              { platform:'Klaviyo', platform_id:'klaviyo', action:'Build an objection-led lifecycle message', why:'Use repeated customer questions as creative evidence.', target_metric:'click_rate', priority:'P1', effort:'med' },
+            ],
+          },
+          outcomes: {
+            kpis: { measured_actions:3, realized_incremental_revenue:4200, realized_roi:2.1 },
+            actions: [
+              { action_type:'conversion', action_id:'old_1', channel:'meta', status:'measured', baseline_value:0.02, observed_value:0.024, incremental_revenue:1200, cost:500, roi:2.4 },
+              { action_type:'conversion', action_id:'old_2', channel:'meta', status:'measured', baseline_value:0.02, observed_value:0.025, incremental_revenue:1800, cost:700, roi:2.57 },
+              { action_type:'conversion', action_id:'old_3', channel:'meta', status:'measured', baseline_value:0.02, observed_value:0.023, incremental_revenue:1200, cost:800, roi:1.5 },
+            ],
+          },
+        });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify(payload));
       }
@@ -101,6 +125,26 @@ test('every tab reveals exactly its own panel', async ({ page }) => {
     const text = (await page.locator(`#panel-${name}`).innerText()).trim();
     expect(text.length, `panel ${name} rendered empty`).toBeGreaterThan(80);
   }
+
+  expect(errors).toEqual([]);
+});
+
+test('Revenue loop loads on demand and never fabricates expected revenue', async ({ page }) => {
+  const errors = await open(page);
+
+  await expect(page.locator('#go-revenue-strip .metric')).toHaveCount(0);
+  await page.locator('#go-tabs [data-tab="revenue"]').click();
+
+  await expect(page.locator('#go-revenue-strip .metric')).toHaveCount(6);
+  await expect(page.locator('#go-revenue-loop .tag')).toHaveCount(10);
+  await expect(page.locator('#go-revenue-roles .tier')).toHaveCount(8);
+  await expect(page.locator('#go-revenue-body tr')).toHaveCount(2);
+  await expect(page.locator('#go-revenue-status-text')).toContainText('No expected revenue is fabricated');
+
+  const rows = await page.locator('#go-revenue-body tr').allInnerTexts();
+  expect(rows.join(' ')).toContain('conversion');
+  expect(rows.join(' ')).toContain('rev_');
+  expect(rows.join(' ')).not.toMatch(/expected revenue\s*[₹$£€]?\s*\d/i);
 
   expect(errors).toEqual([]);
 });
