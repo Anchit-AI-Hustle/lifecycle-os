@@ -36,6 +36,10 @@ test.beforeAll(async () => {
   server = http.createServer((req, res) => {
     const u = new URL(req.url || '/', 'http://127.0.0.1');
 
+    if (u.pathname === '/brand-context.js') {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' });
+      return res.end('window.BrandContext={brand:{id:"ws-a",name:"Alpha"},token:function(){return "session-token";},onChange:function(){}};');
+    }
     if (u.pathname === '/auth.js') {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       return res.end(
@@ -138,7 +142,7 @@ test('a user can save their own provider key from Connectors and the browser sen
   await expect.poll(() => posts.filter((x) => x.op === 'save').length).toBe(1);
   const p = posts.find((x) => x.op === 'save');
   expect(p.authorization).toBe('Bearer session-token');
-  expect(p.body).toEqual({ provider: 'openai', fields: { api_key: 'sk-user-private-value' } });
+  expect(p.body).toEqual({ workspace_id: 'ws-a', provider: 'openai', fields: { api_key: 'sk-user-private-value' } });
 
   // The list reload rebuilds the form from the sanitised server response. The
   // key is never rendered back into the page.
