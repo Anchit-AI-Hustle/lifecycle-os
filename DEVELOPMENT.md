@@ -309,7 +309,9 @@ live deployment**, so **every web deploy is automatically a mobile release**.
   top item in `OPTIMISATION_NOTES.md`; it now exists.)
 - **CI (`.github/workflows/`):**
   - `ci.yml` (**CI**) — HTML smoke test, `node --check` over all JS, the
-    **12-function guard**, `npm run build`, then a Playwright `e2e` job.
+    **12-function guard**, `npm run build`, then a Playwright `e2e` job. Runs on
+    every PR, every push to main, and when `auto-merge.yml` dispatches it on main
+    after a merge; on main, `main-state` keeps one "Main is red at <sha>" issue.
   - `mobile-builds.yml` — §10.
   - `daily-sync.yml` (**Daily Intelligence Sync**, `30 6 * * *`) — POSTs
     `/api/brain?action=cron` with `CRON_SECRET`; exists because Hobby cron only fires

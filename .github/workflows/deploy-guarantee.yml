@@ -21,10 +21,22 @@
 #      the normal path for a human merge or a direct push;
 #   2. repository_dispatch `deploy-guarantee`, fired by auto-merge.yml after a
 #      merge it made - because a merge performed with GITHUB_TOKEN starts no
-#      `push` workflow run (GitHub's recursion guard), so CI never runs on main
-#      for that merge commit and path 1 never happens for it. CI did run, on
-#      the PR's merge ref, and that is what auto-merge.yml gated on;
+#      `push` workflow run (GitHub's recursion guard), so no push-raised CI
+#      run exists for that merge commit and path 1 never happens for it. CI
+#      did run, on the PR's merge ref, and that is what auto-merge.yml gated
+#      on; since 2026-10-04 it also dispatches CI on main, see below;
 #   3. workflow_dispatch - the "Run workflow" button, for a deploy by hand.
+#
+# WHAT IT DELIBERATELY DOES NOT ACCEPT (2026-10-04): the CI run that
+# auto-merge.yml DISPATCHES on main after a merge (and a person pressing "Run
+# workflow" on CI). Its workflow_run reaches this file - branch main, maybe
+# success - and the job `if` skips it, because its event is workflow_dispatch,
+# not push. Path 2 already fired the hook for that merge; a second firing is a
+# second production build of the same branch HEAD, one more of the team's 100
+# deployments a day (CLAUDE.md, 2026-09-29), for nothing. That run is a TEST
+# of main: when it is red, the failed run on main and the "Main is red at
+# <sha>" issue (ci.yml, `main-state`) say so. It does not deploy and it does
+# not roll back - Vercel's Git integration has already deployed main.
 #
 # THE ONE THING THE OWNER HAS TO ADD: the repository secret
 # VERCEL_DEPLOY_HOOK_URL. Create the hook in Vercel: the lifecycle-os project
@@ -71,8 +83,10 @@ jobs:
     runs-on: ubuntu-latest
     # For the CI-chained path: only a run that COMPLETED WITH SUCCESS, raised by
     # a push, on main. A PR whose head branch happens to be called "main" (a
-    # fork's) is a pull_request run and is excluded by the event check. The
-    # dispatch paths carry their own reason and are not re-gated here.
+    # fork's) is a pull_request run and is excluded by the event check, and so
+    # is the CI run auto-merge.yml dispatches on main (event workflow_dispatch;
+    # see the header for why). The dispatch paths carry their own reason and
+    # are not re-gated here.
     if: >-
       github.event_name != 'workflow_run' ||
       (github.event.workflow_run.conclusion == 'success' &&
