@@ -566,3 +566,23 @@ test('an account-specific provider carries its base URL as part of the credentia
   expect(out.bases.ollama).toBe('https://ollama.example/v1');
   expect(out.keys.cloudflare).toBe('cf-token');
 });
+
+test('a tokenless Ollama connection can be live-tested from its saved base URL', async () => {
+  const w = fresh();
+  addConnection(w, 'ws-a', { provider: 'ollama', config: { base_url: 'https://ollama.example' } });
+
+  const request = req('tok-a');
+  request.method = 'POST';
+  request.query = { op: 'check' };
+  request.body = { op: 'check', provider: 'ollama' };
+
+  const r = res();
+  await core.handle(request, r);
+
+  expect(r.code).toBe(200);
+  expect(r.payload).toMatchObject({ ok: true, connected: true, provider: 'ollama' });
+  expect(r.payload.note).toMatch(/Answered on/i);
+  expect(providerHosts(w)).toContain('ollama.example');
+  const call = w.calls.find((c) => new URL(c.url).host === 'ollama.example');
+  expect(call.headers.Authorization || call.headers.authorization).toBe('Bearer ollama');
+});

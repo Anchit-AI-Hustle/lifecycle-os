@@ -77,6 +77,36 @@ const UNIQUE = {
   social_metric_snapshots: [['workspace_id', 'provider', 'kind', 'external_id', 'captured_on']],
   social_creative_flags: [['workspace_id', 'provider', 'external_id', 'metric', 'basis']],
   social_gateway_settings: [['workspace_id']],
+  contact_touch_ledger: [['workspace_id', 'source', 'source_ref', 'subject_key']],  // contact_touch_dedupe_idx
+  contact_fatigue_rules: [['workspace_id']],                                       // primary key
+};
+
+/**
+ * Tables whose writes are the SERVICE ROLE's alone: the migration grants
+ * `authenticated` SELECT and declares no write policy, so PostgREST answers a
+ * user's insert with 42501. Modelled because the contact ledger's "a member
+ * cannot hand-edit what reached a customer" is exactly that grant.
+ */
+const SERVICE_WRITE_ONLY = new Set(['contact_touch_ledger']);
+
+/**
+ * CHECK constraints, from 20261004093700_contact_ledger_fatigue.sql, with the
+ * constraint names Postgres reports. A row that violates one aborts the whole
+ * statement (400 / 23514), so "no raw PII is stored" is enforced by the store
+ * the module writes to, not only by the module.
+ */
+const HEX64 = /^[0-9a-f]{64}$/;
+const CHECKS = {
+  contact_touch_ledger: [
+    ['contact_touch_channel_chk', (r) => ['email', 'sms', 'whatsapp', 'push', 'in_app'].indexOf(r.channel) >= 0],
+    ['contact_touch_class_chk', (r) => ['promotional', 'transactional', 'triggered-lifecycle'].indexOf(r.message_class) >= 0],
+    ['contact_touch_source_chk', (r) => ['dispatch', 'esp_event'].indexOf(r.source) >= 0],
+    ['contact_touch_identity_chk', (r) => r.external_profile_id != null || r.email_hash != null || r.phone_hash != null],
+    ['contact_touch_email_hash_chk', (r) => r.email_hash == null || HEX64.test(r.email_hash)],
+    ['contact_touch_phone_hash_chk', (r) => r.phone_hash == null || HEX64.test(r.phone_hash)],
+    ['contact_touch_profile_not_pii_chk', (r) => r.external_profile_id == null || (!/@/.test(r.external_profile_id) && !/^\+?[0-9\s().-]{7,24}$/.test(r.external_profile_id))],
+    ['contact_touch_subject_key_chk', (r) => HEX64.test(String(r.subject_key || ''))],
+  ],
 };
 
 /** Column defaults the migrations declare, applied on insert the way Postgres would. */
@@ -85,13 +115,14 @@ const DEFAULTS = {
   workspace_connections: { status: 'active', config: {}, secret_fields: [], secret_hint: '' },
   platform_webhook_events: { verified: false, processed_at: null },
   social_creative_flags: { status: 'open', decided_by: null, decided_at: null },
-  social_inbound_events: { items: [] },
+  social_inbound_events: { items: [], status: 'received', attempts: 0 },   // + 20261004180000
 };
 
 /** Tables whose rows are scoped to a workspace for RLS. */
 const WORKSPACE_SCOPED = new Set([
   'dispatch_jobs', 'dispatch_attempts', 'preflight_audits', 'platform_sync_log', 'platform_webhook_events',
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
+  'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
 ]);
 
@@ -349,21 +380,33 @@ class FakeSupabase {
       return response(200, out.map((r) => project(r, q.select)), { 'content-range': `${served}/*` });
     }
 
+    if (method !== 'GET' && SERVICE_WRITE_ONLY.has(table) && who !== 'service') {
+      return response(403, { code: '42501', message: `permission denied for table ${table}` });
+    }
+
     if (method === 'POST') {
       const list = Array.isArray(body) ? body : [body];
+      // A CHECK violation aborts the statement: nothing from the batch lands.
+      for (const incoming of list) {
+        for (const [name, ok] of (CHECKS[table] || [])) {
+          if (!ok(incoming || {})) return response(400, { code: '23514', message: `new row for relation "${table}" violates check constraint "${name}"` });
+        }
+      }
       const saved = [];
       for (const incoming of list) {
         const row = Object.assign({ id: uuid(), created_at: this.tick() }, DEFAULTS[table] || {}, incoming);
         const keys = q.onConflict ? [q.onConflict] : (UNIQUE[table] || []);
         let merged = false;
+        let ignored = false;
         for (const cols of keys) {
           if (!cols.every((c) => row[c] != null)) continue;
           const hit = rows.find((r) => cols.every((c) => String(r[c]) === String(row[c])));
           if (!hit) continue;
           if (/resolution=merge-duplicates/.test(prefer)) { Object.assign(hit, incoming); saved.push(hit); merged = true; break; }
+          if (/resolution=ignore-duplicates/.test(prefer)) { ignored = true; break; }
           return duplicate(table, cols);
         }
-        if (merged) continue;
+        if (merged || ignored) continue;
         rows.push(row);
         saved.push(row);
       }

@@ -76,8 +76,9 @@ const M = {
   gif: 'api/_shared/gif-core.js', engine: 'api/_shared/ads-insight-engine.js', catalogServer: 'api/_shared/brand-catalog-server.js',
   sbplan: 'api/_shared/smart-brain-plan.js', universe: 'api/_shared/competitor-universe.js', domainIntel: 'api/_shared/domain-intel.js',
   logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
-  agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', journey: 'api/_shared/journey-core.js',
+  agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', revenueOs: 'api/_shared/revenue-os-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
+  ledger: 'api/_shared/contact-ledger.js',
   gateway: 'api/_shared/social-gateway-core.js',
 };
 
@@ -492,14 +493,25 @@ add('deliverability-domain', { gate: 'user', browser: 'refuse', run: { json: { d
     expect(p[2].method).toBe('POST'); expect(p[2].body[0]).toMatchObject({ workspace_id: H.WS, domain: 'harness.example', role: 'sending', spf: { spf: 1 }, bimi: { bimi: 1 }, grade: 'A' });
   },
 });
-add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email' } },
-  stubs: () => S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' })),
+add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: { asset_id: 'a1', channel: 'email', message_priority: 'transactional', contact_fatigue: { status: 'exempt', forged: true } } },
+  stubs: () => {
+    S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+    S.on(M.ledger, 'evaluateForCaller', async () => ({ status: 'unknown', reason: 'no_history', from: 'ledger' }));
+  },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, verdict: 'pass' });
     const a = last(M.preflight, 'run')[0];
-    expect(a).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email', brand: expect.objectContaining({ name: BRAND.name, __resolved_for: H.WS }) });
+    expect(a).toEqual({ workspaceId: H.WS, asset_id: 'a1', channel: 'email', message_priority: 'transactional', contact_fatigue: { status: 'unknown', reason: 'no_history', from: 'ledger' }, brand: expect.objectContaining({ name: BRAND.name, __resolved_for: H.WS }) });
+    // The contact-ledger verdict is the SERVER's (2026-10-04): computed for
+    // this caller's workspace by evaluateForCaller, which checks membership
+    // before any ledger read; the body's own `contact_fatigue` is dropped.
+    const ev = last(M.ledger, 'evaluateForCaller');
+    expect(ev[0]).toMatchObject({ ok: true });
+    expect(ev[1]).toBe(H.WS);
+    expect(ev[2]).toMatchObject({ channel: 'email', message_class: 'transactional' });
   },
-  cases: [{
+  cases: [{ name: 'a channel that is not a message to a subscriber reads no ledger, and a posted verdict is still dropped', run: { json: { channel: 'facebook_page', contact_fatigue: { status: 'exempt', forged: true } } },
+    expect: (r) => { expect(S.hits(M.ledger)).toEqual([]); const a = last(M.preflight, 'run')[0]; expect(a.contact_fatigue).toBeUndefined(); expect(a.channel).toBe('facebook_page'); } }, {
     // A body that names its own brand, approves its own claims or states its
     // own offer end date would choose which compliance rules it is held to.
     name: 'the body cannot choose the brand, the approved claims or the offer the copy is linted against',
@@ -520,6 +532,7 @@ add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: 
       S.on(BRAND_RT, 'resolve', async () => ({ slug: 'tenant-zero', name: 'Tenant Zero', industry: 'Custom sneakers' }));
       S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND);
       S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+      S.on(M.ledger, 'evaluateForCaller', async () => ({ status: 'unknown', reason: 'no_history', from: 'ledger' }));
     },
     expect: (r) => {
       const a = last(M.preflight, 'run')[0];
@@ -533,9 +546,46 @@ add('deliverability-preflight', { gate: 'user', browser: 'refuse', run: { json: 
       S.on(BRAND_RT, 'resolve', async () => ({ slug: 'tenant-zero', name: 'Tenant Zero', industry: 'Custom sneakers' }));
       S.on(WS_SCOPE, 'brandForWorkspace', async () => null);
       S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'warn' }));
+      S.on(M.ledger, 'evaluateForCaller', async () => ({ status: 'unknown', reason: 'no_history', from: 'ledger' }));
     },
     expect: (r) => { expect(last(M.preflight, 'run')[0].brand).toBeNull(); },
+  }, {
+    // /publishing sends the asset as `payload` and names its campaign. The
+    // offer is the one the QUEUE will read (the campaign's record in this
+    // workspace), so preflight and enqueue measure a deadline line alike.
+    name: 'the offer is the named campaign\'s record in this workspace, read on the server: never the body\'s',
+    run: { json: { channel: 'klaviyo_email', campaign_id: 'campaign_abc123', payload: { id: 'campaign_abc123_email', subject: 'Today only' }, offer: { ends_at: '2099-01-01' }, mode: 'schedule', scheduled_for: '2099-10-05T09:00:00Z' } },
+    stubs: () => {
+      S.on(M.dispatch, 'campaignOffer', async () => ({ ends_at: '2026-10-05T23:59:59Z', stock: 10 }));
+      S.on(M.preflight, 'run', async () => ({ ok: true, verdict: 'pass' }));
+      S.on(M.ledger, 'evaluateForCaller', async () => ({ status: 'unknown', reason: 'no_history', from: 'ledger' }));
+    },
+    expect: (r) => {
+      const [ws, ref] = last(M.dispatch, 'campaignOffer');
+      expect(ws).toBe(H.WS);
+      expect(ref).toEqual({ campaign_id: 'campaign_abc123', asset_ref: undefined, asset: { id: 'campaign_abc123_email', subject: 'Today only' } });
+      const a = last(M.preflight, 'run')[0];
+      expect(a.offer).toEqual({ ends_at: '2026-10-05T23:59:59Z', stock: 10 });
+      expect(a.now).toBe('2099-10-05T09:00:00Z');
+    },
   }],
+});
+add('contact-fatigue', { gate: 'user', browser: 'refuse', run: { json: { op: 'evaluate', channel: 'sms', recipients: [{ external_profile_id: 'P1' }] } },
+  stubs: () => S.on(M.ledger, 'handle', async (op) => (op === 'rules-save' ? { status: 403, body: { ok: false, error: 'forbidden' } } : { status: 200, body: { ok: true, status: 'computed', op } })),
+  expect: (r) => {
+    expect(r.status).toBe(200);
+    expect(r.out).toEqual({ ok: true, status: 'computed', op: 'evaluate' });
+    const a = last(M.ledger, 'handle');
+    expect(a[0]).toBe('evaluate');
+    expect(a[1].workspaceId).toBe(H.WS);
+    expect(a[1].auth).toMatchObject({ ok: true });
+    expect(a[1].body).toMatchObject({ op: 'evaluate', channel: 'sms', recipients: [{ external_profile_id: 'P1' }] });
+  },
+  cases: [
+    { name: 'GET reads the rules by default', run: { method: 'GET', json: undefined }, expect: (r) => { expect(r.status).toBe(200); expect(last(M.ledger, 'handle')[0]).toBe('rules'); } },
+    { name: 'an op that takes a body is refused on GET before the core', run: { method: 'GET', json: undefined, query: { op: 'ingest' } }, expect: (r) => { expect(r.status).toBe(405); expect(r.out.message).toMatch(/op=ingest takes a POST body/); expect(S.hits(M.ledger)).toEqual([]); } },
+    { name: 'the core\'s own status passes through', run: { json: { op: 'rules-save', rules: {} } }, expect: (r) => { expect(r.status).toBe(403); expect(r.out).toEqual({ ok: false, error: 'forbidden' }); } },
+  ],
 });
 add('deliverability-warmup', { gate: 'user', browser: 'refuse', run: { json: { start_on: '2026-10-01', target_daily: 100, days: 3 } },
   stubs: () => { S.on(M.deliver, 'buildWarmupPlan', () => [{ d: 1 }, { d: 2 }, { d: 3 }]); S.on(M.deliver, 'evaluateWarmupSafety', () => ({ safe: true })); },
@@ -726,6 +776,31 @@ add('platform-agents', { gate: 'user', model: 'analytics.report', browser: 'refu
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.platformAgents, 'runAll', async () => ({ ok: true, agents: [] })); S.on(M.platformAgents, 'runAgent', async () => ({ ok: true, agent: 'meta' })); },
   expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: BRAND }); },
   cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toBe(BRAND); } }],
+});
+add('revenue-os', { gate: 'user', model: 'analytics.report', browser: 'refuse', run: { method: 'GET', query: { days: '21', question: 'what makes money?' } },
+  stubs: () => {
+    S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND);
+    S.on(M.revenueOs, 'run', async () => ({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] }));
+    S.on(M.revenueOs, 'trackOutcome', async (input) => ({ ok: true, tracked: input.action_id, market: input.market }));
+  },
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] });
+    expect(last(M.revenueOs, 'run')[0]).toEqual({
+      market: 'UK', days: 21, hours: 720, since: undefined, until: undefined,
+      question: 'what makes money?', tier: 'standard', platforms: undefined, brand: BRAND,
+    });
+  },
+  cases: [
+    { name: 'POST track closes the recommendation-to-outcome loop without running the model', run: { json: { op: 'track', action_id: 'rev_0123456789abcdef', status: 'measured' } },
+      expect: (r) => {
+        expect(r.out).toEqual({ ok: true, tracked: 'rev_0123456789abcdef', market: 'UK' });
+        const input = last(M.revenueOs, 'trackOutcome')[0];
+        expect(input).toMatchObject({ op: 'track', action_id: 'rev_0123456789abcdef', status: 'measured', market: 'UK' });
+        expect(S.hits(M.revenueOs, 'run')).toEqual([]);
+      } },
+    { name: 'unknown op is rejected before the core runs', run: { method: 'GET', query: { op: 'wat' } },
+      expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.revenueOs)).toEqual([]); } },
+  ],
 });
 add('journey', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { days: '30', since: '2026-01-01' } },
   stubs: () => S.on(M.journey, 'linkLedger', async () => ({ ok: true, links: [] })),
@@ -1047,7 +1122,7 @@ test.describe('the router', () => {
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
       'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
-      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });

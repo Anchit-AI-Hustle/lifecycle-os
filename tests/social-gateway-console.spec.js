@@ -16,6 +16,7 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const { FakeSupabase, makeReq, makeRes, envScope, nowIso, SERVICE_KEY, ANON_KEY, BASE } = require('./lib/fake-supabase.js');
+const { installPlatforms } = require('./lib/fake-social-platforms.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const connections = require(path.join(ROOT, 'api', '_shared', 'workspace-connections-core.js'));
@@ -27,7 +28,8 @@ const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 const AUTH_A = { ok: true, token: 'tok-a', user_id: 'user-a', email: 'a@example.test' };
 const DEVICE = { ok: true, token: 'device-token', user_id: 'device:abc', provider: 'mobile-pin', mode: 'device' };
 const SWITCHES = ['META_ALLOW_WRITES', 'TIKTOK_ALLOW_WRITES', 'PINTEREST_ALLOW_WRITES', 'YOUTUBE_ALLOW_WRITES', 'GOOGLE_ADS_ALLOW_WRITES'];
-const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'CONNECTION_SECRET_KEY', 'LIVE_CONNECTORS', 'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', ...SWITCHES]);
+const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'CONNECTION_SECRET_KEY', 'LIVE_CONNECTORS', 'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET',
+  'PUBLIC_BASE_URL', 'YOUTUBE_OAUTH_CLIENT_ID', 'YOUTUBE_OAUTH_CLIENT_SECRET', ...SWITCHES]);
 
 let server; let base; let realFetch;
 test.beforeAll(async () => {
@@ -53,9 +55,14 @@ function world() {
   process.env.CONNECTION_SECRET_KEY = 'e'.repeat(64);
   process.env.TIKTOK_CLIENT_KEY = 'tt-client-key';
   process.env.TIKTOK_CLIENT_SECRET = 'tt-client-secret';
+  process.env.PUBLIC_BASE_URL = 'https://app.example.test';
+  process.env.YOUTUBE_OAUTH_CLIENT_ID = 'yt-client';
+  process.env.YOUTUBE_OAUTH_CLIENT_SECRET = 'yt-secret';
   for (const k of ['LIVE_CONNECTORS', ...SWITCHES]) delete process.env[k];
   const db = new FakeSupabase();
   db.addUser('tok-a', 'user-a', 'a@example.test').addWorkspace('ws-a', 'user-a').setActive('user-a', 'ws-a').syncIdentityTables();
+  // The platforms answer exactly their documented endpoints and throw on anything else.
+  db.seen = installPlatforms(db);
   db.install();
   connections._resolvedCache.clear();
   return db;
@@ -97,6 +104,14 @@ async function open(page, { auth = AUTH_A, ws = 'ws-a' } = {}) {
       return json(res.code, res.payload);
     }
     if (action === 'connections' && u.searchParams.get('op') === 'publish-registry') return json(200, { ok: true, platforms: registry.registryView(), channels: registry.allChannels() });
+    if (action === 'connections' && u.searchParams.get('op') === 'oauth-start') {
+      // The shipped connections router, as the session's caller.
+      const body = route.request().postDataJSON();
+      asked.push({ action, op: 'oauth-start', method: 'POST', body });
+      const res = makeRes();
+      await connections.handle(makeReq({ token: auth.token, query: Object.fromEntries(u.searchParams.entries()), body, method: 'POST' }), res);
+      return json(res.code, res.payload);
+    }
     if (action === 'connections') return json(200, { ok: true, connections: [] });
     return json(200, { ok: true });
   });
@@ -208,4 +223,56 @@ test('a brand kept on this device sees the honest status, and every control that
   expect(asked.map((a) => a.op || a.action)).toEqual(['status']);
   expect(db.calls, 'a device brand reaches neither the store nor a platform').toEqual([]);
   expect(thrown).toEqual([]);
+});
+
+/* ═══ review of #132 (2026-10-04) ═══════════════════════════════════════ */
+
+test('a comment read from the console sends the one object it is on (object_id), and the platform is asked for that video\'s comments', async ({ page }) => {
+  const db = world();
+  process.env.LIVE_CONNECTORS = 'on';
+  const secrets = { access_token: 'ya29.yt-console' };
+  const row = db.insert('workspace_connections', {
+    workspace_id: 'ws-a', provider: 'youtube', category: 'social', auth_kind: 'oauth', label: 'youtube', config: {},
+    secret_fields: Object.keys(secrets), secret_hint: 'sole', status: 'active', connect_kind: 'oauth', oauth_scopes: ['https://www.googleapis.com/auth/youtube.readonly'],
+    token_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), refresh_failure_count: 0, revoked_at: null, last_check_note: '',
+  });
+  db.insert('workspace_connection_secrets', Object.assign({ connection_id: row.id, workspace_id: 'ws-a' }, connections.encryptSecrets(secrets)));
+  const { asked, thrown } = await open(page);
+  await expect(page.locator('#gw-platforms .conn')).toHaveCount(6);
+
+  await page.selectOption('#gw-read-provider', 'youtube');
+  await page.selectOption('#gw-read-kind', 'comments');
+  await page.fill('#gw-read-ids', 'vid-9');
+  await page.click('#gw-read');
+  await expect(page.locator('#gw-read-out')).toContainText('1 row(s) read');
+  await expect(page.locator('#gw-read-out')).toContainText('Is this a one-of-one?');
+
+  const sent = asked.find((a) => a.op === 'read');
+  expect(sent.body).toMatchObject({ provider: 'youtube', kind: 'comments', object_id: 'vid-9' });
+  expect(sent.body).not.toHaveProperty('ids');
+  const call = db.seen.youtube.find((c) => c.path === '/youtube/v3/commentThreads');
+  expect(call.query).toMatchObject({ videoId: 'vid-9', part: 'snippet' });
+  expect(thrown).toEqual([]);
+});
+
+test('Connect on the hub asks for the write capabilities the operator ticked: YouTube publishing sends the upload scope to Google\'s consent screen', async ({ page }) => {
+  const db = world();
+  const { asked } = await open(page);
+  await page.getByRole('tab', { name: 'Integration hub' }).click();
+  const yt = page.locator('#hub .conn').filter({ hasText: 'YouTube' });
+  await expect(yt.locator('[data-cap]')).toHaveCount(2);
+  // Each capability says which scopes it asks for, before anything is sent.
+  await expect(yt.locator('.cap').filter({ hasText: 'Publish and schedule' })).toContainText('youtube.upload');
+
+  let consent = null;
+  await page.route(/^https:\/\/accounts\.google\.com\//, (route) => { consent = route.request().url(); return route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>consent</title>' }); });
+  await yt.locator('[data-cap="post"]').check();
+  await yt.locator('button[data-act="connect"]').click();
+  await expect.poll(() => consent, { timeout: 15000 }).not.toBeNull();
+
+  const sent = asked.find((a) => a.op === 'oauth-start');
+  expect(sent.body).toMatchObject({ provider: 'youtube', capabilities: ['post'] });
+  const scope = new URL(consent).searchParams.get('scope').split(' ');
+  expect(scope).toEqual(expect.arrayContaining(['https://www.googleapis.com/auth/youtube.readonly', 'https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/youtube.force-ssl']));
+  expect(db.table('oauth_authorization_states')[0].scopes).toEqual(expect.arrayContaining(['https://www.googleapis.com/auth/youtube.upload']));
 });

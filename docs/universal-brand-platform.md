@@ -425,14 +425,17 @@ restores the brand exactly as it was and removes the files Apply kept. A later s
 document value is held back and shown side by side (`docGuard()`).
 
 On the server the same order is structural (migrations `20261004120000_brand_document_origin.sql` and
-`20261004160000_brand_context_apply_by_origin.sql`): `brand_origin_rank()`; `brand_context_apply()`
+`20261004160000_brand_context_apply_by_origin.sql`, `20261004170000_brand_workspace_save.sql`): `brand_origin_rank()`; `brand_context_apply()`
 takes each value's origin (default `auto`, the site parser) and, under a row lock on the workspace,
 refuses any field whose recorded owner outranks it (an equal rank replaces). Saving an existing brand
-(`saveExisting()`): the typed fields are claimed as `user` FIRST; the PATCH carries them and, for every
-field a document, a site read or a template set, the row's OWN value - conditional on `updated_at`, so a
-concurrent save is re-read rather than overwritten; then those fields go through `brand_context_apply()`
-with their origin. A stale tab can therefore never write a document's value over one a person typed in
-another tab, nor leave the record claiming a person typed it. A new brand records non-typed fields
+(`saveExisting()`) is ONE decision written in ONE statement: read the row and who owns each field; build
+the effective row (what was typed; a document / site / template value only where it ranks at least as
+high as the recorded owner; the row's own value everywhere else, the wizard's placeholders included);
+check the design rules on that; then `brand_workspace_save()` writes it, claims the typed fields and
+records each applied origin in one transaction under the row lock, or answers `stale` when the row or an
+owner the decision rested on moved (the save decides again). A stale tab can therefore never write a
+document's value or a placeholder over what a person set in another tab, a refused save claims nothing,
+and a colour that will not be stored cannot block a save. A new brand records non-typed fields
 through `brand_fields_record_origin()`, which never demotes.
 
 ### Every asset is a file OR a URL
