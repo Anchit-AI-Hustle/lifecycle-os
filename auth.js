@@ -2593,14 +2593,63 @@
   }
 
   /**
+   * What this Auth project publishes about its providers.
+   *
+   * GET /auth/v1/settings is public (the same document Sign in with Google
+   * reads before it navigates). `external.google === false` is the live
+   * production state on 2026-10-05: GoTrue then answers authorize with
+   * 400 validation_failed "Unsupported provider: provider is not enabled",
+   * and because signInWithOAuth NAVIGATES the person sees that JSON instead
+   * of a sentence. Unreadable settings fail OPEN - a CORS miss, a timeout
+   * or a harness that only answers /health must not block a working project.
+   * Never prefetch /auth/v1/authorize: that call spends the PKCE verifier.
+   */
+  const SETTINGS_CACHE = new Map();
+  function authSettings(url, anonKey) {
+    if (!url) return Promise.resolve(null);
+    const key = String(url);
+    if (SETTINGS_CACHE.has(key)) return SETTINGS_CACHE.get(key);
+    const probe = (async () => {
+      const ctl = new AbortController();
+      const timer = setTimeout(function () { ctl.abort(); }, 4000);
+      try {
+        const res = await fetch(url.replace(/\/+$/, '') + '/auth/v1/settings', {
+          headers: {
+            apikey: anonKey || '',
+            Authorization: 'Bearer ' + (anonKey || ''),
+          },
+          signal: ctl.signal,
+        });
+        if (!res.ok) return null;
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!ct.includes('application/json')) return null;
+        return await res.json();
+      } catch (e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    SETTINGS_CACHE.set(key, probe);
+    return probe;
+  }
+  function googleProviderOff(settings) {
+    if (!settings || typeof settings !== 'object') return false;
+    const ext = settings.external;
+    if (!ext || typeof ext !== 'object') return false;
+    return ext.google === false;
+  }
+
+  /**
    * Start Google sign-in, but never hand the browser to a host that is not
-   * there. Resolves to null when the redirect has been started, otherwise to
-   * `{ kind, message, html }` naming the state that refused it. The sentence
-   * is signedOutSentence()'s - the SAME words the standing bar shows for that
-   * state - because two hand-written copies of "the project is gone" had
-   * already drifted: the bar said "most likely deleted, renamed or paused"
-   * (the network cannot tell them apart) and this path said "deleted or
-   * renamed", a claim the code cannot make.
+   * there, or to a project whose Google provider is off. Resolves to null
+   * when the redirect has been started, otherwise to `{ kind, message, html }`
+   * naming the state that refused it. The sentence is signedOutSentence()'s -
+   * the SAME words the standing bar shows for that state - because two
+   * hand-written copies of "the project is gone" had already drifted: the
+   * bar said "most likely deleted, renamed or paused" (the network cannot
+   * tell them apart) and this path said "deleted or renamed", a claim the
+   * code cannot make.
    */
   async function signInRefusal() {
     // Never diagnose a boot still in flight (see authReady). This also covers
@@ -2610,6 +2659,12 @@
     if (kind !== 'signed-out') {
       const s = signedOutSentence(kind);
       return { kind: kind, message: s.text, html: s.html };
+    }
+    const cfg = window.__SUPABASE__ || {};
+    const settings = await authSettings(cfg.url, cfg.anonKey);
+    if (googleProviderOff(settings)) {
+      const s = signedOutSentence('provider-off');
+      return { kind: 'provider-off', message: s.text, html: s.html };
     }
     rememberReturnTo();
     const client = window.LifecycleAuth && window.LifecycleAuth.client;
@@ -2728,7 +2783,7 @@
 
   /**
    * ONE sentence per signed-out state, keyed by `kind`
-   * (unconfigured | unreachable | sdk | signed-out).
+   * (unconfigured | unreachable | sdk | signed-out | provider-off).
    *
    * Two surfaces explain why sign-in is not happening: the standing bar at the
    * top of every page and the note under the rail's Sign-in button. They were
@@ -2742,13 +2797,14 @@
    * bar has always used, `text` is the same words with no markup.
    */
   function signedOutSentence(kind) {
-    // THREE states someone can fix, not one, and naming the wrong one sends
+    // FOUR states someone can fix, not one, and naming the wrong one sends
     // the reader to check the thing that is not broken. `unconfigured` is a
     // missing env var on the deployment; `unreachable` is a project that no
     // longer answers, and its host is worth printing because that is the value
     // that has to change; `sdk` is the supabase-js CDN not loading;
-    // `signed-out` is the ordinary case where everything works and this
-    // visitor simply has no session.
+    // `provider-off` is a reachable project whose Google provider is disabled
+    // (GoTrue 400 validation_failed); `signed-out` is the ordinary case where
+    // everything works and this visitor simply has no session.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
     // 2026-10-05: sign-in is Google, and Google needs this Supabase project.
@@ -2765,6 +2821,13 @@
         + 'what this browser holds. <b>Sign in with Google</b> (the Sign in '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
+    } else if (kind === 'provider-off' && host) {
+      html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
+        + '</code>). Sign in with Google cannot start because the Auth server refuses it with '
+        + '<code>validation_failed</code>: provider is not enabled. In the Supabase dashboard open '
+        + '<b>Authentication → Providers → Google</b>, turn the provider on, set the Client ID and '
+        + 'Client Secret from a Google Cloud OAuth web client, and add the Authorized redirect URI '
+        + '<code>https://' + host + '/auth/v1/callback</code>. Then reload. Every page stays open.';
     } else if (kind === 'unreachable' && host) {
       // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
       // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
@@ -2800,7 +2863,19 @@
    */
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
-    if (existing) return existing;
+    if (existing) {
+      // Sign-in may learn a more specific state (Google is off) after boot
+      // already painted "signed out". force:true is a request for the
+      // explanation, so the bar's words have to match the chip's.
+      if (opts && opts.force && existing.getAttribute('data-kind') !== kind) {
+        existing.setAttribute('data-kind', kind);
+        var existingTxt = existing.querySelector('#lc-authnotice-text');
+        if (existingTxt) existingTxt.innerHTML = signedOutSentence(kind).html;
+        existing.style.boxShadow = 'inset 0 3px 0 ' + (kind === 'signed-out'
+          ? 'var(--vh-accent)' : 'var(--vh-warn)');
+      }
+      return existing;
+    }
     // Dismissed for this tab? Check before building anything.
     if (!(opts && opts.force)) {
       try { if (sessionStorage.getItem('lc-authnotice-hid')) return null; } catch (e) { /* private mode */ }

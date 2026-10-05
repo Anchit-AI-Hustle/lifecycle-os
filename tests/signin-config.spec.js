@@ -22,11 +22,17 @@
  * Sign-in is Google again, through Supabase Auth. A dead or missing project
  * is still refused BEFORE signInWithOAuth, because that call navigates and a
  * dead host becomes Chrome's NXDOMAIN with no in-app error. A reachable host
- * starts Google with a stable Site-URL redirectTo (origin + '/') and the
- * Gmail account picker (prompt=select_account), remembers the page the
- * person was on, and does not open the mobile PIN panel. The stub records
- * every signInWithOAuth call, and every navigation is still captured. The
- * "no baked-in project ref" file check stays as it was.
+ * whose GET /auth/v1/settings says external.google === false is also refused
+ * (production: GoTrue 400 validation_failed "Unsupported provider: provider
+ * is not enabled") - the chip names the host and the dashboard steps, and
+ * authorize is never called (that would spend PKCE). Settings that cannot
+ * be read fail OPEN, so a harness that only answers /health still starts
+ * Google. A reachable host with Google on (or unread) starts Google with a
+ * stable Site-URL redirectTo (origin + '/') and the Gmail account picker
+ * (prompt=select_account), remembers the page the person was on, and does
+ * not open the mobile PIN panel. The stub records every signInWithOAuth
+ * call, and every navigation is still captured. The "no baked-in project
+ * ref" file check stays as it was.
  *
  * Run: npx playwright test tests/signin-config.spec.js
  */
@@ -81,7 +87,7 @@ test('no Supabase project ref is hardcoded into anything the browser runs', () =
  * Every navigation the page attempts is recorded and blocked, so a redirect to
  * a dead host shows up as evidence instead of as a broken test.
  */
-async function boot(page, { authHost, reachable, file = 'index.html' }) {
+async function boot(page, { authHost, reachable, googleEnabled, file = 'index.html' }) {
   const navigations = [];
   await page.addInitScript(() => {
     // A minimal stand-in for supabase-js: records the OAuth call, never leaves.
@@ -104,6 +110,16 @@ async function boot(page, { authHost, reachable, file = 'index.html' }) {
       return reachable
         ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
         : route.abort('addressunreachable');   // what a dead DNS name looks like
+    }
+    if (/\/auth\/v1\/settings/.test(url)) {
+      // Production's document (2026-10-05): external.google === false.
+      // Unstated means the request is aborted, which the app must fail OPEN
+      // on - otherwise every existing reachable-host case would refuse Google.
+      if (googleEnabled === undefined) return route.abort('failed');
+      return route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ external: { google: googleEnabled }, disable_signup: false }),
+      });
     }
     if (/\/auth\/v1\/authorize/.test(url)) { navigations.push(url); return route.abort('failed'); }
     if (route.request().resourceType() === 'script') {
@@ -177,6 +193,31 @@ test('an unreachable auth host: Sign in stays on this page, names the host, and 
   expect(navs.filter((u) => /authorize/.test(u)), 'the browser was navigated to the dead host anyway').toEqual([]);
 });
 
+test('Google off on the Auth project: Sign in stays here, names the host, and never starts OAuth', async ({ page }) => {
+  // The live project on 2026-10-05: GET /auth/v1/settings → google:false,
+  // GET /auth/v1/authorize → 400 validation_failed "Unsupported provider:
+  // provider is not enabled". The chip must say that BEFORE the redirect,
+  // because signInWithOAuth navigates and the person otherwise sees JSON.
+  const navs = await boot(page, {
+    authHost: 'https://live-project.supabase.co',
+    reachable: true,
+    googleEnabled: false,
+  });
+  const got = await pressAndRead(page);
+  expect(got.oauth, 'signInWithOAuth was called for a project whose Google provider is off').toBe(0);
+  expect(got.panel, 'the mobile PIN panel opened').toBe(false);
+  expect(got.kind).toBe('provider-off');
+  expect(got.note).toMatch(/live-project\.supabase\.co/);
+  expect(got.note).toMatch(/provider is not enabled/i);
+  expect(got.note).toMatch(/Authentication/);
+  expect(got.note).toMatch(/https:\/\/live-project\.supabase\.co\/auth\/v1\/callback/);
+  expect(got.button).toBe('Sign-in unavailable');
+  expect(got.path).toBe('/index.html');
+  expect(navs.filter((u) => /authorize/.test(u)), 'authorize was fetched (that spends the PKCE verifier)').toEqual([]);
+  const bar = await page.locator('#lc-authnotice').getAttribute('data-kind');
+  expect(bar, 'the standing bar kept saying signed-out after the chip named the real cause').toBe('provider-off');
+});
+
 test('a reachable auth host: Sign in starts Google on this page and does not open the PIN panel', async ({ page }) => {
   await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true });
   const got = await pressAndRead(page);
@@ -244,6 +285,20 @@ test('a Site-URL bounce sends the person back to the page they signed in from', 
 });
 
 /* ═══ 3. configuration outranks a checked-in constant ═════════════════════ */
+
+test('the checked-in Auth config enables Google and allowlists the production origin', () => {
+  // A claim about the FILE: supabase config push is what turns the hosted
+  // provider on, and this file is what it would push. An empty allowlist
+  // plus no [auth.external.google] is how the live project stayed off.
+  const src = fs.readFileSync(path.join(ROOT, 'supabase', 'config.toml'), 'utf8');
+  expect(src, 'Google is not declared').toMatch(/\[auth\.external\.google\]/);
+  expect(src, 'Google is not enabled').toMatch(/\[auth\.external\.google\][\s\S]*?enabled\s*=\s*true/);
+  expect(src, 'the client id is committed rather than taken from the environment')
+    .toMatch(/client_id\s*=\s*"env\(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID\)"/);
+  expect(src, 'the client secret is committed rather than taken from the environment')
+    .toMatch(/secret\s*=\s*"env\(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET\)"/);
+  expect(src).toMatch(/https:\/\/lifecycle-os\.anchit-tandon\.com\/\*\*/);
+});
 
 test('the environment beats the pinned linked-db file', () => {
   // The same defect on the server: data/linked-db.json used to outrank the env,

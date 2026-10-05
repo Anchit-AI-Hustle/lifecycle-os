@@ -12,9 +12,16 @@ The main app uses **Supabase-mediated Google OAuth** (`auth.js`):
 ```js
 supabase.auth.signInWithOAuth({
   provider: 'google',
-  options: { redirectTo: location.origin + location.pathname },
+  options: { redirectTo: location.origin + '/', queryParams: { prompt: 'select_account' } },
 });
 ```
+
+`redirectTo` is the origin root (the Site URL), not the page the person was
+on. A per-page pathname 400s when the wildcard is missing; `lc-return-to`
+sends them back after the bounce. Before that call, `auth.js` reads
+`GET /auth/v1/settings`. If `external.google === false` it refuses in the
+rail (the live 2026-10-05 state: GoTrue 400 `validation_failed`
+"Unsupported provider: provider is not enabled") and never starts authorize.
 
 The full-page flow is: **browser → Supabase Auth → Google → Supabase callback →
 back to `redirectTo`**. That routing decides where the domain matters.
