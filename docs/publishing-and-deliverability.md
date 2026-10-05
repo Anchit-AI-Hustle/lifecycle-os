@@ -158,7 +158,20 @@ messages for 48 hours to prevent opt-out spikes."*
   and a profile id that is itself an address or a number. Writes are the
   service role's only; members read through `is_brand_member`; nothing is
   granted to `anon`. Touches of one person are linked across channels by any
-  shared identifier.
+  shared identifier - including identifiers the ledger itself links: a
+  recipient's rows are read, then the rows holding the identifiers those rows
+  add, up to 4 rounds and 600 identifiers, over a link look-back 90 days longer
+  than the touch look-back (`LINK_HOPS`, `LINK_KEYS`, `LINK_LOOKBACK_DAYS` in
+  `contact-ledger.js`). A row older than the touch look-back only LINKS; it is
+  never counted. A walk the bound stopped says `links_incomplete`, and the gate
+  warns.
+- **Who may read it.** Inside a request, the service role reads a workspace's
+  ledger and rules only for the scheduler's bearer or a verified MEMBER of that
+  workspace (asked as the caller, so RLS answers). A request that named another
+  workspace, or none it can prove, gets "Eligibility unchecked" and no query.
+  History a request CARRIES stands on its own only where there is no store to
+  read (a device brand, no database); with a store it can only ADD to it, and
+  a carried copy of a stored touch counts once.
 - **Where it is enforced.** (1) Dispatch preflight: the `contact_fatigue` check
   BLOCKS when a recipient is held back (overridable, recorded like every other
   override) and says how many, why and when they clear; it WARNS when the

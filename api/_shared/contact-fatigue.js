@@ -523,7 +523,9 @@ function grouper() {
  * @param {Array}  [o.touches]        ledger rows / carried history
  * @param {Array}  [o.candidates]     recipient identities (raw or hashed), or null when the platform resolves the audience
  * @param {Object} o.send             { channel, message_class, at, region }
- * @param {Object} [o.ledger]         { available, reason, note, workspace_touches, truncated }
+ * @param {Object} [o.ledger]         { available, reason, note, workspace_touches, truncated, links_incomplete, link_hops }
+ * @param {Array}  [o.links]          identifier-only rows (older than the look-back) that say two
+ *                                    identifiers are one person; they link, they are never counted
  * @param {Array}  [o.shared_touches] touches every candidate has (a plan's own earlier sends)
  * @param {string} [o.workspaceId]    salts any raw identifier in candidates
  */
@@ -584,6 +586,13 @@ function evaluate(o) {
   }
 
   const g = grouper();
+  // Rows older than the look-back that tie one identifier to another (an
+  // address and a number on one receipt): they decide WHO is one person and
+  // are never counted as a touch.
+  for (const l of (Array.isArray(opts.links) ? opts.links : [])) {
+    const keys = personKeys(identityOf(opts.workspaceId, l));
+    if (keys.length > 1) g.add(keys);
+  }
   const byRoot = new Map();
   for (const t of touches) {
     const root = g.add(t.keys);
@@ -628,6 +637,8 @@ function evaluate(o) {
     quiet_hours_unchecked: unchecked,
     unidentified,
     truncated: !!ledger.truncated,
+    links_incomplete: !!ledger.links_incomplete,
+    link_hops: ledger.link_hops != null ? ledger.link_hops : null,
   });
   out.note = sentence(rules, out);
   if (opts.detail) out.results = results;
@@ -640,6 +651,7 @@ function sentence(rules, ev) {
   if (ev.quiet_hours_unchecked) tail.push(`Quiet hours could not be checked for ${ev.quiet_hours_unchecked}: their region is not known.`);
   if (ev.unidentified) tail.push(`${ev.unidentified} recipient(s) carried no identifier, so no history could be matched to them.`);
   if (ev.truncated) tail.push('The ledger read was truncated, so these counts are a lower bound.');
+  if (ev.links_incomplete) tail.push(`Linked identifiers were followed ${ev.link_hops != null ? ev.link_hops : 'a bounded number of'} links from the recipients and more remained, so a touch reachable only through a longer chain is not counted: these counts are a lower bound.`);
   const head = ev.suppressed + ev.deferred
     ? `${ev.suppressed + ev.deferred} of ${ev.total} recipient(s) held back: ${parts.join('; ')}. ${ev.eligible} eligible${ev.earliest_allowed_at ? `; all clear by ${ev.earliest_allowed_at}` : ''}.`
     : `All ${ev.total} recipient(s) are inside the contact rules for this ${CHANNEL_LABEL[ev.channel]} ${ev.message_class} send.`;
@@ -731,12 +743,12 @@ function eligibilityForPlan(slots, ctx) {
 
 function slotEligibility(c, s, projected, taggedBy) {
   const send = { channel: s.channel || 'email', message_class: s.message_class, at: s.at };
-  const ledger = { available: !!c.available, reason: c.reason, note: c.note, workspace_touches: c.workspace_touches, truncated: c.truncated, source: c.source };
+  const ledger = { available: !!c.available, reason: c.reason, note: c.note, workspace_touches: c.workspace_touches, truncated: c.truncated, source: c.source, links_incomplete: c.links_incomplete, link_hops: c.link_hops };
   const touches = Array.isArray(c.touches) ? c.touches : [];
   const extra = { time_basis: s.time_basis || null, cohort_key: s.cohort_key || null };
   const members = c.members && s.cohort_key && Array.isArray(c.members[s.cohort_key]) ? c.members[s.cohort_key] : null;
   if (members) {
-    const ev = evaluate({ rules: c.rules, touches, candidates: members, send, ledger, shared_touches: projected, workspaceId: c.workspace_id });
+    const ev = evaluate({ rules: c.rules, touches, links: c.links, candidates: members, send, ledger, shared_touches: projected, workspaceId: c.workspace_id });
     return Object.assign(ev, extra, { basis: 'members' });
   }
   const pre = evaluate({ rules: c.rules, touches, candidates: null, send, ledger });
@@ -752,7 +764,7 @@ function slotEligibility(c, s, projected, taggedBy) {
     if (k && !seen.has(k)) seen.set(k, id);
   }
   const known = Array.from(seen.values());
-  const ev = evaluate({ rules: c.rules, touches, candidates: known, send, ledger, shared_touches: projected, workspaceId: c.workspace_id });
+  const ev = evaluate({ rules: c.rules, touches, links: c.links, candidates: known, send, ledger, shared_touches: projected, workspaceId: c.workspace_id });
   const fresh = judge(normaliseRules(c.rules).rules, projected.map((t) => normTouch(t)).filter(Boolean), { channel: channelOf(send.channel), cls: classOf(send.message_class), at: toMs(send.at) });
   const size = Number.isFinite(Number(s.cohort_size)) && s.cohort_size != null ? Number(s.cohort_size) : null;
   const held = ev.suppressed + ev.deferred;
@@ -781,6 +793,7 @@ function slotEligibility(c, s, projected, taggedBy) {
 /** A short label for a slot's eligibility, for a pill or a cell. */
 function eligibilityLabel(e) {
   if (!e) return 'Eligibility unknown';
+  if (e.status === 'unavailable' && (e.reason === 'unverified' || e.reason === 'not_member')) return 'Eligibility unchecked: contact ledger not read for this request';
   if (e.status === 'unavailable') return 'Eligibility unknown: contact ledger unavailable';
   if (e.status === 'unknown') return e.reason === 'no_history' ? 'Eligibility unknown — no send history' : 'Eligibility unknown';
   if (e.status === 'exempt') return 'Transactional: not capped';
