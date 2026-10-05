@@ -952,6 +952,15 @@ async function readRendered(url, opts) {
     const e = new Error(`${new URL(home).hostname} served a ${verdict.reason.replace(/_/g, ' ')} page instead of the site (${verdict.served}). Nothing was read from it.`);
     e.code = 'blocked'; e.verdict = verdict; throw e;
   }
+  // An empty document (HTTP 202 with no title, heading, text or mark) is not
+  // a rendered brand page. Treating it as one made the next sentence "no
+  // brand colour" for a host that never served the site.
+  if (blankCapture(deskCap.data)) {
+    await deskCap.page.close().catch(() => {});
+    const st = deskCap.data && deskCap.data.status;
+    const e = new Error(`${new URL(home).hostname} answered${st ? ` HTTP ${st}` : ''} but did not serve a page (no title, no heading and no text).`);
+    e.code = 'unavailable'; e.status = st || 0; throw e;
+  }
 
   let mobCap = null;
   // `mobile: false`: a caller reading a page only for the identity it
@@ -1431,8 +1440,27 @@ async function extractWithRender(auth, args, opts) {
   return fitResponse(out);
 }
 
+/**
+ * A capture that is not a page: no title, no heading, almost no text and no
+ * logo, button or header. HTTP 202/204 counts when it also has no mark.
+ * A real page that is only a logo still counts (the mark is the page).
+ */
+function blankCapture(data) {
+  const d = data || {};
+  const title = String(d.title || '').trim();
+  const roles = d.roles || {};
+  const h1 = String(((roles.headings && roles.headings.h1) || roles.display || {}).text || '').trim();
+  const chars = roles.body && roles.body.chars ? Number(roles.body.chars) || 0 : 0;
+  const hasMark = !!(roles.logo || roles.button_primary || roles.header);
+  const empty = !title && !h1 && chars < 40 && !hasMark;
+  const status = Number(d.status) || 0;
+  if (status === 202 || status === 204) return empty || (!hasMark && chars < 40 && !h1);
+  return empty;
+}
+
 module.exports = {
   readRendered, readSite, buildManifest, identityCandidates, markCandidates, rankIdentity, imageColours, readImage, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
+  blankCapture,
   extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, READ_HARD_MS, BROWSER_MARGIN_MS, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };

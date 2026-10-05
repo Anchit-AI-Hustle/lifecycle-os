@@ -213,6 +213,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .preset .pblurb{font-size:12px;line-height:1.45;color:var(--ink);margin-bottom:9px}
   /* The four roles a brand's own site renders, each NAMED. A row of anonymous
      chips cannot say which is the brand colour and which is the page. */
+  .preset .plogo{width:32px;height:32px;object-fit:contain;border-radius:7px;border:1px solid var(--line,#d8d8d8);background:var(--surface,#fff);margin:0 0 8px;display:block}
   .preset .pswatch{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
   .preset .psw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:38px}
   .preset .psw i{width:24px;height:20px;border-radius:5px;border:1px solid var(--line,#d8d8d8);display:block}
@@ -1119,7 +1120,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
          automated reader - the brand's other own pages (its guidelines,
          press or newsroom page), named on the card. */
       var readHosts = (p.read_from && p.read_from.length) ? p.read_from.map(esc).join(', ') : siteHost;
+      var logo = (/^https:\/\//i.test(p.logo_url || ''))
+        ? '<img class="plogo" alt="" src="' + esc(p.logo_url) + '">' : '';
       return '<button type="button" class="preset' + (isDefault ? ' pdefault' : '') + '" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
+        logo +
         '<div class="pswatch" aria-label="' + (isDefault ? 'Default palette' : 'Palette read from ' + readHosts) + '">' + sw.map(function (s) {
           var t = s.role + ' ' + s.value + (s.derived ? ' (derived' + (s.exact ? ' from ' + s.exact : '') + ')' : '');
           return '<span class="psw" data-role="' + esc(s.role) + '" title="' + esc(t) + '"><i style="background:' + esc(s.value) + '"></i><b>' + esc(s.role) + (s.derived ? '*' : '') + '</b></span>';

@@ -297,6 +297,47 @@ test('a brand colour seen on a consent banner is taken from the mark that agrees
   expect(withMark.evidence.primary.passed_over).toEqual([expect.objectContaining({ value: '#1429a0', why: expect.stringMatching(/consent or cookie banner; the same colour is the brand's by logo-svg signal/) })]);
 });
 
+test('a guidelines page keeps the logo colour it shows twice, and a one-off content logo does not beat the site icon', () => {
+  const content = (value) => {
+    const c = cand('logo-image', value, 'main img');
+    c.source.role = 'content logo';
+    c.source.page = 'https://developer.brand.example/design';
+    return c;
+  };
+  const guide = obsLib.paletteFromManifest(manifest({
+    url: 'https://developer.brand.example/design',
+    identity: { candidates: [content('#8860a7'), content('#2fe58f'), content('#1ed760')] },
+  }));
+  expect(guide.palette.primary).toBe('#1ed760');
+  // The purple tile is one logo nothing else agrees with: not the accent.
+  expect(guide.palette.accent).toBeUndefined();
+  const peach = cand('logo-image', '#f5a885', 'main img.sample');
+  peach.source.role = 'content logo';
+  peach.source.page = 'https://design.brand.example/';
+  const icon = cand('icon', '#0c4da2', 'link[rel=icon]');
+  icon.source.page = 'https://www.brand.example/';
+  const site = obsLib.paletteFromManifest(manifest({ identity: { candidates: [peach, icon] } }));
+  expect(site.palette.primary).toBe('#0c4da2');
+  expect(site.evidence.primary.kind).toBe('icon');
+  expect(site.palette.accent).toBeUndefined();
+  // A careers page's Glassdoor token is the vendor's colour, not a second brand colour.
+  const vendor = cand('token', '#008000', ':root');
+  vendor.signal = '--glassdoor-brand-color as computed on :root';
+  const brand = cand('token', '#cf0a2c', ':root');
+  const nb = obsLib.paletteFromManifest(manifest({ identity: { candidates: [vendor, brand] } }));
+  expect(nb.palette.primary).toBe('#cf0a2c');
+  expect(nb.palette.accent).toBeUndefined();
+});
+
+test('an empty capture is not a rendered page, and a page that is only a logo still is', () => {
+  const { blankCapture } = require(path.join(ROOT, 'api', '_shared', 'brand-render.js'));
+  expect(blankCapture({ title: '', status: 202, roles: {} })).toBe(true);
+  expect(blankCapture({ title: 'redirect', status: 202, roles: { body: { chars: 0 } } })).toBe(true);
+  expect(blankCapture({ title: 'Brand', status: 200, roles: { logo: { selector: 'header img' }, body: { chars: 0 } } })).toBe(false);
+  expect(blankCapture({ title: '', status: 200, roles: {} })).toBe(true);
+  expect(blankCapture({ title: 'Newsroom', status: 200, roles: { headings: { h1: { text: 'News' } }, body: { chars: 400 } } })).toBe(false);
+});
+
 test('a monochrome brand keeps its black call to action and says its mark is neutral too; no accent', () => {
   const out = obsLib.paletteFromManifest(manifest({
     identity: { candidates: [], logo_colours: { kind: 'svg', paints: [{ hex: '#000000', share: 1 }], pixels: [] } },
@@ -369,8 +410,18 @@ test('only the brand\'s own registrable domain, or a host its own page links to,
   expect(own.registrableDomain('press.example.co.uk')).toBe('example.co.uk');
   expect(own.registrableDomain('example.co.uk')).toBe('example.co.uk');
   expect(own.ownership('https://brand.netflix.com/en/', 'https://www.netflix.com').how).toBe('same-registrable-domain');
+  // The same name on the brand's other suffix, and the group's own site.
+  expect(own.ownership('https://www.sony.co.jp/en/', 'https://www.sony.com').how).toBe('same-brand-label');
+  expect(own.ownership('https://www.tesla.cn/', 'https://www.tesla.com').how).toBe('same-brand-label');
+  expect(own.ownership('https://hmgroup.com/brands/', 'https://www2.hm.com').how).toBe('corporate-sibling');
+  expect(own.ownership('https://www.adidas-group.com/en/', 'https://www.adidas.com').how).toBe('corporate-sibling');
+  expect(own.ownership('https://www.press.bmwgroup.com/global', 'https://www.bmw.com').how).toBe('corporate-sibling');
+  // An address is not a brand name: 127.0.0.2 is not "the same brand" as 127.0.0.1.
+  expect(own.brandLabel('127.0.0.1')).toBe('');
+  expect(own.brandLabel('::1')).toBe('');
+  expect(own.ownership('https://127.0.0.2/logo.png', 'https://127.0.0.1/', []).ok).toBe(false);
   // A third party is never the brand's, whatever it says about the brand.
-  for (const u of ['https://brandcolors.net/b/netflix', 'https://en.wikipedia.org/wiki/Netflix', 'https://netflix.com.evil.example/', 'https://notnetflix.com/']) {
+  for (const u of ['https://brandcolors.net/b/netflix', 'https://en.wikipedia.org/wiki/Netflix', 'https://netflix.com.evil.example/', 'https://notnetflix.com/', 'https://brand-colours.example/toyota']) {
     const v = own.ownership(u, 'https://www.netflix.com', []);
     expect(v.ok, u).toBe(false);
     expect(v.reason).toMatch(/not shown to be the brand's own/);
@@ -565,21 +616,37 @@ test('every shipped preset read by machine names, per value, an owned page, a si
     if (row.palette_source === 'default' || row.hand_verified) continue;
     const rec = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'brands', 'presets', `${row.slug}.json`), 'utf8'));
     const obs = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'brands', 'observed', `${row.slug}.observed.json`), 'utf8'));
-    expect(obs.format, row.slug).toBe('preset-observation/3');
+    expect(['preset-observation/2', 'preset-observation/3'], row.slug).toContain(obs.format);
     const ev = rec.preset.palette_evidence;
+    const v3 = obs.format === 'preset-observation/3';
     for (const role of ['primary', 'surface', 'ink']) {
       const e = ev[role];
       const page = e.read_url || (e.source && e.source.page);
+      // A v2 home-page read dates the observation; a v3 value dates itself.
+      expect(e.observed_at || obs.observed_at, `${row.slug} ${role} has no date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      // A derived surface or ink from a logo file alone has no page: the note
+      // says the page could not be rendered. Every other value names one.
+      if (e.derived && !page) {
+        expect(e.note, `${row.slug} ${role} is derived with no page and no reason`).toMatch(/DERIVED/);
+        continue;
+      }
       expect(page, `${row.slug} ${role} names no page`).toMatch(/^https:\/\//);
-      expect(e.observed_at, `${row.slug} ${role} has no date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      if (!v3) {
+        // The home page alone: the value's page is that site (a regional
+        // storefront is the same registrable domain).
+        expect(obs.renderer, row.slug).toBe('rendered');
+        expect(own.registrableDomain(own.hostOf(page)), `${row.slug} ${role} ${page}`).toBe(own.registrableDomain(own.hostOf(rec.website)));
+        continue;
+      }
       const read = (obs.reads || []).find((r) => r.url === e.read_url);
       expect(read, `${row.slug} ${role} names a read that is not on the record`).toBeTruthy();
       expect(read.ok).toBe(true);
-      // The page is the brand's own: the website itself, its registrable
-      // domain, or a host a page read on that domain links to.
+      // The page is the brand's own: its website, the same registrable
+      // domain, the same name on another suffix, the group's site, or a
+      // host a page read on its domain links to.
       const how = read.owned && read.owned.how;
-      expect(['website', 'same-registrable-domain', 'linked-from'], `${row.slug} ${role}`).toContain(how);
-      if (how !== 'linked-from') expect(own.registrableDomain(own.hostOf(page)), `${row.slug} ${role} ${page}`).toBe(own.registrableDomain(own.hostOf(rec.website)));
+      expect(['website', 'same-registrable-domain', 'linked-from', 'same-brand-label', 'corporate-sibling'], `${row.slug} ${role}`).toContain(how);
+      if (how === 'website' || how === 'same-registrable-domain') expect(own.registrableDomain(own.hostOf(page)), `${row.slug} ${role} ${page}`).toBe(own.registrableDomain(own.hostOf(rec.website)));
     }
     expect(ev.primary.kind || ev.primary.signal, `${row.slug} primary has no signal`).toBeTruthy();
     // An accent is the brand's second colour, never its primary repeated.

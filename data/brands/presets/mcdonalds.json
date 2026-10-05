@@ -15,10 +15,11 @@
     "typography_source": "default",
     "read_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.mcdonalds.com",
       "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: corporate.mcdonalds.com (blocked), careers.mcdonalds.com (blocked)."
   },
   "palette": {
     "primary": "#2B2B2B",

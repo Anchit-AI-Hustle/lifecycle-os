@@ -1,24 +1,367 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "paytm",
   "start": "https://paytm.com",
   "landed": "https://paytm.com",
-  "observed_at": "2026-10-04",
+  "observed_at": "2026-10-05",
+  "read_at": "",
   "renderer": "blocked",
   "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it.",
-  "read_attempt": {
-    "renderer": "blocked",
-    "at": "2026-10-04",
-    "host": "paytm.com",
-    "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
-  },
+  "reads": [
+    {
+      "url": "https://paytm.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "paytm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
+    },
+    {
+      "url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+      "role": "identity source",
+      "what": "Paytm logo file",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "pwebassets.paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "image",
+      "ok": true,
+      "landed": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+      "mark": {
+        "verdict": "colour",
+        "hex": "#00baf2"
+      }
+    },
+    {
+      "url": "https://paytm.com/about-us",
+      "role": "identity source",
+      "what": "Paytm about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm.com - About Us\", whose first heading reads \"We will bring Half-a-Billion Indians to the Mainstream Economy.\"). Nothing was read from it."
+    },
+    {
+      "url": "https://paytm.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "https://paytm.com/apple-touch-icon.png did not answer with an image this reader could draw (HTTP 404)."
+    },
+    {
+      "url": "https://paytm.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "https://paytm.com/favicon.svg did not answer with an image this reader could draw (not an image (text/html))."
+    },
+    {
+      "url": "https://paytm.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "image",
+      "ok": true,
+      "landed": "https://paytm.com/favicon.ico",
+      "mark": {
+        "verdict": "multicolour",
+        "hex": ""
+      }
+    }
+  ],
+  "design_read": null,
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "",
     "browser": "",
     "chromium": ""
   },
-  "note": "paytm.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "pages": [],
+  "viewports": {},
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [],
+  "logo_url": "",
+  "logo_signal": "",
+  "assets": [],
+  "palette_candidates": [
+    {
+      "kind": "logo-image",
+      "value": "#00baf2",
+      "score": 116,
+      "state": "chosen",
+      "page": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+      "logo": {
+        "kind": "file",
+        "verdict": "colour",
+        "hex": "#00baf2"
+      }
+    },
+    {
+      "url": "https://paytm.com/favicon.ico",
+      "logo": {
+        "kind": "file",
+        "verdict": "multicolour",
+        "hex": ""
+      }
+    }
+  ],
+  "home_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-05",
+    "host": "paytm.com",
+    "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
+  },
+  "palette_ok": true,
+  "palette": {
+    "primary": "#00baf2",
+    "ink": "#003849",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#003849",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: no page of the brand's could be rendered (only its logo file was read), so the surface is white.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "",
+      "read_role": "home",
+      "observed_at": "",
+      "owned": null
+    },
+    "primary": {
+      "value": "#00baf2",
+      "exact": "#00baf2",
+      "derived": false,
+      "kind": "logo-image",
+      "strength": 116,
+      "score": 116,
+      "from_role": "identity",
+      "signal": "the brand's own logo file, its pixels (72% of its coloured pixels)",
+      "source": {
+        "page": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+        "role": "logo file",
+        "selector": "",
+        "viewport": "",
+        "property": "pixels",
+        "signal": "rendered"
+      },
+      "read_url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "pwebassets.paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      }
+    },
+    "ink": {
+      "value": "#003849",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED from #00baf2: the read found no text colour that reads on #ffffff, so the primary is darkened until it does (12.64:1).",
+      "source": {
+        "page": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+        "role": "logo file",
+        "selector": "",
+        "viewport": "",
+        "property": "pixels",
+        "signal": "rendered"
+      },
+      "read_url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "pwebassets.paytm.com",
+        "registrable": "paytm.com",
+        "website_host": "paytm.com"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "",
+      "read_role": "home",
+      "observed_at": "",
+      "owned": null
+    },
+    "muted": {
+      "value": "#003849",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "",
+      "read_role": "home",
+      "observed_at": "",
+      "owned": null
+    },
+    "accent": {
+      "value": "",
+      "exact": "",
+      "derived": false,
+      "absent": true,
+      "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+      "read_url": "",
+      "read_role": "home",
+      "observed_at": "",
+      "owned": null
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [
+    "Primary on the page surface is 2.26:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see."
+  ],
+  "typography": null,
+  "source": "paytm.com refused an automated read (blocked); read the brand's own https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg in Chromium on 2026-10-05. Primary #00baf2 from the brand's own logo file, its pixels (72% of its coloured pixels) on https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg."
 }
