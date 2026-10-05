@@ -221,8 +221,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <main class="wrap">
   <section class="top">
     <div>
-      <div class="eyebrow">Lifecycle OS · KNICKGASM Brain</div>
-      <h1>KNICKGASM Brain</h1>
+      <div class="eyebrow" id="brainEyebrow">Lifecycle OS · Smart Brain</div>
+      <h1 id="brainTitle">Smart Brain</h1>
       <p style="color:#556059;margin:.1em 0 .4em;font-size:14px">Agentic campaign planning, cohort orchestration, and content generation</p>
       <p>This engine keeps a tentative <b>90-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at 03:30 UTC, or manually below). Approving a slot generates the full funnel: mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
     </div>
@@ -311,6 +311,29 @@ const API = '/api/calendar';
 let PLAN = [];
 
 function reviewerEmail(){ try { return window.LifecycleAuth?.session?.user?.email || null; } catch(_) { return null; } }
+/** Download names and the page title follow the active brand. With no brand
+ *  on screen the tool is Smart Brain, never another company's name. */
+function exportStem(){
+  try {
+    const b = window.BrandContext && window.BrandContext.brand;
+    const s = String((b && (b.slug || b.name)) || 'lifecycle').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return s || 'lifecycle';
+  } catch(_) { return 'lifecycle'; }
+}
+function paintBrainTitle(){
+  let name = '';
+  try { name = (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name) || ''; } catch(_) {}
+  const title = name ? (name + ' Brain') : 'Smart Brain';
+  const h = document.getElementById('brainTitle');
+  const e = document.getElementById('brainEyebrow');
+  if (h) h.textContent = title;
+  if (e) e.textContent = 'Lifecycle OS · ' + title;
+  document.title = title + ' · Lifecycle OS';
+}
+try {
+  if (window.BrandContext && window.BrandContext.ready) window.BrandContext.ready().then(paintBrainTitle, paintBrainTitle);
+  window.addEventListener('brandcontext:change', paintBrainTitle);
+} catch(_) {}
 
 /* ── A PHONE SIGN-IN'S DECISIONS ARE KEPT ON ITS DEVICE (2026-10-03) ───────
    The operator's words: "All features must work even with signin by number
@@ -1236,7 +1259,7 @@ window.sbDownload = function(idx){
   const item = (window.__SB_EXPORTS||[])[idx]; if(!item) return;
   const blob = new Blob([item.html], { type:'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'knickgasm-'+String(item.name||'asset').replace(/[^a-z0-9_-]/gi,'-')+'.html';
+  a.download = exportStem()+'-'+String(item.name||'asset').replace(/[^a-z0-9_-]/gi,'-')+'.html';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
 };
@@ -1257,7 +1280,7 @@ window.sbDownloadAll = function(btn){
   const doc = `<!doctype html><meta charset="utf-8"><title>Lifecycle OS campaign assets</title><body style="max-width:720px;margin:24px auto;padding:0 16px">${parts.join('\n')}</body>`;
   const blob = new Blob([doc], { type:'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'knickgasm-campaign-all-assets.html';
+  a.download = exportStem()+'-campaign-all-assets.html';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
 };
@@ -1361,7 +1384,7 @@ window.sbZipAll = function(){
   files.push({ name:'calendar.json', data:JSON.stringify({ generated_at:new Date().toISOString(), sends:rows.length, rows }, null, 2) });
   const blob = zipStore(files);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `knickgasm-brain-assets-${new Date().toISOString().slice(0,10)}.zip`;
+  a.download = exportStem()+`-brain-assets-${new Date().toISOString().slice(0,10)}.zip`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
 };
@@ -1846,7 +1869,7 @@ async function exportPlan(){
     if(!r.ok) throw new Error('Export failed ('+r.status+')');
     const blob = await r.blob();
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download='knickgasm-automated-calendar.csv';
+    a.download=exportStem()+'-automated-calendar.csv';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000);
     sbState('ok', 'Exported ' + PLAN.length + ' entr' + (PLAN.length === 1 ? 'y' : 'ies') + ' to CSV.');
