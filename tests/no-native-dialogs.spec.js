@@ -186,7 +186,7 @@ function readSurfaces(page) {
       mode: mode ? n(mode.textContent) : null,
       err: err ? n(err.textContent) : null,
       errFrames: err ? err.querySelectorAll('.vh-failure[data-failure="1"]').length : 0,
-      google: /Sign in with Google/i.test(document.body.innerText || ''),
+      google: /Sign in with Gmail/i.test(document.body.innerText || ''),
       oauth: (window.__OAUTH_CALLS__ || []).length,
       url: location.href,
     };
@@ -253,7 +253,7 @@ test('pressing Sign-in against a DEAD host stays on the page, names the host, ca
     else {
       if (!/deleted-project\.supabase\.co/.test(got.bar)) failures.push(`${f}: the bar does not name the host`);
       if (!/deleted, renamed or paused/i.test(got.bar)) failures.push(`${f}: the bar picks a cause the network cannot know: ${got.bar}`);
-      if (!/Sign in with Google/i.test(got.bar)) failures.push(`${f}: the bar does not name Google as the sign-in`);
+      if (!/Sign in with Gmail/i.test(got.bar)) failures.push(`${f}: the bar does not name Gmail as the sign-in`);
     }
     if (got.kind !== 'unreachable') failures.push(`${f}: the note kind is ${got.kind}, not unreachable`);
     if (!/deleted-project\.supabase\.co/.test(got.note || '')) failures.push(`${f}: the note does not name the host`);
@@ -280,7 +280,7 @@ test('an UNCONFIGURED deployment: the bar and the note say what is missing, and 
   expect(dialogs).toEqual([]);
   expect(got.barKind).toBe('unconfigured');
   expect(got.bar).toMatch(/SUPABASE_URL/);
-  expect(got.bar).toMatch(/Sign in with Google/i);
+  expect(got.bar).toMatch(/Sign in with Gmail/i);
   expect(got.panel).toBe(false);
   expect(got.kind).toBe('unconfigured');
   expect(got.note).toMatch(/SUPABASE_URL/);
@@ -304,7 +304,7 @@ test('a blocked supabase-js CDN is named as the cause, and Google is not started
   expect(got.barKind, 'a URL with no client is the SDK failing to load, not a missing env var').toBe('sdk');
   expect(got.bar).toMatch(/Supabase library did not load/i);
   expect(got.bar).toMatch(/cdn\.jsdelivr\.net/);
-  expect(got.bar).toMatch(/Sign in with Google needs that library/i);
+  expect(got.bar).toMatch(/Sign in with Gmail needs that library/i);
   expect(got.panel).toBe(false);
   expect(got.kind).toBe('sdk');
   expect(got.oauth).toBe(0);
@@ -341,8 +341,8 @@ test('a LIVE backend starts Google on this page: one OAuth call, no PIN panel, n
   expect(call.options.queryParams.prompt).toBe('select_account');
   expect(got.note, 'a refusal note rendered for a state that is not a refusal').toBeNull();
   expect(got.panel).toBe(false);
-  expect(got.button).toBe('Sign in with Google');
-  expect(got.bar).toMatch(/sign in with google/i);
+  expect(got.button).toBe('Sign in with Gmail');
+  expect(got.bar).toMatch(/sign in with gmail/i);
 });
 
 test('a refusal from the auth endpoint renders as a failure block inside the panel, never a dialog', async ({ page }) => {
