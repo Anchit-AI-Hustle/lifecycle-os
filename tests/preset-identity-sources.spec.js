@@ -356,9 +356,9 @@ test('a brand with no second colour never borrows tenant zero\'s accent in a ren
   const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
   const brand = { name: 'Red Brand', palette: { primary: '#e50914', ink: '#141414', surface: '#ffffff' } };
   expect(motion.paletteOf({ brand }).lava).toBe('#e50914');
-  const html = motion.renderMotionAd({ brand, loop: false, headline: 'Watch now', cta: 'Start', scenes: [{ seconds: 2, headline: 'One', sub: 'Two' }] });
-  expect(html.toLowerCase()).not.toContain('#6a33d8');
-  expect(html).toContain('--lava:#e50914');
+  const rendered = motion.renderMotionAd({ brand, loop: false, headline: 'Watch now', cta: 'Start', scenes: [{ seconds: 2, headline: 'One', sub: 'Two' }] });
+  expect(rendered.toLowerCase()).not.toContain('#6a33d8');
+  expect(rendered).toContain('--lava:#e50914');
 });
 
 /* ═══ 3. ownership ════════════════════════════════════════════════════════ */
