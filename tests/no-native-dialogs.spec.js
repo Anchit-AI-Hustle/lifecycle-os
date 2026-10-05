@@ -53,9 +53,9 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 
 /**
  * Every page that LOADS auth.js, from the repo itself - a <script src>, not a
- * mention. campaign.html and storefront-3d.html say "auth.js" in a comment
- * explaining why they deliberately do not load it, so they have no rail and
- * no Sign-in button to press.
+ * mention. campaign.html says "auth.js" in a comment explaining why it
+ * deliberately does not load it (it document.write()s an artefact over itself),
+ * so it has no rail and no Sign-in button to press.
  */
 const PAGES = fs.readdirSync(ROOT)
   .filter((f) => f.endsWith('.html') && !f.startsWith('_'))
@@ -337,10 +337,11 @@ test('a LIVE backend starts Google on this page: one OAuth call, no PIN panel, n
   expect(dialogs).toEqual([]);
   expect(got.oauth).toBe(1);
   expect(call.provider).toBe('google');
-  expect(call.options.redirectTo).toMatch(/\/retention-playbook\.html$/);
+  expect(call.options.redirectTo).toMatch(/\/$/);
+  expect(call.options.queryParams.prompt).toBe('select_account');
   expect(got.note, 'a refusal note rendered for a state that is not a refusal').toBeNull();
   expect(got.panel).toBe(false);
-  expect(got.button).toBe('Sign in');
+  expect(got.button).toBe('Sign in with Google');
   expect(got.bar).toMatch(/sign in with google/i);
 });
 

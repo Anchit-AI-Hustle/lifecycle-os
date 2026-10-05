@@ -48,6 +48,7 @@ function head(title, desc) {
 '<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">',
 '<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">',
 '<meta name="description" content="' + desc + '">',
+'<script src="/auth.js?v=20261005" defer></script>',
 '<script src="https://cdn.tailwindcss.com"></script>',
 '<script>',
 '  tailwind.config = { theme: { extend: {',
