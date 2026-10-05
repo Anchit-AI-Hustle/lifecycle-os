@@ -101,6 +101,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .banner.err{background:rgba(180,60,60,.14);border:1px solid rgba(180,60,60,.5);color:#111111}
   .banner.info{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.4);color:#111111}
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+  input[type=text],input[type=password],select{width:100%;padding:9px 10px;border:1px solid rgba(171,135,67,.26);border-radius:9px;background:#fff;color:#111;font:inherit}
+  input:focus,select:focus{outline:2px solid rgba(106,51,216,.25);outline-offset:1px}
+  .ai-intro{font-size:12.5px;line-height:1.6;color:#556059;margin:-2px 0 10px;max-width:940px}
+  .ai-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  .ai-route{margin-top:14px;background:#fff;border:1px solid rgba(171,135,67,.18);border-radius:14px;padding:16px}
+  .ai-route h3{font-size:15px;margin:0 0 4px}
+  .route-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+  .route-step{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid rgba(171,135,67,.18);border-radius:11px;padding:12px}
+  .route-rank{font-size:20px;font-weight:800;text-align:center;color:var(--brand-accent-text)}
+  .route-title{font-weight:800;font-size:13px}
+  .route-note{font-size:11px;color:#556059;line-height:1.45;margin-top:2px}
+  .models{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+  .mchip{border:1px solid rgba(171,135,67,.28);border-radius:999px;padding:4px 8px;font-size:10.5px;background:#fff;color:#111;cursor:pointer}
+  .mchip[aria-pressed=true]{background:var(--lava);color:#fff;border-color:var(--lava)}
+  .route-btns{display:flex;flex-direction:column;gap:4px}
+  .route-btns button{width:28px;height:26px;border-radius:7px;border:1px solid rgba(171,135,67,.28);background:#fff;cursor:pointer}
+  .route-controls{display:grid;grid-template-columns:minmax(180px,1fr) minmax(260px,1.6fr);gap:10px;margin-top:10px}
+  .route-controls .full{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+  .ai-label{font-size:10px;color:#48524c;letter-spacing:.1em;text-transform:uppercase;margin:7px 0 4px}
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:820px){.cards{grid-template-columns:1fr}h1{font-size:28px}}
 </style>
@@ -112,13 +131,30 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div>
       <div class="eyebrow">Lifecycle OS · Settings</div>
       <h1>Connectors</h1>
-      <p>Connection status is checked server-side against real environment variables, never faked. Missing credentials show an honest Not Connected state with the exact setup steps. Secrets are set in Vercel and never exposed to the browser.</p>
+      <p>Deployment connectors are checked server-side against real environment variables, never faked. Your brand can also bring its own AI provider keys and model routing below; those keys are encrypted per workspace and are never returned to the browser.</p>
     </div>
     <button type="button" class="btn secondary" id="reload-btn">Reload</button>
   </div>
   <div id="banner"></div>
   <div class="summary" id="summary"></div>
-  <div id="content"><p><span class="spinner"></span> Loading connectors…</p></div>
+
+  <div class="cat">Your AI models</div>
+  <p class="ai-intro">Connect OpenAI, Claude, Gemini, Grok, Groq, Cerebras, OpenRouter, GitHub Models, Cloudflare Workers AI or your own Ollama endpoint. You can choose the provider order and exact model ids used by this brand. A saved workspace key replaces the platform key for that provider.</p>
+  <div id="ai-storage" class="banner info">Loading workspace AI model connections…</div>
+  <div id="ai-providers" class="cards"></div>
+  <div class="ai-route" id="ai-route-box">
+    <h3>Model priority &amp; fallback</h3>
+    <div class="ai-intro">Providers run top-to-bottom. Pick known models or type any model id your account can reach. If none is selected for a provider, Lifecycle OS uses its tier-specific default chain for that provider.</div>
+    <div id="ai-routing"><p class="lastsync">Loading model routing…</p></div>
+    <div class="route-controls">
+      <div><div class="ai-label">Add provider</div><select id="ai-add-provider"></select></div>
+      <div><div class="ai-label">When your providers are exhausted</div><select id="ai-fallback"><option value="1">Use Lifecycle OS platform defaults</option><option value="0">Stop — use only this brand's providers</option></select></div>
+      <div class="full"><button type="button" class="btn sm" id="ai-add-provider-btn">Add provider</button><button type="button" class="btn sm" id="ai-save-routing">Save model priority</button><button type="button" class="btn sm secondary" id="ai-reset-routing">Reset to platform default</button></div>
+    </div>
+    <div class="lastsync" id="ai-routing-note"></div>
+  </div>
+
+  <div id="content"><p><span class="spinner"></span> Loading deployment connectors…</p></div>
 </div>
 
 <script>
@@ -130,6 +166,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function timeago(iso){ if(!iso) return "never"; try{ var d=new Date(iso); var s=Math.floor((Date.now()-d.getTime())/1000); if(s<60)return s+"s ago"; if(s<3600)return Math.floor(s/60)+"m ago"; if(s<86400)return Math.floor(s/3600)+"h ago"; return Math.floor(s/86400)+"d ago"; }catch(e){return "";} }
   var CAT_LABEL = { competitive:"Competitive Intelligence", ads:"Ad Platforms", commerce:"Commerce", email:"Email / Lifecycle", analytics:"Analytics", generation:"AI Generation", utility:"Utility & Storage", other:"Other" };
   var stLabel = { connected:"Connected", partial:"Partial", not_connected:"Not Connected" };
+  var AI_API = "/api/public-config?action=connections";
+  var aiState = { providers:[], connections:{}, routing:{entries:[],use_platform_fallback:true}, storage:{}, device:false, note:"" };
+
+  function authToken(){
+    try { var a=window.LifecycleAuth; return a&&a.session&&a.session.access_token ? a.session.access_token : ""; } catch(e){ return ""; }
+  }
+  function aiEscAttr(s){ return esc(s).replace(/'/g,"&#39;"); }
+  function aiApi(op, body){
+    var headers={"Content-Type":"application/json"}, t=authToken();
+    if(t) headers.Authorization="Bearer "+t;
+    return fetch(AI_API+"&op="+encodeURIComponent(op),{
+      method:body?"POST":"GET",headers:headers,cache:"no-store",body:body?JSON.stringify(body):undefined
+    }).then(function(r){return r.json().catch(function(){return{};}).then(function(j){
+      if(!r.ok){var e=new Error(j.message||j.error||("HTTP "+r.status));e.payload=j;throw e;} return j;
+    });});
+  }
 
   function card(c){
     var h = '<div class="conn" data-id="'+esc(c.id)+'">';
@@ -189,6 +241,116 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+
+  function aiProviders(){ return (aiState.providers||[]).filter(function(p){return p.category==="ai"&&p.llm_provider;}); }
+  function aiProviderByLlm(id){ return aiProviders().filter(function(p){return p.llm_provider===id;})[0]||null; }
+  function aiStatus(p){
+    var c=aiState.connections[p.id];
+    if(c&&c.configured) return '<span class="st connected">Your key</span>';
+    if(c&&c.config&&Object.keys(c.config).length) return '<span class="st connected">Configured</span>';
+    if(p.platform_default) return '<span class="st partial">Platform default</span>';
+    return '<span class="st not_connected">Not connected</span>';
+  }
+  function aiField(p,f){
+    var c=aiState.connections[p.id]||{}, id="ai-f-"+p.id+"-"+f.key;
+    if(f.secret){
+      var set=(c.secret_fields||[]).indexOf(f.key)>=0;
+      var ph=set?("Stored · ending "+(c.secret_hint||"----")+" · type to replace"):(f.placeholder||"");
+      return '<div class="ai-label">'+esc(f.label)+(f.required?"":" · optional")+'</div><input type="password" id="'+aiEscAttr(id)+'" autocomplete="off" spellcheck="false" placeholder="'+aiEscAttr(ph)+'">';
+    }
+    return '<div class="ai-label">'+esc(f.label)+(f.required?"":" · optional")+'</div><input type="text" id="'+aiEscAttr(id)+'" spellcheck="false" value="'+aiEscAttr((c.config||{})[f.key]||"")+'" placeholder="'+aiEscAttr(f.placeholder||"")+'">';
+  }
+  function aiCard(p){
+    var c=aiState.connections[p.id], disabled=aiState.device?' disabled':'';
+    var h='<div class="conn" data-ai-provider="'+aiEscAttr(p.id)+'"><div class="h"><div><div class="nm">'+esc(p.label)+'</div><div class="pv">'+esc(p.blurb||"")+'</div></div>'+aiStatus(p)+'</div>';
+    h+=(p.fields||[]).map(function(f){return aiField(p,f);}).join("");
+    if(p.key_url) h+='<div class="lastsync">Get a key: <a href="'+aiEscAttr(p.key_url)+'" target="_blank" rel="noopener">'+esc(p.key_url)+'</a></div>';
+    if(c&&c.last_check_note) h+='<div class="lastsync"><b>Last test'+(c.last_check_ok?"":" failed")+':</b> '+esc(c.last_check_note)+'</div>';
+    h+='<div class="ai-actions"><button type="button" class="btn sm" data-ai-act="save" data-ai-provider="'+aiEscAttr(p.id)+'"'+disabled+'>Save</button>';
+    if(c) h+='<button type="button" class="btn sm secondary" data-ai-act="check" data-ai-provider="'+aiEscAttr(p.id)+'"'+disabled+'>Test</button><button type="button" class="btn sm secondary" data-ai-act="remove" data-ai-provider="'+aiEscAttr(p.id)+'"'+disabled+'>Remove</button>';
+    h+='</div></div>';
+    return h;
+  }
+  function aiCollect(id){
+    var p=aiProviders().filter(function(x){return x.id===id;})[0], out={};
+    if(!p)return out;
+    (p.fields||[]).forEach(function(f){var n=$("ai-f-"+id+"-"+f.key);if(n)out[f.key]=n.value;});
+    return out;
+  }
+  function aiRenderProviders(){
+    var ps=aiProviders();
+    $("ai-providers").innerHTML=ps.length?ps.map(aiCard).join(""):'<div class="banner info">No AI providers are registered on this build.</div>';
+  }
+  function aiKeySource(p){
+    if(!p)return"";
+    var c=aiState.connections[p.id];
+    if(c&&(c.configured||(c.config&&Object.keys(c.config).length)))return"Uses this brand's own connection.";
+    if(p.platform_default)return"Uses the Lifecycle OS platform key until you add your own.";
+    return"No workspace key and no platform default; skipped at run time.";
+  }
+  function aiRouteStep(e,i,total){
+    var p=aiProviderByLlm(e.provider), known=(p&&p.known_models)||[], chosen=e.models||[];
+    var h='<div class="route-step"><div class="route-rank">'+(i+1)+'</div><div><div class="route-title">'+esc(p?p.label:e.provider)+'</div><div class="route-note">'+esc(aiKeySource(p))+'</div><div class="models">';
+    h+=known.map(function(m){var on=chosen.indexOf(m)>=0;return '<button type="button" class="mchip" data-route-act="model" data-index="'+i+'" data-model="'+aiEscAttr(m)+'" aria-pressed="'+(on?"true":"false")+'">'+esc(m)+'</button>';}).join("");
+    var custom=chosen.filter(function(m){return known.indexOf(m)<0;});
+    h+=custom.map(function(m){return '<button type="button" class="mchip" data-route-act="model" data-index="'+i+'" data-model="'+aiEscAttr(m)+'" aria-pressed="true">'+esc(m)+'</button>';}).join("");
+    h+='</div><input type="text" data-route-custom="'+i+'" spellcheck="false" placeholder="Add any model id your account can reach, then press Enter">';
+    if(!chosen.length)h+='<div class="route-note">No explicit model selected — this provider uses its default model chain for the requested quality tier.</div>';
+    h+='</div><div class="route-btns"><button type="button" data-route-act="up" data-index="'+i+'"'+(i===0?" disabled":"")+'>↑</button><button type="button" data-route-act="down" data-index="'+i+'"'+(i===total-1?" disabled":"")+'>↓</button><button type="button" data-route-act="drop" data-index="'+i+'">×</button></div></div>';
+    return h;
+  }
+  function aiRenderRouting(){
+    var entries=aiState.routing.entries||[];
+    $("ai-routing").innerHTML=entries.length?'<div class="route-list">'+entries.map(function(e,i){return aiRouteStep(e,i,entries.length);}).join("")+'</div>':'<div class="lastsync">No custom order. Generations use the Lifecycle OS default provider cascade.</div>';
+    var used=entries.map(function(e){return e.provider;});
+    $("ai-add-provider").innerHTML=aiProviders().filter(function(p){return used.indexOf(p.llm_provider)<0;}).map(function(p){return '<option value="'+aiEscAttr(p.llm_provider)+'">'+esc(p.label)+'</option>';}).join("")||'<option value="">All providers are already in the order</option>';
+    $("ai-fallback").value=aiState.routing.use_platform_fallback===false?"0":"1";
+    $("ai-routing-note").textContent=entries.length?("Saved order after you press Save: "+entries.map(function(e,i){var p=aiProviderByLlm(e.provider);return(i+1)+". "+(p?p.label:e.provider);}).join(" · ")+(aiState.routing.use_platform_fallback===false?" · no platform fallback":" · then platform fallback")):"";
+  }
+  function aiRenderStorage(d){
+    var s=aiState.storage||{}, el=$("ai-storage");
+    if(aiState.device){
+      el.className="banner info"; el.textContent=aiState.note||"This brand is kept on this device, so workspace API keys cannot be stored here. Platform-default models remain available.";
+    }else if(s.encrypted&&s.store){
+      el.className="banner info"; el.textContent="Workspace AI keys are encrypted with AES-256-GCM before storage, never logged, and never returned to this page. Saved keys display only a four-character hint.";
+    }else{
+      el.className="banner err"; el.textContent="Workspace AI keys cannot be stored until CONNECTION_SECRET_KEY and the Supabase service role are configured. Nothing is written unencrypted.";
+    }
+  }
+  function aiLoad(){
+    return aiApi("list").then(function(d){
+      aiState.providers=d.providers||[]; aiState.routing=d.routing||{entries:[],use_platform_fallback:true}; aiState.storage=d.secrets_storage||{}; aiState.device=d.storage==="device"; aiState.note=d.note||""; aiState.connections={};
+      (d.connections||[]).forEach(function(c){aiState.connections[c.provider]=c;});
+      aiRenderStorage(d); aiRenderProviders(); aiRenderRouting();
+    }).catch(function(e){
+      aiState.providers=[]; aiState.connections={}; aiState.routing={entries:[],use_platform_fallback:true};
+      $("ai-storage").className="banner err"; $("ai-storage").textContent="AI model connections could not be loaded. "+window.LifecycleFailure.sentence(e);
+      $("ai-providers").innerHTML=""; $("ai-routing").innerHTML='<div class="lastsync">Sign in to a database-backed brand workspace to configure model keys and routing.</div>';
+    });
+  }
+  function aiPlatformAction(act,id,btn){
+    var label=btn.textContent; btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+    var p=act==="save"?aiApi("save",{provider:id,fields:aiCollect(id)}):act==="check"?aiApi("check",{provider:id}):aiApi("delete",{provider:id});
+    p.then(function(r){$("banner").innerHTML='<div class="banner info"><b>'+esc(id)+':</b> '+esc(r.note||(act==="remove"?"Removed.":"Saved."))+'</div>';return aiLoad();})
+      .catch(function(e){window.LifecycleFailure.show($("banner"),e,{title:"AI connection failed"});})
+      .finally(function(){btn.disabled=false;btn.textContent=label;});
+  }
+  function aiRouteAction(act,idx,button){
+    var list=aiState.routing.entries||[];
+    if(act==="up"&&idx>0){var a=list[idx-1];list[idx-1]=list[idx];list[idx]=a;}
+    else if(act==="down"&&idx<list.length-1){var b=list[idx+1];list[idx+1]=list[idx];list[idx]=b;}
+    else if(act==="drop")list.splice(idx,1);
+    else if(act==="model"){var m=button.getAttribute("data-model"), models=list[idx].models||(list[idx].models=[]), at=models.indexOf(m);if(at>=0)models.splice(at,1);else models.push(m);}
+    aiRenderRouting();
+  }
+  function aiSaveRouting(btn){
+    var label=btn.textContent; btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+    aiState.routing.use_platform_fallback=$("ai-fallback").value==="1";
+    aiApi("routing-save",{routing:aiState.routing}).then(function(){ $("banner").innerHTML='<div class="banner info"><b>AI routing saved.</b> The next generation for this brand uses this order.</div>'; return aiLoad(); })
+      .catch(function(e){window.LifecycleFailure.show($("banner"),e,{title:"Model routing could not be saved"});})
+      .finally(function(){btn.disabled=false;btn.textContent=label;});
+  }
+
   function load(){
     $("banner").innerHTML="";
     fetch(API+"?action=os-connectors").then(function(r){return r.json();}).then(function(j){
@@ -196,14 +358,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       render(j);
     }).catch(function(e){
       window.LifecycleFailure.show($("content"), e, {
-        title: 'Connectors could not be loaded',
+        title: 'Deployment connectors could not be loaded',
         extra: 'Ensure the SUPABASE env vars are set. The registry seeds from supabase/migrations/20260706_lifecycle_os_backbone.sql.',
       });
     });
+    aiLoad();
   }
 
   document.addEventListener("DOMContentLoaded", function(){
     $("reload-btn").addEventListener("click", load);
+    $("ai-providers").addEventListener("click",function(ev){var b=ev.target.closest("[data-ai-act]");if(b)aiPlatformAction(b.getAttribute("data-ai-act"),b.getAttribute("data-ai-provider"),b);});
+    $("ai-routing").addEventListener("click",function(ev){var b=ev.target.closest("[data-route-act]");if(b)aiRouteAction(b.getAttribute("data-route-act"),+b.getAttribute("data-index"),b);});
+    $("ai-routing").addEventListener("keydown",function(ev){if(ev.key!=="Enter")return;var i=ev.target.closest("[data-route-custom]");if(!i)return;ev.preventDefault();var idx=+i.getAttribute("data-route-custom"),m=String(i.value||"").trim();if(m){var list=aiState.routing.entries[idx].models||(aiState.routing.entries[idx].models=[]);if(list.indexOf(m)<0)list.push(m);aiRenderRouting();}});
+    $("ai-add-provider-btn").addEventListener("click",function(){var v=$("ai-add-provider").value;if(v){aiState.routing.entries.push({provider:v,models:[],enabled:true});aiRenderRouting();}});
+    $("ai-fallback").addEventListener("change",function(){aiState.routing.use_platform_fallback=$("ai-fallback").value==="1";aiRenderRouting();});
+    $("ai-save-routing").addEventListener("click",function(){aiSaveRouting(this);});
+    $("ai-reset-routing").addEventListener("click",function(){aiState.routing={entries:[],use_platform_fallback:true};aiRenderRouting();$("banner").innerHTML='<div class="banner info">Routing cleared on screen. Press Save model priority to hand this brand back to the platform default cascade.</div>';});
     load();
   });
 })();
