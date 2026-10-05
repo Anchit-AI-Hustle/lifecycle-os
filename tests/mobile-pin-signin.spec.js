@@ -855,7 +855,7 @@ const readAuth = (page) => page.evaluate(() => {
     stored: (() => { try { return JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null'); } catch (_) { return null; } })(),
     users: (() => { try { return JSON.parse(localStorage.getItem('lifecycle.auth.device.users') || 'null'); } catch (_) { return null; } })(),
     storage: storage ? { mode: storage.mode, session: storage.session, sentence: storage.account_sentence, serverOpen: storage.server_open } : null,
-    google: /Sign in with Google/i.test(document.body.innerText || ''),
+    google: /Sign in with Gmail/i.test(document.body.innerText || ''),
     oauth: (window.__OAUTH_CALLS__ || []).length,
     noteKind: (document.getElementById('lnav-signin-note') || { getAttribute: () => null }).getAttribute('data-kind'),
   };
@@ -974,7 +974,7 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   expect(log.dialogs).toEqual([]);
   expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
   expect(a.oauth).toBe(0);
-  // The standing bar names Google, which is the sign-in. Opening the stored
+  // The standing bar names Gmail, which is the sign-in. Opening the stored
   // phone panel does not start it.
   expect(a.google).toBe(true);
 });
@@ -1446,7 +1446,7 @@ test('REVIEW: the privacy policy describes Google as the sign-in, and keeps the 
   await page.goto(base + '/privacy.html', { waitUntil: 'domcontentloaded' });
   const policy = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
   expect(policy.length).toBeGreaterThan(800);
-  expect(policy).toMatch(/Sign-in is with Google/i);
+  expect(policy).toMatch(/Sign-in is with Gmail/i);
   expect(policy).toMatch(/openid/);
   expect(policy).toMatch(/Limited Use/i);
   const historical = await page.evaluate(() => (document.querySelector('[data-historical]') || {}).textContent || '');

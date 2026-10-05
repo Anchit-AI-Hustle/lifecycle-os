@@ -1885,14 +1885,14 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              ? 'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands, '
+              ? 'You are not signed in, so there is no workspace to load. Sign in with Gmail to reach your brands, '
                 + 'or set up a brand on this device now: it is saved here either way.'
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
-            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Google</button>'
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Gmail</button>'
               // Signed out is a usable state: a brand can be set up on this
               // device now.
               + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
