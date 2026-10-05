@@ -8,42 +8,347 @@
     "label": "Levi's",
     "sector": "Fashion retail",
     "blurb": "Denim. Template for a fit-and-size led catalogue with a strong core range.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.levi.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
+    "verified_at": "2026-10-05",
+    "source": "www.levi.com refused an automated read (blocked); read the brand's own https://www.levi.com/US/en_US/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #c41320 from logo mark paint as rendered (100% of its coloured area) (svg#svg-title--levi-logo-v-0). Agreed by icon. Headings DenimINK-Regular, body DenimINK-Regular, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.levi.com/US/en_US/",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.levi.com/US/en_US/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.levi.com",
+          "registrable": "levi.com",
+          "website_host": "www.levi.com"
+        }
+      },
+      "primary": {
+        "value": "#c41320",
+        "exact": "#c41320",
+        "derived": false,
+        "kind": "logo-svg",
+        "strength": 120,
+        "score": 132,
+        "from_role": "identity",
+        "signal": "logo mark paint as rendered (100% of its coloured area)",
+        "source": {
+          "page": "https://www.levi.com/US/en_US/",
+          "role": "logo",
+          "selector": "svg#svg-title--levi-logo-v-0",
+          "viewport": "desktop",
+          "property": "fill",
+          "signal": "computed"
+        },
+        "read_url": "https://www.levi.com/US/en_US/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.levi.com",
+          "registrable": "levi.com",
+          "website_host": "www.levi.com"
+        },
+        "corroborated_by": [
+          {
+            "kind": "icon",
+            "value": "#c41320",
+            "signal": "site icon pixels (icon)",
+            "page": "https://www.levi.com/favicon.svg"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "meta theme-color",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#000000",
+        "exact": "#000000",
+        "derived": false,
+        "source": {
+          "page": "https://www.levi.com/US/en_US/",
+          "role": "body copy",
+          "selector": "div.cmsmodule.module_xp_category_column_v1:nth-of-type(2) > div.module-category-column.module-category-column--layout-4:nth-of-type(1) > div.lsco-row.split-header__header-container:nth-of-type(1) > div.lsco-col-grid24-md-9.lsco-col-grid24-xs-offset-0 > div.split-header__copy-text",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.levi.com/US/en_US/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.levi.com",
+          "registrable": "levi.com",
+          "website_host": "www.levi.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://www.levi.com/US/en_US/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.levi.com",
+          "registrable": "levi.com",
+          "website_host": "www.levi.com"
+        }
+      },
+      "muted": {
+        "value": "#737373",
+        "exact": "#ffffff",
+        "derived": true,
+        "note": "DERIVED from #ffffff: secondary text as rendered measures 1:1, adjusted to AA.",
+        "source": {
+          "page": "https://www.levi.com/US/en_US/",
+          "role": "secondary text",
+          "selector": "div.overlay-container.fixed-aspect-ratio > div:nth-of-type(3) > span.link-wrapper.link-empty > div.module-primary-hero__content--centered.module-primary-hero__content > p.module-primary-hero__eyebrow:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.levi.com/US/en_US/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.levi.com",
+          "registrable": "levi.com",
+          "website_host": "www.levi.com"
+        }
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://www.levi.com/US/en_US/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.levi.com",
+          "registrable": "levi.com",
+          "website_host": "www.levi.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "blocked",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.levi.com/US/en_US/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "read_from": [
+      "https://www.levi.com/US/en_US/"
+    ],
+    "reads": [
+      {
+        "url": "https://www.levi.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "blocked",
+        "owned": "website",
+        "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+      },
+      {
+        "url": "https://www.levi.com/US/en_US/",
+        "role": "identity source",
+        "what": "Levi's US store front",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.levi.com/apple-touch-icon.png",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.levi.com/favicon.svg",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.svg)",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.levi.com/favicon.ico",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.ico)",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.levistrauss.com/",
+        "role": "identity source",
+        "what": "Levi Strauss & Co. corporate site (linked from levi.com)",
+        "renderer": "refused",
+        "owned": "",
+        "reason": "www.levistrauss.com is not under levi.com, and no page read on levi.com links to it, so it is not shown to be the brand's own"
+      }
+    ],
+    "home_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.levi.com",
       "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.levi.com/US/en_US/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div.overlay-container.fixed-aspect-ratio > div:nth-of-type(3) > span.link-wrapper.link-empty > div.module-primary-hero__content--centered.module-primary-hero__content > h2.module-primary-hero__headline",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://www.levi.com/US/en_US/",
+        "role": "body copy",
+        "selector": "div.cmsmodule.module_xp_category_column_v1:nth-of-type(2) > div.module-category-column.module-category-column--layout-4:nth-of-type(1) > div.lsco-row.split-header__header-container:nth-of-type(1) > div.lsco-col-grid24-md-9.lsco-col-grid24-xs-offset-0 > div.split-header__copy-text",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#c41320",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#737373",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "DenimINK-Regular",
+      "stack": "'DenimINK-Regular','Arial',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "DenimINK-Regular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "DenimINK-Regular",
+      "stack": "'DenimINK-Regular','Arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "DenimINK-Regular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -58,7 +363,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "levi.com"
+    "levi.com",
+    "www.levi.com",
+    "lscoglobal.scene7.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -303,12 +610,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Levi's]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Levi's]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Levi's]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Levi's]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Levi's]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.levi.com/ngsa/favicon/apple-touch-icon.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/Refresh%201_Primary%20Hero_Mobile?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=1500&hei=844",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/Western%20Shirts?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=329&hei=439",
+      "role": "photograph",
+      "alt": "Men in Western Shirts",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/Tees-1?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=329&hei=439",
+      "role": "photograph",
+      "alt": "Women in Tees",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/Jackets_Outerwear?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=329&hei=439",
+      "role": "photograph",
+      "alt": "Jackets & Outerwear",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/Accessories-2?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=329&hei=439",
+      "role": "photograph",
+      "alt": "Accessories",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/W_COLOR_STORY_3_4?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=750&hei=1000",
+      "role": "photograph",
+      "alt": "-",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://lscoglobal.scene7.com/is/image/lscoglobal/M_COLOR_STORY_3_4?fmt=webp&qlt=70&resMode=sharp2&fit=crop,1&op_usm=0.6,0.6,8&wid=750&hei=1000",
+      "role": "photograph",
+      "alt": "-",
+      "found_on": "https://www.levi.com/US/en_US/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.levi.com/ngsa/favicon/apple-touch-icon.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

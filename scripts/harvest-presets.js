@@ -160,7 +160,8 @@ async function readOne(preset, opts) {
  * The brand's OTHER own material (`identity_sources`): its guidelines, press
  * or newsroom pages and its logo file. Each URL must be the brand's own
  * (scripts/lib/brand-ownership.js) before anything is fetched from it: same
- * registrable domain as the website, or linked from a page read on it. A
+ * registrable domain as the website, the same brand label on another suffix,
+ * the group's own corporate host, or linked from a page read on it. A
  * source on the brand's own domain is read first, so a page it links to can
  * be shown to be the brand's. Pages are read without the regression or the
  * phone width (only the identity they declare is wanted); a logo file is

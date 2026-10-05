@@ -8,11 +8,16 @@
  * third party's - a "brand colours" site, an encyclopaedia, a logo
  * aggregator states a brand fact nobody at the brand published.
  *
- * Two ways a URL is the brand's, and nothing else:
+ * A URL is the brand's in one of these ways, and nothing else:
  *   same-registrable-domain  its host is under the same registrable domain as
  *                            the preset's `website` (brand.netflix.com for
  *                            netflix.com; press.example.co.uk for
  *                            example.co.uk).
+ *   same-brand-label         the registrable label is the brand's own
+ *                            (sony.co.jp for sony.com, tesla.cn for tesla.com).
+ *                            A longer label is not it (notnetflix.com).
+ *   corporate-sibling        the label is the brand's plus a corporate tail
+ *                            (hmgroup.com, adidas-group.com, bmwgroup.com).
  *   linked-from              a page this harvest READ on the brand's own
  *                            domain links to its host. Checked at read time
  *                            from what that page rendered, never asserted.
@@ -30,6 +35,27 @@ const MULTI_LABEL_SUFFIXES = new Set([
 
 function hostOf(url) {
   try { return new URL(String(url || '')).hostname.toLowerCase().replace(/\.$/, ''); } catch (_) { return ''; }
+}
+
+/** The first label of a registrable domain: sony.co.jp and sony.com are both sony.
+ *  An IP address has no name. Splitting 127.0.0.1 would make every loopback
+ *  host the brand "127", so a logo on 127.0.0.2 would be owned without a link. */
+function brandLabel(host) {
+  const h = String(host || '').toLowerCase().replace(/\.$/, '');
+  if (!h || /^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(':')) return '';
+  const reg = registrableDomain(h);
+  const label = reg ? reg.split('.')[0] : '';
+  if (!label || /^\d+$/.test(label)) return '';
+  return label;
+}
+
+/** hmgroup / adidas-group / bmwgroup: the brand's label plus one corporate tail. */
+const CORPORATE_TAIL = /^(?:group|groups|inc|corp|corporate|global|holding|holdings)$/;
+function corporateSibling(brandLab, hostLab) {
+  if (!brandLab || !hostLab || hostLab === brandLab || !hostLab.startsWith(brandLab)) return false;
+  let rest = hostLab.slice(brandLab.length);
+  if (rest.startsWith('-')) rest = rest.slice(1);
+  return CORPORATE_TAIL.test(rest);
 }
 
 /** The registrable domain of a host (an IP or a one-label host is itself). */
@@ -57,6 +83,10 @@ function ownership(url, website, evidence) {
   const reg = registrableDomain(host);
   const homeReg = registrableDomain(home);
   if (reg && reg === homeReg) return { ok: true, how: 'same-registrable-domain', host, registrable: reg, website_host: home };
+  const lab = brandLabel(host);
+  const homeLab = brandLabel(home);
+  if (lab && lab === homeLab) return { ok: true, how: 'same-brand-label', host, registrable: reg, website_host: home, label: lab };
+  if (corporateSibling(homeLab, lab)) return { ok: true, how: 'corporate-sibling', host, registrable: reg, website_host: home, label: lab };
   for (const e of evidence || []) {
     const from = hostOf(e && e.page);
     if (!from || registrableDomain(from) !== homeReg) continue;
@@ -70,4 +100,4 @@ function ownership(url, website, evidence) {
   };
 }
 
-module.exports = { ownership, registrableDomain, hostOf, MULTI_LABEL_SUFFIXES };
+module.exports = { ownership, registrableDomain, brandLabel, corporateSibling, hostOf, MULTI_LABEL_SUFFIXES };
