@@ -37,6 +37,7 @@
 // contact-fatigue.js (2026-10-04): this module counts an ESP's per-contact
 // `sends_7d` snapshot against the SAME numbers the contact ledger, the planners
 // and the preflight gate use, instead of a second copy of them.
+const crypto = require('crypto');
 const fatigue = require('./contact-fatigue.js');
 
 /* ── the cohorts ──────────────────────────────────────────────────────────── */
@@ -55,6 +56,21 @@ const COHORTS = [
 ];
 
 const COHORT_BY_KEY = new Map(COHORTS.map((c) => [c.key, c]));
+
+/**
+ * A TRIGGER cohort, not an engagement tier, so it is not in COHORTS: the tiers
+ * above partition every contact by how recently they opened, while this one
+ * is the set of customers whose own purchase history says they are about to
+ * buy again (replenishment-model.js). A due customer still sits in exactly one
+ * engagement tier, and `triggerEligibility()` uses that tier to decide whether
+ * they may be mailed at all.
+ */
+const REPLENISHMENT_COHORT = {
+  key: 'replenishment_due',
+  label: 'Replenishment due',
+  why: 'Their predicted next purchase of a product they already bought falls inside this window, measured from the brand\'s own order history (never an assumed consumption rate). Reached before they re-buy, ideally from us.',
+  objectives: { second_order: 'second-order activation', repeat: 'replenishment' },
+};
 
 /** Frequency caps, per docs/campaign-orchestration-master-spec.md - read from the one policy. */
 const FREQUENCY = Object.freeze({
