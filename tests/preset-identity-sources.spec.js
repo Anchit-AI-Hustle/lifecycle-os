@@ -247,6 +247,45 @@ test('a value from another page of the brand names that page, the read and the d
   expect(out.evidence.surface.read_url).toBe('https://brand.example');
 });
 
+test('a favicon generator\'s default colour is not a declaration, and a near-black mark gives way to a brighter declared colour', () => {
+  // RealFaviconGenerator's mask-icon #5bbad5 and TileColor #da532c: values
+  // nobody at the brand chose (one brand's pinned-tab colour was exactly that).
+  const desk = { url: 'https://brand.example/', meta: { tile_color: '#da532c' }, roles: {}, assets: { icons: [{ rel: 'mask-icon', url: 'https://brand.example/m.svg', color: '#5bbad5' }] } };
+  const defaults = br.markCandidates(desk, {});
+  expect(defaults.filter((c) => c.kind === 'mask-icon' || c.kind === 'tile-color')).toEqual([]);
+  expect(defaults.notes.join(' ')).toMatch(/#5bbad5 is a favicon generator's default/);
+  // A real declaration is read.
+  const real = br.markCandidates(Object.assign({}, desk, { meta: {}, assets: { icons: [{ rel: 'mask-icon', url: 'https://brand.example/m.svg', color: '#e50914' }] } }), {});
+  expect(real.map((c) => `${c.kind}:${c.value}`)).toEqual(['mask-icon:#e50914']);
+  // A mark painted near-black (#061b31) is kept as a DARK mark...
+  const dark = br.markCandidates({ url: 'https://brand.example/', meta: {}, assets: {}, roles: { logo: { kind: 'svg', selector: 'header a svg', paints: [{ hex: '#061b31', share: 1 }], pixels: [] } } }, {});
+  expect(dark.map((c) => c.kind)).toEqual(['logo-dark']);
+  // ...and a brighter colour the site declares outranks it; a navy mark with
+  // nothing brighter declared is still the brand's colour.
+  const out = obsLib.paletteFromManifest(manifest({ identity: { candidates: [Object.assign(cand('logo-dark', '#061b31', 'header a svg')), cand('token', '#635bff', ':root')] } }));
+  expect(out.palette.primary).toBe('#635bff');
+  const navy = obsLib.paletteFromManifest(manifest({ identity: { candidates: [cand('logo-dark', '#000042', 'header a img')] }, read: { desktop: { roles: { button_primary: { selector: 'main a', style: { background: '#11daac' } } } } } }));
+  expect(navy.palette.primary).toBe('#000042');
+});
+
+test('the mark outranks declarations from a previous palette even when they agree with each other', () => {
+  const out = obsLib.paletteFromManifest(manifest({ identity: { candidates: [
+    cand('logo-svg', '#ff385c', 'header a svg'), cand('mask-icon', '#ff5a5f', 'link[rel=mask-icon]'),
+    cand('theme-color', '#ff5a5f', 'meta[name=theme-color]'), cand('icon', '#ff5a5f', 'link[rel=icon]'),
+  ] } }));
+  expect(out.palette.primary).toBe('#ff385c');
+  expect(out.evidence.primary.kind).toBe('logo-svg');
+});
+
+test('a brand with no second colour never borrows tenant zero\'s accent in a renderer', () => {
+  const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
+  const brand = { name: 'Red Brand', palette: { primary: '#e50914', ink: '#141414', surface: '#ffffff' } };
+  expect(motion.paletteOf({ brand }).lava).toBe('#e50914');
+  const html = motion.renderMotionAd({ brand, loop: false, headline: 'Watch now', cta: 'Start', scenes: [{ seconds: 2, headline: 'One', sub: 'Two' }] });
+  expect(html.toLowerCase()).not.toContain('#6a33d8');
+  expect(html).toContain('--lava:#e50914');
+});
+
 /* ═══ 3. ownership ════════════════════════════════════════════════════════ */
 
 test('only the brand\'s own registrable domain, or a host its own page links to, is read', () => {
