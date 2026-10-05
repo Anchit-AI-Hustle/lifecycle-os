@@ -159,7 +159,7 @@ const AD_PROVIDERS = ['meta_ads', 'google_ads', 'tiktok_ads'];
 async function ownsDeploymentConnectors() {
   try { return await require('./market-analytics.js').ownsBundledExport(); } catch (_) { return false; }
 }
-async function ads({ market = 'US', level = 'ad', since, until } = {}) {
+async function ads({ market = require('./brand-locale.js').defaultMarket(), level = 'ad', since, until } = {}) {
   const ws = await activeWorkspace();
   if (!ws) return unconnected('paid media', 'No active brand workspace on this request; reload so the brand context loads.', { market, kpis: adRows.rollup([]), platforms: [], connected_platforms: [], pending_platforms: [] });
   if (!(await ownsDeploymentConnectors())) {
@@ -239,7 +239,7 @@ function unconnected(kind, connect, extra) {
 function metricNames(resp) { const rows = resp && resp.ok && resp.data && Array.isArray(resp.data.data) ? resp.data.data : []; return Object.fromEntries(rows.map((m) => [m.id, text(m.attributes && m.attributes.name)])); }
 function klEvents(resp, names) { const rows = resp && resp.ok && resp.data && Array.isArray(resp.data.data) ? resp.data.data : []; return rows.map((e) => { const a = e.attributes || {}, p = a.event_properties || {}, id = e.relationships && e.relationships.metric && e.relationships.metric.data && e.relationships.metric.data.id; return { name: names[id] || p.metric_name || p.event_name || 'Unknown event', campaign: p['Campaign Name'] || p.campaign_name || p.Campaign || '(unattributed)', value: n(p.$value || p.value || p.revenue), at: a.datetime || a.timestamp || null }; }); }
 const sumEvents = (map, re) => Object.entries(map).filter(([k]) => re.test(k)).reduce((a,[,v]) => a+v,0);
-async function mailer({ market = 'US', hours = 720 } = {}) {
+async function mailer({ market = require('./brand-locale.js').defaultMarket(), hours = 720 } = {}) {
   // Klaviyo and WebEngage both have DEPLOYMENT-level credentials in env. Using
   // them here served one company's lifecycle performance - opens, clicks,
   // revenue per recipient, segment sizes - to every signed-in brand, exactly
@@ -289,7 +289,7 @@ async function mailer({ market = 'US', hours = 720 } = {}) {
  * and are scoped by supa.select, so the mirror is safe to read; the live export
  * is not, and is not reported as this brand's.
  */
-async function landing({ market = 'US' } = {}) {
+async function landing({ market = require('./brand-locale.js').defaultMarket() } = {}) {
   const ws = await activeWorkspace();
   if (!ws) return unconnected('landing page analytics', 'No active brand workspace on this request; reload so the brand context loads.', { kpis: {}, pages: [], experiments: [] });
   const out = await pagedeck.analytics({ market, mirrorOnly: true });

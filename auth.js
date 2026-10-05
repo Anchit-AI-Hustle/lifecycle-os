@@ -1593,6 +1593,55 @@
     return !!(item && item.open);
   }
 
+  /* MARKET STUDY ROWS ARE THE ACTIVE BRAND'S OWN REGIONS (2026-10-05).
+     The rail offered "US Study / UK Study / Global Study / India Study" to
+     every brand: an Indian brand was offered three markets it does not serve,
+     and a UAE brand had no row for its own. The static rows stay in NAV (the
+     model, the ? panels), are hidden once the brand's regions are known, and
+     one row per region the brand lists is drawn in their place, HOME first.
+     A brand with no regions gets the overview row alone, where the page says
+     what is missing. */
+  function syncStudyRows() {
+    try {
+      const RC = window.RegionContext;
+      const nav = document.getElementById('lifecycle-nav');
+      if (!nav || !RC || !RC.loaded) return;
+      const all = nav.querySelector('a[data-id="research-all"]');
+      const body = all && all.closest('.lnav-gbody');
+      if (!body) return;
+      let icon = null;
+      ['research-us', 'research-uk', 'research-global', 'research-india'].forEach((id) => {
+        const a = body.querySelector('a[data-id="' + id + '"]');
+        if (!a) return;
+        if (!icon) icon = a.querySelector('svg');
+        const row = (a.parentElement && a.parentElement.classList.contains('lnav-item')) ? a.parentElement : a;
+        row.hidden = true;
+        row.setAttribute('data-study-static', '1');
+      });
+      body.querySelectorAll('[data-study-region]').forEach((el) => el.remove());
+      const here = /\/research/.test(location.pathname) ? (new URLSearchParams(location.search).get('region') || '') : '';
+      const opts = (typeof RC.options === 'function' ? RC.options() : []).slice()
+        .sort((x, y) => (y.home ? 1 : 0) - (x.home ? 1 : 0));
+      opts.forEach((o) => {
+        const code = String(o.code || '').toLowerCase();
+        if (!code) return;
+        const a = document.createElement('a');
+        a.className = 'lnav-link' + (here && RC.resolve(here) === o.code ? ' active' : '');
+        a.href = '/research?region=' + encodeURIComponent(code);
+        a.setAttribute('data-id', 'research-' + code);
+        a.setAttribute('data-study-region', o.code);
+        a.title = o.label + (o.home ? ' - home market' : '');
+        if (icon) a.appendChild(icon.cloneNode(true));
+        const t = document.createElement('span');
+        t.className = 'lnav-txt';
+        t.textContent = o.name + ' Study';
+        a.appendChild(t);
+        body.appendChild(a);
+      });
+    } catch (_) { /* the rail keeps its static rows */ }
+  }
+  try { window.addEventListener('regioncontext:change', () => setTimeout(syncStudyRows, 0)); } catch (_) {}
+
   // ─── Left-hand sidebar (global cross-feature navigation) ────────────
   function injectTopbar(user) {
     if (document.getElementById('lifecycle-nav')) return;
@@ -2078,6 +2127,7 @@
       </div>
     `;
     document.body.insertBefore(wrap, document.body.firstChild);
+    syncStudyRows();
     // Signal to embedded apps (e.g. Mailer Studio) that they're rendering
     // inside the Lifecycle OS shell, so they can hide their own duplicate
     // header / tabs / sign-out chrome.

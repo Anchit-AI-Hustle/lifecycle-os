@@ -39,7 +39,7 @@ const REGION = {
 function regionFacts(market) { return REGION[market] || REGION.Global; }
 
 // ── Product context ─────────────────────────────────────────────────────────
-function productLines(products = [], currency = '$', brandName = brandRuntime.defaultBrand().name) {
+function productLines(products = [], currency = '', brandName = brandRuntime.defaultBrand().name) {
   const list = (Array.isArray(products) ? products : []).filter(Boolean).slice(0, 8);
   if (!list.length) return `(no specific products supplied — refer to ${brandName} offerings at CATEGORY level only. Do NOT invent a specific product name, price, or handle/URL.)`;
   return list.map((p) => {
@@ -63,18 +63,19 @@ function creativeFacts(brand) {
   const name = b.name || zero.name || 'the brand';
   const p = b.palette || {};
   const hexes = ['primary', 'accent', 'surface', 'ink'].map((k) => p[k]).filter(Boolean);
-  const paletteList = hexes.length ? hexes.join(' / ') : '[DATA REQUIRED BEFORE LAUNCH: brand palette, all, all]';
+  // Markers are UNPADDED: `field, <brand>` (2026-10-05), never "all, all".
+  const paletteList = hexes.length ? hexes.join(' / ') : `[DATA REQUIRED BEFORE LAUNCH: brand palette, ${name}]`;
   const t = b.typography || {};
   const fonts = `${(t.heading && t.heading.family) || '[DATA REQUIRED BEFORE LAUNCH: heading font]'} headings / ${(t.body && t.body.family) || '[DATA REQUIRED BEFORE LAUNCH: body font]'} body`;
   const claims = (Array.isArray(b.claims) && b.claims.length)
     ? b.claims.join(' · ')
-    : '[DATA REQUIRED BEFORE LAUNCH: verifiable brand claims, all, all]';
+    : `[DATA REQUIRED BEFORE LAUNCH: verifiable brand claims, ${name}]`;
   const industry = b.industry || 'its industry';
   // The named .wav beds are tenant zero's own repo assets. No other brand may
   // be scored to them; a brand without a bed on file gets a marker, not a loan.
   const audio = isZero
     ? `a ${name}-owned original bed from /assets/media/ (knickgasm-brand-beat.wav 32s hero · knickgasm-reels-loop.wav 16s short · knickgasm-ad-underscore.wav 22s under-voiceover) — 90 BPM, F minor, seamless loop, royalty-free for paid media. State the bed by filename and the beat-sync points`
-    : `a ${name}-owned, original, royalty-free audio bed; if none is on file for this brand, write [DATA REQUIRED BEFORE LAUNCH: brand audio bed, all, all] instead of naming one`;
+    : `a ${name}-owned, original, royalty-free audio bed; if none is on file for this brand, write [DATA REQUIRED BEFORE LAUNCH: brand audio bed, ${name}] instead of naming one`;
   return { name, isZero, paletteList, fonts, claims, industry, audio };
 }
 
@@ -197,8 +198,8 @@ function buildMasterPrompt(o = {}) {
       // A brand with no store for this market gets an explicit marker, never
       // tenant zero's store URL.
       facts = brandRuntime.regionFacts(brand, market) || {
-        store: `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${market}]`,
-        presell: `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${market}]`,
+        store: `[DATA REQUIRED BEFORE LAUNCH: region store URL, ${brand.name || 'this brand'}${market ? `, ${market}` : ''}]`,
+        presell: `[DATA REQUIRED BEFORE LAUNCH: region store URL, ${brand.name || 'this brand'}${market ? `, ${market}` : ''}]`,
         currency: '', locale: 'en',
       };
     } catch (_) { /* fall back to tenant zero rather than failing a generation */ }

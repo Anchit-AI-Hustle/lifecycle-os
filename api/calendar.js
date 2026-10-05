@@ -489,6 +489,19 @@ async function lifecycleContact(req, body) {
   return out;
 }
 
+/* The market a lifecycle request means when it names none: the resolved
+   brand's HOME market (2026-10-05) - it was a literal 'UK' for every brand.
+   The UK engagement page names UK itself, so its programme is unchanged.
+   '' with the marker when the brand lists no market. */
+async function lifecycleMarket(req, asked) {
+  if (asked) return { market: String(asked), marker: '' };
+  let brand = null;
+  try { brand = await require('./_shared/brand-runtime.js').resolve(req); } catch (_) { brand = null; }
+  const L = require('./_shared/brand-locale.js');
+  const market = L.homeMarket(brand);
+  return { market, marker: market ? '' : L.marker('home market', brand || 'this brand') };
+}
+
 async function lifecycle(req, res, action) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -505,19 +518,23 @@ async function lifecycle(req, res, action) {
   try {
     if (action === 'lifecycle-generate') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+      const mk = await lifecycleMarket(req, body.market);
+      if (!mk.market) return res.status(409).json({ ok: false, error: 'market_required', marker: mk.marker, message: `${mk.marker} No market was named and the brand's record lists none, so there is no market to plan for. Add its regions in Brand setup, or name a market.` });
       const result = await lifecycleGen.generateLifecycleCalendar(Object.assign({
         start_date: body.start_date,
         days: body.days,
         cohorts: body.cohorts,
         cadence_per_week: body.cadence_per_week,
-        market: body.market || 'UK',
+        market: mk.market,
       }, await lifecycleContact(req, body)));
       return res.status(200).json({ ok: true, ...result });
     }
 
     if (action === 'lifecycle-list') {
+      const mk = await lifecycleMarket(req, q.market || body.market);
+      if (!mk.market) return res.status(409).json({ ok: false, error: 'market_required', marker: mk.marker, message: `${mk.marker} No market was named and the brand's record lists none, so there are no entries to read for one.` });
       const result = await lifecycleGen.listEntries({
-        market: q.market || body.market || 'UK',
+        market: mk.market,
         from: q.from || body.from || null,
         to: q.to || body.to || null,
       });

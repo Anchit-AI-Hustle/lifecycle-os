@@ -804,7 +804,8 @@ function buildMarketChips() {
   if (key === _marketChipsBuilt) return; _marketChipsBuilt = key;
   const host = $('marketChips');
   if (!opts.length) {
-    host.innerHTML = '<span class="text-[11px] text-ink-mute">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+    const none = document.createElement('span'); none.className = 'text-[11px] text-ink-mute'; none.textContent = (window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]');
+    host.innerHTML = ''; host.appendChild(none);
     STATE.markets = []; return;
   }
   host.innerHTML = opts.map((o) => '<button type="button" class="filter-chip' + (o.home ? ' active' : '') + '" data-market="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('');

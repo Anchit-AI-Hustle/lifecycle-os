@@ -196,7 +196,10 @@
   // MKT comes from the ?mkt= URL param — remap through a literal allowlist so the
   // stored value is always a constant (never the raw, potentially-hostile input).
   // This clears the taint at the source; every use below is then a fixed string.
-  var MKT = ({ US:'US', UK:'UK', GLOBAL:'GLOBAL', IN:'IN' })[(new URLSearchParams(location.search).get('mkt') || 'US').toUpperCase()] || 'US';
+  // With no ?mkt= the page opens on the ACTIVE BRAND's home market once its
+  // data is known (refresh below), never on a literal US (2026-10-05).
+  var MKT_ASKED = ({ US:'US', UK:'UK', GLOBAL:'GLOBAL', IN:'IN' })[(new URLSearchParams(location.search).get('mkt') || '').toUpperCase()] || '';
+  var MKT = MKT_ASKED || 'US';
 
   // Normalise each market so a widget only appears when its data actually
   // exists (some markets export fewer datasets than others — e.g. UK ships
@@ -233,7 +236,11 @@
     IN:     { label:'India',          region:'in',     cur:'₹', store:'knickgasm.com' }
   };
   function meta(mk){
-    var m = MARKET_META[mk] || { label:mk, region:String(mk||'').toLowerCase(), cur:'$', store:'' };
+    // The symbol is the brand's own for this market (its record, else its
+    // country's), never '$' for a market the table does not carry.
+    var bl = null; try { bl = window.RegionContext && window.RegionContext.localeOf ? window.RegionContext.localeOf(mk) : null; } catch (_) { bl = null; }
+    var m = MARKET_META[mk] || { label:mk, region:String(mk||'').toLowerCase(), cur:'', store:'' };
+    if (bl && bl.symbol) m = Object.assign({}, m, { cur: bl.symbol });
     // The store host is the ACTIVE brand's own region store. The shipped map is
     // tenant zero's and is only ever shown when no brand is active at all.
     try {
@@ -253,7 +260,7 @@
   function mktLabel(mk){ return meta(mk||MKT).label; }
 
   // ── formatting ──────────────────────────────────────────────────────────
-  function cur(){ return meta(MKT).cur || '$'; }
+  function cur(){ return meta(MKT).cur || ''; }
   function money(v){ v=+v||0; if(Math.abs(v)>=1000000) return cur()+(v/1000000).toFixed(2)+'M'; if(Math.abs(v)>=1000) return cur()+(v/1000).toFixed(1)+'K'; return cur()+v.toFixed(0); }
   function moneyFull(v){ return cur()+(+v||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
   function intf(v){ return (+v||0).toLocaleString(); }
@@ -940,7 +947,9 @@
       var fn0=document.getElementById('footnote'); if(fn0) fn0.textContent='Awaiting live data from the connected sources.';
       return;
     }
-    if(!marketHasData(MKT)){ var k=Object.keys(A.markets).filter(marketHasData); if(k.length) MKT=k[0]; }
+    var home = (window.RegionContext && window.RegionContext.home) || '';
+    if(!MKT_ASKED && home && marketHasData(home)) MKT = home;
+    if(!marketHasData(MKT)){ var k=Object.keys(A.markets).filter(marketHasData); if(k.length) MKT=(home && k.indexOf(home)>=0) ? home : k[0]; }
     // Regions are BRAND-TRUE: a brand sold only in India shows only an India
     // toggle. Buttons for markets the active dataset has no data for are
     // hidden, not rendered as dead tabs.

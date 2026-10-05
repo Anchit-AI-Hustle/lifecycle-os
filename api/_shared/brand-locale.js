@@ -176,6 +176,23 @@ function marketFor(brand, asked) {
   };
 }
 
+/**
+ * The market a function means when its caller named none: the HOME market of
+ * the brand this request or generation is FOR (brand-runtime.scopedBrand: the
+ * catalogue scope a generation pinned, else the request's own resolved
+ * brand), or of the brand passed in. '' when no brand is in scope or the
+ * brand lists no market - never a literal 'US' or 'UK' (2026-10-05). Every
+ * core that used to write `market = 'US'` as a parameter default now writes
+ * `market = defaultMarket()`, which JavaScript evaluates per call.
+ */
+function defaultMarket(brand) {
+  if (brand && Array.isArray(brand.regions)) return homeMarket(brand);
+  try {
+    const b = require('./brand-runtime.js').scopedBrand(null);
+    return homeMarket(b);
+  } catch (_) { return ''; }
+}
+
 /** The symbol for a currency (the table above), else the ISO code itself, or ''. */
 function symbolOf(currency) {
   const c = String(currency || '').toUpperCase();
@@ -262,6 +279,6 @@ function socialOf(brand) {
 }
 
 module.exports = {
-  COUNTRY, SYMBOL, FAMILY, family, countryOf, marker, homeMarket, homeRegionRow, marketFor, localeFor, money, symbolOf,
+  COUNTRY, SYMBOL, FAMILY, family, countryOf, marker, homeMarket, homeRegionRow, marketFor, localeFor, money, symbolOf, defaultMarket,
   utcHourOf, legalEntityOf, socialOf,
 };

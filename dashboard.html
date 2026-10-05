@@ -843,7 +843,15 @@ const FX_RATES = {
   USD: { symbol: '$', rate: 1,   locale: 'en-US' },
   INR: { symbol: '₹', rate: 83,  locale: 'en-IN' },   // ~₹83 / $1
 };
-let CURRENCY = (() => { try { return LCStore.get('knickgasm-currency') || 'USD'; } catch { return 'USD'; } })();
+// The view currency is the reviewer's own choice, else the ACTIVE BRAND's
+// home-market currency when this page can show it (2026-10-05) - an Indian
+// brand opens in rupees, not dollars. USD stays only because it is the
+// SOURCE data's own currency; it is not a default for any brand.
+let CURRENCY_CHOSEN = (() => { try { return LCStore.get('knickgasm-currency') || ''; } catch { return ''; } })();
+function brandViewCurrency() {
+  try { const RC = window.RegionContext; const c = RC && RC.localeOf ? RC.localeOf(RC.home).currency : ''; return FX_RATES[c] ? c : ''; } catch { return ''; }
+}
+let CURRENCY = CURRENCY_CHOSEN || brandViewCurrency() || 'USD';
 if (!FX_RATES[CURRENCY]) CURRENCY = 'USD';
 function curMeta() { return FX_RATES[CURRENCY] || FX_RATES.USD; }
 // Currency-aware money formatter. Ignores any 2nd arg (older callers + Apex
@@ -898,14 +906,15 @@ function bucketKeyLabel(d, gran) {
   const key = dt.toISOString().slice(0, 10);
   return { key, label: MON[dt.getUTCMonth()] + ' ' + dt.getUTCDate() };
 }
-const fmtInt = (n) => n == null || isNaN(n) ? '—' : Math.round(Number(n)).toLocaleString('en-US');
+// Counts and dates in the active currency's own locale (en-IN groups lakhs).
+const fmtInt = (n) => n == null || isNaN(n) ? '—' : Math.round(Number(n)).toLocaleString(curMeta().locale);
 const fmtPct = (n, d=1) => n == null || isNaN(n) ? '—' : (Number(n) * 100).toFixed(d) + '%';
 const fmtPctRaw = (n, d=1) => n == null || isNaN(n) ? '—' : Number(n).toFixed(d) + '%';
 const fmtDate = (d) => {
   const x = new Date(d);
-  return x.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return x.toLocaleDateString(curMeta().locale, { month:'short', day:'numeric' });
 };
-const fmtDateTime = (d) => new Date(d).toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' });
+const fmtDateTime = (d) => new Date(d).toLocaleString(curMeta().locale, { dateStyle:'medium', timeStyle:'short' });
 
 // ─── Synthetic data generator ────────────────────────────────────────────
 // Produces ~90 days of campaigns + orders + customers for US / UK / Global.
@@ -1731,7 +1740,7 @@ function renderCampaigns(filter='') {
     labels: names,
     xaxis: { type: 'category', labels: { style: { colors: '#48524c', fontSize: '9px' } } },
     yaxis: [
-      { title: { text: 'Revenue', style: { color: '#48524c', fontSize: '11px' } }, labels: { formatter: (v) => '$' + (v/1000).toFixed(1) + 'k' } },
+      { title: { text: 'Revenue', style: { color: '#48524c', fontSize: '11px' } }, labels: { formatter: (v) => fmtCurShort(v) } },
       { opposite: true, title: { text: 'CVR %', style: { color: '#48524c', fontSize: '11px' } } }
     ],
     colors: ['#6A33D8', '#16a34a'],
@@ -1802,7 +1811,7 @@ function renderCampaigns(filter='') {
     chart: { ...APEX_BASE.chart, type: 'bar', height: 240 },
     series: [{ name: 'Revenue', data: ctSorted.map(([t, r]) => +r.toFixed(0)) }],
     xaxis: { categories: ctSorted.map(([t]) => t) },
-    yaxis: { labels: { formatter: (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v) } },
+    yaxis: { labels: { formatter: (v) => fmtCurShort(v) } },
     colors: ['#16a34a'],
     plotOptions: { bar: { borderRadius: 4 } },
     tooltip: { theme: 'light', y: { formatter: fmtCur } },
@@ -1861,7 +1870,7 @@ function renderSegments() {
     chart: { ...APEX_BASE.chart, type: 'scatter', height: 260 },
     series: [{ name: 'Customers', data: scatterData.slice(0, 500) }],
     xaxis: { title: { text: 'Discount rate %', style: { fontSize: '11px', color: '#48524c' } }, labels: { formatter: (v) => v + '%' }, type:'numeric' },
-    yaxis: { title: { text: 'LTV $', style: { fontSize: '11px', color: '#48524c' } }, labels: { formatter: (v) => '$' + v } },
+    yaxis: { title: { text: 'LTV (' + CURRENCY + ')', style: { fontSize: '11px', color: '#48524c' } }, labels: { formatter: (v) => fmtCur(v) } },
     colors: ['#a855f7'],
     markers: { size: 3 },
     tooltip: { theme: 'light' },
@@ -2258,7 +2267,7 @@ function buildRegionChips() {
   const host = $('regionChips');
   host.innerHTML = opts.length
     ? opts.map((o) => '<button type="button" class="filter-chip' + (o.all ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
-    : '<button type="button" class="filter-chip active" data-region="ALL">All</button><span class="text-[11px] text-ink-mute" style="align-self:center">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+    : '<button type="button" class="filter-chip active" data-region="ALL">All</button><span class="text-[11px] text-ink-mute" style="align-self:center">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
   if (STATE.region !== 'ALL' && !opts.some((o) => o.code === STATE.region)) { STATE.region = 'ALL'; try { destroyCharts(); rerender(); } catch (_) {} }
 }
 (function watchRegions(w) {
@@ -2280,10 +2289,19 @@ function syncCurrencyChips() {
   $$('#currencyChips .filter-chip').forEach((c) => c.classList.toggle('active', c.dataset.cur === CURRENCY));
 }
 syncCurrencyChips();
+// The brand's regions land after this script runs: follow its home currency
+// until the reviewer picks one.
+window.addEventListener('regioncontext:change', () => {
+  if (CURRENCY_CHOSEN) return;
+  const c = brandViewCurrency();
+  if (!c || c === CURRENCY) return;
+  CURRENCY = c; syncCurrencyChips();
+  try { destroyCharts(); rerender(); } catch (_) {}
+});
 $('currencyChips').addEventListener('click', (e) => {
   const cur = e.target.dataset.cur;
   if (!cur || cur === CURRENCY) return;
-  CURRENCY = cur;
+  CURRENCY = cur; CURRENCY_CHOSEN = cur;
   try { LCStore.set('knickgasm-currency', CURRENCY); } catch {}
   syncCurrencyChips();
   destroyCharts(); rerender();
