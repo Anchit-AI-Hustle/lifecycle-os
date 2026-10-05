@@ -162,8 +162,28 @@ on anything else.
 - 21 mutations, each failing the spec (ACTIVE paid writes on three platforms, both signatures uncompared, a
   switch ignored, an unverified endpoint sent, the approver taken from the request, a duplicate re-processed,
   YouTube public, absent read as zero, a refused refresh left active, ...).
-- Left as found: `connections` `oauth-start` answers `connections_router_failed` for a phone device session
-  (pre-existing for every OAuth platform); a Google Ads ad is turned on in Google Ads (no enable call confirmed).
+- Left as found: a Google Ads ad is turned on in Google Ads (no enable call confirmed).
+- **Review of #132 (same day), each fix executed and mutation-checked (13):**
+  - **Connect asks for what the operator chose.** It had sent no scopes, so the read-only `default_scopes`
+    were the whole grant and every write channel was blocked at preflight. The hub ticks write
+    CAPABILITIES (`registry.js` `CHANNEL_CAPABILITY`: post / comments / ads / send), and `oauth-start`
+    requests the read defaults plus `requiredScopes()` of exactly those channels, intersected with what
+    the adapter declares (`not_requested` names any gap).
+  - **Recorded once is not processed once.** The receiver 500s a failed ingest so the platform retries,
+    and the retry met the dedupe and got 200: the event was lost. `social_inbound_events.status`
+    (`received|processed|failed`, migration `20261004180000`): a redelivery of an unprocessed event
+    RESUMES the ingest; only `processed` short-circuits.
+  - Organic flags judge EVERY metric the operator set a threshold for (the median stays on one primary
+    metric). The console sends a comment read its `object_id`.
+  - **Two migrations, one version - twice in a day, and no test noticed.** The CLI keys
+    `schema_migrations` by the digits before the first `_`, so a shared version is ONE migration to it.
+    `tests/migration-versions.spec.js` gates the SET of files: 14-digit versions (the 13 date-only files
+    are a closed list - renaming an applied one re-applies it), unique even when padded to 14 digits,
+    each a real UTC time no later than the newest commit. A new migration takes a version later than
+    every one on main AT MERGE TIME, not at branch time.
+  - A device phone sign-in at the connections router read its workspace through RLS, which throws:
+    `connections_router_failed` (500) on every Connect and every /connections load. `list` answers
+    nothing connected and why; every other op is `409 device_account` with the same sentence.
 
 ## ⭐ A brand's guidelines are uploaded, and every asset is a file OR a URL (2026-10-04) — read `docs/universal-brand-platform.md` ("Brand guidelines document")
 The operator's words: *"ensure user can upload a document for the design schema to be followed too with
