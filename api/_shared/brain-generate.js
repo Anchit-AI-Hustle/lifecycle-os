@@ -63,6 +63,55 @@ try { designStrategy = require('./mailer-design-strategy.js'); } catch (_) {}
 const ORG_NAME = 'Knickgasm Global, Inc';
 const ORG_ADDRESS = '440 N Barranca Ave #2812, Covina, CA 91723, United States';
 
+// Knickgasm's name, store and legal sender belong to tenant zero. Another
+// workspace gets its own record, or a gap, never that brand's identity.
+function isShippedBrand(brand) {
+  try { return require('./brand-catalog-server.js').isTenantZeroBrand(brand) === true; } catch (_) { return false; }
+}
+function brandLabel(brand) {
+  if (isShippedBrand(brand)) return 'KNICKGASM';
+  const name = brand && String(brand.name || '').trim();
+  return name || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
+}
+function storeUrl(brand, market) {
+  const listed = brand && brand.store_urls && brand.store_urls[market];
+  if (listed) return String(listed).replace(/\/$/, '');
+  if (isShippedBrand(brand)) return 'https://knickgasm.com';
+  const site = brand && brand.website ? String(brand.website).replace(/\/$/, '') : '';
+  return site || '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
+}
+function collectionUrlFor(store, heroType, brand) {
+  if (!isShippedBrand(brand)) return store;
+  const cat = String(heroType || '').toLowerCase();
+  const slug = /kicks/.test(cat) ? 'kicks-sneaker'
+    : /green/.test(cat) ? 'green-sneaker'
+    : /black/.test(cat) ? 'black-sneaker'
+    : /themed|embroidery|streetwear|jacket|accessor/.test(cat) ? 'streetwear-sneaker'
+    : 'all';
+  return `${store}/collections/${slug}`;
+}
+function senderIdentity(brand) {
+  if (isShippedBrand(brand)) {
+    return { name: ORG_NAME, address: ORG_ADDRESS, from_name: 'KNICKGASM', from_email: 'hello@knickgasm.com' };
+  }
+  const label = brandLabel(brand);
+  const legal = brand && (brand.legal_entity || brand.legal_name);
+  let name = label;
+  let address = '[DATA REQUIRED BEFORE LAUNCH: sender postal address]';
+  if (typeof legal === 'string' && legal.trim()) {
+    const parts = legal.split(',');
+    name = parts[0].trim() || name;
+    const rest = parts.slice(1).join(',').trim();
+    if (rest) address = rest;
+  }
+  let from_email = '';
+  try {
+    if (brand && brand.website) from_email = 'hello@' + new URL(brand.website).hostname.replace(/^www\./, '');
+  } catch (_) { from_email = ''; }
+  if (!from_email) from_email = '[DATA REQUIRED BEFORE LAUNCH: sender email]';
+  return { name, address, from_name: label, from_email };
+}
+
 // Resolve the best real image URL for a product: its own row image, else the
 // catalog photo by handle/title. Returns an https URL or null.
 /**
@@ -131,7 +180,7 @@ async function llmJson(system, user, maxTokens = 1800) {
 async function generateCopy(slot, products, brand, library) {
   const ref = (library || []).slice(0, 3).map((c) => `"${c.hook}" (angle ${c.angle}, rev ${c.kpis ? c.kpis.revenue : 'n/a'})`).join('; ');
   const productLines = products.map((p) => `${p.title} — $${p.price} (${p.category})`).join('\n');
-  const sys = `You are the lifecycle copy chief for KNICKGASM, a premium one-of-one sneaker & streetwear brand.
+  const sys = `You are the lifecycle copy chief for ${brandLabel(brand)}.
 Voice: ${brand.voice}. Use this lexicon where natural: ${(brand.preferred_lexicon || []).join(', ')}.
 NEVER use: ${(brand.banned_phrases || []).join(', ')}.
 QUALITY BAR — before you return, silently score every field 1-10 on: Clarity, Conversion pull, Brand-voice fit, Concrete proof (a specific detail/number, never a vague claim), and Format/character-limits. If any field scores below 8, rewrite it. Prefer a specific, sensory, benefit-led line over a generic category claim: a reason tied to THIS cohort/angle beats "origin-fresh sneaker" every time. Each headline/description must read better than the obvious generic version.
@@ -152,9 +201,9 @@ AD-COPY RULES (apply to google, meta and tiktok blocks):
 - Use ONLY the product names/prices given above. Invent no discounts, promo codes, ratings, review counts, claims, or URLs. If an offer is not supplied, do not state one.
 
 JSON shape:
-{"subject":"","preheader":"","headline":"","subheadline":"","body_intro":"2-3 sentence sensory opening","story":"4-5 sentence narrative for the angle","cta_primary":"","cta_secondary":"","testimonial":{"quote":"tiny personal story, 2 sentences","name":"first name + city"},"google":{"headlines":["12 short headlines ≤30 chars"],"descriptions":["4 descriptions ≤90 chars"],"callouts":["4 callouts ≤25 chars e.g. Free shipping over $35"],"sitelinks":[{"text":"≤25 chars","desc":"≤35 chars"},{"text":"","desc":""},{"text":"","desc":""},{"text":"","desc":""}]},"meta":{"primary_text":"best single primary text","primary_text_variants":["unaware-stage hook","problem-aware angle","solution-aware/offer angle"],"headline":"≤40 chars","headlines":["3 headline options ≤40 chars"],"description":"≤30 chars","creative_concept":"one-line art direction for the hero image"},"tiktok":{"hook_line":"first 2s spoken hook","script":"15s spoken script, conversational","shot_list":["4 beats: 0-2s hook / 3-6s problem / 7-11s product+proof / 12-15s CTA"],"captions":["3 on-screen caption lines"]},"landing":{"hero_eyebrow":"3-5 word kicker","hero_headline":"big emotional promise","hero_sub":"1-2 sentence support","offer_bar":"short sticky offer line e.g. Free sampler + free shipping over $35","trust_badges":["4 very short proof points"],"problem":{"headline":"name the pain","body":"3-4 sentences on what they settle for today"},"mechanism":{"headline":"why origin-fresh changes it","steps":[{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"}]},"benefits":[{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"}],"comparison":{"us_label":"KNICKGASM","them_label":"Supermarket sneaker","rows":[{"feature":"","us":"","them":""},{"feature":"","us":"","them":""},{"feature":"","us":"","them":""},{"feature":"","us":"","them":""}]},"testimonials":[{"quote":"2 sentence story","name":"first name","location":"city"},{"quote":"2 sentence story","name":"first name","location":"city"},{"quote":"2 sentence story","name":"first name","location":"city"}],"offer_stack":{"headline":"what you get","items":["3-5 included lines, each with a small value note"],"price_note":"value framing e.g. about 40c a pair","cta":"buy CTA"},"faq":[{"q":"","a":""},{"q":"","a":""},{"q":"","a":""},{"q":"","a":""}],"guarantee":{"headline":"risk reversal","body":"1-2 sentences"}}}`;
+{"subject":"","preheader":"","headline":"","subheadline":"","body_intro":"2-3 sentence sensory opening","story":"4-5 sentence narrative for the angle","cta_primary":"","cta_secondary":"","testimonial":{"quote":"tiny personal story, 2 sentences","name":"first name + city"},"google":{"headlines":["12 short headlines ≤30 chars"],"descriptions":["4 descriptions ≤90 chars"],"callouts":["4 callouts ≤25 chars e.g. Free shipping over $35"],"sitelinks":[{"text":"≤25 chars","desc":"≤35 chars"},{"text":"","desc":""},{"text":"","desc":""},{"text":"","desc":""}]},"meta":{"primary_text":"best single primary text","primary_text_variants":["unaware-stage hook","problem-aware angle","solution-aware/offer angle"],"headline":"≤40 chars","headlines":["3 headline options ≤40 chars"],"description":"≤30 chars","creative_concept":"one-line art direction for the hero image"},"tiktok":{"hook_line":"first 2s spoken hook","script":"15s spoken script, conversational","shot_list":["4 beats: 0-2s hook / 3-6s problem / 7-11s product+proof / 12-15s CTA"],"captions":["3 on-screen caption lines"]},"landing":{"hero_eyebrow":"3-5 word kicker","hero_headline":"big emotional promise","hero_sub":"1-2 sentence support","offer_bar":"short sticky offer line e.g. Free sampler + free shipping over $35","trust_badges":["4 very short proof points"],"problem":{"headline":"name the pain","body":"3-4 sentences on what they settle for today"},"mechanism":{"headline":"why origin-fresh changes it","steps":[{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"}]},"benefits":[{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"}],"comparison":{"us_label":"${brandLabel(brand)}","them_label":"the alternative"},"rows":[{"feature":"","us":"","them":""},{"feature":"","us":"","them":""},{"feature":"","us":"","them":""},{"feature":"","us":"","them":""}]},"testimonials":[{"quote":"2 sentence story","name":"first name","location":"city"},{"quote":"2 sentence story","name":"first name","location":"city"},{"quote":"2 sentence story","name":"first name","location":"city"}],"offer_stack":{"headline":"what you get","items":["3-5 included lines, each with a small value note"],"price_note":"value framing e.g. about 40c a pair","cta":"buy CTA"},"faq":[{"q":"","a":""},{"q":"","a":""},{"q":"","a":""},{"q":"","a":""}],"guarantee":{"headline":"risk reversal","body":"1-2 sentences"}}}`;
   let copy = await llmJson(sys, user, 3400);
-  if (!copy || !copy.headline) copy = fallbackCopy(slot, products);
+  if (!copy || !copy.headline) copy = fallbackCopy(slot, products, brand);
   // brand-compliance scrub on every string: banned phrases + no em/en dashes
   // (same no-dash rule the lifecycle builder enforces, for consistency).
   const walk = (o) => {
@@ -191,7 +240,7 @@ function clampAds(copy) {
   return copy;
 }
 
-function fallbackCopy(slot, products) {
+function fallbackCopy(slot, products, brand) {
   const p = products[0] || { title: 'Original Hand-painted Kicks', price: 19.99, category: 'Kicks' };
   const theme = slot.theme || 'Morning Ritual';
   const fest = slot.festival;
@@ -260,7 +309,7 @@ function fallbackCopy(slot, products) {
         { title: 'Ritual that pays back', desc: 'About 50 pairs a box — a daily reset for the price of a habit.' },
       ],
       comparison: {
-        us_label: 'KNICKGASM',
+        us_label: brandLabel(brand),
         them_label: 'Supermarket sneaker',
         rows: [
           { feature: 'Freshness', us: 'Packed days after drop', them: 'Often 1+ year old' },
@@ -296,22 +345,19 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
   const P = brand.palette;
   const heads = brand.typography.headings.fallback;
   const body = brand.typography.body.fallback;
-  const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
+  const store = storeUrl(brand, slot.market);
+  const label = brandLabel(brand);
+  const sender = senderIdentity(brand);
   const cur = slot.market === 'UK' ? '£' : '$';
-  // Collection CTA target, derived from the hero product's category so the
-  // secondary CTA lands on the right collection (falls back to all-sneakers).
+  // Collection paths are tenant zero's catalogue. Another brand links its store.
   const heroType = ((products[0] && products[0].type) || '').toLowerCase();
-  const collectionUrl = /kicks/.test(heroType) ? `${store}/collections/kicks-sneaker`
-    : /green/.test(heroType) ? `${store}/collections/green-sneaker`
-    : /black/.test(heroType) ? `${store}/collections/black-sneaker`
-    : /themed|embroidery|streetwear|jacket|accessor/.test(heroType) ? `${store}/collections/streetwear-sneaker`
-    : `${store}/collections/all`;
+  const collectionUrl = collectionUrlFor(store, heroType, brand);
   const esc = (s) => String(s == null ? '' : s).replace(/[<>]/g, (c) => (c === '<' ? '&lt;' : '&gt;'));
   const L = copy.landing || {};
   const offerBar = L.offer_bar || `Welcome gift: free rope laces and lace tag with every custom pair`;
   const badges = (L.trust_badges && L.trust_badges.length ? L.trust_badges : ['100% original bases', 'Hand-painted', 'Water & scratch resistant', 'Ships to 60+ countries']).slice(0, 4);
   const steps = ((L.mechanism || {}).steps || []).slice(0, 3);
-  const testis = gateTestis((L.testimonials && L.testimonials.length ? L.testimonials : [copy.testimonial].filter(Boolean).map((t) => ({ quote: t.quote, name: t.name, location: '' }))), slot, p).slice(0, 2);
+  const testis = gateTestis((L.testimonials && L.testimonials.length ? L.testimonials : [copy.testimonial].filter(Boolean).map((t) => ({ quote: t.quote, name: t.name, location: '' }))), slot, products[0] || null).slice(0, 2);
   const guarantee = L.guarantee || null;
 
   const badgeRow = badges.map((b) => `<td align="center" style="font-family:${body};font-size:11px;color:${P.forest_green};padding:4px 6px"><span style="color:${P.lava}">✦</span> ${esc(b)}</td>`).join('');
@@ -345,7 +391,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
     </td>`;
   }).join('');
   const heroPhoto = productImage(products[0] || {}, slot.market, slotBrand(slot, brand));
-  const p0title = esc((products[0] || {}).title || 'KNICKGASM');
+  const p0title = esc((products[0] || {}).title || label);
   const ctaBtn = (bg, fg) => `<a href="${store}" style="display:inline-block;margin-top:24px;background:${bg};color:${fg};font-family:${body};font-size:14px;font-weight:700;padding:14px 34px;border-radius:8px;text-decoration:none">${esc(copy.cta_primary)}</a>`;
 
   // ── Named sections — assembled per the archetype's order below ────────────
@@ -380,7 +426,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
       <div style="font-family:${heads};font-size:26px;line-height:1.25;color:${P.forest_green};font-weight:700">${esc(copy.headline)}</div>
       <div style="font-family:${body};font-size:15px;line-height:1.8;color:${P.near_black};margin-top:16px">${esc(copy.body_intro)}</div>
       <div style="font-family:${body};font-size:15px;line-height:1.8;color:${P.near_black};margin-top:12px">${esc(copy.story)}</div>
-      <div style="font-family:${heads};font-size:16px;color:${P.forest_green};margin-top:18px">Warmly,<br>The KNICKGASM family</div>
+      <div style="font-family:${heads};font-size:16px;color:${P.forest_green};margin-top:18px">Warmly,<br>The ${esc(label)} family</div>
       ${ctaBtn(P.forest_green, P.chalk)}
     </td></tr>`,
     photoBand: heroPhoto
@@ -399,7 +445,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
       <div style="border:1px solid ${P.lava}55;border-radius:12px;padding:20px 22px;background:#ffffff">
         <div style="font-family:${heads};font-size:17px;color:${P.forest_green}">Not sure where to begin?</div>
         <div style="font-family:${body};font-size:13px;color:${P.near_black}AA;line-height:1.6;margin-top:6px">Talk to our sneaker expert, ask about benefits, crafting, and which colorway fits your ritual. It answers, out loud, like a call.</div>
-        <a href="${agentUrl}" style="display:inline-block;margin-top:12px;background:${P.forest_green};color:${P.chalk};font-family:${body};font-size:13px;font-weight:700;padding:11px 26px;border-radius:8px;text-decoration:none">Talk to the Knickgasm expert →</a>
+        <a href="${agentUrl}" style="display:inline-block;margin-top:12px;background:${P.forest_green};color:${P.chalk};font-family:${body};font-size:13px;font-weight:700;padding:11px 26px;border-radius:8px;text-decoration:none">Talk to the ${esc(label)} expert →</a>
       </div>
     </td></tr>`,
   };
@@ -420,8 +466,8 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
   <tr><td align="center" style="background:${P.lava};border-radius:8px;padding:8px 14px;font-family:${body};font-size:12px;font-weight:700;color:${P.near_black}">${esc(offerBar)}</td></tr>
   <tr><td align="center" style="padding:18px 0 8px">
     <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block">
-      <div style="font-family:${heads};font-size:22px;letter-spacing:0.28em;color:${P.forest_green};font-weight:700">KNICKGASM</div>
-      <div style="font-family:${body};font-size:10px;letter-spacing:0.22em;color:${P.lava};text-transform:uppercase;margin-top:4px">${esc(String(market || '').toUpperCase())}</div>
+      <div style="font-family:${heads};font-size:22px;letter-spacing:0.28em;color:${P.forest_green};font-weight:700">${esc(label)}</div>
+      <div style="font-family:${body};font-size:10px;letter-spacing:0.22em;color:${P.lava};text-transform:uppercase;margin-top:4px">${esc(String(slot.market || '').toUpperCase())}</div>
     </a>
   </td></tr>
   ${bodyRows}
@@ -429,9 +475,9 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
     <a href="${collectionUrl}" target="_blank" style="display:inline-block;font-family:${body};font-size:13px;font-weight:700;color:${P.forest_green};border:1.5px solid ${P.lava};border-radius:8px;padding:11px 24px;text-decoration:none">${esc(copy.cta_secondary || 'Explore the collection')}</a>
   </td></tr>
   <tr><td align="center" style="background:${P.near_black};padding:24px 22px 30px">
-    <div style="font-family:${heads};font-size:14px;letter-spacing:0.24em;color:${P.chalk}">KNICKGASM</div>
-    <div style="font-family:${body};font-size:10.5px;letter-spacing:0.05em;color:${P.lava};margin:9px 0">Single-studio · Hand-painted · Shipped fresh from origin</div>
-    <div style="font-family:${body};font-size:11px;color:${P.chalk}99;line-height:1.7">${ORG_NAME} &middot; ${ORG_ADDRESS}<br>You are receiving this as a valued KNICKGASM ${esc(slot.market)} customer. Carbon &amp; plastic neutral.<br>Manage preferences or unsubscribe from your account settings.</div>
+    <div style="font-family:${heads};font-size:14px;letter-spacing:0.24em;color:${P.chalk}">${esc(label)}</div>
+    <div style="font-family:${body};font-size:10.5px;letter-spacing:0.05em;color:${P.lava};margin:9px 0">${esc(sender.name)}</div>
+    <div style="font-family:${body};font-size:11px;color:${P.chalk}99;line-height:1.7">${esc(sender.name)} &middot; ${esc(sender.address)}<br>You are receiving this as a valued ${esc(label)} ${esc(slot.market)} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
   </td></tr>
 </table></td></tr></table></body></html>`;
 }
@@ -444,7 +490,7 @@ function mailerHtml(slot, copy, products, brand, agentUrl) {
 // just the rich mailer if the shared renderer is unavailable.
 function mailerVariants(slot, copy, products, brand, agentUrl, richHtml) {
   if (!renderTextVariant) return null;
-  const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
+  const store = storeUrl(brand, slot.market);
   const p0 = products[0] || {};
   const heroImg = productImage(p0, slot.market, slotBrand(slot, brand)) || '';
   const S = {
@@ -457,9 +503,7 @@ function mailerVariants(slot, copy, products, brand, agentUrl, richHtml) {
     ].filter(Boolean),
     cta_text: copy.cta_primary || 'Shop the edit',
   };
-  const collectionUrl = /kicks/.test(((p0.type) || '').toLowerCase()) ? `${store}/collections/kicks-sneaker`
-    : /green/.test(((p0.type) || '').toLowerCase()) ? `${store}/collections/green-sneaker`
-    : `${store}/collections/all`;
+  const collectionUrl = collectionUrlFor(store, p0.type, brand);
   // `withGrid` gates the real product-image grid + collection CTA to the
   // Text + Visual variants; pure "Text" variants stay graphics-free per taxonomy.
   const mk = (style, img, withGrid) => renderTextVariant({
@@ -481,7 +525,9 @@ function landingHtml(slot, copy, products, brand, agentUrl) {
   const P = brand.palette;
   const heads = brand.typography.headings.fallback;
   const body = brand.typography.body.fallback;
-  const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
+  const store = storeUrl(brand, slot.market);
+  const label = brandLabel(brand);
+  const sender = senderIdentity(brand);
   const cur = slot.market === 'UK' ? '£' : '$';
   const esc = (s) => String(s == null ? '' : s).replace(/[<>]/g, (c) => (c === '<' ? '&lt;' : '&gt;'));
   const L = copy.landing || {};
@@ -501,7 +547,8 @@ function landingHtml(slot, copy, products, brand, agentUrl) {
   const stack = L.offer_stack || { headline: 'What is in your first order', items: [], price_note: '', cta: copy.cta_primary };
   const faqList = L.faq || [];
   const guarantee = L.guarantee || { headline: 'Lace-up it risk-free', body: 'Love the panel or we will make it right.' };
-  const agentId = `knickgasm_${(slot.cohort_id || slot.market || 'sneaker').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+  const agentStem = isShippedBrand(brand) ? 'knickgasm' : String((brand && brand.name) || 'brand').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const agentId = `${agentStem}_${(slot.cohort_id || slot.market || 'general').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
 
   const badgeRow = badges.slice(0, 4).map((b) => `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:${P.chalk}DD"><span style="color:${P.lava}">✦</span>${esc(b)}</span>`).join('<span style="opacity:.4">·</span>');
   const steps = (mech.steps || []).slice(0, 3).map((s, i) => `
@@ -529,7 +576,7 @@ function landingHtml(slot, copy, products, brand, agentUrl) {
       <table style="width:100%;border-collapse:collapse;font-size:14.5px">
         <thead><tr style="background:${P.forest_green};color:${P.chalk}">
           <th style="text-align:left;padding:14px 16px;font-family:${heads};font-weight:600"></th>
-          <th style="padding:14px 16px;font-family:${heads};font-weight:700">${esc(comp.us_label || 'KNICKGASM')}</th>
+          <th style="padding:14px 16px;font-family:${heads};font-weight:700">${esc(comp.us_label || label)}</th>
           <th style="padding:14px 16px;font-family:${heads};font-weight:600;color:${P.chalk}AA">${esc(comp.them_label || 'Supermarket sneaker')}</th>
         </tr></thead>
         <tbody>${(comp.rows || []).map((r, i) => `<tr style="background:${i % 2 ? P.chalk : '#fff'}">
@@ -551,7 +598,7 @@ function landingHtml(slot, copy, products, brand, agentUrl) {
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(heroH)} — KNICKGASM</title>
+<title>${esc(heroH)} — ${esc(label)}</title>
 <meta name="description" content="${esc(heroSub)}">
 <style>
   *{box-sizing:border-box}
@@ -571,7 +618,7 @@ function landingHtml(slot, copy, products, brand, agentUrl) {
 <body>
 <div class="obar">${esc(offerBar)}</div>
 <header style="background:${P.forest_green};padding:14px 0"><div class="wrap" style="display:flex;justify-content:space-between;align-items:center">
-  <div style="font-family:${heads};letter-spacing:.3em;color:${P.chalk};font-weight:700">KNICKGASM</div>
+  <div style="font-family:${heads};letter-spacing:.3em;color:${P.chalk};font-weight:700">${esc(label)}</div>
   <a href="${agentUrl}" style="color:${P.lava};font-size:13px;text-decoration:none">🎙 Talk to our sneaker expert</a>
 </div></header>
 
@@ -633,14 +680,14 @@ ${compTable}
   <div style="margin-top:14px"><a href="${agentUrl}" style="color:${P.forest_green};font-weight:700;text-decoration:none;font-size:14px">🎙 Or ask our sneaker expert anything →</a></div>
 </div></section>
 
-<footer style="background:${P.near_black};color:${P.chalk}99;text-align:center;padding:30px;font-size:12px">${ORG_NAME} &middot; ${ORG_ADDRESS}<br>Single-studio &middot; Carbon &amp; plastic neutral</footer>
+<footer style="background:${P.near_black};color:${P.chalk}99;text-align:center;padding:30px;font-size:12px">${esc(sender.name)} &middot; ${esc(sender.address)}</footer>
 
 <div class="stickb">
   <div class="p"><b>${esc(offerBar)}</b></div>
   <a class="cta" style="padding:11px 26px;font-size:14px" href="${store}">${esc(copy.cta_primary)}</a>
 </div>
 
-<!-- Embedded all-in-one KNICKGASM voice agent (chat + voice), like the reference LP -->
+<!-- Embedded voice agent (chat + voice) -->
 <script src="/agent-widget.js" data-agent="${agentId}" data-collection="${esc(slot.market || '')}" defer></script>
 </body></html>`;
 }
@@ -665,7 +712,8 @@ function audienceSpec(slot, cohort) {
 
 function campaignObjects(slot, copy, cohort, products, brand) {
   const aud = audienceSpec(slot, cohort);
-  const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
+  const store = storeUrl(brand, slot.market);
+  const sender = senderIdentity(brand);
   const utm = `utm_source={platform}&utm_medium={medium}&utm_campaign=${encodeURIComponent(slot.id)}`;
   const objs = [];
   if (slot.channel === 'email' || slot.channel === 'landing_email') {
@@ -674,7 +722,7 @@ function campaignObjects(slot, copy, cohort, products, brand) {
       campaign_object: {
         type: 'campaign', name: `${slot.theme} · ${slot.market} · ${slot.slot_date}`,
         audience: aud, send_time_local: '09:30',
-        message: { subject: copy.subject, preheader: copy.preheader, from_name: 'KNICKGASM', from_email: 'hello@knickgasm.com', template_ref: `asset:mailer_html:${slot.id}` },
+        message: { subject: copy.subject, preheader: copy.preheader, from_name: sender.from_name, from_email: sender.from_email, template_ref: `asset:mailer_html:${slot.id}` },
         ab_test: { dimension: 'subject', variants: [copy.subject, `${copy.headline}, inside`], split: 0.5, metric: 'open_rate' },
         followup: { trigger: 'no_open_48h', action: 'resend_new_subject' },
         utm,
@@ -782,7 +830,7 @@ async function generateForSlot(slotId, { persist = true } = {}) {
     push('mailer_html', `Mailer · ${slot.theme} · ${slot.market}`, richHtml, { subject: copy.subject, preheader: copy.preheader, variants: variants || ['A: image hero', 'B: text editorial'] });
   }
   if (slot.channel.startsWith('landing')) {
-    const store = (brand.store_urls || {})[slot.market] || 'https://knickgasm.com';
+    const store = storeUrl((slot && slot.brand) || brand, slot.market);
     const hub = pickCampaignHubLP(slot, picked, (slot && slot.brand) || (typeof entry !== "undefined" && entry && entry.brand) || null);
     if (hub) {
       // Premium curated themed LP from the Campaign Hub compiler.
