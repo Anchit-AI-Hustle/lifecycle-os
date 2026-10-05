@@ -50,7 +50,12 @@ test('a workspace that only claims the knickgasm slug is not handed tenant zero\
   const llm = require(path.join(ROOT, 'api/_shared/brand-llm.js'));
   const competitor = require(path.join(ROOT, 'api/_shared/competitor-core.js'));
   const impostor = { id: 'ws-other', slug: 'knickgasm', name: 'Deli Chic', owns_shipped: false };
-  expect(catalog.isTenantZeroBrand(impostor)).toBe(null);
+  // owns_shipped false is a decision: this workspace is not tenant zero.
+  // A slug with an id and no owns_shipped flag is undecided (null), and that
+  // is also not a yes, so the libraries stay closed.
+  const undecided = { id: 'ws-other', slug: 'knickgasm', name: 'Deli Chic' };
+  expect(catalog.isTenantZeroBrand(impostor)).toBe(false);
+  expect(catalog.isTenantZeroBrand(undecided)).toBe(null);
   expect(catalog.isTenantZeroBrand({ is_default: true, name: 'KNICKGASM' })).toBe(true);
   expect(catalog.isTenantZeroBrand(null)).toBe(null);
   expect(brain.pickCampaignHubLP(
@@ -58,10 +63,19 @@ test('a workspace that only claims the knickgasm slug is not handed tenant zero\
     [{ title: 'Air Force custom', tags: ['custom', 'hand-painted'] }],
     impostor,
   )).toBeNull();
+  expect(brain.pickCampaignHubLP(
+    { theme: 'grail-drop anime football custom hand-painted', angle: 'one-of-one' },
+    [{ title: 'Air Force custom', tags: ['custom', 'hand-painted'] }],
+    undecided,
+  )).toBeNull();
   expect(llm.assistantNameFor(impostor)).toBe('Deli Chic Assistant');
+  expect(llm.assistantNameFor(undecided)).toBe('Deli Chic Assistant');
   expect(llm.assistantNameFor(null)).toBe('Assistant');
   expect(llm.assistantNameFor({ is_default: true, name: 'KNICKGASM' })).toBe('KicksGPT');
   const seeded = await competitor.seedBrands(new Date().toISOString(), impostor);
+  const seededUndecided = await competitor.seedBrands(new Date().toISOString(), undecided);
+  expect(seededUndecided.skipped).toBe(true);
+  expect(seededUndecided.added).toBe(0);
   expect(seeded.skipped).toBe(true);
   expect(seeded.added).toBe(0);
 });
