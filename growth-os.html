@@ -688,15 +688,31 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       { title:"The measured revenue loop could not be loaded", colspan:9 });
   }
 
+  function revenueUnavailable(message){
+    revenueLoading = false;
+    el("go-revenue-status").classList.remove("err");
+    el("go-revenue-status-text").textContent = message;
+    el("go-revenue-body").innerHTML = '<tr><td colspan="9" class="empty">' + esc(message) + '</td></tr>';
+  }
+
   function loadRevenue(){
     if (revenueLoaded || revenueLoading) return;
+
+    // This tab is a protected, model-backed analysis. Opening a normal Growth
+    // OS page while signed out must not turn a harmless tab click into a red
+    // failure state, nor should it spend a request the server can only refuse.
+    // The global action audit exercises every button under signed-out and dead-
+    // backend states, so fail closed here before the network call.
+    var session = null;
+    try { session = window.LifecycleAuth && window.LifecycleAuth.session; } catch(e){ session = null; }
+    if (!session || !session.access_token) {
+      revenueUnavailable("Sign in and activate a brand to run Revenue OS. Nothing is fetched or inferred while this page has no verified session.");
+      return;
+    }
+
     revenueLoading = true;
     el("go-revenue-status-text").textContent = "Running grounded platform analysts and reading measured outcomes…";
-    var headers = { "Content-Type":"application/json" };
-    try {
-      var s = window.LifecycleAuth && window.LifecycleAuth.session;
-      if (s && s.access_token) headers.Authorization = "Bearer " + s.access_token;
-    } catch(e){ /* endpoint will return the honest auth failure */ }
+    var headers = { "Content-Type":"application/json", Authorization:"Bearer " + session.access_token };
 
     fetch("/api/brain?action=revenue-os", { headers:headers })
       .then(function(r){
