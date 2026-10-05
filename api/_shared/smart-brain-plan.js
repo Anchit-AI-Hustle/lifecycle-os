@@ -25,6 +25,7 @@ const {
   smartConfig, SmartBrainDbAdapter, KnowledgeBaseService, AnalysisService,
   CompetitorBenchmarkingService, CalendarIntelligenceService, GenerationService,
   applyContactPolicy,
+  replenishmentEntries, enforceFrequencyCap,
 } = require('../../lib/smart-brain/services.js');
 const crypto = require('crypto');
 const callLLM = require('./llm.js');
@@ -681,6 +682,8 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
     const ns = workspaceNs(config.workspace_id || (pb.brand && pb.brand.id), pb.isZero);
     fresh = pb.brand ? offeringPlanEntries(pb.brand, offs, start, horizon, ns) : [];
+    const own = pb.brand ? await ownReplenishment(config, db, pb.brand, start, horizon, ns) : null;
+    if (own) fresh = fresh.concat(own.entries);
     // The same plan-time cap and per-slot eligibility the shipped planner
     // applies: a brand planned from its own offerings is held to the same
     // contact rules as tenant zero.
