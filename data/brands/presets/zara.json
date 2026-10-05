@@ -289,6 +289,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.zara.com/us/",
+      "kind": "page",
+      "what": "Zara US store front"
+    },
+    {
+      "url": "https://www.zara.com/es/en/",
+      "kind": "page",
+      "what": "Zara Spain store front (English)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Zara]",

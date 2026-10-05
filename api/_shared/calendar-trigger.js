@@ -385,7 +385,7 @@ module.exports = async function handler(req, res) {
         var b = entry.brand || null;
         var name = (b && b.name) || 'the brand';
         var p = (b && b.palette) || {};
-        var pal = `primary ${p.primary || '#D0473E'}, accent ${p.accent || '#6A33D8'}, surface ${p.surface || '#FFFFFF'}`;
+        var pal = `primary ${p.primary || '#D0473E'}, accent ${p.accent || p.primary || '#6A33D8'}, surface ${p.surface || '#FFFFFF'}`;
         return `On-brand ${name} email visual for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
           `Editorial photography or gentle product-frame motion (animated GIF), true to this brand's own world, ` +
           `elegant negative space, cinematic light. Brand palette only (${pal}). ` +

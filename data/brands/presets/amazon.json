@@ -290,6 +290,13 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.aboutamazon.com/",
+      "kind": "page",
+      "what": "About Amazon, the company's own news site (linked from amazon.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Amazon]",

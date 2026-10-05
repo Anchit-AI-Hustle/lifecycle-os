@@ -289,6 +289,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.uniqlo.com/us/en/",
+      "kind": "page",
+      "what": "UNIQLO US store front"
+    },
+    {
+      "url": "https://www.uniqlo.com/in/en/",
+      "kind": "page",
+      "what": "UNIQLO India store front"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Uniqlo]",

@@ -103,6 +103,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://brand.netflix.com/en/",
+      "kind": "page",
+      "what": "Netflix brand site"
+    },
+    {
+      "url": "https://about.netflix.com/en",
+      "kind": "page",
+      "what": "About Netflix"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Netflix]",

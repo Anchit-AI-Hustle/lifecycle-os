@@ -290,6 +290,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://newsroom.sephora.com/",
+      "kind": "page",
+      "what": "Sephora newsroom"
+    },
+    {
+      "url": "https://www.sephora.com/beauty/about-us",
+      "kind": "page",
+      "what": "Sephora about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Sephora]",

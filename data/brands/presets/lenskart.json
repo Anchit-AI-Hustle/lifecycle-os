@@ -435,6 +435,13 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.lenskart.com/about-us",
+      "kind": "page",
+      "what": "Lenskart about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Lenskart]",

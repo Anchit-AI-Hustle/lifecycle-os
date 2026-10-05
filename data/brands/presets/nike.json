@@ -234,6 +234,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://about.nike.com/en",
+      "kind": "page",
+      "what": "Nike, Inc. corporate site"
+    },
+    {
+      "url": "https://about.nike.com/en/newsroom",
+      "kind": "page",
+      "what": "Nike newsroom"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Nike]",

@@ -157,6 +157,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://electronics.sony.com/",
+      "kind": "page",
+      "what": "Sony Electronics store front"
+    },
+    {
+      "url": "https://www.sony.net/",
+      "kind": "page",
+      "what": "Sony Group global portal (linked from sony.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Sony]",

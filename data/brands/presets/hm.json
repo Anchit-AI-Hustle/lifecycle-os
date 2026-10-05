@@ -289,6 +289,23 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www2.hm.com/en_us/index.html",
+      "kind": "page",
+      "what": "H&M US store front"
+    },
+    {
+      "url": "https://career.hm.com/",
+      "kind": "page",
+      "what": "H&M careers site"
+    },
+    {
+      "url": "https://hmgroup.com/",
+      "kind": "page",
+      "what": "H&M Group corporate site (linked from hm.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, H&M]",

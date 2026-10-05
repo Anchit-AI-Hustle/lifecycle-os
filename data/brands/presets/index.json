@@ -45,6 +45,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Montserrat",
       "body_font": "Instrument Sans",
       "heading_stack": "'Montserrat','Raleway',Arial,sans-serif",
@@ -55,6 +58,7 @@
       "body_line": "Instrument Sans",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -108,6 +112,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Montserrat",
       "body_font": "Faustina",
       "heading_stack": "'Montserrat',Verdana,Arial,sans-serif",
@@ -118,6 +125,7 @@
       "body_line": "Faustina",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -172,6 +180,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
@@ -182,6 +193,7 @@
       "body_line": "Rethink Sans",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -236,6 +248,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
@@ -246,6 +261,7 @@
       "body_line": "Rethink Sans",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -300,6 +316,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "SF Pro Display",
       "body_font": "SF Pro Text",
       "heading_stack": "'SF Pro Display','SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
@@ -310,6 +329,7 @@
       "body_line": "SF Pro Text (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -364,6 +384,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://about.nike.com/en",
+          "kind": "page",
+          "what": "Nike, Inc. corporate site"
+        },
+        {
+          "url": "https://about.nike.com/en/newsroom",
+          "kind": "page",
+          "what": "Nike newsroom"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -379,6 +413,7 @@
         "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
       },
       "read_note": "www.nike.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -431,6 +466,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.adidas.com/us",
+          "kind": "page",
+          "what": "adidas US store front"
+        },
+        {
+          "url": "https://www.adidas-group.com/en/",
+          "kind": "page",
+          "what": "adidas Group corporate site (linked from adidas.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -446,6 +495,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -500,6 +550,15 @@
           "exact": ""
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://about.puma.com/en",
+          "kind": "page",
+          "what": "PUMA corporate site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -510,6 +569,7 @@
       "body_line": "system-ui (system font)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "Monochrome: www.puma.com renders no brand colour beyond black and white, so the primary is the #191919 of its call to action.",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -593,6 +653,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://jobs.newbalance.com/global/en",
+          "kind": "page",
+          "what": "New Balance careers site"
+        },
+        {
+          "url": "https://www.newbalance.com/about-us.html",
+          "kind": "page",
+          "what": "New Balance about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -608,6 +682,7 @@
         "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.newbalance.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -660,6 +735,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.zara.com/us/",
+          "kind": "page",
+          "what": "Zara US store front"
+        },
+        {
+          "url": "https://www.zara.com/es/en/",
+          "kind": "page",
+          "what": "Zara Spain store front (English)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -675,6 +764,7 @@
         "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.zara.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -727,6 +817,25 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www2.hm.com/en_us/index.html",
+          "kind": "page",
+          "what": "H&M US store front"
+        },
+        {
+          "url": "https://career.hm.com/",
+          "kind": "page",
+          "what": "H&M careers site"
+        },
+        {
+          "url": "https://hmgroup.com/",
+          "kind": "page",
+          "what": "H&M Group corporate site (linked from hm.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -742,6 +851,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -794,6 +904,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.uniqlo.com/us/en/",
+          "kind": "page",
+          "what": "UNIQLO US store front"
+        },
+        {
+          "url": "https://www.uniqlo.com/in/en/",
+          "kind": "page",
+          "what": "UNIQLO India store front"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -809,6 +933,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -861,6 +986,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.levi.com/US/en_US/",
+          "kind": "page",
+          "what": "Levi's US store front"
+        },
+        {
+          "url": "https://www.levistrauss.com/",
+          "kind": "page",
+          "what": "Levi Strauss & Co. corporate site (linked from levi.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -876,6 +1015,7 @@
         "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.levi.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -928,6 +1068,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://jobs.myntra.com/home",
+          "kind": "page",
+          "what": "Myntra careers site"
+        },
+        {
+          "url": "https://www.myntra.com/shop/men",
+          "kind": "page",
+          "what": "Myntra men's store"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -943,6 +1097,7 @@
         "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
       },
       "read_note": "www.myntra.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -997,6 +1152,15 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://stories.flipkart.com/",
+          "kind": "page",
+          "what": "Flipkart Stories, the company's own news site"
+        }
+      ],
       "heading_font": "inter_bold",
       "body_font": "inter_regular",
       "heading_stack": "'inter_bold',sans-serif",
@@ -1007,6 +1171,7 @@
       "body_line": "inter_regular (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1091,6 +1256,15 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.aboutamazon.com/",
+          "kind": "page",
+          "what": "About Amazon, the company's own news site (linked from amazon.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1106,6 +1280,7 @@
         "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
       "read_note": "www.amazon.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1159,6 +1334,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Inter",
       "body_font": "Inter",
       "heading_stack": "'Inter','Roboto','Arial',sans-serif",
@@ -1169,6 +1347,7 @@
       "body_line": "Inter (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1252,6 +1431,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://newsroom.sephora.com/",
+          "kind": "page",
+          "what": "Sephora newsroom"
+        },
+        {
+          "url": "https://www.sephora.com/beauty/about-us",
+          "kind": "page",
+          "what": "Sephora about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1267,6 +1460,7 @@
         "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.sephora.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1320,6 +1514,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.loreal.com/en/press-release/",
+          "kind": "page",
+          "what": "L'Oreal Groupe newsroom"
+        },
+        {
+          "url": "https://careers.loreal.com/",
+          "kind": "page",
+          "what": "L'Oreal Groupe careers site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1335,6 +1543,7 @@
         "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
       },
       "read_note": "www.loreal.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1388,6 +1597,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Open Sans",
       "body_font": "Open Sans",
       "heading_stack": "'Open Sans',sans-serif",
@@ -1398,6 +1610,7 @@
       "body_line": "Open Sans (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1481,6 +1694,15 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.boat-lifestyle.com/pages/about-us",
+          "kind": "page",
+          "what": "boAt about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1496,6 +1718,7 @@
         "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
       "read_note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1550,6 +1773,15 @@
           "exact": ""
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.lenskart.com/about-us",
+          "kind": "page",
+          "what": "Lenskart about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1560,6 +1792,7 @@
       "body_line": "system-ui (system font)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1644,6 +1877,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.samsung.com/be/about-us/brand-identity/logo/",
+          "kind": "page",
+          "what": "Samsung brand identity: logo"
+        },
+        {
+          "url": "https://news.samsung.com/global/",
+          "kind": "page",
+          "what": "Samsung Newsroom"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1659,6 +1906,7 @@
         "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
       },
       "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1712,6 +1960,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "segoeui",
       "body_font": "segoeui",
       "heading_stack": "'segoeui','Helvetica Neue','helvetica','arial',sans-serif",
@@ -1722,6 +1973,7 @@
       "body_line": "segoeui (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1806,6 +2058,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://electronics.sony.com/",
+          "kind": "page",
+          "what": "Sony Electronics store front"
+        },
+        {
+          "url": "https://www.sony.net/",
+          "kind": "page",
+          "what": "Sony Group global portal (linked from sony.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1821,6 +2087,7 @@
         "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.sony.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1873,6 +2140,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://ir.tesla.com/",
+          "kind": "page",
+          "what": "Tesla investor relations"
+        },
+        {
+          "url": "https://shop.tesla.com/",
+          "kind": "page",
+          "what": "Tesla shop"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1888,6 +2169,7 @@
         "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.tesla.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1941,6 +2223,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.bmw.com/en/index.html",
+          "kind": "page",
+          "what": "BMW.com (English)"
+        },
+        {
+          "url": "https://www.bmwgroup.com/en.html",
+          "kind": "page",
+          "what": "BMW Group corporate site (linked from bmw.com)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1956,6 +2252,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2009,6 +2306,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "kind": "page",
+          "what": "Toyota brand guidelines: brand colours"
+        },
+        {
+          "url": "https://pressroom.toyota.com/",
+          "kind": "page",
+          "what": "Toyota newsroom"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2024,6 +2335,7 @@
         "reason": "www.toyota.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"New Cars, Trucks, SUVs & Hybrids | Toyota Official Site\"). Nothing was read from it."
       },
       "read_note": "www.toyota.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2079,6 +2391,9 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "SoDoSans",
       "body_font": "SoDoSans",
       "heading_stack": "'SoDoSans','Helvetica Neue','Helvetica','Arial',sans-serif",
@@ -2089,6 +2404,7 @@
       "body_line": "SoDoSans (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2173,6 +2489,25 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html",
+          "kind": "page",
+          "what": "McDonald's media assets: logos"
+        },
+        {
+          "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
+          "kind": "page",
+          "what": "McDonald's corporate site"
+        },
+        {
+          "url": "https://careers.mcdonalds.com/",
+          "kind": "page",
+          "what": "McDonald's careers site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2188,6 +2523,7 @@
         "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.mcdonalds.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2242,6 +2578,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TCCC-UnityText",
       "body_font": "TCCC-UnityText",
       "heading_stack": "'TCCC-UnityText',sans-serif",
@@ -2252,6 +2591,7 @@
       "body_line": "TCCC-UnityText (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2335,6 +2675,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.nestle.com/media",
+          "kind": "page",
+          "what": "Nestle media page"
+        },
+        {
+          "url": "https://www.nestle.com/about",
+          "kind": "page",
+          "what": "Nestle about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2350,6 +2704,7 @@
         "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
       "read_note": "www.nestle.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2402,6 +2757,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://brand.netflix.com/en/",
+          "kind": "page",
+          "what": "Netflix brand site"
+        },
+        {
+          "url": "https://about.netflix.com/en",
+          "kind": "page",
+          "what": "About Netflix"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2417,6 +2786,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2470,6 +2840,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://developer.spotify.com/documentation/design",
+          "kind": "page",
+          "what": "Spotify design and branding guidelines"
+        },
+        {
+          "url": "https://newsroom.spotify.com/",
+          "kind": "page",
+          "what": "Spotify newsroom"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2485,6 +2869,7 @@
         "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
       "read_note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2540,6 +2925,9 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Airbnb Cereal VF",
       "body_font": "Airbnb Cereal VF",
       "heading_stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
@@ -2550,6 +2938,7 @@
       "body_line": "Airbnb Cereal VF (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2633,6 +3022,25 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.makemytrip.com/flights/",
+          "kind": "page",
+          "what": "MakeMyTrip flights page"
+        },
+        {
+          "url": "https://careers.makemytrip.com/",
+          "kind": "page",
+          "what": "MakeMyTrip careers site"
+        },
+        {
+          "url": "https://investors.makemytrip.com/",
+          "kind": "page",
+          "what": "MakeMyTrip investor relations"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2648,6 +3056,7 @@
         "reason": "The site could not be opened: timed out."
       },
       "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2702,6 +3111,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "sohne-var",
       "body_font": "sohne-var",
       "heading_stack": "'sohne-var','SF Pro Display',sans-serif",
@@ -2712,6 +3124,7 @@
       "body_line": "sohne-var (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2796,6 +3209,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TASA Orbiter Display SemiBold",
       "body_font": "Inter",
       "heading_stack": "'TASA Orbiter Display SemiBold','TASA Orbiter Display SemiBold Placeholder',sans-serif",
@@ -2806,6 +3222,7 @@
       "body_line": "Inter (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2890,6 +3307,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://paytm.com/about-us",
+          "kind": "page",
+          "what": "Paytm about page"
+        },
+        {
+          "url": "https://ir.paytm.com/",
+          "kind": "page",
+          "what": "Paytm investor relations"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2905,6 +3336,7 @@
         "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
       },
       "read_note": "paytm.com blocked an automated read on 2026-10-04.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2959,6 +3391,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TondoBold",
       "body_font": "Tondo",
       "heading_stack": "'TondoBold',sans-serif",
@@ -2969,6 +3404,7 @@
       "body_line": "Tondo (brand font, shown in fallback)",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,

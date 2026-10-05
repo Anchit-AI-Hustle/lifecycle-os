@@ -158,6 +158,23 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.makemytrip.com/flights/",
+      "kind": "page",
+      "what": "MakeMyTrip flights page"
+    },
+    {
+      "url": "https://careers.makemytrip.com/",
+      "kind": "page",
+      "what": "MakeMyTrip careers site"
+    },
+    {
+      "url": "https://investors.makemytrip.com/",
+      "kind": "page",
+      "what": "MakeMyTrip investor relations"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, MakeMyTrip]",

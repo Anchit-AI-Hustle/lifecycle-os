@@ -422,6 +422,13 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://about.puma.com/en",
+      "kind": "page",
+      "what": "PUMA corporate site"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Puma]",

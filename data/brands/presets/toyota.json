@@ -114,6 +114,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "kind": "page",
+      "what": "Toyota brand guidelines: brand colours"
+    },
+    {
+      "url": "https://pressroom.toyota.com/",
+      "kind": "page",
+      "what": "Toyota newsroom"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Toyota]",
