@@ -277,11 +277,73 @@ function renderContractMd(c) {
   return src.slice(0, bi + GEN_BEGIN.length) + '\n' + contractTables(c) + '\n' + src.slice(ei);
 }
 
+/* ── DESIGN.md front matter (google-labs-code/design.md, alpha) ─────────────
+   The same format the brand context pack emits for a BRAND (see
+   api/_shared/brand-context-pack.js), here for the PLATFORM. Generated, so
+   each value is read from the file that holds it; the prose below the front
+   matter is written by hand. Each token carries its source as a YAML comment. */
+const q = (v) => JSON.stringify(String(v));
+const maxOf = (v) => { const m = String(v).match(/(\d+(?:\.\d+)?)px\s*\)?\s*$/); return m ? `${m[1]}px` : String(v); };
+
+function designFrontMatter(c) {
+  const m = c.platform.mark;
+  const bare = core.tokens({ palette: {} });
+  const sys = mark.WORDMARK_FONT.replace(/'/g, '');
+  const mono = cssVar('vh-font-mono').replace(/^var\(--brand-font-mono,\s*/, '').replace(/\)$/, '').replace(/'/g, '');
+  const fs_ = Object.fromEntries(c.type.scale.map((x) => [x.name.replace('vh-fs-', ''), x.value]));
+  const L = ['---', 'version: alpha', 'name: "Lifecycle OS"',
+    'description: ' + q("The design system of Lifecycle OS, a universal lifecycle-marketing platform: the platform's own neutral mark, and one surface contract every screen takes its colours from, derived from the ACTIVE brand."),
+    'omitted:',
+    '  - section: components',
+    '    reason: ' + q("Every component colour is a role resolved from the active brand at run time (design/lifecycle-os/CONTRACT.md), which a static token reference cannot express without naming one brand's values as the platform's. Components are documented in prose and rendered live on /design-system."),
+    'colors:',
+    `  primary: ${q(m.ink)}  # assets/lifecycle-os-mark.svg --los-ink: the mark's ink, the platform's only identity colour`,
+    `  on-primary: ${q('#FFFFFF')}  # the ground of the share card and the lockups`,
+    `  surface: ${q('#FFFFFF')}  # the ground the logo set is drawn for`,
+    `  surface-container: ${q(m.tile)}  # assets/lifecycle-os-mark.svg --los-tile`,
+    `  on-surface: ${q(m.ink)}  # assets/lifecycle-os-mark.svg --los-ink`,
+    `  outline: ${q(m.line)}  # assets/lifecycle-os-mark.svg --los-line`,
+    `  error: ${q(bare['--brand-err'].toUpperCase())}  # tokens() default --brand-err, the state colour a brand without one gets`,
+    'typography:',
+    '  wordmark:  # scripts/build-platform-mark.js WORDMARK_FONT, the lockups',
+    `    fontFamily: ${q(sys)}`, '    fontSize: "34px"', '    fontWeight: 700',
+    `  headline-lg:  # theme.css --vh-fs-2xl ${fs_['2xl']}, .vh-h1`,
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(maxOf(fs_['2xl']))}`, '    fontWeight: 600', '    lineHeight: 1.1', '    letterSpacing: "-0.02em"',
+    `  headline-md:  # theme.css --vh-fs-xl ${fs_.xl}, .vh-h2`,
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(maxOf(fs_.xl))}`, '    fontWeight: 600', '    lineHeight: 1.2', '    letterSpacing: "-0.01em"',
+    `  title:  # theme.css --vh-fs-lg ${fs_.lg}, .vh-h3`,
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(maxOf(fs_.lg))}`, '    fontWeight: 600', '    lineHeight: 1.3',
+    '  body:  # theme.css --vh-fs-md, .vh-body',
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(fs_.md)}`, '    fontWeight: 400', '    lineHeight: 1.55',
+    '  body-sm:  # theme.css --vh-fs-sm, .vh-small',
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(fs_.sm)}`, '    fontWeight: 400', '    lineHeight: 1.5',
+    '  label:  # theme.css --vh-fs-xs, .vh-eyebrow (mono, uppercase)',
+    `    fontFamily: ${q(mono)}`, `    fontSize: ${q(fs_.xs)}`, '    fontWeight: 600', '    letterSpacing: "0.12em"',
+    'rounded:',
+  ];
+  const rk = { 'vh-r-sm': 'sm', 'vh-r-md': 'md', 'vh-r-lg': 'lg', 'vh-r-pill': 'full' };
+  for (const r of c.radius.filter((x) => rk[x.name])) L.push(`  ${rk[r.name]}: ${q(r.value)}  # theme.css --${r.name}`);
+  L.push('spacing:');
+  for (const sp of c.spacing) L.push(`  ${q(sp.name.replace('vh-s', ''))}: ${q(sp.value)}  # theme.css --${sp.name}`);
+  L.push('---');
+  return L.join('\n') + '\n';
+}
+
+function renderDesignMd(c) {
+  const file = path.join(DS, 'DESIGN.md');
+  const src = fs.readFileSync(file, 'utf8');
+  if (!src.startsWith('---\n')) throw new Error('DESIGN.md must open with its front matter');
+  const end = src.indexOf('\n---\n', 4);
+  if (end < 0) throw new Error('DESIGN.md front matter is not closed');
+  return designFrontMatter(c) + src.slice(end + 5);
+}
+
 function outputs() {
   const c = contract();
   return {
     'design/lifecycle-os/tokens.json': JSON.stringify(c, null, 2) + '\n',
     'design/lifecycle-os/CONTRACT.md': renderContractMd(c),
+    'design/lifecycle-os/DESIGN.md': renderDesignMd(c),
   };
 }
 
