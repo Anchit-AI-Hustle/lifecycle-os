@@ -33,7 +33,12 @@
  * ---------------------------------------------------------------------------
  */
 
+// The caps, the message classes and the per-workspace salted hash all live in
+// contact-fatigue.js (2026-10-04): this module counts an ESP's per-contact
+// `sends_7d` snapshot against the SAME numbers the contact ledger, the planners
+// and the preflight gate use, instead of a second copy of them.
 const crypto = require('crypto');
+const fatigue = require('./contact-fatigue.js');
 
 /* ── the cohorts ──────────────────────────────────────────────────────────── */
 
@@ -67,8 +72,11 @@ const REPLENISHMENT_COHORT = {
   objectives: { second_order: 'second-order activation', repeat: 'replenishment' },
 };
 
-/** Frequency caps, per docs/campaign-orchestration-master-spec.md. */
-const FREQUENCY = { promotional_per_7d: 2, absolute_per_7d: 3 };
+/** Frequency caps, per docs/campaign-orchestration-master-spec.md - read from the one policy. */
+const FREQUENCY = Object.freeze({
+  promotional_per_7d: fatigue.DEFAULT_RULES.promotional_per_7d,
+  absolute_per_7d: fatigue.DEFAULT_RULES.absolute_per_7d,
+});
 
 /* ── scoring ──────────────────────────────────────────────────────────────── */
 
@@ -203,8 +211,57 @@ function scoreContacts(contacts, { now = Date.now(), inactiveDays = 180 } = {}) 
  * exactly that reason.
  */
 function hashEmail(email, workspaceId) {
+  return fatigue.hashEmail(email, workspaceId);
+}
+
+/**
+ * A pseudonymous key for a CUSTOMER/profile id, with the same per-workspace
+ * salt as `hashEmail`. Used where an ESP needs per-recipient data (merge
+ * fields) and nothing in the payload should be the raw id - which, for a
+ * store, is sometimes an email address.
+ */
+function hashProfileId(id, workspaceId) {
   const salt = String(process.env.CONTACT_HASH_SALT || workspaceId || '');
-  return crypto.createHash('sha256').update(`${salt}:${String(email).trim().toLowerCase()}`).digest('hex');
+  return crypto.createHash('sha256').update(`${salt}:profile:${String(id)}`).digest('hex');
+}
+
+/**
+ * One customer's engagement evidence from SEVERAL rows - one per provider, or
+ * one found by profile id and another by email hash - merged so that no row
+ * can erase another's warning, and so that the answer is the same whatever
+ * order the rows arrive in:
+ *   hard_bounced / complained / suppressed   any row says so -> merged says so
+ *   suppressed_reason                        every distinct reason, sorted
+ *   sends_7d / sends_30d                     summed: the cap is CROSS-CHANNEL,
+ *                                            so one touch per provider is two
+ *   last_open_at / last_click_at / last_send_at   the most recent wins
+ */
+function mergeContactEvidence(rows) {
+  const list = (Array.isArray(rows) ? rows : []).filter(Boolean);
+  const truthy = (v) => v === true || v === 'true' || v === 't' || v === 1;
+  const latest = (k) => {
+    let best = null; let bt = -Infinity;
+    for (const r of list) { const t = Date.parse(r[k]); if (Number.isFinite(t) && t > bt) { bt = t; best = r[k]; } }
+    return best;
+  };
+  const sum = (k) => {
+    const vals = list.map((r) => r[k]).filter((v) => v != null && v !== '' && Number.isFinite(Number(v)));
+    return vals.length ? vals.reduce((a, v) => a + Number(v), 0) : null;
+  };
+  const reasons = [...new Set(list.filter((r) => truthy(r.suppressed) && r.suppressed_reason).map((r) => String(r.suppressed_reason)))].sort();
+  return {
+    providers: [...new Set(list.map((r) => r.provider).filter(Boolean).map(String))].sort(),
+    rows: list.length,
+    hard_bounced: list.some((r) => truthy(r.hard_bounced)),
+    complained: list.some((r) => truthy(r.complained)),
+    suppressed: list.some((r) => truthy(r.suppressed)),
+    suppressed_reason: reasons.length ? reasons.join(', ') : null,
+    sends_7d: sum('sends_7d'),
+    sends_30d: sum('sends_30d'),
+    last_open_at: latest('last_open_at'),
+    last_click_at: latest('last_click_at'),
+    last_send_at: latest('last_send_at'),
+  };
 }
 
 /* ── send-time optimisation ───────────────────────────────────────────────── */
@@ -400,13 +457,15 @@ function recommendCohorts(messagePriority) {
  * push together - the common failure is counting each channel separately and
  * shipping three times the intended pressure.
  */
-function frequencyCheck(scored, { messagePriority = 'promotional' } = {}) {
+function frequencyCheck(scored, { messagePriority = 'promotional', rules = null } = {}) {
   const rows = Array.isArray(scored) ? scored : [];
   if (!rows.length) return { ok: true, computed: false, over: 0, note: 'No contacts scored, so frequency could not be checked.' };
 
-  const cap = messagePriority === 'transactional' ? Infinity
-    : messagePriority === 'promotional' ? FREQUENCY.promotional_per_7d
-      : FREQUENCY.absolute_per_7d;
+  // promotional / re-engagement -> the preferred cap; a high-intent trigger ->
+  // the absolute cap; transactional -> never capped. Until 2026-10-04 anything
+  // that was not literally 'promotional' got the absolute cap, so a
+  // re-engagement BROADCAST was allowed a third send a week with no override.
+  const cap = fatigue.capFor(fatigue.classOf(messagePriority), rules);
 
   const over = rows.filter((s) => Number(s.sends_7d || 0) >= cap);
   return {
@@ -442,13 +501,17 @@ function triggerEligibility(ids, contacts, { messagePriority = 'promotional', no
   const map = contacts instanceof Map ? contacts : new Map();
   const engRows = [];
   const capRows = [];
+  const excluded = new Map();
   for (const id of list) {
     const r = map.get(id);
     if (!r) continue;
+    // Suppressed by the deliverability layer (sunset, unsubscribe, manual):
+    // that decision was made on this contact already and is not re-litigated
+    // because a purchase is predicted.
+    if (r.suppressed) { excluded.set(id, `suppressed${r.suppressed_reason ? ` (${r.suppressed_reason})` : ''}`); continue; }
     if (r.last_open_at || r.last_click_at || r.hard_bounced || r.complained) engRows.push(Object.assign({}, r, { external_profile_id: id }));
     if (r.sends_7d != null && r.sends_7d !== '' && Number.isFinite(Number(r.sends_7d))) capRows.push({ external_profile_id: id, sends_7d: Number(r.sends_7d) });
   }
-  const excluded = new Map();
   const rec = recommendCohorts('replenishment');
   let engagement = { computed: false, checked: 0, note: 'No contact in this audience carries an open or click date, so no engagement tier is applied here; the ESP applies the sunset policy at send time.' };
   if (engRows.length) {
@@ -522,7 +585,7 @@ function analyseAudience(contacts, opts = {}) {
 
 module.exports = {
   COHORTS, COHORT_BY_KEY, FREQUENCY, REPLENISHMENT_COHORT,
-  scoreContacts, quintileScorer, hashEmail, daysSince,
+  scoreContacts, quintileScorer, hashEmail, hashProfileId, mergeContactEvidence, daysSince,
   bestSendHour, optimalSendTime,
   sunsetCandidates, segmentHealth, recommendCohorts, frequencyCheck, triggerEligibility,
   analyseAudience,

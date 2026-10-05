@@ -299,7 +299,7 @@ function slotFrom(f, slot) {
   const generic = kind === 'generic' || GENERIC.test(family);
   const loadable = google || kind === 'local' || generic;
   let note;
-  if (google) note = 'Google Fonts family the site loads; the app loads it too.';
+  if (google) note = f.google_self_hosted ? 'Google Fonts family the site hosts itself; the app loads it from Google Fonts.' : 'Google Fonts family the site loads; the app loads it too.';
   else if (kind === 'webfont') note = `${family} (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.`;
   else if (kind === 'local' || generic) note = 'A system font stack: each device picks the face, exactly as on the site.';
   else note = 'No face in the declared stack could be confirmed as rendering.';

@@ -987,17 +987,18 @@ async function checkConnection(auth, workspaceId, providerId) {
       ok: false, connected: false,
       note: 'The stored secret could not be read. It was encrypted under a different CONNECTION_SECRET_KEY than this deployment now holds, so it has to be entered again.',
     };
-  } else if (reg.category === 'ai' && secrets.api_key) {
+  } else if (reg.category === 'ai' && (secrets.api_key || (reg.llm_provider === 'ollama' && (row.config || {}).base_url))) {
     const callLLM = require('./llm.js');
     const bases = {};
     const cfg = row.config || {};
     if (reg.llm_provider === 'cloudflare' && cfg.account_id) bases.cloudflare = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cfg.account_id)}/ai/v1`;
     if (reg.llm_provider === 'ollama' && cfg.base_url) bases.ollama = String(cfg.base_url).replace(/\/+$/, '') + '/v1';
+    const key = secrets.api_key || (reg.llm_provider === 'ollama' ? 'ollama' : '');
     try {
       const r = await callLLM({
         systemPrompt: 'Reply with the single word: ok', userMessage: 'ping',
         maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
-        overrides: { order: [reg.llm_provider], models: {}, keys: { [reg.llm_provider]: secrets.api_key }, bases, fallback: false },
+        overrides: { order: [reg.llm_provider], models: {}, keys: { [reg.llm_provider]: key }, bases, fallback: false },
       });
       result = { ok: true, connected: true, note: `Answered on ${r.model}.` };
     } catch (err) {
@@ -1015,7 +1016,9 @@ async function checkConnection(auth, workspaceId, providerId) {
   } else if (reg.category === 'ai') {
     result = {
       ok: false, connected: false,
-      would_request: { note: `A live check needs a ${reg.label} key on this brand. Without one, generations use the platform default and there is nothing of yours to test.` },
+      would_request: { note: reg.llm_provider === 'ollama'
+        ? 'A live Ollama check needs a saved public base URL. A token is optional.'
+        : `A live check needs a ${reg.label} key on this brand. Without one, generations use the platform default and there is nothing of yours to test.` },
     };
   } else if (reg.id === 'klaviyo') {
     // The one non-AI platform this repo has a real client for. Ask it for its
@@ -1098,6 +1101,25 @@ async function handle(req, res) {
 
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
+
+  // A phone sign-in with no Supabase identity (kept on the device, or in
+  // Neon) has its brands on the device, and a platform credential is kept
+  // encrypted with a brand workspace on the server. Reading its active
+  // workspace through RLS THREW here (restAs refuses a phone account), and
+  // public-config answered a bare 500 `connections_router_failed` for every
+  // Connect press and every /connections load (2026-10-04). The honest
+  // answer: nothing is connected, and why nothing can be from here.
+  if (auth.provider === 'mobile-pin' && auth.mode !== 'supabase') {
+    const message = 'Platform accounts are connected through credentials kept encrypted with a brand workspace on the server. This brand is kept on this device, so no platform account is connected to it, and none can be connected from here.';
+    if (op === 'list') {
+      return res.status(200).json({
+        ok: true, workspace_id: null, storage: 'device', note: message,
+        connections: [], routing: { entries: [], use_platform_fallback: true },
+        providers: registryView(true), secrets_storage: { encrypted: cryptoConfigured(), store: serviceConfigured() },
+      });
+    }
+    return res.status(409).json({ ok: false, error: 'device_account', storage: 'device', message });
+  }
 
   const workspaceId = str(q.workspace_id || body.workspace_id) || await brandCore.activeWorkspaceId(auth);
   if (!workspaceId) {

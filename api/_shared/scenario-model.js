@@ -50,7 +50,11 @@ const DEFAULTS = {
   PAID_ROAS: 1.6,                  // services meta.roas
   DEFAULT_PAID_SPEND_PER_PAID_ROW: 50,  // $ notional paid spend per paid-supported plan row at spendIndex 1.0
   FATIGUE_DECAY: 0.85,             // k-th repeat send to a segment in a week weighted by 0.85^(k-1)
-  SEGMENT_SEND_CEILING: 4,         // hard cap on sends to ONE segment per week (deliverability guard)
+  // Hard cap on sends to ONE segment per week (deliverability guard). It was a
+  // literal 4 - one ABOVE the spec's absolute cap of 3 - so the `best`
+  // scenario (cadence x1.5) scheduled Champions 3 x 1.5 -> 4 sends a week.
+  // It is the contact policy's absolute cap now (2026-10-04).
+  SEGMENT_SEND_CEILING: require('./contact-fatigue.js').DEFAULT_RULES.absolute_per_7d,
   AOV_FALLBACK_BY_MARKET: { US: 42, UK: 38, Global: 40, IN: 18, EU: 40, AU: 40 },
   LTV_FIRST_ORDER_SHARE: 0.35,     // Engine 2 only: share of cohort.avgLtv credited to a single send
   VALUE_PER_CONV_CLAMP: [10, 300],
