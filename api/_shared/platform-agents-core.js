@@ -330,7 +330,7 @@ async function runAll(opts = {}) {
   const actions = agents.flatMap((a) => (a.action_items || []).map((x) => Object.assign({ platform: a.label, platform_id: a.agent }, x)));
   const order = { P0: 0, P1: 1, P2: 2 };
   return {
-    ok: true, generated_at: iso(), market: opts.market || 'US',
+    ok: true, generated_at: iso(), market: opts.market || '',
     coverage: {
       total: agents.length, connected: connected.length, blocked: agents.length - connected.length,
       analysed: agents.filter((a) => a.analysed).length,

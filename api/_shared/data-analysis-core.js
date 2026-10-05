@@ -31,7 +31,10 @@ const DEFAULT_SETTINGS = Object.freeze({
     connector_stale_hours: 3,
   },
   cooldown_minutes: 180,
-  quiet_hours: { enabled: true, timezone: 'Asia/Kolkata', start_hour: 22, end_hour: 7, critical_bypass: true },
+  // The time zone is the ACTIVE brand's home zone, filled in loadSettings()
+  // from its record (2026-10-05). It was tenant zero's 'Asia/Kolkata' for
+  // every brand, so a UK brand's quiet hours ran 22:00-07:00 IST.
+  quiet_hours: { enabled: true, timezone: '', start_hour: 22, end_hour: 7, critical_bypass: true },
 });
 function mergeSettings(row) {
   const x = row || {};
@@ -51,7 +54,9 @@ async function settingsId() {
 }
 async function loadSettings() {
   const rows = await safe(supa.select('analytics_alert_settings', { order: 'updated_at.desc', limit: 1 }), []);
-  return mergeSettings(Array.isArray(rows) ? rows[0] : null);
+  const out = mergeSettings(Array.isArray(rows) ? rows[0] : null);
+  if (!out.quiet_hours.timezone) out.quiet_hours = Object.assign({}, out.quiet_hours, { timezone: await activeBrandTimeZone() });
+  return out;
 }
 const clamp = (v, lo, hi, old) => Number.isFinite(Number(v)) ? Math.max(lo, Math.min(hi, Number(v))) : old;
 const boolOr = (o, k, old) => !o || o[k] == null ? old : Boolean(o[k]);
@@ -383,7 +388,7 @@ function detectHourly({markets,actionData,previous,settings,workspaceId}){
   const latestConnector=new Map();for(const r of actionData.connector_runs||[]){const id=text(r.connector_id||r.connector||r.source);if(id&&!latestConnector.has(id))latestConnector.set(id,r);}for(const [id,r] of latestConnector){if(r.started_at){const age=(Date.now()-new Date(r.started_at).getTime())/3600000;if(age>t.connector_stale_hours)addA(out,{source:'Connector',metric:`${id} sync stale`,current:age,threshold:t.connector_stale_hours,message:`${id} has not completed a recorded sync within ${t.connector_stale_hours} hours.`});}}
   return out;
 }
-function quietNow(q){if(!q||!q.enabled)return false;try{const h=Number(new Intl.DateTimeFormat('en-GB',{timeZone:q.timezone||'Asia/Kolkata',hour:'2-digit',hour12:false}).format(new Date())),s=n(q.start_hour),e=n(q.end_hour);return s===e?false:s>e?h>=s||h<e:h>=s&&h<e;}catch(_){return false;}}
+function quietNow(q){if(!q||!q.enabled||!q.timezone)return false;try{const h=Number(new Intl.DateTimeFormat('en-GB',{timeZone:q.timezone,hour:'2-digit',hour12:false}).format(new Date())),s=n(q.start_hour),e=n(q.end_hour);return s===e?false:s>e?h>=s||h<e:h>=s&&h<e;}catch(_){return false;}}
 async function dedupe(items,settings){const rows=await safe(supa.select('analytics_anomaly_state',{order:'last_seen.desc',limit:1000}),[]),by=new Map((rows||[]).map((r)=>[r.fingerprint,r])),cut=Date.now()-settings.cooldown_minutes*60000,send=[];for(const a of items){const p=by.get(a.id),last=p&&p.last_sent_at?new Date(p.last_sent_at).getTime():0;if(!p||last<cut)send.push(a);await safe(supa.insert('analytics_anomaly_state',[{fingerprint:a.id,status:'open',first_seen_at:p&&p.first_seen_at||a.detected_at,last_seen_at:a.detected_at,last_sent_at:p&&p.last_sent_at||null,occurrence_count:n(p&&p.occurrence_count)+1,severity:a.severity,detail:a,updated_at:a.detected_at}],{upsertOn:'fingerprint'}),null);}return send;}
 async function markSent(items){const at=iso();for(const a of items||[])await safe(supa.update('analytics_anomaly_state',{last_sent_at:at,updated_at:at},{fingerprint:`eq.${a.id}`}),null);}
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
@@ -391,6 +396,17 @@ const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&
 // operator on the platform was receiving mail headed with tenant zero's brand.
 function alertMessage(items, brandName){const brand=text(brandName)||'Lifecycle OS';const lines=items.map((a)=>`${a.severity.toUpperCase()} · ${a.market} · ${a.source} · ${a.metric}: ${a.message}`),rows=items.map((a)=>`<tr><td>${esc(a.severity)}</td><td>${esc(a.market)}</td><td>${esc(a.source)}</td><td><b>${esc(a.metric)}</b><br>${esc(a.message)}</td></tr>`).join('');return{subject:`[${brand}] ${items.some((a)=>a.severity==='critical')?'Critical ':''}Data Analysis anomalies: ${items.length}`,text:`${brand}${SENDER()?`\nSender: ${SENDER()}`:''}\n\n${lines.join('\n')}`,html:`<!doctype html><html><body style="font-family:Arial,sans-serif"><h2>${esc(brand)} anomaly review</h2><table>${rows}</table><p>${SENDER()?`From ${esc(SENDER())} · `:''}automated hourly analysis</p></body></html>`};}
 /** The ACTIVE brand's own name, for anything a human reads. */
+/* The active brand's home time zone, from its own record ('' when the record
+   does not decide one - a country with several zones, or no market). */
+async function activeBrandTimeZone(){
+  try{
+    const ws=await activeWorkspace();
+    if(!ws)return '';
+    const {url,key}=supa.env();
+    const brand=await wsScope.brandForWorkspace({url,key},ws);
+    return require('./brand-locale.js').localeFor(brand).timeZone||'';
+  }catch(_){return '';}
+}
 async function activeBrandName(){
   try{
     const ws=await activeWorkspace();
@@ -455,7 +471,10 @@ const NO_WORKSPACE_NOTE = 'No brand is active for this account, so no data sourc
 function phoneView(name, params, opts) {
   const NOTE = (opts && opts.note) || PHONE_NOTE;
   const storage = (opts && opts.storage) || 'device';
-  const market = (params && params.market) || 'US';
+  // No market is claimed for a caller with nothing connected (2026-10-05): a
+  // literal 'US' told a phone sign-in for an Indian brand its empty paid-media
+  // view was the American one.
+  const market = (params && params.market) || '';
   const scope = (of) => ({ data_scope: { level: 'unconnected', basis: 'unset', of, connect: NOTE }, storage, note: NOTE });
   const base = { ok: true, generated_at: iso(), workspace_id: null, rows: [], campaigns: [], segments: [], actions: [] };
   switch (String(name || 'status').toLowerCase()) {

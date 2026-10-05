@@ -592,9 +592,26 @@ function renderTable(filter = '') {
     $('planTable').innerHTML = `<tr><td colspan="10" class="text-center text-ink-mute py-8">${msg}</td></tr>`;
     return;
   }
+  /* The send time in the MARKET's own clock first (09:30 IST for an Indian
+     slot), from the plan's own time zone, with UTC beside it (2026-10-05).
+     It printed UTC only, and a fractional hour as "4:00". A market whose
+     zone the brand's record does not decide shows the planner's marker. */
+  function sendTimeLabel(p) {
+    const tzRaw = String(p.send_timezone || '');
+    if (p.send_hour_utc == null) return tzRaw.replace(/[<>&]/g, '');
+    const h = Number(p.send_hour_utc);
+    const d = new Date(String(p.date).slice(0, 10) + 'T00:00:00Z');
+    d.setUTCMinutes(Math.round(h * 60));
+    const utc = String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0') + ' UTC';
+    if (!tzRaw || /^\[DATA/.test(tzRaw)) return utc;
+    try {
+      const loc = (window.RegionContext && window.RegionContext.localeOf) ? (window.RegionContext.localeOf(p.market).locale || undefined) : undefined;
+      return new Intl.DateTimeFormat(loc, { timeZone: tzRaw, hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' }).format(d) + ' · ' + utc;
+    } catch (_) { return utc; }
+  }
   $('planTable').innerHTML = rows.map((p) => `
     <tr data-id="${p.id}">
-      <td class="font-mono text-[11px]">${p.date}<div class="text-[10px] text-ink-mute">${String(p.send_hour_utc).padStart(2,'0')}:00 UTC</div></td>
+      <td class="font-mono text-[11px]">${p.date}<div class="text-[10px] text-ink-mute">${sendTimeLabel(p)}</div></td>
       <td><span class="pill b-${p.market}">${p.market}</span></td>
       <td><span class="seg-${p.segment.replace(/[^a-zA-Z]/g,'-')} font-semibold">${p.segment}</span><div class="text-[10px] text-ink-mute">${p.segment_size ? p.segment_size.toLocaleString() + ' subs' : ''}</div></td>
       <td><span class="pill ct-${p.content_type}">${p.content_type}</span></td>

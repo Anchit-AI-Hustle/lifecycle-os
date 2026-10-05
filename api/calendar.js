@@ -281,6 +281,14 @@ async function smartBrain(req, res, smartAction) {
     body.persist = false;
     body.prebuild = false;
   }
+  /* WHERE THIS PLAN LIVES, said truthfully (2026-10-05). A person with no
+     workspace has no database row to read or write: the plan is computed for
+     the brand their request carried and kept on their device. The planner
+     reported its own Supabase env instead ("db-linked"), and the console's
+     MODE card read "DB (empty)" on a deployment with no database at all. */
+  const deviceMode = (r) => (personWithoutWorkspace && r && typeof r === 'object'
+    ? Object.assign({}, r, { mode: 'device', storage: 'device', stored: false })
+    : r);
 
   try {
     if (smartAction === 'health') {
@@ -293,7 +301,7 @@ async function smartBrain(req, res, smartAction) {
 
     if (smartAction === 'plan') {
       const result = await plan.getPlan(Object.assign({ config: body.config || {} }, carriedContact(body)));
-      return res.status(200).json(result);
+      return res.status(200).json(deviceMode(result));
     }
 
     if (smartAction === 'dbcheck') {
@@ -322,7 +330,7 @@ async function smartBrain(req, res, smartAction) {
 
     if (smartAction === 'sync-daily') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-      const result = await plan.syncDaily(Object.assign({ config: body.config || {}, days: body.days, persist: body.persist !== false }, carriedContact(body)));
+      const result = deviceMode(await plan.syncDaily(Object.assign({ config: body.config || {}, days: body.days, persist: body.persist !== false }, carriedContact(body))));
       // Kick the background prebuild so newly added/refreshed slots get their full
       // asset bundle (copy + images) built ahead of need. Opt out with prebuild:false.
       if (body.prebuild !== false) { const f = await firePrebuild(0); result.prebuild_kicked = f.fired; }
@@ -565,7 +573,6 @@ module.exports = async function handler(req, res) {
         // not just approved ones — landingPageResolve is not approval-gated), else a
         // complete catalog-driven fallback so a link minted before persistence still
         // resolves to a real page. ?debug=1 above still exposes the diag.
-        const region = String(req.query?.region || req.query?.r || 'us').toLowerCase();
         const { buildFallbackLanding, brandForLandingRecord } = require('./_shared/landing-fallback.js');
         // WHOSE brand the fallback wears is decided by the RECORD the id
         // resolved to - the smart_generated_campaigns row, the landing page
@@ -581,6 +588,10 @@ module.exports = async function handler(req, res) {
         // the catch below and the page always rendered with no brand.)
         const env = { url: (process.env.SUPABASE_URL || '').replace(/\/$/, ''), key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '' };
         const owner = await brandForLandingRecord(env, diag.workspace_id);
+        // The region the link names, else the OWNER brand's home market - never
+        // a literal 'us' (2026-10-05): an Indian brand's fallback page priced
+        // and linked its hero for a US store it does not have.
+        const region = String(req.query?.region || req.query?.r || require('./_shared/brand-locale.js').homeMarket(owner.brand) || '').toLowerCase();
         const fb = buildFallbackLanding({ id, region, hint: String(req.query?.hint || ''), brand: owner.brand, attribution: owner });
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('X-KNICKGASM-LP', diag.campaignFound ? 'campaign-no-lp-fallback' : 'campaign-not-persisted-fallback');

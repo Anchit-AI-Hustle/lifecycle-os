@@ -675,7 +675,7 @@
       // shapes, none of which shared the choice, so picking a market on one
       // page silently reverted on the next.
       [['/brand-context.js?v=20260809', 'data-vh-brand'],
-        ['/region-context.js?v=20260813', 'data-vh-region'],
+        ['/region-context.js?v=20261005', 'data-vh-region'],
         ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
         if (d.querySelector('script[' + pair[1] + ']')) return;
         var s = d.createElement('script');
