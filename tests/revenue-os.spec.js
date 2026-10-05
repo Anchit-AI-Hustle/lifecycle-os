@@ -89,6 +89,22 @@ test('measured success can raise priority but never becomes an expected-revenue 
   expect(plan.controller.realised_incremental_revenue).toBe(340);
 });
 
+test('a weak channel sample falls back to stronger action-type evidence', () => {
+  const learning = revenue.buildLearning([
+    outcome({ action_id:'m1', channel:'meta', action_type:'conversion', incremental_revenue:50, roi:1.2 }),
+    outcome({ action_id:'g1', channel:'google', action_type:'conversion', incremental_revenue:90, roi:2.0 }),
+    outcome({ action_id:'g2', channel:'google', action_type:'conversion', incremental_revenue:100, roi:2.2 }),
+    outcome({ action_id:'k1', channel:'klaviyo', action_type:'conversion', incremental_revenue:80, roi:1.8 }),
+  ]);
+  const ranked = revenue.scoreOpportunity({
+    platform_id:'meta', platform:'Meta Ads', action:'Improve checkout conversion',
+    target_metric:'conversion_rate', priority:'P1', effort:'low',
+  }, learning);
+  expect(ranked.historical_prior.measured_samples).toBe(4);
+  expect(ranked.ranking_reasons || ranked.reasons).toBeTruthy();
+  expect(ranked.reasons.join(' ')).toContain('across 4 measured actions');
+});
+
 test('guardrail and rollback history reduce the controller score', () => {
   const action = {
     platform_id: 'meta', platform: 'Meta Ads', action: 'Increase spend',
@@ -152,6 +168,16 @@ test('run accepts injected grounded snapshots and makes no connector or model de
   expect(plan.opportunity_queue[0].role_owner).toBe('conversion');
 });
 
+test('daily cycle ids keep a repeated recommendation stable within a cycle but distinct across cycles', () => {
+  const action = {
+    platform_id:'meta', platform:'Meta Ads', action:'Test CTA hierarchy',
+    why:'Same measured friction', target_metric:'conversion_rate',
+  };
+  const dayOne = revenue.opportunityId('US', action, '2026-10-05');
+  expect(dayOne).toBe(revenue.opportunityId('US', Object.assign({}, action), '2026-10-05'));
+  expect(dayOne).not.toBe(revenue.opportunityId('US', action, '2026-10-06'));
+});
+
 test('outcome tracking executes a workspace-scoped upsert and preserves prior measurement state', async () => {
   const originalWorkspace = dataAnalysis.activeWorkspace;
   const originalSelect = supa.select;
@@ -210,6 +236,34 @@ test('outcome tracking executes a workspace-scoped upsert and preserves prior me
     expect(row.metadata).toMatchObject({ original: true, platform_id: 'meta', measured_by: 'experiment', source: 'revenue-os' });
     expect(out.workspace_id).toBe('ws-a');
     expect(out.outcome.workspace_id).toBe('ws-a');
+  } finally {
+    dataAnalysis.activeWorkspace = originalWorkspace;
+    supa.select = originalSelect;
+    supa.insert = originalInsert;
+  }
+});
+
+test('outcome tracking rejects a backwards state transition before writing', async () => {
+  const originalWorkspace = dataAnalysis.activeWorkspace;
+  const originalSelect = supa.select;
+  const originalInsert = supa.insert;
+  let writes = 0;
+
+  dataAnalysis.activeWorkspace = async () => 'ws-a';
+  supa.select = async () => [{
+    action_id:'rev_0123456789abcdef',
+    status:'measured',
+    recommended_at:'2026-10-01T00:00:00.000Z',
+    measured_at:'2026-10-03T00:00:00.000Z',
+  }];
+  supa.insert = async () => { writes += 1; return []; };
+
+  try {
+    await expect(revenue.trackOutcome({
+      action_id:'rev_0123456789abcdef',
+      status:'approved',
+    })).rejects.toThrow(/invalid outcome transition: measured -> approved/);
+    expect(writes).toBe(0);
   } finally {
     dataAnalysis.activeWorkspace = originalWorkspace;
     supa.select = originalSelect;
