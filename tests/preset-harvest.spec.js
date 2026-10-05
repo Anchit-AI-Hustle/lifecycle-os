@@ -377,7 +377,11 @@ test('a dark site keeps its exact colours beside the derived ones a preset can a
   expect(dark.palette.surface).toBe('#ffffff');
   expect(dark.evidence.surface).toEqual(expect.objectContaining({ derived: true, exact: '#121212' }));
   expect(dark.evidence.surface.note).toMatch(/DERIVED/);
-  expect(dark.evidence.ink).toEqual(expect.objectContaining({ derived: true, exact: '#ffffff' }));
+  // The light body copy does not read on the light preset surface. The dark
+  // ground the site paints is a colour it renders, so that ground is the ink
+  // and the exact value kept is the ground.
+  expect(dark.palette.ink).toBe('#121212');
+  expect(dark.evidence.ink).toEqual(expect.objectContaining({ derived: true, exact: '#121212', from_role: 'page ground' }));
   expect(core.contrast(dark.palette.ink, dark.palette.surface)).toBeGreaterThanOrEqual(4.5);
   expect(core.isDarkNeutral(dark.palette.surface)).toBe(false);
   expect(core.validatePalette(dark.palette).ok).toBe(true);

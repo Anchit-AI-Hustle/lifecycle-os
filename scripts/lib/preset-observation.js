@@ -148,6 +148,9 @@ function strengthOf(kind) { return kind === 'link' ? LINK_KIND.score : ((signals
  * signal, source and the read it came from. `read`: { manifest, url, role,
  * observed_at, owned } or, for a logo FILE, { image: { url, pixels }, mark }.
  */
+/** A token or selector a third-party widget paints (a careers page's Glassdoor colour). */
+const VENDOR_MARK = /glassdoor|onetrust|trustarc|cookiebot|truste|quantcast|didomi|osano|usercentrics/i;
+
 function candidatesOf(read) {
   const out = [];
   const add = (value, kind, signal, source, label, extra) => {
@@ -155,6 +158,9 @@ function candidatesOf(read) {
     if (!v) return;
     // The browser's own default link colours are the engine's, not the brand's.
     if (kind === 'link' && UA_LINK.has(v)) return;
+    // A widget names itself in a token (--glassdoor-brand-color). A consent
+    // button is a different case and is judged later, by its selector.
+    if (kind === 'token' && VENDOR_MARK.test(`${signal || ''} ${(source && source.selector) || ''} ${(source && source.property) || ''}`)) return;
     out.push(Object.assign({ value: v, kind, strength: strengthOf(kind), signal, source: sourceOf({ source }), label: label || signal, read }, extra || {}));
   };
   if (read.image) {
@@ -261,7 +267,43 @@ function paletteFromReads(readsIn) {
     c.corroborated_by = [...agree.values()].slice(0, 4).map((o) => ({ kind: o.kind, value: o.value, signal: o.signal, page: o.source.page || readRef(o.read).read_url }));
     c.score = c.strength + CORROBORATION * Math.min(2, agree.size);
   }
-  chromaticC.sort((a, b) => b.score - a.score || b.strength - a.strength);
+  // A guidelines page shows the logo on several fields. The colour it shows
+  // twice (two greens) is the brand's; a one-off field (one purple tile) is
+  // a sample. The same colour measured on two pages counts the same way.
+  const pageOf = (c) => (c.source && c.source.page) || readRef(c.read).read_url || '';
+  const isContent = (c) => !!(c.source && c.source.role === 'content logo');
+  const hueClose = (a, b) => {
+    const ra = signals.rgbOf(a), rb = signals.rgbOf(b);
+    if (!ra || !rb) return false;
+    const d = Math.abs(signals.hueOf(ra) - signals.hueOf(rb));
+    return Math.min(d, 360 - d) <= 14;
+  };
+  for (const c of chromaticC) {
+    const seen = new Set([`${pageOf(c)}|${c.value}`]);
+    let extras = 0;
+    for (const o of chromaticC) {
+      if (o === c) continue;
+      const close = dE(o.value, c.value) <= SAME || (isContent(c) && isContent(o) && hueClose(c.value, o.value));
+      if (!close) continue;
+      const key = `${pageOf(o)}|${o.value}`;
+      if (seen.has(key)) continue;
+      if (pageOf(o) === pageOf(c) && !(isContent(c) && isContent(o))) continue;
+      seen.add(key);
+      extras += 1;
+    }
+    if (extras) c.score += CORROBORATION * Math.min(2, extras);
+  }
+  // A single content logo that nothing else on the brand's material agrees
+  // with is a photograph or a campaign field, not the mark. It drops below
+  // the site's own icon, token, swatch and button.
+  const AGREES = new Set(['icon', 'token', 'guideline-swatch', 'logo-svg', 'action', 'mask-icon', 'theme-color', 'manifest-theme', 'tile-color']);
+  for (const c of chromaticC) {
+    if (!isContent(c)) continue;
+    const repeated = chromaticC.some((o) => o !== c && isContent(o) && (dE(o.value, c.value) <= SAME || hueClose(c.value, o.value)));
+    const agrees = chromaticC.some((o) => o !== c && !isContent(o) && AGREES.has(o.kind) && (dE(o.value, c.value) <= SAME || hueClose(c.value, o.value)));
+    if (!repeated && !agrees) c.score -= 70;
+  }
+  chromaticC.sort((a, b) => b.score - a.score || b.strength - a.strength || signals.chromaOf(b.value) - signals.chromaOf(a.value));
   let chosen = chromaticC[0] || null;
   let monochrome = null;
   if (!chosen) {
@@ -390,8 +432,16 @@ function paletteFromReads(readsIn) {
   // clearly apart from the primary. None: no accent, and the reason.
   // A second colour carries fills, rules and chips, so it has to stand off
   // the page: 3:1 (WCAG 1.4.11 non-text contrast). A pale tint is not one.
-  const second = chromaticC.filter((c) => c !== chosen && dE(c.value, primary) > DISTINCT && ACCENT_KINDS.has(c.kind) && core.contrast(c.value, surface) >= 3)
-    .sort((a, b) => b.score - a.score)[0] || null;
+  const second = chromaticC.filter((c) => {
+    if (c === chosen || dE(c.value, primary) <= DISTINCT || !ACCENT_KINDS.has(c.kind) || core.contrast(c.value, surface) < 3) return false;
+    // A logo no other kind of signal agrees with is one mark on one page,
+    // not the brand's second colour (a purple header tile beside a green mark).
+    if (c.kind === 'logo-image' || isContent(c)) {
+      const backed = (c.corroborated_by || []).length || chromaticC.some((o) => o !== c && family(o.kind) !== 'logo' && (dE(o.value, c.value) <= SAME || hueClose(c.value, o.value)));
+      if (!backed) return false;
+    }
+    return true;
+  }).sort((a, b) => b.score - a.score)[0] || null;
   let accent = '';
   if (second) {
     accent = second.value;
@@ -632,7 +682,7 @@ function observationFromReads(preset, home, sources, observedAt) {
     const base = failureObservation(preset, home || { ok: false, renderer: 'unavailable', reason: 'not read' }, observedAt);
     if (srcs.length) {
       base.reads = rows;
-      base.note = readSentence(base.read_attempt) + ' ' + sourcesSentence(rows) + ' Nothing was filled in; the preset stays on the neutral default.';
+      base.note = [readSentence(base.read_attempt), sourcesSentence(rows), 'Nothing was filled in; the preset stays on the neutral default.'].filter(Boolean).join(' ');
     }
     return base;
   }
@@ -723,11 +773,29 @@ function observationFromReads(preset, home, sources, observedAt) {
   });
 }
 
-/** "Its own pages about.example.com (blocked) ... were also tried." */
+/** "Its own other material was tried too: about.example.com (blocked)."
+ *  One host in one state is one fact. A failure on the home host in the
+ *  home read's own state is already the home sentence (three blocked icons
+ *  on www.example.com are not three new facts), so it is left out. */
 function sourcesSentence(rows) {
-  const s = (rows || []).filter((r) => r.role === 'identity source');
-  if (!s.length) return '';
-  return `Its own other material was tried too: ${s.map((r) => `${hostOf(r.url)} (${r.renderer === 'refused' ? 'not shown to be the brand\'s' : r.renderer})`).join(', ')}.`;
+  const list = rows || [];
+  const home = list.find((r) => r.role === 'home');
+  const homeHost = home ? hostOf(home.url) : '';
+  const homeState = home ? home.renderer : '';
+  const seen = new Set();
+  const parts = [];
+  for (const r of list) {
+    if (!r || r.role !== 'identity source') continue;
+    const host = hostOf(r.url);
+    const state = r.renderer === 'refused' ? 'not shown to be the brand\'s' : r.renderer;
+    if (homeHost && host === homeHost && state === homeState) continue;
+    const key = `${host}|${state}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    parts.push(`${host} (${state})`);
+  }
+  if (!parts.length) return '';
+  return `Its own other material was tried too: ${parts.join(', ')}.`;
 }
 
 /** A single read (the home page alone), as before identity sources existed. */

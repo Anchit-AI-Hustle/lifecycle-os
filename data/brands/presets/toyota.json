@@ -8,42 +8,357 @@
     "label": "Toyota",
     "sector": "Automotive",
     "blurb": "Automotive. Template for a model-year calendar plus after-sales servicing.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.toyota.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
+    "verified_at": "2026-10-05",
+    "source": "www.toyota.com refused an automated read (blocked); read the brand's own https://brand.toyota.com/guidelines/visual/brand-colors in Chromium 148.0.7778.96 on 2026-10-05. Primary #eb0a1e from logo pixels as rendered (100% of its coloured pixels) (nav.component-track-input.aa-brandhub-header > div.tmna-nav-container-fluid.container-fluid > div.header__top:nth-of-type(1) > a.tmna-nav-brand.navbar-brand > img.tmna-nav-brand-logo.brand-logo:nth-of-type(1)). Agreed by icon, action. Headings toyotaType-Book, body toyotaType-Book, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the logo element as rendered (nav.component-track-input.aa-brandhub-header > div.tmna-nav-container-fluid.container-fluid > div.header__top:nth-of-type(1) > a.tmna-nav-brand.navbar-brand > img.tmna-nav-brand-logo.brand-logo:nth-of-type(1))",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "role": "page ground",
+          "selector": "body#Brand-Colors",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "brand.toyota.com",
+          "registrable": "toyota.com",
+          "website_host": "www.toyota.com"
+        }
+      },
+      "primary": {
+        "value": "#eb0a1e",
+        "exact": "#eb0a1e",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 140,
+        "from_role": "identity",
+        "signal": "logo pixels as rendered (100% of its coloured pixels)",
+        "source": {
+          "page": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "role": "logo",
+          "selector": "nav.component-track-input.aa-brandhub-header > div.tmna-nav-container-fluid.container-fluid > div.header__top:nth-of-type(1) > a.tmna-nav-brand.navbar-brand > img.tmna-nav-brand-logo.brand-logo:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "pixels",
+          "signal": "computed"
+        },
+        "read_url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "brand.toyota.com",
+          "registrable": "toyota.com",
+          "website_host": "www.toyota.com"
+        },
+        "corroborated_by": [
+          {
+            "kind": "icon",
+            "value": "#eb0a1e",
+            "signal": "site icon pixels (apple-touch-icon)",
+            "page": "https://brand.toyota.com/etc.clientlibs/brandhub/clientlibs/clientlib-site/resources/images/icon.png"
+          },
+          {
+            "kind": "action",
+            "value": "#eb0a1d",
+            "signal": "the primary call to action, as rendered",
+            "page": "https://pressroom.toyota.com/"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "the header background",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          },
+          {
+            "value": "#f9f9f9",
+            "from": "the header background",
+            "why": "1.05:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#000000",
+        "exact": "#000000",
+        "derived": false,
+        "source": {
+          "page": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "role": "body copy",
+          "selector": "section.aa-titleTextAsset-IconsText.container-fluid > div.tmna-image-content-container.image-top > div.tmna-ttac-content > div.tmna-copy-text.desc-size-mid:nth-of-type(2) > p",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "brand.toyota.com",
+          "registrable": "toyota.com",
+          "website_host": "www.toyota.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "brand.toyota.com",
+          "registrable": "toyota.com",
+          "website_host": "www.toyota.com"
+        }
+      },
+      "muted": {
+        "value": "#212529",
+        "exact": "#212529",
+        "derived": false,
+        "source": {
+          "page": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "role": "secondary text",
+          "selector": "div#category_container > div.category-comp:nth-of-type(2) > div.aem-Grid.aem-Grid--12 > div.imageCardSimplified.imageCard > video.video-tag.video-border-radius",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "brand.toyota.com",
+          "registrable": "toyota.com",
+          "website_host": "www.toyota.com"
+        }
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "brand.toyota.com",
+          "registrable": "toyota.com",
+          "website_host": "www.toyota.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "blocked",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "read_from": [
+      "https://brand.toyota.com/guidelines/visual/brand-colors"
+    ],
+    "reads": [
+      {
+        "url": "https://www.toyota.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "blocked",
+        "owned": "website",
+        "reason": "www.toyota.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"New Cars, Trucks, SUVs & Hybrids | Toyota Official Site\"). Nothing was read from it."
+      },
+      {
+        "url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "role": "identity source",
+        "what": "Toyota brand guidelines: brand colours",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://pressroom.toyota.com/",
+        "role": "identity source",
+        "what": "Toyota newsroom",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.toyota.com/apple-touch-icon.png",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+        "renderer": "unavailable",
+        "owned": "same-registrable-domain",
+        "reason": "https://www.toyota.com/apple-touch-icon.png did not answer with an image this reader could draw (HTTP 404)."
+      },
+      {
+        "url": "https://www.toyota.com/favicon.svg",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.svg)",
+        "renderer": "unavailable",
+        "owned": "same-registrable-domain",
+        "reason": "https://www.toyota.com/favicon.svg did not answer with an image this reader could draw (HTTP 404)."
+      },
+      {
+        "url": "https://www.toyota.com/favicon.ico",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.ico)",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      }
+    ],
+    "home_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.toyota.com",
       "reason": "www.toyota.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"New Cars, Trucks, SUVs & Hybrids | Toyota Official Site\"). Nothing was read from it."
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "role": "h1",
+        "selector": "div.container-list-tab-menu > ol.cmp-tabs__tablist.tablist_tabgallery > li.cmp-tabs__tab.active:nth-of-type(1) > div.tab-header:nth-of-type(1) > h1",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://brand.toyota.com/guidelines/visual/brand-colors",
+        "role": "body copy",
+        "selector": "section.aa-titleTextAsset-IconsText.container-fluid > div.tmna-image-content-container.image-top > div.tmna-ttac-content > div.tmna-copy-text.desc-size-mid:nth-of-type(2) > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#eb0a1e",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#212529",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "toyotaType-Book",
+      "stack": "'toyotaType-Book','Arial',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "toyotaType-Book (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "toyotaType-Book",
+      "stack": "'toyotaType-Book','Arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "toyotaType-Book (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -58,7 +373,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "toyota.com"
+    "toyota.com",
+    "brand.toyota.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -128,12 +444,69 @@
   ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Toyota]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Toyota]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Toyota]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Toyota]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Toyota]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/VIS_toyota_logo_horiz_black_RGB_2021.svg",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "the logo element as rendered (nav.component-track-input.aa-brandhub-header > div.tmna-nav-container-fluid.container-fluid > div.header__top:nth-of-type(1) > a.tmna-nav-brand.navbar-brand > img.tmna-nav-brand-logo.brand-logo:nth-of-type(1))"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/college-gallery/BHUB_BrandColors_ToyotaRed_01-V2_2x.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/college-gallery/BHUB_BrandColors_ToyotaRed_02-V2_2x.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/college-gallery/BHUB_BrandColors_ToyotaRed_03-V2_2x-min.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/college-gallery/BHUB_BrandColors_FunctionalColors_02-V2_2x-min.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/college-gallery/BHUB_BrandColors_FunctionalColors_01-V2_2x.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/college-gallery/BHUB_BrandColors_FunctionalColors_03-V2_2x.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://brand.toyota.com/content/dam/brandhub/guidelines/brand-colors/logo/BHUB_BrandColors_ColorModes_01.svg",
+      "role": "photograph",
+      "alt": "HEX computer screen icon.",
+      "found_on": "https://brand.toyota.com/guidelines/visual/brand-colors",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://brand.toyota.com/content/dam/brandhub/VIS_toyota_logo_horiz_black_RGB_2021.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
