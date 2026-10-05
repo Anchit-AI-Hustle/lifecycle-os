@@ -50,6 +50,8 @@ const OUTCOME_STATUSES = new Set([
   'recommended', 'approved', 'launched', 'measured',
   'completed', 'failed', 'rolled_back', 'cancelled',
 ]);
+const STATUS_STAGE = Object.freeze({ recommended: 0, approved: 1, launched: 2, measured: 3, completed: 4 });
+const TERMINAL_STATUSES = new Set(['failed', 'rolled_back', 'cancelled']);
 
 const PRIORITY_BASE = Object.freeze({ P0: 82, P1: 68, P2: 52 });
 const EFFORT_PENALTY = Object.freeze({ low: 0, med: 8, medium: 8, high: 14 });
@@ -159,14 +161,16 @@ function roleFor(action) {
 
 function externalStateChange(action) {
   const s = String(action && action.action || '').toLowerCase();
-  return /publish|post|schedule|send|launch|spend|budget|bid|price|discount|offer|checkout|message|reply|email|sms|push|connect|upload|delete|pause|enable|disable|approve/.test(s);
+  return /publish|post|schedule|send|launch|spend|budget|bid|price|discount|offer|checkout|message|reply|email|sms|push|connect|upload|delete|pause|enable|disable|approve|claim|compliance/.test(s);
 }
 
-function opportunityId(market, action) {
+function opportunityId(market, action, cycleId) {
   const raw = [
     String(market || 'ALL').toUpperCase(),
+    normaliseKey(cycleId),
     normaliseKey(action && action.platform_id),
     normaliseKey(action && action.action),
+    normaliseKey(action && action.why),
     normaliseKey(action && action.target_metric),
   ].join('|');
   return 'rev_' + crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
@@ -198,10 +202,14 @@ function scoreOpportunity(action, learning) {
   }
 
   const p = priorFor(action, learning);
-  const prior = p.channel && p.channel.measured_samples ? p.channel
-    : (p.action_type && p.action_type.measured_samples ? p.action_type : null);
+  const candidates = [p.channel, p.action_type].filter(Boolean);
+  const learned = candidates
+    .filter((x) => x.measured_samples >= 3)
+    .sort((a, b) => b.measured_samples - a.measured_samples)[0] || null;
+  const prior = learned || candidates
+    .sort((a, b) => b.measured_samples - a.measured_samples)[0] || null;
 
-  if (prior && prior.measured_samples >= 3) {
+  if (learned) {
     if (prior.win_rate !== null) {
       const delta = clamp((prior.win_rate - 0.5) * 20, -10, 10);
       score += delta;
@@ -251,11 +259,12 @@ function measurementPlan(action) {
   };
 }
 
-function buildOpportunity(action, learning, market) {
+function buildOpportunity(action, learning, market, cycleId) {
   const ranked = scoreOpportunity(action, learning);
   const role = roleFor(action);
   return {
-    action_id: opportunityId(market, action),
+    action_id: opportunityId(market, action, cycleId),
+    cycle_id: cycleId || null,
     role_owner: role,
     platform: action && action.platform || null,
     platform_id: action && action.platform_id || null,
@@ -290,12 +299,12 @@ function roleWorkload(opportunities) {
   });
 }
 
-function buildPlan({ intelligence, outcomes, market = 'US', brand = null } = {}) {
+function buildPlan({ intelligence, outcomes, market = 'US', brand = null, cycleId = new Date().toISOString().slice(0, 10) } = {}) {
   const platform = intelligence || { coverage: {}, action_queue: [], agents: [] };
   const outcomeData = outcomes || { kpis: {}, actions: [] };
   const learning = buildLearning(outcomeData);
   const opportunities = (Array.isArray(platform.action_queue) ? platform.action_queue : [])
-    .map((action) => buildOpportunity(action, learning, market))
+    .map((action) => buildOpportunity(action, learning, market, cycleId))
     .sort((a, b) => b.rank_score - a.rank_score);
 
   const k = outcomeData.kpis || {};
@@ -307,6 +316,7 @@ function buildPlan({ intelligence, outcomes, market = 'US', brand = null } = {})
     ok: true,
     system: 'Lifecycle OS Revenue OS',
     generated_at: new Date().toISOString(),
+    cycle_id: cycleId,
     market: String(market || 'US').toUpperCase(),
     brand: brand && brand.name ? { name: brand.name, industry: brand.industry || null } : null,
     operating_loop: OPERATING_LOOP.slice(),
@@ -416,6 +426,19 @@ async function trackOutcome(input = {}) {
     limit: 1,
   }).catch(() => []);
   const existing = Array.isArray(existingRows) && existingRows[0] ? existingRows[0] : {};
+
+  const previousStatus = String(existing.status || '').toLowerCase();
+  if (previousStatus && previousStatus !== status) {
+    const backwards = STATUS_STAGE[previousStatus] !== undefined
+      && STATUS_STAGE[status] !== undefined
+      && STATUS_STAGE[status] < STATUS_STAGE[previousStatus];
+    const terminal = TERMINAL_STATUSES.has(previousStatus);
+    if (backwards || terminal) {
+      const e = new Error('invalid outcome transition: ' + previousStatus + ' -> ' + status);
+      e.status = 409;
+      throw e;
+    }
+  }
 
   const present = (key) => Object.prototype.hasOwnProperty.call(input, key);
   const numeric = (key) => present(key) ? finite(input[key]) : finite(existing[key]);
