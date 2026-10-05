@@ -1,7 +1,39 @@
+# CI. Runs on every PR, on every push to main, and when it is DISPATCHED.
+#
+# WHY workflow_dispatch (2026-10-04). auto-merge.yml merges a green PR with
+# GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts no workflow run
+# (GitHub's recursion guard), so `push: main` below never fired for those
+# merges. Measured that day: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143)
+# had ZERO check runs on main; only 8fd5f4f (#140, merged by hand) ran CI.
+# Each PR's CI ran on its merge ref, built against main AS IT WAS when that
+# run started, so when several PRs merge within minutes the combination that
+# actually lands on main - and that production deploys - was never tested.
+# workflow_dispatch is one of the two events GITHUB_TOKEN may still raise, so
+# auto-merge.yml dispatches this workflow on main once after it merges.
+#
+# ONE RUN PER MAIN, THE NEWEST. Runs on main (push or dispatch) share one
+# concurrency group and a newer one cancels an older one still running: main's
+# HEAD already contains the older commit, so only the combination now on main
+# is worth the 14 minutes, and runs can never finish out of order (an older
+# red after a newer green would re-open the issue below for a main that is
+# green). Every PR run gets a group of its own (its run id), so nothing about
+# PR runs changes.
+#
+# MAIN'S STATE IS SAID, NOT ONLY SHOWN. The `main-state` job opens (or updates)
+# ONE issue titled "Main is red at <sha>" when a run on main fails, and closes
+# it when a run on main is green. It is a job in THIS workflow rather than a
+# workflow_run listener: a dispatched run is already the third link of a chain
+# (PR CI -> auto-merge -> this), GitHub stops workflow_run chains after three
+# levels, and its docs do not say whether a dispatch in the middle resets the
+# count. A job inside the run cannot be lost to that limit.
 name: CI
 on:
   push: { branches: [main] }
   pull_request: {}
+  workflow_dispatch: {}
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('{0}-pr-run-{1}', github.workflow, github.run_id) || format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'pull_request' }}
 # Least-privilege token: these jobs only read the checked-out repo.
 permissions:
   contents: read
@@ -118,3 +150,107 @@ jobs:
             tests/report/
             test-results/
           retention-days: 7
+
+  main-state:
+    name: Report main's state (one issue while main is red)
+    # After EVERY other job (tests/workflows-guarantees.spec.js fails if a job
+    # is added to this file and not to this list), on main only, and only for
+    # the two events that run CI on main. A PR run skips it: its ref is
+    # refs/pull/N/merge, and a PR's red is the PR's own business.
+    # `!cancelled()` replaces the default success(): the red case is the one
+    # this job exists for. A cancelled run was superseded by a newer run on
+    # main (see `concurrency`), which reports instead.
+    needs: [build, e2e]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read    # this run's jobs, for the failing job's link
+      issues: write    # open / update / close the one "Main is red" issue
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      MAIN: main
+      TESTED_SHA: ${{ github.sha }}
+      TRIGGER: ${{ github.event_name }}
+      RUN_ID: ${{ github.run_id }}
+      SERVER_URL: ${{ github.server_url }}
+      NEEDS_JSON: ${{ toJSON(needs) }}
+      TITLE_PREFIX: 'Main is red at '
+      BOT_LOGIN: github-actions[bot]
+    steps:
+      - name: Open, update or close the one "Main is red" issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          short="${TESTED_SHA:0:7}"
+          run_url="$SERVER_URL/$REPO/actions/runs/$RUN_ID"
+          commit_url="$SERVER_URL/$REPO/commit/$TESTED_SHA"
+
+          failed="$(jq -r '[ to_entries[] | select(.value.result == "failure") | .key ] | join(", ")' <<<"$NEEDS_JSON")"
+          if [ -n "$failed" ]; then verdict=red
+          elif jq -e 'length > 0 and all(.[]; .result == "success")' <<<"$NEEDS_JSON" >/dev/null; then verdict=green
+          else verdict=undecided
+          fi
+          echo "CI on $MAIN at $TESTED_SHA ($TRIGGER, run $RUN_ID): $verdict"
+          if [ "$verdict" = undecided ]; then
+            echo "::notice title=Main's state not decided::Job results $(jq -c 'map_values(.result)' <<<"$NEEDS_JSON") are neither all green nor any red, so the \"Main is red\" issue is left as it is."
+            exit 0
+          fi
+
+          # The one open issue this job owns: opened by this workflow's token,
+          # titled with the prefix. A person's issue with the same words is
+          # theirs, and a pull request is not an issue.
+          issue=""
+          if listing="$(gh api -X GET "repos/$REPO/issues" -f state=open -f "creator=$BOT_LOGIN" -f per_page=100 --paginate)"; then
+            issue="$(jq -rs --arg p "$TITLE_PREFIX" --arg bot "$BOT_LOGIN" \
+              '[ .[][] | select(.pull_request == null and .user.login == $bot and (.title | startswith($p))) | .number ] | min // empty' <<<"$listing")"
+            listed=1
+          else
+            listed=0
+          fi
+
+          if [ "$verdict" = green ]; then
+            # Never turn a green main red over bookkeeping: every failure on
+            # this path is a warning.
+            if [ "$listed" = 0 ]; then
+              echo "::warning::Main is green at $short, but the open issues could not be listed, so an open \"Main is red\" issue (if any) was not closed."
+              exit 0
+            fi
+            if [ -z "$issue" ]; then echo "Main is green at $short and no \"Main is red\" issue is open. Nothing to do."; exit 0; fi
+            if gh api -X POST "repos/$REPO/issues/$issue/comments" -f "body=Main is green again at [\`$short\`]($commit_url): every CI job passed in [run $RUN_ID]($run_url). Closing." >/dev/null \
+               && gh api -X PATCH "repos/$REPO/issues/$issue" -f state=closed -f state_reason=completed >/dev/null; then
+              echo "Closed issue #$issue: main is green at $short"
+            else
+              echo "::warning::Main is green at $short, but issue #$issue could not be closed. Close it by hand."
+            fi
+            exit 0
+          fi
+
+          # Red. Link each failing job; the run link alone if the jobs cannot be read.
+          links=""
+          if jobs="$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" -X GET -f per_page=100 --paginate)"; then
+            links="$(jq -rs '[ .[].jobs[] | select(.conclusion == "failure") | "- [\(.name)](\(.html_url))" ] | join("\n")' <<<"$jobs")"
+          fi
+          [ -n "$links" ] || links="- $failed: see [run $RUN_ID]($run_url) (the job links could not be read)"
+          report="$(printf '%s\n' \
+            "CI failed on \`$MAIN\` at [\`$short\`]($commit_url) ($TRIGGER, [run $RUN_ID]($run_url))." \
+            "" \
+            "Failing jobs:" \
+            "$links" \
+            "" \
+            "Vercel deploys \`$MAIN\` on every push, so this commit may already be in production. Every red CI run on \`$MAIN\` updates this issue and the first green one closes it.")"
+
+          title="$TITLE_PREFIX$short"
+          if [ -n "$issue" ]; then
+            gh api -X PATCH "repos/$REPO/issues/$issue" -f "title=$title" >/dev/null \
+              && gh api -X POST "repos/$REPO/issues/$issue/comments" -f "body=$report" >/dev/null \
+              || { echo "::error::Main is red at $short, and issue #$issue could not be updated (does this job still have 'issues: write'?)"; exit 1; }
+            echo "Updated issue #$issue: $title"
+          else
+            created="$(gh api -X POST "repos/$REPO/issues" -f "title=$title" -f "body=$report")" \
+              || { echo "::error::Main is red at $short, and the \"Main is red\" issue could not be opened (does this job still have 'issues: write'?)"; exit 1; }
+            echo "Opened issue #$(jq -r '.number' <<<"$created"): $title"
+          fi
