@@ -41,10 +41,27 @@
   --vh-chalk:  var(--brand-surface, #FFFFFF);
   --vh-muted-ink: var(--brand-ink-muted, #666666);
   --vh-hairline:  var(--brand-line,      #EBEBEB);
-  --vh-font-head: var(--brand-font-heading, 'Montserrat','Raleway',Arial,sans-serif);
+  --vh-font-head: var(--brand-font-head, 'Montserrat','Raleway',Arial,sans-serif);
   --vh-font-body: var(--brand-font-body,    'Instrument Sans','Helvetica Neue',Arial,sans-serif);
   --brand-primary-text: #d0473e;
   --brand-accent-text:  #6a33d8;
+  --brand-primary-dark: #9c352f;
+  --brand-primary-soft: #f8e5e4;
+  --brand-primary-tint: #fcf4f3;
+  --brand-accent-soft: #ede7fa;
+  --brand-surface-sunken: #f5f5f5;
+  --brand-on-primary: #ffffff;
+  --brand-on-accent: #ffffff;
+  --brand-band: #d0473e;
+  --brand-on-band: #ffffff;
+  --brand-band-accent: #6a33d8;
+  --brand-on-band-accent: #ffffff;
+  --brand-ok-text: #1a7f37;
+  --brand-warn-text: #836919;
+  --brand-err-text: #c0392b;
+  --brand-focus: #6a33d8;
+  --brand-line: #d9d9d9;
+  --brand-line-strong: #b3b3b3;
 /* <<< BRAND-SYNC:palette */
 
   /* State (theme-independent) */
@@ -67,9 +84,11 @@
   --vh-text-on-light:var(--brand-ink,       #111111);  /* body text on any light surface */
   --vh-text-muted:   var(--brand-ink-muted, #556059);  /* secondary text on light */
 
-  /* Type */
-  --vh-font-head: var(--brand-font-head, 'Lora', 'Montserrat', Georgia, serif);
-  --vh-font-body: var(--brand-font-body, 'Inter', 'Instrument Sans', system-ui, -apple-system, Segoe UI, sans-serif);
+  /* Type. --vh-font-head and --vh-font-body are declared ONCE, in the
+     BRAND-SYNC block above, through the token tokens() actually emits
+     (--brand-font-head). A second pair here used to override that pair with
+     'Lora' / 'Inter' fallbacks, and the generated pair read --brand-font-heading,
+     a name tokens() never writes (design/lifecycle-os/CONTRACT.md). */
   --vh-font-mono: var(--brand-font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
 
   /* Type scale (fluid: clamps between mobile and desktop) */
@@ -122,10 +141,10 @@
      are corrected per-page (e.g. app-audit remaps --chalk to violet). Two themed
      pages opt back to dark on purpose: diff-version (frozen dark diff) and /3d
      (WebGL storefront) — they carry their own high-specificity dark override. */
-  --vh-bg: var(--brand-surface, #FFFFFF); --vh-panel: var(--brand-surface-alt, #ffffff); --vh-panel-2: #f5f5f5;
+  --vh-bg: var(--brand-surface, #FFFFFF); --vh-panel: var(--brand-surface-alt, #ffffff); --vh-panel-2: var(--brand-surface-sunken);
   --vh-line: var(--brand-line, #ebebeb); --vh-line-hot: var(--brand-line-strong, rgba(208,71,62,0.45));
   /* Text: near-black body, muted secondary, faint tertiary — readable on light. */
-  --vh-ink: var(--brand-ink, #111111); --vh-ink-dim: var(--brand-ink-muted, #556059); --vh-ink-faint: #6b7770;
+  --vh-ink: var(--brand-ink, #111111); --vh-ink-dim: var(--brand-ink-muted, #556059); --vh-ink-faint: var(--vh-ink-dim);
   /* legacy aliases (family A + family B). These are what MOST existing pages
      actually consume, so they must resolve through the active brand too —
      otherwise a custom brand would re-skin only the `vh-` components and leave
@@ -138,7 +157,7 @@
   --bg: var(--brand-surface, #FFFFFF); --panel: var(--brand-surface-alt, #ffffff);
   --surface: var(--brand-surface-alt, #ffffff); --card: var(--brand-surface-alt, #ffffff);
   --soft: var(--brand-ink-muted, #556059); --chip: var(--brand-primary-tint, #f5f5f5);
-  --ink: var(--brand-ink, #111111); --ink-dim: var(--brand-ink-muted, #556059); --ink-faint: #6b7770;
+  --ink: var(--brand-ink, #111111); --ink-dim: var(--brand-ink-muted, #556059); --ink-faint: var(--vh-ink-dim);
   --muted: var(--brand-ink-muted, #556059); --head: var(--brand-primary, #D0473E);
   --line: var(--brand-line, #ebebeb); --line-hot: var(--brand-line-strong, rgba(208,71,62,0.45));
   --violet: var(--brand-primary, #D0473E); --green: var(--brand-primary, #D0473E);
@@ -178,20 +197,24 @@ table th, table td {
 table:has(th) th, table:has(th) td { text-align: center; }
 table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
 
-::selection { background: rgba(171,135,67,0.30); color: var(--vh-chalk); }
+/* Selection: the brand's soft tint under the INK. It was a gold from another
+   repo's palette with the page SURFACE as text - white on a 30% tint. */
+::selection { background: var(--brand-primary-soft); color: var(--vh-ink); }
 
-/* Consistent, on-brand focus ring for keyboard users across every page. */
+/* Consistent, on-brand focus ring for keyboard users across every page. The
+   ring is --vh-focus: the accent held to the 3:1 non-text floor, because a
+   pale accent as a raw outline is invisible. */
 :focus-visible {
-  outline: 2px solid var(--vh-lava);
+  outline: 2px solid var(--vh-focus);
   outline-offset: 2px;
   border-radius: 3px;
 }
 
 /* Quiet, on-brand scrollbars (Firefox + WebKit). */
-* { scrollbar-width: thin; scrollbar-color: rgba(171,135,67,0.30) transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--vh-line-hot) transparent; }
 *::-webkit-scrollbar { width: 9px; height: 9px; }
-*::-webkit-scrollbar-thumb { background: rgba(171,135,67,0.28); border-radius: var(--vh-r-pill); }
-*::-webkit-scrollbar-thumb:hover { background: rgba(171,135,67,0.45); }
+*::-webkit-scrollbar-thumb { background: var(--vh-line); border-radius: var(--vh-r-pill); }
+*::-webkit-scrollbar-thumb:hover { background: var(--vh-line-hot); }
 *::-webkit-scrollbar-track { background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -216,10 +239,10 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
 .vh-muted { color: var(--vh-ink-dim); }
 .vh-faint { color: var(--vh-ink-faint); }
 
-.vh-h1 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-2xl); letter-spacing: -0.02em; line-height: 1.1; color: var(--vh-chalk); }
-.vh-h2 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-xl); letter-spacing: -0.01em; color: var(--vh-chalk); }
+.vh-h1 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-2xl); letter-spacing: -0.02em; line-height: 1.1; color: var(--vh-heading); }
+.vh-h2 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-xl); letter-spacing: -0.01em; color: var(--vh-heading); }
 .vh-eyebrow { font-size: var(--vh-fs-xs); text-transform: uppercase; letter-spacing: 0.22em; color:var(--brand-accent-text); font-weight: 600; }
-.vh-section-label { font-size: var(--vh-fs-xs); text-transform: uppercase; letter-spacing: 0.16em; color: var(--vh-ink-faint); font-weight: 600; }
+.vh-section-label { font-size: var(--vh-fs-xs); text-transform: uppercase; letter-spacing: 0.16em; color: var(--vh-ink-dim); font-weight: 600; }
 
 .vh-card {
   background: var(--vh-panel); border: 1px solid var(--vh-line);
@@ -235,20 +258,30 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   border: 1px solid transparent; cursor: pointer; text-decoration: none;
   transition: all var(--vh-t-fast);
 }
-.vh-btn-solid { background: var(--vh-lava); color: var(--vh-bg); }
-.vh-btn-solid:hover { filter: brightness(1.05); }
-.vh-btn-ghost { background: transparent; border-color: var(--vh-line-hot); color: var(--vh-ink); }
-.vh-btn-ghost:hover { border-color: var(--vh-lava); color: var(--vh-chalk); background: rgba(171,135,67,0.06); }
-.vh-btn-green { background: var(--vh-green); color: var(--vh-chalk); border-color: var(--vh-line-hot); }
+/* Three buttons, and the label of each is DERIVED for its ground (the
+   contract, design/lifecycle-os/CONTRACT.md). The old solid button was the
+   accent with the page SURFACE as its label and the "green" one the primary
+   with the surface: white on a pale brand colour for any brand that has one. */
+.vh-btn-primary, .vh-btn-solid, .vh-btn-green { background: var(--vh-primary); color: var(--vh-on-primary); border-color: var(--vh-primary); }
+.vh-btn-primary:hover, .vh-btn-solid:hover, .vh-btn-green:hover { background: var(--brand-primary-dark); border-color: var(--brand-primary-dark); }
+.vh-btn-secondary { background: var(--vh-panel); color: var(--vh-primary-text); border-color: var(--vh-line-hot); }
+.vh-btn-secondary:hover { border-color: var(--vh-primary-text); }
+.vh-btn-ghost { background: transparent; border-color: var(--vh-line); color: var(--vh-ink); }
+.vh-btn-ghost:hover { border-color: var(--vh-line-hot); color: var(--vh-ink); background: var(--vh-panel-2); }
 
 .vh-chip {
   font-size: var(--vh-fs-xs); font-weight: 600; letter-spacing: 0.03em;
   padding: 6px 13px; border-radius: var(--vh-r-pill);
-  border: 1px solid var(--vh-line); background: transparent; color: var(--vh-ink-dim);
+  border: 1px solid var(--vh-line); background: var(--vh-panel); color: var(--vh-ink-dim);
 }
+/* A selected chip is a small CONTROL in the primary, label derived for it -
+   the region picker's pattern (.rgn-chip[aria-pressed]). */
+.vh-chip[aria-pressed="true"], .vh-chip.is-on { background: var(--vh-primary); border-color: var(--vh-primary); color: var(--vh-on-primary); }
+/* A badge's words are brand-coloured TEXT, so its ground is a surface the
+   text token was adjusted against, never a tint of another colour. */
 .vh-badge {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
-  color:var(--brand-accent-text); background: rgba(171,135,67,0.12);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--vh-accent-text); background: var(--vh-panel); border: 1px solid var(--vh-line);
   padding: 3px 8px; border-radius: var(--vh-r-pill);
 }
 
@@ -257,12 +290,12 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   background: var(--vh-panel-2); border: 1px solid var(--vh-line); border-radius: var(--vh-r-sm);
   padding: 10px 12px; transition: border-color var(--vh-t-fast);
 }
-.vh-input:focus, .vh-select:focus, .vh-textarea:focus { border-color: var(--vh-lava); outline: none; }
+.vh-input:focus, .vh-select:focus, .vh-textarea:focus { border-color: var(--vh-focus); outline: none; }
 
 .vh-table { width: 100%; border-collapse: collapse; font-size: var(--vh-fs-sm); }
 .vh-table th, .vh-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--vh-line); }
-.vh-table th { color: var(--vh-ink-faint); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--vh-fs-xs); }
-.vh-table tr:hover td { background: rgba(171,135,67,0.04); }
+.vh-table th { color: var(--vh-ink-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: var(--vh-fs-xs); }
+.vh-table tr:hover td { background: var(--vh-panel-2); }
 /* Wide tables scroll inside their own container instead of breaking the page. */
 .vh-table-wrap { overflow-x: auto; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
 
@@ -313,7 +346,7 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--vh-err);
+  color: var(--vh-err-text);
 }
 .vh-failure-msg { display: block; color: var(--vh-ink); }
 .vh-failure-msg + .vh-failure-msg { margin-top: 6px; }
@@ -345,7 +378,7 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   margin: 8px 0 0;
   padding: 9px 12px;
   border: 1px solid var(--vh-line);
-  border-left: 4px solid var(--vh-lava);
+  border-left: 4px solid var(--vh-accent);
   border-radius: var(--vh-r-sm);
   background: var(--vh-panel-2);
   color: var(--vh-ink);
@@ -486,7 +519,9 @@ html.vh-reduce .vh-reveal { opacity: 1 !important; transform: none !important; }
     linear-gradient(145deg, #fffaf0, #f5fbff 52%, #f7f3ff);
   perspective: 1100px;
 }
-.vh-3d-snippet { margin: 0; padding: 22px; overflow: auto; background: var(--vh-black); color: var(--vh-chalk); font: 12px/1.65 var(--vh-font-mono); white-space: pre; }
+/* A code block is a sunken panel, not a black one: dark-neutral section
+   grounds are a HARD rule (design/lifecycle-os/CONTRACT.md). */
+.vh-3d-snippet { margin: 0; padding: 22px; overflow: auto; background: var(--vh-panel-2); color: var(--vh-ink); border-top: 1px solid var(--vh-line); font: 12px/1.65 var(--vh-font-mono); white-space: pre; }
 .vh-3d-meta { display: grid; gap: var(--vh-s3); width: min(560px, 100%); }
 .vh-3d-meta code { color:var(--brand-primary-text); font-family: var(--vh-font-mono); font-size: var(--vh-fs-sm); }
 .vh-3d-stage { perspective: 1100px; transform-style: preserve-3d; }
@@ -960,3 +995,240 @@ body::after {
   }
   .vh-live { animation: vh-pulse 2.2s var(--vh-ease-soft) infinite; }
 }
+
+/* >>> DESIGN-SYSTEM:contract — the Lifecycle OS design system (2026-10-05) */
+/* ============================================================================
+   THE CONTRACT EVERY PAGE IS BUILT FROM. design/lifecycle-os/CONTRACT.md is the
+   table (surface, token, where the value comes from); this block is the CSS
+   half of it. Three rules hold for everything between these markers, and
+   tests/design-system.spec.js fails on a break of any of them:
+
+     1. NO COLOUR LITERAL. Every colour below is a token. A literal here is a
+        colour this file decided for itself, which is how one tenant's red
+        ended up on every other tenant's rail.
+     2. TEXT IS DERIVED FOR ITS GROUND. Brand-coloured text uses a *-text token
+        (adjusted to TEXT_AA against the worst surface by tokens()); text on a
+        brand fill uses an on-* token. Never `color: var(--brand-primary)`.
+     3. NO SECTION IS A DARK NEUTRAL. A brand-coloured band paints --vh-band
+        (sectionGround(): the primary, else the accent, else the surface, so a
+        near-black primary never becomes a black section). A CONTROL may be
+        dark, the way a brand's own button is; a section may not.
+
+   The app is light-only by design: the surface is the brand's validated light
+   surface, and there is no dark theme to switch to (validatePalette() blocks a
+   dark-neutral surface outright).
+   ============================================================================ */
+:root {
+  /* Role tokens: aliases. The values come from tokens() via brand-context.js,
+     or from the BRAND-SYNC fallbacks above when no brand is active. */
+  --vh-accent:          var(--vh-fx-accent);
+  --vh-primary:         var(--vh-fx-primary);
+  --vh-on-primary:      var(--brand-on-primary);
+  --vh-on-accent:       var(--brand-on-accent);
+  --vh-primary-text:    var(--brand-primary-text);
+  --vh-accent-text:     var(--brand-accent-text);
+  --vh-link:            var(--vh-primary-text);
+  --vh-heading:         var(--vh-ink);
+  --vh-band:            var(--brand-band);
+  --vh-on-band:         var(--brand-on-band);
+  --vh-band-accent:     var(--brand-band-accent);
+  --vh-on-band-accent:  var(--brand-on-band-accent);
+  --vh-ok-text:         var(--brand-ok-text);
+  --vh-warn-text:       var(--brand-warn-text);
+  --vh-err-text:        var(--brand-err-text);
+  --vh-focus:           var(--brand-focus);
+  --vh-raised:          var(--vh-glass);
+  --vh-sunken:          var(--vh-panel-2);
+  --vh-tint:            var(--brand-primary-tint);
+  /* Chart series: the brand's own colours and its neutral, never a hue the
+     brand did not choose. A chart that needs a fifth series labels directly. */
+  --vh-chart-1:         var(--vh-primary);
+  --vh-chart-2:         var(--vh-accent);
+  --vh-chart-3:         var(--vh-ink-dim);
+  --vh-chart-4:         var(--brand-primary-dark);
+  /* The zero-fabrication marker. */
+  --vh-marker-ground:   var(--vh-panel-2);
+  --vh-marker-edge:     var(--vh-warn-text);
+  /* Illustration inks: inline SVG reads these through <use>, so an empty
+     state takes the active brand's colours and none of its own. */
+  --vh-ill-ground:      var(--brand-primary-tint);
+  --vh-ill-soft:        var(--brand-accent-soft);
+  --vh-ill-line:        var(--vh-line-hot);
+  --vh-ill-ink:         var(--vh-ink-dim);
+  --vh-ill-primary:     var(--vh-primary);
+  --vh-ill-accent:      var(--vh-accent);
+  /* Sizes and layers (not colours). */
+  --vh-icon-size: 18px;
+  --vh-icon-stroke: 1.75;
+  --vh-z-rail: 100;
+  --vh-z-notice: 120;
+  --vh-z-modal: 1000;
+  --vh-z-toast: 1100;
+  /* The platform WORDMARK's face: the system sans, so the name renders the same
+     in the rail, the share card and a lockup with no network fetch, and never
+     in a tenant's font (it identifies the tool, not the brand). */
+  --los-font-wordmark: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+/* Type: the steps the kit lacked. */
+.vh-h3 { font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-lg); line-height: 1.3; color: var(--vh-heading); margin: 0; }
+.vh-body { font-family: var(--vh-font-body); font-size: var(--vh-fs-md); line-height: 1.55; color: var(--vh-ink); }
+.vh-small { font-size: var(--vh-fs-sm); line-height: 1.5; color: var(--vh-ink-dim); }
+.vh-code { font-family: var(--vh-font-mono); font-size: var(--vh-fs-sm); color: var(--vh-ink); background: var(--vh-panel-2); border: 1px solid var(--vh-line); border-radius: 6px; padding: 1px 6px; }
+.vh-link, .vh-prose a { color: var(--vh-link); text-decoration: underline; text-underline-offset: 2px; }
+.vh-link:hover, .vh-prose a:hover { color: var(--vh-ink); }
+
+/* Icon: the stroke set in assets/lifecycle-os/icons.svg. */
+.vh-icon {
+  width: var(--vh-icon-size); height: var(--vh-icon-size);
+  display: inline-block; flex: none; vertical-align: -0.22em;
+  fill: none; stroke: currentColor; stroke-width: var(--vh-icon-stroke);
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.vh-icon-sm { --vh-icon-size: 14px; }
+.vh-icon-lg { --vh-icon-size: 24px; }
+
+/* Brand band: the ONLY way a section wears a brand colour. */
+.vh-band {
+  background: var(--vh-band); color: var(--vh-on-band);
+  border-radius: var(--brand-radius-card, var(--vh-r-lg));
+  padding: var(--vh-s6) var(--vh-s5);
+}
+.vh-band-accent { background: var(--vh-band-accent); color: var(--vh-on-band-accent); }
+.vh-band :where(h1, h2, h3, h4, p, li, span, small, strong, b, em) { color: inherit; }
+.vh-band a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+/* A control on a band keeps its own derived pairing, outlined in the band's
+   text colour so it separates from a band of the same hue. */
+.vh-band .vh-btn-primary { box-shadow: 0 0 0 1px var(--vh-on-band); }
+
+/* Status chip: state is a DOT and an edge; the words stay ink. */
+.vh-state {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: var(--vh-r-pill);
+  border: 1px solid var(--vh-line); background: var(--vh-panel); color: var(--vh-ink);
+  font-family: var(--vh-font-body); font-size: var(--vh-fs-xs); font-weight: 600; line-height: 1.5;
+}
+.vh-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--vh-ink-dim); }
+.vh-state[data-state="ok"]::before { background: var(--vh-ok-text); }
+.vh-state[data-state="warn"]::before { background: var(--vh-warn-text); }
+.vh-state[data-state="error"]::before { background: var(--vh-err-text); }
+.vh-state[data-state="error"] { border-color: var(--vh-err-text); }
+/* An ORDINARY state (signed out, on this device, not connected yet) wears the
+   accent, never the warning colour: a normal state in a warning colour teaches
+   people to ignore the warning. */
+.vh-state[data-state="ordinary"]::before { background: var(--vh-focus); }
+
+/* The zero-fabrication marker. */
+.vh-marker {
+  display: inline-block; max-width: 100%;
+  font-family: var(--vh-font-mono); font-size: var(--vh-fs-xs); line-height: 1.5; letter-spacing: .01em;
+  color: var(--vh-ink); background: var(--vh-marker-ground);
+  border: 1px dashed var(--vh-marker-edge); border-radius: var(--vh-r-sm);
+  padding: 2px 8px; white-space: normal; overflow-wrap: anywhere; text-transform: none;
+}
+.vh-marker-block { display: block; padding: 10px 12px; border-left: 4px solid var(--vh-marker-edge); }
+
+/* Loading. Reduced motion keeps the placeholder and drops only the shimmer. */
+.vh-skeleton {
+  display: block; height: 12px; border-radius: var(--vh-r-sm);
+  background-color: var(--vh-panel-2);
+  background-image: linear-gradient(90deg, transparent 0%, var(--vh-glass-edge) 50%, transparent 100%);
+  background-size: 50% 100%; background-repeat: no-repeat; background-position: -60% 0;
+}
+.vh-skeleton + .vh-skeleton { margin-top: 8px; }
+.vh-skeleton-title { height: 18px; width: 46%; }
+.vh-skeleton-short { width: 62%; }
+.vh-skeleton-block { height: 96px; border-radius: var(--vh-r-md); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes vh-shimmer { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+  .vh-skeleton { animation: vh-shimmer 1.4s var(--vh-ease-soft) infinite; }
+}
+.vh-loading { display: inline-flex; align-items: center; gap: 8px; color: var(--vh-ink-dim); font-size: var(--vh-fs-sm); }
+
+/* Empty state. */
+.vh-empty {
+  display: grid; justify-items: center; text-align: center; gap: var(--vh-s3);
+  padding: var(--vh-s6) var(--vh-s5);
+  border: 1px dashed var(--vh-line-hot); border-radius: var(--vh-r-lg);
+  background: var(--vh-panel); color: var(--vh-ink);
+}
+.vh-empty-art { width: 128px; height: 96px; display: block; }
+.vh-empty-title { margin: 0; font-family: var(--vh-font-head); font-weight: 600; font-size: var(--vh-fs-lg); color: var(--vh-heading); }
+.vh-empty-text { margin: 0; max-width: 46ch; font-size: var(--vh-fs-sm); line-height: 1.55; color: var(--vh-ink-dim); }
+
+/* Notice bar (auth.js #lc-authnotice is the shipped instance). */
+.vh-notice {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 16px; background: var(--vh-panel-2); color: var(--vh-ink);
+  border-bottom: 1px solid var(--vh-line); box-shadow: inset 0 3px 0 var(--vh-warn);
+  font: 13px/1.5 var(--vh-font-body);
+}
+.vh-notice.is-ordinary, .vh-notice[data-kind="signed-out"] { box-shadow: inset 0 3px 0 var(--vh-accent); }
+
+/* Mode line: Local / Demo Mode, an ordinary state. */
+.vh-mode {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--vh-r-pill);
+  border: 1px solid var(--vh-line); background: var(--vh-panel-2); color: var(--vh-ink);
+  box-shadow: inset 3px 0 0 var(--vh-accent);
+  font-size: var(--vh-fs-xs); font-weight: 600; line-height: 1.5;
+}
+
+/* Credit pill (credits.js .lc-credit-pill is the shipped instance). */
+.vh-credit {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: var(--vh-r-pill);
+  background: var(--vh-panel); color: var(--vh-ink); border: 1px solid var(--vh-line);
+  box-shadow: var(--vh-lift-1); font: 600 12.5px/1 var(--vh-font-body);
+}
+.vh-credit-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--vh-primary); flex: none; }
+.vh-credit.is-low .vh-credit-dot { background: var(--vh-warn-text); }
+.vh-credit.is-empty .vh-credit-dot { background: var(--vh-err-text); }
+.vh-credit.is-none { color: var(--vh-ink-dim); font-weight: 500; }
+.vh-credit.is-none .vh-credit-dot { background: var(--vh-line-hot); }
+.vh-credit-add { padding: 2px 8px; border-radius: var(--vh-r-pill); font-size: 11px; background: var(--vh-primary); color: var(--vh-on-primary); }
+
+/* Wizard steps (onboarding.html .step-pip is the shipped instance). */
+.vh-steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.vh-step {
+  flex: 1; min-width: 74px; padding: 9px 8px; text-align: center;
+  border-radius: var(--vh-r-sm); border: 1px solid var(--vh-line);
+  background: var(--vh-panel); color: var(--vh-ink-dim);
+  font-family: var(--vh-font-body); font-size: var(--vh-fs-sm); font-weight: 600;
+}
+.vh-step.is-done { border-color: var(--vh-primary-text); color: var(--vh-primary-text); }
+.vh-step[aria-current="step"] { background: var(--vh-primary); border-color: var(--vh-primary); color: var(--vh-on-primary); }
+
+/* Swatch: a colour and its name; the words sit on the panel, never on the colour. */
+.vh-swatch { display: grid; gap: 6px; min-width: 0; }
+.vh-swatch-chip { height: 56px; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
+.vh-swatch-name { font-size: var(--vh-fs-xs); font-weight: 600; color: var(--vh-ink); overflow-wrap: anywhere; }
+.vh-swatch-value { font-family: var(--vh-font-mono); font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); overflow-wrap: anywhere; }
+
+/* Modal and toast. The scrim is the INK at an opacity, not a black literal: it
+   dims the page it covers and is never a section of its own. */
+.vh-modal-backdrop { position: fixed; inset: 0; z-index: var(--vh-z-modal); background: var(--vh-ink); opacity: .45; }
+.vh-modal {
+  position: fixed; z-index: var(--vh-z-modal); left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 32px)); max-height: 86vh; overflow: auto;
+  background: var(--vh-panel); color: var(--vh-ink);
+  border: 1px solid var(--vh-line); border-radius: var(--vh-r-lg);
+  box-shadow: var(--vh-lift-2); padding: var(--vh-s5);
+}
+.vh-modal-stage { position: relative; overflow: hidden; border-radius: var(--vh-r-lg); min-height: 220px; }
+.vh-modal-stage .vh-modal-backdrop, .vh-modal-stage .vh-modal { position: absolute; z-index: auto; }
+.vh-toast {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; border-radius: var(--vh-r-md);
+  background: var(--vh-panel); color: var(--vh-ink); border: 1px solid var(--vh-line);
+  box-shadow: var(--vh-lift-2), inset 3px 0 0 var(--vh-accent);
+  font-size: var(--vh-fs-sm); line-height: 1.5;
+}
+.vh-toast[data-state="error"] { box-shadow: var(--vh-lift-2), inset 3px 0 0 var(--vh-err-text); }
+
+/* Feature info panel (the rail's ? chip; auth.js .lnav-ipanel is the shipped instance). */
+.vh-info { background: var(--vh-panel); color: var(--vh-ink-dim); border: 1px solid var(--vh-line); border-radius: var(--vh-r-lg); box-shadow: var(--vh-lift-2); padding: var(--vh-s5); font-size: 13px; line-height: 1.65; }
+.vh-info-eyebrow { font-family: var(--vh-font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--vh-accent-text); margin-bottom: 3px; }
+.vh-info-title { font-family: var(--vh-font-head); font-size: 18px; font-weight: 600; color: var(--vh-heading); margin: 0 0 10px; }
+.vh-info-q { font-size: 13px; font-weight: 700; color: var(--vh-ink); margin: 14px 0 4px; }
+/* <<< DESIGN-SYSTEM:contract */
