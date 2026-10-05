@@ -976,8 +976,10 @@
       { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages#google',   icon: 'google' },
       { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages#tiktok',   icon: 'tiktok' },
       { id: 'lp-templates', label: 'Landing Page Templates', href: '/landing-page-templates', icon: 'landing', match: ['/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'] },
-      { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'] },
-      { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'] },
+      // Tenant zero's own landing artefacts. Hidden once another brand is
+      // active (data-shipped-nav); they are not this product's live pages.
+      { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'], shipped: true },
+      { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'], shipped: true },
       { id: 'lp-agent',   label: 'Landing Page with All-In-One Voice+Chat+Talk Agent',   href: '/lp/agent', icon: 'knickgasm', match: ['/lp/agent'] },
     ]},
 
@@ -1221,7 +1223,7 @@
     },
     agent: {
       title: 'Brand Agent',
-      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
+      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. The example pages at /lp/agent and /lp/best belong to the shipped brand; every other brand is served its own page.",
       who: "Prospective and existing customers on-site; strongest for Non-Buyers who need guidance to a first purchase. The team uses this page to configure and demo agents.",
       how: "A chat UI over the shared 6-provider LLM waterfall, grounded in brand voice and the product catalog. Voice replies use ElevenLabs TTS with a browser-TTS fallback. Agent personas can be created, updated, and synced from this page.",
       input: "A visitor question — preferences, goals, or gifting needs. For the team: agent persona settings.",
@@ -1272,7 +1274,7 @@
         ['Market intelligence', 'US coffee and functional-beverage sizing, benchmarks and the competitor brand matrix set the opportunity.'],
         ['Live performance', 'Real US and UK numbers ground every claim; the full workbench is one click away.', '/data-analysis'],
         ['Growth plays', 'The prioritised, data-grounded moves, each mapped to an avatar and cohort.'],
-        ['Data engine', 'The ingestion and competitor-capture pipeline (knickgasm_dtc_data_engine) that feeds every number.'],
+        ['Data engine', 'The ingestion and competitor-capture pipeline that feeds the active brand\'s own numbers. It never reads another brand\'s export.'],
       ],
     },
     avatars: {
@@ -1378,7 +1380,7 @@
     lifecycle: {
       title: 'Mailer Calendar (UK)',
       what: "The UK lifecycle mailer calendar: deterministically plans 14/30/45 days of sends for the two engagement cohorts by rotating a curated play library — then builds any planned send into a Klaviyo-ready mailer with exactly ONE brand-gated LLM call. This is Draft 2 (V2 — Lifecycle OS) of both calendaring and mailer creation; Draft 1 is the 30-day Calendar plus Mailer Studio.",
-      who: "Cohort A — Non-Buyers/Non-Engagers (objective: earn the open, earn the click, first purchase) and Cohort B — T&B Buyers/Non-Engagers (objective: reactivate with familiarity, cross-grade to Coffee/Supplements subscription). UK market only (knickgasm.com).",
+      who: "Cohort A — Non-Buyers/Non-Engagers (objective: earn the open, earn the click, first purchase) and Cohort B — T&B Buyers/Non-Engagers (objective: reactivate with familiarity, cross-grade to the brand's own subscription). The UK calendar uses the active brand's own store.",
       how: "Two modes. PLAN is deterministic — no LLM: it rotates plays per cohort at your cadence (default 2/week), enforcing hard product rules (T&B is one-time only; Coffee and Supplements are subscription-first; supplements are never priced; no founder voice — templates restricted to pure/visual/editorial). BUILD makes one LLM call against locked facts and renders the brand template.",
       input: "Start date, plan window (14/30/45 days), cohort checkboxes, and sends-per-cohort-per-week. Nothing runs automatically — a human clicks Generate.",
       pipeline: true,
@@ -1447,7 +1449,7 @@
     },
     landing: {
       title: 'Landing Pages',
-      what: "Generates and serves brand-compliant HTML landing pages — presell and editorial pages matched to mailers and ads — including the live agent-embedded pages at /lp/best and /lp/agent.",
+      what: "Generates and serves brand-compliant HTML landing pages — presell and editorial pages matched to mailers and ads. The shipped brand's example pages live at /lp/best and /lp/agent; every other brand gets a page built from its own record.",
       who: "Traffic from each channel: pages exist for Mailers, for Meta, for Google, and for TikTok, inheriting the cohort of the campaign that links to them.",
       how: "Pages are LLM-generated to the /lp/:id serving contract, compiled by the LP compiler, stored in landing_pages_generated, and served live from the calendar router. Smart Brain approvals generate one automatically per campaign.",
       input: "A campaign or slot, or a manual brief: product, angle, source channel, and market.",
@@ -1465,7 +1467,7 @@
     officialdesigns: {
       title: 'Official Website Designs',
       what: "A true-to-brand 3D replica of the Knickgasm storefront and Meta-ads landers, rendered as a continuous WebGL scene of floating product panels and glassmorphic surfaces. Live catalog and pricing come from the regional Shopify storefront; historical metrics come from the Snowflake to Supabase daily mirror. It degrades automatically to a fast 2D brand layout on low-end, mobile, reduced-motion or crawler traffic so conversion is never sacrificed.",
-      who: "Shoppers across the US, UK and Global regions, plus paid-social traffic landing on knickgasm.com and knickgasm.com — where the scene collapses into a single-product spatial checkout to minimise friction.",
+      who: "Shoppers in each region the active brand sells in, plus paid-social traffic landing on that brand's own store, where a lander can collapse into a single-product checkout.",
       how: "The Knickgasm3DConnectorEngine (React context provider + data-orchestration middleware) resolves the region and lander from the hostname, connects Shopify and the Snowflake mirror, extracts the live theme colours and typography, injects them into the 3D materials and CSS custom properties, and renders the scene with three and react-three-fiber. Static pages mount the same engine through a no-build ESM bridge.",
       input: "Nothing from you at view time — the hostname decides region and lander mode. Operators can force a region or a 2D preview on the showcase page.",
       pipeline: true,
@@ -1501,12 +1503,12 @@
       what: "The daily social engine (V2 — Lifecycle OS): a 7-agent pipeline produces one complete day-package of posts across 11 platform formats — Instagram Feed, Reels and Stories, Facebook, TikTok, LinkedIn, X, Threads, Pinterest, YouTube Shorts, plus a long-form blog — every string brand-scrubbed, nothing published without a human approve.",
       who: "Followers and prospects per platform, UK market first. The operator reviews each day-package in the /social console and approves or skips per post.",
       how: "Seven bounded LLM agents run in sequence — each ONE call on the right provider tier, each with a deterministic fallback so the run never fails outright — inside a ~75s time box. A daily Vercel Cron (04:30 UTC) drives it; results persist to social_posts_generated in Supabase. Per-platform constraints (aspect, dims, char limits, hashtags, best time) live in a data spec, not prose. Platform push stays Phase 2 (push_status: not_integrated_phase_2).",
-      input: "Nothing daily — the cron drives it; or hit Run Today in the console. From you: approve or skip per post. Product-focus rotation and festivals come from data/*.json; links use real knickgasm.com handles only.",
+      input: "Nothing daily — the cron drives it; or hit Run Today in the console. From you: approve or skip per post. Product-focus rotation and festivals come from the active brand's own data; links use that brand's own product handles only.",
       pipeline: true,
       steps: [
         ['Ideology', "Premium-tier agent picks the day's creative theme — festival-aware, rotating product focus — maximum ideation before any data is touched.", '/api/brain?action=social-run-daily'],
         ['Data & Hypothesis', "Reads recent-post history from the DB to avoid repetition and states a performance hypothesis for the day's angle."],
-        ['Strategy', "Locks objective, CTA, and destination link per platform — real knickgasm.com product handles only."],
+        ['Strategy', "Locks objective, CTA, and destination link per platform — the active brand's own product handles only."],
         ['Content', "Writes per-platform copy — captions, titles, hashtags within each platform's limits — plus the 800-1200 word blog, in brand voice with banned phrases blocked."],
         ['Design', "Generates the hero image via the shared image cascade with per-platform crops; if generation fails it ships the exact image prompt instead."],
         ['Audio/Video', "Builds the storyboard and requests video via video-core for Reels, TikTok, and Shorts — stubbing gracefully when no video keys exist."],
@@ -1657,10 +1659,11 @@
     // own target="_blank" where they're declared.
     const linkRow = (item) => {
       const isCur = item.id === cur;
-      const a = `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}" data-id="${item.id}" title="${item.label}">
+      const shipped = item.shipped ? ' data-shipped-nav="1"' : '';
+      const a = `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}" data-id="${item.id}" title="${item.label}"${INFO[item.id] ? '' : shipped}>
         ${svg(item.icon)}<span class="lnav-txt">${item.label}</span>${verChip(item)}</a>`;
       if (!INFO[item.id]) return a;
-      return `<div class="lnav-item">${a}${infoBtn(item.id, item.label)}</div>`;
+      return `<div class="lnav-item"${shipped}>${a}${infoBtn(item.id, item.label)}</div>`;
     };
     // Double-layer nav: Tier-1 = top-level features (flat items + group headers),
     // Tier-2 = each feature's sub-sections. Groups start COLLAPSED — only the
@@ -2121,6 +2124,31 @@
     `;
     document.body.insertBefore(wrap, document.body.firstChild);
     bindSkipTarget(wrap);
+    // Rows marked shipped are one brand's artefacts (the grail-drop pages).
+    // They stay for a signed-out preview and for the workspace the server
+    // calls tenant zero, and they leave the rail for every other brand.
+    const applyShippedNav = () => {
+      let show = true;
+      try {
+        const B = window.BrandContext;
+        if (B && B.brand && typeof B.isTenantZero === 'function') show = !!B.isTenantZero(B.brand);
+      } catch (_) { show = true; }
+      wrap.querySelectorAll('[data-shipped-nav]').forEach((el) => {
+        el.hidden = !show;
+      });
+    };
+    applyShippedNav();
+    try {
+      const B = window.BrandContext;
+      if (B && typeof B.ready === 'function') B.ready().then(applyShippedNav, applyShippedNav);
+    } catch (_) {}
+    if (!window.__lnavShippedBound) {
+      window.__lnavShippedBound = true;
+      window.addEventListener('brandcontext:change', () => {
+        try { window.__lnavApplyShipped && window.__lnavApplyShipped(); } catch (_) {}
+      });
+    }
+    window.__lnavApplyShipped = applyShippedNav;
     // Signal to embedded apps (e.g. Mailer Studio) that they're rendering
     // inside the Lifecycle OS shell, so they can hide their own duplicate
     // header / tabs / sign-out chrome.

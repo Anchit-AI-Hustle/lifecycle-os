@@ -1758,15 +1758,17 @@ function variantMeta(copy) {
 // category collection. Never emits a merge-tag literal, so every CTA in a
 // preview/download redirects to a real page.
 function slotLinks(entry) {
-  // A non-tenant-zero brand's links come from ITS OWN record: its regional
-  // store and the offering's own URL. Tenant zero keeps the catalogue-mapped
-  // collection logic below.
-  if (entry.brand && entry.brand.id && !/^knickgasm$/i.test(String(entry.brand.slug || ''))) {
+  // Catalogue collection paths and knickgasm.com belong to tenant zero.
+  // A saved slug is not that proof. Every other brand uses its own store,
+  // or a gap when it has none.
+  let zero = false;
+  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(entry && entry.brand) === true; } catch (_) { zero = false; }
+  if (!zero) {
     let f = null;
-    try { f = require('./brand-runtime.js').regionFacts(entry.brand, entry.market); } catch (_) {}
-    const bStore = f && f.store ? `https://${f.store}` : (entry.brand.website || '');
+    try { if (entry.brand) f = require('./brand-runtime.js').regionFacts(entry.brand, entry.market); } catch (_) {}
+    const bStore = f && f.store ? `https://${f.store}` : ((entry.brand && entry.brand.website) || '');
     const off = entry.heroOffering || entry.offering || {};
-    const target = off.url || bStore;
+    const target = off.url || bStore || '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
     return { store: bStore || target, collectionUrl: target, pdpUrl: target };
   }
   const facts = regionFacts(entry.market);
@@ -1792,6 +1794,16 @@ function slotLinks(entry) {
 // Resolve a real PDP URL for ANY product (hero or supporting), always on the
 // official per-market store, never fabricating a handle.
 function productUrl(product, market, brand) {
+  let zero = false;
+  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(brand) === true; } catch (_) { zero = false; }
+  if (!zero) {
+    let f = null;
+    try { if (brand) f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) {}
+    const own = f && f.store ? `https://${f.store}` : ((brand && brand.website) || '');
+    if (!own) return '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
+    const ownHandle = (product && (product.handle || product.h)) || null;
+    return ownHandle ? `${own}/products/${ownHandle}` : own;
+  }
   const facts = regionFacts(market);
   const store = `https://${facts.store || 'knickgasm.com'}`;
   let handle = null;
