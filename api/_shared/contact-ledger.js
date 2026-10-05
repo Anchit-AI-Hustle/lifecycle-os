@@ -27,8 +27,24 @@
  * Writes are the SERVICE ROLE's (the table grants authenticated SELECT only and
  * has no write policy): a member cannot hand-edit what reached a customer. The
  * preflight gate and the planners read as the service role with an explicit
- * workspace filter (they run under the scheduler too); the console's summary
+ * workspace filter (they run under the scheduler too) - and, inside a request,
+ * only after requestMayRead() has established that the request is the
+ * scheduler's or a VERIFIED MEMBER's of that workspace (RLS, as the caller).
+ * A workspace id can arrive in a request body or a query string; reading the
+ * ledger for whichever one was named would hand any caller another brand's
+ * contact history in the shape of eligibility counts. The console's summary
  * reads as the caller, so RLS (`is_brand_member`) decides.
+ *
+ * ── ONE PERSON, SEVERAL IDENTIFIERS ────────────────────────────────────────
+ * A dispatch row may carry a profile id, an address hash and a number hash;
+ * an ingested SMS may carry the number alone. Reading only the recipient's
+ * DIRECT identifiers missed every touch keyed by an identifier the ledger
+ * itself links to them, so an email went out inside an SMS cool-down. load()
+ * follows those links: rows holding the recipient's identifiers, then rows
+ * holding the identifiers THOSE rows add, to LINK_HOPS rounds and LINK_KEYS
+ * identifiers, over a link look-back LINK_LOOKBACK_DAYS longer than the
+ * touch look-back. A walk the bound stopped says so (`links_incomplete`), and
+ * the gate warns rather than passing a count it knows is a lower bound.
  *
  * ── UNAVAILABLE IS A STATE ─────────────────────────────────────────────────
  * No workspace (a brand kept on a device), no database configured, a store
@@ -47,6 +63,9 @@ const RULES_TABLE = 'contact_fatigue_rules';
 const MAX_LOAD = 5000;          // rows read for one evaluation
 const KEY_CHUNK = 80;           // identifiers per `in.(...)` filter
 const MAX_RECIPIENTS = 10000;   // recipients one evaluation / one job carries
+const LINK_HOPS = 4;            // rounds of linked identifiers followed beyond the recipients' own
+const LINK_KEYS = 600;          // identifiers followed through links, per evaluation
+const LINK_LOOKBACK_DAYS = 90;  // how much further back than the touch look-back a row may LINK identifiers
 const DAY = 86400000;
 
 /* ── storage ──────────────────────────────────────────────────────────────── */
@@ -82,6 +101,8 @@ function unavailable(reason, extra) {
     no_database: 'this deployment has no workspace database configured (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)',
     store_unreachable: `the workspace database${extra && extra.host ? ` (${extra.host})` : ''} did not answer`,
     not_supplied: 'no contact ledger was supplied to this check',
+    unverified: 'unchecked: this request is not from a verified member of this brand\'s workspace, so its contact ledger and rules were not read',
+    not_member: 'unchecked: the signed-in account is not a member of this brand\'s workspace, so its contact ledger and rules were not read',
   };
   return Object.assign({ available: false, reason, note: notes[reason] || reason, touches: [] }, extra || {});
 }
@@ -149,17 +170,109 @@ function absent(workspaceId) {
   return null;
 }
 
+/** A person key ('p:<provider>:<id>' | 'e:<hash>' | 't:<hash>') as the column and value that find it. */
+function columnOf(key) {
+  const k = String(key || '');
+  if (k.startsWith('e:')) return ['email_hash', k.slice(2)];
+  if (k.startsWith('t:')) return ['phone_hash', k.slice(2)];
+  const m = /^p:[^:]*:(.+)$/.exec(k);
+  return m ? ['external_profile_id', m[1]] : null;
+}
+
+/** Rows holding any of these identifiers, added to `pool` (by row id). Returns the rows it added. */
+async function fetchByKeys(env, ws, from, keys, pool) {
+  const byCol = { external_profile_id: new Set(), email_hash: new Set(), phone_hash: new Set() };
+  for (const k of keys) { const c = columnOf(k); if (c) byCol[c[0]].add(c[1]); }
+  const fresh = [];
+  let truncated = false;
+  for (const col of Object.keys(byCol)) {
+    const list = Array.from(byCol[col]);
+    for (let i = 0; i < list.length; i += KEY_CHUNK) {
+      const f = `${col}.in.${quoteIn(list.slice(i, i + KEY_CHUNK))}`;
+      const { json } = await rest(env, `${TABLE}?select=${COLS}&${ws}${from}&or=(${encodeURIComponent(f)})&order=occurred_at.desc&limit=${MAX_LOAD}`);
+      const rows = Array.isArray(json) ? json : [];
+      if (rows.length >= MAX_LOAD) truncated = true;
+      // A person known by a profile id AND an address is matched by both
+      // filters: the same row twice would be counted as two touches.
+      for (const r of rows) { const id = r.id || JSON.stringify(r); if (!pool.has(id)) { pool.set(id, r); fresh.push(r); } }
+      if (pool.size >= MAX_LOAD * 2) return { fresh, truncated: true };
+    }
+  }
+  return { fresh, truncated };
+}
+
 /**
- * Touches for one workspace from `since` on: those of the given recipients,
- * or those tagged with the given cohorts, or (neither) the workspace's most
- * recent ones. Bounded; a read that hit the bound says `truncated`.
+ * Follow the identifiers the ledger links (2026-10-04, review). Starting from
+ * `seeds` (person keys), read every row holding a known identifier and add the
+ * identifiers that row carries, until no new one appears - or LINK_HOPS rounds
+ * or LINK_KEYS identifiers, whichever stops it first, which is then REPORTED.
+ * `requireFirst` is the recipients' own identifiers: that round is always
+ * read, as it always was, whatever its size.
+ */
+async function linkWalk(env, ws, from, seeds, pool, { requireFirst = true } = {}) {
+  const known = new Set(seeds);
+  const queried = new Set();
+  const rowsByKey = new Map();
+  const grow = (rows) => {
+    for (const row of rows) for (const k of fatigue.personKeys(row)) { if (!rowsByKey.has(k)) rowsByKey.set(k, []); rowsByKey.get(k).push(row); }
+    const queue = [];
+    for (const row of rows) for (const k of fatigue.personKeys(row)) if (known.has(k)) queue.push(k);
+    const added = [];
+    const seen = new Set();
+    while (queue.length) {
+      const k = queue.pop();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      for (const row of rowsByKey.get(k) || []) {
+        for (const k2 of fatigue.personKeys(row)) {
+          if (!known.has(k2)) { known.add(k2); added.push(k2); }
+          if (!seen.has(k2)) queue.push(k2);
+        }
+      }
+    }
+    return added;
+  };
+  grow(Array.from(pool.values()));
+  let frontier = Array.from(known);
+  let rounds = 0;
+  let truncated = false;
+  let cut = null;
+  while (frontier.length) {
+    if (rounds > LINK_HOPS) { cut = 'hops'; break; }
+    if ((rounds > 0 || !requireFirst) && queried.size + frontier.length > LINK_KEYS) { cut = 'identifiers'; break; }
+    for (const k of frontier) queried.add(k);
+    const got = await fetchByKeys(env, ws, from, frontier, pool);
+    if (got.truncated) truncated = true;
+    frontier = grow(got.fresh).filter((k) => !queried.has(k));
+    rounds += 1;
+    if (truncated) { cut = cut || (frontier.length ? 'rows' : null); break; }
+  }
+  return {
+    truncated,
+    links_incomplete: !!cut && frontier.length > 0,
+    link_hops: Math.max(0, rounds - 1),
+    link_cut: frontier.length ? cut : null,
+    identifiers_followed: queried.size,
+  };
+}
+
+/**
+ * Touches for one workspace from `since` on: those of the given recipients
+ * and of every identifier the ledger links to them, or those tagged with the
+ * given cohorts (and, likewise, of the identifiers linked to them), or
+ * (neither) the workspace's most recent ones. Rows older than `since` that
+ * LINK two identifiers come back as `links`, never as touches. Bounded; a
+ * read that hit the bound says `truncated`, a link walk that did says
+ * `links_incomplete`.
  */
 async function load({ workspaceId = null, since = null, identities = null, cohortKeys = null } = {}) {
   const why = absent(workspaceId);
   if (why) return why;
   const env = serviceEnv();
   const ws = `workspace_id=eq.${encodeURIComponent(workspaceId)}`;
-  const from = since ? `&occurred_at=gte.${encodeURIComponent(new Date(since).toISOString())}` : '';
+  const sinceMs = since != null && Number.isFinite(new Date(since).getTime()) ? new Date(since).getTime() : null;
+  const from = sinceMs != null ? `&occurred_at=gte.${encodeURIComponent(new Date(sinceMs).toISOString())}` : '';
+  const linkFrom = sinceMs != null ? `&occurred_at=gte.${encodeURIComponent(new Date(sinceMs - LINK_LOOKBACK_DAYS * DAY).toISOString())}` : '';
   try {
     // Does the ledger hold ANYTHING for this brand in the horizon? "No send
     // history" and "these recipients have none" are different statements.
@@ -167,34 +280,41 @@ async function load({ workspaceId = null, since = null, identities = null, cohor
     const total = Number(String(head.range || '').split('/')[1]);
     const workspaceTouches = Number.isFinite(total) ? total : (Array.isArray(head.json) ? head.json.length : 0);
     let rows = [];
+    let links = [];
     let truncated = false;
+    let walk = null;
     if (workspaceTouches > 0) {
-      const filters = [];
-      if (Array.isArray(identities) && identities.length) {
-        const pids = []; const emails = []; const phones = [];
-        for (const id of identities) {
-          if (id.external_profile_id) pids.push(id.external_profile_id);
-          if (id.email_hash) emails.push(id.email_hash);
-          if (id.phone_hash) phones.push(id.phone_hash);
-        }
-        const chunks = (col, list) => { for (let i = 0; i < list.length; i += KEY_CHUNK) filters.push(`${col}.in.${quoteIn(list.slice(i, i + KEY_CHUNK))}`); };
-        chunks('external_profile_id', Array.from(new Set(pids)));
-        chunks('email_hash', Array.from(new Set(emails)));
-        chunks('phone_hash', Array.from(new Set(phones)));
-      } else if (Array.isArray(cohortKeys) && cohortKeys.length) {
-        filters.push(`cohort_key.in.${quoteIn(Array.from(new Set(cohortKeys)).slice(0, 200))}`);
-      }
       const order = '&order=occurred_at.desc';
-      if (filters.length) {
-        for (const f of filters) {
-          if (rows.length >= MAX_LOAD) { truncated = true; break; }
-          const { json } = await rest(env, `${TABLE}?select=${COLS}&${ws}${from}&or=(${encodeURIComponent(f)})${order}&limit=${MAX_LOAD}`);
-          rows = rows.concat(Array.isArray(json) ? json : []);
+      const pool = new Map();
+      if (Array.isArray(identities) && identities.length) {
+        const seeds = Array.from(new Set(identities.flatMap((id) => fatigue.personKeys(id))));
+        walk = await linkWalk(env, ws, linkFrom, seeds, pool, { requireFirst: true });
+      } else if (Array.isArray(cohortKeys) && cohortKeys.length) {
+        const f = `cohort_key.in.${quoteIn(Array.from(new Set(cohortKeys)).slice(0, 200))}`;
+        const { json } = await rest(env, `${TABLE}?select=${COLS}&${ws}${from}&or=(${encodeURIComponent(f)})${order}&limit=${MAX_LOAD}`);
+        const tagged = Array.isArray(json) ? json : [];
+        if (tagged.length >= MAX_LOAD) truncated = true;
+        for (const r of tagged) pool.set(r.id || JSON.stringify(r), r);
+        // The cohort's people are the seeds: their untagged touches (an SMS
+        // keyed by the number alone) are theirs too.
+        const seeds = Array.from(new Set(tagged.flatMap((r) => fatigue.personKeys(r))));
+        walk = await linkWalk(env, ws, linkFrom, seeds, pool, { requireFirst: false });
+      }
+      if (walk) {
+        truncated = truncated || walk.truncated;
+        const all = Array.from(pool.values()).sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at));
+        rows = sinceMs != null ? all.filter((r) => Date.parse(r.occurred_at) >= sinceMs) : all;
+        // Older rows only LINK: identifier columns, and only when they tie two together.
+        const seenLink = new Set();
+        for (const r of all) {
+          if (sinceMs == null || Date.parse(r.occurred_at) >= sinceMs) continue;
+          const keys = fatigue.personKeys(r);
+          if (keys.length < 2) continue;
+          const k = keys.join('|');
+          if (seenLink.has(k)) continue;
+          seenLink.add(k);
+          links.push({ provider: r.provider || null, external_profile_id: r.external_profile_id || null, email_hash: r.email_hash || null, phone_hash: r.phone_hash || null });
         }
-        // A person known by a profile id AND an address is matched by both
-        // filters: the same row twice would be counted as two touches.
-        const seen = new Set();
-        rows = rows.filter((r) => { const k = r.id || JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; });
       } else {
         const { json } = await rest(env, `${TABLE}?select=${COLS}&${ws}${from}${order}&limit=${MAX_LOAD}`);
         rows = Array.isArray(json) ? json : [];
@@ -202,7 +322,11 @@ async function load({ workspaceId = null, since = null, identities = null, cohor
       }
       if (rows.length > MAX_LOAD) { rows = rows.slice(0, MAX_LOAD); truncated = true; }
     }
-    return { available: true, source: 'ledger', workspace_id: workspaceId, touches: rows, workspace_touches: workspaceTouches, truncated, since: since ? new Date(since).toISOString() : null };
+    return {
+      available: true, source: 'ledger', workspace_id: workspaceId, touches: rows, links, workspace_touches: workspaceTouches, truncated,
+      links_incomplete: !!(walk && walk.links_incomplete), link_hops: walk ? walk.link_hops : null, link_cut: walk ? walk.link_cut : null,
+      since: sinceMs != null ? new Date(sinceMs).toISOString() : null,
+    };
   } catch (e) {
     return unavailable('store_unreachable', { host: hostOf(env.url), status: e.status || null, note: `the workspace database (${hostOf(env.url)}) did not answer` });
   }
@@ -230,24 +354,105 @@ function sanitizeCarried(workspaceId, carried) {
 }
 
 /**
+ * May the service role read THIS workspace's contact ledger and rules for the
+ * request being served (2026-10-04, review)? A workspace id can be named in a
+ * body or a query string by anyone, and several routers honour a named id, so
+ * the read is decided here, before any query, on what the REQUEST is:
+ *   - no request in scope (the scheduler's worker, a script): the documented
+ *     userless process - yes;
+ *   - the scheduler's own bearer (the cron, the prebuild chain): yes;
+ *   - a verified caller who is a MEMBER of this workspace - asked as the
+ *     caller, so RLS answers (the same door evaluateForCaller uses): yes;
+ *   - anyone else - anonymous, a refused token, a member of another
+ *     workspace naming this one: no, and the state is said as unchecked.
+ */
+async function requestMayRead(workspaceId) {
+  const rs = require('./request-scope.js');
+  const req = rs.currentRequest();
+  if (!req) return { ok: true, basis: 'server' };
+  if (require('./require-caller.js').isCron(req)) return { ok: true, basis: 'scheduler' };
+  return rs.once(`contact-ledger:may-read:${workspaceId}`, async () => {
+    const brand = require('./brand-workspace-core.js');
+    let auth = null;
+    try { auth = await brand.requireUser(req); } catch (_) { auth = null; }
+    if (!auth || !auth.ok) return { ok: false, reason: 'unverified' };
+    let member = false;
+    try { member = !!(await brand.getWorkspace(auth, workspaceId)); } catch (_) { member = false; }
+    return member ? { ok: true, basis: 'member' } : { ok: false, reason: 'not_member' };
+  });
+}
+
+/**
+ * Carried touches ADDED to what the store holds, never in its place
+ * (2026-10-04, review): a request that carried an empty history used to
+ * REPLACE the ledger, so any member could turn a cool-down block into "no
+ * send history" with no override recorded. A carried copy of a stored touch
+ * (same channel, class and second, and an identifier in common) is the stored
+ * touch, so it is not counted twice.
+ */
+function addCarried(led, extra) {
+  const sec = (t) => { const ms = Date.parse(t.occurred_at); return Number.isFinite(ms) ? Math.floor(ms / 1000) : null; };
+  const bucket = new Map();
+  for (const t of led.touches || []) {
+    const k = `${fatigue.channelOf(t.channel)}|${fatigue.classOf(t.message_class)}|${sec(t)}`;
+    if (!bucket.has(k)) bucket.set(k, []);
+    bucket.get(k).push(new Set(fatigue.personKeys(t)));
+  }
+  const offered = extra.touches || [];
+  const added = offered.filter((t) => {
+    const keys = fatigue.personKeys(t);
+    return !(bucket.get(`${t.channel}|${t.message_class}|${sec(t)}`) || []).some((set) => keys.some((x) => set.has(x)));
+  });
+  return Object.assign(led, {
+    touches: (led.touches || []).concat(added),
+    workspace_touches: (Number(led.workspace_touches) || 0) + added.length,
+    carried_added: added.length,
+    carried_duplicates: offered.length - added.length,
+    source: offered.length ? 'ledger+request' : led.source,
+  });
+}
+
+/**
  * Everything a planner or the gate needs: the brand's rules and its ledger
  * (or the history the request carried). Never throws.
+ *
+ * WHICH HISTORY COUNTS. With a store this request may read, the STORE is the
+ * truth and carried rows can only add to it. The history a request carried
+ * stands on its own only where there is no store to read: a brand kept on a
+ * device, a deployment with no database, the gate's pure path, or a request
+ * that may not read this workspace (then it is the caller's own data, judged
+ * for them, and nothing of the workspace's is read).
  */
 async function contextFor({ workspaceId = null, carried = null, policy = null, since = null, identities = null, cohortKeys = null, members = null, readStore = true } = {}) {
   // readStore:false is the pure path: the rules the request carried (or the
   // stated defaults) over the history it carried, and nothing read from the
   // database. It is what the preflight gate uses on its own, because its
-  // input - workspaceId included - can come straight from a request body, and
-  // reading a ledger for a workspace named in a body would answer "was this
-  // address contacted by that brand?" for anybody who asked.
-  const r = readStore ? await rulesFor({ workspaceId, carried: policy }) : await rulesFor({ carried: policy });
+  // input - workspaceId included - can come straight from a request body.
+  const hasCarried = !!(carried && typeof carried === 'object' && Array.isArray(carried.touches));
+  let gate = { ok: false, reason: 'not_supplied' };
+  if (readStore) {
+    const why = absent(workspaceId);
+    gate = why ? { ok: false, absent: why } : await requestMayRead(workspaceId);
+  }
+  const store = !!gate.ok;
+  const r = store ? await rulesFor({ workspaceId, carried: policy }) : await rulesFor({ carried: policy });
   let led;
-  if (carried && typeof carried === 'object' && Array.isArray(carried.touches)) led = sanitizeCarried(workspaceId, carried);
-  else if (!readStore) led = unavailable('not_supplied');
-  else led = await load({ workspaceId, since: since || Date.now() - 9 * DAY, identities, cohortKeys });
+  if (store) {
+    led = await load({ workspaceId, since: since || Date.now() - 9 * DAY, identities, cohortKeys });
+    if (hasCarried && led.available) led = addCarried(led, sanitizeCarried(workspaceId, carried));
+  } else if (hasCarried) {
+    led = sanitizeCarried(workspaceId, carried);
+  } else if (gate.absent) {
+    led = gate.absent;
+  } else {
+    led = unavailable(gate.reason || 'not_supplied');
+  }
   return Object.assign(led, {
     workspace_id: workspaceId || null,
-    members: led.members || members || null,
+    // A member list is the store's (server-supplied) on the store path; a
+    // carried one stands only where the carried history does.
+    members: (store ? null : led.members) || members || null,
+    read_basis: store ? gate.basis : null,
     rules: r.rules, rules_source: r.source, rules_adjustments: r.adjustments, rules_note: r.note || null,
   });
 }
@@ -272,9 +477,12 @@ async function evaluateSend({ workspaceId = null, channel, message_class, at = n
     identities: ids ? ids.filter(fatigue.hasIdentity) : null,
   });
   const ev = fatigue.evaluate({
-    rules: ctx.rules, touches: ctx.touches, candidates: ids, workspaceId,
+    rules: ctx.rules, touches: ctx.touches, links: ctx.links, candidates: ids, workspaceId,
     send: { channel, message_class, at: new Date(at0).toISOString() },
-    ledger: { available: ctx.available, reason: ctx.reason, note: ctx.note, workspace_touches: ctx.workspace_touches, truncated: ctx.truncated, source: ctx.source },
+    ledger: {
+      available: ctx.available, reason: ctx.reason, note: ctx.note, workspace_touches: ctx.workspace_touches, truncated: ctx.truncated, source: ctx.source,
+      links_incomplete: ctx.links_incomplete, link_hops: ctx.link_hops,
+    },
   });
   if (list && Array.isArray(recipients) && recipients.length > MAX_RECIPIENTS) {
     ev.note += ` Only the first ${MAX_RECIPIENTS} of ${recipients.length} recipients were checked; the rest are not judged here.`;
@@ -507,7 +715,7 @@ async function handle(op, { auth, workspaceId, body }) {
 }
 
 module.exports = {
-  TABLE, RULES_TABLE, MAX_RECIPIENTS,
+  TABLE, RULES_TABLE, MAX_RECIPIENTS, LINK_HOPS, LINK_KEYS, LINK_LOOKBACK_DAYS,
   rulesFor, saveRules, load, contextFor, evaluateSend, evaluateForCaller, record, recordDispatch, touchSpecFor, ingest, summary, handle,
-  sanitizeCarried,
+  sanitizeCarried, requestMayRead, addCarried,
 };
