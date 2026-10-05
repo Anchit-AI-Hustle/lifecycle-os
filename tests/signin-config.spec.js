@@ -169,7 +169,7 @@ test('an unreachable auth host: Sign in stays on this page, names the host, and 
   expect(got.startGoogle, 'the Google guard is not exposed').toBe('function');
   expect(got.kind).toBe('unreachable');
   expect(got.note).toMatch(/deleted-project\.supabase\.co/);
-  expect(got.note).toMatch(/Sign in with Google/i);
+  expect(got.note).toMatch(/Sign in with Gmail/i);
   expect(got.button).toBe('Sign-in unavailable');
   expect(navs.filter((u) => /authorize/.test(u)), 'the browser was navigated to the dead host anyway').toEqual([]);
 });
@@ -199,7 +199,7 @@ test('a deployment with no Supabase configuration: Sign in says what is missing,
   expect(got.oauth).toBe(0);
   expect(got.panel).toBe(false);
   expect(message).toMatch(/SUPABASE_URL/);
-  expect(message).toMatch(/Sign in with Google/i);
+  expect(message).toMatch(/Sign in with Gmail/i);
   expect(got.path).toBe('/index.html');
   expect(navs.filter((u) => /authorize/.test(u))).toEqual([]);
 });
@@ -208,10 +208,10 @@ test('the brain calendar, signed out, asks for Google and never shows the missin
   await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true, file: 'smart-brain.html' });
   await page.waitForFunction(() => {
     const t = (document.getElementById('plan') || {}).textContent || '';
-    return /sign in with google/i.test(t) || /sign_in_required|mobile_pin|Could not load the plan/i.test(t);
+    return /sign in with gmail/i.test(t) || /sign_in_required|mobile_pin|Could not load the plan/i.test(t);
   }, null, { timeout: 15000 });
   const plan = await page.locator('#plan').innerText();
-  expect(plan).toMatch(/sign in with google/i);
+  expect(plan).toMatch(/sign in with gmail/i);
   expect(plan).not.toMatch(/sign_in_required/);
   expect(plan).not.toMatch(/mobile_pin/);
   expect(plan).not.toMatch(/Could not load the plan/i);

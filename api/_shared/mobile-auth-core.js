@@ -655,7 +655,7 @@ async function handle(req, res, deps) {
 
   if (op === 'me') {
     const u = await sessionUser(sql, token);
-    if (!u) return res.status(401).json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with Google.' });
+    if (!u) return res.status(401).json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with Gmail.' });
     return res.status(200).json({ ok: true, mode: 'server', user: { id: u.id, name: u.name, phone: u.phone }, expires: u.expires_at, message: st.message });
   }
 

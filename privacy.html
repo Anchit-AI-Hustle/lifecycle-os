@@ -30,7 +30,7 @@
 <p>Each brand workspace is private to its owner. Data and content created in one workspace are not visible to any other workspace.</p>
 
 <h2>Signing in: what we collect</h2>
-<p>Sign-in is with <strong>Google</strong>. There is no other sign-in. When you sign in, the App requests only your basic profile: your name, email address and profile picture, under the <code>openid</code>, <code>email</code> and <code>profile</code> scopes. It does not request Gmail, Google Drive, Google Ads or any other Google service.</p>
+<p>Sign-in is with <strong>Gmail</strong> (a Google account). There is no other sign-in. When you sign in, the App requests only your basic profile: your name, email address and profile picture, under the <code>openid</code>, <code>email</code> and <code>profile</code> scopes. It does not request your mailbox, Google Drive, Google Ads or any other Google service.</p>
 <ul>
   <li>your <strong>name</strong>, <strong>email address</strong> and <strong>profile picture</strong>, used to show who is signed in;</li>
   <li>the <strong>session</strong> Supabase Auth keeps so you stay signed in: an access token in this browser, renewed by Supabase, and ended when you sign out.</li>
@@ -58,7 +58,7 @@
 
 <section data-historical>
 <h2>Historical: sign-in with a mobile number (28 September 2026 to 5 October 2026)</h2>
-<p>Sign-in with a <strong>mobile number and a 4-digit PIN</strong> was <strong>withdrawn on 5 October 2026</strong> and replaced by Google, described above. The App no longer asks for a mobile number or a PIN. The text that follows described that sign-in and is kept for the record only.</p>
+<p>Sign-in with a <strong>mobile number and a 4-digit PIN</strong> was <strong>withdrawn on 5 October 2026</strong> and replaced by Gmail, described above. The App no longer asks for a mobile number or a PIN. The text that follows described that sign-in and is kept for the record only.</p>
 <p>While it was offered, the App kept the mobile number (with its country code), the name typed at sign-up, and a <strong>salted hash of the PIN, never the PIN itself</strong>. In the Neon database the hash was scrypt with a per-account salt; in the browser it was PBKDF2-SHA256 with a random salt; in a Supabase project the PIN was first turned into a long password with a secret only the App's server held, and Supabase kept only a bcrypt hash of that password. The number was <strong>not verified by SMS</strong>. Sessions lasted <strong>90 days</strong>. Where no database was configured, the account was stored in the <strong>browser's local storage</strong>, under a key <strong>private to that account</strong>.</p>
 </section>
 
