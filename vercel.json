@@ -635,6 +635,10 @@
       "destination": "/about.html"
     },
     {
+      "source": "/design-system",
+      "destination": "/design-system.html"
+    },
+    {
       "source": "/brand",
       "destination": "/brand.html"
     },
