@@ -83,11 +83,11 @@ test('a workspace that only claims the knickgasm slug is not handed tenant zero\
     typography: { headings: { fallback: 'Georgia,serif' }, body: { fallback: 'Arial,sans-serif' } },
   };
   const copy = { subject: 'Hello', preheader: 'Hi', headline: 'Hello', subheadline: 'There', body_intro: 'A', story: 'B', cta_primary: 'Shop', cta_secondary: 'See', landing: {} };
-  const html = brain.mailerHtml({ market: 'IN', theme: 'welcome', festival: '' }, copy, [{ title: 'Thali', price: 10, type: 'meal' }], kit, '/agent');
+  const mailer = brain.mailerHtml({ market: 'IN', theme: 'welcome', festival: '' }, copy, [{ title: 'Thali', price: 10, type: 'meal' }], kit, '/agent');
   const lp = brain.landingHtml({ market: 'IN', theme: 'welcome' }, copy, [{ title: 'Thali', price: 10 }], kit, '/agent');
-  expect(html).toContain('Deli Chic');
-  expect(html).toContain('delichic.co.in');
-  expect(html).not.toMatch(/knickgasm/i);
+  expect(mailer).toContain('Deli Chic');
+  expect(mailer).toContain('delichic.co.in');
+  expect(mailer).not.toMatch(/knickgasm/i);
   expect(lp).not.toMatch(/knickgasm/i);
   const sent = brain.campaignObjects(
     { id: 's1', channel: 'email', market: 'IN', theme: 'welcome', slot_date: '2026-10-05', angle: 'hello' },
