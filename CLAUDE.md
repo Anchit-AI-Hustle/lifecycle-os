@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
 suppress scheduled marketing emails or WhatsApp messages for 48 hours."* `api/_shared/contact-fatigue.js` (the
 policy and the judge, no I/O) + `contact-ledger.js` (storage) + `20261004093700_contact_ledger_fatigue.sql`, gated
-by `tests/contact-fatigue-executed.spec.js` (16, executed over the fake PostgREST, which now models this table's
-dedupe index, CHECKs and service-role-only grant; 20 mutations, each restoring one defect, fail it or a router spec). The SQL itself was applied and probed on PostgreSQL 16.4
+by `tests/contact-fatigue-executed.spec.js` (19, executed over the fake PostgREST, which now models this table's
+dedupe index, CHECKs and service-role-only grant; 28 mutations, each restoring one defect, fail it or a router spec). The SQL itself was applied and probed on PostgreSQL 16.4
 (PGlite, scratchpad): every constraint, grant and policy behaved as declared.
 - **The cap was computed in four places and they disagreed.** cohort-engine `FREQUENCY` (and anything not
   literally `promotional` got the ABSOLUTE cap, so a re-engagement broadcast was allowed a third send);
@@ -50,6 +50,20 @@ dedupe index, CHECKs and service-role-only grant; 20 mutations, each restoring o
   request carries. Known limits: the Smart Brain cohort has no member list until the ESP profile feed (B3), so
   a slot is judged on the ledger's people tagged with its cohort plus its size (or `partial` with no size);
   WebEngage dumps are not yet mapped into the ledger (needs the brand's `event_map`).
+- **Review round (Codex, three P1s, each reproduced by a failing test first).** (1) A person was read by their
+  DIRECT identifiers only, so with an address tied to a number by an older row and the SMS keyed by the number
+  alone, the email went out inside the cool-down. `load()` follows the identifiers the ledger links (rows holding
+  a known identifier add the ones they carry) to `LINK_HOPS` 4 rounds / `LINK_KEYS` 600 identifiers, over a link
+  look-back 90 days longer than the touch look-back; older rows only LINK, never count; a walk the bound stopped
+  says `links_incomplete` and the gate WARNS. (2) A carried `contact_ledger: {touches: []}` REPLACED the store, so
+  any member could turn a cool-down block into "no send history" with no override: with a store this request may
+  read, carried rows only ADD (a carried copy of a stored touch counts once). (3) calendar.js's smartBrain router
+  honours a caller-named `workspace_id` (pre-existing posture), and the plan read that workspace's ledger and rules
+  with the SERVICE ROLE - another brand's contact-derived eligibility for an anonymous browser or a member of
+  another workspace. `contextFor()` asks `requestMayRead()` before any query: no request in scope (a worker) or the
+  scheduler's bearer, else a verified MEMBER (RLS, as the caller); anyone else gets "Eligibility unchecked" and no
+  ledger or rules query at all.
+
 ## ⭐ A brand's product photos come from ITS catalogue, in every page (2026-10-05)
 A momos brand's Google ads were composed over tenant zero's sneaker photos: `ad-campaigns.html` did not
 load `brand-catalog.js` and fetched `/data/catalog/products_*` for every brand. Gated by

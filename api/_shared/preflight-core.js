@@ -133,7 +133,9 @@ async function contactFatigueCheck(i, priority) {
   let out;
   if (ev.status === 'exempt' || ev.status === 'not_a_message') out = check('contact_fatigue', label, 'pass', ev.note);
   else if (ev.status === 'computed' && !(ev.suppressed + ev.deferred)) {
-    out = check('contact_fatigue', label, ev.quiet_hours_unchecked || ev.truncated || ev.recipients_unchecked ? 'warn' : 'pass', ev.note,
+    // A count the check knows is a lower bound (a truncated read, a link walk
+    // the bound stopped, recipients past the cap) is not a pass.
+    out = check('contact_fatigue', label, ev.quiet_hours_unchecked || ev.truncated || ev.links_incomplete || ev.recipients_unchecked ? 'warn' : 'pass', ev.note,
       ev.quiet_hours_unchecked ? 'Sync each recipient\'s region so quiet hours can be checked.' : undefined);
   } else if (ev.status === 'computed') {
     out = check('contact_fatigue', label, 'block', ev.note,
@@ -148,6 +150,7 @@ async function contactFatigueCheck(i, priority) {
       ev.reason === 'recipients_unknown' ? 'Attach the recipient list (profile ids, or addresses hashed on arrival) so each person can be checked.'
         : ev.reason === 'no_history' ? 'Sends are recorded as they go out; until then nothing here can be checked.'
           : ev.reason === 'not_supplied' ? 'Run the preflight from the publishing console or the dispatch queue, which read this brand\'s own contact ledger.'
+            : ev.reason === 'unverified' || ev.reason === 'not_member' ? 'Sign in as a member of this brand\'s workspace: its contact ledger is read only for its own members.'
             : 'Connect this brand to a workspace database so its contact ledger can be read.');
   }
   out.fatigue = summary;
