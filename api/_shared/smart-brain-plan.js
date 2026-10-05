@@ -264,7 +264,7 @@ async function planningBrand(config, db) {
       // review): testing its slug against tenant zero's let any phone
       // account that sent that slug plan over tenant zero's assortment.
       if (carried.carried === true || carried.storage === 'device') return { isZero: false, brand: carried };
-      return { isZero: /^knickgasm$/i.test(String(carried.slug || carried.name || '')), brand: carried };
+      return { isZero: require('./brand-catalog-server.js').isTenantZeroBrand(carried) === true, brand: carried };
     }
     // A person with no workspace and no brand on the request is not the cron.
     if (requestIsPerson()) return { isZero: false, brand: null };
@@ -277,8 +277,20 @@ async function planningBrand(config, db) {
       key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
     };
     if (!env.url || !env.key) return { isZero: false, brand: null };
-    const brand = await wsScope.brandForWorkspace(env, wsId);
-    const isZero = !!brand && /^knickgasm$/i.test(String(brand.slug || brand.name || ''));
+    let brand = await wsScope.brandForWorkspace(env, wsId);
+    const zero = require('./brand-runtime.js').defaultBrand();
+    const sameName = brand && String(brand.name || '').trim().toLowerCase() === String(zero.name || '').trim().toLowerCase();
+    const isZero = !!sameName && await require('./market-analytics.js').ownsBundledExport(wsId);
+    if (brand && !isZero) {
+      const catalog = await require('./brand-catalog-server.js').resolve({ brand: { ...brand, owns_shipped: false }, workspaceId: wsId });
+      if (catalog.source === 'brand' && catalog.products.length) {
+        const products = catalog.products.map(p => ({ kind: 'product', name: p.n, handle: p.h,
+          price: p.price, compare_at: p.compare_at, image: p.i, type: p.type, tags: p.t,
+          source: { type: 'workspace_catalog', workspace_id: wsId } }));
+        const other = _resolveBrandOfferings(brand).filter(o => o.kind !== 'product');
+        brand = { ...brand, offerings: products.concat(other), brand_data: { ...brand.brand_data, offerings: products.concat(other) } };
+      }
+    }
     return { isZero, brand };
   } catch (_) { return { isZero: false, brand: null }; }
 }
@@ -445,31 +457,21 @@ function _resolveBrandOfferings(brand) {
     try {
       const dir = path.join(process.cwd(), 'data', 'brands', 'presets');
       const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
-      // Stopwords excluded: "The Times of India" and "The Economic Times"
-      // share {the, times}, which is NOT a match. Exact identity (host, slug,
-      // full name) is checked across ALL presets before any fuzzy pass.
-      const STOP = { the: 1, and: 1, for: 1, india: 0 };
-      const toks = (s) => String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2 && !STOP[t]);
-      const presets = [];
-      for (const f of fs.readdirSync(dir)) {
-        if (!f.endsWith('.json') || f === 'index.json') continue;
-        try { presets.push(JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))); } catch (_) {}
+      // A renamed preset retains its old slug. That is not evidence that
+      // this workspace owns the preset's products. Never match by slug,
+      // prefix or shared name words; require the complete public identity.
+      const name = String(brand.name || '').trim().toLowerCase();
+      const website = host(brand.website);
+      if (name && website) {
+        for (const f of fs.readdirSync(dir)) {
+          if (!f.endsWith('.json') || f === 'index.json') continue;
+          const preset = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+          if (String(preset.name || '').trim().toLowerCase() === name && host(preset.website) === website) {
+            if (Array.isArray(preset.offerings)) raw = preset.offerings;
+            break;
+          }
+        }
       }
-      const bs = String(brand.slug || '').toLowerCase();
-      const bn = String(brand.name || '').trim().toLowerCase();
-      const exact = presets.find((p) =>
-        (host(brand.website) && host(brand.website) === host(p.website)) ||
-        (bs && String(p.slug || '').toLowerCase() === bs) ||
-        (bn && String(p.name || '').trim().toLowerCase() === bn));
-      const prefix = exact || presets.find((p) => {
-        const ps = String(p.slug || '').toLowerCase();
-        return bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0);
-      });
-      const fuzzy = prefix || presets.find((p) => {
-        const bt = toks(brand.name), pt = toks(p.name);
-        return bt.filter((t) => pt.indexOf(t) >= 0).length >= 2;
-      });
-      if (fuzzy && Array.isArray(fuzzy.offerings) && fuzzy.offerings.length) raw = fuzzy.offerings;
     } catch (_) { /* no preset dir - fall through */ }
   }
   if (!raw) return [];
@@ -541,9 +543,10 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         theme: `${useOff.name} (${useOff.kind})`,
         heroOffering: useOff,
         offering: useOff,
-        heroProduct: { title: useOff.name, category: useOff.kind },
+        heroProduct: { title: useOff.name, category: useOff.type || useOff.kind },
         channels: ['email', 'meta', 'google', 'landing_page'],
-        cta: rotated.cta,
+        cta: useOff.kind === 'product' && /food|poultry|deli|restaurant/i.test(brand.industry || '')
+          ? (useOff.type ? 'Order ' + useOff.type : 'Explore the menu') : rotated.cta,
         cta_url: rotated.cta_url || null,
         phase: rotated.phase,
         why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
@@ -1022,27 +1025,27 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
       filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc,market.asc', limit: 1000,
     }).catch(() => [])) || [];
     if (rows.length) {
-      // STALENESS GUARD. A workspace can be renamed or re-pointed at a
-      // different brand (it happened: an Economic Times workspace became TOI
-      // Health & Fitness). Its stored rows then describe the OLD identity's
-      // offerings, and nothing else would ever notice. If none of the stored
-      // heroes exist in the brand's CURRENT offerings, the plan is stale:
-      // fall through and re-plan from what the brand is NOW.
+      // Stored campaigns can outlive a rebrand or a catalog removal. Check
+      // every row: one matching hero must not keep foreign products alongside it.
       try {
-        const pbNow = await planningBrand(config, db);
-        if (!pbNow.isZero && pbNow.brand) {
-          const own = _resolveBrandOfferings(pbNow.brand).map((o) => String(o.name || '').toLowerCase());
-          if (own.length) {
-            const heroes = rows.map((r) => String(((r.payload || {}).heroProduct || {}).title || '').toLowerCase()).filter(Boolean);
-            const overlap = heroes.filter((h) => own.includes(h)).length;
-            if (heroes.length && overlap === 0) {
-              try { console.warn('[smart-brain] stored plan does not match this brand\'s current offerings - re-planning'); } catch (_) {}
-              rows = [];
-            }
-          }
+        const current = await planningBrand(config, db);
+        if (!current.isZero) {
+          const offerings = current.brand ? _resolveBrandOfferings(current.brand) : [];
+          const own = new Set(offerings.map(o => String(o.name || '').trim().toLowerCase()));
+          rows = rows.filter(row => {
+            const payload = row.payload || {};
+            const products = [payload.heroProduct, ...(payload.supportingProducts || [])].filter(Boolean);
+            if (payload.strategy_only === true && products.length === 1 && payload.heroProduct.placeholder === true
+                && String(payload.heroProduct.title || '').startsWith('[DATA REQUIRED BEFORE LAUNCH: product catalogue, ' + (current.brand && current.brand.name) + ',')) return true;
+            return products.length && products.every(product => own.has(String(product.title || product.name || '').trim().toLowerCase()));
+          });
         }
-      } catch (_) { /* a guard failure must never block the stored plan */ }
+      } catch (_) {
+        // An unverified old campaign must never become another brand's data.
+        rows = [];
+      }
     }
+
     if (rows.length) {
       return {
         ok: true, mode: 'db-linked', stored: true,
@@ -1129,6 +1132,7 @@ function brandSystem(brand) {
   ];
   if (Array.isArray(v.banned) && v.banned.length) lines.push(`NEVER use: ${v.banned.map((x) => `"${x}"`).join(', ')}.`);
   lines.push('Never invent product facts, prices, URLs, ratings, reviews or statistics; a missing fact is written as [DATA REQUIRED BEFORE LAUNCH: field].');
+  if (/food|poultry|deli|restaurant/i.test(b.industry || '')) lines.push('Use the food catalogue and food-appropriate calls to action. Pasture-raised sourcing, delivery times, freshness, ingredients and preparation claims require explicit evidence in this brand record; never substitute sneaker copy or invent food claims.');
   lines.push(D2C_KNOWLEDGE);
 
   // Brief the writer with the SAME rules the validator will apply afterwards.
