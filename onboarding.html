@@ -2822,22 +2822,61 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return { source: (p && p.source) || '', url: (p && p.url) || '', page: (p && p.page) || null, line: (p && p.line) || null, quote: (p && p.quote) || '', value: normVal(value), raw: raw === undefined ? value : raw };
   }
 
+  /* A public page, as opposed to a share-link viewer or a sign-in page.
+     Those stay a refusal: the bytes are a login screen, not the brand. */
+  function isWebsiteLink(raw) {
+    var u;
+    try { u = new URL(String(raw || '').trim()); } catch (_) { return false; }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    var host = u.hostname.toLowerCase();
+    var viewers = ['drive.google.com', 'docs.google.com', 'dropbox.com', 'www.dropbox.com', 'accounts.google.com', 'github.com', 'gitlab.com', '1drv.ms', 'onedrive.live.com'];
+    if (viewers.indexOf(host) >= 0) return false;
+    if (/(^|\.)sharepoint\.com$/.test(host) || /(^|\.)dropbox\.com$/.test(host)) return false;
+    var path = u.pathname || '/';
+    if (/\/(login|signin|sign-in|sign_in|oauth|auth)(\/|$)/i.test(path)) return false;
+    if (/\.(pdf|docx?|pptx?|xlsx?|csv|md|markdown|txt|css|json|svg|png|jpe?g|gif|webp|zip|woff2?)$/i.test(path)) return false;
+    return true;
+  }
+  function websiteGuideSentence(url) {
+    var host = url;
+    try { host = new URL(url).host; } catch (_) {}
+    return host + ' is your website, so it is read with Read my site, above. A brand-guidelines link is the file itself: a PDF, a DOCX, a DESIGN.md or a token file.';
+  }
+  /* The guidelines box was given a website. Fill Read my site and run it.
+     A read already in progress is left to finish; a second one is not started. */
+  function readWebsiteAsSite(url) {
+    xUrlDraft = url;
+    if (!brand.website) brand.website = url;
+    if (extractOff() || extractBusy) { DOC.status = websiteGuideSentence(url); render(); return; }
+    var input = $('xUrl');
+    if (input) input.value = url;
+    runExtract();
+  }
+
   /* ── reading ── */
   async function docRead(job, label) {
     if (DOC.busy) return;
     DOC.busy = true; DOC.error = null; DOC.errorTitle = ''; DOC.status = 'Reading ' + label + '...'; render();
+    var asSite = '';
     try {
       var rep = await job();
       docTook(rep);
       DOC.status = 'Read ' + rep.source.name + ': ' + docCount(rep) + ' value(s) stated. Nothing is applied until you press Apply.';
     } catch (e) {
       DOC.report = null;
-      DOC.error = e;
-      DOC.status = '';
+      if (e && e.website) {
+        DOC.error = null;
+        DOC.status = websiteGuideSentence(label);
+        asSite = label;
+      } else {
+        DOC.error = e;
+        DOC.status = '';
+      }
     } finally {
       DOC.busy = false;
       render();
     }
+    if (asSite) readWebsiteAsSite(asSite);
   }
   function docCount(rep) {
     var f = rep.fields, n = 0;
@@ -3141,7 +3180,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function docBlock() {
     var busy = DOC.busy;
     var out = '<div class="xtract" id="docBlock" data-no-brand-swap><h3>Upload my brand guidelines</h3>' +
-      '<p class="xmeta">Your brand book or style guide states the brand in its own words: its colours and their roles, its typefaces, its logo and clear-space rules, its voice and the words it bans. Upload it as a file, or paste a link to it; either is enough. PDF, Word (.docx), DESIGN.md, JSON design tokens (W3C, Style Dictionary, Tokens Studio, a Figma variables export), CSS, SVG or an image of a style sheet. It is read in this browser, every value keeps the page and line it came from, and nothing is applied until you press Apply.</p>' +
+      '<p class="xmeta">Your brand book or style guide states the brand in its own words: its colours and their roles, its typefaces, its logo and clear-space rules, its voice and the words it bans. Upload it as a file, or paste a link to it; either is enough. PDF, Word (.docx), DESIGN.md, JSON design tokens (W3C, Style Dictionary, Tokens Studio, a Figma variables export), CSS, SVG or an image of a style sheet. It is read in this browser, every value keeps the page and line it came from, and nothing is applied until you press Apply. Your website goes in Read my brand from my website, above; a link to the site itself is read there.</p>' +
       '<div class="pair" style="margin-top:11px">' +
         '<label class="btn primary" id="docFileBtn">' + (busy ? 'Reading...' : 'Upload a file') + '<input type="file" id="docFile" accept=".pdf,.docx,.md,.markdown,.json,.css,.svg,.png,.jpg,.jpeg,.webp,.txt,application/pdf"></label>' +
         '<span class="pair-or">or paste a link</span>' +
@@ -3474,7 +3513,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var url = ($('docUrl') && $('docUrl').value.trim()) || '';
       if (!url) { DOC.status = 'Paste the address of your brand guidelines first, or upload the file.'; render(); return; }
       DOC.source = null;
-      docRead(function () { return waitDocLib().then(function (lib) { return lib.readUrl(url, { viaServer: docViaServer }); }); }, url);
+      docRead(function () {
+        return waitDocLib().then(function (lib) {
+          return lib.readUrl(url, { viaServer: docViaServer }).catch(function (e) {
+            // A public website is not a brand book. The document reader refuses
+            // HTML (a sign-in page must not be parsed as the guide). The same
+            // address is what Read my site is for, so it is read there.
+            if (e && (e.code === 'html_page' || e.code === 'document_is_a_web_page') && isWebsiteLink(url)) e.website = true;
+            throw e;
+          });
+        });
+      }, url);
     });
     var ap = $('docApply'); if (ap) ap.addEventListener('click', docApply);
     var rv = $('docRevert'); if (rv) rv.addEventListener('click', docRevert);
