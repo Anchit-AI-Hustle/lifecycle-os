@@ -67,6 +67,17 @@ function flag(v) {
   return /^(?:1|true|yes)$/i.test(String(v).trim());
 }
 
+// The contact history and rules a request CARRIED (2026-10-04): a brand kept on
+// a device has no ledger on the server, so its page may send the history it
+// holds and its own rules, and the planners judge over those. Nothing carried
+// means nothing is added, so a request that carries none reaches the planner
+// exactly as before (the server reads the workspace's own ledger there).
+function carriedContact(body) {
+  const b = body || {};
+  if (!b.contact_ledger && !b.contact_policy) return {};
+  return { contact: { ledger: b.contact_ledger || null, policy: b.contact_policy || null } };
+}
+
 // Base URL for self-triggering the background prebuild chain. On Vercel this is
 // VERCEL_URL (the current deployment); SELF_BASE_URL is an optional override.
 function selfBaseUrl() {
@@ -281,7 +292,7 @@ async function smartBrain(req, res, smartAction) {
     if (smartAction === 'schema') return res.status(200).json({ ok: true, ...schemaAssumptions(smartConfig(body.config || {})) });
 
     if (smartAction === 'plan') {
-      const result = await plan.getPlan({ config: body.config || {} });
+      const result = await plan.getPlan(Object.assign({ config: body.config || {} }, carriedContact(body)));
       return res.status(200).json(result);
     }
 
@@ -311,7 +322,7 @@ async function smartBrain(req, res, smartAction) {
 
     if (smartAction === 'sync-daily') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-      const result = await plan.syncDaily({ config: body.config || {}, days: body.days, persist: body.persist !== false });
+      const result = await plan.syncDaily(Object.assign({ config: body.config || {}, days: body.days, persist: body.persist !== false }, carriedContact(body)));
       // Kick the background prebuild so newly added/refreshed slots get their full
       // asset bundle (copy + images) built ahead of need. Opt out with prebuild:false.
       if (body.prebuild !== false) { const f = await firePrebuild(0); result.prebuild_kicked = f.fired; }
@@ -449,6 +460,27 @@ async function smartBrain(req, res, smartAction) {
   }
 }
 
+/**
+ * Whose contact ledger the mailer calendar is judged against (2026-10-04).
+ * Only a VERIFIED caller's own ACTIVE workspace - never a workspace_id named
+ * on the request, which this route has never checked - so the service-role
+ * ledger read cannot be pointed at another brand. Anyone else gets the
+ * history their request carried, or the plan says the ledger is unavailable.
+ * Adds nothing when there is nothing to add.
+ */
+async function lifecycleContact(req, body) {
+  const out = carriedContact(body);
+  try {
+    const tokenOn = !!(req.headers && (req.headers.authorization || req.headers.Authorization || req.headers['x-lifecycle-token']));
+    if (!tokenOn || require('./_shared/require-caller.js').isCron(req)) return out;
+    const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+    if (!auth || !auth.ok || !auth.user_id || require('./_shared/mobile-auth-core.js').looksLikeToken(String(auth.token || ''))) return out;
+    const ws = await require('./_shared/brand-workspace-core.js').activeWorkspaceId(auth);
+    if (ws) out.workspace_id = ws;
+  } catch (_) { /* the plan still runs; it says the ledger is unavailable */ }
+  return out;
+}
+
 async function lifecycle(req, res, action) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -465,13 +497,13 @@ async function lifecycle(req, res, action) {
   try {
     if (action === 'lifecycle-generate') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-      const result = await lifecycleGen.generateLifecycleCalendar({
+      const result = await lifecycleGen.generateLifecycleCalendar(Object.assign({
         start_date: body.start_date,
         days: body.days,
         cohorts: body.cohorts,
         cadence_per_week: body.cadence_per_week,
         market: body.market || 'UK',
-      });
+      }, await lifecycleContact(req, body)));
       return res.status(200).json({ ok: true, ...result });
     }
 

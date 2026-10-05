@@ -185,8 +185,19 @@ test.describe('lifecycle-*', () => {
     noHarnessError(r);
     expect(r.status).toBe(200);
     expect(r.out).toMatchObject({ ok: true, entries: [{ id: 'e1' }], credits: { feature: 'calendar.generate' } });
-    expect(last(LIFE_GEN, 'generateLifecycleCalendar')).toEqual([{ start_date: '2026-10-01', days: 7, cohorts: ['champions'], cadence_per_week: 2, market: 'US' }]);
+    // The caller's own ACTIVE workspace (2026-10-04), so the planner judges
+    // each row against that brand's contact ledger and nobody else's.
+    expect(last(LIFE_GEN, 'generateLifecycleCalendar')).toEqual([{ start_date: '2026-10-01', days: 7, cohorts: ['champions'], cadence_per_week: 2, market: 'US', workspace_id: H.WS }]);
     expect(guard.balanceMoves.length).toBe(2);
+  });
+  test('lifecycle-generate never takes a workspace from the request, and passes the history and rules a request carried', async () => {
+    S.on(LIFE_GEN, 'generateLifecycleCalendar', async () => ({ entries: [], persisted: false }));
+    const r = await call('lifecycle-generate', { query: { workspace_id: 'ws_someone_else' }, json: { workspace_id: 'ws_someone_else', start_date: '2026-10-01', contact_ledger: { touches: [] }, contact_policy: { promotional_per_7d: 1 } } });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    const a = last(LIFE_GEN, 'generateLifecycleCalendar')[0];
+    expect(a.workspace_id).toBe(H.WS);
+    expect(a.contact).toEqual({ ledger: { touches: [] }, policy: { promotional_per_7d: 1 } });
   });
   test('lifecycle-generate refuses a GET with 405 after metering, and the hold is released', async () => {
     S.on(LIFE_GEN, 'generateLifecycleCalendar', async () => ({ entries: [] }));

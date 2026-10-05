@@ -72,6 +72,7 @@ const CONTENT_TYPES = ['promo', 'editorial', 'lifecycle', 'launch', 'winback', '
 
 // Canonical asset-type order for plan rows (additive `asset_types` field).
 const ASSET_TYPES = ['mailer', 'meta_ad', 'google_ad', 'tiktok_ad', 'landing_page', 'social_post'];
+const fatigue = require('./contact-fatigue.js');
 
 // Default segment cadence — how often the same segment can be hit per week.
 const SEGMENT_CADENCE_PER_WEEK = {
@@ -362,6 +363,16 @@ function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRank
   }
 
   plan.sort((a, b) => (a.date + a.send_hour_utc).localeCompare(b.date + b.send_hour_utc));
+
+  // The cadence table above resets on Mondays, so a segment sent Fri-Sat-Sun
+  // and again Mon-Tue-Wed is inside its weekly cadence twice and has had six
+  // sends in a rolling 7 days. Every row carries the ROLLING-window cap from
+  // the one contact policy (2026-10-04), the same pass the Smart Brain plan
+  // and the mailer calendar use, so the calendar-week count cannot pass for it.
+  const caps = fatigue.planCaps(plan.map((p) => ({
+    date: p.date, market: p.market, cohort_key: p.segment, message_class: 'promotional', who: `"${p.segment}" (${p.market})`,
+  })), null, { planStart: isoDate(startDate) });
+  plan.forEach((p, i) => { p.message_class = 'promotional'; p.frequency_cap = caps[i]; });
 
   const meta = {
     segments_used: segmentsRanked.map((s) => ({ name: s.name, valueRank: s.valueRank, revenue: s.revenue, count: s.count })),

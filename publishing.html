@@ -252,6 +252,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <input type="text" id="domain-send" placeholder="mail.yourbrand.com">
         </div>
       </div>
+      <label for="recipients">Recipients (optional)</label>
+      <textarea id="recipients" spellcheck="false" style="min-height:64px" placeholder="One per line: an ESP profile id, an email address or a phone number"></textarea>
+      <p class="muted">Lets the preflight check each person against the contact ledger. Addresses and numbers are hashed on arrival and never stored as typed. Leave empty for a list or segment the platform resolves; the gate then says it could not check who.</p>
       <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;margin-top:14px">
         <input type="checkbox" id="dryrun" checked style="width:auto">
         Dry run &mdash; build the exact request and do not send it
@@ -261,6 +264,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <button id="btn-dispatch" disabled data-credit-feature="dispatch_publish">Dispatch</button>
       </div>
       <p class="muted" style="margin-top:8px">Preflight runs before anything is queued. A blocked send can be overridden, and the override is recorded against your account with the reason.</p>
+    </div>
+
+    <div class="card" id="contact-card">
+      <h3>Contact rules</h3>
+      <p class="muted">One set of rules across email, SMS, WhatsApp, push and in-app. The preflight gate holds every send to them against this brand's contact ledger, and the calendars show each slot's eligibility.</p>
+      <ul id="cr-describe" class="muted" style="margin:8px 0 0 18px;padding:0"></ul>
+      <div id="cr-ledger" class="muted" style="margin-top:8px"></div>
+      <details id="cr-edit" style="margin-top:10px">
+        <summary>Edit this brand's rules</summary>
+        <p class="muted">A brand may tighten the caps, never loosen them past the campaign contract (2 promotional, 3 in all, per person per rolling 7 days). Transactional messages are never counted or held.</p>
+        <div class="grid">
+          <div><label for="cr-pref">Promotional cap per 7 days</label><input type="number" id="cr-pref" min="0" max="2"></div>
+          <div><label for="cr-abs">Absolute cap per 7 days</label><input type="number" id="cr-abs" min="0" max="3"></div>
+          <div><label for="cr-cool">SMS and WhatsApp cool-down, hours</label><input type="number" id="cr-cool" min="0" max="168"></div>
+          <div><label for="cr-qs">Quiet hours start (local hour)</label><input type="number" id="cr-qs" min="0" max="23"></div>
+          <div><label for="cr-qe">Quiet hours end (local hour)</label><input type="number" id="cr-qe" min="0" max="23"></div>
+        </div>
+        <div class="row"><button id="btn-rules-save">Save rules</button></div>
+        <div id="cr-status" style="margin-top:8px"></div>
+      </details>
     </div>
   </section>
 
@@ -583,16 +606,75 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { return JSON.parse(raw); } catch (e) { throw new Error(label + ' is not valid JSON: ' + e.message); }
   }
 
-  // The campaign a generated asset belongs to: its own campaign_id, else the
-  // campaign its id is minted under (campaign_<hash>_email). The queue reads
-  // THAT campaign's offer on the server, so a "today only" the offer backs is
-  // not blocked for want of a record, and the offer itself is never sent.
-  function campaignIdOf(asset) {
-    var a = asset && typeof asset === 'object' ? asset : {};
-    if (a.campaign_id) return String(a.campaign_id);
-    var m = /^(campaign_[A-Za-z0-9]+)(?:_|$)/.exec(String(a.id || ''));
-    return m ? m[1] : undefined;
+  /* ── contact rules (2026-10-04) ─────────────────────────────────────── */
+
+  // A brand kept on this device keeps its rules here, beside the brand (the
+  // device KEEPS, the server READS); they travel with each request it makes.
+  var RULES_KEY = 'contact_fatigue_rules';
+  function keptPolicy() {
+    try { var v = window.LCStore && window.LCStore.get(RULES_KEY); return v ? JSON.parse(v) : null; } catch (_) { return null; }
   }
+  function keepPolicy(rules) {
+    try { return !!(window.LCStore && window.LCStore.set(RULES_KEY, JSON.stringify(rules))); } catch (_) { return false; }
+  }
+  /** One recipient per line: an address, a number, or an ESP profile id. */
+  function readRecipients() {
+    var raw = (document.getElementById('recipients').value || '').split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!raw.length) return undefined;
+    return raw.slice(0, 10000).map(function (s) {
+      if (s.indexOf('@') >= 0) return { email: s };
+      if (/^\+?[\d\s().-]{7,24}$/.test(s)) return { phone: s };
+      return { external_profile_id: s };
+    });
+  }
+  function statusLine(el, text) {
+    el.innerHTML = window.LifecycleStatus ? window.LifecycleStatus.html('', text) : '<div class="vh-status" role="status">' + esc(text) + '</div>';
+  }
+  function showRules(r) {
+    var rules = r.rules || {};
+    document.getElementById('cr-describe').innerHTML = (r.describe || []).map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('');
+    var led = r.ledger || {};
+    document.getElementById('cr-ledger').textContent = led.available
+      ? 'Ledger: ' + (led.note || '')
+      : 'Ledger unavailable: ' + (led.note || led.reason || 'not loaded') + '. Eligibility reads "unknown" until it can be read; no suppression is shown as zero.';
+    document.getElementById('cr-pref').value = rules.promotional_per_7d;
+    document.getElementById('cr-abs').value = rules.absolute_per_7d;
+    document.getElementById('cr-cool').value = rules.cooldowns && rules.cooldowns[0] ? rules.cooldowns[0].hours : 0;
+    document.getElementById('cr-qs').value = rules.quiet_hours ? rules.quiet_hours.start : '';
+    document.getElementById('cr-qe').value = rules.quiet_hours ? rules.quiet_hours.end : '';
+  }
+  async function loadRules() {
+    try {
+      showRules(await call(BRAIN + 'contact-fatigue', { op: 'rules', contact_policy: keptPolicy() || undefined }));
+    } catch (e) {
+      if (window.LifecycleStatus && window.LifecycleStatus.ordinary(e)) window.LifecycleStatus.show(document.getElementById('cr-ledger'), e, { title: 'The contact rules' });
+      else window.LifecycleFailure.show(document.getElementById('cr-ledger'), e, { title: 'The contact rules could not be loaded' });
+    }
+  }
+  document.getElementById('btn-rules-save').addEventListener('click', async function () {
+    var out = document.getElementById('cr-status');
+    var num = function (id) { var v = document.getElementById(id).value; return v === '' ? undefined : Number(v); };
+    var cool = num('cr-cool');
+    var rules = {
+      promotional_per_7d: num('cr-pref'), absolute_per_7d: num('cr-abs'),
+      cooldowns: cool ? [{ after_channels: ['sms', 'whatsapp'], suppress_channels: ['email', 'whatsapp', 'sms'], hours: cool }] : [],
+      quiet_hours: { start: num('cr-qs'), end: num('cr-qe') },
+    };
+    this.disabled = true;
+    try {
+      var r = await call(BRAIN + 'contact-fatigue', { op: 'rules-save', rules: rules });
+      var kept = r.storage === 'device' ? keepPolicy(r.rules) : true;
+      var adj = (r.adjustments || []).map(function (a) { return a.field + ': ' + a.why; });
+      statusLine(out, (r.storage === 'device'
+        ? (kept ? 'Saved on this device beside the brand; they travel with each request it makes.' : 'This browser refused to store the rules, so they were not kept.')
+        : 'Saved for this brand.') + (adj.length ? ' Not taken as asked: ' + adj.join('; ') + '.' : ''));
+      showRules({ rules: r.rules, describe: r.describe, ledger: (await call(BRAIN + 'contact-fatigue', { op: 'summary' }).catch(function () { return {}; })) });
+    } catch (e) {
+      if (window.LifecycleStatus && window.LifecycleStatus.ordinary(e)) window.LifecycleStatus.show(out, e, { title: 'Saving the contact rules' });
+      else window.LifecycleFailure.show(out, e, { title: 'The contact rules could not be saved' });
+    }
+    this.disabled = false;
+  });
 
   function dispatchSpec(channel) {
     var mode = document.getElementById('sendmode').value;
@@ -607,6 +689,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       mapping: readJson('mapping', 'The mapping'),
       message_priority: document.getElementById('priority').value,
       sending_domain: document.getElementById('domain-send').value.trim(),
+      recipients: readRecipients(),
+      contact_policy: keptPolicy() || undefined,
       dry_run: document.getElementById('dryrun').checked
     };
   }
@@ -626,7 +710,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         campaign_id: spec.campaign_id,
         payload: spec.asset,
         message_priority: spec.message_priority,
-        sending_domain: spec.sending_domain
+        sending_domain: spec.sending_domain,
+        scheduled_for: spec.scheduled_for,
+        recipients: spec.recipients,
+        contact_policy: spec.contact_policy
       });
       lastPreflight = pf;
       showPreflight(pf);
@@ -1082,7 +1169,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   if (params.get('oauth') === 'denied') note('warn', 'The sign-in was cancelled or refused at ' + params.get('provider') + '.');
   if (params.get('oauth') === 'error') note('err', 'The connection did not complete: ' + (params.get('reason') || 'unknown') + '.');
 
-  function boot() { loadHub(); }
+  function boot() { loadHub(); loadRules(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>
