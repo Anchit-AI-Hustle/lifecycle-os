@@ -224,7 +224,7 @@ function status(market) {
     note: 'Fresh reporting is fetched read-only from each platform. Reporting freshness still follows the source platform attribution and processing latency.',
   };
 }
-async function insights({ platform, market = 'US', metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
+async function insights({ platform, market = require('./brand-locale.js').defaultMarket(), metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
   const mg = metricGroup || metric_group || 'conversion';
   const p = String(platform || '').toLowerCase();
   const args = { market, metricGroup: mg, since, until, level };
@@ -233,7 +233,7 @@ async function insights({ platform, market = 'US', metricGroup = 'conversion', m
   if (p === 'tiktok') return tiktokInsights(args);
   return { ok: false, error: `Unknown ad platform '${platform}'. Use one of: ${PLATFORMS.join(', ')}.` };
 }
-async function summary({ market = 'US', metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
+async function summary({ market = require('./brand-locale.js').defaultMarket(), metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
   const mg = metricGroup || metric_group || 'conversion';
   const mk = normMarket(market);
   const l = normLevel(level);

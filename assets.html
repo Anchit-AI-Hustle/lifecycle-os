@@ -227,7 +227,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft (off-palette colours, banned phrases, wrong fonts, wrong currency), fix them, and return ONLY the corrected final output.';
 
   function buildPrompt(item) {
-    const r = item.raw || {}, market = item.market || r.region || 'US';
+    const r = item.raw || {}, market = item.market || r.region || ((window.RegionContext && window.RegionContext.home) || '');
     if (item.kind === 'landing') {
       const channel = r.channel || 'landing';
       return head('You are a senior D2C conversion copywriter + front-end developer for KNICKGASM.', market) + [

@@ -251,7 +251,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var opts=rc.options({all:rc.regions.length>1});
     var key=opts.map(function(o){return o.code;}).join('|');
     if(key===_mktBuilt) return; _mktBuilt=key;
-    if(!opts.length){ host.innerHTML='<span class="note">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>'; SELECTED_MKT=new Set(); render(); return; }
+    if(!opts.length){ host.innerHTML='<span class="note">'+String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g,'')+'</span>'; SELECTED_MKT=new Set(); render(); return; }
     host.innerHTML=opts.map(function(o){
       var v=o.all?'all':o.code;
       return '<button type="button" class="chip" data-mkt="'+esc(v)+'"'+(o.home?' data-home="1" title="Home market"':'')+' onclick="toggleMkt(\''+esc(v)+'\')">'+esc(o.name)+'</button>';

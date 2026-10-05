@@ -1619,7 +1619,28 @@ const REGIONAL_CATALOG={
     featuredHeroes:[]
   }
 };
-function getRegionalCatalog(market){return REGIONAL_CATALOG[market]||REGIONAL_CATALOG.US;}
+/* A market the table does not carry gets a NEUTRAL entry, never the US one,
+   and every entry prices in the ACTIVE brand's own currency for that market
+   (its record, else its country's) - 2026-10-05: an AE or SG brand was priced
+   in dollars because the lookup fell to REGIONAL_CATALOG.US. */
+function _brandLocale(market){try{var RC=window.RegionContext;return (RC&&RC.localeOf)?RC.localeOf(market):null;}catch(e){return null;}}
+/* The currency symbol / code for a market: the brand's own (record, else its
+   country's), else the table this page always carried, else nothing - never
+   a '$' for a market nobody priced (2026-10-05). */
+var _CUR_TABLE={US:['USD','$'],UK:['GBP','£'],IN:['INR','₹'],EU:['EUR','€'],AU:['AUD','A$']};
+function _curSym(mt){var l=_brandLocale(mt);if(l&&l.symbol)return l.symbol;var t=_CUR_TABLE[mt];return t?t[1]:'';}
+function _curCode(mt){var l=_brandLocale(mt);if(l&&l.currency)return l.currency;var t=_CUR_TABLE[mt];return t?t[0]:'';}
+function _curLabel(mt){var c=_curCode(mt),y=_curSym(mt);if(c)return c+(y&&y!==c?' ('+y+')':'');var RC=window.RegionContext;return (RC&&RC.marker)?RC.marker('currency',mt):'[DATA REQUIRED BEFORE LAUNCH: currency, this brand, '+mt+']';}
+function getRegionalCatalog(market){
+  var base=REGIONAL_CATALOG[market]||null;
+  var l=_brandLocale(market);
+  if(!base){
+    var RC=window.RegionContext;
+    base={name:(RC&&RC.label)?RC.label(market):String(market||''),flag:'',baseUrl:(l&&l.store_url)||'',currency:'',currencySymbol:'',freeShippingThreshold:'',shippingNote:'',localesPriority:String(market||''),heroPriceAnchor:'',toneNote:'',socialProof:'',trustBar:''};
+  }
+  if(l&&l.currency){base=Object.assign({},base,{currency:l.currency,currencySymbol:l.symbol||l.currency});}
+  return base;
+}
 window.REGIONAL_CATALOG=REGIONAL_CATALOG;
 window.getRegionalCatalog=getRegionalCatalog;
 
@@ -2417,7 +2438,7 @@ function renderMarketChips(){
   var key=opts.map(function(o){return o.code;}).join('|');
   if(key===_mktChipsBuilt) return; _mktChipsBuilt=key;
   if(!opts.length){
-    host.innerHTML='<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-panel-tan)">[DATA REQUIRED BEFORE LAUNCH: regions, all, all] Add this brand\'s markets in Brand setup.</span>';
+    host.innerHTML='<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-panel-tan)">'+String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g,'')+' Add this brand\'s markets in Brand setup.</span>';
     if(!S._mktManualSet){ S.markets=[]; S.market=''; S.activeMarket=''; }
     return;
   }
@@ -3834,7 +3855,11 @@ function getMarketIntel(mt,prompt){
       currency:'USD',currSym:'$',threshold:'',shippingNote:'',urgency:'Order today',social:'',seasonal:{Sale:'Global Sale',Gift:'International gifting',Launch:'Worldwide launch',Seasonal:'Seasonal Collection'},trustBar:'',cta:'Shop Worldwide',priceAnchor:'',toneNote:'global premium, authentic Indian provenance, international appeal'
     }
   };
-  var o=intel[mt]||intel.US;
+  // A market the table does not carry is NEUTRAL (no other country's holidays
+  // or currency); every market prices in the brand's own currency for it.
+  var o=intel[mt]?Object.assign({},intel[mt]):{currency:'',currSym:'',threshold:'',shippingNote:'',urgency:'Order today',social:'',seasonal:{Sale:'Seasonal sale',Gift:'Gifting',Launch:'New launch',Seasonal:'Seasonal collection'},trustBar:'',cta:'Shop now',priceAnchor:'',toneNote:''};
+  var _bl=_brandLocale(mt);
+  if(_bl&&_bl.currency){o.currency=_bl.currency;o.currSym=_bl.symbol||_bl.currency;}
   // The shipping line is the brand's OWN claim about shipping, verbatim, or nothing.
   o.shippingNote=brandFacts(mt).shipping;
   return o;
@@ -4012,9 +4037,9 @@ function prodBenefit(n){
 // `n` can be a string (product name) or an object (product with .price, .compare_at fields)
 // Returns { regular, currency, currencySymbol, display, raw }
 function prodPrice(n,market){
-  var cat=(window.getRegionalCatalog?getRegionalCatalog(market||_homeMkt()):{currency:'USD',currencySymbol:'$'});
-  var sym=cat.currencySymbol||'$';
-  var cur=cat.currency||'USD';
+  var cat=(window.getRegionalCatalog?getRegionalCatalog(market||_homeMkt()):{currency:'',currencySymbol:''});
+  var sym=cat.currencySymbol||'';
+  var cur=cat.currency||'';
   // ── PRIORITY: Use real catalog price if available ──
   var prodObj=typeof n==='object'?n:null;
   var prodName=prodObj?prodObj.n:(n||'');
@@ -4071,7 +4096,7 @@ function prodPrice(n,market){
   if(l.includes('imperial')||l.includes('silver needle')||l.includes('first flush')||l.includes('arya')||l.includes('jungpana')||l.includes('giddapahar')||l.includes('muscatel'))usd+=7;
   // Market-specific currency conversion (rough, customer-facing tier prices)
   var rate={USD:1,GBP:0.79,EUR:0.93,AUD:1.52,INR:84,CAD:1.36};
-  var cur=cat.currency||'USD';
+  var cur=cat.currency||'';
   var amt=usd*(rate[cur]||1);
   // Round to .99
   var rounded=Math.floor(amt)+0.99;
@@ -4091,8 +4116,8 @@ function prodSalePrice(p,offerPct,market){
     var realPrice=parseFloat(prodObj.price);
     if(!isNaN(realCompare)&&!isNaN(realPrice)&&realCompare>realPrice){
       var realPct=Math.round((1-realPrice/realCompare)*100);
-      var sym=pp.currencySymbol||'$';
-      var cur=pp.currency||'USD';
+      var sym=pp.currencySymbol||'';
+      var cur=pp.currency||'';
       var compareDisplay=cur==='INR'?(sym+Math.round(realCompare).toLocaleString()):(sym+realCompare.toFixed(2));
       var savings=realCompare-realPrice;
       var savingsDisplay=cur==='INR'?(sym+Math.round(savings).toLocaleString()):(sym+savings.toFixed(2));
@@ -4752,7 +4777,7 @@ async function drawLayout(canvas,prompt,market,prods,variant){
     return '⚡ '+[brandClaims(1)[0],brandFacts(market).shipping].filter(Boolean).join(' · ');
   }
   // Currency for prices
-  const curr={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',Global:'$',ME:'$'}[market]||'$';
+  const curr=_curSym(market);
 
   // ── Pre-load all images in parallel (hero + product cards) ────────────────
   async function loadImg(src){
@@ -5344,7 +5369,7 @@ function renderContentPreview(){
   var ann=annBarLine(p,mkt,type);
   var mktIntel=getMarketIntel(mkt,p);
   var mktLabels={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
-  var currSymbol={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',ME:'AED',Global:'$'}[mkt]||'$';
+  var currSymbol=_curSym(mkt);
 
   // Label
   var lblEl=document.getElementById('contentPreviewVariantLabel');
@@ -5594,7 +5619,7 @@ function buildDesignPromptFromCatalog(market,variant){
   var annBar=st.annBar||annBarLine(S.prompt,mt);
   var detType=st.type||S.type||'Sale';
   // Build product detail lines from REAL catalog data
-  var currSym={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',Global:'$',ME:'$'}[mt]||'$';
+  var currSym=_curSym(mt);
   var prodLines=prods.slice(0,4).map(function(p,i){
     var role=i===0?'HERO':'PRODUCT '+(i+1);
     var name=p.n.split(',')[0];
@@ -6420,7 +6445,6 @@ window.__step5Preview=function(m,v){
 function _wrapPreviewWithNav(mailerHtml, mkt, variant){
   var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
   var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
-  var mktCurr={US:'USD ($)',UK:'GBP (£)',IN:'INR (₹)',EU:'EUR (€)',AU:'AUD (A$)',ME:'AED',Global:'USD ($)'};
   var variantLabel = variant==='B' ? 'V2 · TEXT + VISUAL' : (variant==='A' ? 'V1 · COMPLETE TEXT' : 'PREVIEW');
   var safeHtml = String(mailerHtml||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   return '<!DOCTYPE html><html><head><title>'+brandFacts().name+' '+variantLabel+' — '+(mktNames[mkt]||mkt)+'</title>'+
@@ -6440,7 +6464,7 @@ function _wrapPreviewWithNav(mailerHtml, mkt, variant){
       '<button type="button" onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}else{window.location.href=\''+location.origin+'\';}">&#8617; Return to Studio</button>'+
       '<div class="ctx">'+
         '<span class="flag">'+(mktFlags[mkt]||'🌍')+'</span>'+
-        '<div><div class="name">'+(mktNames[mkt]||mkt)+'</div><div class="sub">'+(mktCurr[mkt]||'USD')+'</div></div>'+
+        '<div><div class="name">'+(mktNames[mkt]||mkt)+'</div><div class="sub">'+_curLabel(mkt)+'</div></div>'+
       '</div>'+
     '</div>'+
     '<div class="lbl">'+variantLabel+'</div>'+
@@ -6796,7 +6820,6 @@ function previewBothSideBySide(){
   var mt=S.activeMarket||_homeMkt();
   var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
   var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global / International',ME:'Middle East',AU:'Australia',EU:'Europe'};
-  var mktCurr={US:'USD ($)',UK:'GBP (£)',IN:'INR (₹)',EU:'EUR (€)',AU:'AUD (A$)',ME:'AED (Dh)',Global:'USD ($)'};
   var mktBase=function(m){return brandFacts(m).host;};
   var pageHtml='<!DOCTYPE html><html><head><title>'+brandFacts().name+' A vs B — '+mt+'</title><style>'+
     'body{margin:0;padding:0;background:#D0473E;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:flex;flex-direction:column;height:100vh}'+
@@ -6832,7 +6855,7 @@ function previewBothSideBySide(){
         '<span class="mkt-flag">'+(mktFlags[mt]||'🌍')+'</span>'+
         '<div class="mkt-meta">'+
           '<span class="mkt-name">'+(mktNames[mt]||mt)+' Mailer</span>'+
-          '<span class="mkt-sub">'+(mktCurr[mt]||'USD')+' &middot; '+(mktBase(mt)||'')+'</span>'+
+          '<span class="mkt-sub">'+_curLabel(mt)+' &middot; '+(mktBase(mt)||'')+'</span>'+
         '</div>'+
       '</div>'+
       '<div class="ttl">A vs B Comparison</div>'+
@@ -7219,8 +7242,7 @@ function _arch_pdpUrl(prod,mt){ try{ return pdpUrl(prod,mt); } catch(e){ return 
 
 // ── Section renderers — each returns a single <tr>...</tr> ──────────────────
 function _sec_annBar(s,c){
-  var mktHints={US:'$ USD',UK:'£ GBP',IN:'₹ INR',EU:'€ EUR',AU:'A$ AUD',ME:'AED',Global:'$ USD'};
-  var hint=mktHints[c.mt]||'$';
+  var hint=(_curSym(c.mt)+' '+_curCode(c.mt)).trim();
   var bar=(s.annBar||'').replace(/\s*\|\s*/g,' &middot; ');
   // Multi-type colorway: append secondary type badges so the user sees the hybrid
   // vibe (e.g. "GIFT EDIT · BESTSELLER") in the very first strip.
@@ -7534,7 +7556,7 @@ function _sec_comparisonTable(s,c){
   if(prods.length<2) return '';
   // Only what the catalogue row states about each product; a cell it does not
   // state is a dash, never a tasting note.
-  var sym={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',ME:'$',Global:'$'}[c.mt]||'$';
+  var sym=_curSym(c.mt);
   var rows=[
     ['Category'].concat(prods.map(function(p){return p.type||'—';})),
     ['Format'].concat(prods.map(function(p){return p.subtitle||p.form||'—';})),
@@ -8749,7 +8771,7 @@ async function renderDashboard(page){
   var rowNum=logs.length-i; // human counter: most recent = highest #
     var dt=new Date(e.date);
     // Full timestamp: "Mon, 29 Apr 2026, 02:30:45 PM"
-    var dateStr=dt.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+', '+dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    var dateStr=dt.toLocaleDateString(((_brandLocale(window.S&&window.S.activeMarket)||{}).locale)||undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})+', '+dt.toLocaleTimeString(((_brandLocale(window.S&&window.S.activeMarket)||{}).locale)||undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
     var mkts=(e.markets||[e.market||_homeMkt()]).join(', ');
     var prods=(e.products||[]).slice(0,3).join(' · ')+(e.products&&e.products.length>3?' +more':'');
     var userBadge=!window._anonStudio&&e.userName&&e.userName!=='Unknown'

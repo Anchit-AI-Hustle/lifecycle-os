@@ -251,7 +251,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return state.topEmails;
   }
   function fmtPct(v){ if(v==null) return '—'; return (Number(v)*100).toFixed(1)+'%'; }
-  function fmtRev(v){ if(v==null) return '—'; const n=Number(v); if(!isFinite(n)) return '—'; return n.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}); }
+  // Revenue in the currency the ROW states, else its market's, else the
+  // active brand's home currency - never a typed USD (2026-10-05). With none
+  // known, the figure carries no symbol.
+  function fmtRev(v, it){
+    if(v==null) return '—'; const n=Number(v); if(!isFinite(n)) return '—';
+    const RC=window.RegionContext; const row=it||{};
+    const l=(RC&&RC.localeOf)?RC.localeOf(row.market||row.region||''):{};
+    const cur=String(row.currency||l.currency||'').toUpperCase();
+    try{ if(cur) return n.toLocaleString(l.locale||undefined,{style:'currency',currency:cur,maximumFractionDigits:0}); }catch(_){}
+    return n.toLocaleString(l.locale||undefined,{maximumFractionDigits:0});
+  }
   function renderTopEmails(p, items){
     const importBlock = `
       <details style="background:#ffffff; border:1px solid rgba(171,135,67,.18); border-radius:12px; padding:14px 18px; margin-bottom:18px">
@@ -288,7 +298,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:10px; padding:10px 0; border-top:1px solid rgba(171,135,67,.08); border-bottom:1px solid rgba(171,135,67,.08)">
             <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">Open</div><div style="color:#111111; font-weight:600; font-size:13px">${fmtPct(it.open_rate)}</div></div>
             <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">CTR</div><div style="color:#111111; font-weight:600; font-size:13px">${fmtPct(it.click_rate)}</div></div>
-            <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">Revenue</div><div style="color:#6A33D8; font-weight:600; font-size:13px">${fmtRev(it.revenue)}</div></div>
+            <div><div style="font-size:9px; color:#48524c; text-transform:uppercase; letter-spacing:.06em">Revenue</div><div style="color:#6A33D8; font-weight:600; font-size:13px">${fmtRev(it.revenue, it)}</div></div>
           </div>
           ${it.body_text?'<p style="color:#556059; font-size:12px; line-height:1.55; margin-top:8px; max-height:80px; overflow:hidden">'+esc(it.body_text.slice(0,280))+(it.body_text.length>280?'…':'')+'</p>':''}
           ${tags?'<div style="margin-top:8px">'+tags+'</div>':''}
@@ -719,7 +729,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if(o.home){ b.dataset.home='1'; b.title='Home market'; }
       host.appendChild(b);
     });
-    if(!opts.length){ const m=document.createElement('span'); m.className='region-chip'; m.style.cursor='default'; m.textContent='[DATA REQUIRED BEFORE LAUNCH: regions, all, all]'; host.appendChild(m); }
+    if(!opts.length){ const m=document.createElement('span'); m.className='region-chip'; m.style.cursor='default'; m.textContent=(window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]'); host.appendChild(m); }
     if(state.region && !opts.some(o=>o.code===state.region)){ state.region=''; render(); }
     host.querySelectorAll('.region-chip[data-region]').forEach(x=>x.classList.toggle('active', x.dataset.region===(state.region||'')));
   }

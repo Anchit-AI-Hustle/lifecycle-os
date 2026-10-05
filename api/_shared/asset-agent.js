@@ -104,7 +104,7 @@ function replaceInOrder(html, token, urls) {
  *       pending:[{slot,kind,provider,job_id}], counts, unresolved }
  */
 async function fillMailerAssets(html, {
-  tier = 'premium', market = 'UK', persist = true,
+  tier = 'premium', market = require('./brand-locale.js').defaultMarket(), persist = true,
   video: doVideo = true, gif: doGif = true, name = 'mailer',
 } = {}) {
   let out = String(html || '');

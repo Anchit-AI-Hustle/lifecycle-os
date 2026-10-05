@@ -510,7 +510,7 @@ function heroPrompt(ctx, ideology, focus) {
   const hexes = [pal.primary, pal.accent, pal.ink, pal.surface].filter(Boolean);
   const paletteLine = hexes.length
     ? ' Color palette strictly limited to ' + hexes.join(', ') + '.'
-    : ' [DATA REQUIRED BEFORE LAUNCH: brand palette, all, all] - do not choose colours until it is supplied.';
+    : ' [DATA REQUIRED BEFORE LAUNCH: brand palette, ' + brandName(ctx) + '] - do not choose colours until it is supplied.';
   return 'Premium editorial product photography for ' + brandName(ctx) + '. ' + ideology.visual_direction +
     ' Hero product: ' + focus.product.title + '.' +
     ' Composition with generous negative space so the frame crops cleanly to 4:5 portrait, 9:16 vertical and 2:3 pin.' +

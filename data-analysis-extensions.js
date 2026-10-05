@@ -108,7 +108,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function num(v) { var n = Number(v); return Number.isFinite(n) ? n : 0; }
   function fmt(v, digits) { return num(v).toLocaleString(undefined, { maximumFractionDigits: digits == null ? 0 : digits }); }
-  function money(v) { return '$' + num(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  // The brand's home currency and number format (RegionContext), never a typed
+  // '$' (2026-10-05); with no currency on the record, no symbol.
+  function money(v) { var l = brandLoc(); try { if (l.currency) return num(v).toLocaleString(l.locale || undefined, { style: 'currency', currency: l.currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }); } catch (_) {} return num(v).toLocaleString(l.locale || undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
   function percent(v, digits) { return (num(v) * 100).toFixed(digits == null ? 1 : digits) + '%'; }
   function ratio(v, digits) { return num(v).toFixed(digits == null ? 2 : digits) + '×'; }
   function dateTime(v) {
@@ -145,7 +147,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function currentMarket() {
     var b = document.querySelector('#mktToggle button.on');
-    return b ? String(b.getAttribute('data-mkt') || 'US').toUpperCase() : 'US';
+    // The toggle's own market, else the brand's HOME market - never 'US'.
+    var home = (window.RegionContext && window.RegionContext.home) || '';
+    return b ? String(b.getAttribute('data-mkt') || home).toUpperCase() : home;
   }
   function addDays(date, days) { var d = new Date(date); d.setDate(d.getDate() + days); return d; }
   function isoDate(d) { return d.toISOString().slice(0, 10); }
