@@ -61,6 +61,53 @@ const CONNECTION_PROVIDER = {
   youtube: 'youtube',
 };
 
+/**
+ * What a channel lets the operator DO (2026-10-04, review of #132). The hub
+ * asks at sign-in which of these to grant, and the sign-in requests exactly
+ * the scopes those channels need - each read from the adapter's own
+ * requiredScopes(), never typed here. Without it the Connect button sent no
+ * scopes, the platform's read-only default_scopes were the whole grant, and
+ * every write channel was blocked at preflight with no way to ask for more.
+ * A channel not listed is a CRM send (Klaviyo, WebEngage, the hooks).
+ */
+const CAPABILITIES = {
+  post: 'Publish and schedule posts and videos',
+  comments: 'Reply to and moderate comments',
+  ads: 'Create paused ads and approve them going live',
+  send: 'Send messages and sync profiles',
+};
+const CHANNEL_CAPABILITY = {
+  instagram_feed: 'post', instagram_reel: 'post', facebook_page: 'post', facebook_page_feed: 'post',
+  instagram_comment_reply: 'comments', facebook_comment_reply: 'comments',
+  instagram_comment_moderation: 'comments', facebook_comment_moderation: 'comments',
+  meta_ad: 'ads', meta_live_approval: 'ads',
+  tiktok_video_draft: 'post', tiktok_video_post: 'post',
+  tiktok_ads_ad: 'ads', tiktok_ads_live_approval: 'ads',
+  pinterest_pin: 'post', pinterest_campaign_draft: 'ads', pinterest_ad: 'ads', pinterest_live_approval: 'ads',
+  // Making a private upload public is part of publishing a video.
+  youtube_video_upload: 'post', youtube_live_approval: 'post',
+  youtube_comment_reply: 'comments', youtube_comment_moderation: 'comments',
+  google_search_ad: 'ads', google_pmax_asset: 'ads', google_customer_match: 'ads',
+};
+function capabilityOf(channelId) { return CHANNEL_CAPABILITY[String(channelId || '')] || 'send'; }
+
+/**
+ * The write capabilities a platform offers, each with its channels and the
+ * union of the scopes those channels require (the adapter's own answer).
+ */
+function capabilitiesOf(A) {
+  const out = [];
+  for (const c of A.channels) {
+    if (c.supported === false) continue;
+    const id = capabilityOf(c.id);
+    let cap = out.find((x) => x.id === id);
+    if (!cap) { cap = { id, label: CAPABILITIES[id], channels: [], scopes: [] }; out.push(cap); }
+    cap.channels.push(c.id);
+    for (const s of A.requiredScopes(c.id, 'write') || []) if (cap.scopes.indexOf(s) < 0) cap.scopes.push(s);
+  }
+  return out;
+}
+
 function adapterFor(id) {
   return ADAPTERS[String(id || '').toLowerCase()] || null;
 }
@@ -124,6 +171,7 @@ function allChannels() {
         constraints: c.constraints || {},
         supported: c.supported !== false,
         required_scopes: A.requiredScopes(c.id, 'write'),
+        capability: capabilityOf(c.id),
       });
     }
   }
@@ -155,7 +203,9 @@ function registryView() {
       default_scopes: auth.default_scopes || [],
       platform_prereq: auth.platform_prereq || null,
       token_lifetime: auth.token_lifetime || null,
-      channels: A.channels.map((c) => ({ id: c.id, label: c.label, asset_kinds: c.asset_kinds || [], supported: c.supported !== false, constraints: c.constraints || {} })),
+      channels: A.channels.map((c) => ({ id: c.id, label: c.label, asset_kinds: c.asset_kinds || [], supported: c.supported !== false, constraints: c.constraints || {}, capability: capabilityOf(c.id), required_scopes: A.requiredScopes(c.id, 'write') || [] })),
+      // What the operator can choose to grant at sign-in (see CAPABILITIES).
+      capabilities: capabilitiesOf(A),
       // The honesty surface. The hub shows this so an operator knows which
       // integrations are proven and which are scaffolding they are testing.
       endpoints_verified: unverified.length === 0 && auth.endpoints_verified !== false,
@@ -180,6 +230,9 @@ module.exports = {
   adapterIdForConnection,
   endpointRows,
   writeSwitchOf,
+  capabilityOf,
+  capabilitiesOf,
+  CAPABILITIES,
   allChannels,
   registryView,
 };

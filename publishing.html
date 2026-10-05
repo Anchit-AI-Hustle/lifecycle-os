@@ -159,6 +159,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .fixrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
   .fixrow:last-child{border-bottom:0}
 
+  /* What a sign-in grants (2026-10-04): the operator picks the write capabilities. */
+  .caps{display:flex;flex-direction:column;gap:3px;margin-top:2px}
+  .caps .cap{display:flex;gap:7px;align-items:flex-start;margin:0;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink)}
+  .caps .cap input{width:auto;margin-top:2px}
+
   /* Social gateway (2026-10-04) */
   .gw-sw{display:flex;gap:6px;flex-wrap:wrap}
   .gw-ep{font-size:12px}
@@ -319,8 +324,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             <option value="mentions">Mentions</option>
           </select></div>
       </div>
-      <label for="gw-read-ids">Post, media or ad ids (comma separated, where the platform needs them)</label>
+      <label for="gw-read-ids">Post, media or ad ids (comma separated); for comments, the one post or video they are on</label>
       <input type="text" id="gw-read-ids" placeholder="e.g. 17890000000000000">
+      <label for="gw-read-surface">Meta surface (comments)</label>
+      <select id="gw-read-surface"><option value="instagram">Instagram media</option><option value="facebook">Facebook Page post</option></select>
       <div class="row"><button id="gw-read">Read now</button></div>
       <div id="gw-read-out" style="margin-top:10px"></div>
     </div>
@@ -478,6 +485,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             + '. These paths were implemented from the platform’s conventions and not re-read from its documentation. Confirm them before a first live send.</div>'
           : '')
         + (p.platform_prereq && !connected ? '<div class="muted">' + esc(p.platform_prereq.what || '') + '</div>' : '')
+        + capsHtml(p)
         + '<div class="row">'
         + (p.auth_kind === 'oauth'
           ? '<button data-act="connect" data-p="' + esc(p.id) + '">' + (connected ? 'Reconnect' : 'Connect') + '</button>'
@@ -490,13 +498,34 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).join('');
   }
 
+  /**
+   * The write capabilities a sign-in can grant (2026-10-04). Reading is always
+   * requested; each ticked capability adds the scopes its channels need, which
+   * the server reads from the adapter itself. Shown with the scopes it asks
+   * for, so the consent screen holds no surprise.
+   */
+  function capsHtml(p) {
+    if (p.auth_kind !== 'oauth') return '';
+    var caps = (p.capabilities || []).filter(function (k) { return k.scopes && k.scopes.length; });
+    if (!caps.length) return '';
+    return '<div class="caps" data-caps-for="' + esc(p.id) + '"><div class="muted">Grant at sign-in (reading is always asked for):</div>'
+      + caps.map(function (k) {
+        return '<label class="cap"><input type="checkbox" data-cap="' + esc(k.id) + '"><span>' + esc(k.label)
+          + ' <span class="muted">(' + esc(k.scopes.join(', ')) + ')</span></span></label>';
+      }).join('') + '</div>';
+  }
+  function chosenCaps(p) {
+    return [].slice.call(document.querySelectorAll('#hub [data-caps-for="' + p + '"] input[data-cap]:checked'))
+      .map(function (i) { return i.dataset.cap; });
+  }
+
   document.getElementById('hub').addEventListener('click', async function (ev) {
     var b = ev.target.closest('button[data-act]'); if (!b) return;
     var act = b.dataset.act, p = b.dataset.p;
     b.disabled = true;
     try {
       if (act === 'connect') {
-        var r = await call(CONN + '&op=oauth-start', { provider: p, return_to: '/publishing' });
+        var r = await call(CONN + '&op=oauth-start', { provider: p, capabilities: chosenCaps(p), return_to: '/publishing' });
         window.location.href = r.url;
         return;
       }
@@ -516,7 +545,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         note(c.ok ? 'ok' : 'warn', c.note || (c.connected ? 'Connected.' : 'Not connected.'));
       }
       CONNECTED = {}; await loadHub();
-    } catch (e) { note('err', e.message); }
+    } catch (e) { gwFail(e); }
     b.disabled = false;
   });
 
@@ -801,10 +830,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (window.LifecycleStatus && window.LifecycleStatus.show) window.LifecycleStatus.show(el, text);
     else el.textContent = text;
   }
-  /** A refusal for an ordinary state (signed out, no database) is a status line, never a red banner. */
+  /**
+   * A refusal for an ordinary state (signed out, no database, a brand kept on
+   * this device) is a status line in the accent rule, never a red banner.
+   */
   function gwFail(e, lead) {
     var S = window.LifecycleStatus;
     if (S && S.ordinary && S.ordinary(e)) { S.show(document.getElementById('msg'), e); return; }
+    if (S && S.show && e && e.payload && e.payload.storage === 'device') { S.show(document.getElementById('msg'), e.payload.message || e.message); return; }
     note('err', (lead || '') + ((e && e.message) || String(e)));
   }
   function chip(cls, text) { return '<span class="chip ' + cls + '">' + esc(text) + '</span>'; }
@@ -955,13 +988,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { window.LifecycleFailure.show(el, e, { title: 'The inbox could not be loaded' }); }
   }
 
+  /**
+   * What each read op takes (2026-10-04, review of #132): metrics take a list
+   * of ids, ad metrics a list of ad ids, comments the ONE object they are on
+   * (object_id, plus Meta's surface), a mention the comment it names. Sending
+   * ids to a comment read left object_id empty, and every comment read failed.
+   */
+  function readRequest(provider, kind, ids) {
+    var first = String(ids || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean)[0];
+    var req = { provider: provider, kind: kind };
+    if (kind === 'post_metrics' && ids) req.ids = ids;
+    if (kind === 'ad_metrics' && ids) req.ad_ids = ids;
+    if (kind === 'comments') { if (first) req.object_id = first; req.surface = document.getElementById('gw-read-surface').value; }
+    if (kind === 'mentions' && first) req.comment_id = first;
+    return req;
+  }
+
   document.getElementById('gw-read').addEventListener('click', async function () {
     var out = document.getElementById('gw-read-out');
     var btn = this;
     btn.disabled = true;
     try {
       var ids = document.getElementById('gw-read-ids').value.trim();
-      var r = await call(GW + 'read', { provider: document.getElementById('gw-read-provider').value, kind: document.getElementById('gw-read-kind').value, ids: ids || undefined, ad_ids: ids || undefined });
+      var r = await call(GW + 'read', readRequest(document.getElementById('gw-read-provider').value, document.getElementById('gw-read-kind').value, ids));
       var rows = r.metrics || r.rows || r.comments || r.mentions || [];
       if (!r.ok) {
         gwStatusLine(out, r.note || r.error || 'Nothing was read.');
