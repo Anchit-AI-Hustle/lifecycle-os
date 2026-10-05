@@ -102,6 +102,12 @@ const SCOPED_TABLES = new Set([
   'platform_sync_log', 'platform_webhook_events',
   'domain_health_profiles', 'dns_audit_log', 'warmup_schedules',
   'preflight_audits', 'audience_cohorts', 'subscriber_engagement_scores',
+  // 20261004093700 — the cross-channel contact ledger and a brand's contact
+  // rules. contact-ledger.js filters by workspace on every call (the dispatch
+  // queue and the planners run under the service role); this is the backstop,
+  // and the ledger is the same kind of data as subscriber_engagement_scores: a
+  // brand's contact history, pseudonymous but a membership set.
+  'contact_touch_ledger', 'contact_fatigue_rules',
   // The PKCE verifier store. Scoped for completeness; it is additionally RLS-on
   // with no policy and revoked from both browser roles, so nothing but the
   // service role can reach it at all.

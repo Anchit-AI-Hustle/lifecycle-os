@@ -112,7 +112,8 @@ Five checks. The verdict is the worst status any of them returned.
 | Blocklist | listed on a list that answered |
 | Warmup | today's ramp cap is exceeded, or the ramp is paused |
 | Segment health | majority-inactive list, or >3% estimated bounce risk, on a promotional send |
-| Frequency | >25% of the audience is already over the cross-channel cap |
+| Frequency | >25% of the audience is already over the cross-channel cap (the ESP's own `sends_7d` counter) |
+| Contact fatigue | a recipient is over a cap, inside a cross-channel cool-down, or in quiet hours, judged against the contact ledger (below) |
 | Unsubscribe | bulk promotional email with no unsubscribe link |
 | Content | spam signal score ≥10 |
 
@@ -120,6 +121,57 @@ Five checks. The verdict is the worst status any of them returned.
 discipline of the file: a gate that silently approves what it could not inspect
 converts absence of information into a green light. A block is overridable, and
 the override is recorded against the operator's user id with their reason.
+
+---
+
+## Contact fatigue: one ledger, one policy, every channel (2026-10-04)
+
+The operator's rule: *"if a user received an SMS at 10:00 AM, the Algorithmic
+Calendar must automatically suppress scheduled marketing emails or WhatsApp
+messages for 48 hours to prevent opt-out spikes."*
+
+- **The policy** is `api/_shared/contact-fatigue.js` (pure, no I/O), and it is
+  the only place a frequency cap is computed: the cohort engine, the Smart Brain
+  plan (both its paths), the mailer calendar, the V1 plan and the scenario
+  model's per-segment ceiling all read it. Defaults, stated in that file and
+  editable per brand within the spec:
+
+  | Rule | Default | A brand may |
+  |---|---|---|
+  | Promotional cap | 2 marketing touches per person per rolling 7 days, across channels | tighten, never loosen (spec §10) |
+  | Absolute cap | 3 | tighten, never loosen |
+  | Class | promotional → preferred cap; triggered lifecycle → absolute cap; transactional never counted, never held | hold triggered lifecycle to the preferred cap |
+  | Cool-down | after a promotional SMS or WhatsApp: no promotional email, WhatsApp or SMS for 48 h | change hours (1-168), channels, or remove |
+  | Quiet hours | 21:00-08:00 in the recipient's zone, for SMS / WhatsApp / push, when the region is known | change the window, channels, or turn off |
+  | Event map | empty | name which of ITS ESP events are sends, on which channel and class |
+
+  Channels are `email | sms | whatsapp | push | in_app`; classes
+  `promotional | transactional | triggered-lifecycle`. SMS/WhatsApp senders do
+  not exist yet; a dispatch job may state `message_channel` for a trigger whose
+  message the platform's flow decides.
+- **The ledger** is `contact_touch_ledger` (`contact-ledger.js`): one row per
+  message that reached one person, fed by a dispatch the platform ACCEPTED
+  (released or scheduled - a Klaviyo campaign that was only created has
+  contacted nobody) and by ESP events a brand ingests. Who is the ESP's own
+  profile id and/or a per-workspace salted SHA-256 of the address or number,
+  never the address: CHECK constraints refuse a hash column that is not 64 hex
+  and a profile id that is itself an address or a number. Writes are the
+  service role's only; members read through `is_brand_member`; nothing is
+  granted to `anon`. Touches of one person are linked across channels by any
+  shared identifier.
+- **Where it is enforced.** (1) Dispatch preflight: the `contact_fatigue` check
+  BLOCKS when a recipient is held back (overridable, recorded like every other
+  override) and says how many, why and when they clear; it WARNS when the
+  ledger is unavailable, has no history, or the platform resolves the audience
+  - never a pass. On its own the check reads no store (its input can come from
+  a request body); the dispatch queue (after its write check) and the router
+  (after a membership check) hand it the verdict over the brand's own ledger.
+  (2) The planners: every slot carries `reach.frequency_cap` (plan-time cap for
+  its cohort) and `eligibility` (the ledger's verdict plus the plan's own
+  earlier sends), and `planned_recipients` is the eligible count or null.
+- **No ledger is a state.** No history: "eligibility unknown — no send
+  history". No database (production today): "the contact ledger is
+  unavailable (...)", never 0 suppressed. Quiet hours are still judged.
 
 ---
 
@@ -153,7 +205,10 @@ marker, and the gate turns that into a warning rather than a green light.
 own profile id — never a raw email address. Both are sufficient for everything
 the engine does (suppress, cap, cohort), and neither is a mailing list if the
 table leaks. The salt is per-workspace, so one tenant cannot confirm another's
-membership by comparing hashes.
+membership by comparing hashes. `CONTACT_HASH_SALT` is a deployment secret
+mixed IN with the workspace id; until 2026-10-04 setting it REPLACED the
+workspace id (`CONTACT_HASH_SALT || workspaceId`), so one address hashed the
+same in every tenant. With no secret set, hashes are unchanged.
 
 This is pseudonymisation, not anonymisation — a known address can still be
 confirmed by hashing it — so the table keeps brand RLS and is revoked from
@@ -213,6 +268,8 @@ All mounted on existing routers — **no thirteenth serverless function**.
                  deliverability-preflight   the gate, standalone
                  deliverability-warmup      build a ramp / evaluate safety
                  cohort-optimize            RFM, cohorts, sunset proposals
+                 contact-fatigue            op=rules | rules-save | evaluate | summary | ingest:
+                                            the contact rules and the cross-channel ledger
 ```
 
 ## Environment

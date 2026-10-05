@@ -55,6 +55,7 @@ const ENV = envScope([
   'META_APP_ID', 'META_APP_SECRET', 'META_WEBHOOK_VERIFY_TOKEN',
   'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'TIKTOK_WEBHOOK_TOLERANCE_SECONDS',
   'PINTEREST_APP_ID', 'PINTEREST_APP_SECRET', 'YOUTUBE_OAUTH_CLIENT_ID', 'YOUTUBE_OAUTH_CLIENT_SECRET', 'YOUTUBE_MAX_UPLOAD_BYTES',
+  'GOOGLE_ADS_CLIENT_ID',
 ]);
 let REAL_FETCH;
 let REAL_LOOKUP;
@@ -73,7 +74,7 @@ function baseEnv() {
   process.env.PINTEREST_APP_SECRET = 'pin-secret';
   process.env.YOUTUBE_OAUTH_CLIENT_ID = 'yt-client';
   process.env.YOUTUBE_OAUTH_CLIENT_SECRET = 'yt-secret';
-  for (const k of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY', 'VERCEL_URL', 'VERCEL_REGION', 'CRON_SECRET',
+  for (const k of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY', 'VERCEL_URL', 'VERCEL_REGION', 'CRON_SECRET', 'GOOGLE_ADS_CLIENT_ID',
     'LIVE_CONNECTORS', 'META_WEBHOOK_VERIFY_TOKEN', 'TIKTOK_WEBHOOK_TOLERANCE_SECONDS', 'YOUTUBE_MAX_UPLOAD_BYTES', ...ALL_SWITCHES]) delete process.env[k];
 }
 
@@ -956,4 +957,117 @@ test('a brand kept on this device (no server workspace) gets the honest status, 
   }
   expect(db.calls, 'a device brand reaches neither the store nor a platform').toEqual([]);
   expect((await gw('nope')).code).toBe(400);
+});
+
+/* ═══ 10. review of #132 (2026-10-04) ═══════════════════════════════════ */
+
+// P1: the Connect button asked for nothing but the read defaults, so every
+// write channel was blocked at preflight with no way to grant more.
+test('Connect asks for the scopes of exactly the write capabilities the operator chose, read from the adapter; reading only by default; never an undeclared scope; preflight names what was not granted', async () => {
+  const { db } = world();
+  const start = async (provider, capabilities) => {
+    const r = await connRouter('oauth-start', { token: 'tok-a', method: 'POST', body: { provider, capabilities } });
+    expect(r.code, `${provider} ${JSON.stringify(capabilities)}: ${JSON.stringify(r.payload)}`).toBe(200);
+    const A = registry.adapterFor(provider);
+    const declared = A.auth.scopes.map((s) => s.value);
+    for (const s of r.payload.scopes) expect(declared, `${provider} requested ${s}`).toContain(s);
+    // What the consent screen asks for is what was stored for the callback.
+    const sep = A.auth.scope_separator || ' ';
+    expect(new URL(r.payload.url).searchParams.get('scope').split(sep).sort()).toEqual([...r.payload.scopes].sort());
+    const stateRow = db.table('oauth_authorization_states').find((x) => x.state === r.payload.state);
+    expect([...stateRow.scopes].sort()).toEqual([...r.payload.scopes].sort());
+    return r.payload;
+  };
+  const YT = (s) => `https://www.googleapis.com/auth/youtube.${s}`;
+
+  // Nothing chosen: the read defaults, exactly as before.
+  expect((await start('youtube', [])).scopes).toEqual([YT('readonly')]);
+  // Publishing a video: the upload, and force-ssl because going live (private -> public) is a videos.update.
+  expect((await start('youtube', ['post'])).scopes.sort()).toEqual([YT('force-ssl'), YT('readonly'), YT('upload')].sort());
+  // Comments only: force-ssl, and no upload scope.
+  const ytComments = await start('youtube', ['comments']);
+  expect(ytComments.scopes.sort()).toEqual([YT('force-ssl'), YT('readonly')].sort());
+  expect(ytComments.channels.sort()).toEqual(['youtube_comment_moderation', 'youtube_comment_reply']);
+  expect((await start('tiktok', ['post'])).scopes.sort()).toEqual(['user.info.basic', 'video.list', 'video.publish', 'video.upload']);
+  expect((await start('pinterest', ['ads'])).scopes.sort()).toEqual(['ads:read', 'ads:write', 'boards:read', 'pins:read']);
+  const metaComments = await start('meta', ['comments']);
+  expect(metaComments.scopes).toEqual(expect.arrayContaining(['instagram_manage_comments', 'pages_manage_engagement']));
+  expect(metaComments.scopes, 'choosing comments does not ask for ad spend').not.toContain('ads_management');
+  expect((await start('meta', ['ads'])).scopes).toContain('ads_management');
+  // Every capability the hub offers, on every gateway platform, asks only for declared scopes.
+  process.env.GOOGLE_ADS_CLIENT_ID = 'gads-client';
+  for (const v of registry.registryView().filter((p) => p.auth_kind === 'oauth' && ['meta', 'tiktok', 'pinterest', 'youtube', 'google_ads'].includes(p.id))) {
+    const all = await start(v.id, v.capabilities.map((k) => k.id));
+    expect(all.not_requested, `${v.id} needs a scope it does not declare`).toEqual([]);
+  }
+
+  // Preflight then names the scope a connection was not granted.
+  const oauth = require(path.join(ROOT, 'api', '_shared', 'oauth-core.js'));
+  const upload = oauth.validateScopes('youtube', 'youtube_video_upload', ytComments.scopes, 'write');
+  expect(upload.ok).toBe(false);
+  expect(upload.note).toContain(YT('upload'));
+  expect(oauth.validateScopes('youtube', 'youtube_comment_reply', ytComments.scopes, 'write').ok).toBe(true);
+  expect(db.external(), 'starting a sign-in calls no platform').toEqual([]);
+});
+
+// P1: a webhook whose ingest failed after it was recorded was answered 500, and
+// the platform's retry met the dedupe and got 200 - the event was lost.
+test('a delivery whose ingest failed is RESUMED by the platform\'s retry, not acknowledged as a duplicate; only a processed event short-circuits', async () => {
+  const { db } = world();
+  connect(db, 'meta_ads', { access_token: 'meta-tok' }, { config: { ig_user_id: '17841-ig' } });
+  // A job the event names (Meta's entry id), so the ingest has real work to do.
+  db.insert('dispatch_jobs', { workspace_id: 'ws-a', idempotency_key: 'k-ig', provider: 'meta', channel: 'instagram_feed', payload: {}, status: 'succeeded', external_id: '17841-ig', external_status: 'published', attempt_count: 1, max_attempts: 5, next_attempt_at: nowIso() });
+  const raw = JSON.stringify({ object: 'instagram', entry: [{ id: '17841-ig', changes: [{ field: 'comments', value: { id: 'c-90', text: 'Restock in a 10?', media: { id: 'm-9' } } }] }] });
+  const sig = { 'x-hub-signature-256': metaSign('meta-app-secret', raw) };
+
+  // The dispatch store goes down between the record and the ingest.
+  db.failures.dispatch_jobs = 503;
+  const first = await deliver('meta', raw, sig);
+  expect(first.code, 'a failed ingest asks the platform to retry').toBe(500);
+  let row = db.table('social_inbound_events')[0];
+  expect(row).toMatchObject({ provider: 'meta', workspace_id: 'ws-a', status: 'failed', attempts: 1 });
+  expect(row.last_error).toMatch(/dispatch store/);
+  expect(jobs(db)[0].external_status).toBe('published');
+
+  // The store is back and the platform retries the same bytes: the ingest RUNS.
+  delete db.failures.dispatch_jobs;
+  const retry = await deliver('meta', raw, sig);
+  expect(retry.code).toBe(200);
+  expect(retry.payload).toMatchObject({ ok: true, processed: true, verified: true, inbound: { recorded: false, resumed: true, marked_processed: true, routed: true } });
+  expect(jobs(db)[0].external_status, 'the resumed ingest reconciled the job').toBe('updated');
+  row = db.table('social_inbound_events')[0];
+  expect(row).toMatchObject({ status: 'processed', attempts: 2, last_error: null });
+  expect(row.processed_at).toBeTruthy();
+  expect(db.table('social_inbound_events')).toHaveLength(1);
+  expect(db.table('platform_sync_log').filter((l) => l.direction === 'inbound'), 'logged once, when first recorded').toHaveLength(1);
+
+  // A later redelivery of the PROCESSED event is acknowledged, and nothing runs.
+  db.clearCalls();
+  const late = await deliver('meta', raw, sig);
+  expect(late.code).toBe(200);
+  expect(late.payload).toMatchObject({ ok: true, processed: false, duplicate: true, verified: true });
+  expect(db.calls.filter((c) => /platform_webhook_events|dispatch_jobs/.test(c.url)), 'a processed event is not ingested again').toEqual([]);
+  expect(db.table('social_inbound_events')[0]).toMatchObject({ status: 'processed', attempts: 2 });
+});
+
+// P2: thresholds for reach, impressions or likes were ignored whenever the
+// creatives also reported views.
+test('organic: every metric the operator set a threshold for is judged, beside the median on the primary metric; a creative that does not report it is not judged on it', () => {
+  const rows = [
+    { provider: 'meta', kind: 'organic', surface: 'instagram', external_id: 'p-1', values: { views: 900, likes: 40, reach: 500 } },
+    { provider: 'meta', kind: 'organic', surface: 'instagram', external_id: 'p-2', values: { views: 800, likes: 3, reach: 450 } },
+    { provider: 'meta', kind: 'organic', surface: 'instagram', external_id: 'p-3', values: { views: 700, reach: 90 } },   // reports no likes
+  ];
+  const keyed = (out) => out.flags.map((f) => `${f.external_id}:${f.metric}:${f.basis}`).sort();
+
+  // No thresholds: the median on the primary metric (views), nothing else.
+  expect(keyed(gateway.computeUnderperformance(rows, null))).toEqual(['p-3:views:own_median']);
+
+  const out = gateway.computeUnderperformance(rows, { organic: { likes_min: 10, reach_min: 100 } });
+  expect(keyed(out)).toEqual(['p-2:likes:operator_threshold', 'p-3:reach:operator_threshold', 'p-3:views:own_median']);
+  // No median is taken on a threshold-only metric, and p-3's absent likes is not a zero.
+  expect(out.flags.find((f) => f.metric === 'likes' && f.basis === 'own_median')).toBeUndefined();
+  expect(out.flags.find((f) => f.external_id === 'p-3' && f.metric === 'likes')).toBeUndefined();
+  expect(out.groups.find((g) => g.metric === 'likes')).toMatchObject({ basis: 'operator_threshold', rows: 2 });
+  expect(out.flags.find((f) => f.metric === 'reach').reason).toBe('reach 90 is below the threshold of 100 set for this brand.');
 });
