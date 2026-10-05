@@ -1,24 +1,351 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "loreal",
   "start": "https://www.loreal.com",
-  "landed": "https://www.loreal.com",
-  "observed_at": "2026-10-04",
+  "landed": "https://careers.loreal.com/en",
+  "observed_at": "2026-10-05",
+  "read_at": "2026-10-05T08:41:28.994Z",
   "renderer": "blocked",
   "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it.",
-  "read_attempt": {
-    "renderer": "blocked",
-    "at": "2026-10-04",
-    "host": "www.loreal.com",
-    "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
+  "reads": [
+    {
+      "url": "https://www.loreal.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.loreal.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
+    },
+    {
+      "url": "https://www.loreal.com/en/mediaroom/",
+      "role": "identity source",
+      "what": "L'Oreal Groupe mediaroom",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Mediaroom - L’Oréal Groupe\", whose first heading reads \"Mediaroom\"). Nothing was read from it."
+    },
+    {
+      "url": "https://careers.loreal.com/",
+      "role": "identity source",
+      "what": "L'Oreal Groupe careers site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "careers.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://careers.loreal.com/en"
+    },
+    {
+      "url": "https://www.loreal.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "https://www.loreal.com/apple-touch-icon.png did not answer with an image this reader could draw (HTTP 404)."
+    },
+    {
+      "url": "https://www.loreal.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "unavailable",
+      "ok": false,
+      "reason": "https://www.loreal.com/favicon.svg did not answer with an image this reader could draw (HTTP 404)."
+    },
+    {
+      "url": "https://www.loreal.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "image",
+      "ok": true,
+      "landed": "https://www.loreal.com/favicon.ico",
+      "mark": {
+        "verdict": "neutral",
+        "hex": "#000000"
+      }
+    }
+  ],
+  "design_read": {
+    "url": "https://careers.loreal.com/",
+    "role": "identity source",
+    "landed": "https://careers.loreal.com/en"
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+    "manifest_version": "design-manifest/1",
+    "browser": "preinstalled",
+    "chromium": "148.0.7778.96"
   },
-  "note": "www.loreal.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "pages": [
+    {
+      "url": "https://careers.loreal.com/en",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), careers.loreal.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), careers.loreal.com]"
+  ],
+  "logo_url": "https://cdn.radancy.eu/company/3456/img/logo/logo-loreal-groupe.svg",
+  "logo_signal": "the logo element as rendered (div#page > header.section-1 > div.content-max-container > a.section-1__logo-link > img)",
+  "assets": [
+    {
+      "url": "https://cdn.radancy.eu/company/3456/img/logo/logo-loreal-groupe.svg",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "the logo element as rendered (div#page > header.section-1 > div.content-max-container > a.section-1__logo-link > img)"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/section-43-marketing-v2.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/section-43-operations-v2.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/section-43-sales-v2.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/cms/v2/img/vodcast_hub/thumbnail_emma_over_coffee_287x210px.jpg",
+      "role": "photograph",
+      "alt": "Over Coffee with Emma - Beauty with a Purpose",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/cms/v2/img/vodcast_hub/engineer-at-loreal/latest_episode_thumbnail_vincent_over_coffee_572x210_2x.jpg",
+      "role": "photograph",
+      "alt": "Over Coffee with Vincent - I Almost Did Not Apply",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/cms/v2/img/vodcast_hub/over-coffee-operational-marketing/latest_episode_thumbnail_marin_over_coffee_286x210_2x.jpg",
+      "role": "photograph",
+      "alt": "Over Coffee with Marin",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/icons/icon-growth.webp",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "action",
+      "value": "#555555",
+      "score": 55,
+      "state": "neutral",
+      "page": "https://careers.loreal.com/en"
+    },
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://careers.loreal.com/en"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://careers.loreal.com/",
+      "logo": {
+        "kind": "img",
+        "verdict": "neutral",
+        "hex": "#000000"
+      },
+      "fonts": {
+        "heading": "Essentielle",
+        "body": "Essentielle"
+      },
+      "content_logos": 0,
+      "seen": {
+        "title": "Working at L'Oreal | Jobs and Careers at L'Oreal",
+        "h1": "Life is too short for a boring career",
+        "status": 200,
+        "text_chars": 1269
+      }
+    },
+    {
+      "url": "https://www.loreal.com/favicon.ico",
+      "logo": {
+        "kind": "file",
+        "verdict": "neutral",
+        "hex": "#000000"
+      }
+    }
+  ],
+  "home_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-05",
+    "host": "www.loreal.com",
+    "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
+  },
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://careers.loreal.com/en",
+        "role": "page ground",
+        "selector": "canvas (no background declared)",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://careers.loreal.com/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "careers.loreal.com",
+        "registrable": "loreal.com",
+        "website_host": "www.loreal.com"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    }
+  },
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "typography": {
+    "heading": {
+      "family": "Essentielle",
+      "stack": "'Essentielle','Helvetica',sans-serif",
+      "google": false,
+      "weights": "400;700;900",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Essentielle (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://careers.loreal.com/en",
+        "role": "h1",
+        "selector": "main#content > section.section-11.section-11a:nth-of-type(1) > div.content-max-container:nth-of-type(1) > div.section-11__search-form > h1",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://careers.loreal.com/"
+    },
+    "body": {
+      "family": "Essentielle",
+      "stack": "'Essentielle','Helvetica',sans-serif",
+      "google": false,
+      "weights": "400;700;900",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "Essentielle (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://careers.loreal.com/en",
+        "role": "body copy",
+        "selector": "div.content-max-container > div.partial-wrap > div.partial > div.wysiwyg-content.custom-html:nth-of-type(1) > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://careers.loreal.com/"
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-05",
+    "host": "careers.loreal.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "careers.loreal.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

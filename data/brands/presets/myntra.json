@@ -14,11 +14,13 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "blocked",
-      "at": "2026-10-04",
-      "host": "www.myntra.com",
-      "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
-    }
+      "renderer": "rendered",
+      "at": "2026-10-05",
+      "host": "jobs.myntra.com",
+      "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+    },
+    "read_sources_note": "Its own other material was tried too: jobs.myntra.com (image), jobs.myntra.com (rendered), www.myntra.com (unavailable).",
+    "logo_signal": "the icon the page declares (link rel=icon)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -58,7 +60,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "myntra.com"
+    "myntra.com",
+    "jobs.myntra.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -292,14 +295,14 @@
   ],
   "identity_sources": [
     {
+      "url": "https://jobs.myntra.com/favicon.png",
+      "kind": "image",
+      "what": "Myntra careers icon"
+    },
+    {
       "url": "https://jobs.myntra.com/home",
       "kind": "page",
       "what": "Myntra careers site"
-    },
-    {
-      "url": "https://www.myntra.com/shop/men",
-      "kind": "page",
-      "what": "Myntra men's store"
     }
   ],
   "offerings": [],
@@ -310,6 +313,23 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Myntra]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Myntra]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://jobs.myntra.com/favicon.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://jobs.myntra.com/home",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://jobs.myntra.com/splash/img/light-1x.png",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://jobs.myntra.com/home",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://jobs.myntra.com/favicon.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
