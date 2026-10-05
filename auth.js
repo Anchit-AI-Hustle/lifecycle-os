@@ -7,10 +7,14 @@
  *      OR from the /api/public-config endpoint at runtime. The client persists
  *      the session and accepts the Google OAuth callback.
  *   2. SIGN-IN IS GOOGLE, THROUGH SUPABASE AUTH (2026-10-05). The rail's
- *      "Sign in" chip starts Google sign-in and never hands the browser to a
- *      host that is not there. A stored mobile-number session from before this
- *      change still restores, and the panel that created it is still in this
- *      file for that session, but nothing in the product offers it as login.
+ *      "Sign in with Google" chip starts Google sign-in (Gmail account picker)
+ *      and never hands the browser to a host that is not there. redirectTo is
+ *      the origin root (the Site URL) so a missing wildcard allowlist cannot
+ *      400 the bounce; rememberReturnTo / restoreReturnTo send the person
+ *      back to the page they pressed from. A stored mobile-number session
+ *      from before this change still restores, and the panel that created it
+ *      is still in this file for that session, but nothing in the product
+ *      offers it as login.
  *   3. Renders a shared left rail with cross-step navigation so any stage
  *      can jump to any other stage.
  *   4. Provides window.LifecycleAuth.{client, session, user, signOut,
@@ -2001,6 +2005,16 @@
         #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid var(--vh-line-hot);
           color: var(--vh-ink-dim); cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
         #lifecycle-nav .lnav-signout:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-skip {
+          position: absolute; left: -999px; top: 8px; z-index: 200;
+          background: var(--vh-panel); color: var(--vh-ink);
+          border: 1px solid var(--vh-line-hot); border-radius: 8px;
+          padding: 8px 12px; font: inherit; font-size: 13px; font-weight: 700;
+          text-decoration: none;
+        }
+        #lifecycle-nav .lnav-skip:focus {
+          left: 8px; outline: 2px solid var(--vh-focus); outline-offset: 2px;
+        }
         #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
         #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
@@ -2066,13 +2080,14 @@
           html.lnav-collapsed { --lsb-w: 248px; }
         }
       </style>
+      <a class="lnav-skip" href="#lc-content">Skip to main content</a>
       <div class="lnav-mbar">
-        <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation">☰</button>
+        <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation" aria-expanded="false" aria-controls="lnav-side">☰</button>
         <a class="lnav-mbrand" href="/">${LOGO_SVG} <span style="margin-left:8px" class="lnav-mbrand-label">Lifecycle OS</span></a>
       </div>
       <div class="lnav-mbar-spacer"></div>
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
-      <aside class="lnav-side">
+      <aside class="lnav-side" id="lnav-side" role="navigation" aria-label="Main navigation">
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
             ${LOGO_SVG}
@@ -2097,6 +2112,7 @@
       </div>
     `;
     document.body.insertBefore(wrap, document.body.firstChild);
+    bindSkipTarget(wrap);
     // Signal to embedded apps (e.g. Mailer Studio) that they're rendering
     // inside the Lifecycle OS shell, so they can hide their own duplicate
     // header / tabs / sign-out chrome.
@@ -2226,7 +2242,14 @@
     }
 
     // Mobile drawer open/close
-    const setOpen = (o) => wrap.classList.toggle('open', o);
+    const setOpen = (o) => {
+      wrap.classList.toggle('open', o);
+      const burger = wrap.querySelector('#lnav-burger');
+      if (burger) {
+        burger.setAttribute('aria-expanded', o ? 'true' : 'false');
+        burger.setAttribute('aria-label', o ? 'Close navigation' : 'Open navigation');
+      }
+    };
     wrap.querySelector('#lnav-burger')?.addEventListener('click', () => setOpen(true));
     wrap.querySelector('#lnav-backdrop')?.addEventListener('click', () => setOpen(false));
     document.addEventListener('keydown', (e) => {
@@ -2301,9 +2324,32 @@
   }
 
   // The user block at the foot of the rail: the account chip + sign-out when a
-  // session exists, a "Sign in" link otherwise. It is the ONLY part of the rail
-  // that depends on the session, which is why it can be swapped in place (see
-  // setRailUser) instead of the whole rail waiting for the session to resolve.
+  // session exists, a "Sign in with Google" link otherwise. It is the ONLY part
+  // of the rail that depends on the session, which is why it can be swapped in
+  // place (see setRailUser) instead of the whole rail waiting for the session
+  // to resolve.
+  const SIGN_IN_LABEL = 'Sign in with Google';
+  function bindSkipTarget(wrap) {
+    const skip = wrap && wrap.querySelector('.lnav-skip');
+    if (!skip) return;
+    const resolve = () => document.getElementById('lc-content')
+      || document.querySelector('main, [role="main"]')
+      || wrap.nextElementSibling;
+    const mark = (t) => {
+      if (!t) return null;
+      if (!t.id) t.id = 'lc-content';
+      return t;
+    };
+    mark(resolve());
+    skip.addEventListener('click', (e) => {
+      const t = mark(resolve());
+      if (!t) return;
+      e.preventDefault();
+      if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+      try { t.focus({ preventScroll: true }); } catch (_) { try { t.focus(); } catch (__) {} }
+      try { t.scrollIntoView({ block: 'start' }); } catch (_) {}
+    });
+  }
   function escHtml(v) {
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
@@ -2323,7 +2369,7 @@
     return user
       ? `<div class="lnav-user"${user.phone ? ` title="${escHtml(user.phone)}"` : ''}>${avatar}<span class="lnav-uname">${escHtml(display)}</span>
            <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
-      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/">Sign in</a></div>`;
+      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/" aria-label="${SIGN_IN_LABEL}">${SIGN_IN_LABEL}</a></div>`;
   }
   function wireRailUser(root) {
     const signinBtn = root.querySelector('#lnav-signin');
@@ -2357,7 +2403,7 @@
     const btn = scope.querySelector('#lnav-signin');
     if (btn) {
       btn.removeAttribute('aria-describedby');
-      if (!btn.dataset.busy) { btn.textContent = 'Sign in'; btn.removeAttribute('title'); }
+      if (!btn.dataset.busy) { btn.textContent = SIGN_IN_LABEL; btn.removeAttribute('title'); }
     }
   }
 
@@ -2571,10 +2617,7 @@
       const s = signedOutSentence('sdk');
       return { kind: 'sdk', message: s.text, html: s.html };
     }
-    const { error } = await client.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: location.origin + location.pathname },
-    });
+    const { error } = await client.auth.signInWithOAuth(googleSignInOptions());
     if (!error) return null;
     const message = 'Sign-in failed: ' + (error.message || error);
     return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
@@ -2632,7 +2675,7 @@
       }
       const refusal = await signInRefusal();
       if (waited && btn) {
-        btn.textContent = 'Sign in';
+        btn.textContent = SIGN_IN_LABEL;
         btn.removeAttribute('aria-busy');
       }
       if (!refusal) return '';
@@ -2934,9 +2977,32 @@
     } catch (_) {}
     return false;
   }
-  // Remember where the user was so we can send them back after Google bounces
-  // them to the Supabase Site URL (which happens when the exact path is not in
-  // the redirect allow-list).
+  /**
+   * Google OAuth options. redirectTo is ALWAYS the origin root: that is the
+   * Site URL every deployment already allowlists. A per-page pathname 400s
+   * when the wildcard is missing (docs/oauth-redirect-migration.md) and the
+   * person lands on Chrome's error with no in-app sentence. rememberReturnTo
+   * / restoreReturnTo send them back to the page they pressed from.
+   * prompt=select_account is the Gmail picker: without it a browser already
+   * signed into one Google account never offers another.
+   */
+  function googleSignInOptions() {
+    return {
+      provider: 'google',
+      options: {
+        redirectTo: location.origin + '/',
+        queryParams: { prompt: 'select_account' },
+      },
+    };
+  }
+  function sameAppPath(a, b) {
+    const norm = (p) => {
+      p = String(p || '/');
+      if (p === '' || p === '/index.html') return '/';
+      return p;
+    };
+    return norm(a) === norm(b);
+  }
   function rememberReturnTo() {
     try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
   }
@@ -2946,7 +3012,9 @@
     if (!target) return;
     const targetPath = target.split('?')[0].split('#')[0];
     // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
-    if (targetPath && targetPath !== location.pathname) {
+    // `/` and `/index.html` are the same app page: a bounce between them after
+    // the Site-URL callback would loop.
+    if (targetPath && !sameAppPath(targetPath, location.pathname)) {
       location.replace(target);
     }
   }
@@ -3874,6 +3942,8 @@
       // Google is the sign-in (2026-10-05). openPanel remains for a stored
       // phone session's own panel; the Sign in chip does not call it.
       openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
+      googleSignInOptions,
+      restoreReturnTo,
       // Why an action that needs the server cannot run right now, or null.
       // See serverActions(): pages ask BEFORE sending, and throw the answer.
       serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),

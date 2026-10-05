@@ -22,9 +22,11 @@
  * Sign-in is Google again, through Supabase Auth. A dead or missing project
  * is still refused BEFORE signInWithOAuth, because that call navigates and a
  * dead host becomes Chrome's NXDOMAIN with no in-app error. A reachable host
- * starts Google on the current page and does not open the mobile PIN panel.
- * The stub records every signInWithOAuth call, and every navigation is still
- * captured. The "no baked-in project ref" file check stays as it was.
+ * starts Google with a stable Site-URL redirectTo (origin + '/') and the
+ * Gmail account picker (prompt=select_account), remembers the page the
+ * person was on, and does not open the mobile PIN panel. The stub records
+ * every signInWithOAuth call, and every navigation is still captured. The
+ * "no baked-in project ref" file check stays as it was.
  *
  * Run: npx playwright test tests/signin-config.spec.js
  */
@@ -150,6 +152,7 @@ async function pressAndRead(page) {
       oauth: (window.__OAUTH_CALLS__ || []).length,
       provider: call && call.provider,
       redirectTo: call && call.options && call.options.redirectTo,
+      prompt: call && call.options && call.options.queryParams && call.options.queryParams.prompt,
       path: location.pathname,
       origin: location.origin,
       startGoogle: typeof window.__startGoogleSignIn__,
@@ -179,10 +182,12 @@ test('a reachable auth host: Sign in starts Google on this page and does not ope
   const got = await pressAndRead(page);
   expect(got.oauth, 'signInWithOAuth was not called on a reachable host').toBe(1);
   expect(got.provider).toBe('google');
-  expect(got.redirectTo).toBe(got.origin + '/index.html');
+  expect(got.redirectTo).toBe(got.origin + '/');
+  expect(got.prompt).toBe('select_account');
   expect(got.panel).toBe(false);
   expect(got.kind).toBeNull();
   expect(got.path).toBe('/index.html');
+  expect(await page.evaluate(() => localStorage.getItem('lc-return-to'))).toBe('/index.html');
 });
 
 test('a deployment with no Supabase configuration: Sign in says what is missing, and no redirect', async ({ page }) => {
@@ -220,9 +225,22 @@ test('the brain calendar, signed out, asks for Google and never shows the missin
   const got = await pressAndRead(page);
   expect(got.oauth).toBe(1);
   expect(got.provider).toBe('google');
-  expect(got.redirectTo).toBe(got.origin + '/smart-brain.html');
+  expect(got.redirectTo).toBe(got.origin + '/');
+  expect(got.prompt).toBe('select_account');
   expect(got.panel).toBe(false);
   expect(got.path).toBe('/smart-brain.html');
+  expect(await page.evaluate(() => localStorage.getItem('lc-return-to'))).toBe('/smart-brain.html');
+});
+
+test('a Site-URL bounce sends the person back to the page they signed in from', async ({ page }) => {
+  await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true, file: 'index.html' });
+  await page.waitForFunction(() => !!(window.LifecycleAuth && typeof window.LifecycleAuth.restoreReturnTo === 'function'), null, { timeout: 15000 });
+  await page.evaluate(() => {
+    localStorage.setItem('lc-return-to', '/smart-brain.html');
+    window.LifecycleAuth.restoreReturnTo();
+  });
+  await page.waitForURL(/\/smart-brain\.html$/, { timeout: 8000 });
+  expect(await page.evaluate(() => localStorage.getItem('lc-return-to'))).toBeNull();
 });
 
 /* ═══ 3. configuration outranks a checked-in constant ═════════════════════ */
