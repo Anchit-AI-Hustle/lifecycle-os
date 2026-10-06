@@ -91,6 +91,17 @@
       "has": [
         {
           "type": "host",
+          "value": "lifecycle-os-anchit-ai-hustle.vercel.app"
+        }
+      ],
+      "destination": "https://lifecycle-os.anchit-tandon.com/",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
           "value": "lifecycle-os.vercel.app"
         }
       ],
@@ -125,6 +136,17 @@
         {
           "type": "host",
           "value": "knickgasm-anchit-ai-hustle.vercel.app"
+        }
+      ],
+      "destination": "https://lifecycle-os.anchit-tandon.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "lifecycle-os-anchit-ai-hustle.vercel.app"
         }
       ],
       "destination": "https://lifecycle-os.anchit-tandon.com/:path*",

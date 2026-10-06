@@ -24,11 +24,9 @@ api_url = "http://127.0.0.1"
 
 [auth]
 enabled = true
-# Set to the deployment's own origin before `supabase config push`
-# (`supabase config diff` shows what would change first). Production Site URL
-# is https://lifecycle-os.anchit-tandon.com (Authentication → URL Configuration).
-site_url = "http://localhost:3001"
-# Google is the sign-in (2026-10-05). redirectTo is the origin root (Site URL).
+# The production URL is canonical for every environment's Google redirect.
+site_url = "https://lifecycle-os.anchit-tandon.com"
+# Google is the sign-in (2026-10-05). redirectTo is always this canonical root.
 # A hosted project that does not list these, or whose Google provider is OFF,
 # answers 400 validation_failed on /auth/v1/authorize.
 additional_redirect_urls = [

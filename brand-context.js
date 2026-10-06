@@ -582,11 +582,15 @@
     var p = normalizePalette((brand && brand.palette) || {});
     var primary = p.primary || '#6A33D8';
     var accent = p.accent || primary;
-    var ink = p.ink || '#111111';
+    var requestedInk = p.ink || '#111111';
     var surface = p.surface || '#F7F5F2';
     var surfaceAlt = p.surface_alt || shade(surface, 0.6);
-    var muted = p.muted || shade(ink, 0.35);
+    var muted = p.muted || shade(requestedInk, 0.35);
     var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+    // Old saved records can predate palette validation; never render low
+    // contrast body text while their owner is updating the palette.
+    var inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
+    var ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
     var t = brand && brand.typography ? brand.typography : {};
     var states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
     return Object.assign({
@@ -1336,7 +1340,7 @@
     // Brand name slots in the neutral header (empty until a brand is active).
     try {
       document.querySelectorAll('.lnav-brandname').forEach(function (el) { el.textContent = brand.name; });
-      document.querySelectorAll('.lnav-mbrand-label').forEach(function (el) { el.textContent = brand.name + ' · Lifecycle OS'; });
+      document.querySelectorAll('.lnav-mbrand-label').forEach(function (el) { el.textContent = 'Lifecycle OS'; });
     } catch (_) {}
 
     function walk(root) {
