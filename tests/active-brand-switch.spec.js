@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '..');
 const HOST = 'http://brand.example.test';
 const brands = {
   shoes: { id: 'ws-shoes', slug: 'shoe-fixture', name: 'Food For Thought', palette: { primary: '#C5A059', accent: '#75632f', surface: '#FFFDF8', ink: '#1A1A1A' } },
-  deli: { id: 'ws-deli', slug: 'deli-chic', name: 'Deli Chic', industry: 'Food', logo_url: 'https://brand.example.test/chicken.svg', palette: { primary: '#8B1E1E', accent: '#B45309', surface: '#FFFDF8', ink: '#1A1A1A', muted: '#b4b0aa' } },
+  deli: { id: 'ws-deli', slug: 'deli-chic', name: 'Deli Chic', industry: 'Food', logo_url: 'https://brand.example.test/chicken.svg', palette: { primary: '#8B1E1E', accent: '#B45309', surface: '#FFFDF8', ink: '#FFFFFF', muted: '#b4b0aa' } },
 };
 function payload(b) { return { ...core.shellPayload({ ...b, regions: [{ code: 'IN', currency: 'INR', home: true }] }), owns_shipped: false }; }
 
@@ -69,16 +69,17 @@ test('switching to Deli Chic updates name, logo, title, palette and catalog with
   await expect(page.locator('.top h1')).toHaveText('Food For Thought Brain');
 });
 
-test('Deli Chic buttons and sidebar meet text contrast even with stale foreground tokens', async ({ page }) => {
+test('Deli Chic contrast survives legacy white ink and stale foreground tokens', async ({ page }) => {
   await boot(page);
   await page.evaluate(() => window.BrandContext.setActive('ws-deli'));
   const colors = await page.evaluate(() => {
     const button = document.createElement('button'); button.className = 'btn ok'; button.textContent = 'Order Fresh Cuts'; document.body.appendChild(button);
     const cs = getComputedStyle(button), root = getComputedStyle(document.documentElement);
-    return { fg: cs.color, bg: cs.backgroundColor, on: root.getPropertyValue('--brand-on-primary').trim(), muted: root.getPropertyValue('--brand-ink-muted').trim(), surface: root.getPropertyValue('--brand-surface').trim() };
+    return { fg: cs.color, bg: cs.backgroundColor, on: root.getPropertyValue('--brand-on-primary').trim(), ink: root.getPropertyValue('--brand-ink').trim(), muted: root.getPropertyValue('--brand-ink-muted').trim(), surface: root.getPropertyValue('--brand-surface').trim() };
   });
   const hex = rgb => '#' + rgb.match(/\d+/g).slice(0, 3).map(n => (+n).toString(16).padStart(2, '0')).join('');
   expect(core.contrast(hex(colors.fg), hex(colors.bg))).toBeGreaterThanOrEqual(4.5);
+  expect(core.contrast(colors.ink, colors.surface)).toBeGreaterThanOrEqual(4.5);
   expect(core.contrast(colors.muted, colors.surface)).toBeGreaterThanOrEqual(4.5);
 });
 

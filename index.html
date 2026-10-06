@@ -177,8 +177,13 @@
       el.innerHTML = 'No brand is active yet, so the features are locked. <b>Choose or create one</b> to begin.';
       return;
     }
-    el.innerHTML = 'Currently running as <b>' + String(brand.name || 'your brand').replace(/[<>&]/g, '') + '</b>. ' +
-      'Every screen, rule and generated asset follows this brand until you switch.';
+    var name = String(brand.name || '').trim() || 'your brand';
+    el.textContent = '';
+    el.appendChild(document.createTextNode('Currently running as '));
+    var strong = document.createElement('b');
+    strong.textContent = name;
+    el.appendChild(strong);
+    el.appendChild(document.createTextNode('. Every screen, rule and generated asset follows this brand until you switch.'));
   }
   function boot() {
     if (window.BrandContext && window.BrandContext.ready) {
