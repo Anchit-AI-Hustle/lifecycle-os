@@ -31,6 +31,13 @@
   // One public origin for the product. OAuth must return here even when a
   // person began on one of Vercel's generated deployment aliases.
   var CANONICAL_APP_ORIGIN = 'https://lifecycle-os.anchit-tandon.com';
+  // A deployment URL is useful to Vercel, but it is never a public product URL.
+  // Redirect every Lifecycle OS project alias (including per-deployment URLs)
+  // while retaining the requested app path, query and fragment.
+  if (/^lifecycle(?:-|\.)/i.test(location.hostname) && /\.vercel\.app$/i.test(location.hostname)) {
+    location.replace(CANONICAL_APP_ORIGIN + location.pathname + location.search + location.hash);
+    return;
+  }
 
   if (window.__LifecycleAuthBooted) return;
   window.__LifecycleAuthBooted = true;

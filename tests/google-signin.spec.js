@@ -56,6 +56,26 @@ test('Google is the only offered login', async ({ page }) => {
   expect(calls.some(call => call.url.includes('action=auth'))).toBe(false);
 });
 
+test('a generated Lifecycle OS Vercel URL moves the full route to the canonical host', async ({ page }) => {
+  const requested = 'https://lifecycle-os-preview-123-anchit-ai-hustle.vercel.app/smart-brain.html?tab=calendar#week';
+  const canonical = 'https://lifecycle-os.anchit-tandon.com/smart-brain.html?tab=calendar#week';
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url());
+    if (url.hostname === 'lifecycle-os-preview-123-anchit-ai-hustle.vercel.app' && url.pathname === '/auth.js') {
+      return route.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(ROOT, 'auth.js'), 'utf8') });
+    }
+    if (url.hostname === 'lifecycle-os-preview-123-anchit-ai-hustle.vercel.app') {
+      return route.fulfill({ contentType: 'text/html', body: '<!doctype html><script src="/auth.js"></script>' });
+    }
+    if (url.hostname === 'lifecycle-os.anchit-tandon.com') {
+      return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Canonical</title>' });
+    }
+    return route.abort();
+  });
+  await page.goto(requested);
+  await expect.poll(() => page.url()).toBe(canonical);
+});
+
 test('session restoration holds the first Brain request until a bearer is available', async ({ page }) => {
   const calls = await boot(page, { session: session(), delay: 600 });
   await page.evaluate(() => fetch('/api/calendar?action=smart-brain-plan'));

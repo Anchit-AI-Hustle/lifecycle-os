@@ -449,7 +449,7 @@ function wrapHtml(rawHtml) {
 
 // Base URL of this deployment (for the public raw-HTML endpoint).
 function appBaseUrl() {
-  return (process.env.SCREENSHOT_BASE_URL || 'https://knickgasm.vercel.app').replace(/\/$/, '');
+  return (process.env.SCREENSHOT_BASE_URL || 'https://lifecycle-os.anchit-tandon.com').replace(/\/$/, '');
 }
 // Stable key for an email → used to look up its HTML at the raw endpoint.
 function emailKey(address, subject, receivedAt) {
