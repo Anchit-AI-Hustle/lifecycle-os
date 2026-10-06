@@ -52,7 +52,7 @@ test('Google is the only offered login', async ({ page }) => {
   expect(await page.evaluate(() => window.LifecycleAuth.user)).toBeNull();
   await page.locator('#lnav-signin').click();
   await expect.poll(() => page.evaluate(() => window.oauthCalls.length)).toBe(1);
-  expect(await page.evaluate(() => window.oauthCalls[0])).toEqual({ provider: 'google', options: { redirectTo: ORIGIN + '/', queryParams: { prompt: 'select_account' } } });
+  expect(await page.evaluate(() => window.oauthCalls[0])).toEqual({ provider: 'google', options: { redirectTo: 'https://lifecycle-os.anchit-tandon.com/', queryParams: { prompt: 'select_account' } } });
   expect(calls.some(call => call.url.includes('action=auth'))).toBe(false);
 });
 

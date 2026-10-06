@@ -28,7 +28,7 @@
  * authorize is never called (that would spend PKCE). Settings that cannot
  * be read fail OPEN, so a harness that only answers /health still starts
  * Google. A reachable host with Google on (or unread) starts Google with a
- * stable Site-URL redirectTo (origin + '/') and the Gmail account picker
+ * stable canonical Site-URL redirectTo and the Gmail account picker
  * (prompt=select_account), remembers the page the person was on, and does
  * not open the mobile PIN panel. The stub records every signInWithOAuth
  * call, and every navigation is still captured. The "no baked-in project
@@ -223,7 +223,7 @@ test('a reachable auth host: Sign in starts Google on this page and does not ope
   const got = await pressAndRead(page);
   expect(got.oauth, 'signInWithOAuth was not called on a reachable host').toBe(1);
   expect(got.provider).toBe('google');
-  expect(got.redirectTo).toBe(got.origin + '/');
+  expect(got.redirectTo).toBe('https://lifecycle-os.anchit-tandon.com/');
   expect(got.prompt).toBe('select_account');
   expect(got.panel).toBe(false);
   expect(got.kind).toBeNull();
@@ -266,7 +266,7 @@ test('the brain calendar, signed out, asks for Google and never shows the missin
   const got = await pressAndRead(page);
   expect(got.oauth).toBe(1);
   expect(got.provider).toBe('google');
-  expect(got.redirectTo).toBe(got.origin + '/');
+  expect(got.redirectTo).toBe('https://lifecycle-os.anchit-tandon.com/');
   expect(got.prompt).toBe('select_account');
   expect(got.panel).toBe(false);
   expect(got.path).toBe('/smart-brain.html');

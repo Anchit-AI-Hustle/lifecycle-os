@@ -28,6 +28,10 @@
 (function () {
   'use strict';
 
+  // One public origin for the product. OAuth must return here even when a
+  // person began on one of Vercel's generated deployment aliases.
+  var CANONICAL_APP_ORIGIN = 'https://lifecycle-os.anchit-tandon.com';
+
   if (window.__LifecycleAuthBooted) return;
   window.__LifecycleAuthBooted = true;
 
@@ -1759,6 +1763,7 @@
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: var(--los-font-wordmark, system-ui, sans-serif); font-size: 14.5px; letter-spacing: -0.01em; color: var(--vh-ink, inherit); font-weight: 700; }
+        #lifecycle-nav .lnav-brand .lnav-tagline { font-size: 8px; line-height: 1.25; letter-spacing: .04em; color: var(--vh-ink-dim, inherit); white-space: normal; max-width: 178px; }
         #lifecycle-nav .lnav-brand .lnav-brandrow { display: flex; align-items: center; gap: 5px; min-width: 0; }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* The brand slot: the ACTIVE brand's own logo (brand.logo_url) or, with
@@ -2108,7 +2113,7 @@
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
             ${LOGO_SVG}
-            <span class="lnav-bt"><b>Lifecycle OS</b><span class="lnav-brandrow"><span class="lnav-brandlogo" data-brand-slot="logo" hidden></span><small class="lnav-brandname"></small></span></span>
+            <span class="lnav-bt"><b>Lifecycle OS</b><small class="lnav-tagline">Every brand. Every lifecycle.</small><span class="lnav-brandrow"><span class="lnav-brandlogo" data-brand-slot="logo" hidden></span><small class="lnav-brandname"></small></span></span>
           </a>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
         </div>
@@ -3122,7 +3127,7 @@
     return {
       provider: 'google',
       options: {
-        redirectTo: location.origin + '/',
+        redirectTo: CANONICAL_APP_ORIGIN + '/',
         queryParams: { prompt: 'select_account' },
       },
     };
