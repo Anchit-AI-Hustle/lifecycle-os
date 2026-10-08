@@ -27,8 +27,9 @@ supabase/.env
 # Build outputs
 dist/
 build/
-.next/
-data/catalog/
+data/catalog/*
+!data/catalog/products_in.json
+!data/catalog/products_live.json
 
 # Logs
 *.log
