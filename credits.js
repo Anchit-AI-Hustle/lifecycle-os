@@ -200,6 +200,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ' letter-spacing:.02em;text-transform:none;vertical-align:middle;',
       ' background:var(--surface-alt,#f4f4f4);color:var(--brand-accent-text,#6A33D8);',
       ' border:1px solid var(--line,#e3e3e3)}',
+      // On a phone the pill rides INSIDE the rail's 50px top bar (whose right
+      // side is empty) instead of hanging 4px below it over the page, and it
+      // is a 44px tap target with 12px labels (2026-10-10, mobile space sweep).
+      '@media (max-width:960px){.lc-credit-pill{top:calc(3px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));min-height:44px;padding:0 12px}',
+      ' .lc-credit-pill .lc-add,.lc-free{font-size:12px}}',
       '.lc-credit-pill.is-pulse{animation:lcCreditPulse .6s ease}',
       '@keyframes lcCreditPulse{0%{transform:scale(1)}35%{transform:scale(1.13)}100%{transform:scale(1)}}',
       // The chip sits INSIDE somebody else's control - usually a primary

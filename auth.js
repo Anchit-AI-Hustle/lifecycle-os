@@ -1793,7 +1793,7 @@
           display: none; align-items: center; gap: 12px;
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           height: calc(50px + env(safe-area-inset-top, 0px));
-          padding: env(safe-area-inset-top, 0px) 14px 0;
+          padding: env(safe-area-inset-top, 0px) max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
           background: var(--vh-bg); backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           border-bottom: 1px solid var(--vh-line);
@@ -1801,11 +1801,11 @@
         #lifecycle-nav .lnav-mbar-spacer { display: none; }
         #lifecycle-nav .lnav-burger {
           background: transparent; border: 1px solid var(--vh-line-hot);
-          color: var(--vh-ink); border-radius: 8px; width: 34px; height: 34px;
+          color: var(--vh-ink); border-radius: 8px; width: 44px; height: 44px; flex-shrink: 0;
           font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
-        #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
-          font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--vh-ink, inherit);
+        #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px; min-height: 44px;
+          font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: var(--vh-ink, inherit);
           text-transform: uppercase; text-decoration: none; }
         #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
@@ -1818,7 +1818,11 @@
         /* Sidebar */
         #lifecycle-nav .lnav-side {
           position: fixed; left: 0; top: 0; z-index: 110;
-          width: var(--lsb-w); height: 100vh;
+          /* dvh, not vh: on a phone or tablet 100vh is the LARGE viewport
+             (it counts the URL bar), so the rail's foot - the sign-in chip -
+             sat under the browser's toolbar. The vh line is the fallback for
+             an engine without dynamic units; the CSSOM keeps the last valid. */
+          width: var(--lsb-w); height: 100vh; height: 100dvh;
           display: flex; flex-direction: column;
           /* The rail's own surface must be a BRAND surface, not a fixed tan.
              The text tokens are contrast-adjusted against --brand-surface,
@@ -2003,6 +2007,17 @@
         #lifecycle-nav .lnav-i:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
         #lifecycle-nav .lnav-i.on { background: var(--vh-panel-2); border-color: var(--vh-accent); color: var(--vh-ink); }
         #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed var(--vh-line-hot); }
+        /* Touch (2026-10-10): the ? chip is drawn as the same 20px circle but
+           answers a 44px square, so a thumb cannot miss it or hit the row. */
+        @media (pointer: coarse) {
+          #lifecycle-nav .lnav-i { position: relative; z-index: 0; width: 44px; height: 44px; margin: 0 -12px; border-color: transparent; background: transparent; }
+          #lifecycle-nav .lnav-i::before { content: ""; position: absolute; left: 12px; top: 12px; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 1px solid var(--vh-line-hot); z-index: -1; }
+          #lifecycle-nav .lnav-i.on { background: transparent; }
+          #lifecycle-nav .lnav-i.on::before { background: var(--vh-panel-2); border-color: var(--vh-accent); }
+          #lifecycle-nav .lnav-i:hover::before { border-color: var(--vh-accent); }
+          #lifecycle-nav .lnav-section, #lifecycle-nav .lnav-brand .lnav-tagline,
+          #lifecycle-nav .lnav-brand .lnav-bt small, #lifecycle-nav .lnav-info-item { font-size: 12px; }
+        }
         #lifecycle-nav .lnav-info.open { display: block; }
         #lifecycle-nav .lnav-info-item {
           width: 100%; display: flex; align-items: center; gap: 8px;
@@ -2025,7 +2040,7 @@
         #lifecycle-nav .lnav-ipanel {
           position: fixed; z-index: 126;
           top: 50%; left: 50%; transform: translate(-50%, -50%);
-          width: min(560px, 94vw); max-height: min(78vh, 720px);
+          width: min(560px, 94vw); max-height: min(78vh, 720px); max-height: min(78dvh, 720px);
           background: var(--vh-panel); border: 1px solid var(--vh-line-hot);
           border-radius: 14px; box-shadow: var(--vh-lift-2);
           display: none; flex-direction: column; overflow: hidden;
@@ -2791,6 +2806,34 @@
    * Sign-in is a request for the explanation, so the dismissal is set aside.
    * Returns the bar element (existing or new), or null when nothing rendered.
    */
+  /**
+   * The standing notice's LAYOUT, once per page. Colours stay inline on the
+   * bar itself (unchanged); only position, spacing and the phone clamp live
+   * here, because a media query cannot reach an inline declaration.
+   * Up to a tablet's width (and on any screen under 520px tall) the sentence is clamped to two
+   * lines with a More/Less toggle, and the bar is not sticky: it starts under
+   * the phone bar and scrolls away with the page, so the screen goes to content.
+   */
+  function injectNoticeLayout() {
+    if (document.getElementById('lc-authnotice-layout')) return;
+    var st = document.createElement('style');
+    st.id = 'lc-authnotice-layout';
+    st.textContent = [
+      '#lc-authnotice{position:sticky;top:var(--ltb-h,0px);z-index:120;padding:10px 16px;display:flex;gap:12px;align-items:flex-start}',
+      '#lc-authnotice-text{overflow-wrap:anywhere}',
+      '#lc-authnotice .lc-authnotice-more{display:none}',
+      '@media (max-width:1024px),(max-height:520px){',
+      '#lc-authnotice{padding:6px 12px;gap:8px;align-items:center}',
+      '#lc-authnotice:not(.lc-open) #lc-authnotice-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',
+      '#lc-authnotice{position:relative;top:auto}',
+      '#lc-authnotice .lc-authnotice-more{display:inline-flex;align-items:center;justify-content:center;order:1}',
+      '#lc-authnotice > button{order:2;min-height:44px;min-width:44px}',
+      '#lc-authnotice > #lc-authnotice-text{order:0}',
+      '}',
+    ].join('');
+    (document.head || document.documentElement).appendChild(st);
+  }
+
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
     if (existing) return existing;
@@ -2811,8 +2854,14 @@
     // Dismiss. It is inserted after the rail for the same reason: the rail's
     // spacer reserves the fixed bar's height in flow, so the notice starts
     // under the bar at rest as well as when scrolling.
+    // Layout (sticky offset, padding, the phone clamp) lives in one stylesheet,
+    // injectNoticeLayout(), so a phone can compact the bar with a media query;
+    // an inline declaration would outrank every one of them. 2026-10-10: at
+    // 320px the full sentence was 334px tall on a 568px screen, so with the
+    // 50px top bar 68% of the first screen was chrome.
+    injectNoticeLayout();
+    bar.className = 'lc-authnotice';
     bar.style.cssText = [
-      'position:sticky', 'top:var(--ltb-h, 0px)', 'z-index:120',
       'background:var(--vh-panel-2,#f5f5f5)',
       'color:var(--vh-ink,#111111)',
       'border-bottom:1px solid var(--vh-line,#ebebeb)',
@@ -2821,7 +2870,6 @@
       'box-shadow:inset 0 3px 0 ' + (kind === 'signed-out'
         ? 'var(--vh-accent)' : 'var(--vh-warn)'),
       'font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)',
-      'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
     ].join(';');
     var txt = document.createElement('div');
     txt.id = 'lc-authnotice-text';
@@ -2835,7 +2883,22 @@
     x.style.cssText = 'flex:none;border:1px solid var(--vh-line,#ebebeb);background:transparent;'
       + 'color:var(--vh-ink,#111111);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit';
     x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-authnotice-hid', '1'); } catch (e) {} };
-    bar.appendChild(txt); bar.appendChild(x);
+    // On a phone the sentence is clamped to two lines; this shows the rest.
+    // It comes AFTER Dismiss in the DOM (Dismiss stays the bar's first button)
+    // and before it on screen (CSS order), and it is hidden on a wide screen.
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'lc-authnotice-more';
+    more.textContent = 'More';
+    more.setAttribute('aria-expanded', 'false');
+    more.setAttribute('aria-controls', 'lc-authnotice-text');
+    more.style.cssText = x.style.cssText;
+    more.onclick = function () {
+      var open = bar.classList.toggle('lc-open');
+      more.textContent = open ? 'Less' : 'More';
+      more.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    bar.appendChild(txt); bar.appendChild(x); bar.appendChild(more);
     var host = document.body || document.documentElement;
     var rail = document.getElementById('lifecycle-nav');
     if (rail && rail.parentNode === host) rail.insertAdjacentElement('afterend', bar);

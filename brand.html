@@ -99,6 +99,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .btn-ghost{background:transparent;color:var(--vh-primary-text)}
   .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;bottom:0;
     background:linear-gradient(to top,var(--kg-white) 65%,transparent);padding:16px 0 6px;margin-top:8px}
+  /* Phones (2026-10-10): the sticky action row was 122px of a 568px screen. */
+  @media (max-width:760px), (max-height:520px){
+    .actions{gap:8px;padding:8px 0 4px}
+    .actions .btn{flex:1 1 auto;padding:10px 14px}
+    .actions .status:empty{display:none}
+  }
   .status{font-size:13px;color:var(--muted)}
   .status.ok{color:var(--vh-ok-text);font-weight:600}
   .status.err{color:var(--kg-red);font-weight:600}

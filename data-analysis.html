@@ -41,7 +41,7 @@
   p.lede{color:var(--vh-ink-dim);max-width:78ch;margin:6px 0 0;}
   .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
   /* Market toggle */
-  .mkt{display:inline-flex;gap:6px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:999px;padding:4px;}
+  .mkt{display:inline-flex;max-width:100%;overflow-x:auto;gap:6px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:999px;padding:4px;}
   /* A nav bar stays one row and slides. Its items must not shrink, or they
      compress into unreadable slivers instead of overflowing. */
   .mkt > *{flex:0 0 auto;white-space:nowrap}
@@ -75,7 +75,7 @@
   .w.span4{grid-column:span 4;} .w.span8{grid-column:span 8;} .w.span12{grid-column:span 12;} .w.span6{grid-column:span 6;}
   @media (max-width:900px){.w,.w.span4,.w.span8,.w.span6{grid-column:span 12;}}
   @media (max-width:520px){.kpis{grid-template-columns:1fr;}.kpi .kv{font-size:22px;}}
-  .w .wh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px;}
+  .w .wh{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px;}
   .w .wt{font-family:var(--vh-font-head);font-size:16px;color:var(--vh-heading);font-weight:700;}
   .w .ws{font-size:12px;color:var(--vh-ink-dim);}
   .w .open{font-size:11px;font-weight:700;color:var(--vh-accent-text);text-transform:uppercase;letter-spacing:.05em;background:none;border:0;cursor:pointer;padding:2px 4px;white-space:nowrap;}

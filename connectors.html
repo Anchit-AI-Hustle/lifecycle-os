@@ -118,6 +118,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .route-btns{display:flex;flex-direction:column;gap:4px}
   .route-btns button{width:28px;height:26px;border-radius:7px;border:1px solid var(--vh-line);background:var(--vh-panel);cursor:pointer}
   .route-controls{display:grid;grid-template-columns:minmax(180px,1fr) minmax(260px,1.6fr);gap:10px;margin-top:10px}
+  @media (max-width:600px){.route-controls{grid-template-columns:minmax(0,1fr)}}
   .route-controls .full{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
   .ai-label{font-size:10px;color:var(--vh-ink-dim);letter-spacing:.1em;text-transform:uppercase;margin:7px 0 4px}
   @keyframes spin{to{transform:rotate(360deg)}}
