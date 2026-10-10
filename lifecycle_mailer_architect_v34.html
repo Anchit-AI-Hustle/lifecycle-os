@@ -8668,25 +8668,24 @@ async function renderDashboard(page){
   var uniqueUsers=[...new Set(logs.map(function(l){return l.userEmail||l.userName||'Unknown';}))];
   var allMarkets=[...new Set(logs.flatMap(function(l){return l.markets||[l.market||_homeMkt()];}))];
   var statsBar='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px 10px;background:var(--vh-band);border-radius:10px;color:var(--vh-on-band);align-items:center">'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg></span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg></span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg></span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg></span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-globe"/></svg></span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-globe"/></svg></span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
     +'<div style="flex:1"></div>'
     +(totalPages>1?'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
       +'<button type="button" onclick="renderDashboard('+(_dashPage-1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:inherit;border:1px solid var(--vh-line);border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);font-size:11px;font-weight:700"'+(_dashPage===0?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>&#8592; Prev</button>'
-      +'<span style="opacity:0.75">Page '+(_dashPage+1)+' / '+totalPages+'</span>'
+      +'<span>Page '+(_dashPage+1)+' / '+totalPages+'</span>'
       +'<button type="button" onclick="renderDashboard('+(_dashPage+1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:inherit;border:1px solid var(--vh-line);border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);font-size:11px;font-weight:700"'+(_dashPage>=totalPages-1?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>Next &#8594;</button>'
-      +'</div>':'<div style="font-size:9px;opacity:0.6">All records &middot; shared across all users on this device</div>')
+      +'</div>':'<div style="font-size:9px">All records &middot; shared across all users on this device</div>')
     +'</div>';
   // ── Filter bar — chips for type / market / user + free-text search ──
   var allTypes=[...new Set(allLogs.map(function(l){return l.type||'Campaign';}))].sort();
   var allMarketsForChips=[...new Set(allLogs.flatMap(function(l){return l.markets||[l.market||_homeMkt()];}))].sort();
   var allUsersForChips=[...new Set(allLogs.map(function(l){return l.userName||'Unknown';}))].filter(function(u){return u && u!=='Unknown';}).sort();
-  var typeColor={Sale:'#c0392b',Launch:'#D0473E',Gift:'#6A33D8',Bestseller:'#D0473E',Discovery:'#1d6fa4',Routine:'var(--vh-ink)',Story:'var(--vh-ink)',Seasonal:'var(--vh-ink)',Campaign:'#D0473E'};
-  function chip(label,active,color,onclick){
-    return '<button type="button" onclick="'+onclick+'" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:var(--vh-font-body);border:1.5px solid '+(active?color:'var(--vh-lava)')+';background:'+(active?color:'var(--vh-panel)')+';color:'+(active?'var(--vh-ink-dim)':'var(--vh-ink-dim)')+';letter-spacing:0.04em;transition:all .15s">'+label+'</button>';
+  function chip(label,active,_unused,onclick){
+    return '<button type="button" onclick="'+onclick+'" aria-pressed="'+(active?'true':'false')+'" style="font-size:10.5px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:var(--vh-font-body);border:1.5px solid '+(active?'var(--vh-primary)':'var(--vh-line)')+';background:'+(active?'var(--vh-primary)':'var(--vh-panel)')+';color:'+(active?'var(--vh-on-primary)':'var(--vh-ink-dim)')+';letter-spacing:0.04em;transition:all .15s">'+label+'</button>';
   }
   var anyActive=!!(f.type||f.market||f.user||f.q||(f.mineOnly===false));
   var hasMe=window._currentUser && window._currentUser.email;
@@ -8700,11 +8699,11 @@ async function renderDashboard(page){
       (anyActive?'<button type="button" onclick="dashClearFilters()" aria-label="Clear all filters" style="font-size:10px;font-weight:700;padding:5px 11px;border-radius:14px;cursor:pointer;font-family:var(--vh-font-body);border:1.5px solid var(--vh-err);background:var(--vh-panel);color:var(--vh-err-text);letter-spacing:0.04em">✕ Clear</button>':'')+
     '</div>'+
     (allTypes.length>1?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);letter-spacing:0.1em;text-transform:uppercase;min-width:50px">Type</span>'+
-      allTypes.map(function(t){return chip(t,f.type===t,typeColor[t]||'#D0473E','dashSetFilter(\'type\',\''+t+'\')');}).join('')+'</div>':'')+
+      allTypes.map(function(t){return chip(t,f.type===t,null,'dashSetFilter(\'type\',\''+t+'\')');}).join('')+'</div>':'')+
     (allMarketsForChips.length>1?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);letter-spacing:0.1em;text-transform:uppercase;min-width:50px">Market</span>'+
-      allMarketsForChips.map(function(m){return chip(m,f.market===m,'#D0473E','dashSetFilter(\'market\',\''+m+'\')');}).join('')+'</div>':'')+
+      allMarketsForChips.map(function(m){return chip(m,f.market===m,null,'dashSetFilter(\'market\',\''+m+'\')');}).join('')+'</div>':'')+
     (!window._anonStudio && allUsersForChips.length>1?'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);letter-spacing:0.1em;text-transform:uppercase;min-width:50px">User</span>'+
-      allUsersForChips.map(function(u){return chip(u,f.user===u,'#6A33D8','dashSetFilter(\'user\',\''+u.replace(/'/g,"\\'")+'\')');}).join('')+'</div>':'')+
+      allUsersForChips.map(function(u){return chip(u,f.user===u,null,'dashSetFilter(\'user\',\''+u.replace(/'/g,"\\'")+'\')');}).join('')+'</div>':'')+
     '<div style="font-size:10px;color:var(--vh-ink-dim);margin-top:6px">Showing <strong>'+logs.length+'</strong> of '+allLogs.length+' records</div>'+
   '</div>';
   if(!logs.length){
@@ -8729,7 +8728,7 @@ async function renderDashboard(page){
     var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
     var variantMeta={
       A:{name:'V1 · Complete Text',sub:'Pure copy, no imagery',accent:'var(--vh-primary)',on:'var(--vh-on-primary)',text:'var(--vh-primary-text)',accentBg:'var(--vh-panel-2)'},
-      B:{name:'V2 · Text + Visual',sub:'Copy + imagery/GIF/video',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',accentBg:'#FFFFFF'}
+      B:{name:'V2 · Text + Visual',sub:'Copy + imagery/GIF/video',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',accentBg:'var(--vh-panel)'}
     };
     var mailerMatrix='';
     if(mktKeys.length){
@@ -8757,7 +8756,7 @@ async function renderDashboard(page){
                 return '<div style="border:1.5px solid '+meta.accent+';background:var(--vh-panel);border-radius:8px;overflow:hidden;display:flex;flex-direction:column">'
                   // Tile header (variant badge + name)
                   +'<div style="background:'+meta.accentBg+';padding:6px 10px;border-bottom:1px solid '+meta.accent+'1f;display:flex;align-items:center;gap:6px">'
-                    +'<span style="font-size:9px;font-weight:800;color:inherit;background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">'+v.key+'</span>'
+                    +'<span style="font-size:9px;font-weight:800;color:'+meta.on+';background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">'+v.key+'</span>'
                     +'<div style="line-height:1.15;flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:'+meta.text+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+meta.name+'</div><div style="font-size:8.5px;color:var(--vh-ink-dim);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+meta.sub+'</div></div>'
                   +'</div>'
                   // Tile body (action buttons)
@@ -8777,11 +8776,11 @@ async function renderDashboard(page){
       // ── Card row header strip — instantly tells you where one campaign ends + the next begins ──
       +'<div style="background:var(--vh-band);padding:9px 18px;display:flex;align-items:center;gap:10px;color:var(--vh-on-band);flex-wrap:wrap">'
         +'<span style="background:var(--vh-accent);color:var(--vh-on-accent);font-size:10px;font-weight:800;letter-spacing:0.08em;padding:3px 10px;border-radius:14px;font-family:var(--vh-font-body)">#'+rowNum+'</span>'
-        +'<span style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;opacity:0.85">Campaign</span>'
-        +'<span style="font-size:10px;font-weight:600;letter-spacing:0.04em;opacity:0.7">·</span>'
-        +'<span style="font-size:10.5px;font-weight:600;color:inherit;opacity:0.95">'+dateStr+'</span>'
+        +'<span style="font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase">Campaign</span>'
+        +'<span style="font-size:10px;font-weight:600;letter-spacing:0.04em">·</span>'
+        +'<span style="font-size:10.5px;font-weight:600;color:inherit">'+dateStr+'</span>'
         +'<span style="flex:1"></span>'
-        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-tint);color:inherit;border:1px solid var(--vh-line);border-radius:14px;white-space:nowrap"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg> '+e.userName+'</span>':'')
+        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-tint);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:14px;white-space:nowrap"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg> '+e.userName+'</span>':'')
       +'</div>'
       // ── Card body ──
       +'<div style="padding:16px 18px">'
@@ -8791,7 +8790,7 @@ async function renderDashboard(page){
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:10px;border:1px solid var(--vh-line)">'+mkts+'</span>'
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:10px;border:1px solid var(--vh-line)">'+(e.type||'Campaign')+'</span>'
         +'</div>'
-        +'<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;color:var(--vh-primary-text);font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||[_homeMkt()])[0]))+'</div>'
+        +'<div style="font-family:var(--vh-font-head);font-size:18px;color:var(--vh-primary-text);font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||[_homeMkt()])[0]))+'</div>'
         +'<div style="font-size:11.5px;color:var(--vh-ink-dim);font-weight:400;margin-bottom:5px;line-height:1.5">'+((e.prompt||'').substring(0,160)+(e.prompt&&e.prompt.length>160?'…':''))+'</div>'
         +(prods?'<div style="font-size:10.5px;color:var(--vh-ink-dim);margin-bottom:3px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-cart"/></svg> '+prods+'</div>':'')
         +(e.userEmail?'<div style="font-size:10px;color:var(--vh-ink-dim)">&#9993; '+e.userEmail+'</div>':'')
