@@ -48,10 +48,19 @@
  * diverge. Every list assertion counts what it measured first: a sweep over
  * nothing passes everything.
  *
+ * THE THIRD STATE IS A GOOGLE SESSION (2026-10-10). Google is the only
+ * sign-in (the owner's words: "No signin with mobile number - only Google
+ * signin pls"), so the mobile+PIN session kept on this device that this state
+ * drove from 2026-09-28 no longer exists. A person signed in with Google is
+ * swept instead, against the SHIPPED routers (tests/agents-harness.js), on
+ * their own workspace (wearing the same Times of India palette) with a
+ * funded wallet. The rule for them is the 2026-10-03 one: a signed-in person
+ * is never told to sign in, and no control is off because of their account.
+ *
  * Run: npx playwright test tests/signed-out-actions.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
-// The device-session state's /api/ calls go to the SHIPPED routers
+// The google-session state's /api/ calls go to the SHIPPED routers
 // (2026-10-03), not a model of them: a model answered every gated op "ok" for
 // a phone sign-in, so it could not see the refusals the real server gave one
 // (TeleSuite 403, the concierge 404, Smart Brain's 409 on approve, a usage
@@ -113,13 +122,16 @@ const STATES = {
   // (b) the state production is in today: the env var still set, the host not
   // answering. Paused, renamed and deleted are identical from here.
   unreachable: { config: { supabase: { url: 'https://deleted-project.supabase.co', anonKey: 'anon' } }, reachable: false, session: false, kind: 'unreachable' },
-  // (c) signed in the way the app signs in since 2026-09-28: a mobile+PIN
-  // session kept on THIS DEVICE (no DATABASE_URL on the deployment). Its
-  // workspaces live in the device store. Features run: the token is sent and
-  // the server admits it as a device principal (2026-09-30).
-  'device-session': { config: LIVE, reachable: true, session: true, kind: 'signed-in' },
+  // (c) signed in the way the app signs in since 2026-10-10: a Google session
+  // supabase-js restores. Its workspaces are on the server (the harness's
+  // fake project), and its token is verified there.
+  'google-session': { config: LIVE, reachable: true, session: true, kind: 'signed-in' },
 };
-const DEVICE_USER = { id: 'dev-sweep0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Sweep' };
+/** The Google account the harness's fake project holds (tests/agents-harness.js). */
+const GOOGLE_SESSION = {
+  access_token: 'tok-owner', refresh_token: 'r-owner', expires_at: Math.floor(Date.now() / 1000) + 86400,
+  user: { id: 'user-owner', email: 'owner@example.test', app_metadata: { provider: 'google', providers: ['google'] }, user_metadata: { name: 'Owner Person' } },
+};
 const AUTH_STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' };
 
 /* ── the server, modelled by its own gates ───────────────────────────────── */
@@ -141,7 +153,7 @@ const CALENDAR_GATED = new Set(['generate', 'lifecycle-generate', 'lifecycle-bui
 // Read from the router's own table rather than copied, so a new model action
 // is covered the day it is added; a parse that finds nothing throws, because
 // a harness that models no action passes every page. (2026-10-03: before this
-// the device-session state answered brand-chat with GENERIC_OK - no `reply` -
+// the device-session state (a phone sign-in, retired 2026-10-10) answered brand-chat with GENERIC_OK - no `reply` -
 // and KicksGPT correctly reported "answered without a reply" on all six
 // suggestion chips. The page was right; the harness was not the server.)
 const BRAIN_MODEL = (() => {
@@ -245,24 +257,14 @@ function instrument(args) {
   document.execCommand = function (cmd) { if (/copy/i.test(cmd)) { SW.clipboard++; return true; } return origExec ? origExec.apply(document, arguments) : false; };
 
   try {
-    localStorage.setItem(args.deviceKey, JSON.stringify(args.seed));
-    // (c) a device-mode mobile+PIN session, seeded the way auth.js stores one
-    // (tests/cross-brand-leak.spec.js does the same). A device session is valid
-    // by construction: auth.js applies it without asking the server.
-    if (args.session) {
-      var expires = new Date(Date.now() + 80 * 86400000).toISOString();
-      var users = {}; users[args.user.phone] = Object.assign({}, args.user, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: expires, pinSetAt: expires });
-      localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(users));
-      localStorage.setItem('lifecycle.auth.session', JSON.stringify({
-        token: 'DEVICEtokenFIXTURE0123456789abcdefghijklmnopq', mode: 'device', provider: 'mobile-pin',
-        user: { id: args.user.id, name: args.user.name, phone: args.user.phone }, expires,
-        storage: { mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' },
-      }));
-    } else {
-      localStorage.removeItem('lifecycle.auth.session');
-      localStorage.removeItem('lifecycle.auth.device.users');
-    }
+    // (a)/(b) the brand saved on the device; (c) a Google session's brands are
+    // the account's, on the server, so nothing is seeded on the device for it.
+    if (!args.google) localStorage.setItem(args.deviceKey, JSON.stringify(args.seed));
+    else localStorage.removeItem(args.deviceKey);
+    localStorage.removeItem('lifecycle.auth.session');
+    localStorage.removeItem('lifecycle.auth.device.users');
   } catch (_) {}
+  var googleSession = args.google || null;
 
   // CDN libraries the harness blocks. Each is a no-op stand-in so a page that
   // draws a chart or parses a CSV is measured on ITS code, not on a missing
@@ -287,8 +289,8 @@ function instrument(args) {
     createClient: function () {
       return {
         auth: {
-          getSession: async function () { return { data: { session: null } }; },
-          getUser: async function () { return { data: { user: null } }; },
+          getSession: async function () { return { data: { session: googleSession } }; },
+          getUser: async function () { return { data: { user: googleSession && googleSession.user } }; },
           onAuthStateChange: function () { return { data: { subscription: { unsubscribe: function () {} } } }; },
           signInWithOAuth: async function () { return { error: null }; },
           signOut: async function () { return {}; },
@@ -378,7 +380,7 @@ function instrument(args) {
       kind: (window.LifecycleAuth && window.LifecycleAuth.backend || {}).kind || '',
       mode: window.BrandContext && window.BrandContext.mode || '',
       brandLayer: !!window.BrandContext,
-      session: sess ? { provider: sess.provider, mode: sess.mode } : null,
+      session: sess ? { id: (sess.user || {}).id || '' } : null,
       internal: !!(window.LifecycleAuth || {}).internal,
     };
   };
@@ -437,7 +439,7 @@ function setup(page, stateName, log) {
   page.on('download', () => { log.downloads++; });
 
   return (async () => {
-    await page.addInitScript(instrument, { seed: DEVICE_SEED, deviceKey: state.session ? 'lifecycle.brand.device.workspaces.' + DEVICE_USER.id : 'lifecycle.brand.device.workspaces', session: !!state.session, user: DEVICE_USER });
+    await page.addInitScript(instrument, { seed: DEVICE_SEED, deviceKey: 'lifecycle.brand.device.workspaces', google: state.session ? GOOGLE_SESSION : null });
     await page.route(/^https?:\/\/(?!app\.example\.test)/, (route) => {
       const u = route.request().url();
       if (/\/auth\/v1\/health/.test(u)) {
@@ -461,26 +463,23 @@ function setup(page, stateName, log) {
         const json = (body, status) => route.fulfill({ status: status || 200, contentType: 'application/json', body: JSON.stringify(body) });
         if (g === 'config') return json(state.config);
         if (g === 'auth') {
-          // The mobile+PIN mount on a deployment with no DATABASE_URL: status
-          // says "device", and every other op cannot run on the server.
+          // The switched-off mobile+PIN mount (2026-10-10): status names Google,
+          // and enter is gone. No page should be asking it anything else.
           const op = u.searchParams.get('op') || '';
           if (op === 'status') return json(AUTH_STATUS);
-          return json({ ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment, so "' + op + '" cannot run on the server.' }, 503);
+          return json({ ok: false, error: 'pin_signin_removed', message: 'Sign-in with a mobile number and PIN has ended. Sign in with Google.' }, 410);
         }
-        if (stateName === 'device-session' && REAL && Object.prototype.hasOwnProperty.call(A.ROUTERS, u.pathname)) return REAL(route);
+        if (stateName === 'google-session' && REAL && Object.prototype.hasOwnProperty.call(A.ROUTERS, u.pathname)) return REAL(route);
         if (g === 'lp') return route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>lp</title><p>landing page</p>' });
-        // Device-session (2026-09-30): the server admits the token as a device
-        // principal and features run unmetered. Routers the harness does not
-        // run in-process (kb, competitor, ai/image, the pipeline) are answered
-        // in the shape those pages read (ok + reply), not a 401.
+        // A Google session: routers the harness does not run in-process (kb,
+        // competitor, ai/image, the pipeline) admit the verified account, so
+        // they are answered in the shape those pages read (ok + reply), not a 401.
         const modelAction = /\/api\/brain$/.test(u.pathname) && BRAIN_MODEL.has(u.searchParams.get('action') || '');
-        if (g === 'gated' || (modelAction && stateName === 'device-session')) {
-          if (stateName === 'device-session') {
+        if (g === 'gated' || (modelAction && stateName === 'google-session')) {
+          if (stateName === 'google-session') {
             return json(Object.assign({}, GENERIC_OK, {
-              ok: true, reply: 'Local demo reply.', answer: 'Local demo reply.',
-              unmetered: true, mode: 'device',
-              message: 'Local / Demo Mode: features run without a database.',
-              credits: { charged: 0 },
+              ok: true, reply: 'A reply.', answer: 'A reply.',
+              credits: { charged: 1 },
             }));
           }
           return json(REFUSALS[state.reachable ? 'signed-out' : 'unreachable'].body, REFUSALS[state.reachable ? 'signed-out' : 'unreachable'].status);
@@ -584,9 +583,11 @@ async function sweepPageInner(page, file, stateName, log, push) {
   const ps = await page.evaluate(() => window.__SW.pageState());
   const want = STATES[stateName];
   if (ps.kind !== want.kind) push('(load)', 'fixture', true, `backend kind is "${ps.kind}", expected "${want.kind}"`);
-  if (want.session && !(ps.session && ps.session.provider === 'mobile-pin' && ps.session.mode === 'device')) push('(load)', 'fixture', true, `no device-mode mobile+PIN session: ${JSON.stringify(ps.session)}`);
+  if (want.session && !(ps.session && ps.session.id === GOOGLE_SESSION.user.id)) push('(load)', 'fixture', true, `no Google session: ${JSON.stringify(ps.session)}`);
   if (!want.session && ps.session) push('(load)', 'fixture', true, `a session appeared without signing in: ${JSON.stringify(ps.session)}`);
-  if (ps.internal) push('(load)', 'fixture', true, 'a visitor was granted internal access');
+  // `internal` is what a VERIFIED sign-in grants (auth.js applySupabaseUser): a Google session has it, nobody else may.
+  if (ps.internal && !want.session) push('(load)', 'fixture', true, 'a visitor was granted internal access');
+  if (!ps.internal && want.session) push('(load)', 'fixture', true, 'a Google session was not granted the signed-in access');
   // The device brand paints wherever the brand layer runs (the --brand-primary
   // token is the proof: the rail's name span is absent on a few pages that
   // draw their own header); a page without brand-context.js has nothing to
@@ -718,7 +719,19 @@ const HALVES = [
   ['m-z', SWEEP.filter((f) => !/^[a-l]/i.test(f))],
 ].filter(([, files]) => files.length);
 
-test.beforeAll(async () => { REAL_WORLD = await A.world({ serverMode: false }); REAL = A.forward(REAL_WORLD.port); });
+test.beforeAll(async () => {
+  REAL_WORLD = await A.world({});
+  REAL = A.forward(REAL_WORLD.port);
+  // The Google account's own workspace wears the same preset the device
+  // states use, so the --brand-primary check means the same thing in all
+  // three; and its wallet is funded, so a metered press is answered.
+  const ws = REAL_WORLD.db.find('brand_workspaces', (r) => r.id === 'ws-oldest');
+  if (!ws) throw new Error('the harness has no ws-oldest workspace to dress');
+  const dress = { name: PRESET.name, palette: PRESET.palette, typography: PRESET.typography, voice: PRESET.voice, regions: PRESET.regions, status: 'active', onboarding_step: 6 };
+  Object.assign(ws, dress);
+  Object.assign(REAL_WORLD.db.workspaces['ws-oldest'], dress);
+  REAL_WORLD.db.insert('credit_wallets', { user_id: 'user-owner', workspace_id: 'ws-oldest', balance: 100000, held: 0, lifetime_granted: 100000, lifetime_spent: 0, low_balance_threshold: 50 });
+});
 test.afterAll(async () => { if (REAL_WORLD) await REAL_WORLD.close(); REAL = null; REAL_WORLD = null; });
 
 for (const stateName of Object.keys(STATES)) {
@@ -741,21 +754,22 @@ for (const stateName of Object.keys(STATES)) {
       expect(rows.some((r) => r.control === '(load)' && r.cls === 'fixture'), 'the fixture never reached the page').toBe(false);
       // Each outcome class the contract allows was seen at least once.
       expect(rows.filter((r) => r.cls === 'changed').length, 'no control worked locally').toBeGreaterThan(30);
-      if (stateName !== 'device-session') {
+      if (stateName !== 'google-session') {
         expect(rows.filter((r) => r.cls === 'needs-signin').length, 'no control said what needs sign-in').toBeGreaterThan(0);
       }
       expect(rows.filter((r) => r.cls === 'disabled-with-reason').length, 'no disabled control carried its reason').toBeGreaterThan(0);
 
-      // SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). For a
+      // SIGNING IN NEVER TURNS A FEATURE OFF (2026-10-03; Google since
+      // 2026-10-10). For a
       // visitor, "says what needs sign-in" and "disabled with its reason" are
       // the contract. For a person who IS signed in they are the defect the
       // operator reported: a control that is off, or a sentence refusing it,
       // because of the account they signed in with. An informational line
       // ("Signed in as ... saved on this device") is not a refusal.
-      if (stateName === 'device-session') {
+      if (stateName === 'google-session') {
         const PHONE_REFUSAL = /not available|needs your (account|sign-?in)|sign in with|you are signed out|cannot (be )?(check|verif)|has no (wallet|record|workspace)|not offered/i;
         for (const r of rows) {
-          if ((r.cls === 'needs-signin' || /^disabled/.test(r.cls)) && PHONE_REFUSAL.test(r.text)) { r.defect = true; r.cls = 'off-for-phone'; }
+          if ((r.cls === 'needs-signin' || /^disabled/.test(r.cls)) && PHONE_REFUSAL.test(r.text)) { r.defect = true; r.cls = 'off-for-account'; }
         }
       }
       const defects = rows.filter((r) => r.defect).map((r) => `${r.page} · ${r.control} · ${r.cls}${r.text ? ' · ' + r.text.slice(0, 120) : ''}`);

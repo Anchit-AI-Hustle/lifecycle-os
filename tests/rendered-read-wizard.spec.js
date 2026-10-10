@@ -3,11 +3,9 @@
  * ---------------------------------------------------------------------------
  * The operator's words: "read my site should actually be fetching the exact
  * styling and branding of the website entered and apply that complete
- * accurately". This drives the real /onboarding page in Chromium, in the two
- * states production is in today - nobody signed in with the Supabase project
- * paused and no DATABASE_URL (the open path), and signed in with a mobile number
- * and PIN kept on this device (a device principal) - and asserts what the
- * operator sees:
+ * accurately". This drives the real /onboarding page in Chromium, in the state
+ * production is in today - nobody signed in with the Supabase project paused
+ * (the open path) - and asserts what the operator sees:
  *   - the brand's tokens on <html> (--brand-*) are the RENDERED values,
  *     including a component token (the CTA's corner radius) the shell reads;
  *   - a field the operator typed before the read is KEPT, and said to be;
@@ -21,6 +19,14 @@
  * address (the existing harness's convention), the parser reads them through a
  * global.fetch stand-in, and the browser reads them through render-net.js's
  * transport replaced in-process - the SSRF policy in front of it runs for real.
+ *
+ * 2026-10-10: Google is the only sign-in. The second state this spec drove -
+ * a mobile number and PIN kept on this device, read as a device principal -
+ * no longer exists (a session of that shape is ended on boot and its token is
+ * refused like no token), so that half is RETIRED; the signed-out run covers
+ * the same device-store path. A Google session's read is driven in
+ * tests/read-site-after-signin.spec.js. The brand saved before field origins
+ * existed is now seeded in the device store kept for nobody in particular.
  *
  * Run: npx playwright test tests/rendered-read-wizard.spec.js --project=desktop-1280
  */
@@ -45,8 +51,6 @@ const PAUSED = 'paused-project.supabase.co';
 const SITE = 'https://verdant.example';
 const ROUTES = sites.siteRoutes('a');
 const PROD_STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured. Set DATABASE_URL to keep accounts in a database.' };
-const DEVICE_USER = { id: 'dev-renderread0001', phone: '+919876543210', name: 'Asha' };
-const DEVICE_TOKEN = 'DEVICEtokenRENDERREAD0123456789abcdefghijkl';
 const TYPED_LOGO = 'https://cdn.mybrand.example/my-own-logo.png';
 const ENV_KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'DATABASE_URL', 'NEON_DATABASE_URL', 'POSTGRES_URL', 'CREDITS_COMP_PHONES', 'BRAND_RENDER'];
 
@@ -157,11 +161,11 @@ async function openWizard(page, session, world, opts) {
       }),
     };
     try {
-      if (seed.session) { localStorage.setItem('lifecycle.auth.session', JSON.stringify(seed.session)); localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(seed.users)); }
-      else { localStorage.removeItem('lifecycle.auth.session'); localStorage.removeItem('lifecycle.auth.device.users'); }
+      localStorage.removeItem('lifecycle.auth.session');
+      localStorage.removeItem('lifecycle.auth.device.users');
       if (seed.deviceRow && !localStorage.getItem(seed.deviceKey)) localStorage.setItem(seed.deviceKey, JSON.stringify({ version: 1, active_id: seed.deviceRow.id, workspaces: [seed.deviceRow] }));
     } catch (_) {}
-  }, Object.assign(seedFor(session), o.deviceRow ? { deviceRow: o.deviceRow, deviceKey: 'lifecycle.brand.device.workspaces' + (session === 'device' ? '.' + DEVICE_USER.id : '') } : {}));
+  }, o.deviceRow ? { deviceRow: o.deviceRow, deviceKey: 'lifecycle.brand.device.workspaces' } : {});
   await page.route(/^https?:\/\/(?!app\.example\.test|127\.0\.0\.1)/, (route) => {
     const u = route.request().url();
     if (/\/auth\/v1\/health/.test(u)) return route.abort('addressunreachable');
@@ -233,29 +237,14 @@ async function openWizard(page, session, world, opts) {
   return log;
 }
 
-function seedFor(session) {
-  if (session !== 'device') return { session: null };
-  const expires = new Date(Date.now() + 80 * 86400000).toISOString();
-  const users = {};
-  users[DEVICE_USER.phone] = Object.assign({}, DEVICE_USER, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: expires, pinSetAt: expires });
-  return {
-    users,
-    session: {
-      token: DEVICE_TOKEN, mode: 'device', provider: 'mobile-pin',
-      user: { id: DEVICE_USER.id, name: DEVICE_USER.name, phone: DEVICE_USER.phone }, expires,
-      storage: { mode: 'device', reason: PROD_STATUS.reason, host: '', message: PROD_STATUS.message },
-    },
-  };
-}
-
 const tokensOnHtml = (page) => page.evaluate(() => {
   const cs = getComputedStyle(document.documentElement);
   const g = (k) => cs.getPropertyValue(k).trim();
   return { primary: g('--brand-primary'), surface: g('--brand-surface'), ink: g('--brand-ink'), surfaceAlt: g('--brand-surface-alt'), head: g('--brand-font-head'), radius: g('--brand-radius-control'), radiusCard: g('--brand-radius-card') };
 });
 
-for (const session of ['none', 'device']) {
-  test(`${session === 'none' ? 'no backend, signed out (production today)' : 'phone sign-in kept on this device'}: the rendered read is applied completely, scored, keeps what was typed, and reverts`, async ({ page }) => {
+for (const session of ['none']) {
+  test(`no backend, signed out (production today): the rendered read is applied completely, scored, keeps what was typed, and reverts`, async ({ page }) => {
     test.setTimeout(300000);
     require(RENDER).resetRateLimits();
     const world = serverWorld();
@@ -281,13 +270,8 @@ for (const session of ['none', 'device']) {
       // and the score is of the brand AS IT WILL BE APPLIED: the typed logo kept.
       expect(sent.sent.brand).toMatchObject({ logo_url: TYPED_LOGO, field_origin: { logo_url: 'user' } });
       expect(sent.body.rendered.regression.applied_as.kept.map((k) => k.field)).toContain('logo_url');
-      if (session === 'device') {
-        expect(sent.headers['x-lifecycle-token'] || String(sent.headers.authorization || '').replace(/^Bearer /, '')).toBe(DEVICE_TOKEN);
-        expect(sent.body.signed_out).toBeUndefined();
-      } else {
-        expect(sent.body.signed_out).toBe(true);
-        expect(world.llm.calls, 'the open path reached a model').toBe(0);
-      }
+      expect(sent.body.signed_out).toBe(true);
+      expect(world.llm.calls, 'the open path reached a model').toBe(0);
 
       // Applied to the SHELL: the tokens on <html> are the rendered values.
       const t = await tokensOnHtml(page);
@@ -391,7 +375,7 @@ for (const where of ['device', 'server']) {
     try {
       const id = where === 'device' ? 'local-legacy00001' : 'ws-legacy-0001';
       const row = Object.assign(JSON.parse(JSON.stringify(LEGACY)), { id }, where === 'device' ? { storage: 'device' } : {});
-      const log = await openWizard(page, where === 'device' ? 'device' : 'none', world, where === 'device'
+      const log = await openWizard(page, 'none', world, where === 'device'
         ? { deviceRow: row, query: `?id=${id}&step=1` }
         : { local: previewBase, serverBrand: row, query: `?id=${id}&step=1` });
       await expect(page.locator('[data-path="name"]')).toHaveValue('Old Name Ltd', { timeout: 15000 });
@@ -421,7 +405,7 @@ for (const where of ['device', 'server']) {
 
       // What was SAVED keeps the person's values.
       const savedNow = async () => (where === 'device'
-        ? page.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k) || '{}'); return (d.workspaces || [])[0] || null; }, 'lifecycle.brand.device.workspaces.' + DEVICE_USER.id)
+        ? page.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k) || '{}'); return (d.workspaces || [])[0] || null; }, 'lifecycle.brand.device.workspaces')
         : log.saves[log.saves.length - 1] || null);
       await expect.poll(async () => { const w = await savedNow(); return w && w.brand_data && !!w.brand_data.design_system; }, { timeout: 15000 }).toBe(true);
       const saved = await savedNow();

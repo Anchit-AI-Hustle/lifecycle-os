@@ -16,17 +16,13 @@ async function boot(page) {
   let started;
   const held = new Promise(resolve => { release = resolve; });
   const seen = new Promise(resolve => { started = resolve; });
-  // A returning mobile + PIN sign-in whose account is in Supabase Auth, so its
-  // brands are the ACCOUNT's (the one sign-in since 2026-10-09; the Google
-  // session this fixture used to seed is not a sign-in any more).
+  // A returning GOOGLE sign-in (the one sign-in since 2026-10-10): supabase-js
+  // restores the session, so its brands are the ACCOUNT's.
   await page.addInitScript(() => {
-    window.supabase = { createClient: () => ({ auth: { onAuthStateChange: () => ({}), signOut: async () => ({}), setSession: async () => ({}) } }) };
-    localStorage.setItem('lifecycle.auth.session', JSON.stringify({
-      token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmaXh0dXJlIn0.c2ln', refresh_token: 'fixture-refresh',
-      expires_at: Math.floor(Date.now() / 1000) + 86400, provider: 'mobile-pin', mode: 'supabase', state: 'verified',
-      user: { id: 'fixture-user', name: 'Fixture', phone: '+919876543210' },
-      storage: { mode: 'supabase', host: 'auth.example.com', message: 'Account saved in the database.' },
-    }));
+    window.supabase = { createClient: () => ({ auth: {
+      getSession: async () => ({ data: { session: { access_token: 'fixture-google-token', expires_at: Math.floor(Date.now() / 1000) + 86400, user: { id: 'fixture-user', email: 'fixture@example.com', app_metadata: { provider: 'google' } } } } }),
+      onAuthStateChange: () => ({}), signOut: async () => ({}), signInWithOAuth: async () => ({}),
+    } }) };
   });
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
@@ -42,11 +38,6 @@ async function boot(page) {
         return route.fulfill({ json: { ok: true, brand, workspaces: Object.values(brands), needs_onboarding: false } });
       }
       if (url.pathname === '/api/public-config' && !action) return route.fulfill({ json: { supabase: { url: 'https://auth.example.com', anonKey: 'public' } } });
-      if (action === 'auth') {
-        const op = url.searchParams.get('op');
-        if (op === 'status') return route.fulfill({ json: { ok: true, mode: 'supabase', host: 'auth.example.com', pin_ready: true, message: 'Account saved in the database.' } });
-        if (op === 'me') return route.fulfill({ json: { ok: true, mode: 'supabase', user: { id: 'fixture-user', name: 'Fixture', phone: '+919876543210' } } });
-      }
       if (action === 'smart-brain-plan') {
         const shoeScope = url.searchParams.get('workspace_id') === 'ws-shoes';
         if (shoeScope && hold) { started(); await held; }

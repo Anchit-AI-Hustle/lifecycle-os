@@ -99,7 +99,7 @@ async function requireCaller(req, res, opts) {
       ok: false,
       error: (auth && auth.error) || 'sign_in_required',
       message: (auth && auth.message) || 'You are not signed in, so this could not run.',
-      hint: 'These endpoints spend this deployment\'s AI provider budget, so they require a signed-in session (X-Lifecycle-Token from a mobile-number sign-in; on a deployment with no DATABASE_URL that token is the device session, sent from a page) or the scheduler secret.',
+      hint: 'These endpoints spend this deployment\'s AI provider budget, so they require a signed-in Google session (Authorization: Bearer <Supabase access token>) or the scheduler secret.',
     });
     return false;
   }

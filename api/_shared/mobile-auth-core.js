@@ -1,6 +1,26 @@
 'use strict';
 /**
- * mobile-auth-core.js - sign in and sign up with a mobile number and a 4-digit PIN.
+ * mobile-auth-core.js - the mobile number + 4-digit PIN sign-in, SWITCHED OFF.
+ * ---------------------------------------------------------------------------
+ * ── 2026-10-10: GOOGLE IS THE ONLY SIGN-IN ──────────────────────────────────
+ * The owner's words: "No signin with mobile number - only Google signin pls".
+ * Sign-in is Google through Supabase Auth (auth.js). This router still answers
+ * `public-config.js?action=auth`, so a browser holding an old auth.js gets a
+ * sentence instead of a crash, but nothing here signs anyone in any more:
+ *   op=status       {mode:'google'}: where sign-in happens now, nothing else.
+ *   op=enter        410 pin_signin_removed, for every method, before any
+ *                   database, rate limit or GoTrue call.
+ *   op=me           401 pin_signin_removed: no phone session is a session.
+ *   op=signout(_all) revokes what it still can (a Neon app_sessions row, a
+ *                   Supabase phone session) and answers 200: ending a session
+ *                   that is no longer accepted anywhere is always allowed.
+ * And verifyToken() never admits a token: a phone token - server, Supabase or
+ * the device principal of 2026-09-30 - is refused by every gate exactly like
+ * no token at all (brand-workspace-core.verifyCaller). The rules below (PIN
+ * checks, scrypt, the Neon schema) are kept so the record of what the
+ * accounts were can still be read, and so a revocation can find its row.
+ *
+ * What follows is the module's history, unchanged.
  * ---------------------------------------------------------------------------
  * THE ONE SIGN-IN (2026-09-28, and again 2026-10-09). The operator's words:
  * "signin/signup with mobile number and a 4 digit password - save in db (neon)
@@ -444,45 +464,15 @@ async function storeStatus(deps) {
  * `unreachable` - that is a server-mode account whose store is down.
  */
 async function verifyToken(token, deps) {
+  // SWITCHED OFF (2026-10-10). Google is the only sign-in, so no token of
+  // this shape - a Neon session, a leftover device session or a forgery -
+  // is a principal any more, whatever the database says. Nothing is looked
+  // up: the answer does not depend on it. `deps` is accepted and unused so
+  // callers written for the old signature keep working.
+  void deps;
   if (!token) return { ok: false, reason: 'no_token' };
   if (!looksLikeToken(token)) return { ok: false, reason: 'not_a_token' };
-  // SUPABASE MODE (2026-10-03): every account is a Supabase user and the
-  // browser holds a Supabase JWT, which never matches this shape. A token of
-  // OUR shape is then a leftover device session or a forgery, and admitting
-  // it as a device principal would run features UNMETERED beside a working
-  // credit ledger - the faucet the phone rules exist to shut. Only a project
-  // that ANSWERS counts: a configured one that is down falls back to the
-  // modes below, exactly as status() does, so #115's standalone path holds.
-  // Whether or not supabase mode can be OFFERED (a public key), and whether
-  // the answer came from the auth service or the ledger itself: a device
-  // principal is unmetered, so it exists only when no ledger answers at all.
-  //   - supabase mode is ON (offered): every account is a Supabase user, so
-  //     a token of our shape is refused outright, Neon's included.
-  //   - otherwise a Neon session is checked against app_sessions as before
-  //     (it is metered: it is never a device principal), and only the DEVICE
-  //     path - no DATABASE_URL - is refused while the project or its ledger
-  //     answers (review finding: a live project with no public key used to
-  //     admit device tokens unmetered).
-  let sb = null;
-  try { sb = await supabaseStatus(deps); } catch (_) { sb = null; /* a probe that throws is a project that did not answer */ }
-  if (sb && sb.offerable) return { ok: false, reason: 'supabase_mode', host: sb.host };
-  const sql = connect(deps);
-  if (!sql) {
-    if (sb && sb.reachable) return { ok: false, reason: 'supabase_mode', host: sb.host };
-    if (sb && await ledgerReachable(deps, sb)) return { ok: false, reason: 'ledger_reachable', host: sb.host };
-    return {
-      ok: true, mode: 'device',
-      user: { id: 'device:' + tokenHash(token).slice(0, 32), name: '', phone: '' },
-    };
-  }
-  try {
-    await ensureSchema(sql);
-    const u = await withTimeout(sessionUser(sql, token), (deps && deps.timeoutMs) || 6000, 'session lookup timed out');
-    if (!u) return { ok: false, reason: 'invalid' };
-    return { ok: true, mode: 'server', user: { id: u.id, name: u.name, phone: u.phone }, expires_at: u.expires_at };
-  } catch (err) {
-    return { ok: false, reason: 'unreachable', host: hostOf(databaseUrl()), detail: String(err && err.message || err) };
-  }
+  return { ok: false, reason: 'pin_signin_removed' };
 }
 
 /* ── enter: sign in or sign up, one step ─────────────────────────────────── */
@@ -605,15 +595,38 @@ async function enter(sql, body, ip) {
 
 const OPS = ['status', 'enter', 'me', 'signout', 'signout_all'];
 
-function deviceModeRefusal(st, opName) {
-  return {
-    ok: false, status: 503, error: st.reason === 'no_database_url' ? 'no_database' : 'database_unreachable',
-    mode: 'device', reason: st.reason, host: st.host || '',
-    message: (st.reason === 'no_database_url'
-      ? 'No database is configured on this deployment, so "' + opName + '" cannot run on the server. Accounts are saved on this device instead.'
-      : 'The database (' + (st.host || 'the configured host') + ') is not answering, so "' + opName + '" cannot run on the server right now. '
-        + 'An account saved in the database cannot be used until it answers; accounts made meanwhile are saved on this device only.'),
-  };
+/** The one sentence every refusal here carries. */
+const GOOGLE_ONLY = 'Sign-in is with Google now. Mobile number and PIN sign-in is switched off, so no account '
+  + 'can be created or signed in to with a number; use Sign in with Google in the menu. Brands kept on this '
+  + 'device stay on this device.';
+
+function statusAnswer() {
+  return { ok: true, mode: 'google', signin: 'google', pin_signin: false, message: GOOGLE_ONLY };
+}
+
+/**
+ * Revoke what a leftover phone session can still name: its Neon app_sessions
+ * row, or its Supabase session (POST /auth/v1/logout). Best effort - neither
+ * is accepted by any gate any more - and never a failure to the caller.
+ */
+async function revoke(req, deps, op) {
+  const token = tokenOf(req);
+  let revoked = false;
+  try {
+    const supa = require('./mobile-auth-supabase.js');
+    const cfg = supa.config();
+    if (cfg && supa.jwtOf(req)) {
+      const r = await supa.signout(cfg, req, op === 'signout_all' ? 'global' : 'local');
+      revoked = !!(r && r.body && r.body.signed_out);
+    }
+  } catch (_) { /* the project did not answer: nothing accepts the session anyway */ }
+  if (!revoked && looksLikeToken(token)) {
+    try {
+      const sql = connect(deps);
+      if (sql) { await withTimeout(sql`delete from app_sessions where token_hash = ${tokenHash(token)}`, 4000, 'revoke timed out'); revoked = true; }
+    } catch (_) { /* no table, or no database: nothing to revoke */ }
+  }
+  return revoked;
 }
 
 async function handle(req, res, deps) {
@@ -622,75 +635,22 @@ async function handle(req, res, deps) {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (_) { body = {}; } }
   body = body && typeof body === 'object' ? body : {};
   const op = String(q.op || body.op || '').toLowerCase();
-  const method = String((req && req.method) || 'GET').toUpperCase();
 
   if (!OPS.includes(op)) {
     return res.status(400).json({ ok: false, error: 'unknown_auth_operation', available: OPS, message: 'That sign-in operation does not exist.' });
   }
-
-  if (op === 'status') return res.status(200).json(await status(deps));
-
-  const st = await status(deps);
-  if (st.mode === 'supabase') {
-    const supa = require('./mobile-auth-supabase.js');
-    return supa.handle(module.exports, supa.config(), req, res, op, method, body);
-  }
-  // ROUTE BY THE TOKEN, NOT ONLY BY THE MODE (review finding, 2026-10-03).
-  // A Supabase JWT belongs to the Supabase project whatever this moment's
-  // health probe said. With Neon also configured, a single failed probe (and
-  // its 5-second negative cache) used to send op=me with a Supabase JWT to
-  // Neon's sessionUser(), which answered 401 - and the browser cleared a
-  // valid session. The project not answering is "cannot be checked right
-  // now" (503, the session is kept), never "signed out".
-  const supaCfg = require('./mobile-auth-supabase.js').config();
-  const jwt = supaCfg ? require('./mobile-auth-supabase.js').jwtOf(req) : '';
-  if (jwt && (op === 'me' || op === 'signout' || op === 'signout_all')) {
-    if (op === 'signout') return res.status(200).json({ ok: true, mode: 'supabase', signed_out: false, host: supaCfg.host, message: 'The account service (' + supaCfg.host + ') is not answering, so this session could not be revoked there; it has been removed from this browser.' });
-    return res.status(503).json({
-      ok: false, error: 'backend_unreachable', backend_unreachable: true, mode: 'supabase', host: supaCfg.host,
-      message: 'The account service (' + supaCfg.host + ') is not answering, so your sign-in cannot be checked right now. Nothing about your account has changed.',
-    });
-  }
-  if (st.mode !== 'server') {
-    // signout with nothing to sign out of on the server is not a failure: the
-    // browser clears its own device session and says so.
-    if (op === 'signout') return res.status(200).json({ ok: true, mode: 'device', signed_out: false, message: st.message });
-    return res.status(503).json(deviceModeRefusal(st, op));
-  }
-  const sql = connect(deps);
-  await ensureSchema(sql);
-
+  if (op === 'status') return res.status(200).json(statusAnswer());
   if (op === 'enter') {
-    if (method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Sign in with a POST.' }); }
-    const r = await enter(sql, body, clientIp(req));
-    return res.status(r.status).json(r.body);
+    // Refused before anything is read, counted or sent: no database, no rate
+    // limit row, no GoTrue call. 410 Gone: this sign-in existed and does not now.
+    return res.status(410).json({ ok: false, error: 'pin_signin_removed', mode: 'google', message: GOOGLE_ONLY });
   }
-
-  const token = tokenOf(req);
-
   if (op === 'me') {
-    const u = await sessionUser(sql, token);
-    if (!u) return res.status(401).json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.' });
-    return res.status(200).json({ ok: true, mode: 'server', user: { id: u.id, name: u.name, phone: u.phone }, expires: u.expires_at, message: st.message });
+    return res.status(401).json({ ok: false, error: 'pin_signin_removed', mode: 'google', message: GOOGLE_ONLY });
   }
-
-  if (op === 'signout') {
-    if (method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Sign out with a POST.' }); }
-    let n = 0;
-    if (looksLikeToken(token)) {
-      try { await sql`delete from app_sessions where token_hash = ${tokenHash(token)}`; n = 1; } catch (_) { /* the token stops working when the row is gone; a failed delete is retried on the next sign-out */ }
-    }
-    return res.status(200).json({ ok: true, mode: 'server', signed_out: n === 1 });
-  }
-
-  if (op === 'signout_all') {
-    if (method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Sign out with a POST.' }); }
-    const u = await sessionUser(sql, token);
-    if (!u) return res.status(401).json({ ok: false, error: 'invalid_session', message: 'Sign in first, then sign out everywhere.' });
-    await sql`delete from app_sessions where user_id = ${u.id}`;
-    return res.status(200).json({ ok: true, mode: 'server', signed_out_all: true });
-  }
-  return res.status(400).json({ ok: false, error: 'unknown_auth_operation', message: 'That sign-in operation does not exist.' });
+  // signout / signout_all
+  const revoked = await revoke(req, deps, op);
+  return res.status(200).json({ ok: true, mode: 'google', signed_out: true, revoked, message: 'This mobile-number sign-in has ended. ' + GOOGLE_ONLY });
 }
 
 module.exports = {
@@ -698,7 +658,7 @@ module.exports = {
   pinError, hashPin, verifyPin, lockMessage, triesMessage,
   newToken, tokenHash, looksLikeToken, tokenOf, clientIp,
   databaseUrl, standaloneMode, hostOf, connect, ensureSchema, rateLimit, sessionUser,
-  status, storeStatus, supabaseStatus, verifyToken, enter, handle,
+  status, storeStatus, supabaseStatus, verifyToken, enter, handle, statusAnswer, GOOGLE_ONLY,
   phone,
   /** Drop the memoised drivers and the status answer (tests; a rotated URL needs neither). */
   _reset() { DRIVERS.clear(); statusCache = null; supaCache = null; },

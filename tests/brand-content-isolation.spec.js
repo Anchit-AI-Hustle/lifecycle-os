@@ -43,9 +43,11 @@
  *   (e) name-swapped   a sentence written about tenant zero with its name replaced
  *                      by the active brand's at runtime: static prose, not the record
  *
- * HOW. Chromium, the real pages served as a real host. The person is signed in
- * the way production signs people in today: a mobile number + PIN kept on the
- * device (no DATABASE_URL), the active brand in the per-account device store,
+ * HOW. Chromium, the real pages served as a real host. The person is in the
+ * state production is in today (2026-10-10: Google is the only sign-in, the
+ * project is paused, so nobody can be signed in): signed out, the active
+ * brand in the device store kept for nobody in particular (where a
+ * mobile-number sign-in's brands are moved when it is ended on boot),
  * and the /api/ routers that matter are the SHIPPED ones (tests/agents-harness,
  * production's configuration). Two brands, neither tenant zero: a rich preset
  * (The Times of India) and a BARE operator-made brand with only a name and a
@@ -228,7 +230,7 @@ const BRANDS = {
     typography: { heading: { family: 'Georgia', stack: 'Georgia, serif', google: false }, body: { family: 'Arial', stack: 'Arial, sans-serif', google: false } },
   }, 'local-bcideli000000001'),
 };
-const USER = { id: 'dev-bci0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Content Sweep' };
+const USER = { id: 'dev-bci0001', name: 'Content Sweep' };
 
 /* ══ tenant zero's signature, derived ════════════════════════════════════════ */
 
@@ -444,18 +446,12 @@ function instrument(args) {
   });
   obs.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['srcdoc', 'src'] });
 
-  // The person: signed in with a mobile number + PIN kept on this device, the
-  // brand under sweep active in the per-account device store.
+  // The person: signed out (the mobile-number sign-in this sweep used until
+  // 2026-10-10 is switched off), the brand under sweep active on the device.
   try {
-    var expires = new Date(Date.now() + 80 * 86400000).toISOString();
-    var users = {}; users[args.user.phone] = Object.assign({}, args.user, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: expires, pinSetAt: expires });
-    localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(users));
-    localStorage.setItem('lifecycle.auth.session', JSON.stringify({
-      token: 'DEVICEtokenFIXTURE0123456789abcdefghijklmnopq', mode: 'device', provider: 'mobile-pin',
-      user: { id: args.user.id, name: args.user.name, phone: args.user.phone }, expires: expires,
-      storage: { mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' },
-    }));
-    localStorage.setItem('lifecycle.brand.device.workspaces.' + args.user.id, JSON.stringify({ version: 1, active_id: args.brand.id, workspaces: [args.brand] }));
+    localStorage.removeItem('lifecycle.auth.session');
+    localStorage.removeItem('lifecycle.auth.device.users');
+    localStorage.setItem('lifecycle.brand.device.workspaces', JSON.stringify({ version: 1, active_id: args.brand.id, workspaces: [args.brand] }));
     localStorage.removeItem('lc-brand-context');
   } catch (_) {}
 
