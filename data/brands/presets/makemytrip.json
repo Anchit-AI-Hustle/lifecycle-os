@@ -19,7 +19,7 @@
       "host": "www.makemytrip.com",
       "reason": "The site could not be opened: timed out."
     },
-    "read_sources_note": "Its own other material was tried too: careers.makemytrip.com (timeout), investors.makemytrip.com (timeout)."
+    "read_sources_note": "Its own other material was tried too: careers.makemytrip.com (not the brand's consumer site), investors.makemytrip.com (not the brand's consumer site)."
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -166,14 +166,9 @@
       "what": "MakeMyTrip flights page"
     },
     {
-      "url": "https://careers.makemytrip.com/",
+      "url": "https://www.makemytrip.com/hotels/",
       "kind": "page",
-      "what": "MakeMyTrip careers site"
-    },
-    {
-      "url": "https://investors.makemytrip.com/",
-      "kind": "page",
-      "what": "MakeMyTrip investor relations"
+      "what": "MakeMyTrip hotels page"
     }
   ],
   "offerings": [],

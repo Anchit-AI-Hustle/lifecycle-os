@@ -100,4 +100,69 @@ function ownership(url, website, evidence) {
   };
 }
 
-module.exports = { ownership, registrableDomain, brandLabel, corporateSibling, hostOf, MULTI_LABEL_SUFFIXES };
+/* ── the brand's CONSUMER site, and the brand's other sites (2026-10-10) ──────
+   The operator's screenshot of the starter gallery: nearly every card on the
+   grey default, and several that were read had been read off jobs.myntra.com,
+   careers.loreal.com, newsroom.sephora.com, hmgroup.com, report.adidas-group.com.
+   Those hosts ARE the brand's own (ownership() above says so, correctly), but
+   a careers portal, a newsroom, an investor or annual-report site and a group
+   holding company's site are designed for recruits, journalists and
+   shareholders, often by another agency on another design system. Their
+   colours are not the colours a customer sees, so a starter brand's palette is
+   never taken from one. The rule is about WHAT a page is for, not whose it is:
+     - the host's first label names the audience (jobs., careers., newsroom.,
+       investors., ir., press., corporate., report. ...);
+     - the host is the group's corporate sibling (hmgroup.com, adidas-group.com,
+       bmwgroup.com) or "about<brand>" (aboutamazon.com);
+     - a path segment names the audience (/careers, /newsroom, /mediaroom,
+       /investors ...), e.g. www.loreal.com/en/mediaroom/.
+   Anything else on the brand's own domains is its consumer material. */
+const NON_CONSUMER_LABELS = new Set([
+  'careers', 'career', 'jobs', 'job', 'newsroom', 'news-room', 'investors', 'investor', 'ir',
+  'press', 'pressroom', 'press-room', 'corporate', 'corp', 'report', 'reports', 'annualreport',
+  'mediaroom', 'media-room', 'about', 'stories',
+]);
+const NON_CONSUMER_PATH = new Set([
+  'careers', 'career', 'jobs', 'newsroom', 'news-room', 'investors', 'investor-relations',
+  'mediaroom', 'media-room', 'pressroom', 'press-room', 'press-releases', 'annual-report', 'corpmcd',
+]);
+const AUDIENCE = {
+  careers: 'a careers site', career: 'a careers site', jobs: 'a careers site', job: 'a careers site',
+  newsroom: 'a newsroom', 'news-room': 'a newsroom', press: 'a press site', pressroom: 'a press site',
+  'press-room': 'a press site', 'press-releases': 'a press site', mediaroom: 'a press site', 'media-room': 'a press site',
+  investors: 'an investor-relations site', investor: 'an investor-relations site', ir: 'an investor-relations site',
+  'investor-relations': 'an investor-relations site', report: 'an annual-report site', reports: 'an annual-report site',
+  annualreport: 'an annual-report site', 'annual-report': 'an annual-report site',
+  corporate: 'a corporate site', corp: 'a corporate site', corpmcd: 'a corporate site', about: 'a corporate site', stories: 'a corporate news site',
+};
+
+/**
+ * Is `url` the brand's CONSUMER material (what a customer sees), rather than
+ * its careers, press, investor or group-corporate site? `website` is the
+ * preset's home URL (optional; it names the brand for the sibling rules).
+ * Returns { ok:true } or { ok:false, host, code:'not_consumer_site', reason }.
+ */
+function consumerSite(url, website) {
+  const host = hostOf(url);
+  if (!host) return { ok: true };
+  const refuse = (what) => ({
+    ok: false, host, code: 'not_consumer_site', what,
+    reason: `${host} is not the brand's consumer site (it is ${what}), so no colour, type or logo is taken from it`,
+  });
+  const first = host.split('.')[0];
+  if (/^\d+$/.test(first)) return { ok: true };
+  if (NON_CONSUMER_LABELS.has(first) && host.split('.').length > 2) return refuse(AUDIENCE[first] || 'not a consumer site');
+  const lab = brandLabel(host);
+  const homeLab = brandLabel(hostOf(website));
+  if (homeLab && lab && lab !== homeLab) {
+    if (corporateSibling(homeLab, lab)) return refuse('the group\'s corporate site');
+    if (lab === `about${homeLab}`) return refuse('a corporate site');
+  }
+  if (lab && /^.+-?group$/.test(lab) && lab !== homeLab) return refuse('the group\'s corporate site');
+  let segs = [];
+  try { segs = new URL(String(url)).pathname.toLowerCase().split('/').filter(Boolean); } catch (_) { segs = []; }
+  for (const s of segs) if (NON_CONSUMER_PATH.has(s)) return refuse(AUDIENCE[s] || 'not a consumer page');
+  return { ok: true };
+}
+
+module.exports = { ownership, consumerSite, registrableDomain, brandLabel, corporateSibling, hostOf, MULTI_LABEL_SUFFIXES, NON_CONSUMER_LABELS };

@@ -563,7 +563,7 @@ test('the builder refuses a palette whose values name a read that produced nothi
   const good = obsLib.observationFromReads(
     { slug: 'toyota', website: 'https://www.toyota.com' },
     { ok: false, renderer: 'blocked', reason: 'HTTP 403' },
-    [{ url: 'https://pressroom.toyota.com/', kind: 'page', owned: { ok: true, how: 'same-registrable-domain' }, result: { ok: true, manifest: manifest({ url: 'https://pressroom.toyota.com/', identity: { candidates: [cand('logo-svg', '#eb0a1e', 'header a svg')] } }) } }],
+    [{ url: 'https://brand.toyota.com/guidelines/visual/brand-colors', kind: 'page', owned: { ok: true, how: 'same-registrable-domain' }, result: { ok: true, manifest: manifest({ url: 'https://brand.toyota.com/guidelines/visual/brand-colors', identity: { candidates: [cand('logo-svg', '#eb0a1e', 'header a svg')] } }) } }],
     DAY,
   );
   expect(good.palette_ok).toBe(true);
