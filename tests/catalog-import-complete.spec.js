@@ -612,9 +612,9 @@ test('the device merge in the browser and the server merge agree on the same inp
   const opts = { run: 'r1', complete: true, family: ['shopify_public', 'sitemap_jsonld', 'site_crawl'], at: '2026-10-10T00:00:00.000Z' };
   const server = imp.mergeRows(existing, incoming, opts);
   const srv = http.createServer((req, res) => {
-    if (req.url === '/brand-context.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(fs.readFileSync(path.join(ROOT, 'brand-context.js'))); }
+    if (req.url === '/brand-context.js') { res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' }); return res.end(fs.readFileSync(path.join(ROOT, 'brand-context.js'))); }
     if (req.url.startsWith('/api/')) { res.writeHead(503, { 'content-type': 'application/json' }); return res.end('{"ok":false}'); }
-    res.writeHead(200, { 'content-type': 'text/html' }); res.end('<!doctype html><html><head><script src="/brand-context.js"></script></head><body></body></html>');
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end('<!doctype html><html><head><meta charset="utf-8"><script src="/brand-context.js"></script></head><body></body></html>');
   });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   try {
@@ -632,7 +632,7 @@ test('the device merge in the browser and the server merge agree on the same inp
    9. What the operator sees: the onboarding catalogue step and /connections
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 function appServer() {
   return http.createServer((req, res) => {
     const url = (req.url || '/').split('?')[0];
