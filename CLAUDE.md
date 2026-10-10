@@ -4,6 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The Supabase GitHub integration's migration check, and why four files were renamed (2026-10-10)
+"Supabase Preview" (the Supabase GitHub integration on project `dypkppctdbmsiqclnhzx`, working directory
+`.`, production branch `main`) failed on every push to main with *"Remote migration versions not found in
+local migrations directory."* The files and the live history agreed version for version and name for
+name, and CLI 2.119 found nothing wrong. **The integration runs an OLDER CLI** (reproduced with 2.10.0
+against a PGlite copy of the live history): it orders local files by NAME, where `_` sorts after every
+digit, and the remote history by VERSION, so a date-only file beside a 14-digit file of the SAME DAY lands
+at a different position on each side. It named exactly `20260609`, `20260610`, `20260703`, `20260719`.
+Those four files are `…000000_` now, and the live `supabase_migrations.schema_migrations` rows were updated
+to the same versions (history only, no schema change). Both CLIs then agree: two migrations pending,
+`20261009230000` and `20261010002000`. Gated by `tests/migration-versions.spec.js` ("no date-only migration
+shares its date with another migration", mutation-checked). Self-hosted ledgers key by file name, so a
+self-hosted database that applied the old names would see the four renamed files as new.
+
 ## ⭐ Brand X's output carries brand X's context, and nobody else's (2026-10-10)
 The operator, non-negotiable: *"Ensure respective brand and content context match always"*. Gated by
 `tests/brand-content-invariant.spec.js` (executed) over `tests/lib/brand-invariant-fixtures.js`: three
@@ -1628,7 +1642,7 @@ behind a `local-db` profile) or `DB_MODE=external` (Neon as the database; `depen
   paired an env URL with the FILE's key (a guaranteed 401). Env first everywhere; `data/linked-db.json`
   now ships EMPTY (third baked-in ref to go stale here). The test PLANTS a pinned file via
   `process.cwd()` to prove the env wins — with the shipped empty file a regression is invisible.
-- **Timestamp order is not name order.** `20260719_ci_subscriptions.sql` (8-digit prefix, midnight)
+- **Timestamp order is not name order.** (`20260719_ci_subscriptions.sql` is `20260719000000_…` since 2026-10-10.) `20260719_ci_subscriptions.sql` (8-digit prefix, midnight)
   sorts AFTER `20260719140000_…` by name because `_` > any digit. The applier pads to 14 digits;
   the ledger is keyed by file name because three prefixes (`20260609`, `20260610`, `20260703`) are
   used twice, which rules out the CLI's `schema_migrations`. `COMBINED_RUN_THIS.sql` holds 8 of 58
