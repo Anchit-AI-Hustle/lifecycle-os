@@ -124,6 +124,31 @@ function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }
 const CACHE = { id: null, at: 0 };
 const TTL = 60_000;
 
+/**
+ * Is this workspace record tenant zero's own brand? Being the OLDEST workspace
+ * is not enough (2026-10-10): on a fresh project the first brand anyone saves
+ * is the oldest, and the live one was "Mamaearth" pointing at nike.in. It was
+ * handed tenant zero's shipped catalogue, sales export and audio, and its
+ * calendar planned another company's sneakers in another company's markets.
+ * Tenant zero is the oldest workspace whose record IS the shipped brand: the
+ * same name or the same website host as data/brands/_default.json.
+ */
+function hostOf(u) {
+  try { return new URL(/^https?:\/\//i.test(String(u)) ? String(u) : 'https://' + String(u)).hostname.toLowerCase().replace(/^www\./, ''); } catch (_) { return ''; }
+}
+function foldName(s) { return String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ''); }
+function isTenantZeroIdentity(raw) {
+  if (!raw) return false;
+  let zero;
+  try { zero = require('./brand-runtime.js').defaultBrand(); } catch (_) { return false; }
+  if (!zero) return false;
+  const bd = (raw.brand_data && typeof raw.brand_data === 'object') ? raw.brand_data : {};
+  const name = foldName(raw.name || bd.name);
+  if (name && name === foldName(zero.name)) return true;
+  const host = hostOf(raw.website || bd.website || '');
+  return !!host && host === hostOf(zero.website || '');
+}
+
 /** The oldest workspace: tenant zero, and the backfill target. */
 async function defaultWorkspaceId(env) {
   if (CACHE.id && Date.now() - CACHE.at < TTL) return CACHE.id;
@@ -333,7 +358,7 @@ async function brandForWorkspace(env, workspaceId) {
     if (brand) {
       let zero = null;
       try { zero = await defaultWorkspaceId(env); } catch (_) { zero = null; }
-      brand.owns_shipped = !!zero && String(zero) === id;
+      brand.owns_shipped = !!zero && String(zero) === id && isTenantZeroIdentity(raw);
     }
     if (brand) BRAND_CACHE.set(id, { brand, at: Date.now() });
     return brand;
@@ -377,5 +402,6 @@ function requestHasUser(req) {
 }
 
 module.exports = {
+  isTenantZeroIdentity,
   brandForWorkspace, SCOPED_TABLES, isScoped, resolve, currentWorkspaceId,
   defaultWorkspaceId, filterFor, stamp, invalidate, requestHasUser, carriesMobileToken };

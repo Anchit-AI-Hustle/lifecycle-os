@@ -571,9 +571,12 @@ const DRIVE = {
   // The 3D storefront: either the brand's own store (its rows, its photos, its
   // links) or the DATA REQUIRED page - read once it has decided.
   'storefront-3d.html': async (page, st) => {
-    await page.waitForFunction(() => document.querySelector('#pGrid .pcard') || /No 3D storefront on the record/.test(document.body.textContent || ''), null, { timeout: 15_000 }).catch(() => {});
+    // innerText, not textContent: textContent includes the page's own inline
+    // <script> source, which spells the marker sentence out, so a store that
+    // rendered its products still "had" the marker (2026-10-10).
+    await page.waitForFunction(() => document.querySelector('#pGrid .pcard') || /No 3D storefront on the record/.test(document.body.innerText || ''), null, { timeout: 15_000 }).catch(() => {});
     st.store = await page.evaluate(() => ({
-      marker: /No 3D storefront on the record/.test(document.body.textContent || ''),
+      marker: /No 3D storefront on the record/.test(document.body.innerText || ''),
       cards: Array.from(document.querySelectorAll('#pGrid .pcard')).map((a) => ({ href: a.getAttribute('href'), bg: ((a.querySelector('.im') || {}).getAttribute ? a.querySelector('.im').getAttribute('style') : '') || '' })),
       foot: Array.from(document.querySelectorAll('#footLinks a')).map((a) => a.getAttribute('href')),
     }));
