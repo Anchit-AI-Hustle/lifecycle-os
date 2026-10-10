@@ -526,9 +526,14 @@
       "what": "UNIQLO logo file"
     },
     {
-      "url": "https://faq-uk.uniqlo.com/",
+      "url": "https://www.uniqlo.com/in/en/",
       "kind": "page",
-      "what": "UNIQLO UK help site"
+      "what": "UNIQLO India store front"
+    },
+    {
+      "url": "https://www.uniqlo.com/uk/en/",
+      "kind": "page",
+      "what": "UNIQLO UK store front"
     }
   ],
   "offerings": [],

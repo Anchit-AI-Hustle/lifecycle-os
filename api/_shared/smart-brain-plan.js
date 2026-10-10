@@ -828,8 +828,45 @@ function effectiveEntry(entry) {
 }
 
 // Fields whose change means the slot was materially re-planned (vs. cosmetic).
+// WHOSE brand a stored slot or campaign was made for (2026-10-11). The live
+// project's only workspace was renamed Mamaearth -> DelhiChic and its website
+// and catalogue changed under it; 360 of its 656 stored slots still carried
+// tenant zero's sneakers and 70 said Mamaearth, and the console replayed them
+// because nothing recorded which brand they were built FOR. A fingerprint of
+// the record's identity - workspace, name, website, legal sender, the
+// catalogue's source and whether it is excluded - is stamped on every slot
+// the planner writes and every campaign the builder makes; a stored slot or
+// campaign whose fingerprint is not the current record's is never shown,
+// reused or approved, and Daily Sync re-plans it. A row with no fingerprint
+// predates this and is treated the same way.
+function brandIdentity(brand) {
+  if (!brand || typeof brand !== 'object') return null;
+  const fold = (v) => String(v == null ? '' : v).normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+  const bd = (brand.brand_data && typeof brand.brand_data === 'object') ? brand.brand_data : {};
+  const host = (u) => { try { return new URL(String(u)).hostname.replace(/^www\./, '').toLowerCase(); } catch (_) { return fold(u); } };
+  const legal = brand.legal_entity || bd.legal_entity || brand.legal_name || bd.legal_name || '';
+  let cat = '';
+  try { const v = catalogServer.catalogVerdict(brand); if (v) cat = `${v.source_domain || ''}|${v.excluded ? 'x' : ''}|${(v.kept || []).join(',')}`; } catch (_) { /* no verdict */ }
+  const parts = [
+    brand.id || '', fold(brand.name || bd.name), host(brand.website || bd.website || ''),
+    fold(typeof legal === 'object' ? (legal.name || JSON.stringify(legal)) : legal),
+    cat, brand.owns_shipped === true ? 'zero' : '',
+  ];
+  return 'bi1:' + crypto.createHash('sha256').update(parts.join('\u0001')).digest('hex').slice(0, 24);
+}
+const IDENTITY_KEY = '__brand_identity';
+function identityMatches(stamp, current) { return !!current && stamp === current; }
+// A stored row speaks for its slot; an inline entry with no row is judged only
+// when it carries a stamp (a device plan built in this request carries none).
+function slotForOtherRecord(entry, row, ident) {
+  if (!ident) return false;
+  if (row) return !identityMatches((row.payload || {})[IDENTITY_KEY], ident);
+  return !!(entry && entry[IDENTITY_KEY]) && entry[IDENTITY_KEY] !== ident;
+}
+
 function materialDiff(oldPayload, fresh) {
   const diffs = [];
+  if (fresh && fresh[IDENTITY_KEY] && oldPayload[IDENTITY_KEY] !== fresh[IDENTITY_KEY]) diffs.push('built for another brand record: re-planned for this one');
   if ((oldPayload.cohort?.name) !== (fresh.cohort?.name)) diffs.push(`cohort ${oldPayload.cohort?.name} → ${fresh.cohort?.name}`);
   if ((oldPayload.heroProduct?.sku) !== (fresh.heroProduct?.sku)) diffs.push(`hero product ${oldPayload.heroProduct?.title || oldPayload.heroProduct?.sku} → ${fresh.heroProduct?.title || fresh.heroProduct?.sku}`);
   if (oldPayload.objective !== fresh.objective) diffs.push(`objective ${oldPayload.objective} → ${fresh.objective}`);
@@ -976,6 +1013,9 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     fresh = freshEntries(zeroCfg, ctx, start, horizon, pb.brand || require('./brand-runtime.js').defaultBrand(), contactLedger);
   }
 
+  const ident = await currentIdentity(config, db);
+  if (ident) for (const e of fresh) e[IDENTITY_KEY] = ident;
+
   const changes = [];
   let stored = [];
   if (db.connected && persist) {
@@ -1076,6 +1116,22 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       const ins = await db.upsert(config.tableNames.calendarEntries, inserts, 'id', { resolution: 'ignore-duplicates' });
       if (ins.ok) results.inserted = (ins.rows || []).length; else results.warnings.push(ins.warning);
     }
+    // Slots made for another version of the brand record that this plan does
+    // not re-plan in place (2026-10-11): archived with the reason, so neither
+    // the console nor the prebuild queue ever touches them again.
+    if (ident) {
+      const freshIds = new Set(fresh.map((e) => e.id));
+      for (const r of stored) {
+        if (freshIds.has(r.id) || !(r.status === 'tentative' || r.status === 'rejected')) continue;
+        if (identityMatches((r.payload || {})[IDENTITY_KEY], ident)) continue;
+        if (staleForeign.some((sf) => sf.row.id === r.id)) continue;
+        const log = Array.isArray(r.change_log) ? r.change_log.slice(-30) : [];
+        const detail = 'Archived: planned for an earlier version of this brand record (another name, website, legal sender or catalogue).';
+        log.push({ at: nowIso(), kind: 'brand_changed', detail });
+        const upd = await db.update(config.tableNames.calendarEntries, { id: `eq.${r.id}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', change_log: log, updated_at: nowIso() }).catch(() => null);
+        if (upd && upd.ok) changes.push({ id: r.id, kind: 'brand_changed', detail: `${r.date} ${r.market}: ${detail}` });
+      }
+    }
     for (const sf of staleForeign) {
       if (fresh.some((e) => e.id === sf.row.id)) continue;   // re-planned in place above
       const log = Array.isArray(sf.row.change_log) ? sf.row.change_log.slice(-30) : [];
@@ -1137,6 +1193,11 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
     let rows = (await db.select(config.tableNames.calendarEntries, {
       filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc,market.asc', limit: 1000,
     }).catch(() => [])) || [];
+    // Only slots made for the brand record as it is NOW (2026-10-11).
+    if (rows.length) {
+      const ident = await currentIdentity(config, db);
+      rows = ident ? rows.filter((r) => identityMatches((r.payload || {})[IDENTITY_KEY], ident)) : [];
+    }
     if (rows.length) {
       // Stored campaigns can outlive a rebrand or a catalog removal. Check
       // every row: one matching hero must not keep foreign products alongside it.
@@ -1187,7 +1248,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
     return {
       ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false,
       plan_source: planned.source,
-      entries: entries.map((e) => ({ ...e, status: 'tentative' })),
+      entries: entries.map((e) => ({ ...e, [IDENTITY_KEY]: brandIdentity(pb.brand), status: 'tentative' })),
       note: planned.source === 'lifecycle-strategy'
         ? strategyNote(pb.brand, declaredMarkets(pb.brand))
         : `Plan generated from ${pb.brand.name}'s own catalogue and regions. Confidence figures are DEMO until real analytics connect.`,
@@ -1201,7 +1262,8 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
   } catch (_) {}
   const ctx = _ctxFallback?.ctx || await buildContext(cfg2, db);
   const entries = _ctxFallback?.fresh || freshEntries(cfg2, ctx, todayIso(), cfg2.calendarDays, pb.brand || require('./brand-runtime.js').defaultBrand(), await planContactLedger(config, contact, todayIso()));
-  return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, status: 'tentative' })) };
+  const zeroIdent = await currentIdentity(config, db);
+  return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: entries.map((e) => ({ ...e, ...(zeroIdent ? { [IDENTITY_KEY]: zeroIdent } : {}), status: 'tentative' })) };
 }
 
 // ── LLM copywriting on approval ─────────────────────────────────────────────
@@ -2673,13 +2735,25 @@ function requestIsPerson() {
 }
 
 async function stampBrand(entry, config) {
-  if (!entry || entry.brand) return entry;
+  if (!entry) return entry;
+  // A STORED slot carries the brand object it was planned under, and that
+  // record is history, not the brand (2026-10-11): a workspace renamed from
+  // Mamaearth to DelhiChic kept mailing "The Mamaearth team" and Mamaearth's
+  // legal footer, because this returned early whenever the slot had a brand.
+  // The current record is resolved every time; the slot's own copy is kept
+  // only when nothing can be resolved (no request, no database).
   // The request's own brand outranks a workspace lookup, and it is the ONLY
   // brand a request with no workspace may be stamped with: without this a
   // phone account's entries were stamped with the oldest workspace's brand,
   // because "no workspace" fell to defaultWorkspaceId() (2026-09-29).
   const carried = requestBrand();
   if (carried) { entry.brand = carried; return entry; }
+  if (carried === null && requestIsPerson() && !(entry.workspace_id || (config && config.workspace_id))) {
+    // A person with no workspace and no brand on the request: the slot's
+    // remembered brand is not theirs to be stamped with.
+    if (entry.brand) delete entry.brand;
+    return entry;
+  }
   try {
     const wsScope = require('./workspace-scope.js');
     const url = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
@@ -2744,7 +2818,29 @@ async function buildCampaign(entry, config, opts = {}) {
     brand: (entry && entry.brand) || null,
     workspaceId: (entry && entry.workspace_id) || (config && config.workspace_id) || null,
   };
-  return catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
+  const built = await catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
+  if (built && typeof built === 'object') built.brand_identity = brandIdentity(entry && entry.brand);
+  return built;
+}
+
+/** The identity of the brand this request plans for now (null: none resolvable). */
+async function currentIdentity(config, db) {
+  try {
+    const pb = await planningBrand(config, db);
+    // Tenant zero is fingerprinted from its shipped record whichever door it
+    // is reached by (the scheduler has no workspace row in hand, a person has
+    // one), so the two never re-plan each other's slots every day.
+    if (pb.isZero) return brandIdentity(Object.assign({}, require('./brand-runtime.js').defaultBrand(), { owns_shipped: true }));
+    if (pb.brand) return brandIdentity(pb.brand);
+  } catch (_) { /* unresolved */ }
+  return null;
+}
+
+/** A stored slot or campaign made for another brand record than the current one. */
+function brandChangedError(what) {
+  const e = new Error(`This ${what} was made for an earlier version of this brand's record (another name, website, legal sender or catalogue), so it is not shown, reused or approved. Run Daily Sync to re-plan it for the brand as it is now.`);
+  e.status = 409; e.code = 'brand_changed';
+  return e;
 }
 
 async function _buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
@@ -2993,6 +3089,7 @@ async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   const db = new SmartBrainDbAdapter(config);
   const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });
   if (!entry) throw new Error(`Calendar entry ${id || ''} not found — run a daily sync first or pass the entry inline.`);
+  const ident = await currentIdentity(config, db);
 
   // A slot planned from a catalogue now judged another brand's (2026-10-10):
   // nothing saved for it is replayed - not a prebuilt bundle, not a final
@@ -3015,6 +3112,9 @@ async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     };
   }
 
+  // Checked after the catalogue rule, whose answer names the excluded domain.
+  if (slotForOtherRecord(entry, row, ident)) throw brandChangedError('slot');
+
   // Approved/final slots return the FINAL saved campaign — the reviewer sees
   // exactly what ships, never a fresh regeneration — EXCEPT when that saved
   // campaign is a stale template fallback (copywriter.provider ===
@@ -3025,6 +3125,7 @@ async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   if (db.connected && row && (row.status === 'approved' || row.status === 'final') && row.generated_campaign_id) {
     const fin = await db.select(config.tableNames.generatedCampaigns, { filters: { id: `eq.${row.generated_campaign_id}` }, limit: 1 }).catch(() => []);
     const c = fin && fin[0] && fin[0].payload;
+    if (c && !identityMatches(c.brand_identity, ident)) throw brandChangedError('campaign');
     const cIsFallback = !!(c && c.copywriter && c.copywriter.provider === 'template-fallback');
     if (c && !cIsFallback) {
       return {
@@ -3063,6 +3164,9 @@ async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     const pc = await db.select(config.tableNames.generatedCampaigns, { filters: { id: `eq.${reuseId}` }, limit: 1 }).catch(() => []);
     if (pc && pc[0] && pc[0].payload) campaign = pc[0].payload;
   }
+  // A saved bundle made for another version of the record is never replayed
+  // (2026-10-11): the sneaker hero under DelhiChic was a prebuilt campaign.
+  if (campaign && !identityMatches(campaign.brand_identity, ident)) campaign = null;
   // AUTO-HEAL stale template fallbacks. A slot built during an earlier LLM outage
   // persisted template-fallback copy (copywriter.provider === 'template-fallback')
   // and would otherwise be REPLAYED forever — showing the "template fallback"
@@ -3123,6 +3227,7 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   const db = new SmartBrainDbAdapter(config);
   const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });
   if (!entry) throw new Error(`Calendar entry ${id || ''} not found — run a daily sync first or pass the entry inline.`);
+  const ident = await currentIdentity(config, db);
 
   // Approving publishes; a slot that names another brand's product is not
   // published, built over, or re-approved (2026-10-10). Re-plan it first.
@@ -3133,12 +3238,15 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     throw e;
   }
 
+  if (slotForOtherRecord(entry, row, ident)) throw brandChangedError('slot');
+
   // IDEMPOTENCY: a slot already approved with a generated campaign must NOT be
   // regenerated — that would orphan the prior campaign + its ads/LP rows. Return
   // the existing campaign instead.
   if (db.connected && row && (row.status === 'approved' || row.status === 'final') && row.generated_campaign_id) {
     const prior = await db.select(config.tableNames.generatedCampaigns, { filters: { id: `eq.${row.generated_campaign_id}` }, limit: 1 }).catch(() => []);
     const existing = prior && prior[0] && prior[0].payload;
+    if (existing && !identityMatches(existing.brand_identity, ident)) throw brandChangedError('campaign');
     if (existing) {
       return {
         ok: true, idempotent: true,
@@ -3164,6 +3272,7 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     const pc = await db.select(config.tableNames.generatedCampaigns, { filters: { id: `eq.${prebuiltId}` }, limit: 1 }).catch(() => []);
     if (pc && pc[0] && pc[0].payload) campaign = pc[0].payload;
   }
+  if (campaign && !identityMatches(campaign.brand_identity, ident)) campaign = null;
   // buildCampaign generates copy + creatives and attaches master prompts. Use
   // the ACTIVE scenario (medium unless a human switched the slot), internal keys
   // stripped so projected revenue/spend can never reach the asset builders.
@@ -3516,7 +3625,8 @@ async function prebuildAssets({ config: cfg = {}, batchSize = 1, sinceDate = nul
     filters: { date: `gte.${start}`, status: SYNC_WRITABLE_STATUSES },
     order: 'date.asc', limit: 1000,
   }).catch(() => [])) || [];
-  const pending = rows.filter((r) => !isPrebuilt(r));
+  const prebuildIdent = await currentIdentity(config, db);
+  const pending = rows.filter((r) => !isPrebuilt(r) && !!prebuildIdent && identityMatches((r.payload || {})[IDENTITY_KEY], prebuildIdent));
   const batch = pending.slice(0, Math.max(1, batchSize));
   const built = [];
   const failed = [];
@@ -3602,6 +3712,7 @@ module.exports = {
   // Executed by tests/agents-review.spec.js inside a request scope: which
   // brand a slot is stamped with, and whether the plan is tenant zero's.
   __test_stampBrand: stampBrand,
+  __test_brandIdentity: brandIdentity,
   // Executed by tests/catalog-provenance.spec.js: whose store a slot links to.
   __test_slotLinks: slotLinks,
   __test_productUrl: productUrl,

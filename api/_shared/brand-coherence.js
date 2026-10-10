@@ -67,7 +67,7 @@ var COHERENCE = (function () {
     ['name', 'Brand name', true], ['tagline', 'Tagline', true], ['logo_url', 'Logo', true], ['favicon_url', 'App icon', true],
     ['brand_data.legal_entity', 'Legal entity', true], ['brand_data.social', 'Social profiles', true],
     ['brand_data.imagery', 'Imagery', true], ['brand_data.brand_assets', 'Brand assets', true], ['brand_data.claims', 'Claims', true],
-    ['catalog_source', 'Catalogue', true], ['regions', 'Region store', false], ['regions.home', 'Home market', false],
+    ['catalog_source', 'Catalogue', true], ['regions', 'Region store', true], ['regions.home', 'Home market', false],
     ['palette.primary', 'Primary colour', false], ['palette.accent', 'Accent colour', false], ['palette.ink', 'Text colour', false],
     ['palette.surface', 'Page surface', false], ['palette.surface_alt', 'Card surface', false], ['palette.muted', 'Secondary text', false],
     ['typography.heading', 'Heading font', false], ['typography.body', 'Body font', false],
@@ -331,13 +331,29 @@ var COHERENCE = (function () {
     facts.forEach(function (x) { (domainsSeen[x.domain] = domainsSeen[x.domain] || {})[LABEL[x.field] || x.field] = true; });
 
     if (identity) {
+      // Another brand's SITE on this record: a domain a value was read from or a
+      // region's store is on. An asset host on that brand's domain is that site,
+      // not a CDN (the live record: a nike.in store beside nike.com hosts).
+      var siteDomains = [];
+      facts.forEach(function (x) {
+        if (x.via === 'declared' || x.via === 'hosted on' || sameBrand(x.domain, identity.domain)) return;
+        if (siteDomains.indexOf(x.domain) < 0) siteDomains.push(x.domain);
+      });
       facts.forEach(function (x) {
         if (sameBrand(x.domain, identity.domain)) return;
-        var block = !!IDENTITY[x.field] && x.via !== 'hosted on' && x.via !== 'declared' && x.via !== 'store on';
+        // A region's store BLOCKS: the catalogue import reads it, so a store on
+        // another site files that site's products as this brand's (2026-10-10).
+        var block = x.field === 'asset_hosts'
+          ? siteDomains.some(function (d) { return sameBrand(d, x.domain); })
+          : !!IDENTITY[x.field] && x.via !== 'hosted on' && x.via !== 'declared';
+        var msg = x.field === 'regions'
+          ? 'The ' + x.value.split(' ')[0] + ' store URL ' + x.url + ' is on ' + x.domain + '; this brand\'s website is ' + identity.domain + '. A catalogue import reads a region\'s store, so it would file ' + x.domain + '\'s products as this brand\'s.'
+          : (x.field === 'asset_hosts' && block
+            ? 'Asset host ' + x.value + ' is on ' + x.domain + ', another brand\'s site on this record; this brand\'s website is ' + identity.domain + '.'
+            : (LABEL[x.field] || x.field) + ' was ' + x.via + ' ' + x.domain + '; this brand\'s website is ' + identity.domain + '.');
         conflict({
           kind: 'cross_domain', field: x.field, severity: block ? 'block' : 'warn', domain: x.domain, expected: identity.domain,
-          value: x.value, source_url: x.url,
-          message: (LABEL[x.field] || x.field) + ' was ' + x.via + ' ' + x.domain + '; this brand\'s website is ' + identity.domain + '.'
+          value: x.value, source_url: x.url, message: msg
         });
       });
     } else {
@@ -414,7 +430,7 @@ var COHERENCE = (function () {
     var blocking = live.some(function (c) { return c.severity === 'block'; });
     var domains = Object.keys(domainsSeen).sort().map(function (d) { return { domain: d, fields: Object.keys(domainsSeen[d]).sort() }; });
     var foreign = [];
-    live.forEach(function (c) { if (c.domain && c.domain.indexOf(':') < 0 && foreign.indexOf(c.domain) < 0) foreign.push(c.domain); });
+    live.forEach(function (c) { if (c.domain && c.domain.indexOf(':') < 0 && !(identity && sameBrand(c.domain, identity.domain)) && foreign.indexOf(c.domain) < 0) foreign.push(c.domain); });
     var summary = !live.length ? 'Every sourced value on this brand comes from ' + (identity ? identity.domain : 'one place') + '.'
       : (blocking ? 'This record mixes brands: ' : 'Check this record: ') + live.length + ' value(s) ' +
         (foreign.length ? 'come from ' + foreign.join(', ') + (identity ? ', not ' + identity.domain : '') : 'disagree with each other') + '.';

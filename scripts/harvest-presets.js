@@ -140,6 +140,10 @@ async function readPage(reader, url, o, opts) {
 async function readOne(preset, opts) {
   const { reader, error } = loadReader(opts);
   if (error) return error;
+  // A careers, press, investor or group-corporate site is not what a customer
+  // sees: it is never read for a starter brand (brand-ownership.consumerSite).
+  const cons = ownershipLib.consumerSite(preset.website, preset.website);
+  if (!cons.ok) return { ok: false, renderer: 'blocked', code: 'not_consumer_site', reason: cons.reason + '.', attempts: 0 };
   const allow = loopbackOrigins(opts.allowOrigins);
   const deadlineMs = opts.deadlineMs || HARVEST.deadlineMs;
   return readPage(reader, preset.website, {
@@ -199,6 +203,11 @@ async function readSources(preset, home, opts) {
     const kind = s.kind === 'image' ? 'image' : 'page';
     const owned = ownershipLib.ownership(s.url, preset.website, evidence);
     if (!owned.ok) { out.push({ url: s.url, kind, what: s.what || '', refused: owned.reason }); continue; }
+    const cons = ownershipLib.consumerSite(s.url, preset.website);
+    if (!cons.ok) {
+      out.push({ url: s.url, kind, what: s.what || '', owned, result: { ok: false, renderer: 'blocked', code: 'not_consumer_site', reason: cons.reason + '.' }, attempts: 0 });
+      continue;
+    }
     const origin = (() => { try { return new URL(s.url).origin; } catch (_) { return ''; } })();
     if (kind === 'image' && silent.has(origin)) {
       out.push({ url: s.url, kind, what: s.what || '', owned, result: { ok: false, renderer: 'timeout', reason: `not tried: ${new URL(s.url).hostname} did not answer the previous image read in time` }, attempts: 0 });
