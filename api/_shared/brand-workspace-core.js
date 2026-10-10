@@ -1204,7 +1204,11 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
   };
   const out = await require('./catalog-import.js').step({ url: base, region, brand, cursor, guard, budgetMs });
   return {
-    rows: out.rows, base, columns: {}, skipped: out.coverage.skipped.no_title || 0,
+    // `base` is the store ACTUALLY read (2026-10-10). It was the URL asked for,
+    // so a read the importer moved to a region's store recorded the brand's
+    // own site as the source: catalog_source.url said delichic.co.in while
+    // 734 rows came from nike.in. `start` is the URL asked for.
+    rows: out.rows, base: (out.base || base).replace(/\/$/, ''), start: base.replace(/\/$/, ''), columns: {}, skipped: out.coverage.skipped.no_title || 0,
     storefront: out.coverage.platform
       ? { detected: true, platform: { id: out.coverage.platform.id, name: out.coverage.platform.name, why: out.coverage.platform.why, confidence: out.coverage.platform.confidence, source_url: out.coverage.platform.source_url }, catalog_route: { kind: out.coverage.platform.route, note: out.coverage.platform.route_note } }
       : { detected: false },
@@ -1269,6 +1273,51 @@ async function getWorkspace(auth, id) {
  */
 async function productCount(auth, id) {
   try { return (await catalogCounts(auth, id)).live; } catch (_) { return 0; }
+}
+
+/**
+ * How many of a brand's live products are ITS OWN, and how many came from
+ * another brand's site (2026-10-10). "612 products in this workspace" on the
+ * live record counted Nike's rows as the brand's catalogue and satisfied the
+ * readiness check with them. Each row is judged exactly as the generators
+ * judge it (brand-coherence.js catalogIdentity + catalogRowForeign, by the
+ * row's own page), so the count and what a mailer may use cannot disagree.
+ * { live, own, excluded, excluded_domains }
+ */
+async function productTally(auth, ws) {
+  const out = { live: 0, own: 0, excluded: 0, excluded_domains: [] };
+  if (!ws || !ws.id) return out;
+  const verdict = coherence.catalogIdentity(ws);
+  const page = async (cols, filter) => {
+    const all = [];
+    for (let offset = 0; offset < 200000; offset += 1000) {
+      const rows = await restAs(auth.token, `brand_catalog_products?select=${cols}&workspace_id=eq.${encodeURIComponent(ws.id)}${filter}&order=id.asc&limit=1000&offset=${offset}`);
+      const got = Array.isArray(rows) ? rows : [];
+      if (!got.length) break;
+      for (const r of got) all.push(r);
+    }
+    return all;
+  };
+  let rows;
+  try { rows = await page('id,source_url,product_url', '&stale_at=is.null'); }
+  catch (e) {
+    // A database without 20261010002000 has no source_url / stale_at.
+    if (!/stale_at|source_url|42703/.test(String(e && e.message))) return out;
+    try { rows = await page('id,product_url', ''); } catch (_) { return out; }
+  }
+  for (const r of rows) {
+    out.live += 1;
+    if (coherence.catalogRowForeign(r, verdict)) {
+      out.excluded += 1;
+      const d = coherence.registrableDomain(coherence.hostOf(r.source_url || r.product_url || '')) || verdict.domain || '';
+      if (d && out.excluded_domains.indexOf(d) < 0 && out.excluded_domains.length < 5) out.excluded_domains.push(d);
+    } else out.own += 1;
+  }
+  return out;
+}
+/** The payload fields a tally adds: the own count is `products`. */
+function tallyFields(t) {
+  return { products: t.own, products_excluded: t.excluded, products_excluded_domains: t.excluded_domains };
 }
 
 /**
@@ -1977,8 +2026,23 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
     regions: Array.isArray(b.regions) ? b.regions.slice(0, 20) : [],
     asset_hosts: Array.isArray(b.asset_hosts) ? b.asset_hosts.filter((h) => typeof h === 'string').slice(0, 20) : [],
   };
-  const resume = cursor && typeof cursor === 'object' ? cursor : null;
+  let resume = cursor && typeof cursor === 'object' ? cursor : null;
+  // The twin of importCatalog's rule: a cursor for another URL, or for a store
+  // on another brand's site, is discarded and the read starts again.
+  let restarted = '';
+  if (resume) {
+    const ci = require('./catalog-import.js');
+    const asked = httpUrl(url);
+    const problem = ci.cursorProblem(resume, { region: str(region || resume.region, 12).toLowerCase(), url: asked || resume.start, identity: ci.identityOf(scope) });
+    if (problem) {
+      url = asked || scope.website || resume.start;
+      restarted = `The unfinished import was not continued: ${problem}. This import reads ${String(url).replace(/\/$/, '')} from the beginning.`;
+      resume = null;
+      kind = 'storefront';
+    }
+  }
   const { parsed, reg, k } = await readCatalogSource({ region, kind: resume ? 'storefront' : kind, text, url: (resume && resume.start) || url, scope, cursor: resume, budgetMs });
+  if (restarted && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.unshift(restarted);
   const products = [];
   for (const r of uniqueRows(parsed.rows)) {
     const row = {};
@@ -2059,6 +2123,7 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
   const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
 
   let prior = null;
+  let restarted = '';
   if (resume) {
     const rows = await restAs(auth.token, `brand_workspaces?select=catalog_import&id=eq.${encodeURIComponent(workspace_id)}&limit=1`).catch(() => null);
     prior = Array.isArray(rows) && rows[0] && rows[0].catalog_import && rows[0].catalog_import.cursor ? rows[0].catalog_import : null;
@@ -2068,16 +2133,31 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     }
     region = prior.region || region;
     kind = prior.kind || 'storefront';
-    url = prior.url || url;
+    // A cursor is a place in ONE source (2026-10-10). Continue import on the
+    // live record resumed nike.in after the person had corrected the store to
+    // the brand's own site: the URL in the import box is the source, and a
+    // cursor for another URL, or for a store on another brand's site, is
+    // discarded and the read starts again, said in a sentence.
+    const asked = httpUrl(url);
+    const priorStart = (prior.cursor && prior.cursor.start) || prior.start || prior.url || '';
+    const problem = require('./catalog-import.js').cursorProblem(prior.cursor, { region: str(region, 12).toLowerCase(), url: asked || priorStart, identity: require('./catalog-import.js').identityOf(ws) });
+    if (problem) {
+      url = asked || ws.website || priorStart;
+      restarted = `The unfinished import was not continued: ${problem}. This import reads ${String(url).replace(/\/$/, '')} from the beginning.`;
+      prior = null;
+    } else url = priorStart || url;
   }
   const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws, cursor: prior ? prior.cursor : null, budgetMs });
+  if (restarted && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.unshift(restarted);
   const rows = uniqueRows(parsed.rows);
   const run = parsed.run || require('crypto').randomUUID();
   const family = require('./catalog-import.js').familyOf(k);
   const complete = !!parsed.complete;
   const source = catalogSourceRecord(parsed, k, url, rows.length, run, reg);
   const state = {
-    run, kind: k, url: parsed.base || httpUrl(url) || '', region: reg,
+    // `url` is the URL asked for (what Continue import resumes), `base` the
+    // store actually read; they differ when a region's own store was read.
+    run, kind: k, url: parsed.start || httpUrl(url) || '', base: parsed.base || '', region: reg,
     cursor: complete ? null : (parsed.cursor || null),
     coverage: coverageSummary(parsed.coverage),
     updated_at: new Date().toISOString(),
@@ -2107,6 +2187,8 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
   // rows feed brand-catalog-server's cache: both are dropped here.
   invalidateBrandCaches({ userId: auth.user_id, workspaceId: workspace_id });
   try { require('./brand-catalog-server.js').invalidate(workspace_id); } catch (_) { /* never fails a write */ }
+  let tally = null;
+  try { tally = await productTally(auth, Object.assign({}, ws, { catalog_source: source })); } catch (_) { tally = null; }
 
   return {
     ok: true,
@@ -2117,6 +2199,8 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     complete,
     resume_available: !complete,
     inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: merged.live,
+    // Of the live rows, how many are this brand's and how many another site's.
+    own: tally ? tally.own : null, excluded: tally ? tally.excluded : null, excluded_domains: tally ? tally.excluded_domains : [],
     coverage: state.coverage,
     source,
     note: merged.note || undefined,
@@ -2638,10 +2722,11 @@ async function handle(req, res) {
         }
         const ws = await getWorkspace(auth, id);
         if (!ws) return res.status(200).json({ ok: true, brand: null, needs_onboarding: true, user: { id: auth.user_id, email: auth.email } });
-        const products = await productCount(auth, id);
+        const tally = await productTally(auth, ws);
+        const products = tally.own;
         return res.status(200).json({
           ok: true,
-          brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }),
+          brand: shellPayload(ws, Object.assign({ readiness: readiness(ws, { products }), owns_shipped: await ownsShipped(ws.id) }, tallyFields(tally))),
           needs_onboarding: false,
           user: { id: auth.user_id, email: auth.email },
         });
@@ -2649,20 +2734,23 @@ async function handle(req, res) {
       case 'get': {
         const ws = await getWorkspace(auth, str(q.id || body.id));
         if (!ws) return res.status(404).json({ ok: false, error: 'workspace_not_found' });
-        const products = await productCount(auth, ws.id);
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
+        const tally = await productTally(auth, ws);
+        const products = tally.own;
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), owns_shipped: await ownsShipped(ws.id) }, tallyFields(tally)) });
       }
       case 'save': {
         const ws = await saveWorkspace(auth, body.brand || body);
-        const products = ws && ws.id ? await productCount(auth, ws.id) : 0;
+        const tally = await productTally(auth, ws);
+        const products = tally.own;
         // A save is never refused for a mixed record (the wizard saves as the
         // person types); it is TOLD, field by field, what disagrees.
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws && ws.id), coherence: coherence.brandCoherence(ws || {}) }) });
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), owns_shipped: await ownsShipped(ws && ws.id), coherence: coherence.brandCoherence(ws || {}) }, tallyFields(tally)) });
       }
       case 'activate': {
         const ws = await activateChecked(auth, str(body.id || q.id), body.coherence_override);
-        const products = await productCount(auth, ws.id);
-        return res.status(200).json({ ok: true, brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
+        const tally = await productTally(auth, ws);
+        const products = tally.own;
+        return res.status(200).json({ ok: true, brand: shellPayload(ws, Object.assign({ readiness: readiness(ws, { products }), owns_shipped: await ownsShipped(ws.id) }, tallyFields(tally))) });
       }
       case 'delete': {
         return res.status(200).json(await deleteWorkspace(auth, str(body.id || q.id)));
@@ -2698,7 +2786,7 @@ async function handle(req, res) {
       case 'readiness': {
         const ws = await getWorkspace(auth, str(q.id || body.id));
         if (!ws) return res.status(404).json({ ok: false, error: 'workspace_not_found' });
-        return res.status(200).json({ ok: true, readiness: readiness(ws, { products: await productCount(auth, ws.id) }) });
+        return res.status(200).json({ ok: true, readiness: readiness(ws, { products: (await productTally(auth, ws)).own }) });
       }
       // Read the WHOLE brand off its own site: name, tagline, logo, colour
       // schema, typography, observed voice, verbatim claims, social profiles,
@@ -2919,7 +3007,7 @@ module.exports = {
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStore, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
   listWorkspaces, getWorkspace, scoringBrandFor, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, catalogStatus, catalogCounts, mergeIntoWorkspace, catalogSourceRecord, coverageSummary, assertCanWrite, seedCompetitorsOnActivation, ownsShipped,
+  importCatalog, deviceCatalogImport, readCatalogSource, productTally, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, catalogStatus, catalogCounts, mergeIntoWorkspace, catalogSourceRecord, coverageSummary, assertCanWrite, seedCompetitorsOnActivation, ownsShipped,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
   carriedFields, recordedOrigins, ORIGIN_RANK,

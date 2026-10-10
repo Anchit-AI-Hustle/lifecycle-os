@@ -852,7 +852,7 @@
       ['name', 'Brand name', true], ['tagline', 'Tagline', true], ['logo_url', 'Logo', true], ['favicon_url', 'App icon', true],
       ['brand_data.legal_entity', 'Legal entity', true], ['brand_data.social', 'Social profiles', true],
       ['brand_data.imagery', 'Imagery', true], ['brand_data.brand_assets', 'Brand assets', true], ['brand_data.claims', 'Claims', true],
-      ['catalog_source', 'Catalogue', true], ['regions', 'Region store', false], ['regions.home', 'Home market', false],
+      ['catalog_source', 'Catalogue', true], ['regions', 'Region store', true], ['regions.home', 'Home market', false],
       ['palette.primary', 'Primary colour', false], ['palette.accent', 'Accent colour', false], ['palette.ink', 'Text colour', false],
       ['palette.surface', 'Page surface', false], ['palette.surface_alt', 'Card surface', false], ['palette.muted', 'Secondary text', false],
       ['typography.heading', 'Heading font', false], ['typography.body', 'Body font', false],
@@ -1116,13 +1116,29 @@
       facts.forEach(function (x) { (domainsSeen[x.domain] = domainsSeen[x.domain] || {})[LABEL[x.field] || x.field] = true; });
 
       if (identity) {
+        // Another brand's SITE on this record: a domain a value was read from or a
+        // region's store is on. An asset host on that brand's domain is that site,
+        // not a CDN (the live record: a nike.in store beside nike.com hosts).
+        var siteDomains = [];
+        facts.forEach(function (x) {
+          if (x.via === 'declared' || x.via === 'hosted on' || sameBrand(x.domain, identity.domain)) return;
+          if (siteDomains.indexOf(x.domain) < 0) siteDomains.push(x.domain);
+        });
         facts.forEach(function (x) {
           if (sameBrand(x.domain, identity.domain)) return;
-          var block = !!IDENTITY[x.field] && x.via !== 'hosted on' && x.via !== 'declared' && x.via !== 'store on';
+          // A region's store BLOCKS: the catalogue import reads it, so a store on
+          // another site files that site's products as this brand's (2026-10-10).
+          var block = x.field === 'asset_hosts'
+            ? siteDomains.some(function (d) { return sameBrand(d, x.domain); })
+            : !!IDENTITY[x.field] && x.via !== 'hosted on' && x.via !== 'declared';
+          var msg = x.field === 'regions'
+            ? 'The ' + x.value.split(' ')[0] + ' store URL ' + x.url + ' is on ' + x.domain + '; this brand\'s website is ' + identity.domain + '. A catalogue import reads a region\'s store, so it would file ' + x.domain + '\'s products as this brand\'s.'
+            : (x.field === 'asset_hosts' && block
+              ? 'Asset host ' + x.value + ' is on ' + x.domain + ', another brand\'s site on this record; this brand\'s website is ' + identity.domain + '.'
+              : (LABEL[x.field] || x.field) + ' was ' + x.via + ' ' + x.domain + '; this brand\'s website is ' + identity.domain + '.');
           conflict({
             kind: 'cross_domain', field: x.field, severity: block ? 'block' : 'warn', domain: x.domain, expected: identity.domain,
-            value: x.value, source_url: x.url,
-            message: (LABEL[x.field] || x.field) + ' was ' + x.via + ' ' + x.domain + '; this brand\'s website is ' + identity.domain + '.'
+            value: x.value, source_url: x.url, message: msg
           });
         });
       } else {
@@ -1199,7 +1215,7 @@
       var blocking = live.some(function (c) { return c.severity === 'block'; });
       var domains = Object.keys(domainsSeen).sort().map(function (d) { return { domain: d, fields: Object.keys(domainsSeen[d]).sort() }; });
       var foreign = [];
-      live.forEach(function (c) { if (c.domain && c.domain.indexOf(':') < 0 && foreign.indexOf(c.domain) < 0) foreign.push(c.domain); });
+      live.forEach(function (c) { if (c.domain && c.domain.indexOf(':') < 0 && !(identity && sameBrand(c.domain, identity.domain)) && foreign.indexOf(c.domain) < 0) foreign.push(c.domain); });
       var summary = !live.length ? 'Every sourced value on this brand comes from ' + (identity ? identity.domain : 'one place') + '.'
         : (blocking ? 'This record mixes brands: ' : 'Check this record: ') + live.length + ' value(s) ' +
           (foreign.length ? 'come from ' + foreign.join(', ') + (identity ? ', not ' + identity.domain : '') : 'disagree with each other') + '.';
@@ -1353,7 +1369,29 @@
     var c = readSide('catalog', id);
     return c && Array.isArray(c.products) ? c : null;
   }
-  function deviceProductCount(id) { var c = deviceCatalog(id); return c ? c.products.filter(function (p) { return p && !p.stale_at; }).length : 0; }
+  /** The device twin of productTally() on the server (2026-10-10): of the live
+      rows kept beside a brand, how many are its own and how many another
+      brand's site supplied, each judged by the coherence rule as a generator
+      judges it. The count a page shows is the OWN count. */
+  function deviceProductTally(id, recIn) {
+    var out = { live: 0, own: 0, excluded: 0, excluded_domains: [] };
+    var c = deviceCatalog(id);
+    if (!c) return out;
+    var rec = recIn || deviceFind(readDevice(), id);
+    var v = rec ? COHERENCE.catalogIdentity(rec) : null;
+    c.products.forEach(function (p) {
+      if (!p || p.stale_at) return;
+      out.live += 1;
+      if (v && COHERENCE.catalogRowForeign(p, v)) {
+        out.excluded += 1;
+        var d = COHERENCE.registrableDomain(COHERENCE.hostOf(p.source_url || p.product_url || '')) || v.domain || '';
+        if (d && out.excluded_domains.indexOf(d) < 0 && out.excluded_domains.length < 5) out.excluded_domains.push(d);
+      } else out.own += 1;
+    });
+    return out;
+  }
+  function deviceProductCount(id) { return deviceProductTally(id).own; }
+  function deviceTallyFields(id) { var t = deviceProductTally(id); return { products: t.own, products_excluded: t.excluded, products_excluded_domains: t.excluded_domains }; }
   /** A refusal shaped like the server's, so every caller's catch reads it the same way. */
   function deviceFail(status, code, message, details) {
     var e = new Error(message);
@@ -1474,7 +1512,7 @@
   }
   function deviceFull(row) {
     var n = deviceProductCount(row.id);
-    return Object.assign({}, row, { tokens: tokensFor(row), fonts_href: fontsHrefFor(row), readiness: readinessFor(row, { products: n }), products: n });
+    return Object.assign({}, row, { tokens: tokensFor(row), fonts_href: fontsHrefFor(row), readiness: readinessFor(row, { products: n }) }, deviceTallyFields(row.id));
   }
   function queryOf(o) {
     try { return new URLSearchParams(String((o && o.query) || '').replace(/^[&?]/, '')); } catch (_) { return new URLSearchParams(''); }
@@ -1499,7 +1537,7 @@
       case 'active':
         ws = d.active_id ? deviceFind(d, d.active_id) : null;
         if (!ws) return { ok: true, brand: null, needs_onboarding: d.workspaces.length === 0, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
-        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: deviceProductCount(ws.id) }), products: deviceProductCount(ws.id) }), needs_onboarding: false, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
+        return { ok: true, brand: shellPayloadFor(ws, Object.assign({ readiness: readinessFor(ws, { products: deviceProductCount(ws.id) }) }, deviceTallyFields(ws.id))), needs_onboarding: false, workspaces: d.workspaces.map(function (w) { return shellPayloadFor(w); }), storage: 'device' };
       case 'get':
         id = str(q.get('id') || body.id);
         ws = id ? deviceFind(d, id) : null;
@@ -1540,7 +1578,7 @@
         }
         d.active_id = id;
         if (!writeDevice(d)) throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the change (storage is full or blocked), so nothing was activated.');
-        return { ok: true, brand: shellPayloadFor(ws, { readiness: readinessFor(ws, { products: deviceProductCount(ws.id) }), products: deviceProductCount(ws.id) }), storage: 'device' };
+        return { ok: true, brand: shellPayloadFor(ws, Object.assign({ readiness: readinessFor(ws, { products: deviceProductCount(ws.id) }) }, deviceTallyFields(ws.id))), storage: 'device' };
       case 'delete':
         id = str(body.id || q.get('id'));
         ws = id ? deviceFind(d, id) : null;
@@ -2302,7 +2340,8 @@
         throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the catalogue (storage is full or blocked), so nothing was kept.');
       }
       saveCatalogSource(id, r.source);
-      var out = Object.assign({}, r, { inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: live });
+      var tally = deviceProductTally(id);
+      var out = Object.assign({}, r, { inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: live, own: tally.own, excluded: tally.excluded, excluded_domains: tally.excluded_domains });
       delete out.products; delete out.cursor;
       return out;
     }
