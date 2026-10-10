@@ -117,14 +117,14 @@
         <div class="live-desc" id="diagCatalogDesc">Reading the active brand's own catalogue...</div>
       </div>
       <div class="live-item">
-        <div class="live-label">Database Mode</div>
+        <div class="live-label">Where brands are saved</div>
         <div class="live-value" id="diagDb">Probing...</div>
-        <div class="live-desc" id="diagDbDesc">Checking public-config endpoint...</div>
+        <div class="live-desc" id="diagDbDesc">Reading the sign-in state and where the active brand lives...</div>
       </div>
       <div class="live-item">
-        <div class="live-label">Campaign Guardrails</div>
-        <div class="live-value" style="color:var(--aa-good);">Strict Isolation Active</div>
-        <div class="live-desc">Foreign catalog fallback eliminated for other brands.</div>
+        <div class="live-label">One brand per record</div>
+        <div class="live-value" id="diagRecord">Probing...</div>
+        <div class="live-desc" id="diagRecordDesc">Comparing where each of the brand's values was read from...</div>
       </div>
     </div>
   </div>
@@ -152,14 +152,35 @@
 <script>
 /* Every check reads the ACTIVE brand. No brand name, file or score is typed
    into this page: one brand's diagnostics shown under another brand is the
-   cross-brand defect this platform exists to prevent. */
-var LIVE = { brand: null, catalog: null, db: null };
+   cross-brand defect this platform exists to prevent.
+
+   Where brands are saved (2026-10-10). This card used to read the retired
+   PIN-era `?action=auth&op=status` mode: it said "Device mode - accounts and
+   brands are saved in this browser" and sent the reader to the PIN document
+   while they were signed in with Google and their brand was a row in the
+   Supabase project. It reads the truth now: auth.js's own decision
+   (LifecycleAuth.backend: signed-in / signed-out / unreachable /
+   unconfigured / sdk / local, with the Supabase host it probed) and where
+   the ACTIVE brand actually lives (its `storage`, and its id). Every next
+   step is derived from a check that failed, with its reason. */
+var CHECKS = [
+  { key: 'brand', label: 'Active brand' },
+  { key: 'catalog', label: 'Catalogue' },
+  { key: 'db', label: 'Where brands are saved' },
+  { key: 'record', label: 'One brand per record' },
+];
+var LIVE = {}, WHY = {}, NEXT = {};
+var RUN = 0;
+function reset() { LIVE = {}; WHY = {}; NEXT = {}; CHECKS.forEach(function (c) { LIVE[c.key] = null; }); }
+reset();
 function setLive(id, text, tone, desc) {
   var v = document.getElementById(id);
   v.textContent = text;
+  v.setAttribute('data-tone', tone);
   v.style.color = tone === 'good' ? 'var(--aa-good)' : tone === 'bad' ? 'var(--aa-bad)' : 'var(--aa-warn)';
   if (desc != null) document.getElementById(id + 'Desc').textContent = desc;
 }
+function record(key, pass, why, next) { LIVE[key] = !!pass; WHY[key] = why || ''; if (!pass && next) NEXT[key] = next; }
 function activeBrand() {
   return new Promise(function (resolve) {
     var B = window.BrandContext;
@@ -170,74 +191,152 @@ function activeBrand() {
     setTimeout(function () { resolve((B.activeBrand && B.activeBrand()) || B.brand || null); }, 4000);
   });
 }
+/** auth.js's FIRST decision (it loads deferred), bounded so the page never hangs. */
+function authDecision() {
+  return new Promise(function (resolve) {
+    var t0 = Date.now();
+    (function wait() {
+      var A = window.LifecycleAuth;
+      if (A && typeof A.backendState === 'function') {
+        var done = false;
+        var finish = function () { if (!done) { done = true; resolve((window.LifecycleAuth && window.LifecycleAuth.backend) || { kind: 'pending' }); } };
+        A.backendState().then(finish, finish);
+        setTimeout(finish, 9000);
+        return;
+      }
+      if (Date.now() - t0 > 9000) return resolve({ kind: 'absent' });
+      setTimeout(wait, 50);
+    })();
+  });
+}
+/** Where the active brand lives: 'device' (this browser) or 'account' (the workspace table). */
+function brandStorage(brand) {
+  if (!brand) return '';
+  var B = window.BrandContext;
+  var deviceId = !!(B && B.device && B.device.isDeviceId && B.device.isDeviceId(brand.id));
+  return (brand.storage === 'device' || deviceId) ? 'device' : 'account';
+}
 function homeRegion(brand) {
   var regs = (brand && Array.isArray(brand.regions)) ? brand.regions : [];
   var home = regs.filter(function (r) { return r && r.home === true; })[0] || regs[0];
   return home ? String(home.code || home.region || '').toLowerCase() : '';
 }
 function summarise() {
-  var checks = [LIVE.brand, LIVE.catalog, LIVE.db];
-  var done = checks.filter(function (c) { return c != null; }).length;
-  var pass = checks.filter(function (c) { return c === true; }).length;
-  document.getElementById('ringScore').textContent = done < checks.length ? '…' : pass + '/' + checks.length;
-  var road = [];
-  if (LIVE.brand === false) road.push('Activate a brand on /onboarding: every check below is read for that brand.');
-  if (LIVE.catalog === false) road.push('Import this brand\'s own catalogue (onboarding step 5, or /connections). Until then its assets render image-free with a DATA REQUIRED marker.');
-  if (LIVE.db === false) road.push('Point this deployment at its Supabase project so accounts and brands are saved server-side (see docs/mobile-pin-signin.md, "Supabase mode").');
-  if (done === checks.length && !road.length) road.push('Every live check passes for this brand.');
-  document.getElementById('road').innerHTML = '';
-  road.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; document.getElementById('road').appendChild(li); });
-  document.getElementById('overallText').textContent = done < checks.length
+  var done = CHECKS.filter(function (c) { return LIVE[c.key] != null; }).length;
+  var passing = CHECKS.filter(function (c) { return LIVE[c.key] === true; });
+  var failing = CHECKS.filter(function (c) { return LIVE[c.key] === false; });
+  var all = done === CHECKS.length;
+  document.getElementById('ringScore').textContent = all ? passing.length + '/' + CHECKS.length : '…';
+  var road = document.getElementById('road');
+  road.innerHTML = '';
+  var steps = CHECKS.filter(function (c) { return NEXT[c.key]; }).map(function (c) { return c.label + ': ' + NEXT[c.key]; });
+  if (all && !failing.length) steps.push('Every live check passes for this brand.');
+  steps.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; road.appendChild(li); });
+  var text = !all
     ? 'Running the live checks for the active brand.'
-    : pass + ' of ' + checks.length + ' live checks pass for ' + ((LIVE.brandName) || 'this deployment') + '.';
+    : passing.length + ' of ' + CHECKS.length + ' live checks pass for ' + (LIVE.brandName || 'this deployment') + '.'
+      + (failing.length ? ' Not passing: ' + failing.map(function (c) { return c.label + (WHY[c.key] ? ' (' + WHY[c.key] + ')' : ''); }).join('; ') + '.' : '');
+  var ot = document.getElementById('overallText');
+  ot.textContent = text;
+  ot.setAttribute('data-failing', failing.map(function (c) { return c.key; }).join(','));
+  ot.setAttribute('data-done', all ? '1' : '0');
 }
 
 async function runLiveProbes() {
-  LIVE = { brand: null, catalog: null, db: null };
+  var run = ++RUN;
+  reset();
   summarise();
   // 1. The active brand
   var brand = await activeBrand();
+  if (run !== RUN) return;
   if (brand && brand.name) {
-    LIVE.brand = true; LIVE.brandName = brand.name;
+    LIVE.brandName = brand.name;
+    record('brand', true, '');
     setLive('diagBrand', brand.name, 'good', 'Every calendar, mailer, ad and landing page is generated for this brand.');
   } else {
-    LIVE.brand = false;
+    record('brand', false, 'no brand is active', 'Activate a brand on /onboarding: every other check is read for that brand.');
     setLive('diagBrand', 'No brand active', 'warn', 'Choose or create a brand on /onboarding.');
   }
   summarise();
 
   // 2. THIS brand's own catalogue, through the one brand-aware resolver
   try {
-    if (!brand || !window.BrandCatalog) throw new Error(brand ? 'catalogue resolver unavailable' : 'no active brand');
+    if (!brand || !window.BrandCatalog) throw new Error(brand ? 'the catalogue resolver did not load' : 'no active brand');
     var res = await window.BrandCatalog.load(homeRegion(brand) || 'global');
+    if (run !== RUN) return;
     var n = (res.products || []).length;
-    LIVE.catalog = n > 0;
+    record('catalog', n > 0, n ? '' : 'no products imported', 'Import this brand\'s own catalogue (onboarding step 5, or /connections). Until then its assets render image-free with a DATA REQUIRED marker.');
     setLive('diagCatalog', n ? n + (n === 1 ? ' product' : ' products') : 'No catalogue', n ? 'good' : 'warn', window.BrandCatalog.describe(res));
   } catch (e) {
-    LIVE.catalog = false;
-    setLive('diagCatalog', 'Not checked', 'warn', String(e && e.message || e));
+    if (run !== RUN) return;
+    var why = String(e && e.message || e);
+    record('catalog', false, why, brand ? 'The catalogue could not be read (' + why + '). Reload the page; if it persists, re-import it on /connections.' : null);
+    setLive('diagCatalog', 'Not checked', 'warn', why.charAt(0).toUpperCase() + why.slice(1) + '.');
   }
   summarise();
 
-  // 3. Where accounts and brands are kept
-  try {
-    var r = await fetch('/api/public-config?action=auth&op=status', { cache: 'no-store' });
-    var cfg = r.ok ? await r.json() : {};
-    if (cfg.mode === 'supabase' || cfg.mode === 'server') {
-      LIVE.db = true;
-      setLive('diagDb', cfg.mode === 'supabase' ? 'Supabase connected' : 'Database connected', 'good', 'Accounts and brands are saved server-side.');
-    } else {
-      LIVE.db = false;
-      setLive('diagDb', 'Device mode', 'warn', 'Accounts and brands are saved in this browser' + (cfg.reason ? ' (' + cfg.reason + ')' : '') + '.');
+  // 3. Where accounts and brands are kept: auth.js's decision + the brand's own storage.
+  var be = await authDecision();
+  if (run !== RUN) return;
+  var host = be.host || '';
+  var where = brandStorage(brand);
+  var A = window.LifecycleAuth || {};
+  var who = (A.user && (A.user.email || (A.user.user_metadata && A.user.user_metadata.name))) || '';
+  var named = host ? ' (Supabase ' + host + ')' : '';
+  if (be.kind === 'signed-in' && where !== 'device') {
+    record('db', true, '');
+    setLive('diagDb', 'Account' + named, 'good', 'Signed in with Google' + (who ? ' as ' + who : '') + (brand ? '; brands are saved to your account.' : '; brands you create are saved to your account.'));
+  } else if (be.kind === 'signed-in') {
+    record('db', false, 'the active brand is kept on this device', 'You are signed in, but the active brand is kept on this device only. Sync it to your account from "Your brands" on /onboarding.');
+    setLive('diagDb', 'This device', 'warn', 'Signed in with Google' + (who ? ' as ' + who : '') + ', but the active brand is kept in this browser only, not in your account' + named + '.');
+  } else if (be.kind === 'local') {
+    record('db', true, '');
+    setLive('diagDb', 'Local preview', 'good', 'The localhost preview: the local server answers for brands.');
+  } else if (be.kind === 'signed-out') {
+    record('db', false, 'not signed in', 'Sign in with Google (the Sign in chip in the menu) so brands are saved to your account; brands on this device can then be synced.');
+    setLive('diagDb', 'This device', 'warn', 'Not signed in: brands are saved in this browser only. The account service' + named + ' answers, so signing in saves them to your account.');
+  } else if (be.kind === 'unreachable') {
+    record('db', false, 'the Supabase project ' + (host || '') + ' is not answering', 'The deployment\'s Supabase project ' + (host || '') + ' is not answering (deleted, renamed or paused). Restore it, or point SUPABASE_URL at the project that holds the accounts.');
+    setLive('diagDb', 'This device', 'bad', 'The account service' + named + ' is not answering, so nobody can sign in; brands are saved in this browser only.');
+  } else if (be.kind === 'unconfigured') {
+    record('db', false, 'no Supabase project is configured', 'Set SUPABASE_URL and SUPABASE_ANON_KEY on this deployment so accounts and brands can be saved to an account.');
+    setLive('diagDb', 'This device', 'bad', 'This deployment names no Supabase project, so there are no accounts; brands are saved in this browser only.');
+  } else if (be.kind === 'sdk') {
+    record('db', false, 'the sign-in library did not load', 'The sign-in library (supabase-js, from its CDN) did not load in this browser. Check the network or an extension blocking it, then reload.');
+    setLive('diagDb', 'Not checked', 'warn', 'The sign-in library did not load, so whether you are signed in could not be decided; brands are saved in this browser for now.');
+  } else {
+    record('db', false, 'the sign-in state was not decided', 'The sign-in state did not settle within 9 seconds. Reload the page.');
+    setLive('diagDb', 'Not checked', 'warn', 'The sign-in state was not decided, so where brands are saved could not be read.');
+  }
+  summarise();
+
+  // 4. Does the active brand's record describe ONE brand? The coherence rule's
+  //    own verdict, carried on the brand payload by the server (or the device).
+  if (!brand) {
+    record('record', false, 'no active brand', null);
+    setLive('diagRecord', 'Not checked', 'warn', 'There is no active brand to check.');
+  } else {
+    var c = brand.coherence;
+    if (!c && window.BrandContext && window.BrandContext.coherence && brand.brand_data) {
+      try { var full = window.BrandContext.coherence(brand); c = { ok: full.ok, blocking: full.blocking, count: full.conflicts.length, summary: full.summary }; } catch (_) { c = null; }
     }
-  } catch (_) {
-    LIVE.db = false;
-    setLive('diagDb', 'Not answering', 'bad', 'The status endpoint did not answer.');
+    if (!c) {
+      record('record', true, '');
+      setLive('diagRecord', 'Nothing to compare', 'good', 'This record carries no values read from a site or a document, so none of them can come from another brand.');
+    } else if (c.ok || !c.count) {
+      record('record', true, '');
+      setLive('diagRecord', 'One brand', 'good', c.summary || 'Every value was read from this brand\'s own website.');
+    } else {
+      var sentence = c.summary || (c.count + ' value' + (c.count === 1 ? '' : 's') + ' came from another site');
+      record('record', !c.blocking, c.blocking ? c.count + ' value' + (c.count === 1 ? '' : 's') + ' from another site' : '', 'Review the conflicts on /onboarding (step 1 shows each one with "Keep this" or "Clear that"): ' + sentence);
+      setLive('diagRecord', c.blocking ? 'Mixed record' : 'Warnings', c.blocking ? 'bad' : 'warn', sentence);
+    }
   }
   summarise();
 }
 runLiveProbes();
 try { if (window.BrandContext && window.BrandContext.onChange) window.BrandContext.onChange(function () { runLiveProbes(); }); } catch (_) {}
+window.addEventListener('lifecycleauth:backend', function (e) { if (e && e.detail && e.detail.kind !== 'pending') runLiveProbes(); });
 </script>
 
 <script src="/auth.js" defer></script>
