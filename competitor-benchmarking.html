@@ -74,128 +74,128 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+    body { font-family:var(--vh-font-body); background:var(--vh-panel); color:var(--vh-ink); min-height: 100vh; }
     .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
     @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
-    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #6A33D8; font-weight: 600; margin-bottom: 10px; }
-    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
-    h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-    h1 em { font-style: italic; color: #6A33D8; }
-    .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color:var(--vh-accent-text); font-weight: 600; margin-bottom: 10px; }
+    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background:var(--vh-panel-2);color:var(--vh-ok-text)}
+    h1 { font-family:var(--vh-font-head); font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+    h1 em { font-style: italic; color:var(--vh-accent-text); }
+    .sub { color:var(--vh-ink-dim); font-size: 13.5px; margin-top: 6px; }
 
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 22px 0; }
     @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
-    .stat { background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 12px; padding: 16px 18px; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .stat:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(171,135,67,0.12); border-color: rgba(171,135,67,0.4); }
-    .stat .v { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; color: #111111; }
-    .stat .l { font-size: 11px; color: #556059; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+    .stat { background:var(--vh-panel); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border:1px solid var(--vh-line); border-radius: 12px; padding: 16px 18px; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .stat:hover { transform: translateY(-4px); box-shadow:0 12px 32px var(--vh-line); border-color:var(--vh-line); }
+    .stat .v { font-family:var(--vh-font-head); font-size: 26px; font-weight: 600; color:var(--vh-ink); }
+    .stat .l { font-size: 11px; color:var(--vh-ink-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
 
     .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .search { position: relative; flex: 1; min-width: 220px; max-width: 420px; }
-    .search input { width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 9px 11px 9px 34px; font-size: 13px; font-family: inherit; }
-    .search input:focus { outline: none; border-color: #6A33D8; }
-    .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color: #48524c; }
+    .search input { width: 100%; background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 9px; color:var(--vh-ink); padding: 9px 11px 9px 34px; font-size: 13px; font-family: inherit; }
+    .search input:focus { outline: none; border-color:var(--vh-accent); }
+    .search svg { position: absolute; left: 10px; top: 9px; width: 16px; height: 16px; color:var(--vh-ink-dim); }
     .toolbar { row-gap: 14px; column-gap: 18px; }
     .filters { display: flex; flex-wrap:nowrap; gap: 12px; align-items: center; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .filters > *{flex:0 0 auto}
-    .filters .live { margin-left: 4px; padding-left: 14px; border-left: 1px solid rgba(171,135,67,0.18); }
-    select, .chk { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 9px; color: #111111; padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
-    .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #556059; }
-    .chk input { accent-color: #6A33D8; }
-    .btn-ghost { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; border-radius: 9px; padding: 8px 11px; cursor: pointer; font-family: inherit; }
-    .btn-ghost:hover { border-color: #6A33D8; color: #111111; }
+    .filters .live { margin-left: 4px; padding-left: 14px; border-left:1px solid var(--vh-line); }
+    select, .chk { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 9px; color:var(--vh-ink); padding: 8px 11px; font-size: 12.5px; font-family: inherit; }
+    .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; color:var(--vh-ink-dim); }
+    .chk input { accent-color:var(--vh-accent); }
+    .btn-ghost { background: transparent; border:1px solid var(--vh-line); color:var(--vh-ink-dim); border-radius: 9px; padding: 8px 11px; cursor: pointer; font-family: inherit; }
+    .btn-ghost:hover { border-color:var(--vh-accent); color:var(--vh-ink); }
     /* #16a34a is 3.3:1 on white - under AA for 11px text. The shared token is
        chosen to pass, and re-skins with the brand. */
-    .live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--brand-ok,#1a7f37); font-weight: 600; }
-    .live.stale { color: #48524c; }
+    .live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color:var(--vh-ok-text); font-weight: 600; }
+    .live.stale { color:var(--vh-ink-dim); }
     .live .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: lp 1.8s ease-in-out infinite; }
     @keyframes lp { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    .table-wrap { background: rgba(255, 255, 255, 0.6); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+    .table-wrap { background:var(--vh-panel); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border:1px solid var(--vh-line); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
     table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
-    thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; font-weight: 600; padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.18); background: var(--vh-panel-tan); }
+    thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color:var(--vh-ink-dim); font-weight: 600; padding: 12px 14px; border-bottom:1px solid var(--vh-line); background:var(--vh-panel-2); }
     thead th.sortable { cursor: pointer; }
-    thead th.sortable:hover { color: #111111; }
-    tbody td { padding: 12px 14px; border-bottom: 1px solid rgba(171,135,67,0.08); vertical-align: middle; }
-    tbody tr:hover { background: rgba(171,135,67,0.05); }
-    .brand { font-weight: 600; color: #111111; }
-    .subj { color: #556059; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    thead th.sortable:hover { color:var(--vh-ink); }
+    tbody td { padding: 12px 14px; border-bottom:1px solid var(--vh-line); vertical-align: middle; }
+    tbody tr:hover { background:var(--vh-tint); }
+    .brand { font-weight: 600; color:var(--vh-ink); }
+    .subj { color:var(--vh-ink-dim); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     /* Touch-friendly tap targets on mobile + swipe hint that there's more table to the right. */
     @media (max-width: 620px) {
       .table-wrap { position: relative; }
       .table-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 24px;
-        background: linear-gradient(to right, transparent, #ffffff); pointer-events: none; border-radius: 0 14px 14px 0; }
+        background:linear-gradient(to right, transparent, var(--vh-panel)); pointer-events: none; border-radius: 0 14px 14px 0; }
       .subj { max-width: 200px; }
       tbody td, thead th { padding: 10px 11px; }
       .a-btn { padding: 8px 10px; font-size: 12px; }
     }
-    .date { color: #48524c; white-space: nowrap; font-size: 12px; }
-    .code { display: inline-block; background: rgba(34,197,94,0.14); color: #0a7d33; font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 99px; margin: 1px; }
-    .files { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #556059; background: rgba(171,135,67,0.12); padding: 2px 8px; border-radius: 99px; }
+    .date { color:var(--vh-ink-dim); white-space: nowrap; font-size: 12px; }
+    .code { display: inline-block; background:var(--vh-panel-2); color:var(--vh-ok-text); font-family:var(--vh-font-mono); font-size: 11px; padding: 2px 7px; border-radius: 99px; margin: 1px; }
+    .files { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color:var(--vh-ink-dim); background:var(--vh-tint); padding: 2px 8px; border-radius: 99px; }
     .muted { color: var(--vh-ink); }
     .actions { display: flex; gap: 6px; justify-content: flex-end; }
     .a-btn { font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 7px; cursor: pointer; border: 1px solid transparent; font-family: inherit; text-decoration: none; }
-    .a-prev { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
-    .a-prev:hover { border-color: #6A33D8; color: #111111; }
-    .a-detail { background: #6A33D8; color: #ffffff; }
+    .a-prev { background: transparent; border-color:var(--vh-line); color:var(--vh-ink-dim); }
+    .a-prev:hover { border-color:var(--vh-accent); color:var(--vh-ink); }
+    .a-detail { background:var(--vh-accent); color:var(--vh-on-accent); }
     .a-detail:hover { opacity: 0.92; }
-    .empty { padding: 40px; text-align: center; color: #48524c; }
-    .count { margin-top: 12px; font-size: 11.5px; color: #48524c; }
+    .empty { padding: 40px; text-align: center; color:var(--vh-ink-dim); }
+    .count { margin-top: 12px; font-size: 11.5px; color:var(--vh-ink-dim); }
 
     /* ── Detail / Preview shared content ── */
     .d-meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 16px; }
-    .d-meta div { font-size: 12.5px; color: #556059; }
-    .d-meta .k { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; display: block; }
+    .d-meta div { font-size: 12.5px; color:var(--vh-ink-dim); }
+    .d-meta .k { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color:var(--vh-ink-dim); display: block; }
     .d-section { margin-bottom: 18px; }
     .d-section .sh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .d-section .sh h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; }
+    .d-section .sh h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color:var(--vh-ink-dim); font-weight: 600; }
     .d-section .sh .ops { display: flex; gap: 6px; }
     /* Email HTML is usually authored at 600–640px. On narrow screens we let
        the user pinch + horizontally swipe inside the rendered frame rather
        than crushing the layout. */
-    .frame-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: auto; background: #fff; -webkit-overflow-scrolling: touch; }
-    .frame-wrap iframe { width: 100%; min-width: 600px; border: 0; display: block; background: #fff; }
-    .shot-wrap { border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; overflow: auto; background: #fff; -webkit-overflow-scrolling: touch; }
+    .frame-wrap { border:1px solid var(--vh-line); border-radius: 10px; overflow: auto; background:var(--vh-panel); -webkit-overflow-scrolling: touch; }
+    .frame-wrap iframe { width: 100%; min-width: 600px; border: 0; display: block; background:var(--vh-panel); }
+    .shot-wrap { border:1px solid var(--vh-line); border-radius: 10px; overflow: auto; background:var(--vh-panel); -webkit-overflow-scrolling: touch; }
     .shot-wrap img { width: 100%; max-width: 100%; height: auto; display: block; }
     @media (max-width: 620px) {
       .frame-wrap iframe { min-width: 100%; }
     }
-    .ph { padding: 30px; text-align: center; color: #48524c; font-size: 12.5px; background: var(--vh-panel-tan); border: 1px dashed rgba(171,135,67,0.2); border-radius: 10px; }
-    pre.body { max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.14); border-radius: 10px; padding: 14px; font-family: inherit; font-size: 12.5px; line-height: 1.6; color: #111111; }
+    .ph { padding: 30px; text-align: center; color:var(--vh-ink-dim); font-size: 12.5px; background:var(--vh-panel-2); border:1px dashed var(--vh-line); border-radius: 10px; }
+    pre.body { max-height: 240px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; background:var(--vh-panel-2); border:1px solid var(--vh-line); border-radius: 10px; padding: 14px; font-family: inherit; font-size: 12.5px; line-height: 1.6; color:var(--vh-ink); }
 
     /* ── Preview modal ── */
     #pm, #jm, #fcm { position: fixed; inset: 0; z-index: 9500; display: none; }
     #pm.open, #jm.open, #fcm.open { display: block; }
-    #pm .bk, #jm .bk, #fcm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
-    #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #pm .bk, #jm .bk, #fcm .bk { position: absolute; inset: 0; background:var(--vh-panel-2); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+    #pm .mc, #jm .mc, #fcm .mc { position: absolute; inset: 4vh 4vw; background:var(--vh-panel-2); border:1px solid var(--vh-line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
     #jm .mc, #fcm .mc { inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; height: auto; max-height: 90vh; }
-    #pm .mh, #jm .mh, #fcm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
-    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6A33D8; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
-    #pm .mh .t, #jm .mh .t, #fcm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pm .mh, #jm .mh, #fcm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom:1px solid var(--vh-line); background:var(--vh-panel); }
+    #pm .mh .badge, #jm .mh .badge, #fcm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color:var(--vh-accent-text); border:1px solid var(--vh-line); padding: 3px 8px; border-radius: 99px; }
+    #pm .mh .t, #jm .mh .t, #fcm .mh .t { font-family:var(--vh-font-head); font-size: 16px; color:var(--vh-ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #pm .mh .sp, #jm .mh .sp, #fcm .mh .sp { flex: 1; }
     #pm .mb, #jm .mb, #fcm .mb { flex: 1; overflow-y: auto; padding: 18px; }
     .form-grp { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-    .form-grp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; }
-    .form-grp input, .form-grp select { background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px; color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
-    .form-grp input:focus, .form-grp select:focus { outline: none; border-color: #6A33D8; }
+    .form-grp label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color:var(--vh-ink-dim); font-weight: 600; }
+    .form-grp input, .form-grp select { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 8px; color:var(--vh-ink); padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
+    .form-grp input:focus, .form-grp select:focus { outline: none; border-color:var(--vh-accent); }
     /* Brand-detail modal — mirrors the #pm preview modal chrome. */
     #bm { position: fixed; inset: 0; z-index: 9500; display: none; }
     #bm.open { display: block; }
-    #bm .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.72); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
-    #bm .mc { position: absolute; inset: 4vh 4vw; background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-    #bm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(171,135,67,0.18); background: #ffffff; }
-    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6A33D8; border: 1px solid rgba(171,135,67,0.3); padding: 3px 8px; border-radius: 99px; }
-    #bm .mh .t { font-family: 'Lora', serif; font-size: 16px; color: #111111; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #bm .bk { position: absolute; inset: 0; background:var(--vh-panel-2); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+    #bm .mc { position: absolute; inset: 4vh 4vw; background:var(--vh-panel-2); border:1px solid var(--vh-line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+    #bm .mh { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom:1px solid var(--vh-line); background:var(--vh-panel); }
+    #bm .mh .badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color:var(--vh-accent-text); border:1px solid var(--vh-line); padding: 3px 8px; border-radius: 99px; }
+    #bm .mh .t { font-family:var(--vh-font-head); font-size: 16px; color:var(--vh-ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #bm .mh .sp { flex: 1; }
     #bm .mb { flex: 1; overflow-y: auto; padding: 18px; }
     /* Landing sub-tabs, groups, and follow chips */
-    .lp-subtab.active { background: #D0473E; color: #FFFFFF; border-color: #D0473E; }
+    .lp-subtab.active { background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--vh-primary); }
     .lp-group { margin-top: 20px; }
-    .lp-group-h { font-family: 'Lora', serif; color: #D0473E; font-size: 17px; margin: 0 0 10px; }
+    .lp-group-h { font-family:var(--vh-font-head); color:var(--vh-primary-text); font-size: 17px; margin: 0 0 10px; }
     .follow-wrap { display: inline-flex; gap: 6px; }
-    .follow-chip { font: inherit; font-size: 11px; font-weight: 700; border: 1px solid rgba(171,135,67,0.4); background: #fff; color: var(--vh-ink); border-radius: 99px; padding: 3px 9px; cursor: pointer; }
-    .follow-chip.on { background: #D0473E; color: #FFFFFF; border-color: #D0473E; }
+    .follow-chip { font: inherit; font-size: 11px; font-weight: 700; border:1px solid var(--vh-line); background:var(--vh-panel); color: var(--vh-ink); border-radius: 99px; padding: 3px 9px; cursor: pointer; }
+    .follow-chip.on { background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--vh-primary); }
     .follow-chip:disabled { opacity: 0.5; cursor: default; }
     .brand-link { cursor: pointer; }
     /* On a phone, use the entire screen so the email render gets every pixel. */
@@ -209,47 +209,47 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .pm-close { width: 32px; height: 32px; }
     }
     .pm-act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; font-family: inherit; }
-    .pm-detail { background: #6A33D8; color: #ffffff; }
-    .pm-close { background: transparent; border: 1px solid rgba(171,135,67,0.3); color: #556059; width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
+    .pm-detail { background:var(--vh-band-accent); color:var(--vh-on-band-accent); }
+    .pm-close { background: transparent; border:1px solid var(--vh-line); color:var(--vh-ink-dim); width: 34px; height: 34px; border-radius: 8px; font-size: 18px; }
 
     /* ── Section sub-nav (Mailers | Ads) + header CTAs ── */
     .cb-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px 20px; margin-top: 22px; }
-    .subnav { display: inline-flex; gap: 4px; padding: 4px; background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-    .snav { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #556059; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
-    .snav:hover { color: #111111; }
-    .snav.active { color: #111111; background: rgba(171,135,67,0.16); }
+    .subnav { display: inline-flex; gap: 4px; padding: 4px; background:var(--vh-panel); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border:1px solid var(--vh-line); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .snav { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; color:var(--vh-ink-dim); background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
+    .snav:hover { color:var(--vh-ink); }
+    .snav.active { color:var(--vh-ink); background:var(--vh-tint); }
     .cb-cta-group { display: flex; flex-wrap: wrap; gap: 10px; }
     .cb-cta { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; white-space: nowrap; }
-    .cb-cta-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #6A33D8; }
-    .cb-cta-ghost:hover { border-color: #6A33D8; color: var(--vh-ink); }
-    .cb-cta-solid { background: #6A33D8; color: #ffffff; }
+    .cb-cta-ghost { background: transparent; border-color:var(--vh-line); color:var(--vh-accent-text); }
+    .cb-cta-ghost:hover { border-color:var(--vh-accent); color: var(--vh-ink); }
+    .cb-cta-solid { background:var(--vh-accent); color:var(--vh-on-accent); }
     .cb-cta-solid:hover { opacity: 0.92; }
     @media (max-width: 620px) { .cb-actions { gap: 12px; } .cb-cta-group { width: 100%; } .cb-cta { flex: 1; text-align: center; } }
 
     /* ── Ads view ── */
     #ads-view { display: none; margin-top: 22px; }
-    .ads-note { background: rgba(171,135,67,0.06); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(171,135,67,0.18); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #556059; line-height: 1.55; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .ads-note { background:var(--vh-tint); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); -webkit-backdrop-filter: blur(8px); border:1px solid var(--vh-line); border-radius: 12px; padding: 14px 16px; font-size: 13px; color:var(--vh-ink-dim); line-height: 1.55; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .ad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .ad-card { background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(171,135,67,0.18); border-radius: 12px; padding: 16px; position: relative; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-    .ad-card:hover { transform: translateY(-4px); border-color: rgba(171,135,67,0.45); box-shadow: 0 12px 32px rgba(171,135,67,0.15); }
-    .ad-card h4 { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; color: #111111; margin-bottom: 12px; }
-    .ad-card .ad-x { position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: #48524c; cursor: pointer; font-size: 15px; }
-    .ad-card .ad-x:hover { color: #ef4444; }
-    .ad-src { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); color: #556059; text-decoration: none; font-size: 12.5px; margin-bottom: 7px; transition: all .14s; }
-    .ad-src:hover { border-color: #6A33D8; color: #111111; background: rgba(171,135,67,0.06); }
+    .ad-card { background:var(--vh-panel); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); -webkit-backdrop-filter: blur(12px); border:1px solid var(--vh-line); border-radius: 12px; padding: 16px; position: relative; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .ad-card:hover { transform: translateY(-4px); border-color:var(--vh-line); box-shadow:0 12px 32px var(--vh-line); }
+    .ad-card h4 { font-family:var(--vh-font-head); font-size: 16px; font-weight: 600; color:var(--vh-ink); margin-bottom: 12px; }
+    .ad-card .ad-x { position: absolute; top: 12px; right: 12px; background: transparent; border: none; color:var(--vh-ink-dim); cursor: pointer; font-size: 15px; }
+    .ad-card .ad-x:hover { color:var(--vh-err-text); }
+    .ad-src { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; border:1px solid var(--vh-line); color:var(--vh-ink-dim); text-decoration: none; font-size: 12.5px; margin-bottom: 7px; transition: all .14s; }
+    .ad-src:hover { border-color:var(--vh-accent); color:var(--vh-ink); background:var(--vh-tint); }
     .ad-src .src-ic { width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
     /* The glyph colours were dark-theme pastels left on a light wash: 1.4:1
        and 1.5:1, i.e. invisible. The platform identity is carried by the wash;
        the letter just has to be readable, so it takes the brand ink like any
        other mark on a light tint. */
-    .src-meta { background: rgba(59,130,246,0.2); color: var(--brand-ink,#111111); }
-    .src-google { background: rgba(234,179,8,0.18); color:var(--brand-accent-text); }
-    .src-tiktok { background: rgba(236,72,153,0.18); color: var(--brand-ink,#111111); }
+    .src-meta { background:var(--vh-tint); color:var(--vh-ink); }
+    .src-google { background:var(--vh-panel-2); color:var(--brand-accent-text); }
+    .src-tiktok { background:var(--vh-tint); color:var(--vh-ink); }
     .ad-thumbs { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-bottom:8px; }
-    .ad-thumb { display:block; border:1px solid rgba(171,135,67,0.18); border-radius:8px; overflow:hidden; text-decoration:none; background:#ffffff; }
-    .ad-thumb img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#ffffff; }
-    .ad-thumb .ad-cap { font-size:10.5px; color:#556059; padding:5px 7px; line-height:1.35; }
-    .ad-loading { font-size:12px; color:#556059; }
+    .ad-thumb { display:block; border:1px solid var(--vh-line); border-radius:8px; overflow:hidden; text-decoration:none; background:var(--vh-panel); }
+    .ad-thumb img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:var(--vh-panel); }
+    .ad-thumb .ad-cap { font-size:10.5px; color:var(--vh-ink-dim); padding:5px 7px; line-height:1.35; }
+    .ad-loading { font-size:12px; color:var(--vh-ink-dim); }
 
     /* ── Full detail view (?id=) ── */
     #detail { display: none; }
@@ -260,7 +260,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     body.detail-mode #insights-view,
     body.detail-mode #cb-head { display: none; }
     body.detail-mode #detail { display: block; }
-    .back { display: inline-flex; align-items: center; gap: 6px; color: #6A33D8; text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; color:var(--vh-accent-text); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
     .detail-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
     @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
   </style>
@@ -341,7 +341,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
     <div id="dv-shot"></div>
     <div class="d-section">
-      <h4 style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#48524c;font-weight:600;margin-bottom:8px">Body (plain text)</h4>
+      <h4 style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--vh-ink-dim);font-weight:600;margin-bottom:8px">Body (plain text)</h4>
       <pre class="body" id="dv-body"></pre>
     </div>
     <div class="d-section" id="dv-assets"></div>
@@ -354,7 +354,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
     <div class="toolbar">
       <div class="filters">
-        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#48524c;font-weight:600">Region</span>
+        <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--vh-ink-dim);font-weight:600">Region</span>
         <select id="adRegion">
           <option value="US">United States</option>
           <option value="GB">United Kingdom</option>
@@ -385,20 +385,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   <!-- Two clearly-labelled action cards explaining exactly what each button does -->
   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px">
-    <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
-      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">✨ Find &amp; add new brands with AI</div>
-      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px">
+    <div style="background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; padding:14px 16px">
+      <div style="font-weight:700; color:var(--vh-ink); font-size:14px; margin-bottom:4px">✨ Find &amp; add new brands with AI</div>
+      <div style="color:var(--vh-ink-dim); font-size:12px; line-height:1.5; margin-bottom:10px">
         Runs an AI research pass to find <span class="cb-industry">same-industry</span> brands you don't already track (excludes <span class="cb-brandname">the active brand</span> and brands already in your universe). Adds them to the list with category, country, positioning, signup URL. ~20 seconds per run.
       </div>
       <button type="button" id="bd-discover" class="cb-cta cb-cta-solid" style="width:100%">✨ Find &amp; add new brands</button>
     </div>
-    <div style="background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; padding:14px 16px">
-      <div style="font-weight:700; color:#111111; font-size:14px; margin-bottom:4px">⬇ Seed from this brand's own record</div>
-      <div style="color:#556059; font-size:12px; line-height:1.5; margin-bottom:10px"> Adds the competitors <span class="cb-brandname">the active brand</span> already names in its own brand record and market study. No AI, no guessing: if the record names none, you get the data gap rather than a list of plausible companies. Skips any already tracked, so it is safe to re-run. </div>
+    <div style="background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; padding:14px 16px">
+      <div style="font-weight:700; color:var(--vh-ink); font-size:14px; margin-bottom:4px">⬇ Seed from this brand's own record</div>
+      <div style="color:var(--vh-ink-dim); font-size:12px; line-height:1.5; margin-bottom:10px"> Adds the competitors <span class="cb-brandname">the active brand</span> already names in its own brand record and market study. No AI, no guessing: if the record names none, you get the data gap rather than a list of plausible companies. Skips any already tracked, so it is safe to re-run. </div>
       <button type="button" id="bd-seed" class="cb-cta cb-cta-ghost" style="width:100%">⬇ Seed from brand record</button>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#556059">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--vh-ink-dim)">
     <span id="bd-status"></span>
     <span class="sp" style="flex:1"></span>
     <button type="button" id="bd-refresh" class="cb-cta cb-cta-ghost" style="padding:4px 12px; font-size:11px" title="Reload the brand universe from the database">↻ Refresh list</button>
@@ -406,16 +406,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   </div>
 
   <!-- Column legend so the Newsletter / Subscription columns are self-explanatory -->
-  <div style="background:rgba(171,135,67,0.04); border:1px solid rgba(171,135,67,0.15); border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:#556059; line-height:1.6">
-    <b style="color:#6A33D8">Column key:</b>
+  <div style="background:var(--vh-tint); border:1px solid var(--vh-line); border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:var(--vh-ink-dim); line-height:1.6">
+    <b style="color:var(--vh-accent-text)">Column key:</b>
     <span style="margin:0 14px 0 6px"><b>Newsletter</b>, direct signup link for this brand's mailing list (opens in new tab).</span>
     <span style="margin-right:14px"><b>Follow (real-time)</b>, toggle <b>Mailers</b> and/or <b>Ads</b> to get a real-time email to your logged-in address for every new mailer or ad captured for that brand. <b>Newsletter</b> is a direct signup link for the brand's own list (opens a new tab).</span>
   </div>
 
-  <div style="overflow-x:auto;border:1px solid rgba(171,135,67,0.18);border-radius:12px">
+  <div style="overflow-x:auto;border:1px solid var(--vh-line);border-radius:12px">
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead>
-        <tr style="text-align:left;color:#48524c;text-transform:uppercase;font-size:10px;letter-spacing:.08em">
+        <tr style="text-align:left;color:var(--vh-ink-dim);text-transform:uppercase;font-size:10px;letter-spacing:.08em">
           <th style="padding:10px 12px">Brand</th><th style="padding:10px 12px">Category</th>
           <th style="padding:10px 12px">Country</th><th style="padding:10px 12px">Positioning</th>
           <th style="padding:10px 12px">Newsletter</th><th style="padding:10px 12px">Follow (real-time)</th>
@@ -460,36 +460,36 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;">
     <!-- Active Brands -->
-    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
-      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Most active brands (by captured mailers)</div>
-      <div id="cb-insights-top" style="font-size:13px;color:#556059"></div>
+    <div style="background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:var(--vh-ink);font-size:14px;margin-bottom:10px">Most active brands (by captured mailers)</div>
+      <div id="cb-insights-top" style="font-size:13px;color:var(--vh-ink-dim)"></div>
     </div>
     
     <!-- Trending Offers -->
-    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
-      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Trending Promotions</div>
-      <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: #556059; line-height: 1.8;">
-        <li><span style="color:#6A33D8; font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Product &amp; Coffee brands.</li>
-        <li><span style="color:#6A33D8; font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
-        <li><span style="color:#6A33D8; font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
+    <div style="background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:var(--vh-ink);font-size:14px;margin-bottom:10px">Trending Promotions</div>
+      <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color:var(--vh-ink-dim); line-height: 1.8;">
+        <li><span style="color:var(--vh-accent-text); font-weight: 600;">Bundling (BOGO)</span> is up <b>18%</b> MoM across Product &amp; Coffee brands.</li>
+        <li><span style="color:var(--vh-accent-text); font-weight: 600;">Free Shipping thresholds</span> lowered by an average of $5 in the last 14 days among top competitors.</li>
+        <li><span style="color:var(--vh-accent-text); font-weight: 600;">Early VIP Access</span> is the most used subject-line hook for new product drops.</li>
       </ul>
     </div>
   </div>
 
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
     <!-- PageDeck Insights -->
-    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
-      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">PageDeck: Landing Page Trends</div>
-      <div style="font-size: 13px; color: #556059;">
+    <div style="background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:var(--vh-ink);font-size:14px;margin-bottom:10px">PageDeck: Landing Page Trends</div>
+      <div style="font-size: 13px; color:var(--vh-ink-dim);">
         <p>Recent data indicates a <b>14% lift</b> in CVR when placing the "Us vs Them" comparison table above the fold on mobile.</p>
         <p style="margin-top: 8px;"><b>Format Trend:</b> "Listicle" style advertorials are dominating Meta traffic.</p>
       </div>
     </div>
 
     <!-- Discover Insights -->
-    <div style="background:#ffffff;border:1px solid rgba(171,135,67,0.18);border-radius:12px;padding:16px 18px">
-      <div style="font-weight:700;color:#111111;font-size:14px;margin-bottom:10px">Discover: Emerging Mechanics</div>
-      <div style="font-size: 13px; color: #556059;">
+    <div style="background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:700;color:var(--vh-ink);font-size:14px;margin-bottom:10px">Discover: Emerging Mechanics</div>
+      <div style="font-size: 13px; color:var(--vh-ink-dim);">
         <p>• <b>Micro-animations</b> on Add-to-Cart buttons increase engagement by 4.2%.</p>
         <p>• <b>Interactive pricing sliders</b> for subscription tiers.</p>
         <p>• <b>Video-first hero sections</b> specifically shot natively on iPhone for TikTok traffic.</p>
@@ -545,15 +545,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <button type="button" class="pm-act pm-close" onclick="this.closest('#jm').classList.remove('open')" aria-label="Close">×</button>
     </div>
     <div class="mb" style="display:flex; flex-direction: column; gap: 20px;">
-      <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
-        <h4 style="color:#111111; margin-bottom: 8px;">1. Subscribe to Asset Brands</h4>
-        <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Automatically subscribe to competitor email lists to capture their assets and marketing sequences.</p>
-        <button type="button" class="pm-act" style="background: transparent; border: 1px solid rgba(171,135,67,0.5); color: #556059; width: 100%; justify-content: center;" onclick="sayInline('jm-note-sub', 'Not connected yet: nothing was subscribed. This deployment has no sign-up flow for competitor lists.')">Explore more Competitors</button>
+      <div class="d-section" style="background:var(--vh-tint); padding: 16px; border-radius: 12px; border:1px solid var(--vh-line);">
+        <h4 style="color:var(--vh-ink); margin-bottom: 8px;">1. Subscribe to Asset Brands</h4>
+        <p style="font-size: 13px; color:var(--vh-ink-dim); margin-bottom: 14px;">Automatically subscribe to competitor email lists to capture their assets and marketing sequences.</p>
+        <button type="button" class="pm-act" style="background: transparent; border:1px solid var(--vh-line); color:var(--vh-ink-dim); width: 100%; justify-content: center;" onclick="sayInline('jm-note-sub', 'Not connected yet: nothing was subscribed. This deployment has no sign-up flow for competitor lists.')">Explore more Competitors</button>
         <div id="jm-note-sub" class="vh-status" role="status" hidden></div>
       </div>
-      <div class="d-section" style="background: rgba(171,135,67,0.05); padding: 16px; border-radius: 12px; border: 1px solid rgba(171,135,67,0.2);">
-        <h4 style="color:#111111; margin-bottom: 8px;">2. Simulate Customer Actions</h4>
-        <p style="font-size: 13px; color: #556059; margin-bottom: 14px;">Visit, add/remove products from cart, and perform actions for real-time segmentation to capture conditional campaigns.</p>
+      <div class="d-section" style="background:var(--vh-tint); padding: 16px; border-radius: 12px; border:1px solid var(--vh-line);">
+        <h4 style="color:var(--vh-ink); margin-bottom: 8px;">2. Simulate Customer Actions</h4>
+        <p style="font-size: 13px; color:var(--vh-ink-dim); margin-bottom: 14px;">Visit, add/remove products from cart, and perform actions for real-time segmentation to capture conditional campaigns.</p>
         <button type="button" class="pm-act pm-detail" style="width: 100%; justify-content: center;" onclick="sayInline('jm-note-sim', 'Not connected yet: no simulation was started. This flow is not built in this deployment.')">Become a part of their journey</button>
         <div id="jm-note-sim" class="vh-status" role="status" hidden></div>
       </div>
