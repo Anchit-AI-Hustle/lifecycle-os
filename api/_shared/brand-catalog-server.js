@@ -186,6 +186,9 @@ function fromRow(row) {
     type: row.product_type || '',
     subtitle: '',
     product_url: typeof row.product_url === 'string' && /^https?:\/\//.test(row.product_url) ? row.product_url : '',
+    // The page the import read this row from: catalogue identity judges a
+    // row by it (catalogRowForeign), never by the CDN its photo is hosted on.
+    source_url: typeof row.source_url === 'string' && /^https?:\/\//.test(row.source_url) ? row.source_url : '',
     region: String(row.region || '').toLowerCase(),
     __workspace_id: row.workspace_id || '',
   };
@@ -223,7 +226,7 @@ async function workspaceRows(workspaceId) {
   // Live rows only: a product a complete re-import no longer found is kept
   // (stale_at) but never built into an asset. A database without migration
   // 20261010002000 has no stale_at / image_urls, and reads the old columns.
-  const shapes = [`${cols},image_urls&stale_at=is.null`, cols];
+  const shapes = [`${cols},image_urls,source_url&stale_at=is.null`, cols];
   try {
     let out = null;
     for (const shape of shapes) {
@@ -282,6 +285,60 @@ const UNRESOLVED_REASON =
   + 'data was used. The shipped catalogue describes tenant zero only.';
 
 function none(reason) { return { products: [], source: 'none', reason }; }
+
+/* ── catalogue IDENTITY (2026-10-10) ────────────────────────────────────────
+ *
+ * Whose rows these are was answered by workspace_id alone: a row in this
+ * workspace's table was this brand's product. The live record named Mamaearth
+ * carried a catalogue imported from delichic.co.in, and every planner and
+ * writer then used Deli Chic's chicken salami as Mamaearth's hero. The
+ * coherence rule (brand-coherence.js) already called that catalogue another
+ * brand's, but only at activation; a record activated before the rule, or
+ * overridden, kept feeding it to generation.
+ *
+ * Generation now asks the SAME rule (catalogIdentity: brandCoherence's own
+ * verdict, never a second domain comparison). A catalogue it judges another
+ * brand's, that the person has not kept, contributes no product, photo,
+ * name or claim; each remaining row is judged by the page it was read from
+ * (catalogRowForeign). Tenant zero's shipped catalogue is not a row and is
+ * not judged here.
+ */
+function catalogVerdict(brand) {
+  if (!brand || typeof brand !== 'object') return null;
+  if (isTenantZeroBrand(brand) === true) return null;
+  try { return require('./brand-coherence.js').catalogIdentity(brand); } catch (_) { return null; }
+}
+/** The rows of `brand`'s catalogue a generator may use, and what was dropped. */
+function identityFilter(rows, brand, verdict) {
+  const v = verdict === undefined ? catalogVerdict(brand) : verdict;
+  const list = Array.isArray(rows) ? rows : [];
+  if (!v) return { rows: list, dropped: 0, verdict: null };
+  const C = require('./brand-coherence.js');
+  const kept = list.filter((p) => !C.catalogRowForeign(p, v));
+  return { rows: kept, dropped: list.length - kept.length, verdict: v };
+}
+/** The reason a renderer turns into its marker: the marker, then the sentence. */
+function foreignCatalogReason(verdict) {
+  return `${verdict.marker} ${verdict.sentence}`.trim();
+}
+function excludedNone(verdict) {
+  return Object.assign(none(foreignCatalogReason(verdict)), { catalog_excluded: verdict });
+}
+/** The workspace's own record, for a generation that named no brand. */
+async function workspaceRecord(workspaceId) {
+  const env = serviceEnv();
+  if (!env || !workspaceId) return null;
+  try { return await require('./workspace-scope.js').brandForWorkspace(env, workspaceId); } catch (_) { return null; }
+}
+/** Rows filtered by catalogue identity; the excluded state when nothing is left. */
+function judged(rows, brand) {
+  const f = identityFilter(rows, brand);
+  if (f.rows.length) return { products: f.rows, source: 'brand', reason: '', zero: false, catalog_excluded: f.verdict && f.verdict.excluded ? f.verdict : null, dropped: f.dropped };
+  if (f.verdict && (f.verdict.excluded || f.dropped)) return Object.assign(excludedNone(f.verdict.excluded ? f.verdict : Object.assign({}, f.verdict, {
+    sentence: `Every product in this catalogue was read from another brand's site, so none is used for ${(brand && brand.name) || 'this brand'}.`,
+  })), { zero: false });
+  return null;
+}
 
 /* ── tenant zero's OTHER shipped data files ────────────────────────────────
  *
@@ -374,8 +431,11 @@ async function resolve({ brand = null, workspaceId = null } = {}) {
   const wsId = workspaceId || (brand && brand.id) || null;
 
   if (zero === false) {
+    const v = catalogVerdict(brand);
     const rows = await workspaceRows(wsId);
-    if (rows.length) return { products: rows, source: 'brand', reason: '', zero: false };
+    const j = rows.length ? judged(rows, brand) : null;
+    if (j) return j;
+    if (v && v.excluded) return Object.assign(excludedNone(v), { zero: false });
     return Object.assign(none(noCatalogueReason(brand)), { zero: false });
   }
 
@@ -386,7 +446,14 @@ async function resolve({ brand = null, workspaceId = null } = {}) {
   if (owns) return { products: null, source: 'shipped', reason: '', zero: true };
 
   const rows = await workspaceRows(wsId);
-  if (rows.length) return { products: rows, source: 'brand', reason: '', zero: false };
+  if (rows.length) {
+    // No brand on the call: the workspace's own record decides whose rows
+    // these are, exactly as it would for a call that named it.
+    const rec = (brand && (brand.catalog_source || brand.website)) ? brand : await workspaceRecord(wsId);
+    const j = rec ? judged(rows, rec) : null;
+    if (j) return j;
+    return { products: rows, source: 'brand', reason: '', zero: false };
+  }
   return Object.assign(none(UNRESOLVED_REASON), { zero: false });
 }
 
@@ -429,6 +496,12 @@ function productsFor(market, { brand = null, workspaceId = null } = {}) {
   //    pass rebuilds slots from several workspaces inside one invocation).
   const zero = isTenantZeroBrand(brand);
   if (zero === true) return { products: shipped(market), source: 'shipped', reason: '' };
+  // A record whose catalogue the coherence rule calls another brand's never
+  // reaches a renderer, whatever the pinned scope holds (2026-10-10).
+  const verdict = brand ? catalogVerdict(brand) : null;
+  if (verdict && verdict.excluded && !(scope && sameTenant(scope, brand, workspaceId) && scope.source === 'brand' && identityFilter(scope.products, brand, verdict).rows.length)) {
+    return excludedNone(verdict);
+  }
   // A WORKSPACE record whose ownership nobody stamped (it may only carry
   // tenant zero's slug, which its owner wrote): what this generation pinned
   // for THIS tenant decides - resolve() asked the workspace rule - and nothing
@@ -436,17 +509,17 @@ function productsFor(market, { brand = null, workspaceId = null } = {}) {
   if (zero === null && brand && brand.id) {
     if (scope && sameTenant(scope, brand, workspaceId)) {
       if (scope.source === 'shipped') return { products: shipped(market), source: 'shipped', reason: '' };
-      if (scope.source === 'brand') return { products: forRegion(scope.products, market), source: 'brand', reason: '' };
-      return none(scope.reason || noCatalogueReason(brand));
+      if (scope.source === 'brand') return { products: forRegion(identityFilter(scope.products, brand, verdict).rows, market), source: 'brand', reason: '' };
+      return Object.assign(none(scope.reason || noCatalogueReason(brand)), scope.catalog_excluded ? { catalog_excluded: scope.catalog_excluded } : {});
     }
     return none(noCatalogueReason(brand));
   }
   if (zero === false) {
     if (scope && scope.source === 'brand' && sameTenant(scope, brand, workspaceId)) {
-      return { products: forRegion(scope.products, market), source: 'brand', reason: '' };
+      return { products: forRegion(identityFilter(scope.products, brand, verdict).rows, market), source: 'brand', reason: '' };
     }
     if (scope && scope.source === 'none' && sameTenant(scope, brand, workspaceId)) {
-      return none(scope.reason || noCatalogueReason(brand));
+      return Object.assign(none(scope.reason || noCatalogueReason(brand)), scope.catalog_excluded ? { catalog_excluded: scope.catalog_excluded } : {});
     }
     return none(noCatalogueReason(brand));
   }
@@ -455,7 +528,7 @@ function productsFor(market, { brand = null, workspaceId = null } = {}) {
   if (scope) {
     if (scope.source === 'shipped') return { products: shipped(market), source: 'shipped', reason: '' };
     if (scope.source === 'brand') return { products: forRegion(scope.products, market), source: 'brand', reason: '' };
-    return none(scope.reason || UNRESOLVED_REASON);
+    return Object.assign(none(scope.reason || UNRESOLVED_REASON), scope.catalog_excluded ? { catalog_excluded: scope.catalog_excluded } : {});
   }
 
   // 3. Nothing known at all. With no Supabase project this is a script, a build
@@ -519,5 +592,6 @@ module.exports = {
   withCatalog, resolve, productsFor, currentScope, invalidate,
   isTenantZeroBrand, tenantZeroSlug, shipped, shippedRegion, regionKey,
   imageMarker, noCatalogueReason, UNRESOLVED_REASON, fromRow, forRegion,
+  catalogVerdict, identityFilter, foreignCatalogReason,
   supabaseConfigured, MAX_ROWS,
 };

@@ -421,7 +421,64 @@ var COHERENCE = (function () {
     return { identity: identity, domains: domains, conflicts: live, accepted: accepted, blocking: blocking, ok: live.length === 0, summary: summary };
   }
 
-  return { brandCoherence: brandCoherence, registrableDomain: registrableDomain, hostOf: hostOf, sameBrand: sameBrand, nameFitsHost: nameFitsHost, sourceOf: sourceOf, slugify: slugify, LABEL: LABEL, MULTI_LABEL_SUFFIXES: MULTI_LABEL_SUFFIXES };
+  /**
+   * catalogIdentity(record) - may a generator use the catalogue on this
+   * record as THIS brand's products? (2026-10-10)
+   *
+   * The rule above judged a foreign catalogue only at activation, so a record
+   * activated before the rule existed (or overridden) kept handing another
+   * company's products to every planner and writer: a brand named Mamaearth
+   * got mailers for another company's chicken salami. The answer here is
+   * brandCoherence's OWN verdict, never a second domain comparison: a
+   * catalogue conflict that BLOCKS (cross_domain or mixed_sources on
+   * catalog_source) and that the person has not kept excludes the catalogue.
+   *
+   * `allowed` lists the registrable domains a product row may come from: the
+   * website's, the catalogue source's when it is not excluded, and any
+   * catalogue domain the person KEPT. catalogRowForeign() judges one row by
+   * the page it describes (source_url, else product_url); a row with no page
+   * belongs to the catalogue it arrived in, so it follows that verdict.
+   */
+  function catalogIdentity(record) {
+    var rec = isObj(record) ? record : {};
+    var c = brandCoherence(rec);
+    var cat = isObj(rec.catalog_source) ? rec.catalog_source : {};
+    var hit = null;
+    c.conflicts.forEach(function (x) { if (!hit && x.field === 'catalog_source' && x.severity === 'block') hit = x; });
+    var kept = [];
+    c.accepted.forEach(function (id) {
+      var m = /^(?:cross_domain|mixed_sources):catalog_source:(.+)$/.exec(id);
+      if (m && kept.indexOf(m[1]) < 0) kept.push(m[1]);
+    });
+    var srcDomain = registrableDomain(hostOf(cat.url));
+    var allowed = [];
+    function allow(d) { if (d && allowed.indexOf(d) < 0) allowed.push(d); }
+    if (c.identity) allow(c.identity.domain);
+    if (srcDomain && !hit) allow(srcDomain);
+    kept.forEach(allow);
+    var name = str(rec.name) || 'this brand';
+    var marker = '[DATA REQUIRED BEFORE LAUNCH: product catalogue, ' + name + ']';
+    var sentence = hit
+      ? 'The catalogue on this record was imported from ' + hit.domain + (c.identity ? ', not from ' + c.identity.domain + ' (this brand\'s website)' : '') +
+        ', so none of its products, photos or claims are used for ' + name + '. Import ' + name + '\'s own catalogue, or keep this one in brand setup if it is ' + name + '\'s.'
+      : '';
+    return {
+      excluded: !!hit, domain: hit ? hit.domain : '', conflict_id: hit ? hit.id : '', identity_domain: c.identity ? c.identity.domain : '',
+      source_domain: srcDomain, allowed: allowed, kept: kept, marker: marker, sentence: sentence
+    };
+  }
+  /** Does ONE product row come from another brand's site, under this verdict? */
+  function catalogRowForeign(row, verdict) {
+    if (!isObj(row) || !isObj(verdict)) return false;
+    var u = str(row.source_url) || str(row.product_url) || str(row.url);
+    var h = hostOf(u);
+    if (!h || neutral(h)) return !!verdict.excluded;
+    if (!verdict.allowed || !verdict.allowed.length) return !!verdict.excluded;
+    var d = registrableDomain(h);
+    return !verdict.allowed.some(function (a) { return sameBrand(a, d); });
+  }
+
+  return { brandCoherence: brandCoherence, catalogIdentity: catalogIdentity, catalogRowForeign: catalogRowForeign, registrableDomain: registrableDomain, hostOf: hostOf, sameBrand: sameBrand, nameFitsHost: nameFitsHost, sourceOf: sourceOf, slugify: slugify, LABEL: LABEL, MULTI_LABEL_SUFFIXES: MULTI_LABEL_SUFFIXES };
 })();
 /* BRAND-COHERENCE:END */
 

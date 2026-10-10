@@ -312,6 +312,12 @@ function carriedBrand(body, auth) {
     // A device brand's catalogue is not on the server either, and nothing
     // here may reach the shipped files: the slug above is what the gate reads.
     catalog_source: catalogSource,
+    // The conflicts the person KEPT (brand_data.coherence.accepted, ids only):
+    // without them a catalogue the person explicitly kept as this brand's
+    // would read as another brand's to the generation gate (2026-10-10).
+    brand_data: { coherence: { accepted: (Array.isArray(obj(data.coherence).accepted) ? obj(data.coherence).accepted : [])
+      .map((a) => (a && typeof a === 'object' ? str(a.id, 200) : str(a, 200))).filter((x) => /^[a-z_]+:[A-Za-z0-9_.\[\]-]+:[^\s]{0,120}$/.test(x)).slice(0, 40)
+      .map((id) => ({ id })) } },
   };
 }
 

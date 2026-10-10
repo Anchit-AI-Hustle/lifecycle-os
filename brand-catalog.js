@@ -174,16 +174,43 @@
 
   /** A brand on this device: the catalogue kept beside it. Read fresh each
    *  time, because an import on the onboarding page lands here without an event. */
+  /* ── Whose catalogue it is (2026-10-10) ─────────────────────────────────
+     A record named Mamaearth carried a catalogue imported from another
+     company's site, and every page composed that company's products under
+     Mamaearth's name. The coherence rule (BrandContext.coherenceLib, the
+     server's rule ported byte for byte) judges it: a catalogue it calls
+     another brand's, that the person has not kept, contributes nothing, and
+     each row is judged by the page it was read from. The account path reads
+     the server's verdict off the shell (catalog_identity). */
+  function verdictOf(brand) {
+    if (!brand) return null;
+    if (brand.catalog_identity && typeof brand.catalog_identity === 'object') return brand.catalog_identity;
+    try { var L = window.BrandContext && window.BrandContext.coherenceLib; return L ? L.catalogIdentity(brand) : null; } catch (_) { return null; }
+  }
+  function foreignRow(row, v) {
+    if (!v) return false;
+    try { var L = window.BrandContext && window.BrandContext.coherenceLib; return L ? L.catalogRowForeign(row, v) : !!v.excluded; } catch (_) { return !!v.excluded; }
+  }
+  function excludedResult(brand, v) {
+    return {
+      products: [], source: 'none', brand: brandRef(brand), origin: null, catalog_excluded: v,
+      reason: (v.marker || marker('', 'product catalogue', brand)) + ' ' + (v.sentence || ''),
+    };
+  }
+
   function deviceRows(brand, region) {
     var cat = null;
-    try { cat = (window.BrandContext && window.BrandContext.deviceCatalog) ? window.BrandContext.deviceCatalog(brand.id) : null; } catch (_) { cat = null; }
+    try {
+      var BC = window.BrandContext;
+      cat = (BC && BC.catalogForGeneration) ? BC.catalogForGeneration(brand.id) : null;
+    } catch (_) { cat = null; }
     // A product a complete re-import no longer found is kept beside the brand
     // (stale_at) but is not offered to anything that builds an asset.
     var all = ((cat && Array.isArray(cat.products)) ? cat.products : []).filter(function (p) { return p && !p.stale_at; }).map(normRow).filter(function (p) { return p.name || p.handle; });
     var narrowed = forRegion(all, region);
     var origin = (cat && cat.source && typeof cat.source === 'object') ? cat.source
       : (brand.catalog_source && typeof brand.catalog_source === 'object' && brand.catalog_source.kind ? brand.catalog_source : null);
-    return { rows: narrowed.rows, widened: narrowed.widened, origin: origin };
+    return { rows: narrowed.rows, widened: narrowed.widened, origin: origin, excluded: (cat && cat.excluded) || null };
   }
 
   /* The brand's own offerings, with its matching PRESET as fallback. A
@@ -232,7 +259,10 @@
 
   /** No rows of its own for this region: the offerings, else an honest none. */
   function withoutRows(brand, region, why) {
+    var v = verdictOf(brand);
     return brandOfferings(brand).then(function (offs) {
+      // An offering whose page is another brand's is not this brand's either.
+      offs = (offs || []).filter(function (o) { return !(o && (o.url || o.source_url) && foreignRow({ product_url: o.source_url || o.url }, v)); });
       if (offs && offs.length) {
         return {
           products: offs.map(function (o) {
@@ -273,12 +303,19 @@
       if (isDeviceBrand(brand)) {
         var dv = deviceRows(brand, key);
         if (dv.rows.length) return { products: dv.rows, source: 'device', reason: '', widened: dv.widened, brand: brandRef(brand), origin: dv.origin };
+        if (dv.excluded) return excludedResult(brand, dv.excluded);
         return withoutRows(brand, key, '');
       }
 
       var ck = (brand.id || brand.slug || '') + '|' + key;
       if (CACHE[ck]) return CACHE[ck];
       var out = fetchBrandCatalog(key, brand).then(function (got) {
+        var v = isTenantZero(brand) ? null : verdictOf(brand);
+        if (got && v) {
+          var mine = got.rows.filter(function (p) { return !foreignRow(p, v); });
+          if (!mine.length && (v.excluded || got.rows.length)) return excludedResult(brand, v.excluded ? v : Object.assign({}, v, { sentence: 'Every product in this catalogue was read from another brand\'s site, so none is used for ' + (brand.name || 'this brand') + '.' }));
+          got = { rows: mine, widened: got.widened };
+        } else if (!got && v && v.excluded) return excludedResult(brand, v);
         if (got && got.rows.length) return { products: got.rows, source: 'brand', reason: '', widened: got.widened, brand: brandRef(brand), origin: (brand.catalog_source && brand.catalog_source.kind) ? brand.catalog_source : null };
         if (isTenantZero(brand)) return fetchShipped(key, brand);
         // The brand's own offerings ARE its catalogue when no product store is

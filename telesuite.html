@@ -301,7 +301,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     if (op === 'items-seed') {
       // From THIS brand's catalogue on this device, never a made-up product.
-      var cat = (window.BrandContext && typeof window.BrandContext.deviceCatalog === 'function') ? window.BrandContext.deviceCatalog(wsId()) : null;
+      var cat = (window.BrandContext && typeof window.BrandContext.catalogForGeneration === 'function') ? window.BrandContext.catalogForGeneration(wsId()) : null;
       var prods = (cat && cat.products) || [];
       if (!prods.length) return { ok: true, storage: 'device', seeded: 0, message: 'Your brand catalog is empty — import it in brand settings first.' };
       var have = {};
@@ -354,7 +354,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var refs = [].concat(Array.isArray(input.run_ids) ? input.run_ids : [], input.analysis_id ? [input.analysis_id] : []).map(String);
     var items = d.items.filter(function (i) { return (i.kind === 'product' && input.product && i.name === input.product) || (i.kind === 'knowledge' && kb.indexOf(String(i.id)) >= 0); });
     var runs = d.runs.filter(function (r) { return refs.indexOf(String(r.id)) >= 0 || (input.call_id && r.input && r.input.call_id === input.call_id); });
-    var cat = (window.BrandContext && typeof window.BrandContext.deviceCatalog === 'function') ? window.BrandContext.deviceCatalog(wsId()) : null;
+    var cat = (window.BrandContext && typeof window.BrandContext.catalogForGeneration === 'function') ? window.BrandContext.catalogForGeneration(wsId()) : null;
     var catalog = ((cat && cat.products) || []).filter(function (p) { return input.product && p.title === input.product; }).slice(0, 5);
     return { items: items, runs: runs, catalog: catalog };
   }
