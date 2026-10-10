@@ -1595,7 +1595,11 @@
         if (!a) return;
         if (!icon) icon = a.querySelector('svg');
         const row = (a.parentElement && a.parentElement.classList.contains('lnav-item')) ? a.parentElement : a;
+        // The hidden attribute alone loses to the rail's own
+        // `.lnav-link { display: flex }`, so the static rows stayed on screen
+        // beside the drawn ones ("India Study" twice, 2026-10-11).
         row.hidden = true;
+        row.style.setProperty('display', 'none', 'important');
         row.setAttribute('data-study-static', '1');
       });
       body.querySelectorAll('[data-study-region]').forEach((el) => el.remove());
