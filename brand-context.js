@@ -120,6 +120,38 @@
     });
   }
 
+  /* A picture that belongs to tenant zero (its logo, a shipped photo) carries
+     its URL in data-shipped-src, never in src (2026-10-05). An <img src> is
+     fetched while the page parses, before any brand is known, so every page
+     that printed one requested another company's file for every brand, and
+     showed it until something replaced it. It is set here only when the
+     shipped material is the active brand's own (no brand at all keeps the
+     shipped default, as ownsShipped() says). For any other brand an image
+     marked data-brand-logo takes that brand's own https logo; otherwise the
+     brand's NAME stands in its place - never another company's picture. */
+  function paintShippedImages(brand) {
+    var nodes;
+    try { nodes = document.querySelectorAll('img[data-shipped-src]'); } catch (_) { return; }
+    var mine = !brand || isTenantZero(brand);
+    var logo = (brand && /^https:\/\//i.test(String(brand.logo_url || ''))) ? brand.logo_url : '';
+    nodes.forEach(function (img) {
+      if (mine) {
+        if (img.getAttribute('src') !== img.getAttribute('data-shipped-src')) img.setAttribute('src', img.getAttribute('data-shipped-src'));
+        return;
+      }
+      if (logo && img.hasAttribute('data-brand-logo')) {
+        if (img.getAttribute('src') !== logo) { img.setAttribute('src', logo); img.setAttribute('alt', brand.name || ''); }
+        return;
+      }
+      var mark = document.createElement('span');
+      mark.className = 'brand-wordmark';
+      mark.setAttribute('data-shipped-replaced', '1');
+      mark.style.cssText = 'display:inline-block;font-weight:800;letter-spacing:.08em;font-family:var(--brand-font-heading,inherit)';
+      mark.textContent = (brand && brand.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
+      if (img.parentNode) img.parentNode.replaceChild(mark, img);
+    });
+  }
+
   /* The words a brand uses for the thing it sells and the person who takes it.
      The shipped copy was written for tenant zero, so pages said "sneakers",
      "colorway" and "airbrush" to every tenant - The Times of India was offering
@@ -1388,6 +1420,7 @@
       if (version !== brandPaintVersion) return;
       try { walk(document.body); } catch (e) { log(e); }
       try { gateShipped(brand); } catch (e) { log(e); }
+      try { paintShippedImages(brand); } catch (e) { log(e); }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
@@ -2004,6 +2037,9 @@
       enforceGate();
       return state.brand;
     } finally {
+      // No active brand: the shipped default's own pictures (paint() runs
+      // only for a brand, so this is the one place the no-brand state lands).
+      if (!state.brand) { try { paintShippedImages(null); } catch (e2) { log(e2); } }
       readyResolve(state.brand);
       // auth.js changed the session while this read was in flight (a server
       // session answered 401 during boot, say): what was just painted may be

@@ -81,7 +81,19 @@
   import { mountKnickgasm3D } from '/assets/knickgasm3d-bridge.js';
   const mount = document.getElementById('mount');
   let disposer = null, tier = null, region = 'us', variant = 'light';
+  // The scene is tenant zero's showcase: it is mounted only for tenant zero
+  // (the server's determination) or a visitor with no brand. For any other
+  // brand the wrap is the DATA REQUIRED marker, and mounting behind it fetched
+  // another company's catalogue and photos (2026-10-05).
+  async function mayMount() {
+    for (let i = 0; i < 40 && !(window.BrandContext && window.BrandContext.ready); i++) await new Promise((r) => setTimeout(r, 100));
+    const B = window.BrandContext;
+    if (!B) return true;
+    try { await B.ready(); } catch (_) {}
+    return !(B.brand && B.isTenantZero && !B.isTenantZero(B.brand));
+  }
   async function remount() {
+    if (!(await mayMount())) return;
     if (typeof disposer === 'function') { try { disposer(); } catch (_) {} }
     mount.setAttribute('data-region', region);
     mount.setAttribute('data-variant', variant);
