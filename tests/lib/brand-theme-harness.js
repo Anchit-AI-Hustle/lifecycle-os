@@ -545,7 +545,13 @@ const PROBE = `(async (cfg) => {
     // viewport-covering, translucent layer that dims the page behind a dialog.
     const scrim = s.position === 'fixed' && rect.width >= innerWidth * 0.9 && rect.height >= innerHeight * 0.9
       && own.layers.length && own.layers.every((l) => l.stops.every((c) => c.a < 0.9));
-    if (!control && !scrim && rect.width >= 120 && rect.height >= 40 && own.layers.length && !own.image) {
+    // A SPECIMEN is not a section either: a swatch chip exists to SHOW a token
+    // (the ink swatch is the ink), and the kit's modal demo draws its scrim in
+    // a stage on the page. Both are the design-system page's subject matter.
+    // Text on them is still judged; only their fill is not a "dark section".
+    let specimen = false;
+    try { specimen = el.matches('.vh-swatch-chip, [data-specimen], .vh-modal-stage > .vh-modal-backdrop'); } catch (_) {}
+    if (!control && !scrim && !specimen && rect.width >= 120 && rect.height >= 40 && own.layers.length && !own.image) {
       if (chrome) result.groundChrome++; else result.ground++;
       const g = grounds(el);
       if (g) {
