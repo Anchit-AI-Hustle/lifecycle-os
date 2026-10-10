@@ -312,6 +312,9 @@
     try { var a = window.LifecycleAuth; return (a && a.backend) || null; } catch (_) { return null; }
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
+  // The backend states in which nobody is signed in (auth.js LifecycleAuth.backend.kind).
+  // 'local' (the localhost preview) and 'signed-in' are not among them.
+  var NO_SESSION_KINDS = ['signed-out', 'unreachable', 'unconfigured', 'sdk'];
   /**
    * The mobile+PIN session (2026-09-28), if that is who is signed in. In
    * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
@@ -1917,6 +1920,7 @@
             : '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>') +
           '<button type="button" data-gate-about style="background:transparent;color:#111;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer">About this platform</button>' +
         '</div>' +
+        '<p data-gate-signin-note role="status" hidden style="margin:0 0 16px;padding:10px 12px;border-left:3px solid var(--brand-accent-text,#555);background:rgba(0,0,0,.04);font-size:13.5px;line-height:1.55"></p>' +
         '<div data-gate-aboutbody hidden style="border-top:1px solid rgba(0,0,0,.12);padding-top:14px;font-size:13.5px;line-height:1.65;opacity:.85">' +
           '<p style="margin:0 0 8px"><strong>What it is.</strong> A lifecycle-marketing operating system: analytics and cohorts, a rolling campaign calendar, and generation of mailers, ads and landing pages, with a brand assistant over the whole stack.</p>' +
           '<p style="margin:0 0 8px"><strong>How brands work.</strong> You onboard a brand once - identity, colour schema, typography, voice, catalogue. Those become design tokens and prompt rules, so the entire suite re-skins and every generated asset obeys them. You can keep several brands and switch between them.</p>' +
@@ -1929,12 +1933,24 @@
     if (signin) signin.addEventListener('click', function () {
       // Google is the sign-in. The gate steps aside so a refusal note in the
       // rail can be read; a started redirect leaves the page.
+      // Google is the sign-in. When it cannot start (no account service on
+      // this deployment, or it is not answering) the refusal is said HERE: the
+      // rail's note sits in a closed drawer on a phone.
+      var a = window.LifecycleAuth;
+      if (!a || typeof a.openSignIn !== 'function') { location.reload(); return; }
+      signin.disabled = true;
       signin.textContent = 'Opening Google...';
-      try {
-        var a = window.LifecycleAuth;
-        if (a && typeof a.openSignIn === 'function') { removeGate(); a.openSignIn(); return; }
-      } catch (_) {}
-      location.reload();
+      var note = el.querySelector('[data-gate-signin-note]');
+      Promise.resolve().then(function () { return a.openSignIn(); }).then(function (refused) {
+        if (!refused) return;   // Google has taken over the page
+        signin.disabled = false;
+        signin.textContent = 'Sign in with Gmail';
+        if (note) { note.textContent = String(refused); note.hidden = false; }
+      }, function (err) {
+        signin.disabled = false;
+        signin.textContent = 'Sign in with Gmail';
+        if (note) { note.textContent = 'Sign-in could not start: ' + String((err && err.message) || err); note.hidden = false; }
+      });
     });
     var btn = el.querySelector('[data-gate-about]');
     if (btn) btn.addEventListener('click', function () {
@@ -1976,9 +1992,12 @@
       state.needsOnboarding = !!r.needs_onboarding;
       state.workspaces = r.workspaces || [];
       state.mode = fromDevice ? 'device' : mode;
-      // Being signed out of a reachable backend is the one device state where
-      // signing in is an answer, so the gate offers it there and only there.
-      state.signedOut = fromDevice && authKind() === 'signed-out';
+      // Nobody is signed in: the gate offers Sign in whatever the backend's
+      // state. It used to offer it only when the account service answered, so
+      // on a deployment whose project was paused (production, 2026-10-10) a
+      // phone showed no way to sign in at all. When sign-in cannot open, the
+      // gate says why in its own body, where a phone can read it.
+      state.signedOut = fromDevice && !mobileSession() && NO_SESSION_KINDS.indexOf(authKind()) !== -1;
       state.loaded = true;
       if (state.brand) {
         // The device store IS the cache for a device brand; the uid-keyed
