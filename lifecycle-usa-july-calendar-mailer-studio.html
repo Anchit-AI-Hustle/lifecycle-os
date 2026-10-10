@@ -62,7 +62,7 @@
   .chev{color:var(--vh-accent-text);text-align:center;font-size:18px;transition:transform .15s;}
   .row.open .chev,.card.open .chev{transform:rotate(90deg);}
   /* card view */
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:14px;}
   .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
   .card .chead{padding:14px 16px;cursor:pointer;}
   .card .chead:hover{background:var(--vh-panel-2);}

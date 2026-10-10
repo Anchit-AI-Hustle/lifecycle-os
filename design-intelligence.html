@@ -33,8 +33,9 @@
   h2{font-family:var(--vh-font-head);font-size:22px;color:var(--vh-heading);margin:34px 0 4px}
   .h2sub{color:var(--vh-ink-dim);font-size:12.5px;margin-bottom:14px}
   /* sources */
-  .srcgrid{display:grid;grid-template-columns:1fr;gap:10px}
-  .src{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:12px 14px}
+  .srcgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  .src > *{min-width:0}
+  .src{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:12px 14px}
   .src .nm{font-weight:700;color:var(--vh-ink);font-size:14px}
   .src .note{color:var(--vh-ink-dim);font-size:12px;margin-top:2px}
   .src .tag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--vh-ink);background:var(--vh-panel-2);padding:2px 8px;border-radius:99px;white-space:nowrap}
