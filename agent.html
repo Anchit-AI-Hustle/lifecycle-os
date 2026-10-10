@@ -77,21 +77,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      its own readable, WCAG-AA palette. */
   :root { --green:#D0473E !important; --lava:#6A33D8 !important; --lava-ink:var(--vh-ink) !important; --ink:#111111 !important; --chalk:#FFFFFF !important; }
   /* readable lava for TEXT on light backgrounds (brand lava #6A33D8 fails contrast as small text on chalk) */
-  input::placeholder, textarea::placeholder { color:#6f6f6f; opacity:1; }
+  input::placeholder, textarea::placeholder { color:var(--vh-ink-dim); opacity:1; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--chalk); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--ink); }
+  body { margin:0; background:var(--chalk); font-family:var(--vh-font-body); color:var(--ink); }
   .shell { max-width:880px; margin:0 auto; padding:26px 18px 120px; }
-  h1 { font-family:'Montserrat','Raleway',Georgia,serif; color:var(--brand-primary-text); font-size:30px; margin:8px 0 4px; }
-  .sub { color:#6b6b6b; font-size:14px; margin-bottom:18px; }
+  h1 { font-family:var(--vh-font-head); color:var(--brand-primary-text); font-size:30px; margin:8px 0 4px; }
+  .sub { color:var(--vh-ink-dim); font-size:14px; margin-bottom:18px; }
   .agentbar { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 22px; }
-  .agentchip { border:1.5px solid var(--lava); background:#fff; color:var(--ink); padding:9px 16px; border-radius:999px; font-size:13px; cursor:pointer; transition:all .18s; }
-  .agentchip:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,74,43,.18); }
-  .agentchip.active { background:var(--green); color:var(--chalk); border-color:var(--green); }
-  .chat { background:#fff; border:1px solid rgba(171,135,67,.35); border-radius:18px; min-height:420px; max-height:58vh; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:14px; }
+  .agentchip { border:1.5px solid var(--lava); background:var(--vh-panel); color:var(--ink); padding:9px 16px; border-radius:999px; font-size:13px; cursor:pointer; transition:all .18s; }
+  .agentchip:hover { transform:translateY(-1px); box-shadow:0 6px 18px var(--vh-line); }
+  .agentchip.active { background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--green); }
+  .chat { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:18px; min-height:420px; max-height:58vh; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:14px; }
   .msg { max-width:78%; padding:13px 17px; border-radius:16px; font-size:14.5px; line-height:1.6; animation:pop .35s ease; white-space:pre-wrap; }
   @keyframes pop { from{opacity:0;transform:translateY(10px) scale(.98)} to{opacity:1;transform:none} }
-  .msg.user { align-self:flex-end; background:var(--green); color:var(--chalk); border-bottom-right-radius:4px; }
-  .msg.agent { align-self:flex-start; background:var(--chalk); color:var(--ink); border:1px solid rgba(171,135,67,.3); border-bottom-left-radius:4px; }
+  .msg.user { align-self:flex-end; background:var(--vh-band); color:var(--vh-on-band); border-bottom-right-radius:4px; }
+  .msg.agent { align-self:flex-start; background:var(--chalk); color:var(--ink); border:1px solid var(--vh-line); border-bottom-left-radius:4px; }
   .msg.agent a { color:var(--brand-primary-text); font-weight:600; }
   /* Agent replies are rendered from markdown → real HTML, so switch off the
      pre-wrap (block elements handle spacing) and style each element for
@@ -105,39 +105,39 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .msg.agent h3, .msg.agent h4, .msg.agent h5 { margin:10px 0 5px; font-size:15px; line-height:1.3; color:var(--brand-primary-text); }
   .msg.agent strong { font-weight:700; }
   .msg.agent em { font-style:italic; }
-  .msg.agent code { background:rgba(23,23,23,.08); padding:1px 5px; border-radius:4px; font-size:13px; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .msg.agent code { background:rgba(23,23,23,.08); padding:1px 5px; border-radius:4px; font-size:13px; font-family:var(--vh-font-mono); }
   .speaking { box-shadow:0 0 0 2px var(--lava); }
   .inputrow { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(transparent, var(--chalk) 30%); padding:18px; }
   @media (min-width:961px){ .inputrow{ left:var(--lsb-w,248px); } }
-  .inputbox { max-width:860px; margin:0 auto; display:flex; gap:10px; background:#fff; border:1.5px solid var(--lava); border-radius:16px; padding:10px 12px; box-shadow:0 14px 40px rgba(0,74,43,.14); }
+  .inputbox { max-width:860px; margin:0 auto; display:flex; gap:10px; background:var(--vh-panel); border:1.5px solid var(--lava); border-radius:16px; padding:10px 12px; box-shadow:0 14px 40px var(--vh-line); }
   .inputbox input { flex:1; border:none; outline:none; font-size:15px; font-family:inherit; background:transparent; }
   .btn { border:none; border-radius:11px; padding:11px 16px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:transform .15s; }
   .btn:hover { transform:translateY(-1px); }
-  .btn.send { background:var(--green); color:var(--chalk); }
+  .btn.send { background:var(--vh-primary); color:var(--vh-on-primary); }
   .btn.mic { background:var(--brand-surface,var(--chalk)); border:1.5px solid var(--lava); color:var(--brand-primary-text); min-width:46px; }
-  .btn.mic.listening { background:#c0392b; color:#fff; border-color:#c0392b; animation:pulse 1.2s infinite; }
+  .btn.mic.listening { background:var(--vh-panel-2); color:var(--vh-err-text); border-color:var(--vh-err); animation:pulse 1.2s infinite; }
   @keyframes pulse { 50%{opacity:.6} }
-  .toggles { display:flex; gap:14px; align-items:center; max-width:860px; margin:8px auto 0; font-size:12px; color:#6b6b6b; justify-content:flex-end; }
+  .toggles { display:flex; gap:14px; align-items:center; max-width:860px; margin:8px auto 0; font-size:12px; color:var(--vh-ink-dim); justify-content:flex-end; }
   .toggles label { cursor:pointer; display:flex; gap:5px; align-items:center; }
-  .typing { align-self:flex-start; color:#5f5f5f; font-size:13px; font-style:italic; }
+  .typing { align-self:flex-start; color:var(--vh-ink-dim); font-size:13px; font-style:italic; }
   .agent-admin { margin:2px 0 20px; }
   .agent-admin-toggle { background:none; border:1.5px dashed var(--lava); color:var(--brand-primary-text); padding:8px 15px; border-radius:999px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
-  .agent-admin-toggle:hover { background:rgba(171,135,67,.1); }
-  .agent-form { display:none; margin-top:14px; background:#fff; border:1px solid rgba(171,135,67,.35); border-radius:14px; padding:18px; gap:14px; }
+  .agent-admin-toggle:hover { background:var(--vh-tint); }
+  .agent-form { display:none; margin-top:14px; background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:14px; padding:18px; gap:14px; }
   .agent-form.open { display:grid; grid-template-columns:1fr 1fr; }
   .agent-form .full { grid-column:1 / -1; }
-  .agent-form label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:#6b6b6b; margin-bottom:5px; font-weight:700; }
-  .agent-form input, .agent-form select { width:100%; border:1px solid rgba(171,135,67,.45); border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit; background:var(--chalk); color:var(--ink); }
+  .agent-form label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--vh-ink-dim); margin-bottom:5px; font-weight:700; }
+  .agent-form input, .agent-form select { width:100%; border:1px solid var(--vh-line); border-radius:10px; padding:10px 12px; font-size:14px; font-family:inherit; background:var(--chalk); color:var(--ink); }
   .agent-form .row-actions { grid-column:1 / -1; display:flex; gap:12px; align-items:center; }
-  .agent-form .save { background:var(--green); color:var(--chalk); border:none; border-radius:10px; padding:11px 20px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .agent-form .save { background:var(--vh-band); color:var(--vh-on-band); border:none; border-radius:10px; padding:11px 20px; font-weight:700; cursor:pointer; font-family:inherit; }
   .agent-form .save:hover { transform:translateY(-1px); }
-  .agent-form .formnote { font-size:12.5px; color:#6b6b6b; }
+  .agent-form .formnote { font-size:12.5px; color:var(--vh-ink-dim); }
   @media (max-width:560px){ .agent-form.open{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 <div class="shell">
-  <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700">KNICKGASM · Voice &amp; Chat Concierge <span style="background:var(--vh-ink);color:var(--vh-panel-tan);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
+  <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700">KNICKGASM · Voice &amp; Chat Concierge <span style="background:var(--vh-primary);color:var(--vh-ink-dim);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
   <h1>Talk to an expert</h1>
   <div class="sub" id="agentSub">This is the customer-facing concierge, the tool your customers talk to. Ask about what we offer, how it works and what to expect, by voice or text. Honest answers, zero pressure. Pick a specialist:</div>
   <div class="agentbar" id="agentbar"></div>
@@ -196,10 +196,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="modebtn" id="muteBtn" title="Silence audio instantly">🔇 Mute</button>
   </div>
   <style>
-    #modeRow .modebtn{font:inherit;font-size:11px;font-weight:600;cursor:pointer;border:1px solid rgba(171,135,67,.35);background:transparent;color:var(--lava-ink);border-radius:999px;padding:5px 11px;}
+    #modeRow .modebtn{font:inherit;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--vh-line);background:transparent;color:var(--lava-ink);border-radius:999px;padding:5px 11px;}
     #modeRow .modebtn:hover{border-color:var(--lava);}
-    #modeRow .modebtn.active{background:var(--lava);color:var(--brand-on-accent,#fff);border-color:var(--lava);}
-    #modeRow #muteBtn.on{background:#7f1d1d;color:#fff;border-color:#7f1d1d;}
+    #modeRow .modebtn.active{background:var(--vh-accent);color:var(--vh-on-accent);border-color:var(--lava);}
+    #modeRow #muteBtn.on{background:var(--vh-panel-2);color:var(--vh-err-text);border-color:var(--vh-err);}
   </style>
 </div>
 
@@ -207,13 +207,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <script src="/chat-history.js"></script>
 <style>
   .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
-  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:var(--vh-ink);cursor:pointer}
-  .cbtn:hover{background:rgba(171,135,67,.24)}
-  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:#fff;border:1px solid rgba(171,135,67,.5);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.18)}
-  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#2a2a2a}
-  .hitem:hover{background:rgba(171,135,67,.12)} .hitem.on{background:rgba(171,135,67,.2)}
+  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid var(--vh-line);background:var(--vh-tint);color:var(--vh-ink);cursor:pointer}
+  .cbtn:hover{background:var(--vh-tint)}
+  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.18)}
+  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--vh-ink)}
+  .hitem:hover{background:var(--vh-tint)} .hitem.on{background:var(--vh-tint)}
   .htitle{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hdel{background:none;border:0;color:var(--brand-accent-text);cursor:pointer;font-size:12px} .hdel:hover{color:#c0392b}
+  .hdel{background:none;border:0;color:var(--brand-accent-text);cursor:pointer;font-size:12px} .hdel:hover{color:var(--vh-err-text)}
   .hempty{padding:14px;color:var(--brand-accent-text);font-size:12px;text-align:center}
 </style>
 <script>

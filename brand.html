@@ -92,7 +92,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   input:focus,textarea:focus,select:focus{outline:2px solid var(--kg-purple);outline-offset:1px;border-color:transparent}
   .swatch{display:flex;align-items:center;gap:10px}
   .swatch input[type=color]{width:46px;height:40px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
-  .swatch input[type=text]{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}
+  .swatch input[type=text]{font-family:var(--vh-font-mono);text-transform:uppercase}
   .btn{font-family:var(--head);font-weight:700;font-size:14px;border-radius:999px;padding:11px 22px;border:1px solid var(--kg-ink);cursor:pointer}
   .btn-primary{background:var(--kg-ink);color:var(--kg-white)}
   .btn-primary:disabled{opacity:.45;cursor:not-allowed}
@@ -100,7 +100,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;bottom:0;
     background:linear-gradient(to top,var(--kg-white) 65%,transparent);padding:16px 0 6px;margin-top:8px}
   .status{font-size:13px;color:var(--muted)}
-  .status.ok{color:#1a7f37;font-weight:600}
+  .status.ok{color:var(--vh-ok-text);font-weight:600}
   .status.err{color:var(--kg-red);font-weight:600}
   .preview{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:14px}
   .preview .bar{padding:14px 18px;font-family:var(--head);font-weight:700}
@@ -109,7 +109,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .chip{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--panel);color:var(--muted);margin:0 6px 6px 0}
   .banner{border:1px solid var(--line);border-left:4px solid var(--kg-red);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13.5px;background:var(--panel)}
   .contrast-warn{font-size:12px;margin-top:6px;color:var(--kg-red);font-weight:600}
-  .contrast-ok{font-size:12px;margin-top:6px;color:#1a7f37;font-weight:600}
+  .contrast-ok{font-size:12px;margin-top:6px;color:var(--vh-ok-text);font-weight:600}
   .loading{padding:60px 0;text-align:center;color:var(--muted)}
 </style>
 </head>
