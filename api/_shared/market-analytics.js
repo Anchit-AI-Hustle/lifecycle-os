@@ -54,7 +54,11 @@ async function ownsBundledExport(explicitWorkspaceId) {
       wsScope.defaultWorkspaceId(env),
     ]);
     if (!ambient || !zero) return false;      // cannot prove ownership: do not serve it
-    return String(ambient) === String(zero);
+    if (String(ambient) !== String(zero)) return false;
+    // The oldest workspace owns tenant zero's material only when it IS tenant
+    // zero's brand (workspace-scope.isTenantZeroIdentity, 2026-10-10).
+    const brand = await wsScope.brandForWorkspace(env, zero);
+    return !!(brand && brand.owns_shipped === true);
   } catch (_) { return false; }
 }
 

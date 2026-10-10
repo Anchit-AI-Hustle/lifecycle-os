@@ -402,20 +402,31 @@ test.describe('the server decides owns_shipped from the workspace, not the slug'
     process.env.SUPABASE_URL = 'https://proj.supabase.test';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
     const OLDEST = '00000000-0000-4000-8000-000000000001';
+    // The oldest workspace's own record: tenant zero only when it IS tenant
+    // zero's brand (2026-10-10, the live project's oldest was "Mamaearth").
+    let oldestRecord = { id: OLDEST, name: ZERO.name, slug: ZERO.slug };
     global.fetch = async (url) => {
       const u = String(url);
       if (/brand_workspaces\?select=id&order=created_at\.asc/.test(u)) return new Response(JSON.stringify([{ id: OLDEST }]), { status: 200 });
+      if (/brand_workspaces\?id=eq\./.test(u)) return new Response(JSON.stringify(u.includes(OLDEST) ? [oldestRecord] : []), { status: 200 });
       if (/brand_catalog_products/.test(u)) return new Response('[]', { status: 200 });
       throw new Error('unrouted ' + u);
     };
     try {
-      require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js')).invalidate && require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js')).invalidate();
+      const scope = require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js'));
+      scope.invalidate && scope.invalidate();
       const impostor = await cs.resolve({ brand: { id: '00000000-0000-4000-8000-0000000000aa', slug: ZERO.slug, name: ZERO.name } });
       expect(impostor.source).not.toBe('shipped');
       const zero = await cs.resolve({ brand: { id: OLDEST, slug: ZERO.slug, name: ZERO.name } });
       expect(zero.source).toBe('shipped');
       expect(await core().ownsShipped(OLDEST)).toBe(true);
       expect(await core().ownsShipped('00000000-0000-4000-8000-0000000000aa')).toBe(false);
+      // The oldest workspace holding ANOTHER brand owns nothing of tenant zero's.
+      oldestRecord = { id: OLDEST, name: 'Mamaearth', slug: 'food-for-thought', website: 'https://www.nike.in' };
+      scope.invalidate && scope.invalidate();
+      expect(await core().ownsShipped(OLDEST)).toBe(false);
+      const other = await cs.resolve({ brand: { id: OLDEST, name: 'Mamaearth', slug: 'food-for-thought' } });
+      expect(other.source).not.toBe('shipped');
     } finally {
       global.fetch = realFetch;
       for (const [k, v] of Object.entries(env)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
@@ -571,9 +582,12 @@ const DRIVE = {
   // The 3D storefront: either the brand's own store (its rows, its photos, its
   // links) or the DATA REQUIRED page - read once it has decided.
   'storefront-3d.html': async (page, st) => {
-    await page.waitForFunction(() => document.querySelector('#pGrid .pcard') || /No 3D storefront on the record/.test(document.body.textContent || ''), null, { timeout: 15_000 }).catch(() => {});
+    // innerText, not textContent: textContent includes the page's own inline
+    // <script> source, which spells the marker sentence out, so a store that
+    // rendered its products still "had" the marker (2026-10-10).
+    await page.waitForFunction(() => document.querySelector('#pGrid .pcard') || /No 3D storefront on the record/.test(document.body.innerText || ''), null, { timeout: 15_000 }).catch(() => {});
     st.store = await page.evaluate(() => ({
-      marker: /No 3D storefront on the record/.test(document.body.textContent || ''),
+      marker: /No 3D storefront on the record/.test(document.body.innerText || ''),
       cards: Array.from(document.querySelectorAll('#pGrid .pcard')).map((a) => ({ href: a.getAttribute('href'), bg: ((a.querySelector('.im') || {}).getAttribute ? a.querySelector('.im').getAttribute('style') : '') || '' })),
       foot: Array.from(document.querySelectorAll('#footLinks a')).map((a) => a.getAttribute('href')),
     }));
