@@ -578,8 +578,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Persist a saved ad to Supabase (best-effort — localStorage stays the source
   // of truth so the UI never blocks on the network). Uploads any base64 creative
   // to Storage first, then stores only the hosted URL on the row.
+  // Rows are filed under the ACTIVE brand's account workspace: RLS admits a write only for a member of
+  // that workspace (20261009230000). A device brand (id local-*) has no account row, so nothing is sent.
+  const activeWorkspaceId = () => { try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); const id = b && b.id; return (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) ? String(id) : null; } catch (_) { return null; } };
   async function persistAd(channel, c) {
     const sb = sbClient(); if (!sb) return;
+    const workspaceId = activeWorkspaceId(); if (!workspaceId) return; // kept on this device (localStorage)
     try {
       // Upload every base64 creative asset to Storage so only hosted URLs are
       // stored on the row. creative_assets is an array of platform-correct
@@ -605,7 +609,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // c (stored in the `copy` JSONB) carries the full creative_assets array,
         // so the multi-asset payload survives without needing a new column.
         copy: c, creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
-        origin: location.origin || ''
+        origin: location.origin || '', workspace_id: workspaceId
       };
       const { data, error } = await sb.from('ads_generated').insert([row]).select('id').single();
       if (error) { console.warn('[ads] supabase insert failed:', error.message); return; }

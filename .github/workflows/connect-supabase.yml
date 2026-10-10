@@ -1,0 +1,59 @@
+name: Connect Supabase project
+
+# Points production at a Supabase project by running
+# scripts/connect-supabase-project.sh on a GitHub runner, which can reach
+# Supabase and Vercel (the agent container cannot). Same script, same steps as
+# running it on a laptop: link, db push, config push, keys, Vercel environment,
+# redeploy, and a check that production answers in Supabase mode.
+#
+# Dispatch only, from main only, and only when the confirm input reads CONNECT.
+# It needs two repository secrets, created by the operator in
+# Settings > Secrets and variables > Actions (never pasted into a chat):
+#   SUPABASE_ACCESS_TOKEN  https://supabase.com/dashboard/account/tokens,
+#                          from the account that owns the project
+#   VERCEL_TOKEN           https://vercel.com/account/tokens, scoped to the
+#                          anchit-ai-hustle team
+# and optionally SUPABASE_DB_PASSWORD (otherwise the CLI's own login role is used).
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Supabase project ref
+        required: true
+        default: dypkppctdbmsiqclnhzx
+      confirm:
+        description: Type CONNECT to point production at this project
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: connect-supabase
+  cancel-in-progress: false
+
+jobs:
+  connect:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'CONNECT'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Connect production to the Supabase project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          LCOS_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ inputs.project_ref }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Add the repository secrets SUPABASE_ACCESS_TOKEN and VERCEL_TOKEN (Settings > Secrets and variables > Actions), then run this workflow again. Nothing was changed."
+            exit 1
+          fi
+          # An empty password is not "no password": export it only when set.
+          if [ -n "$LCOS_DB_PASSWORD" ]; then export SUPABASE_DB_PASSWORD="$LCOS_DB_PASSWORD"; fi
+          bash scripts/connect-supabase-project.sh

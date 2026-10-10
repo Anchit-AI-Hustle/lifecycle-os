@@ -295,6 +295,29 @@ function phoneIdentity(user) {
   return null;
 }
 
+/**
+ * The OAuth provider a GoTrue user signed up or linked with (google, github,
+ * ...), or '' for an account made only by email or phone. Sign-in is a mobile
+ * number and a 4-digit PIN and nothing else (2026-10-09), so a session minted
+ * by an OAuth provider - the Google sign-in auth.js ran from 2026-10-05, or
+ * one a dashboard switch turns back on - is not a way in, and every gate that
+ * verifies a Supabase session asks this first. Read from the record GoTrue
+ * returns for the token (app_metadata.provider / providers, which only the
+ * service role writes, and identities[].provider), never from the request.
+ */
+const NON_OAUTH = new Set(['email', 'phone']);
+function oauthProvider(user) {
+  if (!user || typeof user !== 'object') return '';
+  const am = user.app_metadata && typeof user.app_metadata === 'object' ? user.app_metadata : {};
+  const named = [am.provider].concat(Array.isArray(am.providers) ? am.providers : [])
+    .concat(Array.isArray(user.identities) ? user.identities.map((i) => i && i.provider) : []);
+  for (const p of named) {
+    const v = String(p || '').trim().toLowerCase();
+    if (v && !NON_OAUTH.has(v)) return v;
+  }
+  return '';
+}
+
 /* ── the three GoTrue steps ──────────────────────────────────────────────── */
 
 function busyOrDown(cfg, r) {
@@ -494,9 +517,10 @@ async function signIn(core, cfg, b, e164, acct, ip) {
     return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: new Date(acct.locked_until).toISOString(), message: core.lockMessage(acct.locked_until) } };
   }
   if (!acct.pin_set) return resetPin(core, cfg, b, e164, acct, ip);
-  if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, name, message: 'Welcome back, ' + name + '. Type your PIN.' } };
+  // Never a name before the PIN: anyone can type any number.
+  if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, message: 'Welcome back. Type your PIN.' } };
   if (!/^\d{4}$/.test(String(b.pin))) {
-    return { status: 200, body: { ok: true, exists: true, needPin: true, name, error: 'pin_invalid', message: 'Your PIN is ' + core.PIN_LEN + ' digits.' } };
+    return { status: 200, body: { ok: true, exists: true, needPin: true, error: 'pin_invalid', message: 'Your PIN is ' + core.PIN_LEN + ' digits.' } };
   }
   const pep = pepper();
   if (!pep) return pepperRefusal();
@@ -553,7 +577,7 @@ async function resetPin(core, cfg, b, e164, acct, ip) {
   const name = String(acct.name || '');
   const perr = core.pinError(b.pin);
   if (perr) {
-    return { status: 200, body: { ok: true, exists: true, setPin: true, name, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + core.PIN_LEN + '-digit PIN for this account.' } };
+    return { status: 200, body: { ok: true, exists: true, setPin: true, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + core.PIN_LEN + '-digit PIN for this account.' } };
   }
   const pep = pepper();
   if (!pep) return pepperRefusal();
@@ -601,6 +625,11 @@ async function getUser(cfg, jwt) {
 
 async function me(cfg, req) {
   const u = await getUser(cfg, jwtOf(req));
+  if (u.ok && (oauthProvider(u.user) || !phoneIdentity(u.user))) {
+    // A valid session, but not a mobile + PIN account (an OAuth or email
+    // sign-in): it is not a session of this sign-in.
+    return { status: 401, body: { ok: false, error: 'invalid_session', message: 'This is not a mobile number and PIN sign-in. Sign in with your mobile number and PIN.' } };
+  }
   if (u.ok) {
     const id = phoneIdentity(u.user);
     return { status: 200, body: { ok: true, mode: 'supabase', user: { id: u.user.id, name: (id && id.name) || '', phone: (id && id.e164) || '' }, message: modeMessage(cfg) } };
@@ -608,7 +637,7 @@ async function me(cfg, req) {
   if (u.network || u.status >= 500) {
     return { status: 503, body: { ok: false, error: 'backend_unreachable', mode: 'supabase', host: cfg.host, message: 'The account service (' + cfg.host + ') is not answering, so your sign-in cannot be checked right now.' } };
   }
-  return { status: 401, body: { ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with Gmail.' } };
+  return { status: 401, body: { ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.' } };
 }
 
 /** POST /auth/v1/logout?scope=local (this session) or global (every session of this account). */
@@ -663,6 +692,6 @@ async function handle(core, cfg, req, res, op, method, body) {
 
 module.exports = {
   MARK, MARK_VALUE, PEPPER_MIN, MIGRATION, ENTER_LIMIT, ENTER_WINDOW_SEC, STALE_CLAIM_SECONDS,
-  config, publicKey, pepper, previousPepper, derivePassword, addressKey, phoneIdentity, looksLikeJwt, jwtOf,
+  config, publicKey, pepper, previousPepper, derivePassword, addressKey, phoneIdentity, oauthProvider, looksLikeJwt, jwtOf,
   health, getUser, enter, me, signout, handle, modeMessage, AuthStepError,
 };
