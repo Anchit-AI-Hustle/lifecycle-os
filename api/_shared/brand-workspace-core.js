@@ -2522,6 +2522,17 @@ async function handle(req, res) {
     return res.status(200).json(Object.assign({ ok: true }, validatePalette(body.palette || q.palette || {})));
   }
 
+  // `platform-rules` is unauthenticated like `defaults`: the cohort rules the
+  // planner applies and the contract every asset type is built to, read from
+  // the modules that apply them, for the brand knowledge documents
+  // (/kb/brand/<doc>). Rules, not a tenant's data: no table, no model, no
+  // fetch. The caller's own `offers` block (a device brand carries it) picks
+  // the code per offer slot, or the slot reports the DATA REQUIRED marker.
+  if (op === 'platform-rules') {
+    const carried = body.brand && typeof body.brand === 'object' ? body.brand : null;
+    return res.status(200).json(require('./brand-knowledge-rules.js').platformRules(carried));
+  }
+
   // op=document-fetch answers WITHOUT CORS on every path: the router's
   // wildcard is taken off before anything else, so no other site's script can
   // read what it fetched (see documentFetchRefusal).
@@ -2924,7 +2935,7 @@ async function handle(req, res) {
       default:
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
-          available: ['defaults', 'presets', 'list', 'active', 'get', 'save', 'activate', 'delete',
+          available: ['defaults', 'presets', 'platform-rules', 'list', 'active', 'get', 'save', 'activate', 'delete',
             'catalog-import', 'catalog-status', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest', 'document-fetch', 'render-probe',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });

@@ -569,13 +569,19 @@ const DRIVES = [
     act: (page) => page.evaluate(() => { window.open = () => null; window.__mdToPdf('# Title\n\nbody', 'T'); }),
     slot: '#lc-popup-blocked', kind: 'failure', says: /blocked the pop-up/i },
 
-  // auth.js:2597 - the same, from a .md link: the note lands right after the link
-  { page: 'index.html', name: 'auth: a blocked pop-up, beside the link that asked for it',
-    routes: [[/\/x\.md$/, (route) => route.fulfill({ status: 200, contentType: 'text/markdown', body: '# hi' })]],
+  // auth.js - the same, from the control that asked: the note lands right after
+  // it. (A .md LINK no longer opens a pop-up at all since 2026-10-05: it is
+  // retargeted to the document's own address and followed in the tab, see
+  // tests/brand-docs-per-brand.spec.js. Generated markdown still opens a tab,
+  // at /doc?local=<key>, and that tab can be blocked.)
+  { page: 'index.html', name: 'auth: a blocked pop-up, beside the control that asked for it',
     act: async (page) => {
-      await page.evaluate(() => { window.open = () => null; document.body.insertAdjacentHTML('beforeend', '<p><a id="t-md" href="/x.md">Doc</a></p>'); });
-      await page.locator('#t-md').click();
-      await page.waitForTimeout(600);
+      await page.evaluate(() => {
+        window.open = () => null;
+        document.body.insertAdjacentHTML('beforeend', '<p><button type="button" id="t-md">Export</button></p>');
+        window.__mdToPdf('# hi', 'T', document.getElementById('t-md'));
+      });
+      await page.waitForTimeout(300);
     },
     slot: '#t-md + #lc-popup-blocked', kind: 'failure', says: /Allow pop-ups/i },
 ];

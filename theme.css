@@ -1265,3 +1265,78 @@ body::after {
 .vh-info-title { font-family: var(--vh-font-head); font-size: 18px; font-weight: 600; color: var(--vh-heading); margin: 0 0 10px; }
 .vh-info-q { font-size: 13px; font-weight: 700; color: var(--vh-ink); margin: 14px 0 4px; }
 /* <<< DESIGN-SYSTEM:contract */
+
+/* ═══ Mobile space layer (2026-10-10) ═════════════════════════════════════════
+   "Fix device space usage issues per all dimensions for mobiles." Measured by
+   tests/mobile-space-every-page.spec.js over every app page at eleven phone and
+   tablet sizes. LAYOUT, SPACING AND SIZING ONLY: nothing here sets a colour or a
+   font family (those belong to the brand layer above and its own gate).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Touch: every control is at least 44x44 CSS px (WCAG 2.5.5, Apple's HIG).
+   `pointer: coarse` is a finger, so a desktop with a mouse keeps its dense
+   controls. min-* only: no width or height is set, and a page's `height:26px`
+   chip grows to 44 because min-height outranks height whatever the selector.
+   min-height is !important because pages also set a SMALLER min-height on their
+   control classes (`.chip{min-height:30px}` would outrank a bare element
+   selector). min-width is NOT: pages set LARGER ones (`.btn-row .btn{min-width:
+   110px}` in the Studio), and an !important 44 squeezed those buttons until
+   their labels were cut - found by the gate's text-clipped check. */
+@media (pointer: coarse) {
+  button, select, summary,
+  [role="button"], [role="tab"], [role="switch"], [role="checkbox"],
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]) {
+    min-height: 44px !important;
+  }
+  button, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"],
+  input[type="button"], input[type="submit"], input[type="reset"] {
+    min-width: 44px;
+  }
+  /* A link dressed as a button, a pill or a chip is a control, and a label
+     wrapping a checkbox or radio is that control's target. (min-height has no
+     effect on an inline link, so a link in a sentence is untouched.)
+     align-content centres the label in a block or inline-block box. */
+  a[class*="btn"], a.cta, a.pill, a.chip, a.tab, a.nav-link,
+  label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) {
+    min-height: 44px; align-content: center;
+  }
+  input[type="number"], input[type="text"], input[type="search"] { min-width: 44px; }
+  /* The rail's rows on a touch tablet wide enough for the desktop rail. */
+  #lifecycle-nav .lnav-link, #lifecycle-nav .lnav-ghead { min-height: 44px; }
+  /* iOS Safari zooms the whole page in when an input under 16px takes focus,
+     and does not zoom back out. 16px is the floor. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),
+  select, textarea, [contenteditable="true"], [contenteditable=""] {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* A table scrolls inside its own box, never the page: its direct parent
+     becomes the horizontal scroller. Up to 1024px, so a tablet in landscape
+     (the desktop layout beside the rail) is covered too. */
+  :where(body :not(td):not(th):not(table):not(thead):not(tbody):not(tr)):has(> table) {
+    overflow-x: auto; max-width: 100%;
+  }
+  /* ...and nothing that holds a table is held open by it. A grid track or a
+     flex item sizes to its content's min-content by default, so one wide table
+     inside `repeat(4,1fr)` widened every card in its row and the page with
+     them (Smart Brain at 320px: 1730px wide). Ancestors of a table may shrink
+     below it; the scroller above takes the excess. */
+  :where(body *:not(td):not(th):not(tr):not(thead):not(tbody)):has(table) { min-width: 0; }
+  :where(pre) { overflow-x: auto; max-width: 100%; }
+  :where(img, video, iframe, canvas, select) { max-width: 100%; }
+  /* Long words, URLs and host names wrap instead of widening their box. */
+  :where(p, li, dd, dt, h1, h2, h3, h4, h5, h6, label, figcaption, blockquote, code, kbd, samp, .vh-failure, .vh-status) { overflow-wrap: anywhere; }
+  /* In a table cell, break-word: `anywhere` would lower the column's
+     min-content to one character and crush the table instead of letting it
+     scroll. */
+  :where(td, th) { overflow-wrap: break-word; }
+}
+
+/* A page that fills the screen fills the SMALL viewport: on mobile Safari and
+   Chrome 100vh is the large viewport (it counts the URL bar), so a
+   min-height:100vh body runs off the bottom while the URL bar shows. */
+@supports (min-height: 100svh) {
+  body { min-height: 100svh; }
+}

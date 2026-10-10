@@ -80,7 +80,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   body{font-family:var(--body);background:var(--surface);color:var(--ink);min-height:100vh;padding:64px 24px 60px}
   button,input,select,textarea{font-family:inherit}
   .shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:32px;align-items:start}
-  @media(max-width:980px){.shell{grid-template-columns:1fr}.preview-wrap{position:static!important}}
+  @media(max-width:980px){.shell{grid-template-columns:minmax(0,1fr)}.preview-wrap{position:static!important}}
 
   .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--vh-accent-text);font-weight:600;margin-bottom:10px}
   h1{font-family:var(--head);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:10px}
@@ -110,7 +110,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   @media(max-width:620px){.row,.row3{grid-template-columns:1fr}}
 
   .swatch-row{display:flex;align-items:center;gap:9px}
-  .swatch-row input[type=color]{width:44px;height:40px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+  .swatch-row input[type=color]{width:44px;height:44px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
   .swatch-row input[type=text]{flex:1;font-family:var(--vh-font-mono);text-transform:lowercase}
 
   .verdict{margin-top:14px;border-radius:11px;padding:13px 15px;font-size:12.5px;line-height:1.65;border:1px solid}
@@ -156,7 +156,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pv-note{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.6}
 
   .ws-list{margin-top:8px}
-  .ws{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;
+  .ws{display:flex;flex-wrap:wrap;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;
     margin-bottom:8px;cursor:pointer;background:var(--surface)}
   .ws:hover{border-color:var(--primary)}
   .ws.active{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,transparent)}
