@@ -205,9 +205,50 @@ async function getAgent(agentId) {
   return rows[0];
 }
 
+/* ── THE BUILT-IN BRAND AGENT (2026-10-10) ───────────────────────────────────
+   Production, a Google account whose brand ("Deli Chic") is a workspace row:
+   /agent offers the built-in "Brand Agent" (id `agent_brand`) whenever the
+   workspace has no agents of its own, and asking it anything answered
+   404 agent_not_found - no workspace ever has that row, nothing seeds it, and
+   a seed could not: `smart_agents.id` is the table's primary key across EVERY
+   workspace, so one brand's seeded `agent_brand` would be another brand's
+   upsert target. So the built-in agent is answered without a row, exactly as
+   deviceChat() answers a device's: built from the brand THIS request resolved
+   (never a default, never tenant zero for anyone else), and refused with a
+   sentence when the request resolved no brand at all. A workspace that DOES
+   keep a row with that id gets its own row. */
+const BUILTIN_AGENT_ID = 'agent_brand';
+function builtinAgent(brand) {
+  const name = `${String((brand && brand.name) || 'Brand').trim().slice(0, 70)} Agent`;
+  return {
+    id: BUILTIN_AGENT_ID, level: 'brand', name, builtin: true,
+    market: require('./brand-locale.js').homeMarket(brand) || '',
+    persona: {}, catalog_scope: {}, greeting: 'Ask me anything.',
+    voice: { rate: 1.0, pitch: 1.0, style: 'warm' }, active: true,
+  };
+}
+/** The agent a turn speaks as: its row, else the built-in agent of this request's brand. */
+async function agentFor(agentId) {
+  try { return await getAgent(agentId); } catch (e) {
+    if (!(e && e.code === 'agent_not_found' && String(agentId) === BUILTIN_AGENT_ID)) throw e;
+    const rt = require('./brand-runtime.js');
+    const b = rt.scopedBrand(null);
+    if (!b || rt.isUnresolved(b) || !b.name) {
+      const r = new Error('The Brand Agent answers for your active brand, and this request has none. Pick or create a brand on the Brand screen, then ask again.');
+      r.status = 409; r.code = 'no_active_brand';
+      throw r;
+    }
+    return builtinAgent(b);
+  }
+}
+
 /** The agent row an upsert writes, built from a spec; also what a device keeps. */
 function agentRow(spec) {
-  const id = spec.id || idFor('agent', { name: spec.name, level: spec.level });
+  // `smart_agents.id` is unique across EVERY workspace, so an id derived from
+  // the name and level alone made two brands' "Concierge" one row: the second
+  // brand's save overwrote the first brand's agent and moved it into its own
+  // workspace (2026-10-10). The workspace is part of the id when it is known.
+  const id = spec.id || idFor('agent', spec.workspace_id ? { ws: String(spec.workspace_id), name: spec.name, level: spec.level } : { name: spec.name, level: spec.level });
   return {
     // An agent with no market serves the brand's HOME market (2026-10-05),
     // never a literal 'US'; with no brand record, it names none.
@@ -379,7 +420,7 @@ Grounded product-education facts (use honestly, never overclaim):
 - KNICKGASM ships express from Mumbai to 60+ countries; worn organically by Samay Raina, Rohit Sharma and Shraddha Kapoor.`;
 
 async function chat({ agentId, sessionId, message, context = {}, history = [], scope = 'buyer' }) {
-  const agent = await getAgent(agentId);
+  const agent = await agentFor(agentId);
   const brand = await getBrandKit();
 
   // ── Analytical routing: EXACT computed numbers (revenue/cohorts/orders/etc.).
@@ -412,11 +453,25 @@ async function chat({ agentId, sessionId, message, context = {}, history = [], s
     db().select('smart_agent_knowledge', { limit: 30, filters: { agent_id: `eq.${agentId}` } }),
   ]);
   const scoped = scopedProducts(agent, products).slice(0, 24);
-  const catalogLines = scoped.map((p) => `- ${p.title} | ${p.category} | $${p.price} | ${(p.tags || []).join(',')} | ${p.url || ''}`).join('\n');
-  const kbLines = knowledge.slice(0, 10).map((k) => `• ${k.title}: ${String(k.content || '').slice(0, 400)}`).join('\n');
   const persona = agent.persona || {};
   const _ab = activeBrand();
   const _zero = isZeroBrand(_ab);
+  // Any brand but tenant zero recommends from ITS OWN catalogue (its
+  // brand_catalog_products rows, judged by the coherence rule), in its own
+  // currency; smart_products rows carry no currency, so none is printed for
+  // them. Tenant zero keeps its table and its dollars.
+  let ownLines = [];
+  if (!_zero) {
+    try {
+      const got = await require('./brand-catalog-server.js').resolve({ brand: _ab });
+      const rows = (got && Array.isArray(got.products) ? got.products : []).map((p) => ({ title: p.n, product_type: p.type, price: p.price, currency: p.currency, product_url: p.product_url }));
+      ownLines = deviceCatalogLines(rows, deviceAgent(agent, agent.id, _ab));
+    } catch (_) { ownLines = []; }
+  }
+  const catalogLines = _zero
+    ? scoped.map((p) => `- ${p.title} | ${p.category} | $${p.price} | ${(p.tags || []).join(',')} | ${p.url || ''}`).join('\n')
+    : (ownLines.length ? ownLines.join('\n') : scoped.map((p) => `- ${p.title} | ${p.category || 'uncategorised'} | ${p.price != null && p.price !== '' ? 'price ' + p.price : 'price not published'} | ${p.url || ''}`).join('\n'));
+  const kbLines = knowledge.slice(0, 10).map((k) => `• ${k.title}: ${String(k.content || '').slice(0, 400)}`).join('\n');
 
   const system = !_zero ? [
     // Any brand but tenant zero (2026-10-10): its record, its catalogue, its
@@ -466,6 +521,13 @@ RULES — CLEAR AND TO-THE-POINT:
       reply = (typeof out === 'string' ? out : out.text || '').trim();
       provider = typeof out === 'object' ? out.provider : 'llm';
     } catch (_) { reply = ''; }
+  }
+  if (!reply && !_zero) {
+    // No canned sales copy for any other brand: the copy below is tenant
+    // zero's, and a stand-in reply is a claim about a product nobody checked.
+    const e = new Error('No language model answered just now, so the agent has no reply for this turn. Nothing was charged; please ask again in a moment.');
+    e.status = 503; e.code = 'no_provider';
+    throw e;
   }
   if (!reply) {
     const p = scoped[0];
@@ -623,4 +685,4 @@ ${catalogLines}`;
   return { ok: true, session_id: sid, scope: 'internal', reply, provider };
 }
 
-module.exports = { listAgents, getAgent, upsertAgent, agentRow, deviceChat, syncKnowledge, chat, teamChat, scopedProducts, analyze, looksAnalytical };
+module.exports = { listAgents, getAgent, agentFor, builtinAgent, BUILTIN_AGENT_ID, upsertAgent, agentRow, deviceChat, syncKnowledge, chat, teamChat, scopedProducts, analyze, looksAnalytical };

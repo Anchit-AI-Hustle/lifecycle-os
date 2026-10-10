@@ -228,6 +228,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .feas.is-none{color:var(--vh-ink-dim)}
   .pill[data-qa]{background:var(--vh-panel-2)} .pill[data-qa="ok"]{color:var(--vh-ok-text);border-color:var(--vh-ok)} .pill[data-qa="warn"]{color:var(--vh-warn-text);border-color:var(--vh-warn)}
   .pvroot{border:1px solid var(--vh-line-hot);border-radius:14px;padding:18px 20px;background:var(--vh-panel-2)}
+  /* ── Brand catalogue (2026-10-10) ─────────────────────────────────────────
+     What generation reads for the ACTIVE brand, shown where plans are made.
+     Roles only: grounds are the panel tokens, the marker its own token pair,
+     an excluded count the warn edge (an ordinary state, not a failure). */
+  .catsum{margin:.2em 0 .6em;font-size:13px;line-height:1.55;color:var(--vh-ink)}
+  .catcov{margin:8px 0 10px;padding:8px 12px;border-left:3px solid var(--vh-accent);background:var(--vh-panel-2);border-radius:0 10px 10px 0;font-size:12.5px;line-height:1.5;color:var(--vh-ink)}
+  .catcov ul{margin:4px 0 0;padding-left:18px}.catcov li{margin:2px 0}
+  .catexcl{margin:8px 0 10px;padding:9px 12px;border:1px solid var(--vh-line);border-left:4px solid var(--vh-warn);border-radius:10px;background:var(--vh-panel-2);color:var(--vh-ink);font-size:12.5px;line-height:1.5}
+  .catmkts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+  .catmkts .mkchip:disabled{opacity:1;cursor:default}
+  .catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(168px,100%),1fr));gap:10px;max-height:440px;overflow:auto;-webkit-overflow-scrolling:touch;padding:2px}
+  .catitem{display:flex;flex-direction:column;gap:6px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:12px;padding:8px;min-width:0}
+  .catimg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:var(--vh-panel);border:1px solid var(--vh-line);display:block}
+  .catgap{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;border-radius:8px;border:1px dashed var(--vh-marker-edge);background:var(--vh-marker-ground);color:var(--vh-ink);font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+  .catname{font-size:13px;font-weight:700;color:var(--vh-ink);line-height:1.3;overflow-wrap:anywhere}
+  .catprice{font-size:13px;color:var(--vh-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .catmeta{font-size:12px;color:var(--vh-ink-dim)}
+  .catmore{margin:8px 0 0;font-size:12px}
   .sb-dialog-scrim{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;isolation:isolate}
   .sb-dialog-scrim::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--vh-ink);opacity:.45}
 </style>
@@ -260,6 +278,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="card"><div class="label">Awaiting generation</div><div id="pending" class="metric"> - </div></div>
     <div class="card"><div class="label">Last sync</div><div id="lastsync" class="metric" style="font-size:16px"> - </div></div>
     <div class="card" title="Total sends scheduled in the next 30 days across all regions. Target: 3-4 cohorts/day/market to support >=70-80k USD/month (~1000-1500 USD/day)."><div class="label">Sends / 30d</div><div id="sends30" class="metric"> - </div></div>
+
+    <div class="card wide" id="catpanel">
+      <h2 id="catTitle">Brand catalogue</h2>
+      <p class="tdim" style="margin:.2em 0 .6em;font-size:13px">The products every plan, mailer, ad and landing page here is built from, exactly as generation reads them for the active brand. Products read from another brand's site are counted on their own and never used.</p>
+      <div id="catBody" role="status" aria-live="polite"><p class="tdim">Reading the active brand's catalogue…</p></div>
+    </div>
 
     <div class="card wide" id="dualmode">
       <h2>Agentic Generation</h2>
@@ -2080,6 +2104,213 @@ function onPlanBrandChange(){
   buildMktChips(); buildCatChips(); renderPlan();
   loadPlan();
 }
+/* ── THE BRAND CATALOGUE, AS GENERATION SEES IT (2026-10-10) ───────────────
+   The operator, on /brain with an account brand active: "must be able to see
+   brand catalog too here". Every slot on this page is planned and written
+   from the active brand's catalogue, and nothing on the page showed it. This
+   panel READS through the paths generation already uses, and decides nothing
+   of its own:
+     - a brand on this device: BrandContext.catalogForGeneration(id), the rows
+       a generator here may use (the coherence rule has already judged them),
+       with the kept record's source and coverage beside it;
+     - an account brand: its own rows (op=catalog, its workspace id, the
+       session's token) and its import record (op=catalog-status), each row
+       judged by the SAME rule (coherenceLib.catalogRowForeign over the
+       server's catalog_identity verdict) - never a second domain comparison;
+     - tenant zero (the server's owns_shipped answer, never a slug): its
+       shipped catalogue through BrandCatalog, the only reader of /data/catalog/.
+   Any other brand never asks for the shipped files. No rows is a marker with
+   the step that fixes it. */
+const CAT_VIEW = { mkt: '', data: null, seq: 0 };
+const CAT_MAX_SHOWN = 240;
+function catBrandName(b){ return (b && b.name) || 'this brand'; }
+function catMarker(field, b, region){ return '[DATA REQUIRED BEFORE LAUNCH: ' + field + ', ' + catBrandName(b) + (region ? ', ' + region : '') + ']'; }
+function catHost(u){ try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch(_) { return ''; } }
+function catRegion(r){ return String(r || '').trim().toUpperCase(); }
+function catPrice(row, region){
+  if (!row || row.price == null || row.price === '') return '';
+  const v = Number(row.price);
+  if (!isFinite(v)) return '';
+  const RC = window.RegionContext;
+  const own = String(row.currency || '').toUpperCase();
+  try {
+    const mk = RC && RC.localeOf ? RC.localeOf(region || undefined) : null;
+    // The market's own currency: RegionContext formats it. A row whose store
+    // STATED another currency is printed in that one, never re-labelled.
+    if (RC && RC.money && (!own || !mk || !mk.currency || mk.currency === own)) return RC.money(v, region || undefined, { maximumFractionDigits: 2 });
+    if (own) return new Intl.NumberFormat((mk && mk.locale) || 'en', { style: 'currency', currency: own, maximumFractionDigits: 2 }).format(v);
+  } catch(_) {}
+  return String(row.price);
+}
+function catImg(row){
+  const ok = (u) => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : '';
+  if (ok(row.image_url)) return row.image_url;
+  if (ok(row.img)) return row.img;
+  if (ok(row.i)) return row.i;
+  const list = Array.isArray(row.image_urls) ? row.image_urls : (Array.isArray(row.imgs) ? row.imgs : []);
+  for (const x of list) { const u = ok(typeof x === 'string' ? x : (x && (x.src || x.url))); if (u) return u; }
+  return '';
+}
+function catTitle(row){ return String((row && (row.title || row.n || row.name || row.handle || row.h)) || ''); }
+function catVerdict(B, b){
+  if (!b) return null;
+  if (b.catalog_identity && typeof b.catalog_identity === 'object') return b.catalog_identity;
+  try { return B.coherenceLib ? B.coherenceLib.catalogIdentity(b) : null; } catch(_) { return null; }
+}
+function catForeign(B, row, v){
+  if (!v) return false;
+  try { return B.coherenceLib ? !!B.coherenceLib.catalogRowForeign(row, v) : !!v.excluded; } catch(_) { return !!v.excluded; }
+}
+async function catRead(B, b){
+  const isDevice = !!(B.device && B.device.isDeviceId && B.device.isDeviceId(b.id));
+  if (isDevice) {
+    const full = B.deviceCatalog ? B.deviceCatalog(b.id) : null;
+    const gen = B.catalogForGeneration ? B.catalogForGeneration(b.id) : null;
+    const rows = (gen && Array.isArray(gen.products)) ? gen.products : [];
+    const stale = (full && Array.isArray(full.products)) ? full.products.filter(p => p && p.stale_at).length : 0;
+    return { kind: 'device', rows, excluded: (gen && gen.dropped) || 0, verdict: (gen && gen.excluded) || null,
+      source: (full && full.source) || ((b.catalog_source && b.catalog_source.kind) ? b.catalog_source : null),
+      coverage: (full && full.coverage) || null, resumable: !!(full && full.cursor), stale, total: rows.length };
+  }
+  if (B.isTenantZero && B.isTenantZero(b)) {
+    const BC = window.BrandCatalog;
+    const opts = (window.RegionContext && window.RegionContext.options) ? window.RegionContext.options() : [];
+    const mkts = opts.length ? opts.map(o => o.code) : [''];
+    const rows = [];
+    for (const m of mkts) {
+      const r = BC ? await BC.load(String(m).toLowerCase()) : null;
+      ((r && r.products) || []).forEach(p => rows.push(Object.assign({}, p, { region: m })));
+    }
+    return { kind: 'shipped', rows, excluded: 0, verdict: null, source: { kind: 'shipped' }, coverage: null, resumable: false, stale: 0, total: rows.length, perMarket: true };
+  }
+  const q = '&workspace_id=' + encodeURIComponent(b.id || '');
+  const got = await B.api('catalog', { query: q + '&limit=500' });
+  let status = null;
+  try { status = await B.api('catalog-status', { query: q }); } catch(_) { status = null; }
+  const all = ((got && got.products) || []).filter(p => p && !p.stale_at);
+  const v = catVerdict(B, b);
+  const mine = all.filter(p => !catForeign(B, p, v));
+  const live = (status && typeof status.live === 'number') ? status.live : all.length;
+  return { kind: 'account', rows: mine, excluded: all.length - mine.length, verdict: (v && (v.excluded || all.length > mine.length)) ? v : null,
+    source: (status && status.source && status.source.kind) ? status.source : ((b.catalog_source && b.catalog_source.kind) ? b.catalog_source : null),
+    coverage: (status && status.coverage) || null, resumable: !!(status && status.resume_available), stale: (status && status.stale) || 0,
+    total: live, readCap: all.length < live ? all.length : 0 };
+}
+function catSourceLine(src){
+  if (!src) return '';
+  const k = src.kind;
+  const how = k === 'shopify' ? 'its store feed' : k === 'site_crawl' ? 'its own website' : k === 'csv' ? 'a CSV import' : k === 'json' ? 'a JSON import'
+    : k === 'shipped' ? 'the catalogue shipped with this platform for this brand' : (k ? String(k) : 'an import');
+  const host = catHost(src.url);
+  let when = '';
+  if (src.imported_at) { const d = new Date(src.imported_at); if (!isNaN(d)) when = ' on ' + d.toISOString().slice(0, 10); }
+  return 'Read from ' + how + (host ? ' (' + host + ')' : '') + when + '.';
+}
+function renderCatalogPanel(){
+  const body = $('catBody');
+  const d = CAT_VIEW.data;
+  if (!body || !d || d.error) return;
+  const b = d.brand;
+  const rows = d.rows;
+  const parts = [];
+  // Markets are the rows' own; the panel never invents one.
+  const byMkt = {};
+  rows.forEach(r => { const m = catRegion(r.region); byMkt[m] = (byMkt[m] || 0) + 1; });
+  const mkts = Object.keys(byMkt).sort((x, y) => (x === '' ? 1 : y === '' ? -1 : x.localeCompare(y)));
+  const keyOf = (m) => m || '-';
+  if (CAT_VIEW.mkt && CAT_VIEW.mkt !== '*' && !mkts.some(m => keyOf(m) === CAT_VIEW.mkt)) CAT_VIEW.mkt = '';
+  if (!CAT_VIEW.mkt) {
+    const home = catRegion(window.RegionContext && window.RegionContext.home);
+    CAT_VIEW.mkt = d.perMarket ? keyOf((home && byMkt[home]) ? home : (mkts[0] || '')) : '*';
+  }
+  const mktLabel = (m) => m ? m : 'No market stated';
+  const count = d.perMarket
+    ? 'Products per market: ' + mkts.map(m => esc(mktLabel(m)) + ' <b>' + byMkt[m] + '</b>').join(' · ')
+    : '<b>' + rows.length + '</b> product' + (rows.length === 1 ? '' : 's') + ' generation can use' +
+      (mkts.length ? ' (' + mkts.map(m => esc(mktLabel(m)) + ' ' + byMkt[m]).join(', ') + ')' : '');
+  parts.push('<p class="catsum" data-cat-count="' + rows.length + '">' + count +
+    (d.readCap ? '. Showing the first ' + d.readCap + ' of ' + d.total + ' in the catalogue' : '') +
+    (d.stale ? '. ' + d.stale + ' the store no longer lists are kept but not used' : '') + '. ' + esc(catSourceLine(d.source)) + '</p>');
+  if (d.coverage && Array.isArray(d.coverage.sentences) && d.coverage.sentences.length) {
+    parts.push('<div class="catcov"><b>' + (d.coverage.complete ? 'Catalogue read completely' : 'Catalogue read in part') + '</b>' +
+      '<ul>' + d.coverage.sentences.slice(0, 12).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
+      (d.resumable ? '<p class="catmeta" style="margin:4px 0 0">Continue the import on the <a href="/onboarding?step=5">brand setup\'s catalogue step</a>.</p>' : '') + '</div>');
+  }
+  if (d.excluded || (d.verdict && d.verdict.excluded)) {
+    const v = d.verdict || {};
+    const n = d.excluded || 0;
+    parts.push('<div class="catexcl" data-cat-excluded="' + n + '"><b>' + n + ' excluded</b>: ' +
+      (n === 1 ? 'one product was' : n + ' products were') + ' read from another brand\'s site' + (v.domain ? ' (' + esc(v.domain) + ')' : '') +
+      ', so ' + (n === 1 ? 'it is' : 'they are') + ' never used for ' + esc(catBrandName(b)) + '.' + (v.sentence ? ' ' + esc(v.sentence) : '') + '</div>');
+  }
+  if (!rows.length) {
+    parts.push('<p class="vh-status" data-cat-empty>' + esc(catMarker('product catalogue', b)) + ' None of ' + esc(catBrandName(b)) +
+      '\'s own products are available to generation, so assets carry this marker where a product would be. <a href="/onboarding?step=5">Import the catalogue on the brand setup\'s catalogue step</a>.</p>');
+    body.innerHTML = parts.join('');
+    return;
+  }
+  if (mkts.length > 1 || d.perMarket) {
+    const chip = (code, label) => {
+      const on = CAT_VIEW.mkt === code;
+      return '<button type="button" class="mkchip' + (on ? ' on' : '') + '" data-catmkt="' + esc(code) + '" aria-pressed="' + on + '"' +
+        (on ? ' disabled title="These products are shown now"' : '') + '>' + esc(label) + '</button>';
+    };
+    parts.push('<div class="catmkts"><span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Market</span>' +
+      (d.perMarket ? '' : chip('*', 'All (' + rows.length + ')')) + mkts.map(m => chip(keyOf(m), mktLabel(m) + ' (' + byMkt[m] + ')')).join('') + '</div>');
+  }
+  const shown = rows.filter(r => CAT_VIEW.mkt === '*' || keyOf(catRegion(r.region)) === CAT_VIEW.mkt);
+  const items = shown.slice(0, CAT_MAX_SHOWN).map(r => {
+    const reg = catRegion(r.region);
+    const t = catTitle(r);
+    const img = catImg(r);
+    const price = catPrice(r, reg);
+    const where = t + (reg ? ', ' + reg : '');
+    return '<div class="catitem" role="listitem" data-cat-row>' +
+      (img ? '<img class="catimg" loading="lazy" decoding="async" alt="' + esc(t) + '" src="' + esc(img) + '">'
+           : '<div class="catgap">' + esc(catMarker('product image', b, where)) + '</div>') +
+      '<div class="catname">' + esc(t || catMarker('product title', b)) + '</div>' +
+      '<div class="catprice">' + esc(price || catMarker('price', b, where)) + '</div>' +
+      (reg ? '<div class="catmeta">' + esc(reg) + '</div>' : '') + '</div>';
+  });
+  parts.push('<div class="catgrid" role="list" aria-label="' + esc(catBrandName(b)) + ' catalogue">' + items.join('') + '</div>');
+  if (shown.length > CAT_MAX_SHOWN) parts.push('<p class="catmore tdim">Showing ' + CAT_MAX_SHOWN + ' of ' + shown.length + ' in this market.</p>');
+  body.innerHTML = parts.join('');
+}
+async function loadCatalogPanel(){
+  const body = $('catBody');
+  if (!body) return;
+  const seq = ++CAT_VIEW.seq;
+  const B = window.BrandContext;
+  if (!B) { body.innerHTML = '<p class="vh-status">' + esc(catMarker('active brand', null)) + ' No brand layer is loaded on this page.</p>'; return; }
+  let b = null;
+  try { const first = await B.ready(); b = B.brand || first || null; } catch(_) { b = B.brand || null; }
+  if (seq !== CAT_VIEW.seq) return;
+  if (!b) {
+    body.innerHTML = '<p class="vh-status" data-cat-empty>No brand is active, so there is no catalogue to show. <a href="/onboarding">Set up or choose a brand</a>.</p>';
+    return;
+  }
+  const h = $('catTitle'); if (h) h.textContent = catBrandName(b) + ' catalogue';
+  try {
+    const r = await catRead(B, b);
+    if (seq !== CAT_VIEW.seq) return;
+    CAT_VIEW.data = Object.assign({ brand: b }, r);
+    renderCatalogPanel();
+  } catch (e) {
+    if (seq !== CAT_VIEW.seq) return;
+    CAT_VIEW.data = { brand: b, error: true };
+    body.innerHTML = '';
+    if (window.LifecycleFailure && window.LifecycleFailure.show) window.LifecycleFailure.show(body, e, { title: 'The catalogue could not be read' });
+    else body.innerHTML = '<p class="vh-status">The catalogue could not be read: ' + esc((e && e.message) || e) + '</p>';
+  }
+}
+document.addEventListener('click', (ev) => {
+  const c = ev.target && ev.target.closest ? ev.target.closest('[data-catmkt]') : null;
+  if (!c || c.disabled) return;
+  CAT_VIEW.mkt = c.getAttribute('data-catmkt');
+  renderCatalogPanel();
+});
+window.addEventListener('brandcontext:change', () => { CAT_VIEW.mkt = ''; loadCatalogPanel(); });
+loadCatalogPanel();
 window.addEventListener('brandcontext:change', onPlanBrandChange);
 (async function bootPlan(){
   await deviceSessionReady();
