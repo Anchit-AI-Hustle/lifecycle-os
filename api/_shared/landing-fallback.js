@@ -137,7 +137,10 @@ function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null,
   const name = (p && p.n) || (entry && entry.heroProduct && entry.heroProduct.title) || bName;
   const img = (p && p.i) || '';
   const price = p && p.price ? (/[£$₹]/.test(String(p.price)) ? String(p.price) : ccy + p.price) : '';
-  const url = (p && p.h && base) ? `${base}/products/${p.h}` : (base || '#');
+  // The row's own product page when its catalogue states one; else its handle
+  // on the brand's own store.
+  const url = (p && /^https?:\/\//.test(String(p.product_url || ''))) ? p.product_url
+    : (p && p.h && base) ? `${base}/products/${p.h}` : (base || '#');
   const visual = img ? `<img src="${e(img)}" alt="${e(name)}" loading="eager">` : `<div class="pack">${e(bName)}</div>`;
 
   // Proof comes ONLY from the brand's stated claims. No claims, no proof block.

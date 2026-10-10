@@ -716,10 +716,15 @@
       // point: region selection was present on 17 of 66 pages, in six different
       // shapes, none of which shared the choice, so picking a market on one
       // page silently reverted on the next.
+      // brand-catalog.js is the ONE reader of a brand's catalogue (2026-10-05):
+      // loaded on every page, so no page has a reason to fetch one itself.
       [['/brand-context.js?v=20260809', 'data-vh-brand'],
+        ['/brand-catalog.js?v=20261005', 'data-vh-catalog'],
         ['/region-context.js?v=20260813', 'data-vh-region'],
         ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
         if (d.querySelector('script[' + pair[1] + ']')) return;
+        // A page that already includes the catalogue resolver itself keeps it.
+        if (pair[1] === 'data-vh-catalog' && (window.BrandCatalog || d.querySelector('script[src*="brand-catalog.js"]'))) return;
         var s = d.createElement('script');
         s.src = pair[0];
         s.setAttribute(pair[1], '1');
