@@ -13,7 +13,8 @@
  *   mamaearth.in    name, tagline, favicon, 6 social profiles, imagery,
  *                   legal entity, surface colours, fonts, design system
  *   delichic.co.in  the catalogue (8 products) and the first read's home market
- *   vahdam.com      a read of the primary colour, since replaced by a typed one
+ *   fourth-site.example  a read of the primary colour from a fourth site (a name this repo's foreign-brand
+ *                  gate keeps out of the tree, so it is a placeholder here), since replaced by a typed one
  * and a slug, food-for-thought, made from the name the record had first.
  */
 const ME = 'https://mamaearth.in/collections/b1g1-offer';
@@ -87,7 +88,7 @@ module.exports = {
         'regions.home': { value: 'IN', signal: 'host:ccTLD .co.in', confidence: 'strong', source_url: 'https://delichic.co.in/' },
         'palette.muted': { value: '#ffffff', origin: 'site-render', source_url: ME },
         'palette.accent': { value: '#4d2121', origin: 'site-render', source_url: 'https://delichic.co.in/' },
-        'palette.primary': { value: '#ab8743', origin: 'site-render', source_url: 'https://www.vahdam.com/' },
+        'palette.primary': { value: '#ab8743', origin: 'site-render', source_url: 'https://www.fourth-site.example/' },
         'palette.surface': { value: '#ffffff', origin: 'site-render', source_url: ME },
         'palette.surface_alt': { value: '#ffffff', origin: 'site-render', source_url: ME },
         'typography.body': { value: '', origin: 'site-render', source_url: ME },
