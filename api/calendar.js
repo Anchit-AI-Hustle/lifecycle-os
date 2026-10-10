@@ -529,7 +529,10 @@ async function lifecycleBrand(req) {
     const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
     if (!auth || !auth.ok) return null;
     const rt = require('./_shared/brand-runtime.js');
-    const b = await rt.resolve(req, { auth });
+    // The caller's OWN active workspace: a workspace named in the request is
+    // never how a lifecycle request picks whose programme it is.
+    const own = { method: req.method, headers: req.headers, query: {}, body: {} };
+    const b = await rt.resolve(own, { auth });
     return (b && (b.id || b.carried === true || b.unresolved === true)) ? b : rt.unresolvedBrand('a signed-in account with no brand workspace');
   } catch (_) { return null; }
 }
@@ -548,10 +551,14 @@ function lifecycleGap(brand) {
    brand's HOME market (2026-10-05) - it was a literal 'UK' for every brand.
    The UK engagement page names UK itself, so its programme is unchanged.
    '' with the marker when the brand lists no market. */
-async function lifecycleMarket(req, asked) {
+async function lifecycleMarket(req, asked, known) {
   if (asked) return { market: String(asked), marker: '' };
-  let brand = null;
-  try { brand = await require('./_shared/brand-runtime.js').resolve(req); } catch (_) { brand = null; }
+  // The brand lifecycleBrand() already resolved for this caller; else the
+  // caller's own (never a workspace the request names).
+  let brand = known || null;
+  if (!brand) {
+    try { brand = await require('./_shared/brand-runtime.js').resolve({ method: req.method, headers: req.headers, query: {}, body: {} }); } catch (_) { brand = null; }
+  }
   const L = require('./_shared/brand-locale.js');
   const market = L.homeMarket(brand);
   return { market, marker: market ? '' : L.marker('home market', brand || 'this brand') };
@@ -583,7 +590,7 @@ async function lifecycle(req, res, action) {
     }
     if (action === 'lifecycle-generate') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-      const mk = await lifecycleMarket(req, body.market);
+      const mk = await lifecycleMarket(req, body.market, lcBrand);
       if (!mk.market) return res.status(409).json({ ok: false, error: 'market_required', marker: mk.marker, message: `${mk.marker} No market was named and the brand's record lists none, so there is no market to plan for. Add its regions in Brand setup, or name a market.` });
       const result = await lifecycleGen.generateLifecycleCalendar(Object.assign({
         start_date: body.start_date,
@@ -596,7 +603,7 @@ async function lifecycle(req, res, action) {
     }
 
     if (action === 'lifecycle-list') {
-      const mk = await lifecycleMarket(req, q.market || body.market);
+      const mk = await lifecycleMarket(req, q.market || body.market, lcBrand);
       if (!mk.market) return res.status(409).json({ ok: false, error: 'market_required', marker: mk.marker, message: `${mk.marker} No market was named and the brand's record lists none, so there are no entries to read for one.` });
       const result = await lifecycleGen.listEntries({
         market: mk.market,
