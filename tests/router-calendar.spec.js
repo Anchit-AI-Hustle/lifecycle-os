@@ -187,6 +187,12 @@ test.describe('lifecycle-*', () => {
   let ownsShipped = true;
   test.beforeEach(() => {
     ownsShipped = true;
+    // A spec that ran earlier in this worker may have dropped
+    // brand-workspace-core from require.cache and left brand-runtime holding
+    // the OLD instance, so the stub below would land on a module nobody reads.
+    // calendar.js requires brand-runtime at call time: a fresh one binds to the
+    // instance the stub replaces.
+    delete require.cache[require.resolve(H.ROOT + '/api/_shared/brand-runtime.js')];
     require(H.ROOT + '/api/_shared/brand-runtime.js').invalidate();
     S.on('api/_shared/brand-workspace-core.js', 'ownsShipped', async () => ownsShipped);
   });
