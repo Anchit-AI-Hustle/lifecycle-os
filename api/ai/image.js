@@ -114,9 +114,31 @@ module.exports = async function handler(req, res) {
   // falls back to tenant zero rather than failing the generation, which is the
   // same contract every other generator here follows.
   const brand = await brandRuntime.resolve(req);
-  const preamble = buildPreamble(brand, mode || 'photo');
-  // Reserve room so the quality bar always survives the 4000-char cap.
-  const finalPrompt = (preamble + userPrompt).substring(0, 4000 - QUALITY_SUFFIX.length) + QUALITY_SUFFIX;
+  // The SUBJECT of a product photograph (2026-10-10). A food brand's hero came
+  // back as a pair of sneakers because the prompt named no product and the
+  // scene text was another brand's. A caller that is photographing a product
+  // names it ({ title, category, image_url }, the catalogue row) and may ask
+  // for `require_product`: with no product title the request is REFUSED with a
+  // marker before any provider is called - an image model asked for "the
+  // product" invents one.
+  const product = (body.product && typeof body.product === 'object') ? body.product : null;
+  const productTitle = product ? String(product.title || '').trim().slice(0, 200) : '';
+  if (body.require_product === true && !productTitle) {
+    const brandName = (brand && brand.name) || 'this brand';
+    return res.status(422).json({
+      ok: false, error: 'product_required',
+      message: `[DATA REQUIRED BEFORE LAUNCH: hero product, ${brandName}] Select the product this image is of; nothing was generated.`,
+    });
+  }
+  const subjectLine = productTitle
+    ? `SUBJECT: the brand's own product "${productTitle}"${product.category ? ` (${String(product.category).slice(0, 80)})` : ''}${/^https?:\/\//i.test(String(product.image_url || '')) ? `, exactly as in its catalogue photograph ${String(product.image_url).slice(0, 400)}` : ''}. Show only this product; invent no other object.\n\n`
+    : '';
+  const preamble = buildPreamble(brand, mode || 'photo', productTitle ? { product: { title: productTitle, category: product.category } } : null);
+  // Reserve room so the quality bar always survives the 4000-char cap. The
+  // SUBJECT leads: Pollinations keeps only the first 1,500 characters, and the
+  // brand preamble alone is about that long, so a subject placed after it was
+  // cut off and the model drew whatever the scene text suggested.
+  const finalPrompt = (subjectLine + preamble + userPrompt).substring(0, 4000 - QUALITY_SUFFIX.length) + QUALITY_SUFFIX;
 
   const geminiKey = process.env.GEMINI_API_KEY;
   const openaiKeys = [

@@ -24,6 +24,33 @@ import resumed nike.in's cursor, and "612 products in this workspace" counted Ni
 - **Counts**: `productTally()` / `deviceProductTally()` judge each live row as generators do; `products` is the
   brand's OWN count (readiness too), `products_excluded` + `_domains` beside it; the wizard says both, saves before
   every import, and never prefills the import box with a store on another site.
+## ⭐ The Mailer Studio is the active brand's, and its first prompt asks for an EMAIL (2026-10-10)
+Production, /studio, "Deli Chic" (orange #ffa517, near-black accent, Poppins, a chicken / cold-cuts brand): the
+canvas wore tenant zero's red/purple and a serif face, the copy said "LIMITED TIME", the only prompt said "this is a
+PHOTOGRAPH, not an email" with "Aesop / Kinfolk / Glossier", "chalk linen" and tenant zero's four hexes, and the
+Final Output hero was a generated photo of SNEAKERS. Gated by `tests/studio-brand-mail-prompt.spec.js` (all 11
+archetypes x 2 variants measured with computed styles, the canvas's own draw calls recorded, the clipboard read back
+for every Open/Copy button) and `tests/image-prompt-subject.spec.js` (the Studio's request body, then the shipped
+`api/ai/image.js` with every provider recorded). 18 mutations, each restoring one defect, all caught ("subject after
+  the preamble" is masked while the preamble also names the product, so it is caught with both layers restored).
+- **Palette/fonts**: `_archSyncBrand()` takes EVERY value from the brand (a typography slot with a family and no stack
+  became tenant zero's Montserrat/Georgia); `_studioPal()` hands hex values to the canvas (`drawLayout`) and the
+  viewer windows, which cannot read CSS custom properties. Tenant zero's literals only with NO brand at all.
+  `_ARCH_*_TEXT` = brand colours AS TEXT (AA-derived); `_ARCH_GOLD_BAND` = the accent through the ground rule (a
+  near-black accent is a control colour, never a section). `_archEnforceAA()` re-derives any inline text colour under
+  AA against its declared ground (touches only `color:`, never copy, never mso-* rules).
+- **Context**: the Studio reads the FULL record (`_activeBrand()`, via `BrandContext.api('get')`) - the shell has no
+  industry, claims or legal sender. The "Enhance" brief, the scrub (it REPLACED banned words with "premium daily
+  ritual"), the canvas urgency lines ("Ends Sunday"), the pull quote and `collectionUrl()` slugs were another
+  brand's; urgency is written only when the brief states it.
+- **Prompts**: `buildEmailAssetPrompt()` is the ASSET prompt (opens "DELIVERABLE: Return ONE complete, self-contained
+  HTML email (table layout, inline CSS, 600px, images-off safe)", closes "Return only the HTML document. Not an image,
+  not a screenshot, not a mockup, not a plan.") and is what every Open ChatGPT/Claude/Gemini button copies;
+  `buildHeroPhotoPrompt()` is the ELEMENT prompt ("Hero photo (image) - goes INSIDE the email"), names the selected
+  product and its catalogue photo, and is '' with no product. `getMasterSystemPrompt()` is the asset prompt.
+- **Images**: the hero is the product's REAL catalogue photo when it has one; nothing is generated without a product.
+  `api/ai/image.js` takes `product {title, category, image_url}` + `require_product` (422 marker, no provider call)
+  and puts the SUBJECT first: Pollinations keeps 1,500 characters and the brand preamble alone is that long.
 
 ## ⭐ Another brand's catalogue never reaches generation (2026-10-10)
 Production, /brain, the brand "Mamaearth" (IN): Smart Brain's mailers said "Uncompromising Chicken Black Pepper
