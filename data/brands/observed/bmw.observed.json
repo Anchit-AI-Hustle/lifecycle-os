@@ -1,24 +1,550 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "bmw",
   "start": "https://www.bmw.com",
-  "landed": "https://www.bmw.com",
-  "observed_at": "2026-10-04",
+  "landed": "https://www.bmwgroup.com/en.html",
+  "observed_at": "2026-10-05",
+  "read_at": "2026-10-05T08:48:48.655Z",
   "renderer": "timeout",
   "reason": "The site could not be opened: timed out.",
-  "read_attempt": {
-    "renderer": "timeout",
-    "at": "2026-10-04",
-    "host": "www.bmw.com",
-    "reason": "The site could not be opened: timed out."
+  "reads": [
+    {
+      "url": "https://www.bmw.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.bmw.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www.bmw.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.bmw.com",
+        "registrable": "bmw.com",
+        "website_host": "www.bmw.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "www.bmw.com did not answer for /apple-touch-icon.png in time."
+    },
+    {
+      "url": "https://www.bmw.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.bmw.com",
+        "registrable": "bmw.com",
+        "website_host": "www.bmw.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "not tried: www.bmw.com did not answer the previous image read in time"
+    },
+    {
+      "url": "https://www.bmw.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.bmw.com",
+        "registrable": "bmw.com",
+        "website_host": "www.bmw.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "not tried: www.bmw.com did not answer the previous image read in time"
+    },
+    {
+      "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+      "role": "identity source",
+      "what": "BMW roundel",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "image",
+      "ok": true,
+      "landed": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+      "mark": {
+        "verdict": "colour",
+        "hex": "#0066b1"
+      }
+    },
+    {
+      "url": "https://www.bmwgroup.com/en.html",
+      "role": "identity source",
+      "what": "BMW Group corporate site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.bmwgroup.com/en.html"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.bmwgroup.com/en.html",
+    "role": "identity source",
+    "landed": "https://www.bmwgroup.com/en.html"
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+    "manifest_version": "design-manifest/1",
+    "browser": "preinstalled",
+    "chromium": "148.0.7778.96"
   },
-  "note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "pages": [
+    {
+      "url": "https://www.bmwgroup.com/en.html",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.bmwgroup.com]"
+  ],
+  "logo_url": "https://www.bmwgroup.com/content/dam/grpw/websites/common/grpw-favicon.ico",
+  "logo_signal": "the icon the page declares (link rel=icon)",
+  "assets": [
+    {
+      "url": "https://www.bmwgroup.com/content/dam/grpw/websites/common/grpw-favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMWGroup_dark.svg",
+      "role": "photograph",
+      "alt": "BMW Logo",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+      "role": "photograph",
+      "alt": "BMW Logo",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/MINI_dark.svg",
+      "role": "photograph",
+      "alt": "MINI Logo",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/Rolls-Royce_dark.svg",
+      "role": "photograph",
+      "alt": "Rolls Royce Logo",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.bmwgroup.com/content/dam/grpw/websites/bmwgroup_com/News/2026/BMW_i3_50_BMW_M350_Teaser_1280x1024px.jpg",
+      "role": "photograph",
+      "alt": "A blue fully electric BMW i3 50 xDrive (left) and a red BMW M350 xDrive drive dynamically side by side, slightly stagger",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.bmwgroup.com/content/dam/grpw/websites/bmwgroup_com/News/2026/Capital_Market_Days_Teaser_1280x854.jpg",
+      "role": "photograph",
+      "alt": "Left: Exterior view of the BMW Four-Cylinder Building. Right: Portrait photo of Milan Nedeljković, CEO of the BMW Group.",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.bmwgroup.com/content/dam/grpw/websites/bmwgroup_com/News/2026/bmw-maps-teaser-5-4.jpg",
+      "role": "photograph",
+      "alt": "A BMW iX3 on the motorway: With the motorway assistant activated, drivers can simply rest their hands in their laps. The",
+      "found_on": "https://www.bmwgroup.com/en.html",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "logo-image",
+      "value": "#0066b1",
+      "score": 116,
+      "state": "chosen",
+      "page": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg"
+    },
+    {
+      "kind": "icon",
+      "value": "#035970",
+      "score": 56,
+      "state": "outranked",
+      "page": "https://www.bmwgroup.com/content/dam/grpw/websites/common/grpw-favicon.ico"
+    },
+    {
+      "kind": "action",
+      "value": "#ffffff",
+      "score": 55,
+      "state": "passed over",
+      "page": "https://www.bmwgroup.com/en.html"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+      "logo": {
+        "kind": "file",
+        "verdict": "colour",
+        "hex": "#0066b1"
+      }
+    },
+    {
+      "url": "https://www.bmwgroup.com/en.html",
+      "logo": {
+        "kind": "css",
+        "verdict": "neutral",
+        "hex": "#100919"
+      },
+      "fonts": {
+        "heading": "BMWGroupTNCondensedProTT-Light",
+        "body": "BMWGroupTNProTT-Regular"
+      },
+      "content_logos": 1,
+      "seen": {
+        "title": "BMW Group",
+        "h1": "NEUE KLASSE: THE BMW GROUP ENTERS A NEW ERA.",
+        "status": 200,
+        "text_chars": 1471
+      }
+    }
+  ],
+  "home_attempt": {
+    "renderer": "timeout",
+    "at": "2026-10-05",
+    "host": "www.bmw.com",
+    "reason": "The site could not be opened: timed out."
+  },
+  "palette_ok": true,
+  "palette": {
+    "primary": "#0066b1",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#000000",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#000000",
+      "derived": true,
+      "note": "DERIVED: the site paints its page #000000, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
+      "source": {
+        "page": "https://www.bmwgroup.com/en.html",
+        "role": "page ground",
+        "selector": "html.grp-dark-mode",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://www.bmwgroup.com/en.html",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      }
+    },
+    "primary": {
+      "value": "#0066b1",
+      "exact": "#0066b1",
+      "derived": false,
+      "kind": "logo-image",
+      "strength": 116,
+      "score": 116,
+      "from_role": "identity",
+      "signal": "the brand's own logo file, its pixels (100% of its coloured pixels)",
+      "source": {
+        "page": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+        "role": "logo file",
+        "selector": "",
+        "viewport": "",
+        "property": "pixels",
+        "signal": "rendered"
+      },
+      "read_url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      },
+      "outranked": [
+        {
+          "value": "#035970",
+          "kind": "icon",
+          "signal": "site icon pixels (icon)",
+          "score": 56,
+          "page": "https://www.bmwgroup.com/content/dam/grpw/websites/common/grpw-favicon.ico"
+        }
+      ],
+      "passed_over": [
+        {
+          "value": "#ffffff",
+          "from": "the reader's accent",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    },
+    "ink": {
+      "value": "#000000",
+      "exact": "#000000",
+      "derived": true,
+      "from_role": "page ground",
+      "note": "The site paints its page #000000 with light text on it. On this preset's light surface that dark ground is the text colour (21:1); the body copy as rendered (#ffffff) does not read there.",
+      "source": {
+        "page": "https://www.bmwgroup.com/en.html",
+        "role": "page ground",
+        "selector": "html.grp-dark-mode",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://www.bmwgroup.com/en.html",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "https://www.bmwgroup.com/en.html",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      }
+    },
+    "muted": {
+      "value": "#000000",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "https://www.bmwgroup.com/en.html",
+        "role": "body copy",
+        "selector": "div#text-04ded4c1a8 > div.cmp-text__wrapper > p",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      },
+      "read_url": "https://www.bmwgroup.com/en.html",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      }
+    },
+    "accent": {
+      "value": "",
+      "exact": "#ffffff",
+      "derived": false,
+      "absent": true,
+      "note": "The second colour the reader found (#ffffff) is a tint of the page (1:1), so this preset has no accent.",
+      "read_url": "https://www.bmwgroup.com/en.html",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.bmwgroup.com",
+        "registrable": "bmwgroup.com",
+        "website_host": "www.bmw.com",
+        "label": "bmwgroup"
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    }
+  },
+  "palette_warnings": [],
+  "typography": {
+    "heading": {
+      "family": "BMWGroupTNCondensedProTT-Light",
+      "stack": "'BMWGroupTNCondensedProTT-Light','Tahoma','Geneva',sans-serif",
+      "google": false,
+      "weights": "600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "BMWGroupTNCondensedProTT-Light (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.bmwgroup.com/en.html",
+        "role": "h1",
+        "selector": "div#teaserbase-fa32ce8b52 > div.cmp-teaser__content.without-text:nth-of-type(3) > div.cmp-teaser__title-wrapper:nth-of-type(4) > h1.cmp-teaser__title",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://www.bmwgroup.com/en.html"
+    },
+    "body": {
+      "family": "BMWGroupTNProTT-Regular",
+      "stack": "'BMWGroupTNProTT-Regular','Arial','Helvetica',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "BMWGroupTNProTT-Regular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.bmwgroup.com/en.html",
+        "role": "body copy",
+        "selector": "div#text-04ded4c1a8 > div.cmp-text__wrapper > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://www.bmwgroup.com/en.html"
+    }
+  },
+  "source": "www.bmw.com refused an automated read (timeout); read the brand's own https://www.bmwgroup.com/en.html in Chromium 148.0.7778.96 on 2026-10-05. Primary #0066b1 from the brand's own logo file, its pixels (100% of its coloured pixels). Headings BMWGroupTNCondensedProTT-Light, body BMWGroupTNProTT-Regular, as rendered."
 }

@@ -211,7 +211,8 @@
         "selector": "div.container.responsivegrid:nth-of-type(1) > div.cmp-container > div.text:nth-of-type(1) > div.cmp-text > h1",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.coca-cola.com/us/en",
@@ -219,13 +220,13 @@
         "selector": "div#teaser-b4baa4a408 > div.cmp-teaser__content:nth-of-type(1) > div.cmp-teaser__description:nth-of-type(1) > p",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
   "palette": {
     "primary": "#ea0000",
-    "accent": "#ea0000",
     "ink": "#000000",
     "surface": "#eeeeee",
     "surface_alt": "#eeeeee",
@@ -411,6 +412,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Coca-Cola]",

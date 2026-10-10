@@ -346,9 +346,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function aiSaveRouting(btn){
     var label=btn.textContent; btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
-    aiState.routing.use_platform_fallback=$("ai-fallback").value==="1";
-    aiApi("routing-save",{routing:aiState.routing}).then(function(){ $("banner").innerHTML='<div class="banner info"><b>AI routing saved.</b> The next generation for this brand uses this order.</div>'; return aiLoad(); })
-      .catch(function(e){window.LifecycleFailure.show($("banner"),e,{title:"Model routing could not be saved"});})
+    // Decide before anything is sent. An unreachable database, a signed-out
+    // visitor, or a device account the server will not store credentials for
+    // is an ordinary state: a status sentence, never the red failure frame.
+    var LS = window.LifecycleStatus;
+    var ready = (LS && typeof LS.decide === 'function')
+      ? LS.decide('Saving model priority')
+      : Promise.resolve(LS && typeof LS.refusal === 'function' ? LS.refusal('Saving model priority') : null);
+    ready.then(function(refused){
+      if (refused) throw refused;
+      aiState.routing.use_platform_fallback=$("ai-fallback").value==="1";
+      return aiApi("routing-save",{routing:aiState.routing}).then(function(){ $("banner").innerHTML='<div class="banner info"><b>AI routing saved.</b> The next generation for this brand uses this order.</div>'; return aiLoad(); });
+    }).catch(function(e){window.LifecycleFailure.show($("banner"),e,{title:"Model routing could not be saved"});})
       .finally(function(){btn.disabled=false;btn.textContent=label;});
   }
 

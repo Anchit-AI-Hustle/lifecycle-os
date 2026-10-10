@@ -214,7 +214,8 @@
         "selector": "div > a > div.css-g5y9jx > div.css-g5y9jx.r-1awozwy > h1.css-146c3p1.r-dnmrzs",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.flipkart.com/",
@@ -222,7 +223,8 @@
         "selector": "div.q7ywiQ > div.qc0M7c > div.tycAaL > div.vHZIyH:nth-of-type(1) > p.KRKDfU",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
@@ -502,6 +504,13 @@
       "image_url": "",
       "product_url": "",
       "placeholder": true
+    }
+  ],
+  "identity_sources": [
+    {
+      "url": "https://stories.flipkart.com/",
+      "kind": "page",
+      "what": "Flipkart Stories, the company's own news site"
     }
   ],
   "offerings": [],

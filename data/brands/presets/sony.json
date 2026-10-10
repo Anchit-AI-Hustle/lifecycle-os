@@ -14,11 +14,13 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "blocked",
-      "at": "2026-10-04",
-      "host": "www.sony.com",
-      "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+      "renderer": "rendered",
+      "at": "2026-10-05",
+      "host": "www.sony.co.jp",
+      "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.11:1 against the page, a tint of the page that cannot carry buttons or bands)"
+    },
+    "read_sources_note": "Its own other material was tried too: www.sony.co.jp (image), www.sony.co.jp (rendered).",
+    "logo_signal": "the icon the page declares (link rel=icon)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -58,7 +60,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "sony.com"
+    "sony.com",
+    "www.sony.co.jp"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -157,6 +160,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.sony.co.jp/en/favicon.ico",
+      "kind": "image",
+      "what": "Sony Group icon"
+    },
+    {
+      "url": "https://www.sony.co.jp/en/",
+      "kind": "page",
+      "what": "Sony Group global site"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, Sony]",
@@ -165,6 +180,65 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Sony]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Sony]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.sony.co.jp/en/favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-3-423x238.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-8-426x240.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-0-6-420x236.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-0-5-708x398.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-5-426x240.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-7-702x396.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-4-708x398.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.sony.co.jp/en/favicon.ico",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

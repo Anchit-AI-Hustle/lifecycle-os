@@ -1,24 +1,379 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "hm",
   "start": "https://www2.hm.com",
-  "landed": "https://www2.hm.com",
-  "observed_at": "2026-10-04",
+  "landed": "https://hmgroup.com/brands/",
+  "observed_at": "2026-10-05",
+  "read_at": "2026-10-05T08:40:55.434Z",
   "renderer": "timeout",
   "reason": "The site could not be opened: timed out.",
-  "read_attempt": {
-    "renderer": "timeout",
-    "at": "2026-10-04",
-    "host": "www2.hm.com",
-    "reason": "The site could not be opened: timed out."
+  "reads": [
+    {
+      "url": "https://www2.hm.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www2.hm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www2.hm.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www2.hm.com",
+        "registrable": "hm.com",
+        "website_host": "www2.hm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "www2.hm.com did not answer for /apple-touch-icon.png in time."
+    },
+    {
+      "url": "https://www2.hm.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www2.hm.com",
+        "registrable": "hm.com",
+        "website_host": "www2.hm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "not tried: www2.hm.com did not answer the previous image read in time"
+    },
+    {
+      "url": "https://www2.hm.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www2.hm.com",
+        "registrable": "hm.com",
+        "website_host": "www2.hm.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "not tried: www2.hm.com did not answer the previous image read in time"
+    },
+    {
+      "url": "https://hmgroup.com/brands/",
+      "role": "identity source",
+      "what": "H&M Group brands page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "hmgroup.com",
+        "registrable": "hmgroup.com",
+        "website_host": "www2.hm.com",
+        "label": "hmgroup"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://hmgroup.com/brands/"
+    },
+    {
+      "url": "https://hmgroup.com/about-us/",
+      "role": "identity source",
+      "what": "H&M Group about page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "hmgroup.com",
+        "registrable": "hmgroup.com",
+        "website_host": "www2.hm.com",
+        "label": "hmgroup"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://hmgroup.com/about-us/"
+    }
+  ],
+  "design_read": {
+    "url": "https://hmgroup.com/brands/",
+    "role": "identity source",
+    "landed": "https://hmgroup.com/brands/"
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+    "manifest_version": "design-manifest/1",
+    "browser": "preinstalled",
+    "chromium": "148.0.7778.96"
   },
-  "note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "pages": [
+    {
+      "url": "https://hmgroup.com/brands/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: body copy colour, hmgroup.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), hmgroup.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: typography.body, hmgroup.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, hmgroup.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: body copy, hmgroup.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), hmgroup.com]"
+  ],
+  "logo_url": "https://hmgroup.com/wp-content/uploads/2025/01/hm-group-fav-ico-400x400.png",
+  "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+  "assets": [
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/01/hm-group-fav-ico-400x400.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/HM-Hero-e1790147390459.jpg",
+      "role": "hero",
+      "alt": "Model wearing outfit from H&M A/W 2026 collection.",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/COS-Hero-scaled.jpg",
+      "role": "hero",
+      "alt": "COS Pre-Fall: model in an oversized light-grey shirt over a white button-down shirt, dark knee-length skirt, carrying a ",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2026/02/251204_WEEKDAY_S08_073-1440-scaled.jpg",
+      "role": "hero",
+      "alt": "Model wearing a cropped brown zip-up hoodie and oversized dark wide-leg jeans with raw edge detailing, styled with a cap",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2026/02/1291038003_202502_LB_0532-scaled.jpg",
+      "role": "hero",
+      "alt": "Two models wearing oversized, heavily faded wide-leg jeans styled with fitted dark tops, sunglasses, and accessories, hi",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2026/02/Monki-HERO2026Q1-scaled.jpg",
+      "role": "hero",
+      "alt": "Model wearing an oversized brown and light blue striped top styled with a black mini skirt and knee-high boots, highligh",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/Stories-Hero-2.jpg",
+      "role": "hero",
+      "alt": "Model in a charcoal overcoat and black turtleneck holds a snake-print clutch while walking under an overpass.",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/ARKET-hero-2-scaled.jpg",
+      "role": "photograph",
+      "alt": "Model in burgundy leather zip jacket and trousers sits on a white chair on coastal rocks, black pointed boots, sea in th",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "theme-color",
+      "value": "#000000",
+      "score": 74,
+      "state": "neutral",
+      "page": "https://hmgroup.com/brands/"
+    },
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://hmgroup.com/brands/"
+    },
+    {
+      "kind": "theme-color",
+      "value": "#000000",
+      "score": 74,
+      "state": "neutral",
+      "page": "https://hmgroup.com/about-us/"
+    },
+    {
+      "kind": "header",
+      "value": "#ffffff",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://hmgroup.com/about-us/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://hmgroup.com/brands/",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#000000"
+      },
+      "fonts": {
+        "heading": "HMSergelHeadline-Regular",
+        "body": ""
+      },
+      "content_logos": 0,
+      "seen": {
+        "title": "Our brands - H&M Group",
+        "h1": "Our brands",
+        "status": 200,
+        "text_chars": 0
+      }
+    },
+    {
+      "url": "https://hmgroup.com/about-us/",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#000000"
+      },
+      "fonts": {
+        "heading": "HMSergelHeadline-Regular",
+        "body": "HMSlussen"
+      },
+      "content_logos": 0,
+      "seen": {
+        "title": "About us - H&M Group",
+        "h1": "About us",
+        "status": 200,
+        "text_chars": 332
+      }
+    }
+  ],
+  "home_attempt": {
+    "renderer": "timeout",
+    "at": "2026-10-05",
+    "host": "www2.hm.com",
+    "reason": "The site could not be opened: timed out."
+  },
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#ffffff",
+      "derived": false,
+      "source": {
+        "page": "https://hmgroup.com/brands/",
+        "role": "page ground",
+        "selector": "body.page-template-default.page",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://hmgroup.com/brands/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "hmgroup.com",
+        "registrable": "hmgroup.com",
+        "website_host": "www2.hm.com",
+        "label": "hmgroup"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#ffffff",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    }
+  },
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "typography": {
+    "heading": {
+      "family": "HMSergelHeadline-Regular",
+      "stack": "'HMSergelHeadline-Regular',sans-serif",
+      "google": false,
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "HMSergelHeadline-Regular (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://hmgroup.com/brands/",
+        "role": "h1",
+        "selector": "div.g-cols.vc_row > div.vc_col-sm-12.wpb_column > div.vc_column-inner > div.wpb_wrapper > h1.vc_custom_heading",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://hmgroup.com/brands/"
+    },
+    "body": {
+      "family": "HMSlussen",
+      "stack": "'HMSlussen',sans-serif",
+      "google": false,
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "HMSlussen (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://hmgroup.com/about-us/",
+        "role": "body copy",
+        "selector": "div.vc_column-inner > div.wpb_wrapper > div.wpb_text_column.us_custom_f9536766:nth-of-type(1) > div.wpb_wrapper > p",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://hmgroup.com/about-us/"
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-05",
+    "host": "hmgroup.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "hmgroup.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

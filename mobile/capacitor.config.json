@@ -3,7 +3,7 @@
   "appName": "Lifecycle OS",
   "webDir": "www",
   "server": {
-    "url": "https://knickgasm.vercel.app",
+    "url": "https://lifecycle-os.anchit-tandon.com",
     "cleartext": false,
     "androidScheme": "https"
   },
