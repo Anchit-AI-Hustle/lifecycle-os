@@ -418,13 +418,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Returns [meta, google, tiktok] deep-link entries for KNICKGASM in one region,
   // built exactly like competitor-benchmarking.html adSources().
   function knickgasmAdSources(region) {
-    const name = 'Knickgasm';
-    const domain = KNICKGASM_DOMAINS[region] || 'knickgasm.com';
+    // The ACTIVE brand's own name and store host (2026-10-05): these libraries
+    // were searched for tenant zero's name and domain under every brand. The
+    // literals stand only when no brand is active (the shipped default).
+    const B = window.BrandContext && window.BrandContext.brand;
+    const hostOf = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    const name = B ? String(B.name || '') : 'Knickgasm';
+    const domain = B ? hostOf((window.BrandCatalog && window.BrandCatalog.storeBase(region)) || B.website) : (KNICKGASM_DOMAINS[region] || 'knickgasm.com');
     const country = AD_COUNTRY[region] || 'ALL'; // Global / All => ALL
     const metaParams = new URLSearchParams({ active_status: 'all', ad_type: 'all', country, q: name, search_type: 'keyword_unordered', media_type: 'all' });
     const metaUrl = 'https://www.facebook.com/ads/library/?' + metaParams;
     const googleParams = new URLSearchParams({ region: AD_COUNTRY[region] || 'anywhere' });
-    googleParams.set('domain', domain);
+    if (domain) googleParams.set('domain', domain);
     const googleUrl = 'https://adstransparency.google.com/?' + googleParams;
     const ttEnd = Date.now();
     const ttStart = ttEnd - 1000 * 60 * 60 * 24 * 30;   // last 30 days (TikTok rejects very wide windows)

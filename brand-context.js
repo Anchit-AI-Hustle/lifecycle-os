@@ -120,6 +120,38 @@
     });
   }
 
+  /* A picture that belongs to tenant zero (its logo, a shipped photo) carries
+     its URL in data-shipped-src, never in src (2026-10-05). An <img src> is
+     fetched while the page parses, before any brand is known, so every page
+     that printed one requested another company's file for every brand, and
+     showed it until something replaced it. It is set here only when the
+     shipped material is the active brand's own (no brand at all keeps the
+     shipped default, as ownsShipped() says). For any other brand an image
+     marked data-brand-logo takes that brand's own https logo; otherwise the
+     brand's NAME stands in its place - never another company's picture. */
+  function paintShippedImages(brand) {
+    var nodes;
+    try { nodes = document.querySelectorAll('img[data-shipped-src]'); } catch (_) { return; }
+    var mine = !brand || isTenantZero(brand);
+    var logo = (brand && /^https:\/\//i.test(String(brand.logo_url || ''))) ? brand.logo_url : '';
+    nodes.forEach(function (img) {
+      if (mine) {
+        if (img.getAttribute('src') !== img.getAttribute('data-shipped-src')) img.setAttribute('src', img.getAttribute('data-shipped-src'));
+        return;
+      }
+      if (logo && img.hasAttribute('data-brand-logo')) {
+        if (img.getAttribute('src') !== logo) { img.setAttribute('src', logo); img.setAttribute('alt', brand.name || ''); }
+        return;
+      }
+      var mark = document.createElement('span');
+      mark.className = 'brand-wordmark';
+      mark.setAttribute('data-shipped-replaced', '1');
+      mark.style.cssText = 'display:inline-block;font-weight:800;letter-spacing:.08em;font-family:var(--brand-font-heading,inherit)';
+      mark.textContent = (brand && brand.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
+      if (img.parentNode) img.parentNode.replaceChild(mark, img);
+    });
+  }
+
   /* The words a brand uses for the thing it sells and the person who takes it.
      The shipped copy was written for tenant zero, so pages said "sneakers",
      "colorway" and "airbrush" to every tenant - The Times of India was offering
@@ -312,6 +344,9 @@
     try { var a = window.LifecycleAuth; return (a && a.backend) || null; } catch (_) { return null; }
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
+  // The backend states in which nobody is signed in (auth.js LifecycleAuth.backend.kind).
+  // 'local' (the localhost preview) and 'signed-in' are not among them.
+  var NO_SESSION_KINDS = ['signed-out', 'unreachable', 'unconfigured', 'sdk'];
   /**
    * The mobile+PIN session (2026-09-28), if that is who is signed in. In
    * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
@@ -1408,6 +1443,7 @@
       if (version !== brandPaintVersion) return;
       try { walk(document.body); } catch (e) { log(e); }
       try { gateShipped(brand); } catch (e) { log(e); }
+      try { paintShippedImages(brand); } catch (e) { log(e); }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
@@ -1996,9 +2032,12 @@
       state.needsOnboarding = !!r.needs_onboarding;
       state.workspaces = r.workspaces || [];
       state.mode = fromDevice ? 'device' : mode;
-      // Being signed out of a reachable backend is the one device state where
-      // signing in is an answer, so the gate offers it there and only there.
-      state.signedOut = fromDevice && authKind() === 'signed-out';
+      // Nobody is signed in: the gate offers Sign in whatever the backend's
+      // state. It used to offer it only when the account service answered, so
+      // on a deployment whose project was paused (production, 2026-10-10) a
+      // phone showed no way to sign in at all. When sign-in cannot open, the
+      // gate says why in its own body, where a phone can read it.
+      state.signedOut = fromDevice && !mobileSession() && NO_SESSION_KINDS.indexOf(authKind()) !== -1;
       state.loaded = true;
       if (state.brand) {
         // The device store IS the cache for a device brand; the uid-keyed
@@ -2024,6 +2063,9 @@
       enforceGate();
       return state.brand;
     } finally {
+      // No active brand: the shipped default's own pictures (paint() runs
+      // only for a brand, so this is the one place the no-brand state lands).
+      if (!state.brand) { try { paintShippedImages(null); } catch (e2) { log(e2); } }
       readyResolve(state.brand);
       // auth.js changed the session while this read was in flight (a server
       // session answered 401 during boot, say): what was just painted may be
