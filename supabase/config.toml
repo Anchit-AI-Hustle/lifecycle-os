@@ -24,38 +24,24 @@ api_url = "http://127.0.0.1"
 
 [auth]
 enabled = true
-# The production URL is canonical for every environment's Google redirect.
 site_url = "https://lifecycle-os.anchit-tandon.com"
-# Google is the sign-in (2026-10-05). redirectTo is always this canonical root.
-# A hosted project that does not list these, or whose Google provider is OFF,
-# answers 400 validation_failed on /auth/v1/authorize.
-additional_redirect_urls = [
-  "http://localhost:3001",
-  "http://localhost:3001/**",
-  "https://lifecycle-os.anchit-tandon.com",
-  "https://lifecycle-os.anchit-tandon.com/**",
-  "https://lifecycle-os-*.vercel.app/**",
-]
+# Sign-in is a mobile number and a 4-digit PIN only (2026-10-09). No OAuth
+# provider is configured (the Google sign-in of 2026-10-05 is removed), so no
+# redirect target is needed. `supabase config push` applies this file; the
+# hosted dashboard's own provider switches still have to be checked by hand
+# (Authentication > Sign In / Providers: Google OFF, Email OFF, Phone ON).
+additional_redirect_urls = []
 jwt_expiry = 3600
-# PUBLIC email/password sign-ups stay OFF. Google accounts are created by the
-# provider (below), not by POST /auth/v1/signup. The hosted project's own
-# dashboard still has to have Google ON or GoTrue answers
-# "Unsupported provider: provider is not enabled".
+# PUBLIC sign-ups OFF (2026-10-03). Every account is a mobile number + PIN
+# created by the server through the admin endpoint (POST /auth/v1/admin/users,
+# service role), which this setting does not affect. With it on, anyone holding
+# the public anon key could POST /auth/v1/signup and take a number before its
+# owner does.
 enable_signup = false
 
-# Google OAuth. Secrets come from the environment so they are never committed.
-# `supabase config push` is what turns the hosted provider on; this file alone
-# does not. Client ID + secret are minted in Google Cloud Console as a Web
-# application; the only Authorized redirect URI GoTrue uses is
-# https://<project-ref>.supabase.co/auth/v1/callback.
-[auth.external.google]
-enabled = true
-client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
-secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
-skip_nonce_check = false
-
 [auth.email]
-enable_signup = true
+# No email accounts: email + password is not a way in.
+enable_signup = false
 enable_confirmations = false
 double_confirm_changes = true
 
