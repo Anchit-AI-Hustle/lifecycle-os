@@ -1,8 +1,6 @@
 {
   "key": "template-gallery.html",
   "counts": {
-    "floor": 5,
-    "ground": 2,
-    "text": 1
+    "floor": 5
   }
 }
