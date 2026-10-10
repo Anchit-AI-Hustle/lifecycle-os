@@ -297,9 +297,16 @@ async function planningBrand(config, db) {
   } catch (_) { return { isZero: false, brand: null }; }
 }
 
-const EMPTY_PLAN_NOTE = '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, this workspace, all] '
-  + 'The plan generates only from this brand\'s own offerings and data; nothing is borrowed from another brand. '
-  + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+// The marker is UNPADDED (the 2026-09-15 rule): `field, brand` - it read
+// "[...: catalogue and analytics, this workspace, all]", and "all" is not a
+// fact. It names the brand the plan was asked for.
+function emptyPlanNote(brand) {
+  const L = require('./brand-locale.js');
+  const name = (brand && brand.name) || 'this brand';
+  return `${L.marker('catalogue and analytics', brand)} `
+    + `The plan generates only from ${name}'s own offerings and data; nothing is borrowed from another brand. `
+    + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+}
 
 // A brand with no catalogue and no orders still gets a calendar. The jobs are
 // the lifecycle sequence (education, second order, retention, expansion,
@@ -535,9 +542,14 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       const useOff = rotated.offering;
       const cohort = cohorts[(i + markets.indexOf(market)) % cohorts.length];
       const confidence = Math.round((0.45 + rnd() * 0.3) * 100) / 100;   // demo, deterministic
+      // The public moment of THIS market on this date (Diwali for IN,
+      // Thanksgiving for US), from market-moments.js - never another market's
+      // holidays and never tenant zero's audience days (2026-10-05).
+      const moment = require('./market-moments.js').momentOn(market, date, brand);
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
+        festival: moment ? { name: moment.name, weight: moment.weight, tags: moment.tags } : null,
         status: 'needs_human_verification',
         confidence,
         cohort: { name: cohort, size: 0, estimated: true },
@@ -551,7 +563,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           ? (useOff.type ? 'Order ' + useOff.type : 'Explore the menu') : rotated.cta,
         cta_url: rotated.cta_url || null,
         phase: rotated.phase,
-        why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
+        why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}${moment ? `, on ${moment.name} in ${market}` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
         analysis: buildEntryAnalysis({
           cohort: { name: cohort, size: 0 },
           product: { title: useOff.name, category: useOff.kind },
@@ -845,7 +857,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       return {
         ok: true, mode: db.connected ? 'db-linked' : 'local-fallback',
         synced_at: new Date().toISOString(), horizon_days: horizon,
-        changes: [], insights: [], entries: [], plan: [], note: EMPTY_PLAN_NOTE,
+        changes: [], insights: [], entries: [], plan: [], note: emptyPlanNote(pb.brand),
       };
     }
     const markets = Array.from(new Set(fresh.map((e) => e.market)));
@@ -1070,7 +1082,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
     const planned = withStrategyFallback(pb.brand, entries, start, config.calendarDays, ns);
     entries = planned.entries;
     if (!entries.length) {
-      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
+      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: emptyPlanNote(pb.brand) };
     }
     applyContactPolicy(entries, await planContactLedger(config, contact, start), null, start, config);
     return {

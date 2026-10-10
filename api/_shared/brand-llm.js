@@ -58,9 +58,19 @@ const STORE_BASE = {
   GLOBAL: 'https://knickgasm.com',
   IN: 'https://knickgasm.in',
 };
+// A market as ONE code (any spelling), never forced into four typed markets
+// with 'US' for everything else (2026-10-05): an AE brand's catalogue lookups
+// were asked for the US.
+const brandLocale = require('./brand-locale.js');
 function normMarket(m) {
-  const u = String(m || 'US').toUpperCase();
-  return (u === 'US' || u === 'UK' || u === 'GLOBAL' || u === 'IN') ? u : 'US';
+  return brandLocale.family(m);
+}
+/** The market a tool call means: the one it named (held to the brand's list), else the brand's HOME market. */
+function marketOf(a) {
+  const x = a || {};
+  const asked = x.market || x.region || '';
+  if (x.brand && (x.brand.id || x.brand.slug || x.brand.name)) return brandLocale.marketFor(x.brand, asked).market || '';
+  return normMarket(asked);
 }
 // The catalogue this assistant may cite: the ACTIVE brand's own products.
 // It used to read data/catalog/products_*.json off disk, so the tool whose
@@ -84,7 +94,7 @@ function storeBase(market, brand) {
 }
 // Returns REAL products with exact names, prices and verified PDP URLs.
 function catalogProducts({ query, market, brand } = {}) {
-  const mk = normMarket(market);
+  const mk = marketOf({ market, brand });
   const base = storeBase(mk, brand);
   const cat = catalogServer.productsFor(mk, { brand: brand || null });
   const products = cat.products;
@@ -118,7 +128,7 @@ function catalogProducts({ query, market, brand } = {}) {
     return {
       ok: true, market: mk, store: base, count: 0, source: cat.source, products: [],
       note: cat.reason + ' Do not name or link a product until one is imported; '
-        + 'write [DATA REQUIRED BEFORE LAUNCH: product catalogue, all, ' + mk + '] instead.',
+        + 'write ' + brandLocale.marker('product catalogue', brand, mk) + ' instead.',
     };
   }
   return {
@@ -145,12 +155,12 @@ const TOOLS = {
   market_performance: {
     mutates: false,
     desc: 'Sales performance from the ACTIVE brand\'s own connected store export (US or UK): top products by revenue AND by units (exact net sales, quantity, orders), full monthly revenue trend, month-on-month change, the CURRENT month run-rate PROJECTION, product-type mix, channel split, discount split, returning-customer rate. USE THIS for any "top/best/most-selling product", revenue, orders, AOV, trend, run-rate or projection question. params: {market} (US|UK, defaults to current market).',
-    run: async (a) => marketAnalytics.performance(a.market || a.region || 'US'),
+    run: async (a) => marketAnalytics.performance(marketOf(a)),
   },
   audience_base: {
     mutates: false,
     desc: 'Customer / audience base for a market, from the ACTIVE brand\'s own store export: unique purchasing customers over the window (new + returning), returning-customer rate, orders. USE THIS for any "audience base / customer base / how many customers / how big is our audience" question — it is the ONLY source for the real customer-base SIZE. Do NOT quote list_cohorts counts as the audience size (those are a modelled RFM sample). params: {market} (US|UK, defaults to current market).',
-    run: async (a) => marketAnalytics.audience(a.market || a.region || 'US'),
+    run: async (a) => marketAnalytics.audience(marketOf(a)),
   },
   ask_analytics: {
     mutates: false,
@@ -274,7 +284,7 @@ const TOOLS = {
   run_agentic_campaign: {
     mutates: true,
     desc: 'Run the end-to-end agentic campaign flow (data→analysis→plan→content→assets→review). params: {brief, market?, days?, tier?(budget|maxpower), withCreatives?}',
-    run: async (a) => agentic.runAgentic({ market: a.market || 'US', brief: a.brief || a.theme || '', tier: a.tier || 'budget', days: a.days ? parseInt(a.days, 10) : undefined, withCreatives: a.withCreatives === true, maxRetries: 1 }),
+    run: async (a) => agentic.runAgentic({ market: marketOf(a), brief: a.brief || a.theme || '', tier: a.tier || 'budget', days: a.days ? parseInt(a.days, 10) : undefined, withCreatives: a.withCreatives === true, maxRetries: 1 }),
   },
   generate_mailer_assets: {
     mutates: true,
@@ -289,7 +299,7 @@ const TOOLS = {
         html = built && built.mailer && (built.mailer.variants.find((v) => v.key === 'visual_a') || built.mailer).html;
       }
       if (!html) return { ok: false, error: 'pass {html} or an {entry_id} that builds a mailer' };
-      const filled = await assetAgent.fillMailerAssets(html, { tier: a.tier || 'premium', market: a.market || 'UK', persist: a.persist !== false });
+      const filled = await assetAgent.fillMailerAssets(html, { tier: a.tier || 'premium', market: marketOf(a), persist: a.persist !== false });
       return built ? { ...filled, entry_id: a.entry_id } : filled;
     },
   },

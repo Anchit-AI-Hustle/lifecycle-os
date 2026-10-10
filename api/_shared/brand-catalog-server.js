@@ -61,11 +61,18 @@ const TTL = 60_000;
 
 // ── regions ────────────────────────────────────────────────────────────────
 function regionKey(market) {
-  const m = String(market || 'US').toLowerCase();
-  if (m.startsWith('uk')) return 'uk';
-  if (/global|eu|au|me|row|rest/.test(m)) return 'global';
-  if (m.startsWith('in')) return 'in';
-  return 'us';
+  // No market named: the brand-in-scope's HOME market, not 'US' (2026-10-05).
+  // Any other market is ITS OWN key (ae, sg, eu...) - it used to be 'us', so
+  // a brand's AE rows were looked up as US rows and an empty ask read the US
+  // file. shippedRegion() below decides which of tenant zero's three files
+  // backs a key; a brand's own rows are matched on the key itself.
+  const m = String(market || require('./brand-locale.js').defaultMarket() || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!m) return '';
+  if (m.startsWith('uk') || m === 'gb' || m === 'unitedkingdom') return 'uk';
+  if (m === 'us' || m === 'usa' || m === 'unitedstates') return 'us';
+  if (/^(global|worldwide|row|rest|intl|international)/.test(m)) return 'global';
+  if (m === 'india' || m === 'ind') return 'in';
+  return m;
 }
 /** Which SHIPPED file backs a region. `in` has no built file (see build-catalog.js). */
 function shippedRegion(market) {
