@@ -112,14 +112,16 @@
     var img = httpUrl(p.image_url) || httpUrl(p.image) || httpUrl(p.i) || firstHttp(imgs);
     var name = String(p.title || p.n || p.name || '');
     var handle = String(p.handle || p.h || '');
-    return {
+    // The row's own fields are kept (a product page reads its format, paint,
+    // notes...); the normalised keys are laid over them.
+    return Object.assign({}, p, {
       n: name, i: img, imgs: imgs, t: p.tags || p.t || [], h: handle,
       price: p.price, compare_at: p.compare_at,
       type: p.type || p.product_type || '', subtitle: p.subtitle || '',
       region: p.region ? String(p.region).toLowerCase() : undefined,
       name: name, handle: handle, img: img,
       url: httpUrl(p.product_url) || httpUrl(p.url) || '',
-    };
+    });
   }
 
   function fetchShipped(region, brand) {
@@ -248,12 +250,20 @@
     });
   }
 
-  function load(region) {
-    var key = fam(region || 'us') || 'us';
+  function load(region, opts) {
+    // No region named: the brand's HOME market (2026-10-05), never 'us'.
+    var key = fam(region || (window.RegionContext && window.RegionContext.home) || '') || '';
+    var o = opts || {};
     return activeBrand().then(function (brand) {
       // No active brand: the gate is up; render nothing rather than tenant zero's
-      // products leaking onto the screen behind it.
-      if (!brand) return { products: [], source: 'none', reason: 'no active brand', brand: null, origin: null };
+      // products leaking onto the screen behind it. A page that IS tenant zero's
+      // public demo (the 3D storefront, the connector showcases) may ask for the
+      // shipped default when there is no brand AT ALL - brand-context's
+      // ownsShipped() rule - and never for a brand that is somebody else.
+      if (!brand) {
+        if (o.shippedPreview) return fetchShipped(key, null);
+        return { products: [], source: 'none', reason: 'no active brand', brand: null, origin: null };
+      }
 
       // 1. A brand on this device reads ONLY what it keeps on this device. The
       //    server keeps no rows for it, and tenant zero's shipped file is not

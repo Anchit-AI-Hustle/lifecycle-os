@@ -260,9 +260,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Priority-style columns ordered first where present in the returned rows.
   var LEAD=['name','campaign_name','ad_name','account_name','spend','impressions','reach','frequency','inline_link_clicks','clicks','inline_link_click_ctr','ctr','cpc','cpm','cpp','date_start'];
   function num(v){return (v==null||v===''||isNaN(Number(v)))?null:Number(v);}
-  function money(v){v=num(v);return v==null?'—':'$'+v.toLocaleString('en-US',{maximumFractionDigits:0});}
-  function pct(v){v=num(v);return v==null?'—':v.toLocaleString('en-US',{maximumFractionDigits:2})+'%';}
-  function intf(v){v=num(v);return v==null?'—':Math.round(v).toLocaleString('en-US');}
+  // Spend is printed in the currency the AD ACCOUNT reports (the rows'
+  // account_currency, or the budget's), in the active brand's number format -
+  // never a typed '$' and en-US grouping for every brand (2026-10-05). With no
+  // currency reported, the figure carries no symbol at all.
+  var CUR='';
+  function loc(){try{var RC=window.RegionContext;return (RC&&RC.localeOf&&RC.localeOf().locale)||undefined;}catch(e){return undefined;}}
+  function money(v){v=num(v);if(v==null)return '—';if(CUR){try{return new Intl.NumberFormat(loc(),{style:'currency',currency:CUR,maximumFractionDigits:0}).format(v);}catch(e){}}return v.toLocaleString(loc(),{maximumFractionDigits:0});}
+  function pct(v){v=num(v);return v==null?'—':v.toLocaleString(loc(),{maximumFractionDigits:2})+'%';}
+  function intf(v){v=num(v);return v==null?'—':Math.round(v).toLocaleString(loc());}
   function base(){
     var p=$('#f-platform').value,a=$('#f-account').value,l=$('#f-level').value,s=$('#f-since').value,u=$('#f-until').value;
     var q='platform='+p+'&level='+l; if(a)q+='&account='+a; if(s&&u)q+='&since='+s+'&until='+u; return q;
@@ -279,6 +285,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<div class="budget" style="border-left-color:var(--green)"><div class="k">Mode</div><div class="v" style="font-size:17px">Read-only</div></div>';
       return;
     }
+    if(b.currency&&/^[A-Z]{3}$/.test(String(b.currency)))CUR=String(b.currency);
     $('#budgets').innerHTML=
       '<div class="budget"><div class="k">Daily cap ('+esc2(b.currency||'')+')</div><div class="v">'+money(b.daily_cap)+'</div></div>'+
       '<div class="budget" style="border-left-color:var(--green)"><div class="k">Mode</div><div class="v" style="font-size:17px">Read-only</div></div>';
@@ -298,6 +305,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(res.not_connected){$('#scorecards').innerHTML='<div class="empty">Snowflake not connected — see the Source tab for the exact query.</div>';return;}
     var rows=res.rows||[];
     if(!rows.length){$('#scorecards').innerHTML='<div class="empty">No rows for this selection.</div>';return;}
+    var rc=rows.map(function(r){return String(r.account_currency||r.currency||'');}).filter(function(c){return /^[A-Z]{3}$/.test(c);});
+    if(rc.length&&rc.every(function(c){return c===rc[0];}))CUR=rc[0];
     var t={spend:0,impressions:0,reach:0,link:0,clicks:0};
     rows.forEach(function(r){t.spend+=num(r.spend)||0;t.impressions+=num(r.impressions)||0;t.reach+=num(r.reach)||0;t.link+=num(r.inline_link_clicks)||0;t.clicks+=num(r.clicks)||0;});
     var cards=[
@@ -315,7 +324,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var rows=res.rows||[];if(!rows.length){$('#rows-body').innerHTML='<div class="empty">No rows.</div>';return;}
     var cols=orderCols(res.columns||Object.keys(rows[0]));
     var head='<tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr>';
-    var body=rows.slice(0,200).map(function(r){return '<tr>'+cols.map(function(c){var v=r[c];return '<td>'+(v==null?'—':(typeof v==='number'?v.toLocaleString('en-US'):String(v)))+'</td>';}).join('')+'</tr>';}).join('');
+    var body=rows.slice(0,200).map(function(r){return '<tr>'+cols.map(function(c){var v=r[c];return '<td>'+(v==null?'—':(typeof v==='number'?v.toLocaleString(loc()):String(v)))+'</td>';}).join('')+'</tr>';}).join('');
     $('#rows-body').innerHTML='<div class="tbl-wrap"><table data-sortable data-filterable><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
   }
   function renderCohort(res){
@@ -330,7 +339,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var max=Math.max.apply(null,rows.map(function(r){return num(r.value)||0;}))||1;
     $('#cohort-body').innerHTML='<div class="frame"><h2 style="margin-top:0">'+res.dimension+' × '+res.measure+'</h2>'+rows.slice(0,25).map(function(r){
       var w=Math.round((num(r.value)||0)/max*100);
-      return '<div class="barrow"><span class="lab">'+(r.cohort==null?'(none)':String(r.cohort))+'</span><span class="track"><span class="fill" style="width:'+w+'%"></span></span><span class="val">'+(num(r.value)||0).toLocaleString('en-US',{maximumFractionDigits:0})+'</span></div>';
+      return '<div class="barrow"><span class="lab">'+(r.cohort==null?'(none)':String(r.cohort))+'</span><span class="track"><span class="fill" style="width:'+w+'%"></span></span><span class="val">'+(num(r.value)||0).toLocaleString(loc(),{maximumFractionDigits:0})+'</span></div>';
     }).join('')+'</div>';
   }
   // Source panel. Every table row states the env var that names it, because

@@ -17,35 +17,41 @@
 <script>
   if (window.tailwind) {
     tailwind.config = { theme: { extend: { colors: {
-      vgreen: '#D0473E', vgold: '#6A33D8', vink: '#111111', vcream: '#FFFFFF'
+      vgreen: 'var(--vh-primary)', vgold: 'var(--vh-accent)', vink: 'var(--vh-ink)', vcream: 'var(--vh-bg)'
     } } } };
   }
 </script>
 <style>
-  :root{ --knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF; }
+  /* Every colour and family is a role from design/lifecycle-os/CONTRACT.md: the
+     page used to name tenant zero's palette in its own :root, paint #111111 /
+     #556059 / white literals, edge cards in the sibling brand's gold and set
+     its own Inter / Lora faces, so every other brand saw someone else's page. */
   html{scroll-behavior:smooth;}
-  body{background:#ffffff;color:#111111;font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:26px 30px;}
+  body{background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);padding:26px 30px;}
   .lc-main{max-width:1080px;margin:0 auto;}
-  h1,h2,h3,.font-head{font-family:'Lora','Raleway',Georgia,serif;}
-  .card{background:#ffffff;border:1px solid rgba(171,135,67,.28);border-radius:14px;}
-  .kicker{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-accent-text);font-weight:800;}
-  .divider{height:2px;background:linear-gradient(90deg,var(--knickgasm-lava),transparent);border:0;margin:0;}
-  .pill{display:inline-block;background:rgba(171,135,67,.16);color:var(--vh-ink);border:1px solid rgba(171,135,67,.4);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
-  .btn-primary{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-weight:700;border-radius:9px;padding:10px 16px;border:0;cursor:pointer;text-decoration:none;display:inline-block;font-family:inherit;font-size:13px;}
-  .btn-primary:hover{filter:brightness(1.12);}
-  .btn-lava{background:var(--knickgasm-lava);color:var(--knickgasm-ink);font-weight:800;border-radius:9px;padding:10px 16px;border:0;cursor:pointer;text-decoration:none;display:inline-block;font-family:inherit;font-size:13px;}
-  .btn-lava:hover{filter:brightness(1.05);}
-  .btn-outline{background:transparent;color:var(--vh-ink);border:1.5px solid var(--knickgasm-lava);font-weight:700;border-radius:9px;padding:9px 15px;cursor:pointer;text-decoration:none;display:inline-block;font-family:inherit;font-size:13px;}
-  .btn-outline:hover{background:rgba(171,135,67,.14);}
-  video{width:100%;border-radius:12px;background:#000;display:block;}
-  textarea.code-out{width:100%;min-height:96px;background:var(--vh-panel-tan);color:#556059;border:1px solid rgba(171,135,67,.35);border-radius:10px;padding:12px;font-family:ui-monospace,'JetBrains Mono',monospace;font-size:11.5px;line-height:1.5;}
+  h1,h2,h3,.font-head{font-family:var(--vh-font-head);color:var(--vh-heading);}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;}
+  .kicker{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--vh-accent-text);font-weight:800;}
+  .divider{height:2px;background:linear-gradient(90deg,var(--vh-accent),transparent);border:0;margin:0;}
+  .pill{display:inline-block;background:var(--vh-panel);color:var(--vh-accent-text);border:1px solid var(--vh-line);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
+  /* Buttons are the contract's three: primary fill + its derived label,
+     secondary (panel, primary as text), ghost (ink on the page). */
+  .btn-primary{background:var(--vh-primary);color:var(--vh-on-primary);font-weight:700;border-radius:9px;padding:10px 16px;border:1px solid var(--vh-primary);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;}
+  .btn-primary:hover{background:var(--brand-primary-dark,var(--vh-primary));}
+  .btn-lava{background:var(--vh-panel);color:var(--vh-primary-text);font-weight:800;border-radius:9px;padding:10px 16px;border:1px solid var(--vh-line-hot);cursor:pointer;text-decoration:none;display:inline-block;font-family:inherit;font-size:13px;}
+  .btn-lava:hover{background:var(--vh-panel-2);}
+  .btn-outline{background:transparent;color:var(--vh-ink);border:1.5px solid var(--vh-accent);font-weight:700;border-radius:9px;padding:9px 15px;cursor:pointer;text-decoration:none;display:inline-block;font-family:inherit;font-size:13px;}
+  .btn-outline:hover{background:var(--vh-panel-2);}
+  .music-link{color:var(--vh-link);text-decoration:underline;text-underline-offset:2px;}
+  video{width:100%;border-radius:12px;background:var(--vh-panel-2);display:block;}
+  textarea.code-out{width:100%;min-height:96px;background:var(--vh-panel-2);color:var(--vh-ink);border:1px solid var(--vh-line-hot);border-radius:10px;padding:12px;font-family:var(--vh-font-mono);font-size:11.5px;line-height:1.5;}
 </style>
 </head>
 <body>
   <main class="lc-main">
     <div class="kicker">Lifecycle OS &middot; Music</div>
-    <h1 class="text-[34px] font-bold leading-tight mt-1" style="color:#111111">Official Songs</h1>
-    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The brand's own music beds, synthesized in-house (scripts/gen-brand-audio.py) so they are original and royalty-free for paid ads. Play a track here, or drop it straight into an ad creative, a Social Media OS video or a landing page. Everything is served natively from this site, no external player.</p>
+    <h1 class="text-[34px] font-bold leading-tight mt-1" style="color:var(--vh-heading)">Official Songs</h1>
+    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:var(--vh-ink-dim)">The brand's own music beds, synthesized in-house (scripts/gen-brand-audio.py) so they are original and royalty-free for paid ads. Play a track here, or drop it straight into an ad creative, a Social Media OS video or a landing page. Everything is served natively from this site, no external player.</p>
 
     <!-- The tracks are tenant zero's own beds. For any other active brand the
          shell replaces this section with the DATA REQUIRED marker
@@ -58,10 +64,10 @@
       <div class="card p-5" data-track="knickgasm-brand-beat" data-src="/assets/media/knickgasm-brand-beat.wav">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-[22px] font-bold" style="color:#111111">Knickgasm Brand Beat</h2>
-            <div class="text-[12.5px] mt-1" style="color:#556059">Hero brand bed &middot; 90 BPM, F minor, seamless loop <span class="pill" style="margin-left:6px">V2</span></div>
+            <h2 class="text-[22px] font-bold" style="color:var(--vh-heading)">Knickgasm Brand Beat</h2>
+            <div class="text-[12.5px] mt-1" style="color:var(--vh-ink-dim)">Hero brand bed &middot; 90 BPM, F minor, seamless loop <span class="pill" style="margin-left:6px">V2</span></div>
           </div>
-          <span class="text-[12px]" style="color:#556059">WAV &middot; original composition &middot; royalty-free for KNICKGASM use</span>
+          <span class="text-[12px]" style="color:var(--vh-ink-dim)">WAV &middot; original composition &middot; royalty-free for KNICKGASM use</span>
         </div>
 
         <div class="mt-4">
@@ -71,26 +77,26 @@
 
         <div class="flex flex-wrap gap-2 mt-4">
           <a class="btn-lava" href="/assets/media/knickgasm-brand-beat.wav" download>Download</a>
-          <a class="btn-primary" href="/ads" data-use-in-ad>Use in an ad creative &#8599;</a>
+          <a class="btn-primary" href="/ads" data-use-in-ad>Use in an ad creative <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></a>
           <button type="button" class="btn-outline" data-copy="url">Copy asset URL</button>
           <button type="button" class="btn-outline" data-copy="embed">Copy embed code</button>
         </div>
-        <div class="text-[12px] mt-2" style="color:#556059" data-copy-status></div>
+        <div class="text-[12px] mt-2" style="color:var(--vh-ink-dim)" data-copy-status></div>
 
         <div class="mt-4">
           <div class="kicker mb-1">Embed code</div>
           <textarea class="code-out" readonly data-embed spellcheck="false"></textarea>
-          <p class="text-[12px] mt-2" style="color:#556059">Paste this into a landing page, ad or social template to reuse the track natively. The file lives at <span data-url-inline style="color:var(--vh-ink)"></span>.</p>
+          <p class="text-[12px] mt-2" style="color:var(--vh-ink-dim)">Paste this into a landing page, ad or social template to reuse the track natively. The file lives at <span data-url-inline style="color:var(--vh-ink)"></span>.</p>
         </div>
       </div>
 
       <div class="card p-5 mt-4" data-track="knickgasm-reels-loop" data-src="/assets/media/knickgasm-reels-loop.wav">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-[22px] font-bold" style="color:#111111">Knickgasm Reels Loop</h2>
-            <div class="text-[12.5px] mt-1" style="color:#556059">Official song &middot; music video <span class="pill" style="margin-left:6px">V2</span></div>
+            <h2 class="text-[22px] font-bold" style="color:var(--vh-heading)">Knickgasm Reels Loop</h2>
+            <div class="text-[12.5px] mt-1" style="color:var(--vh-ink-dim)">Official song &middot; music video <span class="pill" style="margin-left:6px">V2</span></div>
           </div>
-          <span class="text-[12px]" style="color:#556059">WAV &middot; original composition &middot; royalty-free for KNICKGASM use</span>
+          <span class="text-[12px]" style="color:var(--vh-ink-dim)">WAV &middot; original composition &middot; royalty-free for KNICKGASM use</span>
         </div>
 
         <div class="mt-4">
@@ -100,26 +106,26 @@
 
         <div class="flex flex-wrap gap-2 mt-4">
           <a class="btn-lava" href="/assets/media/knickgasm-reels-loop.wav" download>Download</a>
-          <a class="btn-primary" href="/ads" data-use-in-ad>Use in an ad creative &#8599;</a>
+          <a class="btn-primary" href="/ads" data-use-in-ad>Use in an ad creative <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></a>
           <button type="button" class="btn-outline" data-copy="url">Copy asset URL</button>
           <button type="button" class="btn-outline" data-copy="embed">Copy embed code</button>
         </div>
-        <div class="text-[12px] mt-2" style="color:#556059" data-copy-status></div>
+        <div class="text-[12px] mt-2" style="color:var(--vh-ink-dim)" data-copy-status></div>
 
         <div class="mt-4">
           <div class="kicker mb-1">Embed code</div>
           <textarea class="code-out" readonly data-embed spellcheck="false"></textarea>
-          <p class="text-[12px] mt-2" style="color:#556059">Paste this into a landing page, ad or social template to reuse the track natively. The file lives at <span data-url-inline style="color:var(--vh-ink)"></span>.</p>
+          <p class="text-[12px] mt-2" style="color:var(--vh-ink-dim)">Paste this into a landing page, ad or social template to reuse the track natively. The file lives at <span data-url-inline style="color:var(--vh-ink)"></span>.</p>
         </div>
       </div>
 
       <div class="card p-5 mt-4" data-track="knickgasm-ad-underscore" data-src="/assets/media/knickgasm-ad-underscore.wav">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-[22px] font-bold" style="color:#111111">Knickgasm Ad Film</h2>
-            <div class="text-[12.5px] mt-1" style="color:#556059">Full brand ad film &middot; scored <span class="pill" style="margin-left:6px">V2</span></div>
+            <h2 class="text-[22px] font-bold" style="color:var(--vh-heading)">Knickgasm Ad Film</h2>
+            <div class="text-[12.5px] mt-1" style="color:var(--vh-ink-dim)">Full brand ad film &middot; scored <span class="pill" style="margin-left:6px">V2</span></div>
           </div>
-          <span class="text-[12px]" style="color:#556059">WAV &middot; original composition &middot; royalty-free for KNICKGASM use</span>
+          <span class="text-[12px]" style="color:var(--vh-ink-dim)">WAV &middot; original composition &middot; royalty-free for KNICKGASM use</span>
         </div>
         <div class="mt-4">
           <audio controls preload="metadata" style="width:100%"
@@ -127,19 +133,19 @@
         </div>
         <div class="flex flex-wrap gap-2 mt-4">
           <a class="btn-lava" href="/assets/media/knickgasm-ad-underscore.wav" download>Download</a>
-          <a class="btn-primary" href="/ads" data-use-in-ad>Use in an ad creative &#8599;</a>
+          <a class="btn-primary" href="/ads" data-use-in-ad>Use in an ad creative <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></a>
           <button type="button" class="btn-outline" data-copy="url">Copy asset URL</button>
           <button type="button" class="btn-outline" data-copy="embed">Copy embed code</button>
         </div>
-        <div class="text-[12px] mt-2" style="color:#556059" data-copy-status></div>
+        <div class="text-[12px] mt-2" style="color:var(--vh-ink-dim)" data-copy-status></div>
         <div class="mt-4">
           <div class="kicker mb-1">Embed code</div>
           <textarea class="code-out" readonly data-embed spellcheck="false"></textarea>
-          <p class="text-[12px] mt-2" style="color:#556059">Paste this into a landing page, ad or social template to reuse the track natively. The file lives at <span data-url-inline style="color:var(--vh-ink)"></span>.</p>
+          <p class="text-[12px] mt-2" style="color:var(--vh-ink-dim)">Paste this into a landing page, ad or social template to reuse the track natively. The file lives at <span data-url-inline style="color:var(--vh-ink)"></span>.</p>
         </div>
       </div>
 
-      <p class="text-[12.5px] mt-5" style="color:#556059">More official songs will appear here as they are added to the library. To use a track in a campaign, copy its URL or embed code and hand off to the <a href="/ads" style="color:var(--vh-ink);text-decoration:underline;text-decoration-color:var(--knickgasm-lava)">Ad Campaigns</a> builder, or reference it from a <a href="/landing-pages.html" style="color:var(--vh-ink);text-decoration:underline;text-decoration-color:var(--knickgasm-lava)">landing page</a> or the <a href="/social" style="color:var(--vh-ink);text-decoration:underline;text-decoration-color:var(--knickgasm-lava)">Social Media OS</a>.</p>
+      <p class="text-[12.5px] mt-5" style="color:var(--vh-ink-dim)">More official songs will appear here as they are added to the library. To use a track in a campaign, copy its URL or embed code and hand off to the <a href="/ads" class="music-link">Ad Campaigns</a> builder, or reference it from a <a href="/landing-pages.html" class="music-link">landing page</a> or the <a href="/social" class="music-link">Social Media OS</a>.</p>
     </section>
   </main>
 
@@ -190,8 +196,8 @@
             if(navigator.clipboard && navigator.clipboard.writeText){
               e.preventDefault();
               navigator.clipboard.writeText(abs).then(function(){
-                var t = useBtn.textContent; useBtn.textContent = 'Track URL copied ✓';
-                setTimeout(function(){ useBtn.textContent = t; }, 1800);
+                var t = useBtn.innerHTML; useBtn.innerHTML = 'Track URL copied <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-check"/></svg>';
+                setTimeout(function(){ useBtn.innerHTML = t; }, 1800);
               }).catch(function(){});
             }
           } catch(_){}

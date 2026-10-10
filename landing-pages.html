@@ -69,30 +69,30 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
   <meta name="theme-color" content="#D0473E">
   <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="/auth.js?v=20260718light" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+    body { font-family: var(--vh-font-body); background: var(--vh-bg); color: var(--vh-ink); min-height: 100vh; }
+    button, input, select, textarea { font-family: inherit; }
     .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
     @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
     .eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--vh-ink); font-weight: 600; margin-bottom: 10px; }
-    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
-    h1 { font-family: 'Lora', serif; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
-    h1 em { font-style: italic; color: #6A33D8; }
-    .sub { color: #556059; font-size: 13.5px; margin-top: 6px; max-width: 800px; line-height: 1.6; }
+    .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--vh-ok-text); }
+    h1 { font-family: var(--vh-font-head); font-size: 32px; font-weight: 600; letter-spacing: -0.01em; color: var(--vh-heading); }
+    h1 em { font-style: italic; color: var(--vh-primary-text); }
+    .sub { color: var(--vh-ink-dim); font-size: 13.5px; margin-top: 6px; max-width: 800px; line-height: 1.6; }
 
-    .tabs { display: inline-flex; gap: 4px; margin: 22px 0 18px; padding: 4px; background: #ffffff; border: 1px solid rgba(171,135,67,0.18); border-radius: 10px; flex-wrap:nowrap; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+    .tabs { display: inline-flex; gap: 4px; margin: 22px 0 18px; padding: 4px; background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: 10px; flex-wrap:nowrap; overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .tabs > *{flex:0 0 auto}
-    .tab { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #556059; background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
-    .tab:hover { color: #111111; }
-    /* The tint is light enough that the contrast-adjusted brand colour still
-       clears AA on it. At 0.16 it measured 4.45:1 - the text token is tuned
-       against the surface, and a heavier tint eats the margin. */
-    .tab.active { color: var(--brand-primary-text,#c6433b); background: rgba(171,135,67,0.09); }
+    .tab { padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--vh-ink-dim); background: transparent; border: none; cursor: pointer; font-family: inherit; transition: all .14s; }
+    .tab:hover { color: var(--vh-ink); }
+    /* The selected tab sits on the sunken panel, where the brand's text token
+       is guaranteed AA (CONTRACT.md: *-text tokens on bg / panel / panel-2). */
+    .tab.active { color: var(--vh-primary-text); background: var(--vh-panel-2); }
 
     .panel { display: none; margin-top: 18px; }
     .panel.active { display: block; }
@@ -100,45 +100,46 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     .grid-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 18px; }
     @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
 
-    .card { background: #ffffff; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; padding: 18px 20px; }
-    .card h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; color: #111111; margin-bottom: 6px; }
-    .card .meta { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; margin-bottom: 12px; }
+    .card { background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: 14px; padding: 18px 20px; }
+    .card h3 { font-family: var(--vh-font-head); font-size: 17px; font-weight: 600; color: var(--vh-heading); margin-bottom: 6px; }
+    .card .meta { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink-dim); font-weight: 600; margin-bottom: 12px; }
 
     .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; font-weight: 600; margin-bottom: 6px; }
+    .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--vh-ink-dim); font-weight: 600; margin-bottom: 6px; }
     .field input, .field select, .field textarea {
-      width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.22); border-radius: 9px;
-      color: #111111; padding: 10px 12px; font-size: 13.5px; font-family: inherit;
+      width: 100%; background: var(--vh-bg); border: 1px solid var(--vh-line-hot); border-radius: 9px;
+      color: var(--vh-ink); padding: 10px 12px; font-size: 13.5px; font-family: inherit;
     }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #6A33D8; }
+    .field input::placeholder, .field textarea::placeholder { color: var(--vh-ink-dim); }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--vh-focus); }
     .field textarea { resize: vertical; min-height: 90px; }
 
     .regions { display: flex; flex-wrap: wrap; gap: 6px; }
-    .region-chip { padding: 7px 13px; border-radius: 99px; background: #ffffff; border: 1px solid rgba(171,135,67,0.22); color: #556059; font-size: 12px; cursor: pointer; font-family: inherit; }
-    .region-chip.active { background: #6A33D8; color: #ffffff; border-color: #6A33D8; }
+    .region-chip { padding: 7px 13px; border-radius: 99px; background: var(--vh-panel); border: 1px solid var(--vh-line); color: var(--vh-ink-dim); font-size: 12px; cursor: pointer; font-family: inherit; }
+    .region-chip.active { background: var(--vh-primary); color: var(--vh-on-primary); border-color: var(--vh-primary); }
 
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
-    .btn-solid { background: #6A33D8; color: #ffffff; border: 0; }
-    .btn-solid:hover { opacity: 0.92; }
-    .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #556059; }
-    .btn-ghost:hover { border-color: #6A33D8; color: #111111; }
+    .btn-solid { background: var(--vh-primary); color: var(--vh-on-primary); border: 0; }
+    .btn-solid:hover { background: var(--brand-primary-dark); }
+    .btn-ghost { background: transparent; border-color: var(--vh-line-hot); color: var(--vh-ink-dim); }
+    .btn-ghost:hover { border-color: var(--vh-primary-text); color: var(--vh-ink); }
 
-    .pill { display: inline-block; background: rgba(171,135,67,0.14); color: var(--vh-ink); font-size: 11px; padding: 3px 9px; border-radius: 99px; margin: 2px; }
+    .pill { display: inline-block; background: var(--vh-panel-2); color: var(--vh-ink); font-size: 11px; padding: 3px 9px; border-radius: 99px; margin: 2px; }
 
     .lp-list { display: flex; flex-direction: column; gap: 10px; }
-    .lp-row { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #ffffff; border: 1px solid rgba(171,135,67,0.14); border-radius: 12px; }
+    .lp-row { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: 12px; }
     .lp-row .body { flex: 1; min-width: 0; }
-    .lp-row .name { font-size: 13.5px; font-weight: 600; color: #111111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .lp-row .meta-row { font-size: 11.5px; color: #556059; margin-top: 3px; }
-    .lp-row .region-tag { background: rgba(171,135,67,0.14); color: var(--vh-ink); font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
-    .lp-btn { font-family: inherit; font-size: 11.5px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.3); border-radius: 7px; padding: 5px 11px; cursor: pointer; }
-    .lp-btn:hover { border-color: #6A33D8; color: #111111; }
-    .empty { padding: 30px; text-align: center; color: #48524c; font-size: 13px; background: rgba(171,135,67,0.04); border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
+    .lp-row .name { font-size: 13.5px; font-weight: 600; color: var(--vh-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lp-row .meta-row { font-size: 11.5px; color: var(--vh-ink-dim); margin-top: 3px; }
+    .lp-row .region-tag { background: var(--vh-panel-2); color: var(--vh-ink); font-size: 10.5px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
+    .lp-btn { font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--vh-ink-dim); background: transparent; border: 1px solid var(--vh-line-hot); border-radius: 7px; padding: 5px 11px; cursor: pointer; }
+    .lp-btn:hover { border-color: var(--vh-primary-text); color: var(--vh-ink); }
+    .empty { padding: 30px; text-align: center; color: var(--vh-ink-dim); font-size: 13px; background: var(--vh-panel-2); border: 1px dashed var(--vh-line-hot); border-radius: 12px; }
 
-    .channel-info { background: rgba(171,135,67,0.04); border: 1px solid rgba(171,135,67,0.15); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; font-size: 12.5px; color: #556059; line-height: 1.55; }
+    .channel-info { background: var(--vh-panel-2); border: 1px solid var(--vh-line); border-left: 4px solid var(--vh-accent); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; font-size: 12.5px; color: var(--vh-ink-dim); line-height: 1.55; }
     .channel-info b { color: var(--vh-ink); }
 
-    .status { font-size: 12.5px; color: #556059; min-height: 16px; margin-top: 8px; }
+    .status { font-size: 12.5px; color: var(--vh-ink-dim); min-height: 16px; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -148,33 +149,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <h1>Landing Pages <em>for every channel</em></h1>
   <p class="sub"> One brand-locked landing-page system that serves every channel: mailers, Meta ads, Google ads, TikTok ads. Pick a channel below, choose a region, and either link to an existing asset or write a fresh brief, the page is generated in the same brand system as the email or ad that drives traffic to it. </p>
 
-  <!-- Embedded KPI Dashboard -->
-  <section class="card" style="padding: 16px; margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <div class="label" style="margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600;">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open real analysis →</a>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Total LP Views</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">45,821</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 12% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Avg Bounce Rate</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">42.4%</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↓ 2.1% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Avg LP Conv. Rate</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">3.8%</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 0.5% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Top Converting LP</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">Jordan First Flush</div>
-        <div style="font-size: 10px; color: #556059; margin-top: 4px;">6.2% CVR (Search)</div>
-      </div>
+  <!-- KPI strip (2026-10-10): this block used to print invented figures in
+       dollars ("$45,200", "$212,450", "Jordan First Flush") for EVERY brand,
+       labelled illustrative. A number nobody measured reads as this brand's
+       performance, and in another market's currency. It now says what is true. -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;" id="embeddedDashboard" data-kpi-state="none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <p class="vh-status" style="margin:0">No live metrics are connected for this brand yet, so none are shown here. Figures appear in the brand's own currency once its data is imported.</p>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open analysis →</a>
     </div>
   </section>
 
@@ -354,7 +336,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="card">
         <div class="meta">PageDeck Intel</div>
         <h3>Top Competitors</h3>
-        <ul style="list-style: none; padding: 0; margin-top: 12px; color: #556059; font-size: 13px; line-height: 1.8;">
+        <ul style="list-style: none; padding: 0; margin-top: 12px; color: var(--vh-ink-dim); font-size: 13px; line-height: 1.8;">
           <li><b>Magic Spoon</b> - High-contrast CTA blocks, bundle-first offers</li>
           <li><b>Athletic Greens</b> - Deep social proof, medical authority sections</li>
           <li><b>Olipop</b> - Ingredients transparency, design comparison matrices</li>
@@ -365,7 +347,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="card">
         <div class="meta">Performance</div>
         <h3>Winning Page Structures</h3>
-        <div style="margin-top: 12px; font-size: 13px; color: #556059;">
+        <div style="margin-top: 12px; font-size: 13px; color: var(--vh-ink-dim);">
           <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns, not measured on KNICKGASM data</p>
           <p>Placing the "Us vs Them" comparison table above the fold on mobile is a widely used conversion pattern worth testing.</p>
           <p style="margin-top: 8px;"><b>Trend:</b> "Listicle" style advertorials are common on Meta traffic.</p>
@@ -383,7 +365,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="card">
         <div class="meta">Discover Radar</div>
         <h3>Emerging Trends</h3>
-        <div style="margin-top: 12px; font-size: 13px; color: #556059; line-height: 1.6;">
+        <div style="margin-top: 12px; font-size: 13px; color: var(--vh-ink-dim); line-height: 1.6;">
           <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns to test, not measured KNICKGASM figures</p>
           <p>• <b>Micro-animations</b> on Add-to-Cart buttons.</p>
           <p>• <b>Interactive pricing sliders</b> for subscription tiers.</p>
@@ -400,24 +382,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <section class="panel" id="panel-threed" data-shipped-for="knickgasm" data-shipped-label="3D landing templates">
     <div class="channel-info">
       <b>3D landing templates</b>, powered by the 3D connector engine. Each renders as a continuous WebGL scene of floating product panels with an automatic fast 2D fallback for mobile / reduced-motion / crawler traffic. A paid-social lander can collapse to a single-product checkout. Live catalog and pricing come from the active brand's own store; historical metrics come from that brand's own exports. </div>
-    <div style="border:1px solid rgba(171,135,67,.18);border-radius:16px;overflow:hidden;background:var(--vh-ink);margin-bottom:16px">
+    <div style="border:1px solid var(--vh-line);border-radius:16px;overflow:hidden;background:var(--vh-panel-2);margin-bottom:16px">
       <div data-knickgasm3d data-region="us" id="lp-threed-preview" style="width:100%;height:360px"></div>
     </div>
     <div class="grid-2">
       <div class="card">
         <div class="meta">Template · Spatial Checkout</div>
         <h3>Meta Lander, Single-Product Orbit</h3>
-        <div style="margin-top:12px;font-size:13px;color:#556059;line-height:1.6">
+        <div style="margin-top:12px;font-size:13px;color:var(--vh-ink-dim);line-height:1.6">
           <p>One isolated product/bundle floating front-and-centre, glassmorphic add-to-cart panel, all exploration chrome removed. Built for try.knickgasm.* ad traffic.</p>
-          <p style="color:#6b7770">Renders at <code>/lp/:id</code> via the engine; falls back to a fast 2D checkout card.</p>
+          <p style="color:var(--vh-ink-dim)">Renders at <code>/lp/:id</code> via the engine; falls back to a fast 2D checkout card.</p>
         </div>
       </div>
       <div class="card">
         <div class="meta">Template · Store Constellation</div>
         <h3>Full Store, Product Constellation</h3>
-        <div style="margin-top:12px;font-size:13px;color:#556059;line-height:1.6">
+        <div style="margin-top:12px;font-size:13px;color:var(--vh-ink-dim);line-height:1.6">
           <p>Products arranged as a slow-orbiting spatial constellation of brand-cloned panels. For editorial / brand landers where exploration matters more than one CTA.</p>
-          <p style="color:#6b7770">Region-aware (US / UK / Global); live theme colours + Montserrat / Instrument Sans injected into the scene.</p>
+          <p style="color:var(--vh-ink-dim)">Region-aware (US / UK / Global); live theme colours + Montserrat / Instrument Sans injected into the scene.</p>
         </div>
       </div>
     </div>
@@ -467,8 +449,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // truth. It used to swallow the failure and still say "saved to your library",
   // which is the same class of bug as a stale list: the screen reports a state
   // the system is not in.
+  // Rows are filed under the ACTIVE brand's account workspace: RLS admits a write only for a member of
+  // that workspace (20261009230000). A device brand (id local-*) has no account row, so nothing is sent.
+  const activeWorkspaceId = () => { try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); const id = b && b.id; return (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) ? String(id) : null; } catch (_) { return null; } };
   async function persistLanding(channel, form) {
     const sb = sbClient(); if (!sb) return { ok: false, reason: 'not signed in to the shared database' };
+    const workspaceId = activeWorkspaceId();
+    if (!workspaceId) return { ok: false, reason: 'this brand is kept on this device, not in an account workspace' };
     try {
       const u = sbUser() || {};
       const row = {
@@ -477,7 +464,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         paired_with: channel === 'mailers' ? 'mailer' : channel,
         name: form.hero || '', market: form.region || '',
         hero: form.hero || '', sub: form.sub || '', offer: form.offer || '', notes: form.notes || '',
-        payload: form, origin: location.origin || ''
+        payload: form, origin: location.origin || '', workspace_id: workspaceId
       };
       const { error } = await sb.from('landing_pages_generated').insert([row]);
       if (error) { console.warn('[landing] supabase insert failed:', error.message); return { ok: false, reason: error.message }; }
@@ -507,7 +494,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     bar.innerHTML = `
       <label>✨ Or describe the landing page in plain English — AI fills every field below</label>
       <textarea data-ai-prompt placeholder="${PROMPT_HINT[channel]}"></textarea>
-      <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample landing page whose structure & voice to mirror" style="width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.22);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px;font-family:inherit;margin-top:8px">
+      <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample landing page whose structure & voice to mirror" style="width:100%;background:var(--vh-bg);border:1px solid var(--vh-line-hot);border-radius:8px;color:var(--vh-ink);padding:8px 11px;font-size:12.5px;font-family:inherit;margin-top:8px">
       <div style="display:flex;gap:10px;margin-top:8px;align-items:center;flex-wrap:wrap">
         <button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button>
         <span data-ai-status class="status" style="margin-top:0"></span>
@@ -519,10 +506,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   if (!document.getElementById('lp-ai-bar-style')) {
     const s = document.createElement('style'); s.id = 'lp-ai-bar-style';
     s.textContent = `
-      .ai-bar{background:rgba(171,135,67,0.06);border:1px solid rgba(171,135,67,0.22);border-radius:10px;padding:12px 14px;margin:0 0 14px}
+      .ai-bar{background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:10px;padding:12px 14px;margin:0 0 14px}
       .ai-bar label{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--vh-ink);font-weight:600;margin-bottom:6px}
-      .ai-bar textarea{width:100%;min-height:64px;background:#ffffff;border:1px solid rgba(171,135,67,0.22);border-radius:8px;color:#111111;padding:9px 11px;font-size:13px;font-family:inherit;resize:vertical}
-      .ai-bar textarea:focus{outline:none;border-color:#6A33D8}
+      .ai-bar textarea{width:100%;min-height:64px;background:var(--vh-bg);border:1px solid var(--vh-line-hot);border-radius:8px;color:var(--vh-ink);padding:9px 11px;font-size:13px;font-family:inherit;resize:vertical}
+      .ai-bar textarea:focus{outline:none;border-color:var(--vh-focus)}
     `;
     document.head.appendChild(s);
   }
@@ -555,7 +542,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!opts.some((o) => o.code === selectedRegion[channel])) selectedRegion[channel] = rc.home;
       grp.innerHTML = opts.length
         ? opts.map((o) => '<button type="button" class="region-chip' + (o.code === selectedRegion[channel] ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
-        : '<span class="region-chip" style="cursor:default">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+        : '<span class="region-chip" style="cursor:default">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
     });
   }
   $$('.regions').forEach((grp) => {
@@ -585,7 +572,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function brandName() {
     var b = activeBrand();
-    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]';
+    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
   }
   function brandWordmark() { return String(brandName()).toUpperCase(); }
   function brandTagline() {
@@ -633,7 +620,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const region = f.region || f.market || homeRegion();
     // This brand's own storefront for the region; the shipped map is tenant
     // zero's and is used only when no brand is active at all.
-    const base = brandStoreBase(region) || (activeBrand() ? ('[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + region + ']') : (STORE_BASE[region] || STORE_BASE.US));
+    const base = brandStoreBase(region) || (activeBrand() ? ('[DATA REQUIRED BEFORE LAUNCH: region store URL, ' + brandName() + ', ' + region + ']') : (STORE_BASE[region] || STORE_BASE.US));
     const hero = f.hero || 'Lace-up the moment';
     // The brand's own tagline or first claim; never a sentence about a
     // different company's process.
@@ -716,14 +703,15 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
     if (!document.getElementById('lp-preview-style')) {
       const s = document.createElement('style'); s.id = 'lp-preview-style';
       s.textContent = `
-        #lp-preview{position:fixed;inset:0;z-index:10000;display:none;background:rgba(6,12,9,.72);-webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);padding:24px}
+        #lp-preview{position:fixed;inset:0;z-index:10000;display:none;background:transparent;-webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);padding:24px}
+        #lp-preview::before{content:"";position:absolute;inset:0;background:var(--vh-ink);opacity:.45;z-index:-1}
         #lp-preview.open{display:flex}
-        #lp-preview .pm-card{margin:auto;width:min(1040px,100%);height:100%;max-height:92vh;background:#ffffff;border:1px solid rgba(171,135,67,.28);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
-        #lp-preview .pm-head{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(171,135,67,.18);flex-wrap:wrap}
-        #lp-preview .pm-title{font-size:13px;font-weight:600;color:#111111;flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        #lp-preview iframe{flex:1;width:100%;border:0;background:#FFFFFF}
+        #lp-preview .pm-card{margin:auto;width:min(1040px,100%);height:100%;max-height:92vh;background:var(--vh-panel);border:1px solid var(--vh-line);box-shadow:var(--vh-lift-2);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+        #lp-preview .pm-head{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--vh-line);flex-wrap:wrap}
+        #lp-preview .pm-title{font-size:13px;font-weight:600;color:var(--vh-ink);flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        #lp-preview iframe{flex:1;width:100%;border:0;background:var(--vh-bg)}
         #lp-preview .lp-btn{white-space:nowrap}
-        #lp-preview .pm-close{background:transparent;border:0;color:#556059;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px}
+        #lp-preview .pm-close{background:transparent;border:0;color:var(--vh-ink-dim);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px}
       `;
       document.head.appendChild(s);
     }
@@ -967,7 +955,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       const prompt = (promptEl.value || '').trim();
       const reference_url = (refEl?.value || '').trim();
       if (!prompt) { status.textContent = 'Type what you want first.'; return; }
-      const region = selectedRegion[channel] || 'US';
+      const region = selectedRegion[channel] || ((window.RegionContext && window.RegionContext.home) || '');
       const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
       status.textContent = '';
       try {

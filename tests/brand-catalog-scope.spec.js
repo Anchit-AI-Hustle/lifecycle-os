@@ -334,12 +334,9 @@ test('the browser resolver and the server resolver agree on who owns the shipped
 
 test('the 3D storefront resolves through the shared brand resolver', () => {
   const html = fs.readFileSync(path.join(ROOT, 'storefront-3d.html'), 'utf8');
-  expect(html).toContain('/brand-catalog.js');
+  // The page keeps no fetch of its own (2026-10-05): brand-catalog.js is the
+  // one reader, signed-out demo included. What the page REQUESTS under each
+  // brand is executed in tests/catalog-provenance.spec.js's every-page sweep.
   expect(html).toContain('window.BrandCatalog');
-  // The direct fetch may remain as the signed-out tenant-zero demo path, but it
-  // must sit BEHIND the brand-scoped resolver, never in front of it.
-  const scopedAt = html.indexOf('brandScopedCatalog()');
-  const directAt = html.indexOf("fetch(RC.cat");
-  expect(scopedAt).toBeGreaterThan(-1);
-  expect(directAt).toBeGreaterThan(scopedAt);
+  expect(html).not.toContain('fetch(RC.cat');
 });
