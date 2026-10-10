@@ -157,15 +157,10 @@ services:
       GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE}
       GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
       GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
-      # Google sign-in — the ONLY provider auth.js calls
-      # (signInWithOAuth({ provider: 'google' })). The redirect URI GoTrue
-      # registers with Google is ${API_EXTERNAL_URL}/callback, which resolves
-      # to https://<your-host>/auth/v1/callback. Put exactly that in the Google
-      # Cloud Console OAuth client's "Authorized redirect URIs".
-      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED}
-      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_SECRET}
-      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${API_EXTERNAL_URL}/callback
+      # Sign-in is a mobile number and a 4-digit PIN only (2026-10-09). The
+      # app's server creates each account through the admin endpoint and signs
+      # it in with the phone password grant, so the PHONE provider must be on
+      # (ENABLE_PHONE_SIGNUP) and no OAuth provider is configured here.
 
   rest:
     container_name: supabase-rest
