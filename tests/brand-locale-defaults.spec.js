@@ -222,11 +222,13 @@ test.describe('/brain for a phone sign-in kept on this device, no DATABASE_URL',
     expect(await page.locator('#agenticOut').innerText()).not.toMatch(/\bUS\b|Running agentic flow/);
     await expect(page.locator('#agenticOut .vh-failure')).toHaveCount(0);
 
-    // The rolling calendar's empty state: the brand's own name, never "this
-    // workspace, all". Daily Sync runs on first open and carries the brand.
+    // Daily Sync carries the brand: the lifecycle-strategy calendar names the
+    // brand and its undeclared market, never "this workspace, all", never US.
+    await page.click('#sync');
     await expect.poll(() => log.api.filter((r) => /smart-brain-sync-daily/.test(r.url)).length, { timeout: 60_000 }).toBeGreaterThan(0);
-    await expect(page.locator('#plan .planempty')).toContainText('[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, Bare Brand]', { timeout: 30_000 });
+    await expect(page.locator('#plan')).toContainText('[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, Bare Brand', { timeout: 30_000 });
     expect(await page.locator('#plan').innerText()).not.toMatch(PADDED);
+    expect(await page.locator('#plan').innerText()).not.toMatch(/\b(US|UK|USD|GBP)\b/);
     expect(await page.locator('#syncstate').innerText()).not.toMatch(PADDED);
     await expect(page.locator('#mode')).toHaveText('Local / Demo Mode (on this device)');
     expect(log.errors).toEqual([]);
@@ -307,9 +309,11 @@ test.describe('the routers resolve the market from the carried brand', () => {
     const sync = await w.request('/api/calendar', { query: { action: 'smart-brain-sync-daily' }, json: { brand: carry(BARE) }, state: 'device', headers: deviceHeaders() });
     expect(sync.status, sync.text.slice(0, 300)).toBe(200);
     expect(sync.out.mode).toBe('device');
-    // The empty answer has the keys a full one has (the page reads `plan`).
-    expect(sync.out).toMatchObject({ ok: true, plan: [], entries: [], changes: [], insights: [] });
-    expect(sync.out.note).toContain('[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, Bare Brand]');
+    // A brand with no market and no catalogue gets the lifecycle-strategy
+    // calendar under UNDECLARED: never a country it did not declare.
+    expect(sync.out).toMatchObject({ ok: true });
+    expect(Array.from(new Set((sync.out.plan || []).map((e) => e.market)))).toEqual(['UNDECLARED']);
+    expect(sync.out.note).toContain('[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, Bare Brand');
     expect(sync.out.note).not.toMatch(PADDED);
     // The Indian brand's plan is IN, every slot.
     const deli = await w.request('/api/calendar', { query: { action: 'smart-brain-sync-daily' }, json: { brand: carry(DELI) }, state: 'device', headers: deviceHeaders() });
@@ -434,6 +438,7 @@ const SHIPPED_PROGRAMME = {
   'diff-version.html': 'a frozen snapshot of tenant zero\'s app',
   'website-designs.html': 'tenant zero\'s storefront designs by store (US/UK/Global stores)',
   'access-issues.html': 'the platform\'s own SaaS subscription costs, billed in USD by their vendors',
+  'frameworks.html': 'worked copy examples written for tenant zero (the brand-content audit owns their wording)',
 };
 
 test.describe('every page, for an Indian brand kept on this device', () => {
@@ -477,6 +482,11 @@ test.describe('every page, for an Indian brand kept on this device', () => {
           out.shown = (document.body.innerText || '').replace(/\s+/g, ' ');
           const railText = (document.querySelector('#lifecycle-nav') || {}).innerText || '';
           out.text = out.shown.replace(railText.replace(/\s+/g, ' '), ' ');
+          // A currency CHOICE (the dashboard's source-currency toggle) names
+          // currencies on purpose; what is SELECTED is checked above.
+          for (const el of document.querySelectorAll('[data-cur]')) out.text = out.text.replace((el.innerText || '').replace(/\s+/g, ' '), ' ');
+          const cur = document.querySelector('[data-cur].active');
+          if (cur) out.selected.push(cur.getAttribute('data-cur') === 'INR' ? 'IN' : cur.getAttribute('data-cur'));
           out.families = out.selected.map((v) => RC.family(v));
           return out;
         });

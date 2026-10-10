@@ -200,33 +200,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="sub">Plan and brief Google &amp; Meta campaigns, and the landing pages they point to, in the brand system.</div>
   </div>
 
-  <!-- Embedded KPI Dashboard -->
-  <section class="card" style="padding: 16px; margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <div class="label" style="margin: 0;">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #6A33D8; text-decoration: none;">Open real analysis →</a>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Ad Spend (30d)</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">$45,200</div>
-        <div style="font-size: 10px; color: #b91c1c; margin-top: 4px;">↓ 2% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Overall ROAS</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">3.8x</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 0.2x vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Cost per Acq (CPA)</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">$18.50</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↓ $1.20 vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Top Channel</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">Meta Ads</div>
-        <div style="font-size: 10px; color: #556059; margin-top: 4px;">4.2x ROAS</div>
-      </div>
+  <!-- KPI strip (2026-10-10): this block used to print invented figures in
+       dollars ("$45,200", "$212,450", "Jordan First Flush") for EVERY brand,
+       labelled illustrative. A number nobody measured reads as this brand's
+       performance, and in another market's currency. It now says what is true. -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;" id="embeddedDashboard" data-kpi-state="none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <p class="vh-status" style="margin:0">No live metrics are connected for this brand yet, so none are shown here. Figures appear in the brand's own currency once its data is imported.</p>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open analysis →</a>
     </div>
   </section>
 
