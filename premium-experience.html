@@ -443,6 +443,7 @@ a{color:var(--vh-link);}
   // timeline
   function renderTimeline(){
     var host=document.getElementById("timeline");
+    if(!host) return;   // page replaced by brand-demo.js for a brand that does not own it
     if(!SLOTS.length){
       host.innerHTML='<div class="slot"><div class="date">&mdash;</div><div class="body"><b>No planned sends for this workspace</b>'+
         '<span>This rail renders the plan the Automated Calendar holds for the active brand. Nothing is shown until that plan exists.</span></div>'+
