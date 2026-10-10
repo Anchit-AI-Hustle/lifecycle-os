@@ -3,18 +3,20 @@
  * auth.js — Lifecycle OS shared auth + cross-step navigation header.
  *
  * Drop this <script> into any page in the project. It:
- *   1. Bootstraps a Supabase client from window.__SUPABASE__ (set in HTML head)
- *      OR from the /api/public-config endpoint at runtime. The client persists
- *      the session and accepts the Google OAuth callback.
- *   2. SIGN-IN IS GMAIL, THROUGH SUPABASE GOOGLE AUTH (2026-10-05). The rail's
- *      "Sign in with Gmail" chip starts Google sign-in (the Gmail account
- *      picker) and never hands the browser to a host that is not there. redirectTo is
- *      the origin root (the Site URL) so a missing wildcard allowlist cannot
- *      400 the bounce; rememberReturnTo / restoreReturnTo send the person
- *      back to the page they pressed from. A stored mobile-number session
- *      from before this change still restores, and the panel that created it
- *      is still in this file for that session, but nothing in the product
- *      offers it as login.
+ *   1. Bootstraps an ANONYMOUS Supabase client from window.__SUPABASE__ (set in
+ *      HTML head) OR from the /api/public-config endpoint at runtime, for the
+ *      pages that read anon-open tables. It never holds a Supabase session of
+ *      its own and never accepts an OAuth callback.
+ *   2. SIGN-IN IS A MOBILE NUMBER AND A 4-DIGIT PIN, AND NOTHING ELSE
+ *      (2026-10-09, the owner's words: "only keep PIN option, that too only
+ *      4-digit"). The rail's "Sign in" chip opens an inline panel on the
+ *      current page: country code + number, then the PIN, then (for a new
+ *      number) a name - one Continue button whose label changes. The PIN is
+ *      checked on the server whenever the deployment keeps accounts there
+ *      (mode 'supabase' or 'server'); with no account store at all it is a
+ *      DEVICE LOCK kept in this browser (mode 'device', PBKDF2-hashed, same
+ *      5-try / 15-minute lockout). The Google sign-in that ran here from
+ *      2026-10-05 to 2026-10-09 is removed, not commented out.
  *   3. Renders a shared left rail with cross-step navigation so any stage
  *      can jump to any other stage.
  *   4. Provides window.LifecycleAuth.{client, session, user, signOut,
@@ -28,8 +30,8 @@
 (function () {
   'use strict';
 
-  // One public origin for the product. OAuth must return here even when a
-  // person began on one of Vercel's generated deployment aliases.
+  // One public origin for the product, even when a person began on one of
+  // Vercel's generated deployment aliases.
   var CANONICAL_APP_ORIGIN = 'https://lifecycle-os.anchit-tandon.com';
   // A deployment URL is useful to Vercel, but it is never a public product URL.
   // Redirect every Lifecycle OS project alias (including per-deployment URLs)
@@ -441,7 +443,7 @@
         state = 'signed-out';
         lead = 'Not run: you are signed out.';
         body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
-          + 'Sign in with Gmail (the Sign in with Gmail chip in the menu), then try again; '
+          + 'Sign in with your mobile number and 4-digit PIN (the Sign in chip in the menu), then try again; '
           + 'everything else on this page keeps working.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
@@ -614,7 +616,7 @@
         } catch (_) {}
         // 2026-09-28: the scan of Supabase's `sb-*-auth-token` localStorage
         // entries is DISABLED. Nothing can produce a Supabase session any
-        // more (Google sign-in is commented out), so a token found there is a
+        // more (Google sign-in was removed), so a token found there is a
         // leftover from before this change, not a session.
         // try {
         //   for (var i = 0; i < localStorage.length; i++) {
@@ -640,8 +642,9 @@
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
           if (!isOwnApi(url)) return nativeFetch(input, init);
 
-          // Restore the Supabase session before the first authenticated API
-          // request. Public config/auth bootstrap must never wait on itself.
+          // Wait for the boot to decide who is signed in before the first
+          // authenticated API request. Public config/auth bootstrap must
+          // never wait on itself.
           if (new URL(url, location.href).pathname !== '/api/public-config' && !authReady.settled) {
             return authReady.promise.then(function () { return window.fetch(input, init); });
           }
@@ -687,14 +690,14 @@
             if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
             var req = new Request(input, init || undefined);
             if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
-            if (window.LifecycleAuth?.session?.provider === 'mobile-pin' && !req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
+            if (!req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
             return nativeFetch(req);
           }
 
           var opts = Object.assign({}, init || {});
           var headers = new Headers((opts && opts.headers) || {});
           if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
-          if (window.LifecycleAuth?.session?.provider === 'mobile-pin' && !headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
+          if (!headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
           opts.headers = headers;
           return nativeFetch(input, opts);
         } catch (_) {
@@ -851,6 +854,7 @@
       { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
       { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
       { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
+      { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
       { id: 'connections',   label: 'Connections & AI Models', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/ai-models', '/models', '/brand-connections.html'] },
       { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
@@ -1131,6 +1135,22 @@
         ['Design + layout + structure', 'Rendered from brand tokens, so it re-skins with the workspace like every other surface.'],
         ['Coding', 'The OAuth state binds the returning code to the workspace and user that started the flow, so a code cannot be redeemed into a different brand. Credentials are sealed with AES-256-GCM under PAYMENTS_ENCRYPTION_KEY before storage, the ciphertext columns are revoked from every browser-facing database role, and the browser only ever receives a four character hint. Mounted on the existing public-config router, so no thirteenth serverless function.'],
         ['Final compilation + presentation', 'A connected gateway is available to every feature that needs real payment data. Runs via: /api/public-config?action=payments'],
+      ],
+    },
+    designsystem: {
+      title: "Design System",
+      what: "The Lifecycle OS design system, live: the platform's own mark and logo set, the surface contract that says which token paints every ground, text and edge, and every component of the app rendered in the ACTIVE brand, with each text colour's measured contrast against its ground.",
+      who: "Anyone building or reviewing a screen, and a brand owner checking that their colours read well everywhere before activating them.",
+      how: "Every colour on the page is a role token from theme.css, resolved through the brand tokens brand-context.js paints from the active record. Brand-coloured text is derived for its ground, a brand-coloured section goes through sectionGround so it is never a dark neutral, and the platform mark stays neutral whatever brand is active. The contract and its machine-readable tokens live in design/lifecycle-os.",
+      input: "The active brand's record: its palette, typography and name. Nothing is typed on this page.",
+      steps: [
+        ["Ideology", "One contract for every screen: a page picks a role, never a colour, so it re-skins to any brand and stays readable."],
+        ["Data analysis + review + hypothesis", "Reads the brand tokens tokens() derived for this brand and measures each text token against the ground it is allowed on."],
+        ["Business & strategy decisions", "The platform's identity stays the platform's; the brand owns the colours, type and copy."],
+        ["Content", "Specimen copy only. No brand fact is written here."],
+        ["Design + layout + structure", "Every kit component in theme.css, the icon set and the illustrations, laid out as a sheet."],
+        ["Coding", "Static page on the shared shell; tests/design-system.spec.js renders it under six palettes and fails on an unreadable pair, a dark section or a colour literal."],
+        ["Final compilation + presentation", "The same contract is published as the Lifecycle OS Design System. Runs via: /design-system"],
       ],
     },
     brandinput: {
@@ -1612,7 +1632,7 @@
   }
   // Pages that must never gate behind the login wall.
   //
-  // Internal tool: we do NOT force a Google sign-in to use any feature. The
+  // Internal tool: we do NOT force a sign-in to use any feature. The
   // optional "Sign in" chip stays in the nav (so profiles/Supabase still work
   // when signed in), but no page is blocked by the login wall. This avoids
   // lockouts from external OAuth redirect-URL/domain mismatches. To re-enable
@@ -1620,15 +1640,15 @@
   // on a per-item flag instead of `true`.
   function isOpenPage() {
     const p = (location.pathname || '').toLowerCase();
-    // Legal/consent pages are always open (Google OAuth review + never lock a
-    // user out of the privacy/terms pages).
+    // Legal/consent pages are always open (never lock a user out of the
+    // privacy/terms pages).
     if (/(^|\/)(privacy|terms)(\.html)?$/.test(p)) return true;
-    // The HOMEPAGE must be publicly viewable (Google OAuth "app homepage"
-    // requirement: not behind a login page, and it explains the app's purpose).
+    // The HOMEPAGE must be publicly viewable (not behind a login page, and it
+    // explains the app's purpose).
     // It renders a guest nav + a Sign in button, but is never walled.
     if (p === '/' || p === '' || /(^|\/)index(\.html)?$/.test(p)) return true;
     // Otherwise a page is open ONLY if its nav panel is explicitly flagged
-    // open (Mailer Studio). Everything else requires Google sign-in.
+    // open (Mailer Studio). Everything else is for a signed-in person.
     const id = currentStepId();
     const item = leafItems().find((s) => s.id === id);
     return !!(item && item.open);
@@ -1787,7 +1807,11 @@
         #lifecycle-nav .lnav-brandlogo[hidden] { display: none; }
         #lifecycle-nav .lnav-brandlogo img { width: 100%; height: 100%; object-fit: contain; display: block; }
         #lifecycle-nav .lnav-head { display: flex; align-items: center; gap: 6px; }
-        #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
+        /* min-width:0 so a long brand name ellipsises inside the rail instead of
+           pushing the collapse button out past its edge (seen on /design-system
+           with a 30-character brand name). */
+        #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; min-width: 0; }
+        #lifecycle-nav .lnav-brand .lnav-brandrow small { min-width: 0; }
         #lifecycle-nav .lnav-collapse {
           flex-shrink: 0; width: 26px; height: 26px; margin-bottom: 16px;
           background: transparent; border: 1px solid var(--vh-line); border-radius: 7px;
@@ -2044,7 +2068,6 @@
           left: 8px; outline: 2px solid var(--vh-focus); outline-offset: 2px;
         }
         #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
-        html.lnav-collapsed #lifecycle-nav .lnav-signin-with { display: none; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
         #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
@@ -2378,11 +2401,11 @@
   }
 
   // The user block at the foot of the rail: the account chip + sign-out when a
-  // session exists, a "Sign in with Gmail" link otherwise. It is the ONLY part
-  // of the rail that depends on the session, which is why it can be swapped in
-  // place (see setRailUser) instead of the whole rail waiting for the session
-  // to resolve. The visible words are Gmail; the provider underneath is Google.
-  const SIGN_IN_LABEL = 'Sign in with Gmail';
+  // session exists, a "Sign in" link otherwise. It is the ONLY part of the
+  // rail that depends on the session, which is why it can be swapped in place
+  // (see setRailUser) instead of the whole rail waiting for the session to
+  // resolve. The chip opens the mobile number + 4-digit PIN panel.
+  const SIGN_IN_LABEL = 'Sign in';
   function bindSkipTarget(wrap) {
     const skip = wrap && wrap.querySelector('.lnav-skip');
     if (!skip) return;
@@ -2407,16 +2430,13 @@
   function escHtml(v) {
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
-  /** The only sign-in a visitor is offered. Gmail is a Google account. */
+  /** The only sign-in a visitor is offered: a mobile number and a 4-digit PIN. */
   function signInLabelHtml() {
-    return 'Sign in<span class="lnav-signin-with"> with Gmail</span>';
+    return SIGN_IN_LABEL;
   }
-  function paintSignInLabel(btn, opts) {
+  function paintSignInLabel(btn) {
     if (!btn) return;
-    // A press in flight owns the label ("Checking sign-in…"). clearSignInNote
-    // must not take it back; the press itself restores with { force: true }.
-    if (btn.dataset.busy && !(opts && opts.force)) return;
-    btn.innerHTML = signInLabelHtml();
+    btn.textContent = signInLabelHtml();
     btn.setAttribute('aria-label', SIGN_IN_LABEL);
     btn.removeAttribute('title');
   }
@@ -2445,10 +2465,11 @@
       // a deployment with no client at all, which sent an unconfigured
       // deployment's visitor to the homepage instead of telling them why.
       e.preventDefault();
-      // 2026-10-05: Google is the only sign-in. A press during boot waits
-      // (the chip says so) and is diagnosed only once the host is known, so
-      // a slow config fetch is never reported as a missing project.
-      beginGoogleSignIn(root);
+      // The chip opens the mobile number + 4-digit PIN panel on THIS page. No
+      // navigation, no dialog, no other provider. The panel needs nothing from
+      // boot (not the config, not the SDK), so there is nothing to wait for; it
+      // asks the server where accounts are saved and says so in one line.
+      mauthOpenPanel(root, { from: signinBtn });
     };
     const signoutBtn = root.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
@@ -2526,38 +2547,6 @@
     if (w) w.remove();
   }
 
-  // Shown while an OAuth callback is being exchanged, so a signed-out bar
-  // never flashes over a sign-in that is a beat away from resolving.
-  function injectSigningInOverlay() {
-    if (document.getElementById('lifecycle-signingin')) return;
-    const el = document.createElement('div');
-    el.id = 'lifecycle-signingin';
-    el.setAttribute('role', 'status');
-    el.innerHTML = `
-      <style>
-        #lifecycle-signingin {
-          position: fixed; inset: 0; z-index: 9999; background: var(--vh-surface, #ffffff);
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 18px; font-family: var(--vh-font-body, system-ui, sans-serif); color: var(--vh-ink, #111111);
-        }
-        #lifecycle-signingin .lsi-ring {
-          width: 40px; height: 40px; border-radius: 50%;
-          border: 3px solid var(--vh-line, #ebebeb); border-top-color: var(--vh-accent, #6A33D8);
-          animation: lsi-spin 0.8s linear infinite;
-        }
-        @keyframes lsi-spin { to { transform: rotate(360deg); } }
-        #lifecycle-signingin .lsi-t { font-size: 13.5px; letter-spacing: 0.02em; }
-      </style>
-      <div class="lsi-ring"></div>
-      <div class="lsi-t">Completing sign-in…</div>
-    `;
-    (document.body || document.documentElement).appendChild(el);
-  }
-  function removeSigningInOverlay() {
-    const el = document.getElementById('lifecycle-signingin');
-    if (el) el.remove();
-  }
-
   // ─── Supabase bootstrap ─────────────────────────────────────────────
   async function loadSupabaseSDK() {
     if (window.supabase?.createClient) return window.supabase;
@@ -2581,8 +2570,8 @@
   // than a tidy-up. It held a hardcoded Supabase project which was later
   // deleted, so every visitor whose /api/public-config did not answer was sent
   // to `<dead-ref>.supabase.co` and got Chrome's DNS_PROBE_FINISHED_NXDOMAIN —
-  // no app error, no explanation, because signInWithOAuth NAVIGATES and cannot
-  // fail on a host that does not resolve.
+  // no app error, no explanation, because an OAuth redirect NAVIGATES and
+  // cannot fail on a host that does not resolve.
   //
   // This is the SECOND time a baked-in ref went stale here: the Mailer Studio's
   // own comment records being repointed off "a stale third project". A constant
@@ -2643,183 +2632,6 @@
     return { promise, settled: false, settle() { if (!this.settled) { this.settled = true; resolve(); } } };
   })();
 
-  /**
-   * Which signed-out state is this browser in? One of
-   *   unconfigured | sdk | unreachable | signed-out
-   * - the same four the standing bar names, decided the same way, so the bar
-   * and the sign-in button can never disagree about what is wrong.
-   */
-  async function signedOutState() {
-    const cfg = window.__SUPABASE__ || {};
-    if (!cfg.url) return 'unconfigured';
-    // A URL but no client: the SDK never loaded (boot()'s catch). This used to
-    // be reported as "no Supabase configuration", which sends the operator to
-    // check an env var that is set.
-    if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
-    return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
-  }
-
-  /**
-   * What this Auth project publishes about its providers.
-   *
-   * GET /auth/v1/settings is public (the same document Sign in with Gmail
-   * reads before it navigates). `external.google === false` is the live
-   * production state on 2026-10-05: GoTrue then answers authorize with
-   * 400 validation_failed "Unsupported provider: provider is not enabled",
-   * and because signInWithOAuth NAVIGATES the person sees that JSON instead
-   * of a sentence. Unreadable settings fail OPEN - a CORS miss, a timeout
-   * or a harness that only answers /health must not block a working project.
-   * Never prefetch /auth/v1/authorize: that call spends the PKCE verifier.
-   */
-  const SETTINGS_CACHE = new Map();
-  function authSettings(url, anonKey) {
-    if (!url) return Promise.resolve(null);
-    const key = String(url);
-    if (SETTINGS_CACHE.has(key)) return SETTINGS_CACHE.get(key);
-    const probe = (async () => {
-      const ctl = new AbortController();
-      const timer = setTimeout(function () { ctl.abort(); }, 4000);
-      try {
-        const res = await fetch(url.replace(/\/+$/, '') + '/auth/v1/settings', {
-          headers: {
-            apikey: anonKey || '',
-            Authorization: 'Bearer ' + (anonKey || ''),
-          },
-          signal: ctl.signal,
-        });
-        if (!res.ok) return null;
-        const ct = (res.headers.get('content-type') || '').toLowerCase();
-        if (!ct.includes('application/json')) return null;
-        return await res.json();
-      } catch (e) {
-        return null;
-      } finally {
-        clearTimeout(timer);
-      }
-    })();
-    SETTINGS_CACHE.set(key, probe);
-    return probe;
-  }
-  function googleProviderOff(settings) {
-    if (!settings || typeof settings !== 'object') return false;
-    const ext = settings.external;
-    if (!ext || typeof ext !== 'object') return false;
-    return ext.google === false;
-  }
-
-  /**
-   * Start Google sign-in, but never hand the browser to a host that is not
-   * there, or to a project whose Google provider is off. Resolves to null
-   * when the redirect has been started, otherwise to `{ kind, message, html }`
-   * naming the state that refused it. The sentence is signedOutSentence()'s -
-   * the SAME words the standing bar shows for that state - because two
-   * hand-written copies of "the project is gone" had already drifted: the
-   * bar said "most likely deleted, renamed or paused" (the network cannot
-   * tell them apart) and this path said "deleted or renamed", a claim the
-   * code cannot make.
-   */
-  async function signInRefusal() {
-    // Never diagnose a boot still in flight (see authReady). This also covers
-    // window.__startGoogleSignIn__, which pages and tests call directly.
-    await authReady.promise;
-    const kind = await signedOutState();
-    if (kind !== 'signed-out') {
-      const s = signedOutSentence(kind);
-      return { kind: kind, message: s.text, html: s.html };
-    }
-    const cfg = window.__SUPABASE__ || {};
-    const settings = await authSettings(cfg.url, cfg.anonKey);
-    if (googleProviderOff(settings)) {
-      const s = signedOutSentence('provider-off');
-      return { kind: 'provider-off', message: s.text, html: s.html };
-    }
-    rememberReturnTo();
-    const client = window.LifecycleAuth && window.LifecycleAuth.client;
-    if (!(client && client.auth && typeof client.auth.signInWithOAuth === 'function')) {
-      const s = signedOutSentence('sdk');
-      return { kind: 'sdk', message: s.text, html: s.html };
-    }
-    const { error } = await client.auth.signInWithOAuth(googleSignInOptions());
-    if (!error) return null;
-    const message = 'Sign-in failed: ' + (error.message || error);
-    return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
-  }
-
-  /** String form of signInRefusal(): '' on success, the sentence on refusal. */
-  async function startGoogleSignIn() {
-    return beginGoogleSignIn(document.getElementById('lifecycle-nav'));
-  }
-
-  /**
-   * Say why sign-in did not happen, where the user is looking: a note under
-   * the rail's Sign-in button carrying the state's sentence, and the standing
-   * bar brought back into view (re-shown if it had been dismissed) so the two
-   * explanations are visibly the same one.
-   */
-  function showSignInRefusal(wrap, btn, refusal) {
-    btn.textContent = 'Sign-in unavailable';
-    btn.setAttribute('aria-label', 'Sign-in unavailable');
-    btn.title = refusal.message;
-    btn.setAttribute('aria-describedby', 'lnav-signin-note');
-    let note = wrap.querySelector('#lnav-signin-note');
-    if (!note) {
-      note = document.createElement('div');
-      note.id = 'lnav-signin-note';
-      note.className = 'lnav-signin-note';
-      note.setAttribute('role', 'alert');
-      const footer = btn.closest('.lnav-user') || btn;
-      footer.insertAdjacentElement('afterend', note);
-    }
-    note.setAttribute('data-kind', refusal.kind);
-    note.innerHTML = refusal.html;
-    if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
-    const bar = injectSignedOutNotice(refusal.kind, { force: true });
-    if (!bar) return;
-    try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
-    bar.style.outline = '2px solid var(--vh-warn)';
-    bar.style.outlineOffset = '-2px';
-    setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
-  }
-
-  /**
-   * The Sign in chip and LifecycleAuth.openSignIn share this. Returns '' when
-   * Google has been asked to take over, otherwise the sentence that refused it.
-   */
-  async function beginGoogleSignIn(root) {
-    const nav = root || document.getElementById('lifecycle-nav');
-    const btn = nav && nav.querySelector('#lnav-signin');
-    if (btn && btn.dataset.busy) return '';
-    if (btn) btn.dataset.busy = '1';
-    try {
-      const waited = !authReady.settled;
-      if (waited && btn) {
-        btn.textContent = 'Checking sign-in…';
-        btn.setAttribute('aria-label', 'Checking sign-in');
-        btn.setAttribute('aria-busy', 'true');
-      }
-      const refusal = await signInRefusal();
-      if (waited && btn) {
-        paintSignInLabel(btn, { force: true });
-        btn.removeAttribute('aria-busy');
-      }
-      if (!refusal) return '';
-      if (btn && nav) showSignInRefusal(nav, btn, refusal);
-      return refusal.message || '';
-    } catch (err) {
-      const message = 'Sign-in failed: ' + ((err && err.message) || err);
-      if (btn && nav) {
-        showSignInRefusal(nav, btn, {
-          kind: 'failed',
-          message: message,
-          html: window.LifecycleFailure.html(err instanceof Error ? err : new Error(message), { title: 'Sign-in failed' }),
-        });
-      }
-      return message;
-    } finally {
-      if (btn) delete btn.dataset.busy;
-    }
-  }
-
   async function getConfig() {
     if (window.__SUPABASE__?.url && window.__SUPABASE__?.anonKey) return window.__SUPABASE__;
     try {
@@ -2852,7 +2664,7 @@
 
   /**
    * ONE sentence per signed-out state, keyed by `kind`
-   * (unconfigured | unreachable | sdk | signed-out | provider-off).
+   * (unconfigured | unreachable | sdk | signed-out).
    *
    * Two surfaces explain why sign-in is not happening: the standing bar at the
    * top of every page and the note under the rail's Sign-in button. They were
@@ -2866,37 +2678,30 @@
    * bar has always used, `text` is the same words with no markup.
    */
   function signedOutSentence(kind) {
-    // FOUR states someone can fix, not one, and naming the wrong one sends
+    // THREE states someone can fix, not one, and naming the wrong one sends
     // the reader to check the thing that is not broken. `unconfigured` is a
     // missing env var on the deployment; `unreachable` is a project that no
     // longer answers, and its host is worth printing because that is the value
     // that has to change; `sdk` is the supabase-js CDN not loading;
-    // `provider-off` is a reachable project whose Google provider is disabled
-    // (GoTrue 400 validation_failed); `signed-out` is the ordinary case where
-    // everything works and this visitor simply has no session.
+    // `signed-out` is the ordinary case where everything works and this
+    // visitor simply has no session.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
-    // 2026-10-05: sign-in is Google, and Google needs this Supabase project.
-    // Each state says what is wrong and that the pages stay open.
+    // 2026-09-28: sign-in is a mobile number and a PIN (auth.js's own panel),
+    // so none of these states blocks signing in any more. Each says what the
+    // Supabase state means for DATA on this page, and that sign-in is unaffected.
     var html;
     if (kind === 'sdk') {
       html = '<b>The Supabase library did not load.</b> auth.js loads '
         + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
-        + 'outage will all do this. Every page is still open and usable. Sign in with Gmail needs that '
-        + 'library, so it cannot run until it loads. Retry on a different network or allow '
-        + '<code>cdn.jsdelivr.net</code>, then reload.';
+        + 'outage will all do this. Every page is still open and usable, and signing in with your mobile '
+        + 'number does not need it; only data a page reads straight from the database is unavailable until '
+        + 'it loads. Retry on a different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
     } else if (kind === 'signed-out') {
       html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Sign in with Gmail</b> (the Sign in with Gmail '
+        + 'what this browser holds. <b>Sign in with your mobile number and a 4-digit PIN</b> (the Sign in '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
-    } else if (kind === 'provider-off' && host) {
-      html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
-        + '</code>). Sign in with Gmail cannot start because the Auth server refuses it with '
-        + '<code>validation_failed</code>: provider is not enabled. In the Supabase dashboard open '
-        + '<b>Authentication → Providers → Google</b>, turn the provider on, set the Client ID and '
-        + 'Client Secret from a Google Cloud OAuth web client, and add the Authorized redirect URI '
-        + '<code>https://' + host + '/auth/v1/callback</code>. Then reload. Every page stays open.';
     } else if (kind === 'unreachable' && host) {
       // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
       // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
@@ -2904,14 +2709,15 @@
       html = '<b>Running without a workspace database.</b> The database this deployment points at (<code>' + host
         + '</code>) cannot be reached - its Supabase project has most '
         + 'likely been deleted, renamed or paused, or the self-hosted stack is down. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Gmail needs that '
-        + 'database, so it cannot run until the database answers. Point <code>SUPABASE_URL</code> '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
+        + 'still works and keeps your brands on this device. Point <code>SUPABASE_URL</code> '
         + 'and <code>SUPABASE_ANON_KEY</code> at a live backend to restore saved work.';
     } else {
       html = '<b>Running without a workspace database.</b> This deployment has no <code>SUPABASE_URL</code> / '
         + '<code>SUPABASE_ANON_KEY</code> set. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Gmail needs those '
-        + 'values. Set them on the deployment to restore saved work.';
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
+        + 'still works and keeps your brands on this device. Set them on the deployment to '
+        + 'restore saved work.';
     }
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
@@ -2932,19 +2738,7 @@
    */
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
-    if (existing) {
-      // Sign-in may learn a more specific state (Google is off) after boot
-      // already painted "signed out". force:true is a request for the
-      // explanation, so the bar's words have to match the chip's.
-      if (opts && opts.force && existing.getAttribute('data-kind') !== kind) {
-        existing.setAttribute('data-kind', kind);
-        var existingTxt = existing.querySelector('#lc-authnotice-text');
-        if (existingTxt) existingTxt.innerHTML = signedOutSentence(kind).html;
-        existing.style.boxShadow = 'inset 0 3px 0 ' + (kind === 'signed-out'
-          ? 'var(--vh-accent)' : 'var(--vh-warn)');
-      }
-      return existing;
-    }
+    if (existing) return existing;
     // Dismissed for this tab? Check before building anything.
     if (!(opts && opts.force)) {
       try { if (sessionStorage.getItem('lc-authnotice-hid')) return null; } catch (e) { /* private mode */ }
@@ -3105,63 +2899,6 @@
     window.LifecycleAuth.internal = !!user;
     window.LifecycleAuth.mockMode = false;
     window.__KNICKGASM_MOCK__ = false;
-  }
-
-  // ─── OAuth redirect helpers (issue: sign-in not landing correctly) ──────
-  // True while the browser is on a Supabase OAuth callback (PKCE ?code=, an
-  // ?error=, or an implicit #access_token). During this window we must NOT
-  // flash the login wall — detectSessionInUrl is exchanging the code and
-  // onAuthStateChange will fire SIGNED_IN momentarily.
-  function oauthCallbackInProgress() {
-    try {
-      const sp = new URLSearchParams(location.search || '');
-      if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
-      const hash = location.hash || '';
-      if (/access_token=|error=/.test(hash)) return true;
-    } catch (_) {}
-    return false;
-  }
-  /**
-   * Google OAuth options. redirectTo is ALWAYS the origin root: that is the
-   * Site URL every deployment already allowlists. A per-page pathname 400s
-   * when the wildcard is missing (docs/oauth-redirect-migration.md) and the
-   * person lands on Chrome's error with no in-app sentence. rememberReturnTo
-   * / restoreReturnTo send them back to the page they pressed from.
-   * prompt=select_account is the Gmail picker: without it a browser already
-   * signed into one Google account never offers another.
-   */
-  function googleSignInOptions() {
-    return {
-      provider: 'google',
-      options: {
-        redirectTo: CANONICAL_APP_ORIGIN + '/',
-        queryParams: { prompt: 'select_account' },
-      },
-    };
-  }
-  function sameAppPath(a, b) {
-    const norm = (p) => {
-      p = String(p || '/');
-      if (p === '' || p === '/index.html') return '/';
-      return p;
-    };
-    return norm(a) === norm(b);
-  }
-  function rememberReturnTo() {
-    try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
-  }
-  function restoreReturnTo() {
-    let target = null;
-    try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
-    if (!target || !target.startsWith('/') || target.startsWith('//')) return;
-    if (new URL(target, location.origin).origin !== location.origin) return;
-    const targetPath = target.split('?')[0].split('#')[0];
-    // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
-    // `/` and `/index.html` are the same app page: a bounce between them after
-    // the Site-URL callback would loop.
-    if (targetPath && !sameAppPath(targetPath, location.pathname)) {
-      location.replace(target);
-    }
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
@@ -3390,7 +3127,7 @@
       if (!mauthWriteUsers(users)) return { status: 507, body: { ok: false, error: 'device_storage_unavailable', message: 'This browser refused to store the account (storage is full or blocked), so nothing was saved.' } };
     } else if (!u.hash) {
       const perr = mauthPinError(b.pin);
-      if (perr) return { status: 200, body: { ok: true, exists: true, setPin: true, name: u.name, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + MAUTH.PIN_LEN + '-digit PIN for this account.' } };
+      if (perr) return { status: 200, body: { ok: true, exists: true, setPin: true, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + MAUTH.PIN_LEN + '-digit PIN for this account.' } };
       u.salt = mauthRandomHex(16);
       u.hash = await mauthPbkdf2(b.pin, u.salt, MAUTH.PBKDF2_ITERATIONS);
       u.iterations = MAUTH.PBKDF2_ITERATIONS; u.tries = 0; u.lockedUntil = null; u.pinSetAt = now;
@@ -3399,19 +3136,34 @@
       if (u.lockedUntil && new Date(u.lockedUntil) > new Date()) {
         return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: u.lockedUntil, message: mauthLockMessage(u.lockedUntil) } };
       }
-      if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, name: u.name, message: 'Welcome back, ' + u.name + '. Type your PIN.' } };
+      // Never a name before the PIN: anyone can type any number.
+      if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, message: 'Welcome back. Type your PIN.' } };
+      if (!/^\d{4}$/.test(String(b.pin))) {
+        return { status: 200, body: { ok: true, exists: true, needPin: true, error: 'pin_invalid', message: 'Your PIN is ' + MAUTH.PIN_LEN + ' digits.' } };
+      }
+      // The try is CLAIMED (counted and written) before the PIN is checked,
+      // as on the server: the hash below awaits, and a burst of guesses from
+      // other tabs must find each earlier one already counted.
+      const expiredLock = u.lockedUntil && !(new Date(u.lockedUntil) > new Date());
+      const tries = (expiredLock ? 0 : (u.tries || 0)) + 1;
+      u.tries = tries; if (expiredLock) u.lockedUntil = null;
+      mauthWriteUsers(users);
+      const lockNow = (store, acct) => {
+        acct.tries = 0; acct.lockedUntil = new Date(Date.now() + MAUTH.LOCK_MINUTES * 60000).toISOString();
+        store[np.e164] = acct; mauthWriteUsers(store);
+        return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: acct.lockedUntil, message: mauthLockMessage(acct.lockedUntil) } };
+      };
+      // A try beyond the fifth was claimed by a guess already in flight.
+      if (tries > MAUTH.MAX_TRIES) return lockNow(users, u);
       const hash = await mauthPbkdf2(b.pin, u.salt, u.iterations || MAUTH.PBKDF2_ITERATIONS);
+      const now2 = mauthReadUsers();
+      const cur = now2[np.e164] && now2[np.e164].id === u.id ? now2[np.e164] : u;
       if (hash !== u.hash) {
-        const tries = (u.tries || 0) + 1;
-        if (tries >= MAUTH.MAX_TRIES) {
-          u.tries = 0; u.lockedUntil = new Date(Date.now() + MAUTH.LOCK_MINUTES * 60000).toISOString();
-          mauthWriteUsers(users);
-          return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: u.lockedUntil, message: mauthLockMessage(u.lockedUntil) } };
-        }
-        u.tries = tries; mauthWriteUsers(users);
+        if (tries >= MAUTH.MAX_TRIES || (cur.tries || 0) >= MAUTH.MAX_TRIES) return lockNow(now2, cur);
         return { status: 401, body: { ok: false, wrongPin: true, left: MAUTH.MAX_TRIES - tries, error: 'pin_wrong', message: mauthTriesMessage(MAUTH.MAX_TRIES - tries) } };
       }
-      if (u.tries || u.lockedUntil) { u.tries = 0; u.lockedUntil = null; mauthWriteUsers(users); }
+      cur.tries = 0; cur.lockedUntil = null; now2[np.e164] = cur; mauthWriteUsers(now2);
+      u = cur;
     }
     const expires = new Date(Date.now() + MAUTH.SESSION_DAYS * 86400000).toISOString();
     return {
@@ -3845,7 +3597,7 @@
       (btn.closest('.lnav-user') || btn).insertAdjacentElement('afterend', note);
     }
     note.setAttribute('data-kind', 'expired');
-    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with Gmail.';
+    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with your mobile number and PIN.';
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
   }
 
@@ -3998,7 +3750,7 @@
         show(pinnote, true);
         pinnote.textContent = j.setPin
           ? 'This account has no PIN on record. Choose four digits you will remember, not a run and not your birth year.'
-          : 'Welcome back' + (j.name ? ', ' + j.name : '') + '. Type your PIN.';
+          : 'Welcome back. Type your PIN.';
         go.textContent = j.setPin ? 'Set my PIN and continue' : 'Sign in';
         panel.setAttribute('data-state', j.setPin ? 'set-pin' : 'need-pin');
         if (j.error) fail(j.message, pin); else { try { pin.focus(); } catch (_) {} }
@@ -4052,34 +3804,26 @@
     return panel;
   }
 
-  function clearGoogleAccountCache() {
-    try { window.BrandContext?.clearCache?.(); } catch (_) {}
-    try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
-  }
-
-  /** A Google session is the sign-in. The access token is the Supabase JWT. */
-  function applySupabaseUser(session) {
-    if (!session || !session.user) return;
-    if (window.LifecycleAuth.user && window.LifecycleAuth.user.id !== session.user.id) clearGoogleAccountCache();
-    window.LifecycleAuth.session = session;
-    window.LifecycleAuth.user = session.user;
-    applyAccessMode(session.user);
-    setBackendState('signed-in', { supabase: 'reachable' });
-    removeLoginWall();
-    removeSigningInOverlay();
-    const bar = document.getElementById('lc-authnotice');
-    if (bar) bar.remove();
-    setRailUser(session.user);
-  }
-  /** Google's JWT when that is the session; a stored phone token otherwise. */
-  function sessionApiToken() {
-    const s = window.LifecycleAuth && window.LifecycleAuth.session;
-    if (s && s.access_token && s.provider !== 'mobile-pin') return s.expires_at && s.expires_at * 1000 <= Date.now() ? '' : s.access_token;
-    return mauthApiToken();
+  /**
+   * A Google session left in this browser by the 2026-10-05 to 2026-10-09
+   * sign-in (supabase-js kept it under `sb-<ref>-auth-token`, with a PKCE
+   * verifier beside it, and `lc-return-to` for the bounce). Nothing reads
+   * them any more; they are removed so a refresh token for a sign-in that no
+   * longer exists does not sit in storage.
+   */
+  function dropLeftoverOAuthSession() {
+    try {
+      const drop = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (/^sb-[A-Za-z0-9-]+-auth-token(-code-verifier)?$/.test(k) || k === 'lc-return-to')) drop.push(k);
+      }
+      drop.forEach((k) => localStorage.removeItem(k));
+    } catch (_) { /* storage blocked: nothing to remove */ }
   }
 
   async function init() {
-    window.__startGoogleSignIn__ = startGoogleSignIn;
+    dropLeftoverOAuthSession();
     window.LifecycleAuth = {
       client: null,
       session: null,
@@ -4091,15 +3835,15 @@
       backend: backendSnapshot('pending'),
       backendState: () => backendFirst,
       ready: () => authReady.promise,
-      // Google is the sign-in (2026-10-05). openPanel remains for a stored
-      // phone session's own panel; the Sign in chip does not call it.
-      openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
-      googleSignInOptions,
-      restoreReturnTo,
+      // Mobile number + 4-digit PIN, the one sign-in: open the inline panel
+      // on this page. `apiToken` is the token the SERVER can check ('' for a
+      // device-only sign-in), and `mobile.rules` is exposed so the parity test
+      // can hold this copy to the server's.
+      openSignIn: (opts) => mauthOpenPanel(null, opts),
       // Why an action that needs the server cannot run right now, or null.
       // See serverActions(): pages ask BEFORE sending, and throw the answer.
       serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),
-      apiToken: sessionApiToken,
+      apiToken: mauthApiToken,
       mobile: {
         SESSION_KEY: MAUTH_SESSION_KEY, USERS_KEY: MAUTH_USERS_KEY,
         rules: { PIN_LEN: MAUTH.PIN_LEN, WEAK_PINS: MAUTH.WEAK_PINS.slice(), MAX_TRIES: MAUTH.MAX_TRIES, LOCK_MINUTES: MAUTH.LOCK_MINUTES, SESSION_DAYS: MAUTH.SESSION_DAYS, DEFAULT_CC: MAUTH.DEFAULT_CC, PHONE_CC: MAUTH.PHONE_CC, normPhone: mauthNormPhone, phoneError: mauthPhoneError, pinError: mauthPinError },
@@ -4108,9 +3852,6 @@
         openPanel: (opts) => mauthOpenPanel(null, opts),
       },
       signOut: async () => {
-        try {
-          if (window.LifecycleAuth.client && window.LifecycleAuth.client.auth) await window.LifecycleAuth.client.auth.signOut();
-        } catch (_) { /* the session is dropped from this browser either way */ }
         await mauthSignOut();
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
@@ -4177,56 +3918,25 @@
         }
         if (isOpenPage()) { injectTopbar(null); setBackendState('unconfigured'); return; }
         // NO WORKSPACE DATABASE AT ALL. The app runs on whatever local state it
-        // has, and SAYS so. Google sign-in needs that database, so the notice
-        // names the missing values and the pages stay open.
+        // has, and SAYS so. Signing in with a mobile number still works: the
+        // account goes to the Neon database when DATABASE_URL is set, else to
+        // this device.
         injectTopbar(null);
         injectSignedOutNotice('unconfigured');
         setBackendState('unconfigured');
         return;
       }
     } else {
-      // The client holds the Google session (2026-10-05). persistSession reads
-      // it back on the next page; detectSessionInUrl exchanges the OAuth code.
+      // AN ANONYMOUS CLIENT ONLY. A few pages read anon-open tables through
+      // it; it never holds a session of its own. persistSession:false so a
+      // Supabase session left in localStorage is not read back,
+      // detectSessionInUrl:false so an OAuth callback is inert.
       const sdk = await loadSupabaseSDK();
       const client = sdk.createClient(config.url, config.anonKey, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
       });
       window.LifecycleAuth.client = client;
       supabaseState = (await authHostReachable(config.url)) ? 'reachable' : 'unreachable';
-      if (client.auth && typeof client.auth.onAuthStateChange === 'function') {
-        client.auth.onAuthStateChange((_event, sess) => {
-          if (sess && sess.user) {
-            applySupabaseUser(sess);
-            restoreReturnTo();
-            return;
-          }
-          // A null session from the SDK must not sign out a stored phone account.
-          if (window.LifecycleAuth.session && window.LifecycleAuth.session.provider === 'mobile-pin') return;
-          if (window.LifecycleAuth.user) {
-            clearGoogleAccountCache();
-            window.LifecycleAuth.session = null;
-            window.LifecycleAuth.user = null;
-            applyAccessMode(null);
-            setRailUser(null);
-            void gateSignedOut();
-          }
-        });
-      }
-      if (oauthCallbackInProgress()) injectSigningInOverlay();
-      let googleSession = null;
-      try {
-        if (client.auth && typeof client.auth.getSession === 'function') {
-          const got = await client.auth.getSession();
-          googleSession = got && got.data && got.data.session;
-        }
-      } catch (_) { googleSession = null; }
-      if (googleSession && googleSession.user) {
-        applySupabaseUser(googleSession);
-        authReady.settle();
-        restoreReturnTo();
-        return;
-      }
-      removeSigningInOverlay();
     }
 
     // A SERVER-MODE SESSION IS CHECKED WITH THE DATABASE, every boot. Three
@@ -4269,233 +3979,7 @@
     // state: this one describes the state just decided.
     if (expired) mauthExpiredNote(document.getElementById('lifecycle-nav'));
 
-    /* ── DISABLED 2026-09-28: the Supabase session flow, kept for the record.
-       Mobile+PIN sign-in replaced it. Nothing below can run: the client above
-       is anonymous and never holds a session.
-
-    const sdk = await loadSupabaseSDK();
-    const client = sdk.createClient(config.url, config.anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
-    });
-    window.LifecycleAuth.client = client;
-    let got = null;
-    try {
-      got = await client.auth.getSession();
-    } finally {
-      authReady.settle();
-    }
-    const session = got && got.data && got.data.session;
-    if (session?.user) {
-      window.LifecycleAuth.session = session;
-      window.LifecycleAuth.user = session.user;
-      applyAccessMode(session.user);
-      setBackendState('signed-in');
-      setRailUser(session.user);
-      restoreReturnTo();
-      if (!isOpenPage()) await maybeShowProfileModal(client, session.user);
-    } else if (oauthCallbackInProgress()) {
-      injectSigningInOverlay();
-      setTimeout(async () => {
-        const { data: { session: s2 } } = await client.auth.getSession();
-        if (!s2?.user && !window.LifecycleAuth.session) {
-          removeSigningInOverlay();
-          await gateSignedOut();
-        }
-      }, 4500);
-    } else {
-      await gateSignedOut();
-    }
-    client.auth.onAuthStateChange((_event, sess) => {
-      window.LifecycleAuth.session = sess;
-      window.LifecycleAuth.user = sess?.user || null;
-      applyAccessMode(sess?.user || null);
-      if (sess?.user) {
-        setBackendState('signed-in');
-        removeSigningInOverlay();
-        removeLoginWall();
-        setRailUser(sess.user);
-        restoreReturnTo();
-        if (!isOpenPage()) await maybeShowProfileModal(client, sess.user);
-      } else {
-        const tb = document.getElementById('lifecycle-nav');
-        if (tb) tb.remove();
-        await gateSignedOut();
-      }
-    });
-    ── */
   }
-
-  // ─── Profile modal — shown EXACTLY ONCE, after the user signs up ────────
-  // Requirement: the profile popup appears only the first time a user signs
-  // up + logs in. After that it must never auto-appear again — whether they
-  // filled it or skipped it, on this device or any other.
-  //
-  // Source of truth is the server flag app_users.profile_prompted. It is set
-  // true the moment the popup is shown for the first time. Subsequent logins,
-  // even on a fresh device, read profile_prompted=true and skip the modal.
-  // A local-storage flag (per user) is kept as a fast path so we do not even
-  // round-trip to the DB on subsequent pages of the same session.
-  // ── DISABLED 2026-09-28: shownKey() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function shownKey(user) { return 'lifecycle-profile-shown:' + (user?.id || 'anon'); }
-  // ── end of disabled shownKey()
-  // ── DISABLED 2026-09-28: maybeShowProfileModal() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function maybeShowProfileModal(client, user) {
-  //     let alreadyLocal = false;
-  //     try { alreadyLocal = localStorage.getItem(shownKey(user)) === '1'; } catch {}
-  //     if (alreadyLocal) return;
-  //
-  //     let row;
-  //     try {
-  //       const { data, error } = await client
-  //         .from('app_users')
-  //         .select('profile_completed, profile_prompted, name, mobile, region')
-  //         .eq('id', user.id)
-  //         .maybeSingle();
-  //       if (error && error.code !== 'PGRST116') {
-  //         console.warn('[auth.js] app_users not readable:', error.message);
-  //         return;
-  //       }
-  //       row = data;
-  //     } catch (e) {
-  //       console.warn('[auth.js] profile check failed:', e.message);
-  //       return;
-  //     }
-  //
-  //     // Server says we have already prompted this user, OR profile is complete →
-  //     // remember locally and never auto-show again.
-  //     if (row?.profile_prompted || row?.profile_completed) {
-  //       try { localStorage.setItem(shownKey(user), '1'); } catch {}
-  //       return;
-  //     }
-  //
-  //     // Brand-new signup → show the popup ONCE, and mark prompted on both server
-  //     // and device so it can never reappear on any future login.
-  //     try { localStorage.setItem(shownKey(user), '1'); } catch {}
-  //     client.from('app_users').update({ profile_prompted: true }).eq('id', user.id)
-  //       .then(() => {}, () => {});
-  //     showProfileModal(client, user, row);
-  //   }
-  // ── end of disabled maybeShowProfileModal()
-
-  // ── DISABLED 2026-09-28: showProfileModal() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function showProfileModal(client, user, currentRow) {
-  //     if (document.getElementById('lifecycle-profile-modal')) return;
-  //     const modal = document.createElement('div');
-  //     modal.id = 'lifecycle-profile-modal';
-  //     modal.innerHTML = `
-  //       <style>
-  //         #lifecycle-profile-modal {
-  //           position: fixed; inset: 0; z-index: 9000;
-  //           background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);
-  //           display: flex; align-items: center; justify-content: center; padding: 20px;
-  //           font-family: 'Inter', system-ui, sans-serif;
-  //         }
-  //         #lifecycle-profile-modal .lpm-card {
-  //           max-width: 460px; width: 100%;
-  //           background: #ffffff; border: 1px solid rgba(171,135,67,0.25);
-  //           border-radius: 14px; padding: 28px 26px; box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-  //         }
-  //         #lifecycle-profile-modal .lpm-eyebrow { font-size: 11px; letter-spacing: 0.18em; color: #6A33D8; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
-  //         #lifecycle-profile-modal h2 { font-family: 'Lora','Inter',serif; font-size: 22px; color: #FFFFFF; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
-  //         #lifecycle-profile-modal h2 em { color: #6A33D8; font-style: italic; }
-  //         #lifecycle-profile-modal .lpm-sub { color: #556059; font-size: 13px; line-height: 1.55; margin: 0 0 18px; }
-  //         #lifecycle-profile-modal label { display: block; font-size: 11px; color: #48524c; text-transform: uppercase; letter-spacing: 0.1em; margin: 12px 0 5px; font-weight: 600; }
-  //         #lifecycle-profile-modal input, #lifecycle-profile-modal select {
-  //           width: 100%; box-sizing: border-box;
-  //           background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
-  //           color: #111111; padding: 10px 12px; font-size: 13px; font-family: inherit;
-  //         }
-  //         #lifecycle-profile-modal input:focus, #lifecycle-profile-modal select:focus { outline: none; border-color: #6A33D8; }
-  //         #lifecycle-profile-modal .lpm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  //         #lifecycle-profile-modal .lpm-actions { display: flex; gap: 10px; margin-top: 22px; }
-  //         #lifecycle-profile-modal button { font-family: inherit; font-size: 12.5px; padding: 11px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; letter-spacing: 0.02em; transition: opacity .15s; }
-  //         #lifecycle-profile-modal .lpm-skip   { background: transparent; color: #556059; border: 1px solid rgba(171,135,67,0.25); }
-  //         #lifecycle-profile-modal .lpm-skip:hover { color: #111111; }
-  //         #lifecycle-profile-modal .lpm-save   { background: #6A33D8; color: #ffffff; flex: 1; }
-  //         #lifecycle-profile-modal .lpm-save:hover { opacity: 0.92; }
-  //         #lifecycle-profile-modal .lpm-foot { font-size: 11px; color: #48524c; margin-top: 14px; text-align: center; font-family: 'JetBrains Mono', monospace; }
-  //         #lifecycle-profile-modal .lpm-err { color: #f87171; font-size: 12px; margin-top: 10px; padding: 8px; background: rgba(239,68,68,0.08); border-radius: 6px; }
-  //       </style>
-  //       <div class="lpm-card">
-  //         <div class="lpm-eyebrow">Welcome to Lifecycle OS</div>
-  //         <h2>Tell us a bit about <em>you</em></h2>
-  //         <p class="lpm-sub">Helps us tailor the dashboard, calendar, and mailer suggestions to your region.
-  //           <b>Skip anytime</b> — nothing here is required.</p>
-  //
-  //         <label for="lpm-name">Name</label>
-  //         <input id="lpm-name" type="text" placeholder="${(user.user_metadata?.name || '').replace(/"/g, '&quot;')}" value="${(currentRow?.name || user.user_metadata?.name || '').replace(/"/g, '&quot;')}" autocomplete="name">
-  //
-  //         <div class="lpm-row">
-  //           <div>
-  //             <label for="lpm-mobile">Mobile</label>
-  //             <input id="lpm-mobile" type="tel" placeholder="+91 98xxx-xxxxx" value="${(currentRow?.mobile || '').replace(/"/g, '&quot;')}" autocomplete="tel">
-  //           </div>
-  //           <div>
-  //             <label for="lpm-region">Region</label>
-  //             <select id="lpm-region">
-  //               <option value="">—</option>
-  //               <option value="IN">India</option>
-  //               <option value="US">United States</option>
-  //               <option value="UK">United Kingdom</option>
-  //               <option value="EU">Europe</option>
-  //               <option value="ME">Middle East</option>
-  //               <option value="AU">Australia</option>
-  //               <option value="CA">Canada</option>
-  //               <option value="JP">Japan</option>
-  //               <option value="SG">Singapore</option>
-  //               <option value="Global">Other / Global</option>
-  //             </select>
-  //           </div>
-  //         </div>
-  //
-  //         <div id="lpm-err"></div>
-  //         <div class="lpm-actions">
-  //           <button class="lpm-skip" id="lpm-skip-btn" type="button">Skip for now</button>
-  //           <button class="lpm-save" id="lpm-save-btn" type="button">Save profile</button>
-  //         </div>
-  //         <div class="lpm-foot">Stored only in your app_users row · visible only to you</div>
-  //       </div>
-  //     `;
-  //     document.body.appendChild(modal);
-  //
-  //     // Pre-fill region from previous row if any
-  //     if (currentRow?.region) {
-  //       modal.querySelector('#lpm-region').value = currentRow.region;
-  //     }
-  //
-  //     const close = () => modal.remove();
-  //
-  //     modal.querySelector('#lpm-skip-btn').addEventListener('click', () => {
-  //       // The "shown once" flag was already set in maybeShowProfileModal, so the
-  //       // popup will not auto-appear again. Skipping just closes it; the user can
-  //       // still fill their profile later if a profile entry point is added.
-  //       try { localStorage.setItem(shownKey(user), '1'); } catch {}
-  //       close();
-  //     });
-  //
-  //     modal.querySelector('#lpm-save-btn').addEventListener('click', async function () {
-  //       const btn = this;
-  //       btn.disabled = true; btn.textContent = 'Saving…';
-  //       const name   = modal.querySelector('#lpm-name').value.trim()   || null;
-  //       const mobile = modal.querySelector('#lpm-mobile').value.trim() || null;
-  //       const region = modal.querySelector('#lpm-region').value        || null;
-  //       try {
-  //         const { error } = await client.from('app_users').update({
-  //           name, mobile, region,
-  //           profile_completed: true,
-  //         }).eq('id', user.id);
-  //         if (error) throw error;
-  //         close();
-  //       } catch (e) {
-  //         const err = modal.querySelector('#lpm-err');
-  //         err.className = 'lpm-err';
-  //         err.textContent = 'Nothing was saved. ' + window.LifecycleFailure.sentence(e);
-  //         btn.disabled = false; btn.textContent = 'Save profile';
-  //       }
-  //     });
-  //   }
-  // ── end of disabled showProfileModal()
-
 
   // init() is async and was invoked with NO catch, so any rejection — most
   // realistically the supabase-js CDN being blocked by an ad blocker or a

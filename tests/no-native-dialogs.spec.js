@@ -186,7 +186,7 @@ function readSurfaces(page) {
       mode: mode ? n(mode.textContent) : null,
       err: err ? n(err.textContent) : null,
       errFrames: err ? err.querySelectorAll('.vh-failure[data-failure="1"]').length : 0,
-      google: /Sign in with Gmail/i.test(document.body.innerText || ''),
+      google: /Sign in with (Google|Gmail)/i.test(document.body.innerText || ''),
       oauth: (window.__OAUTH_CALLS__ || []).length,
       url: location.href,
     };
@@ -223,12 +223,16 @@ test('the page list is real', () => {
   expect(PAGES).toContain('index.html');
 });
 
-/* ═══ Sign-in against a dead host: every page, no dialog, no redirect ══════
-   SINCE 2026-10-05 sign-in is Google. A dead Supabase host is refused before
-   signInWithOAuth, on the same page, with the standing bar naming the host
-   and no cause the network cannot know. The mobile PIN panel stays closed. */
+/* ═══ Sign-in against a dead host: every page, no dialog, the panel here ═══
+   SINCE 2026-09-28 sign-in is a mobile number and a PIN in the rail's own
+   panel (tests/mobile-pin-signin.spec.js); Google is commented out. The dead
+   Supabase host no longer decides whether sign-in can happen - it decides
+   whether the WORKSPACE database is there, and the bar still says so - so
+   pressing Sign in must open the panel on the same page, hand the browser to
+   nobody, and open no dialog. The bar's words are still checked: a dead host
+   is still named, and no cause the network cannot know is picked. */
 
-test('pressing Sign-in against a DEAD host stays on the page, names the host, calls no OAuth, and opens no dialog, on every page', async ({ page }) => {
+test('pressing Sign-in against a DEAD host opens the panel here, no dialog, no redirect, and the bar still names the host, on every page', async ({ page }) => {
   test.setTimeout(900_000);
   const failures = [];
   const overlapped = [];
@@ -242,22 +246,16 @@ test('pressing Sign-in against a DEAD host stays on the page, names the host, ca
       continue;
     }
     pressed++;
-    await page.waitForFunction(() => {
-      const n = document.getElementById('lnav-signin-note');
-      return !!(n && n.getAttribute('data-kind')) || (window.__OAUTH_CALLS__ || []).length > 0;
-    }, null, { timeout: 8000 }).catch(() => {});
     const got = await readSurfaces(page);
     if (dialogs.length) failures.push(`${f}: a native dialog opened: ${dialogs.join(' | ')}`);
-    if (got.panel) failures.push(`${f}: the mobile PIN panel opened`);
+    if (!got.panel) { failures.push(`${f}: no sign-in panel opened in the rail`); continue; }
+    if (!got.panelInRail) failures.push(`${f}: the panel is not inside the rail`);
     if (!got.bar) failures.push(`${f}: the standing bar is missing`);
     else {
       if (!/deleted-project\.supabase\.co/.test(got.bar)) failures.push(`${f}: the bar does not name the host`);
       if (!/deleted, renamed or paused/i.test(got.bar)) failures.push(`${f}: the bar picks a cause the network cannot know: ${got.bar}`);
-      if (!/Sign in with Gmail/i.test(got.bar)) failures.push(`${f}: the bar does not name Gmail as the sign-in`);
     }
-    if (got.kind !== 'unreachable') failures.push(`${f}: the note kind is ${got.kind}, not unreachable`);
-    if (!/deleted-project\.supabase\.co/.test(got.note || '')) failures.push(`${f}: the note does not name the host`);
-    if (got.button !== 'Sign-in unavailable') failures.push(`${f}: the chip reads "${got.button}"`);
+    if (got.google) failures.push(`${f}: a "Sign in with Google" control is still offered`);
     if (got.oauth) failures.push(`${f}: signInWithOAuth was called for a host that does not resolve`);
     if (/deleted-project\.supabase\.co\/auth/.test(got.url)) failures.push(`${f}: the browser was navigated to the dead host`);
     if (!new RegExp('/' + f.replace(/[.]/g, '\\.') + '(\\?|#|$)').test(got.url)) failures.push(`${f}: pressing Sign in navigated away, to ${got.url}`);
@@ -269,48 +267,38 @@ test('pressing Sign-in against a DEAD host stays on the page, names the host, ca
 
 /* ═══ the other states, on one page ════════════════════════════════════════ */
 
-test('an UNCONFIGURED deployment: the bar and the note say what is missing, and Google is not started', async ({ page }) => {
+test('an UNCONFIGURED deployment: the bar says so in its words, and the panel says where an account would be saved', async ({ page }) => {
   const { dialogs } = await open(page, 'retention-playbook.html', { config: NO_BACKEND });
   await pressSignIn(page);
-  await page.waitForFunction(() => {
-    const n = document.getElementById('lnav-signin-note');
-    return !!(n && n.getAttribute('data-kind'));
-  }, null, { timeout: 8000 });
+  await page.waitForFunction(() => /device|database/i.test((document.getElementById('lnav-mauth-mode') || {}).textContent || ''), null, { timeout: 8000 });
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
   expect(got.barKind).toBe('unconfigured');
   expect(got.bar).toMatch(/SUPABASE_URL/);
-  expect(got.bar).toMatch(/Sign in with Gmail/i);
-  expect(got.panel).toBe(false);
-  expect(got.kind).toBe('unconfigured');
-  expect(got.note).toMatch(/SUPABASE_URL/);
-  expect(got.oauth).toBe(0);
-  expect(got.button).toBe('Sign-in unavailable');
+  expect(got.panel, 'no sign-in panel opened').toBe(true);
+  // ONE sentence for where the account goes, from the server's own answer.
+  expect(got.mode).toMatch(/Saved on this device only: no database is configured/);
+  expect(got.button, 'the chip changed its words for a state that is not a refusal').toBe('Sign in');
   // The anchor's href="/" used to be the fallback for this case: the visitor
   // was sent to the homepage instead of being told why.
   expect(got.url).toContain('retention-playbook.html');
 });
 
-test('a blocked supabase-js CDN is named as the cause, and Google is not started', async ({ page }) => {
+test('a blocked supabase-js CDN is named as the cause in the bar, and sign-in still opens', async ({ page }) => {
   const { dialogs } = await open(page, 'retention-playbook.html', { config: WITH_BACKEND, reachable: true, sdk: false });
   await page.waitForTimeout(4500);   // boot()'s catch renders the rail after the SDK load gives up
   await pressSignIn(page);
-  await page.waitForFunction(() => {
-    const n = document.getElementById('lnav-signin-note');
-    return n && n.getAttribute('data-kind') === 'sdk';
-  }, null, { timeout: 8000 });
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
   expect(got.barKind, 'a URL with no client is the SDK failing to load, not a missing env var').toBe('sdk');
   expect(got.bar).toMatch(/Supabase library did not load/i);
   expect(got.bar).toMatch(/cdn\.jsdelivr\.net/);
-  expect(got.bar).toMatch(/Sign in with Gmail needs that library/i);
-  expect(got.panel).toBe(false);
-  expect(got.kind).toBe('sdk');
-  expect(got.oauth).toBe(0);
+  // The SDK is not in the sign-in path any more, and the bar says so.
+  expect(got.bar).toMatch(/mobile number does not need it/i);
+  expect(got.panel).toBe(true);
 });
 
-test('a dismissed bar comes back when Sign-in is pressed, because that press asks for the same explanation', async ({ page }) => {
+test('a bar the visitor dismissed stays dismissed; pressing Sign-in opens the panel, which carries its own sentence', async ({ page }) => {
   const { dialogs } = await open(page, 'retention-playbook.html', { config: DEAD_BACKEND, reachable: false });
   // Dispatched, not pointer-clicked: the fixed credits pill sits over the
   // bar's Dismiss button at this width, which is a layout matter for another
@@ -318,37 +306,35 @@ test('a dismissed bar comes back when Sign-in is pressed, because that press ask
   await page.evaluate(() => document.querySelector('#lc-authnotice button').click());
   await expect(page.locator('#lc-authnotice')).toHaveCount(0);
   await pressSignIn(page);
-  await page.waitForFunction(() => !!document.getElementById('lc-authnotice') && !!document.getElementById('lnav-signin-note'), null, { timeout: 8000 });
+  await page.waitForFunction(() => /device|database/i.test((document.getElementById('lnav-mauth-mode') || {}).textContent || ''), null, { timeout: 8000 });
   const got = await readSurfaces(page);
   expect(dialogs).toEqual([]);
-  expect(got.barKind).toBe('unreachable');
-  expect(got.bar).toMatch(/deleted-project\.supabase\.co/);
-  expect(got.panel).toBe(false);
-  expect(got.kind).toBe('unreachable');
-  expect(got.oauth).toBe(0);
+  // The bar explained the WORKSPACE database; dismissing it was a choice. The
+  // panel answers the different question it exists for - where the ACCOUNT
+  // goes - and does not drag the bar back to answer it.
+  expect(got.bar).toBeNull();
+  expect(got.panel).toBe(true);
+  expect(got.mode).toMatch(/Saved on this device only/);
 });
 
-test('a LIVE backend starts Google on this page: one OAuth call, no PIN panel, no dialog', async ({ page }) => {
+test('a LIVE backend hands the browser to nobody: the panel opens, no note, no dialog, no OAuth call', async ({ page }) => {
+  // The reverse of the Google-era claim, on purpose. A working Supabase
+  // project changes nothing about sign-in: the account lives in the Neon
+  // database (or on this device), never with Google.
   const { dialogs } = await open(page, 'retention-playbook.html', { config: WITH_BACKEND, reachable: true });
   await pressSignIn(page);
-  await page.waitForFunction(() => (window.__OAUTH_CALLS__ || []).length > 0, null, { timeout: 8000 });
   const got = await readSurfaces(page);
-  const call = await page.evaluate(() => (window.__OAUTH_CALLS__ || [])[0] || null);
   expect(dialogs).toEqual([]);
-  expect(got.oauth).toBe(1);
-  expect(call.provider).toBe('google');
-  expect(call.options.redirectTo).toMatch(/\/$/);
-  expect(call.options.queryParams.prompt).toBe('select_account');
+  expect(got.oauth, 'signInWithOAuth was called on a reachable host').toBe(0);
   expect(got.note, 'a refusal note rendered for a state that is not a refusal').toBeNull();
-  expect(got.panel).toBe(false);
-  expect(got.button).toBe('Sign in with Gmail');
-  expect(got.bar).toMatch(/sign in with gmail/i);
+  expect(got.panel).toBe(true);
+  expect(got.google).toBe(false);
 });
 
 test('a refusal from the auth endpoint renders as a failure block inside the panel, never a dialog', async ({ page }) => {
-  // The stored-phone panel still exists for a session that is already a phone
-  // account. The Sign in chip does not open it; this test opens it the way
-  // that session does, then drives the refusal.
+  // The server-mode refusal shape: the status says "server", then `enter`
+  // answers 503 because the database stopped answering in between. The
+  // sentence goes through LifecycleFailure, under the field it refuses.
   const { dialogs } = await open(page, 'retention-playbook.html', {
     config: WITH_BACKEND, reachable: true,
     routes: [[/\/api\/public-config\?action=auth/, (route) => {
@@ -357,8 +343,7 @@ test('a refusal from the auth endpoint renders as a failure block inside the pan
       return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'database_unreachable', mode: 'device', host: 'ep-fixture.neon.tech', message: 'The database (ep-fixture.neon.tech) is not answering, so "enter" cannot run on the server right now.' }) });
     }]],
   });
-  await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.mobile && window.LifecycleAuth.mobile.openPanel), null, { timeout: 15000 });
-  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
+  await pressSignIn(page);
   await page.waitForFunction(() => /database/i.test((document.getElementById('lnav-mauth-mode') || {}).textContent || ''), null, { timeout: 8000 });
   await page.fill('#lnav-mauth-phone', '9876543210');
   await page.click('#lnav-mauth-go');

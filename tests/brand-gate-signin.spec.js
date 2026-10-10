@@ -9,6 +9,10 @@
  * was `unreachable` and a phone had no way to sign in from the first screen
  * (the rail's chip sits behind the gate, in a closed drawer).
  *
+ * Since #173 the sign-in is a mobile number and a 4-digit PIN, which works on
+ * the device with no account service at all, so the gate's Sign in opens that
+ * panel in every no-session state.
+ *
  * The gate stays out of automation's way (`navigator.webdriver`), so this spec
  * reports the browser as an ordinary one before any page script runs.
  *
@@ -68,30 +72,26 @@ async function open(page, { config, reachable, session }) {
 
 const gateButton = (page) => page.locator('#lc-brand-gate [data-gate-signin]');
 
-for (const [label, config, reachable] of [['the account service is paused (production, 2026-10-10)', PAUSED, false], ['no account service is configured', NO_BACKEND, false]]) {
-  test(`phone: the gate offers Sign in when ${label}, and says in the gate why it cannot open`, async ({ page }) => {
+for (const [label, config, reachable] of [
+  ['the account service is paused (production, 2026-10-10)', PAUSED, false],
+  ['no account service is configured', NO_BACKEND, false],
+  ['the account service answers', LIVE, true],
+]) {
+  test(`phone: the gate offers Sign in when ${label}, and pressing it opens the mobile + PIN panel`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const errors = await open(page, { config, reachable });
     await expect(page.locator('#lc-brand-gate')).toBeVisible({ timeout: 15_000 });
     await expect(gateButton(page)).toBeVisible({ timeout: 15_000 });
-    await expect(gateButton(page)).toHaveText('Sign in with Gmail');
+    await expect(gateButton(page)).toHaveText(/Sign in with your mobile number/);
     const box = await gateButton(page).boundingBox();
     expect(box.y + box.height, 'Sign in is below the first screen').toBeLessThanOrEqual(844);
     await gateButton(page).click();
-    const note = page.locator('#lc-brand-gate [data-gate-signin-note]');
-    await expect(note).toBeVisible({ timeout: 15_000 });
-    expect((await note.textContent()).trim().length, 'the refusal note is empty').toBeGreaterThan(20);
-    await expect(page.locator('#lc-brand-gate'), 'the gate vanished, taking the reason with it').toBeVisible();
-    expect(await page.evaluate(() => window.__OAUTH__.length), 'Google was asked for while the service was not there').toBe(0);
+    await expect(page.locator('#lc-brand-gate'), 'the gate stayed over the sign-in panel').toHaveCount(0, { timeout: 15_000 });
+    const phone = page.locator('#lnav-mauth-phone');
+    await expect(phone, 'the mobile + PIN panel did not open').toBeVisible({ timeout: 15_000 });
+    const pb = await phone.boundingBox();
+    expect(pb.y >= 0 && pb.y + pb.height <= 844, 'the phone field is off the first screen').toBe(true);
+    expect(await page.evaluate(() => window.__OAUTH__.length), 'Google was asked for').toBe(0);
     expect(errors).toEqual([]);
   });
 }
-
-test('a reachable account service: the gate Sign in starts Google', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await open(page, { config: LIVE, reachable: true });
-  await expect(gateButton(page)).toBeVisible({ timeout: 15_000 });
-  await gateButton(page).click();
-  await expect.poll(() => page.evaluate(() => window.__OAUTH__.length), { timeout: 15_000 }).toBe(1);
-  expect(await page.evaluate(() => window.__OAUTH__[0].provider)).toBe('google');
-});

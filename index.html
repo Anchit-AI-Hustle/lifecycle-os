@@ -19,16 +19,18 @@
 <link rel="canonical" href="https://lifecycle-os.anchit-tandon.com/">
 <link rel="stylesheet" href="/theme.css">
 <style>
+  /* Page-local names for the Lifecycle OS roles (design/lifecycle-os/
+     CONTRACT.md); no literal, no tenant's family. */
   :root{
-    --head:var(--brand-font-heading,'Montserrat',-apple-system,BlinkMacSystemFont,Arial,sans-serif);
-    --body:var(--brand-font-body,'Instrument Sans','Helvetica Neue',Arial,sans-serif);
-    --ink:var(--brand-ink,#111111);
-    --bg:var(--brand-surface,#FFFFFF);
-    --panel:var(--brand-surface-alt,#F7F7F8);
-    --accent:var(--brand-primary,#D0473E);
-    --accent2:var(--brand-accent,#6A33D8);
-    --line:var(--brand-line,#EBEBEB);
-    --soft:var(--brand-ink-muted,#666666);
+    --head:var(--vh-font-head);
+    --body:var(--vh-font-body);
+    --ink:var(--vh-ink);
+    --bg:var(--vh-bg);
+    --panel:var(--vh-panel);
+    --accent:var(--vh-primary);
+    --accent2:var(--vh-accent);
+    --line:var(--vh-line);
+    --soft:var(--vh-ink-dim);
   }
   *,*::before,*::after{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.65;-webkit-font-smoothing:antialiased}
@@ -46,16 +48,16 @@
   .steps{counter-reset:s;padding:0;margin:16px 0;list-style:none}
   .steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:13px}
   .steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:26px;height:26px;border-radius:50%;
-    background:var(--accent);color:var(--brand-on-accent,#fff);font-family:var(--head);font-weight:700;font-size:13px;display:grid;place-items:center}
+    background:var(--vh-primary);color:var(--vh-on-primary);font-family:var(--head);font-weight:700;font-size:13px;display:grid;place-items:center}
   .steps strong{font-family:var(--head)}
   .pipe{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 4px}
   .pipe span{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--panel);color:var(--soft);border:1px solid var(--line)}
-  .rule{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:16px 18px;margin:18px 0;background:var(--panel)}
+  .rule{border:1px solid var(--line);border-left:4px solid var(--vh-primary);border-radius:12px;padding:16px 18px;margin:18px 0;background:var(--panel)}
   .rule p{margin:0;font-size:14px}
   .cta{display:flex;gap:11px;flex-wrap:wrap;margin-top:30px}
   .btn{font-family:var(--head);font-weight:700;font-size:14.5px;border-radius:999px;padding:12px 24px;text-decoration:none;display:inline-block;border:1px solid transparent}
   .btn-primary{background:var(--ink);color:var(--bg)}
-  .btn-ghost{border-color:rgba(0,0,0,.22);color:var(--ink)}
+  .btn-ghost{border-color:var(--vh-line-hot);color:var(--ink)}
   .brandline{font-size:13px;color:var(--soft);margin-top:14px}
   .brandline b{color:var(--ink)}
   code{background:var(--panel);padding:1px 6px;border-radius:5px;font-size:12.5px}
@@ -66,15 +68,15 @@
      purpose. This is the one-sentence form, and it is the first prose on the
      page. Colours resolve through the brand tokens like everything else. */
   .solving{margin:20px 0 18px;padding:15px 18px;border-radius:12px;background:var(--panel);
-           border:1px solid var(--line);border-left:4px solid var(--brand-primary,#D0473E);
+           border:1px solid var(--line);border-left:4px solid var(--vh-primary);
            font-size:16px;line-height:1.6;color:var(--ink)}
   .solving-k{display:block;font-family:var(--head);font-weight:700;font-size:11.5px;
-             letter-spacing:.13em;text-transform:uppercase;color:var(--brand-primary-text,var(--ink));margin-bottom:7px}
+             letter-spacing:.13em;text-transform:uppercase;color:var(--vh-primary-text);margin-bottom:7px}
   .solving-a{display:block;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);
              color:var(--soft)}
   /* The problem statement. Reads before "What it does" on purpose: a feature
      list answers "what is this" and never answers "why does it need to exist". */
-  .problem{border-left:3px solid var(--brand-primary,#D0473E);padding:2px 0 2px 18px;margin:18px 0 8px}
+  .problem{border-left:3px solid var(--vh-primary);padding:2px 0 2px 18px;margin:18px 0 8px}
   .problem p{margin:0 0 12px;font-size:15.5px;line-height:1.65;color:var(--soft)}
   .problem p strong{color:var(--ink)}
   .problem .answer{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);color:var(--ink)}
