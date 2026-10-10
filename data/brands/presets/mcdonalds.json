@@ -19,7 +19,7 @@
       "host": "www.mcdonalds.com",
       "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
     },
-    "read_sources_note": "Its own other material was tried too: corporate.mcdonalds.com (blocked), careers.mcdonalds.com (blocked)."
+    "read_sources_note": "Its own other material was tried too: corporate.mcdonalds.com (not the brand's consumer site), careers.mcdonalds.com (not the brand's consumer site)."
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -205,19 +205,14 @@
   ],
   "identity_sources": [
     {
-      "url": "https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html",
+      "url": "https://www.mcdonalds.com/us/en-us.html",
       "kind": "page",
-      "what": "McDonald's media assets: logos"
+      "what": "McDonald's US site"
     },
     {
-      "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
+      "url": "https://www.mcdonalds.com/gb/en-gb.html",
       "kind": "page",
-      "what": "McDonald's corporate site"
-    },
-    {
-      "url": "https://careers.mcdonalds.com/",
-      "kind": "page",
-      "what": "McDonald's careers site"
+      "what": "McDonald's UK site"
     }
   ],
   "offerings": [],
