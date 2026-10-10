@@ -43,10 +43,15 @@ const RIGHTS = 'Template only. Public brand attributes observed from the brand\'
    default resolves to. It is declared per preset from where the brand is
    registered and prices first, never inferred from list order: the order a
    record lists its markets in is presentation, not a decision. */
+/* URL patterns are a fact about the STORE, and only a Shopify store has
+   /products/{handle} and /collections/{slug}. Every preset used to carry
+   tenant zero's Shopify patterns, so Apple, The Economic Times and The Times
+   of India were recorded with product URLs their sites do not have (brand
+   record audit, 2026-10-10). A preset states them only with `shopify: true`. */
 const region = (code, currency, symbol, url, opts) => Object.assign({
   code, currency, symbol, store_url: url,
-  pdp_pattern: '{base}/products/{handle}', collection_pattern: '{base}/collections/{slug}',
-}, opts && opts.home ? { home: true } : {});
+}, opts && opts.shopify ? { pdp_pattern: '{base}/products/{handle}', collection_pattern: '{base}/collections/{slug}' } : {},
+opts && opts.home ? { home: true } : {});
 
 const PRESETS = [
   {
@@ -67,7 +72,7 @@ const PRESETS = [
       notes: 'Testimonials read like a friend flexing a new pair. Never imply the pairs are replicas: they are hand-painted on 100% original brand sneakers.',
     },
     claims: ["India's largest sneaker customisers", 'Made on 100% original brand sneakers', "Hand-painted by India's best artists", 'Water and scratch resistant designs', 'Express shipping worldwide to 60+ countries'],
-    regions: [region('IN', 'INR', '₹', 'https://knickgasm.com', { home: true }), region('US', 'USD', '$', 'https://knickgasm.com'), region('UK', 'GBP', '£', 'https://knickgasm.com')],
+    regions: [region('IN', 'INR', '₹', 'https://knickgasm.com', { home: true, shopify: true }), region('US', 'USD', '$', 'https://knickgasm.com', { shopify: true }), region('UK', 'GBP', '£', 'https://knickgasm.com', { shopify: true })],
     asset_hosts: ['knickgasm.com', 'cdn.shopify.com'],
     catalog_source: { kind: 'shopify_public', url: 'https://knickgasm.com/products.json', offering_kinds: ['product', 'service'] },
     offerings: [
