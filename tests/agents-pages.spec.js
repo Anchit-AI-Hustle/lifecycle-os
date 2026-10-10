@@ -48,7 +48,8 @@ const TELESUITE = require(path.join(A.ROOT, 'api', '_shared', 'telesuite-core.js
 const HOST = 'http://app.agents.test';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const RAW = /\b(sign_in_required|not_authenticated|session_verification_unavailable|invalid_session|credits_require_account|no_active_brand|account_type_unsupported|workspace_unresolved|unauthori[sz]ed|http 401|http 403|http 409)\b/i;
-const DEVICE_SENTENCE = /saved on this device only|exists only in this browser|mobile number|\bPIN\b/i;
+// A PIN-era sentence (2026-10-10: that sign-in is gone). "PIN" alone is not one: Social Media OS labels Pinterest "PIN".
+const DEVICE_SENTENCE = /saved on this device only|exists only in this browser|mobile number|4-digit PIN|your PIN|number and PIN/i;
 
 /**
  * Seed the page: a Google session supabase-js restores (args.google), or a
