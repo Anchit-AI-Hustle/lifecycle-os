@@ -327,6 +327,15 @@ const STUDIO_STATES = {
       switchMainTab('dashboard');
     });
     await page.waitForSelector('#dashboardView', { state: 'visible', timeout: 8000 });
+    // The cards, not just the view: a later brand/session event can re-render
+    // the dashboard before the rows are read, and an empty dashboard measured
+    // as "the dashboard" is the floor finding this state exists to avoid.
+    await page.waitForFunction(() => {
+      const list = document.getElementById('dashboardList');
+      if (list && (list.textContent.match(/Autumn restock/g) || []).length >= 2) return true;
+      try { if (typeof renderDashboard === 'function') renderDashboard(0); } catch (_) {}
+      return false;
+    }, null, { timeout: 15000, polling: 500 });
     await page.waitForTimeout(400);
   },
 };

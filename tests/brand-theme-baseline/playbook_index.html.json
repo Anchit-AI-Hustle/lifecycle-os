@@ -1,9 +1,8 @@
 {
   "key": "playbook/index.html",
   "counts": {
-    "font": 194,
-    "forbidden": 4,
-    "ground": 10,
-    "text": 214
+    "font": 126,
+    "ground": 2,
+    "text": 152
   }
 }

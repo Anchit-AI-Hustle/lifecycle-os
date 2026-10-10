@@ -280,8 +280,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var pv = $('preview');
     pv.style.background = bg;
     /* The bar shows the name in the primary when it reads on the background
-       (3:1, large text); a pale primary would be invisible, so the ink takes it. */
-    $('pv-bar').style.color = ratio(primary, bg) >= 3 ? primary : ink;
+       (4.5:1); a pale primary would be unreadable, so the ink takes it. */
+    $('pv-bar').style.color = ratio(primary, bg) >= 4.5 ? primary : ink;
     $('pv-body').style.color = ink;
     var cta = $('pv-cta');
     cta.style.background = ink; cta.style.color = bg;
