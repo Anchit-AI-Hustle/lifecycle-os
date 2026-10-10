@@ -112,11 +112,16 @@
       // a slug that merely SAYS it is the shipped one is not let through here.
       if (owner && owner === slug && owner !== SHIPPED_SLUG) return;
       var what = el.getAttribute('data-shipped-label') || 'this material';
+      var action = el.getAttribute('data-shipped-action') || '';
       el.setAttribute('data-shipped-gated', '1');
       el.innerHTML = '<div class="card p-5" data-shipped-marker style="border:1px solid var(--brand-line,#e5e5e5);border-radius:14px;padding:20px;background:var(--brand-surface-alt,#fff)">' +
         '<div style="font-weight:700;margin-bottom:6px">' + escText(what) + ' is not on the record for ' + escText(name) + '</div>' +
         '<p style="margin:0;line-height:1.6;font-size:13.5px">[DATA REQUIRED BEFORE LAUNCH: ' + escText(what) + ', ' + escText(name) + '.] ' +
-        'What shipped here was built from another workspace\'s own record and catalogue. This platform never shows one brand\'s material under another brand\'s name; add ' + escText(name) + '\'s own to populate it.</p></div>';
+        'What shipped here was built from another workspace\'s own record and catalogue. This platform never shows one brand\'s material under another brand\'s name; add ' + escText(name) + '\'s own to populate it.</p>' +
+        /* The command the block offered stays in view, disabled, with the
+           reason it cannot run: a gap the person can see, never a dead click. */
+        (action ? '<button type="button" disabled data-shipped-action title="' + escText('Needs ' + name + '\'s own ' + what + '.') + '" style="margin-top:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--vh-line);background:var(--vh-panel-2);color:var(--vh-ink-dim);font:inherit;cursor:not-allowed">' + escText(action) + '</button>' : '') +
+        '</div>';
     });
   }
 

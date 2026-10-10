@@ -153,7 +153,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="route-controls">
       <div><div class="ai-label">Add provider</div><select id="ai-add-provider"></select></div>
       <div><div class="ai-label">When your providers are exhausted</div><select id="ai-fallback"><option value="1">Use Lifecycle OS platform defaults</option><option value="0">Stop: use only this brand's providers</option></select></div>
-      <div class="full"><button type="button" class="btn sm" id="ai-add-provider-btn">Add provider</button><button type="button" class="btn sm" id="ai-save-routing">Save model priority</button><button type="button" class="btn sm secondary" id="ai-reset-routing">Reset to platform default</button></div>
+      <div class="full"><button type="button" class="btn sm" id="ai-add-provider-btn" disabled title="No AI provider is listed for this workspace yet, so there is none to add.">Add provider</button><button type="button" class="btn sm" id="ai-save-routing">Save model priority</button><button type="button" class="btn sm secondary" id="ai-reset-routing">Reset to platform default</button></div>
     </div>
     <div class="lastsync" id="ai-routing-note"></div>
   </div>
@@ -308,6 +308,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $("ai-routing").innerHTML=entries.length?'<div class="route-list">'+entries.map(function(e,i){return aiRouteStep(e,i,entries.length);}).join("")+'</div>':'<div class="lastsync">No custom order: generations use the Lifecycle OS platform default provider cascade.</div>';
     var used=entries.map(function(e){return e.provider;});
     $("ai-add-provider").innerHTML=aiProviders().filter(function(p){return used.indexOf(p.llm_provider)<0;}).map(function(p){return '<option value="'+aiEscAttr(p.llm_provider)+'">'+esc(p.label)+'</option>';}).join("")||'<option value="">All providers are already in the order</option>';
+    /* Nothing left to add is a state, not a button that does nothing. */
+    (function(){var b=$("ai-add-provider-btn"),none=!$("ai-add-provider").value;if(b){b.disabled=none;b.title=none?(aiProviders().length?"Every provider is already in the priority order.":"No AI provider is listed for this workspace yet, so there is none to add."):"";}})();
     $("ai-fallback").value=aiState.routing.use_platform_fallback===false?"0":"1";
     $("ai-routing-note").textContent=entries.length?("Saved order after you press Save: "+entries.map(function(e,i){var p=aiProviderByLlm(e.provider);return(i+1)+". "+(p?p.label:e.provider);}).join(" · ")+(aiState.routing.use_platform_fallback===false?" · no platform fallback":" · then platform fallback")):"";
   }
