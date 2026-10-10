@@ -312,8 +312,10 @@ add('agents', { gate: 'none', browser: 'demo', run: { method: 'GET' },
 add('agent-upsert', { gate: 'none', browser: 'refuse', run: { json: { id: 'agent_x', name: 'X' } },
   stubs: () => S.on(M.agents, 'upsertAgent', async (a) => a),
   // No market named: the agent serves the active brand's HOME market (the
-  // harness brand's is UK), never a literal (2026-10-05).
-  expect: (r) => { expect(r.out).toEqual({ ok: true, agent: { id: 'agent_x', name: 'X', market: 'UK' } }); expect(last(M.agents, 'upsertAgent')[0]).toEqual({ id: 'agent_x', name: 'X', market: 'UK' }); },
+  // harness brand's is UK), never a literal (2026-10-05). The workspace rides
+  // the spec too: it keys an id the router derives (smart_agents.id is unique
+  // across every workspace, 2026-10-10).
+  expect: (r) => { expect(r.out).toEqual({ ok: true, agent: { id: 'agent_x', name: 'X', market: 'UK', workspace_id: H.WS } }); expect(last(M.agents, 'upsertAgent')[0]).toEqual({ id: 'agent_x', name: 'X', market: 'UK', workspace_id: H.WS }); },
 });
 add('agent-sync', { gate: 'none', browser: 'refuse', run: { json: { agent_id: 'agent_x' } },
   stubs: () => { S.on(M.agents, 'syncKnowledge', async () => ({ synced: 1 })); S.on(M.agents, 'listAgents', async () => [{ id: 'agent_coll', level: 'collection' }, { id: 'agent_own', level: 'brand' }]); },

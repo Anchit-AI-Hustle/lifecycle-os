@@ -931,6 +931,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   function render() {
+    autoFillRegions();
     docGuard();
     renderSteps();
     var c = $('stepCard');
@@ -1023,7 +1024,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             '<button type="button" class="imp-tab" data-imp="file">Upload a file</button>' +
           '</div>' +
           '<div data-panel="storefront">' +
-            '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc(ownStoreUrl(brand.regions[0]) || ((brand.regions[0] && brand.regions[0].store_url) ? (brand.website || '') : '')) + '">' +
+            '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc(impUrlTyped ? impUrlDraft : storeFeedUrl()) + '">' +
             '<p class="muted" style="margin-top:6px">Reads the store\'s public product feed at <code>/products.json</code> (Shopify and compatible). If there is no feed there, it crawls your own pages instead and takes only what they DECLARE in structured data. Read only, no credentials, and the source is recorded on every row.</p>' +
           '</div>' +
           '<div data-panel="csv" style="display:none">' +
@@ -1071,11 +1072,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<div class="verdict ' + (r.ready ? 'ok' : 'warn') + '">' +
           '<b>' + (r.ready ? 'BRAND READY' : 'NOT LAUNCH READY — DATA DEPENDENCY') + '</b>' +
           (r.missing.length
-            ? 'These are missing. Nothing was filled in for you; each one is reported so you can supply the real value:' +
+            ? 'These are missing. Nothing was invented to fill them; each one is reported so you can supply the real value:' +
               '<div style="margin-top:8px">' + r.missing.map(function (m) { return '<div class="marker">' + esc(m.marker) + '</div>'; }).join(' ') + '</div>'
             : 'Everything the platform needs is present.') +
         '</div>' +
         coherenceBlock(true) +
+        autoFilledBlock() +
         storeFeedCallout() +
         '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
           '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
@@ -2225,42 +2227,170 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
-  /* ── regions ────────────────────────────────────────────────────────── */
+  /* ── regions: filled from the brand's OWN record (2026-10-10) ───────────
+     The operator, on a live record whose IN region had a Store URL on
+     nike.in under the website delichic.co.in, no home ticked and a DATA
+     REQUIRED home-market marker: "ensure such fields are autochecked and
+     autofilled itself by the context of the brand". Each value below is
+     DERIVED from something the record already says, never invented, and is
+     recorded with origin 'default' (derived_from names the input), so a value
+     the person types is theirs and is never replaced:
+       - a region's empty Store URL is the brand's website;
+       - an empty currency is the region code's own (region-context's country
+         table, the one every page formats money with);
+       - with exactly ONE region and none ticked, it is home (the person can
+         untick it, and then it stays unticked); with several, nothing is
+         chosen for them and the marker stays;
+       - a Store URL on another brand's domain than the website is FLAGGED
+         (the coherence rule's ownership test, never a second comparison),
+         with one click to use the website instead. */
+  function regionKey(r, i) { return String((r && r.code) || '').trim().toUpperCase() || ('#' + i); }
+  function autoOrigin(field) { var o = origins()[field]; return (o && o.origin) || fieldOrigin(field) || ''; }
+  function markDerived(field, from) {
+    markOrigin(field, 'default');
+    origins()[field] = { origin: 'default', derived_from: from, at: new Date().toISOString() };
+  }
+  function currencyFor(code) {
+    try {
+      var RC = window.RegionContext;
+      var cc = RC && RC.countryOf ? RC.countryOf(code) : '';
+      var row = cc && RC._COUNTRY ? RC._COUNTRY[cc] : null;
+      return row && row[0] ? String(row[0]) : '';
+    } catch (_) { return ''; }
+  }
+  function cohLib() { try { return window.BrandContext && window.BrandContext.coherenceLib; } catch (_) { return null; } }
+  /* Is this store URL on the website's brand? The coherence rule's own
+     ownership test; '' when either side has no domain to compare. */
+  function storeForeign(url) {
+    var L = cohLib();
+    if (!L || !url || !brand.website) return false;
+    var a = L.registrableDomain(L.hostOf(url)), b = L.registrableDomain(L.hostOf(brand.website));
+    return !!(a && b && !L.sameBrand(a, b));
+  }
+  function autoFillRegions() {
+    var regs = Array.isArray(brand.regions) ? brand.regions : [];
+    var site = String(brand.website || '').trim();
+    regs.forEach(function (r, i) {
+      if (!r) return;
+      var k = regionKey(r, i);
+      var fs = 'regions.' + k + '.store_url', fc = 'regions.' + k + '.currency';
+      if (site && (!String(r.store_url || '').trim() || (autoOrigin(fs) === 'default' && r.store_url !== site))) {
+        r.store_url = site; markDerived(fs, 'website');
+      }
+      var cur = r.code ? currencyFor(r.code) : '';
+      if (cur && (!String(r.currency || '').trim() || (autoOrigin(fc) === 'default' && r.currency !== cur))) {
+        r.currency = cur; markDerived(fc, 'region code ' + String(r.code).toUpperCase());
+      }
+    });
+    var ticked = regs.some(function (r) { return r && r.home === true; });
+    if (regs.length === 1 && !ticked && autoOrigin('regions.home') !== 'user') {
+      regs[0].home = true; markDerived('regions.home', 'the only region');
+    }
+  }
+  /* What the review step lists: every value filled from the record. */
+  function autoFilledList() {
+    var o = origins(), out = [];
+    var regs = Array.isArray(brand.regions) ? brand.regions : [];
+    regs.forEach(function (r, i) {
+      var k = regionKey(r, i);
+      if (o['regions.' + k + '.store_url'] && o['regions.' + k + '.store_url'].origin === 'default') out.push(k + ' store URL: ' + r.store_url + ' (from the website)');
+      if (o['regions.' + k + '.currency'] && o['regions.' + k + '.currency'].origin === 'default') out.push(k + ' currency: ' + r.currency + ' (from the region code)');
+      if (r.home && o['regions.home'] && o['regions.home'].origin === 'default') out.push(k + ' is the home market (the only region)');
+    });
+    return out;
+  }
+  function autoFilledBlock() {
+    var list = autoFilledList();
+    if (!list.length) return '';
+    return '<div class="imp-gate" id="autoFilled" data-auto-filled="' + list.length + '"><b>Filled in from this brand\'s own record</b> (type over any of them on step 5 and yours is kept):' +
+      '<ul style="margin:4px 0 0;padding-left:18px">' + list.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+  }
+  /* The catalogue import box follows the home store until the person types in it. */
+  var impUrlTyped = false, impUrlDraft = '';
+  function followImpUrl() {
+    var inp = $('impUrl');
+    if (inp && !impUrlTyped) inp.value = storeFeedUrl();
+  }
+
   function renderRegions() {
+    autoFillRegions();
     var box = $('regions'); if (!box) return;
     var hasHome = brand.regions.some(function (r) { return r.home === true; });
     box.innerHTML = (brand.regions.length
       ? '<div class="region-row region-head muted" style="font-size:11px"><span>Code</span><span>Currency</span><span>Store URL</span><span title="Home market: the default every calendar, mailer and ad opens on">Home</span><span></span></div>'
       : '<div class="marker">' + esc(marker('regions')) + '</div><p class="muted" style="margin:6px 0 0">No market is set. Read your site on step 1 or add the markets you sell in; nothing is assumed.</p>') +
       brand.regions.map(function (r, i) {
+        var site = String(brand.website || '').trim();
+        var foreign = storeForeign(r.store_url);
         return '<div class="region-row">' +
           '<input type="text" data-r="code" data-i="' + i + '" value="' + esc(r.code || '') + '" placeholder="US">' +
           '<input type="text" data-r="currency" data-i="' + i + '" value="' + esc(r.currency || '') + '" placeholder="USD">' +
           '<input type="url" data-r="store_url" data-i="' + i + '" value="' + esc(r.store_url || '') + '" placeholder="https://yourbrand.com">' +
-          '<label class="region-home" title="Home market"><input type="radio" name="regionHome" data-home-i="' + i + '"' + (r.home === true ? ' checked' : '') + '></label>' +
-          '<button type="button" class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>';
+          '<label class="region-home" title="Home market (press again to untick)"><input type="radio" name="regionHome" data-home-i="' + i + '"' + (r.home === true ? ' checked' : '') + '></label>' +
+          '<button type="button" class="btn" data-rmr="' + i + '" style="padding:9px 0;justify-content:center">&times;</button></div>' +
+          (foreign
+            ? '<p class="imp-gate" data-store-foreign="' + i + '" style="margin:2px 0 8px">The ' + esc(regionKey(r, i)) + ' store URL is on ' + esc(cohLib().registrableDomain(cohLib().hostOf(r.store_url))) +
+              ', another brand\'s site than this brand\'s website (' + esc(cohLib().registrableDomain(cohLib().hostOf(site))) + '). Products read from it would not be used for ' + esc(brand.name || 'this brand') + '.' +
+              ' <button type="button" class="btn" data-use-website="' + i + '" style="margin-left:6px;padding:5px 11px;font-size:12px">Use ' + esc(site) + '</button></p>'
+            : '');
       }).join('') +
       (brand.regions.length && !hasHome ? '<div class="marker" style="margin-top:4px">' + esc(marker('home market')) + '</div>' : '');
     Array.prototype.forEach.call(box.querySelectorAll('[data-r]'), function (el) {
       el.addEventListener('input', function () {
         var v = el.value;
-        if (el.dataset.r === 'code' || el.dataset.r === 'currency') v = v.toUpperCase();
-        brand.regions[+el.dataset.i][el.dataset.r] = v;
+        var i = +el.dataset.i, r = brand.regions[i], f = el.dataset.r;
+        if (f === 'code' || f === 'currency') v = v.toUpperCase();
+        var before = regionKey(r, i);
+        r[f] = v;
+        if (f === 'code') {
+          // The origins follow the row to its new code.
+          var after = regionKey(r, i), o = origins();
+          ['store_url', 'currency'].forEach(function (k) {
+            var a = 'regions.' + before + '.' + k, b = 'regions.' + after + '.' + k;
+            if (a !== b && o[a]) { o[b] = o[a]; delete o[a]; }
+          });
+          if (autoOrigin('regions.' + after + '.currency') === 'default' || !String(r.currency || '').trim()) {
+            var cur = currencyFor(v);
+            if (cur) {
+              r.currency = cur; markDerived('regions.' + after + '.currency', 'region code ' + v);
+              var c = box.querySelector('[data-r="currency"][data-i="' + i + '"]'); if (c) c.value = cur;
+            }
+          }
+        } else {
+          // Typed: the person's value, never replaced by a derived one.
+          markOrigin('regions.' + before + '.' + f, 'user');
+        }
+        if (f === 'store_url') followImpUrl();
+      });
+      // The foreign-store note follows the value once the person leaves the field.
+      if (el.dataset.r === 'store_url') el.addEventListener('change', function () { renderRegions(); });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('[data-use-website]'), function (b) {
+      b.addEventListener('click', function () {
+        var i = +b.dataset.useWebsite, r = brand.regions[i];
+        r.store_url = String(brand.website || '').trim();
+        markOrigin('regions.' + regionKey(r, i) + '.store_url', 'user');
+        renderRegions(); followImpUrl();
       });
     });
     // Exactly one home. The radio group enforces it in the form; the server
     // enforces it again on save, so a hand-built payload cannot carry two.
+    // Pressing the ticked one unticks it, and it then stays unticked: the
+    // person's choice, recorded so the one-region default never re-ticks it.
     Array.prototype.forEach.call(box.querySelectorAll('[data-home-i]'), function (el) {
-      el.addEventListener('change', function () {
-        brand.regions.forEach(function (r, i) { r.home = (i === +el.dataset.homeI); });
-        renderRegions();
+      el.addEventListener('click', function () {
+        var i = +el.dataset.homeI;
+        var was = brand.regions[i] && brand.regions[i].home === true;
+        brand.regions.forEach(function (r, j) { r.home = !was && j === i; });
+        markOrigin('regions.home', 'user');
+        renderRegions(); followImpUrl();
       });
     });
     Array.prototype.forEach.call(box.querySelectorAll('[data-rmr]'), function (b) {
-      b.addEventListener('click', function () { brand.regions.splice(+b.dataset.rmr, 1); renderRegions(); });
+      b.addEventListener('click', function () { brand.regions.splice(+b.dataset.rmr, 1); renderRegions(); followImpUrl(); });
     });
     var add = $('addRegion');
-    if (add) add.onclick = function () { brand.regions.push({ code: '', currency: '', symbol: '', store_url: '', home: brand.regions.length === 0 }); renderRegions(); };
+    if (add) add.onclick = function () { brand.regions.push({ code: '', currency: '', symbol: '', store_url: '', home: false }); renderRegions(); followImpUrl(); };
     // The import control's state follows the regions it depends on.
     gateImport();
   }
@@ -2436,6 +2566,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   function wireImport() {
     loadCoverage();
+    var iu = $('impUrl');
+    if (iu) iu.addEventListener('input', function () { impUrlTyped = true; impUrlDraft = iu.value; });
     var mode = 'storefront';
     Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (t) {
       t.addEventListener('click', function () {
@@ -3969,7 +4101,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
     ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body']
       .forEach(function (f) { origins()[f] = { origin: 'default' }; });
-    extraction = null; extractError = null; rendered = null; domainSwitch = null; xUrlDraft = null; presetPicked = '';
+    extraction = null; extractError = null; rendered = null; domainSwitch = null; xUrlDraft = null; presetPicked = ''; impUrlTyped = false; impUrlDraft = '';
     DOC.report = null; DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = []; DOC.status = ''; DOC.identityAsk = null; DOC.identityOk = false;
     catalogCount = null; catalogExcluded = null;
     snapshotSeen();
@@ -4011,7 +4143,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // re-reads it rather than showing a stale pack forever.
     if (step !== 6) __packLoadedFor = null;
     render();
+    syncStepUrl();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* THE STEP LIVES IN THE ADDRESS (2026-10-10). Production, an account brand
+     being edited: the operator was on Review and, seconds later, on "Who is the
+     brand?" at /onboarding with no ?step. Nothing in this page moves the step
+     by itself (every assignment is go(), and go() runs on a pip, Next/Back, the
+     two "new brand" commands or the boot resume); the PAGE was reloaded under
+     them - auth.js reloaded on the service worker's first claim of a page no
+     worker served (and on every new worker) - and a reload of a bare
+     /onboarding resumes at the step SAVED on the record, which a pip never
+     saves. So the step and the brand are in the URL now, replaced (never
+     pushed) on every move: a reload, from whatever cause, resumes exactly
+     where the person is. */
+  function syncStepUrl() {
+    try {
+      var u = new URL(location.href);
+      u.searchParams.set('step', String(step));
+      if (brand && brand.id) u.searchParams.set('id', brand.id); else u.searchParams.delete('id');
+      var next = u.pathname + u.search + u.hash;
+      if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', next);
+    } catch (_) { /* the address is a convenience; the wizard stands without it */ }
   }
 
   /* ── boot ───────────────────────────────────────────────────────────── */
@@ -4060,7 +4214,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
           noteTally(r.brand);
           [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });
-          var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);
+          var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1) || 1;
           $('title').textContent = 'Edit ' + brand.name;
           $('lede').textContent = 'Update this brand. Changes apply across the whole app the moment you save.';
           // The brand read is async and the operator can be three steps in by
@@ -4069,7 +4223,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // re-rendered the step row under the cursor - which is exactly how
           // this surfaced: a pip click failing as "element is not visible" on
           // a pip that was plainly there. Restore only if nobody has moved.
-          if (__navigated) render(); else go(s);
+          if (__navigated) { render(); syncStepUrl(); } else go(s);
           return;
         }
       }

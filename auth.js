@@ -665,8 +665,14 @@
         // If a new SW is already waiting (from a previous visit), activate now.
         if (reg.waiting) reg.waiting.postMessage('skipWaiting');
         // When a new SW takes over, reload once so the page uses the fresh shell.
+        // Only when it REPLACES one (2026-10-10): the first worker's clients.claim()
+        // also fires controllerchange on a page no worker served, and reloading
+        // that page threw the onboarding wizard back to a saved step seconds
+        // after it opened. A page no worker served already has the fresh shell.
+        const hadController = !!navigator.serviceWorker.controller;
         let didReload = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!hadController) return;
           if (didReload) return; didReload = true;
           // Defer slightly so any in-flight nav clicks finish.
           setTimeout(() => location.reload(), 50);
