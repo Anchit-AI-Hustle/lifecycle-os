@@ -98,6 +98,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   button:disabled{opacity:.5;cursor:default}
   .hint{max-width:860px;margin:8px auto 0;font-size:11.5px;color:var(--vh-ink-dim)}
   .hint a{color:var(--vh-link)}
+  /* Phones (2026-10-10): the fixed composer was 160px of a 568px screen. Tighter
+     padding, a 44px box, and the note under it clamped to two lines (a tap on
+     it shows the rest). */
+  @media (max-width:1024px), (max-height:520px){
+    .bar{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+    textarea{min-height:44px;height:48px}
+    .hint{margin-top:6px;font-size:12px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;cursor:pointer}
+    .hint.open{display:block}
+  }
 </style>
 </head>
 <body>
@@ -111,7 +120,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <textarea id="q" placeholder="Ask the Growth Copilot… (Enter to send, Shift+Enter for newline)"></textarea>
     <button type="button" id="send">Send</button>
   </div>
-  <div class="hint">Internal tool. This copilot can see revenue, cohorts, and performance. The customer-facing agent at <a href="/agent">/agent</a> cannot.</div>
+  <div class="hint" onclick="this.classList.toggle('open')">Internal tool. This copilot can see revenue, cohorts, and performance. The customer-facing agent at <a href="/agent">/agent</a> cannot.</div>
 </div>
 <script src="/auth.js?v=20260718light" defer></script>
 <script>

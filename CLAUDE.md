@@ -73,6 +73,53 @@ verified record only). Each PIN try is CLAIMED before it is checked in all three
 account holder before the PIN is right. Gated by `tests/pin-only-signin.spec.js` (each guard
 mutation-verified). Never re-add an OAuth or email/password sign-in here.
 
+## ⭐ Every app page uses a phone's screen, at every size and both orientations (2026-10-10)
+The operator: *"Fix device space usage issues per all dimensions for mobiles"*. Measured first, in Chromium
+with device emulation (isMobile, touch, DPR 2), over every app page that loads auth.js (54) at 320x568,
+360x740, 375x667, 390x844, 412x915, 430x932, landscape 667x375 / 844x390, tablets 768x1024 / 820x1180 /
+1024x768, signed out against a paused backend and as a phone sign-in with The Times of India preset.
+Gated by `tests/mobile-space-every-page.spec.js` over `tests/lib/mobile-space-harness.js` (executed; one
+test per page, parallel; plus the onboarding wizard's six steps, the Smart Brain plan with a row expanded,
+the Studio's brief and products steps, and the rail drawer + ? panel opened at every phone size).
+- **What is measured, all from layout and the loaded CSSOM**: page overflow; a box past the viewport edge no
+  ancestor scrolls; text that SPILLS out of a box that fits (a long host name in a failure line made
+  /all-in-one 381px wide at 320 - the box's rect looked fine, only scrollWidth showed it); text clipped with
+  no ellipsis; chrome (fixed bars + stuck sticky headers) as a share of the HEIGHT - phone <= 30%,
+  landscape <= 40%, tablet <= 20%; a rule that applies and sets >= 60vh with no svh/dvh partner; inputs under
+  16px (iOS zooms the page); sticky content under the phone bar; safe-area insets on viewport-fit=cover pages
+  (emulated with CDP `Emulation.setSafeAreaInsetsOverride` - Chromium applies it with or without cover, so
+  only those pages get it); the drawer / dialog inside the viewport and scrolling inside itself. All ZERO.
+  Tap targets under 44x44, text under 12px and a gutter wider than 24/40/48px are RATCHETED per page
+  (`tests/mobile-space-baseline/`, counted once per distinct element, slack max(2, 5%) each way because CI's
+  fonts wrap differently): they may not rise, and a page that improves must lower its file. Each page also
+  asserts it measured a real number of elements, text runs, targets and CSS rules.
+- **Shared layers, layout and sizing only (no colour, no family)**: `theme.css` "Mobile space layer" -
+  on `pointer: coarse` every button/select/summary/role control is min-height 44 (!important: pages set
+  SMALLER min-heights on control classes) and min-width 44 (NOT !important: the Studio's
+  `.btn-row .btn{min-width:110px}` was squeezed until its labels were cut - the gate's text-clipped check
+  found it), links dressed as buttons/pills/chips and checkbox labels too, inputs `max(16px,1em)`; up to
+  1024px a table's direct parent scrolls it and every ancestor of a table may shrink below it
+  (`:has(table){min-width:0}` - one table inside `repeat(4,1fr)` made Smart Brain 1730px wide at 320),
+  pre/img/video/iframe/canvas capped at 100%, prose and code wrap anywhere (`break-word` in cells, where
+  `anywhere` would crush the column); `body{min-height:100svh}`. `auth.js`: the signed-out notice was 334px
+  of a 568px screen and sticky - it is now clamped to two lines with More/Less up to 1024px (and on any
+  screen under 520px tall), not sticky there, and its layout lives in one stylesheet (an inline
+  declaration outranks every media query); the burger 44x44, the phone wordmark a 44px link with 12px
+  type; the rail `height: 100vh; height: 100dvh`; the ? chip draws its 20px circle inside a 44px target on
+  touch; the ? panel `max-height` in dvh. `credits.js`: the pill rides inside the phone bar instead of
+  hanging 4px below it. `analysis-registry.js`: crumbs are 44px targets on touch.
+- **Per page, where the defect was the page's**: grids with `1fr` / `minmax(320px,1fr)` tracks that a wide
+  child held open (`minmax(0,1fr)`, `minmax(min(320px,100%),1fr)`), tab rows and KPI rows that did not wrap
+  or scroll, chat composers (agent, kicksgpt, team) compacted and the toggles put beside the input on a
+  short screen, a sticky toolbar under the phone bar, `66vh`/`100vh` stages with an svh/dvh line after
+  them (the CSSOM keeps the last valid declaration, so the vh line stays only as the fallback), the
+  Studio's Agentic pill moved off the phone bar where it sat on top of the credit pill.
+- **Found by running it**: Chromium now reports `display:-webkit-box` + line-clamp as `flow-root`, and a
+  clamped box's scrollWidth can exceed its width by a few px: a clamp is not a clip. Ratchet counts per
+  ELEMENT drifted 10% between two runs on the same tree (rows that arrive while the page is measured);
+  counting each distinct selector once per page made them stable. Two Playwright processes in one worktree
+  share `test-results/` and each wipes the other's traces (ENOENT on close) - run one at a time.
+
 ## ⭐ The design system: one surface contract, read before styling any page (2026-10-05) — read `design/lifecycle-os/CONTRACT.md`
 The operator, on `/studio` with a red-primary brand (red bands, black panels, near-black cards in dark grey
 text): *"create a design schema for lifecycle os"*. `design/lifecycle-os/` holds it: `CONTRACT.md` (surface →

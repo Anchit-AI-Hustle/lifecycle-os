@@ -35,7 +35,7 @@
   h1 .bot { color:var(--vh-accent-text); }
   .sub { color:var(--vh-ink-dim); font-size:14px; margin-bottom:16px; }
   .toprow { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-  .market { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--vh-ink-dim); }
+  .market { display:flex; flex-wrap:wrap; min-width:0; max-width:100%; align-items:center; gap:7px; font-size:12.5px; color:var(--vh-ink-dim); }
   .market select { border:1px solid var(--vh-line-hot); border-radius:9px; padding:6px 10px; font-family:inherit; font-size:13px; background:var(--vh-panel); color:var(--vh-ink); }
   /* State is said in a derived *-text token on the panel (AA for any brand by
      construction), never in a state FILL with a guessed label colour. */
@@ -78,7 +78,19 @@
      (validatePalette blocks a brand whose pair falls under 4.5:1). */
   .btn.send { background:var(--vh-primary); color:var(--vh-on-primary); }
   .btn.send:hover { background:var(--brand-primary-dark, var(--vh-primary)); }
-  .foot { max-width:900px; margin:7px auto 0; font-size:11px; color:var(--vh-ink-dim); text-align:center; }
+  .foot { max-width:900px; margin:7px auto 0; font-size:12px; color:var(--vh-ink-dim); text-align:center; }
+  /* Phones and tablets (2026-10-10): the fixed composer was 139px of a 568px
+     screen. Tighter padding, an input that may shrink, and the note under it
+     clamped to two lines (one on a short screen); a tap on it shows the rest.
+     The clamp is visual only: the whole sentence stays in the page. */
+  @media (max-width:1024px), (max-height:520px){
+    .inputrow{ padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px)); }
+    .inputbox{ padding:4px 6px; gap:6px; }
+    .inputbox input{ min-width:0; }
+    .foot{ margin-top:4px; line-height:1.35; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; cursor:pointer; overflow-wrap:anywhere; }
+    .foot.open{ display:block; }
+  }
+  @media (max-height:520px){ .foot{ -webkit-line-clamp:1; } }
 </style>
 </head>
 <body>
@@ -110,7 +122,7 @@
     <input id="q" placeholder="Ask me to analyze, plan, generate, or check Klaviyo — e.g. “what's our best cohort and plan a winback campaign”" autocomplete="off">
     <button type="button" class="btn send" id="send">Send</button>
   </div>
-  <div class="foot">Brand Assistant runs real tools on your brand's own data. It never invents figures, if data isn't connected, it tells you what to set.</div>
+  <div class="foot" onclick="this.classList.toggle('open')">Brand Assistant runs real tools on your brand's own data. It never invents figures, if data isn't connected, it tells you what to set.</div>
 </div>
 
 <script src="/auth.js?v=20260718light" defer></script>
