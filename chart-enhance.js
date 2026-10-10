@@ -282,7 +282,9 @@
     if (col.url && typeof v === 'object' && v.label && v.url) {
       return `<a href="${escapeAttr(v.url)}" target="_blank" rel="noopener" style="color:#6A33D8;text-decoration:underline">${escapeHtml(v.label)} ↗</a>`;
     }
-    if (col.fmt === 'currency') return '$' + Math.round(Number(v)).toLocaleString();
+    // The page's own currency formatter (dashboard.html fmtCur: the view currency
+    // the reviewer chose, else the brand's), never a typed '$' (2026-10-05).
+    if (col.fmt === 'currency') return (typeof window.fmtCur === 'function') ? window.fmtCur(v) : Math.round(Number(v)).toLocaleString();
     if (col.fmt === 'pct')      return (Number(v) * 100).toFixed(1) + '%';
     if (col.fmt === 'int')      return Math.round(Number(v)).toLocaleString();
     return escapeHtml(String(v));
@@ -472,7 +474,7 @@
   }
   function fmt(v, col) {
     if (v == null || isNaN(v)) return '—';
-    if (col?.fmt === 'currency') return '$' + Math.round(Number(v)).toLocaleString();
+    if (col?.fmt === 'currency') return (typeof window.fmtCur === 'function') ? window.fmtCur(v) : Math.round(Number(v)).toLocaleString();
     if (col?.fmt === 'pct')      return (Number(v) * 100).toFixed(1) + '%';
     return Math.round(Number(v)).toLocaleString();
   }

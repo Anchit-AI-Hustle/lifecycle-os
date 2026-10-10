@@ -293,7 +293,7 @@ async function liveCommerce(mk, days) {
  * The whole analysis. `market` scopes the export-backed cuts; region is
  * cross-market by definition.
  */
-async function revenue({ market: mk = 'US', since, until, days = 30, hours = 720 } = {}) {
+async function revenue({ market: mk = require('./brand-locale.js').defaultMarket(), since, until, days = 30, hours = 720 } = {}) {
   const mkN = market.normMarket(mk);
   const perf = market.performance(mkN);
 

@@ -16,7 +16,6 @@ const catalogServer = require('./brand-catalog-server.js');
 // BRAND's own record (see below) - the hardcoded tenant-zero domains and symbols
 // that used to live here were read by nothing but still described one company's
 // storefronts as if they were the platform's, so they are gone.
-const REGION = { us: 'US', uk: 'UK', global: 'Global', in: 'India' };
 
 // The hero product may only come from the brand's OWN catalogue.
 function catalog(region, brand) {
@@ -104,7 +103,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid CanvasText;font-siz
  * company's name, colours and store. A caller that has established the record
  * is tenant zero's passes that brand explicitly (brandForLandingRecord does).
  */
-function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null, entry = null, attribution = null } = {}) {
+function buildFallbackLanding({ id = '', region = '', hint = '', brand = null, entry = null, attribution = null } = {}) {
   const b = (brand && (brand.id || brand.slug || brand.name)) ? brand
     : (entry && entry.brand && (entry.brand.id || entry.brand.slug || entry.brand.name)) ? entry.brand
       : null;
@@ -125,15 +124,22 @@ function buildFallbackLanding({ id = '', region = 'us', hint = '', brand = null,
 
   // Region + store from the BRAND's own record; the shipped catalogue is tenant
   // zero's, so only tenant zero may pick a hero product from it.
+  // A region the link does not name, or one the brand does not list, falls to
+  // the brand's HOME market (the row its record flags), not to its first row
+  // and never to a literal 'us' (2026-10-05).
+  const L = require('./brand-locale.js');
   const codes = (Array.isArray(b.regions) ? b.regions : []);
-  const rgn = codes.find((x) => String(x.code || '').toLowerCase() === String(region).toLowerCase()) || codes[0] || null;
+  const asked = L.marketFor(b, region);
+  const homeRow = L.homeRegionRow(b);
+  const rgn = (asked.market && codes.find((x) => String(x.code || '').toUpperCase() === asked.market)) || homeRow || null;
   const base = String((rgn && rgn.store_url) || b.website || '').replace(/\/$/, '');
-  const ccy = (rgn && rgn.symbol) || '';
+  const ccy = (rgn && (rgn.symbol || L.localeFor(b, rgn.code).symbol)) || '';
+  region = String((rgn && rgn.code) || region || '').toLowerCase();
 
   // The shipped catalogue is tenant zero's, so only tenant zero picks a hero out
   // of it; every other brand resolves against its own imported rows, and gets
   // none (an image-free page) rather than a foreign product when it has none.
-  const p = pickHero(catalog(REGION[region] ? region : 'us', b), hint);
+  const p = pickHero(catalog(region, b), hint);
   const name = (p && p.n) || (entry && entry.heroProduct && entry.heroProduct.title) || bName;
   const img = (p && p.i) || '';
   const price = p && p.price ? (/[£$₹]/.test(String(p.price)) ? String(p.price) : ccy + p.price) : '';

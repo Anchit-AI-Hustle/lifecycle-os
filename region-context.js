@@ -37,7 +37,7 @@
   window.__RegionContextBooted = true;
 
   var KEY = 'lc-active-region';
-  var state = { region: '', regions: [], home: '', loaded: false, explicit: false };
+  var state = { region: '', regions: [], home: '', brandName: '', brandTz: '', loaded: false, explicit: false };
   var listeners = [];
   var pendingCode = '';   // a setActive that arrived before the brand did
   var readyResolve;
@@ -110,9 +110,96 @@
           currency: r.currency || '',
           symbol: r.symbol || '',
           store_url: r.store_url || '',
+          locale: r.locale || '',
+          timezone: r.timezone || r.time_zone || '',
+          dial_code: r.dial_code || r.phone_cc || '',
           home: r.home === true,
         };
       });
+  }
+
+  /* ── LOCALE: currency, number format, time zone, dialling code ───────────
+     The same COUNTRY table as api/_shared/brand-locale.js (facts about
+     countries, never about a brand), held to it by
+     tests/brand-locale-defaults.spec.js, which drives both over every code.
+     A record's own value always wins; a time zone is filled only for a
+     country that keeps ONE zone (the US is several, so a US brand that has
+     not said which gets a marker, not US Eastern). Symbols are derived by
+     Intl from the currency, never typed. */
+  var COUNTRY = {
+    IN: ['INR', 'Asia/Kolkata', '+91'], GB: ['GBP', 'Europe/London', '+44'], US: ['USD', '', '+1'], CA: ['CAD', '', '+1'],
+    AU: ['AUD', '', '+61'], NZ: ['NZD', 'Pacific/Auckland', '+64'], IE: ['EUR', 'Europe/Dublin', '+353'], DE: ['EUR', 'Europe/Berlin', '+49'],
+    FR: ['EUR', 'Europe/Paris', '+33'], ES: ['EUR', '', '+34'], IT: ['EUR', 'Europe/Rome', '+39'], NL: ['EUR', 'Europe/Amsterdam', '+31'],
+    BE: ['EUR', 'Europe/Brussels', '+32'], AT: ['EUR', 'Europe/Vienna', '+43'], CH: ['CHF', 'Europe/Zurich', '+41'], PT: ['EUR', '', '+351'],
+    SE: ['SEK', 'Europe/Stockholm', '+46'], DK: ['DKK', 'Europe/Copenhagen', '+45'], NO: ['NOK', 'Europe/Oslo', '+47'], FI: ['EUR', 'Europe/Helsinki', '+358'],
+    PL: ['PLN', 'Europe/Warsaw', '+48'], JP: ['JPY', 'Asia/Tokyo', '+81'], KR: ['KRW', 'Asia/Seoul', '+82'], CN: ['CNY', 'Asia/Shanghai', '+86'],
+    HK: ['HKD', 'Asia/Hong_Kong', '+852'], SG: ['SGD', 'Asia/Singapore', '+65'], MY: ['MYR', 'Asia/Kuala_Lumpur', '+60'], ID: ['IDR', '', '+62'],
+    PH: ['PHP', 'Asia/Manila', '+63'], TH: ['THB', 'Asia/Bangkok', '+66'], VN: ['VND', 'Asia/Ho_Chi_Minh', '+84'], PK: ['PKR', 'Asia/Karachi', '+92'],
+    BD: ['BDT', 'Asia/Dhaka', '+880'], LK: ['LKR', 'Asia/Colombo', '+94'], NP: ['NPR', 'Asia/Kathmandu', '+977'], AE: ['AED', 'Asia/Dubai', '+971'],
+    SA: ['SAR', 'Asia/Riyadh', '+966'], QA: ['QAR', 'Asia/Qatar', '+974'], IL: ['ILS', 'Asia/Jerusalem', '+972'], TR: ['TRY', 'Europe/Istanbul', '+90'],
+    EG: ['EGP', 'Africa/Cairo', '+20'], ZA: ['ZAR', 'Africa/Johannesburg', '+27'], NG: ['NGN', 'Africa/Lagos', '+234'], KE: ['KES', 'Africa/Nairobi', '+254'],
+    BR: ['BRL', '', '+55'], MX: ['MXN', '', '+52'],
+  };
+  /* Typed for the reason brand-locale.js gives: ICU builds disagree. */
+  var SYMBOL = { INR: '₹', GBP: '£', USD: '$', CAD: '$', AUD: '$', NZD: '$', EUR: '€', CHF: 'CHF', SEK: 'kr', DKK: 'kr', NOK: 'kr', PLN: 'zł', JPY: '¥', KRW: '₩', CNY: '¥', HKD: 'HK$', SGD: '$', MYR: 'RM', IDR: 'Rp', PHP: '₱', THB: '฿', VND: '₫', PKR: 'Rs', BDT: '৳', LKR: 'Rs', NPR: 'Rs', AED: 'AED', SAR: 'SAR', QAR: 'QAR', ILS: '₪', TRY: '₺', EGP: 'E£', ZAR: 'R', NGN: '₦', KES: 'Ksh', BRL: 'R$', MXN: '$' };
+  function countryOf(code) {
+    var f = family(code);
+    if (f === 'UK') return 'GB';
+    return COUNTRY[f] ? f : '';
+  }
+  /** The spec's marker, unpadded: field, brand, and a region only when one applies. */
+  function marker(field, region) {
+    return '[DATA REQUIRED BEFORE LAUNCH: ' + field + ', ' + (state.brandName || 'this brand') + (region ? ', ' + region : '') + ']';
+  }
+  function symbolOf(currency) {
+    var c = String(currency || '').toUpperCase();
+    return c ? (SYMBOL[c] || c) : '';
+  }
+  /**
+   * Everything locale-shaped about one of the brand's markets (default: the
+   * active one, else home): { market, currency, symbol, locale, timeZone,
+   * dial, store_url, gaps[] }. A gap is a marker, never a borrowed value.
+   */
+  function localeOf(code) {
+    var want = code ? resolveCode(code) : (state.region || state.home);
+    var row = null;
+    for (var i = 0; i < state.regions.length; i++) if (state.regions[i].code === want) row = state.regions[i];
+    var cc = countryOf(want);
+    var t = cc ? COUNTRY[cc] : null;
+    var currency = String((row && row.currency) || (t && t[0]) || '').toUpperCase();
+    var locale = (row && row.locale) || (cc ? 'en-' + cc : '');
+    var timeZone = (row && row.timezone) || (want && want === state.home && state.brandTz) || (t && t[1]) || '';
+    var gaps = [];
+    if (!want) gaps.push(marker('home market'));
+    else {
+      if (!currency) gaps.push(marker('currency', want));
+      if (!timeZone) gaps.push(marker('time zone', want));
+    }
+    return {
+      market: want || '', country: cc, currency: currency, locale: locale, timeZone: timeZone,
+      symbol: (row && row.symbol) || symbolOf(currency),
+      dial: (row && row.dial_code) || (t && t[2]) || '', store_url: (row && row.store_url) || '', gaps: gaps,
+    };
+  }
+  /** A price in the brand's currency and number format: 100000 in IN is ₹1,00,000. */
+  function money(n, code, opts) {
+    var v = Number(n);
+    if (!isFinite(v)) return '';
+    var l = localeOf(code);
+    if (!l.currency) return v.toLocaleString(l.locale || 'en') + ' ' + marker('currency', l.market || '');
+    try {
+      var o = { style: 'currency', currency: l.currency, maximumFractionDigits: 0 };
+      if (opts) for (var k in opts) if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k];
+      return new Intl.NumberFormat(l.locale || 'en', o).formatToParts(v)
+        .map(function (p) { return p.type === 'currency' ? (l.symbol || p.value) : p.value; }).join('');
+    } catch (e) { return (l.symbol || l.currency + ' ') + Math.round(v); }
+  }
+  /** A number in the brand's number format (en-IN groups lakhs). */
+  function num(n, code, opts) {
+    var v = Number(n);
+    if (!isFinite(v)) return '';
+    var l = localeOf(code);
+    try { return v.toLocaleString(l.locale || undefined, opts || { maximumFractionDigits: 0 }); } catch (e) { return String(v); }
   }
 
   /* The brand's HOME market: the region its record flags, else the one it
@@ -170,6 +257,8 @@
 
   function adopt(brand) {
     state.regions = regionsOf(brand);
+    state.brandName = (brand && typeof brand.name === 'string' && brand.name.trim()) || '';
+    state.brandTz = (brand && (brand.timezone || brand.time_zone)) || '';
     state.home = homeOf(state.regions);
     // A choice made while the brand was still in flight outranks the stored
     // one: it is the more recent instruction.
@@ -510,9 +599,6 @@
       }
     } catch (e) { adopt(null); }
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { boot(0); });
-  else boot(0);
-
   window.RegionContext = {
     get region() { return state.region; },
     get regions() { return state.regions; },
@@ -534,5 +620,21 @@
     options: options,
     resolve: resolveCode,
     family: family,
+    localeOf: localeOf,
+    money: money,
+    num: num,
+    marker: marker,
+    countryOf: countryOf,
+    /* The country table, for the parity test against brand-locale.js. */
+    _COUNTRY: COUNTRY,
+    _SYMBOL: SYMBOL,
   };
+
+  /* Booted AFTER window.RegionContext exists (2026-10-05). A brand layer that
+     has already settled answers onChange synchronously, so adopt() and its
+     'regioncontext:change' event used to fire while window.RegionContext was
+     still undefined: a listener that read the shared choice in its handler
+     (Smart Brain's agentic gate) read nothing, and nothing emitted again. */
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { boot(0); });
+  else boot(0);
 })();

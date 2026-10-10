@@ -57,8 +57,10 @@ function makeContentCampaignRecord(input = {}) {
   return {
     contentCampaignId: input.contentCampaignId || null,
     linkedCampaignId: input.linkedCampaignId || null,
-    region: input.region || 'US',
-    timezone: input.timezone || 'America/New_York',
+    // The brand's HOME market and its time zone, from its record (2026-10-05);
+    // it was 'US' and 'America/New_York' for every brand.
+    region: input.region || require('./brand-locale.js').homeMarket(input.brand),
+    timezone: input.timezone || require('./brand-locale.js').localeFor(input.brand, input.region).timeZone,
     productIds: input.productIds || [],
     collectionIds: input.collectionIds || [],
     primaryObjective: input.primaryObjective || 'education',

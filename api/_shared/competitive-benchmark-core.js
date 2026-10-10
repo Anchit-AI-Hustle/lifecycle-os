@@ -133,7 +133,7 @@ async function storefront(domain, { limit = 250, timeoutMs = 15000 } = {}) {
 
 /* ── Own side: real figures from this workspace's connected platforms ─────── */
 
-async function ownBaseline({ market = 'US', days = 30, brand = null } = {}) {
+async function ownBaseline({ market = '', days = 30, brand = null } = {}) {
   const mk = normMarket(market);
   const own = ownStorefront(brand, mk);
   const [paid, live, commerce, store] = await Promise.all([
@@ -196,17 +196,17 @@ async function ownBaseline({ market = 'US', days = 30, brand = null } = {}) {
 
 function transparencyLinks(brandName, country) {
   const q = encodeURIComponent(String(brandName || '').trim());
-  const cc = String(country || 'US').toUpperCase();
+  const cc = String(country || '').toUpperCase();
   return {
     // Neither Google nor TikTok exposes a public competitor-reporting API, so a
     // deep link into the official public library is the honest maximum. An
     // endpoint invented here would 404 at best and fabricate at worst.
-    google_ads: { source: 'deep_link', why_no_api: 'Google Ads Transparency Center has no public reporting API: advertiser data is browsable, not queryable.', url: `https://adstransparency.google.com/?region=${cc}&domain=${q}` },
-    tiktok_ads: { source: 'deep_link', why_no_api: 'TikTok Creative Center Top Ads has no public per-advertiser reporting API.', url: `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?region=${cc}&keyword=${q}` },
+    google_ads: { source: 'deep_link', why_no_api: 'Google Ads Transparency Center has no public reporting API: advertiser data is browsable, not queryable.', url: `https://adstransparency.google.com/?${cc ? `region=${cc}&` : ''}domain=${q}` },
+    tiktok_ads: { source: 'deep_link', why_no_api: 'TikTok Creative Center Top Ads has no public per-advertiser reporting API.', url: `https://ads.tiktok.com/business/creativecenter/inspiration/topads/pc/en?${cc ? `region=${cc}&` : ''}keyword=${q}` },
   };
 }
 
-async function competitorSignals({ brand, domain, country = 'US', limit = 20 } = {}) {
+async function competitorSignals({ brand, domain, country = '', limit = 20 } = {}) {
   const name = String(brand || '').trim();
   if (!name && !domain) return { ok: false, error: 'missing brand or domain' };
   const competitor = require('./competitor-core.js');
@@ -284,7 +284,7 @@ function compare(own, comp) {
   return { comparable: comparable.filter((r) => r.own != null || r.competitor != null || r.note), own_only: ownOnly };
 }
 
-async function benchmark({ brand, domain, market = 'US', country, days = 30, limit = 20, ownBrand = null } = {}) {
+async function benchmark({ brand, domain, market = '', country, days = 30, limit = 20, ownBrand = null } = {}) {
   const mk = normMarket(market);
   const cc = String(country || (mk === 'UK' ? 'GB' : mk)).toUpperCase();
   const [own, comp] = await Promise.all([
@@ -310,7 +310,7 @@ async function benchmark({ brand, domain, market = 'US', country, days = 30, lim
  * from a shared spreadsheet: one sheet cannot hold more than one tenant's list,
  * which is why that moved.
  */
-async function benchmarkSet({ market = 'US', category, days = 30, max = 6, store = null, workspaceId = null, ownBrand = null } = {}) {
+async function benchmarkSet({ market = '', category, days = 30, max = 6, store = null, workspaceId = null, ownBrand = null } = {}) {
   const mk = normMarket(market);
   const universe = require('./competitor-universe.js');
 

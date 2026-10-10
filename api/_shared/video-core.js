@@ -357,7 +357,7 @@ function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
     if (!bed) {
       return {
         bed: null,
-        origin: '[DATA REQUIRED BEFORE LAUNCH: brand audio bed, all, all]',
+        origin: `[DATA REQUIRED BEFORE LAUNCH: brand audio bed, ${(brand && brand.name) || 'this brand'}]`,
         spec: '',
         mix: voiceover ? 'bed -18 LUFS, duck 6 dB under VO' : 'music-forward -14 LUFS',
         note: 'Generated video arrives SILENT. No audio bed is on file for this brand, and another brand\'s bed is not licensed for it. Supply an owned or licensed track before this ships as paid media.',

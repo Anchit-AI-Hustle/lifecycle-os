@@ -55,7 +55,7 @@ function storeBase(market, brand) {
     try { f = rt.regionFacts(brand, mk); } catch (_) { f = null; }
     if (f && f.store) return 'https://' + f.store;
     if (brand.website) return String(brand.website).replace(/\/$/, '');
-    return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + mk + ']';
+    return require('./brand-locale.js').marker('region store URL', brand, mk);
   }
   const f = regionFacts(mk);
   return 'https://' + (f.store || 'knickgasm.com');
@@ -228,16 +228,22 @@ function suggestCopy(cohortName, hero, offer) {
   return { subject, preheader, cta };
 }
 
-// AOV basis for revenue-per-recipient: the hero product price when known, else
-// the store 90-day AOV. Real number, never fabricated.
+// AOV basis for revenue-per-recipient: the hero product's own price, or none.
+// It fell back to 42.73 - one store's 90-day AOV - for every brand and every
+// market, printed as dollars (2026-10-05). With no price on record the
+// projection is withheld and the basis says why.
 function aovFor(hero) {
   const p = hero && hero.price != null ? Number(hero.price) : NaN;
-  return Number.isFinite(p) && p > 0 ? p : 42.73; // store 90d AOV fallback
+  return Number.isFinite(p) && p > 0 ? p : null;
+}
+/* A figure in the brand's own currency and number format for this market. */
+function moneyFor(v, entry, market, digits) {
+  return require('./brand-locale.js').money(v, (entry && entry.brand) || require('./brand-runtime.js').scopedBrand(null), market, { maximumFractionDigits: digits == null ? 0 : digits, minimumFractionDigits: digits == null ? 0 : digits });
 }
 
 function assetPrompts(entry, market, hero, supporting) {
   const base = {
-    market: String(market || 'US').toUpperCase(),
+    market: String(market || require('./brand-locale.js').defaultMarket(entry && entry.brand) || '').toUpperCase(),
     cohort: (entry.cohort && entry.cohort.name) || entry.cohort_label || '',
     brief: entry.rationale || entry.objective || '',
     products: [hero, ...supporting].filter(Boolean).map((p) => ({ title: p.title, price: p.price, handle: p.handle, category: p.type })),
@@ -283,14 +289,15 @@ function buildRow(entry, ctx = {}) {
   // Guardrail: offer depth + the correct semantic (at-or-below-cap) code.
   const offer = GR.offerFor(cohortName, entry.objective || entry.play_name || '');
   const offerLabel = offer.pct > 0
-    ? `${Math.round(offer.pct * 100)}% off${offer.min ? ` (min $${offer.min})` : ''}${offer.pct >= GR.DISCOUNT_CAP ? ' (at cap)' : ''}`
+    ? `${Math.round(offer.pct * 100)}% off${offer.min ? ` (min ${moneyFor(offer.min, entry, market)})` : ''}${offer.pct >= GR.DISCOUNT_CAP ? ' (at cap)' : ''}`
     : 'No discount';
 
   // Guardrail: ESP-pending gating — withhold the revenue projection until the
   // real size lands in Klaviyo, rather than project off a placeholder count.
   const pending = GR.isEspPending(entry.cohort || cohortName) || !(+audience > 0);
   const em = expectedMetrics(cohortName, audience);
-  const rpr = GR.revenuePerRecipient({ aov: aovFor(hero), deliverRate: 0.97, ctr: (em.ctrPct || 0) / 100 });
+  const aov = aovFor(hero);
+  const rpr = aov == null ? null : GR.revenuePerRecipient({ aov, deliverRate: 0.97, ctr: (em.ctrPct || 0) / 100 });
   const copy = suggestCopy(cohortName, hero, offer);
   const suppression = GR.suppressionFor(ctx.index || 0, ctx.priorCohorts || [], entry.suppress || null);
   const allProducts = [hero, ...supporting].filter(Boolean);
@@ -318,10 +325,12 @@ function buildRow(entry, ctx = {}) {
     'Expected Open %': pending ? blank : em.openPct,
     'Expected CTR %': pending ? blank : em.ctrPct,
     'Expected Clicks': pending ? blank : em.clicks,
-    'Expected Rev / Recipient': pending ? blank : `$${rpr.toFixed(2)}`,
+    'Expected Rev / Recipient': pending ? blank : (rpr == null ? '' : moneyFor(rpr, entry, market, 2)),
     'Expected Metrics Basis': pending
       ? 'Cohort size resolves in Klaviyo (affinity / behavioural / product-type segment). Revenue projection withheld until the real size lands, so nothing is fabricated.'
-      : `${em.basis} Rev/recipient uses AOV $${aovFor(hero).toFixed(2)}.`,
+      : (aov == null
+        ? `${em.basis} Rev/recipient withheld: the hero product has no price on record, and no other figure is substituted.`
+        : `${em.basis} Rev/recipient uses AOV ${moneyFor(aov, entry, market, 2)}.`),
     'Product Links (real)': allProducts.map((p) => `${p.title}: ${p.url}`).join('\n'),
     'Product Image Links (real)': allProducts.filter((p) => p.image).map((p) => `${p.title}: ${p.image}`).join('\n'),
     'Mailer + Asset Prompts': assetPrompts(entry, market, hero, supporting),
