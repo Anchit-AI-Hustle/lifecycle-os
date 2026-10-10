@@ -10,7 +10,11 @@ const deli = {
   palette: { primary: '#8B1E1E', accent: '#B45309', surface: '#FFFDF8', ink: '#1A1A1A' },
   regions: [{ code: 'IN', currency: 'INR', home: true }],
 };
-const old = (name, support = []) => ({ id: name, status: 'tentative', payload: { heroProduct: { title: name }, supportingProducts: support.map(title => ({ title })) } });
+// Rows a plan made for THIS record carry its fingerprint (2026-10-11); the
+// tests below that are about products, not records, stamp them as such.
+const stampFor = (brand) => plan.__test_brandIdentity(brand);
+let stampBrand = deli;
+const old = (name, support = []) => ({ id: name, status: 'tentative', payload: { heroProduct: { title: name }, supportingProducts: support.map(title => ({ title })), __brand_identity: stampFor(stampBrand) } });
 async function read(brand, rows) {
   const config = smartConfig({ calendarDays: 7, workspace_id: null });
   const db = { connected: true, select: async () => rows };
@@ -34,6 +38,7 @@ test('an old preset slug or partially matching name never substitutes for a cata
 
 test('each stored campaign must use only this brand’s own heroes and supporting products', async () => {
   const brand = { ...deli, offerings: [{ kind: 'product', name: 'Fixture Fresh Chicken' }] };
+  stampBrand = brand;
   const result = await read(brand, [old('Fixture Fresh Chicken'), old('Nike Air Force 1'), old('Fixture Fresh Chicken', ['Nike Air Force 1'])]);
   expect(result.stored).toBe(true);
   expect(result.entries).toHaveLength(1);
@@ -77,4 +82,44 @@ test('an uploaded food catalog supplies the plan and its categories, without a p
       if (value === undefined) delete process.env[name]; else process.env[name] = value;
     }
   }
+});
+
+
+// The live record, 2026-10-11: one workspace renamed Mamaearth -> DelhiChic,
+// whose stored slots were made for the earlier record (and, before that, for
+// tenant zero's sneakers). A slot made for another record is never shown, even
+// when its products happen to match the brand's own.
+test('a slot stored for an earlier version of the record is not shown, and the plan is made afresh', async () => {
+  const brand = { ...deli, offerings: [{ kind: 'product', name: 'Fixture Fresh Chicken' }] };
+  const earlier = { ...brand, name: 'Mamaearth', website: 'https://mamaearth.example.in' };
+  const mine = { id: 'mine', status: 'tentative', payload: { heroProduct: { title: 'Fixture Fresh Chicken' }, __brand_identity: stampFor(brand) } };
+  const theirs = { id: 'theirs', status: 'approved', payload: { heroProduct: { title: 'Fixture Fresh Chicken' }, brand: { name: 'Mamaearth' }, __brand_identity: stampFor(earlier) } };
+  const unstamped = { id: 'unstamped', status: 'tentative', payload: { heroProduct: { title: 'Fixture Fresh Chicken' } } };
+  const result = await read(brand, [mine, theirs, unstamped]);
+  expect(result.stored).toBe(true);
+  expect(result.entries.map(e => e.id)).toEqual(['mine']);
+  const onlyOld = await read(brand, [theirs, unstamped]);
+  expect(onlyOld.stored).toBe(false);
+  expect(JSON.stringify(onlyOld)).not.toContain('Mamaearth');
+  expect(onlyOld.entries.length).toBeGreaterThan(0);
+  expect(onlyOld.entries.every(e => e.__brand_identity === stampFor(brand))).toBe(true);
+});
+
+test('the fingerprint moves with the name, the website, the legal sender and the catalogue source', () => {
+  const base = { ...deli, legal_entity: 'Deli Chic Foods Pvt Ltd', catalog_source: { url: 'https://deli.example.com' } };
+  const a = stampFor(base);
+  expect(a).toMatch(/^bi1:[0-9a-f]{24}$/);
+  expect(stampFor({ ...base })).toBe(a);
+  for (const changed of [{ name: 'Mamaearth' }, { website: 'https://www.nike.in' }, { legal_entity: 'Honasa Consumer Ltd' }, { catalog_source: { url: 'https://www.nike.in' } }]) {
+    expect(stampFor({ ...base, ...changed }), JSON.stringify(changed)).not.toBe(a);
+  }
+});
+
+test('a stored slot is built with the CURRENT record, never the brand it was planned under', async () => {
+  const current = { ...deli, name: 'Deli Chic' };
+  const entry = { id: 's1', brand: { name: 'Mamaearth', legal_entity: 'Honasa Consumer Ltd, Gurgaon' } };
+  const config = smartConfig({ calendarDays: 7, workspace_id: null });
+  await scope.run({ headers: {}, __brand: current }, () => plan.__test_stampBrand(entry, config));
+  expect(entry.brand.name).toBe('Deli Chic');
+  expect(JSON.stringify(entry)).not.toContain('Mamaearth');
 });

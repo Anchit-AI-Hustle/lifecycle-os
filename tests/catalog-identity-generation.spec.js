@@ -246,6 +246,66 @@ test.describe('the server', () => {
     expect(answer).toMatch(/Vitamin C Daily Glow Face Wash/);
   });
 
+  // The live record, 2026-10-11: DelhiChic's /brain mailer was a campaign
+  // prebuilt while the workspace was another record (tenant zero's sneaker
+  // hero, "The Mamaearth team"). A slot or campaign made for another version
+  // of the record is never shown, replayed or approved.
+  test('a slot or campaign made for an earlier version of the record is never shown, replayed or approved', async () => {
+    test.setTimeout(300_000);
+    w.reset();
+    const SNEAKER = 'Joker x Batman Hand-Painted Air Force 1';
+    const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    const sneakerCamp = (id, extra) => ({ id, workspace_id: 'ws-coherent', status: 'prebuilt', payload: Object.assign({ campaign_id: id, copywriter: { provider: 'scripted' },
+      assets: { email: { html: `<p>${SNEAKER}. The Mamaearth team.</p>` }, ads: [], landing_pages: [{ html: `<h1>${SNEAKER}</h1>` }] } }, extra || {}) });
+    w.db.insert('smart_generated_campaigns', sneakerCamp('camp_old_record'));
+    w.db.insert('smart_generated_campaigns', sneakerCamp('camp_old_final'));
+    const oldPayload = (id) => ({ id, date, market: 'IN', cohort: { name: 'Nurture', size: 0 }, objective: 'second-order activation',
+      heroProduct: { title: SNEAKER }, brand: { name: 'Mamaearth' }, channels: ['email'], __brand_identity: 'bi1:000000000000000000000000',
+      __prebuilt: { campaign_id: 'camp_old_record', at: '2026-10-09T00:00:00.000Z' } });
+    w.db.insert('smart_calendar_entries', { id: 'cal_old_record', workspace_id: 'ws-coherent', date, market: 'IN', status: 'tentative', confidence: 0.5, payload: oldPayload('cal_old_record'), change_log: [] });
+    w.db.insert('smart_calendar_entries', { id: 'cal_old_unstamped', workspace_id: 'ws-coherent', date, market: 'IN', status: 'tentative', confidence: 0.5,
+      payload: Object.assign(oldPayload('cal_old_unstamped'), { __brand_identity: undefined }), change_log: [] });
+    w.db.insert('smart_calendar_entries', { id: 'cal_old_final', workspace_id: 'ws-coherent', date, market: 'IN', status: 'approved', confidence: 0.5,
+      payload: oldPayload('cal_old_final'), generated_campaign_id: 'camp_old_final', change_log: [] });
+
+    let r = await plan('coherent', 'smart-brain-plan');
+    expect(r.res.status, r.answer.slice(0, 300)).toBe(200);
+    expect(r.answer, 'the plan shows a slot made for another record').not.toMatch(/Air Force|Mamaearth/);
+    for (const id of ['cal_old_record', 'cal_old_unstamped', 'cal_old_final']) {
+      for (const action of ['smart-brain-preview', 'smart-brain-approve']) {
+        r = await plan('coherent', action, { id });
+        expect(r.res.status, `${action} ${id}: ${r.answer.slice(0, 200)}`).toBe(409);
+        expect(JSON.parse(r.answer).error).toBe('brand_changed');
+        expect(r.answer).not.toMatch(/Air Force/);
+      }
+    }
+    expect(w.db.find('smart_calendar_entries', (x) => x.id === 'cal_old_final').status).toBe('approved');
+
+    // Daily Sync archives the writable ones with the reason and plans afresh;
+    // every slot it writes carries the current record's fingerprint.
+    r = await plan('coherent', 'smart-brain-sync-daily');
+    expect(r.res.status, r.answer.slice(0, 300)).toBe(200);
+    for (const id of ['cal_old_record', 'cal_old_unstamped']) {
+      const row = w.db.find('smart_calendar_entries', (x) => x.id === id);
+      expect(row.status, id).toBe('archived');
+      expect(row.change_log.map((c) => c.kind)).toContain('brand_changed');
+    }
+    const live = w.db.table('smart_calendar_entries').filter((x) => x.status === 'tentative');
+    expect(live.length).toBeGreaterThan(0);
+    const ident = live[0].payload.__brand_identity;
+    expect(ident).toMatch(/^bi1:/);
+    expect(live.every((x) => x.payload.__brand_identity === ident)).toBe(true);
+
+    // A fresh slot pointed at a campaign built for another record: preview
+    // rebuilds it for this brand instead of replaying the sneaker bundle.
+    const fresh = live[0];
+    fresh.payload = Object.assign({}, fresh.payload, { __prebuilt: { campaign_id: 'camp_old_record', at: '2026-10-09T00:00:00.000Z' } });
+    r = await plan('coherent', 'smart-brain-preview', { id: fresh.id });
+    expect(r.res.status, r.answer.slice(0, 300)).toBe(200);
+    expect(r.answer, 'the preview replayed a campaign made for another record').not.toMatch(/Air Force|Mamaearth/);
+    expect(JSON.parse(r.answer).campaign.brand_identity).toBe(ident);
+  });
+
   test('a slot stored from the excluded catalogue: hidden, previewed with the marker, refused at approval, archived by Daily Sync', async () => {
     test.setTimeout(300_000);
     w.reset();
