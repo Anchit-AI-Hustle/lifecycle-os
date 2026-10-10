@@ -149,33 +149,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
 <main class="max-w-7xl mx-auto p-6 space-y-6">
 
-  <!-- Embedded KPI Dashboard -->
-  <section class="card p-4">
-    <div class="flex items-center justify-between mb-3">
-      <div class="label">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" class="text-[11px] uppercase tracking-wider text-lava hover:text-green">Open real analysis →</a>
-    </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="embeddedDashboard">
-      <div class="p-3 bg-bg-card rounded-lg border border-lava/10">
-        <div class="text-[10px] uppercase tracking-wider text-ink-mute font-semibold">Total Revenue (30d)</div>
-        <div class="text-lg font-bold text-ink mt-1">$212,450</div>
-        <div class="text-[10px] text-green-bright mt-1">↑ 12% vs prior</div>
-      </div>
-      <div class="p-3 bg-bg-card rounded-lg border border-lava/10">
-        <div class="text-[10px] uppercase tracking-wider text-ink-mute font-semibold">Avg Open Rate</div>
-        <div class="text-lg font-bold text-ink mt-1">42.8%</div>
-        <div class="text-[10px] text-green-bright mt-1">↑ 2.1% vs prior</div>
-      </div>
-      <div class="p-3 bg-bg-card rounded-lg border border-lava/10">
-        <div class="text-[10px] uppercase tracking-wider text-ink-mute font-semibold">Active Customers</div>
-        <div class="text-lg font-bold text-ink mt-1">12,405</div>
-        <div class="text-[10px] text-green-bright mt-1">↑ 5.4% vs prior</div>
-      </div>
-      <div class="p-3 bg-bg-card rounded-lg border border-lava/10">
-        <div class="text-[10px] uppercase tracking-wider text-ink-mute font-semibold">Top Segment</div>
-        <div class="text-lg font-bold text-ink mt-1">Champions</div>
-        <div class="text-[10px] text-ink-mute mt-1">45% of revenue</div>
-      </div>
+  <!-- KPI strip (2026-10-10): this block used to print invented figures in
+       dollars ("$45,200", "$212,450", "Jordan First Flush") for EVERY brand,
+       labelled illustrative. A number nobody measured reads as this brand's
+       performance, and in another market's currency. It now says what is true. -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;" id="embeddedDashboard" data-kpi-state="none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <p class="vh-status" style="margin:0">No live metrics are connected for this brand yet, so none are shown here. Figures appear in the brand's own currency once its data is imported.</p>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open analysis →</a>
     </div>
   </section>
 
