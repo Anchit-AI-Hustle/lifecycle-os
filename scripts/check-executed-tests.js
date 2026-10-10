@@ -127,8 +127,9 @@ const BASELINE = {
   // test asserts the text is absent from the source. Everything else in that
   // file executes the real modules against real CSS.
   'brand-type-scale.spec.js': 2,
-  // 2026-10-05. File properties of supabase/config.toml: Google enabled,
-  // secrets from env(), production origin allowlisted. Those are what
+  // 2026-10-09. File properties of supabase/config.toml, .env.example and
+  // selfhost/docker-compose.yml: no OAuth provider, no redirect allowlist,
+  // public and email sign-up off, the phone provider on. Those are what
   // `supabase config push` would apply; a browser cannot see them.
   'signin-config.spec.js': 5,
 };
