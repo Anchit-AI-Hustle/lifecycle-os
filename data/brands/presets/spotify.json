@@ -323,9 +323,9 @@
         "url": "https://newsroom.spotify.com/",
         "role": "identity source",
         "what": "Spotify newsroom",
-        "renderer": "rendered",
+        "renderer": "blocked",
         "owned": "same-registrable-domain",
-        "reason": ""
+        "reason": "newsroom.spotify.com is not the brand's consumer site (it is a newsroom), so no colour, type or logo is taken from it."
       }
     ],
     "typography_evidence": {
@@ -450,9 +450,9 @@
       "what": "Spotify design and branding guidelines"
     },
     {
-      "url": "https://newsroom.spotify.com/",
+      "url": "https://open.spotify.com/",
       "kind": "page",
-      "what": "Spotify newsroom"
+      "what": "Spotify web player"
     }
   ],
   "offerings": [],

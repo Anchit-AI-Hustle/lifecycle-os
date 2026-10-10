@@ -506,13 +506,7 @@
       "placeholder": true
     }
   ],
-  "identity_sources": [
-    {
-      "url": "https://stories.flipkart.com/",
-      "kind": "page",
-      "what": "Flipkart Stories, the company's own news site"
-    }
-  ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Flipkart]",
