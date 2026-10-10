@@ -216,8 +216,16 @@ test('market analytics refuses to report the bundled export to another brand', a
     expect(aud.purchasing_customers).toBeUndefined();
   });
 
+  // Being the oldest is not enough (2026-10-10): the oldest workspace owns the
+  // export only when its record IS tenant zero's brand.
   wsScope.invalidate();
-  await withFakeSupabase((url) => (url.includes('brand_workspaces') ? [{ id: WS_A }] : []), async () => {
+  await withFakeSupabase((url) => (url.includes('brand_workspaces') ? [{ id: WS_A, name: 'Mamaearth', website: 'https://www.nike.in' }] : []), async () => {
+    const notZero = await asWorkspace(WS_A, () => market.performance('US'));
+    expect(notZero.ok, 'the oldest workspace holding another brand read tenant zero\'s export').toBe(false);
+  });
+  wsScope.invalidate();
+  const zeroName = require('../api/_shared/brand-runtime.js').defaultBrand().name;
+  await withFakeSupabase((url) => (url.includes('brand_workspaces') ? [{ id: WS_A, name: zeroName }] : []), async () => {
     const own = await asWorkspace(WS_A, () => market.performance('US'));
     expect(own.ok, 'the workspace the export DOES belong to still reads it').toBe(true);
   });
