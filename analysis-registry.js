@@ -403,6 +403,8 @@
       // A single row that slides. The explanation sits below it so the row
       // itself never has to wrap.
       style.textContent = [
+        // Roles from design/lifecycle-os/CONTRACT.md, so the crumb wears the
+        // ACTIVE brand on every page that mounts it.
         '#lc-analysis-crumb{border-bottom:1px solid var(--vh-line);',
         'background:var(--vh-bg);padding:9px 18px;font-family:var(--vh-font-body)}',
         '#lc-analysis-crumb .lc-crumb-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;',
