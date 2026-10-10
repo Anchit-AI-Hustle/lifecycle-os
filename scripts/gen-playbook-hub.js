@@ -48,6 +48,7 @@ function head(title, desc) {
 '<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">',
 '<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">',
 '<meta name="description" content="' + desc + '">',
+'<script src="/auth.js?v=20261005" defer></script>',
 '<script src="https://cdn.tailwindcss.com"></script>',
 '<script>',
 '  tailwind.config = { theme: { extend: {',
@@ -624,7 +625,7 @@ const JS_ANALYTICS = String.raw`
 const JS_WORKSPACE = String.raw`
 (function(){
   "use strict";
-  var STORE = { US:'knickgasm.com', UK:'knickgasm.com', Global:'knickgasm.com' };
+  var STORE = { US:'', UK:'', Global:'' };
   var CUR = { US:'$', UK:'£', Global:'$' };
   var AVATAR = {
     '001': { name:'Fandom Collectors', hook:'the design they already love', hero:'Air Force 1 custom', sub:'anime, gaming and football collections', price:'156' },
@@ -635,15 +636,15 @@ const JS_WORKSPACE = String.raw`
   function mailerBlock(a, market){
     var store = STORE[market], cur = CUR[market];
     return [
-'<!-- Knickgasm mailer :: '+a.name+' :: '+market+' -->',
+'<!-- mailer :: '+a.name+' :: '+market+' -->',
 '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;color:#111111;">',
 '  <tr><td align="center" style="padding:28px 16px;">',
 '    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid rgba(23,23,23,.12);border-radius:12px;overflow:hidden;">',
-'      <tr><td style="background:#D0473E;padding:22px 28px;"><span style="font-family:Montserrat,Georgia,serif;color:#FFFFFF;font-size:24px;">Knickgasm</span></td></tr>',
+'      <tr><td style="background:#D0473E;padding:22px 28px;"><span style="font-family:Montserrat,Georgia,serif;color:#FFFFFF;font-size:24px;">[DATA REQUIRED BEFORE LAUNCH: brand name]</span></td></tr>',
 '      <tr><td style="padding:34px 28px 8px;"><h1 style="margin:0;font-family:Montserrat,Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">There is a moment when the right pair stops being a shoe.</h1></td></tr>',
 '      <tr><td style="padding:8px 28px 20px;"><p style="margin:0;font-size:15px;line-height:1.6;color:#111111;">Made for '+a.hook+'. The '+a.hero+' is hand-painted by our artists in Mumbai on a 100% original pair, finished water and scratch resistant, and made to order in 10 to 15 days.</p></td></tr>',
 '      <tr><td style="padding:0 28px 26px;"><a href="https://'+store+'/collections/best-sellers" style="display:inline-block;background:#6A33D8;color:#FFFFFF;font-weight:800;text-decoration:none;border-radius:9px;padding:13px 26px;font-size:14px;">See the designs, from '+cur+a.price+'</a></td></tr>',
-'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;"><p style="margin:0;font-size:12px;color:#5b5b57;">One of one. Hand-painted on original pairs. Express shipping to 60+ countries. Knickgasm.</p></td></tr>',
+'      <tr><td style="border-top:1px solid rgba(23,23,23,.12);padding:16px 28px;"><p style="margin:0;font-size:12px;color:#5b5b57;">[DATA REQUIRED BEFORE LAUNCH: footer claims, this brand]</p></td></tr>',
 '    </table>',
 '  </td></tr>',
 '</table>'
@@ -813,7 +814,7 @@ avatarPreview("./"),
 '      <section data-section id="engines" class="space-y-4">',
 secHead("Feature 05, 06 &amp; 07", "Operational Engines", "The daily-run tools. Each opens into its own working sub-page."),
 '        <div class="grid gap-4 md:grid-cols-3">',
-'          <a href="./features/analytics-engine.html" class="card p-5 block hover:border-knickgasm-lava" style="text-decoration:none;"><div class="text-2xl">\u{1F4C8}</div><h3 class="font-head text-lg text-knickgasm-green mt-1">Intraday Pace &amp; Predictive</h3><p class="text-sm mt-2" style="color:var(--soft);">Hour-over-hour pace and a midday settlement model. Mirrors the knickgasm_dtc_data_engine.</p></a>',
+'          <a href="./features/analytics-engine.html" class="card p-5 block hover:border-knickgasm-lava" style="text-decoration:none;"><div class="text-2xl">\u{1F4C8}</div><h3 class="font-head text-lg text-knickgasm-green mt-1">Intraday Pace &amp; Predictive</h3><p class="text-sm mt-2" style="color:var(--soft);">Hour-over-hour pace and a midday settlement model. Mirrors the data engine.</p></a>',
 '          <a href="./features/asset-workspace.html" class="card p-5 block hover:border-knickgasm-lava" style="text-decoration:none;"><div class="text-2xl">⚙️</div><h3 class="font-head text-lg text-knickgasm-green mt-1">Marketing Asset Workspace</h3><p class="text-sm mt-2" style="color:var(--soft);">Generate brand-locked mailer, social, and motion asset source by cohort and market.</p></a>',
 '          <a href="./features/shopify-loop.html" class="card p-5 block hover:border-knickgasm-lava" style="text-decoration:none;"><div class="text-2xl">\u{1F4E6}</div><h3 class="font-head text-lg text-knickgasm-green mt-1">Shopify CDN Ingestion Loop</h3><p class="text-sm mt-2" style="color:var(--soft);">Upload to Shopify content files, paste the cdn.shopify.com URL back to sync.</p></a>',
 '        </div>',
@@ -1317,7 +1318,7 @@ secHead("Deploy", "Add this avatar to a page", "Choose an avatar and a target pa
 function buildAnalyticsEngine() {
   const main = [
 hero("Feature 05", "Intraday Pace &amp; Predictive Calculators",
-  "Rolling hour-over-hour indicators mirroring the knickgasm_dtc_data_engine DuckDB instance, plus a midday model that projects the midnight settlement. Values are illustrative live-shape readings."),
+  "Rolling hour-over-hour indicators mirroring the data engine, plus a midday model that projects the midnight settlement. Values are illustrative live-shape readings."),
 '      <section data-section id="pace" class="space-y-4">',
 secHead("Intraday", "Hour-over-hour pace", ""),
 '        <div class="grid gap-4 sm:grid-cols-3">' +
@@ -1355,7 +1356,7 @@ secHead("Generate", "Asset source builder", "Covers HTML mailer frameworks, loca
 '        <div class="card p-6"><div class="grid gap-4 sm:grid-cols-3">' +
 '<label class="block text-sm"><span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Avatar</span><select id="gen-avatar" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);"><option value="001">Cohort 001: Third-Wave Purists</option><option value="002" selected>Cohort 002: Functional Optimizers</option><option value="003">Cohort 003: Biohacking Performers</option><option value="004">Cohort 004: Routine Convenience</option></select></label>' +
 '<label class="block text-sm"><span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Format</span><select id="gen-format" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);"><option value="mailer" selected>HTML Mailer</option><option value="social">Paid Social Ad</option><option value="motion">Motion Graphic (video / GIF)</option></select></label>' +
-'<label class="block text-sm"><span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Market</span><select id="gen-market" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);"><option value="US" selected>US (knickgasm.com)</option><option value="UK">UK (knickgasm.com)</option><option value="Global">Global (knickgasm.com)</option></select></label>' +
+'<label class="block text-sm"><span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Market</span><select id="gen-market" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);"><option value="US" selected>US</option><option value="UK">UK</option><option value="Global">Global</option></select></label>' +
 '</div><div class="flex flex-wrap gap-3 mt-4"><button id="gen-btn" class="btn-primary px-5 py-2.5 text-sm">Generate asset source</button><button id="copy-btn" class="btn-lava px-5 py-2.5 text-sm">Copy to clipboard</button><span id="copy-status" class="self-center text-sm text-knickgasm-green"></span></div>' +
 '<textarea id="gen-out" spellcheck="false" class="code-out mt-4 w-full h-80 rounded-xl border p-4" style="border-color:var(--line);background:#0f1d18;color:#e8ede9;" placeholder="Your generated, copy-pasteable asset source appears here. Edit in place before shipping."></textarea></div>',
 '        <div>' + linkBtn("./shopify-loop.html", "Next: push the asset to Shopify &rarr;") + '</div>',

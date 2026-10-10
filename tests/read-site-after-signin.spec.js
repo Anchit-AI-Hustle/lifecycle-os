@@ -526,8 +526,9 @@ for (const state of MATRIX) {
           expect(seen.note, 'signing in IS the remedy here, and the note does not say so').toMatch(/\bsign in\b/i);
         }
         if (state.session === 'device') {
-          // The stale device sign-in: the remedy is to sign in AGAIN.
-          expect(seen.note).toMatch(/entering your number again/i);
+          // The stale device sign-in: the remedy is to continue with Gmail,
+          // without telling a person who is already signed in to "sign in".
+          expect(seen.note).toMatch(/continue with Gmail/i);
         }
       }
       expect(world.net.escaped).toEqual([]);

@@ -94,7 +94,7 @@ export default function App() {
 
             {/* Core back-link on mobile preview */}
             <a
-              href="https://knickgasm.vercel.app/"
+              href="https://lifecycle-os.anchit-tandon.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="md:hidden flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-[#6A33D8] text-[#FFFFFF] hover:text-white hover:border-white font-mono transition-all bg-[#D0473E]"
@@ -169,7 +169,7 @@ export default function App() {
 
             {/* Core backlink on desktop view */}
             <a
-              href="https://knickgasm.vercel.app/"
+              href="https://lifecycle-os.anchit-tandon.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-md border border-[#6A33D8] hover:border-white text-xs font-mono font-bold uppercase tracking-wider text-[#FFFFFF] hover:text-white hover:bg-white/10 transition-all ml-2"

@@ -192,6 +192,46 @@ test('a sync that generates nothing says so, and says why', async ({ page }) => 
   expect(errors).toEqual([]);
 });
 
+test('a brand with no catalogue still shows the lifecycle calendar', async ({ page }) => {
+  const note = '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, Food For Thought, home market undeclared] '
+    + 'The rolling calendar is still built, from lifecycle strategy.';
+  const errors = await openBrain(page, {
+    planResponse: { ok: true, mode: 'local-fallback', stored: false, entries: [] },
+    syncResponse: {
+      ok: true, mode: 'local-fallback', synced_at: new Date().toISOString(),
+      plan_source: 'lifecycle-strategy',
+      insights: ['Rolling calendar built from lifecycle strategy for Food For Thought.'],
+      changes: [{ kind: 'created', detail: 'new slot' }],
+      note,
+      plan: [slot(0, {
+        market: 'UNDECLARED',
+        cohort: { name: 'Never Purchased', size: null },
+        objective: 'education-led conversion',
+        heroProduct: { title: '[DATA REQUIRED BEFORE LAUNCH: product catalogue, Food For Thought, home market undeclared]', placeholder: true },
+        strategy_only: true,
+        strategy_note: note,
+        rationale: 'Education for people who have not bought.',
+        feasibility: { status: 'DATA REQUIRED', projected_revenue: null, note: 'Revenue is not estimated.' },
+      })],
+    },
+  });
+
+  await page.locator('#sync').click();
+
+  await expect(page.locator('#plan tr.planrow')).toHaveCount(1);
+  await expect(page.locator('#plan')).toContainText('education-led conversion');
+  await expect(page.locator('#plan')).toContainText('Never Purchased');
+  await expect(page.locator('#plan')).toContainText('Home market undeclared');
+  await expect(page.locator('#plan')).toContainText('DATA REQUIRED BEFORE LAUNCH: product catalogue');
+  await expect(page.locator('#plan .strategy-note')).toContainText('Built from lifecycle strategy');
+  await expect(page.locator('#plan .strategy-note')).toContainText('Food For Thought');
+  await expect(page.locator('#plan')).not.toContainText('Nothing was generated');
+  await expect(page.locator('#entries')).toHaveText('1');
+  await expect(page.locator('#syncstate')).toHaveClass(/\bok\b/);
+
+  expect(errors).toEqual([]);
+});
+
 test('a failed sync shows the failure instead of the rows it did not replace', async ({ page }) => {
   const errors = await openBrain(page, {
     // Loaded with real rows first, so there is genuine stale content to leave.
