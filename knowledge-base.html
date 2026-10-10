@@ -240,7 +240,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // Update the add-bar context label so it's clear WHERE uploads land.
     const chanName = ({mailers:'Mailers',meta:'Meta Ads',google:'Google Ads',tiktok:'TikTok Ads',landing:'Landing Pages'})[state.chan] || state.chan;
     const ctx = document.getElementById('kbAddCtx');
-    if (ctx) ctx.textContent = `Add to knowledge base → KNICKGASM · ${chanName}${state.region ? ' · ' + state.region : ''}`;
+    if (ctx) ctx.textContent = `Add to knowledge base → ${activeName()} · ${chanName}${state.region ? ' · ' + state.region : ''}`;
     // Hash schema: #<chan>[/<region>]
     let h = state.chan;
     if (state.region) h += '/' + state.region;
@@ -286,7 +286,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </details>`;
     if(!items.length){
       p.innerHTML = importBlock + emptyState(
-        'No top KNICKGASM emails seeded yet',
+        'No top emails seeded yet for ' + activeName(),
         'Feed the historical winners (min 50 with metrics) above — open rate, CTR, revenue. They become style + voice anchors for every new mailer the Studio generates.',
         '', ''
       );
@@ -404,38 +404,42 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     landing: { name: 'Landing Pages',icon: '▦', dest: '/landing-pages.html',     destLabel: 'Open Landing Pages' },
   };
 
-  // ── Live KNICKGASM ad libraries — the SAME deep-link picking Competitor
-  //    Benchmarking uses (adSources), with the brand pinned to KNICKGASM. Meta is
-  //    searched by advertiser name, Google by KNICKGASM's verified per-region
-  //    domain, TikTok by advertiser name + region. Per-region KNICKGASM domains:
-  //    US knickgasm.com · UK knickgasm.com · Global knickgasm.com · IN knickgasm.in.
-  const KNICKGASM_DOMAINS = { US: 'knickgasm.com', UK: 'knickgasm.com', Global: 'knickgasm.com', IN: 'knickgasm.in' };
+  // ── The ACTIVE brand's live ad libraries — the SAME deep-link picking
+  //    Competitor Benchmarking uses (adSources), for the brand this page is
+  //    open for. Meta and TikTok are searched by its advertiser name, Google by
+  //    the store domain its record gives for the region (else its website).
+  //    These used to be pinned to tenant zero's name and domains, so every brand
+  //    opened another company's ads from its own knowledge base.
+  function activeBrand() { return (window.BrandContext && window.BrandContext.brand) || null; }
+  function activeName() { const b = activeBrand(); return (b && b.name) || 'this brand'; }
+  function hostOf(u) { try { return new URL(/^https?:/i.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); } catch (_) { return ''; } }
+  function activeDomain(region) {
+    const b = activeBrand(); if (!b) return '';
+    const fam = (c) => { const r = window.RegionContext; return r && r.family ? r.family(c) : String(c || '').toUpperCase(); };
+    const row = (b.regions || []).find((r) => r && fam(r.code) === fam(region));
+    return hostOf((row && row.store_url) || '') || hostOf(b.website || '');
+  }
   const REGION_LABELS = { US: 'United States', UK: 'United Kingdom', Global: 'Global', IN: 'India' };
   // Meta/TikTok expect ISO country codes; UK => GB, Global => worldwide.
   const AD_COUNTRY = { US: 'US', UK: 'GB', IN: 'IN' };
   const TT_SUPPORTED = ['GB','DE','FR','IT','ES','NL','IE','SE','DK','FI','NO','PL','AT','BE','PT','GR','CZ','RO','HU','CH'];
   const AD_TABS = ['meta', 'google', 'tiktok'];
   const KNICKGASM_AD_NOTE = {
-    meta:   'Live <b>KNICKGASM Meta (Facebook + Instagram)</b> ads via the free <b>Meta Ad Library</b>, searched by advertiser name. Open any region tile pre-filtered.',
-    google: "Live <b>KNICKGASM Google</b> ads (Search, Display, YouTube) via the free <b>Google Ads Transparency Center</b>, matched by KNICKGASM's verified per-region domain.",
-    tiktok: 'Live <b>KNICKGASM TikTok</b> ads via the free <b>TikTok Commercial Content Library</b>, searched by advertiser name and region (library covers EEA/UK).',
+    meta:   (n) => 'Live <b>' + esc(n) + ' Meta (Facebook + Instagram)</b> ads via the free <b>Meta Ad Library</b>, searched by advertiser name. Open any region tile pre-filtered.',
+    google: (n) => 'Live <b>' + esc(n) + ' Google</b> ads (Search, Display, YouTube) via the free <b>Google Ads Transparency Center</b>, matched by the store domain on ' + esc(n) + '\'s record for each region.',
+    tiktok: (n) => 'Live <b>' + esc(n) + ' TikTok</b> ads via the free <b>TikTok Commercial Content Library</b>, searched by advertiser name and region (library covers EEA/UK).',
   };
-  // Returns [meta, google, tiktok] deep-link entries for KNICKGASM in one region,
-  // built exactly like competitor-benchmarking.html adSources().
-  function knickgasmAdSources(region) {
-    // The ACTIVE brand's own name and store host (2026-10-05): these libraries
-    // were searched for tenant zero's name and domain under every brand. The
-    // literals stand only when no brand is active (the shipped default).
-    const B = window.BrandContext && window.BrandContext.brand;
-    const hostOf = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-    const name = B ? String(B.name || '') : 'Knickgasm';
-    const domain = B ? hostOf((window.BrandCatalog && window.BrandCatalog.storeBase(region)) || B.website) : (KNICKGASM_DOMAINS[region] || 'knickgasm.com');
+  // Returns [meta, google, tiktok] deep-link entries for the active brand in one
+  // region, built exactly like competitor-benchmarking.html adSources().
+  function activeAdSources(region) {
+    const name = activeName();
+    const domain = activeDomain(region);
     const country = AD_COUNTRY[region] || 'ALL'; // Global / All => ALL
     const metaParams = new URLSearchParams({ active_status: 'all', ad_type: 'all', country, q: name, search_type: 'keyword_unordered', media_type: 'all' });
     const metaUrl = 'https://www.facebook.com/ads/library/?' + metaParams;
     const googleParams = new URLSearchParams({ region: AD_COUNTRY[region] || 'anywhere' });
-    if (domain) googleParams.set('domain', domain);
-    const googleUrl = 'https://adstransparency.google.com/?' + googleParams;
+    googleParams.set('domain', domain);
+    const googleUrl = domain ? 'https://adstransparency.google.com/?' + googleParams : '';
     const ttEnd = Date.now();
     const ttStart = ttEnd - 1000 * 60 * 60 * 24 * 30;   // last 30 days (TikTok rejects very wide windows)
     const ttRegion = TT_SUPPORTED.includes(country) ? country : 'all';
@@ -447,13 +451,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '&adv_name=' + encodeURIComponent(ttName) + '&adv_biz_ids=&query_type=1' +
       '&sort_type=last_shown_date,desc';
     // PiPiADS covers TikTok ads worldwide (incl. US/IN), unlike the EEA/UK-only
-    // official library — better for Knickgasm's markets.
+    // official library.
     const pipiadsUrl = 'https://www.pipiads.com/ad-search?is_participle=false&plat_type=1&search_type=1' +
       '&extend_keywords=' + encodeURIComponent(JSON.stringify([{ type: 1, keyword: ttName }])) +
       '&sort=2&sort_type=desc&current_page=1';
     return [
       { label: 'Meta Ad Library', url: metaUrl, hint: 'name: ' + name + ' · ' + (country === 'ALL' ? 'worldwide' : country) },
-      { label: 'Google Ads Transparency', url: googleUrl, hint: 'domain: ' + domain },
+      { label: 'Google Ads Transparency', url: googleUrl, hint: domain ? 'domain: ' + domain : '[DATA REQUIRED BEFORE LAUNCH: region store URL, ' + name + ', ' + region + ']' },
       { label: 'TikTok Content Library', url: tiktokUrl, hint: 'name: ' + name + ' · ' + (ttRegion === 'all' ? 'worldwide (library covers EEA/UK only)' : ttRegion) },
     ];
   }
@@ -483,9 +487,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return;
     }
 
-    // ── KNICKGASM → Mailers (live: hand-seeded top emails) ─────────
+    // ── The brand's own Mailers (live: hand-seeded top emails) ──────
     if(state.src==='knickgasm' && state.chan==='mailers'){
-      p.innerHTML='<div class="loading">Loading top KNICKGASM mailers…</div>';
+      p.innerHTML='<div class="loading">Loading top mailers…</div>';
       const items = await fetchTopEmails();
       const filtered = state.region ? items.filter(x => x.market === state.region) : items;
       renderTopEmails(p, filtered);
@@ -500,18 +504,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       const idx = AD_TABS.indexOf(state.chan);
       const regions = state.region ? [state.region] : ((window.RegionContext && window.RegionContext.regions.map(r => r.code)) || []);
       const tiles = regions.map(rg=>{
-        const s = knickgasmAdSources(rg)[idx];
-        return `<a class="bkb" href="${s.url}" target="_blank" rel="noopener">${meta.icon} KNICKGASM ${esc(meta.name)} · ${esc(REGION_LABELS[rg]||rg)} ↗<span>${esc(s.hint)}</span></a>`;
+        const s = activeAdSources(rg)[idx];
+        const label = `${meta.icon} ${esc(activeName())} ${esc(meta.name)} · ${esc(REGION_LABELS[rg]||rg)}`;
+        // No domain on record for this region: the gap, stated, not a link to nothing.
+        if (!s.url) return `<div class="bkb">${label}<span>${esc(s.hint)}</span></div>`;
+        return `<a class="bkb" href="${s.url}" target="_blank" rel="noopener">${label} ↗<span>${esc(s.hint)}</span></a>`;
       }).join('');
-      p.innerHTML = `<p class="count">${KNICKGASM_AD_NOTE[state.chan]}</p>`
+      p.innerHTML = `<p class="count">${KNICKGASM_AD_NOTE[state.chan](activeName())}</p>`
         + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px">${tiles}</div>`
-        + `<p style="font-size:12px;color:var(--vh-ink-dim);margin-top:16px">Google and TikTok do not expose a free structured ad feed, so each tile opens the official free library pre-filtered for KNICKGASM. Build new creatives in the ad generator, then archive them here via the add bar above.</p>`
+        + `<p style="font-size:12px;color:var(--vh-ink-dim);margin-top:16px">Google and TikTok do not expose a free structured ad feed, so each tile opens the official free library pre-filtered for ${esc(activeName())}. Build new creatives in the ad generator, then archive them here via the add bar above.</p>`
         + `<div style="margin-top:12px"><a class="kb-cta" href="${meta.dest}">${esc(meta.destLabel)} →</a></div>`;
       return;
     }
 
     // ── Everything else: scaffolded empty state per channel ─────
-    const who = state.src==='knickgasm' ? 'KNICKGASM' : 'Competitor';
+    const who = state.src==='knickgasm' ? activeName() : 'Competitor';
     p.innerHTML = emptyState(
       `${meta.icon} ${who} ${meta.name}${state.region?(' · '+state.region):''}`,
       state.src==='knickgasm'

@@ -181,8 +181,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
   </section>
 
-  <!-- Controls -->
-  <section class="card p-4">
+  <!-- Controls. The planner rotates ONE workspace's play library over its own
+       product facts (its cohorts, its product types, its UK store): run for any
+       other brand it returned that workspace's calendar - its products, its
+       cohort names - under the active brand's name. For any other active brand
+       the shell replaces the planner and its results with the DATA REQUIRED
+       marker (brand-context.js gateShipped). -->
+  <section class="card p-4" data-shipped-for="knickgasm" data-shipped-label="lifecycle play library and product facts">
     <div class="flex flex-wrap items-end gap-5">
       <div>
         <div class="label">Market</div>
@@ -220,7 +225,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   </section>
 
   <!-- Calendar grid -->
-  <section id="gridSection" style="display:none">
+  <section id="gridSection" style="display:none" data-shipped-for="knickgasm" data-shipped-label="lifecycle calendar">
     <div class="flex items-end justify-between mb-3">
       <div>
         <h2 class="text-lg font-bold tracking-tight">Calendar</h2>
@@ -236,7 +241,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   </section>
 
   <!-- Table view -->
-  <section class="card p-4" id="tableSection" style="display:none">
+  <section class="card p-4" id="tableSection" style="display:none" data-shipped-for="knickgasm" data-shipped-label="lifecycle calendar">
     <div class="flex items-end justify-between mb-3">
       <div>
         <h2 class="text-lg font-bold tracking-tight">All planned sends</h2>
@@ -619,7 +624,7 @@ $('btnDownload').addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   const vk = (STATE.currentVariant && STATE.currentVariant.key) ? '-' + STATE.currentVariant.key : '';
-  a.download = 'knickgasm-lifecycle-' + String((STATE.currentEntry && STATE.currentEntry.id) || 'mailer').replace(/[^a-z0-9_-]/gi, '') + vk + '.html';
+  a.download = ((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os') + '-lifecycle-' + String((STATE.currentEntry && STATE.currentEntry.id) || 'mailer').replace(/[^a-z0-9_-]/gi, '') + vk + '.html';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 });

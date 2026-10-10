@@ -251,7 +251,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <!-- ─── For Google Ads ─────────────────────────────────────────── -->
   <section class="panel" id="panel-google">
     <div class="channel-info">
-      Google-friendly landing pages: <b>match the search intent exactly</b>. If the keyword is "jordan first flush", the H1 should say "Jordan First Flush". Quality Score rewards this.
+      Google-friendly landing pages: <b>match the search intent exactly</b>. If the keyword is "same day gift delivery", the H1 should say "Same Day Gift Delivery". Quality Score rewards this.
     </div>
     <div class="grid-2">
       <div class="card">
@@ -348,7 +348,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="meta">Performance</div>
         <h3>Winning Page Structures</h3>
         <div style="margin-top: 12px; font-size: 13px; color: var(--vh-ink-dim);">
-          <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns, not measured on KNICKGASM data</p>
+          <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns, not measured on this brand's data</p>
           <p>Placing the "Us vs Them" comparison table above the fold on mobile is a widely used conversion pattern worth testing.</p>
           <p style="margin-top: 8px;"><b>Trend:</b> "Listicle" style advertorials are common on Meta traffic.</p>
         </div>
@@ -366,7 +366,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="meta">Discover Radar</div>
         <h3>Emerging Trends</h3>
         <div style="margin-top: 12px; font-size: 13px; color: var(--vh-ink-dim); line-height: 1.6;">
-          <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns to test, not measured KNICKGASM figures</p>
+          <p style="font-size:11px;color:var(--vh-ink);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;">Illustrative patterns to test, not this brand's measured figures</p>
           <p>• <b>Micro-animations</b> on Add-to-Cart buttons.</p>
           <p>• <b>Interactive pricing sliders</b> for subscription tiers.</p>
           <p>• <b>Video-first hero sections</b> shot natively on iPhone for TikTok traffic.</p>
@@ -477,9 +477,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Calls /api/ai/generate with mode=autofill + surface=lp-<channel>.
   const PROMPT_HINT = {
     mailers: 'e.g. Build the landing page for our "Spring edit — 25% off this week" mailer to US best-customers',
-    meta:    'e.g. Page for our Meta Advantage+ retargeting ad to lapsed UK buyers — anime customs, free worldwide shipping',
-    google:  'e.g. Search ad page for keyword "jordan first flush" — US buyers, match the search intent',
-    tiktok:  'e.g. UGC creator drop landing page — hook is "POV: morning coffee crash", US Gen-Z audience',
+    meta:    'e.g. Page for our Meta Advantage+ retargeting ad to lapsed buyers in your home market',
+    google:  'e.g. Search ad page for keyword "same day gift delivery", match the search intent',
+    tiktok:  'e.g. UGC creator drop landing page — hook is "POV: the parcel arrives", your newest cohort',
   };
   ['mailers','meta','google','tiktok'].forEach((channel) => {
     const panel = document.getElementById('panel-' + channel);
@@ -754,7 +754,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'knickgasm-landing-' + (f.region || homeRegion()) + '-' + (f.hero || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.html';
+    a.download = ((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os') + '-landing-' + (f.region || homeRegion()) + '-' + (f.hero || 'page').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.html';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
   }

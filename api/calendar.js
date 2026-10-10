@@ -320,10 +320,16 @@ async function smartBrain(req, res, smartAction) {
       // already holds (what the reviewer sees) when POSTed; else pulls the plan.
       let entries = Array.isArray(body.entries) ? body.entries : null;
       if (!entries) { const p = await plan.getPlan({ config: body.config || {} }); entries = p.entries || []; }
+      // The brand every prompt in the export is written FOR is the one this
+      // request resolved to, not whatever the posted entries claim: entries the
+      // browser holds carry no brand, and buildMasterPrompt then fell back to
+      // tenant zero - its claims, palette and store in another brand's export.
+      if (req.__brand) entries = entries.map((e) => Object.assign({}, e, { brand: req.__brand }));
       const csv = calExport.buildExportCsv(entries);
       const stamp = (entries[0] && entries[0].date) || 'plan';
+      const who = String((req.__brand && !req.__brand.unresolved && req.__brand.slug) || 'lifecycle-os').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'lifecycle-os';
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="knickgasm-automated-calendar-${stamp}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${who}-automated-calendar-${String(stamp).replace(/[^0-9a-z-]/gi, '')}.csv"`);
       res.setHeader('Access-Control-Allow-Origin', '*');
       return res.status(200).send(csv);
     }
