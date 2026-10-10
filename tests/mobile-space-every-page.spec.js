@@ -90,7 +90,11 @@ function cfgFor(v, insets) {
    reports env(safe-area-inset-*) as 0 otherwise). Only those pages: Chromium
    applies the override with or without cover, and iOS does not. */
 async function newPhone(browser, file) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  // Reduced motion: scroll-reveal sections (`.vh-reveal`) are opacity 0 until
+  // an IntersectionObserver fires, and whether one had fired depended on which
+  // earlier size's scroll reached it - storefront-3d's ratchet moved 7 <-> 11
+  // between runs. With reduced motion they are simply shown; layout is the same.
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, reducedMotion: 'reduce' });
   const page = await context.newPage();
   let insets = null;
   if (file && M.coversSafeArea(file)) {
