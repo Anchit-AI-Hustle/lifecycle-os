@@ -50,7 +50,20 @@ test.beforeAll(async () => {
   // noLLM on purpose. This is the weakest path the app has — the offline
   // republish, and any run where the provider cascade is unkeyed or rate
   // limited. If the floor is right, the ceiling is too.
-  campaign = await sbPlan.buildCampaign(SLOT, smartConfig({}), { noLLM: true, withCreatives: false });
+  // Built with NO project configured. A spec that ran earlier in this worker
+  // can leave SUPABASE_URL and a service key in process.env and its fake
+  // workspace ('ws-a', no industry) in workspace-scope's caches; the build
+  // would then be stamped with that brand and the compliance gate would warn
+  // about ITS record. This test is about the app's own output, for no brand.
+  const KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
+  const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+  for (const k of KEYS) delete process.env[k];
+  require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js')).invalidate();
+  try {
+    campaign = await sbPlan.buildCampaign(SLOT, smartConfig({}), { noLLM: true, withCreatives: false });
+  } finally {
+    for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
 });
 
 /* ═══ the campaign satisfies its own contracts ════════════════════════════ */
