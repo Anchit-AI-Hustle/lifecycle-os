@@ -404,3 +404,98 @@ test('region-context.js and brand-locale.js agree on every country, and on a rec
   expect(shape(L.localeFor(own, 'IN'))).toEqual({ market: 'IN', currency: 'USD', symbol: 'US$', locale: 'en-US', timeZone: 'Asia/Dubai', dial: '+1' });
   expect(shape(ownBrowser)).toEqual(shape(L.localeFor(own, 'IN')));
 });
+
+/* ── every page, for the Indian brand: market, currency and markers ─────── */
+/*
+ * Every page a rewrite in vercel.json serves that loads auth.js, opened for
+ * Deli Chic kept on this device with a device sign-in, its /api/ calls
+ * answered by the shipped routers. Read from the RENDERED page, outside the
+ * shared rail:
+ *   - the shared choice is the brand's home (IN);
+ *   - every market control a page shows as SELECTED is IN (or an "All" row
+ *     on an aggregating page), never US/UK/Global;
+ *   - no visible text prints a dollar or pound amount, or "USD"/"GBP", for a
+ *     brand whose currency is the rupee;
+ *   - no visible marker is padded ("..., all]").
+ * A page that shows a SHIPPED programme of tenant zero's (gated, or built for
+ * one named market by design) is listed with the reason and checked for the
+ * markers only. Every list assertion counts what it measured first.
+ */
+const VERCEL = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+const SWEEP_PAGES = Array.from(new Set((VERCEL.rewrites || []).map((r) => r.destination).filter((d) => /\.html$/.test(d)).map((d) => d.replace(/^\//, ''))))
+  .filter((f) => fs.existsSync(path.join(ROOT, f)) && /<script[^>]+src=["'][^"']*\bauth\.js/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')))
+  .sort();
+/* Tenant zero's shipped programmes: built for one named market by design. */
+const SHIPPED_PROGRAMME = {
+  'lifecycle-calendar.html': 'the UK engagement programme (gated data-shipped-for tenant zero, UK by definition)',
+  'uk-non-engagers.html': 'the UK non-engagers campaign hub (tenant zero\'s UK programme)',
+  'lifecycle-usa-july-calendar-mailer-studio.html': 'tenant zero\'s USA July calendar build (a generated artefact for the US market)',
+  'data-engine.html': 'tenant zero\'s bundled US/UK export (the tabs are the DATASET\'s markets, owner-gated)',
+  'diff-version.html': 'a frozen snapshot of tenant zero\'s app',
+  'website-designs.html': 'tenant zero\'s storefront designs by store (US/UK/Global stores)',
+  'access-issues.html': 'the platform\'s own SaaS subscription costs, billed in USD by their vendors',
+};
+
+test.describe('every page, for an Indian brand kept on this device', () => {
+  let w;
+  test.beforeAll(async () => {
+    w = await A.world({ serverMode: false });
+    w.db.route((u) => u.startsWith('https://delichic.example'), () => response(404, 'not found'));
+  });
+  test.afterAll(async () => { await w.close(); });
+
+  test('the default market is the home market, money is in rupees, and no marker is padded', async ({ browser }) => {
+    test.setTimeout(1_200_000);
+    expect(SWEEP_PAGES.length).toBeGreaterThanOrEqual(40);
+    const defects = [];
+    let controls = 0;
+    for (const file of SWEEP_PAGES) {
+      w.reset();
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const p = await ctx.newPage();
+      try {
+        await open(p, w, file, DELI);
+        await p.waitForTimeout(1500);
+        const got = await p.evaluate(() => {
+          const RC = window.RegionContext;
+          const out = { home: RC.home, region: RC.region, selected: [], text: '' };
+          const nav = (el) => !!(el.closest && el.closest('#lifecycle-nav'));
+          const vis = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden'; };
+          const on = (el) => /\b(on|active|selected|is-active)\b/.test(String(el.className || '')) || el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-selected') === 'true';
+          for (const el of document.querySelectorAll('[data-mkt],[data-market],[data-region],[data-region-set]')) {
+            if (nav(el) || !vis(el) || !on(el)) continue;
+            out.selected.push(el.getAttribute('data-mkt') || el.getAttribute('data-market') || el.getAttribute('data-region') || el.getAttribute('data-region-set') || '');
+          }
+          for (const sel of document.querySelectorAll('select')) {
+            if (nav(sel) || !vis(sel) || !sel.options.length) continue;
+            const known = [...sel.options].filter((o) => ['US', 'UK', 'IN', 'GLOBAL', 'EU', 'AU', 'ME'].includes(RC.family(o.value || o.textContent))).length;
+            if (known >= 2) out.selected.push(sel.value || ((sel.options[sel.selectedIndex] || {}).textContent) || '');
+          }
+          const main = document.body.cloneNode(true);
+          const rail = main.querySelector('#lifecycle-nav'); if (rail) rail.remove();
+          main.querySelectorAll('script,style,template,noscript').forEach((n) => n.remove());
+          out.shown = (document.body.innerText || '').replace(/\s+/g, ' ');
+          const railText = (document.querySelector('#lifecycle-nav') || {}).innerText || '';
+          out.text = out.shown.replace(railText.replace(/\s+/g, ' '), ' ');
+          out.families = out.selected.map((v) => RC.family(v));
+          return out;
+        });
+        if (got.home !== 'IN') defects.push(`${file}: RegionContext.home is ${JSON.stringify(got.home)}`);
+        if (got.region !== 'IN') defects.push(`${file}: RegionContext.region is ${JSON.stringify(got.region)}`);
+        const padded = got.text.match(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*,\s*all\s*(?:,[^\]]*)?\]/g);
+        if (padded) defects.push(`${file}: padded marker ${padded[0]}`);
+        if (!SHIPPED_PROGRAMME[file]) {
+          controls += got.families.length;
+          const wrong = got.families.filter((f) => f && !['IN', 'ALL', 'ALLMARKETS'].includes(f));
+          if (wrong.length) defects.push(`${file}: a market control opens on ${wrong.join(', ')}`);
+          const money = got.text.match(/(?:US\$|\$\s?\d|£\s?\d|\bUSD\b|\bGBP\b)\S{0,12}/g);
+          if (money) defects.push(`${file}: prints ${money.slice(0, 3).join(' | ')}`);
+        }
+      } catch (e) {
+        defects.push(`${file}: did not open (${String(e.message || e).split('\n')[0]})`);
+      } finally { await ctx.close(); }
+    }
+    expect(controls, 'the sweep saw no selected market control at all').toBeGreaterThan(3);
+    expect(defects).toEqual([]);
+  });
+});
