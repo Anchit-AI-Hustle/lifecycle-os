@@ -213,7 +213,7 @@ surface, never from turning the lights off:
 - **Two lifts:** `--vh-lift-1` for anything in the flow, `--vh-lift-2` only for what floats over
   the page. A lift-2 shadow falling on text below it took muted copy under AA in the rendered
   gate, so inline components take lift-1.
-- **Scrim:** a modal dims the page with `--vh-ink` at .45 opacity. It is not a section.
+- **Scrim:** a modal quiets the page with `--vh-bg` at .78 opacity, a light frost: the app is light-only, so a scrim never darkens. The panel stands off it by its border and `lift-2`.
 - **Layers:** rail 100, notice bar 120, modal 1000, toast 1100.
 - **Motion:** a spring (`--vh-ease-spring`) for lift and glow, a soft ease for fades and the
   skeleton shimmer, a one-time reveal on scroll (`motion.js`). **Reduced motion means less

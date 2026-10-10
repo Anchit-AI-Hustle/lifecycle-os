@@ -311,9 +311,31 @@ const STUDIO_STATES = {
     await page.waitForSelector('#p5', { state: 'visible', timeout: 8000 });
     await page.waitForTimeout(800);
   },
+  // The dashboard with campaigns in it (stats, cards, chips), not only its
+  // empty state: an empty dashboard is a sentence, and a check that sees one
+  // sentence judges nothing (the floor). Two device-log rows, the shape the
+  // Studio itself writes to vhd_logs when a campaign is saved.
   dashboard: async (page) => {
-    await page.evaluate(() => switchMainTab('dashboard'));
+    await page.evaluate(() => {
+      const row = (i, mk, type) => ({
+        id: 1700000000000 + i, date: new Date(Date.UTC(2026, 9, i + 1)).toISOString(),
+        userName: 'Theme Sweep', userEmail: '', prompt: 'Autumn restock for returning customers ' + i,
+        fullPrompt: 'Autumn restock for returning customers ' + i, markets: [mk], type,
+        products: ['Sample product ' + i], fullMailers: {}, feedbackHistory: [],
+      });
+      try { localStorage.setItem('vhd_logs', JSON.stringify([row(1, 'US', 'Promotional'), row(2, 'UK', 'Lifecycle')])); } catch (_) {}
+      switchMainTab('dashboard');
+    });
     await page.waitForSelector('#dashboardView', { state: 'visible', timeout: 8000 });
+    // The cards, not just the view: a later brand/session event can re-render
+    // the dashboard before the rows are read, and an empty dashboard measured
+    // as "the dashboard" is the floor finding this state exists to avoid.
+    await page.waitForFunction(() => {
+      const list = document.getElementById('dashboardList');
+      if (list && (list.textContent.match(/Autumn restock/g) || []).length >= 2) return true;
+      try { if (typeof renderDashboard === 'function') renderDashboard(0); } catch (_) {}
+      return false;
+    }, null, { timeout: 15000, polling: 500 });
     await page.waitForTimeout(400);
   },
 };

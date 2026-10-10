@@ -479,6 +479,11 @@ const PROBE = `(async (cfg) => {
     textFails: [], groundFails: [], foreign: [], forbidden: [], fonts: [], buttons: [], chrome: {} };
   const seenForeign = new Set(), seenForbid = new Set(), seenFont = new Set();
   function noteForeign(el, prop, c) {
+    /* The rail is PLATFORM chrome (docs/platform-identity.md): the third-party
+       logos it shows (Meta, Google...) carry their owners' colours on purpose
+       and are never recoloured to a tenant's hue. Forbidden literals, text and
+       grounds in the rail are still judged; only "foreign hue" is exempt. */
+    try { if (el.closest('#lifecycle-nav')) return; } catch (_) {}
     const h = hex(c);
     const k = prop + '|' + h + '|' + path(el);
     if (seenForeign.has(k)) return; seenForeign.add(k);
@@ -540,7 +545,13 @@ const PROBE = `(async (cfg) => {
     // viewport-covering, translucent layer that dims the page behind a dialog.
     const scrim = s.position === 'fixed' && rect.width >= innerWidth * 0.9 && rect.height >= innerHeight * 0.9
       && own.layers.length && own.layers.every((l) => l.stops.every((c) => c.a < 0.9));
-    if (!control && !scrim && rect.width >= 120 && rect.height >= 40 && own.layers.length && !own.image) {
+    // A SPECIMEN is not a section either: a swatch chip exists to SHOW a token
+    // (the ink swatch is the ink), and the kit's modal demo draws its scrim in
+    // a stage on the page. Both are the design-system page's subject matter.
+    // Text on them is still judged; only their fill is not a "dark section".
+    let specimen = false;
+    try { specimen = el.matches('.vh-swatch-chip, [data-specimen], .vh-modal-stage > .vh-modal-backdrop'); } catch (_) {}
+    if (!control && !scrim && !specimen && rect.width >= 120 && rect.height >= 40 && own.layers.length && !own.image) {
       if (chrome) result.groundChrome++; else result.ground++;
       const g = grounds(el);
       if (g) {
