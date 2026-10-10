@@ -230,7 +230,7 @@
       // Render the blog markdown to a formatted, print-ready page (Save as PDF)
       // instead of a raw .md file — reads far better. Falls back to a .md blob
       // only if the shared helper is unavailable.
-      if (typeof window.__mdToPdf === 'function') { window.__mdToPdf(blogMarkdown(p), (p.theme || 'KNICKGASM blog')); return; }
+      if (typeof window.__mdToPdf === 'function') { window.__mdToPdf(blogMarkdown(p), (p.theme || (p.copy && p.copy.title) || 'Blog post')); return; }
       downloadBlob(base + '.md', blogMarkdown(p), 'text/markdown'); return;
     }
     downloadBlob(base + '.json', JSON.stringify(post, null, 2), 'application/json');

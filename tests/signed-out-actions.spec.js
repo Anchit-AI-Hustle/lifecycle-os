@@ -125,7 +125,7 @@ const AUTH_STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host:
 /* ── the server, modelled by its own gates ───────────────────────────────── */
 // Ops each router answers WITHOUT a session (read from the routers themselves).
 const PUBLIC_OPS = {
-  brand: ['presets', 'defaults', 'validate-palette'],
+  brand: ['presets', 'defaults', 'validate-palette', 'platform-rules'],
   credits: ['catalog', 'prices'],
   connections: ['registry', 'publish-registry', 'oauth-callback'],
   payments: ['catalog', 'webhooks'],
