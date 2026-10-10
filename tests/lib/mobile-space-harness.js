@@ -48,8 +48,9 @@ function pages() {
 }
 
 /* ── the two states ─────────────────────────────────────────────────────── */
-/* 'device-brand': a mobile+PIN device sign-in with The Times of India preset
-   active, the way production serves a phone (brand-theme harness, unchanged).
+/* 'device-brand': The Times of India preset active on the device, signed out (the
+   mobile+PIN sign-in this state used until 2026-10-10 is gone; its brands live here)
+   - the way production serves a phone today (brand-theme harness).
    'signed-out': no session, the Supabase host configured but not answering. */
 const TOI = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'brands', 'presets', 'times-of-india.json'), 'utf8'));
 H.PALETTES['times-of-india'] = { name: TOI.name, slug: TOI.slug, palette: TOI.palette, typography: TOI.typography, regions: TOI.regions };

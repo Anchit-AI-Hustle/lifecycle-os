@@ -20,14 +20,15 @@
  * HOW THE SERVER HALF WORKS. Every generator is driven through its SHIPPED
  * router (api/brain.js, api/calendar.js, api/ai/generate.js, the five
  * api/ai/pipeline stages, api/public-config.js, api/competitor.js, api/kb.js)
- * over a real socket (tests/agents-harness.js), in two worlds:
- *   device    production's state: no DATABASE_URL, a mobile+PIN session, and
- *             the brand CARRIED on the request (brand-runtime.carriedBrand);
- *   account   a signed-in account whose ACTIVE workspace is the brand, read
- *             through tests/lib/fake-supabase.js, with its own catalogue rows
- *             in brand_catalog_products;
- * and, for the asset generators, with every model provider DOWN (the template
- * paths). The scripted llm.js records every PROMPT, so what a generation told
+ * over a real socket (tests/agents-harness.js), as a signed-in account whose
+ * ACTIVE workspace is the brand, read through tests/lib/fake-supabase.js, with
+ * its own catalogue rows in brand_catalog_products; and, for the asset
+ * generators, with every model provider DOWN (the template paths).
+ * 2026-10-10: the DEVICE world this gate also drove (a mobile+PIN session with
+ * the brand carried on the request) is gone with that sign-in - Google is the
+ * only sign-in, a PIN-shaped token is refused like no token, and nothing a
+ * signed-out browser sends reaches a generator. Every generator that ran only
+ * in the device world runs in the account world now, so no coverage is lost. The scripted llm.js records every PROMPT, so what a generation told
  * a model is asserted exactly like what it returned.
  *
  * WHAT IS ASSERTED, per brand, per generator, per world:
@@ -205,8 +206,9 @@ const EXEMPT = {
 };
 
 /** Paths in a generator's request that only one world can answer, with the reason. */
-function worldSkip(g, mode) {
-  return g.modes.includes(mode) ? null : `runs in ${g.modes.join(' + ')} only`;
+function worldSkip() {
+  // One world since 2026-10-10 (see the header): every generator runs in it.
+  return null;
 }
 
 /* ── the worlds ──────────────────────────────────────────────────────────── */
@@ -219,6 +221,9 @@ async function makeWorld(mode) {
     const ws = 'ws-' + b.slug;
     w.db.addUser(tok, uid, b.slug + '@example.test').addWorkspace(ws, uid, F.workspaceRow(b, ws)).setActive(uid, ws);
     toks[b.slug] = tok;
+    // The buyer agent agent-chat speaks as: a row in THIS workspace (the
+    // device world kept it beside the brand; an account keeps it here).
+    w.db.insert('smart_agents', { id: 'agent_brand', workspace_id: ws, level: 'brand', name: b.name + ' Assistant', market: (b.regions && b.regions[0] && b.regions[0].code) || '', persona: {}, catalog_scope: {}, active: true });
     for (const reg of (b.regions || [])) {
       for (const p of b.catalogue) {
         w.db.insert('brand_catalog_products', { workspace_id: ws, region: String(reg.code).toLowerCase(), sku: p.handle, handle: p.handle, title: p.title, product_type: p.product_type, collections: [], price: p.price, currency: reg.currency || '', image_url: p.image, product_url: (b.website || '') + '/products/' + p.handle });
@@ -308,7 +313,7 @@ test('the fixture brands are distinct from tenant zero and from each other', () 
 
 /* ═══ 2. the server generators, in both worlds ═════════════════════════════ */
 
-for (const mode of ['device', 'account']) {
+for (const mode of ['account']) {
   test.describe(`server generators, ${mode} world`, () => {
     let w;
     test.beforeAll(async () => { w = await makeWorld(mode); });
@@ -326,12 +331,12 @@ for (const mode of ['device', 'account']) {
           driven += 1;
           if (r.calls) reachedModel += 1;
           problems.push(...r.problems);
-          if (g.templates && mode === 'device') {
+          if (g.templates) {
             const t = await drive(w, mode, g, b, { down: true });
             problems.push(...t.problems);
           }
         }
-        expect(driven, 'too few generators ran in this world to mean anything').toBeGreaterThan(mode === 'device' ? 35 : 25);
+        expect(driven, 'too few generators ran in this world to mean anything').toBeGreaterThan(35);
         expect(reachedModel, 'too few generators reached the (scripted) model, so too few prompts were judged').toBeGreaterThan(10);
         expect(problems, problems.join('\n')).toEqual([]);
       });
