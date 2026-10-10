@@ -32,12 +32,26 @@ const DEFAULT_TIME_BOX_MS = 25000;
 
 // Evidence contract shared by every role — the single rule that makes the output
 // trustworthy: ground every statement in a quoted input figure.
-const EVIDENCE_CONTRACT =
+const EVIDENCE_RULE =
   'EVIDENCE CONTRACT (non-negotiable): quote the exact figure from the inputs behind every claim; ' +
   'never invent numbers, products, prices, reviews, or benchmarks; if the inputs do not support a ' +
-  'point, do not make it. Respect KNICKGASM brand voice (warm, sensory, heritage) and never use the ' +
-  'banned phrases (wellness journey, transform, liquid gold, game-changer, LIMITED TIME in caps, ' +
-  'hurry, don\'t miss out, last chance, while supplies last) or em/en dashes.';
+  'point, do not make it.';
+/**
+ * The contract for the brand this request is FOR (2026-10-10). It named tenant
+ * zero's voice and banned list for every brand's analyst, critic and platform
+ * agents. The brand is the request's (or the pinned generation's); tenant
+ * zero's record answers only with nothing in scope.
+ */
+function evidenceContract(brand) {
+  let b = brand;
+  try { b = require('./brand-runtime.js').scopedBrand(brand || null, { allowTenantZero: true }); } catch (_) { b = brand || {}; }
+  const f = require('./brand-runtime.js').promptFacts(b);
+  return EVIDENCE_RULE + ` Respect ${f.name}'s brand voice (${f.tone})` +
+    (f.banned.length ? ` and never use its banned phrases (${f.banned.join(', ')})` : '') + ' or em/en dashes.';
+}
+// Kept as a name for callers that read it at load: the contract as tenant
+// zero's record states it. Request-time callers use evidenceContract().
+const EVIDENCE_CONTRACT = evidenceContract(require('./brand-runtime.js').defaultBrand());
 
 function withDeadline(promise, ms) {
   let timer;
@@ -63,7 +77,7 @@ async function runAnalyst({ feature = 'analytics', question = '', inputs = {}, c
   try {
     const sys =
       'You are a senior growth analyst for KNICKGASM (premium D2C sneaker + streetwear). You read ALREADY-COMPUTED ' +
-      'metrics and produce decisions, not restated numbers. ' + EVIDENCE_CONTRACT + '\n' +
+      'metrics and produce decisions, not restated numbers. ' + evidenceContract() + '\n' +
       'If a caveat says a figure is inaccurate or out-of-scope, DO NOT build a recommendation on it; ' +
       'flag it instead. Output STRICT JSON only:\n' +
       '{"insights":[{"observation":"","hypothesis":"if X then Y because Z","evidence":"quoted figure(s)",' +
@@ -108,7 +122,7 @@ async function runCritic({ feature = 'content', content, context = '', rubric,
     const dimList = rubric.dimensions.map(d => '  ' + d.key + ' (' + d.label + '): ' + d.guide).join('\n');
     const scoreSys =
       'You are a senior quality auditor for KNICKGASM. Score the ' + feature + ' on each dimension 0-10. ' +
-      EVIDENCE_CONTRACT + ' Output STRICT JSON only:\n' +
+      evidenceContract() + ' Output STRICT JSON only:\n' +
       '{"scores":{' + rubric.dimensions.map(d => '"' + d.key + '":0').join(',') + '},"overall":0,' +
       '"critique":"name the specific weakest fields and exactly what to change; quote offending copy"}\n\n' +
       'DIMENSIONS:\n' + dimList;
@@ -136,7 +150,7 @@ async function runCritic({ feature = 'content', content, context = '', rubric,
     // ONE revision
     const reviseSys = rubric.reviseSystem ||
       ('You are the Creative Director at KNICKGASM. An auditor scored the ' + feature + ' below threshold. ' +
-       'Revise it to fix EVERY point in the critique while preserving what works. ' + EVIDENCE_CONTRACT +
+       'Revise it to fix EVERY point in the critique while preserving what works. ' + evidenceContract() +
        ' Return the COMPLETE revised ' + feature + ' in EXACTLY the same shape/keys as the input. ' +
        'No markdown, no commentary.');
     const isJson = typeof content !== 'string';
@@ -193,4 +207,4 @@ const RUBRICS = {
   },
 };
 
-module.exports = { runFeatureAgent, runAnalyst, runCritic, RUBRICS, EVIDENCE_CONTRACT };
+module.exports = { runFeatureAgent, runAnalyst, runCritic, RUBRICS, EVIDENCE_CONTRACT, evidenceContract };

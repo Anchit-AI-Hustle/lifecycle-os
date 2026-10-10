@@ -1074,6 +1074,16 @@ module.exports = async function handler(req, res) {
         let html = b.html;
         let entryId = b.entry_id || null;
         if (!html && entryId) {
+          // An entry_id names a row of the lifecycle programme, which is
+          // tenant zero's (lifecycle_calendar_entries over its product lanes
+          // and store). Any other brand is refused with the gap rather than
+          // handed tenant zero's mailer to fill (2026-10-10).
+          let zeroBrand = false;
+          try { zeroBrand = require('./_shared/brand-catalog-server.js').isTenantZeroBrand(require('./_shared/brand-runtime.js').scopedBrand(req.__brand, { allowTenantZero: true })) === true; } catch (_) { zeroBrand = false; }
+          if (!zeroBrand) {
+            return res.status(409).json({ ok: false, error: 'lifecycle_programme_not_this_brand', data_gaps: ['[DATA REQUIRED BEFORE LAUNCH: lifecycle product lanes and cohort programme, ' + ((req.__brand && req.__brand.name) || 'this brand') + ']'],
+              message: 'That entry belongs to another brand\'s lifecycle programme, so no mailer was built from it. Pass the mailer HTML to fill instead.' });
+          }
           const build = require('./_shared/lifecycle-mailer-build.js');
           const built = await build.buildLifecycleMailer({ id: entryId });
           const v = built && built.mailer && (built.mailer.variants.find((x) => x.key === 'visual_a') || built.mailer);
@@ -1081,7 +1091,7 @@ module.exports = async function handler(req, res) {
         }
         if (!html) return res.status(400).json({ ok: false, error: 'pass html or an entry_id that builds a mailer' });
         const out = await assetAgent.fillMailerAssets(html, {
-          tier: b.tier || 'premium', market: b.market || 'UK', persist: b.persist !== false,
+          tier: b.tier || 'premium', market: b.market || __homeMarket(), persist: b.persist !== false,
           video: b.video !== false, gif: b.gif !== false,
         });
         return res.json({ ...out, entry_id: entryId });
@@ -1166,7 +1176,10 @@ module.exports = async function handler(req, res) {
           analysis.runDaily({ persist: false }).catch(() => null),
           review.recalibrationStatus().catch(() => null),
         ]);
-        const sys = `You are the KNICKGASM Smart Brain console — the conversational interface to a lifecycle-marketing automation system (like ChatGPT, but grounded in THIS system's live data). Answer the operator's question using the context below. Be specific with numbers. If asked to act, tell them exactly which button/endpoint does it (e.g. "Generate assets" on a slot → POST /api/brain?action=generate). Keep replies tight.
+        // The console speaks for the brand this request resolved (2026-10-10);
+        // it named tenant zero to every workspace.
+        const _cb = (() => { try { return require('./_shared/brand-runtime.js').scopedBrand(req.__brand, { allowTenantZero: true }); } catch (_) { return {}; } })();
+        const sys = `You are the ${(_cb && _cb.name) || 'Lifecycle OS'} Smart Brain console — the conversational interface to a lifecycle-marketing automation system (like ChatGPT, but grounded in THIS system's live data). Answer the operator's question using the context below. Be specific with numbers. If asked to act, tell them exactly which button/endpoint does it (e.g. "Generate assets" on a slot → POST /api/brain?action=generate). Keep replies tight.
 
 LIVE CONTEXT
 Daily analysis: ${daily ? JSON.stringify(daily.summary) : 'unavailable'}
@@ -1353,8 +1366,12 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           return res.json(await di.sendingReadiness(String(req.query.domain || b.domain || '')));
         }
 
-        let brand = null;
-        if (__wsId) {
+        // The brand this request resolved (a workspace row or the record a
+        // phone account carried) before a workspace lookup (2026-10-10): a
+        // phone account has no workspace, so this answered "no brand is
+        // resolved" for a brand the request had just carried.
+        let brand = (req.__brand && (req.__brand.id || req.__brand.carried === true) && !req.__brand.unresolved) ? req.__brand : null;
+        if (!brand && __wsId) {
           const wsScope = require('./_shared/workspace-scope.js');
           brand = await wsScope.brandForWorkspace({
             url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
@@ -1371,8 +1388,12 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         // credit metering and the provider waterfall already live.
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
-        let brand = null;
-        if (__wsId) {
+        // The brand this request resolved (a workspace row or the record a
+        // phone account carried) before a workspace lookup (2026-10-10): a
+        // phone account has no workspace, so this answered "no brand is
+        // resolved" for a brand the request had just carried.
+        let brand = (req.__brand && (req.__brand.id || req.__brand.carried === true) && !req.__brand.unresolved) ? req.__brand : null;
+        if (!brand && __wsId) {
           const wsScope = require('./_shared/workspace-scope.js');
           brand = await wsScope.brandForWorkspace({
             url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
@@ -1450,8 +1471,12 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const pa = require('./_shared/platform-agents-core.js');
         // The analyst is told WHOSE numbers these are. Resolved from the active
         // workspace; never defaulted to a brand.
-        let brand = null;
-        if (__wsId) {
+        // The brand this request resolved (a workspace row or the record a
+        // phone account carried) before a workspace lookup (2026-10-10): a
+        // phone account has no workspace, so this answered "no brand is
+        // resolved" for a brand the request had just carried.
+        let brand = (req.__brand && (req.__brand.id || req.__brand.carried === true) && !req.__brand.unresolved) ? req.__brand : null;
+        if (!brand && __wsId) {
           const wsScope = require('./_shared/workspace-scope.js');
           brand = await wsScope.brandForWorkspace({
             url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
@@ -1490,8 +1515,12 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         if (op !== 'run') return res.status(400).json({ ok: false, error: 'unknown revenue-os op' });
         if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'GET only for revenue-os run' });
 
-        let brand = null;
-        if (__wsId) {
+        // The brand this request resolved (a workspace row or the record a
+        // phone account carried) before a workspace lookup (2026-10-10): a
+        // phone account has no workspace, so this answered "no brand is
+        // resolved" for a brand the request had just carried.
+        let brand = (req.__brand && (req.__brand.id || req.__brand.carried === true) && !req.__brand.unresolved) ? req.__brand : null;
+        if (!brand && __wsId) {
           const wsScope = require('./_shared/workspace-scope.js');
           brand = await wsScope.brandForWorkspace({
             url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
