@@ -23,55 +23,55 @@
     --head:#FFFFFF; --accent:#6A33D8;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--vh-font-body);font-size:15px;line-height:1.55;}
   .wrap{max-width:1120px;margin:0 auto;padding:30px 22px 90px;}
-  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--head);margin:0;text-wrap:balance;}
+  h1,h2,h3{font-family:var(--vh-font-head);color:var(--vh-primary-text);margin:0;text-wrap:balance;}
   h1{font-size:32px;} h2{font-size:22px;margin-top:2px;} h3{font-size:16px;}
   .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--brand-accent-text,var(--accent));font-weight:700;}
   p.lede{color:var(--soft);max-width:74ch;margin:6px 0 0;}
   .tabs{display:flex;flex-wrap:nowrap;gap:4px;margin:22px 0 8px;border-bottom:1px solid var(--line);;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .tabs > *{flex:0 0 auto}
   .tab{cursor:pointer;border:0;background:transparent;color:var(--soft);font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 14px;border-bottom:3px solid transparent;margin-bottom:-1px;border-radius:6px 6px 0 0;white-space:nowrap;transition:background .12s,color .12s;}
-  .tab:hover{color:var(--head);background:var(--chip);}
-  .tab.active{color:var(--chalk);background:var(--violet);border-bottom-color:var(--lava);box-shadow:0 1px 0 var(--lava);}
+  .tab:hover{color:var(--vh-primary-text);background:var(--chip);}
+  .tab.active{color:var(--vh-on-primary);background:var(--vh-primary);border-bottom-color:var(--lava);box-shadow:0 1px 0 var(--lava);}
   .tab:focus-visible{outline:2px solid var(--lava);outline-offset:2px;}
   .panel{display:none;padding-top:20px;} .panel.active{display:block;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0;}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;}
-  .card .n{font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:var(--head);font-variant-numeric:tabular-nums;line-height:1;}
+  .card .n{font-family:var(--vh-font-head);font-size:28px;color:var(--vh-primary-text);font-variant-numeric:tabular-nums;line-height:1;}
   .card .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);margin-top:5px;}
   .card .d{color:var(--soft);font-size:13px;margin-top:8px;}
   .card.link{cursor:pointer;transition:border-color .15s;} .card.link:hover{border-color:var(--accent);}
-  .chip{display:inline-block;background:var(--chip);color:var(--head);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
+  .chip{display:inline-block;background:var(--chip);color:var(--vh-primary-text);border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;letter-spacing:.03em;}
   /* Same pair as Cohort Definitions: a tenant-zero red literal that never
      re-skinned, and a dark twin writing the light-surface muted token on ink. */
-  .v2{background:var(--vh-panel-tan);color:var(--brand-primary-text,var(--head));}
-  :root[data-theme="dark"] .v2{background:var(--brand-ink,#111111);color:var(--brand-surface,#ffffff);}
+  .v2{background:var(--vh-panel-2);color:var(--brand-primary-text,var(--head));}
+  :root[data-theme="dark"] .v2{background:var(--vh-panel-2);color:inherit;}
   /* Persona cards */
   .persona{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
   .persona .ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
-  .persona .pav{width:34px;height:34px;border-radius:999px;background:var(--violet);color:var(--chalk);display:inline-flex;align-items:center;justify-content:center;font-family:'Montserrat',Georgia,serif;font-size:16px;font-weight:700;flex-shrink:0;}
-  .persona .pname{font-family:'Montserrat','Raleway',Georgia,serif;font-size:20px;color:var(--head);font-weight:700;}
+  .persona .pav{width:34px;height:34px;border-radius:999px;background:var(--vh-band);color:var(--vh-on-band);display:inline-flex;align-items:center;justify-content:center;font-family:var(--vh-font-head);font-size:16px;font-weight:700;flex-shrink:0;}
+  .persona .pname{font-family:var(--vh-font-head);font-size:20px;color:var(--vh-primary-text);font-weight:700;}
   .persona .ptag{color:var(--brand-accent-text,var(--accent));font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.06em;}
   .persona .pquote{color:var(--ink);font-style:italic;margin:10px 0 14px;border-left:3px solid var(--lava);padding-left:12px;}
   .persona dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 16px;}
   .persona dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;padding-top:2px;}
   .persona dd{margin:0;color:var(--ink);font-size:13.5px;}
-  .mix{display:inline-flex;gap:6px;flex-wrap:wrap;} .mix span{background:var(--chip);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--head);}
+  .mix{display:inline-flex;gap:6px;flex-wrap:wrap;} .mix span{background:var(--chip);border-radius:5px;padding:2px 8px;font-size:12px;color:var(--vh-primary-text);}
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0 4px;}
   table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
   th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
-  th{color:var(--head);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:11px;background:var(--chip);}
+  th{color:var(--vh-primary-text);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:11px;background:var(--chip);}
   tr:last-child td{border-bottom:0;}
   .metric{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0;}
   .metric .m{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
-  .metric .mv{font-family:'Montserrat',Georgia,serif;font-size:24px;color:var(--head);}
+  .metric .mv{font-family:var(--vh-font-head);font-size:24px;color:var(--vh-primary-text);}
   .metric .ml{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);margin-top:3px;}
   .metric .ms{font-size:12px;color:var(--soft);margin-top:6px;}
   .how{background:var(--chip);border-radius:8px;padding:14px 16px;margin:16px 0;color:var(--soft);font-size:13.5px;}
-  .how b{color:var(--head);}
-  a{color:var(--head);text-decoration-color:var(--accent);}
-  .filelink{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:12px;color:var(--brand-accent-text,var(--accent));}
+  .how b{color:var(--vh-primary-text);}
+  a{color:var(--vh-primary-text);text-decoration-color:var(--accent);}
+  .filelink{font-family:var(--vh-font-mono);font-size:12px;color:var(--brand-accent-text,var(--accent));}
   .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:26px;padding-top:14px;}
   @media (max-width:560px){.persona dl{grid-template-columns:1fr;gap:2px 0;} .persona dt{margin-top:8px;}}
 </style>
@@ -104,7 +104,7 @@
        (brand-context.js gateShipped); an audience is never assumed. -->
   <section class="panel" id="panel-personas" role="tabpanel" data-shipped-for="knickgasm" data-shipped-label="buyer avatars (personas)">
     <h2>The Four Avatars <span class="chip v2">V2 - active</span></h2>
-    <p class="lede">Four behavioural buyer profiles. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--chalk);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), so a brief can be written against a person rather than a percentage. The behaviour on each card is derived from those cohort definitions. Demographic and geographic profile is <b>not</b> stated: this deployment holds no sourced audience research for it, and an invented age band or income range would read as measured. Each of those fields carries its own data marker until a named, dated source is wired in.</p>
+    <p class="lede">Four behavioural buyer profiles. Each maps to specific cohorts, drawn verbatim from the platform <a href="/cohorts" style="color:var(--vh-ink);text-decoration-color:var(--accent)">Cohorts dictionary</a> (Engagement Cohorts A to F, Lifecycle Stages, RFM Segments, Product and Behavioral cohorts), so a brief can be written against a person rather than a percentage. The behaviour on each card is derived from those cohort definitions. Demographic and geographic profile is <b>not</b> stated: this deployment holds no sourced audience research for it, and an invented age band or income range would read as measured. Each of those fields carries its own data marker until a named, dated source is wired in.</p>
     <div id="personas"></div>
   </section>
 
