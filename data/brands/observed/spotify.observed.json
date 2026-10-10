@@ -1,26 +1,103 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": true,
   "slug": "spotify",
   "start": "https://www.spotify.com",
   "landed": "https://open.spotify.com/",
-  "observed_at": "2026-10-04",
-  "read_at": "2026-10-04T18:52:04.189Z",
+  "observed_at": "2026-10-05",
+  "read_at": "2026-10-05T08:42:46.019Z",
   "renderer": "rendered",
+  "reason": "",
+  "reads": [
+    {
+      "url": "https://www.spotify.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.spotify.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://open.spotify.com/"
+    },
+    {
+      "url": "https://developer.spotify.com/images/favicon.png",
+      "role": "identity source",
+      "what": "Spotify developer-site icon",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "developer.spotify.com",
+        "registrable": "spotify.com",
+        "website_host": "www.spotify.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "image",
+      "ok": true,
+      "landed": "https://developer.spotify.com/images/favicon.png",
+      "mark": {
+        "verdict": "neutral",
+        "hex": "#181313"
+      }
+    },
+    {
+      "url": "https://developer.spotify.com/documentation/design",
+      "role": "identity source",
+      "what": "Spotify design and branding guidelines",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "developer.spotify.com",
+        "registrable": "spotify.com",
+        "website_host": "www.spotify.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://developer.spotify.com/documentation/design"
+    },
+    {
+      "url": "https://newsroom.spotify.com/",
+      "role": "identity source",
+      "what": "Spotify newsroom",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "newsroom.spotify.com",
+        "registrable": "spotify.com",
+        "website_host": "www.spotify.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://newsroom.spotify.com/"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.spotify.com",
+    "role": "home",
+    "landed": "https://open.spotify.com/"
+  },
   "reader": {
     "module": "api/_shared/brand-render.js",
     "manifest_version": "design-manifest/1",
-    "browser": "env",
-    "chromium": "153.0.8010.12"
+    "browser": "preinstalled",
+    "chromium": "148.0.7778.96"
   },
   "pages": [
     {
       "url": "https://open.spotify.com/",
       "role": "home"
-    },
-    {
-      "url": "https://www.spotify.com/us/about-us/contact/",
-      "role": "about"
     }
   ],
   "viewports": {
@@ -34,41 +111,9 @@
     }
   },
   "partial": false,
-  "regression": {
-    "ok": true,
-    "done": false,
-    "score": 56.3,
-    "mismatch": 0.4366,
-    "surfaces": {
-      "landing page": {
-        "score": 58.3,
-        "mismatch": 0.4167,
-        "done": false,
-        "tokens_off": 9,
-        "regions_off": 4
-      },
-      "mailer": {
-        "score": 80,
-        "mismatch": 0.2,
-        "done": false,
-        "tokens_off": 12,
-        "regions_off": 0
-      },
-      "ad creative": {
-        "score": 66.7,
-        "mismatch": 0.3333,
-        "done": false,
-        "tokens_off": 3,
-        "regions_off": 0
-      }
-    },
-    "iterations": 3,
-    "repairs": 4,
-    "mismatch_limit": 0.05
-  },
+  "regression": null,
   "conflicts": [],
   "markers": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.spotify.com]",
     "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.spotify.com]"
   ],
   "logo_url": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png",
@@ -82,8 +127,172 @@
       "signal": "the icon the page declares (link rel=icon)"
     }
   ],
-  "palette_ok": false,
-  "palette": null,
+  "palette_candidates": [
+    {
+      "kind": "icon",
+      "value": "#1ed760",
+      "score": 80,
+      "state": "outranked",
+      "page": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png"
+    },
+    {
+      "kind": "manifest-theme",
+      "value": "#121212",
+      "score": 72,
+      "state": "passed over",
+      "page": "https://open.spotifycdn.com/cdn/generated/manifest-web-player.1609946b.json"
+    },
+    {
+      "kind": "manifest-background",
+      "value": "#121212",
+      "score": 40,
+      "state": "passed over",
+      "page": "https://open.spotifycdn.com/cdn/generated/manifest-web-player.1609946b.json"
+    },
+    {
+      "kind": "header",
+      "value": "#000000",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://open.spotify.com/"
+    },
+    {
+      "kind": "logo-image",
+      "value": "#8860a7",
+      "score": 116,
+      "state": "outranked",
+      "page": "https://developer.spotify.com/documentation/design"
+    },
+    {
+      "kind": "link",
+      "value": "#8c20df",
+      "score": 35,
+      "state": "outranked",
+      "page": "https://developer.spotify.com/documentation/design"
+    },
+    {
+      "kind": "logo-image",
+      "value": "#2fe58f",
+      "score": 128,
+      "state": "outranked",
+      "page": "https://developer.spotify.com/documentation/design"
+    },
+    {
+      "kind": "logo-image",
+      "value": "#1ed760",
+      "score": 152,
+      "state": "chosen",
+      "page": "https://developer.spotify.com/documentation/design"
+    },
+    {
+      "kind": "header",
+      "value": "#400073",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://developer.spotify.com/documentation/design"
+    },
+    {
+      "kind": "logo-image",
+      "value": "#eadac0",
+      "score": 116,
+      "state": "passed over",
+      "page": "https://newsroom.spotify.com/"
+    },
+    {
+      "kind": "action",
+      "value": "#ffffff",
+      "score": 55,
+      "state": "passed over",
+      "page": "https://newsroom.spotify.com/"
+    },
+    {
+      "kind": "logo-dark",
+      "value": "#4f0327",
+      "score": 60,
+      "state": "passed over",
+      "page": "https://newsroom.spotify.com/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.spotify.com",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#ffffff"
+      },
+      "fonts": {
+        "heading": "SpotifyMixUI",
+        "body": "SpotifyMixUI"
+      },
+      "content_logos": 0,
+      "seen": {
+        "title": "Spotify - Web Player: Music for everyone",
+        "h1": "Your Library",
+        "status": 200,
+        "text_chars": 87
+      }
+    },
+    {
+      "url": "https://developer.spotify.com/images/favicon.png",
+      "logo": {
+        "kind": "file",
+        "verdict": "neutral",
+        "hex": "#181313"
+      }
+    },
+    {
+      "url": "https://developer.spotify.com/documentation/design",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#ffffff"
+      },
+      "fonts": {
+        "heading": "SpotifyMixUITitle",
+        "body": "SpotifyMixUI"
+      },
+      "content_logos": 3,
+      "seen": {
+        "title": "Design & Branding Guidelines | Spotify for Developers",
+        "h1": "Design & Branding Guidelines",
+        "status": 200,
+        "text_chars": 10901
+      }
+    },
+    {
+      "url": "https://newsroom.spotify.com/",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#ffffff"
+      },
+      "fonts": {
+        "heading": "Spotify Mix-Narrow",
+        "body": "Spotify Mix"
+      },
+      "content_logos": 3,
+      "seen": {
+        "title": "Spotify — For the Record",
+        "h1": "TUNE IN TO THE LATEST",
+        "status": 200,
+        "text_chars": 963
+      }
+    }
+  ],
+  "palette_ok": true,
+  "palette": {
+    "primary": "#1ed760",
+    "accent": "#8860a7",
+    "ink": "#121212",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#121212",
+    "line": "#e4e4e4",
+    "ok": "#1a7f37",
+    "warn": "#c9a227",
+    "err": "#c0392b"
+  },
   "palette_evidence": {
     "surface": {
       "value": "#ffffff",
@@ -97,20 +306,256 @@
         "viewport": "desktop",
         "property": "background-color",
         "signal": "computed"
+      },
+      "read_url": "https://www.spotify.com",
+      "read_role": "home",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "how": "website",
+        "host": "www.spotify.com"
       }
     },
     "primary": {
-      "value": "",
+      "value": "#1ed760",
+      "exact": "#1ed760",
+      "derived": false,
+      "kind": "logo-image",
+      "strength": 116,
+      "score": 152,
+      "from_role": "identity",
+      "signal": "the brand's logo shown on its own page (\"https://developer-assets.spotifycdn.com/images/guidelines/design/logo.\")",
+      "source": {
+        "page": "https://developer.spotify.com/documentation/design",
+        "role": "content logo",
+        "selector": "main#main > div.sc-7eae9c62-0.iIIOGP > div.sc-2b38a360-0.sc-7a43f055-3 > p.e-10202-text.encore-text-body-medium:nth-of-type(38) > img.e-10202-legacy-image.e-10202-legacy-image--fluid",
+        "viewport": "desktop",
+        "property": "pixels",
+        "signal": "computed"
+      },
+      "read_url": "https://developer.spotify.com/documentation/design",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "developer.spotify.com",
+        "registrable": "spotify.com",
+        "website_host": "www.spotify.com"
+      },
+      "corroborated_by": [
+        {
+          "kind": "icon",
+          "value": "#1ed760",
+          "signal": "site icon pixels (icon)",
+          "page": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png"
+        }
+      ],
+      "outranked": [
+        {
+          "value": "#2fe58f",
+          "kind": "logo-image",
+          "signal": "the brand's logo shown on its own page (\"https://developer-assets.spotifycdn.com/images/guidelines/design/using\")",
+          "score": 128,
+          "page": "https://developer.spotify.com/documentation/design"
+        },
+        {
+          "value": "#8860a7",
+          "kind": "logo-image",
+          "signal": "logo pixels as rendered (100% of its coloured pixels)",
+          "score": 116,
+          "page": "https://developer.spotify.com/documentation/design"
+        },
+        {
+          "value": "#8c20df",
+          "kind": "link",
+          "signal": "identity colour, as rendered",
+          "score": 35,
+          "page": "https://developer.spotify.com/documentation/design"
+        }
+      ],
       "passed_over": [
+        {
+          "value": "#121212",
+          "from": "web app manifest theme_color",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
         {
           "value": "#000000",
           "from": "the header background",
           "why": "1.12:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#400073",
+          "from": "header background as rendered",
+          "why": "1.31:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#eadac0",
+          "from": "the reader's primary",
+          "why": "1.37:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#ffffff",
+          "from": "the reader's accent",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        },
+        {
+          "value": "#4f0327",
+          "from": "the brand's logo shown on its own page (\"Jorja Smith performs in front of the Spotify logo https://storage.goog\"); near-black, so a brighter colour the site declares outranks it",
+          "why": "1.23:1 against the page, a tint of the page that cannot carry buttons or bands"
         }
       ]
+    },
+    "ink": {
+      "value": "#121212",
+      "exact": "#121212",
+      "derived": true,
+      "from_role": "page ground",
+      "note": "The site paints its page #121212 with light text on it. On this preset's light surface that dark ground is the text colour (18.73:1); the body copy as rendered (#ffffff) does not read there.",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "page ground",
+        "selector": "html.encore-dark-theme.encore-layout-themes",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://www.spotify.com",
+      "read_role": "home",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "how": "website",
+        "host": "www.spotify.com"
+      }
+    },
+    "surface_alt": {
+      "value": "#ffffff",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": ""
+      },
+      "read_url": "https://www.spotify.com",
+      "read_role": "home",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "how": "website",
+        "host": "www.spotify.com"
+      }
+    },
+    "muted": {
+      "value": "#121212",
+      "exact": "",
+      "derived": true,
+      "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+      "source": {
+        "page": "https://open.spotify.com/",
+        "role": "body copy",
+        "selector": "div.itzKVxWhS4n59fp_KIVc:nth-of-type(5) > aside.iSRS94_cCqyXK6cTi_X0.r39TmFLkxDfNX5Pvz8ai > div.u8_BcMxDWMEzHn1BGHfK:nth-of-type(1) > div.v5E6UC1jZRV_cZRKEknx > p.e-10860-text.encore-text-body-medium:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "color",
+        "signal": "computed"
+      },
+      "read_url": "https://www.spotify.com",
+      "read_role": "home",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "how": "website",
+        "host": "www.spotify.com"
+      }
+    },
+    "accent": {
+      "value": "#8860a7",
+      "exact": "#8860a7",
+      "derived": false,
+      "kind": "logo-image",
+      "from_role": "identity",
+      "signal": "logo pixels as rendered (100% of its coloured pixels)",
+      "source": {
+        "page": "https://developer.spotify.com/documentation/design",
+        "role": "logo",
+        "selector": "div.sc-70f368a6-0.cTCcfB > header.sc-271f552-0.kLKTKl > div.sc-271f552-1.ecljJB:nth-of-type(1) > a.sc-3a04c818-0.djWVCf > svg",
+        "viewport": "desktop",
+        "property": "pixels",
+        "signal": "computed"
+      },
+      "read_url": "https://developer.spotify.com/documentation/design",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "developer.spotify.com",
+        "registrable": "spotify.com",
+        "website_host": "www.spotify.com"
+      }
+    },
+    "line": {
+      "value": "#e4e4e4",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "ok": {
+      "value": "#1a7f37",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "warn": {
+      "value": "#c9a227",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
+    },
+    "err": {
+      "value": "#c0392b",
+      "exact": "",
+      "derived": false,
+      "note": "functional token shared by every preset, not a colour read from this brand",
+      "source": {
+        "page": "",
+        "role": "",
+        "selector": "",
+        "viewport": "",
+        "property": "",
+        "signal": "functional"
+      }
     }
   },
-  "palette_reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "palette_warnings": [
+    "Primary on the page surface is 1.92:1 — below the 3:1 non-text minimum, so outlines, chips and icons in primary will be hard to see."
+  ],
   "typography": {
     "heading": {
       "family": "SpotifyMixUI",
@@ -129,7 +574,8 @@
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"
-      }
+      },
+      "read_url": "https://www.spotify.com"
     },
     "body": {
       "family": "SpotifyMixUI",
@@ -148,14 +594,9 @@
         "viewport": "desktop",
         "property": "font-family",
         "signal": "computed"
-      }
+      },
+      "read_url": "https://www.spotify.com"
     }
   },
-  "read_attempt": {
-    "renderer": "rendered",
-    "at": "2026-10-04",
-    "host": "open.spotify.com",
-    "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
-  },
-  "note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
+  "source": "Rendered https://open.spotify.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #1ed760 from the brand's logo shown on its own page (\"https://developer-assets.spotifycdn.com/images/guidelines/design/logo.\") (main#main > div.sc-7eae9c62-0.iIIOGP > div.sc-2b38a360-0.sc-7a43f055-3 > p.e-10202-text.encore-text-body-medium:nth-of-type(38) > img.e-10202-legacy-image.e-10202-legacy-image--fluid) on https://developer.spotify.com/documentation/design. Agreed by icon. Headings SpotifyMixUI, body SpotifyMixUI, as rendered."
 }

@@ -4,7 +4,7 @@
 **Supersedes:** v1.0 of 2026-07-02, and the v0.1 draft of 2026-06-04 (both preserved in git history — the draft documents the original consolidation thinking and is quoted where the "origin" of a feature matters).
 **What changed in v1.1 (2026-07-06):** the V1/V2 version taxonomy (§1.4) is now recorded; the demo/mock access gate has been removed, so every signed-in user gets full live access (§9); the app UI is locked to a single brand-derived theme, with the dark/dusk/light switcher removed (§7.1/§8); domain + OAuth migration tooling was added (§7.5); and the milestones (§11) run through 2026-07-06.
 
-**Live app:** https://knickgasm.vercel.app/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/lifecycle-os`
+**Live app:** https://lifecycle-os.anchit-tandon.com/ · **Presentation deck:** [`/prd-deck`](../docs/prd-deck.html) · **Repo:** `Anchit-AI-Hustle/lifecycle-os`
 
 ---
 

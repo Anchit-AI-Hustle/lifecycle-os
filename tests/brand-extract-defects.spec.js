@@ -298,10 +298,11 @@ test('D2: the token name is read by its ROLE word, and a derived text token is n
   expect(bx.tokenNameRole('--brand-ink')).toBe('ink');
   expect(bx.tokenNameRole('--brand-surface')).toBe('surface');
   expect(bx.tokenNameRole('--brand-line')).toBe('support');
+  expect(bx.tokenNameRole('--brand-band')).toBe('support');
   expect(bx.tokenNameRole('--brand-ok')).toBe('status');
   expect(bx.tokenNameRole('--ok')).toBe('status');
   // D2b: the derivations.
-  for (const derived of ['--brand-primary-text', '--brand-accent-text', '--brand-on-primary', '--on-primary', '--accent-fg', '--primary-contrast']) {
+  for (const derived of ['--brand-primary-text', '--brand-accent-text', '--brand-on-primary', '--brand-on-band', '--brand-on-band-accent', '--on-primary', '--accent-fg', '--primary-contrast']) {
     expect(bx.tokenNameRole(derived), `${derived} must never be identity`).not.toBe('identity');
     expect(bx.tokenNameRole(derived)).toBe('derived');
   }
