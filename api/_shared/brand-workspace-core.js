@@ -153,7 +153,7 @@ async function verifyCaller(req) {
       message: 'You are not signed in, so this could not be saved to your account. '
         + (v.reason === 'no_database'
           ? 'A sign-in kept on this device only cannot be checked by the server.'
-          : 'Your sign-in has expired or was signed out. Sign in again with Gmail.'),
+          : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
       hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
       mobile_reason: v.reason,
     };
@@ -204,7 +204,20 @@ async function verifyCaller(req) {
     // phone token (brand-runtime, TeleSuite) read its workspaces like any
     // account's, through RLS. Every principal verified here is mode
     // 'supabase': the project answered, so its ledger is the one to meter on.
-    const phoneId = require('./mobile-auth-supabase.js').phoneIdentity(user);
+    // SIGN-IN IS A MOBILE NUMBER AND A 4-DIGIT PIN ONLY (2026-10-09). A
+    // session an OAuth provider minted (the Google sign-in of 2026-10-05, or
+    // one a dashboard switch turns back on) is refused here, so the provider
+    // being on in the project is never a way into this API.
+    const supaAuth = require('./mobile-auth-supabase.js');
+    const oauth = supaAuth.oauthProvider(user);
+    if (oauth) {
+      return {
+        ok: false, status: 401, error: 'sign_in_required', provider_refused: oauth,
+        message: 'You are not signed in, so this could not run. Sign in with your mobile number and PIN; '
+          + 'a ' + oauth + ' sign-in is not accepted.',
+      };
+    }
+    const phoneId = supaAuth.phoneIdentity(user);
     if (phoneId) {
       return {
         ok: true, token, user_id: user.id, email: '',
