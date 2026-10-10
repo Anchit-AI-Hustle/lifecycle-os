@@ -14,13 +14,12 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "rendered",
+      "renderer": "blocked",
       "at": "2026-10-05",
-      "host": "report.adidas-group.com",
-      "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+      "host": "www.adidas.com",
+      "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
     },
-    "read_sources_note": "Its own other material was tried too: www.adidas-group.com (timeout), report.adidas-group.com (rendered).",
-    "logo_signal": "the icon the page declares (link rel=icon)"
+    "read_sources_note": "Its own other material was tried too: www.adidas-group.com (not the brand's consumer site), report.adidas-group.com (not the brand's consumer site)."
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -60,8 +59,7 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "adidas.com",
-    "report.adidas-group.com"
+    "adidas.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -239,14 +237,14 @@
   ],
   "identity_sources": [
     {
-      "url": "https://www.adidas-group.com/en/",
+      "url": "https://www.adidas.co.in/",
       "kind": "page",
-      "what": "adidas Group corporate site"
+      "what": "adidas India store front"
     },
     {
-      "url": "https://report.adidas-group.com/",
+      "url": "https://www.adidas.co.uk/",
       "kind": "page",
-      "what": "adidas Group annual report"
+      "what": "adidas UK store front"
     }
   ],
   "offerings": [],
@@ -257,65 +255,6 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Adidas]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Adidas]"
   ],
-  "brand_assets": [
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/images/favicon-96x96.png",
-      "role": "logo",
-      "alt": "",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "the icon the page declares (link rel=icon)"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-ceo.webp?h=YOOcbGYM",
-      "role": "photograph",
-      "alt": "adidas CEO Bjørn Gulden in adidas track suit (Photo)",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-kpis-1.webp?h=gKjPEMZF",
-      "role": "photograph",
-      "alt": "Jude Bellingham wearing a white tank top and black adidas track pants smiles while looking up at a floating football aga",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-kpis-2.webp?h=hcZjoHMf",
-      "role": "photograph",
-      "alt": "Lamine Yamal wearing a sleeveless adidas shirt, denim shorts and green adidas sneakers plays with a football against a y",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-kpis-3.webp?h=xZ0TKjVX",
-      "role": "photograph",
-      "alt": "Lionel Messi wearing a black adidas track top and shorts balances a football in front of a blue and white background whi",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/dummy-home-value-creation.svg?h=bcvMOPf6",
-      "role": "photograph",
-      "alt": "",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-environment.webp?h=uQgu3tlg",
-      "role": "photograph",
-      "alt": "Runner wearing white adidas trail running shoes and orange socks on a forest trail. (Photo)",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    },
-    {
-      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-social.webp?h=CDr2nFfT",
-      "role": "photograph",
-      "alt": "Three young people wearing beige and green adidas casual wear sit together and talk. (Photo)",
-      "found_on": "https://report.adidas-group.com/2025/en/",
-      "signal": "image rendered on the page"
-    }
-  ],
-  "logo_url": "https://report.adidas-group.com/2025/en/_assets/images/favicon-96x96.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

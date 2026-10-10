@@ -57,6 +57,16 @@
  *   - a region is never read from another region's store: a UK import reads the
  *     UK store the brand declared (regions[].store_url) or the one the site's
  *     own hreflang names, and says which;
+ *   - a store is never read from ANOTHER BRAND'S site (2026-10-10): a region's
+ *     store_url, an hreflang alternate or an asset host is used only when its
+ *     registrable domain is the same brand as the website's, by the coherence
+ *     rule's own ownership function (brand-coherence.js sameBrand). The live
+ *     "DelhiChic" record (website delichic.co.in) carried an IN store_url on
+ *     nike.in, and 734 of Nike's products were filed as its catalogue. A store
+ *     on another site is not read and the coverage says so in a sentence;
+ *   - the URL the person gave is the source: a record's store_url replaces it
+ *     only when the URL given IS the brand's website (the default the wizard
+ *     fills), never when the person typed another store;
  *   - robots.txt is honoured (RFC 9309: groups, Allow/Disallow, `*` and `$`,
  *     the longest match wins); a robots.txt that answers 5xx or not at all is
  *     "disallow everything" per RFC 9309 2.3.1.4, and nothing is read;
@@ -79,6 +89,7 @@
 const zlib = require('zlib');
 const crypto = require('crypto');
 const crawl = require('./site-crawl.js');
+const COH = require('./brand-coherence.js');
 
 const USER_AGENT = crawl.DEFAULTS.userAgent;
 const ROBOTS_TOKEN = 'lifecycleos-brandcrawler';
@@ -262,18 +273,30 @@ async function allowed(url, ctx) {
 
 /**
  * The store to read for this market, and how that was decided:
- *   1. the brand's own region row for this market names a store_url;
+ *   1. the brand's own region row for this market names a store_url (only when
+ *      the URL given is the brand's website, and only on the brand's own site);
  *   2. the start page's hreflang names an alternate for this market's country,
  *      on one of the brand's own hosts;
  *   3. the URL the operator gave.
+ * `identity` is the website's registrable domain (identityOf), or '' when the
+ * record names no website - then nothing is judged, as before. A store_url on
+ * another brand's site is pushed onto `foreign` and not read.
  */
-function regionalBase({ url, region, brand, homeHtml, hosts }) {
+function regionalBase({ url, region, brand, homeHtml, hosts, identity, foreign }) {
   const want = regionCountry(region);
+  const own = (u) => !identity || COH.sameBrand(COH.registrableDomain(COH.hostOf(u)), identity);
+  const site = brand && brand.website ? httpAbs(/^https?:/i.test(brand.website) ? brand.website : `https://${brand.website}`) : '';
+  const givenIsWebsite = !site || hostOf(url) === hostOf(site);
   for (const r of (brand && Array.isArray(brand.regions) ? brand.regions : [])) {
     const code = regionCountry(r && (r.code || r.region));
     if (code && code === want && r.store_url) {
       const u = httpAbs(/^https?:/i.test(r.store_url) ? r.store_url : `https://${r.store_url}`);
-      if (u && crawl.inScope(u, hosts)) return { base: u.replace(/\/$/, ''), from: `the ${String(r.code || region).toUpperCase()} store URL on the brand's own record` };
+      if (!u) continue;
+      if (!own(u)) {
+        if (foreign) foreign.push({ code: String(r.code || region).toUpperCase(), url: u.replace(/\/$/, ''), domain: COH.registrableDomain(COH.hostOf(u)) });
+        continue;
+      }
+      if (givenIsWebsite && crawl.inScope(u, hosts)) return { base: u.replace(/\/$/, ''), from: `the ${String(r.code || region).toUpperCase()} store URL on the brand's own record` };
     }
   }
   if (homeHtml && want && want !== 'GLOBAL') {
@@ -285,10 +308,52 @@ function regionalBase({ url, region, brand, homeHtml, hosts }) {
       const country = hl.split('-')[1];
       if (!country || country.toUpperCase() !== want) continue;
       const u = httpAbs(href, url);
-      if (u && crawl.inScope(u, hosts)) return { base: u.replace(/\/$/, ''), from: `the site's own hreflang="${hl}" alternate` };
+      if (u && own(u) && crawl.inScope(u, hosts)) return { base: u.replace(/\/$/, ''), from: `the site's own hreflang="${hl}" alternate` };
     }
   }
   return { base: url.replace(/\/$/, ''), from: 'the URL given' };
+}
+
+/** The website's registrable domain - the identity a store must share - or ''. */
+function identityOf(brand) {
+  const w = brand && brand.website ? String(brand.website) : '';
+  return w ? COH.registrableDomain(COH.hostOf(w)) : '';
+}
+
+/**
+ * The scope a read may cover, without another brand's site: a region
+ * store_url on another site is dropped, and so is an asset host that is the
+ * SAME brand as such a store (nike.com beside a nike.in store) - another
+ * brand's site, not a CDN. A brand CDN under another name (no foreign store
+ * beside it) is kept. Returns { scope, foreign: [{ code, url, domain }], identity }.
+ */
+function ownScope(brand) {
+  const scope = Object.assign({}, brand || {});
+  const identity = identityOf(scope);
+  const foreign = [];
+  if (!identity) return { scope, foreign, identity };
+  scope.regions = (Array.isArray(scope.regions) ? scope.regions : []).map((r) => {
+    if (!r || !r.store_url) return r;
+    const u = httpAbs(/^https?:/i.test(r.store_url) ? r.store_url : `https://${r.store_url}`);
+    const d = u ? COH.registrableDomain(COH.hostOf(u)) : '';
+    if (!d || COH.sameBrand(d, identity)) return r;
+    foreign.push({ code: String(r.code || r.region || '').toUpperCase(), url: u.replace(/\/$/, ''), domain: d });
+    const copy = Object.assign({}, r);
+    delete copy.store_url;
+    return copy;
+  });
+  if (foreign.length && Array.isArray(scope.asset_hosts)) {
+    scope.asset_hosts = scope.asset_hosts.filter((h) => {
+      const d = COH.registrableDomain(COH.hostOf('https://' + String(h || '').replace(/^https?:\/\//, '')));
+      return !foreign.some((f) => COH.sameBrand(f.domain, d));
+    });
+  }
+  return { scope, foreign, identity };
+}
+
+/** The sentence a store on another site gets, wherever it is reported. */
+function foreignStoreSentence(f, identity) {
+  return `The ${f.code || 'region'} store URL on this brand's record, ${f.url}, is on another site (${f.domain}), not this brand's website (${identity}), so it was not read; the brand's own site was read instead.`;
 }
 
 /** The currency a Shopify storefront page declares it is pricing this market in. */
@@ -509,12 +574,23 @@ function freshStats() {
 }
 
 /** Validate a cursor that round-tripped through a database or a browser. */
-function readCursor(c, { region, url }) {
-  if (!c || typeof c !== 'object' || c.v !== LIMITS.cursorVersion) return null;
-  if (String(c.region || '') !== String(region || '')) return null;
-  if (!['feed', 'sitemap', 'crawl'].includes(c.route)) return null;
-  if (url && c.start && hostOf(c.start) !== hostOf(url)) return null;
-  return c;
+function readCursor(c, opts) {
+  return cursorProblem(c, opts) ? null : c;
+}
+/**
+ * Why a cursor may NOT be resumed, in a sentence, or '' when it may. A cursor
+ * is a place in ONE source: resuming it for another URL, another market, or a
+ * store on another brand's site would keep reading the wrong store (the live
+ * record: a store_url corrected to the brand's own site still resumed nike.in
+ * at "URL 439 of 2430").
+ */
+function cursorProblem(c, { region, url, identity } = {}) {
+  if (!c || typeof c !== 'object' || c.v !== LIMITS.cursorVersion) return 'it was written by another version of this importer';
+  if (String(c.region || '') !== String(region || '')) return `it reads market ${String(c.region || '').toUpperCase() || 'unset'}, not ${String(region || '').toUpperCase() || 'unset'}`;
+  if (!['feed', 'sitemap', 'crawl'].includes(c.route)) return 'it holds no place to resume from';
+  if (url && c.start && hostOf(c.start) !== hostOf(url)) return `it was reading ${c.start}, and this import asks for ${String(url).replace(/\/$/, '')}`;
+  if (identity && c.base && !COH.sameBrand(COH.registrableDomain(COH.hostOf(c.base)), identity)) return `it was reading ${c.base}, which is on another site (${COH.registrableDomain(COH.hostOf(c.base))}), not this brand's website (${identity})`;
+  return '';
 }
 
 function noteMissing(row, stats) {
@@ -542,11 +618,15 @@ function noteMissing(row, stats) {
 async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   const started = now || Date.now();
   const reg = String(region || '').toLowerCase();
-  const scope = Object.assign({}, brand || {});
+  // Another brand's site never joins the scope (2026-10-10): a region store or
+  // asset host on another registrable domain is dropped here and named in the
+  // coverage. A record with no website keeps its scope as given.
+  const own = ownScope(brand);
+  const scope = own.scope;
   if (!scope.website) scope.website = url;
   const hosts = crawl.allowedHosts(scope);
   if (!hosts.size) hosts.add(hostOf(url));
-  const prev = readCursor(cursor, { region: reg, url });
+  const prev = readCursor(cursor, { region: reg, url, identity: own.identity });
   const run = (prev && prev.run) || crypto.randomUUID();
   const stats = prev && prev.stats ? JSON.parse(JSON.stringify(prev.stats)) : freshStats();
   stats.steps += 1;
@@ -584,7 +664,10 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
         const home = await getPolite(start, ctx, { accept: 'text/html' });
         if (home.ok) homeHtml = home.body;
       }
-      const rb = regionalBase({ url: start, region: reg, brand: scope, homeHtml, hosts });
+      // The ORIGINAL brand (not the trimmed scope), so a store on another site
+      // is seen, skipped and named rather than silently absent.
+      const foreignStores = own.foreign.slice();
+      const rb = regionalBase({ url: start, region: reg, brand: Object.assign({}, brand || {}, { website: scope.website }), homeHtml, hosts, identity: own.identity, foreign: [] });
       let baseHtml = homeHtml;
       if (rb.base !== start && await allowed(rb.base, ctx)) {
         const page = await getPolite(rb.base, ctx, { accept: 'text/html' });
@@ -602,6 +685,8 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
       const candidates = typed.length ? typed : sm.other.filter((u) => inBase(u) && u.replace(/\/$/, '') !== rb.base);
       st = {
         v: LIMITS.cursorVersion, run, region: reg, start, base: rb.base, base_from: rb.from,
+        identity: own.identity || '',
+        foreign_stores: foreignStores.filter((f) => regionCountry(f.code) === regionCountry(reg)).slice(0, 5),
         currency: declaredCurrency(baseHtml),
         storefront,
         sitemap: { found: sm.found, sources: sm.sources.slice(0, 40), notes: sm.notes.slice(0, 20), typed: typed.length > 0 },
@@ -748,6 +833,7 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   if (stats.by_source.crawl) src.push(`${stats.by_source.crawl.toLocaleString('en-US')} from crawling its linked pages`);
   if (src.length) s.push(`Source: ${src.join('; ')}.`);
   s.push(`Market ${R || 'unset'}: read from ${st.base} (${st.base_from})${st.currency ? `, priced in ${st.currency} as that storefront declares` : ''}.`);
+  for (const f of (Array.isArray(st.foreign_stores) ? st.foreign_stores : [])) s.push(foreignStoreSentence(f, st.identity));
   if (st.feed_refused === 'robots') s.push('robots.txt disallows the product feed, so it was not read.');
   else if (st.feed_refused && st.storefront && st.storefront.id === 'shopify') s.push(`The store's product feed was not available (${st.feed_refused}), so its sitemap and product pages were read instead.`);
   const k = stats.skipped;
@@ -777,7 +863,8 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   }
   return {
     route: st.route === 'done' ? (stats.by_source.feed ? 'feed' : stats.by_source.sitemap_jsonld ? 'sitemap' : 'crawl') : st.route,
-    region: R, base: st.base, base_from: st.base_from, currency: st.currency || null,
+    region: R, base: st.base, base_from: st.base_from, start: st.start || st.base, currency: st.currency || null,
+    foreign_stores: Array.isArray(st.foreign_stores) ? st.foreign_stores : [],
     declared: st.declared || null, found,
     by_source: stats.by_source, skipped: stats.skipped, missing: stats.missing,
     missing_examples: stats.missing_examples.slice(0, 10),
@@ -889,16 +976,22 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
     const src = w.catalog_source || {};
     const resume = imp.cursor ? imp : null;
     const region = String((resume && resume.region) || src.region || imp.region || '').toLowerCase();
-    const url = (resume && resume.url) || src.url || imp.url;
+    // The URL the import was asked for (the cursor's start), never the store
+    // another brand's site supplied: a recorded source on another domain than
+    // the website refreshes from the website, and its cursor is not resumed.
+    let url = (resume && ((resume.cursor && resume.cursor.start) || resume.url)) || src.url || imp.url;
+    const ident = identityOf(w);
+    if (ident && url && !COH.sameBrand(COH.registrableDomain(COH.hostOf(url)), ident) && w.website) url = w.website;
+    const cursorIn = resume && !cursorProblem(resume.cursor, { region, url, identity: ident }) ? resume.cursor : null;
     try {
       if (!region) throw new Error('no market recorded for this catalogue');
-      const parsed = await core.rowsFromStore(url, region, w, { cursor: resume ? resume.cursor : null, budgetMs: share });
+      const parsed = await core.rowsFromStore(url, region, w, { cursor: cursorIn, budgetMs: share });
       const run = parsed.run;
       const complete = !!parsed.complete;
       const kind = src.kind && /site/.test(src.kind) ? 'site_crawl' : 'shopify_public';
       const source = core.catalogSourceRecord(parsed, kind === 'site_crawl' ? 'site' : 'storefront', url, parsed.rows.length, run, region);
       source.refreshed_by = 'daily refresh';
-      const state = { run, kind: kind === 'site_crawl' ? 'site' : 'storefront', url: parsed.base || url, region, cursor: complete ? null : parsed.cursor, coverage: core.coverageSummary(parsed.coverage), updated_at: new Date().toISOString(), refreshed_by: 'daily refresh' };
+      const state = { run, kind: kind === 'site_crawl' ? 'site' : 'storefront', url: parsed.start || url, base: parsed.base || '', region, cursor: complete ? null : parsed.cursor, coverage: core.coverageSummary(parsed.coverage), updated_at: new Date().toISOString(), refreshed_by: 'daily refresh' };
       const merged = { inserted: 0, updated: 0, staled: 0 };
       const rowsIn = parsed.rows;
       const chunks = [];
@@ -928,5 +1021,5 @@ module.exports = {
   refreshDue,
   step, mergeRows, familyOf, rowKey, coverageOf,
   rowFromFeed, rowFromPage, readSitemaps, parseRobots, robotsAllows, retryAfterMs,
-  regionalBase, declaredCurrency, handleFromUrl, LIMITS, USER_AGENT, MARKER,
+  regionalBase, ownScope, identityOf, cursorProblem, foreignStoreSentence, declaredCurrency, handleFromUrl, LIMITS, USER_AGENT, MARKER,
 };
