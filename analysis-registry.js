@@ -416,6 +416,10 @@
         '#lc-analysis-crumb .lc-crumb-here{font-weight:700}',
         '#lc-analysis-crumb .lc-crumb-why{margin:5px 0 0;font-size:11.5px;line-height:1.5;',
         'color:var(--vh-ink-dim);max-width:96ch}',
+        // Touch (2026-10-10): each crumb is a 44px target and the reason line
+        // is 12px; nothing else changes.
+        '@media (pointer:coarse){#lc-analysis-crumb a{display:inline-flex;align-items:center;min-height:44px}',
+        '#lc-analysis-crumb .lc-crumb-why{font-size:12px}}',
       ].join('');
       (d.head || d.documentElement).appendChild(style);
     }

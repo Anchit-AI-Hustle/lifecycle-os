@@ -781,6 +781,18 @@
       "destination": "/knowledge-base.html"
     },
     {
+      "source": "/kb/brand",
+      "destination": "/brand-doc.html"
+    },
+    {
+      "source": "/kb/brand/:doc",
+      "destination": "/brand-doc.html?doc=:doc"
+    },
+    {
+      "source": "/doc",
+      "destination": "/brand-doc.html"
+    },
+    {
       "source": "/cohort-definitions",
       "destination": "/cohort-definitions.html"
     },

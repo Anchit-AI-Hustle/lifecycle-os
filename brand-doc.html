@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove.
+   The real window.LifecycleFailure ships in auth.js, which every page loads
+   DEFERRED, and a page can also be opened with no auth.js at all (a file://
+   harness, a blocked request). A catch block that throws because the helper is
+   missing aborts the whole render: the operator presses the button, the request
+   fails, and NOTHING on the page changes - strictly worse than the bare code
+   this treatment replaced. So each page installs this minimal stub before any
+   of its own script runs, and auth.js overwrites it with the real one the
+   moment it loads. Every call site is identical either way.
+   Deliberately duplicated per page: it has to exist before any shared file can
+   be fetched, which is the one thing a shared file cannot do for itself.
+   Built with textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    if (o && o.extra) {
+      var x = document.createElement('span'); x.className = 'vh-failure-msg';
+      x.textContent = o.extra;
+      d.appendChild(document.createTextNode('\n')); d.appendChild(x);
+    }
+    return d.outerHTML;
+  }
+  function rowHtml(e, o) {
+    return '<tr class="vh-failure-tr"><td colspan="' + ((o && o.colspan) || 99) + '">' + html(e, o) + '</td></tr>';
+  }
+  return {
+    sentence: sentence,
+    code: function () { return ''; },
+    unreachable: function () { return false; },
+    html: html,
+    rowHtml: rowHtml,
+    show: function (el, e, o) {
+      if (!el) return;
+      var g = (el.tagName || '').toUpperCase();
+      el.innerHTML = g === 'TBODY' ? rowHtml(e, o)
+        : (g === 'TABLE' ? '<tbody>' + rowHtml(e, o) + '</tbody>' : html(e, o));
+    },
+  };
+})();
+</script>
+<!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
+<script src="/brand-context.js?early=1"></script>
+<script src="/brand-knowledge.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brand knowledge · Lifecycle OS</title>
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<meta name="description" content="The active brand's knowledge documents, built from its own record: foundation, catalogue, cohorts, offers, creative rules and market.">
+<script src="/auth.js?v=20260718light" defer></script>
+<!--
+  brand-doc.html - ONE viewer for the brand knowledge documents, served at
+  /kb/brand (the index) and /kb/brand/<doc> (vercel.json rewrites; the address
+  stays in the bar, so a document can be bookmarked, shared and printed from
+  its own URL). It also answers ?doc=<id>, ?md=/docs/<file>.md (a platform
+  document) and ?local=<key> (markdown a page generated in this browser).
+
+  Every colour and font here is a --brand-* token the brand layer writes for
+  the ACTIVE brand, with system colours (Canvas / CanvasText) before one is
+  painted: no hex, so no colour on this page is one this file decided. The
+  document body is excluded from the shell's rename (data-no-brand-swap): a
+  sentence written for one brand must never be made to read as another's.
+-->
+<style>
+  *{box-sizing:border-box}
+  /* An author display rule beats the UA's [hidden]; this page hides by attribute. */
+  .kd-wrap [hidden]{display:none !important}
+  body{margin:0;background:var(--brand-surface,Canvas);color:var(--brand-ink,CanvasText);font-family:var(--kd-font-body,system-ui,sans-serif);line-height:1.6}
+  .kd-wrap{max-width:900px;margin:0 auto;padding:28px 20px 72px}
+  .kd-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.18em;font-weight:700;color:var(--brand-accent-text,CanvasText);margin:0 0 8px}
+  .kd-title{font-family:var(--kd-font-head,system-ui,sans-serif);font-size:clamp(24px,3.6vw,34px);line-height:1.2;margin:0 0 8px;color:var(--brand-ink,CanvasText);letter-spacing:-.01em}
+  .kd-lede{margin:0 0 6px;color:var(--brand-ink-muted,CanvasText);font-size:14.5px;max-width:70ch}
+  .kd-meta{margin:0 0 18px;color:var(--brand-ink-muted,CanvasText);font-size:12.5px}
+  .kd-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px}
+  .kd-btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:700;padding:9px 16px;border-radius:var(--brand-radius-control,999px);border:1px solid var(--brand-primary,CanvasText);background:var(--brand-primary,ButtonFace);color:var(--brand-on-primary,ButtonText);cursor:pointer;text-decoration:none}
+  .kd-btn.ghost{background:transparent;color:var(--brand-primary-text,CanvasText)}
+  .kd-btn:focus-visible,.kd-docnav a:focus-visible,.kd-doc:focus-visible{outline:2px solid var(--brand-accent-text,CanvasText);outline-offset:2px}
+  .kd-docnav{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding:0 0 10px;margin:0 0 22px;border-bottom:1px solid var(--brand-line,GrayText);-webkit-overflow-scrolling:touch}
+  .kd-docnav a{flex:0 0 auto;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--brand-line,GrayText);color:var(--brand-ink,CanvasText);text-decoration:none;white-space:nowrap;background:var(--brand-surface,Canvas)}
+  .kd-docnav a[aria-current="page"]{background:var(--brand-primary,Highlight);border-color:var(--brand-primary,Highlight);color:var(--brand-on-primary,HighlightText)}
+  .kd-body h1,.kd-body h2,.kd-body h3,.kd-body h4{font-family:var(--kd-font-head,system-ui,sans-serif);color:var(--brand-primary-text,CanvasText);line-height:1.25;margin:1.6em 0 .5em}
+  .kd-body h1{font-size:24px}.kd-body h2{font-size:20px;padding-bottom:6px;border-bottom:1px solid var(--brand-line,GrayText)}.kd-body h3{font-size:16px}.kd-body h4{font-size:14.5px}
+  .kd-body p,.kd-body li,.kd-body dd{font-size:14.5px}
+  .kd-body a{color:var(--brand-primary-text,LinkText);text-decoration-color:var(--brand-accent-text,LinkText);overflow-wrap:anywhere}
+  .kd-body code{font-family:var(--brand-font-mono,ui-monospace,monospace);font-size:.9em;background:var(--brand-surface-alt,Canvas);border:1px solid var(--brand-line,GrayText);border-radius:4px;padding:0 4px}
+  .kd-body pre{font-family:var(--brand-font-mono,ui-monospace,monospace);font-size:12px;line-height:1.5;background:var(--brand-surface-alt,Canvas);border:1px solid var(--brand-line,GrayText);border-radius:10px;padding:14px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+  .kd-body blockquote{margin:12px 0;padding:6px 14px;border-left:3px solid var(--brand-accent-text,CanvasText);color:var(--brand-ink-muted,CanvasText)}
+  .kd-body hr{border:0;border-top:1px solid var(--brand-line,GrayText);margin:22px 0}
+  .kd-table{overflow-x:auto;margin:12px 0}
+  .kd-body table{border-collapse:collapse;width:100%;font-size:13px}
+  .kd-body th,.kd-body td{border:1px solid var(--brand-line,GrayText);padding:7px 10px;text-align:left;vertical-align:top}
+  .kd-body th{background:var(--brand-surface-alt,Canvas);color:var(--brand-ink,CanvasText);font-weight:700}
+  .kd-kv{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:6px 16px;margin:10px 0}
+  .kd-kv dt{font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--brand-ink-muted,CanvasText);padding-top:3px}
+  .kd-kv dd{margin:0}
+  .kd-marker{display:inline;font-weight:600;color:var(--brand-ink,CanvasText);background:var(--brand-accent-soft,Canvas);border-left:3px solid var(--brand-accent-text,CanvasText);padding:1px 6px}
+  .kd-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:12px 0}
+  .kd-swatch{display:flex;gap:10px;align-items:center;border:1px solid var(--brand-line,GrayText);border-radius:10px;padding:8px}
+  .kd-chip{flex:0 0 auto;width:34px;height:34px;border-radius:8px;border:1px solid var(--brand-line,GrayText)}
+  .kd-swatch-label{display:flex;flex-direction:column;font-size:12.5px;line-height:1.35}
+  .kd-origin{color:var(--brand-ink-muted,CanvasText);font-size:11.5px}
+  .kd-docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:8px 0 0;padding:0;list-style:none}
+  .kd-doc{display:block;height:100%;border:1px solid var(--brand-line,GrayText);border-radius:12px;padding:14px 16px;color:var(--brand-ink,CanvasText);text-decoration:none;background:var(--brand-surface,Canvas)}
+  .kd-doc strong{display:block;font-family:var(--kd-font-head,system-ui,sans-serif);font-size:15px;color:var(--brand-primary-text,CanvasText)}
+  .kd-doc span{display:block;font-size:12.5px;color:var(--brand-ink-muted,CanvasText);margin-top:4px}
+  .kd-doc:hover{border-color:var(--brand-accent-text,CanvasText)}
+  .kd-foot{margin-top:36px;padding-top:12px;border-top:1px solid var(--brand-line,GrayText);font-size:12px;color:var(--brand-ink-muted,CanvasText)}
+  @media (max-width:560px){.kd-kv{grid-template-columns:1fr;gap:2px 0}.kd-kv dt{margin-top:8px}}
+  /* "Save as PDF" prints THIS page, from its own address: the document only,
+     no rail, no toolbar, no notices. */
+  @media print{
+    #lifecycle-nav,#lc-authnotice,.lc-credit-pill,.lc-credit-chip,.lc-credit-sheet,#lc-popup-blocked,[data-kd-noprint]{display:none !important}
+    html body{margin:0 !important;padding:0 !important;background:none}
+    .kd-wrap{max-width:none;padding:0}
+    .kd-body a{text-decoration:underline}
+    .kd-table,.kd-body pre{overflow:visible}
+    .kd-body h2,.kd-body h3{break-after:avoid}
+    .kd-body tr,.kd-swatch{break-inside:avoid}
+    .vh-reveal{opacity:1 !important;transform:none !important}
+    .kd-chip{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<main class="kd-wrap" id="kd-main" aria-busy="true">
+  <p class="kd-eyebrow" id="kd-eyebrow">Brand knowledge</p>
+  <h1 class="kd-title" id="kd-title">Brand knowledge</h1>
+  <p class="kd-lede" id="kd-lede">Reading the active brand's record.</p>
+  <p class="kd-meta" id="kd-meta"></p>
+  <div class="kd-toolbar" data-kd-noprint>
+    <button type="button" class="kd-btn" id="kd-print" hidden>Save as PDF</button>
+    <a class="kd-btn ghost" id="kd-all" href="/kb/brand">All documents</a>
+    <a class="kd-btn ghost" href="/knowledge-base">Knowledge Base</a>
+  </div>
+  <nav class="kd-docnav" id="kd-docnav" aria-label="Brand documents" data-kd-noprint></nav>
+  <p class="vh-status" id="kd-status" role="status" hidden></p>
+  <!-- data-no-motion: a document is read top to bottom and printed whole, so
+       nothing in it waits for a scroll to fade in (a heading the reveal had
+       not reached yet printed as a blank band). -->
+  <article class="kd-body" id="kd-body" data-no-brand-swap data-no-motion></article>
+  <p class="kd-foot" id="kd-foot"></p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var K = window.BrandKnowledge;
+  var $ = function (id) { return document.getElementById(id); };
+  var want = K ? K.docFromPath(location.pathname, location.search) : { mode: 'unknown' };
+
+  function say(text, link) {
+    var s = $('kd-status');
+    s.textContent = text;
+    if (link) {
+      s.appendChild(document.createTextNode(' '));
+      var a = document.createElement('a'); a.href = link.href; a.textContent = link.text; s.appendChild(a);
+    }
+    s.hidden = false;
+  }
+  function done() { $('kd-main').setAttribute('aria-busy', 'false'); }
+  function head(eyebrow, title, lede, meta) {
+    $('kd-eyebrow').textContent = eyebrow;
+    $('kd-title').textContent = title;
+    $('kd-lede').textContent = lede || '';
+    $('kd-meta').textContent = meta || '';
+    document.title = title + ' · Lifecycle OS';
+  }
+  function nav(current) {
+    var n = $('kd-docnav');
+    n.textContent = '';
+    K.DOCS.forEach(function (d) {
+      var a = document.createElement('a');
+      a.href = K.hrefFor(d.id);
+      a.textContent = d.title;
+      if (d.id === current) a.setAttribute('aria-current', 'page');
+      n.appendChild(a);
+    });
+  }
+  function printable() { var b = $('kd-print'); b.hidden = false; }
+  $('kd-print').addEventListener('click', function () { window.print(); });
+
+  /* The type is the ACTIVE brand's, from its record: its heading face, else
+     its body face, else the system's. Never the shell's default stack, which
+     names a face this brand never chose. */
+  function applyFonts(b) {
+    var ty = (b && b.typography) || {};
+    var stack = function (f) {
+      if (!f || typeof f !== 'object') return '';
+      if (f.stack) return String(f.stack).slice(0, 300);
+      return f.family ? '"' + String(f.family).replace(/["\\]/g, '').slice(0, 80) + '", system-ui, sans-serif' : '';
+    };
+    var root = document.documentElement.style;
+    var headF = stack(ty.heading) || stack(ty.body);
+    var bodyF = stack(ty.body);
+    if (headF) root.setProperty('--kd-font-head', headF); else root.removeProperty('--kd-font-head');
+    if (bodyF) root.setProperty('--kd-font-body', bodyF); else root.removeProperty('--kd-font-body');
+  }
+  function today() { try { return new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }); } catch (_) { return ''; } }
+
+  /* ── the index: the six documents, for the active brand ─────────────── */
+  function showIndex(brand) {
+    var name = (brand && brand.name) || 'this brand';
+    head('Brand knowledge · ' + name, name + ' · Brand knowledge',
+      'The documents every tool reads for ' + name + ', built from its own record. Each opens at its own address and saves as PDF.', '');
+    var ul = document.createElement('ul');
+    ul.className = 'kd-docs';
+    K.DOCS.forEach(function (d) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.className = 'kd-doc'; a.href = K.hrefFor(d.id);
+      var s = document.createElement('strong'); s.textContent = d.title;
+      var p = document.createElement('span'); p.textContent = d.blurb;
+      a.appendChild(s); a.appendChild(p); li.appendChild(a); ul.appendChild(li);
+    });
+    var body = $('kd-body'); body.textContent = ''; body.appendChild(ul);
+    // The cards ARE the navigation here; the tab row would repeat them.
+    $('kd-docnav').hidden = true; $('kd-all').hidden = true;
+  }
+
+  /* ── tenant zero: its own shipped markdown, and only for it ─────────── */
+  function showShipped(brand, doc) {
+    nav(doc.id);
+    return fetch(doc.file, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('The document file answered ' + r.status + '.');
+      return r.text();
+    }).then(function (md) {
+      var blocks = K.parseMarkdown(md);
+      var h1 = blocks.length && blocks[0].t === 'h1' ? blocks.shift() : null;
+      var title = h1 ? h1.runs.map(function (x) { return x.text; }).join('') : (brand.name + ' · ' + doc.title);
+      head('Brand knowledge · ' + brand.name, title, doc.blurb + '.',
+        brand.name + '\'s own knowledge base document, maintained in the repository (' + doc.file.replace(/^\//, '') + ').');
+      K.render(blocks, $('kd-body'));
+      printable();
+    });
+  }
+
+  /* ── any other brand: built from ITS record ──────────────────────────── */
+  function api(op, opts) {
+    var B = window.BrandContext;
+    return B && B.api ? B.api(op, opts || {}) : Promise.reject(new Error('The brand layer is not loaded.'));
+  }
+  function messageOf(e) { return String((e && (e.message || e.error)) || e || 'no reason was given').slice(0, 300); }
+  function gather(shell, docId) {
+    var B = window.BrandContext;
+    var id = shell.id || '';
+    var ctx = {
+      brand: shell,
+      storage: (shell.storage === 'device' || (B && B.device && B.device.isDeviceId && B.device.isDeviceId(id))) ? 'device' : 'account',
+      nouns: B && B.nouns ? B.nouns(shell) : {},
+      catalog: { rows: [], error: '', limit: 500 },
+    };
+    var jobs = [];
+    // The full record: the shell payload carries no claims, offers or brand_data.
+    jobs.push(id ? api('get', { query: '&id=' + encodeURIComponent(id) }).then(function (r) {
+      if (r && r.brand) ctx.brand = r.brand;
+    }).catch(function (e) { ctx.recordError = messageOf(e); }) : Promise.resolve());
+    if (docId === 'catalog') {
+      jobs.push(id ? api('catalog', { query: '&workspace_id=' + encodeURIComponent(id) + '&limit=500' }).then(function (r) {
+        ctx.catalog.rows = (r && Array.isArray(r.products)) ? r.products : [];
+      }).catch(function (e) { ctx.catalog.error = messageOf(e); }) : Promise.resolve());
+    }
+    if (docId === 'foundation') {
+      jobs.push(id ? api('context-pack', { query: '&workspace_id=' + encodeURIComponent(id) }).then(function (r) {
+        ctx.pack = r && r.pack ? r : null;
+      }).catch(function (e) { ctx.packError = messageOf(e); }) : Promise.resolve());
+    }
+    return Promise.all(jobs).then(function () {
+      ctx.tokens = (window.BrandContext && window.BrandContext.tokensFor) ? window.BrandContext.tokensFor(ctx.brand) : (ctx.brand.tokens || {});
+      // The words for what this brand offers and who takes it, from its FULL
+      // record (the shell payload carries no offerings).
+      if (B && B.nouns) ctx.nouns = B.nouns(K.normalize(ctx.brand));
+      if (['cohorts', 'offers', 'creative'].indexOf(docId) < 0) return ctx;
+      var b = ctx.brand || {};
+      var carried = { name: b.name, offers: b.offers || (b.brand_data && b.brand_data.offers) || null };
+      return api('platform-rules', { body: { brand: carried } }).then(function (r) {
+        if (r && r.ok && r.cohorts && r.contracts) ctx.rules = r;
+        else ctx.rulesError = 'the platform answered without its rules';
+      }).catch(function (e) { ctx.rulesError = messageOf(e); }).then(function () { return ctx; });
+    });
+  }
+  function showBuilt(shell, doc) {
+    nav(doc.id);
+    return gather(shell, doc.id).then(function (ctx) {
+      var out = K.build(doc.id, ctx);
+      head('Brand knowledge · ' + (ctx.brand.name || shell.name), out.title, out.lede,
+        (ctx.storage === 'device' ? 'Kept on this device' : 'Saved to this account') + ' · read ' + today());
+      if (ctx.recordError) say('The full brand record could not be read, so only what this page already holds is shown: ' + ctx.recordError);
+      K.render(out.blocks, $('kd-body'));
+      $('kd-foot').textContent = 'Every fact on this page is ' + (ctx.brand.name || shell.name) + '\'s own record, or the platform\'s rules read from the modules that apply them. A field the record does not hold shows the launch marker; nothing is filled in from another brand.';
+      printable();
+    });
+  }
+
+  /* ── a generated or platform markdown document ──────────────────────── */
+  function showMarkdown(title, md, eyebrow, meta) {
+    var blocks = K.parseMarkdown(md);
+    var h1 = blocks.length && blocks[0].t === 'h1' ? blocks.shift() : null;
+    head(eyebrow, h1 ? h1.runs.map(function (x) { return x.text; }).join('') : (title || 'Document'), '', meta);
+    K.render(blocks, $('kd-body'));
+    printable();
+  }
+  function showLocal(key, brand) {
+    $('kd-docnav').hidden = true;
+    var rec = null;
+    try { rec = JSON.parse(localStorage.getItem('lifecycle.doc.local.' + key) || 'null'); } catch (_) { rec = null; }
+    if (!rec || typeof rec.md !== 'string') {
+      head('Document', 'This document is not in this browser', 'A document generated on a page is kept only in the browser that generated it, and only the most recent few are kept. Generate it again from the page it came from.', '');
+      return;
+    }
+    if (rec.brand_id && brand && brand.id && rec.brand_id !== brand.id) {
+      head('Document', 'This document belongs to another brand', 'It was generated while ' + (rec.brand_name || 'another brand') + ' was active, and ' + brand.name + ' is active now. Switch back to that brand to open it.', '');
+      return;
+    }
+    showMarkdown(rec.title, rec.md, 'Generated document' + (rec.brand_name ? ' · ' + rec.brand_name : ''),
+      'Generated in this browser' + (rec.created_at ? ' on ' + new Date(rec.created_at).toLocaleString() : '') + '; kept only here.');
+  }
+  function showPlatform(path) {
+    $('kd-docnav').hidden = true;
+    return fetch(path, { cache: 'no-cache' }).then(function (r) {
+      if (!r.ok) throw new Error('The document answered ' + r.status + '.');
+      return r.text();
+    }).then(function (md) { showMarkdown(path.split('/').pop(), md, 'Platform document', 'Lifecycle OS platform document (' + path.replace(/^\//, '') + ').'); });
+  }
+
+  var shownFor = null;
+  function reset() {
+    $('kd-body').textContent = ''; $('kd-foot').textContent = '';
+    var s = $('kd-status'); s.textContent = ''; s.hidden = true;
+    $('kd-print').hidden = true; $('kd-docnav').hidden = false; $('kd-all').hidden = false;
+    $('kd-main').setAttribute('aria-busy', 'true');
+  }
+  function keyOf(b) { return b ? String(b.id || '') + '|' + String(b.slug || '') : ''; }
+  // A brand switched in another tab, or the brand layer settling on a
+  // different brand than it painted first: the document is rebuilt for the
+  // brand that is active NOW, never left showing the previous one's.
+  try {
+    window.addEventListener('brandcontext:change', function (ev) {
+      var b = ev && ev.detail ? ev.detail.brand : null;
+      if (shownFor !== null && keyOf(b) !== shownFor) { reset(); boot(); }
+    });
+  } catch (_) {}
+
+  function boot() {
+    if (!K) { say('The document viewer could not load its renderer.'); done(); return; }
+    var B = window.BrandContext;
+    var ready = B && B.ready ? B.ready() : Promise.resolve(null);
+    Promise.resolve(ready).then(function (brand) {
+      brand = (B && B.brand) || brand || null;
+      shownFor = keyOf(brand);
+      applyFonts(brand);
+      if (want.mode === 'md') {
+        // A platform document written about one workspace is that workspace's
+        // to read; every other brand is told so, and shown none of it.
+        var why = K.operatorOnly ? K.operatorOnly(want.value) : '';
+        if (why && !(brand && B && B.isTenantZero && B.isTenantZero(brand))) {
+          $('kd-docnav').hidden = true;
+          head('Platform document', 'This document is not shown for ' + ((brand && brand.name) || 'this brand'),
+            why + ' It is shown only to that workspace.', '');
+          $('kd-body').appendChild(K.render([{ t: 'p', runs: [{ text: K.marker('platform audit for this brand', (brand && brand.name) || 'this brand'), marker: true }] }], document.createDocumentFragment()));
+          return;
+        }
+        return showPlatform(want.value);
+      }
+      if (want.mode === 'local') return showLocal(want.value, brand);
+      if (!brand) {
+        head('Brand knowledge', 'No brand is active', 'These documents are built from the active brand\'s own record, and no brand is active in this browser yet.', '');
+        say('Create or choose a brand first.', { href: '/onboarding', text: 'Open the brand screen' });
+        return;
+      }
+      if (want.mode === 'unknown') {
+        showIndex(brand);
+        say('There is no brand document at that address. These are the documents for ' + brand.name + '.');
+        return;
+      }
+      if (want.mode === 'index') return showIndex(brand);
+      var doc = K.docById(want.id);
+      return (B.isTenantZero && B.isTenantZero(brand)) ? showShipped(brand, doc) : showBuilt(brand, doc);
+    }).catch(function (e) {
+      say('This document could not be built: ' + messageOf(e));
+    }).then(done);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+</body>
+</html>

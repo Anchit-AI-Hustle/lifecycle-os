@@ -872,6 +872,10 @@
       // group header and again on the row immediately under it. Naming follows
       // the region rows below.
       { id: 'research-all',    label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
+      // `region`: the row is offered only while the ACTIVE brand serves that
+      // market (syncRegionRows below). These four were shown to every brand,
+      // so a brand serving only India was offered US, UK and Global studies it
+      // has no study, store or currency for (2026-10-05).
       { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
       { id: 'research-uk',     label: 'UK Study',               href: '/research?region=uk',     icon: 'insights' },
       { id: 'research-global', label: 'Global Study',           href: '/research?region=global', icon: 'insights' },
@@ -890,6 +894,9 @@
       { id: 'comp-insights',label: 'Insights',       href: '/competitor-benchmarking.html#insights', icon: 'insights' },
     ]},
     { group: 'Knowledge Base', icon: 'kb', gid: 'kb', ver: 'v1', children: [
+      // The ACTIVE brand's knowledge documents, each at its own address
+      // (/kb/brand/<doc>, brand-doc.html), built from that brand's record.
+      { id: 'kbv-brand',   label: 'Brand Documents', href: '/kb/brand', icon: 'kb', match: ['/kb/brand', '/brand-doc.html', '/doc'] },
       { id: 'kbv-mailers', label: 'Mailers',       href: '/knowledge-base.html#mailers', icon: 'mailer' },
       { id: 'kbv-meta',    label: 'Meta Ads',      href: '/knowledge-base.html#meta',    icon: 'meta' },
       { id: 'kbv-google',  label: 'Google Ads',    href: '/knowledge-base.html#google',  icon: 'google' },
@@ -1350,7 +1357,7 @@
       title: 'Knowledge Base',
       what: "The active brand's own reference library: our mailers, Meta/Google/TikTok ads, and landing pages, ingested and classified so every generator in this OS can ground itself in what the brand has actually shipped.",
       who: "The generation pipelines and the operator. It is not cohort-specific — it is the shared memory every cohort's campaigns draw on.",
-      how: "A Supabase-backed router at /api/kb. Assets are ingested by URL with tags, classified by LLM, attributed to brands, and ranked; the page browses them by channel tab (Mailers / Meta / Google / TikTok / Landing Pages).",
+      how: "A Supabase-backed router at /api/kb. Assets are ingested by URL with tags, classified by LLM, attributed to brands, and ranked; the page browses them by channel tab (Mailers / Meta / Google / TikTok / Landing Pages). Brand Documents (/kb/brand) are the active brand's foundation, catalogue, cohorts, offers, creative rules and market, built from its own record, each at its own address.",
       input: "URLs or captured emails to ingest, with tags. Bulk lists of top emails can be pushed in one call.",
       steps: [
         ['Ingest', 'Add an asset by URL with tags.', '/api/kb?action=ingest'],
@@ -1793,7 +1800,7 @@
           display: none; align-items: center; gap: 12px;
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           height: calc(50px + env(safe-area-inset-top, 0px));
-          padding: env(safe-area-inset-top, 0px) 14px 0;
+          padding: env(safe-area-inset-top, 0px) max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
           background: var(--vh-bg); backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           border-bottom: 1px solid var(--vh-line);
@@ -1801,11 +1808,11 @@
         #lifecycle-nav .lnav-mbar-spacer { display: none; }
         #lifecycle-nav .lnav-burger {
           background: transparent; border: 1px solid var(--vh-line-hot);
-          color: var(--vh-ink); border-radius: 8px; width: 34px; height: 34px;
+          color: var(--vh-ink); border-radius: 8px; width: 44px; height: 44px; flex-shrink: 0;
           font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
-        #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
-          font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--vh-ink, inherit);
+        #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px; min-height: 44px;
+          font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: var(--vh-ink, inherit);
           text-transform: uppercase; text-decoration: none; }
         #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
@@ -1818,7 +1825,11 @@
         /* Sidebar */
         #lifecycle-nav .lnav-side {
           position: fixed; left: 0; top: 0; z-index: 110;
-          width: var(--lsb-w); height: 100vh;
+          /* dvh, not vh: on a phone or tablet 100vh is the LARGE viewport
+             (it counts the URL bar), so the rail's foot - the sign-in chip -
+             sat under the browser's toolbar. The vh line is the fallback for
+             an engine without dynamic units; the CSSOM keeps the last valid. */
+          width: var(--lsb-w); height: 100vh; height: 100dvh;
           display: flex; flex-direction: column;
           /* The rail's own surface must be a BRAND surface, not a fixed tan.
              The text tokens are contrast-adjusted against --brand-surface,
@@ -2003,6 +2014,17 @@
         #lifecycle-nav .lnav-i:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
         #lifecycle-nav .lnav-i.on { background: var(--vh-panel-2); border-color: var(--vh-accent); color: var(--vh-ink); }
         #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed var(--vh-line-hot); }
+        /* Touch (2026-10-10): the ? chip is drawn as the same 20px circle but
+           answers a 44px square, so a thumb cannot miss it or hit the row. */
+        @media (pointer: coarse) {
+          #lifecycle-nav .lnav-i { position: relative; z-index: 0; width: 44px; height: 44px; margin: 0 -12px; border-color: transparent; background: transparent; }
+          #lifecycle-nav .lnav-i::before { content: ""; position: absolute; left: 12px; top: 12px; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 1px solid var(--vh-line-hot); z-index: -1; }
+          #lifecycle-nav .lnav-i.on { background: transparent; }
+          #lifecycle-nav .lnav-i.on::before { background: var(--vh-panel-2); border-color: var(--vh-accent); }
+          #lifecycle-nav .lnav-i:hover::before { border-color: var(--vh-accent); }
+          #lifecycle-nav .lnav-section, #lifecycle-nav .lnav-brand .lnav-tagline,
+          #lifecycle-nav .lnav-brand .lnav-bt small, #lifecycle-nav .lnav-info-item { font-size: 12px; }
+        }
         #lifecycle-nav .lnav-info.open { display: block; }
         #lifecycle-nav .lnav-info-item {
           width: 100%; display: flex; align-items: center; gap: 8px;
@@ -2025,7 +2047,7 @@
         #lifecycle-nav .lnav-ipanel {
           position: fixed; z-index: 126;
           top: 50%; left: 50%; transform: translate(-50%, -50%);
-          width: min(560px, 94vw); max-height: min(78vh, 720px);
+          width: min(560px, 94vw); max-height: min(78vh, 720px); max-height: min(78dvh, 720px);
           background: var(--vh-panel); border: 1px solid var(--vh-line-hot);
           border-radius: 14px; box-shadow: var(--vh-lift-2);
           display: none; flex-direction: column; overflow: hidden;
@@ -2791,6 +2813,34 @@
    * Sign-in is a request for the explanation, so the dismissal is set aside.
    * Returns the bar element (existing or new), or null when nothing rendered.
    */
+  /**
+   * The standing notice's LAYOUT, once per page. Colours stay inline on the
+   * bar itself (unchanged); only position, spacing and the phone clamp live
+   * here, because a media query cannot reach an inline declaration.
+   * Up to a tablet's width (and on any screen under 520px tall) the sentence is clamped to two
+   * lines with a More/Less toggle, and the bar is not sticky: it starts under
+   * the phone bar and scrolls away with the page, so the screen goes to content.
+   */
+  function injectNoticeLayout() {
+    if (document.getElementById('lc-authnotice-layout')) return;
+    var st = document.createElement('style');
+    st.id = 'lc-authnotice-layout';
+    st.textContent = [
+      '#lc-authnotice{position:sticky;top:var(--ltb-h,0px);z-index:120;padding:10px 16px;display:flex;gap:12px;align-items:flex-start}',
+      '#lc-authnotice-text{overflow-wrap:anywhere}',
+      '#lc-authnotice .lc-authnotice-more{display:none}',
+      '@media (max-width:1024px),(max-height:520px){',
+      '#lc-authnotice{padding:6px 12px;gap:8px;align-items:center}',
+      '#lc-authnotice:not(.lc-open) #lc-authnotice-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',
+      '#lc-authnotice{position:relative;top:auto}',
+      '#lc-authnotice .lc-authnotice-more{display:inline-flex;align-items:center;justify-content:center;order:1}',
+      '#lc-authnotice > button{order:2;min-height:44px;min-width:44px}',
+      '#lc-authnotice > #lc-authnotice-text{order:0}',
+      '}',
+    ].join('');
+    (document.head || document.documentElement).appendChild(st);
+  }
+
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
     if (existing) return existing;
@@ -2811,8 +2861,14 @@
     // Dismiss. It is inserted after the rail for the same reason: the rail's
     // spacer reserves the fixed bar's height in flow, so the notice starts
     // under the bar at rest as well as when scrolling.
+    // Layout (sticky offset, padding, the phone clamp) lives in one stylesheet,
+    // injectNoticeLayout(), so a phone can compact the bar with a media query;
+    // an inline declaration would outrank every one of them. 2026-10-10: at
+    // 320px the full sentence was 334px tall on a 568px screen, so with the
+    // 50px top bar 68% of the first screen was chrome.
+    injectNoticeLayout();
+    bar.className = 'lc-authnotice';
     bar.style.cssText = [
-      'position:sticky', 'top:var(--ltb-h, 0px)', 'z-index:120',
       'background:var(--vh-panel-2,#f5f5f5)',
       'color:var(--vh-ink,#111111)',
       'border-bottom:1px solid var(--vh-line,#ebebeb)',
@@ -2821,7 +2877,6 @@
       'box-shadow:inset 0 3px 0 ' + (kind === 'signed-out'
         ? 'var(--vh-accent)' : 'var(--vh-warn)'),
       'font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)',
-      'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
     ].join(';');
     var txt = document.createElement('div');
     txt.id = 'lc-authnotice-text';
@@ -2835,7 +2890,22 @@
     x.style.cssText = 'flex:none;border:1px solid var(--vh-line,#ebebeb);background:transparent;'
       + 'color:var(--vh-ink,#111111);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit';
     x.onclick = function () { bar.remove(); try { sessionStorage.setItem('lc-authnotice-hid', '1'); } catch (e) {} };
-    bar.appendChild(txt); bar.appendChild(x);
+    // On a phone the sentence is clamped to two lines; this shows the rest.
+    // It comes AFTER Dismiss in the DOM (Dismiss stays the bar's first button)
+    // and before it on screen (CSS order), and it is hidden on a wide screen.
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'lc-authnotice-more';
+    more.textContent = 'More';
+    more.setAttribute('aria-expanded', 'false');
+    more.setAttribute('aria-controls', 'lc-authnotice-text');
+    more.style.cssText = x.style.cssText;
+    more.onclick = function () {
+      var open = bar.classList.toggle('lc-open');
+      more.textContent = open ? 'Less' : 'More';
+      more.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    bar.appendChild(txt); bar.appendChild(x); bar.appendChild(more);
     var host = document.body || document.documentElement;
     var rail = document.getElementById('lifecycle-nav');
     if (rail && rail.parentNode === host) rail.insertAdjacentElement('afterend', bar);
@@ -4076,59 +4146,34 @@
   }
 })();
 
-// ── Markdown downloads render as PDF (print), for far better formatting ──────
-// Product-owner rule: any markdown a user would "download" should instead come
-// out as a nicely-formatted PDF. This self-contained block (no external libs,
-// CSP-safe) (1) intercepts clicks on any <a href="*.md"> and (2) exposes
-// window.__mdToPdf(text, title) for client-generated markdown (e.g. the social
-// blog export). Both render the markdown to styled HTML in a new tab and open
-// the print dialog, where the user saves as PDF.
+// ── A markdown document opens at a REAL address (2026-10-05) ────────────────
+// This block used to intercept every <a href="*.md">, fetch the file and write
+// it into an about:blank window styled with tenant zero's fonts and hexes. The
+// Brand Knowledge Base box linked tenant zero's own knowledge files that way,
+// so every other brand was shown another company's documents, in another
+// company's colours, at an address that could not be bookmarked or shared.
+//
+// Now nothing here writes a document. A link is RETARGETED, never replaced
+// by a window: a brand knowledge file lands on its route (/kb/brand/<doc>,
+// which renders the ACTIVE brand's document from its own record), a platform
+// document under /docs/ lands on the viewer (/doc?md=<path>), and anything
+// else is left to the browser as the real file it is. The viewer prints to
+// PDF from that address with print CSS. window.__mdToPdf(text, title) - for
+// markdown a page GENERATED (the social blog export) - keeps it in this
+// browser under its own key and opens /doc?local=<key>: still a real address,
+// rendered in the active brand's tokens, and refused for a different brand.
 (function () {
   'use strict';
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
-  function inline(s) {
-    // bold, italics, inline code, links — applied to already-escaped text.
-    return s
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  }
-  function mdToHtml(md) {
-    var lines = String(md || '').replace(/\r\n?/g, '\n').split('\n');
-    var out = [], i = 0;
-    function flushList(tag, items) { if (items.length) out.push('<' + tag + '>' + items.map(function (x) { return '<li>' + inline(esc(x)) + '</li>'; }).join('') + '</' + tag + '>'); }
-    while (i < lines.length) {
-      var ln = lines[i];
-      // Table block: a header row of pipes followed by a --- separator.
-      if (/^\s*\|.*\|\s*$/.test(ln) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i + 1]) && lines[i + 1].indexOf('-') >= 0) {
-        var cells = function (r) { return r.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(function (c) { return c.trim(); }); };
-        var head = cells(ln); i += 2; var body = [];
-        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { body.push(cells(lines[i])); i++; }
-        out.push('<table><thead><tr>' + head.map(function (h) { return '<th>' + inline(esc(h)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-          body.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + inline(esc(c)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>');
-        continue;
-      }
-      var h = ln.match(/^(#{1,6})\s+(.*)$/);
-      if (h) { out.push('<h' + h[1].length + '>' + inline(esc(h[2])) + '</h' + h[1].length + '>'); i++; continue; }
-      if (/^\s*(---|___|\*\*\*)\s*$/.test(ln)) { out.push('<hr>'); i++; continue; }
-      if (/^\s*[-*]\s+/.test(ln)) { var ul = []; while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { ul.push(lines[i].replace(/^\s*[-*]\s+/, '')); i++; } flushList('ul', ul); continue; }
-      if (/^\s*\d+\.\s+/.test(ln)) { var ol = []; while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { ol.push(lines[i].replace(/^\s*\d+\.\s+/, '')); i++; } flushList('ol', ol); continue; }
-      if (/^\s*$/.test(ln)) { i++; continue; }
-      var para = []; while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6})\s/.test(lines[i]) && !/^\s*\|.*\|\s*$/.test(lines[i])) { para.push(lines[i]); i++; }
-      out.push('<p>' + inline(esc(para.join(' '))) + '</p>');
-    }
-    return out.join('\n');
-  }
-  var CSS = 'body{font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;color:#111111;max-width:820px;margin:32px auto;padding:0 28px;line-height:1.6;}' +
-    'h1,h2,h3,h4{font-family:"Montserrat","Raleway",Georgia,serif;color:var(--brand-primary-text,#c6433b);line-height:1.25;margin:1.4em 0 .4em;}' +
-    'h1{font-size:28px;border-bottom:2px solid #6A33D8;padding-bottom:8px;}h2{font-size:21px;}h3{font-size:17px;}' +
-    'table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;}th,td{border:1px solid #d9cba8;padding:7px 10px;text-align:left;vertical-align:top;}' +
-    'th{background:#FFFFFF;color:var(--brand-primary-text,#c6433b);}code{background:#f3eede;padding:1px 5px;border-radius:4px;font-size:.92em;}' +
-    'a{color:#D0473E;}hr{border:0;border-top:1px solid #e5ddc7;margin:22px 0;}strong{color:#1b1612;}' +
-    '.pdfbar{position:fixed;top:0;left:0;right:0;background:#D0473E;color:#fff;padding:10px 16px;font-size:13px;text-align:center;}' +
-    '.pdfbar button{background:#6A33D8;color:#111111;border:0;border-radius:6px;padding:7px 16px;font-weight:700;cursor:pointer;margin-left:8px;}' +
-    '@media print{.pdfbar{display:none;}body{margin:0;}}';
+  var LOCAL_PREFIX = 'lifecycle.doc.local.';
+  var KEEP = 12;
+  // knowledge/brand/<file> -> its document route. The same table as
+  // brand-knowledge.js ZERO_FILES (a test holds the two to each other); kept
+  // here because this runs on every page and that file loads on one.
+  var KB_ROUTES = {
+    '00-index.md': '', '01-brand-foundation.md': 'foundation', '02-product-catalog.md': 'catalog',
+    '03-lifecycle-cohorts.md': 'cohorts', '04-offers-and-mechanics.md': 'offers',
+    '05-landing-pages-and-creative.md': 'creative', '06-market-intelligence-summary.md': 'market',
+  };
   /**
    * A blocked pop-up is a BROWSER state, not a fault in the document, and it
    * is said beside the control that asked for it - never as a native alert(),
@@ -4160,25 +4205,72 @@
     }
     return note;
   }
-  function openPrintable(title, bodyHtml, anchor) {
-    var w = window.open('', '_blank');
-    if (!w) { popupBlockedNote(anchor); return; }
-    w.document.open();
-    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title><style>' + CSS + '</style></head><body>' +
-      '<div class="pdfbar">Formatted for PDF — use your browser’s <b>Save as PDF</b><button onclick="window.print()">⬇ Save as PDF</button></div>' +
-      '<div style="height:44px"></div>' + bodyHtml +
-      '<scr' + 'ipt>window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},400);});</scr' + 'ipt>' +
-      '</body></html>');
-    w.document.close();
+  /** Where a markdown link should land, or '' to leave it as the file it is. */
+  function viewerFor(href) {
+    var raw = String(href || '');
+    var u;
+    try { u = new URL(raw, location.href); } catch (_) { return ''; }
+    if (u.origin !== location.origin || !/\.md$/i.test(u.pathname)) return '';
+    var file = u.pathname.split('/').pop();
+    if (/^\/knowledge\/brand\//.test(u.pathname)) {
+      // A brand knowledge file is never shown by path: the route renders the
+      // ACTIVE brand's document, and tenant zero's file only to tenant zero.
+      // An unlisted one lands on the index rather than on another brand's file.
+      var id = Object.prototype.hasOwnProperty.call(KB_ROUTES, file) ? KB_ROUTES[file] : '';
+      return '/kb/brand' + (id ? '/' + id : '');
+    }
+    if (/^\/docs\/[A-Za-z0-9._/-]+\.md$/.test(u.pathname) && u.pathname.indexOf('..') < 0) return '/doc?md=' + encodeURIComponent(u.pathname);
+    return '';
   }
-  window.__mdToPdf = function (mdText, title, anchor) { openPrintable(title || 'Lifecycle OS document', mdToHtml(mdText), anchor); };
-  document.addEventListener('click', function (e) {
-    var a = e.target && e.target.closest ? e.target.closest('a[href$=".md"]') : null;
+  function brandNow() {
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      return { id: (b && b.id) || '', name: (b && b.name) || '' };
+    } catch (_) { return { id: '', name: '' }; }
+  }
+  /** Keep a generated document in this browser; returns its key, or ''. */
+  function keepLocal(md, title) {
+    try {
+      var key = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      var b = brandNow();
+      localStorage.setItem(LOCAL_PREFIX + key, JSON.stringify({
+        v: 1, title: String(title || '').slice(0, 160), md: String(md || ''),
+        brand_id: b.id, brand_name: b.name, created_at: new Date().toISOString(),
+      }));
+      // Only the most recent few are kept: a generated document lives in this
+      // browser, and storage is not an archive.
+      var mine = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(LOCAL_PREFIX) === 0) mine.push(k);
+      }
+      mine.sort();
+      while (mine.length > KEEP) localStorage.removeItem(mine.shift());
+      return key;
+    } catch (_) { return ''; }
+  }
+  function downloadMarkdown(md, title) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([String(md || '')], { type: 'text/markdown' }));
+    a.download = (String(title || 'document').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'document') + '.md';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  window.__mdToPdf = function (mdText, title, anchor) {
+    var key = keepLocal(mdText, title);
+    // A browser that refused to keep it still gets the document, as the file.
+    if (!key) { downloadMarkdown(mdText, title); return; }
+    var w = window.open('/doc?local=' + key, '_blank');
+    if (!w) popupBlockedNote(anchor);
+  };
+  function retarget(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
-    var url = a.getAttribute('href') || '';
-    if (/^https?:\/\//i.test(url) && url.indexOf(location.origin) !== 0) return; // leave truly external links alone
-    e.preventDefault();
-    var title = (a.textContent || 'Lifecycle OS document').replace(/[⬇📄📖🧾👥🎁🖼📊]/g, '').trim().slice(0, 90) || 'Lifecycle OS document';
-    fetch(url).then(function (r) { return r.text(); }).then(function (t) { window.__mdToPdf(t, title, a); }).catch(function () { window.open(url, '_blank'); });
-  }, true);
+    var dest = viewerFor(a.getAttribute('href'));
+    // The browser follows the link as usual - same tab, new tab, whatever the
+    // person chose - to an address that renders the document.
+    if (dest) a.setAttribute('href', dest);
+  }
+  document.addEventListener('click', retarget, true);
+  document.addEventListener('auxclick', retarget, true);
+  window.__docViewerFor = viewerFor;
 })();
