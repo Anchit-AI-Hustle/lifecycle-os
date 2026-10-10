@@ -304,8 +304,8 @@
 
       <div class="ds-comp" data-ds-component="Failure">
         <div class="vh-h3">Failure frame</div>
-        <p>LifecycleFailure: a fault, unlike any content surface, so a failure is never read as data. The sentence is ink; the code is machine output, last and quietest.</p>
-        <div id="ds-failure-live" class="ds-demo-col"><div class="vh-failure" role="alert"><span class="vh-failure-tag">Plan could not be generated</span><span class="vh-failure-msg">The generator answered 502 and nothing was charged.</span><span class="vh-failure-code">generator_unavailable</span></div></div>
+        <p>LifecycleFailure: a fault, unlike any content surface, so a failure is never read as data. The sentence is ink; the code is machine output, last and quietest. Drawn here as <code class="vh-code">.vh-failure-specimen</code>: the same frame, without the class and role a real failure carries.</p>
+        <div id="ds-failure-live" class="ds-demo-col"><div class="vh-failure-specimen"><span class="vh-failure-tag">Plan could not be generated</span><span class="vh-failure-msg">The generator answered 502 and nothing was charged.</span><span class="vh-failure-code">generator_unavailable</span></div></div>
         <div class="ds-tokens">vh-panel-2 · tag vh-err-text · message vh-ink · edge vh-err</div>
       </div>
 
@@ -353,7 +353,7 @@
 
       <div class="ds-comp" data-ds-component="Modal">
         <div class="vh-h3">Modal</div>
-        <p>A panel over a scrim of the ink at .45 opacity: the scrim dims the page, it is not a section of its own.</p>
+        <p>A panel over a scrim of the page surface at .78 opacity: the scrim quiets the page without darkening it, and the panel stands off it by its border and lift-2.</p>
         <div class="vh-modal-stage">
           <div class="vh-modal-backdrop"></div>
           <div class="vh-modal" role="dialog" aria-label="Example dialog" style="width:calc(100% - 32px)">
@@ -362,7 +362,7 @@
             <div class="ds-demo"><button type="button" class="vh-btn vh-btn-primary" data-ds-demo="dialog confirm">Delete</button><button type="button" class="vh-btn vh-btn-ghost" data-ds-demo="dialog cancel">Cancel</button></div>
           </div>
         </div>
-        <div class="ds-tokens">vh-panel · vh-ink · scrim vh-ink at .45</div>
+        <div class="ds-tokens">vh-panel · vh-ink · scrim vh-bg at .78</div>
       </div>
 
       <div class="ds-comp" data-ds-component="InfoPanel">
@@ -585,7 +585,16 @@
       if (window.LifecycleFailure && typeof window.LifecycleFailure.html === 'function') {
         var e = new Error('The generator answered 502 and nothing was charged.');
         e.code = 'generator_unavailable';
-        document.getElementById('ds-failure-live').innerHTML = window.LifecycleFailure.html(e, { title: 'Plan could not be generated' });
+        var host = document.getElementById('ds-failure-live');
+        host.innerHTML = window.LifecycleFailure.html(e, { title: 'Plan could not be generated' });
+        // The shipped markup, drawn as documentation: nothing failed, so the
+        // frame is a .vh-failure-specimen (same styles) with no role=alert and
+        // no data-failure - a screen reader is not told something failed, and
+        // nothing that reads the page for failures counts it as one.
+        host.querySelectorAll('.vh-failure').forEach(function (n) {
+          n.classList.remove('vh-failure'); n.classList.add('vh-failure-specimen');
+          n.removeAttribute('role'); n.removeAttribute('data-failure');
+        });
       }
     } catch (_) { /* the static specimen above stays */ }
   }
