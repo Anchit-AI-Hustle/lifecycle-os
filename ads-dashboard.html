@@ -69,18 +69,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <style>
   :root{
-    --green:#D0473E; --lava:#6A33D8; --lava-deep:var(--vh-ink); --ink:#111111; --chalk:#FFFFFF;
-    --bg:var(--vh-panel-tan); --surface:#ffffff; --surface-2:#FFFFFF; --line:var(--vh-panel-tan); --line-strong:var(--vh-lava);
+    --green:var(--vh-primary); --lava:var(--vh-accent); --lava-deep:var(--vh-ink); --ink:var(--vh-ink); --chalk:var(--vh-bg);
+    --bg:var(--vh-panel-tan); --surface:var(--vh-panel); --surface-2:var(--vh-panel); --line:var(--vh-panel-tan); --line-strong:var(--vh-lava);
     /* Contrast tokens: every text/background pair is dark-on-light and clears
        WCAG-AA (>=4.5:1). */
-    --text:var(--vh-ink); --dim:var(--vh-ink); --head:#D0473E;
+    --text:var(--vh-ink); --dim:var(--vh-ink); --head:var(--vh-primary-text);
     --good:var(--vh-ink); --good-bg:var(--vh-panel-tan); --warn:var(--vh-ink); --warn-bg:var(--vh-panel-tan);
-    --shadow:0 4px 16px rgba(0,74,43,.08);
-    --sans:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
-    --serif:'Montserrat','Raleway',Georgia,serif;
-    --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    --shadow:var(--vh-lift-1);
+    --sans:var(--vh-font-body);
+    --serif:var(--vh-font-head);
+    --mono:var(--vh-font-mono);
   }
   *{box-sizing:border-box}
+  a{color:var(--vh-accent-text)}
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.55;font-weight:500;
     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   .wrap{max-width:1280px;margin:0 auto;padding:26px 22px 90px}
@@ -140,6 +141,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .rangetiles .rt:hover{border-color:var(--lava);color:var(--vh-primary-text)}
   .rangetiles .rt.on{background:var(--vh-band);color:var(--vh-on-band);border-color:var(--green)}
   .rangetiles .rtlab{font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--lava-deep);margin-right:4px}
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body>

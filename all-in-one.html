@@ -112,6 +112,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .banner.err{background:var(--vh-panel-2);border:1px solid var(--vh-line);color:var(--vh-ink)}
   .banner.info{background:var(--vh-tint);border:1px solid var(--vh-line);color:var(--vh-ink)}
   @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two,.three,.one{grid-column:span 1}h1{font-size:28px}}
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
@@ -169,19 +172,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var dg = d._diag || {}, probe = dg.probe || {};
     var sbColor, sbState, sbMsg;
     if (!dg.smart_brain_service_role) {
-      sbColor='#9a6b12'; sbState='service-role key not set';
+      sbColor='var(--vh-warn-text)'; sbState='service-role key not set';
       sbMsg='Set SUPABASE_SERVICE_ROLE_KEY in Vercel (Settings → Env Vars) for Production + Preview + Development, then redeploy.';
     } else if (probe.http===200 || probe.ok===true) {
-      sbColor='#1d7a4d'; sbState='reachable ✓';
+      sbColor='var(--vh-ok-text)'; sbState='reachable ✓';
       sbMsg='Service-role key is valid; counts below are live from the database.';
     } else if (probe.http===401 || probe.http===403) {
-      sbColor='#a5341f'; sbState='HTTP '+probe.http+' — key stale';
+      sbColor='var(--vh-err-text)'; sbState='HTTP '+probe.http+' — key stale';
       sbMsg='Rotate SUPABASE_SERVICE_ROLE_KEY: Supabase → Settings → API → copy service_role → update it in Vercel env → redeploy.';
     } else if (probe.error) {
-      sbColor='#9a6b12'; sbState='unreachable';
+      sbColor='var(--vh-warn-text)'; sbState='unreachable';
       sbMsg=esc(probe.error);
     } else {
-      sbColor='#9a6b12'; sbState='unknown';
+      sbColor='var(--vh-warn-text)'; sbState='unknown';
       sbMsg='No probe result returned.';
     }
     html += '<div style="border:1px solid var(--hair,rgba(23,23,23,.12));border-left:4px solid '+sbColor+';'+

@@ -149,6 +149,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .banner.err{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 32%,transparent)}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:12px 20px;border-radius:10px;
     background:var(--vh-panel-2);color:var(--surface);font-size:13px;font-weight:600;display:none}
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body>

@@ -92,6 +92,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }}};
 </script>
 <style>
+  a{color:var(--vh-accent-text)}
   body { background:var(--vh-panel); color:var(--vh-ink); font-family:var(--vh-font-body); }
   .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:var(--vh-ink-dim); font-weight:500; }
   .card { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; }
@@ -122,7 +123,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .entry { font-size:11px; line-height:1.35; padding:3px 6px; margin-top:4px; border-radius:4px; background:var(--vh-panel-2); cursor:help; }
   .entry-market { font-weight:700; font-family:var(--vh-font-mono); }
   .entry-assets { font-family:var(--vh-font-mono); font-size:9px; letter-spacing:0.14em; color:var(--vh-accent-text); margin-left:4px; white-space:nowrap; }
-  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid var(--vh-line); color:var(--vh-ink-dim); cursor:pointer; }
+  .filter-chip { background:var(--vh-panel); padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid var(--vh-line); color:var(--vh-ink-dim); cursor:pointer; }
   .filter-chip.active { background:var(--vh-accent); color:var(--vh-on-accent); border-color:var(--vh-accent); }
   th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--vh-ink-dim); padding:10px 8px; border-bottom:1px solid var(--vh-line); text-align:left; }
   td { padding:10px 8px; border-bottom:1px solid var(--vh-line); font-size:12.5px; vertical-align:top; }
@@ -131,6 +132,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .modal-backdrop.open { display:flex; }
   .modal-card { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; max-width:920px; width:100%; max-height:90vh; overflow-y:auto; }
   iframe.preview { width:100%; min-height:600px; background:var(--vh-panel); border:0; border-radius:8px; }
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body class="min-h-screen">

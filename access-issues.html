@@ -83,8 +83,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .banner { display: flex; gap: 12px; align-items: flex-start; background:var(--vh-band); color:var(--vh-on-band); border-radius: 14px; padding: 16px 20px; margin: 20px 0; }
   .banner .ic { font-size: 20px; line-height: 1; }
   .banner b { color:inherit; }
-  .banner p { color:var(--vh-ink-dim); font-size: 13px; line-height: 1.55; margin-top: 2px; }
-  .banner code { color:inherit; background: rgba(251,245,234,0.16); }
+  .banner p { color:inherit; font-size: 13px; line-height: 1.55; margin-top: 2px; }
+  .banner code { color:inherit; background:transparent; border:1px solid currentColor; }
 
   h2 { font-family:var(--vh-font-head); font-size: 20px; font-weight: 600; color:var(--vh-ink); margin: 30px 0 4px; }
   .h2sub { color:var(--vh-ink-dim); font-size: 12.5px; margin-bottom: 14px; }
@@ -153,6 +153,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   details .policy { font-size: 12px; color: var(--vh-ink); line-height: 1.6; margin-top: 10px; white-space: pre-wrap; background:var(--vh-tint); border:1px solid var(--vh-line); border-radius: 10px; padding: 14px 16px; }
   .modelnote { font-size: 12px; color:var(--vh-ink-dim); margin-top: 8px; line-height: 1.55; }
   .status { font-size: 12.5px; color:var(--vh-ink-dim); margin-left: 4px; min-height: 16px; }
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body>
