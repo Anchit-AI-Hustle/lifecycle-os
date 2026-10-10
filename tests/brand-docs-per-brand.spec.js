@@ -580,7 +580,7 @@ test('growth-book: tenant zero (the server\'s answer) still reads its own studie
 
 test('the rail\'s per-market study rows follow the active brand\'s own markets', async ({ page }) => {
   test.setTimeout(120_000);
-  const rows = () => page.evaluate(() => Array.from(document.querySelectorAll('#lifecycle-nav a[data-id^="research-"]')).filter((a) => a.getAttribute('data-id') !== 'research-all' && a.offsetParent !== null && !(a.closest('.lnav-item') || a).hidden).map((a) => a.getAttribute('data-study-region') || a.getAttribute('data-id')).sort());
+  const rows = () => page.evaluate(() => Array.from(document.querySelectorAll('#lifecycle-nav a[data-id^="research-"]')).filter((a) => a.getAttribute('data-id') !== 'research-all' && a.getClientRects().length > 0).map((a) => a.getAttribute('data-study-region') || a.getAttribute('data-id')).sort());
   await install(page, TOI);
   await page.goto(HOST + '/research');
   await settled(page, TOI.slug);
@@ -592,7 +592,7 @@ test('the rail\'s per-market study rows follow the active brand\'s own markets',
   await p2.goto(HOST + '/research');
   await settled(p2, BARE.slug);
   await p2.waitForTimeout(400);
-  expect(await p2.evaluate(() => Array.from(document.querySelectorAll('#lifecycle-nav a[data-id^="research-"]')).filter((a) => a.getAttribute('data-id') !== 'research-all' && a.offsetParent !== null && !(a.closest('.lnav-item') || a).hidden).length)).toBe(0);
+  expect(await p2.evaluate(() => Array.from(document.querySelectorAll('#lifecycle-nav a[data-id^="research-"]')).filter((a) => a.getAttribute('data-id') !== 'research-all' && a.getClientRects().length > 0).length)).toBe(0);
   // Its Market Study names the gap for THIS brand, unpadded.
   expect(await p2.locator('#msRegionTabs [data-region-none]').innerText()).toBe(`[DATA REQUIRED BEFORE LAUNCH: regions, ${BARE.name}]`);
   await bare.close();
