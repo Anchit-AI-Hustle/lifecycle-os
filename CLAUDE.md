@@ -136,6 +136,14 @@ load `brand-catalog.js` and fetched `/data/catalog/products_*` for every brand. 
   it imports. Server side, a workspace record that only claims the slug is undecided (`null`).
 - No photo of the brand's product → its own ground + `[DATA REQUIRED BEFORE LAUNCH: product image, <brand>,
   <region>]` on the creative, its label and its `data_gaps`; no AI backdrop (an invented product image).
+- **Every page is swept** (follow-up, 2026-10-10): auth.js injects `brand-catalog.js` everywhere; each
+  page with a brand layer is loaded under a device brand with no catalogue and one with its own, and
+  any request for `/data/catalog/`, a tenant-zero store host or CDN photo fails it. A page with no brand
+  layer is listed BY NAME with its reason. Tenant-zero-only images use `data-shipped-src` (painted by
+  brand-context for tenant zero only); storefront-3d renders another brand's OWN rows or the marker;
+  smart-brain links come from the brand's store or say `region store URL` is missing.
+- `data/catalog/products_in.json` (committed in abb2bcc) is NOT read by either resolver: the shipped
+  regions are us/uk/global only.
 
 ## ⭐ A deterministic compliance gate runs before anything is published (2026-10-04)
 `api/_shared/compliance-lint.js`, gated by `tests/compliance-gate.spec.js` (23 tests, executed, 25
