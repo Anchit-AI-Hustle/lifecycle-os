@@ -274,9 +274,9 @@
         "url": "https://pressroom.toyota.com/",
         "role": "identity source",
         "what": "Toyota newsroom",
-        "renderer": "rendered",
+        "renderer": "blocked",
         "owned": "same-registrable-domain",
-        "reason": ""
+        "reason": "pressroom.toyota.com is not the brand's consumer site (it is a press site), so no colour, type or logo is taken from it."
       },
       {
         "url": "https://www.toyota.com/apple-touch-icon.png",
@@ -437,9 +437,9 @@
       "what": "Toyota brand guidelines: brand colours"
     },
     {
-      "url": "https://pressroom.toyota.com/",
+      "url": "https://www.toyota.co.uk/",
       "kind": "page",
-      "what": "Toyota newsroom"
+      "what": "Toyota UK site"
     }
   ],
   "offerings": [],

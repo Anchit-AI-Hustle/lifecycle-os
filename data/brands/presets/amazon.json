@@ -233,7 +233,7 @@
         "what": "About Amazon, the company's own news site (linked from amazon.com)",
         "renderer": "blocked",
         "owned": "linked-from",
-        "reason": "www.aboutamazon.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"Amazon News: Breaking news about Amazon and latest company updates\", whose first heading "
+        "reason": "www.aboutamazon.com is not the brand's consumer site (it is a corporate site), so no colour, type or logo is taken from it."
       }
     ],
     "typography_evidence": {
@@ -536,9 +536,9 @@
   ],
   "identity_sources": [
     {
-      "url": "https://www.aboutamazon.com/",
+      "url": "https://www.amazon.in/",
       "kind": "page",
-      "what": "About Amazon, the company's own news site (linked from amazon.com)"
+      "what": "Amazon India store front"
     }
   ],
   "offerings": [],

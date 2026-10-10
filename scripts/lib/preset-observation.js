@@ -53,6 +53,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'));
 const signals = require(path.join(ROOT, 'api', '_shared', 'identity-signals.js'));
+const { consumerSite } = require('./brand-ownership.js');
 
 const FORMAT = 'preset-observation/3';
 const RENDERERS = ['rendered', 'blocked', 'timeout', 'unavailable'];
@@ -115,6 +116,7 @@ function readSentence(attempt) {
   if (!attempt || !attempt.renderer) return '';
   const host = attempt.host || 'The site';
   const at = attempt.at || 'an unrecorded date';
+  if (attempt.code === 'not_consumer_site') return `${String(attempt.reason || `${host} is not the brand's consumer site`).replace(/\.$/, '')} (checked ${at}).`;
   if (attempt.renderer === 'blocked') return `${host} blocked an automated read on ${at}.`;
   if (attempt.renderer === 'timeout') return `${host} did not answer an automated read within its time limit on ${at}.`;
   if (attempt.renderer === 'unavailable') return `${host} could not be read on ${at}${attempt.reason ? `: ${String(attempt.reason).replace(/\.$/, '')}` : ''}.`;
@@ -646,7 +648,7 @@ function failureObservation(preset, result, observedAt) {
     observed_at: observedAt,
     renderer,
     reason,
-    read_attempt: { renderer, at: observedAt, host, reason },
+    read_attempt: Object.assign({ renderer, at: observedAt, host, reason }, result && result.code === 'not_consumer_site' ? { code: result.code } : {}),
     reader: readerInfo(result, null),
     note: readSentence({ renderer, at: observedAt, host, reason }) + ' Nothing was filled in from it; the preset stays on the neutral default.',
   };
@@ -663,7 +665,7 @@ function readRow(entry, observedAt) {
   if (!r) return Object.assign(row, { renderer: 'unavailable', ok: false, reason: 'not read' });
   if (r.ok && r.manifest) return Object.assign(row, { renderer: 'rendered', ok: true, landed: r.manifest.url || entry.url });
   if (r.ok && r.image) return Object.assign(row, { renderer: 'image', ok: true, landed: r.image.url || entry.url, mark: r.mark ? { verdict: r.mark.verdict, hex: r.mark.hex || '' } : null });
-  return Object.assign(row, { renderer: failureRenderer(r), ok: false, reason: String(r.reason || r.message || 'The reader gave no reason.').slice(0, 400) });
+  return Object.assign(row, { renderer: failureRenderer(r), ok: false, reason: String(r.reason || r.message || 'The reader gave no reason.').slice(0, 400) }, r.code === 'not_consumer_site' ? { code: r.code } : {});
 }
 
 /**
@@ -672,8 +674,32 @@ function readRow(entry, observedAt) {
  * sources, each { url, kind: 'page'|'image', what, owned, result } or
  * { url, refused: reason } (not the brand's own, so never read).
  */
-function observationFromReads(preset, home, sources, observedAt) {
-  const srcs = (sources || []).filter(Boolean);
+/**
+ * THE CONSUMER-SITE GUARD (2026-10-10). A read whose page - asked for, or
+ * landed on after redirects - is the brand's careers, press, investor or
+ * group-corporate site is turned into a BLOCKED read with that sentence before
+ * anything is mapped, so no palette, type, logo or photograph can come from it
+ * (scripts/lib/brand-ownership.js `consumerSite`). Returns the reason, or ''.
+ */
+function notConsumer(result, url, website) {
+  const urls = [url];
+  if (result && result.manifest && result.manifest.url) urls.push(result.manifest.url);
+  if (result && result.image && result.image.url) urls.push(result.image.url);
+  for (const u of urls) {
+    const c = consumerSite(u, website);
+    if (!c.ok) return c.reason;
+  }
+  return '';
+}
+function guardRead(result, url, website) {
+  const reason = notConsumer(result, url, website);
+  if (!reason) return result;
+  return { ok: false, renderer: 'blocked', code: 'not_consumer_site', reason: reason + '.', attempts: (result && result.attempts) || 0 };
+}
+
+function observationFromReads(preset, homeIn, sources, observedAt) {
+  const home = guardRead(homeIn, preset.website, preset.website);
+  const srcs = (sources || []).filter(Boolean).map((s) => (s.refused || !s.result ? s : Object.assign({}, s, { result: guardRead(s.result, s.url, preset.website) })));
   const homeOk = !!(home && home.ok && home.manifest);
   const rows = [readRow({ url: preset.website, role: 'home', what: 'home page', result: home, attempts: home && home.attempts, owned: { how: 'website', host: hostOf(preset.website) } }, observedAt)]
     .concat(srcs.map((s) => readRow(Object.assign({ role: 'identity source' }, s), observedAt)));
@@ -787,7 +813,7 @@ function sourcesSentence(rows) {
   for (const r of list) {
     if (!r || r.role !== 'identity source') continue;
     const host = hostOf(r.url);
-    const state = r.renderer === 'refused' ? 'not shown to be the brand\'s' : r.renderer;
+    const state = r.code === 'not_consumer_site' ? 'not the brand\'s consumer site' : (r.renderer === 'refused' ? 'not shown to be the brand\'s' : r.renderer);
     if (homeHost && host === homeHost && state === homeState) continue;
     const key = `${host}|${state}`;
     if (seen.has(key)) continue;
@@ -806,6 +832,6 @@ function observationFromRead(preset, result, observedAt) {
 
 module.exports = {
   FORMAT, RENDERERS, SEMANTIC,
-  observationFromRead, observationFromReads, failureObservation, failureRenderer, readSentence, sourcesSentence,
+  observationFromRead, observationFromReads, failureObservation, notConsumer, consumerSite, failureRenderer, readSentence, sourcesSentence,
   paletteFromManifest, paletteFromReads, candidatesOf, typographyFromManifest, typographyFromReads, assetsFromManifest, regressionSummary, hostOf,
 };

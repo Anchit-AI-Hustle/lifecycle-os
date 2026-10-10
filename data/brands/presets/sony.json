@@ -3,13 +3,13 @@
   "name": "Sony",
   "tagline": "",
   "industry": "Consumer technology",
-  "website": "https://www.sony.com",
+  "website": "https://electronics.sony.com",
   "preset": {
     "label": "Sony",
     "sector": "Consumer technology",
     "blurb": "Consumer electronics and entertainment. Template for hardware plus content attach.",
     "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.sony.com.",
+    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://electronics.sony.com.",
     "needs_extraction": true,
     "palette_source": "default",
     "typography_source": "default",
@@ -162,14 +162,14 @@
   ],
   "identity_sources": [
     {
-      "url": "https://www.sony.co.jp/en/favicon.ico",
-      "kind": "image",
-      "what": "Sony Group icon"
+      "url": "https://www.sony.co.in/",
+      "kind": "page",
+      "what": "Sony India consumer site"
     },
     {
-      "url": "https://www.sony.co.jp/en/",
+      "url": "https://www.sony.co.uk/",
       "kind": "page",
-      "what": "Sony Group global site"
+      "what": "Sony UK consumer site"
     }
   ],
   "offerings": [],
