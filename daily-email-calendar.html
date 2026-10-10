@@ -573,6 +573,7 @@ function buildFromDays(DAYS, live){
   var range = (first && last) ? ((first.dateLabel || ('Day ' + first.dom)) + ' to ' + (last.dateLabel || ('Day ' + last.dom))) : '';
   var blockers = openBlockers(DAYS);
   var realBlockers = espCount;
+  if (!document.getElementById('kpis')) return;   // page replaced by brand-demo.js
   document.getElementById('kpis').innerHTML =
     '<div class="kpi"><div class="num">' + DAYS.length + '</div><div class="lab">Planned sends</div><div class="note">' + esc(range) + '</div></div>' +
     '<div class="kpi"><div class="num">' + sizedCount + '<small> / ' + DAYS.length + '</small></div><div class="lab">Cohorts sized</div><div class="note">' + espCount + ' route to the sending platform</div></div>' +
@@ -765,6 +766,7 @@ function mapEntry(e, i, day0){
 function renderEmpty(reason){
   ACTIVE = [];
   cards = [];
+  if (!document.getElementById('kpis')) return;   // page replaced by brand-demo.js
   document.getElementById('kpis').innerHTML =
     '<div class="kpi" style="grid-column:1/-1"><div class="num" style="font-size:1rem;line-height:1.4">No calendar for this workspace yet</div>' +
     '<div class="lab">Source</div><div class="note">' + esc(reason) + '</div></div>';
@@ -785,9 +787,13 @@ function renderEmpty(reason){
 function renderFailure(err){
   ACTIVE = [];
   cards = [];
-  window.LifecycleFailure.show(document.getElementById('kpis'), err,
+  // brand-demo.js replaces the whole page for a brand that does not own this
+  // report; a request settling after that has nothing left to draw into.
+  var kpis = document.getElementById('kpis');
+  if (!kpis) return;
+  window.LifecycleFailure.show(kpis, err,
     { title: 'Could not read the plan' });
-  document.getElementById('kpis').firstChild.style.gridColumn = '1/-1';
+  if (kpis.firstChild) kpis.firstChild.style.gridColumn = '1/-1';
   rail.innerHTML = '';
   window.LifecycleFailure.show(grid, err, {
     title: 'Could not read the plan',
