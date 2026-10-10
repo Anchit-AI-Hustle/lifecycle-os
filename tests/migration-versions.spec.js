@@ -41,14 +41,10 @@ const DATE_ONLY = [
   '20260530_app_users_profile_prompted.sql',
   '20260606_kb_storage_and_landing.sql',
   '20260608_kb_manual_top_emails_brands.sql',
-  '20260609_ads_and_landing_generated.sql',
-  '20260610_kb_files_region.sql',
   '20260617_competitive_intel_and_brain.sql',
   '20260620_smart_brain_retention.sql',
-  '20260703_lifecycle_calendar.sql',
   '20260705_smart_brain_full.sql',
   '20260706_lifecycle_os_backbone.sql',
-  '20260719_ci_subscriptions.sql',
 ];
 
 const files = () => fs.readdirSync(MIG).filter((f) => f.endsWith('.sql')).sort();
@@ -84,6 +80,27 @@ test('every migration file carries a version: 14 digits, or one of the closed li
     expect(f).toMatch(/^\d{8}_[^\s]+\.sql$/);
     expect(all, `${f} is listed as date-only but does not exist`).toContain(f);
   }
+});
+
+// The Supabase GitHub integration pushes with an older CLI that orders local
+// files by NAME, where "_" sorts after every digit, but the remote history by
+// VERSION. A date-only file beside a 14-digit file of the same day therefore
+// lands at a different position on each side, and that CLI stops with "Remote
+// migration versions not found in local migrations directory" (it named
+// 20260609, 20260610, 20260703 and 20260719 on 2026-10-10, reproduced with
+// CLI 2.10.0 against the live history). Those four are 14-digit now, and the
+// remote history carries the same versions. A date-only file may never share
+// its date with another migration again.
+test('no date-only migration shares its date with another migration', () => {
+  const all = files();
+  const clash = [];
+  for (const f of all) {
+    const v = versionOf(f);
+    if (v.length !== 8) continue;
+    const same = all.filter((g) => g !== f && versionOf(g).slice(0, 8) === v);
+    if (same.length) clash.push(`${f} shares ${v} with ${same.join(', ')}`);
+  }
+  expect(clash, 'the integration CLI reads these in a different order from the remote history').toEqual([]);
 });
 
 test('no two migrations share a version, as written or padded to 14 digits', () => {

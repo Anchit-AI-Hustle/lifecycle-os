@@ -53,13 +53,28 @@ const CATALOG_FIXTURE = [
 // attempted early throws, which the tests below would read as an empty mailer.
 // Wait for the condition itself: both variants build, for this market.
 async function waitForBuiltEmail(page, mkt) {
-  await page.waitForFunction((m) => {
-    try {
-      const a = window.buildEmail && window.buildEmail(null, m);
-      const b = window.buildEmailVariantB && window.buildEmailVariantB(null, m);
-      return !!(a && b && a.length > 0 && b.length > 0);
-    } catch (_) { return false; }
-  }, mkt, { timeout: 20000, polling: 250 });
+  try {
+    await page.waitForFunction((m) => {
+      try {
+        const a = window.buildEmail && window.buildEmail(null, m);
+        const b = window.buildEmailVariantB && window.buildEmailVariantB(null, m);
+        return !!(a && b && a.length > 0 && b.length > 0);
+      } catch (_) { return false; }
+    }, mkt, { timeout: 40000, polling: 250 });
+  } catch (e) {
+    // Say WHY it never built (the iphone-se WebKit run timed out with no
+    // cause): which builder is missing, what each returned, what it threw.
+    const why = await page.evaluate((m) => {
+      const one = (name) => {
+        const fn = window[name];
+        if (typeof fn !== 'function') return `${name}: not defined`;
+        try { const out = fn(null, m); return `${name}: returned ${typeof out}, length ${out ? out.length : 0}`; }
+        catch (err) { return `${name}: threw ${err && err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : String(err)}`; }
+      };
+      return [one('buildEmail'), one('buildEmailVariantB'), `readyState ${document.readyState}`].join('\n');
+    }, mkt).catch((err) => `could not evaluate: ${err.message}`);
+    throw new Error(`The Studio did not build both variants for ${mkt}:\n${why}\n(${e.message})`);
+  }
 }
 
 async function seedCatalog(page) {
