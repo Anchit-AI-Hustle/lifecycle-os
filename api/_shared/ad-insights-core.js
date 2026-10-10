@@ -17,8 +17,11 @@ const PLATFORMS = ['meta', 'google', 'tiktok'];
 const METRIC_GROUPS = ['conversion', 'traffic', 'engagement', 'all'];
 const LEVELS = ['account', 'campaign', 'adgroup', 'adset', 'ad'];
 
+// No market is not the US (2026-10-05): with none, the env lookup below falls
+// to the deployment's base account (`META_ACCESS_TOKEN`, not `_US`) and the
+// answer names no market, instead of reporting an American account.
 function normMarket(m) {
-  const s = String(m || 'US').trim().toUpperCase();
+  const s = String(m || '').trim().toUpperCase();
   if (['US', 'USA', 'UNITED STATES'].includes(s)) return 'US';
   if (['UK', 'GB', 'UNITED KINGDOM', 'BRITAIN'].includes(s)) return 'UK';
   if (['IN', 'IND', 'INDIA'].includes(s)) return 'IN';
@@ -34,7 +37,7 @@ function normLevel(level) {
 }
 function envFor(base, market) {
   const mk = normMarket(market);
-  return String(process.env[`${base}_${mk}`] || process.env[base] || '').trim();
+  return String((mk && process.env[`${base}_${mk}`]) || process.env[base] || '').trim();
 }
 function qs(obj) {
   return Object.entries(obj || {}).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
@@ -52,7 +55,7 @@ function notConnected(platform, market, wouldRequest, needEnv, level) {
     platform, market: normMarket(market), level: normLevel(level),
     would_request: wouldRequest,
     need_env: needEnv,
-    hint: `Set ${needEnv.join(', ')} in Vercel env (append _${normMarket(market)} for a market-specific account) to fetch real ${platform} results. No ad figure is fabricated.`,
+    hint: `Set ${needEnv.join(', ')} in Vercel env (append _${normMarket(market) || '<MARKET>'} for a market-specific account) to fetch real ${platform} results. No ad figure is fabricated.`,
   };
 }
 async function fetchJson(url, opts = {}, timeoutMs = 25000) {
@@ -221,7 +224,7 @@ function status(market) {
     note: 'Fresh reporting is fetched read-only from each platform. Reporting freshness still follows the source platform attribution and processing latency.',
   };
 }
-async function insights({ platform, market = 'US', metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
+async function insights({ platform, market = require('./brand-locale.js').defaultMarket(), metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
   const mg = metricGroup || metric_group || 'conversion';
   const p = String(platform || '').toLowerCase();
   const args = { market, metricGroup: mg, since, until, level };
@@ -230,7 +233,7 @@ async function insights({ platform, market = 'US', metricGroup = 'conversion', m
   if (p === 'tiktok') return tiktokInsights(args);
   return { ok: false, error: `Unknown ad platform '${platform}'. Use one of: ${PLATFORMS.join(', ')}.` };
 }
-async function summary({ market = 'US', metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
+async function summary({ market = require('./brand-locale.js').defaultMarket(), metricGroup = 'conversion', metric_group, since, until, level = 'account' } = {}) {
   const mg = metricGroup || metric_group || 'conversion';
   const mk = normMarket(market);
   const l = normLevel(level);

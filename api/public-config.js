@@ -162,7 +162,7 @@ module.exports = async function handler(req, res) {
       const auth = await core.authorize(req);
       if (!auth.ok) return res.status(auth.status || 401).json(auth);
       const params = {
-        market: req.query.market || 'US', level: req.query.level || 'ad',
+        market: req.query.market || '', level: req.query.level || 'ad',
         since: req.query.since, until: req.query.until,
         hours: req.query.hours ? Number(req.query.hours) : undefined,
       };

@@ -47,7 +47,7 @@ function spendLabel(spendIndex) {
  * `tier` is accepted for API compatibility but does NOT change the numbers
  * (projections are deterministic — the LLM never alters them).
  */
-async function buildScenarios({ analysis = {}, baseCalendar = {}, market = 'US' } = {}) {
+async function buildScenarios({ analysis = {}, baseCalendar = {}, market = require('./brand-locale.js').defaultMarket() } = {}) {
   const entries = Array.isArray(baseCalendar.entries) ? baseCalendar.entries : [];
   const benchmark = SM.buildEngine2Benchmark(analysis, market, avgCohortLtv(analysis));
   let minTime = Infinity;

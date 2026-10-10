@@ -361,7 +361,10 @@ module.exports = async function handler(req, res) {
   body = body || {};
 
   const mode = body.mode || 'create_brief';
-  const market = body.market || 'US';
+  // The market a request names, else the ACTIVE brand's HOME market from its
+  // own record (2026-10-05) - it was a literal 'US' for every brand.
+  const _locale = require('../_shared/brand-locale.js');
+  const market = body.market || _locale.homeMarket(body.__brand) || '';
   const markets = body.markets || [market];
   const theme = body.theme || body.type || '';
   const campaign_brief = body.campaign_brief || body.brief || body.prompt || '';
@@ -474,7 +477,7 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     response_format = { type: 'json_object' };
     const surface = String(body.surface || '').toLowerCase();
     const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
-    const targetMarket = body.market || body.region || market || 'US';
+    const targetMarket = body.market || body.region || market;
     const referenceUrl = String(body.reference_url || '').trim();
 
     // Optional: fetch the reference URL + a tiny snippet of its text so the
@@ -651,19 +654,19 @@ Target market for this autofill: ${targetMarket}.`;
     // with a DATA REQUIRED marker wherever that brand has not supplied a fact.
     const _lpBrand = (body && body.__brand && body.__brand.id) ? body.__brand : null;
     const _lpRt = require('../_shared/brand-runtime.js');
-    const lpRegion = (body.region || body.market || market || 'US');
+    const lpRegion = (body.region || body.market || market);
     const _lpFacts = _lpBrand ? _lpRt.regionFacts(_lpBrand, lpRegion) : null;
     const LP_STORE = { US:'https://knickgasm.com', UK:'https://knickgasm.com', IN:'https://knickgasm.in', Global:'https://knickgasm.com', EU:'https://knickgasm.com', AU:'https://knickgasm.com', ME:'https://knickgasm.com' };
     const lpBase = _lpBrand
-      ? (_lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${lpRegion}]`)
+      ? (_lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : _locale.marker('region store URL', _lpBrand, lpRegion))
       : (LP_STORE[lpRegion] || LP_STORE.US);
-    const _lpName = _lpBrand ? (_lpBrand.name || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]') : 'KNICKGASM';
+    const _lpName = _lpBrand ? (_lpBrand.name || '[DATA REQUIRED BEFORE LAUNCH: brand name]') : 'KNICKGASM';
     const _lpPal = (_lpBrand && _lpBrand.palette) || null;
     const _lpType = (_lpBrand && _lpBrand.typography) || null;
     const _lpVoice = (_lpBrand && _lpBrand.voice) || null;
     const _lpList = (a, fallback) => (Array.isArray(a) && a.length ? a.join(', ') : fallback);
     const _lpPaletteRule = _lpPal
-      ? `Colour palette ONLY: ${['primary','accent','ink','surface','surface_alt'].map((k) => _lpPal[k]).filter(Boolean).join(', ') || '[DATA REQUIRED BEFORE LAUNCH: brand palette, all, all]'}. No other colours.`
+      ? `Colour palette ONLY: ${['primary','accent','ink','surface','surface_alt'].map((k) => _lpPal[k]).filter(Boolean).join(', ') || _locale.marker('brand palette', _lpBrand)}. No other colours.`
       : 'Colour palette ONLY: #D0473E, #6A33D8, #111111, #FFFFFF. No other colours.';
     const _lpTypeRule = _lpType
       ? `Headings in ${(_lpType.heading && (_lpType.heading.stack || _lpType.heading.family)) || '[DATA REQUIRED BEFORE LAUNCH: typography.heading]'}. Body in ${(_lpType.body && (_lpType.body.stack || _lpType.body.family)) || '[DATA REQUIRED BEFORE LAUNCH: typography.body]'}.`
@@ -676,7 +679,7 @@ Target market for this autofill: ${targetMarket}.`;
       : "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.";
     const _lpClaims = (_lpBrand && Array.isArray(_lpBrand.claims) && _lpBrand.claims.length)
       ? _lpBrand.claims.join(' | ')
-      : (_lpBrand ? '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]' : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
+      : _locale.marker('verifiable claims', _lpBrand || 'this brand');
     const lpChannel = String(body.channel || 'landing');
     response_format = undefined;
     systemPrompt = [
@@ -779,7 +782,7 @@ Target market for this autofill: ${targetMarket}.`;
       `2. The hero product MUST be one of the products listed.`,
       `3. Geography in copy is COUNTRY-LEVEL only — say "the US" or "the UK" or "India". Do NOT name specific cities, states, regions, neighbourhoods, or zip codes. The brief travels nation-wide.`,
       `4. No demographic stats or percentages of the population. Describe BEHAVIOUR and INTENT in plain English.`,
-      `5. Currency in copy must match the market: $ for US/Global, £ for UK, ₹ for India, € for EU, A$ for AU, AED for ME. Never mix currencies.`,
+      `5. Currency in copy must match the market: ${(() => { const l = _locale.localeFor(body.__brand, market); return l.currency ? `${l.currency} (${l.symbol}) for ${l.market}, in ${l.locale || 'en'} number format` : _locale.marker('currency', body.__brand || 'this brand', market || undefined); })()}. Never another market's currency, never mix currencies.`,
       `6. Honor the existing TARGET AUDIENCE block above (if present) — write the brief to land with THAT segment.`,
       ``,
       `Write the brief as flowing prose — no section headers, no numbered lists, no labeled fields.`,
@@ -978,7 +981,7 @@ Target market for this autofill: ${targetMarket}.`;
           offer: fields.offer || '',
         };
         const creative_spec = AD_FORMATS[surf].map((f) => ({ size: f.size, format: f.format, ar: f.ar, overlay }));
-        const targetMarket = body.market || body.region || market || 'US';
+        const targetMarket = body.market || body.region || market;
         const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
         const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null,  assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
         return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt });

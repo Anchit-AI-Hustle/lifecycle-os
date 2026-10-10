@@ -94,9 +94,9 @@
 
   <div class="toprow">
     <span class="market">Market
-      <select id="market">
-        <option>US</option><option>UK</option><option>IN</option><option>EU</option><option>AU</option><option>Global</option>
-      </select>
+      <!-- The brand's OWN markets, home first and selected (2026-10-05). This was
+           a typed list of six with US selected, whatever the brand sold. -->
+      <select id="market" aria-label="Market"></select>
     </span>
     <span class="pill" id="klaviyoPill">Klaviyo: …</span>
   </div>
@@ -142,6 +142,29 @@
   var chatEl = document.getElementById('chat');
   var qEl = document.getElementById('q');
   var marketEl = document.getElementById('market');
+  /* Options are the active brand's regions (RegionContext.options), HOME
+     selected; a brand with no regions shows the marker and sends no market,
+     and the server answers for the brand's home (none: it says so). */
+  function fillMarkets() {
+    var RC = window.RegionContext;
+    if (!RC || !RC.loaded || !marketEl) return;
+    var opts = RC.options();
+    var keep = marketEl.value;
+    marketEl.innerHTML = '';
+    if (!opts.length) {
+      var o = document.createElement('option'); o.value = ''; o.textContent = RC.marker('home market');
+      marketEl.appendChild(o); marketEl.disabled = true; return;
+    }
+    marketEl.disabled = false;
+    opts.forEach(function (r) {
+      var o = document.createElement('option'); o.value = r.code; o.textContent = r.name + (r.home ? ' (home)' : '');
+      marketEl.appendChild(o);
+    });
+    var want = (keep && opts.some(function (r) { return r.code === keep; })) ? keep : (RC.region || RC.home);
+    if (want) marketEl.value = want;
+  }
+  window.addEventListener('regioncontext:change', function () { setTimeout(fillMarkets, 0); });
+  fillMarkets();
 
   var SUGGESTIONS = [
     'What is our highest-value customer cohort right now?',
