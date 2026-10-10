@@ -270,7 +270,9 @@ async function generateLifecycleCalendar(input = {}) {
   if (isNaN(startDate.getTime())) throw new Error(`invalid start_date: ${input.start_date}`);
   const days = Math.min(60, Math.max(7, +input.days || 30));
   const cadence = Math.min(7, Math.max(1, +input.cadence_per_week || 2));
-  const market = String(input.market || 'UK').toUpperCase();
+  // The market asked for, else the brand's HOME market (2026-10-05); the UK
+  // engagement page names UK explicitly, so its programme is unchanged.
+  const market = String(input.market || require('./brand-locale.js').defaultMarket(__brand) || '').toUpperCase();
   const requested = Array.isArray(input.cohorts) && input.cohorts.length ? input.cohorts : Object.keys(COHORTS);
   const cohortKeys = requested.filter((k) => COHORTS[k]);
   if (!cohortKeys.length) throw new Error(`no valid cohorts — use ${Object.keys(COHORTS).join(', ')}`);
@@ -477,7 +479,7 @@ async function persistPlan(plan) {
 
 // ─── List (for the UI) ───────────────────────────────────────────────────────
 
-async function listEntries({ market = 'UK', from = null, to = null } = {}) {
+async function listEntries({ market = require('./brand-locale.js').defaultMarket(), from = null, to = null } = {}) {
   const supa = supaIfConfigured();
   if (!supa) return { ok: true, connected: false, entries: [], note: 'Supabase not configured — plans are ephemeral until env vars are set.' };
   try {

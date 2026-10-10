@@ -344,7 +344,12 @@ function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
   const zeroSlug = (() => {
     try { return String((require('./brand-runtime.js').defaultBrand() || {}).slug || ''); } catch (_) { return ''; }
   })();
-  const isZero = !brand || (zeroSlug && String(brand.slug || '') === zeroSlug);
+  // The server's determination first (owns_shipped, stamped from the oldest
+  // workspace); a workspace record that only carries tenant zero's slug is
+  // not tenant zero, and its owner's bed is not licensed to it (2026-10-05).
+  let decided = null;
+  try { decided = brand ? require('./brand-catalog-server.js').isTenantZeroBrand(brand) : null; } catch (_) { decided = null; }
+  const isZero = !brand || (decided !== null ? decided : (!brand.id && zeroSlug && String(brand.slug || '') === zeroSlug));
 
   if (!isZero) {
     const own = (brand && brand.audio_beds) || null;
@@ -352,7 +357,7 @@ function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
     if (!bed) {
       return {
         bed: null,
-        origin: '[DATA REQUIRED BEFORE LAUNCH: brand audio bed, all, all]',
+        origin: `[DATA REQUIRED BEFORE LAUNCH: brand audio bed, ${(brand && brand.name) || 'this brand'}]`,
         spec: '',
         mix: voiceover ? 'bed -18 LUFS, duck 6 dB under VO' : 'music-forward -14 LUFS',
         note: 'Generated video arrives SILENT. No audio bed is on file for this brand, and another brand\'s bed is not licensed for it. Supply an owned or licensed track before this ships as paid media.',

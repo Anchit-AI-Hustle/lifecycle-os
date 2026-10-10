@@ -311,11 +311,18 @@ add('agents', { gate: 'none', browser: 'demo', run: { method: 'GET' },
 });
 add('agent-upsert', { gate: 'none', browser: 'refuse', run: { json: { id: 'agent_x', name: 'X' } },
   stubs: () => S.on(M.agents, 'upsertAgent', async (a) => a),
-  expect: (r) => { expect(r.out).toEqual({ ok: true, agent: { id: 'agent_x', name: 'X' } }); expect(last(M.agents, 'upsertAgent')[0]).toEqual({ id: 'agent_x', name: 'X' }); },
+  // No market named: the agent serves the active brand's HOME market (the
+  // harness brand's is UK), never a literal (2026-10-05).
+  expect: (r) => { expect(r.out).toEqual({ ok: true, agent: { id: 'agent_x', name: 'X', market: 'UK' } }); expect(last(M.agents, 'upsertAgent')[0]).toEqual({ id: 'agent_x', name: 'X', market: 'UK' }); },
 });
 add('agent-sync', { gate: 'none', browser: 'refuse', run: { json: { agent_id: 'agent_x' } },
-  stubs: () => S.on(M.agents, 'syncKnowledge', async () => ({ synced: 1 })),
+  stubs: () => { S.on(M.agents, 'syncKnowledge', async () => ({ synced: 1 })); S.on(M.agents, 'listAgents', async () => [{ id: 'agent_coll', level: 'collection' }, { id: 'agent_own', level: 'brand' }]); },
   expect: (r) => { expect(r.out).toEqual({ ok: true, synced: 1 }); expect(last(M.agents, 'syncKnowledge')).toEqual(['agent_x']); },
+  cases: [
+    // No agent named: the brand's OWN brand-level agent, never tenant zero's
+    // 'agent_knickgasm' (2026-10-05).
+    { name: 'no agent_id syncs the brand\'s own brand-level agent', run: { json: {} }, expect: (r) => { expect(r.status).toBe(200); expect(last(M.agents, 'syncKnowledge')).toEqual(['agent_own']); } },
+  ],
 });
 add('agent-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'hi', agent_id: 'agent_x', session_id: 's1' } },
   stubs: () => S.on(M.agents, 'chat', async () => ({ ok: true, reply: 'r' })),

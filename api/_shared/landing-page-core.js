@@ -81,7 +81,7 @@ function resolveStore(brand, market) {
   if (isZero && STORE[canonicalMarket(market)]) return STORE[canonicalMarket(market)];
   if (isZero && STORE[market]) return STORE[market];
 
-  return '[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + market + ']';
+  return require('./brand-locale.js').marker('region store URL', brand || 'this brand', market || '');
 }
 
 /**

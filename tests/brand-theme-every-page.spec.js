@@ -305,6 +305,12 @@ const STUDIO_STATES = {
     await page.waitForFunction(() => !!document.getElementById('sanityModal') || getComputedStyle(document.getElementById('p5')).display !== 'none', null, { timeout: 8000 });
     await page.waitForTimeout(600);
   },
+  // Continues from the gate: the final output step itself.
+  'step 5: final output': async (page) => {
+    await page.evaluate(() => { const m = document.getElementById('sanityModal'); if (m) m.remove(); showOnly(5); });
+    await page.waitForSelector('#p5', { state: 'visible', timeout: 8000 });
+    await page.waitForTimeout(800);
+  },
   dashboard: async (page) => {
     await page.evaluate(() => switchMainTab('dashboard'));
     await page.waitForSelector('#dashboardView', { state: 'visible', timeout: 8000 });
@@ -317,7 +323,7 @@ const STUDIO_SEQUENCES = [
   ['brief: suggested prompts open', 'assistant: expanded with a reply', 'dashboard'],
   ['brief: creating a brief with AI'],
   ['step 2: products', 'step 3: generating'],
-  ['step 4: review', 'step 4: content preview', 'step 4: prompts', 'step 4: upload a design', 'step 5: final output gate'],
+  ['step 4: review', 'step 4: content preview', 'step 4: prompts', 'step 4: upload a design', 'step 5: final output gate', 'step 5: final output'],
 ];
 function studioKey(seq) { return 'studio: ' + seq.join(' → '); }
 

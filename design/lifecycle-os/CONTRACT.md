@@ -67,14 +67,19 @@ character (the ambient field, frosted cards, the energy line), never a black con
 | Token | Computed by | Guarantee |
 |---|---|---|
 | `--brand-on-primary` | `readableOn(primary, ink, surface, surface_alt)` | validatePalette blocks activation under 4.5:1 |
-| `--brand-primary-text`, `--brand-accent-text`, `--brand-ink-muted` | `readableAsText(c, worstSurface, TEXT_AA)` | 4.9:1 on the worse of surface / surface_alt |
-| `--brand-ok-text`, `--brand-warn-text`, `--brand-err-text` (NEW) | `readableAsText(state, worstSurface, TEXT_AA)` | 4.9:1, so a state word or dot is readable |
+| `--brand-primary-text`, `--brand-accent-text`, `--brand-ink-muted` | `readableOnSurfaces(c, [surface, surface_alt], TEXT_AA)` | 4.9:1 on BOTH surfaces |
+| `--brand-ok-text`, `--brand-warn-text`, `--brand-err-text` (NEW) | `readableOnSurfaces(state, [surface, surface_alt], TEXT_AA)` | 4.9:1 on both surfaces, so a state word or dot is readable |
 | `--brand-surface-sunken` (NEW) | `sunkenSurface()`: the darker surface, darkened in 0.5% steps (cap 4%) while every text token keeps 4.5:1 | every text token is AA on the sunken panel |
 | `--brand-band`, `--brand-band-accent` (NEW) | `sectionGround(primary, accent, surface)` / `sectionGround(accent, primary, surface)` | never a dark neutral |
-| `--brand-on-band`, `--brand-on-band-accent` (NEW) | `textOn(band, surface, ink, TEXT_AA)` | 4.9:1 on the band |
-| `--brand-focus` (NEW) | `readableAsText(accent, worstSurface, 3)` | 3:1 non-text on the worse surface |
+| `--brand-on-band`, `--brand-on-band-accent` (NEW) | `textOn(band, surface, ink, TEXT_AA)`, walking both directions | 4.9:1 on the band, or 4.5:1 on a mid-tone band where 4.9 is unreachable (the best any colour reaches there is about 4.58:1) |
+| `--brand-focus` (NEW) | `readableOnSurfaces(accent, [surface, surface_alt], 3)` | 3:1 non-text on both surfaces |
 
-`worstSurface` is whichever of `surface` / `surface_alt` the primary reads worse on. The NEW tokens
+Two derivations changed here, each found by an EXECUTED sweep of 4,000 random valid palettes
+(`tests/design-system.spec.js`), each mutation-verified: text tokens used to be tuned against
+whichever surface the RAW primary read worse on, so a near-white primary on a tinted page left its
+text at 4.28:1 on the page itself (`readableOnSurfaces()` holds both; 5,922 failing pairings without
+it); and `textOn()` walked one way only, so on a mid-tone band it returned a failing white (947
+failing pairings; it now walks both ways). The NEW tokens
 are emitted by `contractTokens()` on the server and `contractTokensFor()` in `brand-context.js`
 (the device path); the device/server parity test diffs every key. `scripts/brand-sync.js` writes
 tenant zero's values of the same set into `theme.css` as the no-brand fallback.
@@ -181,35 +186,35 @@ tenant zero's values of the same set into `theme.css` as the no-brand fallback.
 | `--brand-primary-soft` | shade(primary, 0.86) | Text selection, soft tints. Only ink text on it. |
 | `--brand-primary-tint` | shade(primary, 0.94) | Illustration ground, decorative tint. Only ink text on it. |
 | `--brand-on-primary` | readableOn(primary, ink, surface, surface_alt) | Text and icons ON a primary fill. validatePalette() blocks activation below 4.5:1. |
-| `--brand-primary-text` | readableAsText(primary, worst surface, TEXT_AA) | The primary AS TEXT: links, active labels, a selected step. Never write var(--brand-primary) as a text colour. |
+| `--brand-primary-text` | readableOnSurfaces(primary, [surface, surface_alt], TEXT_AA) | The primary AS TEXT: links, active labels, a selected step. Never write var(--brand-primary) as a text colour. |
 | `--brand-accent` | palette.accent, else primary | Edges and rules for ordinary states, the energy line, the ambient field. Never text. |
 | `--brand-accent-soft` | shade(accent, 0.88) | Illustration soft fill. |
 | `--brand-on-accent` | readableOn(accent, ink, surface, surface_alt) | Text on an accent fill (rare; prefer the band tokens). |
-| `--brand-accent-text` | readableAsText(accent, worst surface, TEXT_AA) | The accent AS TEXT: eyebrows, badges, the info panel eyebrow. |
+| `--brand-accent-text` | readableOnSurfaces(accent, [surface, surface_alt], TEXT_AA) | The accent AS TEXT: eyebrows, badges, the info panel eyebrow. |
 | `--brand-ink` | palette.ink | Body text, headings, icons. |
-| `--brand-ink-muted` | readableAsText(palette.muted or shade(ink, .35), worst surface, TEXT_AA) | Secondary text. Never under AA: muted is still text. |
+| `--brand-ink-muted` | readableOnSurfaces(palette.muted or shade(ink, .35), [surface, surface_alt], TEXT_AA) | Secondary text. Never under AA: muted is still text. |
 | `--brand-surface` | palette.surface | Page ground and the rail. validatePalette() refuses a dark neutral. |
 | `--brand-surface-alt` | palette.surface_alt, else shade(surface, 0.6) | Panels and cards. |
 | `--brand-surface-sunken` | sunkenSurface(): the darker surface, darkened while every text token keeps 4.5:1 | Sunken panel: status line, failure frame, notice bar, hover rows, the mark tile. |
 | `--brand-line` | shade(ink, 0.84) | Hairlines, card and input borders. |
 | `--brand-line-strong` | shade(ink, 0.68) | Emphasised borders: hover, table header rule, the ? chip ring. |
 | `--brand-band` | sectionGround(primary, accent, surface) | A brand-coloured SECTION ground. Never a dark neutral: a near-black primary falls through to the accent, then the surface. |
-| `--brand-on-band` | textOn(band, surface, ink, TEXT_AA) | Text on --brand-band. |
+| `--brand-on-band` | textOn(band, surface, ink, TEXT_AA): both directions, the 4.5 floor on a mid-tone band | Text on --brand-band. |
 | `--brand-band-accent` | sectionGround(accent, primary, surface) | The accent as a section ground (announcement strip). |
 | `--brand-on-band-accent` | textOn(band-accent, surface, ink, TEXT_AA) | Text on --brand-band-accent. |
 | `--brand-ok` | palette.ok, else the code default | Success fill, edge or dot. Never text. |
 | `--brand-warn` | palette.warn, else the code default | Warning fill or edge (the fix-it notice rule). Never text. |
 | `--brand-err` | palette.err, else the code default | Error edge (the failure frame). Never text. |
-| `--brand-ok-text` | readableAsText(ok, worst surface, TEXT_AA) | A success word, a status dot. |
-| `--brand-warn-text` | readableAsText(warn, worst surface, TEXT_AA) | A warning word, the marker edge. |
-| `--brand-err-text` | readableAsText(err, worst surface, TEXT_AA) | The failure tag, an error word. |
-| `--brand-focus` | readableAsText(accent, worst surface, 3) | The keyboard focus ring: the accent held to the 3:1 non-text minimum. |
+| `--brand-ok-text` | readableOnSurfaces(ok, [surface, surface_alt], TEXT_AA) | A success word, a status dot. |
+| `--brand-warn-text` | readableOnSurfaces(warn, [surface, surface_alt], TEXT_AA) | A warning word, the marker edge. |
+| `--brand-err-text` | readableOnSurfaces(err, [surface, surface_alt], TEXT_AA) | The failure tag, an error word. |
+| `--brand-focus` | readableOnSurfaces(accent, [surface, surface_alt], 3) | The keyboard focus ring: the accent held to the 3:1 non-text minimum. |
 
 ### The derived tokens, computed for every gate palette
 
 | Palette | `primary` | `on-primary` | `primary-text` | `accent-text` | `ink-muted` | `surface-sunken` | `band` | `on-band` | `err-text` | `focus` |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Lifecycle OS neutral | `#24292e` | `#ffffff` | `#24292e` | `#24292e` | `#66686b` | `#ebecee` | `#ffffff` | `#24292e` | `#c0392b` | `#24292e` |
+| Lifecycle OS neutral | `#24292e` | `#ffffff` | `#24292e` | `#24292e` | `#66696b` | `#ebecee` | `#ffffff` | `#24292e` | `#c0392b` | `#24292e` |
 | Example brand (tenant zero) | `#d0473e` | `#ffffff` | `#c6433b` | `#6a33d8` | `#666666` | `#f5f5f5` | `#d0473e` | `#ffffff` | `#c0392b` | `#6a33d8` |
 | Red primary, deep brown accent | `#c8102e` | `#ffffff` | `#c8102e` | `#5b3a29` | `#6d6a68` | `#f5eee8` | `#c8102e` | `#ffffff` | `#c0392b` | `#5b3a29` |
 | Pale primary and accent | `#f3b6b1` | `#1a1a1a` | `#866461` | `#606e7b` | `#6e7072` | `#f5f5f5` | `#f3b6b1` | `#1a1a1a` | `#926460` | `#7c8f9f` |
