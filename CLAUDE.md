@@ -4,6 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A catalogue import reads THIS brand's store, and records where it read (2026-10-10)
+Production's only workspace, "DelhiChic" (website delichic.co.in), had one region IN with `store_url`
+https://www.nike.in and Nike's hosts in `asset_hosts`. The import took "the IN store URL on the brand's own record",
+filed 734 of Nike's products, and recorded `catalog_source.url = https://delichic.co.in` (rowsFromStore returned the
+URL ASKED for as `base`). Correcting the store on screen did not help: the server read the SAVED regions, Continue
+import resumed nike.in's cursor, and "612 products in this workspace" counted Nike's rows. Gated by
+`tests/catalog-store-identity.spec.js` over `tests/fixtures/live-delhichic.js` (executed; mutation-checked).
+- **Import** (`catalog-import.js` `ownScope()` / `regionalBase()` / `cursorProblem()`): a region store_url, hreflang
+  alternate or asset host is used only when `brand-coherence.sameBrand()` says it is the website's brand (no second
+  domain comparison); a store on another site is not read and the coverage says so in a sentence. A record's
+  store_url replaces the URL given only when that URL IS the website. No website: as before.
+- **Where it read**: `rowsFromStore` returns `base` = the store actually read and `start` = the URL asked for;
+  `catalog_source.url` is the base, `catalog_import.url` the start (what Continue resumes), `.base` beside it.
+- **A cursor is a place in ONE source**: Continue import (account, device, daily refresh) discards a cursor for
+  another URL (the box's URL is sent) or on another brand's site, starts again, and says why in the coverage.
+- **Coherence**: `regions[].store_url` on another domain BLOCKS; an asset host BLOCKS when it is the same brand as
+  another foreign site on the record (a store, a read page); a CDN under another name with none beside it still warns.
+- **Counts**: `productTally()` / `deviceProductTally()` judge each live row as generators do; `products` is the
+  brand's OWN count (readiness too), `products_excluded` + `_domains` beside it; the wizard says both, saves before
+  every import, and never prefills the import box with a store on another site.
+
 ## ⭐ Another brand's catalogue never reaches generation (2026-10-10)
 Production, /brain, the brand "Mamaearth" (IN): Smart Brain's mailers said "Uncompromising Chicken Black Pepper
 Salami", "100% premium chicken, no pork" - Deli Chic's products. The live record (`tests/fixtures/live-mixed-brand.js`)
