@@ -1209,14 +1209,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
            already exists (it has an id) only its DESIGN is a template - the
            colours, fonts and voice - and the brand keeps its own name,
            website, logo, regions, assets and slug: copying those kept the id
-           and turned the brand into the preset. On a new brand the whole
+           and turned the brand into the preset. On a new (unsaved) brand the
            template is the starting point, the record says which template
            (brand_data.template), and the slug is made from the NAME, never
            taken from the preset (the KNICKGASM preset's slug used to ride
            into every brand built from it). */
         var existing = !!brand.id;
         if (!existing) {
-          startNewBrand();
+          // Laid over the unsaved form, not a wipe of it: what the person has
+          // already read or applied stays, and anything from another source
+          // than the template is then listed by the coherence check.
+          if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {};
           ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) brand[k] = p[k]; });
           brand.slug = slugify(brand.name);
           if (p.regions) brand.regions = JSON.parse(JSON.stringify(p.regions));
@@ -3046,8 +3049,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     /* A brand book names its brand (2026-10-10). Applying another brand's
        book filled this brand's untyped name, website and legal entity with
        that brand's, and its colours and fonts with the rest. When the book
-       names a different brand or a website on another domain, the person
-       says which brand it is before anything is applied. */
+       names a website on another domain, the person says which brand it is
+       before anything is applied. */
     var dName = rep.fields && rep.fields.name ? String(rep.fields.name.value || '') : '';
     var dSite = rep.fields && rep.fields.website ? String(rep.fields.website.value || '') : '';
     var Lc = coh();
@@ -3055,7 +3058,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var foldN = function (v) { return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); };
       var otherSite = dSite && brand.website && !Lc.sameBrand(regOf(dSite), regOf(brand.website));
       var otherName = dName && brand.name && foldN(dName).indexOf(foldN(brand.name)) < 0 && foldN(brand.name).indexOf(foldN(dName)) < 0;
-      if (otherSite || otherName) { DOC.identityAsk = { name: dName, website: dSite }; render(); return; }
+      // A website on another domain is a clear mix: ask. A name alone that
+      // differs (a typed variant, a trading name) is applied, and the record
+      // keeps what the book describes, so the coherence check WARNS on it.
+      if (otherSite) { DOC.identityAsk = { name: dName, website: dSite }; render(); return; }
+      void otherName;
     }
     DOC.identityAsk = null;
     DOC.busy = true; DOC.error = null; DOC.errorTitle = '';
