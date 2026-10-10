@@ -313,7 +313,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function seedPalette() {
     var b = onboarded(), p = (b && b.palette) || {};
-    return { primary: p.primary || '#D0473E', accent: p.accent || '#6A33D8', text: p.ink || '#111111', bg: p.surface || '#FFFFFF' };
+    return { primary: p.primary || '#D0473E', accent: p.accent || p.primary || '#6A33D8', text: p.ink || '#111111', bg: p.surface || '#FFFFFF' };
   }
   function seedType() {
     var b = onboarded(), t = (b && b.typography) || {};

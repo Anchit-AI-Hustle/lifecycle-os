@@ -1,16 +1,16 @@
 {
-  "format": "preset-observation/2",
+  "format": "preset-observation/3",
   "ok": false,
   "palette_ok": false,
   "slug": "makemytrip",
   "start": "https://www.makemytrip.com",
   "landed": "https://www.makemytrip.com",
-  "observed_at": "2026-10-04",
+  "observed_at": "2026-10-05",
   "renderer": "timeout",
   "reason": "The site could not be opened: timed out.",
   "read_attempt": {
     "renderer": "timeout",
-    "at": "2026-10-04",
+    "at": "2026-10-05",
     "host": "www.makemytrip.com",
     "reason": "The site could not be opened: timed out."
   },
@@ -20,5 +20,130 @@
     "browser": "",
     "chromium": ""
   },
-  "note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-05. Its own other material was tried too: www.makemytrip.com (timeout), careers.makemytrip.com (timeout), investors.makemytrip.com (timeout), www.makemytrip.com (timeout), www.makemytrip.com (timeout), www.makemytrip.com (timeout). Nothing was filled in; the preset stays on the neutral default.",
+  "reads": [
+    {
+      "url": "https://www.makemytrip.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www.makemytrip.com/flights/",
+      "role": "identity source",
+      "what": "MakeMyTrip flights page",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.makemytrip.com",
+        "registrable": "makemytrip.com",
+        "website_host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://careers.makemytrip.com/",
+      "role": "identity source",
+      "what": "MakeMyTrip careers site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "careers.makemytrip.com",
+        "registrable": "makemytrip.com",
+        "website_host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://investors.makemytrip.com/",
+      "role": "identity source",
+      "what": "MakeMyTrip investor relations",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "investors.makemytrip.com",
+        "registrable": "makemytrip.com",
+        "website_host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://www.makemytrip.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.makemytrip.com",
+        "registrable": "makemytrip.com",
+        "website_host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "www.makemytrip.com did not answer for /apple-touch-icon.png in time."
+    },
+    {
+      "url": "https://www.makemytrip.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.makemytrip.com",
+        "registrable": "makemytrip.com",
+        "website_host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "not tried: www.makemytrip.com did not answer the previous image read in time"
+    },
+    {
+      "url": "https://www.makemytrip.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.makemytrip.com",
+        "registrable": "makemytrip.com",
+        "website_host": "www.makemytrip.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "not tried: www.makemytrip.com did not answer the previous image read in time"
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 # Lifecycle OS — iOS & Android (Capacitor)
 
 The native apps are a **Capacitor** shell that loads the live web app
-(`https://knickgasm.vercel.app`) in a full-screen
+(`https://lifecycle-os.anchit-tandon.com`) in a full-screen
 native WebView. This keeps one codebase, keeps `/api/*` and Google sign-in
 working against the real https origin, and means **content updates ship with
 your normal Vercel deploy — no app rebuild needed**.

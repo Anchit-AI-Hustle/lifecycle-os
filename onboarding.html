@@ -213,6 +213,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .preset .pblurb{font-size:12px;line-height:1.45;color:var(--ink);margin-bottom:9px}
   /* The four roles a brand's own site renders, each NAMED. A row of anonymous
      chips cannot say which is the brand colour and which is the page. */
+  .preset .plogo{width:32px;height:32px;object-fit:contain;border-radius:7px;border:1px solid var(--line,#d8d8d8);background:var(--surface,#fff);margin:0 0 8px;display:block}
   .preset .pswatch{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
   .preset .psw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:38px}
   .preset .psw i{width:24px;height:20px;border-radius:5px;border:1px solid var(--line,#d8d8d8);display:block}
@@ -465,11 +466,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   /* A brand kept on this device (its id is `local-…`, brand-context.js). */
   function isLocalId(id) { return typeof id === 'string' && id.indexOf('local-') === 0; }
-  /* The clause that names what has to change. Signing in with a mobile number
-     and PIN is the remedy on every deployment now (2026-10-03): a phone
-     sign-in's token is sent, and the server acts for it whether the account is
-     in a database or kept on this device. */
-  function accountClause() { return 'you sign in with your mobile number and PIN'; }
+  /* The clause that names what has to change. Sign-in is Google (2026-10-05). */
+  function accountClause() { return 'you sign in with Gmail'; }
   /* The mobile+PIN session, if that is who is here. */
   function phoneSession() { var s = storageInfo(); return (s && s.session) || null; }
   /* SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). The
@@ -1118,8 +1116,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         return { role: r, value: (p.swatch || [])[[0, 1, 3, 2][i]] || '' };
       });
       var siteHost = esc((p.website || '').replace(/^https?:\/\//, '').replace(/\/.*$/, ''));
+      /* Where the values were READ: the home page, or - when it refused an
+         automated reader - the brand's other own pages (its guidelines,
+         press or newsroom page), named on the card. */
+      var readHosts = (p.read_from && p.read_from.length) ? p.read_from.map(esc).join(', ') : siteHost;
+      var logo = (/^https:\/\//i.test(p.logo_url || ''))
+        ? '<img class="plogo" alt="" src="' + esc(p.logo_url) + '">' : '';
       return '<button type="button" class="preset' + (isDefault ? ' pdefault' : '') + '" data-preset="' + esc(p.slug) + '" aria-pressed="' + (presetPicked === p.slug ? 'true' : 'false') + '">' +
-        '<div class="pswatch" aria-label="' + (isDefault ? 'Default palette' : 'Palette read from ' + siteHost) + '">' + sw.map(function (s) {
+        logo +
+        '<div class="pswatch" aria-label="' + (isDefault ? 'Default palette' : 'Palette read from ' + readHosts) + '">' + sw.map(function (s) {
           var t = s.role + ' ' + s.value + (s.derived ? ' (derived' + (s.exact ? ' from ' + s.exact : '') + ')' : '');
           return '<span class="psw" data-role="' + esc(s.role) + '" title="' + esc(t) + '"><i style="background:' + esc(s.value) + '"></i><b>' + esc(s.role) + (s.derived ? '*' : '') + '</b></span>';
         }).join('') + '</div>' +
@@ -1129,12 +1134,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         (isDefault
           ? '<div class="pchip">Default palette, not this brand\'s</div>' +
             (p.read_note ? '<div class="pwhy">' + esc(p.read_note) + '</div>' : '')
-          : '<div class="ptype">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>') +
+          : '<div class="ptype">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>' +
+            (p.palette_note ? '<div class="pwhy">' + esc(p.palette_note) + '</div>' : '')) +
         '<div class="pmeta" style="margin-top:4px">' +
           (isDefault
             ? 'Press Read my site above to fill the real values from ' + siteHost + '.'
               + (p.placeholder_products ? ' Ships with ' + p.placeholder_products + ' placeholder products so the layouts render; they are not this brand\'s.' : '')
-            : (p.verified_at ? 'Read from ' + siteHost + ' on ' + esc(p.verified_at) + '. ' : '') +
+            : (p.verified_at ? 'Read from ' + readHosts + ' on ' + esc(p.verified_at) + '. ' : '') +
               'Sells: ' + esc((p.offering_kinds || ['product']).join(', ')) +
               (p.offering_count ? ' &middot; ' + p.offering_count + ' listed' : '') +
               (p.has_catalog ? ' &middot; live feed' : '')) +
@@ -1605,7 +1611,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // every deployment now - a server-mode sign-in is verified, and a
       // device-mode one is admitted as the person on this page.
       lead = 'Needs your sign-in.';
-      body = 'Sign in with your mobile number and PIN (the Sign in chip in the menu) and it reads your site'
+      body = 'Sign in with Gmail (the Sign in with Gmail chip in the menu) and it reads your site'
         + (rs.state === 'backend-answers' ? ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.' : '.');
     } else {
       // supabase-js did not load, so this page cannot tell whether the server
@@ -1621,7 +1627,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      it. The remedy that works is to sign in again. */
   function staleSessionSentence(st) {
     var host = st && st.host ? ' (' + st.host + ')' : '';
-    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Signing out and entering your number again creates the account there, and then this works.';
+    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Sign out and continue with Gmail, and then this works.';
   }
 
   function extractBlock() {
@@ -2816,22 +2822,61 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return { source: (p && p.source) || '', url: (p && p.url) || '', page: (p && p.page) || null, line: (p && p.line) || null, quote: (p && p.quote) || '', value: normVal(value), raw: raw === undefined ? value : raw };
   }
 
+  /* A public page, as opposed to a share-link viewer or a sign-in page.
+     Those stay a refusal: the bytes are a login screen, not the brand. */
+  function isWebsiteLink(raw) {
+    var u;
+    try { u = new URL(String(raw || '').trim()); } catch (_) { return false; }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    var host = u.hostname.toLowerCase();
+    var viewers = ['drive.google.com', 'docs.google.com', 'dropbox.com', 'www.dropbox.com', 'accounts.google.com', 'github.com', 'gitlab.com', '1drv.ms', 'onedrive.live.com'];
+    if (viewers.indexOf(host) >= 0) return false;
+    if (/(^|\.)sharepoint\.com$/.test(host) || /(^|\.)dropbox\.com$/.test(host)) return false;
+    var path = u.pathname || '/';
+    if (/\/(login|signin|sign-in|sign_in|oauth|auth)(\/|$)/i.test(path)) return false;
+    if (/\.(pdf|docx?|pptx?|xlsx?|csv|md|markdown|txt|css|json|svg|png|jpe?g|gif|webp|zip|woff2?)$/i.test(path)) return false;
+    return true;
+  }
+  function websiteGuideSentence(url) {
+    var host = url;
+    try { host = new URL(url).host; } catch (_) {}
+    return host + ' is your website, so it is read with Read my site, above. A brand-guidelines link is the file itself: a PDF, a DOCX, a DESIGN.md or a token file.';
+  }
+  /* The guidelines box was given a website. Fill Read my site and run it.
+     A read already in progress is left to finish; a second one is not started. */
+  function readWebsiteAsSite(url) {
+    xUrlDraft = url;
+    if (!brand.website) brand.website = url;
+    if (extractOff() || extractBusy) { DOC.status = websiteGuideSentence(url); render(); return; }
+    var input = $('xUrl');
+    if (input) input.value = url;
+    runExtract();
+  }
+
   /* ── reading ── */
   async function docRead(job, label) {
     if (DOC.busy) return;
     DOC.busy = true; DOC.error = null; DOC.errorTitle = ''; DOC.status = 'Reading ' + label + '...'; render();
+    var asSite = '';
     try {
       var rep = await job();
       docTook(rep);
       DOC.status = 'Read ' + rep.source.name + ': ' + docCount(rep) + ' value(s) stated. Nothing is applied until you press Apply.';
     } catch (e) {
       DOC.report = null;
-      DOC.error = e;
-      DOC.status = '';
+      if (e && e.website) {
+        DOC.error = null;
+        DOC.status = websiteGuideSentence(label);
+        asSite = label;
+      } else {
+        DOC.error = e;
+        DOC.status = '';
+      }
     } finally {
       DOC.busy = false;
       render();
     }
+    if (asSite) readWebsiteAsSite(asSite);
   }
   function docCount(rep) {
     var f = rep.fields, n = 0;
@@ -3135,7 +3180,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function docBlock() {
     var busy = DOC.busy;
     var out = '<div class="xtract" id="docBlock" data-no-brand-swap><h3>Upload my brand guidelines</h3>' +
-      '<p class="xmeta">Your brand book or style guide states the brand in its own words: its colours and their roles, its typefaces, its logo and clear-space rules, its voice and the words it bans. Upload it as a file, or paste a link to it; either is enough. PDF, Word (.docx), DESIGN.md, JSON design tokens (W3C, Style Dictionary, Tokens Studio, a Figma variables export), CSS, SVG or an image of a style sheet. It is read in this browser, every value keeps the page and line it came from, and nothing is applied until you press Apply.</p>' +
+      '<p class="xmeta">Your brand book or style guide states the brand in its own words: its colours and their roles, its typefaces, its logo and clear-space rules, its voice and the words it bans. Upload it as a file, or paste a link to it; either is enough. PDF, Word (.docx), DESIGN.md, JSON design tokens (W3C, Style Dictionary, Tokens Studio, a Figma variables export), CSS, SVG or an image of a style sheet. It is read in this browser, every value keeps the page and line it came from, and nothing is applied until you press Apply. Your website goes in Read my brand from my website, above; a link to the site itself is read there.</p>' +
       '<div class="pair" style="margin-top:11px">' +
         '<label class="btn primary" id="docFileBtn">' + (busy ? 'Reading...' : 'Upload a file') + '<input type="file" id="docFile" accept=".pdf,.docx,.md,.markdown,.json,.css,.svg,.png,.jpg,.jpeg,.webp,.txt,application/pdf"></label>' +
         '<span class="pair-or">or paste a link</span>' +
@@ -3468,7 +3513,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var url = ($('docUrl') && $('docUrl').value.trim()) || '';
       if (!url) { DOC.status = 'Paste the address of your brand guidelines first, or upload the file.'; render(); return; }
       DOC.source = null;
-      docRead(function () { return waitDocLib().then(function (lib) { return lib.readUrl(url, { viaServer: docViaServer }); }); }, url);
+      docRead(function () {
+        return waitDocLib().then(function (lib) {
+          return lib.readUrl(url, { viaServer: docViaServer }).catch(function (e) {
+            // A public website is not a brand book. The document reader refuses
+            // HTML (a sign-in page must not be parsed as the guide). The same
+            // address is what Read my site is for, so it is read there.
+            if (e && (e.code === 'html_page' || e.code === 'document_is_a_web_page') && isWebsiteLink(url)) e.website = true;
+            throw e;
+          });
+        });
+      }, url);
     });
     var ap = $('docApply'); if (ap) ap.addEventListener('click', docApply);
     var rv = $('docRevert'); if (rv) rv.addEventListener('click', docRevert);
