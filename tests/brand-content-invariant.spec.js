@@ -128,6 +128,7 @@ const GENERATORS = [
   { id: 'access-narrative', path: '/api/brain', q: { action: 'access-narrative' }, body: () => ({}), modes: ['device'] },
   { id: 'analysis-narrative', path: '/api/brain', q: { action: 'analysis-narrative' }, body: () => ({}), modes: ['device'] },
   { id: 'agentic-run', path: '/api/brain', q: { action: 'agentic-run' }, body: () => ({ days: 1, withCreatives: false, tier: 'budget' }), modes: ['device', 'account'], own: ['name', 'palette.primary', 'font.heading', 'claim'], marker: true,
+    statuses: { 409: (b) => (homeOf(b) ? null : 'a brand that declares no market is refused with the home-market marker (market_required), never planned as US') },
     market: ENTRY_MARKET((j) => [j.market].concat((j.campaigns || []).map((c) => c.market))) },
   { id: 'generate', path: '/api/brain', q: { action: 'generate' }, body: () => ({ slot_id: 'slot-inv-1' }), modes: ['device'], marker: true,
     statuses: { 409: 'the legacy slot engine is tenant zero\'s content library: any other brand is refused with a marker, never built as tenant zero' } },
@@ -157,7 +158,7 @@ const GENERATORS = [
     statuses: { 409: 'the lifecycle programme is tenant zero\'s product lanes: refused for any other brand with a marker' } },
   { id: 'trigger-mailer', path: '/api/calendar', q: { action: 'trigger-mailer' }, body: (b) => ({ entry: { date: '2026-10-20', market: homeOf(b) || 'GLOBAL', segment: 'At-Risk', archetype: 'hero-led-editorial', content_type: 'winback', hero_product: (b.catalogue[0] || {}).title || 'the product' } }), modes: ['device', 'account'], own: ['name', 'palette.primary', 'font.heading', 'legal entity'], marker: true, templates: true },
   { id: 'generate', path: '/api/calendar', q: { action: 'generate' }, body: (b) => ({ days: 7, markets: homeOf(b) ? [homeOf(b)] : undefined, analytics: { segments: [{ name: 'At Risk', count: 400, revenue: 1000 }] } }), modes: ['device', 'account'],
-    statuses: { 400: 'a brand that declares no market is told so (markets_required), never planned as US' } },
+    statuses: { 400: (b) => (homeOf(b) ? null : 'a brand that declares no market is told so (markets_required), never planned as US') } },
   // ── api/ai/generate.js: every mode ──
   ...['create_brief', 'concepts', 'mailer_full', 'suggested_prompts', 'chat', 'landing_page', 'autofill', 'audience_segment'].map((mode) => ({
     id: mode, path: '/api/ai/generate', q: {}, modes: ['device', 'account'], templates: mode === 'create_brief',
@@ -174,7 +175,9 @@ const GENERATORS = [
       plan: { sections: [{ id: 'hero', type: 'centered', copy: { headline: 'Back again', subcopy: 'For you', cta: 'See it' } }], subject_lines: ['Back again'], preheader: 'For you' },
       requirements: [{ slot: 'hero', prompt: 'the hero product', size: '1024x1024' }], image_style_lock: 'natural light',
       html_a: '<html><body>a</body></html>', html_b: '<html><body>b</body></html>', variant_a_plan: {}, variant_b_plan: {} }),
-    own: stage === 'score' || stage === 'images' ? [] : ['name'],
+    // The copywriting stage is briefed with the brand block, which names the
+    // sender a commercial email must carry: the brand's own, never anyone's.
+    own: stage === 'score' || stage === 'images' ? [] : stage === 'variant' ? ['name', 'legal entity'] : ['name'],
     statuses: { 502: 'the scripted model returns prose, not a mailer; the stage refuses it and the PROMPT is what is judged' },
   })),
   // ── the brand layer and its neighbours ──
@@ -247,7 +250,10 @@ async function drive(w, mode, g, b, opts) {
   const tag = `${mode}${o.down ? ' (models down)' : ''} ${g.path}?${new URLSearchParams(g.q)} [${g.id}] for ${b.name}`;
   const problems = [];
   const ok2xx = res.status >= 200 && res.status < 300;
-  const allowed = g.statuses && g.statuses[res.status];
+  // A reason may depend on the brand: a refusal that is right for a brand that
+  // declares no market is a defect for one that does.
+  const why = g.statuses && g.statuses[res.status];
+  const allowed = typeof why === 'function' ? why(b) : why;
   if (!ok2xx && !allowed) problems.push(`${tag}: answered ${res.status}: ${out.slice(0, 200)}`);
   for (const l of foreign(out, b)) problems.push(`${tag}: OUTPUT carries ${l.label} "${l.needle}" … ${l.at}`);
   for (const l of foreign(prompts, b)) problems.push(`${tag}: PROMPT carries ${l.label} "${l.needle}" … ${l.at}`);
