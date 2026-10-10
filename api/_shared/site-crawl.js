@@ -270,8 +270,67 @@ async function robotsInfo(origin, fetchImpl, timeoutMs) {
       else if (k === 'sitemap' && v) out.sitemaps.push(v);
       else if (inStar && k === 'disallow' && v) out.disallow.push(v);
     }
+    out.rules = parseRobots(r.body);
     return out;
   } catch (_) { return out; }
+}
+
+/* ── RFC 9309 matching (2026-10-10) ────────────────────────────────────────
+   The prefix-only reading above missed `*` and `$` (Shopify's own robots.txt
+   is written in them) and the Allow lines that carve exceptions out of a
+   Disallow. These are the rules every reader of this module applies now. */
+/**
+ * The rules that apply to this crawler: the group naming its product token if
+ * there is one, else the `*` group. Each rule keeps its type, so the longest
+ * match can decide and Allow can win a tie (RFC 9309 2.2.2).
+ */
+function parseRobots(body, token) {
+  const groups = [];
+  let cur = null, lastWasAgent = false;
+  for (const line of String(body || '').split(/\r?\n/)) {
+    const s = line.split('#')[0].trim();
+    if (!s) continue;
+    const i = s.indexOf(':');
+    if (i < 0) continue;
+    const k = s.slice(0, i).trim().toLowerCase();
+    const v = s.slice(i + 1).trim();
+    if (k === 'user-agent') {
+      if (!cur || !lastWasAgent) { cur = { agents: [], rules: [] }; groups.push(cur); }
+      cur.agents.push(v.toLowerCase());
+      lastWasAgent = true;
+      continue;
+    }
+    lastWasAgent = false;
+    if (!cur) continue;
+    if (k === 'allow' || k === 'disallow') cur.rules.push({ allow: k === 'allow', path: v });
+  }
+  const tok = String(token || 'lifecycleos-brandcrawler').toLowerCase();
+  const mine = groups.filter((g) => g.agents.some((a) => a !== '*' && tok.startsWith(a)));
+  const pick = mine.length ? mine : groups.filter((g) => g.agents.includes('*'));
+  const rules = [];
+  for (const g of pick) for (const r of g.rules) if (r.path || !r.allow) rules.push(r);
+  return rules.filter((r) => r.path !== '');   // an empty Disallow allows everything
+}
+
+function ruleMatches(rulePath, path) {
+  const anchored = rulePath.endsWith('$');
+  const body = anchored ? rulePath.slice(0, -1) : rulePath;
+  const rx = new RegExp('^' + body.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + (anchored ? '$' : ''));
+  return rx.test(path);
+}
+
+/** true = this path may be fetched. Longest matching rule wins; Allow wins a tie. */
+function robotsAllows(rules, url) {
+  if (rules === 'all') return false;
+  let path;
+  try { const u = new URL(url); path = u.pathname + u.search; } catch (_) { return false; }
+  let best = null;
+  for (const r of rules || []) {
+    if (!ruleMatches(r.path, path)) continue;
+    const len = r.path.replace(/\$$/, '').length;
+    if (!best || len > best.len || (len === best.len && r.allow && !best.allow)) best = { len, allow: r.allow };
+  }
+  return !best || best.allow;
 }
 
 /** Kept for callers that only ever wanted the Disallow prefixes. */
@@ -394,6 +453,38 @@ async function defaultFetch(url, timeoutMs, ua) {
 }
 
 /**
+ * robots.txt and sitemaps through the DEFAULT fetcher (2026-10-10).
+ *
+ * `defaultFetch` refuses anything that is not text/html, which is right for a
+ * page and wrong for these two: robots.txt is text/plain and a sitemap is XML
+ * (or gzip). With no `fetchImpl` injected, `assetFetch` fell back to that page
+ * fetcher, so in PRODUCTION every robots.txt read as absent - the disallow list
+ * was empty and a crawler whose user agent says it respects robots.txt fetched
+ * disallowed pages - and every sitemap read as absent too. Measured on fixture
+ * stores on 127.0.0.1 through the shipped import: a disallowed page fetched,
+ * and 1 of 60 sitemap-declared products found. Every test injected its own
+ * fetcher, which is why none of them saw it.
+ */
+async function defaultAssetFetch(url, timeoutMs, ua) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, {
+      redirect: 'follow', signal: ctrl.signal,
+      headers: { 'User-Agent': ua, Accept: 'text/plain,application/xml,text/xml,*/*' },
+    });
+    if (!r.ok) return { ok: false, status: r.status, body: '' };
+    let buf = typeof r.arrayBuffer === 'function' ? Buffer.from(await r.arrayBuffer()) : Buffer.from(String(await r.text()), 'utf8');
+    if (buf.length > 1 && buf[0] === 0x1f && buf[1] === 0x8b) {
+      try { buf = require('zlib').gunzipSync(buf, { maxOutputLength: 52428800 }); } catch (_) { return { ok: false, status: r.status, body: '' }; }
+    }
+    return { ok: true, status: r.status, body: buf.toString('utf8'), url: r.url || url };
+  } catch (e) {
+    return { ok: false, status: 0, body: '', error: String((e && e.message) || e) };
+  } finally { clearTimeout(t); }
+}
+
+/**
  * Breadth-first over the brand's own site.
  *
  * `fetchImpl` is injectable so the extraction can be tested against fixtures
@@ -458,7 +549,7 @@ async function crawlSite(startUrl, opts) {
   // which is exactly what every existing caller already got.
   const assetFetch = o.assetFetch
     ? (u, ms) => o.assetFetch(u, ms)
-    : fetchImpl;
+    : (o.fetchImpl ? fetchImpl : (u, ms) => defaultAssetFetch(u, ms, o.userAgent));
 
   const start = absolute(startUrl, startUrl);
   if (!start || !inScope(start, hosts)) {
@@ -468,13 +559,10 @@ async function crawlSite(startUrl, opts) {
   const origin = new URL(start).origin;
   let robotsRead = { disallow: [], sitemaps: [], read: false };
   try { robotsRead = await robotsInfo(origin, assetFetch, o.perRequestMs); } catch (_) {}
-  const robots = robotsRead.disallow;
-  const blockedByRobots = (u) => {
-    try {
-      const p = new URL(u).pathname;
-      return robots.some((rule) => rule !== '/' && p.startsWith(rule));
-    } catch (_) { return false; }
-  };
+  // RFC 9309: groups, Allow and Disallow, `*` and `$`, the longest match wins.
+  // `Disallow: /` is honoured like any other rule.
+  const robotsRules = robotsRead.rules || robotsRead.disallow.map((path) => ({ allow: false, path }));
+  const blockedByRobots = (u) => !robotsAllows(robotsRules, u);
 
   const skip = typeof o.skip === 'function' ? o.skip : null;
   const deadline = Date.now() + o.totalMs;
@@ -631,4 +719,5 @@ async function crawlSite(startUrl, opts) {
 module.exports = {
   crawlSite, extract, linksFrom, allowedHosts, inScope, jsonLdBlocks, metaTags, DEFAULTS,
   robotsInfo, disallowedPaths, readSitemaps, locsFrom, isSitemapIndex, SITEMAP_LIMITS,
+  defaultFetch, defaultAssetFetch, parseRobots, robotsAllows,
 };
