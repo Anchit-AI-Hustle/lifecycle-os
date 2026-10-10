@@ -140,11 +140,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="grid c4">
         <div>
           <label for="c-primary">Primary (accent)</label>
-          <div class="swatch"><input type="color" id="c-primary-pick"><input type="text" id="c-primary" maxlength="7" placeholder="#D0473E"></div>
+          <div class="swatch"><input type="color" id="c-primary-pick"><input type="text" id="c-primary" maxlength="7" placeholder="#RRGGBB"></div>
         </div>
         <div>
           <label for="c-accent">Secondary</label>
-          <div class="swatch"><input type="color" id="c-accent-pick"><input type="text" id="c-accent" maxlength="7" placeholder="#6A33D8"></div>
+          <div class="swatch"><input type="color" id="c-accent-pick"><input type="text" id="c-accent" maxlength="7" placeholder="#RRGGBB"></div>
         </div>
         <div>
           <label for="c-text">Ink / text</label>
@@ -279,7 +279,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!isHex(bg) || !isHex(ink) || !isHex(primary) || !isHex(accent)) return;
     var pv = $('preview');
     pv.style.background = bg;
-    $('pv-bar').style.color = primary;
+    /* The bar shows the name in the primary when it reads on the background
+       (3:1, large text); a pale primary would be invisible, so the ink takes it. */
+    $('pv-bar').style.color = ratio(primary, bg) >= 3 ? primary : ink;
     $('pv-body').style.color = ink;
     var cta = $('pv-cta');
     cta.style.background = ink; cta.style.color = bg;
@@ -313,7 +315,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function seedPalette() {
     var b = onboarded(), p = (b && b.palette) || {};
-    return { primary: p.primary || '#D0473E', accent: p.accent || p.primary || '#6A33D8', text: p.ink || '#111111', bg: p.surface || '#FFFFFF' };
+    /* A brand with no palette of its own starts from what the page is wearing
+       (the contract's tokens), never from another brand's hexes. */
+    var cs = getComputedStyle(document.documentElement);
+    function tok(n) { var v = String(cs.getPropertyValue(n) || '').trim(); return /^#[0-9a-f]{6}$/i.test(v) ? v : ''; }
+    var primary = p.primary || tok('--vh-primary') || tok('--brand-primary');
+    return { primary: primary, accent: p.accent || p.primary || tok('--vh-accent') || primary,
+             text: p.ink || tok('--vh-ink'), bg: p.surface || tok('--vh-bg') || tok('--vh-panel') };
   }
   function seedType() {
     var b = onboarded(), t = (b && b.typography) || {};

@@ -479,6 +479,11 @@ const PROBE = `(async (cfg) => {
     textFails: [], groundFails: [], foreign: [], forbidden: [], fonts: [], buttons: [], chrome: {} };
   const seenForeign = new Set(), seenForbid = new Set(), seenFont = new Set();
   function noteForeign(el, prop, c) {
+    /* The rail is PLATFORM chrome (docs/platform-identity.md): the third-party
+       logos it shows (Meta, Google...) carry their owners' colours on purpose
+       and are never recoloured to a tenant's hue. Forbidden literals, text and
+       grounds in the rail are still judged; only "foreign hue" is exempt. */
+    try { if (el.closest('#lifecycle-nav')) return; } catch (_) {}
     const h = hex(c);
     const k = prop + '|' + h + '|' + path(el);
     if (seenForeign.has(k)) return; seenForeign.add(k);
