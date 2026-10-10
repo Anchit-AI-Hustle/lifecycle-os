@@ -293,7 +293,7 @@ a{color:var(--vh-link);}
       <!-- footer -->
       <footer class="m-foot">
         <button type="button" class="logo" id="brandLogo" aria-label="KNICKGASM USA home">
-          <img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM">
+          <img data-shipped-src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" data-brand-logo alt="KNICKGASM">
         </button>
         <div class="legal" id="mLegal"></div>
         <div class="links">
@@ -389,8 +389,15 @@ a{color:var(--vh-link);}
   // purpose, until an approved review library is wired. So no rating or review
   // count is rendered here at all - not a rounded one, not a placeholder that
   // looks like one. See docs/campaign-orchestration-master-spec.md.
-  var STORE = "https://www.knickgasm.com";
-  var pdp = function(h){ return h ? (STORE + "/products/" + h) : "#"; };
+  // The ACTIVE brand's own product pages (2026-10-05): a row's own URL, else
+  // its handle on the brand's own store (BrandCatalog.productUrl). This was
+  // tenant zero's store for every brand.
+  var pdp = function(p){
+    if(!p) return "#";
+    if(p.url) return p.url;
+    var BC=window.BrandCatalog;
+    return (BC && p.row && BC.productUrl(p.row, "us")) || "#";
+  };
   var NEED_REVIEWS = "[DATA REQUIRED BEFORE LAUNCH: approved review library (rating, review count, reviewer), active brand, per product and region]";
   var HERO = null;
   var PRODUCTS = [];
@@ -525,14 +532,14 @@ a{color:var(--vh-link);}
     tasting.textContent=HERO.subtitle||"";
     price.innerHTML=HERO.price!=null&&HERO.price!==""?esc(money(HERO.price)):'<span class="vh-marker">[DATA REQUIRED BEFORE LAUNCH: price, '+esc(HERO.name)+', US]</span>';
     if(HERO.img) img.style.backgroundImage="url('"+HERO.img+"')";
-    if(HERO.handle){ cta.setAttribute("href",pdp(HERO.handle)); } else { cta.removeAttribute("href"); }
+    if(pdp(HERO)!=="#"){ cta.setAttribute("href",pdp(HERO)); } else { cta.removeAttribute("href"); }
 
     document.getElementById("editorial").innerHTML=PRODUCTS.map(function(p,i){
       var thumb=p.img?'<div class="thumb" style="background-image:url(\''+p.img+'\')"></div>':'<div class="thumb"></div>';
       var copy='<div><span class="kicker">From this brand&rsquo;s catalogue</span><h3>'+esc(p.name)+'</h3>'+
         '<p>'+esc(p.subtitle||"")+'</p>'+
         '<div class="ed-actions">'+
-        '<a class="cta-inline" target="_blank" rel="noopener" href="'+esc(pdp(p.handle))+'">Shop'+(p.price!=null&&p.price!==""?' &middot; '+esc(money(p.price)):'')+'</a>'+
+        '<a class="cta-inline" target="_blank" rel="noopener" href="'+esc(pdp(p))+'">Shop'+(p.price!=null&&p.price!==""?' &middot; '+esc(money(p.price)):'')+'</a>'+
         '<span class="ed-note" title="'+esc(NEED_REVIEWS)+'">Reviews not connected</span></div></div>';
       return '<div class="ed-row '+(i%2?'b':'a')+'">'+(i%2? copy+thumb : thumb+copy)+'</div>';
     }).join("");
@@ -581,7 +588,7 @@ a{color:var(--vh-link);}
       // another company's mark under its footer.
       var logoBtn=document.getElementById("brandLogo");
       var logo=document.querySelector("#brandLogo img");
-      var isZero=!brand||brand.is_default||String(brand.slug||"").toLowerCase()==="knickgasm";
+      var isZero=!brand||!!(window.BrandContext&&window.BrandContext.isTenantZero&&window.BrandContext.isTenantZero(brand));
       if(logoBtn && name) logoBtn.setAttribute("aria-label",name+" home");
       if(logo && brand && brand.logo_url){ logo.src=brand.logo_url; logo.alt=name; }
       else if(logo && brand && !isZero){
@@ -597,7 +604,7 @@ a{color:var(--vh-link);}
     .then(function(res){
       var rows=(res&&res.products)||[];
       if(!rows.length){ renderMailer(res&&res.reason); return; }
-      var map=function(p){ return { name:p.n||'', img:p.i||'', handle:p.h||'', price:p.price, subtitle:p.subtitle||'' }; };
+      var map=function(p){ return { name:p.n||'', img:p.i||'', handle:p.h||'', url:p.url||'', row:p, price:p.price, subtitle:p.subtitle||'' }; };
       HERO=map(rows[0]);
       PRODUCTS=rows.slice(1,3).map(map);
       renderMailer();

@@ -93,7 +93,10 @@ function catalogProducts({ query, market, brand } = {}) {
     name: p.n || p.name || '',
     handle: p.h || p.handle || '',
     price: p.price || p.p || '',
-    url: (p.h || p.handle) ? `${base}/products/${p.h || p.handle}` : '',
+    // The row's own product page when its catalogue states one (an imported
+    // store does); else its handle on the brand's own store.
+    url: (typeof p.product_url === 'string' && /^https?:\/\//.test(p.product_url)) ? p.product_url
+      : (p.h || p.handle) ? `${base}/products/${p.h || p.handle}` : '',
   });
   let list = products.map(toRec).filter((r) => r.name && r.handle && r.url);
   if (q) {
