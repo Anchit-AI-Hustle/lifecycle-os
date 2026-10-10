@@ -1449,8 +1449,12 @@ Return JSON with exactly this shape:
 // families and every renderer below that fell back to them painted another
 // company's typefaces on a brand that had not supplied its own (2026-10-10).
 // A brand's own stacks come from brandRuntime.fontStacks(brand).
-const FONT_HEAD = require('./brand-runtime.js').NEUTRAL_FONTS.head;
-const FONT_BODY = require('./brand-runtime.js').NEUTRAL_FONTS.body;
+// The same values as brandRuntime.NEUTRAL_FONTS, written out rather than
+// required here: requiring brand-runtime while this module loads changed the
+// order every module behind it loads in (workspace-scope among them), and
+// the daily sync then read a different workspace as tenant zero.
+const FONT_HEAD = "Georgia,'Times New Roman',serif";
+const FONT_BODY = "system-ui,-apple-system,'Segoe UI',Arial,sans-serif";
 
 // HTML-escape so LLM copy can't break the markup / inject tags.
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }

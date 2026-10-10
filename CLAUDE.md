@@ -41,6 +41,16 @@ GBP; Ozzlewick, a name and nothing else), tenant zero's tokens DERIVED from its 
 - **Two harness defects hid half of it**: `router-harness` re-parsed `req.body` on every read (@vercel/node
   memoises), so generate.js's `req.body.__brand` vanished and every generate.js prompt in every test was
   tenant zero's; and a probe whose crash printed nothing read as "clean" - assert the run happened.
+- **Mutations: 34, each restoring one leak; 30 caught.** Three of the 30 slipped through the first round
+  because the gate was too kind: an inline slot carried NO brand, so building the raw entry still wore the
+  request's brand (the slot now carries tenant zero's own record, as a stale tab or a hostile caller could);
+  nothing read the brand block's legal-sender line (the pipeline's copy stage must brief it); a placeholder
+  with no brand fell to the scoped one (both layers mutated together now). The four still uncaught are second
+  layers no route reaches today, said here so nobody takes them as proven: `services.entryBrand()` (every
+  route stamps the entry's brand first), `design-system.resolve()` head/body (read only beside a measured
+  design system), `brandPal()`'s primary and accent (painted only beside approved reviews) and the feature
+  agent's analyst/critic (tenant zero only). After #177 a brand with no market is REFUSED an agentic run or a
+  V1 plan with the marker; the gate allows that refusal for that brand alone.
 - **Left as found, on purpose**: `tokens()`'s no-palette fallback (#6A33D8, a Montserrat head) is
   CONTRACT.md's recorded decision, shared with the browser port and the theme baselines (redacted in the gate,
   named); `daily-calendar` 500s on main (`smart-brain-plan.horizonCoverage` never existed here); the

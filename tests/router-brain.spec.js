@@ -626,17 +626,23 @@ add('video-status', { gate: 'none', browser: 'refuse', run: { method: 'GET', que
   expect: (r) => { expect(r.out).toEqual({ ok: true, status: 'pending' }); expect(last(M.video, 'getVideoStatus')[0]).toEqual({ provider: 'veo', job_id: 'v1' }); },
   cases: [{ name: 'provider and job_id are both required', run: { method: 'GET', query: { provider: 'veo' } }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.video)).toEqual([]); } }],
 });
-add('mailer-assets', { gate: 'model', model: 'image.generate', browser: 'demo', run: { json: { entry_id: 'e1', market: 'UK' } },
+add('mailer-assets', { gate: 'model', model: 'image.generate', browser: 'demo', run: { json: { html: '<p>v</p>', market: 'UK' } },
   stubs: () => {
     S.on(M.mailerBuild, 'buildLifecycleMailer', async () => ({ mailer: { variants: [{ key: 'text_a', html: '<p>t</p>' }, { key: 'visual_a', html: '<p>v</p>' }] } }));
     S.on(M.assetAgent, 'fillMailerAssets', async () => ({ ok: true, filled: 2 }));
   },
   expect: (r) => {
-    expect(r.out).toEqual({ ok: true, filled: 2, entry_id: 'e1' });
-    expect(last(M.mailerBuild, 'buildLifecycleMailer')[0]).toEqual({ id: 'e1' });
+    expect(r.out).toEqual({ ok: true, filled: 2, entry_id: null });
     expect(last(M.assetAgent, 'fillMailerAssets')).toEqual(['<p>v</p>', { tier: 'premium', market: 'UK', persist: true, video: true, gif: true }]);
   },
-  cases: [{ name: 'neither html nor an entry_id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.assetAgent)).toEqual([]); } }],
+  cases: [
+    { name: 'neither html nor an entry_id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.assetAgent)).toEqual([]); } },
+    // An entry_id names a row of tenant zero's lifecycle programme (its lanes,
+    // its table, its store): built for another brand it is that company's
+    // mailer under this brand's name (2026-10-10). Refused with the marker.
+    { name: 'an entry_id is refused with a marker for a brand that is not tenant zero', run: { json: { entry_id: 'e1', market: 'UK' } },
+      expect: (r) => { expect(r.status).toBe(409); expect(r.out.error).toBe('lifecycle_programme_not_this_brand'); expect(r.out.data_gaps[0]).toMatch(/DATA REQUIRED BEFORE LAUNCH: lifecycle product lanes and cohort programme, Harness Brand/); expect(S.hits(M.mailerBuild)).toEqual([]); expect(S.hits(M.assetAgent)).toEqual([]); } },
+  ],
 });
 add('mailer-assets-status', { gate: 'none', browser: 'demo', run: { method: 'GET', query: { provider: 'veo', job_id: 'v1', as: 'gif' } },
   stubs: () => { S.on(M.video, 'getVideoStatus', async () => ({ ok: true, status: 'completed', video_url: 'https://cdn.harness.test/v1.mp4' })); S.on(M.gif, 'convertFromVideo', async () => ({ ok: true, gif_url: 'g' })); },
@@ -754,12 +760,12 @@ add('domain', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { op
   expect: (r) => { expect(r.out).toEqual({ ok: true, results: [] }); expect(last(M.domainIntel, 'checkMany')).toEqual([['a.example', 'b.example'], { limit: 12 }]); },
   cases: [
     { name: 'op=readiness', run: { method: 'GET', query: { op: 'readiness', domain: 'c.example' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, ready: false }); expect(last(M.domainIntel, 'sendingReadiness')).toEqual(['c.example']); } },
-    { name: 'the default op suggests from the active brand record', run: { method: 'GET', query: { tlds: 'com,co', count: '3' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, suggestions: [] }); expect(last(WS_SCOPE, 'brandForWorkspace')[1]).toBe(H.WS); expect(last(M.domainIntel, 'suggest')).toEqual([BRAND, { tlds: ['com', 'co'], count: 3 }]); } },
+    { name: 'the default op suggests from the active brand record', run: { method: 'GET', query: { tlds: 'com,co', count: '3' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, suggestions: [] }); const sg = last(M.domainIntel, 'suggest'); expect(sg).toEqual([expect.objectContaining(BRAND), { tlds: ['com', 'co'], count: 3 }]); expect(sg[0].__resolved_for, 'the brand the request resolved for its own workspace').toBe(H.WS); } },
   ],
 });
 add('logo', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { style: 'wordmark', notes: 'clean' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.logo, 'logoBrief', () => ({ ok: true, brief: 'b' })); },
-  expect: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, brief: 'b' }); expect(last(M.logo, 'logoBrief')).toEqual([BRAND, { style: 'wordmark', notes: 'clean' }]); },
+  expect: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, brief: 'b' }); expect(last(M.logo, 'logoBrief')).toEqual([expect.objectContaining(BRAND), { style: 'wordmark', notes: 'clean' }]); },
   cases: [{ name: 'a brief that cannot be built is a 409', run: { method: 'GET' }, stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => null); S.on(M.logo, 'logoBrief', () => ({ ok: false, error: 'no_brand' })); }, expect: (r) => { expect(r.status).toBe(409); } }],
 });
 add('daily-calendar', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { back: '3', forward: '5' } },
@@ -781,8 +787,8 @@ add('agent-builder', { gate: 'agent-key', browser: 'public', run: { method: 'GET
 });
 add('platform-agents', { gate: 'user', model: 'analytics.report', browser: 'refuse', run: { method: 'GET', query: { days: '14', question: 'why?' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.platformAgents, 'runAll', async () => ({ ok: true, agents: [] })); S.on(M.platformAgents, 'runAgent', async () => ({ ok: true, agent: 'meta' })); },
-  expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: BRAND }); },
-  cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toBe(BRAND); } }],
+  expect: (r) => { expect(r.out).toEqual({ ok: true, agents: [] }); expect(last(M.platformAgents, 'runAll')[0]).toEqual({ platforms: undefined, market: 'UK', days: 14, question: 'why?', tier: 'standard', brand: expect.objectContaining(BRAND) }); },
+  cases: [{ name: '?platform= runs one analyst', run: { method: 'GET', query: { platform: 'meta' } }, expect: (r) => { expect(r.out).toEqual({ ok: true, agent: 'meta' }); const a = last(M.platformAgents, 'runAgent'); expect(a[0]).toBe('meta'); expect(a[1].brand).toMatchObject(BRAND); } }],
 });
 add('revenue-os', { gate: 'user', model: 'analytics.report', browser: 'refuse', run: { method: 'GET', query: { days: '21', question: 'what makes money?' } },
   stubs: () => {
@@ -794,7 +800,7 @@ add('revenue-os', { gate: 'user', model: 'analytics.report', browser: 'refuse', 
     expect(r.out).toEqual({ ok: true, system: 'Lifecycle OS Revenue OS', opportunity_queue: [] });
     expect(last(M.revenueOs, 'run')[0]).toEqual({
       market: 'UK', days: 21, hours: 720, since: undefined, until: undefined,
-      question: 'what makes money?', tier: 'standard', platforms: undefined, brand: BRAND,
+      question: 'what makes money?', tier: 'standard', platforms: undefined, brand: expect.objectContaining(BRAND),
     });
   },
   cases: [
