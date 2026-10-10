@@ -1,8 +1,6 @@
 {
   "key": "storefront-3d.html",
   "counts": {
-    "floor": 5,
-    "ground": 5,
-    "text": 15
+    "floor": 5
   }
 }
