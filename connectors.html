@@ -122,6 +122,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .ai-label{font-size:10px;color:var(--vh-ink-dim);letter-spacing:.1em;text-transform:uppercase;margin:7px 0 4px}
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:820px){.cards{grid-template-columns:1fr}h1{font-size:28px}}
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 <script src="/brand-context.js?early=1"></script>
 <script src="/auth.js?v=20260718light" defer></script>
@@ -217,7 +220,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '<div class="chip"><b>'+(s.connected||0)+'</b> Connected</div>'+
       '<div class="chip"><b>'+(s.partial||0)+'</b> Partial</div>'+
       '<div class="chip"><b>'+(s.not_connected||0)+'</b> Not connected</div>'+
-      '<div class="chip"><b>'+(s.total||0)+'</b> Total'+(s.persisted?'':' <span style="color:#e89a9a;font-size:11px">(fallback — migration not applied)</span>')+'</div>';
+      '<div class="chip"><b>'+(s.total||0)+'</b> Total'+(s.persisted?'':' <span style="color:var(--vh-err-text);font-size:11px">(fallback — migration not applied)</span>')+'</div>';
 
     var groups = {};
     (d.connectors||[]).forEach(function(c){ (groups[c.category]=groups[c.category]||[]).push(c); });

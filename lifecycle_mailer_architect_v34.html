@@ -8622,7 +8622,7 @@ async function renderDashboard(page){
   window._dashLogs=logs;
   if(!logs.length && !allLogs.length){
     _dashPage=0;
-    el.innerHTML='<div style="text-align:center;padding:32px 16px;color:var(--vh-ink-dim)"><div style="font-size:32px;margin-bottom:10px">&var(--vh-ink);</div><div style="font-size:13px">No campaigns yet. Generate your first mailer to see it here.</div></div>';
+    el.innerHTML='<div style="text-align:center;padding:32px 16px;color:var(--vh-ink-dim)"><div style="font-size:32px;margin-bottom:10px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-file"/></svg></div><div style="font-size:13px">No campaigns yet. Generate your first mailer to see it here.</div></div>';
     return;
   }
   if(typeof page==='number')_dashPage=Math.max(0,Math.min(page,Math.ceil(logs.length/_dashPageSize)-1));
@@ -8633,11 +8633,11 @@ async function renderDashboard(page){
   var uniqueUsers=[...new Set(logs.map(function(l){return l.userEmail||l.userName||'Unknown';}))];
   var allMarkets=[...new Set(logs.flatMap(function(l){return l.markets||[l.market||_homeMkt()];}))];
   var statsBar='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px 10px;background:var(--vh-band);border-radius:10px;color:var(--vh-on-band);align-items:center">'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg></span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg></span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-globe"/></svg></span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
     +'<div style="flex:1"></div>'
     +(totalPages>1?'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
       +'<button type="button" onclick="renderDashboard('+(_dashPage-1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:inherit;border:1px solid var(--vh-line);border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);font-size:11px;font-weight:700"'+(_dashPage===0?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>&#8592; Prev</button>'
@@ -8686,7 +8686,7 @@ async function renderDashboard(page){
     var mkts=(e.markets||[e.market||_homeMkt()]).join(', ');
     var prods=(e.products||[]).slice(0,3).join(' · ')+(e.products&&e.products.length>3?' +more':'');
     var userBadge=!window._anonStudio&&e.userName&&e.userName!=='Unknown'
-      ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border-radius:20px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>'
+      ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border-radius:20px;white-space:nowrap"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg> '+e.userName+'</span>'
       :'';
     // ── Per-region per-variant TILE matrix for THIS record ──
     var mktKeys=Object.keys(e.fullMailers||{});
@@ -8699,7 +8699,7 @@ async function renderDashboard(page){
     var mailerMatrix='';
     if(mktKeys.length){
       mailerMatrix='<div style="margin-top:12px;padding:12px 12px 4px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:10px">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-ink-dim)">&var(--vh-ink); Generated Mailers</span><span style="font-size:9px;color:var(--vh-ink-dim);font-weight:500">'+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &middot; '+mktKeys.reduce(function(s,m){var ee=e.fullMailers[m];return s+(typeof ee==='object'&&ee.A&&ee.B?2:1);},0)+' files</span></div>'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-ink-dim)"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg> Generated Mailers</span><span style="font-size:9px;color:var(--vh-ink-dim);font-weight:500">'+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &middot; '+mktKeys.reduce(function(s,m){var ee=e.fullMailers[m];return s+(typeof ee==='object'&&ee.A&&ee.B?2:1);},0)+' files</span></div>'
         +mktKeys.map(function(mkt){
           var stored=e.fullMailers[mkt];
           var hasBoth=stored&&typeof stored==='object'&&stored.A&&stored.B;
@@ -8727,7 +8727,7 @@ async function renderDashboard(page){
                   +'</div>'
                   // Tile body (action buttons)
                   +'<div style="padding:7px 8px;display:flex;gap:5px">'
-                    +'<button type="button" onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:'+meta.on+';border:none;border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em">&var(--vh-ink); Preview</button>'
+                    +'<button type="button" onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:'+meta.on+';border:none;border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-eye"/></svg> Preview</button>'
                     +'<button type="button" onclick="event.stopPropagation();downloadDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:transparent;color:'+meta.text+';border:1.5px solid '+meta.accent+';border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em">&#11015; Download</button>'
                   +'</div>'
                 +'</div>';
@@ -8746,7 +8746,7 @@ async function renderDashboard(page){
         +'<span style="font-size:10px;font-weight:600;letter-spacing:0.04em;opacity:0.7">·</span>'
         +'<span style="font-size:10.5px;font-weight:600;color:inherit;opacity:0.95">'+dateStr+'</span>'
         +'<span style="flex:1"></span>'
-        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-tint);color:inherit;border:1px solid var(--vh-line);border-radius:14px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>':'')
+        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-tint);color:inherit;border:1px solid var(--vh-line);border-radius:14px;white-space:nowrap"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg> '+e.userName+'</span>':'')
       +'</div>'
       // ── Card body ──
       +'<div style="padding:16px 18px">'
@@ -8758,11 +8758,11 @@ async function renderDashboard(page){
         +'</div>'
         +'<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;color:var(--vh-primary-text);font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||[_homeMkt()])[0]))+'</div>'
         +'<div style="font-size:11.5px;color:var(--vh-ink-dim);font-weight:400;margin-bottom:5px;line-height:1.5">'+((e.prompt||'').substring(0,160)+(e.prompt&&e.prompt.length>160?'…':''))+'</div>'
-        +(prods?'<div style="font-size:10.5px;color:var(--vh-ink-dim);margin-bottom:3px">&var(--vh-ink); '+prods+'</div>':'')
+        +(prods?'<div style="font-size:10.5px;color:var(--vh-ink-dim);margin-bottom:3px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-cart"/></svg> '+prods+'</div>':'')
         +(e.userEmail?'<div style="font-size:10px;color:var(--vh-ink-dim)">&#9993; '+e.userEmail+'</div>':'')
         +'</div>'
         +'<div style="display:flex;flex-direction:column;gap:6px;min-width:120px">'
-        +'<button type="button" onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border:none;border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap;letter-spacing:0.02em">&var(--vh-ink); View Details</button>'
+        +'<button type="button" onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border:none;border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap;letter-spacing:0.02em"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-eye"/></svg> View Details</button>'
         +'<button type="button" onclick="regenerateFromRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:var(--vh-panel);color:var(--vh-primary-text);border:1.5px solid var(--vh-primary);border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap;letter-spacing:0.02em">&#8635; Regenerate</button>'
         +(mktKeys.length?'<button type="button" onclick="downloadDashboardAll('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:var(--vh-accent);color:var(--vh-on-accent);border:none;border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap">&#11015; All Files</button>':'')
         +'</div>'
@@ -8821,7 +8821,7 @@ function viewDashRecord(logIdx){
     html+='</div>';
     // ── Campaign Brief ───────────────────────────────────────────────────
     html+='<div style="padding:18px 24px;background:var(--vh-panel-2);border-bottom:1px solid var(--vh-line)">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:8px">&var(--vh-ink); Campaign Brief</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:8px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-file"/></svg> Campaign Brief</div>';
     html+='<div style="font-size:12px;color:var(--vh-ink-dim);line-height:1.7;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;padding:12px 14px;max-height:130px;overflow-y:auto;font-style:italic">&ldquo;'+(p||'(no description saved)')+'&rdquo;</div>';
     // markets + products row
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">';
@@ -8864,10 +8864,10 @@ function viewDashRecord(logIdx){
     var dep=savedDepth||live||{segment:{primary:'Active Subscribers',sub:'',size:'',rationale:''},intent:intentMap[typ]||intentMap.Campaign,expected_impact:{open:'',click:'',conversion:'',aov:'',rps:'',notes:impactMap[typ]||impactMap.Campaign},justification:'',send_window:''};
     var seg=dep.segment||{}; var k=dep.expected_impact||{};
     html+='<div style="padding:18px 24px;border-bottom:1px solid var(--vh-line);background:var(--vh-panel-2)">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px">&var(--vh-ink); Strategic Brief</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-insights"/></svg> Strategic Brief</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     // Target segment (full width)
-    html+='<div style="grid-column:1 / -1;background:var(--vh-panel);border:1.5px solid var(--vh-lava);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--vh-accent-text);margin-bottom:4px">&var(--vh-ink); Target Segment</div><div style="font-family:\'Montserrat\',Georgia,serif;font-size:16px;font-weight:600;color:var(--vh-primary-text);line-height:1.3">'+(seg.primary||'')+'</div>'+(seg.sub?'<div style="font-size:11px;color:var(--vh-ink-dim);margin-top:4px">'+seg.sub+'</div>':'')+'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+(seg.size?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:9px;border:1px solid var(--vh-line)">Audience: '+seg.size+'</span>':'')+(dep.send_window?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:9px;border:1px solid var(--vh-line)">Send: '+dep.send_window+'</span>':'')+'</div>'+(seg.rationale?'<div style="font-size:11px;color:var(--vh-ink-dim);font-style:italic;margin-top:6px;line-height:1.5">'+seg.rationale+'</div>':'')+'</div>';
+    html+='<div style="grid-column:1 / -1;background:var(--vh-panel);border:1.5px solid var(--vh-lava);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--vh-accent-text);margin-bottom:4px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-cohort"/></svg> Target Segment</div><div style="font-family:\'Montserrat\',Georgia,serif;font-size:16px;font-weight:600;color:var(--vh-primary-text);line-height:1.3">'+(seg.primary||'')+'</div>'+(seg.sub?'<div style="font-size:11px;color:var(--vh-ink-dim);margin-top:4px">'+seg.sub+'</div>':'')+'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+(seg.size?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:9px;border:1px solid var(--vh-line)">Audience: '+seg.size+'</span>':'')+(dep.send_window?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:9px;border:1px solid var(--vh-line)">Send: '+dep.send_window+'</span>':'')+'</div>'+(seg.rationale?'<div style="font-size:11px;color:var(--vh-ink-dim);font-style:italic;margin-top:6px;line-height:1.5">'+seg.rationale+'</div>':'')+'</div>';
     // Intent
     html+='<div style="background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--vh-accent-text);margin-bottom:4px">Campaign Intent</div><div style="font-size:11.5px;color:var(--vh-ink);line-height:1.55;font-weight:500">'+(dep.intent||'')+'</div></div>';
     // Expected impact
@@ -8886,7 +8886,7 @@ function viewDashRecord(logIdx){
     var imgPrompts=fullRec.image_prompts_full||{};
     var activePrompt=fullRec.active_prompt||fullRec.prompt_full||'';
     html+='<div style="padding:18px 24px;border-bottom:1px solid var(--vh-line);background:var(--vh-panel-2)">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px">&var(--vh-ink); Inputs Used &amp; Prompts to Replicate</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-copy"/></svg> Inputs Used &amp; Prompts to Replicate</div>';
     html+='<div style="display:grid;gap:10px">';
     html+='<div style="background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">User-supplied brief (raw)</div><div style="font-size:11px;color:var(--vh-ink);line-height:1.55;white-space:pre-wrap;font-family:var(--vh-font-mono);background:var(--vh-panel-2);padding:8px;border-radius:6px;max-height:120px;overflow:auto">'+(p||'(none)')+'</div></div>';
     if(activePrompt && activePrompt!==p){
@@ -8923,7 +8923,7 @@ function viewDashRecord(logIdx){
     // ── Mailers — uniform Region → Variant → Preview + Download pattern ──
     var mktKeys=Object.keys(e.fullMailers||{});
     html+='<div style="padding:18px 24px">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px">&var(--vh-ink); Generated Mailers · '+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &times; up to 2 variants</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg> Generated Mailers · '+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &times; up to 2 variants</div>';
     if(!mktKeys.length){html+='<div style="font-size:12px;color:var(--vh-ink-dim);padding:12px 0">No mailer HTML saved for this record.</div>';}
     else{
       // Use a placeholder div that renderRegionVariantPanel will populate after modal opens
