@@ -550,8 +550,14 @@ sb('sync-status', { run: { json: { limit: 5 } }, stubs: () => S.on(PLAN, 'syncSt
 sb('export', { run: { json: { entries: [{ date: '2026-10-01', id: 'a' }] } }, stubs: () => { S.on(EXPORT, 'buildExportCsv', () => 'date,id\n2026-10-01,a\n'); S.on(PLAN, 'getPlan', async () => ({ entries: [] })); },
   expect: (r) => {
     expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toMatch(/^text\/csv/);
-    expect(r.headers['content-disposition']).toBe('attachment; filename="knickgasm-automated-calendar-2026-10-01.csv"');
-    expect(r.text).toBe('date,id\n2026-10-01,a\n'); expect(last(EXPORT, 'buildExportCsv')).toEqual([[{ date: '2026-10-01', id: 'a' }]]);
+    // Named for, and written for, the brand THIS request resolved to (the
+    // signed-in workspace), never tenant zero: entries posted from the browser
+    // carry no brand, and the prompts fell back to tenant zero's record.
+    expect(r.headers['content-disposition']).toBe('attachment; filename="harness-brand-automated-calendar-2026-10-01.csv"');
+    expect(r.text).toBe('date,id\n2026-10-01,a\n');
+    const posted = last(EXPORT, 'buildExportCsv')[0];
+    expect(posted.map((e) => ({ date: e.date, id: e.id }))).toEqual([{ date: '2026-10-01', id: 'a' }]);
+    expect(posted[0].brand && posted[0].brand.slug).toBe(H.BRAND_ROW.slug);
     expect(S.hits(PLAN, 'getPlan')).toEqual([]);            // the reviewer's own entries were used, not a re-pull
   },
   cases: [{ name: 'with no entries posted it exports the stored plan', run: { method: 'GET' }, expect: (r) => { expect(r.status).toBe(200); expect(last(PLAN, 'getPlan')[0]).toEqual({ config: { workspace_id: H.WS } }); expect(r.headers['content-disposition']).toContain('calendar-plan.csv'); } }],
