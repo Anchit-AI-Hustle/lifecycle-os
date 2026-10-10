@@ -290,7 +290,7 @@ test.describe('the server', () => {
       expect(row.status, id).toBe('archived');
       expect(row.change_log.map((c) => c.kind)).toContain('brand_changed');
     }
-    const live = w.db.table('smart_calendar_entries').filter((x) => x.status === 'tentative');
+    const live = w.db.table('smart_calendar_entries').filter((x) => x.status === 'tentative' && x.workspace_id === 'ws-coherent');
     expect(live.length).toBeGreaterThan(0);
     const ident = live[0].payload.__brand_identity;
     expect(ident).toMatch(/^bi1:/);
@@ -304,6 +304,11 @@ test.describe('the server', () => {
     expect(r.res.status, r.answer.slice(0, 300)).toBe(200);
     expect(r.answer, 'the preview replayed a campaign made for another record').not.toMatch(/Air Force|Mamaearth/);
     expect(JSON.parse(r.answer).campaign.brand_identity).toBe(ident);
+    // Leave the shared fake project as this test found it.
+    for (const t of ['smart_generated_campaigns', 'smart_calendar_entries']) {
+      const rows = w.db.table(t);
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i].workspace_id === 'ws-coherent' || /^camp_old_/.test(rows[i].id || '')) rows.splice(i, 1);
+    }
   });
 
   test('a slot stored from the excluded catalogue: hidden, previewed with the marker, refused at approval, archived by Daily Sync', async () => {
