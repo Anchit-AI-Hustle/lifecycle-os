@@ -110,18 +110,29 @@ function fakeSql(opts) {
       if (u) { u.pin_tries = 0; u.locked_until = null; }
       return [];
     }
-    // The one statement that counts a wrong PIN and locks at MAX_TRIES, as
-    // Postgres evaluates it: against the row's CURRENT value, under the row
-    // lock, returning what it wrote. (The old read-increment-write pair,
-    // `set pin_tries = $` and `set pin_tries = 0, locked_until = $`, is gone
-    // on purpose: a core that regresses to it hits the unhandled-statement
+    // THE CLAIM (2026-10-09): one statement counts the try BEFORE the PIN is
+    // checked, only while the row is not locked, and an expired lock starts
+    // the count again at one - as Postgres evaluates it, against the row's
+    // CURRENT value, returning what it wrote, and NO row while it is locked.
+    // (Counting only after a wrong verify - the 2026-09-29 statement - is
+    // gone on purpose: a core that regresses to it hits the unhandled-statement
     // throw below.)
-    if (/^update app_users set pin_tries = case when pin_tries \+ 1 >= \$ then 0 else pin_tries \+ 1 end, locked_until = case when pin_tries \+ 1 >= \$ then \$ ::timestamptz else locked_until end where id = \$ returning pin_tries, locked_until$/.test(text)) {
-      const [max, , until, id] = vals; const u = db.app_users.find((x) => x.id === id);
+    if (/^update app_users set pin_tries = case when locked_until is not null and locked_until <= now\(\) then 1 else pin_tries \+ 1 end, locked_until = case when locked_until is not null and locked_until <= now\(\) then null else locked_until end where id = \$ and \(locked_until is null or locked_until <= now\(\)\) returning pin_tries$/.test(text)) {
+      const [id] = vals; const u = db.app_users.find((x) => x.id === id);
       if (!u) return [];
-      const n = (u.pin_tries || 0) + 1;
-      if (n >= max) { u.pin_tries = 0; u.locked_until = until; } else u.pin_tries = n;
-      return [{ pin_tries: u.pin_tries, locked_until: u.locked_until }];
+      const now = new Date();
+      if (u.locked_until && new Date(u.locked_until) > now) return [];
+      if (u.locked_until) { u.pin_tries = 1; u.locked_until = null; } else u.pin_tries = (u.pin_tries || 0) + 1;
+      return [{ pin_tries: u.pin_tries }];
+    }
+    // The lock: set once, by whichever try reached the limit first.
+    if (/^update app_users set pin_tries = 0, locked_until = \$ ::timestamptz where id = \$ and \(locked_until is null or locked_until <= now\(\)\)$/.test(text)) {
+      const [until, id] = vals; const u = db.app_users.find((x) => x.id === id);
+      if (u && !(u.locked_until && new Date(u.locked_until) > new Date())) { u.pin_tries = 0; u.locked_until = until; }
+      return [];
+    }
+    if (text === 'select locked_until from app_users where id = $') {
+      return db.app_users.filter((u) => u.id === vals[0]).map((u) => ({ locked_until: u.locked_until }));
     }
     if (text.startsWith('insert into app_sessions')) {
       const [token_hash, user_id, device, expires_at] = vals;
@@ -202,8 +213,11 @@ test('sign-in asks for the PIN, refuses a wrong one with the tries left, and sig
   const store = fakeSql();
   await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
   const ask = await core.enter(store, IN, 'ip');
-  expect(ask.body).toMatchObject({ ok: true, exists: true, needPin: true, name: 'Asha' });
+  expect(ask.body).toMatchObject({ ok: true, exists: true, needPin: true });
   expect(ask.body.token).toBeUndefined();
+  // Never a name before the PIN: anyone can type any number.
+  expect(ask.body.name, 'the account holder\'s name was told to someone who only typed the number').toBeUndefined();
+  expect(JSON.stringify(ask.body)).not.toContain('Asha');
   const wrong = await core.enter(store, Object.assign({ pin: '1357' }, IN), 'ip');
   expect(wrong.status).toBe(401);
   expect(wrong.body).toMatchObject({ ok: false, wrongPin: true, left: 4, error: 'pin_wrong' });
@@ -432,7 +446,8 @@ test('an account whose PIN an operator cleared asks for a new one (the reset pat
   await core.enter(store, Object.assign({ name: 'Asha', pin: PIN }, IN), 'ip');
   store.db.app_users[0].pin_hash = null; store.db.app_users[0].pin_salt = null;
   const ask = await core.enter(store, IN, 'ip');
-  expect(ask.body).toMatchObject({ ok: true, exists: true, setPin: true, name: 'Asha', error: null });
+  expect(ask.body).toMatchObject({ ok: true, exists: true, setPin: true, error: null });
+  expect(ask.body.name, 'a name before the PIN').toBeUndefined();
   expect(ask.body.token).toBeUndefined();
   const weak = await core.enter(store, Object.assign({ pin: '1234' }, IN), 'ip');
   expect(weak.body).toMatchObject({ setPin: true, error: 'pin_invalid' });
@@ -759,7 +774,7 @@ function authServer() {
         u = { id: 'srv-' + Object.keys(store.users).length, name: body.name, phone, pin: body.pin, tries: 0 };
         store.users[phone] = u;
       } else {
-        if (!body.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, name: u.name } };
+        if (!body.pin) return { status: 200, body: { ok: true, exists: true, needPin: true } };
         if (body.pin !== u.pin) { u.tries++; return { status: 401, body: { ok: false, wrongPin: true, left: 5 - u.tries, error: 'pin_wrong', message: 'That PIN is not right. ' + (5 - u.tries) + ' tries left.' } }; }
       }
       const tok = 'srvtok_' + Math.random().toString(36).slice(2).padEnd(38, 'x');
@@ -825,14 +840,14 @@ async function open(page, file, opts) {
   return log;
 }
 
-/**
- * Open the stored-phone panel. Since 2026-10-05 the Sign in chip starts Google
- * and does not open this panel; the scenarios below still drive the panel the
- * product keeps for a phone session that already exists.
- */
+/** Press the rail's Sign-in; dispatch the click where a fixed element overlaps the footer. */
 async function pressSignIn(page) {
-  await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.mobile && window.LifecycleAuth.mobile.openPanel), null, { timeout: 15000 });
-  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
+  const btn = page.locator('#lnav-signin');
+  await btn.waitFor({ state: 'attached', timeout: 15000 });
+  try { await btn.click({ timeout: 4000 }); } catch (e) {
+    if (!/intercepts pointer events|Timeout/.test(String(e.message))) throw e;
+    await btn.evaluate((el) => el.click());
+  }
   await page.waitForSelector('#lnav-mauth', { state: 'attached', timeout: 5000 });
 }
 
@@ -856,7 +871,7 @@ const readAuth = (page) => page.evaluate(() => {
     stored: (() => { try { return JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null'); } catch (_) { return null; } })(),
     users: (() => { try { return JSON.parse(localStorage.getItem('lifecycle.auth.device.users') || 'null'); } catch (_) { return null; } })(),
     storage: storage ? { mode: storage.mode, session: storage.session, sentence: storage.account_sentence, serverOpen: storage.server_open } : null,
-    google: /Sign in with Gmail/i.test(document.body.innerText || ''),
+    google: /Sign in with (Google|Gmail)/i.test(document.body.innerText || ''),
     oauth: (window.__OAUTH_CALLS__ || []).length,
     noteKind: (document.getElementById('lnav-signin-note') || { getAttribute: () => null }).getAttribute('data-kind'),
   };
@@ -953,7 +968,8 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   await pressSignIn(page);
   await typeAndContinue(page, { cc: '+91', phone: '9876543210' });
   await page.waitForSelector('#lnav-mauth[data-state="need-pin"]');
-  expect(await page.locator('#lnav-mauth-pinnote').textContent()).toMatch(/Welcome back, Asha/);
+  // No name before the PIN: anyone can type any number.
+  expect(await page.locator('#lnav-mauth-pinnote').textContent()).toBe('Welcome back. Type your PIN.');
   expect(await page.locator('#lnav-mauth-go').textContent()).toBe('Sign in');
   const lefts = [];
   for (let i = 0; i < 5; i++) {
@@ -975,9 +991,7 @@ test('DEVICE MODE: sign-up in the rail panel, a reload keeps the session, five w
   expect(log.dialogs).toEqual([]);
   expect(log.errors.filter((e) => !/ResizeObserver|Failed to fetch|NetworkError|net::ERR/i.test(e))).toEqual([]);
   expect(a.oauth).toBe(0);
-  // The standing bar names Gmail, which is the sign-in. Opening the stored
-  // phone panel does not start it.
-  expect(a.google).toBe(true);
+  expect(a.google).toBe(false);
 });
 
 test('SERVER MODE: the account goes to the database, the token travels in the header, op=me validates every boot, a 401 clears it, an unreachable database is SAID', async ({ page }) => {
@@ -1038,7 +1052,7 @@ test('SERVER MODE: the account goes to the database, the token travels in the he
   // reads the public site with the model off. ON is what the server does.
   expect(a.storage.serverOpen, 'the wizard says OFF where the server reads the site').toBe(true);
   // Opening the panel in this state warns that a sign-up here is a SEPARATE account.
-  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
+  await page.evaluate(() => window.LifecycleAuth.openSignIn());
   await expect(page.locator('#lnav-mauth-mode')).toContainText(/separate account on this device only/, { timeout: 8000 });
   await expect(page.locator('#lnav-mauth-mode')).toContainText(/ep-fixture\.neon\.tech/);
   await page.click('#lnav-mauth-cancel');
@@ -1443,22 +1457,21 @@ test('PROD DRIVE: five wrong PINs arriving at once THROUGH THE SHIPPED HANDLER e
   expect(still.body.message).toMatch(/Too many wrong PINs\. Try again in 15 minutes\./);
 });
 
-test('REVIEW: the privacy policy describes Google as the sign-in, and keeps the withdrawn mobile PIN only as history', async ({ page }) => {
+test('REVIEW: the privacy policy describes the sign-in that exists (a mobile number and a PIN hash) and does not claim a Google sign-in', async ({ page }) => {
   await page.goto(base + '/privacy.html', { waitUntil: 'domcontentloaded' });
   const policy = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
   expect(policy.length).toBeGreaterThan(800);
-  expect(policy).toMatch(/Sign-in is with Gmail/i);
-  expect(policy).toMatch(/openid/);
-  expect(policy).toMatch(/Limited Use/i);
-  const historical = await page.evaluate(() => (document.querySelector('[data-historical]') || {}).textContent || '');
-  expect(historical).toMatch(/4-digit PIN/);
-  expect(historical).toMatch(/salted hash of the PIN, never the PIN itself/i);
-  expect(historical).toMatch(/withdrawn on 5 October 2026/);
-  expect(historical).toMatch(/not verified by SMS/i);
+  expect(policy).toMatch(/mobile number and a 4-digit PIN/i);
+  expect(policy).toMatch(/salted hash of your PIN, never the PIN itself/i);
+  expect(policy).toMatch(/not verified by SMS/i);
+  expect(policy).toMatch(/90 days/);
+  expect(policy).toMatch(/browser's local storage/i);
+  expect(policy).not.toMatch(/when signing in with Google/i);
+  expect(policy).not.toMatch(/Sign-in is with Gmail/i);
   expect(await page.evaluate(() => document.querySelector('title').textContent)).toMatch(/Privacy/);
 });
 
-test('EVERY page that loads auth.js: pressing Sign in starts Google on that page, never opens the PIN panel, never navigates', async ({ page }) => {
+test('EVERY page that loads auth.js: pressing Sign in opens the panel on that page, never calls signInWithOAuth, never navigates, shows no Google button', async ({ page }) => {
   test.setTimeout(900_000);
   expect(PAGES.length, 'no pages carrying auth.js were found').toBeGreaterThan(20);
   const failures = [];
@@ -1466,19 +1479,13 @@ test('EVERY page that loads auth.js: pressing Sign in starts Google on that page
   for (const f of PAGES) {
     let log;
     try { log = await open(page, f); } catch (e) { failures.push(`${f}: auth.js never decided a backend state: ${String(e.message).split('\n')[0]}`); continue; }
-    const btn = page.locator('#lnav-signin');
-    try {
-      await btn.waitFor({ state: 'attached', timeout: 15000 });
-      await btn.evaluate((el) => el.click());
-    } catch (e) { failures.push(`${f}: the Sign in chip could not be pressed: ${String(e.message).split('\n')[0]}`); continue; }
+    try { await pressSignIn(page); } catch (e) { failures.push(`${f}: the Sign in chip could not be pressed: ${String(e.message).split('\n')[0]}`); continue; }
     pressed++;
-    await page.waitForFunction(() => (window.__OAUTH_CALLS__ || []).length > 0 || !!document.getElementById('lnav-signin-note'), null, { timeout: 8000 }).catch(() => {});
     const a = await readAuth(page);
     const here = await page.evaluate(() => location.pathname);
-    if (a.panel) failures.push(`${f}: the mobile PIN panel opened`);
-    if (!a.oauth) failures.push(`${f}: signInWithOAuth was not called`);
-    const call = await page.evaluate(() => (window.__OAUTH_CALLS__ || [])[0] || null);
-    if (call && call.provider !== 'google') failures.push(`${f}: provider was ${call && call.provider}`);
+    if (!a.panel) failures.push(`${f}: no inline panel opened`);
+    if (a.oauth) failures.push(`${f}: signInWithOAuth was called (${a.oauth}x)`);
+    if (a.google) failures.push(`${f}: a "Sign in with Google" control is still offered`);
     if (!here.endsWith('/' + f)) failures.push(`${f}: pressing Sign in navigated to ${here}`);
     if (log.navigations.some((u) => /authorize/.test(u))) failures.push(`${f}: the browser was sent to an OAuth authorize URL`);
     if (log.dialogs.length) failures.push(`${f}: a native dialog opened: ${log.dialogs.join(' | ')}`);

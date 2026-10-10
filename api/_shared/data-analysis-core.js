@@ -102,6 +102,9 @@ async function authorize(req, { cron = false } = {}) {
     const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: `Bearer ${token}` }, cache: 'no-store' });
     if (!r.ok) return { ok: false, status: 401, error: 'invalid_operator_session' };
     const user = await r.json(), email = text(user.email).toLowerCase();
+    // Sign-in is a mobile number and PIN only (2026-10-09): an OAuth session
+    // (the removed Google sign-in) is not an operator session.
+    if (require('./mobile-auth-supabase.js').oauthProvider(user)) return { ok: false, status: 401, error: 'invalid_operator_session' };
     // Any VALID session is allowed. This used to default to a single tenant's
     // email domain, which locked every operator who onboarded their own brand
     // out of the whole analytics surface with a bare 403.

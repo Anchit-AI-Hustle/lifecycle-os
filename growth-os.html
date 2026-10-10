@@ -68,14 +68,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <script src="/auth.js?v=20260813" defer></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
+  /* Page-local names for the Lifecycle OS roles (design/lifecycle-os/
+     CONTRACT.md), never a literal. --ok/--warn/--err are the *-text tokens:
+     every use here is a state WORD or an edge, both of which they serve.
+     No color-mix(): an engine without it drops the declaration whole. */
   :root{
-    --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
-    --surface:var(--brand-surface,#f7f7f7);--card:var(--brand-surface-alt,#fff);
-    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
-    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#e6e6e6);
-    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
-    --head:var(--brand-font-head,system-ui,sans-serif);--body:var(--brand-font-body,system-ui,sans-serif);
+    --ink:var(--vh-ink);--muted:var(--vh-ink-dim);
+    --surface:var(--vh-bg);--card:var(--vh-panel);
+    --primary:var(--vh-primary);--on-primary:var(--vh-on-primary);
+    --accent:var(--vh-accent);--line:var(--vh-line);
+    --ok:var(--vh-ok-text);--warn:var(--vh-warn-text);--err:var(--vh-err-text);
+    --head:var(--vh-font-head);--body:var(--vh-font-body);
   }
+  button,input,select,textarea{font-family:inherit}
   body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 80px;min-height:100vh;font-size:14px}
   .wrap{max-width:1240px;margin:0 auto}
 
@@ -90,9 +95,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      without one, so a sector benchmark can never be mistaken for a measurement. */
   .basis{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
          padding:2px 7px;border-radius:5px;vertical-align:middle;white-space:nowrap}
-  .basis-measured{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
-  .basis-modelled{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
-  .basis-unset{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+  .basis-measured{background:var(--vh-panel-2);box-shadow:inset 0 0 0 1px var(--vh-ok);color:var(--ok)}
+  .basis-modelled{background:var(--vh-panel-2);box-shadow:inset 0 0 0 1px var(--vh-warn);color:var(--warn)}
+  .basis-unset{background:var(--vh-panel-2);box-shadow:inset 0 0 0 1px var(--vh-line);color:var(--muted)}
 
   .policy{border:1px solid var(--line);border-left:3px solid var(--warn);background:var(--card);
           border-radius:10px;padding:14px 16px;margin:20px 0 24px;font-size:12.8px;line-height:1.65;color:var(--muted)}
@@ -131,7 +136,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      white-space:nowrap cell nowhere to put a value wider than its share -
      it overflows and paints over the next column. */
   table{table-layout:auto;width:100%;min-width:940px;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  thead tr{background:color-mix(in srgb,var(--primary) 6%,transparent)}
+  thead tr{background:var(--vh-panel-2)}
   th{padding:10px 13px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:left;
      text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
   td{padding:12px 13px;font-size:13px;border-top:1px solid var(--line);vertical-align:top;line-height:1.55}
@@ -139,10 +144,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   .score{font-family:var(--head);font-weight:600;font-size:15px}
   .pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap}
-  .pill-ready{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
-  .pill-blocked{background:color-mix(in srgb,var(--err) 13%,transparent);color:var(--err)}
+  .pill-ready{background:var(--vh-panel-2);box-shadow:inset 0 0 0 1px var(--vh-ok);color:var(--ok)}
+  .pill-blocked{background:var(--vh-panel-2);box-shadow:inset 0 0 0 1px var(--vh-err);color:var(--err)}
   .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin:2px 3px 0 0;
-       background:color-mix(in srgb,var(--primary) 9%,transparent);color:var(--brand-primary-text);font-weight:600}
+       background:var(--vh-panel-2);color:var(--vh-primary-text);font-weight:600}
   .why{color:var(--muted);font-size:12px;line-height:1.55;max-width:400px}
   .ground{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:6px;font-style:italic}
 
@@ -150,8 +155,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .stage-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap}
   .stage-name{font-size:13px;font-weight:600}
   .stage-num{font-size:12px;color:var(--muted);white-space:nowrap}
-  .bar{background:color-mix(in srgb,var(--muted) 12%,transparent);border-radius:4px;height:9px;overflow:hidden;position:relative}
-  .bar i{display:block;height:100%;border-radius:4px;background:color-mix(in srgb,var(--primary) 45%,transparent)}
+  .bar{background:var(--vh-panel-2);border-radius:4px;height:9px;overflow:hidden;position:relative}
+  .bar i{display:block;height:100%;border-radius:4px;background:var(--vh-chart-1)}
   .bar.leak i{background:var(--accent)}
   .stage-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:5px}
   .leakflag{font-size:10px;font-weight:700;color:var(--brand-accent-text);text-transform:uppercase;letter-spacing:.08em}
@@ -186,7 +191,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .tier p{font-size:12px;color:var(--muted);line-height:1.55;margin-top:3px}
   .src{font-size:11px;color:var(--muted);margin-top:4px}
 
-  .gap{background:color-mix(in srgb,var(--warn) 9%,transparent);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+  .gap{background:var(--vh-marker-ground);border:1px dashed var(--vh-marker-edge);
        border-radius:9px;padding:11px 13px;font-size:12px;color:var(--ink);margin-bottom:8px;line-height:1.55}
   .empty{color:var(--muted);font-size:13px;line-height:1.7;padding:22px;text-align:center}
   .err{border-left:3px solid var(--err)}
