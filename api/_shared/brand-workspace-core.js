@@ -1222,122 +1222,50 @@ async function assertPublicUrl(rawUrl) {
 }
 
 /**
- * Import from a PUBLIC storefront the operator owns. Read-only: GET only, no
- * credentials, no redirects, only the standard Shopify public products feed,
- * and only after the SSRF guard above clears the destination. Facts are copied
- * verbatim from the store; nothing is synthesised.
- */
-/**
- * Catalogue from the brand's OWN SITE, for every brand without a product feed.
+ * A store URL, read WHOLE (2026-10-10): catalog-import.js decides the route
+ * (Shopify's feed, the site's own sitemaps + each product page's JSON-LD, or
+ * its linked pages), reads until this invocation's budget is spent, and hands
+ * back the rows, a cursor to resume from, and the coverage in sentences.
  *
- * rowsFromStorefront can read exactly one thing: a Shopify /products.json. A
- * publisher, an events programme, a service, or any store not on Shopify had no
- * route in at all, so its assets fell back to DATA REQUIRED markers.
+ * This replaced two readers that each read what one pass happened to reach: a
+ * feed loop capped at 10 pages that refused any redirect and dropped every
+ * variant and all but one image, and a 40-page crawl whose sitemaps and
+ * robots.txt were fetched through a text/html-only fetcher (so neither was
+ * ever read in production). See catalog-import.js for what was measured.
  *
- * This crawls the brand's interlinked pages and takes only what the site itself
- * DECLARES in structured data. See _shared/site-crawl.js for why nothing is
- * read out of prose.
+ * The SSRF guard runs on EVERY request the importer makes (each redirect hop
+ * included), with the answer for a host cached for the run.
  */
-async function rowsFromSite(startUrl, region, brand) {
-  const { crawlSite } = require('./site-crawl.js');
-  const candidate = httpUrl(startUrl) || (brand && brand.website) || '';
-  if (!candidate) { const e = new Error('A site URL is required to crawl.'); e.status = 400; throw e; }
-  // Same SSRF guard the storefront import uses: a public host must not be able
-  // to bounce this onto an internal one.
+async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope } = {}) {
+  const candidate = httpUrl(startUrl) || (scope && scope.website) || '';
+  if (!candidate) { const e = new Error('A store URL is required.'); e.status = 400; throw e; }
   const base = await assertPublicUrl(candidate);
-
-  // The crawl is already reading every page; the platform the store runs on is
-  // published on those same pages. Detecting it here costs no extra request and
-  // turns "we tried /products.json and it 502'd" into a statement about the
-  // store: a WooCommerce shop does not publish that feed and never will, and
-  // telling its owner their feed is unavailable reads as a fault in their site.
-  const storefrontPages = [];
-  const out = await crawlSite(base, {
-    brand: brand || { website: base },
-    onPage: (html, url) => { if (storefrontPages.length < 12) storefrontPages.push([url, html]); },
-  });
-  if (!out.ok) {
-    const e = new Error(out.error === 'start_url_out_of_scope'
-      ? 'That URL is not on this brand\'s own domain. A catalogue may only be crawled from the brand\'s own site.'
-      : 'The site crawl could not start.');
-    e.status = 400; throw e;
-  }
-
-  const rows = [];
-  for (const o of out.offerings) {
-    const title = str(o.name, 300);
-    if (!title) continue;
-    rows.push({
-      region,
-      title,
-      handle: slugify(title),
-      sku: str(o.sku, 120) || null,
-      description: str(o.description, 4000) || null,
-      product_type: str(o.kind, 120) || null,
-      collections: [],
-      price: num(o.price),
-      compare_at: null,
-      currency: str(o.currency, 8).toUpperCase() || null,
-      image_url: httpUrl(o.image) || null,
-      product_url: httpUrl(o.url) || null,
-      in_stock: null,
-      tags: [],
-      source: 'site_crawl',
-    });
-    if (rows.length >= MAX_CATALOG_ROWS) break;
-  }
-
-  return {
-    rows, base,
-    storefront: require('./storefront-detect.js').detectStorefront(storefrontPages),
-    // Carried through so the caller can surface it rather than presenting a
-    // partial crawl as the whole catalogue.
-    crawl: {
-      pages_visited: out.pages_visited, stopped: out.stopped,
-      coverage_note: out.coverage_note, images: out.images, notes: out.notes,
-      // What the site declared about its own URLs. "40 pages read" and "40 of
-      // the 812 this site declares" are the same number and opposite claims.
-      sitemap: out.sitemap || null,
-    },
-  };
-}
-
-async function rowsFromStorefront(storeUrl, region) {
-  const candidate = httpUrl(storeUrl);
-  if (!candidate) { const e = new Error('Store URL is not a valid http(s) URL.'); e.status = 400; throw e; }
-  const base = await assertPublicUrl(candidate);
-  const rows = [];
-  let page = 1, skipped = 0;
-  while (page <= 10 && rows.length < MAX_CATALOG_ROWS) {
-    const url = `${base}/products.json?limit=250&page=${page}`;
-    let res;
-    try {
-      res = await fetch(url, { method: 'GET', headers: { accept: 'application/json' }, cache: 'no-store', redirect: 'manual' });
-    } catch (err) { const e = new Error(`Could not reach ${base}: ${err.message}`); e.status = 502; throw e; }
-    if (res.status >= 300 && res.status < 400) {
-      const e = new Error(`${base} redirected the request. Enter the store's canonical URL directly (redirects are not followed, so a public host cannot bounce the import onto an internal one).`);
+  const brand = Object.assign({}, scope || {});
+  if (!brand.website) brand.website = base;
+  const { allowedHosts, inScope } = require('./site-crawl.js');
+  if (!inScope(base, allowedHosts(brand))) {
+    if (strictScope) {
+      const e = new Error('That URL is not on this brand\'s own domain. A catalogue may only be crawled from the brand\'s own site.');
       e.status = 400; throw e;
     }
-    if (!res.ok) {
-      if (page === 1) { const e = new Error(`${base}/products.json returned ${res.status}. Public product feed not available at that URL.`); e.status = 502; throw e; }
-      break;
-    }
-    let json;
-    try { json = await res.json(); } catch (_) { break; }
-    const list = Array.isArray(json && json.products) ? json.products : [];
-    if (!list.length) break;
-    for (const p of list) {
-      const parsed = rowsFromJson({ products: [p] }, region);
-      for (const r of parsed.rows) {
-        r.source = 'shopify_public';
-        if (!r.product_url && r.handle) r.product_url = `${base}/products/${r.handle}`;
-        rows.push(r);
-      }
-      skipped += parsed.skipped;
-    }
-    page++;
+    // The operator named this store as theirs: its host joins the scope.
+    brand.asset_hosts = [].concat(Array.isArray(brand.asset_hosts) ? brand.asset_hosts : [], [new URL(base).hostname]);
   }
-  return { rows: rows.slice(0, MAX_CATALOG_ROWS), columns: {}, skipped, base };
+  const cleared = new Set();
+  const guard = async (u) => {
+    const h = new URL(u).hostname;
+    if (cleared.has(h)) return;
+    await assertPublicUrl(u);
+    cleared.add(h);
+  };
+  const out = await require('./catalog-import.js').step({ url: base, region, brand, cursor, guard, budgetMs });
+  return {
+    rows: out.rows, base, columns: {}, skipped: out.coverage.skipped.no_title || 0,
+    storefront: out.coverage.platform
+      ? { detected: true, platform: { id: out.coverage.platform.id, name: out.coverage.platform.name, why: out.coverage.platform.why, confidence: out.coverage.platform.confidence, source_url: out.coverage.platform.source_url }, catalog_route: { kind: out.coverage.platform.route, note: out.coverage.platform.route_note } }
+      : { detected: false },
+    coverage: out.coverage, cursor: out.cursor, complete: out.complete, run: out.run,
+  };
 }
 
 /* ── workspace operations ─────────────────────────────────────────────────── */
@@ -1390,11 +1318,13 @@ async function getWorkspace(auth, id) {
   return Array.isArray(rows) && rows[0] ? rows[0] : null;
 }
 
+/**
+ * The products a brand has NOW: rows a complete re-import marked stale are not
+ * counted. Paged, because PostgREST answers at most max_rows (1,000) whatever
+ * `limit` asks - a single read said 1,000 for every larger catalogue.
+ */
 async function productCount(auth, id) {
-  try {
-    const rows = await restAs(auth.token, `brand_catalog_products?select=id&workspace_id=eq.${encodeURIComponent(id)}&limit=${MAX_CATALOG_ROWS}`);
-    return Array.isArray(rows) ? rows.length : 0;
-  } catch (_) { return 0; }
+  try { return (await catalogCounts(auth, id)).live; } catch (_) { return 0; }
 }
 
 /**
@@ -1941,12 +1871,15 @@ async function assertCanWrite(auth, workspaceId, what) {
 }
 
 /**
- * Read a catalogue SOURCE into rows: the store URL (feed first, then the site
- * crawl), a pasted CSV, or a JSON export. Writes nothing. Shared by the
- * account import below and the device import (2026-10-03), so the two read a
- * catalogue identically and differ only in where the rows are kept.
+ * Read a catalogue SOURCE into rows: the store URL (catalog-import.js: feed,
+ * sitemap + JSON-LD, or crawl - resumable), a pasted CSV, or a JSON export.
+ * Writes nothing. Shared by the account import below and the device import
+ * (2026-10-03), so the two read a catalogue identically and differ only in
+ * where the rows are kept.
+ *
+ * `cursor` resumes a store read a previous invocation could not finish.
  */
-async function readCatalogSource({ region, kind, text, url, scope }) {
+async function readCatalogSource({ region, kind, text, url, scope, cursor, budgetMs }) {
   // Rows are filed under the region asked for, else the brand's HOME market
   // (its record's flag) - never a literal 'us' (2026-10-05). The wizard
   // already refuses without a home market; this is the same rule one layer
@@ -1965,65 +1898,71 @@ async function readCatalogSource({ region, kind, text, url, scope }) {
   }
 
   let parsed;
-  if (k === 'storefront' || k === 'shopify_public') {
-    // A store URL means "read my catalogue", not "read my /products.json".
-    // Only Shopify and its compatibles publish that feed, so every other store
-    // - and every Shopify store that has the endpoint disabled - got "No usable
-    // product rows were found in that source" and no catalogue at all, which is
-    // where the brand's generated assets then fall back to DATA REQUIRED
-    // markers. The crawler reads what the site DECLARES in its own structured
-    // data across its interlinked pages, so it does not care what the store
-    // runs on.
-    try {
-      parsed = await rowsFromStorefront(url, reg);
-    } catch (e) {
-      // A missing feed is not an error to report, it is a reason to try the
-      // other route. A refusal that is about the URL itself (private host,
-      // out of scope) still has to surface.
-      if (e && e.status && e.status !== 502 && e.status !== 404) throw e;
-      parsed = { rows: [], source: null, note: e && e.message };
-    }
-    if (!parsed.rows.length) {
-      const viaFeed = parsed.note || 'no rows in the product feed';
-      parsed = await rowsFromSite(url, reg, scope);
-      if (parsed && parsed.rows) parsed.fallback_from = viaFeed;
-    }
-  } else if (k === 'site' || k === 'site_crawl') parsed = await rowsFromSite(url, reg, scope);
-  else if (k === 'json') parsed = rowsFromJson(text, reg);
-  else if (k === 'csv') parsed = rowsFromCsv(text, reg);
+  if (k === 'storefront' || k === 'shopify_public' || k === 'site' || k === 'site_crawl') {
+    parsed = await rowsFromStore(url, reg, scope, { cursor, budgetMs, strictScope: k === 'site' || k === 'site_crawl' });
+  } else if (k === 'json') parsed = fileCoverage(rowsFromJson(text, reg), 'JSON export', reg);
+  else if (k === 'csv') parsed = fileCoverage(rowsFromCsv(text, reg), 'CSV', reg);
   else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
 
-  if (!parsed.rows.length) {
-    // Say which routes were tried, so the answer is actionable rather than a
-    // dead end: the operator can paste a CSV instead, or fix the feed.
-    //
-    // And name the PLATFORM when the crawl identified one. "Public product feed
-    // not available at that URL" is true of every WooCommerce, BigCommerce and
-    // Magento store on earth and reads as a fault in the operator's site; the
-    // useful sentence is which platform they are on and what that platform
-    // actually publishes.
+  if (!parsed.rows.length && parsed.complete !== false && !(parsed.coverage && parsed.coverage.found)) {
+    // Say which routes were tried and what the store published, so the answer
+    // is actionable rather than a dead end: the operator can paste a CSV
+    // instead, or add structured data. Nothing here is a fault in their store.
     const sf = parsed && parsed.storefront;
-    let tried = (k === 'storefront' || k === 'shopify_public')
-      ? ' Tried the public product feed and then crawled the site\'s own pages for declared product data.'
-      : '';
+    let tried = '';
+    if (parsed.coverage && parsed.coverage.sentences) tried += ' ' + parsed.coverage.sentences.join(' ');
     if (sf && sf.detected) {
       tried += ` This site is ${sf.platform.name} (${sf.platform.why}). ${sf.catalog_route.note}`
         + ' Nothing here is a fault in your store: it means the pages that were read declare no structured product data, so add it, or import a CSV.';
-    } else if (k === 'storefront' || k === 'site' || k === 'site_crawl') {
-      tried += ' No commerce platform declared itself on the pages that were read, so there was no feed to prefer and the site crawl was the only route.';
+    } else if (k !== 'csv' && k !== 'json') {
+      tried += ' No commerce platform declared itself on the pages that were read, so there was no feed to prefer.';
     }
     const e = new Error('No usable product rows were found in that source.' + tried);
-    e.status = 400; throw e;
+    e.status = 400; e.coverage = parsed.coverage || null; throw e;
   }
   return { parsed, reg, k };
+}
+
+/** A file import reads everything it was given in one call: its coverage says so. */
+function fileCoverage(parsed, label, reg) {
+  const R = String(reg || '').toUpperCase();
+  const rows = parsed.rows || [];
+  const noPrice = rows.filter((r) => r.price == null).length;
+  const noImage = rows.filter((r) => !r.image_url).length;
+  const s = [`Read ${rows.length.toLocaleString('en-US')} product row(s) from the ${label}.`];
+  if (parsed.skipped) s.push(`${parsed.skipped} row(s) skipped because they state no title.`);
+  if (noPrice) s.push(`${noPrice} product(s) state no price; they carry [DATA REQUIRED BEFORE LAUNCH: price, <product>, ${R}] rather than a number.`);
+  if (noImage) s.push(`${noImage} product(s) state no image; they carry [DATA REQUIRED BEFORE LAUNCH: product image, <product>, ${R}].`);
+  s.push('Complete: a file is read whole in one call.');
+  return Object.assign({}, parsed, {
+    complete: true, cursor: null, run: require('crypto').randomUUID(),
+    coverage: {
+      route: 'file', region: R, found: rows.length, complete: true, resume_available: false, stopped: null,
+      by_source: { file: rows.length }, skipped: { no_title: parsed.skipped || 0 }, missing: { price: noPrice, image: noImage }, sentences: s,
+    },
+  });
+}
+
+/** The coverage a person reads, without the per-URL lists. */
+function coverageSummary(c) {
+  if (!c) return null;
+  return {
+    route: c.route, region: c.region, base: c.base || null, base_from: c.base_from || null, currency: c.currency || null,
+    declared: c.declared ? { count: c.declared.count || null, urls: c.declared.urls || null, by: c.declared.by } : null,
+    found: c.found, by_source: c.by_source, skipped: c.skipped, missing: c.missing,
+    missing_examples: (c.missing_examples || []).slice(0, 5),
+    complete: !!c.complete, resume_available: !!c.resume_available, stopped: c.stopped || null,
+    sentences: (c.sentences || []).slice(0, 20),
+  };
 }
 
 /** Where a catalogue came from, as recorded beside the brand. */
 function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
   const sf = parsed && parsed.storefront;
+  const cov = coverageSummary(parsed && parsed.coverage);
   return {
     kind: k === 'storefront' ? 'shopify_public' : (k === 'site' ? 'site_crawl' : k),
-    url: (k === 'storefront' || k === 'site' || k === 'site_crawl') ? (parsed.base || httpUrl(url)) : '',
+    url: (k === 'storefront' || k === 'site' || k === 'site_crawl' || k === 'shopify_public') ? (parsed.base || httpUrl(url)) : '',
     imported_at: new Date().toISOString(),
     row_count: rowCount,
     batch,
@@ -2031,13 +1970,19 @@ function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
     columns: parsed.columns || {},
     // WHICH STORE THIS CAME FROM. Recorded on the workspace row the generators
     // read, so the answer is established once instead of re-derived by a failed
-    // request on every import. Null when the crawl route was not taken or the
-    // site published no platform signal — which is not the same as "no store".
+    // request on every import. Null when the site published no platform signal
+    // — which is not the same as "no store".
     platform: sf && sf.detected
       ? { id: sf.platform.id, name: sf.platform.name, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind }
       : null,
-    sitemap: (parsed.crawl && parsed.crawl.sitemap) || null,
-    coverage_note: (parsed.crawl && parsed.crawl.coverage_note) || '',
+    // What the import read of what the source declares, in sentences, and
+    // whether it finished. A partial import is never presented as the catalogue.
+    complete: !!(parsed && parsed.complete),
+    found: cov ? cov.found : rowCount,
+    declared: cov && cov.declared ? cov.declared.count : null,
+    coverage: cov,
+    sitemap: cov && parsed.coverage && parsed.coverage.sitemap ? { found: !!parsed.coverage.sitemap.found, sources: (parsed.coverage.sitemap.sources || []).length } : null,
+    coverage_note: cov ? cov.sentences.join(' ') : '',
   };
 }
 
@@ -2051,16 +1996,36 @@ function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
    the browser to keep beside the brand on the device (brand-context.js). The
    scope of a crawl is the brand the request carried, exactly as a workspace
    row would have supplied it; the SSRF guard and the site's own scope rules
-   run unchanged. Nothing is written here. */
-const DEVICE_CATALOG_ROWS = 2000;
+   run unchanged. Nothing is written here.
+
+   2026-10-10: one call returns ONE STEP of a store read - its rows, the cursor
+   to resume from (null when the store is exhausted) and the coverage. The
+   browser merges the rows into the catalogue it keeps (upsert by identity,
+   stale marking once complete: brand-context.js mergeDeviceCatalog, the twin of
+   catalog-import.mergeRows) and sends the cursor back on Continue import. */
+const DEVICE_CATALOG_ROWS = 10000;
 const DEVICE_ROW_FIELDS = ['region', 'sku', 'handle', 'title', 'description', 'product_type', 'collections', 'price',
-  'compare_at', 'currency', 'image_url', 'product_url', 'in_stock', 'tags', 'source', 'source_url'];
+  'compare_at', 'currency', 'image_url', 'image_urls', 'variants', 'product_url', 'in_stock', 'tags', 'source', 'source_url'];
 
 /** A phone sign-in whose brands are on its DEVICE: Neon or device mode. A phone
  *  account in Supabase Auth (mode 'supabase', #119) has workspaces like any account. */
 function isPhoneAuth(auth) { return !!(auth && auth.ok !== false && auth.provider === 'mobile-pin' && auth.mode !== 'supabase'); }
 
-async function deviceCatalogImport(auth, { region = '', kind, text, url, brand }) {
+/** De-duplicate a step's rows on the catalogue's identity (region, handle, sku). */
+function uniqueRows(rows) {
+  const { rowKey } = require('./catalog-import.js');
+  const seen = new Set();
+  const out = [];
+  for (const r of rows || []) {
+    const key = rowKey(r);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
+async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, cursor, budgetMs }) {
   const b = brand && typeof brand === 'object' && !Array.isArray(brand) ? brand : {};
   const scope = {
     name: typeof b.name === 'string' ? b.name.slice(0, 120) : '',
@@ -2068,19 +2033,17 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand }
     regions: Array.isArray(b.regions) ? b.regions.slice(0, 20) : [],
     asset_hosts: Array.isArray(b.asset_hosts) ? b.asset_hosts.filter((h) => typeof h === 'string').slice(0, 20) : [],
   };
-  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope });
-  const seen = new Set();
+  const resume = cursor && typeof cursor === 'object' ? cursor : null;
+  const { parsed, reg, k } = await readCatalogSource({ region, kind: resume ? 'storefront' : kind, text, url: (resume && resume.start) || url, scope, cursor: resume, budgetMs });
   const products = [];
-  for (const r of parsed.rows) {
-    const key = `${r.region}|${r.handle || ''}|${r.sku || ''}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+  for (const r of uniqueRows(parsed.rows)) {
     const row = {};
     for (const f of DEVICE_ROW_FIELDS) if (r[f] !== undefined) row[f] = r[f];
     products.push(row);
   }
   const kept = products.slice(0, DEVICE_CATALOG_ROWS);
-  const batch = require('crypto').randomUUID();
+  const batch = parsed.run || require('crypto').randomUUID();
+  const source = catalogSourceRecord(parsed, resume ? 'storefront' : k, url, kept.length, batch, reg);
   return {
     ok: true,
     imported: kept.length,
@@ -2088,81 +2051,192 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand }
     region: reg,
     storage: 'device',
     products: kept,
-    source: catalogSourceRecord(parsed, k, url, kept.length, batch, reg),
+    run: batch,
+    complete: !!parsed.complete,
+    resume_available: !parsed.complete,
+    cursor: parsed.cursor || null,
+    family: require('./catalog-import.js').familyOf(k),
+    coverage: coverageSummary(parsed.coverage),
+    source,
     note: products.length > kept.length
       ? `Kept the first ${kept.length} of ${products.length} products on this device; a browser holds a bounded amount. Nothing was invented for the rest.`
-      : 'Kept on this device, beside the brand. Nothing was written to a database.',
+      : (parsed.complete ? 'Kept on this device, beside the brand. Nothing was written to a database.'
+        : 'Kept on this device, beside the brand. The store was not read to the end in this call: Continue import resumes where it stopped.'),
   };
 }
 
-async function importCatalog(auth, { workspace_id, region = '', kind, text, url, replace = true, brand }) {
+/**
+ * One step of the merge into the workspace's catalogue, in chunks the request
+ * size can carry. The state (cursor + coverage) and catalog_source ride the
+ * LAST chunk, so they are recorded in the same transaction as the rows that
+ * finish the step - for an editor as for the owner (the table's update policy
+ * is owner-only, which silently dropped an editor's catalog_source PATCH).
+ */
+async function mergeIntoWorkspace(token, { workspace_id, reg, rows, run, complete, family, state, source }) {
+  const CHUNK = 400;
+  const out = { inserted: 0, updated: 0, staled: 0, live: null };
+  const chunks = [];
+  for (let i = 0; i < rows.length; i += CHUNK) chunks.push(rows.slice(i, i + CHUNK));
+  if (!chunks.length) chunks.push([]);
+  for (let i = 0; i < chunks.length; i++) {
+    const last = i === chunks.length - 1;
+    const r = await restAs(token, 'rpc/brand_catalog_merge', {
+      method: 'POST',
+      body: {
+        p_workspace: workspace_id, p_region: reg, p_rows: chunks[i], p_run: run,
+        p_complete: last && !!complete, p_family: family,
+        p_state: last ? state : null, p_source: last ? source : null,
+      },
+    });
+    out.inserted += (r && r.inserted) || 0;
+    out.updated += (r && r.updated) || 0;
+    out.staled += (r && r.staled) || 0;
+    if (r && typeof r.live === 'number') out.live = r.live;
+  }
+  return out;
+}
+
+/**
+ * Import (or continue importing) a catalogue into a workspace.
+ *
+ *   continue: true   resume the run recorded on the workspace (catalog_import.cursor)
+ *   replace:  false  additive: rows are upserted and nothing is marked stale
+ *
+ * Every call upserts what it read - never a duplicate, never a delete - and a
+ * run that has read its WHOLE source marks the rows that source no longer
+ * lists as stale (kept, skipped by the generators).
+ */
+async function importCatalog(auth, { workspace_id, region = '', kind, text, url, replace = true, brand, cursor, continue: resume = false, budgetMs }) {
   // A mobile-number sign-in has no workspace row to file under: the rows go
   // back to its device instead (see deviceCatalogImport above).
-  if (isPhoneAuth(auth)) return deviceCatalogImport(auth, { region, kind, text, url, brand });
-  // A replacement import can destroy the whole catalog, so membership is not
-  // enough — this needs write permission. The RLS policy enforces it too
-  // (20260809150000), but failing here gives the user a real message.
+  if (isPhoneAuth(auth)) return deviceCatalogImport(auth, { region, kind, text, url, brand, cursor, budgetMs });
+  // An import writes the catalogue, so membership is not enough - this needs
+  // write permission. brand_catalog_merge() checks it too.
   const ws = await assertCanWrite(auth, workspace_id, 'import or replace its catalog');
-  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws });
 
-  // De-dupe on the table's unique key before insert so one bad source row can't
-  // abort the whole import.
-  const batch = (typeof crypto !== 'undefined' && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : require('crypto').randomUUID();
-  const seen = new Set();
-  const payload = [];
-  for (const r of parsed.rows) {
-    const key = `${r.region}|${r.handle || ''}|${r.sku || ''}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    payload.push(Object.assign({ workspace_id, import_batch: batch }, r));  // workspace_id/import_batch ignored by the RPC, used by the additive path
-  }
-
-  let inserted = 0;
-  if (replace) {
-    // ATOMIC REPLACE. Chunked upserts cannot be made all-or-nothing from here:
-    // the unique key is (workspace_id, region, handle, sku), so an upsert
-    // OVERWRITES a matching existing row in place, and a failure after the
-    // first chunk would leave a mixture of old, overwritten and new rows that
-    // skipping a final delete could not undo. The delete and the insert must
-    // therefore happen in ONE database call, which is one transaction — that
-    // is what brand_catalog_replace() does. A failure rolls the whole swap
-    // back and the previous catalog survives untouched.
-    const out = await restAs(auth.token, 'rpc/brand_catalog_replace', {
-      method: 'POST',
-      body: { p_workspace: workspace_id, p_region: reg, p_rows: payload, p_batch: batch },
-    });
-    inserted = (out && typeof out.inserted === 'number') ? out.inserted : payload.length;
-  } else {
-    // Additive import: no existing row is destroyed, so per-chunk failure is
-    // recoverable by simply re-running it.
-    for (let i = 0; i < payload.length; i += 500) {
-      const chunk = payload.slice(i, i + 500);
-      await restAs(auth.token, 'brand_catalog_products?on_conflict=workspace_id,region,handle,sku', {
-        method: 'POST', body: chunk, prefer: 'resolution=merge-duplicates,return=minimal',
-      });
-      inserted += chunk.length;
+  let prior = null;
+  if (resume) {
+    const rows = await restAs(auth.token, `brand_workspaces?select=catalog_import&id=eq.${encodeURIComponent(workspace_id)}&limit=1`).catch(() => null);
+    prior = Array.isArray(rows) && rows[0] && rows[0].catalog_import && rows[0].catalog_import.cursor ? rows[0].catalog_import : null;
+    if (!prior) {
+      const e = new Error('There is no unfinished catalogue import on this brand to continue. Import it again to read it from the start.');
+      e.status = 409; e.code = 'nothing_to_continue'; throw e;
     }
+    region = prior.region || region;
+    kind = prior.kind || 'storefront';
+    url = prior.url || url;
   }
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws, cursor: prior ? prior.cursor : null, budgetMs });
+  const rows = uniqueRows(parsed.rows);
+  const run = parsed.run || require('crypto').randomUUID();
+  const family = require('./catalog-import.js').familyOf(k);
+  const complete = !!parsed.complete;
+  const source = catalogSourceRecord(parsed, k, url, rows.length, run, reg);
+  const state = {
+    run, kind: k, url: parsed.base || httpUrl(url) || '', region: reg,
+    cursor: complete ? null : (parsed.cursor || null),
+    coverage: coverageSummary(parsed.coverage),
+    updated_at: new Date().toISOString(),
+  };
 
-  const source = catalogSourceRecord(parsed, k, url, inserted, batch, reg);
-  await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(workspace_id)}`, {
-    method: 'PATCH', body: { catalog_source: source }, prefer: 'return=minimal',
-  });
-  // catalog_source lives on the workspace row that the generators read, so an
-  // import that is not followed by this keeps planning from the old catalogue.
+  let merged;
+  try {
+    merged = await mergeIntoWorkspace(auth.token, { workspace_id, reg, rows, run, complete: complete && replace !== false, family, state, source });
+  } catch (e) {
+    // A database that has not been migrated (20261010002000) has no merge. A
+    // complete one-call import can still land the old way, and says so; a
+    // partial one cannot keep its place, and says that instead.
+    if (!/brand_catalog_merge/.test(String(e && e.message)) || !/404|PGRST202|Could not find/i.test(String(e && e.message))) throw e;
+    if (!complete) {
+      const err = new Error('This database has not been migrated for resumable catalogue imports (migration 20261010002000), so a store that does not fit one call cannot keep its place. Apply the migration, or import a CSV.');
+      err.status = 503; err.code = 'migration_missing'; throw err;
+    }
+    const out = await restAs(auth.token, 'rpc/brand_catalog_replace', {
+      method: 'POST', body: { p_workspace: workspace_id, p_region: reg, p_rows: rows, p_batch: run },
+    });
+    await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(workspace_id)}`, {
+      method: 'PATCH', body: { catalog_source: source }, prefer: 'return=minimal',
+    });
+    merged = { inserted: (out && out.inserted) || rows.length, updated: 0, staled: 0, live: null, note: 'Replaced, not merged: migration 20261010002000 is not applied here, so products the store no longer lists were deleted rather than marked stale.' };
+  }
+  // catalog_source lives on the workspace row the generators read, and the
+  // rows feed brand-catalog-server's cache: both are dropped here.
   invalidateBrandCaches({ userId: auth.user_id, workspaceId: workspace_id });
+  try { require('./brand-catalog-server.js').invalidate(workspace_id); } catch (_) { /* never fails a write */ }
 
-  return { ok: true, imported: inserted, skipped: parsed.skipped || 0, region: reg, source };
+  return {
+    ok: true,
+    imported: rows.length,
+    skipped: parsed.skipped || 0,
+    region: reg,
+    run,
+    complete,
+    resume_available: !complete,
+    inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: merged.live,
+    coverage: state.coverage,
+    source,
+    note: merged.note || undefined,
+  };
 }
 
 async function listCatalog(auth, { workspace_id, region, limit = 60 }) {
   const lim = Math.max(1, Math.min(500, +limit || 60));
-  let q = `brand_catalog_products?select=id,region,sku,handle,title,product_type,collections,price,compare_at,currency,image_url,product_url,in_stock,source&workspace_id=eq.${encodeURIComponent(workspace_id)}&order=title.asc&limit=${lim}`;
-  if (region) q += `&region=eq.${encodeURIComponent(String(region).toLowerCase())}`;
-  const rows = await restAs(auth.token, q);
+  const base = `brand_catalog_products?workspace_id=eq.${encodeURIComponent(workspace_id)}&order=title.asc&limit=${lim}`
+    + (region ? `&region=eq.${encodeURIComponent(String(region).toLowerCase())}` : '');
+  const cols = 'id,region,sku,handle,title,product_type,collections,price,compare_at,currency,image_url,product_url,in_stock,source';
+  let rows;
+  try { rows = await restAs(auth.token, `${base}&select=${cols},image_urls,variants,stale_at`); }
+  catch (e) {
+    // A database without 20261010002000 has no stale_at / image_urls / variants.
+    if (!/stale_at|image_urls|variants|42703/.test(String(e && e.message))) throw e;
+    rows = await restAs(auth.token, `${base}&select=${cols}`);
+  }
   return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * What the catalogue import of a workspace read, what it did not, and whether
+ * it can continue - for /connections and the onboarding catalogue step.
+ */
+async function catalogStatus(auth, workspaceId) {
+  const ws = await getWorkspace(auth, workspaceId);
+  if (!ws) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
+  let imp = {};
+  try {
+    const rows = await restAs(auth.token, `brand_workspaces?select=catalog_import&id=eq.${encodeURIComponent(workspaceId)}&limit=1`);
+    imp = (Array.isArray(rows) && rows[0] && rows[0].catalog_import) || {};
+  } catch (_) { imp = {}; }
+  const counts = await catalogCounts(auth, workspaceId);
+  return {
+    ok: true,
+    workspace_id: workspaceId,
+    source: ws.catalog_source || {},
+    coverage: imp.coverage || (ws.catalog_source && ws.catalog_source.coverage) || null,
+    resume_available: !!imp.cursor,
+    region: imp.region || (ws.catalog_source && ws.catalog_source.region) || null,
+    updated_at: imp.updated_at || null,
+    live: counts.live,
+    stale: counts.stale,
+  };
+}
+
+/** Live and stale rows of a workspace, counted page by page (PostgREST answers at most max_rows per request). */
+async function catalogCounts(auth, id) {
+  const count = async (filter) => {
+    let n = 0;
+    for (let offset = 0; offset < 200000; offset += 1000) {
+      const rows = await restAs(auth.token, `brand_catalog_products?select=id&workspace_id=eq.${encodeURIComponent(id)}${filter}&order=id.asc&limit=1000&offset=${offset}`);
+      const got = Array.isArray(rows) ? rows.length : 0;
+      n += got;
+      if (!got) break;
+    }
+    return n;
+  };
+  try { return { live: await count('&stale_at=is.null'), stale: await count('&stale_at=not.is.null') }; }
+  catch (e) {
+    if (!/stale_at|42703/.test(String(e && e.message))) return { live: 0, stale: 0 };
+    try { return { live: await count(''), stale: 0 }; } catch (_) { return { live: 0, stale: 0 }; }
+  }
 }
 
 /** The payload the browser shell needs to become this brand. */
@@ -2650,7 +2724,14 @@ async function handle(req, res) {
           // Read only for a caller whose brands are on its device (a phone
           // sign-in): the scope a workspace row would otherwise supply.
           brand: body.brand,
+          // Continue import: the account path resumes from the cursor on the
+          // workspace row; a device brand sends the cursor it keeps.
+          continue: body.continue === true,
+          cursor: body.cursor && typeof body.cursor === 'object' ? body.cursor : null,
         }));
+      }
+      case 'catalog-status': {
+        return res.status(200).json(await catalogStatus(auth, str(q.workspace_id || body.workspace_id)));
       }
       case 'catalog': {
         const rows = await listCatalog(auth, {
@@ -2722,6 +2803,10 @@ async function handle(req, res) {
             // this step did not import (another stage, or a catalogue the
             // operator imported by hand and the run left alone).
             catalog_products: out.products,
+            // A store read that did not finish in this step: the device keeps
+            // the cursor beside its catalogue, and Continue import resumes it.
+            catalog_cursor: out.catalog_cursor || null,
+            catalog_run: out.catalog_run || null,
             ...(spend ? { voice_skipped: true, voice_note: VOICE_SKIPPED_NOTE } : {}),
           });
         }
@@ -2851,7 +2936,7 @@ async function handle(req, res) {
         return res.status(400).json({
           ok: false, error: 'unknown_brand_operation',
           available: ['defaults', 'presets', 'platform-rules', 'list', 'active', 'get', 'save', 'activate', 'delete',
-            'catalog-import', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest', 'document-fetch', 'render-probe',
+            'catalog-import', 'catalog-status', 'catalog', 'readiness', 'validate-palette', 'extract', 'suggest', 'document-fetch', 'render-probe',
             'context-build', 'context-step', 'context-pack', 'context-design', 'context-list', 'context-apply'],
         });
     }
@@ -2877,10 +2962,10 @@ module.exports = {
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, contractTokens, fontsHref,
   readiness, launchMarker, shellPayload, slugify, slugFor, DEFAULT_BRAND, coherenceSummary, activateChecked,
   // catalog
-  parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
+  parseCsv, rowsFromCsv, rowsFromJson, rowsFromStore, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
   listWorkspaces, getWorkspace, scoringBrandFor, activeWorkspaceId, setActive, saveWorkspace, deleteWorkspace,
-  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, assertCanWrite, seedCompetitorsOnActivation, ownsShipped,
+  importCatalog, deviceCatalogImport, readCatalogSource, isPhoneAuth, DEVICE_CATALOG_ROWS, listCatalog, catalogStatus, catalogCounts, mergeIntoWorkspace, catalogSourceRecord, coverageSummary, assertCanWrite, seedCompetitorsOnActivation, ownsShipped,
   // context pack + field provenance
   claimedFields, claimUserOwnedFields, packSummary, fireContextChain,
   carriedFields, recordedOrigins, ORIGIN_RANK,
