@@ -16,69 +16,69 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <style>
-  /* Brand-green canvas, consistent with the shared dark shell (theme.css).
-     Background is always violet/dark green; text is chalk/white + lava. */
-  /* NOTE: --panel2 is a SURFACE. It must map to a dark surface token — NOT to
-     theme.css's --soft, which theme.css defines as a light DIM-TEXT colour
-     (#556059). Mapping a surface to it produced light bubbles with light --ink
-     text (unreadable). --card is the theme's card surface (#ffffff, dark). */
-  :root { --green:#D0473E; --lava:#6A33D8; --chalk:#FFFFFF; --canvas:var(--bg,#D0473E); --panel:var(--surface,var(--vh-ink)); --panel2:var(--card,#ffffff); --ink:var(--vh-ink,#FFFFFF); --dim:var(--ink-dim,var(--vh-lava)); }
+  /* Every colour and family here is a contract role (design/lifecycle-os/
+     CONTRACT.md), so the page wears the ACTIVE brand: page on --vh-bg, the
+     chat on --vh-panel, a bot reply on the sunken --vh-panel-2, a user bubble
+     on the primary FILL with its derived --vh-on-primary label. This used to
+     declare its own :root palette (tenant zero's hexes, a gold edge from the
+     sibling brand this repo was forked from, a dark ink "panel") and name its
+     families, so another brand's page wore tenant zero's type and someone
+     else's gold. */
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--canvas); font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif; color:var(--ink); }
+  body { margin:0; background:var(--vh-bg); font-family:var(--vh-font-body); color:var(--vh-ink); }
   .shell { max-width:920px; margin:0 auto; padding:26px 18px 150px; }
-  .kicker { font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--brand-accent-text); font-weight:700; }
-  h1 { font-family:'Montserrat','Raleway',Georgia,serif; color:var(--brand-primary-text); font-size:34px; margin:6px 0 2px; letter-spacing:-.01em; }
-  h1 .bot { color:var(--brand-accent-text); }
-  .sub { color:var(--dim); font-size:14px; margin-bottom:16px; }
+  .kicker { font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--vh-accent-text); font-weight:700; }
+  /* A badge on the INK: --vh-bg on --vh-ink is the one pairing validatePalette
+     refuses to let a brand break. */
+  .kicker .team { background:var(--vh-ink); color:var(--vh-bg); border-radius:999px; padding:2px 9px; font-size:10px; letter-spacing:.08em; margin-left:8px; vertical-align:middle; }
+  h1 { font-family:var(--vh-font-head); color:var(--vh-primary-text); font-size:34px; margin:6px 0 2px; letter-spacing:-.01em; }
+  h1 .bot { color:var(--vh-accent-text); }
+  .sub { color:var(--vh-ink-dim); font-size:14px; margin-bottom:16px; }
   .toprow { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-  .market { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--dim); }
-  .market select { border:1px solid rgba(171,135,67,.45); border-radius:9px; padding:6px 10px; font-family:inherit; font-size:13px; background:var(--panel2); color:var(--ink); }
-  .pill { font-size:11.5px; padding:4px 11px; border-radius:999px; font-weight:700; }
-  /* Both state pills carry a FILL, so each needs a colour pair that holds for
-     any brand. The green wash was rgba(0,74,43,.55) - over the page it lands on
-     a mid sage that reads 3.1:1 under chalk text, so "Klaviyo: connected" was
-     unreadable the moment a key was set. The tan wash was .18 of an off-palette
-     gold: dark enough to eat the accent token's headroom (4.35:1). Both now use
-     brand-derived grounds - a solid ok for the live state, the brand's own
-     lightest tint for the idle one. */
-  .pill.on { background:var(--brand-ok,#1a7f37); color:var(--brand-surface,#ffffff); }
-  .pill.off { background:var(--brand-primary-tint,#f5f1e8); color:var(--brand-accent-text); }
+  .market { display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--vh-ink-dim); }
+  .market select { border:1px solid var(--vh-line-hot); border-radius:9px; padding:6px 10px; font-family:inherit; font-size:13px; background:var(--vh-panel); color:var(--vh-ink); }
+  /* State is said in a derived *-text token on the panel (AA for any brand by
+     construction), never in a state FILL with a guessed label colour. */
+  .pill { font-size:11.5px; padding:4px 11px; border-radius:999px; font-weight:700; border:1px solid var(--vh-line); background:var(--vh-panel); color:var(--vh-ink); }
+  .pill.on { color:var(--vh-ok-text); border-color:var(--vh-ok-text); }
+  .pill.off { background:var(--vh-tint); color:var(--vh-ink); }
   .suggest { display:flex; gap:9px; flex-wrap:wrap; margin:6px 0 18px; }
-  .schip { border:1.5px solid var(--lava); background:var(--panel2); color:var(--ink); padding:8px 14px; border-radius:999px; font-size:12.5px; cursor:pointer; transition:all .16s; }
-  .schip:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,74,43,.16); background:var(--green); color:var(--chalk); border-color:var(--green); }
-  .chat { background:var(--panel); border:1px solid rgba(171,135,67,.35); border-radius:18px; min-height:440px; max-height:70vh; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:16px; }
+  .schip { border:1.5px solid var(--vh-accent); background:var(--vh-panel); color:var(--vh-ink); padding:8px 14px; border-radius:999px; font-family:inherit; font-size:12.5px; cursor:pointer; transition:all .16s; }
+  .schip:hover { transform:translateY(-1px); box-shadow:var(--vh-lift-1); background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--vh-primary); }
+  .chat { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:18px; min-height:440px; max-height:70vh; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:16px; }
   .msg { max-width:84%; padding:14px 18px; border-radius:16px; font-size:14.5px; line-height:1.62; animation:pop .32s ease; }
   @keyframes pop { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-  .msg.user { align-self:flex-end; background:var(--green); color:var(--chalk); border-bottom-right-radius:5px; }
-  .msg.bot { align-self:flex-start; background:var(--panel2); color:var(--ink); border:1px solid rgba(171,135,67,.3); border-bottom-left-radius:5px; }
-  .msg.bot a { color:var(--brand-accent-text); font-weight:600; }
+  .msg.user { align-self:flex-end; background:var(--vh-primary); color:var(--vh-on-primary); border-bottom-right-radius:5px; }
+  .msg.bot { align-self:flex-start; background:var(--vh-panel-2); color:var(--vh-ink); border:1px solid var(--vh-line); border-bottom-left-radius:5px; }
+  .msg.bot a { color:var(--vh-link); font-weight:600; }
   .msg.bot p { margin:.5em 0; } .msg.bot p:first-child { margin-top:0; } .msg.bot p:last-child { margin-bottom:0; }
-  .msg.bot code { background:rgba(171,135,67,.14); padding:1px 5px; border-radius:5px; font-size:13px; }
+  .msg.bot code { background:var(--vh-panel); border:1px solid var(--vh-line); padding:1px 5px; border-radius:5px; font-family:var(--vh-font-mono); font-size:13px; }
   .msg.bot ul { margin:.4em 0; padding-left:1.2em; }
-  .msg.bot .hd { display:block; font-weight:700; color:var(--brand-accent-text); margin:.7em 0 .25em; }
+  .msg.bot .hd { display:block; font-weight:700; color:var(--vh-accent-text); margin:.7em 0 .25em; }
   .msg.bot table { border-collapse:collapse; margin:.5em 0; font-size:13px; width:100%; }
-  .msg.bot th, .msg.bot td { border:1px solid rgba(171,135,67,.35); padding:5px 9px; text-align:left; }
-  .msg.bot th { background:rgba(171,135,67,.12); color:var(--brand-accent-text); }
+  .msg.bot th, .msg.bot td { border:1px solid var(--vh-line); padding:5px 9px; text-align:left; }
+  .msg.bot th { background:var(--vh-panel); color:var(--vh-accent-text); }
   .tools { align-self:flex-start; max-width:84%; font-size:12px; }
-  .tools summary { cursor:pointer; color:var(--brand-accent-text); font-weight:700; list-style:none; display:inline-flex; align-items:center; gap:6px; }
+  .tools summary { cursor:pointer; color:var(--vh-accent-text); font-weight:700; list-style:none; display:inline-flex; align-items:center; gap:6px; }
   .tools summary::-webkit-details-marker { display:none; }
-  .toolitem { background:var(--panel); border:1px solid rgba(171,135,67,.3); border-left:3px solid var(--lava); border-radius:9px; padding:8px 11px; margin:7px 0; }
-  .toolitem .tname { font-weight:700; color:var(--brand-accent-text); }
-  .toolitem .targs { color:var(--dim); }
-  .toolitem pre { margin:6px 0 0; white-space:pre-wrap; word-break:break-word; background:rgba(0,0,0,.25); padding:7px 9px; border-radius:7px; font-size:11.5px; max-height:160px; overflow:auto; }
-  .toolchip { display:inline-flex; align-items:center; gap:5px; background:rgba(171,135,67,.12); color:var(--brand-accent-text); border-radius:999px; padding:2px 9px; margin:2px 4px 2px 0; font-size:11px; font-weight:700; }
-  .typing { align-self:flex-start; color:var(--dim); font-size:13px; font-style:italic; }
-  .inputrow { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(transparent, var(--canvas) 32%); padding:18px; }
+  .toolitem { background:var(--vh-panel-2); border:1px solid var(--vh-line); border-left:3px solid var(--vh-accent); border-radius:9px; padding:8px 11px; margin:7px 0; }
+  .toolitem .tname { font-weight:700; color:var(--vh-accent-text); }
+  .toolitem .targs { color:var(--vh-ink-dim); }
+  .toolitem pre { margin:6px 0 0; white-space:pre-wrap; word-break:break-word; background:var(--vh-panel); border:1px solid var(--vh-line); color:var(--vh-ink); padding:7px 9px; border-radius:7px; font-family:var(--vh-font-mono); font-size:11.5px; max-height:160px; overflow:auto; }
+  .toolchip { display:inline-flex; align-items:center; gap:5px; background:var(--vh-panel); border:1px solid var(--vh-line); color:var(--vh-accent-text); border-radius:999px; padding:2px 9px; margin:2px 4px 2px 0; font-size:11px; font-weight:700; }
+  .typing { align-self:flex-start; color:var(--vh-ink-dim); font-size:13px; font-style:italic; }
+  .inputrow { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(transparent, var(--vh-bg) 32%); padding:18px; }
   @media (min-width:961px){ .inputrow{ left:var(--lsb-w,248px); } }
-  .inputbox { max-width:900px; margin:0 auto; display:flex; gap:10px; background:var(--panel); border:1.5px solid var(--lava); border-radius:16px; padding:10px 12px; box-shadow:0 14px 40px rgba(0,0,0,.4); }
-  .inputbox input { flex:1; border:none; outline:none; font-size:15px; font-family:inherit; background:transparent; color:var(--ink); }
+  .inputbox { max-width:900px; margin:0 auto; display:flex; gap:10px; background:var(--vh-panel); border:1.5px solid var(--vh-accent); border-radius:16px; padding:10px 12px; box-shadow:var(--vh-lift-2); }
+  .inputbox input { flex:1; border:none; outline:none; font-size:15px; font-family:inherit; background:transparent; color:var(--vh-ink); }
+  .inputbox input::placeholder { color:var(--vh-ink-dim); }
   .btn { border:none; border-radius:11px; padding:11px 18px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:transform .15s; }
   .btn:hover { transform:translateY(-1px); }
-  /* Text ON an accent fill takes --brand-on-accent, which is contrast-
-     computed per brand; --canvas is the page colour and vanishes on a
-     light accent. */
-  .btn.send { background:var(--lava); color:var(--brand-on-accent,var(--canvas)); }
-  .foot { max-width:900px; margin:7px auto 0; font-size:11px; color:var(--dim); text-align:center; }
+  /* The page's one action is the primary FILL with the label derived for it
+     (validatePalette blocks a brand whose pair falls under 4.5:1). */
+  .btn.send { background:var(--vh-primary); color:var(--vh-on-primary); }
+  .btn.send:hover { background:var(--brand-primary-dark, var(--vh-primary)); }
+  .foot { max-width:900px; margin:7px auto 0; font-size:11px; color:var(--vh-ink-dim); text-align:center; }
 </style>
 </head>
 <body>
@@ -88,7 +88,7 @@
        SURFACE, on an ink ground: 3.3:1 under a light brand and 2.8:1 for tenant
        zero, i.e. broken for every brand. --brand-surface on --brand-ink is the
        one pairing validatePalette refuses to let a brand break. -->
-  <div class="kicker">KNICKGASM · Brand Intelligence <span style="background:var(--brand-ink,#111111);color:var(--brand-surface,#ffffff);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">INTERNAL · TEAM ONLY</span></div>
+  <div class="kicker">KNICKGASM · Brand Intelligence <span class="team">INTERNAL · TEAM ONLY</span></div>
   <h1>Products<span class="bot">GPT</span></h1>
   <div class="sub">An internal tool for your growth and retention team, not customer-facing. Your brand's own AI: it doesn't just chat, it operates the growth stack, analytics, calendar, campaign generation, competitor intel, and Klaviyo lifecycle. Laced in your own data.</div>
 
@@ -116,22 +116,25 @@
 <script src="/auth.js?v=20260718light" defer></script>
 <script src="/chat-history.js"></script>
 <style>
+  /* The history panel and the asset cards were an INK panel and a translucent
+     forest-green card with pale text: a dark section on every brand's page. They
+     sit on the panel tokens now, with ink text and the brand's own edges. */
   .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
-  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid rgba(171,135,67,.4);background:rgba(171,135,67,.12);color:var(--brand-accent-text,#6A33D8);cursor:pointer}
-  .cbtn:hover{background:rgba(171,135,67,.22)}
-  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:var(--vh-ink);border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.4)}
-  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--vh-panel-tan)}
-  .hitem:hover{background:rgba(171,135,67,.14)} .hitem.on{background:rgba(171,135,67,.22)}
+  .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid var(--vh-line-hot);background:var(--vh-panel);color:var(--vh-accent-text);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .cbtn:hover{background:var(--vh-panel-2)}
+  .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:6px;box-shadow:var(--vh-lift-2)}
+  .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--vh-ink)}
+  .hitem:hover{background:var(--vh-panel-2)} .hitem.on{background:var(--vh-tint)}
   .htitle{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hdel{background:none;border:0;color:var(--brand-accent-text);cursor:pointer;font-size:12px} .hdel:hover{color:var(--brand-err,#c0392b)}
-  .hempty{padding:14px;color:var(--brand-accent-text);font-size:12px;text-align:center}
+  .hdel{background:none;border:0;color:var(--vh-ink-dim);cursor:pointer;font-family:inherit;font-size:12px} .hdel:hover{color:var(--vh-err-text)}
+  .hempty{padding:14px;color:var(--vh-ink-dim);font-size:12px;text-align:center}
   .assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:6px 0 4px}
-  .acard{background:rgba(4,32,20,.5);border:1px solid rgba(171,135,67,.4);border-radius:12px;padding:12px 13px}
-  .acard .akind{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-accent-text,#6A33D8);font-weight:800}
-  .acard .alabel{font-size:13px;color:var(--vh-panel-tan);margin:4px 0 9px;font-weight:600;line-height:1.3}
+  .acard{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:12px 13px}
+  .acard .akind{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-accent-text);font-weight:800}
+  .acard .alabel{font-size:13px;color:var(--vh-ink);margin:4px 0 9px;font-weight:600;line-height:1.3}
   .acard .arow{display:flex;gap:7px}
-  .abtn{flex:1;text-align:center;font-size:11px;font-weight:700;padding:7px 8px;border-radius:8px;border:1px solid rgba(171,135,67,.5);background:rgba(171,135,67,.14);color:var(--vh-panel-tan);cursor:pointer;text-decoration:none}
-  .abtn:hover{background:rgba(171,135,67,.26)}
+  .abtn{flex:1;text-align:center;font-size:11px;font-weight:700;padding:7px 8px;border-radius:8px;border:1px solid var(--vh-line-hot);background:var(--vh-panel-2);color:var(--vh-ink);cursor:pointer;text-decoration:none}
+  .abtn:hover{background:var(--vh-tint)}
 </style>
 <script>
 (function(){
@@ -152,6 +155,8 @@
     'Summarize this week’s analysis with the top angles that work'
   ];
 
+  // A UI icon from the Lifecycle OS set (stroke, currentColor), in place of an emoji.
+  function ico(n){ return '<svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-'+n+'"/></svg>'; }
   function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   // Minimal, safe markdown: paragraphs, bullets, headings, tables, bold, inline code, links.
   function md(t){
@@ -194,7 +199,7 @@
   function addTools(steps){
     if(!steps || !steps.length) return;
     var det=document.createElement('details'); det.className='tools'; det.open=false;
-    var chips = steps.map(function(s){ return '<span class="toolchip">⚙ '+escapeHtml(s.tool)+'</span>'; }).join('');
+    var chips = steps.map(function(s){ return '<span class="toolchip">'+ico('settings')+' '+escapeHtml(s.tool)+'</span>'; }).join('');
     var sum=document.createElement('summary'); sum.innerHTML='▸ Ran '+steps.length+' tool'+(steps.length>1?'s':'')+'  '+chips; det.appendChild(sum);
     steps.forEach(function(s){
       var it=document.createElement('div'); it.className='toolitem';
@@ -215,8 +220,8 @@
       var row=document.createElement('div'); row.className='arow';
       card.innerHTML='<div class="akind">'+kind+'</div><div class="alabel">'+safeLabel+'</div>';
       function fileName(ext){ return (a.label||a.kind||'asset').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,48)+'.'+ext; }
-      var viewBtn=document.createElement('a'); viewBtn.className='abtn'; viewBtn.textContent='👁 View'; viewBtn.target='_blank'; viewBtn.rel='noopener';
-      var dlBtn=document.createElement('a'); dlBtn.className='abtn'; dlBtn.textContent='⬇ Download';
+      var viewBtn=document.createElement('a'); viewBtn.className='abtn'; viewBtn.innerHTML=ico('eye')+' View'; viewBtn.target='_blank'; viewBtn.rel='noopener';
+      var dlBtn=document.createElement('a'); dlBtn.className='abtn'; dlBtn.innerHTML=ico('download')+' Download';
       if(a.html){
         var blob=new Blob([a.html],{type:'text/html'}); var u=URL.createObjectURL(blob);
         viewBtn.href=u; dlBtn.href=u; dlBtn.download=fileName('html');
@@ -314,7 +319,7 @@
   function buildConvoBar(){
     if(!CH || !chatEl || !chatEl.parentNode) return;
     var bar=document.createElement('div'); bar.className='convobar';
-    bar.innerHTML='<button type="button" id="newChat" class="cbtn">＋ New chat</button><button type="button" id="histToggle" class="cbtn">🕘 History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
+    bar.innerHTML='<button type="button" id="newChat" class="cbtn">'+ico('plus')+' New chat</button><button type="button" id="histToggle" class="cbtn">'+ico('clock')+' History</button><div id="histPanel" class="histpanel" style="display:none"></div>';
     chatEl.parentNode.insertBefore(bar, chatEl);
     document.getElementById('newChat').onclick=function(){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); renderHist(); };
     document.getElementById('histToggle').onclick=function(){ var p=document.getElementById('histPanel'); p.style.display=(p.style.display==='none'?'block':'none'); renderHist(); };
@@ -324,7 +329,7 @@
     var p=document.getElementById('histPanel'); if(!p) return;
     var items=CH.list();
     if(!items.length){ p.innerHTML='<div class="hempty">No saved conversations yet.</div>'; return; }
-    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escapeHtml(c.title||'New chat')+'</span><button type="button" class="hdel" data-del="'+c.id+'" title="Delete">✕</button></div>'; }).join('');
+    p.innerHTML=items.map(function(c){ return '<div class="hitem'+(c.id===CH.currentId()?' on':'')+'" data-id="'+c.id+'"><span class="htitle">'+escapeHtml(c.title||'New chat')+'</span><button type="button" class="hdel" data-del="'+c.id+'" title="Delete" aria-label="Delete">'+ico('close')+'</button></div>'; }).join('');
     p.querySelectorAll('.hitem').forEach(function(el){ el.addEventListener('click',function(e){ if(e.target.closest('[data-del]'))return; loadConvo(el.getAttribute('data-id')); }); });
     p.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click',function(e){ e.stopPropagation(); CH.remove(b.getAttribute('data-del')); if(!CH.current()){ CH.create(); chatEl.innerHTML=''; history=[]; greet(); } renderHist(); }); });
   }
