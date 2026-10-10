@@ -403,7 +403,30 @@ async function deviceSessionReady(){
 }
 function readDevicePlan(){
   const k = devicePlanKey(); if(!k) return null;
-  try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && Array.isArray(v.entries) && v.entries.length ? v : null; } catch(_) { return null; }
+  try {
+    const v = JSON.parse(localStorage.getItem(k) || 'null');
+    if(!(v && Array.isArray(v.entries) && v.entries.length)) return null;
+    // A kept slot planned from a catalogue the coherence rule now calls another
+    // brand's is not shown again (2026-10-10): Daily Sync re-plans it.
+    v.entries = v.entries.filter(e => !foreignSlot(e));
+    return v.entries.length ? v : null;
+  } catch(_) { return null; }
+}
+/* The server's slotForeignProducts(), for a plan this device kept: a slot whose
+   hero offering was read off a catalogue judged another brand's, or whose page
+   is on another brand's site, under the active brand's catalogue verdict. */
+function foreignSlot(e){
+  try {
+    const B = window.BrandContext, b = B && B.brand;
+    const v = b && b.catalog_identity;
+    const L = B && B.coherenceLib;
+    if(!e || !v || !L || e.strategy_only === true) return false;
+    return [e.heroOffering, e.offering].concat(Array.isArray(e.supportingProducts) ? e.supportingProducts : []).filter(Boolean).some(o => {
+      const url = String(o.source_url || o.url || o.product_url || '').trim();
+      if(url) return L.catalogRowForeign({ product_url: url }, v);
+      return !!(o.source && o.source.type === 'workspace_catalog' && v.excluded);
+    });
+  } catch(_) { return false; }
 }
 /** Lay this device's decisions over a freshly read plan. */
 function applyDecisions(list){

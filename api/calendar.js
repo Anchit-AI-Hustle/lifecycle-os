@@ -492,6 +492,9 @@ async function smartBrain(req, res, smartAction) {
 
     return res.status(400).json({ ok: false, error: 'Unknown Smart Brain action. Use smart-brain-health|smart-brain-schema|smart-brain-plan|smart-brain-sync-daily|smart-brain-cron|smart-brain-prebuild|smart-brain-heal|smart-brain-preview|smart-brain-approve|smart-brain-reject|smart-brain-run-daily|smart-brain-generate-slot|smart-brain-feedback|smart-brain-weekly-recalibration' });
   } catch (err) {
+    // A refusal the planner states (a slot planned from another brand's
+    // catalogue, 409 catalogue_excluded) is an answer, not a crash.
+    if (err && err.code === 'catalogue_excluded') return res.status(409).json({ ok: false, error: err.code, message: err.message });
     console.error('[api/calendar smart-brain]', err);
     return res.status(500).json({ ok: false, error: err.message });
   }

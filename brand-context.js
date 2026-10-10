@@ -798,6 +798,7 @@
       fonts_href: fontsHrefFor(brand),
       files: filesSummaryFor(brand),
       coherence: coherenceSummaryFor(brand),
+      catalog_identity: catalogIdentityFor(brand),
       storage: 'device',
     }, extra || {});
   }
@@ -1205,7 +1206,64 @@
       return { identity: identity, domains: domains, conflicts: live, accepted: accepted, blocking: blocking, ok: live.length === 0, summary: summary };
     }
 
-    return { brandCoherence: brandCoherence, registrableDomain: registrableDomain, hostOf: hostOf, sameBrand: sameBrand, nameFitsHost: nameFitsHost, sourceOf: sourceOf, slugify: slugify, LABEL: LABEL, MULTI_LABEL_SUFFIXES: MULTI_LABEL_SUFFIXES };
+    /**
+     * catalogIdentity(record) - may a generator use the catalogue on this
+     * record as THIS brand's products? (2026-10-10)
+     *
+     * The rule above judged a foreign catalogue only at activation, so a record
+     * activated before the rule existed (or overridden) kept handing another
+     * company's products to every planner and writer: a brand named Mamaearth
+     * got mailers for another company's chicken salami. The answer here is
+     * brandCoherence's OWN verdict, never a second domain comparison: a
+     * catalogue conflict that BLOCKS (cross_domain or mixed_sources on
+     * catalog_source) and that the person has not kept excludes the catalogue.
+     *
+     * `allowed` lists the registrable domains a product row may come from: the
+     * website's, the catalogue source's when it is not excluded, and any
+     * catalogue domain the person KEPT. catalogRowForeign() judges one row by
+     * the page it describes (source_url, else product_url); a row with no page
+     * belongs to the catalogue it arrived in, so it follows that verdict.
+     */
+    function catalogIdentity(record) {
+      var rec = isObj(record) ? record : {};
+      var c = brandCoherence(rec);
+      var cat = isObj(rec.catalog_source) ? rec.catalog_source : {};
+      var hit = null;
+      c.conflicts.forEach(function (x) { if (!hit && x.field === 'catalog_source' && x.severity === 'block') hit = x; });
+      var kept = [];
+      c.accepted.forEach(function (id) {
+        var m = /^(?:cross_domain|mixed_sources):catalog_source:(.+)$/.exec(id);
+        if (m && kept.indexOf(m[1]) < 0) kept.push(m[1]);
+      });
+      var srcDomain = registrableDomain(hostOf(cat.url));
+      var allowed = [];
+      function allow(d) { if (d && allowed.indexOf(d) < 0) allowed.push(d); }
+      if (c.identity) allow(c.identity.domain);
+      if (srcDomain && !hit) allow(srcDomain);
+      kept.forEach(allow);
+      var name = str(rec.name) || 'this brand';
+      var marker = '[DATA REQUIRED BEFORE LAUNCH: product catalogue, ' + name + ']';
+      var sentence = hit
+        ? 'The catalogue on this record was imported from ' + hit.domain + (c.identity ? ', not from ' + c.identity.domain + ' (this brand\'s website)' : '') +
+          ', so none of its products, photos or claims are used for ' + name + '. Import ' + name + '\'s own catalogue, or keep this one in brand setup if it is ' + name + '\'s.'
+        : '';
+      return {
+        excluded: !!hit, domain: hit ? hit.domain : '', conflict_id: hit ? hit.id : '', identity_domain: c.identity ? c.identity.domain : '',
+        source_domain: srcDomain, allowed: allowed, kept: kept, marker: marker, sentence: sentence
+      };
+    }
+    /** Does ONE product row come from another brand's site, under this verdict? */
+    function catalogRowForeign(row, verdict) {
+      if (!isObj(row) || !isObj(verdict)) return false;
+      var u = str(row.source_url) || str(row.product_url) || str(row.url);
+      var h = hostOf(u);
+      if (!h || neutral(h)) return !!verdict.excluded;
+      if (!verdict.allowed || !verdict.allowed.length) return !!verdict.excluded;
+      var d = registrableDomain(h);
+      return !verdict.allowed.some(function (a) { return sameBrand(a, d); });
+    }
+
+    return { brandCoherence: brandCoherence, catalogIdentity: catalogIdentity, catalogRowForeign: catalogRowForeign, registrableDomain: registrableDomain, hostOf: hostOf, sameBrand: sameBrand, nameFitsHost: nameFitsHost, sourceOf: sourceOf, slugify: slugify, LABEL: LABEL, MULTI_LABEL_SUFFIXES: MULTI_LABEL_SUFFIXES };
   })();
   /* BRAND-COHERENCE:END */
 
@@ -1315,6 +1373,60 @@
     return prev.slug;
   }
   /** The brand-list badge, the server's coherenceSummary(). */
+  /**
+   * Remove from a device brand's kept catalogue every product read from
+   * `domain` (2026-10-10): the wizard's "Clear that" on a catalogue conflict.
+   * It used to clear only catalog_source and leave the imported products
+   * beside the brand. A row is judged by its own page; a row with none
+   * belongs to the catalogue it arrived in. Returns how many were removed.
+   */
+  function clearDeviceCatalog(id, domain) {
+    var cat = deviceCatalog(id);
+    var dom = str(domain);
+    if (!cat || !dom) return 0;
+    var L = COHERENCE;
+    var srcDom = cat.source && cat.source.url ? L.registrableDomain(L.hostOf(cat.source.url)) : '';
+    var srcIs = !!srcDom && L.sameBrand(srcDom, dom);
+    var fromDom = function (p) {
+      var u = (p && (p.source_url || p.product_url || p.url)) || '';
+      var d = L.registrableDomain(L.hostOf(u));
+      return d ? L.sameBrand(d, dom) : srcIs;
+    };
+    var keep = cat.products.filter(function (p) { return !fromDom(p); });
+    var n = cat.products.length - keep.length;
+    if (!keep.length) { writeSide('catalog', id, null); return n; }
+    cat.products = keep;
+    if (srcIs) { cat.source = null; cat.cursor = null; cat.coverage = null; }
+    writeSide('catalog', id, cat);
+    return n;
+  }
+  /** Mirrors catalogIdentitySummary() on the server (2026-10-10). */
+  function catalogIdentityFor(brand) {
+    if (!brand || typeof brand !== 'object') return null;
+    var v = COHERENCE.catalogIdentity(brand);
+    return { excluded: v.excluded, domain: v.domain, allowed: v.allowed, marker: v.marker, sentence: v.sentence };
+  }
+  /**
+   * The catalogue a GENERATOR on this device may use for a device brand
+   * (2026-10-10): the rows kept beside it, judged by the coherence rule. A
+   * catalogue another brand's site supplied contributes nothing; each row is
+   * judged by the page it was read from. { products, source, owned, excluded,
+   * dropped } or null when nothing is kept.
+   */
+  function catalogForGeneration(id) {
+    var cat = deviceCatalog(id);
+    if (!cat) return null;
+    var rec = deviceFind(readDevice(), id) || ((state.brand && state.brand.id === id) ? state.brand : null);
+    var v = rec ? COHERENCE.catalogIdentity(rec) : null;
+    var all = cat.products.filter(function (p) { return p && !p.stale_at; });
+    var kept = v ? all.filter(function (p) { return !COHERENCE.catalogRowForeign(p, v); }) : all;
+    var out = JSON.parse(JSON.stringify(cat));
+    out.products = kept;
+    out.dropped = all.length - kept.length;
+    out.excluded = v && (v.excluded || out.dropped) ? { excluded: v.excluded, domain: v.domain, marker: v.marker, sentence: v.sentence ||
+      ('Every product kept for ' + (rec.name || 'this brand') + ' was read from another brand\'s site, so none is used.') } : null;
+    return out;
+  }
   function coherenceSummaryFor(brand) {
     if (!brand || !brand.brand_data) return null;
     var c = COHERENCE.brandCoherence(brand);
@@ -2798,6 +2910,15 @@
     if (!/^https:\/\//i.test(String(out.logo_url || ''))) delete out.logo_url;
     var pend = pendingHosting(deviceFind(readDevice(), b.id) || b);
     if (pend.length) out.pending_hosting = pend;
+    // Where its catalogue came from, and the conflicts the person KEPT (ids),
+    // read off the FULL device record (state.brand is the shell, which holds
+    // neither), so the server's catalogue gate judges this brand exactly as
+    // the device does (2026-10-10).
+    var full = deviceFind(readDevice(), b.id) || b;
+    if (out.catalog_source === undefined && full.catalog_source && typeof full.catalog_source === 'object') out.catalog_source = full.catalog_source;
+    var fdata = full.brand_data && typeof full.brand_data === 'object' ? full.brand_data : data;
+    var acc = fdata.coherence && Array.isArray(fdata.coherence.accepted) ? fdata.coherence.accepted : [];
+    if (acc.length) out.brand_data = { coherence: { accepted: acc.map(function (a) { return { id: String((a && a.id) || a || '') }; }).filter(function (a) { return a.id; }).slice(0, 40) } };
     return out;
   }
 
@@ -2808,6 +2929,8 @@
     // The catalogue a brand on this device keeps beside itself (2026-10-03):
     // { products, source, owned } or null. Read-only; imports go through api().
     deviceCatalog: function (id) { var c = deviceCatalog(id); return c ? JSON.parse(JSON.stringify(c)) : null; },
+    // What a GENERATOR may use of it: judged by the coherence rule (2026-10-10).
+    catalogForGeneration: catalogForGeneration,
     get needsOnboarding() { return state.needsOnboarding; },
     get workspaces() { return state.workspaces; },
     get loaded() { return state.loaded; },
@@ -2837,6 +2960,8 @@
       count: function () { return readDevice().workspaces.length; },
       // The device catalogue's merge, exposed for the parity test against the server's.
       mergeCatalog: mergeDeviceCatalog,
+      // "Clear that" on a catalogue conflict removes the products it brought.
+      clearCatalog: clearDeviceCatalog,
     },
     // Uploaded brand files (IndexedDB, per account) and field origins (2026-10-04).
     files: files,
