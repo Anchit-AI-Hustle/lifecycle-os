@@ -131,9 +131,17 @@ const QUALITY = 'Gallery-print resolution, true-to-life colour, natural soft lig
  * Build the preamble for one brand and mode.
  * `mode` is one of MODES; anything unrecognised falls back to a photograph.
  */
-function buildPreamble(brand, mode) {
+function buildPreamble(brand, mode, opt) {
   const name = (brand && brand.name) || 'this brand';
-  const subject = subjectFor(brand);
+  // A caller photographing a NAMED catalogue product (opt.product = { title,
+  // category }) gets that product as the scene. Without it the brand's kind of
+  // offering decides, and a brand with none is told to invent no product - the
+  // two must not both be said in one prompt (2026-10-10).
+  const named = opt && opt.product && String(opt.product.title || '').trim();
+  const subject = named ? Object.assign({}, subjectFor(brand), {
+    scene: `the brand's own product, ${named}${opt.product.category ? ` (${String(opt.product.category).slice(0, 80)})` : ''}, exactly as it appears in its catalogue photograph, on a real surface with natural light and shallow depth of field.${brand && brand.industry ? ` The brand operates in ${brand.industry}.` : ''}`,
+    caution: 'Show only this product; no other product, and no readable lettering on its packaging.',
+  }) : subjectFor(brand);
   const palette = paletteBrief(brand);
   const type = typographyBrief(brand);
   const m = MODES.includes(String(mode)) ? String(mode) : 'photo';
