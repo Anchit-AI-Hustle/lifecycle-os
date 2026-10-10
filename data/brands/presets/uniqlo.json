@@ -8,26 +8,256 @@
     "label": "Uniqlo",
     "sector": "Fashion retail",
     "blurb": "Apparel. Template for a core-basics catalogue with recurring seasonal ranges.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.uniqlo.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
+    "verified_at": "2026-10-05",
+    "source": "www.uniqlo.com refused an automated read (timeout); read the brand's own https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png in Chromium on 2026-10-05. Primary #ff0000 from the brand's own logo file, its pixels (100% of its coloured pixels).",
+    "needs_extraction": false,
+    "palette_source": "verified",
     "typography_source": "default",
-    "read_attempt": {
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: no page of the brand's could be rendered (only its logo file was read), so the surface is white.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "",
+        "read_role": "home",
+        "observed_at": "",
+        "owned": null
+      },
+      "primary": {
+        "value": "#ff0000",
+        "exact": "#ff0000",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 116,
+        "from_role": "identity",
+        "signal": "the brand's own logo file, its pixels (100% of its coloured pixels)",
+        "source": {
+          "page": "https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png",
+          "role": "logo file",
+          "selector": "",
+          "viewport": "",
+          "property": "pixels",
+          "signal": "rendered"
+        },
+        "read_url": "https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.uniqlo.com",
+          "registrable": "uniqlo.com",
+          "website_host": "www.uniqlo.com"
+        }
+      },
+      "ink": {
+        "value": "#340000",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED from #730000: no text colour reached 4.5:1 on the primary #ff0000, so the ink is darkened until it does (still 18.32:1 on the page).",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "",
+        "read_role": "home",
+        "observed_at": "",
+        "owned": null
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "",
+        "read_role": "home",
+        "observed_at": "",
+        "owned": null
+      },
+      "muted": {
+        "value": "#730000",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "",
+        "read_role": "home",
+        "observed_at": "",
+        "owned": null
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "",
+        "read_role": "home",
+        "observed_at": "",
+        "owned": null
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "timeout",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "",
+      "browser": "",
+      "chromium": ""
+    },
+    "read_pages": [],
+    "regression": null,
+    "read_from": [
+      "https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png"
+    ],
+    "reads": [
+      {
+        "url": "https://www.uniqlo.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "timeout",
+        "owned": "website",
+        "reason": "The site could not be opened: timed out."
+      },
+      {
+        "url": "https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png",
+        "role": "identity source",
+        "what": "UNIQLO logo file",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://faq-uk.uniqlo.com/",
+        "role": "identity source",
+        "what": "UNIQLO UK help site",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "faq-uk.uniqlo.com served a not found page page instead of the site (a page titled \"UNIQLO UK | Help - Customer Service\", whose first heading reads \"Page Not Found\"). Nothing was read from it."
+      },
+      {
+        "url": "https://www.uniqlo.com/apple-touch-icon.png",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+        "renderer": "timeout",
+        "owned": "same-registrable-domain",
+        "reason": "www.uniqlo.com did not answer for /apple-touch-icon.png in time."
+      },
+      {
+        "url": "https://www.uniqlo.com/favicon.svg",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.svg)",
+        "renderer": "timeout",
+        "owned": "same-registrable-domain",
+        "reason": "not tried: www.uniqlo.com did not answer the previous image read in time"
+      },
+      {
+        "url": "https://www.uniqlo.com/favicon.ico",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.ico)",
+        "renderer": "timeout",
+        "owned": "same-registrable-domain",
+        "reason": "not tried: www.uniqlo.com did not answer the previous image read in time"
+      }
+    ],
+    "home_attempt": {
       "renderer": "timeout",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.uniqlo.com",
       "reason": "The site could not be opened: timed out."
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#ff0000",
+    "ink": "#340000",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#730000",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
@@ -289,10 +519,20 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png",
+      "kind": "image",
+      "what": "UNIQLO logo file"
+    },
+    {
+      "url": "https://faq-uk.uniqlo.com/",
+      "kind": "page",
+      "what": "UNIQLO UK help site"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Uniqlo]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Uniqlo]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Uniqlo]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Uniqlo]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Uniqlo]"

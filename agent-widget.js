@@ -5,7 +5,7 @@
  * Drop ONE line into any Shopify theme (theme.liquid, product template, or a
  * collection template) to add a floating voice+chat concierge:
  *
- *   <script src="https://knickgasm.vercel.app/agent-widget.js"
+ *   <script src="https://lifecycle-os.anchit-tandon.com/agent-widget.js"
  *           data-agent="agent_knickgasm" defer></script>
  *
  * Per-collection / per-product agents: set data-agent to any agent id from

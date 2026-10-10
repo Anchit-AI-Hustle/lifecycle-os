@@ -92,9 +92,11 @@ function buildEntryAnalysis(input = {}) {
   drivers.push({
     signal: 'Hero product',
     value: product.score != null ? `${productName} (score ${round(product.score)})` : productName,
-    implication: product.score != null
-      ? 'Ranked top by the analysis engine on recent revenue and margin, so it anchors the offer.'
-      : 'Chosen as the offer anchor for this cohort and moment.',
+    implication: product.placeholder
+      ? 'No catalogue is connected, so no product is named. The send is the lifecycle job only.'
+      : product.score != null
+        ? 'Ranked top by the analysis engine on recent revenue and margin, so it anchors the offer.'
+        : 'Chosen as the offer anchor for this cohort and moment.',
   });
   if (festival && festival.name) {
     drivers.push({
@@ -155,11 +157,13 @@ function buildEntryAnalysis(input = {}) {
     expected_impact: {
       metric,
       direction: 'up',
-      basis: firstText(
-        own && own.name && `proven template "${own.name}"`,
-        festival && festival.name && `${festival.name} demand window`,
-        `cohort-fit offer on ${productName}`
-      ),
+      basis: product.placeholder
+        ? 'lifecycle strategy for this cohort; the product and the audience size are not measured'
+        : firstText(
+          own && own.name && `proven template "${own.name}"`,
+          festival && festival.name && `${festival.name} demand window`,
+          `cohort-fit offer on ${productName}`
+        ),
     },
     evidence: {
       own_campaign: own ? { name: own.name || null, performance: own.performance || null } : null,
@@ -264,7 +268,8 @@ function hypothesisReason({ cohortName, own, festival, product }) {
   const parts = [];
   if (own && own.name) parts.push('it reuses a structure that already beat thresholds');
   if (festival && festival.name) parts.push('purchase intent is elevated in this window');
-  parts.push(`the offer is matched to ${String(cohortName).toLowerCase()} and led by a top-ranked product`);
+  if (product && product.placeholder) parts.push(`the lifecycle job matches ${String(cohortName).toLowerCase()}; no product is named until the catalogue is connected`);
+  else parts.push(`the offer is matched to ${String(cohortName).toLowerCase()} and led by a top-ranked product`);
   return parts.join(', and ');
 }
 function describePerf(perf) {

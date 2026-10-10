@@ -1,24 +1,337 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "adidas",
   "start": "https://www.adidas.com",
-  "landed": "https://www.adidas.com",
-  "observed_at": "2026-10-04",
-  "renderer": "timeout",
-  "reason": "The site could not be opened: timed out.",
-  "read_attempt": {
-    "renderer": "timeout",
-    "at": "2026-10-04",
-    "host": "www.adidas.com",
-    "reason": "The site could not be opened: timed out."
+  "landed": "https://report.adidas-group.com/2025/en/",
+  "observed_at": "2026-10-05",
+  "read_at": "2026-10-05T08:40:20.445Z",
+  "renderer": "blocked",
+  "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
+  "reads": [
+    {
+      "url": "https://www.adidas.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.adidas.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.adidas.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.adidas.com",
+        "registrable": "adidas.com",
+        "website_host": "www.adidas.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.adidas.com answered HTTP 403 for /apple-touch-icon.png. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.adidas.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.adidas.com",
+        "registrable": "adidas.com",
+        "website_host": "www.adidas.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.adidas.com answered HTTP 403 for /favicon.svg. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.adidas.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.adidas.com",
+        "registrable": "adidas.com",
+        "website_host": "www.adidas.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.adidas.com answered HTTP 403 for /favicon.ico. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.adidas-group.com/en/",
+      "role": "identity source",
+      "what": "adidas Group corporate site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "www.adidas-group.com",
+        "registrable": "adidas-group.com",
+        "website_host": "www.adidas.com",
+        "label": "adidas-group"
+      },
+      "at": "2026-10-05",
+      "attempts": 2,
+      "renderer": "timeout",
+      "ok": false,
+      "reason": "The site could not be opened: timed out."
+    },
+    {
+      "url": "https://report.adidas-group.com/",
+      "role": "identity source",
+      "what": "adidas Group annual report",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "report.adidas-group.com",
+        "registrable": "adidas-group.com",
+        "website_host": "www.adidas.com",
+        "label": "adidas-group"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://report.adidas-group.com/2025/en/"
+    }
+  ],
+  "design_read": {
+    "url": "https://report.adidas-group.com/",
+    "role": "identity source",
+    "landed": "https://report.adidas-group.com/2025/en/"
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+    "manifest_version": "design-manifest/1",
+    "browser": "preinstalled",
+    "chromium": "148.0.7778.96"
   },
-  "note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "pages": [
+    {
+      "url": "https://report.adidas-group.com/2025/en/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), report.adidas-group.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, report.adidas-group.com]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), report.adidas-group.com]"
+  ],
+  "logo_url": "https://report.adidas-group.com/2025/en/_assets/images/favicon-96x96.png",
+  "logo_signal": "the icon the page declares (link rel=icon)",
+  "assets": [
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/images/favicon-96x96.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-ceo.webp?h=YOOcbGYM",
+      "role": "photograph",
+      "alt": "adidas CEO Bjørn Gulden in adidas track suit (Photo)",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-kpis-1.webp?h=gKjPEMZF",
+      "role": "photograph",
+      "alt": "Jude Bellingham wearing a white tank top and black adidas track pants smiles while looking up at a floating football aga",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-kpis-2.webp?h=hcZjoHMf",
+      "role": "photograph",
+      "alt": "Lamine Yamal wearing a sleeveless adidas shirt, denim shorts and green adidas sneakers plays with a football against a y",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-kpis-3.webp?h=xZ0TKjVX",
+      "role": "photograph",
+      "alt": "Lionel Messi wearing a black adidas track top and shorts balances a football in front of a blue and white background whi",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/dummy-home-value-creation.svg?h=bcvMOPf6",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-environment.webp?h=uQgu3tlg",
+      "role": "photograph",
+      "alt": "Runner wearing white adidas trail running shoes and orange socks on a forest trail. (Photo)",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://report.adidas-group.com/2025/en/_assets/gallery/home-social.webp?h=CDr2nFfT",
+      "role": "photograph",
+      "alt": "Three young people wearing beige and green adidas casual wear sit together and talk. (Photo)",
+      "found_on": "https://report.adidas-group.com/2025/en/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "header",
+      "value": "#000000",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://report.adidas-group.com/2025/en/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://report.adidas-group.com/",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#ffffff"
+      },
+      "fonts": {
+        "heading": "adidasFG",
+        "body": "adi-wcu-26"
+      },
+      "content_logos": 3,
+      "seen": {
+        "title": "adidas Annual Report 2025 - adidas Annual Report 2025",
+        "h1": "ANNUAL REPORT 2025",
+        "status": 200,
+        "text_chars": 649
+      }
+    }
+  ],
+  "home_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-05",
+    "host": "www.adidas.com",
+    "reason": "www.adidas.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+  },
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#000000",
+      "derived": true,
+      "note": "DERIVED: the site paints its page #000000, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
+      "source": {
+        "page": "https://report.adidas-group.com/2025/en/",
+        "role": "page ground",
+        "selector": "body.page.page--home",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://report.adidas-group.com/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "corporate-sibling",
+        "host": "report.adidas-group.com",
+        "registrable": "adidas-group.com",
+        "website_host": "www.adidas.com",
+        "label": "adidas-group"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#000000",
+          "from": "the header background",
+          "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    }
+  },
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "typography": {
+    "heading": {
+      "family": "adidasFG",
+      "stack": "'adidasFG',sans-serif",
+      "google": false,
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "adidasFG (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://report.adidas-group.com/2025/en/",
+        "role": "h1",
+        "selector": "body.page.page--home > header.header > div.report-switch-toggle:nth-of-type(1) > a.report-switch-toggle__link.toggle--report-switch > h1.report-switch-toggle__text",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://report.adidas-group.com/"
+    },
+    "body": {
+      "family": "adi-wcu-26",
+      "stack": "'adi-wcu-26',sans-serif",
+      "google": false,
+      "weights": "400;500;600",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": false,
+      "note": "adi-wcu-26 (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://report.adidas-group.com/2025/en/",
+        "role": "body copy",
+        "selector": "section#section3 > div.home-brand-banner.home-brand-banner--bottom:nth-of-type(2) > div.home-brand-banner__wrapper > div.home-brand-banner__content",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://report.adidas-group.com/"
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-05",
+    "host": "report.adidas-group.com",
+    "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "report.adidas-group.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

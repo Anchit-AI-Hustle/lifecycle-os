@@ -623,6 +623,10 @@ test('the failure block never hardcodes a colour and never goes dark', async ({ 
   const seen = await page.evaluate(() => {
     const r = document.documentElement;
     r.style.setProperty('--brand-err', 'rgb(0, 90, 40)');
+    // The tag is text, so it follows the AA-adjusted error text token, the
+    // same token brand-context paints when a brand is applied. The edge
+    // follows --brand-err itself.
+    r.style.setProperty('--brand-err-text', 'rgb(0, 90, 40)');
     r.style.setProperty('--brand-surface-alt', 'rgb(250, 250, 244)');
     const host = document.createElement('div');
     host.id = 'fx-probe';

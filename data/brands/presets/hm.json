@@ -14,11 +14,13 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "timeout",
-      "at": "2026-10-04",
-      "host": "www2.hm.com",
-      "reason": "The site could not be opened: timed out."
-    }
+      "renderer": "rendered",
+      "at": "2026-10-05",
+      "host": "hmgroup.com",
+      "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+    },
+    "read_sources_note": "Its own other material was tried too: hmgroup.com (rendered).",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -58,7 +60,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "hm.com"
+    "hm.com",
+    "hmgroup.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -289,6 +292,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://hmgroup.com/brands/",
+      "kind": "page",
+      "what": "H&M Group brands page"
+    },
+    {
+      "url": "https://hmgroup.com/about-us/",
+      "kind": "page",
+      "what": "H&M Group about page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, H&M]",
@@ -297,6 +312,65 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, H&M]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, H&M]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/01/hm-group-fav-ico-400x400.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/HM-Hero-e1790147390459.jpg",
+      "role": "hero",
+      "alt": "Model wearing outfit from H&M A/W 2026 collection.",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/COS-Hero-scaled.jpg",
+      "role": "hero",
+      "alt": "COS Pre-Fall: model in an oversized light-grey shirt over a white button-down shirt, dark knee-length skirt, carrying a ",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2026/02/251204_WEEKDAY_S08_073-1440-scaled.jpg",
+      "role": "hero",
+      "alt": "Model wearing a cropped brown zip-up hoodie and oversized dark wide-leg jeans with raw edge detailing, styled with a cap",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2026/02/1291038003_202502_LB_0532-scaled.jpg",
+      "role": "hero",
+      "alt": "Two models wearing oversized, heavily faded wide-leg jeans styled with fitted dark tops, sunglasses, and accessories, hi",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2026/02/Monki-HERO2026Q1-scaled.jpg",
+      "role": "hero",
+      "alt": "Model wearing an oversized brown and light blue striped top styled with a black mini skirt and knee-high boots, highligh",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/Stories-Hero-2.jpg",
+      "role": "hero",
+      "alt": "Model in a charcoal overcoat and black turtleneck holds a snake-print clutch while walking under an overpass.",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://hmgroup.com/wp-content/uploads/2025/05/ARKET-hero-2-scaled.jpg",
+      "role": "photograph",
+      "alt": "Model in burgundy leather zip jacket and trousers sits on a white chair on coastal rocks, black pointed boots, sea in th",
+      "found_on": "https://hmgroup.com/brands/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://hmgroup.com/wp-content/uploads/2025/01/hm-group-fav-ico-400x400.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

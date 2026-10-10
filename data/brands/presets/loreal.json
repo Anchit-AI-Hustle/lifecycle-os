@@ -14,11 +14,13 @@
     "palette_source": "default",
     "typography_source": "default",
     "read_attempt": {
-      "renderer": "blocked",
-      "at": "2026-10-04",
-      "host": "www.loreal.com",
-      "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
-    }
+      "renderer": "rendered",
+      "at": "2026-10-05",
+      "host": "careers.loreal.com",
+      "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+    },
+    "read_sources_note": "Its own other material was tried too: careers.loreal.com (rendered), www.loreal.com (unavailable), www.loreal.com (image).",
+    "logo_signal": "the logo element as rendered (div#page > header.section-1 > div.content-max-container > a.section-1__logo-link > img)"
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -58,7 +60,8 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "loreal.com"
+    "loreal.com",
+    "cdn.radancy.eu"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -289,6 +292,18 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.loreal.com/en/mediaroom/",
+      "kind": "page",
+      "what": "L'Oreal Groupe mediaroom"
+    },
+    {
+      "url": "https://careers.loreal.com/",
+      "kind": "page",
+      "what": "L'Oreal Groupe careers site"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: brand palette, L'Oreal]",
@@ -297,6 +312,65 @@
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, L'Oreal]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, L'Oreal]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://cdn.radancy.eu/company/3456/img/logo/logo-loreal-groupe.svg",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "the logo element as rendered (div#page > header.section-1 > div.content-max-container > a.section-1__logo-link > img)"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/section-43-marketing-v2.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/section-43-operations-v2.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/section-43-sales-v2.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/cms/v2/img/vodcast_hub/thumbnail_emma_over_coffee_287x210px.jpg",
+      "role": "photograph",
+      "alt": "Over Coffee with Emma - Beauty with a Purpose",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/cms/v2/img/vodcast_hub/engineer-at-loreal/latest_episode_thumbnail_vincent_over_coffee_572x210_2x.jpg",
+      "role": "photograph",
+      "alt": "Over Coffee with Vincent - I Almost Did Not Apply",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/cms/v2/img/vodcast_hub/over-coffee-operational-marketing/latest_episode_thumbnail_marin_over_coffee_286x210_2x.jpg",
+      "role": "photograph",
+      "alt": "Over Coffee with Marin",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://cdn.radancy.eu/company/3456/v2/img/core/icons/icon-growth.webp",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://careers.loreal.com/en",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://cdn.radancy.eu/company/3456/img/logo/logo-loreal-groupe.svg",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }
