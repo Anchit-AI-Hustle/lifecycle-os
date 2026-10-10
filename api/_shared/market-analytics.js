@@ -144,15 +144,20 @@ function sourceLine(m) {
 // Supported markets = whatever the CSV base or the live overlay actually carry.
 // Everything else resolves to itself so performance() honestly returns ok:false
 // (never silently serve US numbers for a market we have no data for).
+// No market named means the brand's HOME market (brand-locale.defaultMarket),
+// never 'US' (2026-10-05): an empty ask used to read the export's US numbers
+// for whichever brand asked. '' stays '' and is answered as no data.
 function normMarket(m) {
-  const s = String(m || 'US').toUpperCase().replace(/[^A-Z]/g, '');
+  const s = String(m || require('./brand-locale.js').defaultMarket() || '').toUpperCase().replace(/[^A-Z]/g, '');
   if (s === 'UK' || s === 'GB' || s === 'GBR' || s === 'UNITEDKINGDOM' || s === 'BRITAIN' || s === 'ENGLAND') return 'UK';
-  if (s === 'US' || s === 'USA' || s === 'AMERICA' || s === 'UNITEDSTATES' || s === '') return 'US';
+  if (s === 'US' || s === 'USA' || s === 'AMERICA' || s === 'UNITEDSTATES') return 'US';
   if (s === 'IN' || s === 'IND' || s === 'INDIA' || s === 'BHARAT') return 'IN';
   if (s === 'GLOBAL' || s === 'INTERNATIONAL' || s === 'WORLD' || s === 'ROW' || s === 'GLOBE') return 'GLOBAL';
   return s; // EU, AU, ... -> unsupported unless present in data -> ok:false downstream
 }
-function cur(market) { const d = data(); return (d.currency && d.currency[normMarket(market)]) || (normMarket(market) === 'UK' ? 'GBP' : 'USD'); }
+// The export's own currency for the market, else that country's currency (the
+// country table) - not 'USD' for everything that is not the UK.
+function cur(market) { const d = data(); const mk = normMarket(market); return (d.currency && d.currency[mk]) || require('./brand-locale.js').localeFor({ regions: mk ? [{ code: mk, home: true }] : [] }, mk).currency || ''; }
 function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
 function monthLabel(m) { return String(m || '').slice(0, 7); }         // 2026-07-01 -> 2026-07
 function pctChange(a, b) { return b ? Math.round(((a - b) / b) * 1000) / 10 : null; }

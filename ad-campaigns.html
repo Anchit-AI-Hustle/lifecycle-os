@@ -78,118 +78,118 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+  body { font-family:var(--vh-font-body); background:var(--vh-panel); color:var(--vh-ink); min-height: 100vh; }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
   @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
   .page-head { margin-bottom: 18px; }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #6A33D8; font-weight: 600; margin-bottom: 10px; }
-  h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-  h1 em { font-style: italic; color: #6A33D8; }
-  .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color:var(--vh-accent-text); font-weight: 600; margin-bottom: 10px; }
+  h1 { font-family:var(--vh-font-head); font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color:var(--vh-accent-text); }
+  .sub { color:var(--vh-ink-dim); font-size: 13.5px; margin-top: 6px; }
 
   /* Tabs */
-  .tabs { display: flex; gap: 4px; margin: 22px 0 20px; border-bottom: 1px solid rgba(171,135,67,0.18); flex-wrap:nowrap; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  .tabs { display: flex; gap: 4px; margin: 22px 0 20px; border-bottom:1px solid var(--vh-line); flex-wrap:nowrap; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .tabs > *{flex:0 0 auto}
-  .tab { padding: 10px 16px; font-size: 13px; font-weight: 600; color: #556059; cursor: pointer;
+  .tab { padding: 10px 16px; font-size: 13px; font-weight: 600; color:var(--vh-ink-dim); cursor: pointer;
     background: transparent; border: none; border-bottom: 2px solid transparent; font-family: inherit; transition: all .14s; }
-  .tab:hover { color: #111111; }
-  .tab.active { color: #111111; border-bottom-color: #6A33D8; }
+  .tab:hover { color:var(--vh-ink); }
+  .tab.active { color:var(--vh-ink); border-bottom-color:var(--vh-accent); }
   .panel { display: none; }
   .panel.active { display: block; }
 
   /* Cards & layout */
-  .card { background: #ffffff; border: 1px solid rgba(171,135,67,0.18); border-radius: 14px; padding: 20px; }
+  .card { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 14px; padding: 20px; }
   .grid2 { display: grid; grid-template-columns: 360px 1fr; gap: 18px; }
   @media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
-  .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #48524c; font-weight: 600; margin: 12px 0 5px; }
+  .label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color:var(--vh-ink-dim); font-weight: 600; margin: 12px 0 5px; }
   input, select, textarea {
-    width: 100%; background: #ffffff; border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
-    color: #111111; padding: 9px 11px; font-size: 13px; font-family: inherit;
+    width: 100%; background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 8px;
+    color:var(--vh-ink); padding: 9px 11px; font-size: 13px; font-family: inherit;
   }
   textarea { resize: vertical; min-height: 64px; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: #6A33D8; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color:var(--vh-accent); }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; border-radius: 8px;
     font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .14s; }
-  .btn-solid { background: #6A33D8; color: #ffffff; }
+  .btn-solid { background:var(--vh-accent); color:var(--vh-on-accent); }
   .btn-solid:hover { opacity: 0.92; }
-  .btn-ghost { background: transparent; border-color: rgba(171,135,67,0.3); color: #111111; }
-  .btn-ghost:hover { border-color: #6A33D8; color: #111111; }
+  .btn-ghost { background: transparent; border-color:var(--vh-line); color:var(--vh-ink); }
+  .btn-ghost:hover { border-color:var(--vh-accent); color:var(--vh-ink); }
   .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 
   .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .list-head h3 { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; }
-  .empty { color: #48524c; font-size: 13px; padding: 28px; text-align: center; border: 1px dashed rgba(171,135,67,0.2); border-radius: 12px; }
-  .item { background: #ffffff; border: 1px solid rgba(171,135,67,0.16); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
-  .item:hover { border-color: rgba(171,135,67,0.4); }
+  .list-head h3 { font-family:var(--vh-font-head); font-size: 17px; font-weight: 600; }
+  .empty { color:var(--vh-ink-dim); font-size: 13px; padding: 28px; text-align: center; border:1px dashed var(--vh-line); border-radius: 12px; }
+  .item { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+  .item:hover { border-color:var(--vh-line); }
   .item-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .item-top b { font-size: 14px; color: #111111; }
-  .item-meta { font-size: 11.5px; color: #556059; display: flex; gap: 14px; flex-wrap: wrap; }
-  .item-meta span b { color: #111111; }
-  .item-copy { margin-top: 10px; font-size: 12.5px; color: #111111; line-height: 1.5; }
-  .item-copy .h { color: #111111; font-weight: 600; }
-  .x { margin-left: auto; background: transparent; border: none; color: #48524c; cursor: pointer; font-size: 16px; }
-  .x:hover { color: #ef4444; }
+  .item-top b { font-size: 14px; color:var(--vh-ink); }
+  .item-meta { font-size: 11.5px; color:var(--vh-ink-dim); display: flex; gap: 14px; flex-wrap: wrap; }
+  .item-meta span b { color:var(--vh-ink); }
+  .item-copy { margin-top: 10px; font-size: 12.5px; color:var(--vh-ink); line-height: 1.5; }
+  .item-copy .h { color:var(--vh-ink); font-weight: 600; }
+  .x { margin-left: auto; background: transparent; border: none; color:var(--vh-ink-dim); cursor: pointer; font-size: 16px; }
+  .x:hover { color:var(--vh-err-text); }
   .item-acts { display: flex; gap: 6px; margin-top: 8px; }
-  .abtn { flex: 1; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--vh-panel-tan); background: transparent;
-    border: 1px solid rgba(171,135,67,0.28); border-radius: 8px; padding: 7px 8px; cursor: pointer; transition: all .12s; }
-  .abtn:hover { border-color: #6A33D8; color: #FFFFFF; background: rgba(171,135,67,0.06); }
+  .abtn { flex: 1; font-family: inherit; font-size: 11.5px; font-weight: 600; color:var(--vh-ink-dim); background: transparent;
+    border:1px solid var(--vh-line); border-radius: 8px; padding: 7px 8px; cursor: pointer; transition: all .12s; }
+  .abtn:hover { border-color:var(--vh-accent); color:inherit; background:var(--vh-tint); }
   .chan { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; }
-  .chan-google { background: rgba(59,130,246,0.15); color: #1d4ed8; }
-  .chan-meta   { background: rgba(34,197,94,0.15); color: #0a7d33; }
-  .chan-other  { background: rgba(171,135,67,0.16); color: #6A33D8; }
-  .pill { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: rgba(171,135,67,0.14); color: #6A33D8; }
+  .chan-google { background:var(--vh-tint); color:var(--vh-accent-text); }
+  .chan-meta   { background:var(--vh-panel-2); color:var(--vh-ok-text); }
+  .chan-other  { background:var(--vh-tint); color:var(--vh-accent-text); }
+  .pill { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background:var(--vh-tint); color:var(--vh-accent-text); }
 
   /* Calendar */
   .cal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .cal-empty { border: 1px dashed rgba(171,135,67,0.35); background: rgba(171,135,67,0.06); color: var(--vh-ink); border-radius: 10px; padding: 11px 14px; margin-bottom: 12px; font-size: 12.5px; line-height: 1.5; }
+  .cal-empty { border:1px dashed var(--vh-line); background:var(--vh-tint); color: var(--vh-ink); border-radius: 10px; padding: 11px 14px; margin-bottom: 12px; font-size: 12.5px; line-height: 1.5; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
-  .dow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #48524c; text-align: center; padding-bottom: 4px; }
-  .day { background: #ffffff; border: 1px solid rgba(171,135,67,0.16); border-radius: 9px; padding: 7px; min-height: 84px; cursor: pointer; transition: border-color .14s; }
-  .day:hover { border-color: rgba(171,135,67,0.4); }
+  .dow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color:var(--vh-ink-dim); text-align: center; padding-bottom: 4px; }
+  .day { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius: 9px; padding: 7px; min-height: 84px; cursor: pointer; transition: border-color .14s; }
+  .day:hover { border-color:var(--vh-line); }
   .day.empty { background: transparent; border-color: transparent; cursor: default; }
-  .day-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #556059; }
+  .day-num { font-family:var(--vh-font-mono); font-size: 11px; color:var(--vh-ink-dim); }
   .day .cm { font-size: 10px; margin-top: 4px; padding: 2px 5px; border-radius: 5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.4);
-    color: #111111; padding: 10px 18px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background:var(--vh-panel-2); border:1px solid var(--vh-line);
+    color:var(--vh-ink); padding: 10px 18px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; }
   .toast.show { opacity: 1; }
 
   /* Modal */
   .modal { position: fixed; inset: 0; z-index: 9500; display: none; align-items: center; justify-content: center; padding: 20px; }
   .modal.open { display: flex; }
-  .modal .bk { position: absolute; inset: 0; background: rgba(0,0,0,0.7); -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); }
-  .modal .mc { position: relative; width: 100%; max-width: 460px; background: #ffffff; border: 1px solid rgba(171,135,67,0.3);
+  .modal .bk { position: absolute; inset: 0; background:var(--vh-panel-2); -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); }
+  .modal .mc { position: relative; width: 100%; max-width: 460px; background:var(--vh-panel); border:1px solid var(--vh-line);
     border-radius: 14px; padding: 22px; max-height: 88vh; overflow-y: auto; }
-  .modal h3 { font-family: 'Lora', serif; font-size: 18px; margin-bottom: 4px; }
-  .note { font-size: 11px; color: #48524c; margin-top: 4px; }
+  .modal h3 { font-family:var(--vh-font-head); font-size: 18px; margin-bottom: 4px; }
+  .note { font-size: 11px; color:var(--vh-ink-dim); margin-top: 4px; }
 
   /* Single-prompt autofill bar at the top of each ad form. */
-  .ai-bar { background: rgba(171,135,67,0.06); border: 1px solid rgba(171,135,67,0.22); border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; }
-  .ai-bar .label { margin-top: 0; color: #6A33D8; font-size: 11.5px; }
+  .ai-bar { background:var(--vh-tint); border:1px solid var(--vh-line); border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; }
+  .ai-bar .label { margin-top: 0; color:var(--vh-accent-text); font-size: 11.5px; }
   .ai-bar textarea { min-height: 64px; font-family: inherit; }
 
   /* Creative (AI image) generator block on each channel form. */
-  .cre { border: 1px dashed rgba(171,135,67,0.3); border-radius: 10px; padding: 10px 12px; margin: 14px 0 4px; }
+  .cre { border:1px dashed var(--vh-line); border-radius: 10px; padding: 10px 12px; margin: 14px 0 4px; }
   .cre .cre-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  .cre .cre-title { font-size: 11.5px; font-weight: 600; color: #6A33D8; text-transform: uppercase; letter-spacing: 0.08em; }
+  .cre .cre-title { font-size: 11.5px; font-weight: 600; color:var(--vh-accent-text); text-transform: uppercase; letter-spacing: 0.08em; }
   .cre-prev { margin-top: 10px; }
-  .cre-prev img { max-width: 220px; width: 100%; border-radius: 10px; border: 1px solid rgba(171,135,67,0.25); display: block; }
+  .cre-prev img { max-width: 220px; width: 100%; border-radius: 10px; border:1px solid var(--vh-line); display: block; }
   .cre-prev .cre-actions { display: flex; gap: 8px; margin-top: 8px; }
-  .cre-spin { font-size: 11.5px; color: #556059; }
+  .cre-spin { font-size: 11.5px; color:var(--vh-ink-dim); }
   /* Multi-asset creative grid (one tile per platform format). */
   .cre-assets { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
   .cre-asset { width: 150px; }
-  .cre-asset .cre-asset-label { font-size: 10px; color: #556059; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: block; }
-  .cre-asset img { width: 100%; border-radius: 8px; border: 1px solid rgba(171,135,67,0.25); display: block; background: #ffffff; }
+  .cre-asset .cre-asset-label { font-size: 10px; color:var(--vh-ink-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; display: block; }
+  .cre-asset img { width: 100%; border-radius: 8px; border:1px solid var(--vh-line); display: block; background:var(--vh-panel); }
   .cre-asset .cre-asset-gap { display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; color: var(--vh-ink, inherit); border-left: 3px solid var(--accent, var(--brand-accent, currentColor)); padding-left: 6px; }
-  .cre-asset .cre-asset-dl { font-size: 10.5px; color: #6A33D8; text-decoration: none; display: inline-block; margin-top: 4px; }
+  .cre-asset .cre-asset-dl { font-size: 10.5px; color:var(--vh-accent-text); text-decoration: none; display: inline-block; margin-top: 4px; }
   .cre-anim { position: relative; overflow: hidden; }
   .cre-anim img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; animation: creFade var(--cre-dur, 6s) infinite; }
   @keyframes creFade { 0%,100%{opacity:0} 8%,33%{opacity:1} 41%{opacity:0} }
   .item-cre { display: flex; flex-wrap: wrap; gap: 8px; }
-  .item-cre img { max-width: 110px; border-radius: 8px; border: 1px solid rgba(171,135,67,0.2); margin-top: 8px; display: block; }
+  .item-cre img { max-width: 110px; border-radius: 8px; border:1px solid var(--vh-line); margin-top: 8px; display: block; }
 </style>
 </head>
 <body>
@@ -200,33 +200,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="sub">Plan and brief Google &amp; Meta campaigns, and the landing pages they point to, in the brand system.</div>
   </div>
 
-  <!-- Embedded KPI Dashboard -->
-  <section class="card" style="padding: 16px; margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <div class="label" style="margin: 0;">Sample metrics <span style="color:#b45309;font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #6A33D8; text-decoration: none;">Open real analysis →</a>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Ad Spend (30d)</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">$45,200</div>
-        <div style="font-size: 10px; color: #b91c1c; margin-top: 4px;">↓ 2% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Overall ROAS</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">3.8x</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↑ 0.2x vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Cost per Acq (CPA)</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">$18.50</div>
-        <div style="font-size: 10px; color: #0a7d33; margin-top: 4px;">↓ $1.20 vs prior</div>
-      </div>
-      <div style="padding: 12px; background: #ffffff; border-radius: 8px; border: 1px solid rgba(171,135,67,0.1);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #556059; font-weight: 600;">Top Channel</div>
-        <div style="font-size: 18px; font-weight: 700; color: #111111; margin-top: 4px;">Meta Ads</div>
-        <div style="font-size: 10px; color: #556059; margin-top: 4px;">4.2x ROAS</div>
-      </div>
+  <!-- KPI strip (2026-10-10): this block used to print invented figures in
+       dollars ("$45,200", "$212,450", "Jordan First Flush") for EVERY brand,
+       labelled illustrative. A number nobody measured reads as this brand's
+       performance, and in another market's currency. It now says what is true. -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;" id="embeddedDashboard" data-kpi-state="none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <p class="vh-status" style="margin:0">No live metrics are connected for this brand yet, so none are shown here. Figures appear in the brand's own currency once its data is imported.</p>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open analysis →</a>
     </div>
   </section>
 
@@ -241,7 +222,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <section class="panel" id="panel-calendar">
     <div class="card">
       <div class="cal-head" style="justify-content:space-between;align-items:center">
-        <h3 style="font-family:'Lora',serif;font-size:18px;font-weight:600;margin:0">Ad calendar, the Knickgasm Brain plan</h3>
+        <h3 style="font-family:var(--vh-font-head);font-size:18px;font-weight:600;margin:0">Ad calendar, the Knickgasm Brain plan</h3>
         <div style="display:flex;gap:8px;align-items:center">
           <div id="ad-mkt" style="display:flex;gap:4px"></div>
           <button type="button" class="btn btn-ghost" id="ad-refresh" title="Reload the plan">↻</button>
@@ -250,7 +231,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <p class="note" style="margin:8px 0 14px">This is the <b>same rolling plan as the Knickgasm Brain</b> mailer calendar, identical slots, cohorts, dates and reasoning. Each slot's paid-social ad set (Meta, Google, TikTok) is generated from the same strategy, copy and real catalog assets as its mailer. Review and approval happen in the Brain; approving a slot there locks its ads here too.</p>
       <div id="ad-plan"></div>
       <div id="ad-plan-empty" class="cal-empty" style="display:none"></div>
-      <div style="margin-top:14px;border-top:1px solid rgba(171,135,67,0.15);padding-top:12px">
+      <div style="margin-top:14px;border-top:1px solid var(--vh-line);padding-top:12px">
         <button type="button" class="btn btn-ghost" id="ad-manual">＋ Add a manual one-off campaign</button>
         <span class="note" style="margin-left:8px">Manual campaigns are separate from the Brain plan and also show in their channel tab.</span>
       </div>
@@ -265,7 +246,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="ai-bar" data-surface="google">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. Promote the hero offering at 25% off in the US, target lapsed buyers who browsed but did not buy"></textarea>
-          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;color:var(--vh-ink);padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="g-name" placeholder="e.g. Hero product — Search">
@@ -317,7 +298,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="ai-bar" data-surface="meta">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. Re-engage lapsed buyers with the bestsellers bundle, $40/day, Advantage+ placements, primary text in the brand's own voice"></textarea>
-          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;color:var(--vh-ink);padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="m-name" placeholder="e.g. Gifting Season — Advantage+">
@@ -346,7 +327,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <label class="label" style="margin-top:8px">Media URL (optional), paste a hosted image / GIF / MP4 (e.g. a Shopify product video)</label>
           <input id="m-media" type="url" placeholder="https://cdn.shopify.com/…/product.mp4">
           <p class="note" id="m-cre-note">Builds platform-correct creatives (1:1 feed + 9:16 story/reel) with on-creative headline & offer.</p>
-          <p class="note" style="margin-top:4px">🎬 Video ad for Reels/Stories? Turn this brief, copy & key-frame into a finished MP4 with <a href="https://github.com/Open-Montage/OpenMontage" target="_blank" rel="noopener" style="color:#6A33D8;text-decoration:none">OpenMontage →</a>, the open-source agentic video pipeline.</p>
+          <p class="note" style="margin-top:4px">🎬 Video ad for Reels/Stories? Turn this brief, copy & key-frame into a finished MP4 with <a href="https://github.com/Open-Montage/OpenMontage" target="_blank" rel="noopener" style="color:var(--vh-accent-text);text-decoration:none">OpenMontage →</a>, the open-source agentic video pipeline.</p>
           <div class="cre-prev" id="m-cre-prev"></div>
         </div>
         <div class="btn-row">
@@ -370,7 +351,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="ai-bar" data-surface="tiktok">
           <label class="label">✨ Or describe the campaign in plain English, AI fills every field below</label>
           <textarea data-ai-prompt placeholder="e.g. UGC creator campaign for the hero product, $30/day, In-Feed + Spark Ads, hook in a 'POV' lane"></textarea>
-          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:#ffffff;border:1px solid rgba(171,135,67,0.2);border-radius:8px;color:#111111;padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
+          <input data-ai-ref type="url" placeholder="Reference URL (optional) — paste a sample ad or landing page to anchor the style" style="margin-top:8px;width:100%;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;color:var(--vh-ink);padding:8px 11px;font-size:12.5px"><div class="btn-row" style="margin-top:8px"><button type="button" class="btn btn-solid" data-ai-fill>✨ Autofill from prompt</button><span data-ai-status class="note"></span></div>
         </div>
         <label class="label">Campaign name</label>
         <input id="t-name" placeholder="e.g. Hero product — UGC Creator Campaign">
@@ -403,7 +384,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <label class="label" style="margin-top:8px">Media URL (optional), paste a hosted image / GIF / MP4 (e.g. a Shopify product video)</label>
           <input id="t-media" type="url" placeholder="https://cdn.shopify.com/…/product.mp4">
           <p class="note" id="t-cre-note">Builds a platform-correct 9:16 creative with on-creative hook & offer, safe-zoned for TikTok UI.</p>
-          <p class="note" style="margin-top:4px">🎬 Making the video ad? Turn this hook, caption & key-frame into a finished MP4 with <a href="https://github.com/Open-Montage/OpenMontage" target="_blank" rel="noopener" style="color:#6A33D8;text-decoration:none">OpenMontage →</a>, the open-source agentic video pipeline.</p>
+          <p class="note" style="margin-top:4px">🎬 Making the video ad? Turn this hook, caption & key-frame into a finished MP4 with <a href="https://github.com/Open-Montage/OpenMontage" target="_blank" rel="noopener" style="color:var(--vh-accent-text);text-decoration:none">OpenMontage →</a>, the open-source agentic video pipeline.</p>
           <div class="cre-prev" id="t-cre-prev"></div>
         </div>
         <div class="btn-row">
@@ -456,7 +437,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function brandName() {
     var b = activeBrand();
-    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]';
+    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
   }
   function brandWordmark() { return String(brandName()).toUpperCase(); }
   function brandStrapline() {
@@ -468,6 +449,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
 (function () {
   const $ = (s) => document.querySelector(s);
+  /* A daily budget in the market's own currency (the brand's record, else its
+     country's), never a typed '$' (2026-10-05). */
+  function budgetLabel(c) {
+    const RC = window.RegionContext;
+    const l = (RC && RC.localeOf) ? RC.localeOf((c && c.market) || '') : {};
+    const v = c && c.budget;
+    if (v == null || v === '') return '—';
+    const n = Number(v);
+    if (!isFinite(n)) return String(v);
+    try { if (l.currency) return n.toLocaleString(l.locale || undefined, { style: 'currency', currency: l.currency, maximumFractionDigits: 2 }); } catch (_) {}
+    return n.toLocaleString(l.locale || undefined);
+  }
   const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // Clamp ad copy to the platform character limit at save (covers both manually
   // typed and AI-autofilled copy), trimming to a word boundary so the platform
@@ -509,7 +502,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft, fix them, and return ONLY the corrected final output.';
   function buildAdPrompt(ch, c) {
     const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' : 'TikTok';
-    const market = c.market || 'US';
+    const market = c.market || ((window.RegionContext && window.RegionContext.home) || '');
     return 'ROLE: You are a senior paid-social/search creative director + performance copywriter for ' + brandName() + '.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK() + '\n\n' + [
       'Produce a scroll-stopping ' + platform + ' ad campaign package.',
       '',
@@ -578,8 +571,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Persist a saved ad to Supabase (best-effort — localStorage stays the source
   // of truth so the UI never blocks on the network). Uploads any base64 creative
   // to Storage first, then stores only the hosted URL on the row.
+  // Rows are filed under the ACTIVE brand's account workspace: RLS admits a write only for a member of
+  // that workspace (20261009230000). A device brand (id local-*) has no account row, so nothing is sent.
+  const activeWorkspaceId = () => { try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); const id = b && b.id; return (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) ? String(id) : null; } catch (_) { return null; } };
   async function persistAd(channel, c) {
     const sb = sbClient(); if (!sb) return;
+    const workspaceId = activeWorkspaceId(); if (!workspaceId) return; // kept on this device (localStorage)
     try {
       // Upload every base64 creative asset to Storage so only hosted URLs are
       // stored on the row. creative_assets is an array of platform-correct
@@ -605,7 +602,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // c (stored in the `copy` JSONB) carries the full creative_assets array,
         // so the multi-asset payload survives without needing a new column.
         copy: c, creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
-        origin: location.origin || ''
+        origin: location.origin || '', workspace_id: workspaceId
       };
       const { data, error } = await sb.from('ads_generated').insert([row]).select('id').single();
       if (error) { console.warn('[ads] supabase insert failed:', error.message); return; }
@@ -647,7 +644,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const v = (id) => (document.getElementById(id)?.value || '').trim();
   // Pull the headline / offer / sub copy + market for a channel.
   function getCopy(ch) {
-    const market = v(CRE_CFG[ch].market) || 'US';
+    const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
     const spec = adSpec[ch] || {};
     const headline = spec.headline
       || (ch === 'g' ? (v('g-headlines').split('\n')[0]) : ch === 'm' ? v('m-headline') : v('t-hook'))
@@ -669,7 +666,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // sneaker scene as a last-resort backdrop. Sent with mode:'ambient' server-side.
   function buildCreativePrompt(ch) {
     const cfg = CRE_CFG[ch];
-    const market = v(cfg.market) || 'US';
+    const market = v(cfg.market) || ((window.RegionContext && window.RegionContext.home) || '');
     const orient = ch === 't' ? 'vertical 9:16 mobile-first social composition' : 'clean centered composition';
     return [
       'Ambient lifestyle backdrop for ' + brandName() + ' — an atmospheric scene with NO product and NO packaging in frame.',
@@ -833,7 +830,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // caption can say whose catalogue that is.
   async function realCatalogImage(ch) {
     const cfg = CRE_CFG[ch];
-    const got = await catalogProducts(v(cfg.market) || 'US');
+    const got = await catalogProducts(v(cfg.market) || ((window.RegionContext && window.RegionContext.home) || ''));
     return { url: pickCatalogImage(ch, got.prods), res: got.res };
   }
   function pickCatalogImage(ch, prods) {
@@ -1005,7 +1002,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // server-returned master_prompt isn't available yet.
   function clientMasterPrompt(ch) {
     const platform = CH_PLATFORM[ch];
-    const market = v(CRE_CFG[ch].market) || 'US';
+    const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
     const f = STORE_FACTS[market] || STORE_FACTS.Global;
     const c = getCopy(ch);
     const brief = [v(CRE_CFG[ch].name), c.headline, c.sub].filter(Boolean).join(' — ');
@@ -1225,7 +1222,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#dm-name').value = ''; $('#dm-budget').value = '';
     const existing = store.calendar[k] || [];
     $('#dm-existing').innerHTML = existing.length
-      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
+      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>${esc(budgetLabel(c))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
       : '';
     $('#dm-existing').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => {
       store.calendar[k].splice(+b.dataset.rm, 1); if (!store.calendar[k].length) delete store.calendar[k]; save(); openDay(k); renderAdPlan();
@@ -1303,7 +1300,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#g-list').innerHTML = store.google.length ? store.google.map((c) => `
       <div class="item">
         <div class="item-top"><span class="chan chan-google">Google</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
-        <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
+        <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>${esc(budgetLabel(c))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
         ${(c.headlines || []).length ? `<div class="item-copy"><span class="h">Headlines:</span> ${c.headlines.map(esc).join(' · ')}</div>` : ''}
         ${(c.descriptions || []).length ? `<div class="item-copy">${c.descriptions.map(esc).join('<br>')}</div>` : ''}
         ${creativeThumbs(c)}
@@ -1326,7 +1323,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#m-list').innerHTML = store.meta.length ? store.meta.map((c) => `
       <div class="item">
         <div class="item-top"><span class="chan chan-meta">Meta</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
-        <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
+        <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>${esc(budgetLabel(c))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
         ${c.aud ? `<div class="item-copy"><span class="h">Audience:</span> ${esc(c.aud)}</div>` : ''}
         ${c.primary ? `<div class="item-copy">${esc(c.primary)}</div>` : ''}
         ${c.headline ? `<div class="item-copy"><span class="h">${esc(c.headline)}</span></div>` : ''}
@@ -1349,7 +1346,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#t-list').innerHTML = store.tiktok.length ? store.tiktok.map((c) => `
       <div class="item">
         <div class="item-top"><span class="chan chan-other">TikTok</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
-        <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>$${esc(c.budget)}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
+        <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>${esc(budgetLabel(c))}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
         <div class="item-copy" style="margin-top:6px"><span class="h">${esc(c.hook || '')}</span><br>${esc(c.caption || '')}</div>
         ${c.hashtags ? `<div class="item-meta" style="margin-top:6px"><span>${esc(c.hashtags)}</span></div>` : ''}
         ${creativeThumbs(c)}
@@ -1422,7 +1419,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         const r = await fetch('/api/ai/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || 'US' }),
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || ((window.RegionContext && window.RegionContext.home) || '') }),
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }

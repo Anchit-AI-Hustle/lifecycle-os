@@ -28,9 +28,12 @@ function storeHost(market, brand) {
   // The store host is the ACTIVE brand's own, per region. Never a fixed
   // tenant's domain: a wrong host in a CTA sends readers to another company.
   if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').scopedBrand(null); } catch (_) { brand = {}; } }
-  const m = String(market || 'US').toUpperCase();
+  // The region asked for, else the brand's HOME region - not its first row and
+  // never a literal 'US' (2026-10-05).
+  const L = require('./brand-locale.js');
+  const m = L.marketFor(brand, market).market;
   const list = Array.isArray(brand.regions) ? brand.regions : [];
-  const hit = list.find((r) => String(r.code || '').toUpperCase() === m) || list[0];
+  const hit = (m && list.find((r) => String(r.code || '').toUpperCase() === m)) || L.homeRegionRow(brand);
   const url = (hit && hit.store_url) || brand.website || '';
   return String(url).replace(/^https?:\/\//, '').replace(/\/$/, '');
 }

@@ -403,17 +403,19 @@
       // A single row that slides. The explanation sits below it so the row
       // itself never has to wrap.
       style.textContent = [
-        '#lc-analysis-crumb{border-bottom:1px solid var(--line,rgba(171,135,67,.28));',
-        'background:var(--surface,#FFFFFF);padding:9px 18px;font-family:Inter,"Instrument Sans",Arial,sans-serif}',
+        // Roles from design/lifecycle-os/CONTRACT.md, so the crumb wears the
+        // ACTIVE brand on every page that mounts it.
+        '#lc-analysis-crumb{border-bottom:1px solid var(--vh-line);',
+        'background:var(--vh-bg);padding:9px 18px;font-family:var(--vh-font-body)}',
         '#lc-analysis-crumb .lc-crumb-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;',
         'overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;font-size:12.5px}',
         '#lc-analysis-crumb .lc-crumb-row > *{flex:0 0 auto;white-space:nowrap}',
-        '#lc-analysis-crumb a{color:var(--brand-accent-text,#6A33D8);font-weight:700;text-decoration:none}',
+        '#lc-analysis-crumb a{color:var(--vh-accent-text);font-weight:700;text-decoration:none}',
         '#lc-analysis-crumb a:hover{text-decoration:underline}',
-        '#lc-analysis-crumb .lc-crumb-sep,#lc-analysis-crumb .lc-crumb-here{color:var(--soft,#556059)}',
+        '#lc-analysis-crumb .lc-crumb-sep,#lc-analysis-crumb .lc-crumb-here{color:var(--vh-ink-dim)}',
         '#lc-analysis-crumb .lc-crumb-here{font-weight:700}',
         '#lc-analysis-crumb .lc-crumb-why{margin:5px 0 0;font-size:11.5px;line-height:1.5;',
-        'color:var(--soft,#556059);max-width:96ch}',
+        'color:var(--vh-ink-dim);max-width:96ch}',
       ].join('');
       (d.head || d.documentElement).appendChild(style);
     }

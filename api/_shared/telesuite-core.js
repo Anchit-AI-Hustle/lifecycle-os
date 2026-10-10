@@ -468,7 +468,7 @@ async function groundingFor(ctx, { product, kbIds }) {
       // Fall back to the brand's imported catalog rather than inventing one.
       const cat = await restOf(ctx)(`brand_catalog_products?select=title,description,product_type,price,currency,product_url&workspace_id=eq.${wid}&title=eq.${encodeURIComponent(product)}&limit=1`);
       if (Array.isArray(cat) && cat[0]) parts.push(`PRODUCT (from brand catalog): ${JSON.stringify(cat[0])}`);
-      else parts.push(`PRODUCT: ${product}\n[DATA REQUIRED BEFORE LAUNCH: product details, ${product}, all] — no catalog or TeleSuite entry exists for this product.`);
+      else parts.push(`PRODUCT: ${product}\n[DATA REQUIRED BEFORE LAUNCH: product details, ${product}] — no catalog or TeleSuite entry exists for this product.`);
     }
   }
 
@@ -574,7 +574,7 @@ function fallbackRebuttal(objection, tone) {
   return {
     acknowledge: `I hear you, and that is a fair thing to raise.`,
     bridge: `A lot of people say the same thing before they see how this actually works for them.`,
-    benefit: `[DATA REQUIRED BEFORE LAUNCH: product benefit relevant to this objection, all, all]`,
+    benefit: `[DATA REQUIRED BEFORE LAUNCH: product benefit relevant to this objection]`,
     clarify: `Can I ask what would need to be true for this to be worth it for you?`,
     full_response: `I hear you, and that is a fair thing to raise. A lot of people say the same before they see how it works for them. Can I ask what would need to be true for this to be worth it for you?`,
     tone: tone || 'Consultative',

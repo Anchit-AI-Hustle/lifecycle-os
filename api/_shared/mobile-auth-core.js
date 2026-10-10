@@ -2,15 +2,16 @@
 /**
  * mobile-auth-core.js - sign in and sign up with a mobile number and a 4-digit PIN.
  * ---------------------------------------------------------------------------
- * THE ONE SIGN-IN (2026-09-28). The operator's words: "signin/signup with mobile
- * number and a 4 digit password - save in db (neon) or local browser cache
- * whichever can be used - just like in parwah-hq". Google/Supabase OAuth is
- * commented out in auth.js, the Studio's own overlay login is commented out,
- * and this module is what replaced them.
+ * THE ONE SIGN-IN (2026-09-28, and again 2026-10-09). The operator's words:
+ * "signin/signup with mobile number and a 4 digit password - save in db (neon)
+ * or local browser cache whichever can be used - just like in parwah-hq", and
+ * on 2026-10-09 "only keep PIN option, that too only 4-digit". The Google
+ * sign-in that auth.js ran from 2026-10-05 is removed, the Studio's own
+ * overlay login is commented out, and this module is what replaced them.
  *
  * ONE ACTION DOES BOTH DIRECTIONS. `op=enter` with a phone:
  *   - phone known, PIN right         -> a session
- *   - phone known, no PIN sent       -> { exists:true, needPin:true, name }
+ *   - phone known, no PIN sent       -> { exists:true, needPin:true }  (no name before the PIN)
  *   - phone known, PIN wrong         -> 401 { wrongPin:true, left }  (5 tries)
  *   - phone known, locked            -> 429 { locked:true }          (15 minutes)
  *   - phone known, no PIN on record  -> { exists:true, setPin:true } (the reset path:
@@ -26,7 +27,8 @@
  *   - the first-guessed PINs are refused outright (WEAK_PINS + any straight run),
  *   - scrypt with a per-user salt, compared in constant time,
  *   - MAX_TRIES 5 then LOCK_MINUTES 15, counted on the account row so it holds
- *     across serverless instances,
+ *     across serverless instances, each try CLAIMED in one statement before the
+ *     PIN is checked so a burst of parallel guesses cannot get past five,
  *   - a per-IP budget of 25 `enter` calls per 10 minutes, counted in the database
  *     for the same reason.
  *
@@ -532,7 +534,7 @@ async function enter(sql, body, ip) {
       // (the reset path - there is no SMS to fall back on). Set one now.
       const perr = pinError(b.pin);
       if (perr) {
-        return { status: 200, body: { ok: true, exists: true, setPin: true, name: user.name, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + PIN_LEN + '-digit PIN for this account.' } };
+        return { status: 200, body: { ok: true, exists: true, setPin: true, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + PIN_LEN + '-digit PIN for this account.' } };
       }
       const h = hashPin(b.pin);
       await sql`update app_users set pin_hash = ${h.hash}, pin_salt = ${h.salt}, pin_set_at = now(), pin_tries = 0, locked_until = null where id = ${user.id}`;
@@ -540,31 +542,44 @@ async function enter(sql, body, ip) {
       if (user.locked_until && new Date(user.locked_until) > new Date()) {
         return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: new Date(user.locked_until).toISOString(), message: lockMessage(user.locked_until) } };
       }
-      if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, name: user.name, message: 'Welcome back, ' + user.name + '. Type your PIN.' } };
-      if (!verifyPin(b.pin, user.pin_salt, user.pin_hash)) {
-        // ONE statement counts the try and locks the row when the count
-        // reaches MAX_TRIES, and the decision is read from what the database
-        // RETURNS. Review finding 2026-09-29: this was read-increment-write in
-        // JavaScript, so N wrong PINs in flight at once all read 0, all wrote
-        // 1, and the lock never fired - five guesses at a time, for ever.
+      // Never a name before the PIN: anyone can type any number.
+      if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, message: 'Welcome back. Type your PIN.' } };
+      if (!/^\d{4}$/.test(String(b.pin))) {
+        return { status: 200, body: { ok: true, exists: true, needPin: true, error: 'pin_invalid', message: 'Your PIN is ' + PIN_LEN + ' digits.' } };
+      }
+      // EACH TRY IS CLAIMED BEFORE IT IS CHECKED (2026-10-09), in one
+      // statement, and only while the number is not locked. Counting only
+      // AFTER a wrong verify let a burst of guesses sent at once all be
+      // checked before the count reached five - including, eventually, the
+      // right one. A lock that has expired starts the count again at one.
+      const claim = await sql`update app_users
+                                 set pin_tries = case when locked_until is not null and locked_until <= now() then 1 else pin_tries + 1 end,
+                                     locked_until = case when locked_until is not null and locked_until <= now() then null else locked_until end
+                               where id = ${user.id} and (locked_until is null or locked_until <= now())
+                               returning pin_tries`;
+      const lockNow = async () => {
         const until = new Date(Date.now() + LOCK_MINUTES * 60000).toISOString();
-        const counted = await sql`update app_users
-                                     set pin_tries = case when pin_tries + 1 >= ${MAX_TRIES} then 0 else pin_tries + 1 end,
-                                         locked_until = case when pin_tries + 1 >= ${MAX_TRIES} then ${until}::timestamptz else locked_until end
-                                   where id = ${user.id}
-                                   returning pin_tries, locked_until`;
-        const c = counted[0] || {};
-        if (c.locked_until && new Date(c.locked_until) > new Date()) {
-          const lockedUntil = new Date(c.locked_until).toISOString();
-          return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: lockedUntil, message: lockMessage(lockedUntil) } };
-        }
-        const left = Math.max(0, MAX_TRIES - (Number(c.pin_tries) || 0));
+        await sql`update app_users set pin_tries = 0, locked_until = ${until}::timestamptz
+                   where id = ${user.id} and (locked_until is null or locked_until <= now())`;
+        const l = await sql`select locked_until from app_users where id = ${user.id}`;
+        const lockedUntil = new Date((l[0] && l[0].locked_until) || until).toISOString();
+        return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: lockedUntil, message: lockMessage(lockedUntil) } };
+      };
+      if (!claim[0]) {
+        const l = await sql`select locked_until from app_users where id = ${user.id}`;
+        const lockedUntil = new Date((l[0] && l[0].locked_until) || Date.now() + LOCK_MINUTES * 60000).toISOString();
+        return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: lockedUntil, message: lockMessage(lockedUntil) } };
+      }
+      const tries = Number(claim[0].pin_tries) || 0;
+      // Tries beyond the fifth were claimed by guesses already in flight.
+      if (tries > MAX_TRIES) return lockNow();
+      if (!verifyPin(b.pin, user.pin_salt, user.pin_hash)) {
+        if (tries >= MAX_TRIES) return lockNow();
+        const left = Math.max(0, MAX_TRIES - tries);
         return { status: 401, body: { ok: false, wrongPin: true, left, error: 'pin_wrong', message: triesMessage(left) } };
       }
-      // Locking sets pin_tries to 0, so a lock that has EXPIRED leaves a stale
-      // locked_until behind with nothing to reset it - found by driving this
-      // through the lock and out the other side. Both fields go together.
-      if (user.pin_tries || user.locked_until) await sql`update app_users set pin_tries = 0, locked_until = null where id = ${user.id}`;
+      // Right PIN: the count and any expired lock go together.
+      await sql`update app_users set pin_tries = 0, locked_until = null where id = ${user.id}`;
     }
   }
 
@@ -655,7 +670,7 @@ async function handle(req, res, deps) {
 
   if (op === 'me') {
     const u = await sessionUser(sql, token);
-    if (!u) return res.status(401).json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with Gmail.' });
+    if (!u) return res.status(401).json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.' });
     return res.status(200).json({ ok: true, mode: 'server', user: { id: u.id, name: u.name, phone: u.phone }, expires: u.expires_at, message: st.message });
   }
 

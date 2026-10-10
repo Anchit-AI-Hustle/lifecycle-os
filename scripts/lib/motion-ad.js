@@ -414,7 +414,7 @@ function motionBrief(spec) {
       // the file, so the other brand could not stand behind it in paid media.
       note: bed
         ? 'Original bed cleared for this brand\'s paid use. Never rip a trending sound for a paid ad.'
-        : `[DATA REQUIRED BEFORE LAUNCH: licensed audio bed, ${BRAND_NAME}, all] The export is SILENT. Supply an owned or licensed track before this runs as paid media; another brand's bed is not licensed for it.`,
+        : `[DATA REQUIRED BEFORE LAUNCH: licensed audio bed, ${BRAND_NAME}] The export is SILENT. Supply an owned or licensed track before this runs as paid media; another brand's bed is not licensed for it.`,
       mix: 'bed at -18 LUFS under voiceover, -14 LUFS music-forward; duck 6 dB under any VO; ' +
            'hard-out on the CTA card downbeat',
       captions: 'burn in captions - most feed views start muted',

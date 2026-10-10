@@ -122,7 +122,7 @@ function channelOf(link) {
 // Each returns { rows, blocker }. A blocker is a REASON, never an empty result
 // dressed up as data.
 
-async function outcomeSide({ market = 'US', days = 90, maxPages = 20 }) {
+async function outcomeSide({ market = require('./brand-locale.js').defaultMarket(), days = 90, maxPages = 20 }) {
   // Shopify is the only side that knows revenue, so it anchors the ledger.
   //
   // Read orders directly rather than reusing attribution(): that function
@@ -178,7 +178,7 @@ async function outcomeSide({ market = 'US', days = 90, maxPages = 20 }) {
   };
 }
 
-async function sendSide({ market = 'US' }) {
+async function sendSide({ market = require('./brand-locale.js').defaultMarket() }) {
   const blockers = [];
   const rows = [];
 
@@ -234,7 +234,7 @@ async function sendSide({ market = 'US' }) {
   return { rows, blockers };
 }
 
-async function costSide({ market = 'US', since, until }) {
+async function costSide({ market = require('./brand-locale.js').defaultMarket(), since, until }) {
   const rows = [];
   const blockers = [];
   const res = await adInsights.summary({ market, level: 'ad', since, until }).catch((e) => ({ platforms: [], error: String(e && e.message || e) }));
@@ -273,7 +273,7 @@ async function costSide({ market = 'US', since, until }) {
  * The link-by-link ledger. One row per link, carrying whichever sides could be
  * read and naming the sides that could not.
  */
-async function linkLedger({ market = 'US', days = 90, since, until } = {}) {
+async function linkLedger({ market = require('./brand-locale.js').defaultMarket(), days = 90, since, until } = {}) {
   const [outcome, send, cost] = await Promise.all([
     outcomeSide({ market, days }),
     sendSide({ market }),

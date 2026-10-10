@@ -299,7 +299,7 @@ function roleWorkload(opportunities) {
   });
 }
 
-function buildPlan({ intelligence, outcomes, market = 'US', brand = null, cycleId = new Date().toISOString().slice(0, 10) } = {}) {
+function buildPlan({ intelligence, outcomes, market = '', brand = null, cycleId = new Date().toISOString().slice(0, 10) } = {}) {
   const platform = intelligence || { coverage: {}, action_queue: [], agents: [] };
   const outcomeData = outcomes || { kpis: {}, actions: [] };
   const learning = buildLearning(outcomeData);
@@ -317,7 +317,8 @@ function buildPlan({ intelligence, outcomes, market = 'US', brand = null, cycleI
     system: 'Lifecycle OS Revenue OS',
     generated_at: new Date().toISOString(),
     cycle_id: cycleId,
-    market: String(market || 'US').toUpperCase(),
+    // The brand's HOME market when none was named (2026-10-05), never 'US'.
+    market: String(market || require('./brand-locale.js').defaultMarket(brand) || '').toUpperCase(),
     brand: brand && brand.name ? { name: brand.name, industry: brand.industry || null } : null,
     operating_loop: OPERATING_LOOP.slice(),
     roles: roleWorkload(opportunities),
@@ -350,7 +351,7 @@ function buildPlan({ intelligence, outcomes, market = 'US', brand = null, cycleI
 }
 
 async function run(opts = {}) {
-  const market = String(opts.market || 'US').toUpperCase();
+  const market = String(opts.market || require('./brand-locale.js').defaultMarket(opts.brand) || '').toUpperCase();
   const platformPromise = opts.platformSnapshot
     ? Promise.resolve(opts.platformSnapshot)
     : platformAgents.runAll({
@@ -473,7 +474,7 @@ async function trackOutcome(input = {}) {
     action_type: textValue('action_type', input.role_owner || existing.action_type || 'revenue_os_recommendation'),
     action_id: actionId,
     channel: textValue('channel', input.platform_id || existing.channel || null),
-    market: String(input.market || existing.market || 'US').toUpperCase(),
+    market: String(input.market || existing.market || require('./brand-locale.js').defaultMarket() || '').toUpperCase(),
     owner: textValue('owner', input.role_owner || existing.owner || null),
     status,
     recommended_at: input.recommended_at || existing.recommended_at || now,
