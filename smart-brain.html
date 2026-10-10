@@ -1338,13 +1338,36 @@ window.viewDecision = function(i){
   if(row) row.style.display='';
   if(body){ body.innerHTML = decisionPanelHTML(e); body.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
 };
-// Open the primary mailer full-screen in a new tab (the "detailed page" when a
-// slot is not yet approved and has no hosted /lp/:id).
+// Open the primary mailer full-screen over this page (the "detailed page" when
+// a slot is not yet approved and has no hosted /lp/:id). It used to write the
+// mailer into a window.open('') document: an about:blank tab with no address,
+// nothing to link to or come back to, and no way to tell which brand or slot
+// it was. The overlay shows the exact bytes in a sandboxed frame and offers
+// them as a download named for the active brand.
 window.openDetailPage = function(i, btn){
   const e = PLAN[i]; const p = PREVIEW_CACHE[e && e.id];
   const html = p && (p.email_html || (p.email_variants && p.email_variants.find(v=>v.key==='visual_a')?.html) || (p.campaign?.assets?.email?.html));
   if(!html){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
-  const w = window.open('', '_blank'); if(w){ w.document.open(); w.document.write(String(html).replace(/\{\{\s*landing_page_url\s*\}\}/g,'#')); w.document.close(); }
+  const doc = String(html).replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
+  const old = document.getElementById('sbdetail'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'sbdetail';
+  // The scrim is the ink at an opacity (the contract's modal), the dialog the
+  // panel: only tokens, so it wears the active brand like everything else.
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99998;display:flex;flex-direction:column;padding:16px';
+  const title = (e && (e.title || e.subject_line || e.cohort_label)) || 'Mailer';
+  ov.innerHTML = `<div data-sbdetail-scrim style="position:absolute;inset:0;background:var(--vh-ink);opacity:.45"></div>`+
+    `<div role="dialog" aria-modal="true" aria-label="Detailed page" style="position:relative;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:14px;flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:980px;width:100%;margin:0 auto">`+
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--vh-line)">`+
+    `<b style="flex:1;font-size:13.5px;color:var(--vh-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</b>`+
+    `<button type="button" class="btn sm secondary" id="sbdetail-dl">⬇ Download</button>`+
+    `<button type="button" class="btn sm secondary" id="sbdetail-x">Close</button></div>`+
+    `<iframe title="Detailed page" sandbox="allow-same-origin" style="flex:1;width:100%;border:0;background:var(--vh-panel)"></iframe></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('iframe').srcdoc = doc;
+  const close = ()=>ov.remove();
+  ov.querySelector('#sbdetail-x').onclick = close;
+  ov.querySelector('#sbdetail-dl').onclick = ()=>sbSaveBlob(doc, 'text/html', exportStem()+'-'+String((e && e.id) || 'mailer').replace(/[^a-z0-9_-]/gi,'-')+'.html');
+  ov.querySelector('[data-sbdetail-scrim]').addEventListener('click', close);
 };
 
 // Export an approved/previewed asset out of the tool.
