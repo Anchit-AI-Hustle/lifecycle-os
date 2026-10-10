@@ -4,6 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Another brand's content is found by its SIGNATURE, and every opened document has a URL (2026-10-05)
+The operator, with Deli Chic active on production: *"Still KNICKGASM assets are visible over here. And that
+too without a URL ... Check each page individually again thoroughly."* Gated by
+`tests/brand-content-isolation.spec.js` (executed: every page enumerated from the repo, swept under two
+non-tenant-zero device brands - a rich preset and a bare record - every control pressed).
+- **A name check sees a clean page.** `brand-context.js` relabels "KNICKGASM" in every text node, so tenant
+  zero's prose arrives wearing the active brand's name. The gate matches CONTENT SIGNATURES derived from
+  tenant zero's record and built catalogue (claims, legal entity, product lines, catalogue titles, proof
+  names, preferred vocabulary) plus the sibling's tea/coffee words, and observes each relabel as it happens
+  (the Text node's value setter is wrapped before any page script): 7+ words renamed is a name-swapped
+  paragraph. Neither swept brand's own record may match a signature, or the gate would accuse a brand of
+  its own words.
+- **What a button OPENS is part of the page.** Popups, downloads (name and bytes), blobs, the clipboard,
+  canvas text and nodes added after a press are read too. A document at `about:blank`, `blob:` or `data:`
+  is a defect: Smart Brain's "detailed page" wrote a mailer into `window.open('')`; it is an in-page
+  overlay with a Download now. Download names carry the active brand (`lcFileStem()`), never `knickgasm-*`.
+- **The routing model is Vercel's**: redirects without a `has` host condition, then the filesystem, then
+  rewrites. The old dead-link check was vacuous: a host-conditioned `/:path*` redirect matched every path.
+- **Tenant zero's artefacts are gated, not renamed**: `data-shipped-for` blocks (the lifecycle calendar's
+  shipped plan), rail rows main already hides (`data-shipped-nav`, `/lp/best*`), the website-designs gallery entries (`owner`), the
+  sales review (marker for another brand), and the frozen `/diff-version` snapshot, which auth.js REPLACES
+  with "This is another brand's snapshot" for any brand that does not own the shipped material (asserted
+  on all four snapshot pages). Fabricated figures (competitor "trending promotions", landing-page sample
+  metrics) are gone, not relabelled: a `[DATA REQUIRED BEFORE LAUNCH: ...]` gap says what would fill them.
+  Shell-less artefacts (the generated `/playbook/` hub, `knickgasm-*` mailers, the coffee LPs, the decks)
+  are not app pages: each is excluded WITH its reason, and a page that links one fails the one-hop check.
+- **Owned elsewhere is a shrink-only list.** Rows in another change's scope (knowledge-docs, catalog-
+  provenance, design-system, brand-theme, locale-defaults) are reported with their owner and not failed;
+  an entry that matched nothing in a full run is stale and is deleted. Known limit: the Mailer Studio's
+  internal category maps (`heroMap`, `keywordMap`) still name tenant zero's lines; they are code, not
+  copy, and are not shown.
 ## ⭐ The design system: one surface contract, read before styling any page (2026-10-05) — read `design/lifecycle-os/CONTRACT.md`
 The operator, on `/studio` with a red-primary brand (red bands, black panels, near-black cards in dark grey
 text): *"create a design schema for lifecycle os"*. `design/lifecycle-os/` holds it: `CONTRACT.md` (surface →
