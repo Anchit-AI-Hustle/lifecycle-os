@@ -427,7 +427,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { localStorage.setItem(k, JSON.stringify(list)); return true; } catch(e){ throw new Error('This browser refused to store the agent (storage is full or blocked), so it was not kept.'); }
   }
   function deviceCatalogRows(){
-    try { var c=window.BrandContext&&window.BrandContext.deviceCatalog ? window.BrandContext.deviceCatalog(brandId()) : null; return (c&&c.products||[]).slice(0,200); } catch(e){ return []; }
+    try { var B=window.BrandContext; var c=B&&B.catalogForGeneration ? B.catalogForGeneration(brandId()) : null; return (c&&c.products||[]).slice(0,200); } catch(e){ return []; }
   }
   async function ask(){
     var msg=qEl.value.trim();

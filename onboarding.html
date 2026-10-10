@@ -3835,7 +3835,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       d.claims = (Array.isArray(d.claims) ? d.claims : []).filter(function (cl) { return gone.indexOf(String(cl || '').trim().toLowerCase()) < 0; });
       return;
     }
-    if (f === 'catalog_source') { brand.catalog_source = {}; catalogCount = null; toast('Cleared the catalogue source. Import this brand\'s own catalogue on step 5; an import replaces the products.', 5200); return; }
+    if (f === 'catalog_source') {
+      brand.catalog_source = {}; catalogCount = null;
+      // The products that catalogue brought go with it (2026-10-10). A brand on
+      // this device keeps them beside itself, so they are removed here; an
+      // account brand's rows from another site are never used for generation
+      // (the catalogue identity rule) and a re-import replaces them.
+      var removed = 0;
+      try { if (brand.id && isLocalId(brand.id) && window.BrandContext && window.BrandContext.device && window.BrandContext.device.clearCatalog) removed = window.BrandContext.device.clearCatalog(brand.id, x.domain); } catch (_) { removed = 0; }
+      return removed
+        ? 'Cleared the catalogue source and removed the ' + removed + ' product(s) read from ' + x.domain + '. Import this brand\'s own catalogue on step 5.'
+        : 'Cleared the catalogue source. Products read from ' + x.domain + ' are not used for this brand; import its own catalogue on step 5, which replaces them.';
+    }
     if (f === 'regions') {
       brand.regions = brand.regions.filter(function (r) { return x.kind === 'template' ? false : !(r && fromDomain(r.store_url)); });
       if (x.kind === 'template') dropProvenance('regions');
@@ -3879,7 +3890,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var byId = function (id) { return c.conflicts.filter(function (x) { return x.id === id; })[0]; };
     var said = '';
     if (t.hasAttribute('data-coh-keep')) { var k = byId(t.getAttribute('data-coh-keep')); if (k) { cohRecordKeep(k.id); said = 'Kept ' + k.label + '. Recorded as your decision.'; } }
-    else if (t.hasAttribute('data-coh-clear')) { var x = byId(t.getAttribute('data-coh-clear')); if (x) { clearConflict(x); said = 'Cleared ' + x.label + (x.domain && x.domain.indexOf(':') < 0 ? ' from ' + x.domain : '') + '.'; } }
+    else if (t.hasAttribute('data-coh-clear')) { var x = byId(t.getAttribute('data-coh-clear')); if (x) { said = clearConflict(x) || ('Cleared ' + x.label + (x.domain && x.domain.indexOf(':') < 0 ? ' from ' + x.domain : '') + '.'); } }
     else if (t.hasAttribute('data-coh-slug')) { brand.slug = t.getAttribute('data-coh-slug'); said = 'The slug now follows the name: ' + brand.slug + '.'; }
     else if (t.hasAttribute('data-coh-clear-domain')) {
       var dom = t.getAttribute('data-coh-clear-domain');
