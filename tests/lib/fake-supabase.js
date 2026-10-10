@@ -124,6 +124,7 @@ const WORKSPACE_SCOPED = new Set([
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
   'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
+  'brand_catalog_products',
 ]);
 
 function uuid() { return crypto.randomUUID(); }
@@ -186,6 +187,8 @@ function matchOne(row, col, op, val) {
     case 'lte': return v != null && cmp(v, val) <= 0;
     case 'gt': return v != null && cmp(v, val) > 0;
     case 'gte': return v != null && cmp(v, val) >= 0;
+    // PostgREST's negation: `col=not.is.null`, `col=not.eq.x`.
+    case 'not': { const m = /^([a-z]+)\.(.*)$/s.exec(String(val)); if (!m) throw new Error(`fake-supabase: malformed not.${val}`); return !matchOne(row, col, m[1], m[2]); }
     default: throw new Error(`fake-supabase: unsupported filter operator "${op}" on ${col}`);
   }
 }
