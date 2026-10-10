@@ -1488,7 +1488,11 @@ async function loadPlan(){
     await deviceSessionReady();
     if(!stillCurrent(ticket)) return null;
     if(await signedOutPlan(ticket, 'Loading the plan')) return null;
-    const r = await fetch(`${API}?action=smart-brain-plan`);
+    // POST, not GET: a brand kept on this device (a phone sign-in) travels
+    // only in a JSON POST body (brand-context.js carryInto). A GET reached the
+    // planner with no brand, which correctly plans nothing for nobody, so a
+    // device brand's calendar was always empty.
+    const r = await fetch(`${API}?action=smart-brain-plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     const data = await safeJson(r);
     if(!data.ok){
       const err = new Error(data.message || data.error || 'Failed to load plan');
