@@ -30,7 +30,19 @@ try { marketAnalytics = require('./market-analytics.js'); } catch (_) { marketAn
 const dataClass = require('./data-classification.js');
 // Customer-facing evidence + brand/confidentiality guardrails (ported from Knickgasm-Super-App).
 // Appended to the BUYER chat() persona only — never to teamChat() (internal analyst).
-const { EVIDENCE_RULES, evidenceRules, BRAND_GUARDRAILS } = require('./evidence-policy.js');
+const { EVIDENCE_RULES, evidenceRules, BRAND_GUARDRAILS, brandGuardrails } = require('./evidence-policy.js');
+
+/**
+ * The brand this turn speaks for (2026-10-10): the request's own brand, and
+ * tenant zero only when nothing is in scope. Every prompt below named tenant
+ * zero, its product and its figures for EVERY workspace's agent.
+ */
+function activeBrand() {
+  try { return require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { return {}; }
+}
+function isZeroBrand(b) {
+  try { return require('./brand-catalog-server.js').isTenantZeroBrand(b) === true; } catch (_) { return false; }
+}
 
 // Detect whether a message is asking for analytical/data figures rather than
 // product advice. Routing is keyword-based and conservative: a hit sends the
@@ -156,7 +168,8 @@ async function analyze({ message = '' }) {
     data.topProducts = data.topProducts || productScores.slice(0, 8).map((s) => ({ title: s.product?.title, orders: s.orderCount, revenue: Number(s.revenue || 0) }));
     data.channelBenchmarks = data.channelBenchmarks || Object.fromEntries(Object.entries(channels).map(([ch, m]) => [ch, { campaigns: m.count, avgClickRate: m.avgClickRate, avgConversionRate: m.avgConversionRate, avgRoas: m.avgRoas }]));
     const hasData = (data.cohorts && data.cohorts.length) || (data.topProducts && data.topProducts.length) || (data.channelBenchmarks && Object.keys(data.channelBenchmarks).length);
-    const sys = `You are KNICKGASM's growth-analyst agent. Use the JSON numbers below when they answer the question — state those exact figures and NEVER invent or estimate numbers that aren't present. If the specific metric isn't in the data, say plainly it isn't wired into the dataset yet, then STILL give a genuinely useful, reasoned answer from the product catalog, brand knowledge and sound D2C lifecycle judgment. Never reply with just "I don't know" or "no data". Be concise (2-5 sentences), spoken-friendly.${hasData ? '' : '\n(Note: the analytics dataset is currently empty — reason from catalog + lifecycle best practice and say so.)'}\n\nDATA:\n${JSON.stringify(data)}`;
+    const _ab = activeBrand();
+    const sys = `You are ${(_ab && _ab.name) || 'this brand'}'s growth-analyst agent. Use the JSON numbers below when they answer the question — state those exact figures and NEVER invent or estimate numbers that aren't present. If the specific metric isn't in the data, say plainly it isn't wired into the dataset yet, then STILL give a genuinely useful, reasoned answer from the product catalog, brand knowledge and sound D2C lifecycle judgment. Never reply with just "I don't know" or "no data". Be concise (2-5 sentences), spoken-friendly.${hasData ? '' : '\n(Note: the analytics dataset is currently empty — reason from catalog + lifecycle best practice and say so.)'}\n\nDATA:\n${JSON.stringify(data)}`;
     try {
       const out = await callLLM({ systemPrompt: sys, userMessage: message, maxTokens: 700, temperature: 0.4, timeoutMs: 30000, stage: 'agent-analyze', tier: 'premium' });
       answer = (typeof out === 'string' ? out : out.text || '').trim();
@@ -397,8 +410,20 @@ async function chat({ agentId, sessionId, message, context = {}, history = [], s
   const catalogLines = scoped.map((p) => `- ${p.title} | ${p.category} | $${p.price} | ${(p.tags || []).join(',')} | ${p.url || ''}`).join('\n');
   const kbLines = knowledge.slice(0, 10).map((k) => `• ${k.title}: ${String(k.content || '').slice(0, 400)}`).join('\n');
   const persona = agent.persona || {};
+  const _ab = activeBrand();
+  const _zero = isZeroBrand(_ab);
 
-  const system = `You are "${agent.name}", KNICKGASM's ${persona.role || 'sneaker & streetwear expert'} — a voice-first conversational advisor embedded on the store. You are the brand's telecalling substitute: customers talk to you the way they would to a knowledgeable human caller.
+  const system = !_zero ? [
+    // Any brand but tenant zero (2026-10-10): its record, its catalogue, its
+    // knowledge - never tenant zero's craft facts, lead times or endorsements.
+    `You are "${agent.name}", ${_ab.name || 'this brand'}'s ${persona.role || 'product advisor'}: a voice-first conversational advisor who talks with this brand's customers.`,
+    require('./brand-runtime.js').brandBlock(_ab),
+    `TONE: ${persona.tone || (_ab.voice && _ab.voice.tone) || 'warm, knowledgeable, never pushy'}.`,
+    `GOALS: ${(persona.goals || ['educate', 'guide', 'justify value honestly']).join('; ')}.`,
+    catalogLines ? `CATALOG YOU CAN RECOMMEND (only these; include the link when recommending):\n${catalogLines}` : 'NO CATALOGUE is available for this brand. Recommend no specific product, price or link.',
+    `KNOWLEDGE (this brand's own sources):\n${kbLines || '(catalog facts only)'}`,
+    'RULES: lead with the direct answer in your first sentence, then at most 2 to 4 short supporting sentences. Never invent a product, price, link, review, rating, delivery promise or claim. Recommend this brand\'s products only, never a competitor\'s, and never quote another brand\'s prices. Reply in the user\'s language. Write the way you speak: complete sentences, no markdown, lists or emoji.',
+  ].join('\n\n') + evidenceRules(_ab || null) + brandGuardrails(_ab) : `You are "${agent.name}", KNICKGASM's ${persona.role || 'sneaker & streetwear expert'} — a voice-first conversational advisor embedded on the store. You are the brand's telecalling substitute: customers talk to you the way they would to a knowledgeable human caller.
 
 TONE: ${persona.tone || 'warm, knowledgeable, never pushy'}. Brand voice: ${brand.voice}. Prefer words like ${(brand.preferred_lexicon || []).join(', ')}. NEVER use: ${(brand.banned_phrases || []).join(', ')}.
 
@@ -519,9 +544,13 @@ async function teamChat({ sessionId, message, context = {}, history = [] }) {
   // deterministic analytical path (analyze) handles pure number lookups; this
   // snapshot primes the persona path so recommendations are never generic.
   const snapshot = await analyticsSnapshot();
+  const _ab = activeBrand();
+  const _zero = isZeroBrand(_ab);
+  const _f = require('./brand-runtime.js').promptFacts(_ab);
+  const _bn = _zero ? 'KNICKGASM' : _f.name;
   const dataBlock = snapshot
-    ? `LIVE OWN-DATA SNAPSHOT (source: ${snapshot.source}) — these are MEASURED Knickgasm figures. Treat as ground truth. Do NOT invent numbers beyond these; if a needed figure is absent, say so and name the data you'd pull.\n${JSON.stringify(snapshot)}`
-    : 'LIVE OWN-DATA SNAPSHOT: unavailable this turn. Do NOT fabricate Knickgasm figures — if a recommendation needs data you do not have, state the exact metric/report the employee should pull, and clearly label any number you cite as an external industry benchmark or an explicit estimate.';
+    ? `LIVE OWN-DATA SNAPSHOT (source: ${snapshot.source}) — these are MEASURED ${_bn} figures. Treat as ground truth. Do NOT invent numbers beyond these; if a needed figure is absent, say so and name the data you'd pull.\n${JSON.stringify(snapshot)}`
+    : 'LIVE OWN-DATA SNAPSHOT: unavailable this turn. Do NOT fabricate ' + _bn + ' figures — if a recommendation needs data you do not have, state the exact metric/report the employee should pull, and clearly label any number you cite as an external industry benchmark or an explicit estimate.';
 
   // The client may attach backend data inputs (on-screen metrics, a pasted
   // report, a funnel export) on context — feed it in so the analyst can use it.
@@ -530,14 +559,14 @@ async function teamChat({ sessionId, message, context = {}, history = [] }) {
     ? `\n\nATTACHED DATA INPUTS (provided by the employee for this turn — analyse these as first-class evidence):\n${JSON.stringify(context).slice(0, 4000)}`
     : '';
 
-  const system = `You are the KNICKGASM Growth Copilot — an elite, data-driven Senior Growth & Product Management Analyst embedded INTERNALLY in KNICKGASM's Lifecycle OS. Your users are Knickgasm EMPLOYEES (growth, product, lifecycle, and marketing teams) — never customers. KNICKGASM is a premium D2C Indian heritage sneaker & streetwear brand.
+  const system = `You are the ${_bn} Growth Copilot — an elite, data-driven Senior Growth & Product Management Analyst embedded INTERNALLY in ${_bn}'s Lifecycle OS. Your users are ${_bn} EMPLOYEES (growth, product, lifecycle, and marketing teams) — never customers. ${_zero ? 'KNICKGASM is a premium D2C Indian heritage sneaker & streetwear brand.' : `${_bn}: ${_f.descriptor}.`}
 
 MISSION: turn data into decisions. Help staff diagnose performance, prioritise growth/product bets, draft assets, and pressure-test user flows. You MAY freely discuss internal revenue, cohorts, LTV, spend, CAC, ROAS, funnel and retention figures — this is an internal tool.
 
 ═══ NON-NEGOTIABLE OPERATING RULES ═══
 
 1) DATA-BACKED RIGOR — NEVER give a generic answer.
-   Every product recommendation, flow change, or strategy suggestion must be anchored to a number: from the LIVE OWN-DATA SNAPSHOT below, from data the employee pastes into the chat, or from a clearly-labelled external benchmark. If you do not have the data to back a claim, say exactly that and name the specific metric/report to pull — do NOT hand-wave or fabricate Knickgasm figures. Lead with the number, then the interpretation.
+   Every product recommendation, flow change, or strategy suggestion must be anchored to a number: from the LIVE OWN-DATA SNAPSHOT below, from data the employee pastes into the chat, or from a clearly-labelled external benchmark. If you do not have the data to back a claim, say exactly that and name the specific metric/report to pull — do NOT hand-wave or fabricate ${_bn} figures. Lead with the number, then the interpretation.
 
 2) STRUCTURED IMPACT & HYPOTHESIS — for EVERY recommendation, output this exact block:
    • **Recommendation** — one sharp sentence.
@@ -549,14 +578,14 @@ MISSION: turn data into decisions. Help staff diagnose performance, prioritise g
    For quick factual lookups, lead with the exact figure; the full block is required whenever you RECOMMEND or PROPOSE a change.
 
 3) COMPETITIVE BENCHMARKING — validate every recommendation against the outside world.
-   Cite recognised global D2C sneaker/streetwear and broader e-commerce baselines (e.g. D2C email open ~30–45% / CTR ~2–5%; e-com site CVR ~2–3.5%, premium F&B/streetwear ~1.5–4%; cart-abandonment ~65–75%; D2C repeat-purchase ~25–35%; subscription churn, AOV and CAC:LTV ≥1:3 norms). Always (a) label the source class — MEASURED-OWN-DATA vs INDUSTRY-BENCHMARK vs ESTIMATE — and (b) state where Knickgasm sits relative to the benchmark and what that gap implies. Give ranges, not false precision, and never present an external benchmark as Knickgasm's own number.
+   Cite recognised global ${_zero ? 'D2C sneaker/streetwear' : `benchmarks for this brand's own category (${_f.descriptor})`} and broader e-commerce baselines (e.g. D2C email open ~30–45% / CTR ~2–5%; e-com site CVR ~2–3.5%; cart-abandonment ~65–75%; D2C repeat-purchase ~25–35%; subscription churn, AOV and CAC:LTV ≥1:3 norms). Always (a) label the source class — MEASURED-OWN-DATA vs INDUSTRY-BENCHMARK vs ESTIMATE — and (b) state where ${_bn} sits relative to the benchmark and what that gap implies. Give ranges, not false precision, and never present an external benchmark as ${_bn}'s own number.
 
 4) INTERNAL FLOW TESTING & SIMULATION.
    When asked to evaluate, diagnose, or simulate a user flow (onboarding, PDP→cart→checkout, lifecycle/email journeys, subscription, winback), map the flow step by step, attach the conversion/drop-off rate to each step (from snapshot/pasted data or a labelled estimate), pinpoint the highest-leverage leak, and propose instrumented experiments to fix it. When simulating, state your input assumptions explicitly and show the funnel math.
 
 TONE: direct, senior, concise. Lead with the answer and the number; no filler, no hedging, no motivational fluff.
 
-BRAND VOICE (only when drafting CUSTOMER-FACING copy): prefer ${(brand.preferred_lexicon || []).join(', ')}; never use ${(brand.banned_phrases || []).join(', ')}; palette #D0473E/#6A33D8/#111111/#FFFFFF; headings Montserrat, body Instrument Sans.
+BRAND VOICE (only when drafting CUSTOMER-FACING copy): prefer ${(brand.preferred_lexicon || []).join(', ') || "the brand's own vocabulary"}; never use ${(brand.banned_phrases || []).join(', ') || '(no banned phrases on file)'}; palette ${_zero ? '#D0473E/#6A33D8/#111111/#FFFFFF' : _f.palette}; typography ${_zero ? 'headings Montserrat, body Instrument Sans' : _f.typography}.
 
 ${dataBlock}${contextBlock}
 
@@ -575,7 +604,7 @@ ${catalogLines}`;
       provider = typeof out === 'object' ? out.provider : 'llm';
     } catch (_) { reply = ''; }
   }
-  if (!reply) reply = 'I can help with Knickgasm growth work — analytics with exact numbers, campaign/mailer/ad/landing drafts, calendar planning and review. What do you need?';
+  if (!reply) reply = 'I can help with ' + _bn + ' growth work — analytics with exact numbers, campaign/mailer/ad/landing drafts, calendar planning and review. What do you need?';
 
   const sid = sessionId || idFor('sess', { agent: 'team', t: Date.now() });
   try {

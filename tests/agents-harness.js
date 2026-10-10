@@ -152,6 +152,10 @@ function dropTree() {
  */
 function scriptedLlm() {
   const calls = [];
+  // `ctl.down`: every provider fails, the way llm.js throws when the whole
+  // cascade is exhausted, so a spec can drive the TEMPLATE paths a generator
+  // takes with no model (tests/brand-content-invariant.spec.js).
+  const ctl = { down: false };
   const fn = async function callLLMStub(o) {
     const opts = o || {};
     // Which catalogue the generation was pinned to when it reached the model
@@ -159,7 +163,15 @@ function scriptedLlm() {
     // zero's bundled files, 'brand' a workspace's own rows, 'none' nothing.
     let catalog = null;
     try { const sc = require(path.join(ROOT, 'api/_shared/brand-catalog-server.js')).currentScope(); catalog = sc ? sc.source : null; } catch (_) { catalog = null; }
-    calls.push({ stage: opts.stage || '', tier: opts.tier || '', json: !!(opts.responseFormat && opts.responseFormat.type === 'json_object'), catalog });
+    // The PROMPT is recorded too (tests/brand-content-invariant.spec.js reads
+    // it): what a generation briefed the model with is part of its output.
+    calls.push({ stage: opts.stage || '', tier: opts.tier || '', json: !!(opts.responseFormat && opts.responseFormat.type === 'json_object'), catalog,
+      prompt: String(opts.systemPrompt || '') + '\n---\n' + String(opts.userMessage || '') });
+    if (ctl.down) {
+      const e = new Error('All providers failed (scripted outage)');
+      e._providerErrors = [{ provider: 'scripted', status: 503, err: 'scripted outage' }];
+      throw e;
+    }
     const stage = String(opts.stage || '');
     let text;
     if (stage === 'kicksgpt') text = JSON.stringify({ action: 'final', reply: 'Scripted reply for this turn, with no figure invented.' });
@@ -167,7 +179,11 @@ function scriptedLlm() {
     else text = 'Scripted reply for this turn, with no figure invented.';
     return { ok: true, text, provider: 'scripted', model: 'scripted' };
   };
-  return { fn, calls };
+  return {
+    fn, calls,
+    get down() { return ctl.down; },
+    set down(v) { ctl.down = !!v; },
+  };
 }
 
 /* ── the world ──────────────────────────────────────────────────────────── */
@@ -251,9 +267,11 @@ async function world(opts) {
   const llm = scriptedLlm();
   for (const k of Object.keys(realLlm)) llm.fn[k] = realLlm[k];
   require.cache[LLM].exports = llm.fn;
-  for (const rel of Object.values(ROUTERS)) require(path.join(ROOT, typeof rel === 'string' ? rel : rel.rel));
+  // A spec may mount more routers beside the shared set (o.routers).
+  const routers = Object.assign({}, ROUTERS, o.routers || {});
+  for (const rel of Object.values(routers)) require(path.join(ROOT, typeof rel === 'string' ? rel : rel.rel));
 
-  const srv = await H.serve(ROUTERS);
+  const srv = await H.serve(routers);
 
   // The phone accounts, created through the real state machine.
   const core = require(path.join(ROOT, 'api/_shared/mobile-auth-core.js'));
@@ -280,6 +298,7 @@ async function world(opts) {
       db.clearCalls(); llm.calls.length = 0;
       try { require(path.join(ROOT, 'api/_shared/workspace-scope.js')).invalidate(); } catch (_) {}
       try { require(path.join(ROOT, 'api/_shared/brand-runtime.js')).invalidate(); } catch (_) {}
+      try { require(path.join(ROOT, 'api/_shared/require-caller.js'))._resetRateWindow(); } catch (_) {}
     },
     /** Headers for one of the three states. */
     headersFor(state, extra) {

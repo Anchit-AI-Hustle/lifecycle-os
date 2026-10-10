@@ -355,15 +355,17 @@ function resolve(brand) {
   const b = brand || {};
   const ds = b.brand_data && b.brand_data.design_system && b.brand_data.design_system.version ? b.brand_data.design_system : null;
   const t = b.typography || {};
-  const headStack = (t.heading && t.heading.stack) || '';
-  const bodyStack = (t.body && t.body.stack) || '';
+  // The brand's OWN families wherever the record has them (a {family, stack}
+  // slot or a bare family name). The /lp/:id page painted tenant zero's two
+  // families for EVERY brand until this existed, and a brand with NO
+  // typography still got them here through LEGACY (2026-10-10): the fallback
+  // is a generic system stack now, which is nobody's brand.
+  const fs = require('./brand-runtime.js').fontStacks(b);
   return {
     present: !!ds,
     ds,
-    // The brand's OWN families wherever the record has them. The /lp/:id page
-    // painted tenant zero's two families for every brand until this existed.
-    head: withFallback(headStack, 'Georgia,serif') || LEGACY.head,
-    body: withFallback(bodyStack, 'system-ui,-apple-system,Segoe UI,sans-serif') || LEGACY.body,
+    head: fs.head,
+    body: fs.body,
     fonts: withOwnFaces(ds ? fontCss(ds) : { faces: '', googleHref: '' }, t),
   };
 }
