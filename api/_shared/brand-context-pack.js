@@ -1671,7 +1671,9 @@ async function stageCatalog(store, pack, ctx) {
   const url = (brand && brand.website) || pack.site_url;
   // The catalogue is imported for the brand's HOME market: the region it
   // flagged, not whichever row happens to be first, and never a literal.
-  const region = require('./brand-runtime.js').homeRegion(brand) || 'us';
+  // No home market: importCatalog refuses with the marker rather than
+  // filing the rows under a market nobody chose (2026-10-05).
+  const region = require('./brand-runtime.js').homeRegion(brand) || '';
   try {
     const out = await core.importCatalog(auth, {
       workspace_id: pack.workspace_id,

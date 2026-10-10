@@ -1,5 +1,10 @@
 # OAuth redirect migration (domain moves)
 
+> **Historical for this app since 2026-10-09.** Lifecycle OS no longer signs in with
+> Google: sign-in is a mobile number and a 4-digit PIN only (`docs/mobile-pin-signin.md`),
+> and the server refuses a session an OAuth provider minted. Nothing below is needed for
+> sign-in on a domain move. It is kept for sibling projects that still use Google OAuth.
+
 When a sibling project moves to `<slug>.anchit-tandon.com` (via
 `scripts/migrate-domains.*`), Google sign-in has to keep working on the new
 origin. This doc explains exactly what must change, what is automated, and the

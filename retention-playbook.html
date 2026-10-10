@@ -68,34 +68,35 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <style>
-  :root{
-    --knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF;
-    --font-head:"Montserrat",Georgia,"Times New Roman",serif;
-    --font-body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
-    --bg:var(--vh-ink); --panel:var(--vh-ink); --hair:rgba(171,135,67,.22); --muted:#556059; --lava:var(--knickgasm-lava);
-  }
+  /* Every colour and family is a Lifecycle OS role token
+     (design/lifecycle-os/CONTRACT.md), so the page wears the ACTIVE brand.
+     --hair and --muted are page-local aliases of those roles. */
+  :root{ --hair:var(--vh-line); --muted:var(--vh-ink-dim); }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:#111111;font-family:var(--font-body);line-height:1.55}
+  body{margin:0;background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);line-height:1.55}
+  button,input,select,textarea{font-family:inherit}
   .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
-  h1,h2,h3,.eyebrow{font-family:var(--font-head)}
-  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brand-accent-text,var(--lava));font-weight:700}
+  h1,h2,h3,.eyebrow{font-family:var(--vh-font-head)}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--vh-accent-text);font-weight:700}
   .num{font-variant-numeric:tabular-nums}
   section{padding:26px 0}
-  h1{font-size:clamp(26px,4vw,40px);color:#D0473E;margin:8px 0 6px;text-wrap:balance}
-  .lede{color:var(--muted);max-width:70ch;margin:0}
-  .card{background:var(--panel);border:1px solid var(--hair);border-radius:14px;padding:16px 18px}
+  h1{font-size:clamp(26px,4vw,40px);color:var(--vh-primary-text);margin:8px 0 6px;text-wrap:balance}
+  .lede{color:var(--vh-ink-dim);max-width:70ch;margin:0}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;padding:16px 18px}
   .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0 6px}
   @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}}
   .tile .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
-  .tile .v{font-family:var(--font-head);font-size:23px;color:#6A33D8;margin-top:6px}
+  .tile .v{font-family:var(--vh-font-head);font-size:23px;color:var(--vh-accent-text);margin-top:6px}
   .tile .d{font-size:12px;color:var(--muted);margin-top:2px}
   .filters{display:flex;flex-direction:column;gap:8px;margin:16px 0 10px}
   .frow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .frow>.lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px;min-width:74px}
-  .chip{border:1px solid rgba(171,135,67,.4);background:transparent;color:#111111;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
-  .chip:hover{border-color:var(--lava);color:#D0473E}
-  .chip.on{background:var(--knickgasm-green);color:#fff;border-color:var(--lava)}
-  .cnt{color:#48524c;font-size:12px;margin-left:6px}
+  .chip{border:1px solid var(--vh-line-hot);background:var(--vh-panel);color:var(--vh-ink);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+  .chip:hover{border-color:var(--vh-accent);color:var(--vh-primary-text)}
+  .chip.on{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary)}
+  .cnt{color:var(--vh-ink-dim);font-size:12px;margin-left:6px}
+  .btn-run{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);padding:9px 18px;font-size:13px}
+  .btn-run:hover{color:var(--vh-on-primary)}
   .tblscroll{overflow-x:auto}
   /* table-layout:auto (not the global fixed default) because the header cells
      are white-space:nowrap: under fixed layout every column takes an equal
@@ -103,11 +104,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      the next column. The .tblscroll wrapper carries the overflow. */
   table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px;table-layout:auto}
   th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair);white-space:nowrap}
-  td{padding:12px 12px;border-bottom:1px solid rgba(171,135,67,.12);vertical-align:top}
-  td.obj{font-weight:600;color:#111111;max-width:220px}
+  td{padding:12px 12px;border-bottom:1px solid var(--vh-line);vertical-align:top}
+  td.obj{font-weight:600;color:var(--vh-ink);max-width:220px}
   td .sub{color:var(--muted);font-size:12px}
-  .pill{display:inline-block;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:var(--vh-ink)}
-  .slotbadge{display:inline-block;background:var(--vh-ink);color:var(--vh-ink);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+  .pill{display:inline-block;border:1px solid var(--vh-line-hot);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:var(--vh-ink)}
+  .slotbadge{display:inline-block;background:var(--vh-panel-2);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+  .eng-dot{width:9px;height:9px;border-radius:50%;background:var(--vh-ok-text);display:inline-block}
+  .eng-bar{height:8px;border-radius:999px;background:var(--vh-panel-2);overflow:hidden;margin-top:8px}
+  .eng-bar i{display:block;height:100%;width:38%;background:linear-gradient(90deg,var(--vh-chart-1),var(--vh-chart-4))}
   .note{color:var(--muted);font-size:12.5px}
 </style>
 <script src="/auth.js?v=20260718light" defer></script>
@@ -139,14 +143,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between">
       <div style="flex:1;min-width:240px">
         <div style="display:flex;align-items:center;gap:8px">
-          <span id="engdot" style="width:9px;height:9px;border-radius:50%;background:#0a7d33;display:inline-block"></span>
-          <b style="color:#111111">Agentic engine</b>
+          <span id="engdot" class="eng-dot"></span>
+          <b style="color:var(--vh-ink)">Agentic engine</b>
           <span id="engstatus" class="note">idle</span>
         </div>
-        <div id="engbar" style="height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;display:none"><i style="display:block;height:100%;width:38%;background:linear-gradient(90deg,#1d6b45,#0a7d33)"></i></div>
+        <div id="engbar" class="eng-bar" style="display:none"><i></i></div>
         <div id="engmsg" class="note" style="margin-top:6px">Plan a fresh calendar and write its content for the region selected below, without leaving this screen. Heavy generation runs in the background, so the filters stay responsive.</div>
       </div>
-      <button type="button" id="syncbtn" class="chip" style="background:var(--knickgasm-green);color:#fff;border-color:var(--lava);padding:9px 18px;font-size:13px" onclick="runAgenticSync()">Run Agentic Sync</button>
+      <button type="button" id="syncbtn" class="chip btn-run" onclick="runAgenticSync()">Run Agentic Sync</button>
     </div>
   </section>
 
@@ -183,7 +187,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <tbody id="rows"><tr><td colspan="6" class="note">Loading the plan…</td></tr></tbody>
       </table>
     </div>
-    <p class="note" style="margin-top:12px">Rows come from the live Automated Calendar plan. Full per-slot mailers, ads and landing pages are built and downloaded from <a href="/brain" style="color:#0a7d33">the Automated Calendar</a>.</p>
+    <p class="note" style="margin-top:12px">Rows come from the live Automated Calendar plan. Full per-slot mailers, ads and landing pages are built and downloaded from <a href="/brain" style="color:var(--vh-link)">the Automated Calendar</a>.</p>
   </section>
 </main>
 
@@ -230,7 +234,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return;
     }
     host.innerHTML=CAT_KEYS.map(function(k){
-      return '<button type="button" class="chip on" data-cat="'+esc(k)+'">'+esc(k)+' <span style="opacity:.7">'+seen[k]+'</span></button>';
+      return '<button type="button" class="chip on" data-cat="'+esc(k)+'">'+esc(k)+' <span>'+seen[k]+'</span></button>';
     }).join('');
     Array.prototype.forEach.call(host.querySelectorAll('[data-cat]'),function(b){
       b.addEventListener('click',function(){ window.toggleCat(b.dataset.cat); });
@@ -251,7 +255,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var opts=rc.options({all:rc.regions.length>1});
     var key=opts.map(function(o){return o.code;}).join('|');
     if(key===_mktBuilt) return; _mktBuilt=key;
-    if(!opts.length){ host.innerHTML='<span class="note">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>'; SELECTED_MKT=new Set(); render(); return; }
+    if(!opts.length){ host.innerHTML='<span class="note">'+String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g,'')+'</span>'; SELECTED_MKT=new Set(); render(); return; }
     host.innerHTML=opts.map(function(o){
       var v=o.all?'all':o.code;
       return '<button type="button" class="chip" data-mkt="'+esc(v)+'"'+(o.home?' data-home="1" title="Home market"':'')+' onclick="toggleMkt(\''+esc(v)+'\')">'+esc(o.name)+'</button>';
@@ -325,7 +329,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   window.runAgenticSync=function(){
     var btn=$('syncbtn'), st=$('engstatus'), dot=$('engdot'), bar=$('engbar'), msg=$('engmsg');
     if(btn){ btn.disabled=true; btn.textContent='Running…'; }
-    if(dot) dot.style.background='#7a5f28';
+    if(dot) dot.style.background='var(--vh-warn-text)';
     if(st) st.textContent='running · '+agenticMarket();
     if(bar) bar.style.display='';
     if(msg) msg.textContent='Inspecting data, calculating funnel math, planning the calendar and writing content…';
@@ -336,11 +340,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .then(function(d){
         if(!d.ok) throw new Error(d.error||'agentic flow failed');
         var stages=(d.stages||[]).filter(function(s){return s.ok;}).length;
-        if(st) st.textContent='synced'; if(dot) dot.style.background='#0a7d33';
+        if(st) st.textContent='synced'; if(dot) dot.style.background='var(--vh-ok-text)';
         if(msg) msg.textContent='Flow complete — '+stages+' stages ran. Creative assets (mailers, ads, landing pages) prebuild in the background; refreshing the plan…';
         load();
       })
-      .catch(function(e){ if(st) st.textContent='error'; if(dot) dot.style.background='#e89a9a'; if(msg) window.LifecycleFailure.show(msg, e, { title: 'Agentic sync failed' }); })
+      .catch(function(e){ if(st) st.textContent='error'; if(dot) dot.style.background='var(--vh-err-text)'; if(msg) window.LifecycleFailure.show(msg, e, { title: 'Agentic sync failed' }); })
       .finally(function(){ if(btn){ btn.disabled=false; btn.textContent='Run Agentic Sync'; } if(bar) bar.style.display='none'; });
   };
   document.addEventListener('DOMContentLoaded', load);

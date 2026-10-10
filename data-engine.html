@@ -17,51 +17,56 @@
 <script src="/data/analytics/market-data.js"></script>
 <script>
   if (window.tailwind) {
+    // Role tokens (design/lifecycle-os/CONTRACT.md), never a brand's literal.
     tailwind.config = { theme: { extend: { colors: {
-      vgreen: '#D0473E', vgold: '#6A33D8', vink: '#111111', vcream: '#FFFFFF'
+      vgreen: 'var(--vh-primary)', vgold: 'var(--vh-accent-text)', vink: 'var(--vh-ink)', vcream: 'var(--vh-bg)'
     } } } };
   }
 </script>
 <style>
-  :root{ --knickgasm-green:#D0473E; --knickgasm-lava:#6A33D8; --knickgasm-ink:#111111; --knickgasm-chalk:#FFFFFF; }
+  /* Every colour and family is a Lifecycle OS role token
+     (design/lifecycle-os/CONTRACT.md), so the page wears the ACTIVE brand. */
   html{scroll-behavior:smooth;}
-  body{background:#ffffff;color:#111111;font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;padding:26px 30px;}
+  body{background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);padding:26px 30px;}
+  button,input,select,textarea{font-family:inherit;}
   .lc-main{max-width:1080px;margin:0 auto;}
-  h1,h2,h3,.font-head{font-family:'Lora','Raleway',Georgia,serif;}
-  .card{background:#ffffff;border:1px solid rgba(171,135,67,.28);border-radius:14px;}
-  .kicker{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-accent-text);font-weight:800;}
-  .divider{height:2px;background:linear-gradient(90deg,var(--knickgasm-lava),transparent);border:0;margin:0;}
-  .metric-lg{font-family:'Lora',serif;font-size:32px;color:#111111;font-weight:700;line-height:1;}
-  .pill{display:inline-block;background:rgba(171,135,67,.16);color:var(--vh-ink);border:1px solid rgba(171,135,67,.4);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
-  .rtab{cursor:pointer;border:1.5px solid rgba(171,135,67,.4);background:transparent;color:#111111;border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
-  .rtab:hover{border-color:#6A33D8;} .rtab.on{background:#D0473E;color:#FFFFFF;border-color:#D0473E;}
+  h1,h2,h3,.font-head{font-family:var(--vh-font-head);}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;}
+  .kicker{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--vh-accent-text);font-weight:800;}
+  .divider{height:2px;background:linear-gradient(90deg,var(--vh-accent),transparent);border:0;margin:0;}
+  .metric-lg{font-family:var(--vh-font-head);font-size:32px;color:var(--vh-ink);font-weight:700;line-height:1;}
+  .pill{display:inline-block;background:var(--vh-panel-2);color:var(--vh-ink);border:1px solid var(--vh-line-hot);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;}
+  .rtab{cursor:pointer;border:1.5px solid var(--vh-line-hot);background:transparent;color:var(--vh-ink);border-radius:999px;padding:7px 18px;font-family:inherit;font-size:13px;font-weight:700;transition:all .12s;}
+  .rtab:hover{border-color:var(--vh-accent);} .rtab.on{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);}
   .flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
-  .flow .node{background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#111111;}
-  .flow .arrow{color:var(--brand-accent-text);font-weight:800;}
-  .bar{background:linear-gradient(180deg,var(--knickgasm-lava),var(--vh-ink));border-radius:4px 4px 0 0;min-height:2px;transition:height .2s;}
-  .bar.partial{background:repeating-linear-gradient(45deg,rgba(171,135,67,.55),rgba(171,135,67,.55) 4px,rgba(171,135,67,.25) 4px,rgba(171,135,67,.25) 8px);}
+  .flow .node{background:var(--vh-panel-2);border:1px solid var(--vh-line-hot);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--vh-ink);}
+  .flow .arrow{color:var(--vh-accent-text);font-weight:800;}
+  /* A bar is a chart mark: chart-1 (the primary) and chart-4 (its dark step). */
+  .bar{background:linear-gradient(180deg,var(--vh-chart-1),var(--vh-chart-4));border-radius:4px 4px 0 0;min-height:2px;transition:height .2s;}
+  .bar.partial{background:repeating-linear-gradient(45deg,var(--vh-chart-1),var(--vh-chart-1) 4px,var(--vh-panel-2) 4px,var(--vh-panel-2) 8px);}
+  .bar-label{flex:1;text-align:center;font-size:9px;color:var(--vh-ink-dim);}
   /* table-layout:auto, deliberately: theme.css defaults every table to
      table-layout:fixed, which splits the width equally and leaves a
      white-space:nowrap cell nowhere to put a value wider than its share -
      it overflows and paints over the next column. Sizing columns to their
      content is what makes nowrap safe here. */
   table.grid{table-layout:auto;width:100%;border-collapse:collapse;font-size:12.5px;}
-  table.grid th,table.grid td{border-bottom:1px solid rgba(171,135,67,.18);padding:9px 12px;text-align:left;}
-  table.grid th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;}
+  table.grid th,table.grid td{border-bottom:1px solid var(--vh-line);padding:9px 12px;text-align:left;}
+  table.grid th{background:var(--vh-panel-2);color:var(--vh-ink);border-bottom-color:var(--vh-line-hot);text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;}
   td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
 </style>
 </head>
 <body>
   <main class="lc-main">
     <div class="kicker">Lifecycle OS &middot; DTC Data Engine</div>
-    <h1 class="text-vcream text-[34px] font-bold leading-tight mt-1" style="color:#111111">DTC Data Engine</h1>
-    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:#556059">The ingestion and analytics core that powers the OS. Matrixify, Shopify, Klaviyo and WebEngage exports are ingested into DuckDB, modelled, and synced to Supabase; the compiled market exports below render natively here, no external app and no server round-trip.</p>
+    <h1 class="text-vcream text-[34px] font-bold leading-tight mt-1" style="color:var(--vh-ink)">DTC Data Engine</h1>
+    <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:var(--vh-ink-dim)">The ingestion and analytics core that powers the OS. Matrixify, Shopify, Klaviyo and WebEngage exports are ingested into DuckDB, modelled, and synced to Supabase; the compiled market exports below render natively here, no external app and no server round-trip.</p>
 
     <div class="flex flex-wrap items-center gap-2 mt-5" id="mktTabs">
-      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:#6A33D8;margin-right:4px">Market</span>
+      <span class="text-[11px] uppercase tracking-widest font-bold" style="color:var(--vh-accent-text);margin-right:4px">Market</span>
       <button type="button" class="rtab on" data-mkt="US">US</button>
       <button type="button" class="rtab" data-mkt="UK">UK</button>
-      <span class="text-[12px]" style="color:#556059;margin-left:6px">Showing <b style="color:#111111" id="mktLabel">US</b></span>
+      <span class="text-[12px]" style="color:var(--vh-ink-dim);margin-left:6px">Showing <b style="color:var(--vh-ink)" id="mktLabel">US</b></span>
     </div>
 
     <!-- Pipeline -->
@@ -77,7 +82,7 @@
         <span class="arrow">&rarr;</span>
         <div class="node">This OS (compiled market module)</div>
       </div>
-      <p class="text-[12px] mt-3" style="color:#556059">Ingestion runs offline via the Python engines in <code>ingest/</code>; <code>scripts/build-market-analytics.js</code> compiles the market CSVs into a single client-side module so this page renders real numbers with no upload.</p>
+      <p class="text-[12px] mt-3" style="color:var(--vh-ink-dim)">Ingestion runs offline via the Python engines in <code>ingest/</code>; <code>scripts/build-market-analytics.js</code> compiles the market CSVs into a single client-side module so this page renders real numbers with no upload.</p>
     </section>
 
     <!-- KPIs -->
@@ -94,7 +99,7 @@
       <div class="card p-5">
         <div id="chart" style="display:flex;align-items:flex-end;gap:6px;height:220px;"></div>
         <div id="chartLabels" style="display:flex;gap:6px;margin-top:8px;"></div>
-        <p class="text-[12px] mt-3" style="color:#556059">Hatched bar = current month in progress (partial). Source: compiled market exports.</p>
+        <p class="text-[12px] mt-3" style="color:var(--vh-ink-dim)">Hatched bar = current month in progress (partial). Source: compiled market exports.</p>
       </div>
     </section>
 
@@ -135,17 +140,20 @@
   (function(){
     "use strict";
     var A = window.LIFECYCLE_ANALYTICS;
-    if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:#b91c1c">Analytics module not loaded.</div>'; return; }
+    if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:var(--vh-err-text)">Analytics module not loaded.</div>'; return; }
     var market = 'US';
-    var symByCur = { USD:'$', GBP:'£' };
-
-    function sym(){ var cur=(A.currency&&A.currency[market])||'USD'; return symByCur[cur]||''; }
-    function money(n){ return sym() + Math.round(n).toLocaleString('en-US'); }
+    // The dataset's OWN declared currency for its market (its US and UK tabs
+    // are the export's markets, not a default for any brand), written in that
+    // market's number format. No currency declared: no symbol (2026-10-05).
+    function cur(){ return (A.currency&&A.currency[market])||''; }
+    function sym(){ var c=cur(); if(!c) return ''; var RC=window.RegionContext; var l=RC&&RC._SYMBOL; return (l&&l[c])||c+' '; }
+    function nloc(){ var RC=window.RegionContext; try{ return (RC&&RC.localeOf&&RC.countryOf&&RC.countryOf(market)) ? 'en-'+RC.countryOf(market) : undefined; }catch(e){ return undefined; } }
+    function money(n){ return sym() + Math.round(n).toLocaleString(nloc()); }
     function moneyK(n){ var v=n/1000; return sym() + (v>=1000?(v/1000).toFixed(1)+'M':Math.round(v)+'k'); }
     function pct(n){ return (n*100).toFixed(1) + '%'; }
 
     function kpiCard(label, value, sub){
-      return '<div class="card p-5"><div class="kicker">'+label+'</div><div class="metric-lg mt-1">'+value+'</div>'+(sub?'<div class="text-[12px] mt-1" style="color:#556059">'+sub+'</div>':'')+'</div>';
+      return '<div class="card p-5"><div class="kicker">'+label+'</div><div class="metric-lg mt-1">'+value+'</div>'+(sub?'<div class="text-[12px] mt-1" style="color:var(--vh-ink-dim)">'+sub+'</div>':'')+'</div>';
     }
 
     function render(){
@@ -153,12 +161,12 @@
       var s = m.summary;
       document.getElementById('mktLabel').textContent = market;
       document.getElementById('kpis').innerHTML =
-        kpiCard('Orders', s.orders.toLocaleString('en-US'), '') +
+        kpiCard('Orders', s.orders.toLocaleString(nloc()), '') +
         kpiCard('Net sales', money(s.net_sales), 'Gross ' + moneyK(s.gross_sales)) +
         kpiCard('AOV', sym() + s.aov.toFixed(2), '') +
-        kpiCard('Units', s.quantity.toLocaleString('en-US'), '') +
-        kpiCard('New customers', s.new_customers.toLocaleString('en-US'), '') +
-        kpiCard('Returning rate', pct(s.returning_rate), s.returning_customers.toLocaleString('en-US') + ' returning');
+        kpiCard('Units', s.quantity.toLocaleString(nloc()), '') +
+        kpiCard('New customers', s.new_customers.toLocaleString(nloc()), '') +
+        kpiCard('Returning rate', pct(s.returning_rate), s.returning_customers.toLocaleString(nloc()) + ' returning');
 
       var mon = m.monthly || [];
       var max = mon.reduce(function(a,b){ return Math.max(a, b.sales); }, 0) || 1;
@@ -174,14 +182,14 @@
         bar.title = row.month + ': ' + money(row.sales) + (isPartial ? ' (partial)' : '');
         chart.appendChild(bar);
         var lab = document.createElement('div');
-        lab.style.flex = '1'; lab.style.textAlign = 'center'; lab.style.fontSize = '9px'; lab.style.color = '#6b7770';
+        lab.className = 'bar-label';
         lab.textContent = row.month.slice(2, 7);
         labels.appendChild(lab);
       });
 
       document.getElementById('monthlyRows').innerHTML = mon.map(function(row, i){
         var partial = (i === mon.length - 1) ? ' <span class="pill">partial</span>' : '';
-        return '<tr><td>' + row.month + partial + '</td><td class="num">' + row.orders.toLocaleString('en-US') + '</td><td class="num">' + money(row.sales) + '</td><td class="num">' + sym() + row.aov.toFixed(2) + '</td></tr>';
+        return '<tr><td>' + row.month + partial + '</td><td class="num">' + row.orders.toLocaleString(nloc()) + '</td><td class="num">' + money(row.sales) + '</td><td class="num">' + sym() + row.aov.toFixed(2) + '</td></tr>';
       }).join('');
     }
 
@@ -213,7 +221,7 @@
   (function () {
     function note(text) {
       var el = document.createElement('div');
-      el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--brand-primary,#c00);border-radius:10px;font-size:13px;line-height:1.55;opacity:.92;font-family:var(--brand-font-body,system-ui,sans-serif)';
+      el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--vh-primary);border-radius:10px;font-size:13px;line-height:1.55;color:var(--vh-ink);font-family:var(--vh-font-body)';
       el.innerHTML = text;
       var host = document.querySelector('main') || document.body;
       if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);

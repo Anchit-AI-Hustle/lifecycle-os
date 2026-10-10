@@ -58,13 +58,15 @@ const MARKET_ALIASES = {
   GB: 'UK', 'UNITED KINGDOM': 'UK', BRITAIN: 'UK',
   IND: 'IN', INDIA: 'IN',
 };
+// No market is not the US (2026-10-05): with none, the deployment's base
+// store answers and the result names no market.
 function normMarket(m) {
-  const s = String(m || 'US').trim().toUpperCase();
+  const s = String(m || '').trim().toUpperCase();
   return MARKET_ALIASES[s] || s.replace(/[^A-Z0-9_]/g, '');
 }
 function envFor(base, market) {
   const mk = normMarket(market);
-  return String(process.env[`${base}_${mk}`] || process.env[base] || '').trim();
+  return String((mk && process.env[`${base}_${mk}`]) || process.env[base] || '').trim();
 }
 
 /**
@@ -136,7 +138,7 @@ function blockerFor(market) {
   // page, and the env fallback is for tenant zero and cron only.
   return `Connect Shopify for this brand on the Connections page — it needs ${missing.join(' and ')}. `
     + 'The token must be read-scoped (read_orders, read_products, read_customers, read_inventory); this platform never writes to a store. '
-    + `A deployment-wide fallback also exists via SHOPIFY_STORE_DOMAIN / SHOPIFY_ADMIN_TOKEN (append _${normMarket(market)} for one market), for the platform's own store and for scheduled jobs.`;
+    + `A deployment-wide fallback also exists via SHOPIFY_STORE_DOMAIN / SHOPIFY_ADMIN_TOKEN (append _${normMarket(market) || '<MARKET>'} for one market), for the platform's own store and for scheduled jobs.`;
 }
 function notConnected(market, op, path, query) {
   return {
