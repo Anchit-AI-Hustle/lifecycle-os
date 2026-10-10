@@ -1236,6 +1236,39 @@ for (const [, brand] of Object.entries(BRANDS)) {
   });
 }
 
+// Smart Brain's "Detailed page" is reached only after a slot's assets were
+// previewed, which the sweep's backend cannot produce, so it is driven here
+// with a previewed slot in place: the mailer opens IN the page (no window, no
+// about:blank document) and its download is named for the active brand.
+test('Deli Chic: Smart Brain opens a detailed page in place, with a download named for the brand', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const brand = BRANDS['deli-chic'];
+  const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 800 } });
+  const page = await context.newPage();
+  const log = { dialogs: [], errors: [], downloads: [], popups: [], inflight: 0 };
+  await install(context, page, brand, log);
+  const popups = [];
+  context.on('page', (p) => { if (p !== page) popups.push(p.url()); });
+  try {
+    await page.goto(HOST + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.openDetailPage === 'function' && window.BrandContext && window.BrandContext.brand, null, { timeout: 30_000 });
+    await page.evaluate(() => {
+      /* global PLAN, PREVIEW_CACHE */
+      PLAN = [{ id: 'bci-slot-1', title: 'Detail check' }];
+      PREVIEW_CACHE['bci-slot-1'] = { email_html: '<!doctype html><title>m</title><h1>BCI detail body</h1>' };
+      window.openDetailPage(0, null);
+    });
+    const frame = page.locator('#sbdetail iframe');
+    await expect(frame).toHaveCount(1);
+    expect(await frame.getAttribute('srcdoc')).toContain('BCI detail body');
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 15_000 }), page.click('#sbdetail-dl')]);
+    expect(dl.suggestedFilename()).toMatch(/^deli-chic-/);
+    await page.click('#sbdetail-x');
+    await expect(page.locator('#sbdetail')).toHaveCount(0);
+    expect(popups, 'the detailed page opened a window').toEqual([]);
+  } finally { await context.close(); }
+});
+
 const SHARDS = Number(process.env.BCI_SHARDS || 3);
 for (const [key, brand] of Object.entries(BRANDS)) {
   for (let s = 0; s < SHARDS; s++) {
