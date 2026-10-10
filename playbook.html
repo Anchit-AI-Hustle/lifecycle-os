@@ -23,74 +23,100 @@
   tailwind.config = {
     theme: {
       extend: {
+        /* Every colour and family is a Lifecycle OS role token, so the
+           utilities wear the ACTIVE brand (design/lifecycle-os/CONTRACT.md).
+           The same roles are declared in the <style> below for when the
+           Tailwind CDN does not load. */
         colors: {
           knickgasm: {
-            green: '#D0473E',
-            lava:  '#6A33D8',
-            ink:   '#111111',
-            chalk: '#FFFFFF'
+            green: 'var(--vh-primary-text)',
+            lava:  'var(--vh-accent-text)',
+            ink:   'var(--vh-ink)',
+            chalk: 'var(--vh-on-band)'
           }
         },
         fontFamily: {
-          head: ['Montserrat', 'Raleway', 'Georgia', 'serif'],
-          body: ['Instrument Sans', 'Helvetica Neue', 'Arial', 'sans-serif']
+          head: ['var(--vh-font-head)'],
+          body: ['var(--vh-font-body)']
         }
       }
     }
   };
 </script>
 <style>
+  /* Every colour and family below is a Lifecycle OS role token, so the page
+     wears the ACTIVE brand and stays readable for any palette
+     validatePalette() accepts (design/lifecycle-os/CONTRACT.md). The
+     --knickgasm-* names are kept as page-local aliases of those roles. */
   :root{
-    --knickgasm-green:#D0473E;
-    --knickgasm-lava:#6A33D8;
-    --knickgasm-ink:#111111;
-    --knickgasm-chalk:#FFFFFF;
-    --knickgasm-card:#FFFFFF;
-    --line:rgba(23,23,23,.12);
-    --soft:#5b5b57;
+    --knickgasm-green:var(--vh-primary);   /* a FILL or an edge, never text */
+    --knickgasm-lava:var(--vh-accent);     /* a fill or an edge, never text */
+    --knickgasm-ink:var(--vh-ink);
+    --knickgasm-chalk:var(--vh-on-primary);/* text ON a primary fill */
+    --knickgasm-card:var(--vh-panel);
+    --line:var(--vh-line);
+    --soft:var(--vh-ink-dim);
   }
   html{scroll-behavior:smooth;scroll-padding-top:24px;}
   body{
-    background:var(--knickgasm-chalk);
-    color:var(--knickgasm-ink);
-    font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+    background:var(--vh-bg);
+    color:var(--vh-ink);
+    font-family:var(--vh-font-body);
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3,h4,.font-head{font-family:'Montserrat','Raleway',Georgia,serif;}
+  h1,h2,h3,h4,.font-head{font-family:var(--vh-font-head);}
+  .font-body{font-family:var(--vh-font-body);}
+  /* The Tailwind utilities this page uses, as roles, so they hold whether or
+     not the CDN loads (its preflight makes links and controls inherit too). */
+  a{color:inherit;}
+  button,input,select,textarea{font-family:inherit;}
+  .text-knickgasm-green{color:var(--vh-primary-text);}
+  .text-knickgasm-lava{color:var(--vh-accent-text);}
+  .text-knickgasm-ink{color:var(--vh-ink);}
+  .text-knickgasm-chalk{color:var(--vh-on-band);}
+  .decoration-knickgasm-lava{text-decoration-color:var(--vh-accent);}
+  /* The command-tower rail and the phone bar are a brand SECTION: the band,
+     with its own derived text colour for every line inside it. */
+  .pb-band{background:var(--vh-band);color:var(--vh-on-band);}
+  .pb-band .text-knickgasm-lava,.pb-band .text-knickgasm-chalk,.pb-band .text-knickgasm-green,.pb-band a{color:inherit;}
+  .pb-band .decoration-knickgasm-lava{text-decoration-color:currentColor;}
+  .pb-band .pb-rule{border-color:var(--vh-line);}
   /* Sidebar tree */
   .nav-group > summary{list-style:none;cursor:pointer;}
   .nav-group > summary::-webkit-details-marker{display:none;}
   .nav-group[open] > summary .chev{transform:rotate(90deg);}
-  .nav-link{transition:background .12s,color .12s,border-color .12s;}
-  .nav-link:hover{background:rgba(171,135,67,.16);color:var(--knickgasm-chalk);}
-  .nav-link.active{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));font-weight:700;}
-  .card{background:var(--knickgasm-card);border:1px solid var(--line);border-radius:14px;}
-  .metric{background:#fff;border:1px solid var(--line);border-radius:12px;}
-  .metric .mv{font-family:'Montserrat',Georgia,serif;color:var(--brand-primary-text,var(--knickgasm-green));}
+  .nav-link{transition:background .12s,color .12s,border-color .12s,box-shadow .12s;}
+  .nav-link:hover{box-shadow:inset 3px 0 0 var(--vh-on-band);}
+  /* The band's own pair, inverted: the same two colours, so the same ratio. */
+  .nav-link.active{background:var(--vh-on-band);color:var(--vh-band);font-weight:700;}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;}
+  .metric{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;}
+  .metric .mv{font-family:var(--vh-font-head);color:var(--vh-primary-text);}
   table.grid-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:900px;}
-  table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;}
-  table.grid-tbl th{background:var(--knickgasm-green);color:var(--knickgasm-chalk);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;}
-  table.grid-tbl tr:nth-child(even) td{background:var(--vh-panel-tan);}
+  table.grid-tbl th,table.grid-tbl td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--vh-line);vertical-align:top;}
+  table.grid-tbl th{background:var(--vh-panel-2);color:var(--vh-ink);border-bottom-color:var(--vh-line-hot);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;}
+  table.grid-tbl tr:nth-child(even) td{background:var(--vh-panel-2);}
   table.grid-tbl tr:last-child td{border-bottom:0;}
-  .tier-1{color:var(--brand-primary-text,var(--knickgasm-green));font-weight:700;}
-  .tier-2{color:var(--brand-accent-text,var(--knickgasm-lava));font-weight:700;}
-  .tier-3{color:var(--soft);font-weight:700;}
-  details.blueprint{background:var(--knickgasm-ink);border-radius:12px;overflow:hidden;border:1px solid var(--line);}
-  details.blueprint > summary{list-style:none;cursor:pointer;padding:14px 18px;color:var(--knickgasm-chalk);font-family:'Montserrat',Georgia,serif;font-size:16px;background:var(--knickgasm-green);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .tier-1{color:var(--vh-primary-text);font-weight:700;}
+  .tier-2{color:var(--vh-accent-text);font-weight:700;}
+  .tier-3{color:var(--vh-ink-dim);font-weight:700;}
+  details.blueprint{background:var(--vh-panel-2);border-radius:12px;overflow:hidden;border:1px solid var(--vh-line);}
+  details.blueprint > summary{list-style:none;cursor:pointer;padding:14px 18px;color:var(--vh-on-band);font-family:var(--vh-font-head);font-size:16px;background:var(--vh-band);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  details.blueprint > summary .text-knickgasm-lava{color:inherit;}
   details.blueprint > summary::-webkit-details-marker{display:none;}
   details.blueprint[open] > summary .plus{transform:rotate(45deg);}
-  details.blueprint pre{margin:0;padding:18px;overflow-x:auto;color:#111111;font-family:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,monospace;font-size:12.5px;line-height:1.6;}
-  .pill{display:inline-block;border-radius:999px;padding:2px 11px;font-size:11px;font-weight:700;border:1px solid var(--line);}
-  .flow-node{background:#fff;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;}
-  .btn-primary{background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-radius:10px;font-weight:700;transition:filter .12s;}
+  details.blueprint pre{margin:0;padding:18px;overflow-x:auto;color:var(--vh-ink);font-family:var(--vh-font-mono);font-size:12.5px;line-height:1.6;}
+  .pill{display:inline-block;border-radius:999px;padding:2px 11px;font-size:11px;font-weight:700;border:1px solid var(--vh-line);}
+  .flow-node{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:9px;padding:9px 12px;font-size:12.5px;}
+  .btn-primary{background:var(--vh-primary);color:var(--vh-on-primary);border:1px solid var(--vh-primary);border-radius:10px;font-weight:700;transition:filter .12s;}
   .btn-primary:hover{filter:brightness(1.15);}
-  .btn-lava{background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));border-radius:10px;font-weight:800;transition:filter .12s;}
-  .btn-lava:hover{filter:brightness(1.05);}
-  select,input[type=text],textarea{font-family:inherit;}
-  ::selection{background:var(--knickgasm-lava);color:#fff;}
+  /* The second action: the accent as its edge and its (derived) text. */
+  .btn-lava{background:var(--vh-panel);color:var(--vh-accent-text);border:1px solid var(--vh-accent);border-radius:10px;font-weight:800;transition:background .12s;}
+  .btn-lava:hover{background:var(--vh-panel-2);}
+  ::selection{background:var(--brand-primary-soft);color:var(--vh-ink);}
   /* Scroll-spy section spacing */
   section[data-section]{scroll-margin-top:20px;}
-  .code-out{font-family:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,monospace;font-size:12.5px;line-height:1.55;}
+  .code-out{font-family:var(--vh-font-mono);font-size:12.5px;line-height:1.55;}
 
 /* vh-table-align: data-table column alignment — header cells sit over their
    columns (table-layout:fixed, equal width), the first column (row labels) is
@@ -107,11 +133,11 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
 <div class="flex min-h-screen">
 
   <!-- ============ LHS COMMAND TOWER SIDEBAR ============ -->
-  <aside class="hidden lg:flex flex-col w-[300px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk" style="background:var(--knickgasm-green);">
-    <div class="px-5 py-6 border-b" style="border-color:rgba(251,245,234,.14);">
+  <aside class="pb-band hidden lg:flex flex-col w-[300px] shrink-0 sticky top-0 h-screen overflow-y-auto text-knickgasm-chalk">
+    <div class="pb-rule px-5 py-6 border-b">
       <div class="text-[10.5px] tracking-[.18em] uppercase font-bold text-knickgasm-lava">Lifecycle OS</div>
       <div class="font-head text-[22px] leading-tight mt-1">Growth &amp; Automation<br>Playbook</div>
-      <p class="text-[11.5px] mt-2" style="color:var(--vh-panel-tan);">Command tower for the full growth stack: intelligence, avatars, live pace, and the automation loop.</p>
+      <p class="text-[11.5px] mt-2">Command tower for the full growth stack: intelligence, avatars, live pace, and the automation loop.</p>
     </div>
 
     <nav class="px-3 py-4 space-y-3 text-[13px]" id="command-nav">
@@ -194,7 +220,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
       </details>
     </nav>
 
-    <div class="mt-auto px-5 py-4 text-[11px] border-t" style="border-color:rgba(251,245,234,.14);color:var(--vh-panel-tan);">
+    <div class="pb-rule mt-auto px-5 py-4 text-[11px] border-t">
       <a href="/research" class="underline decoration-knickgasm-lava">Growth Book</a> &nbsp;&middot;&nbsp;
       <a href="/all-in-one" class="underline decoration-knickgasm-lava">OS Home</a>
     </div>
@@ -207,9 +233,9 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
   <main class="flex-1 min-w-0" data-shipped-for="knickgasm" data-shipped-label="growth and automation playbook">
 
     <!-- Mobile top bar -->
-    <div class="lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk" style="background:var(--knickgasm-green);">
+    <div class="pb-band lg:hidden sticky top-0 z-20 flex items-center justify-between px-5 py-3 text-knickgasm-chalk">
       <div class="font-head text-lg">Growth &amp; Automation Playbook</div>
-      <a href="#macro-economics" class="text-xs pill" style="border-color:rgba(251,245,234,.3);color:var(--knickgasm-chalk);">Jump in</a>
+      <a href="#macro-economics" class="text-xs pill" style="border-color:currentColor;">Jump in</a>
     </div>
 
     <div class="max-w-[1100px] mx-auto px-6 md:px-10 py-10 space-y-16">
@@ -221,7 +247,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
         <p class="text-[15px] max-w-3xl" style="color:var(--soft);">One command tower for how the active brand grows: the market it plays in, the buyers it serves, the pace it runs at each day, and the automation loop that turns a brief into a shipped mailer, ad, and synced Shopify asset. Every figure below is either a live-engine reading or a stated planning benchmark, labelled as such.</p>
         <div class="flex flex-wrap gap-2 pt-1">
           <span class="pill" style="background:var(--knickgasm-green);color:var(--knickgasm-chalk);border-color:var(--knickgasm-green);">System One: Strategy</span>
-          <span class="pill" style="background:var(--knickgasm-lava);color:var(--brand-on-accent,var(--knickgasm-green));border-color:var(--knickgasm-lava);">System Two: Automation</span>
+          <span class="pill" style="background:var(--vh-panel);color:var(--vh-accent-text);border-color:var(--vh-accent);">System Two: Automation</span>
           <span class="pill" style="color:var(--knickgasm-ink);">Brand-locked: 4-color palette, Montserrat + Instrument Sans</span>
         </div>
       </header>
@@ -246,7 +272,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
           </div>
           <div class="metric p-5" style="border-color:var(--knickgasm-lava);">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">SAM</div>
-            <div class="mv text-lg mt-1" style="color:var(--brand-accent-text,var(--knickgasm-lava));line-height:1.35;">Not sized</div>
+            <div class="mv text-lg mt-1" style="color:var(--vh-accent-text);line-height:1.35;">Not sized</div>
             <div class="text-[12.5px] mt-1" style="color:var(--soft);">[DATA REQUIRED BEFORE LAUNCH: serviceable D2C segment sizing, active brand, per region]</div>
           </div>
           <div class="metric p-5" style="border-color:var(--knickgasm-green);border-width:2px;">
@@ -600,7 +626,7 @@ defaults:
           <div data-section id="cohort-001" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 001: The Craft Optimiser</h3>
-              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-primary-text,var(--knickgasm-green));">Loyalist</span>
+              <span class="pill" style="background:var(--vh-bg);color:var(--vh-primary-text);">Loyalist</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Craft and provenance</div></div>
@@ -612,7 +638,7 @@ defaults:
           <div data-section id="cohort-002" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 002: The Rotation Loyalist</h3>
-              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-accent-text,var(--knickgasm-lava));">Subscriber</span>
+              <span class="pill" style="background:var(--vh-bg);color:var(--vh-accent-text);">Subscriber</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Continuity of the rotation</div></div>
@@ -624,7 +650,7 @@ defaults:
           <div data-section id="cohort-003" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-green);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 003: The Gifting Connector</h3>
-              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-primary-text,var(--knickgasm-green));">High-intent</span>
+              <span class="pill" style="background:var(--vh-bg);color:var(--vh-primary-text);">High-intent</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Status and thoughtfulness</div></div>
@@ -636,7 +662,7 @@ defaults:
           <div data-section id="cohort-004" class="card p-6 border-l-4" style="border-left-color:var(--knickgasm-lava);">
             <div class="flex items-center justify-between">
               <h3 class="font-head text-xl text-knickgasm-green">Cohort 004: The Curious Switcher</h3>
-              <span class="pill" style="background:var(--brand-surface,var(--knickgasm-chalk));color:var(--brand-accent-text,var(--knickgasm-lava));">Switcher</span>
+              <span class="pill" style="background:var(--vh-bg);color:var(--vh-accent-text);">Switcher</span>
             </div>
             <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
               <div><div class="text-[11px] uppercase font-bold" style="color:var(--soft);">Value driver</div><div class="mt-0.5">Discovery and low-risk trial</div></div>
@@ -662,17 +688,17 @@ defaults:
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net revenue (this hour)</div>
             <div class="mv text-3xl mt-1" id="pace-rev">$0</div>
-            <div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">&nbsp;</div>
+            <div class="text-[12px] mt-1" id="pace-rev-delta" style="color:var(--vh-primary-text);">&nbsp;</div>
           </div>
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Unit order velocity</div>
             <div class="mv text-3xl mt-1" id="pace-vel">0</div>
-            <div class="text-[12px] mt-1" id="pace-vel-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">orders / hr</div>
+            <div class="text-[12px] mt-1" id="pace-vel-delta" style="color:var(--vh-primary-text);">orders / hr</div>
           </div>
           <div class="metric p-5">
             <div class="text-[11px] uppercase tracking-[.06em] font-bold" style="color:var(--soft);">Net new subscriptions</div>
             <div class="mv text-3xl mt-1" id="pace-sub">0</div>
-            <div class="text-[12px] mt-1" id="pace-sub-delta" style="color:var(--brand-primary-text,var(--knickgasm-green));">this hour</div>
+            <div class="text-[12px] mt-1" id="pace-sub-delta" style="color:var(--vh-primary-text);">this hour</div>
           </div>
         </div>
 
@@ -783,7 +809,7 @@ defaults:
           </div>
 
           <textarea id="gen-out" spellcheck="false" class="code-out mt-4 w-full h-80 rounded-xl border p-4"
-            style="border-color:var(--line);background:#ffffff;color:#111111;" placeholder="Your generated, copy-pasteable asset source will appear here. Edit it in place before shipping."></textarea>
+            style="border-color:var(--line);background:var(--vh-panel);color:var(--vh-ink);" placeholder="Your generated, copy-pasteable asset source will appear here. Edit it in place before shipping."></textarea>
         </div>
       </section>
 
@@ -879,7 +905,7 @@ defaults:
       var label = (hr<10?'0':'')+hr+':00';
       var delta = prevRev ? Math.round(((rev-prevRev)/prevRev)*100) : 0;
       var arrow = delta>=0 ? '&#9650; +' : '&#9660; ';
-      var col = delta>=0 ? 'var(--knickgasm-green)' : '#a23b2b';
+      var col = delta>=0 ? 'var(--vh-ok-text)' : 'var(--vh-err-text)';
       rows += '<tr><td>'+label+'</td><td>$'+rev.toLocaleString()+'</td><td>'+orders+'</td><td>'+subs+'</td>'+
               '<td style="color:'+col+';font-weight:700;">'+(prevRev?arrow+Math.abs(delta)+'%':'-')+'</td></tr>';
       prevRev = rev;
@@ -893,7 +919,7 @@ defaults:
       var d = latest.delta;
       var rd = document.getElementById('pace-rev-delta');
       rd.textContent = (d>=0?'+':'')+d+'% vs prior hour';
-      rd.style.color = d>=0 ? 'var(--knickgasm-green)' : '#a23b2b';
+      rd.style.color = d>=0 ? 'var(--vh-ok-text)' : 'var(--vh-err-text)';
     }
   }
   var paceOffset = 0;
@@ -926,14 +952,14 @@ defaults:
     var cacEl = document.getElementById('out-cac');
     cacEl.textContent = '$'+cac.toFixed(2);
     var flag = document.getElementById('out-cac-flag');
-    if(cac > 65){ flag.textContent = 'above target, tighten spend'; flag.style.color = '#a23b2b'; }
-    else if(cac < 38){ flag.textContent = 'below target, room to scale'; flag.style.color = 'var(--knickgasm-green)'; }
-    else { flag.textContent = 'inside $38 to $65 target'; flag.style.color = 'var(--knickgasm-lava)'; }
+    if(cac > 65){ flag.textContent = 'above target, tighten spend'; flag.style.color = 'var(--vh-err-text)'; }
+    else if(cac < 38){ flag.textContent = 'below target, room to scale'; flag.style.color = 'var(--vh-ok-text)'; }
+    else { flag.textContent = 'inside $38 to $65 target'; flag.style.color = 'var(--vh-accent-text)'; }
 
     var churnEl = document.getElementById('out-churn');
     var sign = churnVar>=0 ? '+' : '';
     churnEl.textContent = sign+churnVar.toFixed(1)+'%';
-    churnEl.style.color = churnVar>0 ? '#a23b2b' : 'var(--knickgasm-green)';
+    churnEl.style.color = churnVar>0 ? 'var(--vh-err-text)' : 'var(--vh-ok-text)';
   });
 
   // ---------- Asset generator ----------
@@ -1074,24 +1100,24 @@ defaults:
     var valid = /^https:\/\/cdn\.shopify\.com\/.+/i.test(url);
     if(!valid){
       status.textContent = 'Enter a valid cdn.shopify.com URL.';
-      status.style.color = '#a23b2b';
+      status.style.color = 'var(--vh-err-text)';
       return;
     }
     if(synced.indexOf(url) !== -1){
       status.textContent = 'Already synced.';
-      status.style.color = 'var(--knickgasm-lava)';
+      status.style.color = 'var(--vh-accent-text)';
       return;
     }
     synced.push(url);
     status.textContent = 'Sync triggered.';
-    status.style.color = 'var(--knickgasm-green)';
+    status.style.color = 'var(--vh-ok-text)';
     input.value = '';
     var list = document.getElementById('cdn-list');
     var li = document.createElement('li');
     li.className = 'flex items-start gap-2';
     li.style.wordBreak = 'break-all';
-    li.innerHTML = '<span style="color:var(--brand-primary-text,var(--knickgasm-green));font-weight:700;">&#10003;</span>'+
-                   '<a class="code-out underline" style="color:var(--brand-accent-text,var(--knickgasm-lava));" href="'+encodeURI(url)+'" target="_blank" rel="noopener">'+
+    li.innerHTML = '<span style="color:var(--vh-ok-text);font-weight:700;">&#10003;</span>'+
+                   '<a class="code-out underline" style="color:var(--vh-accent-text);" href="'+encodeURI(url)+'" target="_blank" rel="noopener">'+
                    url.replace(/</g,'&lt;')+'</a>';
     list.appendChild(li);
   });
