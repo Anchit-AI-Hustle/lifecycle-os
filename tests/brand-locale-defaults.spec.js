@@ -428,6 +428,9 @@ test('region-context.js and brand-locale.js agree on every country, and on a rec
 const VERCEL = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 const SWEEP_PAGES = Array.from(new Set((VERCEL.rewrites || []).map((r) => r.destination).filter((d) => /\.html$/.test(d)).map((d) => d.replace(/^\//, ''))))
   .filter((f) => fs.existsSync(path.join(ROOT, f)) && /<script[^>]+src=["'][^"']*\bauth\.js/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')))
+  /* A frozen snapshot of tenant zero's app, never re-skinned: it does not
+     load the region layer at all, so there is nothing of a brand's to read. */
+  .filter((f) => f !== 'diff-version.html')
   .sort();
 /* Tenant zero's shipped programmes: built for one named market by design. */
 const SHIPPED_PROGRAMME = {
@@ -438,6 +441,7 @@ const SHIPPED_PROGRAMME = {
   'diff-version.html': 'a frozen snapshot of tenant zero\'s app',
   'website-designs.html': 'tenant zero\'s storefront designs by store (US/UK/Global stores)',
   'access-issues.html': 'the platform\'s own SaaS subscription costs, billed in USD by their vendors',
+  'playbook/index.html': 'tenant zero\'s generated growth book (figures from its own bundled export; the brand-content audit gates it)',
   'frameworks.html': 'worked copy examples written for tenant zero (the brand-content audit owns their wording)',
 };
 
