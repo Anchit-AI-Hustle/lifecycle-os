@@ -190,7 +190,9 @@ function instrument(args) {
     opens: 0, blobs: 0, clipboard: 0, storage: 0, prints: 0, records: [], added: [], idle: null,
     token: Math.random().toString(36).slice(2), preFail: null, preStatus: null, base: null,
   };
-  var IGN = '#lifecycle-nav, #lc-authnotice, .lc-credit-pill, .lc-credit-chip, .lc-credit-sheet, #vah-agent-fab, #vah-agent-panel, .vhd-agent-fab, .vhd-agent-overlay, #lnav-signin-note, #lc-popup-blocked';
+  // [data-ds-specimen]: a component SPECIMEN on /design-system (the failure
+  // frame drawn so it can be seen) documents the frame; it is not the page failing.
+  var IGN = '#lifecycle-nav, #lc-authnotice, .lc-credit-pill, .lc-credit-chip, .lc-credit-sheet, #vah-agent-fab, #vah-agent-panel, .vhd-agent-fab, .vhd-agent-overlay, #lnav-signin-note, #lc-popup-blocked, [data-ds-specimen]';
   var STATUS = '.vh-status, [data-needs-account], .ws-note, [role="status"], [role="alert"]';
   var TOAST = '#toast, .toast, [class*="toast"], .snack, .snackbar';
   function elOf(n) { return n && (n.nodeType === 1 ? n : n.parentElement); }
