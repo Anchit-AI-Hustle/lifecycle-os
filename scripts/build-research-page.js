@@ -81,10 +81,20 @@ const RUNTIME = `
   var host = document.getElementById('brand-study');
   var R = window.MarketStudyRender;
   if (!host || !R) return;
-  var builtFor = String(host.getAttribute('data-ms-built-for') || '').toLowerCase();
   var DOCX = __DOCX__;
   var activeBrand = null;
   var rendered = false;
+
+  /* THE BUILT BLOCK IS ONE BRAND'S. The hold set before it was parsed (see
+     HOLD below) keeps it invisible until the ACTIVE brand's block replaces it;
+     this lifts the hold once that has happened, or once there is nothing to
+     replace it with. */
+  function release() { document.documentElement.removeAttribute('data-ms-hold'); host.removeAttribute('aria-busy'); }
+  function unavailable(why) {
+    host.innerHTML = '<div class="card p-5" role="status"><div class="font-head text-[18px] text-vink">The market study could not be built for the active brand</div>' +
+      '<p class="ms-note">' + String(why || 'The brand record could not be read.').replace(/[&<>]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]; }) + ' Nothing is shown in its place.</p></div>';
+    release();
+  }
 
   function rc() { return window.RegionContext || null; }
   function fam(v) { var r = rc(); return r ? r.family(v) : R.family(v); }
@@ -93,6 +103,10 @@ const RUNTIME = `
   function resolve(v) { var r = rc(); if (r && r.loaded) return r.resolve(v); return R.resolveIn(regions(), v); }
   function home() { var r = rc(); if (r && r.loaded) return r.home; return R.homeOf(regions()); }
   function slugOf(b) { return String((b && b.slug) || '').toLowerCase(); }
+  function keyOf(b) { return b ? String(b.id || '') + '|' + slugOf(b) : ''; }
+  /* The built documents are tenant zero's, and who that is is the SERVER's
+     answer (owns_shipped), never a slug a preset hands to anyone. */
+  function ownsBuilt(b) { var B = window.BrandContext; return !!(B && B.isTenantZero && B.isTenantZero(b)); }
   function deepLink() { try { return new URLSearchParams(location.search).get('region') || ''; } catch (_) { return ''; } }
 
   /* ── selection: the study panels and the benchmark filter ─────────────── */
@@ -137,23 +151,43 @@ const RUNTIME = `
   function render() {
     if (!activeBrand) return;
     var sel = initialStudy();
-    host.innerHTML = R.blockHTML(activeBrand, { docx: slugOf(activeBrand) === builtFor ? DOCX : {}, region: sel });
+    host.innerHTML = R.blockHTML(activeBrand, { docx: ownsBuilt(activeBrand) ? DOCX : {}, region: sel });
     host.setAttribute('data-ms-rendered-for', slugOf(activeBrand) || String(activeBrand.name || ''));
     rendered = true;
+    release();
     applyBench(home());
     if (deepLink()) { var sec = document.getElementById('regional-studies'); if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   }
-  /* The shell payload may omit market_study: fetch the full record. */
+  /* The shell payload may omit market_study: fetch the full record, through
+     the brand layer so a brand kept on THIS DEVICE is read from the device
+     store (a raw fetch asked the server for a device id it cannot hold). A
+     persisted or device record keeps market_study inside brand_data; it is
+     lifted the way brand-runtime.normalizeBrand() lifts it on the server. */
+  function hoist(f) {
+    var d = f && f.brand_data;
+    if (f && d && typeof d === 'object' && f.market_study == null && d.market_study != null) f = Object.assign({}, f, { market_study: d.market_study });
+    return f;
+  }
   function full(b) {
     if (!b || b.market_study !== undefined || !b.id) return Promise.resolve(b);
-    return fetch('/api/public-config?action=brand&op=get&id=' + encodeURIComponent(b.id), { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (f) { return (f && f.brand) || b; })
+    var B = window.BrandContext;
+    var read = (B && B.api)
+      ? B.api('get', { query: '&id=' + encodeURIComponent(b.id) })
+      : fetch('/api/public-config?action=brand&op=get&id=' + encodeURIComponent(b.id), { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    return Promise.resolve(read)
+      .then(function (f) { return hoist((f && f.brand) || b); })
       .catch(function () { return b; });
   }
   function withBrand(b) {
-    if (!b) return;
-    full(b).then(function (fb) { activeBrand = fb; render(); }).catch(function () {});
+    if (!b) {
+      // No brand at all: the shipped default stands, as everywhere else
+      // (BrandContext.ownsShipped()); the gate sends a signed-in person to
+      // onboarding.
+      var B = window.BrandContext;
+      if (!B || !B.ownsShipped || B.ownsShipped()) release();
+      return;
+    }
+    full(b).then(function (fb) { activeBrand = fb; render(); }).catch(function (e) { unavailable(e && e.message); });
   }
   /* The shared region layer lands after the brand (it reads the brand); once
      it has, the selection follows it: the study opens on the shared choice
@@ -171,13 +205,13 @@ const RUNTIME = `
   function boot() {
     // No brand layer at all (a file:// open): the built block is the page, its
     // tabs work through the renderer's own tables, and nothing is re-rendered.
-    if (!window.BrandContext) { applyBench(R.homeOf(R.regionsOf(null)) || ''); return; }
+    if (!window.BrandContext) { applyBench(R.homeOf(R.regionsOf(null)) || ''); release(); return; }
     var p = window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve(window.BrandContext.brand);
-    Promise.resolve(p).then(function (b) { withBrand(b || window.BrandContext.brand); }).catch(function () {});
+    Promise.resolve(p).then(function (b) { withBrand(b || window.BrandContext.brand); }).catch(function (e) { unavailable(e && e.message); });
     try {
       window.addEventListener('brandcontext:change', function (ev) {
         var b = ev && ev.detail && ev.detail.brand;
-        if (b && slugOf(b) !== slugOf(activeBrand)) withBrand(b);
+        if (b && keyOf(b) !== keyOf(activeBrand)) withBrand(b);
       });
     } catch (_) {}
     followRegions(0);
@@ -186,14 +220,39 @@ const RUNTIME = `
 })();
 `.replace('__DOCX__', JSON.stringify(docx));
 
+/* Runs BEFORE the built block is parsed, so it is never painted for another
+   brand: the block was built for one brand, and until the active brand is
+   known (in device mode that waits on auth.js's backend decision, seconds on a
+   slow phone) it is held invisible. brand-context.js loads first in <head>,
+   so the cached brand is readable here. Held for any brand the server has not
+   said is tenant zero (owns_shipped; never a slug); not held at all when
+   there is no brand layer. */
+const HOLD = `(function () {
+  try {
+    var B = window.BrandContext, c = B && B.brand;
+    if (B && !(c && B.isTenantZero && B.isTenantZero(c))) document.documentElement.setAttribute('data-ms-hold', '1');
+  } catch (_) {}
+})();`;
+
 const renderSrc = fs.readFileSync(RENDER_FILE, 'utf8');
 if (/<\/script/i.test(renderSrc)) throw new Error('market-study-render.js cannot contain "</script": it is inlined into a script tag');
 
 const block = [
   START,
   `<!-- generated by scripts/build-research-page.js from brand.regions and brand.market_study, built for "${slug}". Do not hand-edit between the markers; run the script. -->`,
-  `<div id="brand-study" data-ms-built-for="${slug}">`,
+  '<style>html[data-ms-hold] #brand-study{visibility:hidden}</style>',
+  '<script>',
+  HOLD,
+  '</script>',
+  `<div id="brand-study" data-ms-built-for="${slug}" aria-busy="true">`,
+  // The built block is ONE brand's study, so it is gated to that brand
+  // (brand-context.js gateShipped puts the DATA REQUIRED marker in its place
+  // for any other active brand) and is never renamed (a sentence written for
+  // this brand must not be made to read as another's). The runtime below
+  // replaces the whole block with the ACTIVE brand's own study.
+  `<div data-shipped-for="${slug}" data-shipped-label="this market study" data-no-brand-swap>`,
   render.blockHTML(brand, { docx }),
+  '</div>',
   '</div>',
   '<script>',
   renderSrc,
