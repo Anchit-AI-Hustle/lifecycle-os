@@ -142,10 +142,13 @@
     var A = window.LIFECYCLE_ANALYTICS;
     if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:var(--vh-err-text)">Analytics module not loaded.</div>'; return; }
     var market = 'US';
-    var symByCur = { USD:'$', GBP:'£' };
-
-    function sym(){ var cur=(A.currency&&A.currency[market])||'USD'; return symByCur[cur]||''; }
-    function money(n){ return sym() + Math.round(n).toLocaleString('en-US'); }
+    // The dataset's OWN declared currency for its market (its US and UK tabs
+    // are the export's markets, not a default for any brand), written in that
+    // market's number format. No currency declared: no symbol (2026-10-05).
+    function cur(){ return (A.currency&&A.currency[market])||''; }
+    function sym(){ var c=cur(); if(!c) return ''; var RC=window.RegionContext; var l=RC&&RC._SYMBOL; return (l&&l[c])||c+' '; }
+    function nloc(){ var RC=window.RegionContext; try{ return (RC&&RC.localeOf&&RC.countryOf&&RC.countryOf(market)) ? 'en-'+RC.countryOf(market) : undefined; }catch(e){ return undefined; } }
+    function money(n){ return sym() + Math.round(n).toLocaleString(nloc()); }
     function moneyK(n){ var v=n/1000; return sym() + (v>=1000?(v/1000).toFixed(1)+'M':Math.round(v)+'k'); }
     function pct(n){ return (n*100).toFixed(1) + '%'; }
 
@@ -158,12 +161,12 @@
       var s = m.summary;
       document.getElementById('mktLabel').textContent = market;
       document.getElementById('kpis').innerHTML =
-        kpiCard('Orders', s.orders.toLocaleString('en-US'), '') +
+        kpiCard('Orders', s.orders.toLocaleString(nloc()), '') +
         kpiCard('Net sales', money(s.net_sales), 'Gross ' + moneyK(s.gross_sales)) +
         kpiCard('AOV', sym() + s.aov.toFixed(2), '') +
-        kpiCard('Units', s.quantity.toLocaleString('en-US'), '') +
-        kpiCard('New customers', s.new_customers.toLocaleString('en-US'), '') +
-        kpiCard('Returning rate', pct(s.returning_rate), s.returning_customers.toLocaleString('en-US') + ' returning');
+        kpiCard('Units', s.quantity.toLocaleString(nloc()), '') +
+        kpiCard('New customers', s.new_customers.toLocaleString(nloc()), '') +
+        kpiCard('Returning rate', pct(s.returning_rate), s.returning_customers.toLocaleString(nloc()) + ' returning');
 
       var mon = m.monthly || [];
       var max = mon.reduce(function(a,b){ return Math.max(a, b.sales); }, 0) || 1;
@@ -186,7 +189,7 @@
 
       document.getElementById('monthlyRows').innerHTML = mon.map(function(row, i){
         var partial = (i === mon.length - 1) ? ' <span class="pill">partial</span>' : '';
-        return '<tr><td>' + row.month + partial + '</td><td class="num">' + row.orders.toLocaleString('en-US') + '</td><td class="num">' + money(row.sales) + '</td><td class="num">' + sym() + row.aov.toFixed(2) + '</td></tr>';
+        return '<tr><td>' + row.month + partial + '</td><td class="num">' + row.orders.toLocaleString(nloc()) + '</td><td class="num">' + money(row.sales) + '</td><td class="num">' + sym() + row.aov.toFixed(2) + '</td></tr>';
       }).join('');
     }
 

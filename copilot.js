@@ -169,7 +169,7 @@
     try { synth.cancel(); } catch (e) {}
     var u = new SpeechSynthesisUtterance(speakable(text).slice(0, 4000));
     if (voice) u.voice = voice;
-    u.rate = rate; u.pitch = 1; u.lang = (voice && voice.lang) || 'en-US';
+    u.rate = rate; u.pitch = 1; u.lang = (voice && voice.lang) || ((window.RegionContext && window.RegionContext.localeOf && window.RegionContext.localeOf(window.RegionContext.home).locale) || navigator.language || 'en');
     try { synth.speak(u); } catch (e) {}
   }
   // Free server TTS → ONE fixed voice for every visitor regardless of device
@@ -335,7 +335,7 @@
   function setupMic(btn) {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { btn.style.display = 'none'; return; }
-    var rec = new SR(); rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1;
+    var rec = new SR(); rec.lang = ((window.RegionContext && window.RegionContext.localeOf && window.RegionContext.localeOf(window.RegionContext.home).locale) || navigator.language || 'en'); rec.interimResults = false; rec.maxAlternatives = 1;
     var recording = false;
     rec.onresult = function (e) {
       var txt = e.results[0][0].transcript; dom.input.value = txt;

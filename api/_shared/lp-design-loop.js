@@ -100,9 +100,12 @@ const validHtml = (h) => typeof h === 'string'
 
 async function runDesignLoop(opts) {
   const {
-    html, brand = null, brief = '', market = 'US', store = '',
+    html, brand = null, brief = '', market: marketIn = '', store = '',
     channel = 'landing', timeBoxMs = 45000, userGeminiKey = '', scrub,
   } = opts || {};
+  // The landing page's market: the one asked for, else the brand's HOME
+  // market (2026-10-05) - it was a literal 'US' for every brand.
+  const market = marketIn || require('./brand-locale.js').defaultMarket(brand);
 
   const quality = { scored: false, score: null, revised: false, dims: null };
   const clean = (v) => {

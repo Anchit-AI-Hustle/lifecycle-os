@@ -823,7 +823,7 @@ function buildCompetitive(brand) {
   if (!markets.length) {
     return {
       available: false,
-      gap: '[DATA REQUIRED BEFORE LAUNCH: market study, all, all]',
+      gap: `[DATA REQUIRED BEFORE LAUNCH: market study, ${(brand && brand.name) || 'this brand'}]`,
       note: 'No market study is recorded for this brand. Competitor names, market sizing and positioning are factual claims, so none are shown here until they are supplied and sourced. Add them on the brand record, or run competitor discovery for this brand.',
       markets: [],
     };
@@ -930,12 +930,14 @@ function build(brand, opts) {
   const funnel = buildFunnel(kind, hasMeasuredData);
   const competitive = buildCompetitive(b);
 
+  // Markers name the brand and nothing padded (2026-10-05): `field, <brand>`.
   const gaps = [];
-  if (!((b.regions || []).filter((r) => r && r.code).length)) gaps.push('[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, all, all]');
-  if (!brandClaims(b).length) gaps.push('[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
-  if (!brandOfferings(b).length && !brandCatalogSource(b).kind) gaps.push('[DATA REQUIRED BEFORE LAUNCH: offerings, all, all]');
+  const gap = (field) => require('./brand-locale.js').marker(field, b);
+  if (!((b.regions || []).filter((r) => r && r.code).length)) gaps.push(gap('regions and store URLs'));
+  if (!brandClaims(b).length) gaps.push(gap('verifiable claims'));
+  if (!brandOfferings(b).length && !brandCatalogSource(b).kind) gaps.push(gap('offerings'));
   if (!competitive.available) gaps.push(competitive.gap);
-  if (!hasMeasuredData) gaps.push('[DATA REQUIRED BEFORE LAUNCH: connected analytics, all, all]');
+  if (!hasMeasuredData) gaps.push(gap('connected analytics'));
 
   return {
     ok: true,

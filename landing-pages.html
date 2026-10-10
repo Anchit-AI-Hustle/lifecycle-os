@@ -149,33 +149,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <h1>Landing Pages <em>for every channel</em></h1>
   <p class="sub"> One brand-locked landing-page system that serves every channel: mailers, Meta ads, Google ads, TikTok ads. Pick a channel below, choose a region, and either link to an existing asset or write a fresh brief, the page is generated in the same brand system as the email or ad that drives traffic to it. </p>
 
-  <!-- Embedded KPI Dashboard -->
-  <section class="card" style="padding: 16px; margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <div class="label" style="margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink-dim); font-weight: 600;">Sample metrics <span style="color:var(--vh-warn-text);font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open real analysis →</a>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
-      <div style="padding: 12px; background: var(--vh-panel-2); border-radius: 8px; border: 1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--vh-ink-dim); font-weight: 600;">Total LP Views</div>
-        <div style="font-size: 18px; font-weight: 700; color: var(--vh-ink); margin-top: 4px;">45,821</div>
-        <div style="font-size: 10px; color: var(--vh-ok-text); margin-top: 4px;">↑ 12% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: var(--vh-panel-2); border-radius: 8px; border: 1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--vh-ink-dim); font-weight: 600;">Avg Bounce Rate</div>
-        <div style="font-size: 18px; font-weight: 700; color: var(--vh-ink); margin-top: 4px;">42.4%</div>
-        <div style="font-size: 10px; color: var(--vh-ok-text); margin-top: 4px;">↓ 2.1% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: var(--vh-panel-2); border-radius: 8px; border: 1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--vh-ink-dim); font-weight: 600;">Avg LP Conv. Rate</div>
-        <div style="font-size: 18px; font-weight: 700; color: var(--vh-ink); margin-top: 4px;">3.8%</div>
-        <div style="font-size: 10px; color: var(--vh-ok-text); margin-top: 4px;">↑ 0.5% vs prior</div>
-      </div>
-      <div style="padding: 12px; background: var(--vh-panel-2); border-radius: 8px; border: 1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--vh-ink-dim); font-weight: 600;">Top Converting LP</div>
-        <div style="font-size: 18px; font-weight: 700; color: var(--vh-ink); margin-top: 4px;">Jordan First Flush</div>
-        <div style="font-size: 10px; color: var(--vh-ink-dim); margin-top: 4px;">6.2% CVR (Search)</div>
-      </div>
+  <!-- KPI strip (2026-10-10): this block used to print invented figures in
+       dollars ("$45,200", "$212,450", "Jordan First Flush") for EVERY brand,
+       labelled illustrative. A number nobody measured reads as this brand's
+       performance, and in another market's currency. It now says what is true. -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;" id="embeddedDashboard" data-kpi-state="none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <p class="vh-status" style="margin:0">No live metrics are connected for this brand yet, so none are shown here. Figures appear in the brand's own currency once its data is imported.</p>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open analysis →</a>
     </div>
   </section>
 
@@ -561,7 +542,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!opts.some((o) => o.code === selectedRegion[channel])) selectedRegion[channel] = rc.home;
       grp.innerHTML = opts.length
         ? opts.map((o) => '<button type="button" class="region-chip' + (o.code === selectedRegion[channel] ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
-        : '<span class="region-chip" style="cursor:default">[DATA REQUIRED BEFORE LAUNCH: regions, all, all]</span>';
+        : '<span class="region-chip" style="cursor:default">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
     });
   }
   $$('.regions').forEach((grp) => {
@@ -591,7 +572,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function brandName() {
     var b = activeBrand();
-    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]';
+    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
   }
   function brandWordmark() { return String(brandName()).toUpperCase(); }
   function brandTagline() {
@@ -639,7 +620,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const region = f.region || f.market || homeRegion();
     // This brand's own storefront for the region; the shipped map is tenant
     // zero's and is used only when no brand is active at all.
-    const base = brandStoreBase(region) || (activeBrand() ? ('[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ' + region + ']') : (STORE_BASE[region] || STORE_BASE.US));
+    const base = brandStoreBase(region) || (activeBrand() ? ('[DATA REQUIRED BEFORE LAUNCH: region store URL, ' + brandName() + ', ' + region + ']') : (STORE_BASE[region] || STORE_BASE.US));
     const hero = f.hero || 'Lace-up the moment';
     // The brand's own tagline or first claim; never a sentence about a
     // different company's process.
@@ -974,7 +955,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       const prompt = (promptEl.value || '').trim();
       const reference_url = (refEl?.value || '').trim();
       if (!prompt) { status.textContent = 'Type what you want first.'; return; }
-      const region = selectedRegion[channel] || 'US';
+      const region = selectedRegion[channel] || ((window.RegionContext && window.RegionContext.home) || '');
       const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
       status.textContent = '';
       try {

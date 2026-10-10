@@ -62,6 +62,22 @@ combination on main that no run had seen. Gated by `tests/workflows-guarantees.s
   old version; the dispatch starts with the next merge. `sync-main.yml` (final-product -> main) has the
   same gap, but no `final-product` branch exists.
 
+## ⭐ Market, currency, time zone and locale come from the brand's HOME market (2026-10-10)
+An Indian brand (Deli Chic) pressed Run Agentic Flow on /brain and read "Running agentic flow - Premium,
+US": `agenticMarket()` fell to a literal `'US'` and knew four markets. The same habit sat in ~60 places.
+`api/_shared/brand-locale.js` (server) and `region-context.js` (`localeOf`/`money`/`num`/`marker`, browser)
+hold ONE country table (currency, zone, dial code) and a typed symbol table (Node and Chromium ICU disagree
+on symbols); a parity test holds them equal. Gated by `tests/brand-locale-defaults.spec.js` (executed).
+- **No literal market anywhere**: a market is asked, else the brand's home (`homeRegion`, `RC.home`), else
+  `[DATA REQUIRED BEFORE LAUNCH: home market, <brand>]` - never padded with ", all". agentic-run,
+  mailer-assets, competitor benchmark, lifecycle-generate answer `409 market_required` / `market_not_served`.
+- **Money in the market's own currency** (`₹1,00,000` in en-IN); no `$` fallback in regionFacts, feasibility
+  badges, budgets or KPI strips. The three "Sample metrics" strips (invented dollar figures) are gone.
+- Send times are 09:30 in the brand's own zone (`utcHourOf`), festivals come from `market-moments.js`
+  (tenant zero's list only for tenant zero), and the /brain MODE card says Local / Demo Mode on a device.
+- Every market control (Studio chips, landing agent, KicksGPT, research rail rows) is built from
+  `RegionContext.options()` and opens on home. `UNDECLARED` (#168's strategy calendar) is a state, not a country.
+
 ## ⭐ One contact ledger, one fatigue policy, every channel (2026-10-04) — read `docs/publishing-and-deliverability.md` ("Contact fatigue")
 The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
 suppress scheduled marketing emails or WhatsApp messages for 48 hours."* `api/_shared/contact-fatigue.js` (the
