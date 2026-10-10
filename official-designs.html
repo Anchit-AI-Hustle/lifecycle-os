@@ -80,6 +80,8 @@
 <script type="module">
   import { mountKnickgasm3D } from '/assets/knickgasm3d-bridge.js';
   const mount = document.getElementById('mount');
+  // A gated showcase (another brand active) has no mount: nothing to render.
+  if (mount) {
   let disposer = null, tier = null, region = 'us', variant = 'light';
   async function remount() {
     if (typeof disposer === 'function') { try { disposer(); } catch (_) {} }
@@ -101,6 +103,7 @@
     remount();
   });
   remount();
+  }
 </script>
 </body>
 </html>
