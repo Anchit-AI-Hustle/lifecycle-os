@@ -206,7 +206,8 @@
         "selector": "div#app > div.css-e82s8r:nth-of-type(1) > h1.css-1q278js",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.nykaa.com/",
@@ -214,7 +215,8 @@
         "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
@@ -495,6 +497,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Nykaa]",

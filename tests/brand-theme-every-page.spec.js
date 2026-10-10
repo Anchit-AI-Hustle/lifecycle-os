@@ -232,6 +232,9 @@ for (const file of PAGES) {
         const m = await measure(page, file, name, painted, log);
         if (m.entry) record.palettes[name] = m.entry;
         findings.push(...findingsOf(`[${name}] `, m.r, m.cfg, painted, m.themed));
+        // A retoken that breaks a page's script leaves fewer things to measure
+        // and could pass: a page error is a finding of its own.
+        if (log.errors.length) findings.push({ kind: 'pageerror', n: 1, message: `[${name}] the page threw: ${log.errors[0]}` });
       } finally {
         await context.close();
       }

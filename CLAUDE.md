@@ -4,12 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
+`auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
+never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,
+and #142's conflict resolution broke main and production unseen until #154. Each PR's CI ran on its merge
+ref, built against main as it was when THAT run started; several PRs landing within minutes put a
+combination on main that no run had seen. Gated by `tests/workflows-guarantees.spec.js` (31, executed;
+16 mutations each caught).
+- **The dispatch.** After its merges the job dispatches `ci.yml` on main ONCE (`workflow_dispatch`, one of
+  the two events GITHUB_TOKEN may still raise; `ref` only - ci.yml declares no inputs and the API refuses
+  an undeclared one), with `actions: write`, the one scope added. A refused dispatch FAILS the job and says
+  how to run CI by hand: nothing else tests main.
+- **No loop, no double deploy.** The dispatched run's completion reaches `auto-merge.yml` (job `if` needs
+  `event == 'pull_request'`, and the script refuses any other `CI_EVENT` before an API call: a run on main
+  cannot vouch for a PR) and `deploy-guarantee.yml` (path 1 needs `event == 'push'`; it deliberately ignores
+  the dispatched run, since auto-merge already fired the hook and a second firing is one more of the team's
+  100 deploys a day). It is a TEST of main, not a deploy trigger.
+- **One run per main, the newest.** CI runs on main share a concurrency group and the newer cancels the
+  older (main's HEAD contains it); every PR run keeps a group of its own, so PRs are unchanged. Runs on main
+  therefore never finish out of order.
+- **`main-state` (a job in ci.yml, not a workflow_run listener - the dispatched run is already link three
+  of a chain GitHub caps at three)** runs after every other job on main (`!cancelled()`, push or dispatch):
+  red opens or retitles ONE issue `Main is red at <sha>` (its own bot's, never a person's) naming each
+  failing job with its link; green closes it. Bookkeeping never turns a green main red.
+- **Tested by a MODEL of GitHub, checked first against GitHub's own docs** (`tests/lib/actions-model.js`:
+  the expression language and the trigger rules incl. the GITHUB_TOKEN guard, run over the docs' own
+  examples), so job `if:`s are EVALUATED, never grepped. The fake `gh` holds each write to the job's own
+  `permissions:` (scopes from GitHub's endpoint-permission data). The chain test turns the merge script's
+  real API calls into the events GitHub would emit and asserts which workflows and jobs follow. `yaml`
+  (YAML 1.2, as GitHub reads `on:`) is a devDependency now.
+- `workflow_run` reads the DEFAULT branch's file, so the PR that changes auto-merge.yml is merged by the
+  old version; the dispatch starts with the next merge. `sync-main.yml` (final-product -> main) has the
+  same gap, but no `final-product` branch exists.
+
 ## ⭐ One contact ledger, one fatigue policy, every channel (2026-10-04) — read `docs/publishing-and-deliverability.md` ("Contact fatigue")
 The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
 suppress scheduled marketing emails or WhatsApp messages for 48 hours."* `api/_shared/contact-fatigue.js` (the
 policy and the judge, no I/O) + `contact-ledger.js` (storage) + `20261004093700_contact_ledger_fatigue.sql`, gated
-by `tests/contact-fatigue-executed.spec.js` (16, executed over the fake PostgREST, which now models this table's
-dedupe index, CHECKs and service-role-only grant; 20 mutations, each restoring one defect, fail it or a router spec). The SQL itself was applied and probed on PostgreSQL 16.4
+by `tests/contact-fatigue-executed.spec.js` (19, executed over the fake PostgREST, which now models this table's
+dedupe index, CHECKs and service-role-only grant; 28 mutations, each restoring one defect, fail it or a router spec). The SQL itself was applied and probed on PostgreSQL 16.4
 (PGlite, scratchpad): every constraint, grant and policy behaved as declared.
 - **The cap was computed in four places and they disagreed.** cohort-engine `FREQUENCY` (and anything not
   literally `promotional` got the ABSOLUTE cap, so a re-engagement broadcast was allowed a third send);
@@ -50,6 +83,20 @@ dedupe index, CHECKs and service-role-only grant; 20 mutations, each restoring o
   request carries. Known limits: the Smart Brain cohort has no member list until the ESP profile feed (B3), so
   a slot is judged on the ledger's people tagged with its cohort plus its size (or `partial` with no size);
   WebEngage dumps are not yet mapped into the ledger (needs the brand's `event_map`).
+- **Review round (Codex, three P1s, each reproduced by a failing test first).** (1) A person was read by their
+  DIRECT identifiers only, so with an address tied to a number by an older row and the SMS keyed by the number
+  alone, the email went out inside the cool-down. `load()` follows the identifiers the ledger links (rows holding
+  a known identifier add the ones they carry) to `LINK_HOPS` 4 rounds / `LINK_KEYS` 600 identifiers, over a link
+  look-back 90 days longer than the touch look-back; older rows only LINK, never count; a walk the bound stopped
+  says `links_incomplete` and the gate WARNS. (2) A carried `contact_ledger: {touches: []}` REPLACED the store, so
+  any member could turn a cool-down block into "no send history" with no override: with a store this request may
+  read, carried rows only ADD (a carried copy of a stored touch counts once). (3) calendar.js's smartBrain router
+  honours a caller-named `workspace_id` (pre-existing posture), and the plan read that workspace's ledger and rules
+  with the SERVICE ROLE - another brand's contact-derived eligibility for an anonymous browser or a member of
+  another workspace. `contextFor()` asks `requestMayRead()` before any query: no request in scope (a worker) or the
+  scheduler's bearer, else a verified MEMBER (RLS, as the caller); anyone else gets "Eligibility unchecked" and no
+  ledger or rules query at all.
+
 ## ⭐ A brand's product photos come from ITS catalogue, in every page (2026-10-05)
 A momos brand's Google ads were composed over tenant zero's sneaker photos: `ad-campaigns.html` did not
 load `brand-catalog.js` and fetched `/data/catalog/products_*` for every brand. Gated by

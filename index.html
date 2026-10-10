@@ -14,10 +14,8 @@
 <meta name="twitter:image" content="https://lifecycle-os.anchit-tandon.com/assets/lifecycle-os-og.png">
 <meta name="description" content="A lifecycle-marketing operating system. Onboard a brand and the whole suite runs as that brand: analytics, cohorts, a rolling campaign calendar, and generated mailers, ads and landing pages.">
 <!-- This page is the one part of the app served signed-out and allowed in
-     robots.txt, so it is the one that can be indexed — and it answers on more
-     than one host (vercel.json redirects knickgasm.vercel.app and
-     knickgasm-lifecycle-os.anchit-tandon.com here). Naming the canonical origin
-     keeps a redirect chain from being read as a second, competing copy. -->
+     robots.txt, so it is the one that can be indexed. Generated Vercel aliases
+     redirect here, keeping the public app and search result on one origin. -->
 <link rel="canonical" href="https://lifecycle-os.anchit-tandon.com/">
 <link rel="stylesheet" href="/theme.css">
 <style>
@@ -85,7 +83,7 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="kicker">Lifecycle OS</div>
+  <div class="kicker">Lifecycle OS · Every brand. Every lifecycle.</div>
   <h1>Run your whole lifecycle programme <em>as one brand</em>.</h1>
   <p class="solving" id="solving"><span class="solving-k">The problem</span>
     AI writes a mailer in seconds and invents the price, the rating and the claim inside it &mdash;
@@ -163,7 +161,13 @@
   </div>
 
   <footer>
-    Lifecycle OS is brand-agnostic: the brand you activate supplies every fact, colour and word it uses.
+    <p>Lifecycle OS is brand-agnostic: the brand you activate supplies every fact, colour and word it uses.</p>
+    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px;">
+      <a href="/privacy" style="color: var(--ink); font-weight: 600; text-decoration: underline; margin-right: 16px;">Privacy Policy</a>
+      <span style="color: var(--soft);">·</span>
+      <a href="/terms" style="color: var(--ink); font-weight: 600; text-decoration: underline; margin-left: 16px;">Terms of Service</a>
+      <span style="display: block; margin-top: 8px; font-size: 11.5px; color: var(--soft);">© 2026 LifeCycle OS · Anchit's AI Hustle. All rights reserved.</span>
+    </div>
   </footer>
 </div>
 
@@ -179,8 +183,13 @@
       el.innerHTML = 'No brand is active yet, so the features are locked. <b>Choose or create one</b> to begin.';
       return;
     }
-    el.innerHTML = 'Currently running as <b>' + String(brand.name || 'your brand').replace(/[<>&]/g, '') + '</b>. ' +
-      'Every screen, rule and generated asset follows this brand until you switch.';
+    var name = String(brand.name || '').trim() || 'your brand';
+    el.textContent = '';
+    el.appendChild(document.createTextNode('Currently running as '));
+    var strong = document.createElement('b');
+    strong.textContent = name;
+    el.appendChild(strong);
+    el.appendChild(document.createTextNode('. Every screen, rule and generated asset follows this brand until you switch.'));
   }
   function boot() {
     if (window.BrandContext && window.BrandContext.ready) {

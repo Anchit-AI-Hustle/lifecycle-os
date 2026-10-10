@@ -220,7 +220,8 @@
         "selector": "main#main-content > section.hds-color-mode.hero-section-container:nth-of-type(1) > div.section-container.hero-section__layout:nth-of-type(1) > div.hero-section__layout-grid > h1.hds-heading.hero-section__title:nth-of-type(1)",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://stripe.com/",
@@ -228,13 +229,13 @@
         "selector": "div.testimonial-carousel-container:nth-of-type(2) > div:nth-of-type(1) > div.testimonial-carousel__cards > div.testimonial-card.testimonial-carousel__card:nth-of-type(1) > q.testimonial-card__quote",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
   "palette": {
     "primary": "#533afd",
-    "accent": "#533afd",
     "ink": "#64748d",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -333,6 +334,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Stripe]",
