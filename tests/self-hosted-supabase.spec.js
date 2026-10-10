@@ -118,12 +118,13 @@ test('the applier walks every migration file in TIMESTAMP order, executed on the
     if (a.version === b.version) expect(a.file < b.file).toBe(true);
     expect(b.version).toMatch(/^\d{14}$/);
   }
-  // THE case that distinguishes timestamp order from name order: an 8-digit
-  // prefix means midnight, so 20260719_… precedes 20260719120000_…, while a
-  // plain sort puts it last because "_" > "1".
-  const at = (f) => order.findIndex((r) => r.file === f);
-  expect(at('20260719_ci_subscriptions.sql')).toBeLessThan(at('20260719120000_smart_generated_campaigns_rls.sql'));
-  expect(onDisk.indexOf('20260719_ci_subscriptions.sql')).toBeGreaterThan(onDisk.indexOf('20260719140000_reconcile_generated_campaigns_payload.sql'));
+  // Timestamp order, not name order: an 8-digit prefix means midnight, so a
+  // date-only file sorts by its padded version. No date-only file shares its
+  // date with another migration any more (tests/migration-versions.spec.js),
+  // so the check is the general one: the order is the padded-version order.
+  const padded = order.map((r) => r.version);
+  expect(padded.slice().sort()).toEqual(padded);
+  expect(order.some((r) => /^\d{8}_/.test(r.file)), 'date-only files are still in the set').toBe(true);
   // the shell applier consumes the CLI, which must print the same list
   const cli = execFileSync('node', [path.join(ROOT, 'scripts', 'lib', 'selfhost-compose.js'), 'migrations'], { encoding: 'utf8' }).trim().split('\n');
   expect(cli).toEqual(order.map((r) => r.file));
