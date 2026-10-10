@@ -875,7 +875,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '<div class="cre-asset" data-visual-source="' + esc((a.visual_source && a.visual_source.kind) || 'none') + '"><span class="cre-asset-label">' + esc(a.format) + '</span>' +
       '<img src="' + a.url + '" alt="' + esc(a.format) + '">' +
       ((a.data_gaps || []).length ? '<span class="cre-asset-gap" data-gap="1">' + esc(a.data_gaps.join(' ')) + '</span>' : '') +
-      '<a class="cre-asset-dl" href="' + a.url + '" download="knickgasm-' + ch + '-' + a.size + '.png">⬇ Download</a></div>'
+      '<a class="cre-asset-dl" href="' + a.url + '" download="' + ((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os') + '-' + ch + '-' + a.size + '.png">⬇ Download</a></div>'
     ).join('') + '</div>';
     html += '<div class="cre-actions">' +
       '<button class="btn btn-ghost" type="button" data-cre-redo="' + ch + '">↻ Regenerate</button>' +
@@ -1142,7 +1142,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         empty.textContent = AD_PLAN.length
             ? ('No slots for ' + AD_MKT + ' — switch market.')
-            : 'No plan yet. Open the Knickgasm Brain, run the plan, and the same slots appear here with their ad sets.';
+            : 'No plan yet. Open Smart Brain, run the plan, and the same slots appear here with their ad sets.';
       }
       return;
     }

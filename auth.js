@@ -733,6 +733,66 @@
     } catch (_) {}
   })();
 
+  // ─── The frozen snapshot belongs to the workspace it was taken from ──────
+  // /diff-version is one workspace's own build, pinned on 3 Jul 2026 as its
+  // before/after reference. It stays exactly as frozen (no theme, no motion, no
+  // brand re-skin) - and it is that workspace's: for any OTHER active brand the
+  // page says so instead of showing another company's mailers, cohorts and
+  // social plan under this brand's rail. The page is held invisible until the
+  // active brand is known, so it is never painted for the wrong one; with no
+  // brand at all (a signed-out visitor) the snapshot shows, as before.
+  (function gateFrozenSnapshot() {
+    if (!IS_FROZEN_DIFF) return;
+    var d = document;
+    var root = d.documentElement;
+    try { root.style.visibility = 'hidden'; } catch (_) {}
+    var shown = false;
+    function show() { if (shown) return; shown = true; try { root.style.visibility = ''; } catch (_) {} }
+    setTimeout(show, 9000);
+    function withheld(brand) {
+      var name = String((brand && brand.name) || 'this brand').replace(/[<>&]/g, '');
+      var esc = function (s) { return String(s).replace(/[<>&]/g, ''); };
+      var body = d.body;
+      if (!body) return;
+      body.setAttribute('data-snapshot-withheld', '1');
+      // The tab is part of what is shown: the snapshot's own icon is that
+      // workspace's mark, so the tab wears the platform's (the file is untouched).
+      try {
+        d.querySelectorAll('link[rel~="icon"],link[rel="apple-touch-icon"]').forEach(function (l) { l.parentNode.removeChild(l); });
+        var ic = d.createElement('link'); ic.rel = 'icon'; ic.type = 'image/svg+xml'; ic.href = '/assets/lifecycle-os-mark.svg';
+        (d.head || d.documentElement).appendChild(ic);
+        d.title = 'Another brand’s snapshot · Lifecycle OS';
+      } catch (_) {}
+      body.innerHTML = '<main style="max-width:640px;margin:12vh auto;padding:24px 28px;background:Canvas;color:CanvasText;'
+        + 'border:1px solid GrayText;border-radius:14px;font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif">'
+        + '<h1 style="font-size:20px;margin:0 0 10px">This is another brand’s snapshot</h1>'
+        + '<p style="margin:0 0 10px">This page is a frozen copy of one workspace’s own build, kept as that workspace’s before/after reference. '
+        + 'It holds that workspace’s campaigns and copy, so it is not shown under ' + esc(name) + '’s name.</p>'
+        + '<p style="margin:0"><a href="/" style="color:LinkText">Back to Lifecycle OS</a></p></main>';
+    }
+    function decide() {
+      var B = window.BrandContext;
+      if (!B || !B.ready) return false;
+      Promise.resolve(B.ready()).then(function () {
+        try { if (B.brand && typeof B.ownsShipped === 'function' && !B.ownsShipped()) withheld(B.brand); } catch (_) {}
+        show();
+      }, show);
+      return true;
+    }
+    try {
+      // brand-context is the one place the active brand is known; the snapshot
+      // loads it for that answer only (it paints nothing the frozen page reads).
+      if (!d.querySelector('script[data-vh-brand]')) {
+        var s = d.createElement('script');
+        s.src = '/brand-context.js?v=20260809';
+        s.setAttribute('data-vh-brand', '1');
+        s.onload = function () { if (!decide()) show(); };
+        s.onerror = show;
+        (d.head || d.documentElement).appendChild(s);
+      } else if (!decide()) { setTimeout(function () { if (!decide()) show(); }, 500); }
+    } catch (_) { show(); }
+  })();
+
   // Theme switcher removed — the theme is locked to green (see theme.css).
   // Clean up the old floating button if a cached page still has one.
   (function removeLegacyThemeSwitch() {
@@ -1057,7 +1117,10 @@
     // concierge) are conversational assistants and stay here. The former Smart
     // Brain moved to Plan and was renamed Automated Calendar Creation — it is a
     // calendar-creation feature, not a chat assistant, so it no longer lives here.
-    { id: 'kicksgpt', label: 'Brand Assistant',   href: '/kicksgpt', icon: 'knickgasm', ver: 'v1', match: ['/kicksgpt', '/kicks', '/ask', '/kicksgpt.html'] },
+    // href is /ask, not /kicksgpt: the address bar is part of what a person
+    // reads, and tenant zero's assistant name in it labels every other brand's
+    // assistant with another company's product name. Both routes serve the page.
+    { id: 'kicksgpt', label: 'Brand Assistant',   href: '/ask', icon: 'knickgasm', ver: 'v1', match: ['/kicksgpt', '/kicks', '/ask', '/kicksgpt.html'] },
     { id: 'agent',   label: 'Brand Agent', href: '/agent',   icon: 'knickgasm', ver: 'v1', match: ['/agent', '/agent.html'] },
 
     { section: 'Settings' },
@@ -1235,7 +1298,7 @@
     kicksgpt: {
       title: 'Brand Assistant',
       what: "INTERNAL TOOL, for the active brand's team only (not customer-facing). The brand assistant is the ACTIVE brand's own LLM: a conversational operator that actually RUNS the growth stack instead of just chatting: it queries analytics, reads competitor benchmarks, searches the knowledge base, and can generate calendars and campaign assets on explicit request.",
-      who: "The operator (growth and retention team). Its recommendations span every cohort — the nine RFM segments (Champions through Lost) and the UK engagement cohorts (Non-Buyers/Non-Engagers and T&B Buyers/Non-Engagers).",
+      who: "The operator (growth and retention team). Its recommendations span every cohort the active brand's data defines: the nine RFM segments (Champions through Lost) and any engagement cohorts the brand has set up.",
       how: "A provider-agnostic tool-calling loop: the model emits strict JSON actions, the server executes them against the same _shared cores the public API routes use, feeds results back, and loops (default 5 steps, up to 3 tools in parallel). Because tool calls are plain JSON, it works across the whole 6-provider text waterfall, including free tiers. An evidence contract forces every recommendation to quote exact tool-sourced figures.",
       input: "A plain-English question or instruction in the chat. Write and generate tools (generate_calendar, generate_assets_for_slot, run_agentic_campaign, klaviyo) fire only when you explicitly ask.",
       steps: [
@@ -1258,7 +1321,7 @@
         ['Data analysis + review + hypothesis', 'The KB, Analysis, and Competitor services pull owned assets, RFM and cohort signals, and competitor benchmarks, then state a testable hypothesis per slot.', '/api/calendar?action=smart-brain-sync-daily'],
         ['Business & strategy decisions', 'The Calendar service decides cohort, product focus, offer mechanic, and send date — diff-updating the rolling 90-day plan.', '/api/calendar?action=smart-brain-plan'],
         ['Content', 'On approval, the Generation service LLM-writes the mailer copy plus Meta, Google, and TikTok ad copy.', '/api/calendar?action=smart-brain-approve'],
-        ['Design + layout + structure', 'Brand-gated templates apply the 4-colour palette and Montserrat / Instrument Sans; hero creative comes from the image cascade.'],
+        ['Design + layout + structure', 'Brand-gated templates apply the active brand\'s own palette and typography from its record; hero creative comes from the image cascade.'],
         ['Coding', 'Assets compile to production HTML — a Klaviyo-ready mailer and a landing page served at /lp/:campaignId.'],
         ['Final compilation + presentation', 'The Review service scores the output; everything is mirrored into ads_generated and landing_pages_generated and presented in the /brain console.', '/api/brain?action=cron (daily)'],
       ],
@@ -1270,11 +1333,11 @@
       how: "A chat UI over the shared 6-provider LLM waterfall, grounded in brand voice and the product catalog. Voice replies use ElevenLabs TTS with a browser-TTS fallback. Agent personas can be created, updated, and synced from this page.",
       input: "A visitor question — preferences, goals, or gifting needs. For the team: agent persona settings.",
       steps: [
-        ['Ask', 'The visitor describes what they want — calm evenings, a coffee alternative, a gift.', '/api/brain?action=agent-chat'],
+        ['Ask', 'The visitor describes what they want, in their own words: a need, an occasion, a gift.', '/api/brain?action=agent-chat'],
         ['Ground', 'The agent answers in brand voice, grounded in real catalog products and regional store URLs.'],
-        ['Recommend', 'It proposes specific products with honest pricing and lacing guidance.'],
+        ['Recommend', 'It proposes specific items from the brand\'s own catalogue, with the prices that catalogue states.'],
         ['Speak', 'Optional voice output via ElevenLabs, falling back to the browser voice.', '/api/brain?action=tts'],
-        ['Convert', 'CTAs deep-link to the right regional store product page (US/UK/EU/AU/IN).'],
+        ['Convert', 'CTAs deep-link to the product page on the brand\'s own store for the visitor\'s region, from the store URLs on its record.'],
       ],
     },
     analysis: {
@@ -1298,7 +1361,7 @@
       how: "A self-contained page that streams each official track, and exposes a Use-in-ad action that copies the hosted asset URL and hands off to the Ad Campaigns builder. Tracks are served from /assets/media and are usable anywhere in the OS.",
       input: "Nothing to upload, the official tracks are bundled with the app. From you: pick a track, preview it, then copy its URL, copy an embed snippet, or download it for the creative you are building.",
       steps: [
-        ['Ideology', 'Brand music carries the Feel Alive voice into sound: warm, sensory, heritage-led.'],
+        ['Ideology', 'Brand music carries the active brand\'s own voice, as its record states it, into sound.'],
         ['Content', 'The branding track (with lyrics) is the first official song; more can be added to the same library.'],
         ['Audio/Video', 'Stream and preview in-app; the file is the brand-owned audio and video bed for ads and social.'],
         ['Coding', 'Served natively from /assets/media; copy the hosted URL or an embed snippet, or download for the target creative.', '/music'],
@@ -1307,13 +1370,13 @@
     },
     research: {
       title: 'Market Study',
-      what: "The single narrative reference for how the active brand grows: brand truth, the US and UK market intelligence, live performance pulled from the market exports, the four buyer avatars and the cohort model, the retention operating principles, the growth plays currently running, and the data engine underneath it all. It is the connective story that the operational features read from.",
+      what: "The single narrative reference for how the active brand grows: brand truth, the market intelligence on its record for each of its regions, live performance from its own data, its buyer avatars and cohort model, the retention operating principles, the growth plays currently running, and the data engine underneath it all. It is the connective story that the operational features read from.",
       who: "The whole growth and retention team. It frames every cohort and avatar the OS targets, and turns the raw analytics into prioritised, named growth plays.",
       how: "A self-contained page organised into tabs: Overview, Brand Foundation, Market Intelligence, Live Performance (real numbers from the compiled market data), Growth Plays, Retention Playbooks (the knowledge/retention library), and Data Engine. It links out to Avatars, Cohorts, and the Data Analysis workbench, and cites the market study, schemas and retention config.",
       input: "Nothing to upload — the book compiles the market exports and the brand knowledge base. From you: read it before planning, and use its growth plays and avatar/cohort mapping to brief every campaign.",
       steps: [
         ['Brand truth', 'Positioning, voice, palette and lexicon set the non-negotiable creative frame.'],
-        ['Market intelligence', 'US coffee and functional-beverage sizing, benchmarks and the competitor brand matrix set the opportunity.'],
+        ['Market intelligence', 'The market study on the active brand\'s record (sizing with its sources, the competitive tiers) sets the opportunity; a region with no study says so.'],
         ['Live performance', 'Real US and UK numbers ground every claim; the full workbench is one click away.', '/data-analysis'],
         ['Growth plays', 'The prioritised, data-grounded moves, each mapped to an avatar and cohort.'],
         ['Data engine', 'The ingestion and competitor-capture pipeline that feeds the active brand\'s own numbers. It never reads another brand\'s export.'],
@@ -1321,12 +1384,12 @@
     },
     avatars: {
       title: 'Avatars (Personas)',
-      what: "The customer-persona layer of the OS: named, hyper-specific buyer avatars built on top of the cohort dictionary and the US coffee and functional-beverage market study. Each avatar bundles demographics, geography, price elasticity, core value driver, and churn triggers into one face a brief can target, so copy, imagery, and offers stay grounded in a real person rather than an abstract segment.",
-      who: "The growth and creative team. The avatars translate the analytics cohorts (RFM segments, engagement cohorts, lifecycle stages) into behavioural buyer profiles for the active brand — e.g. the Identity Buyer, the Habitual Loyalist, the Gifting Connector, and the Curious Switcher.",
+      what: "The customer-persona layer of the OS: named, specific buyer avatars built on top of the cohort dictionary and the active brand's own market study. Each avatar bundles demographics, geography, price elasticity, core value driver, and churn triggers into one face a brief can target, so copy, imagery, and offers stay grounded in a real person rather than an abstract segment. A brand with no study on its record has no avatars yet, and the page says so.",
+      who: "The growth and creative team. The avatars translate the analytics cohorts (RFM segments, engagement cohorts, lifecycle stages) into behavioural buyer profiles for the active brand.",
       how: "Personas are derived from the market-intelligence study (docs/market-intelligence) and the cohort model: each avatar maps to specific cohorts, carries hard planning numbers (age band, HHI, AOV, LTV:CAC, reactivation likelihood), and links to the schema that captures the same fields on a live profile (schemas/cohort-profile.json) and the retention triggers that fire for it (config/retention-triggers.yaml). Use the avatar name verbatim in a brief and every downstream tool inherits its targeting.",
       input: "Nothing to upload — the avatars are curated from the market study and the cohort dictionary. From you: pick the avatar a campaign targets, and read its value driver, elasticity, and churn triggers before writing the brief.",
       steps: [
-        ['Read the market', 'The US coffee and functional-beverage landscape (TAM/SAM/SOM, brand matrix, regional matrix) frames who is worth winning and how they behave.'],
+        ['Read the market', 'The active brand\'s market study (sizing, competitive tiers, regional view) frames who is worth winning and how they behave.'],
         ['Map to cohorts', 'Each avatar is pinned to the RFM segments, engagement cohorts, and product cohorts it represents, so it inherits real audiences.'],
         ['Load the profile fields', 'Demographics, geography, price elasticity, value driver, reactivation likelihood, and churn triggers are stated as hard planning numbers.'],
         ['Wire the triggers', 'The retention-trigger config names which automated webhooks fire for the avatar (churn risk, replenishment, win-back, VIP early access).'],
@@ -1391,13 +1454,13 @@
     },
     cohorts: {
       title: 'Cohorts',
-      what: "The single source of truth for WHO we mail: explicit definitions of every audience — the nine RFM segments and the UK engagement cohorts — with their rules, objectives, and voice guides.",
-      who: "It defines the cohorts themselves: RFM segments by recency/frequency thresholds (Champions through Lost), and the engagement cohorts — Cohort A: Non-Buyers/Non-Engagers, Cohort B: T&B Buyers/Non-Engagers.",
-      how: "A reference page over the same definitions the planners consume. Lifecycle cohorts carry an objective, a voice guide, and a product-mix rotation (Cohort A is coffee-heavy at 4:1:1; Cohort B is T&B-first at 3:2:1).",
+      what: "The single source of truth for WHO we mail: explicit definitions of every audience — the nine RFM segments and the engagement cohorts — with their rules, objectives, and voice guides.",
+      who: "It defines the cohorts themselves: RFM segments by recency/frequency thresholds (Champions through Lost), and engagement cohorts such as non-buyers who are not opening and lapsed buyers who have gone quiet.",
+      how: "A reference page over the same definitions the planners consume. Lifecycle cohorts carry an objective, a voice guide, and a product-mix rotation drawn from the active brand's own offerings.",
       input: "Nothing to use it. Definition changes are made in code and Supabase so every planner and generator inherits them consistently.",
       steps: [
-        ['Define the rule', 'Each cohort is an explicit predicate — e.g. Champions = last order within 30 days AND 5+ orders; Cohort A = on the list, never purchased, not opening.'],
-        ['Attach the objective', 'Every cohort carries its job — e.g. Cohort A: earn the open, earn the click, first purchase.'],
+        ['Define the rule', 'Each cohort is an explicit predicate — e.g. Champions = last order within 30 days AND 5+ orders; non-engagers = on the list, never purchased, not opening.'],
+        ['Attach the objective', 'Every cohort carries its job — e.g. non-engagers: earn the open, earn the click, first purchase.'],
         ['Set the voice guide', 'Tone rules per cohort: no guilt or pressure for non-engagers; familiarity, never chasing, for lapsed buyers.'],
         ['Feed the planners', 'Calendar, Lifecycle Calendar, and Smart Brain all plan against these exact definitions.'],
       ],
@@ -1406,8 +1469,8 @@
       title: 'Mailer Studio',
       what: "The main creation app: a 5-step wizard (Brief → Products → Generation → Review & Refine → Final HTML) that produces four mailer variants — A (Image · Hero close-up), B (Image · Lifestyle wide), T1 (Text · Editorial), T2 (Text · Founder note) — across 11 layout archetypes, with real catalog products and region-correct pricing. This is Draft 1 (V1) of mailer creation; Draft 2 is the Mailer Calendar's built mailers.",
       who: "Whatever cohort the brief targets — RFM segments handed over from the Calendar, or a manually described audience. Output is a compact (~1200–1500px) Klaviyo-ready HTML mailer.",
-      how: "A multi-stage AI pipeline. Text runs through the 6-provider waterfall; images cascade Gemini native → Imagen → OpenAI gpt-image → Pollinations flux. Structural divergence between variants is forced (variant B always takes an alternate archetype). Brand gates enforce the 4-colour palette, Montserrat / Instrument Sans, and the banned-phrase list.",
-      input: "A campaign brief (typed, AI-autofilled, or handed over from a calendar row), your market (US/UK/Global — selects catalog and currency), and product selections.",
+      how: "A multi-stage AI pipeline. Text runs through the 6-provider waterfall; images cascade Gemini native → Imagen → OpenAI gpt-image → Pollinations flux. Structural divergence between variants is forced (variant B always takes an alternate archetype). Brand gates enforce the active brand's palette, its typography and its banned-phrase list.",
+      input: "A campaign brief (typed, AI-autofilled, or handed over from a calendar row), the market (one of the active brand's own regions, which selects its catalogue and currency), and product selections.",
       pipeline: true,
       steps: [
         ['Ideology', 'Max-creativity concepting: the brief expands into campaign concepts and suggested angles before anything is designed.', '/api/ai/generate (create_brief · concepts · suggested_prompts)'],
@@ -1421,17 +1484,17 @@
     },
     lifecycle: {
       title: 'Mailer Calendar (UK)',
-      what: "The UK lifecycle mailer calendar: deterministically plans 14/30/45 days of sends for the two engagement cohorts by rotating a curated play library — then builds any planned send into a Klaviyo-ready mailer with exactly ONE brand-gated LLM call. This is Draft 2 (V2 — Lifecycle OS) of both calendaring and mailer creation; Draft 1 is the 30-day Calendar plus Mailer Studio.",
-      who: "Cohort A — Non-Buyers/Non-Engagers (objective: earn the open, earn the click, first purchase) and Cohort B — T&B Buyers/Non-Engagers (objective: reactivate with familiarity, cross-grade to the brand's own subscription). The UK calendar uses the active brand's own store.",
-      how: "Two modes. PLAN is deterministic — no LLM: it rotates plays per cohort at your cadence (default 2/week), enforcing hard product rules (T&B is one-time only; Coffee and Supplements are subscription-first; supplements are never priced; no founder voice — templates restricted to pure/visual/editorial). BUILD makes one LLM call against locked facts and renders the brand template.",
+      what: "The lifecycle mailer calendar: deterministically plans 14/30/45 days of sends for the engagement cohorts by rotating a curated play library — then builds any planned send into a Klaviyo-ready mailer with exactly ONE brand-gated LLM call. This is Draft 2 (V2 — Lifecycle OS) of both calendaring and mailer creation; Draft 1 is the 30-day Calendar plus Mailer Studio.",
+      who: "Two engagement cohorts: non-buyers who are not engaging (objective: earn the open, earn the click, first purchase) and buyers who have gone quiet (objective: reactivate with familiarity). The market and the store are the active brand's own, from its record.",
+      how: "Two modes. PLAN is deterministic — no LLM: it rotates plays per cohort at your cadence (default 2/week), enforcing the purchase-mode rules the brand's own offerings declare (one-time or subscription; no founder voice — templates restricted to pure/visual/editorial). BUILD makes one LLM call against locked facts and renders the brand template.",
       input: "Start date, plan window (14/30/45 days), cohort checkboxes, and sends-per-cohort-per-week. Nothing runs automatically — a human clicks Generate.",
       pipeline: true,
       steps: [
         ['Ideology', 'The play library IS the ideation layer: every play encodes a distinct psychological angle per cohort — story introduction, win-back, unboxing math, launch news.'],
-        ['Data analysis + review + hypothesis', 'Every claim comes from locked facts — real UK handles, live prices and compare-at prices, the 7-gift list, the £105/year subscription gift value. Nothing outside the facts file may be claimed.'],
-        ['Business & strategy decisions', 'The planner rotates product types by cohort mix (A coffee-heavy, B T&B-first), applies cadence and festival awareness, and enforces purchase-mode rules per product type.', '/api/calendar?action=lifecycle-generate'],
+        ['Data analysis + review + hypothesis', 'Every claim comes from locked facts — the brand\'s own product handles, live prices and compare-at prices. Nothing outside the facts on its record may be claimed, and a missing fact is a DATA REQUIRED marker.'],
+        ['Business & strategy decisions', 'The planner rotates product types by cohort mix, applies cadence and the calendar of the brand\'s own regions, and enforces purchase-mode rules per product type.', '/api/calendar?action=lifecycle-generate'],
         ['Content', 'Build Mailer writes subject, preheader, and body in ONE brand-gated LLM call — banned phrases and founder voice hard-fail.', '/api/calendar?action=lifecycle-build-mailer'],
-        ['Design + layout + structure', 'The play declares its template style (pure / visual / editorial), rendered in the 4-colour palette with Montserrat headings; optional hero creative via the image cascade.'],
+        ['Design + layout + structure', 'The play declares its template style (pure / visual / editorial), rendered in the active brand\'s palette and heading typeface; optional hero creative via the image cascade.'],
         ['Coding', 'Output is a single centred 600px presentation table — all CSS inline, bulletproof CTAs, Klaviyo unsubscribe tags.'],
         ['Final compilation + presentation', 'Preview in a modal, copy the HTML, or download; built slots persist to Supabase (lifecycle_calendar_entries).', '/api/calendar?action=lifecycle-list'],
       ],
@@ -1439,7 +1502,7 @@
     ukhub: {
       title: 'UK Non-Engagers Hub',
       what: "The Week-1 campaign hub for the UK non-engager program: 2 cohorts × 3 send slots × 2 creative variations = 12 finished, Klaviyo-paste-ready emails, with subject lines and preheaders parsed live from the actual email files.",
-      who: "Cohort A — Non-Buyers/Non-Engagers and Cohort B — T&B Buyers/Non-Engagers. Sends are planned for 09:00 UK time.",
+      who: "Two engagement cohorts of one workspace's own UK programme: non-buyers who are not engaging, and lapsed buyers. The emails are that workspace's own, built from its locked facts; another brand sees the gap, not these files.",
       how: "A static hub over the built email files (lifecycle-campaigns/2026-07-03_week1). Each slot offers V1 vs V2 — genuinely different psychological angles (e.g. sensory story vs question-led pattern-interrupt) — pick one or split-test. Preview, Copy HTML, and Download work per variation.",
       input: "None — the emails are pre-built against the locked facts file. You only choose which variation to ship.",
       steps: [
@@ -1501,16 +1564,16 @@
         ['Data analysis + review + hypothesis', 'Real product data and competitor landing-page intel ground every claim; each page states the conversion hypothesis it tests.'],
         ['Business & strategy decisions', 'Message matched to source channel and cohort — what the click was promised is what the page must deliver.'],
         ['Content', 'Long-form persuasion copy in brand voice — sensory, story-driven, no banned phrases.', '/api/ai/generate'],
-        ['Design + layout + structure', 'Section architecture in the 4-colour palette with Montserrat / Instrument Sans; hero imagery via the image cascade.'],
+        ['Design + layout + structure', 'Section architecture in the active brand\'s palette and typography; hero imagery via the image cascade.'],
         ['Coding', 'Compiles to a self-contained HTML page honouring the /lp/:id serving contract.'],
         ['Final compilation + presentation', 'Stored in landing_pages_generated and served live at /lp/:campaignId.', '/api/calendar?action=lp&id=…'],
       ],
     },
     officialdesigns: {
       title: 'Official Website Designs',
-      what: "A true-to-brand 3D replica of the Knickgasm storefront and Meta-ads landers, rendered as a continuous WebGL scene of floating product panels and glassmorphic surfaces. Live catalog and pricing come from the regional Shopify storefront; historical metrics come from the Snowflake to Supabase daily mirror. It degrades automatically to a fast 2D brand layout on low-end, mobile, reduced-motion or crawler traffic so conversion is never sacrificed.",
-      who: "Shoppers in each region the active brand sells in, plus paid-social traffic landing on that brand's own store, where a lander can collapse into a single-product checkout.",
-      how: "The Knickgasm3DConnectorEngine (React context provider + data-orchestration middleware) resolves the region and lander from the hostname, connects Shopify and the Snowflake mirror, extracts the live theme colours and typography, injects them into the 3D materials and CSS custom properties, and renders the scene with three and react-three-fiber. Static pages mount the same engine through a no-build ESM bridge.",
+      what: "A 3D rendering of a brand's own storefront and ad landers, as a continuous WebGL scene of floating product panels and glassmorphic surfaces. Catalog and pricing come from the brand's own regional storefront; historical metrics from its own data mirror. It degrades automatically to a fast 2D brand layout on low-end, mobile, reduced-motion or crawler traffic so conversion is never sacrificed. What shipped here was built from one workspace's own store, and any other brand sees the DATA REQUIRED marker in its place.",
+      who: "Shoppers in the brand's own regions, plus paid-social traffic landing on the brand's own store, where the scene collapses into a single-product spatial checkout to minimise friction.",
+      how: "The 3D connector engine (React context provider + data-orchestration middleware) resolves the region and lander from the hostname, connects the store and the data mirror, extracts the live theme colours and typography, injects them into the 3D materials and CSS custom properties, and renders the scene with three and react-three-fiber. Static pages mount the same engine through a no-build ESM bridge.",
       input: "Nothing from you at view time — the hostname decides region and lander mode. Operators can force a region or a 2D preview on the showcase page.",
       pipeline: true,
       steps: [
@@ -1518,7 +1581,7 @@
         ['Data analysis + review + hypothesis', 'Shopify catalog and pricing are the live source; the Snowflake mirror supplies historical metrics that shape which products lead.', '/api/brain?action=snowflake-metrics'],
         ['Business & strategy decisions', 'Meta-ads landers isolate one product or bundle for zero-friction checkout; the full store shows the exploration constellation.'],
         ['Content', 'Product copy and pricing pulled live per region, formatted to the correct currency.'],
-        ['Design + layout + structure', 'Live theme colours and Montserrat / Instrument Sans typography injected into shader uniforms and CSS variables for an exact brand replica.'],
+        ['Design + layout + structure', 'The brand\'s own theme colours and typography injected into shader uniforms and CSS variables for an exact brand replica.'],
         ['Coding', 'Rendered with three and react-three-fiber in the React app; mounted on static pages via the ESM bridge, with an automatic 2D fallback.', '/assets/knickgasm3d-bridge.js'],
         ['Final compilation + presentation', 'Served as the Official Website Designs showcase and reused inside landing-page templates.', '/official-designs'],
       ],
@@ -1543,7 +1606,7 @@
     social: {
       title: 'Social Media OS',
       what: "The daily social engine (V2 — Lifecycle OS): a 7-agent pipeline produces one complete day-package of posts across 11 platform formats — Instagram Feed, Reels and Stories, Facebook, TikTok, LinkedIn, X, Threads, Pinterest, YouTube Shorts, plus a long-form blog — every string brand-scrubbed, nothing published without a human approve.",
-      who: "Followers and prospects per platform, UK market first. The operator reviews each day-package in the /social console and approves or skips per post.",
+      who: "Followers and prospects per platform, in the active brand's own home market first. The operator reviews each day-package in the /social console and approves or skips per post.",
       how: "Seven bounded LLM agents run in sequence — each ONE call on the right provider tier, each with a deterministic fallback so the run never fails outright — inside a ~75s time box. A daily Vercel Cron (04:30 UTC) drives it; results persist to social_posts_generated in Supabase. Per-platform constraints (aspect, dims, char limits, hashtags, best time) live in a data spec, not prose. Platform push stays Phase 2 (push_status: not_integrated_phase_2).",
       input: "Nothing daily — the cron drives it; or hit Run Today in the console. From you: approve or skip per post. Product-focus rotation and festivals come from the active brand's own data; links use that brand's own product handles only.",
       pipeline: true,

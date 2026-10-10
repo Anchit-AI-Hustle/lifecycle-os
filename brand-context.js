@@ -2437,4 +2437,14 @@
      is loaded first in <head> (brand-context.js?early=1), so its IIFE has run
      before any page script executes. */
   window.LCStore = store;
+
+  /* The stem every file this app hands a person is named with: the ACTIVE
+     brand's slug, or the platform's name with no brand. Downloads were named
+     knickgasm-* on every page, so another brand's calendar, mailers and
+     landing pages arrived on disk under tenant zero's name. */
+  window.lcFileStem = function () {
+    var b = state.brand;
+    var s = String((b && (b.slug || b.name)) || 'lifecycle-os').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+    return s || 'lifecycle-os';
+  };
 })();
