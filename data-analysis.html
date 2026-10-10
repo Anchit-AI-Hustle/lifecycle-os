@@ -136,7 +136,7 @@
         <p class="lede">The full growth analytics workbench for the active brand. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
       </div>
       <div class="mkt" id="mktToggle" role="tablist" aria-label="Market">
-        <button type="button" data-mkt="US" class="on">🇺🇸 United States</button>
+        <button type="button" data-mkt="US">🇺🇸 United States</button>
         <button type="button" data-mkt="UK">🇬🇧 United Kingdom</button>
         <button type="button" data-mkt="GLOBAL">🌍 Global</button>
         <button type="button" data-mkt="IN">🇮🇳 India</button>
@@ -202,7 +202,9 @@
   // With no ?mkt= the page opens on the ACTIVE BRAND's home market once its
   // data is known (refresh below), never on a literal US (2026-10-05).
   var MKT_ASKED = ({ US:'US', UK:'UK', GLOBAL:'GLOBAL', IN:'IN' })[(new URLSearchParams(location.search).get('mkt') || '').toUpperCase()] || '';
-  var MKT = MKT_ASKED || 'US';
+  /* No market is chosen until the data says which markets it has: a typed
+     'US' put the US tab on for every brand, data or none (2026-10-10). */
+  var MKT = MKT_ASKED || '';
 
   // Normalise each market so a widget only appears when its data actually
   // exists (some markets export fewer datasets than others — e.g. UK ships
@@ -948,6 +950,8 @@
       var g=document.getElementById('grid');
       if(g) g.innerHTML='<div class="empty" style="padding:32px;text-align:center;line-height:1.65">No live data connected yet.<br>This view shows <b>only real data</b> pulled from your connected sources (Supabase / the read-only Shopify, Klaviyo and WebEngage syncs). Once the daily sync populates Supabase, the KPIs, cohorts and channel breakdowns appear here automatically. No sample or static figures are shown.</div>';
       var fn0=document.getElementById('footnote'); if(fn0) fn0.textContent='Awaiting live data from the connected sources.';
+      // The tabs are the DATASET's markets; with no data there is none to pick.
+      document.querySelectorAll('#mktToggle button').forEach(function(b){ b.classList.remove('on'); b.style.display='none'; });
       return;
     }
     var home = (window.RegionContext && window.RegionContext.home) || '';
