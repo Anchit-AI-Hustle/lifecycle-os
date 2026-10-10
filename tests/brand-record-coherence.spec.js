@@ -123,9 +123,9 @@ test.describe('the coherence rule', () => {
     expect(c.conflicts.find((x) => x.id === 'cross_domain:brand_data.social:mamaearth.in').count).toBe(6);
     expect(c.conflicts.find((x) => x.kind === 'slug_name').expected).toBe('mamaearth');
     // The logo IS nike.in's, the website's: not a conflict. The typed primary
-    // is the person's, so the vahdam.com read beside it is history, not a source.
+    // is the person's, so the fourth site's read beside it is history, not a source.
     expect(ids.some((x) => /:logo_url:/.test(x))).toBe(false);
-    expect(ids.some((x) => /vahdam/.test(x))).toBe(false);
+    expect(ids.some((x) => /fourth-site/.test(x))).toBe(false);
     expect(ids.some((x) => /:palette\.primary:/.test(x))).toBe(false);
     // Every conflict names where it came from.
     for (const x of c.conflicts.filter((y) => y.kind === 'cross_domain')) expect(x.source_url, x.id).toMatch(/^https:\/\//);
