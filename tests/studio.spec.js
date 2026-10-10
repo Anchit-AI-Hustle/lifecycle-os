@@ -48,6 +48,20 @@ const CATALOG_FIXTURE = [
   { n: 'Test Premium Pair', i: '', t: ['premium'], h: 'test-premium-pair', price: '249.00', type: 'Sneakers', subtitle: 'Fixture product' },
 ];
 
+// go2() moves to step 2 and the Studio builds its selection asynchronously; on
+// a loaded WebKit runner that takes longer than any fixed pause, and a build
+// attempted early throws, which the tests below would read as an empty mailer.
+// Wait for the condition itself: both variants build, for this market.
+async function waitForBuiltEmail(page, mkt) {
+  await page.waitForFunction((m) => {
+    try {
+      const a = window.buildEmail && window.buildEmail(null, m);
+      const b = window.buildEmailVariantB && window.buildEmailVariantB(null, m);
+      return !!(a && b && a.length > 0 && b.length > 0);
+    } catch (_) { return false; }
+  }, mkt, { timeout: 20000, polling: 250 });
+}
+
 async function seedCatalog(page) {
   // Wait for the real lookup to settle first. Seeding before it resolves would
   // be overwritten by its (empty, offline) answer, and the test would then be
@@ -133,7 +147,7 @@ test.describe('Mailer Studio — responsive smoke', () => {
   test('Mailer creative renders without off-brand hex', async ({ page }, testInfo) => {
     await page.fill('#promptIn', '20% off bestsellers — bold, conversion-focused');
     await page.evaluate(() => window.go2 && window.go2());
-    await page.waitForTimeout(400);
+    await waitForBuiltEmail(page, 'US');
     const html = await page.evaluate(() => {
       // Build both variants and concatenate
       try {
@@ -192,8 +206,8 @@ test.describe('Mailer Studio — responsive smoke', () => {
     ];
     await page.fill('#promptIn', '15% off bestsellers — code SAVE15 — free shipping');
     await page.evaluate(() => window.go2 && window.go2());
-    await page.waitForTimeout(400);
     for (const c of cases) {
+      await waitForBuiltEmail(page, c.mkt);
       const html = await page.evaluate((mkt) => {
         try {
           const a = window.buildEmail(null, mkt) || '';
@@ -264,7 +278,7 @@ test.describe('Mailer Studio — responsive smoke', () => {
   test('Variant A and Variant B differ structurally', async ({ page }) => {
     await page.fill('#promptIn', 'Bestselling premium kicks for daily ritual lovers');
     await page.evaluate(() => window.go2 && window.go2());
-    await page.waitForTimeout(400);
+    await waitForBuiltEmail(page, 'US');
     const result = await page.evaluate(() => {
       try {
         const a = window.buildEmail(null, 'US');

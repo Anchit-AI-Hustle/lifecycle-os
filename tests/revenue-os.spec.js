@@ -7,6 +7,19 @@ const revenue = require(MODULE);
 const dataAnalysis = require('../api/_shared/data-analysis-core.js');
 const supa = require('../api/_shared/supa.js');
 
+// The outcome tests stub data-analysis-core and supa. revenue-os-core binds
+// both when it is first required, and other specs in the same worker clear
+// require.cache entries; the copy this file required at its top can then be a
+// different instance from the one revenue-os-core holds, so the stub reaches
+// nothing and the core reads "no active workspace". Load all three together,
+// at the moment the test runs, so the stub and the code under test share one.
+function bound() {
+  delete require.cache[require.resolve(MODULE)];
+  const da = require('../api/_shared/data-analysis-core.js');
+  const sp = require('../api/_shared/supa.js');
+  return { revenue: require(MODULE), dataAnalysis: da, supa: sp };
+}
+
 function intelligence(actions) {
   return {
     coverage: { total: 7, connected: 5, blocked: 2, analysed: 5 },
@@ -179,6 +192,7 @@ test('daily cycle ids keep a repeated recommendation stable within a cycle but d
 });
 
 test('outcome tracking executes a workspace-scoped upsert and preserves prior measurement state', async () => {
+  const { revenue, dataAnalysis, supa } = bound();
   const originalWorkspace = dataAnalysis.activeWorkspace;
   const originalSelect = supa.select;
   const originalInsert = supa.insert;
@@ -244,6 +258,7 @@ test('outcome tracking executes a workspace-scoped upsert and preserves prior me
 });
 
 test('outcome tracking rejects a backwards state transition before writing', async () => {
+  const { revenue, dataAnalysis, supa } = bound();
   const originalWorkspace = dataAnalysis.activeWorkspace;
   const originalSelect = supa.select;
   const originalInsert = supa.insert;

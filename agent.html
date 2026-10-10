@@ -109,6 +109,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .speaking { box-shadow:0 0 0 2px var(--lava); }
   .inputrow { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(transparent, var(--chalk) 30%); padding:18px; }
   @media (min-width:961px){ .inputrow{ left:var(--lsb-w,248px); } }
+  /* Phones (2026-10-10): the fixed composer was 159px of a 568px screen, and
+     at 320px the Ask button ran past the edge. Tighter padding, an input that
+     may shrink, the mode toggles as one row that scrolls sideways, and on a
+     short (landscape) screen the toggles sit beside the input in one row. */
+  @media (max-width:1024px){
+    body .inputrow{ padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px)); }
+    body .inputbox{ padding:4px 6px; gap:6px; }
+    body .inputbox input{ min-width:0; }
+    body .inputbox .btn{ padding:8px 12px; }
+    body .toggles{ flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; gap:8px; margin-top:4px; }
+    body .toggles > *{ flex:none; }
+    body .chat{ min-height:min(420px, 60svh); padding:16px; }
+    body .shell{ padding:18px 12px 120px; }
+  }
+  @media (max-height:520px){
+    body .inputrow{ display:flex; gap:8px; align-items:center; }
+    body .inputbox{ flex:1 1 260px; min-width:0; margin:0; }
+    body .toggles{ flex:0 1 auto; min-width:0; margin:0; }
+  }
   .inputbox { max-width:860px; margin:0 auto; display:flex; gap:10px; background:var(--vh-panel); border:1.5px solid var(--lava); border-radius:16px; padding:10px 12px; box-shadow:0 14px 40px var(--vh-line); }
   .inputbox input { flex:1; border:none; outline:none; font-size:15px; font-family:inherit; background:transparent; }
   .btn { border:none; border-radius:11px; padding:11px 16px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:transform .15s; }
@@ -192,14 +211,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="btn send" id="send">Ask</button>
   </div>
   <div class="toggles" id="modeRow" role="group" aria-label="Interaction mode">
-    <span style="color:var(--lava-ink);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:10px;margin-right:2px">Mode</span>
+    <span style="color:var(--lava-ink);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12px;margin-right:2px">Mode</span>
     <button type="button" class="modebtn" data-mode="chat" title="Text only, no audio">💬 Chat only</button>
     <button type="button" class="modebtn" data-mode="narration" title="Types the reply and reads it aloud">🔊 Narration</button>
     <button type="button" class="modebtn" data-mode="conversation" title="Hands-free: it speaks, then listens for your reply">🎧 Conversation</button>
     <button type="button" class="modebtn" id="muteBtn" title="Silence audio instantly">🔇 Mute</button>
   </div>
   <style>
-    #modeRow .modebtn{font:inherit;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--vh-line);background:transparent;color:var(--lava-ink);border-radius:999px;padding:5px 11px;}
+    #modeRow .modebtn{font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--vh-line);background:transparent;color:var(--lava-ink);border-radius:999px;padding:5px 11px;}
     #modeRow .modebtn:hover{border-color:var(--lava);}
     #modeRow .modebtn.active{background:var(--vh-accent);color:var(--vh-on-accent);border-color:var(--lava);}
     #modeRow #muteBtn.on{background:var(--vh-panel-2);color:var(--vh-err-text);border-color:var(--vh-err);}
