@@ -203,25 +203,6 @@ const PAGE_SET = new Set(PAGES_ALL);
 
 /* ══ the brands: two, neither tenant zero ════════════════════════════════════ */
 
-/**
- * The onboarding wizard's own starting palette and type: what a brand made by
- * typing only a name and a URL carries. Read from the wizard's model, so the
- * fixture is the wizard's and not a guess at it.
- */
-function wizardDefaults() {
-  const src = read('onboarding.html');
-  const pal = src.match(/var brand = \{[\s\S]*?palette:\s*(\{[^}]*\})/);
-  const head = src.match(/heading:\s*\{\s*family:\s*'([^']+)',\s*stack:\s*"([^"]+)"/);
-  const body = src.match(/body:\s*\{\s*family:\s*'([^']+)',\s*stack:\s*"([^"]+)"/);
-  if (!pal || !head || !body) throw new Error('could not read the wizard\'s starting palette/typography from onboarding.html');
-  // eslint-disable-next-line no-new-func
-  const palette = Function('return (' + pal[1] + ')')();
-  return {
-    palette,
-    typography: { heading: { family: head[1], stack: head[2], google: true }, body: { family: body[1], stack: body[2], google: true } },
-  };
-}
-const WIZ = wizardDefaults();
 function deviceRow(src, id) {
   return {
     id, slug: src.slug, name: src.name, legal_name: null, tagline: src.tagline || null, industry: src.industry || null,
@@ -236,12 +217,17 @@ const BRANDS = {
   'times-of-india': deviceRow(TOI, 'local-bcitoi0000000001'),
   // A brand an operator made by typing two fields, the shape production's
   // "Deli Chic" has: everything else is the wizard's starting value or empty.
-  'deli-chic': deviceRow({ slug: 'deli-chic', name: 'Deli Chic', website: 'https://www.delichic.example', palette: WIZ.palette, typography: WIZ.typography }, 'local-bcideli000000001'),
+  // A thin record, as the operator's Deli Chic was: a name, a URL and a
+  // palette of its own, nothing else (no claims, regions, catalogue or voice).
+  // The palette is stated HERE, not read from onboarding.html's source: a
+  // fixture that regex-matched the wizard broke collection when the wizard
+  // changed. The page list test validates it, so a bad one fails that test.
+  'deli-chic': deviceRow({
+    slug: 'deli-chic', name: 'Deli Chic', website: 'https://www.delichic.example',
+    palette: { primary: '#1f6f4a', accent: '#b4541a', ink: '#1d1d1b', surface: '#ffffff', surface_alt: '#f4f1ea', muted: '#5c5c58' },
+    typography: { heading: { family: 'Georgia', stack: 'Georgia, serif', google: false }, body: { family: 'Arial', stack: 'Arial, sans-serif', google: false } },
+  }, 'local-bcideli000000001'),
 };
-for (const b of Object.values(BRANDS)) {
-  const v = workspaceCore.validatePalette(b.palette);
-  if (!v.ok) throw new Error(b.name + '\'s fixture palette would not activate: ' + JSON.stringify(v.errors));
-}
 const USER = { id: 'dev-bci0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Content Sweep' };
 
 /* ══ tenant zero's signature, derived ════════════════════════════════════════ */
@@ -1171,6 +1157,10 @@ test('the page list, the brands and the signatures are real', () => {
   expect(PAGES_ALL.some((f) => /^growth-book\//.test(f)), 'shell-carrying pages outside the root were not found').toBe(true);
   for (const b of Object.values(BRANDS)) expect(String(b.slug).toLowerCase()).not.toBe(ZERO_SLUG);
   expect(BRANDS['deli-chic'].palette.primary.toLowerCase()).not.toBe(ZERO.palette.primary.toLowerCase());
+  for (const b of Object.values(BRANDS)) {
+    const v = workspaceCore.validatePalette(b.palette);
+    expect(v.errors, b.name + '\'s fixture palette would not activate').toEqual([]);
+  }
   const labels = SIGNATURES.map((s) => s.label);
   for (const want of ['claim: ', 'legal entity: ', 'product line: ', 'store host: ', 'preferred vocabulary: ', 'sibling: ']) expect(labels.some((l) => l.startsWith(want)), 'no "' + want + '" signature was derived').toBe(true);
   expect(ZERO_COLOURS.length).toBeGreaterThanOrEqual(3);
