@@ -107,6 +107,27 @@ async function firePrebuild(depth = 0) {
   return { fired: true };
 }
 
+/**
+ * A calendar entry the CALLER sent inline names its brand and its workspace
+ * only through the REQUEST (2026-10-10). preview, approve and generate-slot
+ * build from `body.entry` as sent, and the builder trusted the entry's own
+ * `brand` and `workspace_id`: `withCatalog()` reads the named workspace's
+ * catalogue with the service role, so an entry carrying another workspace's
+ * id came back built from THAT brand's products, and one carrying no brand
+ * (the ordinary case for generate-slot) was built as tenant zero. Both are
+ * replaced with what this request resolved; with nothing resolved (the
+ * scheduler) they are removed so the planner resolves its own workspace.
+ */
+function scopeInlineEntry(entry, req, body) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry || null;
+  const e = Object.assign({}, entry);
+  const b = req && req.__brand;
+  if (b && (b.id || b.carried === true || b.unresolved === true)) e.brand = b; else delete e.brand;
+  const ws = body && body.config && body.config.workspace_id;
+  if (ws) e.workspace_id = ws; else delete e.workspace_id;
+  return e;
+}
+
 async function smartBrain(req, res, smartAction) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -320,10 +341,16 @@ async function smartBrain(req, res, smartAction) {
       // already holds (what the reviewer sees) when POSTed; else pulls the plan.
       let entries = Array.isArray(body.entries) ? body.entries : null;
       if (!entries) { const p = await plan.getPlan({ config: body.config || {} }); entries = p.entries || []; }
+      // The brand every prompt in the export is written FOR is the one this
+      // request resolved to, not whatever the posted entries claim: entries the
+      // browser holds carry no brand, and buildMasterPrompt then fell back to
+      // tenant zero - its claims, palette and store in another brand's export.
+      if (req.__brand) entries = entries.map((e) => Object.assign({}, e, { brand: req.__brand }));
       const csv = calExport.buildExportCsv(entries);
       const stamp = (entries[0] && entries[0].date) || 'plan';
+      const who = String((req.__brand && !req.__brand.unresolved && req.__brand.slug) || 'lifecycle-os').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'lifecycle-os';
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="knickgasm-automated-calendar-${stamp}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${who}-automated-calendar-${String(stamp).replace(/[^0-9a-z-]/gi, '')}.csv"`);
       res.setHeader('Access-Control-Allow-Origin', '*');
       return res.status(200).send(csv);
     }
@@ -398,14 +425,14 @@ async function smartBrain(req, res, smartAction) {
       // persisting or approving — reviewers see the mailer/ads/LP before sign-off.
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.id && !body.entry) return res.status(400).json({ ok: false, error: 'id (calendar entry) or entry is required' });
-      const result = await plan.previewEntry({ id: body.id, entry: body.entry || null, reviewer: body.reviewer || null, config: body.config || {} });
+      const result = await plan.previewEntry({ id: body.id, entry: scopeInlineEntry(body.entry, req, body), reviewer: body.reviewer || null, config: body.config || {} });
       return res.status(200).json(result);
     }
 
     if (smartAction === 'approve') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.id && !body.entry) return res.status(400).json({ ok: false, error: 'id (calendar entry) or entry is required' });
-      const result = await plan.approveEntry({ id: body.id, entry: body.entry || null, reviewer: body.reviewer || null, config: body.config || {} });
+      const result = await plan.approveEntry({ id: body.id, entry: scopeInlineEntry(body.entry, req, body), reviewer: body.reviewer || null, config: body.config || {} });
       return res.status(200).json(result);
     }
 
@@ -441,7 +468,9 @@ async function smartBrain(req, res, smartAction) {
     if (smartAction === 'generate-slot') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.entry) return res.status(400).json({ ok: false, error: 'entry is required' });
-      const campaign = new GenerationService(smartConfig(body.config || {})).generate(body.entry);
+      const slotEntry = scopeInlineEntry(body.entry, req, body);
+      await plan.stampBrand(slotEntry, body.config || {});
+      const campaign = new GenerationService(smartConfig(body.config || {})).generate(slotEntry);
       return res.status(200).json({ ok: true, campaign });
     }
 
@@ -489,14 +518,53 @@ async function lifecycleContact(req, body) {
   return out;
 }
 
+/**
+ * Whose brand a lifecycle request is for (2026-10-10). The lifecycle programme
+ * (data/product-types.json lanes, lifecycle-cohorts.js, the
+ * lifecycle_calendar_entries table) is built on TENANT ZERO's products and
+ * store, and this router never asked who was calling: a signed-in brand of any
+ * kind was planned over tenant zero's custom-sneaker lanes, listed tenant
+ * zero's stored entries and had mailers built against tenant zero's store.
+ * A verified caller's brand is resolved the way smartBrain() resolves it; a
+ * userless call (the scheduler, a script) keeps the shipped programme.
+ */
+async function lifecycleBrand(req) {
+  try {
+    const tokenOn = !!(req.headers && (req.headers.authorization || req.headers.Authorization || req.headers['x-lifecycle-token']));
+    if (!tokenOn || require('./_shared/require-caller.js').isCron(req)) return null;
+    const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+    if (!auth || !auth.ok) return null;
+    const rt = require('./_shared/brand-runtime.js');
+    // The caller's OWN active workspace: a workspace named in the request is
+    // never how a lifecycle request picks whose programme it is.
+    const own = { method: req.method, headers: req.headers, query: {}, body: {} };
+    const b = await rt.resolve(own, { auth });
+    return (b && (b.id || b.carried === true || b.unresolved === true)) ? b : rt.unresolvedBrand('a signed-in account with no brand workspace');
+  } catch (_) { return null; }
+}
+function lifecycleIsTenantZero(brand) {
+  if (!brand) return true;
+  try { return require('./_shared/brand-catalog-server.js').isTenantZeroBrand(brand) === true; } catch (_) { return false; }
+}
+function lifecycleGap(brand) {
+  const name = (brand && brand.name) || 'this brand';
+  return {
+    marker: `[DATA REQUIRED BEFORE LAUNCH: lifecycle product lanes and cohort programme, ${name}]`,
+    note: `The lifecycle programme is built on another brand's product lanes and store, so nothing from it is planned, listed or built for ${name}. Plan ${name}'s sends in the Smart Brain calendar, which plans from its own record and catalogue.`,
+  };
+}
 /* The market a lifecycle request means when it names none: the resolved
    brand's HOME market (2026-10-05) - it was a literal 'UK' for every brand.
    The UK engagement page names UK itself, so its programme is unchanged.
    '' with the marker when the brand lists no market. */
-async function lifecycleMarket(req, asked) {
+async function lifecycleMarket(req, asked, known) {
   if (asked) return { market: String(asked), marker: '' };
-  let brand = null;
-  try { brand = await require('./_shared/brand-runtime.js').resolve(req); } catch (_) { brand = null; }
+  // The brand lifecycleBrand() already resolved for this caller; else the
+  // caller's own (never a workspace the request names).
+  let brand = known || null;
+  if (!brand) {
+    try { brand = await require('./_shared/brand-runtime.js').resolve({ method: req.method, headers: req.headers, query: {}, body: {} }); } catch (_) { brand = null; }
+  }
   const L = require('./_shared/brand-locale.js');
   const market = L.homeMarket(brand);
   return { market, marker: market ? '' : L.marker('home market', brand || 'this brand') };
@@ -515,10 +583,20 @@ async function lifecycle(req, res, action) {
   // ReferenceError on every request that did not already carry force:true —
   // caught by the try below and answered as a 500 reading "q is not defined".
   const q = req.query || {};
+  const lcBrand = (req.method === 'OPTIONS') ? null : await lifecycleBrand(req);
+  const lcOwn = lifecycleIsTenantZero(lcBrand);
   try {
+    if (!lcOwn && (action === 'lifecycle-generate' || action === 'lifecycle-list' || action === 'lifecycle-build-mailer')) {
+      if (action !== 'lifecycle-list' && req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+      const gap = lifecycleGap(lcBrand);
+      if (action === 'lifecycle-build-mailer') {
+        return res.status(409).json({ ok: false, error: 'lifecycle_programme_not_this_brand', message: gap.note, data_gaps: [gap.marker] });
+      }
+      return res.status(200).json({ ok: true, brand: (lcBrand && lcBrand.name) || null, plan: [], entries: [], total_sends_planned: 0, persisted: false, data_gaps: [gap.marker], note: gap.note });
+    }
     if (action === 'lifecycle-generate') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-      const mk = await lifecycleMarket(req, body.market);
+      const mk = await lifecycleMarket(req, body.market, lcBrand);
       if (!mk.market) return res.status(409).json({ ok: false, error: 'market_required', marker: mk.marker, message: `${mk.marker} No market was named and the brand's record lists none, so there is no market to plan for. Add its regions in Brand setup, or name a market.` });
       const result = await lifecycleGen.generateLifecycleCalendar(Object.assign({
         start_date: body.start_date,
@@ -531,7 +609,7 @@ async function lifecycle(req, res, action) {
     }
 
     if (action === 'lifecycle-list') {
-      const mk = await lifecycleMarket(req, q.market || body.market);
+      const mk = await lifecycleMarket(req, q.market || body.market, lcBrand);
       if (!mk.market) return res.status(409).json({ ok: false, error: 'market_required', marker: mk.marker, message: `${mk.marker} No market was named and the brand's record lists none, so there are no entries to read for one.` });
       const result = await lifecycleGen.listEntries({
         market: mk.market,

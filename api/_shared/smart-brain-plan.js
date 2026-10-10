@@ -1146,7 +1146,7 @@ function brandSystem(brand) {
   ];
   if (Array.isArray(v.banned) && v.banned.length) lines.push(`NEVER use: ${v.banned.map((x) => `"${x}"`).join(', ')}.`);
   lines.push('Never invent product facts, prices, URLs, ratings, reviews or statistics; a missing fact is written as [DATA REQUIRED BEFORE LAUNCH: field].');
-  if (/food|poultry|deli|restaurant/i.test(b.industry || '')) lines.push('Use the food catalogue and food-appropriate calls to action. Pasture-raised sourcing, delivery times, freshness, ingredients and preparation claims require explicit evidence in this brand record; never substitute sneaker copy or invent food claims.');
+  if (/food|poultry|deli|restaurant/i.test(b.industry || '')) lines.push('Use the food catalogue and food-appropriate calls to action. Pasture-raised sourcing, delivery times, freshness, ingredients and preparation claims require explicit evidence in this brand record; never substitute another brand\'s product copy or invent food claims.');
   lines.push(D2C_KNOWLEDGE);
 
   // Brief the writer with the SAME rules the validator will apply afterwards.
@@ -1445,22 +1445,33 @@ Return JSON with exactly this shape:
 "rating", "reviews", "badges", "guarantee", "proof_quote" and "proof_author" are shown above at their EMPTY values on purpose. Fill them ONLY by copying an entry out of the APPROVED PROOF LIBRARY block above, verbatim. If that block says the library is empty, leave them exactly as shown. Do not treat the empty values as placeholders to be filled in.`;
 }
 
-const FONT_HEAD = "'Montserrat','Raleway',Georgia,serif";
-const FONT_BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+// A generic system stack, never a brand's: these were tenant zero's two
+// families and every renderer below that fell back to them painted another
+// company's typefaces on a brand that had not supplied its own (2026-10-10).
+// A brand's own stacks come from brandRuntime.fontStacks(brand).
+// The same values as brandRuntime.NEUTRAL_FONTS, written out rather than
+// required here: requiring brand-runtime while this module loads changed the
+// order every module behind it loads in (workspace-scope among them), and
+// the daily sync then read a different workspace as tenant zero.
+const FONT_HEAD = "Georgia,'Times New Roman',serif";
+const FONT_BODY = "system-ui,-apple-system,'Segoe UI',Arial,sans-serif";
 
 // HTML-escape so LLM copy can't break the markup / inject tags.
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 /** The ACTIVE brand's palette, with tenant-zero's record only when it IS tenant zero. */
 function brandPal(entry) {
-  let b = (entry && entry.brand && entry.brand.id) ? entry.brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
-  const p = (b && b.palette) || {};
+  const rt = require('./brand-runtime.js');
+  let b = null;
+  try { b = rt.scopedBrand(entry && entry.brand); } catch (_) { b = {}; }
+  // A key the record does not carry is NEUTRAL, never tenant zero's hex: the
+  // fallbacks here were its red and purple (2026-10-10).
+  const p = rt.paletteOf(b);
+  const f = rt.fontStacks(b);
   return {
     name: (b && b.name) || '',
-    P: p.primary || '#D0473E', ACC: p.accent || p.primary || '#6A33D8',
-    INK: p.ink || '#111111', SURF: p.surface || '#FFFFFF',
-    SURF2: p.surface_alt || '#F6F6F6', LINE: p.line || '#E5E5E5',
+    P: p.primary, ACC: p.accent, INK: p.ink, SURF: p.surface, SURF2: p.surface_alt, LINE: p.line,
+    HEAD: f.head, BODY: f.body,
   };
 }
 
@@ -1488,8 +1499,8 @@ function proofBlockHtml(entry, style = 'visual') {
   // quietly promoted into Text + Graphics by their proof block.
   const textOnly = style === 'pure' || style === 'editorial';
   const band = (inner) => (textOnly
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:22px 24px;font-family:${FONT_BODY};color:${pal.INK};border-top:1px solid ${pal.LINE}">${inner}</td></tr></table>`
-    : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${pal.SURF2};border-top:1px solid ${pal.LINE}"><tr><td style="padding:26px 24px;font-family:${FONT_BODY};color:${pal.INK}">${inner}</td></tr></table>`);
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:22px 24px;font-family:${pal.BODY};color:${pal.INK};border-top:1px solid ${pal.LINE}">${inner}</td></tr></table>`
+    : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${pal.SURF2};border-top:1px solid ${pal.LINE}"><tr><td style="padding:26px 24px;font-family:${pal.BODY};color:${pal.INK}">${inner}</td></tr></table>`);
   if (!reviews.length) {
     return band(`<p style="margin:0;text-align:center;font-size:12.5px;line-height:1.5;color:${pal.INK}${textOnly ? '' : `;border:1px dashed ${pal.INK};border-radius:8px;padding:12px 14px`}">${esc(marker)}</p>`);
   }
@@ -1568,18 +1579,20 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // Everything brand-visible derives from the ACTIVE brand on the entry:
   // name, palette, claims, store. Tenant zero's record is the source only
   // when the entry genuinely belongs to tenant zero.
-  let _b = entry.brand && entry.brand.id ? entry.brand : null;
-  if (!_b) { try { _b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { _b = {}; } }
+  let _b = null;
+  try { _b = require('./brand-runtime.js').scopedBrand(entry.brand); } catch (_) { _b = {}; }
   const bName = _b.name || 'the brand';
-  const _pal = _b.palette || {};
-  const INKC = _pal.ink || '#111111', SURF = _pal.surface || '#FFFFFF', SURF2 = _pal.surface_alt || '#f6f6f6';
+  // Every key the record lacks is neutral (brand-runtime.paletteOf), never the
+  // tenant-zero hex this page used to fall back to (2026-10-10).
+  const _pal = require('./brand-runtime.js').paletteOf(_b);
+  const INKC = _pal.ink, SURF = _pal.surface, SURF2 = _pal.surface_alt;
   // Three pairings on this page were picked by eye against tenant zero and
   // measured, for that brand, at 2.77:1 (ink on the accent button), 1.51:1 (the
   // accent eyebrow on the primary band) and 3.29:1 (a hardcoded cream at 82% on
   // the primary) - all under the 4.5 body floor, on a page served to real
   // traffic at /lp/:id. The text is derived now, and the grounds are guarded.
   const P = sectionGround(_pal.primary, _pal.accent, SURF);
-  const ACC = _pal.accent || _pal.primary || '#6A33D8';
+  const ACC = _pal.accent;
   const ON_P = textOn(P, SURF, INKC), ON_ACC = textOn(ACC, SURF, INKC);
   // THE BRAND'S DESIGN SYSTEM, as read off its own rendered site (2026-10-04).
   // Until now this page painted tenant zero's two font families for EVERY
@@ -1594,10 +1607,17 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _dsCss = _dsx && _ds.present ? _dsx.lpCss(_ds, { surface: SURF, ink: INKC, primary: P, heroGround: P }) : { css: '', header: null };
   const HEADF = _ds.head || FONT_HEAD, BODYF = _ds.body || FONT_BODY;
   const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
-  let facts = regionFacts(entry.market);
-  try { const bf = require('./brand-runtime.js').regionFacts(_b, entry.market); if (entry.brand && entry.brand.id && bf) facts = bf; } catch (_) {}
+  // The store and currency are THIS brand's region record. Tenant zero's map
+  // (master-prompt's REGION) answers only for tenant zero; any other brand
+  // with no store for the market gets an honest dead link, not another
+  // brand's storefront (2026-10-10).
+  let facts = null;
+  try { facts = require('./brand-runtime.js').regionFacts(_b, entry.market); } catch (_) { facts = null; }
+  let _zeroLp = false;
+  try { _zeroLp = require('./brand-catalog-server.js').isTenantZeroBrand(_b) === true; } catch (_) { _zeroLp = false; }
+  if (!facts) facts = _zeroLp ? regionFacts(entry.market) : { store: '', currency: '', code: entry.market || '' };
   const handle = entry.heroProduct?.handle || '';
-  const shopUrl = `https://${facts.store}${handle ? `/products/${handle}` : ''}`;
+  const shopUrl = facts.store ? `https://${facts.store}${handle ? `/products/${handle}` : ''}` : '#';
   const cta = esc(L.cta || entry.cta || 'See more');
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
@@ -1935,12 +1955,12 @@ function emailHtml(entry, copy, creativeUrl) {
   // wordmark, palette, CTA and footer must come from its record, not a fixed
   // tenant's. (This path only runs when an LLM produced the copy, which is why
   // it survived the first sweep.)
-  const b = (entry.brand && entry.brand.id) ? entry.brand
-    : (() => { try { return require('./brand-runtime.js').scopedBrand(null); } catch (_) { return {}; } })();
+  const b = (() => { try { return require('./brand-runtime.js').scopedBrand(entry.brand); } catch (_) { return {}; } })();
   const bName = b.name || '';
-  const pal = b.palette || {};
-  const INK = pal.ink || '#111111';
-  const SURF = pal.surface || '#FFFFFF';
+  const pal = require('./brand-runtime.js').paletteOf(b);
+  const _ef = require('./brand-runtime.js').fontStacks(b);
+  const INK = pal.ink;
+  const SURF = pal.surface;
   // Every band, the button and the footer on this mailer are painted ${P}, and
   // the last-resort literal here was #111111 - so a brand record with no
   // palette shipped a black email. The ground is guarded and the text on it is
@@ -1954,11 +1974,11 @@ function emailHtml(entry, copy, creativeUrl) {
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${E.subject}</title></head>
-<body style="margin:0;background:${SURF};color:${INK};font-family:${FONT_BODY}">
+<body style="margin:0;background:${SURF};color:${INK};font-family:${_ef.body}">
 <main style="max-width:680px;margin:auto;background:${SURF}">
   <section style="background:${P};color:${onP};padding:44px 36px;text-align:center">
     <p style="letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">${bName}</p>
-    <h1 style="font-family:${FONT_HEAD};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
+    <h1 style="font-family:${_ef.head};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
   </section>
   ${heroImg}
   <section style="padding:36px">
@@ -2119,7 +2139,16 @@ function gateProof(copy, entry) {
 function attachMotionCreative(ad, entry, pool) {
   try {
     const motion = require('../../scripts/lib/motion-ad.js');
-    const brand = (entry && entry.brand && entry.brand.id) ? entry.brand : null;
+    // The slot's brand, a carried device brand or the unresolved placeholder
+    // included (2026-10-10): `.id` alone read the placeholder as "no brand",
+    // and a spec with no brand is painted in tenant zero's palette and given
+    // its audio bed. Only the shipped default (no request, no workspace) keeps
+    // the no-brand path, which is tenant zero's own build.
+    let brand = null;
+    try {
+      const sb = require('./brand-runtime.js').scopedBrand(entry && entry.brand, { allowTenantZero: true });
+      brand = (sb && (sb.id || sb.carried === true || sb.unresolved === true)) ? sb : null;
+    } catch (_) { brand = null; }
     const images = (Array.isArray(pool) ? pool : []).filter(Boolean);
     const beats = (Array.isArray(ad.storyboard) && ad.storyboard.length ? ad.storyboard : [])
       .slice(0, 4)
@@ -2599,6 +2628,12 @@ function traceRun(run, stage, fields) {
  */
 async function buildCampaign(entry, config, opts = {}) {
   await stampBrand(entry, config);
+  // A slot with no market is built for the brand's HOME market (2026-10-10),
+  // never for none: an inline entry with no market came back with every
+  // region-scoped fact, currency and marker reading "all".
+  if (entry && !entry.market && entry.brand) {
+    try { const home = require('./brand-runtime.js').homeRegion(entry.brand); if (home) entry.market = home; } catch (_) { /* leave it */ }
+  }
   // Proof BEFORE copy: the copywriter is handed the brand's real testimonials to
   // quote verbatim, instead of being handed an example rating to complete.
   await loadBrandReviews(entry, config);
@@ -3453,6 +3488,8 @@ module.exports = {
   // SAME summary shape rather than by a second walk that could drift from it.
   checkAssetContracts,
   syncDaily, getPlan, previewEntry, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
+  // calendar.js stamps an inline entry before GenerationService builds it.
+  stampBrand,
   prebuildAssets, healOrphans, dbCheck, syncStatus,
   // exported for unit testing (pure scenario helpers)
   attachScenarioLayer, promoteScenario, effectiveEntry, buildStandbyVariant,

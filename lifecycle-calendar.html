@@ -181,8 +181,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
   </section>
 
-  <!-- Controls -->
-  <section class="card p-4">
+  <!-- Controls. The planner rotates ONE workspace's play library over its own
+       product facts (its cohorts, its product types, its UK store): run for any
+       other brand it returned that workspace's calendar - its products, its
+       cohort names - under the active brand's name. For any other active brand
+       the shell replaces the planner and its results with the DATA REQUIRED
+       marker (brand-context.js gateShipped). -->
+  <p class="text-[13px]" style="margin:0;color:var(--vh-ink-dim)">The planner rotates a play library over the active brand's own cohorts and product facts. A brand without them sees what is missing, never another brand's plan.</p>
+  <section class="card p-4" data-shipped-for="knickgasm" data-shipped-label="lifecycle play library and product facts" data-shipped-action="⚡ Generate Calendar">
     <div class="flex flex-wrap items-end gap-5">
       <div>
         <div class="label">Market</div>
@@ -619,7 +625,7 @@ $('btnDownload').addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   const vk = (STATE.currentVariant && STATE.currentVariant.key) ? '-' + STATE.currentVariant.key : '';
-  a.download = 'knickgasm-lifecycle-' + String((STATE.currentEntry && STATE.currentEntry.id) || 'mailer').replace(/[^a-z0-9_-]/gi, '') + vk + '.html';
+  a.download = ((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os') + '-lifecycle-' + String((STATE.currentEntry && STATE.currentEntry.id) || 'mailer').replace(/[^a-z0-9_-]/gi, '') + vk + '.html';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 });

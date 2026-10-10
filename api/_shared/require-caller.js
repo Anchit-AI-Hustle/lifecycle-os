@@ -144,4 +144,8 @@ function allowedOrigin(origin) {
   return '';
 }
 
-module.exports = { requireCaller, isCron, allowedOrigin, MAX_PER_WINDOW, WINDOW_MS };
+// Clears the per-instance window. For a test harness that drives many
+// generations as one account inside a minute; never called by a route.
+function _resetRateWindow() { hits.clear(); }
+
+module.exports = { requireCaller, isCron, allowedOrigin, MAX_PER_WINDOW, WINDOW_MS, _resetRateWindow };

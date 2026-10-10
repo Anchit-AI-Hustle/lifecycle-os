@@ -89,7 +89,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .kd-wrap [hidden]{display:none !important}
   body{margin:0;background:var(--brand-surface,Canvas);color:var(--brand-ink,CanvasText);font-family:var(--kd-font-body,system-ui,sans-serif);line-height:1.6}
   .kd-wrap{max-width:900px;margin:0 auto;padding:28px 20px 72px}
-  .kd-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.18em;font-weight:700;color:var(--brand-accent-text,CanvasText);margin:0 0 8px}
+  /* Phones and tablets (2026-10-10, mobile space gate): the eyebrow reads at
+     the theme's small step, never under 12px on a phone. */
+  @media (max-width:1024px){ .kd-eyebrow{font-size:var(--vh-fs-sm,12.5px) !important} }
+  .kd-eyebrow{font-size:var(--vh-fs-xs,11px);text-transform:uppercase;letter-spacing:.18em;font-weight:700;color:var(--brand-accent-text,CanvasText);margin:0 0 8px}
   .kd-title{font-family:var(--kd-font-head,system-ui,sans-serif);font-size:clamp(24px,3.6vw,34px);line-height:1.2;margin:0 0 8px;color:var(--brand-ink,CanvasText);letter-spacing:-.01em}
   .kd-lede{margin:0 0 6px;color:var(--brand-ink-muted,CanvasText);font-size:14.5px;max-width:70ch}
   .kd-meta{margin:0 0 18px;color:var(--brand-ink-muted,CanvasText);font-size:12.5px}

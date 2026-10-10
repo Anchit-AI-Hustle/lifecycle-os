@@ -361,7 +361,18 @@ function serve(rel) {
       res.send = (x) => { res.end(typeof x === 'string' || Buffer.isBuffer(x) ? x : JSON.stringify(x)); return res; };
       const counted = (parse) => Object.defineProperty(req, 'body', {
         configurable: true, enumerable: true,
-        get() { stat.bodyReads += 1; return parse(); },
+        // MEMOISED on first read, as @vercel/node's setLazyProp does (it
+        // redefines the property with the value it computed). Re-parsing on
+        // every read made a handler's own write to the parsed body vanish:
+        // api/ai/generate.js stamps req.body.__brand and then reads req.body
+        // again, so under this harness every generate.js prompt was built for
+        // tenant zero whatever the request carried (2026-10-10).
+        get() {
+          stat.bodyReads += 1;
+          const v = parse();
+          Object.defineProperty(req, 'body', { configurable: true, enumerable: true, writable: true, value: v });
+          return v;
+        },
         // @vercel/node lets a handler overwrite req.body; so does this.
         set(v) { Object.defineProperty(req, 'body', { configurable: true, enumerable: true, writable: true, value: v }); },
       });

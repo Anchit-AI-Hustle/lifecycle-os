@@ -196,8 +196,23 @@ const INKCO = {
   brand_data: {}, status: 'active',
 };
 
+/**
+ * Tenant zero's OWN workspace row, built from its record. A signed-in person
+ * with NO workspace is the unresolved placeholder, never tenant zero
+ * (brand-runtime.resolve, 2026-10-10: answering tenant zero there put one
+ * company's brand on anyone who had not made one yet), so "the operator of
+ * tenant zero" is a person whose active workspace IS tenant zero's.
+ */
+const ZERO_WS = (() => {
+  const d = JSON.parse(JSON.stringify(brandRuntime.defaultBrand()));
+  return Object.assign(d, {
+    id: '11111111-1111-4111-8111-111111111111', status: 'active',
+    brand_data: Object.assign({}, d.brand_data || {}, { claims: d.claims || [], legal_entity: d.legal_entity }),
+  });
+})();
+
 const AS = {
-  zero: { user: USER_ZERO, activeWorkspace: null, workspace: null },
+  zero: { user: USER_ZERO, activeWorkspace: ZERO_WS.id, workspace: ZERO_WS },
   other: { user: USER_OTHER, activeWorkspace: OTHER.id, workspace: OTHER },
   inkco: { user: USER_INK, activeWorkspace: INKCO.id, workspace: INKCO },
 };

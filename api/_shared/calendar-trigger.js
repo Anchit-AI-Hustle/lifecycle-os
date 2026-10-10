@@ -27,8 +27,16 @@ const catalogServer = require('./brand-catalog-server.js');
 // all come from the ACTIVE brand record travelling on the entry/opts.
 function _brand(o) {
   const b = (o && (o.brand || (o.entry && o.entry.brand))) || null;
-  if (b && b.id) return b;
-  try { return require('./brand-runtime.js').defaultBrand(); } catch (_) { return {}; }
+  // Any record that names the brand (a carried device record and the
+  // unresolved placeholder included), else the brand the REQUEST resolved,
+  // and tenant zero only with nothing in scope (2026-10-10). This used to go
+  // straight to tenant zero for anything without an id, and regionBase() /
+  // ctaUrlForEntry() never passed the entry at all - every trigger-mailer
+  // CTA pointed at tenant zero's store, whatever brand asked.
+  try {
+    const rt = require('./brand-runtime.js');
+    return rt.scopedBrand(rt.namesBrand(b) ? b : null, { allowTenantZero: true }) || {};
+  } catch (_) { return b || {}; }
 }
 function brandNameOf(o) { return _brand(o).name || 'the brand'; }
 function brandStore(o, market) {
@@ -90,7 +98,7 @@ function collectionForEntry(entry) {
 
 // Resolve the single CTA destination for a calendar entry → a real KNICKGASM URL.
 function ctaUrlForEntry(entry, market) {
-  const base = regionBase(market);
+  const base = regionBase(market, { entry });
   // 1. Precise product page if we know the handle (or can resolve it from the SKU).
   const handle = entry.hero_handle || lookupHandle(market, entry.hero_sku, entry.brand);
   if (handle) return `${base}/products/${handle}`;
@@ -121,7 +129,7 @@ function buildBriefFromEntry(entry, fw) {
     `- One CTA, one hero product, optional 2-3 supporting products.`,
     `- For ${entry.segment}: ${segmentVoiceGuide(entry.segment, entry.content_type)}`,
     '',
-    CF.copyFrameworkBriefBlock(framework),
+    CF.copyFrameworkBriefBlock(framework, entry && entry.brand),
   ].filter(Boolean).join('\n');
 
   return parts;
@@ -264,6 +272,10 @@ module.exports = async function handler(req, res) {
   if (!entry || !entry.market || !entry.segment) {
     return res.status(400).json({ error: 'body.entry must include at minimum { market, segment, archetype, hero_sku }' });
   }
+  // The brand is the REQUEST's, never the one the body names (2026-10-10):
+  // a caller-supplied entry.brand decided whose name, store and legal sender
+  // the mailer carried, and none at all meant tenant zero's.
+  try { entry.brand = await require('./brand-runtime.js').resolve(req); } catch (_) { delete entry.brand; }
 
   const market = body.market_override || entry.market;
 
@@ -341,6 +353,10 @@ module.exports = async function handler(req, res) {
   ].filter((p) => p && (p.title || p.handle || p.sku));
 
   const sharedText = {
+    // The brand rides every variant: without it the renderer had no record to
+    // read and painted tenant zero's name, store, colours and legal sender
+    // (2026-10-10).
+    brand: entry.brand || null,
     subject: S.subject_line,
     hero_headline: S.hero_headline,
     hero_subline: S.hero_subline,
@@ -350,7 +366,7 @@ module.exports = async function handler(req, res) {
     market,
     // Flagship-parity: real inline product grid + derived collection CTA.
     products: promptProducts,
-    collection_url: `${regionBase(market)}/collections/${collectionForEntry(entry)}`,
+    collection_url: `${regionBase(market, { entry })}/collections/${collectionForEntry(entry)}`,
   };
 
   const variants = {
@@ -385,7 +401,10 @@ module.exports = async function handler(req, res) {
         var b = entry.brand || null;
         var name = (b && b.name) || 'the brand';
         var p = (b && b.palette) || {};
-        var pal = `primary ${p.primary || '#D0473E'}, accent ${p.accent || p.primary || '#6A33D8'}, surface ${p.surface || '#FFFFFF'}`;
+        // The brand's own colours or a marker, never tenant zero's (2026-10-10).
+        var pal = (p.primary || p.accent)
+          ? `primary ${p.primary || p.accent}, accent ${p.accent || p.primary}${p.surface ? `, surface ${p.surface}` : ''}`
+          : `[DATA REQUIRED BEFORE LAUNCH: brand palette, ${name}]`;
         return `On-brand ${name} email visual for "${S.subject_line}". Hero ${entry.hero_product || entry.hero_sku}. ` +
           `Editorial photography or gentle product-frame motion (animated GIF), true to this brand's own world, ` +
           `elegant negative space, cinematic light. Brand palette only (${pal}). ` +
@@ -544,9 +563,15 @@ function _renderVariantBody(o) {
   // falls back per-market if no specific destination was provided.
   const baseUrl = cta_url || regionBase(market, o);
   const store = regionBase(market, o);
-  const cur = String(market || '').toUpperCase() === 'UK' ? '£' : '$';
-  const HEAD = "'Montserrat','Raleway',Georgia,serif";
-  const BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
+  // The currency of THIS brand's region record, and the brand's own type
+  // (2026-10-10): every market but UK was printed in '$', and both stacks were
+  // tenant zero's two families on every brand's mailer.
+  const _rtm = require('./brand-runtime.js');
+  const _rf = _rtm.regionFacts(_brand(o), market);
+  const cur = (_rf && _rf.currency) || '';
+  const _fs = _rtm.fontStacks(_brand(o));
+  const HEAD = String(_fs.head).replace(/"/g, "'");
+  const BODY = String(_fs.body).replace(/"/g, "'");
 
   // Brand-derived. These were four tenant-zero literals, in a renderer the
   // Mailer Calendar uses for EVERY brand, sitting beside helpers (_brand,
@@ -558,13 +583,14 @@ function _renderVariantBody(o) {
   // rather than picked. Picking is how the eyebrow, the claims strip and the
   // offer bar ended up at 1.51:1 and 2.77:1 - the accent on the primary, and
   // the ink on the accent, both far under the 4.5 floor.
-  const _bpal = (_brand(o).palette) || {};
+  // A key the record lacks is NEUTRAL, never tenant zero's hex (2026-10-10).
+  const _bpal = _rtm.paletteOf(_brand(o));
   const _core = (() => { try { return require('./brand-workspace-core.js'); } catch (_) { return null; } })();
   const palette = {
-    green: _core ? _core.sectionGround(_bpal.primary, _bpal.accent, _bpal.surface || '#FFFFFF') : (_bpal.primary || '#D0473E'),
-    lava: _bpal.accent || _bpal.primary || '#6A33D8',
-    ink: _bpal.ink || '#111111',
-    chalk: _bpal.surface || '#FFFFFF',
+    green: _core ? _core.sectionGround(_bpal.primary, _bpal.accent, _bpal.surface) : _bpal.primary,
+    lava: _bpal.accent,
+    ink: _bpal.ink,
+    chalk: _bpal.surface,
   };
   palette.onGreen = _core ? _core.textOn(palette.green, palette.chalk, palette.ink) : palette.chalk;
   palette.onLava = _core ? _core.textOn(palette.lava, palette.chalk, palette.ink) : palette.chalk;
@@ -590,13 +616,13 @@ function _renderVariantBody(o) {
       + `letter-spacing:${_px(_E.button.letter_spacing) || '0px'};text-transform:${_E.button.transform || 'none'};`
       + (_E.button.radius != null ? `border-radius:${_px(_E.button.radius)};` : '')
       + (_E.button.border ? `border:${_E.button.border};` : '')
-    : `display:inline-block;background:${palette.green};color:${palette.chalk};text-decoration:none;padding:14px 30px;font-family:'Instrument Sans',sans-serif;font-size:14px;letter-spacing:1.4px;text-transform:uppercase;`;
+    : `display:inline-block;background:${palette.green};color:${palette.chalk};text-decoration:none;padding:14px 30px;font-family:${BODY};font-size:14px;letter-spacing:1.4px;text-transform:uppercase;`;
   const h1Style = _E && _E.h1
     ? `font-family:${_E.head};font-size:${_px(_E.h1.size) || '34px'};line-height:${_E.h1.line_height === 'normal' ? 'normal' : (_px(_E.h1.line_height) || '1.18')};color:${_E.h1.color || palette.green};margin:0 0 8px;font-weight:${_E.h1.weight || 500};letter-spacing:${_px(_E.h1.letter_spacing) || '0px'};text-transform:${_E.h1.transform || 'none'};`
-    : `font-family:'Montserrat','Raleway',Georgia,serif;font-size:34px;line-height:1.18;color:${palette.green};margin:0 0 8px;font-weight:500;letter-spacing:-0.3px;`;
+    : `font-family:${HEAD};font-size:34px;line-height:1.18;color:${palette.green};margin:0 0 8px;font-weight:500;letter-spacing:-0.3px;`;
   const subStyle = _E && _E.text
     ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '16px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.55')};color:${_E.text.color || palette.ink};margin:0 0 24px;`
-    : `font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;`;
+    : `font-family:${BODY};font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;`;
   // The same tokens for EVERY style (review finding, 2026-10-04: only the
   // default editorial style read them; visual, pure and founder kept tenant
   // zero's type). `margin`/`color` are the style's own layout and ground.
@@ -673,8 +699,8 @@ function _renderVariantBody(o) {
 
   const blocks = (body_blocks || []).map((b) => `
     <tr><td style="padding:18px 32px 0;">
-      <p style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading || '')}</p>
-      <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '')}</p>
+      <p style="font-family:${HEAD};font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading || '')}</p>
+      <p style="font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '')}</p>
     </td></tr>`).join('');
 
   // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
@@ -702,18 +728,18 @@ function _renderVariantBody(o) {
         <!-- Brand-palette hero block (no external image needed) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
           <tr><td style="padding:34px 26px;text-align:center;">
-            <div style="font-family:'Montserrat','Raleway',Georgia,serif;font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
-            <div data-ds="h1" style="${h1With(`font-family:'Montserrat','Raleway',Georgia,serif;font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
+            <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+            <div data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
           </td></tr>
         </table>
       </td></tr>
       <tr><td style="padding:22px 32px 0;">
-        <p data-ds="body" style="${subWith(`font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0;`, '0')}">${esc(hero_subline)}</p>
+        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;`, '0')}">${esc(hero_subline)}</p>
       </td></tr>
       <!-- Botanical-style lava divider -->
       <tr><td style="padding:20px 32px 0;text-align:center;">
         <div style="display:inline-block;height:1px;width:38%;background:${palette.lava};vertical-align:middle;"></div>
-        <span style="display:inline-block;vertical-align:middle;color:${palette.lava};font-family:'Montserrat','Raleway',Georgia,serif;font-size:14px;padding:0 12px;">✦</span>
+        <span style="display:inline-block;vertical-align:middle;color:${palette.lava};font-family:${HEAD};font-size:14px;padding:0 12px;">✦</span>
         <div style="display:inline-block;height:1px;width:38%;background:${palette.lava};vertical-align:middle;"></div>
       </td></tr>
       ${blocks}
@@ -732,7 +758,7 @@ function _renderVariantBody(o) {
   // ── V1 · Pure Text: simple, monospace-free, no decorative blocks at all.
   if (style === 'pure') {
     const textBlocks = (body_blocks || []).map((b) => `
-      <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;">
+      <p style="font-family:${BODY};font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;">
         ${b.heading ? `<strong style="color:${palette.green};">${esc(b.heading)}: </strong>` : ''}${esc(b.body || '')}
       </p>`).join('');
     return `<!doctype html>
@@ -741,15 +767,15 @@ function _renderVariantBody(o) {
   <tr><td align="center" style="padding:40px 16px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0">
       <tr><td style="padding:0 8px;">
-        <p style="font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())} · ${esc(market)}</p>
-        <h1 data-ds="h1" style="${h1With(`font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
-        <p data-ds="body" style="${subWith(`font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
+        <p style="font-family:${BODY};font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())} · ${esc(market)}</p>
+        <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
+        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
         ${textBlocks}
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
+        <p style="font-family:${BODY};font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p style="font-family:${BODY};font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
+        <p style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>
@@ -765,9 +791,9 @@ function _renderVariantBody(o) {
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
       ${offerBarRow}${brandHeader}
       <tr><td style="padding:24px 32px 0;">
-        <p data-ds="h1" style="${h1With(`font-family:'Montserrat','Raleway',Georgia,serif;font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
-        <p data-ds="body" style="${subWith(`font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
-        <p style="font-family:'Instrument Sans',sans-serif;font-size:13px;color:#7a6e5a;margin:0;">A note from the detailing table</p>
+        <p data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
+        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
+        <p style="font-family:${BODY};font-size:13px;color:#7a6e5a;margin:0;">A note from the detailing table</p>
       </td></tr>
       ${blocks}
       ${productGrid}
