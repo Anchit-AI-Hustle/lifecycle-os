@@ -82,7 +82,15 @@ async function seedCatalog(page) {
   // be overwritten by its (empty, offline) answer, and the test would then be
   // asserting against a page with no products without saying so.
   await page.evaluate(() => (window.studioCatalogReady ? window.studioCatalogReady() : null));
-  await page.evaluate((rows) => window.setStudioCatalog(rows, 'brand', ''), CATALOG_FIXTURE);
+  // Any LATER reload must answer the same fixture: a brandcontext:change
+  // reloads the catalogue (loadBrandCatalog(true)), and offline that answer is
+  // empty. On WebKit the reload landed after the seed, so the Studio had no
+  // products and buildEmail returned '' (iphone-se, 2026-10-10).
+  await page.evaluate((rows) => {
+    const fixture = { load: () => Promise.resolve({ products: rows.slice(), source: 'brand', reason: '' }) };
+    Object.defineProperty(window, 'BrandCatalog', { configurable: true, get: () => fixture, set: () => {} });
+    window.setStudioCatalog(rows, 'brand', '');
+  }, CATALOG_FIXTURE);
   await page.waitForFunction(() => (window.CAT || []).length > 0, null, { timeout: 5000 });
 }
 
