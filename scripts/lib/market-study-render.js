@@ -275,7 +275,7 @@
           '<tbody>' + landscapeRowsHTML(brand, sel) + '</tbody></table></div>' +
         '<p class="ms-note">Every row is a brand this record\'s own market study names, with the verification its source line records. Positioning, share and channel mix are not inferred: a study that does not state them lists them as gaps.</p>'
       : '<div class="card p-5"><div class="font-head text-lg">No competitor set on the record for ' + bn + '</div>' +
-          '<p class="text-[13px] mt-2" style="color:var(--soft);">' + esc(marker('competitor set', 'all regions', brand)) + ' ' +
+          '<p class="text-[13px] mt-2" style="color:var(--soft);">' + esc('[DATA REQUIRED BEFORE LAUNCH: competitor set, ' + nameOf(brand) + ']') + ' ' +
           'Add <code>tiers[].brands</code> entries to a region\'s <code>market_study</code> block. Another workspace\'s competitors are deliberately not substituted.</p></div>';
     return '<div id="competitors" class="scroll-mt-6 mt-10">' +
       '<h2 class="text-vink text-[26px] font-bold">Competitive landscape</h2>' +
