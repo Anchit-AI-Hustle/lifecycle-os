@@ -74,68 +74,68 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #111111; min-height: 100vh; }
+  body { font-family:var(--vh-font-body); background:var(--vh-panel); color:var(--vh-ink); min-height: 100vh; }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 60px; }
   @media (max-width: 620px) { .wrap { padding: 20px 16px 50px; } }
 
   .page-head { margin-bottom: 8px; }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: #6A33D8; font-weight: 600; margin-bottom: 10px; }
-  h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
-  h1 em { font-style: italic; color: #6A33D8; }
-  .sub { color: #556059; font-size: 13.5px; margin-top: 6px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color:var(--vh-accent-text); font-weight: 600; margin-bottom: 10px; }
+  h1 { font-family:var(--vh-font-head); font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 em { font-style: italic; color:var(--vh-accent-text); }
+  .sub { color:var(--vh-ink-dim); font-size: 13.5px; margin-top: 6px; }
 
   /* Controls */
   .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 20px 0 14px; }
   .tabs { display: flex; gap: 6px; flex-wrap:nowrap; ;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .tabs > *{flex:0 0 auto}
-  .chip { font-size: 12px; font-weight: 600; color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.25);
+  .chip { font-size: 12px; font-weight: 600; color:var(--vh-ink-dim); background: transparent; border:1px solid var(--vh-line);
     border-radius: 99px; padding: 7px 14px; cursor: pointer; font-family: inherit; transition: all .14s; white-space: nowrap; }
-  .chip:hover { border-color: #6A33D8; color: #111111; }
-  .chip.active { color: #ffffff; background: #6A33D8; border-color: #6A33D8; }
-  .chip .n { opacity: 0.7; font-weight: 700; margin-left: 3px; }
+  .chip:hover { border-color:var(--vh-accent); color:var(--vh-ink); }
+  .chip.active { color:var(--vh-on-accent); background:var(--vh-accent); border-color:var(--vh-accent); }
+  .chip .n { font-weight: 700; margin-left: 3px; }
   .spacer { flex: 1; }
-  .search { display: flex; align-items: center; gap: 7px; background: #ffffff; border: 1px solid rgba(171,135,67,0.25);
+  .search { display: flex; align-items: center; gap: 7px; background:var(--vh-panel); border:1px solid var(--vh-line);
     border-radius: 10px; padding: 8px 12px; min-width: 200px; }
-  .search input { flex: 1; background: transparent; border: none; outline: none; color: #111111; font-family: inherit; font-size: 13px; }
+  .search input { flex: 1; background: transparent; border: none; outline: none; color:var(--vh-ink); font-family: inherit; font-size: 13px; }
   .scope { display: flex; gap: 6px; }
-  .btn { font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 14px; cursor: pointer; border: 1px solid rgba(171,135,67,0.3); background: transparent; color: #556059; }
-  .btn:hover { border-color: #6A33D8; }
+  .btn { font-family: inherit; font-size: 12.5px; font-weight: 600; border-radius: 9px; padding: 8px 14px; cursor: pointer; border:1px solid var(--vh-line); background: transparent; color:var(--vh-ink-dim); }
+  .btn:hover { border-color:var(--vh-accent); }
 
   /* Asset grid */
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
   @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-  .asset { background: linear-gradient(160deg, #ffffff, var(--vh-ink)); border: 1px solid rgba(171,135,67,0.18);
+  .asset { background:var(--vh-panel-2); border:1px solid var(--vh-line);
     border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: transform .14s, border-color .14s; }
-  .asset:hover { transform: translateY(-2px); border-color: rgba(171,135,67,0.4); }
-  .asset .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top center; background: #fff; display: block; border-bottom: 1px solid rgba(171,135,67,0.12); }
-  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: var(--vh-ink); font-size: 30px; background: #ffffff; }
+  .asset:hover { transform: translateY(-2px); border-color:var(--vh-line); }
+  .asset .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top center; background:var(--vh-panel); display: block; border-bottom:1px solid var(--vh-line); }
+  .asset .thumb.ph { display: flex; align-items: center; justify-content: center; color: var(--vh-ink); font-size: 30px; background:var(--vh-panel); }
   /* Live mailer/landing preview: render the real HTML, scaled to card width, so
      the card shows the ACTUAL rendered mailer — not a raw product photo. */
-  .asset .thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/10; overflow: hidden; background: #fff; border-bottom: 1px solid rgba(171,135,67,0.12); }
-  .asset .thumb-wrap iframe { position: absolute; top: 0; left: 0; border: 0; width: 250%; height: 250%; transform: scale(0.4); transform-origin: top left; pointer-events: none; background: #fff; }
+  .asset .thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/10; overflow: hidden; background:var(--vh-panel); border-bottom:1px solid var(--vh-line); }
+  .asset .thumb-wrap iframe { position: absolute; top: 0; left: 0; border: 0; width: 250%; height: 250%; transform: scale(0.4); transform-origin: top left; pointer-events: none; background:var(--vh-panel); }
   .asset .thumb-wrap .thumb-open { position: absolute; inset: 0; z-index: 2; }
   .asset .pad { padding: 13px 14px 12px; display: flex; flex-direction: column; flex: 1; }
-  .asset .name { font-size: 13.5px; font-weight: 600; color: #111111; line-height: 1.35; margin-bottom: 5px;
+  .asset .name { font-size: 13.5px; font-weight: 600; color:var(--vh-ink); line-height: 1.35; margin-bottom: 5px;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .asset .meta { font-size: 11px; color: #556059; margin-bottom: 11px; flex: 1; }
+  .asset .meta { font-size: 11px; color:var(--vh-ink-dim); margin-bottom: 11px; flex: 1; }
   .tag { font-size: 9.5px; padding: 2px 7px; border-radius: 99px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 5px; }
-  .tag.mailer { background: rgba(171,135,67,0.16); color: var(--vh-ink); }
-  .tag.ad { background: rgba(59,130,246,0.14); color: #1d4ed8; }
-  .tag.landing { background: rgba(22,163,74,0.16); color: #0a7d33; }
+  .tag.mailer { background:var(--vh-tint); color: var(--vh-ink); }
+  .tag.ad { background:var(--vh-tint); color:var(--vh-accent-text); }
+  .tag.landing { background:var(--vh-panel-2); color:var(--vh-ok-text); }
   .acts { display: flex; gap: 6px; flex-wrap: wrap; }
   .abtn { flex: 1; min-width: 62px; text-align: center; font-family: inherit; font-size: 11.5px; font-weight: 600;
-    color: #556059; background: transparent; border: 1px solid rgba(171,135,67,0.28); border-radius: 8px; padding: 7px 8px; cursor: pointer; text-decoration: none; transition: all .12s; }
-  .abtn:hover { border-color: #6A33D8; color: #111111; background: rgba(171,135,67,0.06); }
-  .abtn.primary { color: #ffffff; background: #6A33D8; border-color: #6A33D8; }
+    color:var(--vh-ink-dim); background: transparent; border:1px solid var(--vh-line); border-radius: 8px; padding: 7px 8px; cursor: pointer; text-decoration: none; transition: all .12s; }
+  .abtn:hover { border-color:var(--vh-accent); color:var(--vh-ink); background:var(--vh-tint); }
+  .abtn.primary { color:var(--vh-on-accent); background:var(--vh-accent); border-color:var(--vh-accent); }
 
-  .empty { grid-column: 1 / -1; font-size: 13px; color: #48524c; padding: 40px 4px; text-align: center; }
-  .src { font-size: 11px; color: #48524c; margin: 22px 0 0; }
-  .src b { color: #556059; }
+  .empty { grid-column: 1 / -1; font-size: 13px; color:var(--vh-ink-dim); padding: 40px 4px; text-align: center; }
+  .src { font-size: 11px; color:var(--vh-ink-dim); margin: 22px 0 0; }
+  .src b { color:var(--vh-ink-dim); }
 
   /* Toast */
   #toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px);
-    background: #ffffff; border: 1px solid rgba(171,135,67,0.4); color: #111111; font-size: 13px; font-weight: 600;
+    background:var(--vh-panel); border:1px solid var(--vh-line); color:var(--vh-ink); font-size: 13px; font-weight: 600;
     padding: 11px 18px; border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,0.5); opacity: 0; pointer-events: none;
     transition: opacity .2s, transform .2s; z-index: 9600; max-width: 90vw; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -165,7 +165,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="btn" id="refresh">↻</button>
   </div>
 
-  <div id="syncStrip" hidden style="margin:0 0 14px;padding:9px 14px;border:1px solid rgba(171,135,67,0.25);border-radius:10px;font-size:12.5px;align-items:center;gap:10px;background:#ffffff;color:#556059"></div>
+  <div id="syncStrip" hidden style="margin:0 0 14px;padding:9px 14px;border:1px solid var(--vh-line);border-radius:10px;font-size:12.5px;align-items:center;gap:10px;background:var(--vh-panel);color:var(--vh-ink-dim)"></div>
 
   <div class="grid" id="grid"><div class="empty">Loading…</div></div>
 
@@ -222,7 +222,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function head(role, market) {
     const f = REGION[market] || REGION.US;
-    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + f.store + ', currency ' + f.cur + ' — all prices/copy in ' + f.cur + ').\n\n' + brandBlock() + '\n\n';
+    // The store is the ACTIVE brand's own (2026-10-05); the literal map stands
+    // only when no brand is active.
+    const B = window.BrandContext && window.BrandContext.brand;
+    const store = B
+      ? (((window.BrandCatalog && window.BrandCatalog.storeBase(market)) || B.website || '').replace(/^https?:\/\//, '') ||
+         ('[DATA REQUIRED BEFORE LAUNCH: store URL, ' + (B.name || 'brand name') + ', ' + market + ']'))
+      : f.store;
+    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + store + ', currency ' + f.cur + ' — all prices/copy in ' + f.cur + ').\n\n' + brandBlock() + '\n\n';
   }
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft (off-palette colours, banned phrases, wrong fonts, wrong currency), fix them, and return ONLY the corrected final output.';
 

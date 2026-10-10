@@ -13,68 +13,72 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <meta name="description" content="Region-routed, Meta-lander-aware spatial storefront powered by the 3D connector engine.">
+<script src="/brand-context.js?early=1"></script>
 <style>
   @font-face{font-family:"Montserrat";src:url("https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM73w0aXp-p7K4KLjztg.woff2") format("woff2");font-display:swap;}
   :root{
-    --v-deep-purple:#D0473E; --v-lava:#6A33D8; --v-ink:#111111; --v-chalk:#FFFFFF;
-    --v-font-heading:'Montserrat','Raleway',Georgia,serif;
-    --v-font-body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+    --v-deep-purple:var(--vh-primary); --v-lava:var(--vh-accent); --v-ink:var(--vh-ink); --v-chalk:var(--vh-bg);
+    --v-font-heading:var(--vh-font-head);
+    --v-font-body:var(--vh-font-body);
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--v-chalk);color:var(--v-ink);font-family:var(--v-font-body);-webkit-font-smoothing:antialiased;}
   a{color:inherit;}
   img{max-width:100%;display:block;}
-  .util{background:var(--v-deep-purple);color:var(--v-chalk);text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;padding:11px 16px;}
+  .util{background:var(--vh-band);color:var(--vh-on-band);text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;padding:11px 16px;}
   header.brand{text-align:center;padding:20px 0 6px;}
   header.brand img{width:140px;height:auto;margin:0 auto;}
   .wrap{max-width:1120px;margin:0 auto;padding:0 20px 64px;}
-  h1{font-family:var(--v-font-heading);font-size:38px;line-height:1.1;margin:18px 0 6px;color:var(--v-deep-purple);}
+  h1{font-family:var(--v-font-heading);font-size:38px;line-height:1.1;margin:18px 0 6px;color:var(--vh-heading);}
   .lede{font-size:15px;color:var(--vh-ink);max-width:640px;margin:0 0 24px;}
 
   /* Engine status panel */
-  .panel{border:1px solid rgba(0,74,43,.18);border-radius:14px;background:#fff;padding:18px 20px;margin:18px 0 26px;}
-  .panel h2{font-family:var(--v-font-heading);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--v-lava);margin:0 0 14px;}
+  .panel{border:1px solid var(--vh-line-hot);border-radius:14px;background:var(--vh-panel);padding:18px 20px;margin:18px 0 26px;}
+  .panel h2{font-family:var(--v-font-heading);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-accent-text);margin:0 0 14px;}
   .grid-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
-  .stat{background:var(--v-chalk);border-radius:10px;padding:12px 14px;}
+  .stat{background:var(--vh-panel-2);border-radius:10px;padding:12px 14px;}
   .stat .k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-ink);}
   .stat .v{font-size:16px;font-weight:700;color:var(--v-ink);margin-top:4px;word-break:break-word;}
   .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;padding:3px 9px;border-radius:999px;}
-  .pill.on{background:var(--v-deep-purple);color:var(--v-chalk);}
-  .pill.off{background:var(--vh-panel-tan);color:var(--vh-ink);}
+  .pill.on{background:var(--vh-primary);color:var(--vh-on-primary);}
+  .pill.off{background:var(--vh-panel-2);color:var(--vh-ink);}
   .swatches{display:flex;gap:8px;margin-top:6px;}
-  .sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.12);}
+  .sw{width:22px;height:22px;border-radius:6px;border:1px solid var(--vh-line-hot);}
 
   /* Controls */
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px;}
   .controls .lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--vh-ink);margin-right:2px;}
-  .btn{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1.5px solid var(--v-deep-purple);color:var(--v-deep-purple);background:#fff;}
-  .btn.sel{background:var(--v-deep-purple);color:var(--v-chalk);}
+  .btn{display:inline-block;text-decoration:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px;border:1.5px solid var(--vh-primary);color:var(--vh-primary-text);background:var(--vh-panel);}
+  .btn.sel{background:var(--vh-primary);color:var(--vh-on-primary);}
   .btn.lava{border-color:var(--v-lava);color:var(--v-ink);}
-  .btn.lava.sel{background:var(--v-lava);}
+  .btn.lava.sel{background:var(--vh-accent);color:var(--vh-on-accent);}
 
   /* Product cards - spatial (progressive-enhancement tilt) */
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;perspective:1200px;}
-  .card{background:#fff;border-radius:14px;overflow:hidden;border:1px solid rgba(0,74,43,.12);transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d;}
-  body.enh-3d .card:hover{transform:translateZ(24px) rotateX(3deg) rotateY(-3deg);box-shadow:0 24px 48px -20px rgba(0,74,43,.4);}
+  .card{background:var(--vh-panel);border-radius:14px;overflow:hidden;border:1px solid var(--vh-line-hot);transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d;}
+  body.enh-3d .card:hover{transform:translateZ(24px) rotateX(3deg) rotateY(-3deg);box-shadow:0 24px 48px -20px var(--vh-line-hot);}
   .card .imgwrap{aspect-ratio:1/1;background:var(--v-chalk);}
   .card .body{padding:12px 14px 16px;}
   .card .title{font-size:14px;font-weight:700;line-height:1.3;min-height:36px;}
-  .card .price{margin-top:6px;font-weight:700;color:var(--v-deep-purple);}
-  .card .cta{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;color:var(--v-chalk);background:var(--v-deep-purple);border-radius:7px;padding:8px 14px;text-decoration:none;}
+  .card .price{margin-top:6px;font-weight:700;color:var(--vh-primary-text);}
+  .card .cta{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;color:var(--vh-on-primary);background:var(--vh-primary);border-radius:7px;padding:8px 14px;text-decoration:none;}
 
   /* Meta checkout - isolated single product, friction stripped */
-  .checkout{display:grid;grid-template-columns:1fr 1fr;gap:26px;background:#fff;border-radius:16px;overflow:hidden;border:1px solid rgba(0,74,43,.14);}
+  .checkout{display:grid;grid-template-columns:1fr 1fr;gap:26px;background:var(--vh-panel);border-radius:16px;overflow:hidden;border:1px solid var(--vh-line-hot);}
   .checkout .media{background:var(--v-chalk);}
   .checkout .info{padding:30px 28px;}
-  .checkout .eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--v-lava);}
-  .checkout h3{font-family:var(--v-font-heading);font-size:30px;line-height:1.1;color:var(--v-deep-purple);margin:10px 0;}
+  .checkout .eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--vh-accent-text);}
+  .checkout h3{font-family:var(--v-font-heading);font-size:30px;line-height:1.1;color:var(--vh-heading);margin:10px 0;}
   .checkout .price{font-size:22px;font-weight:700;margin:8px 0 4px;}
-  .checkout .cta{display:inline-block;margin-top:16px;background:var(--v-deep-purple);color:var(--v-chalk);font-weight:700;padding:15px 34px;border-radius:9px;text-decoration:none;font-size:15px;}
+  .checkout .cta{display:inline-block;margin-top:16px;background:var(--vh-primary);color:var(--vh-on-primary);font-weight:700;padding:15px 34px;border-radius:9px;text-decoration:none;font-size:15px;}
   .checkout .proof{margin-top:16px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--vh-ink);}
   .note{font-size:12px;color:var(--vh-ink);margin-top:10px;}
-  .err{background:#fff;border:1px solid var(--v-lava);border-radius:12px;padding:18px;color:var(--vh-ink);}
+  .err{background:var(--vh-panel);border:1px solid var(--v-lava);border-radius:12px;padding:18px;color:var(--vh-ink);}
   .skeleton{opacity:.55;}
   @media(max-width:720px){.checkout{grid-template-columns:1fr;} h1{font-size:30px;}}
+
+  /* Form controls take the page family: a browser gives them its own (Arial). */
+  button,input,select,textarea{font-family:inherit}
 </style>
 </head>
 <body>
@@ -83,7 +87,7 @@
        other active brand the shell replaces it with the DATA REQUIRED marker
        (brand-context.js gateShipped): one brand's store never appears under
        another brand's name. -->
-  <header class="brand" data-shipped-for="knickgasm" data-shipped-label="storefront connector demo (logo)"><img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
+  <header class="brand" data-shipped-for="knickgasm" data-shipped-label="storefront connector demo (logo)"><img data-shipped-src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
 
   <div class="wrap" data-shipped-for="knickgasm" data-shipped-label="spatial store connector demo">
     <h1 id="headline">Spatial Store Connector</h1>
@@ -119,7 +123,33 @@
   <!-- The engine: generated from lifecycle-3d-connector-engine.ts, dropped in as a plain global. -->
   <script src="/lifecycle-3d-connector-engine.js"></script>
   <script>
-  (function(){
+  /* This demo is tenant zero's store (its engine reads that store's feeds), so
+     it is STARTED only for tenant zero - the server's determination, read
+     through BrandContext - or for a visitor with no brand. For any other
+     brand the wrap is already the DATA REQUIRED marker, and starting the
+     engine anyway fetched another company's catalogue and 23 of its product
+     photos behind it (tests/catalog-provenance.spec.js, 2026-10-05). The
+     engine's catalogue read goes through brand-catalog.js, the one reader. */
+  (function whenBrand(tries){
+    var B = window.BrandContext;
+    if (B && B.ready) { B.ready().then(decide, decide); return; }
+    if (tries > 40) { decide(); return; }
+    setTimeout(function(){ whenBrand(tries + 1); }, 100);
+    function decide(){
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (b && window.BrandContext.isTenantZero && !window.BrandContext.isTenantZero(b)) return;
+      boot();
+    }
+  })(0);
+  function catalogFetch(url, init) {
+    var m = /\/data\/catalog\/products_([a-z]+)\.json/.exec(String(url));
+    if (!m) return fetch(url, init);
+    if (!window.BrandCatalog) return Promise.resolve(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    return window.BrandCatalog.load(m[1], { shippedPreview: true }).then(function (r) {
+      return new Response(JSON.stringify((r && r.products) || []), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+  }
+  function boot(){
     var V = window.Knickgasm3D;
     var main = document.getElementById('main');
     if(!V || !V.Knickgasm3DConnectorEngine){
@@ -154,7 +184,7 @@
 
     // Boot the engine, forcing the chosen region, and simulate the lander host
     // when previewing off the real try.knickgasm.* domains.
-    var engine = new V.Knickgasm3DConnectorEngine({ forcedRegion: region, enable3D: true });
+    var engine = new V.Knickgasm3DConnectorEngine({ forcedRegion: region, enable3D: true, fetchImpl: catalogFetch });
     var cfg = V.__regions[region];
     var host = simulateMeta ? cfg.tryHost : cfg.storefrontHost;
     var path = simulateMeta && handle ? '/' + handle : (location.pathname);
@@ -240,7 +270,7 @@
       return '<div class="cards">'+one+one+one+one+'</div>';
     }
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  })();
+  }
   </script>
 <script src="/auth.js?v=20260718light" defer></script>
 </body>

@@ -109,16 +109,19 @@
   function loadKB() {
     if (KB.ready) return Promise.resolve(KB);
     var region = regionGuess();
-    // Brand-aware: the static JSON is tenant zero's catalogue only.
-    if (window.BrandCatalog) return window.BrandCatalog.load(region).then(function (r) { return r.products; });
-    return fetch('/data/catalog/products_' + region + '.json', { cache: 'force-cache' })
-      .then(function (r) { return r.ok ? r.json() : []; })
+    // The ACTIVE brand's catalogue through brand-catalog.js, the one reader
+    // (2026-10-05). The direct fetch of the shipped file that sat behind it
+    // handed tenant zero's products to any page that had no resolver.
+    var load = window.BrandCatalog
+      ? window.BrandCatalog.load(region).then(function (r) { return (r && r.products) || []; })
+      : Promise.resolve([]);
+    return load
       .then(function (list) {
-        var arr = Array.isArray(list) ? list : (list.products || []);
+        var arr = Array.isArray(list) ? list : [];
         var cats = {};
         arr.forEach(function (p) {
-          var c = p.type || p.collection || (Array.isArray(p.t) ? p.t[0] : p.t) || 'sneaker';
-          cats[c] = (cats[c] || 0) + 1;
+          var c = p.type || p.collection || (Array.isArray(p.t) ? p.t[0] : p.t);
+          if (c) cats[c] = (cats[c] || 0) + 1;
         });
         var top = arr.slice(0, 40).map(function (p) { return p.n || p.title || p.name; }).filter(Boolean);
         KB.summary = 'PRODUCT CATALOG (' + region.toUpperCase() + ', ' + arr.length + ' products). '
