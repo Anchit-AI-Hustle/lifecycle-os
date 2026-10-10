@@ -627,7 +627,11 @@ module.exports = async function handler(req, res) {
         }
         // An agent saved with no market serves the brand's HOME market.
         const home = b.market ? '' : __homeMarket();
-        const a = await agents.upsertAgent(home ? Object.assign({}, b, { market: home }) : b);
+        // The workspace keys the agent's id (smart_agents.id is unique across
+        // every workspace): the same name saved by two brands is two agents.
+        const spec = Object.assign({}, b, home ? { market: home } : {}, { workspace_id: req.__workspaceId || undefined });
+        if (!String(spec.name || '').trim()) return res.status(400).json({ ok: false, error: 'name_required', message: 'Give the agent a name, then save it.' });
+        const a = await agents.upsertAgent(spec);
         return res.json({ ok: true, agent: a });
       }
       case 'agent-sync': {
