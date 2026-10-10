@@ -989,6 +989,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     else if (step === 5) {
       c.innerHTML =
         '<h2>Data and catalog</h2>' +
+        storeFeedCallout() +
         xPanel('data') +
         '<p class="hint">Where you sell, and what you sell. Product facts are only ever read from a source you supply — the platform will never invent a price, a URL or a product.</p>' +
         '<div class="field"><label>Regions and stores</label><div id="regions"></div>' +
@@ -1049,6 +1050,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
               '<div style="margin-top:8px">' + r.missing.map(function (m) { return '<div class="marker">' + esc(m.marker) + '</div>'; }).join(' ') + '</div>'
             : 'Everything the platform needs is present.') +
         '</div>' +
+        storeFeedCallout() +
         '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
           '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
           '<button type="button" class="btn" id="saveDraft">Save as draft</button>' +
@@ -2228,6 +2230,47 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       gate.textContent = region ? '' : marker('home market') + ' Add the market you sell in above and mark it Home before importing: the catalogue is filed per market, so there is nowhere to put these rows yet.';
     }
   }
+  /* IMPORT YOUR STORE FEED, said where it is needed (2026-10-05). A template
+     (a starter brand from the gallery) brings a look and a website, never a
+     product: since tenant zero became the server's determination rather than
+     a slug, even the KNICKGASM template owns no shipped catalogue, so a brand
+     made from one has NO product photos until its own store is read. Every
+     ad, mailer and storefront then renders the DATA REQUIRED marker where a
+     photo would be. This says so on the catalogue step and on review, with
+     the brand's own store prefilled and one button that imports it. */
+  function storeFeedUrl() {
+    var regs = Array.isArray(brand.regions) ? brand.regions : [];
+    var home = null;
+    for (var i = 0; i < regs.length; i++) if (regs[i] && regs[i].home && regs[i].store_url) { home = regs[i]; break; }
+    return String((home && home.store_url) || (regs[0] && regs[0].store_url) || brand.website || '').trim();
+  }
+  function storeFeedCallout() {
+    if (catalogCount) return '';
+    var url = storeFeedUrl();
+    var host = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    var name = esc(brand.name || 'this brand');
+    var fromTemplate = !!presetPicked || originOf('website') === 'preset';
+    var why = fromTemplate
+      ? 'This brand started from a template. A template brings a look and a website, never products: ' + name + ' has no product catalogue yet, so its ads, mailers and storefront show [DATA REQUIRED BEFORE LAUNCH: product image, ' + name + '] where a photo would be.'
+      : name + ' has no product catalogue yet, so its ads, mailers and storefront show [DATA REQUIRED BEFORE LAUNCH: product image, ' + name + '] where a photo would be.';
+    var act = url && !actionsOff()
+      ? ' <button type="button" class="btn primary" data-import-store="' + esc(url) + '" style="margin-left:6px;padding:7px 13px;font-size:12px">Import ' + esc(host || 'the store') + '\'s catalogue</button>'
+      : (url ? '' : ' Add the store URL under Regions and stores, or paste a CSV, to import it.');
+    return '<p class="imp-gate" id="storeFeed" data-store-feed="1">' + why + (url ? ' Import its own store feed (' + esc(host) + ') to use its real product photos.' : '') + act + '</p>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-import-store]');
+    if (!b) return;
+    var url = b.getAttribute('data-import-store');
+    function run() {
+      var inp = $('impUrl'), tab = $('stepCard') && $('stepCard').querySelector('.imp-tab[data-imp="storefront"]');
+      if (tab) tab.click();
+      if (inp) inp.value = url;
+      var d = $('doImport'); if (d && !d.disabled) d.click();
+    }
+    if (step !== 5) { go(5); setTimeout(run, 0); } else run();
+  });
+
   function wireImport() {
     var mode = 'storefront';
     Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (t) {
@@ -2273,6 +2316,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var r = await api('catalog-import', payload);
         catalogCount = r.imported;
         status.textContent = r.imported + ' products imported' + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+        var sf = $('storeFeed'); if (sf && r.imported) sf.hidden = true;
         toast('Imported ' + r.imported + ' products.');
       } catch (e) {
         // This span otherwise reads "N products in this workspace." - a count.

@@ -716,10 +716,15 @@
       // point: region selection was present on 17 of 66 pages, in six different
       // shapes, none of which shared the choice, so picking a market on one
       // page silently reverted on the next.
+      // brand-catalog.js is the ONE reader of a brand's catalogue (2026-10-05):
+      // loaded on every page, so no page has a reason to fetch one itself.
       [['/brand-context.js?v=20260809', 'data-vh-brand'],
+        ['/brand-catalog.js?v=20261005', 'data-vh-catalog'],
         ['/region-context.js?v=20260813', 'data-vh-region'],
         ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
         if (d.querySelector('script[' + pair[1] + ']')) return;
+        // A page that already includes the catalogue resolver itself keeps it.
+        if (pair[1] === 'data-vh-catalog' && (window.BrandCatalog || d.querySelector('script[src*="brand-catalog.js"]'))) return;
         var s = d.createElement('script');
         s.src = pair[0];
         s.setAttribute(pair[1], '1');
@@ -854,6 +859,7 @@
       { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
       { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
       { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
+      { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
       { id: 'connections',   label: 'Connections & AI Models', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/ai-models', '/models', '/brand-connections.html'] },
       { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
@@ -1134,6 +1140,22 @@
         ['Design + layout + structure', 'Rendered from brand tokens, so it re-skins with the workspace like every other surface.'],
         ['Coding', 'The OAuth state binds the returning code to the workspace and user that started the flow, so a code cannot be redeemed into a different brand. Credentials are sealed with AES-256-GCM under PAYMENTS_ENCRYPTION_KEY before storage, the ciphertext columns are revoked from every browser-facing database role, and the browser only ever receives a four character hint. Mounted on the existing public-config router, so no thirteenth serverless function.'],
         ['Final compilation + presentation', 'A connected gateway is available to every feature that needs real payment data. Runs via: /api/public-config?action=payments'],
+      ],
+    },
+    designsystem: {
+      title: "Design System",
+      what: "The Lifecycle OS design system, live: the platform's own mark and logo set, the surface contract that says which token paints every ground, text and edge, and every component of the app rendered in the ACTIVE brand, with each text colour's measured contrast against its ground.",
+      who: "Anyone building or reviewing a screen, and a brand owner checking that their colours read well everywhere before activating them.",
+      how: "Every colour on the page is a role token from theme.css, resolved through the brand tokens brand-context.js paints from the active record. Brand-coloured text is derived for its ground, a brand-coloured section goes through sectionGround so it is never a dark neutral, and the platform mark stays neutral whatever brand is active. The contract and its machine-readable tokens live in design/lifecycle-os.",
+      input: "The active brand's record: its palette, typography and name. Nothing is typed on this page.",
+      steps: [
+        ["Ideology", "One contract for every screen: a page picks a role, never a colour, so it re-skins to any brand and stays readable."],
+        ["Data analysis + review + hypothesis", "Reads the brand tokens tokens() derived for this brand and measures each text token against the ground it is allowed on."],
+        ["Business & strategy decisions", "The platform's identity stays the platform's; the brand owns the colours, type and copy."],
+        ["Content", "Specimen copy only. No brand fact is written here."],
+        ["Design + layout + structure", "Every kit component in theme.css, the icon set and the illustrations, laid out as a sheet."],
+        ["Coding", "Static page on the shared shell; tests/design-system.spec.js renders it under six palettes and fails on an unreadable pair, a dark section or a colour literal."],
+        ["Final compilation + presentation", "The same contract is published as the Lifecycle OS Design System. Runs via: /design-system"],
       ],
     },
     brandinput: {
@@ -1790,7 +1812,11 @@
         #lifecycle-nav .lnav-brandlogo[hidden] { display: none; }
         #lifecycle-nav .lnav-brandlogo img { width: 100%; height: 100%; object-fit: contain; display: block; }
         #lifecycle-nav .lnav-head { display: flex; align-items: center; gap: 6px; }
-        #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
+        /* min-width:0 so a long brand name ellipsises inside the rail instead of
+           pushing the collapse button out past its edge (seen on /design-system
+           with a 30-character brand name). */
+        #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; min-width: 0; }
+        #lifecycle-nav .lnav-brand .lnav-brandrow small { min-width: 0; }
         #lifecycle-nav .lnav-collapse {
           flex-shrink: 0; width: 26px; height: 26px; margin-bottom: 16px;
           background: transparent; border: 1px solid var(--vh-line); border-radius: 7px;
