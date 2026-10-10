@@ -44,7 +44,9 @@ function paletteOf(spec) {
   const p = (b && b.palette) || {};
   return {
     green: p.primary || PALETTE.green,   // brand PRIMARY (the field name is historic)
-    lava:  p.accent  || PALETTE.lava,    // brand ACCENT
+    // brand ACCENT; a brand that renders one colour has none, and its own
+    // primary stands in (never tenant zero's purple - 2026-10-05).
+    lava:  p.accent  || p.primary || PALETTE.lava,
     ink:   p.ink     || PALETTE.ink,
     chalk: p.surface || PALETTE.chalk,
   };

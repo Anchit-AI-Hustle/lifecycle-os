@@ -10,9 +10,7 @@
   the date someone remembered to type, not the date the page changed. A wrong
   lastmod is worse than none — it teaches a crawler to ignore the field.
 
-  The host is the one every other host redirects to (see vercel.json: both
-  knickgasm.vercel.app and knickgasm-lifecycle-os.anchit-tandon.com redirect
-  here), so this is the canonical origin, not a third front door.
+  Deployment aliases redirect to the canonical host shown in each entry.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>

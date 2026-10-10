@@ -3,19 +3,18 @@
  * auth.js — Lifecycle OS shared auth + cross-step navigation header.
  *
  * Drop this <script> into any page in the project. It:
- *   1. Bootstraps an ANONYMOUS Supabase client from window.__SUPABASE__ (set in
- *      HTML head) OR from the /api/public-config endpoint at runtime, for the
- *      pages that read anon-open tables. It never holds a Supabase session.
- *   2. SIGN-IN IS A MOBILE NUMBER AND A 4-DIGIT PIN (2026-09-28). The rail's
- *      "Sign in" chip opens an inline panel on the current page: country code
- *      + number, then the PIN, then (for a new number) a name - one Continue
- *      button whose label changes. Accounts live in the Neon database when
- *      DATABASE_URL is set and answering (mode 'server', verified with
- *      op=me on every boot), otherwise in this browser (mode 'device', same
- *      state machine and lockout, PBKDF2-hashed PIN). The UI says which, in
- *      one sentence. The Google/Supabase OAuth sign-in this file used to run
- *      is COMMENTED OUT below, not deleted, and nothing can produce a
- *      Supabase session any more: the mobile+PIN session is the one source.
+ *   1. Bootstraps a Supabase client from window.__SUPABASE__ (set in HTML head)
+ *      OR from the /api/public-config endpoint at runtime. The client persists
+ *      the session and accepts the Google OAuth callback.
+ *   2. SIGN-IN IS GMAIL, THROUGH SUPABASE GOOGLE AUTH (2026-10-05). The rail's
+ *      "Sign in with Gmail" chip starts Google sign-in (the Gmail account
+ *      picker) and never hands the browser to a host that is not there. redirectTo is
+ *      the origin root (the Site URL) so a missing wildcard allowlist cannot
+ *      400 the bounce; rememberReturnTo / restoreReturnTo send the person
+ *      back to the page they pressed from. A stored mobile-number session
+ *      from before this change still restores, and the panel that created it
+ *      is still in this file for that session, but nothing in the product
+ *      offers it as login.
  *   3. Renders a shared left rail with cross-step navigation so any stage
  *      can jump to any other stage.
  *   4. Provides window.LifecycleAuth.{client, session, user, signOut,
@@ -28,6 +27,17 @@
  */
 (function () {
   'use strict';
+
+  // One public origin for the product. OAuth must return here even when a
+  // person began on one of Vercel's generated deployment aliases.
+  var CANONICAL_APP_ORIGIN = 'https://lifecycle-os.anchit-tandon.com';
+  // A deployment URL is useful to Vercel, but it is never a public product URL.
+  // Redirect every Lifecycle OS project alias (including per-deployment URLs)
+  // while retaining the requested app path, query and fragment.
+  if (/^lifecycle(?:-|\.)/i.test(location.hostname) && /\.vercel\.app$/i.test(location.hostname)) {
+    location.replace(CANONICAL_APP_ORIGIN + location.pathname + location.search + location.hash);
+    return;
+  }
 
   if (window.__LifecycleAuthBooted) return;
   window.__LifecycleAuthBooted = true;
@@ -431,7 +441,7 @@
         state = 'signed-out';
         lead = 'Not run: you are signed out.';
         body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
-          + 'Sign in with your mobile number and 4-digit PIN (the Sign in chip in the menu), then try again; '
+          + 'Sign in with Gmail (the Sign in with Gmail chip in the menu), then try again; '
           + 'everything else on this page keeps working.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
@@ -461,6 +471,9 @@
       if (!e) return false;
       if (typeof e === 'object' && e.ordinary === true) return true;
       var code = codeOf(e);
+      // A device brand cannot hold encrypted platform credentials. That is a
+      // state of this sign-in, said as a status, never a red frame.
+      if (code === 'device_account') return true;
       if (PHONE_ONLY[code]) { var s = session(); return !!(s && s.provider === 'mobile-pin'); }
       if (ORDINARY[code]) return !!refusal('This');
       return false;
@@ -480,6 +493,10 @@
       var o = opts || {};
       var code = codeOf(e);
       if (typeof e === 'object' && e.ordinary === true && e.lead) return statusHtml(e.lead, e.body);
+      if (code === 'device_account') {
+        var dm = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
+        return statusHtml('Kept on this device.', dm);
+      }
       if (PHONE_ONLY[code]) {
         var m = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
         if (!m || /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/.test(m)) m = WALLET;
@@ -512,11 +529,27 @@
      * bounded by the same 8 s brand-context.js allows the gate.
      */
     function decide(what, opts) {
-      var a = window.LifecycleAuth;
-      var first = a && typeof a.backendState === 'function' ? a.backendState() : null;
       var settled = function () { return verified(8000).then(function () { return refusal(what, opts); }); };
-      if (!first || !(a.backend && a.backend.kind === 'pending')) return settled();
-      return Promise.race([first, new Promise(function (r) { setTimeout(r, 8000); })])
+      var a = window.LifecycleAuth;
+      var kind = a && a.backend && a.backend.kind;
+      // Already decided: answer now. `pending`, or auth.js not assigned yet
+      // (a deferred script, and the page's own load already asked), waits for
+      // the first real decision. Treating "not assigned" as decided is what
+      // sent /brain's plan request out signed-out and painted the empty
+      // preview ("no sends", "env not linked") over the sign-in sentence.
+      if (kind && kind !== 'pending') return settled();
+      var first = a && typeof a.backendState === 'function' ? a.backendState() : null;
+      var wait = first || new Promise(function (resolve) {
+        var done = false;
+        var finish = function () { if (done) return; done = true; window.removeEventListener('lifecycleauth:backend', onEvent); resolve(); };
+        var onEvent = function (ev) {
+          var k = ev && ev.detail && ev.detail.kind;
+          if (k && k !== 'pending') finish();
+        };
+        window.addEventListener('lifecycleauth:backend', onEvent);
+        setTimeout(finish, 8000);
+      });
+      return Promise.race([wait, new Promise(function (r) { setTimeout(r, 8000); })])
         .then(settled, settled);
     }
 
@@ -607,6 +640,12 @@
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
           if (!isOwnApi(url)) return nativeFetch(input, init);
 
+          // Restore the Supabase session before the first authenticated API
+          // request. Public config/auth bootstrap must never wait on itself.
+          if (new URL(url, location.href).pathname !== '/api/public-config' && !authReady.settled) {
+            return authReady.promise.then(function () { return window.fetch(input, init); });
+          }
+
           // A DEVICE session waits for the boot to decide whether its token is
           // one the server accepts (review finding, 2026-10-03): with the
           // account database answering, it is refused, and the first API
@@ -648,14 +687,14 @@
             if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
             var req = new Request(input, init || undefined);
             if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
-            if (!req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
+            if (window.LifecycleAuth?.session?.provider === 'mobile-pin' && !req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
             return nativeFetch(req);
           }
 
           var opts = Object.assign({}, init || {});
           var headers = new Headers((opts && opts.headers) || {});
           if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
-          if (!headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
+          if (window.LifecycleAuth?.session?.provider === 'mobile-pin' && !headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
           opts.headers = headers;
           return nativeFetch(input, opts);
         } catch (_) {
@@ -954,8 +993,10 @@
       { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages#google',   icon: 'google' },
       { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages#tiktok',   icon: 'tiktok' },
       { id: 'lp-templates', label: 'Landing Page Templates', href: '/landing-page-templates', icon: 'landing', match: ['/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'] },
-      { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'] },
-      { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'] },
+      // Tenant zero's own landing artefacts. Hidden once another brand is
+      // active (data-shipped-nav); they are not this product's live pages.
+      { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'], shipped: true },
+      { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'], shipped: true },
       { id: 'lp-agent',   label: 'Landing Page with All-In-One Voice+Chat+Talk Agent',   href: '/lp/agent', icon: 'knickgasm', match: ['/lp/agent'] },
     ]},
 
@@ -1199,7 +1240,7 @@
     },
     agent: {
       title: 'Brand Agent',
-      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. It is also the engine embedded in the agent landing pages at /lp/agent and /lp/best.",
+      what: "CUSTOMER-FACING TOOL, the concierge your customers talk to. A conversational concierge: talk (text or voice) to an expert in the active brand that answers product questions and recommends only that brand's real catalogue. The example pages at /lp/agent and /lp/best belong to the shipped brand; every other brand is served its own page.",
       who: "Prospective and existing customers on-site; strongest for Non-Buyers who need guidance to a first purchase. The team uses this page to configure and demo agents.",
       how: "A chat UI over the shared 6-provider LLM waterfall, grounded in brand voice and the product catalog. Voice replies use ElevenLabs TTS with a browser-TTS fallback. Agent personas can be created, updated, and synced from this page.",
       input: "A visitor question — preferences, goals, or gifting needs. For the team: agent persona settings.",
@@ -1250,7 +1291,7 @@
         ['Market intelligence', 'US coffee and functional-beverage sizing, benchmarks and the competitor brand matrix set the opportunity.'],
         ['Live performance', 'Real US and UK numbers ground every claim; the full workbench is one click away.', '/data-analysis'],
         ['Growth plays', 'The prioritised, data-grounded moves, each mapped to an avatar and cohort.'],
-        ['Data engine', 'The ingestion and competitor-capture pipeline (knickgasm_dtc_data_engine) that feeds every number.'],
+        ['Data engine', 'The ingestion and competitor-capture pipeline that feeds the active brand\'s own numbers. It never reads another brand\'s export.'],
       ],
     },
     avatars: {
@@ -1356,7 +1397,7 @@
     lifecycle: {
       title: 'Mailer Calendar (UK)',
       what: "The UK lifecycle mailer calendar: deterministically plans 14/30/45 days of sends for the two engagement cohorts by rotating a curated play library — then builds any planned send into a Klaviyo-ready mailer with exactly ONE brand-gated LLM call. This is Draft 2 (V2 — Lifecycle OS) of both calendaring and mailer creation; Draft 1 is the 30-day Calendar plus Mailer Studio.",
-      who: "Cohort A — Non-Buyers/Non-Engagers (objective: earn the open, earn the click, first purchase) and Cohort B — T&B Buyers/Non-Engagers (objective: reactivate with familiarity, cross-grade to Coffee/Supplements subscription). UK market only (knickgasm.com).",
+      who: "Cohort A — Non-Buyers/Non-Engagers (objective: earn the open, earn the click, first purchase) and Cohort B — T&B Buyers/Non-Engagers (objective: reactivate with familiarity, cross-grade to the brand's own subscription). The UK calendar uses the active brand's own store.",
       how: "Two modes. PLAN is deterministic — no LLM: it rotates plays per cohort at your cadence (default 2/week), enforcing hard product rules (T&B is one-time only; Coffee and Supplements are subscription-first; supplements are never priced; no founder voice — templates restricted to pure/visual/editorial). BUILD makes one LLM call against locked facts and renders the brand template.",
       input: "Start date, plan window (14/30/45 days), cohort checkboxes, and sends-per-cohort-per-week. Nothing runs automatically — a human clicks Generate.",
       pipeline: true,
@@ -1425,7 +1466,7 @@
     },
     landing: {
       title: 'Landing Pages',
-      what: "Generates and serves brand-compliant HTML landing pages — presell and editorial pages matched to mailers and ads — including the live agent-embedded pages at /lp/best and /lp/agent.",
+      what: "Generates and serves brand-compliant HTML landing pages — presell and editorial pages matched to mailers and ads. The shipped brand's example pages live at /lp/best and /lp/agent; every other brand gets a page built from its own record.",
       who: "Traffic from each channel: pages exist for Mailers, for Meta, for Google, and for TikTok, inheriting the cohort of the campaign that links to them.",
       how: "Pages are LLM-generated to the /lp/:id serving contract, compiled by the LP compiler, stored in landing_pages_generated, and served live from the calendar router. Smart Brain approvals generate one automatically per campaign.",
       input: "A campaign or slot, or a manual brief: product, angle, source channel, and market.",
@@ -1443,7 +1484,7 @@
     officialdesigns: {
       title: 'Official Website Designs',
       what: "A true-to-brand 3D replica of the Knickgasm storefront and Meta-ads landers, rendered as a continuous WebGL scene of floating product panels and glassmorphic surfaces. Live catalog and pricing come from the regional Shopify storefront; historical metrics come from the Snowflake to Supabase daily mirror. It degrades automatically to a fast 2D brand layout on low-end, mobile, reduced-motion or crawler traffic so conversion is never sacrificed.",
-      who: "Shoppers across the US, UK and Global regions, plus paid-social traffic landing on knickgasm.com and knickgasm.com — where the scene collapses into a single-product spatial checkout to minimise friction.",
+      who: "Shoppers in each region the active brand sells in, plus paid-social traffic landing on that brand's own store, where a lander can collapse into a single-product checkout.",
       how: "The Knickgasm3DConnectorEngine (React context provider + data-orchestration middleware) resolves the region and lander from the hostname, connects Shopify and the Snowflake mirror, extracts the live theme colours and typography, injects them into the 3D materials and CSS custom properties, and renders the scene with three and react-three-fiber. Static pages mount the same engine through a no-build ESM bridge.",
       input: "Nothing from you at view time — the hostname decides region and lander mode. Operators can force a region or a 2D preview on the showcase page.",
       pipeline: true,
@@ -1479,12 +1520,12 @@
       what: "The daily social engine (V2 — Lifecycle OS): a 7-agent pipeline produces one complete day-package of posts across 11 platform formats — Instagram Feed, Reels and Stories, Facebook, TikTok, LinkedIn, X, Threads, Pinterest, YouTube Shorts, plus a long-form blog — every string brand-scrubbed, nothing published without a human approve.",
       who: "Followers and prospects per platform, UK market first. The operator reviews each day-package in the /social console and approves or skips per post.",
       how: "Seven bounded LLM agents run in sequence — each ONE call on the right provider tier, each with a deterministic fallback so the run never fails outright — inside a ~75s time box. A daily Vercel Cron (04:30 UTC) drives it; results persist to social_posts_generated in Supabase. Per-platform constraints (aspect, dims, char limits, hashtags, best time) live in a data spec, not prose. Platform push stays Phase 2 (push_status: not_integrated_phase_2).",
-      input: "Nothing daily — the cron drives it; or hit Run Today in the console. From you: approve or skip per post. Product-focus rotation and festivals come from data/*.json; links use real knickgasm.com handles only.",
+      input: "Nothing daily — the cron drives it; or hit Run Today in the console. From you: approve or skip per post. Product-focus rotation and festivals come from the active brand's own data; links use that brand's own product handles only.",
       pipeline: true,
       steps: [
         ['Ideology', "Premium-tier agent picks the day's creative theme — festival-aware, rotating product focus — maximum ideation before any data is touched.", '/api/brain?action=social-run-daily'],
         ['Data & Hypothesis', "Reads recent-post history from the DB to avoid repetition and states a performance hypothesis for the day's angle."],
-        ['Strategy', "Locks objective, CTA, and destination link per platform — real knickgasm.com product handles only."],
+        ['Strategy', "Locks objective, CTA, and destination link per platform — the active brand's own product handles only."],
         ['Content', "Writes per-platform copy — captions, titles, hashtags within each platform's limits — plus the 800-1200 word blog, in brand voice with banned phrases blocked."],
         ['Design', "Generates the hero image via the shared image cascade with per-platform crops; if generation fails it ships the exact image prompt instead."],
         ['Audio/Video', "Builds the storyboard and requests video via video-core for Reels, TikTok, and Shorts — stubbing gracefully when no video keys exist."],
@@ -1684,10 +1725,11 @@
     // own target="_blank" where they're declared.
     const linkRow = (item) => {
       const isCur = item.id === cur;
-      const a = `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}" data-id="${item.id}" title="${item.label}">
+      const shipped = item.shipped ? ' data-shipped-nav="1"' : '';
+      const a = `<a class="lnav-link${isCur ? ' active' : ''}" href="${item.href}" data-id="${item.id}" title="${item.label}"${INFO[item.id] ? '' : shipped}>
         ${svg(item.icon)}<span class="lnav-txt">${item.label}</span>${verChip(item)}</a>`;
       if (!INFO[item.id]) return a;
-      return `<div class="lnav-item">${a}${infoBtn(item.id, item.label)}</div>`;
+      return `<div class="lnav-item"${shipped}>${a}${infoBtn(item.id, item.label)}</div>`;
     };
     // Double-layer nav: Tier-1 = top-level features (flat items + group headers),
     // Tier-2 = each feature's sub-sections. Groups start COLLAPSED — only the
@@ -1711,7 +1753,12 @@
       <style>
         :root { --lsb-w: 248px; }
         @media (min-width: 961px) { body { margin-left: var(--lsb-w) !important; } }
-        #lifecycle-nav { font-family: 'Inter', system-ui, sans-serif; }
+        /* The rail is the TOOL's chrome in the BRAND's colours and type: every colour
+           below is a contract token (design/lifecycle-os/CONTRACT.md), never a
+           literal. It used to paint the active row in tenant zero's red with its
+           purple edge, and the phone bar near-black under near-black text, for
+           every brand. */
+        #lifecycle-nav { font-family: var(--vh-font-body, system-ui, sans-serif); }
 
         /* Mobile top bar — FIXED so it stays pinned while the page scrolls.
            (A sticky element can't hold here: its wrapper #lifecycle-nav is only
@@ -1722,14 +1769,14 @@
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           height: calc(50px + env(safe-area-inset-top, 0px));
           padding: env(safe-area-inset-top, 0px) 14px 0;
-          background: rgba(7,14,11,0.97); backdrop-filter: blur(14px);
+          background: var(--vh-bg); backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-bottom: 1px solid rgba(171,135,67,0.18);
+          border-bottom: 1px solid var(--vh-line);
         }
         #lifecycle-nav .lnav-mbar-spacer { display: none; }
         #lifecycle-nav .lnav-burger {
-          background: transparent; border: 1px solid rgba(171,135,67,0.25);
-          color: #111111; border-radius: 8px; width: 34px; height: 34px;
+          background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink); border-radius: 8px; width: 34px; height: 34px;
           font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-mbrand { display: flex; align-items: center; gap: 8px;
@@ -1738,10 +1785,10 @@
         #lifecycle-nav .lnav-mbrand .lnav-mark { width: 22px; height: 22px; flex-shrink: 0; }
 
         #lifecycle-nav .lnav-backdrop {
-          position: fixed; inset: 0; z-index: 109; background: rgba(0,0,0,0.55);
+          position: fixed; inset: 0; z-index: 109; background: var(--vh-ink);
           opacity: 0; pointer-events: none; transition: opacity .2s;
         }
-        #lifecycle-nav.open .lnav-backdrop { opacity: 1; pointer-events: auto; }
+        #lifecycle-nav.open .lnav-backdrop { opacity: .5; pointer-events: auto; }
 
         /* Sidebar */
         #lifecycle-nav .lnav-side {
@@ -1755,7 +1802,7 @@
              every ? chip measured 4.44:1 against this hardcoded tint. It
              also means the rail re-skins with the workspace like the rest
              of the app instead of staying one tenant's colour. */
-          background: var(--brand-surface, #f4f2ec); border-right: 1px solid var(--brand-line, rgba(171,135,67,0.18));
+          background: var(--vh-bg); border-right: 1px solid var(--vh-line);
           padding: 16px 12px 12px;
         }
         /* The wordmark is the PLATFORM's: mark + name in the rail's own ink,
@@ -1771,9 +1818,10 @@
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
-        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: 'Lora', serif; font-size: 14px; color: var(--vh-ink, inherit); font-weight: 600; }
+        #lifecycle-nav .lnav-brand .lnav-bt b { font-family: var(--los-font-wordmark, system-ui, sans-serif); font-size: 14.5px; letter-spacing: -0.01em; color: var(--vh-ink, inherit); font-weight: 700; }
+        #lifecycle-nav .lnav-brand .lnav-tagline { font-size: 8px; line-height: 1.25; letter-spacing: .04em; color: var(--vh-ink-dim, inherit); white-space: normal; max-width: 178px; }
         #lifecycle-nav .lnav-brand .lnav-brandrow { display: flex; align-items: center; gap: 5px; min-width: 0; }
-        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brand-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* The brand slot: the ACTIVE brand's own logo (brand.logo_url) or, with
            none on the record, a monogram of its name on a neutral chip. It is
            never any other tenant's file - brand-context.fillBrandSlot() is the
@@ -1791,11 +1839,11 @@
         #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; }
         #lifecycle-nav .lnav-collapse {
           flex-shrink: 0; width: 26px; height: 26px; margin-bottom: 16px;
-          background: transparent; border: 1px solid rgba(171,135,67,0.22); border-radius: 7px;
-          color: #556059; cursor: pointer; font-size: 14px; line-height: 1;
+          background: transparent; border: 1px solid var(--vh-line); border-radius: 7px;
+          color: var(--vh-ink-dim); cursor: pointer; font-size: 14px; line-height: 1;
           display: flex; align-items: center; justify-content: center; transition: all .12s;
         }
-        #lifecycle-nav .lnav-collapse:hover { border-color: #6A33D8; color: #111111; }
+        #lifecycle-nav .lnav-collapse:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
 
         /* ── Collapsed (icon-only) rail — desktop only ── */
         @media (min-width: 961px) {
@@ -1830,7 +1878,7 @@
         html.lnav-collapsed #lifecycle-nav .lnav-region { display: none; }
         #lifecycle-nav .lnav-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; margin: 0 -4px; padding: 0 4px; }
         #lifecycle-nav .lnav-scroll::-webkit-scrollbar { width: 6px; }
-        #lifecycle-nav .lnav-scroll::-webkit-scrollbar-thumb { background: rgba(171,135,67,0.25); border-radius: 6px; }
+        #lifecycle-nav .lnav-scroll::-webkit-scrollbar-thumb { background: var(--vh-line); border-radius: 6px; }
 
         #lifecycle-nav .lnav-ic { width: 18px; height: 18px; flex-shrink: 0; }
         #lifecycle-nav .lnav-brandic { width: 18px; height: 18px; }
@@ -1838,25 +1886,25 @@
         #lifecycle-nav .lnav-section {
           padding: 14px 11px 5px; margin-top: 4px;
           font-size: 9.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-          color: var(--brand-ink-muted, #5a6169);
+          color: var(--vh-ink-dim);
         }
         html.lnav-collapsed #lifecycle-nav .lnav-section {
           text-align: center; padding: 10px 0 4px; font-size: 0;
         }
         html.lnav-collapsed #lifecycle-nav .lnav-section::before {
-          content: ''; display: inline-block; width: 18px; height: 1px; background: rgba(171,135,67,0.3);
+          content: ''; display: inline-block; width: 18px; height: 1px; background: var(--vh-line-hot);
         }
         #lifecycle-nav .lnav-link {
           display: flex; align-items: center; gap: 11px;
           padding: 7px 11px; margin: 1px 0; border-radius: 9px;
-          font-size: 13px; color: #556059; text-decoration: none;
+          font-size: 13px; color: var(--vh-ink-dim); text-decoration: none;
           border: 1px solid transparent; transition: all .12s;
         }
         #lifecycle-nav .lnav-link:focus-visible,
         #lifecycle-nav .lnav-ghead:focus-visible,
         #lifecycle-nav .lnav-i:focus-visible,
         #lifecycle-nav .lnav-info-item:focus-visible {
-          outline: 1px solid #6A33D8; outline-offset: 1px;
+          outline: 2px solid var(--vh-focus); outline-offset: 1px;
         }
         /* Labels wrap to at most TWO lines instead of truncating mid-word
            ("Calen…", "UK Non-Eng…"). Shared by links AND group headers.
@@ -1873,39 +1921,42 @@
           line-height: 1.4; padding: 1px 4px; border-radius: 4px; white-space: nowrap;
         }
         #lifecycle-nav .lnav-ver.v1 {
-          color: #48524c; background: rgba(139,156,147,0.08);
+          color: var(--vh-ink-dim); background: var(--vh-panel-2);
         }
         #lifecycle-nav .lnav-ver.v2 {
-          color: rgba(171,135,67,0.8); background: rgba(171,135,67,0.1);
+          color: var(--vh-accent-text); background: var(--vh-panel-2);
         }
         html.lnav-collapsed #lifecycle-nav .lnav-ver { display: none; }
-        #lifecycle-nav .lnav-link:hover { color: #111111; background: rgba(171,135,67,0.08); }
-        /* Current item = the STRONGEST, darkest highlight: solid deep-purple fill
-           with chalk text (chalk #FFFFFF on green #D0473E is high-contrast and fully
-           legible) plus a bold lava left-accent. Applies to the active panel AND the
-           active sub-item, so the selected sub-item reads darker than its parent. */
+        #lifecycle-nav .lnav-link:hover { color: var(--vh-ink); background: var(--vh-panel-2); }
+        /* Current item = the STRONGEST highlight: the ACTIVE brand's primary as
+           a control fill, its label and icon in the derived on-primary colour
+           (it was tenant zero's red with a purple icon, 1.5:1, for every brand).
+           Applies to the active panel AND the active sub-item, so the selected
+           sub-item reads stronger than its parent. */
         #lifecycle-nav .lnav-link.active {
-          color: #FFFFFF; background: #D0473E; border-color: rgba(171,135,67,0.55);
-          box-shadow: inset 3px 0 0 #6A33D8; font-weight: 600;
+          color: var(--vh-on-primary); background: var(--vh-primary); border-color: var(--vh-primary);
+          font-weight: 600;
         }
-        #lifecycle-nav .lnav-link.active .lnav-ic { color: #6A33D8; }
+        #lifecycle-nav .lnav-link.active .lnav-ic,
+        #lifecycle-nav .lnav-link.active .lnav-ver { color: var(--vh-on-primary); background: transparent; }
 
         /* Groups */
         #lifecycle-nav .lnav-group { margin: 6px 0 2px; }
         #lifecycle-nav .lnav-ghead {
           width: 100%; display: flex; align-items: center; gap: 11px;
           padding: 7px 11px; border: none; background: transparent; cursor: pointer;
-          font-family: inherit; font-size: 13px; color: #556059; text-align: left; border-radius: 9px;
+          font-family: inherit; font-size: 13px; color: var(--vh-ink-dim); text-align: left; border-radius: 9px;
         }
-        #lifecycle-nav .lnav-ghead:hover { background: rgba(171,135,67,0.06); color: #111111; }
+        #lifecycle-nav .lnav-ghead:hover { background: var(--vh-panel-2); color: var(--vh-ink); }
         /* Parent of the active sub-item ALSO reads as selected, but LIGHTER than
-           the sub-item: a lava-tint fill + faint lava accent, so both show and the
-           sub-item stays the darker/stronger of the two. */
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: var(--brand-primary-text, #c6433b); background: rgba(171,135,67,0.13); box-shadow: inset 3px 0 0 rgba(171,135,67,0.55); }
-        #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: #6A33D8; }
-        #lifecycle-nav .lnav-caret { width: 15px; height: 15px; color: #48524c; transition: transform .18s; }
+           the sub-item: the sunken panel (the ground every text token clears AA
+           on) with the primary as a left edge, so both show and the sub-item
+           stays the stronger of the two. */
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead { color: var(--vh-primary-text); background: var(--vh-panel-2); box-shadow: inset 3px 0 0 var(--vh-primary); }
+        #lifecycle-nav .lnav-group.active-group .lnav-ghead .lnav-ic { color: var(--vh-primary-text); }
+        #lifecycle-nav .lnav-caret { width: 15px; height: 15px; color: var(--vh-ink-dim); transition: transform .18s; }
         #lifecycle-nav .lnav-group.open .lnav-caret { transform: rotate(180deg); }
-        #lifecycle-nav .lnav-gbody { display: none; padding-left: 14px; margin-left: 8px; border-left: 1px solid rgba(171,135,67,0.14); }
+        #lifecycle-nav .lnav-gbody { display: none; padding-left: 14px; margin-left: 8px; border-left: 1px solid var(--vh-line); }
         #lifecycle-nav .lnav-group.open .lnav-gbody { display: block; }
         #lifecycle-nav .lnav-gbody .lnav-link { font-size: 12.5px; padding: 6px 10px; }
 
@@ -1915,78 +1966,78 @@
         #lifecycle-nav .lnav-item > .lnav-ghead { flex: 1; min-width: 0; }
         #lifecycle-nav .lnav-i {
           flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
-          background: transparent; border: 1px solid rgba(171,135,67,0.28);
-          color: var(--brand-ink-muted, #5a6169); font-family: inherit; font-size: 10.5px; font-weight: 700; line-height: 1;
+          background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink-dim); font-family: inherit; font-size: 10.5px; font-weight: 700; line-height: 1;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
           transition: all .12s; padding: 0;
         }
-        #lifecycle-nav .lnav-i:hover { border-color: #6A33D8; color: #111111; }
-        #lifecycle-nav .lnav-i.on { background: rgba(171,135,67,0.2); border-color: #6A33D8; color: #111111; }
-        #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed rgba(171,135,67,0.28); }
+        #lifecycle-nav .lnav-i:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-i.on { background: var(--vh-panel-2); border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-info { display: none; margin: 2px 0 4px 8px; padding-left: 12px; border-left: 1px dashed var(--vh-line-hot); }
         #lifecycle-nav .lnav-info.open { display: block; }
         #lifecycle-nav .lnav-info-item {
           width: 100%; display: flex; align-items: center; gap: 8px;
           background: transparent; border: none; cursor: pointer; text-align: left;
-          font-family: inherit; font-size: 11.5px; color: #8b9c93;
+          font-family: inherit; font-size: 11.5px; color: var(--vh-ink-dim);
           padding: 5px 8px; border-radius: 7px; transition: all .12s;
         }
-        #lifecycle-nav .lnav-info-item:hover { color: #111111; background: rgba(171,135,67,0.08); }
+        #lifecycle-nav .lnav-info-item:hover { color: var(--vh-ink); background: var(--vh-panel-2); }
         #lifecycle-nav .lnav-info-n {
           flex-shrink: 0; width: 15px; height: 15px; border-radius: 4px;
-          background: rgba(171,135,67,0.14); color: #6A33D8;
+          background: var(--vh-panel-2); color: var(--vh-accent-text);
           font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center;
         }
 
         /* ── Feature info panel (overlay) ── */
         #lifecycle-nav .lnav-ipanel-backdrop {
-          position: fixed; inset: 0; z-index: 125; background: rgba(0,0,0,0.6);
+          position: fixed; inset: 0; z-index: 125; background: var(--vh-ink); opacity: .5;
           display: none;
         }
         #lifecycle-nav .lnav-ipanel {
           position: fixed; z-index: 126;
           top: 50%; left: 50%; transform: translate(-50%, -50%);
           width: min(560px, 94vw); max-height: min(78vh, 720px);
-          background: #ffffff; border: 1px solid rgba(171,135,67,0.3);
-          border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+          background: var(--vh-panel); border: 1px solid var(--vh-line-hot);
+          border-radius: 14px; box-shadow: var(--vh-lift-2);
           display: none; flex-direction: column; overflow: hidden;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: var(--vh-font-body, system-ui, sans-serif);
         }
         #lifecycle-nav.ipanel-open .lnav-ipanel-backdrop { display: block; }
         #lifecycle-nav.ipanel-open .lnav-ipanel { display: flex; }
         #lifecycle-nav .lnav-ipanel-head {
           display: flex; align-items: flex-start; gap: 12px;
-          padding: 18px 20px 12px; border-bottom: 1px solid rgba(171,135,67,0.16);
+          padding: 18px 20px 12px; border-bottom: 1px solid var(--vh-line);
         }
         #lifecycle-nav .lnav-ipanel-eyebrow {
           font-size: 10px; font-weight: 700; letter-spacing: 0.16em;
-          text-transform: uppercase; color: #6A33D8; margin-bottom: 3px;
+          text-transform: uppercase; color: var(--vh-accent-text); margin-bottom: 3px;
         }
         #lifecycle-nav .lnav-ipanel-title {
-          font-family: 'Lora', Georgia, serif; font-size: 18px; font-weight: 600;
-          color: #111111; letter-spacing: -0.01em; flex: 1;
+          font-family: var(--vh-font-head, Georgia, serif); font-size: 18px; font-weight: 600;
+          color: var(--vh-heading, var(--vh-ink)); letter-spacing: -0.01em; flex: 1;
         }
         #lifecycle-nav .lnav-ipanel-htxt { flex: 1; min-width: 0; }
         #lifecycle-nav .lnav-ipanel-close {
           flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
-          background: transparent; border: 1px solid rgba(171,135,67,0.25);
-          color: #556059; font-size: 15px; line-height: 1; cursor: pointer;
+          background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink-dim); font-size: 15px; line-height: 1; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
         }
-        #lifecycle-nav .lnav-ipanel-close:hover { border-color: #6A33D8; color: #111111; }
+        #lifecycle-nav .lnav-ipanel-close:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
         #lifecycle-nav .lnav-ipanel-body {
           padding: 16px 20px 20px; overflow-y: auto; scrollbar-width: thin;
-          font-size: 13px; line-height: 1.65; color: #556059;
+          font-size: 13px; line-height: 1.65; color: var(--vh-ink-dim);
         }
         #lifecycle-nav .lnav-ipanel-body p { margin: 0 0 10px; }
         #lifecycle-nav .lnav-ipanel-q {
-          font-family: 'Lora', Georgia, serif; font-size: 14.5px; font-weight: 600;
-          color: #111111; margin: 18px 0 6px; padding-top: 12px;
-          border-top: 1px solid rgba(171,135,67,0.16);
+          font-family: var(--vh-font-head, Georgia, serif); font-size: 14.5px; font-weight: 600;
+          color: var(--vh-ink); margin: 18px 0 6px; padding-top: 12px;
+          border-top: 1px solid var(--vh-line);
         }
         #lifecycle-nav .lnav-ipanel-q:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
         #lifecycle-nav .lnav-ipanel-note {
-          font-size: 11.5px; color: #6A33D8; background: rgba(171,135,67,0.08);
-          border: 1px solid rgba(171,135,67,0.2); border-radius: 8px;
+          font-size: 11.5px; color: var(--vh-accent-text); background: var(--vh-panel-2);
+          border: 1px solid var(--vh-line); border-radius: 8px;
           padding: 8px 12px; margin: 0 0 14px;
         }
         #lifecycle-nav .lnav-steps { margin: 0; padding: 0 0 0 4px; list-style: none; counter-reset: lstep; }
@@ -1997,41 +2048,52 @@
         #lifecycle-nav .lnav-steps li::before {
           content: counter(lstep); position: absolute; left: 0; top: 1px;
           width: 22px; height: 22px; border-radius: 50%;
-          background: rgba(171,135,67,0.16); border: 1px solid rgba(171,135,67,0.35);
-          color: #6A33D8; font-size: 10.5px; font-weight: 700;
+          background: var(--vh-panel-2); border: 1px solid var(--vh-line-hot);
+          color: var(--vh-accent-text); font-size: 10.5px; font-weight: 700;
           display: flex; align-items: center; justify-content: center;
         }
         #lifecycle-nav .lnav-steps li:not(:last-child)::after {
           content: ''; position: absolute; left: 10.5px; top: 26px; bottom: 2px;
-          width: 1px; background: rgba(171,135,67,0.18);
+          width: 1px; background: var(--vh-line);
         }
-        #lifecycle-nav .lnav-steps b { display: block; color: #111111; font-size: 12.5px; margin-bottom: 2px; }
-        #lifecycle-nav .lnav-steps .lnav-step-d { display: block; font-size: 12px; color: #556059; }
+        #lifecycle-nav .lnav-steps b { display: block; color: var(--vh-ink); font-size: 12.5px; margin-bottom: 2px; }
+        #lifecycle-nav .lnav-steps .lnav-step-d { display: block; font-size: 12px; color: var(--vh-ink-dim); }
         #lifecycle-nav .lnav-steps .lnav-step-via {
-          display: inline-block; margin-top: 4px; font-family: 'JetBrains Mono', monospace;
-          font-size: 10px; color: var(--brand-ink-muted, #5a6169); background: rgba(171,135,67,0.08);
+          display: inline-block; margin-top: 4px; font-family: var(--vh-font-mono, monospace);
+          font-size: 10px; color: var(--vh-ink-dim); background: var(--vh-panel-2);
           border-radius: 5px; padding: 2px 7px;
         }
 
         /* User footer */
         #lifecycle-nav .lnav-user {
           display: flex; align-items: center; gap: 9px; margin-top: 8px;
-          padding: 10px 8px 4px; border-top: 1px solid rgba(171,135,67,0.14); font-size: 12px; color: #556059;
+          padding: 10px 8px 4px; border-top: 1px solid var(--vh-line); font-size: 12px; color: var(--vh-ink-dim);
         }
         #lifecycle-nav .lnav-avatar { width: 28px; height: 28px; border-radius: 50%;
           /* The workspace's own colours, not one tenant's. The initials sit
              on the primary end of the gradient, so they take --brand-on-
              primary, which is contrast-computed per brand - hardcoded white
              disappears for any brand with a light primary. */
-          background: linear-gradient(135deg,var(--brand-accent,#6A33D8),var(--brand-primary,#D0473E));
+          background: var(--vh-primary);
           display: flex; align-items: center; justify-content: center;
-          color: var(--brand-on-primary, #FFFFFF); font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+          color: var(--vh-on-primary); font-size: 12px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
         #lifecycle-nav .lnav-avatar img { width: 100%; height: 100%; object-fit: cover; }
         #lifecycle-nav .lnav-uname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid rgba(171,135,67,0.25);
-          color: #556059; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
-        #lifecycle-nav .lnav-signout:hover { border-color: #6A33D8; color: #111111; }
-        #lifecycle-nav .lnav-signin { color: #7a5f28; text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        #lifecycle-nav .lnav-signout { background: transparent; border: 1px solid var(--vh-line-hot);
+          color: var(--vh-ink-dim); cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; flex-shrink: 0; }
+        #lifecycle-nav .lnav-signout:hover { border-color: var(--vh-accent); color: var(--vh-ink); }
+        #lifecycle-nav .lnav-skip {
+          position: absolute; left: -999px; top: 8px; z-index: 200;
+          background: var(--vh-panel); color: var(--vh-ink);
+          border: 1px solid var(--vh-line-hot); border-radius: 8px;
+          padding: 8px 12px; font: inherit; font-size: 13px; font-weight: 700;
+          text-decoration: none;
+        }
+        #lifecycle-nav .lnav-skip:focus {
+          left: 8px; outline: 2px solid var(--vh-focus); outline-offset: 2px;
+        }
+        #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        html.lnav-collapsed #lifecycle-nav .lnav-signin-with { display: none; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
         #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
@@ -2047,11 +2109,11 @@
           background: var(--vh-panel-2); color: var(--vh-ink);
           border: 1px solid var(--vh-line); box-shadow: inset 3px 0 0 var(--vh-warn);
         }
-        #lifecycle-nav .lnav-signin-note[data-kind="signed-out"] { box-shadow: inset 3px 0 0 var(--vh-lava); }
+        #lifecycle-nav .lnav-signin-note[data-kind="signed-out"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
         #lifecycle-nav .lnav-signin-note[data-kind="failed"] { box-shadow: none; padding: 0; border: 0; background: transparent; }
-        #lifecycle-nav .lnav-signin-note code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+        #lifecycle-nav .lnav-signin-note code { font-family: var(--vh-font-mono, monospace); font-size: 10.5px; }
         #lifecycle-nav .lnav-signin-note b { color: var(--vh-ink); }
-        #lifecycle-nav .lnav-signin-note[data-kind="expired"] { box-shadow: inset 3px 0 0 var(--vh-lava); }
+        #lifecycle-nav .lnav-signin-note[data-kind="expired"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
         /* Mobile number + PIN sign-in (2026-09-28): an inline panel in the
            rail, on the current page - no navigation, no dialog. Brand tokens
            only: the primary button takes the brand's primary with its
@@ -2065,15 +2127,15 @@
         #lifecycle-nav .lnav-mauth .lnav-mauth-row { display: flex; gap: 6px; }
         #lifecycle-nav .lnav-mauth select, #lifecycle-nav .lnav-mauth input { width: 100%; box-sizing: border-box; min-width: 0;
           font: inherit; font-size: 13px; padding: 7px 8px; border-radius: 6px; border: 1px solid var(--vh-line);
-          background: var(--vh-panel, #ffffff); color: var(--vh-ink); }
+          background: var(--vh-panel); color: var(--vh-ink); }
         #lifecycle-nav .lnav-mauth select { width: 84px; flex: none; }
-        #lifecycle-nav .lnav-mauth input:focus, #lifecycle-nav .lnav-mauth select:focus { outline: 2px solid var(--vh-lava); outline-offset: 1px; }
+        #lifecycle-nav .lnav-mauth input:focus, #lifecycle-nav .lnav-mauth select:focus { outline: 2px solid var(--vh-focus); outline-offset: 1px; }
         #lifecycle-nav .lnav-mauth .lnav-mauth-pin { letter-spacing: .45em; text-align: center; font-size: 16px; }
         #lifecycle-nav .lnav-mauth .lnav-mauth-note { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--vh-ink); }
         #lifecycle-nav .lnav-mauth .lnav-mauth-actions { display: flex; gap: 6px; margin-top: 10px; }
         #lifecycle-nav .lnav-mauth button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 10px; border-radius: 6px;
           cursor: pointer; border: 1px solid var(--vh-line); background: transparent; color: var(--vh-ink); }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-go { flex: 1; background: var(--brand-primary, var(--vh-lava)); color: var(--brand-on-primary, #ffffff); border-color: transparent; }
+        #lifecycle-nav .lnav-mauth .lnav-mauth-go { flex: 1; background: var(--vh-primary); color: var(--vh-on-primary); border-color: transparent; }
         #lifecycle-nav .lnav-mauth button[disabled] { opacity: .6; cursor: progress; }
         #lifecycle-nav .lnav-mauth .vh-status { margin: 0 0 6px; }
         #lifecycle-nav .lnav-mauth .lnav-mauth-err { margin-top: 8px; }
@@ -2088,7 +2150,7 @@
           #lifecycle-nav .lnav-side {
             width: min(var(--lsb-w), 86vw); height: 100dvh;
             transform: translateX(-100%); transition: transform .24s ease;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            box-shadow: var(--vh-lift-2);
             padding-top: calc(16px + env(safe-area-inset-top, 0px));
           }
           #lifecycle-nav.open .lnav-side { transform: translateX(0); }
@@ -2096,17 +2158,18 @@
           html.lnav-collapsed { --lsb-w: 248px; }
         }
       </style>
+      <a class="lnav-skip" href="#lc-content">Skip to main content</a>
       <div class="lnav-mbar">
-        <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation">☰</button>
+        <button class="lnav-burger" id="lnav-burger" aria-label="Open navigation" aria-expanded="false" aria-controls="lnav-side">☰</button>
         <a class="lnav-mbrand" href="/">${LOGO_SVG} <span style="margin-left:8px" class="lnav-mbrand-label">Lifecycle OS</span></a>
       </div>
       <div class="lnav-mbar-spacer"></div>
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
-      <aside class="lnav-side">
+      <aside class="lnav-side" id="lnav-side" role="navigation" aria-label="Main navigation">
         <div class="lnav-head">
           <a class="lnav-brand" href="/">
             ${LOGO_SVG}
-            <span class="lnav-bt"><b>Lifecycle OS</b><span class="lnav-brandrow"><span class="lnav-brandlogo" data-brand-slot="logo" hidden></span><small class="lnav-brandname"></small></span></span>
+            <span class="lnav-bt"><b>Lifecycle OS</b><small class="lnav-tagline">Every brand. Every lifecycle.</small><span class="lnav-brandrow"><span class="lnav-brandlogo" data-brand-slot="logo" hidden></span><small class="lnav-brandname"></small></span></span>
           </a>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
         </div>
@@ -2128,6 +2191,32 @@
     `;
     document.body.insertBefore(wrap, document.body.firstChild);
     syncStudyRows();
+    bindSkipTarget(wrap);
+    // Rows marked shipped are one brand's artefacts (the grail-drop pages).
+    // They stay for a signed-out preview and for the workspace the server
+    // calls tenant zero, and they leave the rail for every other brand.
+    const applyShippedNav = () => {
+      let show = true;
+      try {
+        const B = window.BrandContext;
+        if (B && B.brand && typeof B.isTenantZero === 'function') show = !!B.isTenantZero(B.brand);
+      } catch (_) { show = true; }
+      wrap.querySelectorAll('[data-shipped-nav]').forEach((el) => {
+        el.hidden = !show;
+      });
+    };
+    applyShippedNav();
+    try {
+      const B = window.BrandContext;
+      if (B && typeof B.ready === 'function') B.ready().then(applyShippedNav, applyShippedNav);
+    } catch (_) {}
+    if (!window.__lnavShippedBound) {
+      window.__lnavShippedBound = true;
+      window.addEventListener('brandcontext:change', () => {
+        try { window.__lnavApplyShipped && window.__lnavApplyShipped(); } catch (_) {}
+      });
+    }
+    window.__lnavApplyShipped = applyShippedNav;
     // Signal to embedded apps (e.g. Mailer Studio) that they're rendering
     // inside the Lifecycle OS shell, so they can hide their own duplicate
     // header / tabs / sign-out chrome.
@@ -2257,7 +2346,14 @@
     }
 
     // Mobile drawer open/close
-    const setOpen = (o) => wrap.classList.toggle('open', o);
+    const setOpen = (o) => {
+      wrap.classList.toggle('open', o);
+      const burger = wrap.querySelector('#lnav-burger');
+      if (burger) {
+        burger.setAttribute('aria-expanded', o ? 'true' : 'false');
+        burger.setAttribute('aria-label', o ? 'Close navigation' : 'Open navigation');
+      }
+    };
     wrap.querySelector('#lnav-burger')?.addEventListener('click', () => setOpen(true));
     wrap.querySelector('#lnav-backdrop')?.addEventListener('click', () => setOpen(false));
     document.addEventListener('keydown', (e) => {
@@ -2332,11 +2428,47 @@
   }
 
   // The user block at the foot of the rail: the account chip + sign-out when a
-  // session exists, a "Sign in" link otherwise. It is the ONLY part of the rail
-  // that depends on the session, which is why it can be swapped in place (see
-  // setRailUser) instead of the whole rail waiting for the session to resolve.
+  // session exists, a "Sign in with Gmail" link otherwise. It is the ONLY part
+  // of the rail that depends on the session, which is why it can be swapped in
+  // place (see setRailUser) instead of the whole rail waiting for the session
+  // to resolve. The visible words are Gmail; the provider underneath is Google.
+  const SIGN_IN_LABEL = 'Sign in with Gmail';
+  function bindSkipTarget(wrap) {
+    const skip = wrap && wrap.querySelector('.lnav-skip');
+    if (!skip) return;
+    const resolve = () => document.getElementById('lc-content')
+      || document.querySelector('main, [role="main"]')
+      || wrap.nextElementSibling;
+    const mark = (t) => {
+      if (!t) return null;
+      if (!t.id) t.id = 'lc-content';
+      return t;
+    };
+    mark(resolve());
+    skip.addEventListener('click', (e) => {
+      const t = mark(resolve());
+      if (!t) return;
+      e.preventDefault();
+      if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1');
+      try { t.focus({ preventScroll: true }); } catch (_) { try { t.focus(); } catch (__) {} }
+      try { t.scrollIntoView({ block: 'start' }); } catch (_) {}
+    });
+  }
   function escHtml(v) {
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  /** The only sign-in a visitor is offered. Gmail is a Google account. */
+  function signInLabelHtml() {
+    return 'Sign in<span class="lnav-signin-with"> with Gmail</span>';
+  }
+  function paintSignInLabel(btn, opts) {
+    if (!btn) return;
+    // A press in flight owns the label ("Checking sign-in…"). clearSignInNote
+    // must not take it back; the press itself restores with { force: true }.
+    if (btn.dataset.busy && !(opts && opts.force)) return;
+    btn.innerHTML = signInLabelHtml();
+    btn.setAttribute('aria-label', SIGN_IN_LABEL);
+    btn.removeAttribute('title');
   }
   function railUserHtml(user) {
     // Two user shapes reach here: a mobile+PIN user {id, phone, name} (the one
@@ -2354,7 +2486,7 @@
     return user
       ? `<div class="lnav-user"${user.phone ? ` title="${escHtml(user.phone)}"` : ''}>${avatar}<span class="lnav-uname">${escHtml(display)}</span>
            <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
-      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/">Sign in</a></div>`;
+      : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/" aria-label="${escHtml(SIGN_IN_LABEL)}">${signInLabelHtml()}</a></div>`;
   }
   function wireRailUser(root) {
     const signinBtn = root.querySelector('#lnav-signin');
@@ -2363,32 +2495,10 @@
       // a deployment with no client at all, which sent an unconfigured
       // deployment's visitor to the homepage instead of telling them why.
       e.preventDefault();
-      // 2026-09-28: the chip opens the mobile+PIN panel on THIS page. No
-      // navigation, no dialog, no Google. The panel needs nothing from boot
-      // (not the config, not the SDK), so there is nothing to wait for; it
-      // asks the server where accounts are saved and says so in one line.
-      mauthOpenPanel(root, { from: signinBtn });
-      /* ── DISABLED 2026-09-28: the Google sign-in press. Mobile+PIN sign-in
-         replaced it; kept for the record.
-      if (signinBtn.dataset.busy) return;
-      signinBtn.dataset.busy = '1';
-      try {
-        const waited = !authReady.settled;
-        if (waited) {
-          signinBtn.textContent = 'Checking sign-in…';
-          signinBtn.setAttribute('aria-busy', 'true');
-        }
-        const refusal = await signInRefusal();
-        if (waited) {
-          signinBtn.textContent = 'Sign in';
-          signinBtn.removeAttribute('aria-busy');
-        }
-        if (!refusal) return;   // the browser is on its way to Google
-        showSignInRefusal(root, signinBtn, refusal);
-      } finally {
-        delete signinBtn.dataset.busy;
-      }
-      ── */
+      // 2026-10-05: Google is the only sign-in. A press during boot waits
+      // (the chip says so) and is diagnosed only once the host is known, so
+      // a slow config fetch is never reported as a missing project.
+      beginGoogleSignIn(root);
     };
     const signoutBtn = root.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
@@ -2410,7 +2520,7 @@
     const btn = scope.querySelector('#lnav-signin');
     if (btn) {
       btn.removeAttribute('aria-describedby');
-      if (!btn.dataset.busy) { btn.textContent = 'Sign in'; btn.removeAttribute('title'); }
+      paintSignInLabel(btn);
     }
   }
 
@@ -2466,40 +2576,37 @@
     if (w) w.remove();
   }
 
-  // Shown while an OAuth callback is being exchanged, so the login wall never
-  // flashes over a successful sign-in that is a beat away from resolving.
-  // ── DISABLED 2026-09-28: injectSigningInOverlay() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function injectSigningInOverlay() {
-  //     if (document.getElementById('lifecycle-signingin')) return;
-  //     const el = document.createElement('div');
-  //     el.id = 'lifecycle-signingin';
-  //     el.innerHTML = `
-  //       <style>
-  //         #lifecycle-signingin {
-  //           position: fixed; inset: 0; z-index: 9999; background: #ffffff;
-  //           display: flex; flex-direction: column; align-items: center; justify-content: center;
-  //           gap: 18px; font-family: 'Inter', system-ui, sans-serif; color: #FFFFFF;
-  //         }
-  //         #lifecycle-signingin .lsi-ring {
-  //           width: 40px; height: 40px; border-radius: 50%;
-  //           border: 3px solid rgba(171,135,67,0.25); border-top-color: #6A33D8;
-  //           animation: lsi-spin 0.8s linear infinite;
-  //         }
-  //         @keyframes lsi-spin { to { transform: rotate(360deg); } }
-  //         #lifecycle-signingin .lsi-t { font-size: 13.5px; color: #556059; letter-spacing: 0.02em; }
-  //       </style>
-  //       <div class="lsi-ring"></div>
-  //       <div class="lsi-t">Completing sign-in…</div>
-  //     `;
-  //     document.body.appendChild(el);
-  //   }
-  // ── end of disabled injectSigningInOverlay()
-  // ── DISABLED 2026-09-28: removeSigningInOverlay() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function removeSigningInOverlay() {
-  //     const el = document.getElementById('lifecycle-signingin');
-  //     if (el) el.remove();
-  //   }
-  // ── end of disabled removeSigningInOverlay()
+  // Shown while an OAuth callback is being exchanged, so a signed-out bar
+  // never flashes over a sign-in that is a beat away from resolving.
+  function injectSigningInOverlay() {
+    if (document.getElementById('lifecycle-signingin')) return;
+    const el = document.createElement('div');
+    el.id = 'lifecycle-signingin';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `
+      <style>
+        #lifecycle-signingin {
+          position: fixed; inset: 0; z-index: 9999; background: var(--vh-surface, #ffffff);
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 18px; font-family: var(--vh-font-body, system-ui, sans-serif); color: var(--vh-ink, #111111);
+        }
+        #lifecycle-signingin .lsi-ring {
+          width: 40px; height: 40px; border-radius: 50%;
+          border: 3px solid var(--vh-line, #ebebeb); border-top-color: var(--vh-accent, #6A33D8);
+          animation: lsi-spin 0.8s linear infinite;
+        }
+        @keyframes lsi-spin { to { transform: rotate(360deg); } }
+        #lifecycle-signingin .lsi-t { font-size: 13.5px; letter-spacing: 0.02em; }
+      </style>
+      <div class="lsi-ring"></div>
+      <div class="lsi-t">Completing sign-in…</div>
+    `;
+    (document.body || document.documentElement).appendChild(el);
+  }
+  function removeSigningInOverlay() {
+    const el = document.getElementById('lifecycle-signingin');
+    if (el) el.remove();
+  }
 
   // ─── Supabase bootstrap ─────────────────────────────────────────────
   async function loadSupabaseSDK() {
@@ -2592,56 +2699,106 @@
    * - the same four the standing bar names, decided the same way, so the bar
    * and the sign-in button can never disagree about what is wrong.
    */
-  // ── DISABLED 2026-09-28: signedOutState() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function signedOutState() {
-  //     const cfg = window.__SUPABASE__ || {};
-  //     if (!cfg.url) return 'unconfigured';
-  //     // A URL but no client: the SDK never loaded (boot()'s catch). This used to
-  //     // be reported as "no Supabase configuration", which sends the operator to
-  //     // check an env var that is set.
-  //     if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
-  //     return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
-  //   }
-  // ── end of disabled signedOutState()
+  async function signedOutState() {
+    const cfg = window.__SUPABASE__ || {};
+    if (!cfg.url) return 'unconfigured';
+    // A URL but no client: the SDK never loaded (boot()'s catch). This used to
+    // be reported as "no Supabase configuration", which sends the operator to
+    // check an env var that is set.
+    if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
+    return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
+  }
+
+  /**
+   * What this Auth project publishes about its providers.
+   *
+   * GET /auth/v1/settings is public (the same document Sign in with Gmail
+   * reads before it navigates). `external.google === false` is the live
+   * production state on 2026-10-05: GoTrue then answers authorize with
+   * 400 validation_failed "Unsupported provider: provider is not enabled",
+   * and because signInWithOAuth NAVIGATES the person sees that JSON instead
+   * of a sentence. Unreadable settings fail OPEN - a CORS miss, a timeout
+   * or a harness that only answers /health must not block a working project.
+   * Never prefetch /auth/v1/authorize: that call spends the PKCE verifier.
+   */
+  const SETTINGS_CACHE = new Map();
+  function authSettings(url, anonKey) {
+    if (!url) return Promise.resolve(null);
+    const key = String(url);
+    if (SETTINGS_CACHE.has(key)) return SETTINGS_CACHE.get(key);
+    const probe = (async () => {
+      const ctl = new AbortController();
+      const timer = setTimeout(function () { ctl.abort(); }, 4000);
+      try {
+        const res = await fetch(url.replace(/\/+$/, '') + '/auth/v1/settings', {
+          headers: {
+            apikey: anonKey || '',
+            Authorization: 'Bearer ' + (anonKey || ''),
+          },
+          signal: ctl.signal,
+        });
+        if (!res.ok) return null;
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!ct.includes('application/json')) return null;
+        return await res.json();
+      } catch (e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    SETTINGS_CACHE.set(key, probe);
+    return probe;
+  }
+  function googleProviderOff(settings) {
+    if (!settings || typeof settings !== 'object') return false;
+    const ext = settings.external;
+    if (!ext || typeof ext !== 'object') return false;
+    return ext.google === false;
+  }
 
   /**
    * Start Google sign-in, but never hand the browser to a host that is not
-   * there. Resolves to null when the redirect has been started, otherwise to
-   * `{ kind, message, html }` naming the state that refused it. The sentence
-   * is signedOutSentence()'s - the SAME words the standing bar shows for that
-   * state - because two hand-written copies of "the project is gone" had
-   * already drifted: the bar said "most likely deleted, renamed or paused"
-   * (the network cannot tell them apart) and this path said "deleted or
-   * renamed", a claim the code cannot make.
+   * there, or to a project whose Google provider is off. Resolves to null
+   * when the redirect has been started, otherwise to `{ kind, message, html }`
+   * naming the state that refused it. The sentence is signedOutSentence()'s -
+   * the SAME words the standing bar shows for that state - because two
+   * hand-written copies of "the project is gone" had already drifted: the
+   * bar said "most likely deleted, renamed or paused" (the network cannot
+   * tell them apart) and this path said "deleted or renamed", a claim the
+   * code cannot make.
    */
-  // ── DISABLED 2026-09-28: signInRefusal() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function signInRefusal() {
-  //     // Never diagnose a boot still in flight (see authReady). This also covers
-  //     // window.__startGoogleSignIn__, which pages and tests call directly.
-  //     await authReady.promise;
-  //     const kind = await signedOutState();
-  //     if (kind !== 'signed-out') {
-  //       const s = signedOutSentence(kind);
-  //       return { kind: kind, message: s.text, html: s.html };
-  //     }
-  //     rememberReturnTo();
-  //     const { error } = await window.LifecycleAuth.client.auth.signInWithOAuth({
-  //       provider: 'google',
-  //       options: { redirectTo: location.origin + location.pathname },
-  //     });
-  //     if (!error) return null;
-  //     const message = 'Sign-in failed: ' + (error.message || error);
-  //     return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
-  //   }
-  // ── end of disabled signInRefusal()
+  async function signInRefusal() {
+    // Never diagnose a boot still in flight (see authReady). This also covers
+    // window.__startGoogleSignIn__, which pages and tests call directly.
+    await authReady.promise;
+    const kind = await signedOutState();
+    if (kind !== 'signed-out') {
+      const s = signedOutSentence(kind);
+      return { kind: kind, message: s.text, html: s.html };
+    }
+    const cfg = window.__SUPABASE__ || {};
+    const settings = await authSettings(cfg.url, cfg.anonKey);
+    if (googleProviderOff(settings)) {
+      const s = signedOutSentence('provider-off');
+      return { kind: 'provider-off', message: s.text, html: s.html };
+    }
+    rememberReturnTo();
+    const client = window.LifecycleAuth && window.LifecycleAuth.client;
+    if (!(client && client.auth && typeof client.auth.signInWithOAuth === 'function')) {
+      const s = signedOutSentence('sdk');
+      return { kind: 'sdk', message: s.text, html: s.html };
+    }
+    const { error } = await client.auth.signInWithOAuth(googleSignInOptions());
+    if (!error) return null;
+    const message = 'Sign-in failed: ' + (error.message || error);
+    return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
+  }
 
   /** String form of signInRefusal(): '' on success, the sentence on refusal. */
-  // ── DISABLED 2026-09-28: startGoogleSignIn() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   async function startGoogleSignIn() {
-  //     const r = await signInRefusal();
-  //     return r ? r.message : '';
-  //   }
-  // ── end of disabled startGoogleSignIn()
+  async function startGoogleSignIn() {
+    return beginGoogleSignIn(document.getElementById('lifecycle-nav'));
+  }
 
   /**
    * Say why sign-in did not happen, where the user is looking: a note under
@@ -2649,31 +2806,69 @@
    * bar brought back into view (re-shown if it had been dismissed) so the two
    * explanations are visibly the same one.
    */
-  // ── DISABLED 2026-09-28: showSignInRefusal() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function showSignInRefusal(wrap, btn, refusal) {
-  //     btn.textContent = 'Sign-in unavailable';
-  //     btn.title = refusal.message;
-  //     btn.setAttribute('aria-describedby', 'lnav-signin-note');
-  //     let note = wrap.querySelector('#lnav-signin-note');
-  //     if (!note) {
-  //       note = document.createElement('div');
-  //       note.id = 'lnav-signin-note';
-  //       note.className = 'lnav-signin-note';
-  //       note.setAttribute('role', 'alert');
-  //       const footer = btn.closest('.lnav-user') || btn;
-  //       footer.insertAdjacentElement('afterend', note);
-  //     }
-  //     note.setAttribute('data-kind', refusal.kind);
-  //     note.innerHTML = refusal.html;
-  //     if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
-  //     const bar = injectSignedOutNotice(refusal.kind, { force: true });
-  //     if (!bar) return;
-  //     try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
-  //     bar.style.outline = '2px solid var(--vh-warn)';
-  //     bar.style.outlineOffset = '-2px';
-  //     setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
-  //   }
-  // ── end of disabled showSignInRefusal()
+  function showSignInRefusal(wrap, btn, refusal) {
+    btn.textContent = 'Sign-in unavailable';
+    btn.setAttribute('aria-label', 'Sign-in unavailable');
+    btn.title = refusal.message;
+    btn.setAttribute('aria-describedby', 'lnav-signin-note');
+    let note = wrap.querySelector('#lnav-signin-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'lnav-signin-note';
+      note.className = 'lnav-signin-note';
+      note.setAttribute('role', 'alert');
+      const footer = btn.closest('.lnav-user') || btn;
+      footer.insertAdjacentElement('afterend', note);
+    }
+    note.setAttribute('data-kind', refusal.kind);
+    note.innerHTML = refusal.html;
+    if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
+    const bar = injectSignedOutNotice(refusal.kind, { force: true });
+    if (!bar) return;
+    try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
+    bar.style.outline = '2px solid var(--vh-warn)';
+    bar.style.outlineOffset = '-2px';
+    setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
+  }
+
+  /**
+   * The Sign in chip and LifecycleAuth.openSignIn share this. Returns '' when
+   * Google has been asked to take over, otherwise the sentence that refused it.
+   */
+  async function beginGoogleSignIn(root) {
+    const nav = root || document.getElementById('lifecycle-nav');
+    const btn = nav && nav.querySelector('#lnav-signin');
+    if (btn && btn.dataset.busy) return '';
+    if (btn) btn.dataset.busy = '1';
+    try {
+      const waited = !authReady.settled;
+      if (waited && btn) {
+        btn.textContent = 'Checking sign-in…';
+        btn.setAttribute('aria-label', 'Checking sign-in');
+        btn.setAttribute('aria-busy', 'true');
+      }
+      const refusal = await signInRefusal();
+      if (waited && btn) {
+        paintSignInLabel(btn, { force: true });
+        btn.removeAttribute('aria-busy');
+      }
+      if (!refusal) return '';
+      if (btn && nav) showSignInRefusal(nav, btn, refusal);
+      return refusal.message || '';
+    } catch (err) {
+      const message = 'Sign-in failed: ' + ((err && err.message) || err);
+      if (btn && nav) {
+        showSignInRefusal(nav, btn, {
+          kind: 'failed',
+          message: message,
+          html: window.LifecycleFailure.html(err instanceof Error ? err : new Error(message), { title: 'Sign-in failed' }),
+        });
+      }
+      return message;
+    } finally {
+      if (btn) delete btn.dataset.busy;
+    }
+  }
 
   async function getConfig() {
     if (window.__SUPABASE__?.url && window.__SUPABASE__?.anonKey) return window.__SUPABASE__;
@@ -2707,7 +2902,7 @@
 
   /**
    * ONE sentence per signed-out state, keyed by `kind`
-   * (unconfigured | unreachable | sdk | signed-out).
+   * (unconfigured | unreachable | sdk | signed-out | provider-off).
    *
    * Two surfaces explain why sign-in is not happening: the standing bar at the
    * top of every page and the note under the rail's Sign-in button. They were
@@ -2721,30 +2916,37 @@
    * bar has always used, `text` is the same words with no markup.
    */
   function signedOutSentence(kind) {
-    // THREE states someone can fix, not one, and naming the wrong one sends
+    // FOUR states someone can fix, not one, and naming the wrong one sends
     // the reader to check the thing that is not broken. `unconfigured` is a
     // missing env var on the deployment; `unreachable` is a project that no
     // longer answers, and its host is worth printing because that is the value
     // that has to change; `sdk` is the supabase-js CDN not loading;
-    // `signed-out` is the ordinary case where everything works and this
-    // visitor simply has no session.
+    // `provider-off` is a reachable project whose Google provider is disabled
+    // (GoTrue 400 validation_failed); `signed-out` is the ordinary case where
+    // everything works and this visitor simply has no session.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
-    // 2026-09-28: sign-in is a mobile number and a PIN (auth.js's own panel),
-    // so none of these states blocks signing in any more. Each says what the
-    // Supabase state means for DATA on this page, and that sign-in is unaffected.
+    // 2026-10-05: sign-in is Google, and Google needs this Supabase project.
+    // Each state says what is wrong and that the pages stay open.
     var html;
     if (kind === 'sdk') {
       html = '<b>The Supabase library did not load.</b> auth.js loads '
         + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
-        + 'outage will all do this. Every page is still open and usable, and signing in with your mobile '
-        + 'number does not need it; only data a page reads straight from the database is unavailable until '
-        + 'it loads. Retry on a different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
+        + 'outage will all do this. Every page is still open and usable. Sign in with Gmail needs that '
+        + 'library, so it cannot run until it loads. Retry on a different network or allow '
+        + '<code>cdn.jsdelivr.net</code>, then reload.';
     } else if (kind === 'signed-out') {
       html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Sign in with your mobile number and a 4-digit PIN</b> (the Sign in '
+        + 'what this browser holds. <b>Sign in with Gmail</b> (the Sign in with Gmail '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
+    } else if (kind === 'provider-off' && host) {
+      html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
+        + '</code>). Sign in with Gmail cannot start because the Auth server refuses it with '
+        + '<code>validation_failed</code>: provider is not enabled. In the Supabase dashboard open '
+        + '<b>Authentication → Providers → Google</b>, turn the provider on, set the Client ID and '
+        + 'Client Secret from a Google Cloud OAuth web client, and add the Authorized redirect URI '
+        + '<code>https://' + host + '/auth/v1/callback</code>. Then reload. Every page stays open.';
     } else if (kind === 'unreachable' && host) {
       // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
       // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
@@ -2752,15 +2954,14 @@
       html = '<b>Running without a workspace database.</b> The database this deployment points at (<code>' + host
         + '</code>) cannot be reached - its Supabase project has most '
         + 'likely been deleted, renamed or paused, or the self-hosted stack is down. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
-        + 'still works and keeps your brands on this device. Point <code>SUPABASE_URL</code> '
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Gmail needs that '
+        + 'database, so it cannot run until the database answers. Point <code>SUPABASE_URL</code> '
         + 'and <code>SUPABASE_ANON_KEY</code> at a live backend to restore saved work.';
     } else {
       html = '<b>Running without a workspace database.</b> This deployment has no <code>SUPABASE_URL</code> / '
         + '<code>SUPABASE_ANON_KEY</code> set. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
-        + 'still works and keeps your brands on this device. Set them on the deployment to '
-        + 'restore saved work.';
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Gmail needs those '
+        + 'values. Set them on the deployment to restore saved work.';
     }
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
@@ -2781,7 +2982,19 @@
    */
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
-    if (existing) return existing;
+    if (existing) {
+      // Sign-in may learn a more specific state (Google is off) after boot
+      // already painted "signed out". force:true is a request for the
+      // explanation, so the bar's words have to match the chip's.
+      if (opts && opts.force && existing.getAttribute('data-kind') !== kind) {
+        existing.setAttribute('data-kind', kind);
+        var existingTxt = existing.querySelector('#lc-authnotice-text');
+        if (existingTxt) existingTxt.innerHTML = signedOutSentence(kind).html;
+        existing.style.boxShadow = 'inset 0 3px 0 ' + (kind === 'signed-out'
+          ? 'var(--vh-accent)' : 'var(--vh-warn)');
+      }
+      return existing;
+    }
     // Dismissed for this tab? Check before building anything.
     if (!(opts && opts.force)) {
       try { if (sessionStorage.getItem('lc-authnotice-hid')) return null; } catch (e) { /* private mode */ }
@@ -2807,7 +3020,7 @@
       // Being signed out is an ordinary state, not a fault. Only the two
       // states someone has to FIX wear the warning colour.
       'box-shadow:inset 0 3px 0 ' + (kind === 'signed-out'
-        ? 'var(--vh-accent,#6A33D8)' : 'var(--vh-warn,#c9a227)'),
+        ? 'var(--vh-accent)' : 'var(--vh-warn)'),
       'font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)',
       'padding:10px 16px', 'display:flex', 'gap:12px', 'align-items:flex-start',
     ].join(';');
@@ -2949,37 +3162,57 @@
   // ?error=, or an implicit #access_token). During this window we must NOT
   // flash the login wall — detectSessionInUrl is exchanging the code and
   // onAuthStateChange will fire SIGNED_IN momentarily.
-  // ── DISABLED 2026-09-28: oauthCallbackInProgress() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function oauthCallbackInProgress() {
-  //     try {
-  //       const sp = new URLSearchParams(location.search || '');
-  //       if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
-  //       const hash = location.hash || '';
-  //       if (/access_token=|error=/.test(hash)) return true;
-  //     } catch (_) {}
-  //     return false;
-  //   }
-  // ── end of disabled oauthCallbackInProgress()
-  // Remember where the user was so we can send them back after Google bounces
-  // them to the Supabase Site URL (which happens when the exact path is not in
-  // the redirect allow-list).
-  // ── DISABLED 2026-09-28: rememberReturnTo() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function rememberReturnTo() {
-  //     try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
-  //   }
-  // ── end of disabled rememberReturnTo()
-  // ── DISABLED 2026-09-28: restoreReturnTo() - Google/Supabase OAuth sign-in only. Mobile+PIN sign-in (see the block above init) replaced it. Kept for the record, not deleted.
-  //   function restoreReturnTo() {
-  //     let target = null;
-  //     try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
-  //     if (!target) return;
-  //     const targetPath = target.split('?')[0].split('#')[0];
-  //     // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
-  //     if (targetPath && targetPath !== location.pathname) {
-  //       location.replace(target);
-  //     }
-  //   }
-  // ── end of disabled restoreReturnTo()
+  function oauthCallbackInProgress() {
+    try {
+      const sp = new URLSearchParams(location.search || '');
+      if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
+      const hash = location.hash || '';
+      if (/access_token=|error=/.test(hash)) return true;
+    } catch (_) {}
+    return false;
+  }
+  /**
+   * Google OAuth options. redirectTo is ALWAYS the origin root: that is the
+   * Site URL every deployment already allowlists. A per-page pathname 400s
+   * when the wildcard is missing (docs/oauth-redirect-migration.md) and the
+   * person lands on Chrome's error with no in-app sentence. rememberReturnTo
+   * / restoreReturnTo send them back to the page they pressed from.
+   * prompt=select_account is the Gmail picker: without it a browser already
+   * signed into one Google account never offers another.
+   */
+  function googleSignInOptions() {
+    return {
+      provider: 'google',
+      options: {
+        redirectTo: CANONICAL_APP_ORIGIN + '/',
+        queryParams: { prompt: 'select_account' },
+      },
+    };
+  }
+  function sameAppPath(a, b) {
+    const norm = (p) => {
+      p = String(p || '/');
+      if (p === '' || p === '/index.html') return '/';
+      return p;
+    };
+    return norm(a) === norm(b);
+  }
+  function rememberReturnTo() {
+    try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
+  }
+  function restoreReturnTo() {
+    let target = null;
+    try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
+    if (!target || !target.startsWith('/') || target.startsWith('//')) return;
+    if (new URL(target, location.origin).origin !== location.origin) return;
+    const targetPath = target.split('?')[0].split('#')[0];
+    // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
+    // `/` and `/index.html` are the same app page: a bounce between them after
+    // the Site-URL callback would loop.
+    if (targetPath && !sameAppPath(targetPath, location.pathname)) {
+      location.replace(target);
+    }
+  }
 
   /* ═══════════════════════════════════════════════════════════════════════════
      SIGN IN / SIGN UP WITH A MOBILE NUMBER AND A 4-DIGIT PIN (2026-09-28)
@@ -3662,7 +3895,7 @@
       (btn.closest('.lnav-user') || btn).insertAdjacentElement('afterend', note);
     }
     note.setAttribute('data-kind', 'expired');
-    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with your mobile number and PIN.';
+    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with Gmail.';
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
   }
 
@@ -3869,9 +4102,34 @@
     return panel;
   }
 
+  function clearGoogleAccountCache() {
+    try { window.BrandContext?.clearCache?.(); } catch (_) {}
+    try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
+  }
+
+  /** A Google session is the sign-in. The access token is the Supabase JWT. */
+  function applySupabaseUser(session) {
+    if (!session || !session.user) return;
+    if (window.LifecycleAuth.user && window.LifecycleAuth.user.id !== session.user.id) clearGoogleAccountCache();
+    window.LifecycleAuth.session = session;
+    window.LifecycleAuth.user = session.user;
+    applyAccessMode(session.user);
+    setBackendState('signed-in', { supabase: 'reachable' });
+    removeLoginWall();
+    removeSigningInOverlay();
+    const bar = document.getElementById('lc-authnotice');
+    if (bar) bar.remove();
+    setRailUser(session.user);
+  }
+  /** Google's JWT when that is the session; a stored phone token otherwise. */
+  function sessionApiToken() {
+    const s = window.LifecycleAuth && window.LifecycleAuth.session;
+    if (s && s.access_token && s.provider !== 'mobile-pin') return s.expires_at && s.expires_at * 1000 <= Date.now() ? '' : s.access_token;
+    return mauthApiToken();
+  }
+
   async function init() {
-    // 2026-09-28: the Google guard's direct entry point is gone with the guard.
-    // window.__startGoogleSignIn__ = startGoogleSignIn;
+    window.__startGoogleSignIn__ = startGoogleSignIn;
     window.LifecycleAuth = {
       client: null,
       session: null,
@@ -3882,23 +4140,27 @@
       // `backendState()` resolves on the first one, whichever it is.
       backend: backendSnapshot('pending'),
       backendState: () => backendFirst,
-      // Mobile number + PIN (2026-09-28): open the inline panel on this page;
-      // the token the SERVER can check (server mode only, '' otherwise); and
-      // the rules, exposed so the parity test can hold this copy to the
-      // server's. `status()` answers where accounts are saved right now.
-      openSignIn: (opts) => mauthOpenPanel(null, opts),
+      ready: () => authReady.promise,
+      // Google is the sign-in (2026-10-05). openPanel remains for a stored
+      // phone session's own panel; the Sign in chip does not call it.
+      openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
+      googleSignInOptions,
+      restoreReturnTo,
       // Why an action that needs the server cannot run right now, or null.
       // See serverActions(): pages ask BEFORE sending, and throw the answer.
       serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),
-      apiToken: mauthApiToken,
+      apiToken: sessionApiToken,
       mobile: {
         SESSION_KEY: MAUTH_SESSION_KEY, USERS_KEY: MAUTH_USERS_KEY,
         rules: { PIN_LEN: MAUTH.PIN_LEN, WEAK_PINS: MAUTH.WEAK_PINS.slice(), MAX_TRIES: MAUTH.MAX_TRIES, LOCK_MINUTES: MAUTH.LOCK_MINUTES, SESSION_DAYS: MAUTH.SESSION_DAYS, DEFAULT_CC: MAUTH.DEFAULT_CC, PHONE_CC: MAUTH.PHONE_CC, normPhone: mauthNormPhone, phoneError: mauthPhoneError, pinError: mauthPinError },
         status: mauthStatus,
         deviceEnter: mauthDeviceEnter,
+        openPanel: (opts) => mauthOpenPanel(null, opts),
       },
       signOut: async () => {
-        // if (window.LifecycleAuth.client) await window.LifecycleAuth.client.auth.signOut();   // DISABLED 2026-09-28: there is no Supabase session to end
+        try {
+          if (window.LifecycleAuth.client && window.LifecycleAuth.client.auth) await window.LifecycleAuth.client.auth.signOut();
+        } catch (_) { /* the session is dropped from this browser either way */ }
         await mauthSignOut();
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
@@ -3965,25 +4227,56 @@
         }
         if (isOpenPage()) { injectTopbar(null); setBackendState('unconfigured'); return; }
         // NO WORKSPACE DATABASE AT ALL. The app runs on whatever local state it
-        // has, and SAYS so. Signing in with a mobile number still works: the
-        // account goes to the Neon database when DATABASE_URL is set, else to
-        // this device.
+        // has, and SAYS so. Google sign-in needs that database, so the notice
+        // names the missing values and the pages stay open.
         injectTopbar(null);
         injectSignedOutNotice('unconfigured');
         setBackendState('unconfigured');
         return;
       }
     } else {
-      // AN ANONYMOUS CLIENT ONLY (2026-09-28). A few pages read anon-open
-      // tables through it; it never holds a session. persistSession:false so a
-      // Supabase session left in localStorage from before this change is not
-      // read back, detectSessionInUrl:false so an OAuth callback is inert.
+      // The client holds the Google session (2026-10-05). persistSession reads
+      // it back on the next page; detectSessionInUrl exchanges the OAuth code.
       const sdk = await loadSupabaseSDK();
       const client = sdk.createClient(config.url, config.anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
       });
       window.LifecycleAuth.client = client;
       supabaseState = (await authHostReachable(config.url)) ? 'reachable' : 'unreachable';
+      if (client.auth && typeof client.auth.onAuthStateChange === 'function') {
+        client.auth.onAuthStateChange((_event, sess) => {
+          if (sess && sess.user) {
+            applySupabaseUser(sess);
+            restoreReturnTo();
+            return;
+          }
+          // A null session from the SDK must not sign out a stored phone account.
+          if (window.LifecycleAuth.session && window.LifecycleAuth.session.provider === 'mobile-pin') return;
+          if (window.LifecycleAuth.user) {
+            clearGoogleAccountCache();
+            window.LifecycleAuth.session = null;
+            window.LifecycleAuth.user = null;
+            applyAccessMode(null);
+            setRailUser(null);
+            void gateSignedOut();
+          }
+        });
+      }
+      if (oauthCallbackInProgress()) injectSigningInOverlay();
+      let googleSession = null;
+      try {
+        if (client.auth && typeof client.auth.getSession === 'function') {
+          const got = await client.auth.getSession();
+          googleSession = got && got.data && got.data.session;
+        }
+      } catch (_) { googleSession = null; }
+      if (googleSession && googleSession.user) {
+        applySupabaseUser(googleSession);
+        authReady.settle();
+        restoreReturnTo();
+        return;
+      }
+      removeSigningInOverlay();
     }
 
     // A SERVER-MODE SESSION IS CHECKED WITH THE DATABASE, every boot. Three
@@ -4062,7 +4355,7 @@
     } else {
       await gateSignedOut();
     }
-    client.auth.onAuthStateChange(async (_event, sess) => {
+    client.auth.onAuthStateChange((_event, sess) => {
       window.LifecycleAuth.session = sess;
       window.LifecycleAuth.user = sess?.user || null;
       applyAccessMode(sess?.user || null);

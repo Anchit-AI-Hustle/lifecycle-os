@@ -120,8 +120,12 @@
     var SHIPPED = window.LIFECYCLE_ANALYTICS || null;
     window.LIFECYCLE_ANALYTICS = { markets: {}, currency: {}, __pending: true };
     window.__restoreAnalytics = function (brand) {
-      var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
-      var isOwner = !brand || brand.is_default || slug === 'knickgasm';
+      var isOwner = !brand || (brand.is_default === true && !brand.id);
+      try {
+        if (brand && window.BrandContext && typeof window.BrandContext.isTenantZero === 'function') {
+          isOwner = !!window.BrandContext.isTenantZero(brand);
+        }
+      } catch (_) { if (brand) isOwner = false; }
       if (isOwner && SHIPPED) { window.LIFECYCLE_ANALYTICS = SHIPPED; return true; }
       return false;
     };

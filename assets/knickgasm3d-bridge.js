@@ -98,7 +98,21 @@ async function fetchTimeout(url, opts, ms) {
   finally { clearTimeout(t); }
 }
 
+function shippedCatalogAllowed() {
+  // The built files and knickgasm.com feeds are one brand's catalogue. A
+  // signed-out preview keeps them (there is no other brand on screen). Any
+  // active brand that the server has not marked tenant zero gets nothing
+  // from here: BrandCatalog is the door for that brand's own rows.
+  try {
+    const B = window.BrandContext;
+    if (!B || !B.brand) return true;
+    if (typeof B.isTenantZero === 'function') return !!B.isTenantZero(B.brand);
+  } catch (_) {}
+  return false;
+}
+
 async function loadCatalog(region) {
+  if (!shippedCatalogAllowed()) return [];
   const store = STORE[region] || STORE.us;
   // 1) Same-origin built catalog (CORS-enabled, fast, no cross-origin risk).
   try {

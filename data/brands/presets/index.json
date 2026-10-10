@@ -45,6 +45,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Montserrat",
       "body_font": "Instrument Sans",
       "heading_stack": "'Montserrat','Raleway',Arial,sans-serif",
@@ -53,8 +56,10 @@
       "body_google": true,
       "heading_line": "Montserrat",
       "body_line": "Instrument Sans",
+      "logo_url": "https://knickgasm.com/cdn/shop/files/knick_black.svg?v=1731481332",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -108,6 +113,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Montserrat",
       "body_font": "Faustina",
       "heading_stack": "'Montserrat',Verdana,Arial,sans-serif",
@@ -116,8 +124,10 @@
       "body_google": true,
       "heading_line": "Montserrat",
       "body_line": "Faustina",
+      "logo_url": "https://img.etimg.com/photo/msid-74451948,quality-100/et-logo.jpg",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -172,6 +182,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
@@ -180,8 +193,10 @@
       "body_google": true,
       "heading_line": "Rethink Sans",
       "body_line": "Rethink Sans",
+      "logo_url": "https://static.toiimg.com/photo/79638690.cms",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -236,6 +251,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "Rethink Sans",
       "body_font": "Rethink Sans",
       "heading_stack": "'Rethink Sans',-apple-system,BlinkMacSystemFont,Arial,sans-serif",
@@ -244,8 +262,10 @@
       "body_google": true,
       "heading_line": "Rethink Sans",
       "body_line": "Rethink Sans",
+      "logo_url": "https://static.toiimg.com/photo/123402429.cms",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": true,
@@ -300,6 +320,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": true,
+      "identity_sources": [],
       "heading_font": "SF Pro Display",
       "body_font": "SF Pro Text",
       "heading_stack": "'SF Pro Display','SF Pro Text',-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif",
@@ -308,8 +331,10 @@
       "body_google": false,
       "heading_line": "SF Pro Display (brand font, shown in fallback)",
       "body_line": "SF Pro Text (brand font, shown in fallback)",
+      "logo_url": "",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -331,55 +356,64 @@
       "label": "Nike",
       "sector": "Sportswear",
       "blurb": "Global sportswear. Template for a drop-led lifecycle: launch, restock and franchise anniversaries.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.nike.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.nike.com refused an automated read (blocked); read the brand's own https://about.nike.com/en in Chromium 148.0.7778.96 on 2026-10-05. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div.css-1g29ua3:nth-of-type(2) > div.css-1ncvbdy > ul.css-1ael3wi > li.css-1swgu3s:nth-of-type(1) > a.css-lpu0nl-f-ui-3). Headings FuturaNike, body Helvetica Neue, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
         "#111111",
-        "#FFFFFF"
+        "#111111",
+        "#333333",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#111111",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#333333",
+          "derived": true,
+          "exact": "#808080"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "about.nike.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://about.nike.com/en",
+          "kind": "page",
+          "what": "Nike, Inc. corporate site"
+        },
+        {
+          "url": "https://about.nike.com/en/newsroom",
+          "kind": "page",
+          "what": "Nike newsroom"
+        }
+      ],
+      "heading_font": "FuturaNike",
+      "body_font": "Helvetica Neue",
+      "heading_stack": "'FuturaNike','FuturaNike',sans-serif",
+      "body_stack": "'Helvetica Neue','Helvetica Neue','Helvetica',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.nike.com",
-        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
-      },
-      "read_note": "www.nike.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "FuturaNike (brand font, shown in fallback)",
+      "body_line": "Helvetica Neue (system font)",
+      "logo_url": "https://about.nike.com/apple-touch-icon.png",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "Monochrome: www.nike.com renders no brand colour beyond black and white, so the primary is the #111111 of its call to action. www.nike.com refused an automated read (blocked); these values come from the brand's own about.nike.com.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -431,6 +465,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.adidas-group.com/en/",
+          "kind": "page",
+          "what": "adidas Group corporate site"
+        },
+        {
+          "url": "https://report.adidas-group.com/",
+          "kind": "page",
+          "what": "adidas Group annual report"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -439,13 +487,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://report.adidas-group.com/2025/en/_assets/images/favicon-96x96.png",
       "read_attempt": {
-        "renderer": "timeout",
-        "at": "2026-10-04",
-        "host": "www.adidas.com",
-        "reason": "The site could not be opened: timed out."
+        "renderer": "rendered",
+        "at": "2026-10-05",
+        "host": "report.adidas-group.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www.adidas.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "report.adidas-group.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: www.adidas-group.com (timeout), report.adidas-group.com (rendered).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -483,12 +533,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#191919",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -500,6 +544,15 @@
           "exact": ""
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://about.puma.com/en",
+          "kind": "page",
+          "what": "PUMA corporate site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -508,8 +561,10 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://us.puma.com/assets/apple-touch-icon-152x152.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "Monochrome: www.puma.com renders no brand colour beyond black and white, so the primary is the #191919 of its call to action.",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -560,55 +615,64 @@
       "label": "New Balance",
       "sector": "Sportswear",
       "blurb": "Footwear. Template for a width and fit driven catalogue with long-running silhouettes.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.newbalance.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.newbalance.com refused an automated read (blocked); read the brand's own https://jobs.newbalance.com/global/en in Chromium 148.0.7778.96 on 2026-10-05. Primary #cf0a2c from logo pixels as rendered (100% of its coloured pixels); exact value #cf0a2c as the site declares it (--brand-color-primary as computed on :root), which the logo's pixels (#d02030) agree with (div.phw-pt-3.phw-pb-3 > div.phw-c-e6588c8f-logos-block.phw-s-logos-block:nth-of-type(1) > div.phw-c-e6588c8f-logo-block.phw-d-lg-none:nth-of-type(1) > a.phw-pr-1 > img.phw-c-e6588c8f-header-logo.phw-header-logo). Agreed by token, icon. Headings ITCGaramondStd-BkCond, body ITCGaramondStd-BkCond, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#cf0a2c",
+        "#cf0a2c",
+        "#680516",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#cf0a2c",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#680516",
+          "derived": true,
+          "exact": ""
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "jobs.newbalance.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://jobs.newbalance.com/global/en",
+          "kind": "page",
+          "what": "New Balance careers site"
+        },
+        {
+          "url": "https://www.newbalance.com/about-us.html",
+          "kind": "page",
+          "what": "New Balance about page"
+        }
+      ],
+      "heading_font": "ITCGaramondStd-BkCond",
+      "body_font": "ITCGaramondStd-BkCond",
+      "heading_stack": "'ITCGaramondStd-BkCond',sans-serif",
+      "body_stack": "'ITCGaramondStd-BkCond',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.newbalance.com",
-        "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-      },
-      "read_note": "www.newbalance.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "ITCGaramondStd-BkCond (brand font, shown in fallback)",
+      "body_line": "ITCGaramondStd-BkCond (brand font, shown in fallback)",
+      "logo_url": "https://cdn.phenompeople.com/CareerConnectResources/NEBAGLOBAL/images/nblogo-1768415616024.png",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.newbalance.com refused an automated read (blocked); these values come from the brand's own jobs.newbalance.com.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -660,6 +724,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.zara.com/us/",
+          "kind": "page",
+          "what": "Zara US store front"
+        },
+        {
+          "url": "https://www.zara.com/es/en/",
+          "kind": "page",
+          "what": "Zara Spain store front (English)"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -668,13 +746,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "",
       "read_attempt": {
         "renderer": "blocked",
-        "at": "2026-10-04",
+        "at": "2026-10-05",
         "host": "www.zara.com",
         "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.zara.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.zara.com blocked an automated read on 2026-10-05.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -727,6 +807,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://hmgroup.com/brands/",
+          "kind": "page",
+          "what": "H&M Group brands page"
+        },
+        {
+          "url": "https://hmgroup.com/about-us/",
+          "kind": "page",
+          "what": "H&M Group about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -735,13 +829,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://hmgroup.com/wp-content/uploads/2025/01/hm-group-fav-ico-400x400.png",
       "read_attempt": {
-        "renderer": "timeout",
-        "at": "2026-10-04",
-        "host": "www2.hm.com",
-        "reason": "The site could not be opened: timed out."
+        "renderer": "rendered",
+        "at": "2026-10-05",
+        "host": "hmgroup.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www2.hm.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "hmgroup.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: hmgroup.com (rendered).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -761,37 +857,50 @@
       "label": "Uniqlo",
       "sector": "Fashion retail",
       "blurb": "Apparel. Template for a core-basics catalogue with recurring seasonal ranges.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.uniqlo.com.",
-      "palette_source": "default",
+      "verified_at": "2026-10-05",
+      "source": "www.uniqlo.com refused an automated read (timeout); read the brand's own https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png in Chromium on 2026-10-05. Primary #ff0000 from the brand's own logo file, its pixels (100% of its coloured pixels).",
+      "palette_source": "verified",
       "typography_source": "default",
-      "needs_extraction": true,
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#ff0000",
+        "#ff0000",
+        "#340000",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#ff0000",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": ""
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#340000",
+          "derived": true,
+          "exact": ""
+        }
+      ],
+      "read_from": [
+        "www.uniqlo.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.uniqlo.com/jp/cs/img/UNIQLOIQlogo2.png",
+          "kind": "image",
+          "what": "UNIQLO logo file"
+        },
+        {
+          "url": "https://faq-uk.uniqlo.com/",
+          "kind": "page",
+          "what": "UNIQLO UK help site"
         }
       ],
       "heading_font": "system-ui",
@@ -802,14 +911,11 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "timeout",
-        "at": "2026-10-04",
-        "host": "www.uniqlo.com",
-        "reason": "The site could not be opened: timed out."
-      },
-      "read_note": "www.uniqlo.com did not answer an automated read within its time limit on 2026-10-04.",
-      "renderer": null,
+      "logo_url": "",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.uniqlo.com refused an automated read (timeout); these values come from the brand's own www.uniqlo.com.",
+      "renderer": "timeout",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -828,55 +934,63 @@
       "label": "Levi's",
       "sector": "Fashion retail",
       "blurb": "Denim. Template for a fit-and-size led catalogue with a strong core range.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.levi.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.levi.com refused an automated read (blocked); read the brand's own https://www.levi.com/US/en_US/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #c41320 from logo mark paint as rendered (100% of its coloured area) (svg#svg-title--levi-logo-v-0). Agreed by icon. Headings DenimINK-Regular, body DenimINK-Regular, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#c41320",
+        "#c41320",
+        "#000000",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#c41320",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
+          "value": "#000000",
           "derived": false
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "www.levi.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.levi.com/US/en_US/",
+          "kind": "page",
+          "what": "Levi's US store front"
+        },
+        {
+          "url": "https://www.levistrauss.com/",
+          "kind": "page",
+          "what": "Levi Strauss & Co. corporate site (linked from levi.com)"
+        }
+      ],
+      "heading_font": "DenimINK-Regular",
+      "body_font": "DenimINK-Regular",
+      "heading_stack": "'DenimINK-Regular','Arial',sans-serif",
+      "body_stack": "'DenimINK-Regular','Arial',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.levi.com",
-        "reason": "www.levi.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-      },
-      "read_note": "www.levi.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "DenimINK-Regular (brand font, shown in fallback)",
+      "body_line": "DenimINK-Regular (brand font, shown in fallback)",
+      "logo_url": "https://www.levi.com/ngsa/favicon/apple-touch-icon.png",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.levi.com refused an automated read (blocked); these values come from the brand's own www.levi.com.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -928,6 +1042,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://jobs.myntra.com/favicon.png",
+          "kind": "image",
+          "what": "Myntra careers icon"
+        },
+        {
+          "url": "https://jobs.myntra.com/home",
+          "kind": "page",
+          "what": "Myntra careers site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -936,13 +1064,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://jobs.myntra.com/favicon.png",
       "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.myntra.com",
-        "reason": "www.myntra.com served a maintenance page page instead of the site (a page titled \"Site Maintenance\", whose first heading reads \"Oops! Something went wrong\", carrying 0 link(s) and 77 characters of text). Nothing was read from it."
+        "renderer": "rendered",
+        "at": "2026-10-05",
+        "host": "jobs.myntra.com",
+        "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
       },
-      "read_note": "www.myntra.com blocked an automated read on 2026-10-04.",
+      "read_note": "jobs.myntra.com was read on 2026-10-05, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header. Its own other material was tried too: jobs.myntra.com (image), jobs.myntra.com (rendered), www.myntra.com (unavailable).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -997,6 +1127,15 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://stories.flipkart.com/",
+          "kind": "page",
+          "what": "Flipkart Stories, the company's own news site"
+        }
+      ],
       "heading_font": "inter_bold",
       "body_font": "inter_regular",
       "heading_stack": "'inter_bold',sans-serif",
@@ -1005,8 +1144,10 @@
       "body_google": false,
       "heading_line": "inter_bold (brand font, shown in fallback)",
       "body_line": "inter_regular (brand font, shown in fallback)",
+      "logo_url": "https://static-assets-web.flixcart.com/apex-static/images/fk-lite-assets/app-icons/app-icon_512x512.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1058,55 +1199,59 @@
       "label": "Amazon",
       "sector": "Marketplace",
       "blurb": "General marketplace. Template for a subscription plus replenishment lifecycle.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.amazon.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "Rendered https://www.amazon.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #ff6200 from logo pixels as rendered (100% of its coloured pixels) (a#nav-logo-sprites > span.nav-sprite.nav-logo-base:nth-of-type(1)). Agreed by icon. Headings Amazon Ember Modern Display, body Arial, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#ff6200",
+        "#ff6200",
+        "#2c2c2c",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#ff6200",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#2c2c2c",
+          "derived": true,
+          "exact": "#dddddd"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "www.amazon.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.aboutamazon.com/",
+          "kind": "page",
+          "what": "About Amazon, the company's own news site (linked from amazon.com)"
+        }
+      ],
+      "heading_font": "Amazon Ember Modern Display",
+      "body_font": "Arial",
+      "heading_stack": "'Amazon Ember Modern Display','Amazon Ember','Arial',sans-serif",
+      "body_stack": "'Arial',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "rendered",
-        "at": "2026-10-04",
-        "host": "www.amazon.com",
-        "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
-      },
-      "read_note": "www.amazon.com was read on 2026-10-04, and the rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.",
-      "renderer": null,
+      "heading_line": "Amazon Ember Modern Display (brand font, shown in fallback)",
+      "body_line": "Arial (system font)",
+      "logo_url": "https://www.amazon.com/favicon.ico",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "",
+      "renderer": "rendered",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -1159,6 +1304,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Inter",
       "body_font": "Inter",
       "heading_stack": "'Inter','Roboto','Arial',sans-serif",
@@ -1167,8 +1315,10 @@
       "body_google": false,
       "heading_line": "Inter (brand font, shown in fallback)",
       "body_line": "Inter (brand font, shown in fallback)",
+      "logo_url": "https://images-static.naikaa.com/media/wysiwyg/uiTools/2024-3/beauty.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1252,6 +1402,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-192x192.png",
+          "kind": "image",
+          "what": "Sephora newsroom icon"
+        },
+        {
+          "url": "https://newsroom.sephora.com/",
+          "kind": "page",
+          "what": "Sephora newsroom"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1260,13 +1424,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://newsroom.sephora.com/wp-content/uploads/2022/05/cropped-favicon-180x180.png",
       "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.sephora.com",
-        "reason": "www.sephora.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+        "renderer": "rendered",
+        "at": "2026-10-05",
+        "host": "newsroom.sephora.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www.sephora.com blocked an automated read on 2026-10-04.",
+      "read_note": "newsroom.sephora.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1.01:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: newsroom.sephora.com (image), newsroom.sephora.com (rendered).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1320,6 +1486,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.loreal.com/en/mediaroom/",
+          "kind": "page",
+          "what": "L'Oreal Groupe mediaroom"
+        },
+        {
+          "url": "https://careers.loreal.com/",
+          "kind": "page",
+          "what": "L'Oreal Groupe careers site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1328,13 +1508,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://cdn.radancy.eu/company/3456/img/logo/logo-loreal-groupe.svg",
       "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.loreal.com",
-        "reason": "www.loreal.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"L'Oréal Groupe, the most innovative and caring company\", whose first heading reads \"Life Is Too Short For a Boring Career\"). Nothing was read from it."
+        "renderer": "rendered",
+        "at": "2026-10-05",
+        "host": "careers.loreal.com",
+        "reason": "the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www.loreal.com blocked an automated read on 2026-10-04.",
+      "read_note": "careers.loreal.com was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: careers.loreal.com (rendered), www.loreal.com (unavailable), www.loreal.com (image).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1372,12 +1554,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#00aeef",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -1388,6 +1564,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Open Sans",
       "body_font": "Open Sans",
       "heading_stack": "'Open Sans',sans-serif",
@@ -1396,8 +1575,10 @@
       "body_google": false,
       "heading_line": "Open Sans (brand font, shown in fallback)",
       "body_line": "Open Sans (brand font, shown in fallback)",
+      "logo_url": "https://mamaearth.in/cdn/shop/files/Logo.png?v=1772919457&width=164",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1448,55 +1629,58 @@
       "label": "boAt",
       "sector": "Consumer electronics",
       "blurb": "D2C audio and wearables. Template for a launch and accessory attach lifecycle.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.boat-lifestyle.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "Rendered https://www.boat-lifestyle.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #bc0016 from the brand's logo shown on its own page (\"Business_Standard //www.boat-lifestyle.com/cdn/shop/files/Business_Sta\") (div#MultiCarousel_press1 > div.custom_press_slider.MultiCarousel-inner > div.item:nth-of-type(3) > div.press-logos:nth-of-type(2) > img.press-list__logo-image). Headings Metropolis, body Metropolis, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#bc0016",
+        "#bc0016",
+        "#4e5358",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#bc0016",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
+          "value": "#4e5358",
           "derived": false
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "www.boat-lifestyle.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.boat-lifestyle.com/pages/contact-us",
+          "kind": "page",
+          "what": "boAt contact page"
+        }
+      ],
+      "heading_font": "Metropolis",
+      "body_font": "Metropolis",
+      "heading_stack": "'Metropolis',sans-serif",
+      "body_stack": "'Metropolis',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "rendered",
-        "at": "2026-10-04",
-        "host": "www.boat-lifestyle.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
-      },
-      "read_note": "www.boat-lifestyle.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands).",
-      "renderer": null,
+      "heading_line": "Metropolis (brand font, shown in fallback)",
+      "body_line": "Metropolis (brand font, shown in fallback)",
+      "logo_url": "https://www.boat-lifestyle.com/cdn/shop/files/32x32_256x256.png_32x32_2d0995d9-ec86-4c14-b928-71101777194c_96x96.png?v=1647426716",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "",
+      "renderer": "rendered",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -1533,12 +1717,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#4d4d4d",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -1550,6 +1728,15 @@
           "exact": ""
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.lenskart.com/about-us",
+          "kind": "page",
+          "what": "Lenskart about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1558,8 +1745,10 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://assets.lenskart.com/images/2026/01/14/Vector-3.svg",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1607,59 +1796,68 @@
       "name": "Samsung",
       "tagline": "",
       "industry": "Consumer technology",
-      "website": "https://www.samsung.com",
+      "website": "https://www.samsung.com/us/",
       "label": "Samsung",
       "sector": "Consumer technology",
       "blurb": "Consumer electronics. Template for a flagship launch plus trade-in programme.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.samsung.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "Rendered https://www.samsung.com/us/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #008aff from the brand's own logo file, its pixels (100% of its coloured pixels) on https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png. Headings SamsungOne, body SamsungOne, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#008aff",
+        "#008aff",
+        "#000000",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#008aff",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
+          "value": "#000000",
           "derived": false
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "resources.samsung.com",
+        "www.samsung.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png",
+          "kind": "image",
+          "what": "Samsung site icon"
+        },
+        {
+          "url": "https://www.samsung.com/us/about-us/brand-identity/",
+          "kind": "page",
+          "what": "Samsung brand identity"
+        }
+      ],
+      "heading_font": "SamsungOne",
+      "body_font": "SamsungOne",
+      "heading_stack": "'SamsungOne','arial',sans-serif",
+      "body_stack": "'SamsungOne','arial',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "rendered",
-        "at": "2026-10-04",
-        "host": "www.samsung.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
-      },
-      "read_note": "www.samsung.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's)).",
-      "renderer": null,
+      "heading_line": "SamsungOne (brand font, shown in fallback)",
+      "body_line": "SamsungOne (brand font, shown in fallback)",
+      "logo_url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/app_ico.png",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "",
+      "renderer": "rendered",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -1696,12 +1894,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#0078d4",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -1712,6 +1904,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "segoeui",
       "body_font": "segoeui",
       "heading_stack": "'segoeui','Helvetica Neue','helvetica','arial',sans-serif",
@@ -1720,8 +1915,10 @@
       "body_google": false,
       "heading_line": "segoeui (brand font, shown in fallback)",
       "body_line": "segoeui (brand font, shown in fallback)",
+      "logo_url": "https://uhf.microsoft.com/images/microsoft/RE1Mu3b.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -1806,6 +2003,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.sony.co.jp/en/favicon.ico",
+          "kind": "image",
+          "what": "Sony Group icon"
+        },
+        {
+          "url": "https://www.sony.co.jp/en/",
+          "kind": "page",
+          "what": "Sony Group global site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -1814,13 +2025,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "https://www.sony.co.jp/en/favicon.ico",
       "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.sony.com",
-        "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+        "renderer": "rendered",
+        "at": "2026-10-05",
+        "host": "www.sony.co.jp",
+        "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.11:1 against the page, a tint of the page that cannot carry buttons or bands)"
       },
-      "read_note": "www.sony.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.sony.co.jp was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.11:1 against the page, a tint of the page that cannot carry buttons or bands). Its own other material was tried too: www.sony.co.jp (image), www.sony.co.jp (rendered).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -1840,55 +2053,69 @@
       "label": "Tesla",
       "sector": "Automotive",
       "blurb": "Automotive. Template for a considered high-value purchase with a long consideration window.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.tesla.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.tesla.com refused an automated read (blocked); read the brand's own https://www.tesla.cn/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #cc0000 from msapplication-TileColor the page declares (meta[name=msapplication-TileColor]). Agreed by icon. Headings Universal Sans Display, body Universal Sans Display, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#cc0000",
+        "#3e6ae1",
+        "#171a20",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#cc0000",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#3e6ae1",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#171a20",
+          "derived": true,
+          "exact": ""
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "www.tesla.cn"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/favicon-196x196.png",
+          "kind": "image",
+          "what": "Tesla icon"
+        },
+        {
+          "url": "https://www.tesla.cn/",
+          "kind": "page",
+          "what": "Tesla China site"
+        }
+      ],
+      "heading_font": "Universal Sans Display",
+      "body_font": "Universal Sans Display",
+      "heading_stack": "'Universal Sans Display','PingFang SC','Microsoft YaHei',-apple-system,'Arial',sans-serif",
+      "body_stack": "'Universal Sans Display','PingFang SC','Microsoft YaHei',-apple-system,'Arial',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.tesla.com",
-        "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-      },
-      "read_note": "www.tesla.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "Universal Sans Display (brand font, shown in fallback)",
+      "body_line": "Universal Sans Display (brand font, shown in fallback)",
+      "logo_url": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/apple-touch-icon-152x152.png",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.tesla.com refused an automated read (blocked); these values come from the brand's own www.tesla.cn.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -1908,55 +2135,65 @@
       "label": "BMW",
       "sector": "Automotive",
       "blurb": "Automotive. Template for a dealer-assisted funnel and a servicing lifecycle.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.bmw.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.bmw.com refused an automated read (timeout); read the brand's own https://www.bmwgroup.com/en.html in Chromium 148.0.7778.96 on 2026-10-05. Primary #0066b1 from the brand's own logo file, its pixels (100% of its coloured pixels). Headings BMWGroupTNCondensedProTT-Light, body BMWGroupTNProTT-Regular, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#0066b1",
+        "#0066b1",
+        "#000000",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#0066b1",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": "#000000"
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#000000",
+          "derived": true,
+          "exact": "#000000"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "www.bmwgroup.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+          "kind": "image",
+          "what": "BMW roundel"
+        },
+        {
+          "url": "https://www.bmwgroup.com/en.html",
+          "kind": "page",
+          "what": "BMW Group corporate site"
+        }
+      ],
+      "heading_font": "BMWGroupTNCondensedProTT-Light",
+      "body_font": "BMWGroupTNProTT-Regular",
+      "heading_stack": "'BMWGroupTNCondensedProTT-Light','Tahoma','Geneva',sans-serif",
+      "body_stack": "'BMWGroupTNProTT-Regular','Arial','Helvetica',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "timeout",
-        "at": "2026-10-04",
-        "host": "www.bmw.com",
-        "reason": "The site could not be opened: timed out."
-      },
-      "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "BMWGroupTNCondensedProTT-Light (brand font, shown in fallback)",
+      "body_line": "BMWGroupTNProTT-Regular (brand font, shown in fallback)",
+      "logo_url": "https://www.bmwgroup.com/content/dam/grpw/websites/common/grpw-favicon.ico",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.bmw.com refused an automated read (timeout); these values come from the brand's own www.bmwgroup.com.",
+      "renderer": "timeout",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -1976,55 +2213,63 @@
       "label": "Toyota",
       "sector": "Automotive",
       "blurb": "Automotive. Template for a model-year calendar plus after-sales servicing.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.toyota.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.toyota.com refused an automated read (blocked); read the brand's own https://brand.toyota.com/guidelines/visual/brand-colors in Chromium 148.0.7778.96 on 2026-10-05. Primary #eb0a1e from logo pixels as rendered (100% of its coloured pixels) (nav.component-track-input.aa-brandhub-header > div.tmna-nav-container-fluid.container-fluid > div.header__top:nth-of-type(1) > a.tmna-nav-brand.navbar-brand > img.tmna-nav-brand-logo.brand-logo:nth-of-type(1)). Agreed by icon, action. Headings toyotaType-Book, body toyotaType-Book, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#eb0a1e",
+        "#eb0a1e",
+        "#000000",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#eb0a1e",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
+          "value": "#ffffff",
           "derived": false
         },
         {
           "role": "ink",
-          "value": "#111111",
+          "value": "#000000",
           "derived": false
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "brand.toyota.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://brand.toyota.com/guidelines/visual/brand-colors",
+          "kind": "page",
+          "what": "Toyota brand guidelines: brand colours"
+        },
+        {
+          "url": "https://pressroom.toyota.com/",
+          "kind": "page",
+          "what": "Toyota newsroom"
+        }
+      ],
+      "heading_font": "toyotaType-Book",
+      "body_font": "toyotaType-Book",
+      "heading_stack": "'toyotaType-Book','Arial',sans-serif",
+      "body_stack": "'toyotaType-Book','Arial',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "www.toyota.com",
-        "reason": "www.toyota.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"New Cars, Trucks, SUVs & Hybrids | Toyota Official Site\"). Nothing was read from it."
-      },
-      "read_note": "www.toyota.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "toyotaType-Book (brand font, shown in fallback)",
+      "body_line": "toyotaType-Book (brand font, shown in fallback)",
+      "logo_url": "https://brand.toyota.com/content/dam/brandhub/VIS_toyota_logo_horiz_black_RGB_2021.svg",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.toyota.com refused an automated read (blocked); these values come from the brand's own brand.toyota.com.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -2062,12 +2307,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#006341",
-          "derived": true,
-          "exact": "#008248"
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -2079,6 +2318,9 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "SoDoSans",
       "body_font": "SoDoSans",
       "heading_stack": "'SoDoSans','Helvetica Neue','Helvetica','Arial',sans-serif",
@@ -2087,8 +2329,10 @@
       "body_google": false,
       "heading_line": "SoDoSans (brand font, shown in fallback)",
       "body_line": "SoDoSans (brand font, shown in fallback)",
+      "logo_url": "https://www.starbucks.com/apple-touch-icon.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2173,6 +2417,25 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://corporate.mcdonalds.com/corpmcd/our-stories/media-assets-library/logos.html",
+          "kind": "page",
+          "what": "McDonald's media assets: logos"
+        },
+        {
+          "url": "https://corporate.mcdonalds.com/corpmcd/home.html",
+          "kind": "page",
+          "what": "McDonald's corporate site"
+        },
+        {
+          "url": "https://careers.mcdonalds.com/",
+          "kind": "page",
+          "what": "McDonald's careers site"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2181,13 +2444,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "",
       "read_attempt": {
         "renderer": "blocked",
-        "at": "2026-10-04",
+        "at": "2026-10-05",
         "host": "www.mcdonalds.com",
         "reason": "www.mcdonalds.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.mcdonalds.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.mcdonalds.com blocked an automated read on 2026-10-05. Its own other material was tried too: corporate.mcdonalds.com (blocked), careers.mcdonalds.com (blocked).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2226,12 +2491,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#ea0000",
-          "derived": true,
-          "exact": "#ffffff"
-        },
-        {
           "role": "surface",
           "value": "#eeeeee",
           "derived": false
@@ -2242,6 +2501,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TCCC-UnityText",
       "body_font": "TCCC-UnityText",
       "heading_stack": "'TCCC-UnityText',sans-serif",
@@ -2250,8 +2512,10 @@
       "body_google": false,
       "heading_line": "TCCC-UnityText (brand font, shown in fallback)",
       "body_line": "TCCC-UnityText (brand font, shown in fallback)",
+      "logo_url": "https://www.coca-cola.com/content/dam/onexp/global/icons/Coke-company-logo-black.svg",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2335,6 +2599,20 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.nestle.com/media",
+          "kind": "page",
+          "what": "Nestle media page"
+        },
+        {
+          "url": "https://www.nestle.com/about",
+          "kind": "page",
+          "what": "Nestle about page"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2343,13 +2621,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "",
       "read_attempt": {
         "renderer": "blocked",
-        "at": "2026-10-04",
+        "at": "2026-10-05",
         "host": "www.nestle.com",
         "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.nestle.com blocked an automated read on 2026-10-04.",
+      "read_note": "www.nestle.com blocked an automated read on 2026-10-05.",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2369,55 +2649,75 @@
       "label": "Netflix",
       "sector": "Streaming",
       "blurb": "Streaming. Template for a renewal, win-back and churn-risk lifecycle.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.netflix.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "www.netflix.com refused an automated read (blocked); read the brand's own https://jobs.netflix.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #b1060f from the brand's logo shown on its own page (\"netflix N logo /_next/image?url=%2Fimages%2Flogomark.png&w=256&q=75 ht\") (body > div:nth-of-type(6) > div:nth-of-type(1) > div > img). Agreed by icon. Headings Netflix Sans, body Netflix Sans, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#b1060f",
+        "#e50914",
+        "#080202",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#b1060f",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#e50914",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": "#080202"
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#080202",
+          "derived": true,
+          "exact": "#080202"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "jobs.netflix.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.netflix.com/login",
+          "kind": "page",
+          "what": "Netflix sign-in page"
+        },
+        {
+          "url": "https://jobs.netflix.com/",
+          "kind": "page",
+          "what": "Netflix jobs site"
+        },
+        {
+          "url": "https://brand.netflix.com/en/",
+          "kind": "page",
+          "what": "Netflix brand site"
+        }
+      ],
+      "heading_font": "Netflix Sans",
+      "body_font": "Netflix Sans",
+      "heading_stack": "'Netflix Sans',sans-serif",
+      "body_stack": "'Netflix Sans',sans-serif",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "timeout",
-        "at": "2026-10-04",
-        "host": "www.netflix.com",
-        "reason": "The site could not be opened: timed out."
-      },
-      "read_note": "www.netflix.com did not answer an automated read within its time limit on 2026-10-04.",
-      "renderer": null,
+      "heading_line": "Netflix Sans (brand font, shown in fallback)",
+      "body_line": "Netflix Sans (brand font, shown in fallback)",
+      "logo_url": "https://jobs.netflix.com/svg/logo.svg",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "www.netflix.com refused an automated read (blocked); these values come from the brand's own jobs.netflix.com.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -2437,55 +2737,71 @@
       "label": "Spotify",
       "sector": "Streaming",
       "blurb": "Audio streaming. Template for a free-to-paid upgrade and retention programme.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.spotify.com.",
-      "palette_source": "default",
-      "typography_source": "default",
-      "needs_extraction": true,
+      "verified_at": "2026-10-05",
+      "source": "Rendered https://open.spotify.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #1ed760 from the brand's logo shown on its own page (\"https://developer-assets.spotifycdn.com/images/guidelines/design/logo.\") (main#main > div.sc-7eae9c62-0.iIIOGP > div.sc-2b38a360-0.sc-7a43f055-3 > p.e-10202-text.encore-text-body-medium:nth-of-type(38) > img.e-10202-legacy-image.e-10202-legacy-image--fluid) on https://developer.spotify.com/documentation/design. Agreed by icon. Headings SpotifyMixUI, body SpotifyMixUI, as rendered.",
+      "palette_source": "verified",
+      "typography_source": "verified",
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#1ed760",
+        "#1ed760",
+        "#121212",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#1ed760",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": "#121212"
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#121212",
+          "derived": true,
+          "exact": "#121212"
         }
       ],
-      "heading_font": "system-ui",
-      "body_font": "system-ui",
-      "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
-      "body_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "read_from": [
+        "developer.spotify.com",
+        "www.spotify.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://developer.spotify.com/images/favicon.png",
+          "kind": "image",
+          "what": "Spotify developer-site icon"
+        },
+        {
+          "url": "https://developer.spotify.com/documentation/design",
+          "kind": "page",
+          "what": "Spotify design and branding guidelines"
+        },
+        {
+          "url": "https://newsroom.spotify.com/",
+          "kind": "page",
+          "what": "Spotify newsroom"
+        }
+      ],
+      "heading_font": "SpotifyMixUI",
+      "body_font": "SpotifyMixUI",
+      "heading_stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
+      "body_stack": "'SpotifyMixUI','CircularSp-Arab','CircularSp-Hebr','CircularSp-Cyrl','CircularSp-Grek','CircularSp-Deva'",
       "heading_google": false,
       "body_google": false,
-      "heading_line": "system-ui (system font)",
-      "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "rendered",
-        "at": "2026-10-04",
-        "host": "open.spotify.com",
-        "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands)"
-      },
-      "read_note": "open.spotify.com was read on 2026-10-04, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.12:1 against the page, a tint of the page that cannot carry buttons or bands).",
-      "renderer": null,
+      "heading_line": "SpotifyMixUI (brand font, shown in fallback)",
+      "body_line": "SpotifyMixUI (brand font, shown in fallback)",
+      "logo_url": "https://open.spotifycdn.com/cdn/images/favicon32.b64ecc03.png",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "",
+      "renderer": "rendered",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -2523,12 +2839,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#ff385c",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -2540,6 +2850,9 @@
           "exact": "#ffffff"
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "Airbnb Cereal VF",
       "body_font": "Airbnb Cereal VF",
       "heading_stack": "'Airbnb Cereal VF','Circular',-apple-system,BlinkMacSystemFont,'Roboto','Helvetica Neue'",
@@ -2548,8 +2861,10 @@
       "body_google": false,
       "heading_line": "Airbnb Cereal VF (brand font, shown in fallback)",
       "body_line": "Airbnb Cereal VF (brand font, shown in fallback)",
+      "logo_url": "https://a0.muscache.com/airbnb/static/icons/apple-touch-icon-180x180-bcbe0e3960cd084eb8eaf1353cf3c730.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2633,6 +2948,25 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://www.makemytrip.com/flights/",
+          "kind": "page",
+          "what": "MakeMyTrip flights page"
+        },
+        {
+          "url": "https://careers.makemytrip.com/",
+          "kind": "page",
+          "what": "MakeMyTrip careers site"
+        },
+        {
+          "url": "https://investors.makemytrip.com/",
+          "kind": "page",
+          "what": "MakeMyTrip investor relations"
+        }
+      ],
       "heading_font": "system-ui",
       "body_font": "system-ui",
       "heading_stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
@@ -2641,13 +2975,15 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
+      "logo_url": "",
       "read_attempt": {
         "renderer": "timeout",
-        "at": "2026-10-04",
+        "at": "2026-10-05",
         "host": "www.makemytrip.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-04.",
+      "read_note": "www.makemytrip.com did not answer an automated read within its time limit on 2026-10-05. Its own other material was tried too: careers.makemytrip.com (timeout), investors.makemytrip.com (timeout).",
+      "palette_note": "",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2686,12 +3022,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#533afd",
-          "derived": true,
-          "exact": ""
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -2702,6 +3032,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "sohne-var",
       "body_font": "sohne-var",
       "heading_stack": "'sohne-var','SF Pro Display',sans-serif",
@@ -2710,8 +3043,10 @@
       "body_google": false,
       "heading_line": "sohne-var (brand font, shown in fallback)",
       "body_line": "sohne-var (brand font, shown in fallback)",
+      "logo_url": "https://images.stripeassets.com/fzn2n1nzq965/4vVgZi0ZMoEzOhkcv7EVwK/8cce6fdcf2733b2ec8e99548908847ed/favicon.png?w=180&h=180",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2796,6 +3131,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TASA Orbiter Display SemiBold",
       "body_font": "Inter",
       "heading_stack": "'TASA Orbiter Display SemiBold','TASA Orbiter Display SemiBold Placeholder',sans-serif",
@@ -2804,8 +3142,10 @@
       "body_google": false,
       "heading_line": "TASA Orbiter Display SemiBold (brand font, shown in fallback)",
       "body_line": "Inter (brand font, shown in fallback)",
+      "logo_url": "https://framerusercontent.com/images/CU1m0xFonUl76ZeaW0IdkQ0M.png",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,
@@ -2857,37 +3197,50 @@
       "label": "Paytm",
       "sector": "Fintech",
       "blurb": "Consumer payments. Template for a transaction-frequency and reactivation programme.",
-      "verified_at": null,
-      "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://paytm.com.",
-      "palette_source": "default",
+      "verified_at": "2026-10-05",
+      "source": "paytm.com refused an automated read (blocked); read the brand's own https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg in Chromium on 2026-10-05. Primary #00baf2 from the brand's own logo file, its pixels (72% of its coloured pixels) on https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg.",
+      "palette_source": "verified",
       "typography_source": "default",
-      "needs_extraction": true,
+      "needs_extraction": false,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
-        "#111111",
-        "#FFFFFF"
+        "#00baf2",
+        "#00baf2",
+        "#003849",
+        "#ffffff"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
-          "derived": false
-        },
-        {
-          "role": "accent",
-          "value": "#5A5A5A",
+          "value": "#00baf2",
           "derived": false
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "#ffffff",
+          "derived": true,
+          "exact": ""
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "#003849",
+          "derived": true,
+          "exact": ""
+        }
+      ],
+      "read_from": [
+        "pwebassets.paytm.com"
+      ],
+      "hand_verified": false,
+      "identity_sources": [
+        {
+          "url": "https://pwebassets.paytm.com/commonwebassets/paytmweb/footer/images/paytmLogo.svg",
+          "kind": "image",
+          "what": "Paytm logo file"
+        },
+        {
+          "url": "https://paytm.com/about-us",
+          "kind": "page",
+          "what": "Paytm about page"
         }
       ],
       "heading_font": "system-ui",
@@ -2898,14 +3251,11 @@
       "body_google": false,
       "heading_line": "system-ui (system font)",
       "body_line": "system-ui (system font)",
-      "read_attempt": {
-        "renderer": "blocked",
-        "at": "2026-10-04",
-        "host": "paytm.com",
-        "reason": "paytm.com served a bot wall page instead of the site (a Cloudflare bot challenge (Cloudflare), a page titled \"Paytm: Secure & Fast UPI Payments, Recharge Mobile & Pay Bills\", whose first heading reads \"Paytm - India's Most Trusted Platform for BHIM UPI Payments, Money Transfers, Recharges, and other online payments\"). Nothing was read from it."
-      },
-      "read_note": "paytm.com blocked an automated read on 2026-10-04.",
-      "renderer": null,
+      "logo_url": "",
+      "read_attempt": null,
+      "read_note": "",
+      "palette_note": "paytm.com refused an automated read (blocked); these values come from the brand's own pwebassets.paytm.com.",
+      "renderer": "blocked",
       "regression": null,
       "has_catalog": false,
       "catalog_kind": "placeholder",
@@ -2943,12 +3293,6 @@
           "derived": false
         },
         {
-          "role": "accent",
-          "value": "#d40000",
-          "derived": true,
-          "exact": "#e3e5ff"
-        },
-        {
           "role": "surface",
           "value": "#ffffff",
           "derived": false
@@ -2959,6 +3303,9 @@
           "derived": false
         }
       ],
+      "read_from": [],
+      "hand_verified": false,
+      "identity_sources": [],
       "heading_font": "TondoBold",
       "body_font": "Tondo",
       "heading_stack": "'TondoBold',sans-serif",
@@ -2967,8 +3314,10 @@
       "body_google": false,
       "heading_line": "TondoBold (brand font, shown in fallback)",
       "body_line": "Tondo (brand font, shown in fallback)",
+      "logo_url": "https://assets.airtel.in/static-assets/new-home/img/favicon.ico",
       "read_attempt": null,
       "read_note": "",
+      "palette_note": "",
       "renderer": "rendered",
       "regression": {
         "ok": true,

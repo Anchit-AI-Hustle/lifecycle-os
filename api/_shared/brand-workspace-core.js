@@ -153,7 +153,7 @@ async function verifyCaller(req) {
       message: 'You are not signed in, so this could not be saved to your account. '
         + (v.reason === 'no_database'
           ? 'A sign-in kept on this device only cannot be checked by the server.'
-          : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
+          : 'Your sign-in has expired or was signed out. Sign in again with Gmail.'),
       hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
       mobile_reason: v.reason,
     };
@@ -653,10 +653,10 @@ function tokens(brand) {
   const p = normalizePalette((brand && brand.palette) || {});
   const primary = p.primary || '#6A33D8';
   const accent = p.accent || primary;
-  const ink = p.ink || '#111111';
+  const requestedInk = p.ink || '#111111';
   const surface = p.surface || '#F7F5F2';
   const surfaceAlt = p.surface_alt || shade(surface, 0.6);
-  const muted = p.muted || shade(ink, 0.35);
+  const muted = p.muted || shade(requestedInk, 0.35);
   // Text tokens are measured against the WORST-CASE surface they can land
   // on, not the lightest. A brand's page surface is often a tint while its
   // cards are white, and the shared rail is tinted too; a colour tuned
@@ -664,7 +664,13 @@ function tokens(brand) {
   // nav group labels were landing at 3.6:1. Whichever of the two the brand
   // colour reads worse on is the one that has to pass.
   const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+  // Brand records created before contrast validation may contain pale ink on
+  // a pale surface. Keep their chosen palette when possible, but always paint
+  // readable body copy while the record is repaired in Brand & Credits.
+  const inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
+  const ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
   const t = brand && brand.typography ? brand.typography : {};
+  const states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
 
   return Object.assign({
     '--brand-primary': primary,
@@ -693,13 +699,76 @@ function tokens(brand) {
     '--brand-surface-alt': surfaceAlt,
     '--brand-line': shade(ink, 0.84),
     '--brand-line-strong': shade(ink, 0.68),
-    '--brand-ok': p.ok || '#1a7f37',
-    '--brand-warn': p.warn || '#c9a227',
-    '--brand-err': p.err || '#c0392b',
+    '--brand-ok': states.ok,
+    '--brand-warn': states.warn,
+    '--brand-err': states.err,
     '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
     '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
     '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-  }, componentTokens(brand));
+  }, contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states }), componentTokens(brand));
+}
+
+/**
+ * The Lifecycle OS design-system contract's DERIVED tokens (2026-10-05,
+ * design/lifecycle-os/CONTRACT.md). Each answers a question a page used to
+ * answer by eye, which is where every unreadable pairing in this app came from:
+ *
+ *   --brand-band / --brand-on-band     a brand-coloured SECTION ground, through
+ *     sectionGround() so it is never a dark neutral, and the text on it through
+ *     textOn() at TEXT_AA. A page that wants a brand band paints THIS, never
+ *     --brand-primary directly: a brand whose primary is near-black would
+ *     otherwise get a black section, which is a HARD rule.
+ *   --brand-band-accent / --brand-on-band-accent   the same for the accent.
+ *   --brand-{ok,warn,err}-text   a state colour used AS TEXT (a failure tag, a
+ *     status word). The raw state colours are fills and edges; the default
+ *     warn is 2.3:1 on white and fails as text for every brand.
+ *   --brand-focus   the focus ring, at the 3:1 non-text minimum against the
+ *     worst surface. A pale accent as a raw outline is invisible.
+ *
+ * brand-context.js carries the same function for the device path, and the
+ * device/server parity test diffs every key.
+ */
+function contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states }) {
+  const band = normHex(sectionGround(primary, accent, surface)) || '#ffffff';
+  const bandAccent = normHex(sectionGround(accent, primary, surface)) || '#ffffff';
+  const text = {
+    ink,
+    muted: readableAsText(muted || shade(ink, 0.35), worstSurface, TEXT_AA),
+    primary: readableAsText(primary, worstSurface, TEXT_AA),
+    accent: readableAsText(accent, worstSurface, TEXT_AA),
+    ok: readableAsText(states.ok, worstSurface, TEXT_AA),
+    warn: readableAsText(states.warn, worstSurface, TEXT_AA),
+    err: readableAsText(states.err, worstSurface, TEXT_AA),
+  };
+  return {
+    '--brand-surface-sunken': sunkenSurface(surface, surfaceAlt, Object.values(text)),
+    '--brand-band': band,
+    '--brand-on-band': textOn(band, surface, ink, TEXT_AA),
+    '--brand-band-accent': bandAccent,
+    '--brand-on-band-accent': textOn(bandAccent, surface, ink, TEXT_AA),
+    '--brand-ok-text': readableAsText(states.ok, worstSurface, TEXT_AA),
+    '--brand-warn-text': readableAsText(states.warn, worstSurface, TEXT_AA),
+    '--brand-err-text': readableAsText(states.err, worstSurface, TEXT_AA),
+    '--brand-focus': readableAsText(accent, worstSurface, 3),
+  };
+}
+
+/**
+ * The SUNKEN panel ground (status line, failure frame, notice bar, the mark's
+ * tile): the darker of the two surfaces, darkened only as far as every text
+ * token still clears 4.5:1 on it. It used to be the literal #f5f5f5 for every
+ * brand, which sits 0.1% of luminance below the TEXT_AA headroom: a text token
+ * tuned to exactly 4.9 on white measures 4.49 on it. Stepped at 0.5%, capped at
+ * 4%; when even the surface itself is the floor, the panel is not sunk at all.
+ */
+function sunkenSurface(surface, surfaceAlt, textColours) {
+  const base = luminance(surface) <= luminance(surfaceAlt || surface) ? surface : surfaceAlt;
+  let best = normHex(base) || '#ffffff';
+  for (let t = 0.005; t <= 0.0401; t += 0.005) {
+    const c = shade(base, -t);
+    if (textColours.every((x) => contrast(x, c) >= 4.5)) best = c; else break;
+  }
+  return best;
 }
 
 /**
@@ -2674,7 +2743,7 @@ module.exports = {
   sectionGround, textOn,
   TEXT_AA,
   // brand
-  normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, fontsHref,
+  normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, contractTokens, fontsHref,
   readiness, launchMarker, shellPayload, slugify, DEFAULT_BRAND,
   // catalog
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,

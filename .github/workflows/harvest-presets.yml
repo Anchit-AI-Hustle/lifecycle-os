@@ -26,13 +26,17 @@
 #                      every PR that touched the reader (#131 got 5c06501)
 #                      carried a data commit its author never asked for, and
 #                      that bot push produced `action_required` runs.
-#   workflow_dispatch  READ, THEN PUBLISH - from the default branch only. The
-#                      regenerated data is committed onto a branch of its own,
+#   workflow_dispatch  READ, THEN PUBLISH on a branch of its own,
 #                      `claude/harvest-presets-<run id>` (no Vercel preview:
-#                      vercel.json deploymentEnabled), and a PR is opened for
-#                      it. Never onto an existing branch. Dispatched on any
-#                      other branch it reads and reports, and says why it did
-#                      not publish.
+#                      vercel.json deploymentEnabled). Never onto an existing
+#                      branch. From the default branch a PR is opened for it.
+#                      Dispatched on any other branch (a PR changing the
+#                      reader, which must carry the data its reader produced)
+#                      the data branch is pushed and NO PR is opened: the
+#                      dispatching branch takes the data from there. Before
+#                      2026-10-05 such a dispatch published nothing, and the
+#                      only copy of what it read was an artifact a reviewer's
+#                      sandbox could not download.
 #
 # THE BOT'S COMMIT CARRIES [skip ci]. GitHub then starts no push or
 # pull_request run for it - no `action_required` entries on the commit - and
@@ -64,6 +68,8 @@ on:
       - scripts/build-brand-presets.js
       - api/_shared/brand-render.js
       - api/_shared/render-*.js
+      - api/_shared/identity-signals.js
+      - scripts/lib/brand-ownership.js
       - .github/workflows/harvest-presets.yml
 
 permissions:
@@ -79,7 +85,9 @@ jobs:
   harvest:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # Forty home pages (a timed-out one tried twice) plus each brand's own
+    # identity sources, four at a time.
+    timeout-minutes: 110
     permissions:
       contents: read
     env:
@@ -123,12 +131,18 @@ jobs:
       - name: Read each brand's own site
         if: steps.gate.outputs.skip != 'true'
         run: |
+          # The harvest's own budget (it is not a serverless function):
+          # 150 s per read, 30 s for a first document, a timed-out read tried
+          # once more, each identity source 75 s.
           node scripts/harvest-presets.js \
             --slugs "$SLUGS" \
             --artifacts harvest-artifacts \
-            --concurrency 3 \
-            --deadline-ms 110000 \
-            --max-pages 2
+            --concurrency 4 \
+            --deadline-ms 150000 \
+            --source-deadline-ms 75000 \
+            --retries 1 \
+            --max-pages 2 \
+            --verbose
 
       - name: Regenerate the presets from what was read
         if: steps.gate.outputs.skip != 'true'
@@ -140,7 +154,7 @@ jobs:
           npm run brand:check
           npm run build
           npm run test:isolation
-          npx playwright test tests/brand-presets.spec.js tests/preset-harvest.spec.js --project=desktop-1280 --reporter=line
+          npx playwright test tests/brand-presets.spec.js tests/preset-harvest.spec.js tests/preset-identity-sources.spec.js --project=desktop-1280 --reporter=line
 
       - name: Before / after
         if: always() && steps.gate.outputs.skip != 'true'
@@ -228,9 +242,11 @@ jobs:
             echo "Only a dispatched harvest publishes; this was $EVENT. Nothing committed."
             exit 0
           fi
+          # From the default branch the data branch gets a PR. From any other
+          # branch it is pushed for that branch to take, and no PR is opened.
+          open_pr=true
           if [ "$REF" != "$BASE" ]; then
-            echo "::notice::Dispatched on $REF, not $BASE: read and reported only. Nothing is committed onto an existing branch; the data is in this run's preset-data artifact."
-            exit 0
+            open_pr=false
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -245,6 +261,11 @@ jobs:
           git commit -q -m "Starter brands read from their own rendered sites ($today) [skip ci]" \
             -m "Written by .github/workflows/harvest-presets.yml run $RUN_ID through api/_shared/brand-render.js readSite. Blocked, timed-out and unavailable reads keep the neutral default and record why. [skip ci]: no run starts for this commit; CI starts on the next commit a person pushes."
           git push origin "HEAD:refs/heads/$branch"
+          if [ "$open_pr" != "true" ]; then
+            echo "::notice::Dispatched on $REF, not $BASE: published on $branch only. No PR was opened and no existing branch moved; $REF takes the data from $branch."
+            echo "Published on \`$branch\` for \`$REF\` (no PR)." >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+            exit 0
+          fi
           url="$(gh api -X POST "repos/$REPO/pulls" \
             -f title="Starter brands read from their own rendered sites ($today)" \
             -f head="$branch" \

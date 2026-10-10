@@ -63,6 +63,7 @@ function siteCrawl() { return require('./site-crawl.js'); }
 function stab() { return require('./render-stabilise.js'); }
 function extract() { return require('./brand-extract.js'); }
 function core() { return require('./brand-workspace-core.js'); }
+function identity() { return require('./identity-signals.js'); }
 
 /** The parser's own page ranking, so both readers prefer the same pages. */
 function pageRank(u) { return extract().pageRank(u); }
@@ -154,8 +155,11 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
   const page = await context.newPage();
   const left = () => ctx.deadline - Date.now();
   try {
-    page.setDefaultTimeout(Math.max(2000, Math.min(DEFAULTS.navMs, left())));
-    const resp = await withTimeout(page.goto(url, { waitUntil: 'domcontentloaded' }), Math.min(DEFAULTS.navMs, left()), `opening ${url}`);
+    // A caller with its own budget (the preset harvest, which runs on CI and
+    // not inside a function's time limit) may give the navigation longer.
+    const navMs = Number(ctx.navMs) > 0 ? Number(ctx.navMs) : DEFAULTS.navMs;
+    page.setDefaultTimeout(Math.max(2000, Math.min(navMs, left())));
+    const resp = await withTimeout(page.goto(url, { waitUntil: 'domcontentloaded' }), Math.min(navMs, left()), `opening ${url}`);
     await page.waitForLoadState('load', { timeout: Math.max(500, Math.min(8000, left() - 2000)) }).catch(() => {});
     // The ONE frozen state (render-stabilise.js), the same one our clone is
     // measured in: network idle and fonts (bounded), motion zeroed, consent
@@ -184,7 +188,7 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
     // fallback (one brand's own DIN read as system-ui). Every family the
     // measured text asks for is loaded and CONFIRMED first, bounded.
     const facesWaited = await ensureFaces(page, Math.max(500, Math.min(8000, left() - 6000)));
-    const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40, consent: stab().CONSENT }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
+    const data = await withTimeout(page.evaluate(capture.capturePage, { cssNames: cssNamesFrom(ctx.ledger.css), maxImages: 40, consent: stab().CONSENT, contentLogoName: ctx.contentLogoName || '' }), Math.max(1000, Math.min(15000, left())), 'measuring the page');
     data.faces_waited = facesWaited;
     data.__viewport = label;
     data.stabilised = stabilised;
@@ -195,6 +199,16 @@ async function capturePageAt(context, url, ctx, { viewport, label, states }) {
       logo: '[data-lcos-role="logo"]', 'nav-link': '[data-lcos-role="nav-link"]',
     }).catch(() => ({}));
     data.status = resp ? resp.status() : 0;
+    // The logo's PIXELS, as drawn: a raster logo, a CSS-sprite logo and an SVG
+    // whose shapes live in an external sprite all paint their colours here.
+    if (data.roles && data.roles.logo) {
+      const png = await page.locator('[data-lcos-role="logo"]').first().screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
+      data.roles.logo.pixels = identity().pixelColours(png, data.roles.logo.ground);
+    }
+    for (const cl of data.content_logos || []) {
+      const png = await page.locator(`[data-lcos-content-logo="${cl.n}"]`).first().screenshot({ animations: 'disabled', timeout: 3000 }).catch(() => null);
+      cl.pixels = identity().pixelColours(png, cl.ground);
+    }
     // Interaction states, read AFTER the state is applied, with transitions
     // switched off so the final state is what is read.
     const st = {};
@@ -303,6 +317,14 @@ function src(capt, role, viewport, property, selector) {
   return { page: capt && capt.url, role, selector: selector || '', viewport, property, signal: 'computed' };
 }
 
+/**
+ * A token named for ANOTHER company's brand (`--brand-facebook: #3b5998`,
+ * `--color-brand-linkedin`) is that network's colour, declared for a share
+ * button: never this brand's identity. One careers site's tokens offered
+ * seven social networks' colours as "brand" colours.
+ */
+const SOCIAL_TOKEN = /(?:^|[-_])(facebook|fb|twitter|linkedin|instagram|insta|pinterest|youtube|yt|whatsapp|google|tiktok|snapchat|reddit|vk|vkontakte|telegram|tumblr|xing|weibo|wechat|line|discord|github|apple|amazon|paypal|spotify|x-twitter)(?:$|[-_])/i;
+
 /** Identity candidates, in the order the rule ranks them. */
 function identityCandidates(desk, manifestThemeColor) {
   const bx = extract();
@@ -328,14 +350,14 @@ function identityCandidates(desk, manifestThemeColor) {
   const stepped = new Map();
   const plain = [];
   for (const [name, v] of Object.entries(desk.custom_properties || {})) {
-    if (!v.hex || bx.tokenNameRole(name) !== 'identity') continue;
+    if (!v.hex || bx.tokenNameRole(name) !== 'identity' || SOCIAL_TOKEN.test(name)) continue;
     const m = /^(.*?)[-_](\d{1,4})$/.exec(name);
     if (m) { const fam = m[1]; if (!stepped.has(fam)) stepped.set(fam, []); stepped.get(fam).push({ name, v, step: +m[2] }); } else plain.push({ name, v });
   }
   const scaleNotes = [];
   const ordered = [];
   for (const [name, v] of Object.entries(desk.custom_properties || {})) {
-    if (!v.hex || bx.tokenNameRole(name) !== 'identity') continue;
+    if (!v.hex || bx.tokenNameRole(name) !== 'identity' || SOCIAL_TOKEN.test(name)) continue;
     const m = /^(.*?)[-_](\d{1,4})$/.exec(name);
     const members = m ? stepped.get(m[1]) : null;
     if (!members || members.length < 2) { ordered.push({ name, v, signal: `${name} as computed on :root${v.inline ? ' (set at runtime by script)' : ''}` }); continue; }
@@ -368,6 +390,130 @@ function identityCandidates(desk, manifestThemeColor) {
 
 function deltaE(a, b) { return require('./render-regression.js').deltaE2000(a, b); }
 
+/**
+ * The identity signals the MARK and the site's own declarations give, beyond
+ * the ones identityCandidates() reads: the logo's paint (inline SVG, by area),
+ * the logo's pixels (a raster, a CSS sprite, an external SVG sprite), a logo
+ * set as text, the pinned-tab mask-icon colour, the tile colour (meta and
+ * browserconfig.xml), the manifest's background_color and the site icons'
+ * pixels. Each carries `kind` (identity-signals.js KINDS) and its source.
+ * A mark that is black/white/grey is recorded as NEUTRAL and never proposed;
+ * a mark of several colours none of which dominates proposes nothing.
+ * `decl`: { browserconfig: {url, tile_color}, manifest: {url, background_color},
+ * icons: [{ url, rel, pixels }] } - what readRendered fetched beside the page.
+ */
+function markCandidates(desk, decl) {
+  const id = identity();
+  const out = [];
+  const notes = [];
+  const d = decl || {};
+  const logo = desk.roles && desk.roles.logo;
+  const push = (kind, value, signal, source, extra) => {
+    const v = core().normHex(value);
+    if (!v) return;
+    // A favicon generator's DEFAULT (RealFaviconGenerator writes mask-icon
+    // #5bbad5 and TileColor #da532c unless told otherwise) is a value nobody
+    // at the brand chose: not a declaration. One brand's pinned-tab colour was
+    // exactly #5bbad5 and it became its "primary".
+    if ((kind === 'mask-icon' || kind === 'tile-color') && id.GENERATOR_DEFAULTS.has(v.toLowerCase())) {
+      notes.push(`The ${kind === 'mask-icon' ? 'mask-icon colour' : 'tile colour'} ${v.toLowerCase()} is a favicon generator's default, not a colour the brand declared; it is not used.`);
+      return;
+    }
+    // A near-black mark (as dark as body text) reads as the brand's dark ink
+    // as much as its colour: kept, below a brighter colour the site declares.
+    const k = /^logo-(svg|image)$/.test(kind) && id.chromatic(v) && id.lumOf(v) < 0.02 ? 'logo-dark' : kind;
+    out.push(Object.assign({ value: v.toLowerCase(), kind: k, signal: k === 'logo-dark' ? `${signal}; near-black, so a brighter colour the site declares outranks it` : signal, role: 'identity', neutral: !id.chromatic(v), source }, extra || {}));
+  };
+  if (logo) {
+    const sel = logo.selector;
+    if (logo.kind === 'svg' && (logo.paints || []).length) {
+      const v = id.markIdentity(logo.paints);
+      if (v.verdict === 'colour') push('logo-svg', v.hex, `logo mark paint as rendered (${Math.round(v.share_of_chromatic * 100)}% of its coloured area)`, src(desk, 'logo', 'desktop', 'fill', sel), { mark: v });
+      else if (v.verdict === 'neutral') notes.push(`The logo mark paints ${v.hex}, a neutral: recorded, never proposed as the brand colour.`);
+      else if (v.verdict === 'multicolour') notes.push(`The logo mark paints several colours (${v.colours.join(', ')}) and none dominates, so it proposes no single brand colour.`);
+    }
+    // A wordmark set as TEXT is read by its text colour below; its pixels are
+    // glyph edges on a ground, not an image's colours.
+    if ((logo.pixels || []).length && logo.kind !== 'text') {
+      const v = id.markIdentity(logo.pixels);
+      if (v.verdict === 'colour') push('logo-image', v.hex, `logo pixels as rendered (${Math.round(v.share_of_chromatic * 100)}% of its coloured pixels)`, src(desk, 'logo', 'desktop', 'pixels', sel), { mark: v });
+      else if (v.verdict === 'neutral' && logo.kind !== 'svg') notes.push(`The logo's pixels are ${v.hex}, a neutral: recorded, never proposed as the brand colour.`);
+      else if (v.verdict === 'multicolour' && logo.kind !== 'svg') notes.push(`The logo's pixels show several colours (${v.colours.join(', ')}) and none dominates, so it proposes no single brand colour.`);
+    }
+    // A logo set as TEXT: only a link that names itself a logo or brand, or
+    // is set large, is a wordmark - a plain "Home" link is navigation.
+    if (logo.kind === 'text' && logo.type && logo.type.color && (logo.named || (logo.type.size || 0) >= 20)) {
+      push('logo-text', logo.type.color, 'logo set as text, its colour as rendered', src(desk, 'logo', 'desktop', 'color', sel));
+    }
+  }
+  // The main heading set in a chromatic colour (one brand sets every heading
+  // in its navy while its header and buttons are grey). Neutral: nothing.
+  const rd = desk.roles || {};
+  const head = (rd.headings && rd.headings.h1) || rd.display || null;
+  const headColour = head && head.type && head.type.color;
+  if (headColour && id.chromatic(headColour)) push('heading-text', headColour, 'main heading text colour as rendered', src(desk, rd.headings && rd.headings.h1 ? 'h1' : 'display heading', 'desktop', 'color', head.selector));
+  for (const cl of desk.content_logos || []) {
+    const v = id.markIdentity((cl.paints || []).length ? cl.paints : (cl.pixels || []));
+    if (v.verdict === 'colour') push('logo-image', v.hex, `the brand's logo shown on its own page ("${String(cl.label).slice(0, 70)}")`, src(desk, 'content logo', 'desktop', (cl.paints || []).length ? 'fill' : 'pixels', cl.selector), { mark: v });
+  }
+  for (const i of (desk.assets && desk.assets.icons) || []) {
+    if (/mask-icon/i.test(i.rel || '') && i.color) push('mask-icon', identityHex(i.color), 'mask-icon colour the site declares (link rel=mask-icon color)', { page: desk.url, role: 'mask-icon', selector: 'link[rel=mask-icon]', viewport: '', property: 'color', signal: 'declared' });
+  }
+  if (desk.meta && desk.meta.tile_color) push('tile-color', desk.meta.tile_color, 'msapplication-TileColor the page declares', src(desk, 'tile colour', 'desktop', 'content', 'meta[name=msapplication-TileColor]'));
+  if (d.browserconfig && d.browserconfig.tile_color) push('tile-color', d.browserconfig.tile_color, 'TileColor in the browserconfig.xml the site declares', { page: d.browserconfig.url, role: 'browserconfig', selector: 'TileColor', viewport: '', property: 'TileColor', signal: 'declared' });
+  if (d.manifest && d.manifest.background_color) push('manifest-background', d.manifest.background_color, 'web app manifest background_color', { page: d.manifest.url, role: 'manifest', selector: 'background_color', viewport: '', property: 'background_color', signal: 'declared' });
+  // A colour SWATCH the page publishes about itself (a guidelines or press
+  // page): painted AND labelled with its own value. The first chromatic one
+  // the page shows, unless one is labelled primary/brand; one labelled as a
+  // secondary, supporting or status colour is never the brand colour.
+  const sws = (desk.swatches || []).filter((w) => id.chromatic(w.hex) && !/\b(secondary|supporting|tertiary|accent|neutral|semantic|success|error|warning|alert|danger|info|status|tint|shade)\b/i.test(w.label || ''));
+  const named = sws.find((w) => /\b(primary|brand|core|signature|main)\b/i.test(w.label || ''));
+  const sw = named || sws[0];
+  if (sw) push('guideline-swatch', sw.hex, `colour swatch the page publishes, painted and labelled${sw.label ? ` "${sw.label.slice(0, 60)}"` : ''}`, src(desk, 'colour swatch', 'desktop', 'background-color', sw.selector), { swatch: sw });
+  for (const ic of d.icons || []) {
+    const v = id.markIdentity(ic.pixels);
+    if (v.verdict === 'colour') push('icon', v.hex, `site icon pixels (${ic.rel || 'icon'})`, { page: ic.url, role: 'icon', selector: `link[rel=${ic.rel || 'icon'}]`, viewport: '', property: 'pixels', signal: 'rendered' }, { mark: v });
+  }
+  out.notes = notes;
+  return out;
+}
+
+/** A colour string from a declaration (any CSS syntax a site writes there). */
+function identityHex(v) {
+  const s = String(v || '').trim();
+  const n = core().normHex(s);
+  if (n) return n;
+  const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(s);
+  return m ? identity().hexOf([+m[1], +m[2], +m[3]]) : '';
+}
+
+/**
+ * Every identity candidate, strongest first (identity-signals.js KINDS),
+ * neutrality judged by CHROMA for all of them, duplicates of one value from
+ * one kind of signal kept once. Stable within a strength.
+ */
+function rankIdentity(base, marks) {
+  const id = identity();
+  const kindOf = (c) => c.kind || (/theme-color/.test(c.signal) ? 'theme-color' : /manifest/.test(c.signal) ? 'manifest-theme'
+    : /custom property|as computed on :root/.test(c.signal) || c.source && c.source.role === 'custom property' ? 'token'
+      : /header/.test(c.signal) ? 'header' : /logo/.test(c.signal) ? 'logo-svg' : 'token');
+  // The logo's own colours are read by markCandidates (paint by area, pixels,
+  // a multicolour or neutral mark said as such); identityCandidates' older
+  // "first fill" reading of the same mark would put back the colour a
+  // multicolour mark was refused for.
+  const baseKept = (base || []).filter((c) => !(marks && /^logo mark fill/.test(String(c.signal || ''))));
+  const all = [].concat(marks || [], baseKept).map((c, i) => Object.assign({}, c, {
+    kind: kindOf(c), value: String(c.value || '').toLowerCase(), neutral: !id.chromatic(c.value), order: i,
+  }));
+  const seen = new Set();
+  const out = all.filter((c) => { const k = c.kind + '|' + c.value; if (!c.value || seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => ((id.KINDS[b.kind] || {}).score || 0) - ((id.KINDS[a.kind] || {}).score || 0) || a.order - b.order)
+    .map((c) => { const o = Object.assign({}, c, { strength: (id.KINDS[c.kind] || {}).score || 0 }); delete o.order; return o; });
+  out.scale_notes = (base && base.scale_notes) || [];
+  out.mark_notes = (marks && marks.notes) || [];
+  return out;
+}
+
 /** Is this a family Google Fonts serves? (data/google-fonts/families.json, names only.) */
 let GOOGLE_FAMILIES = null;
 function isGoogleFamily(fam) {
@@ -380,7 +526,7 @@ function isGoogleFamily(fam) {
 /**
  * Build the manifest from the measurements. Pure: no browser, no network.
  */
-function buildManifest({ start, desk, mob, extra, states, ledger, renderer, manifestJson, timings, partial, notes }) {
+function buildManifest({ start, desk, mob, extra, states, ledger, renderer, manifestJson, timings, partial, notes, declared }) {
   const k = core();
   const bx = extract();
   const host = (() => { try { return new URL(start).hostname; } catch (_) { return start; } })();
@@ -401,12 +547,20 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
 
   // identity vs action
   const action = rd.button_primary && rd.button_primary.style ? rd.button_primary.style.background : '';
-  const idc = identityCandidates(desk, manifestJson && manifestJson.theme_color ? { value: manifestJson.theme_color, url: manifestJson.url } : null);
-  const identity = idc.find((c) => !c.neutral) || null;
+  const idc = rankIdentity(
+    identityCandidates(desk, manifestJson && manifestJson.theme_color ? { value: manifestJson.theme_color, url: manifestJson.url } : null),
+    markCandidates(desk, Object.assign({ manifest: manifestJson }, declared || {})),
+  );
+  // A heading's colour is the weakest identity signal: it names the primary
+  // only when the site renders no chromatic call to action either.
+  const actionChromatic = !!action && require('./identity-signals.js').chromatic(action);
+  const identity = idc.find((c) => !c.neutral && c.kind !== 'heading-text')
+    || (actionChromatic ? null : idc.find((c) => !c.neutral && c.kind === 'heading-text')) || null;
   for (const n of (idc.scale_notes || [])) notes.push(n);
+  for (const n of (idc.mark_notes || [])) notes.push(n);
   const conflicts = [];
   if (identity) {
-    set('primary', identity.value, identity.source, { signal: identity.signal, from_role: 'identity' });
+    set('primary', identity.value, identity.source, { signal: identity.signal, from_role: 'identity', kind: identity.kind });
     if (action && !bx.isNeutral(action) && deltaE(identity.value, action) > 10) {
       conflicts.push({
         kind: 'brand_colour_vs_action_colour',
@@ -547,7 +701,28 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     renderer,
     viewports: { desktop: desk.viewport, mobile: mob ? mob.viewport : null },
     pages,
-    colors, conflicts, identity: { candidates: idc.map((c) => ({ value: c.value, signal: c.signal, neutral: c.neutral, source: c.source })), primary_from: colors.primary ? colors.primary.from_role : '' },
+    colors, conflicts, identity: {
+      candidates: idc.map((c) => Object.assign({ value: c.value, signal: c.signal, kind: c.kind, strength: c.strength, neutral: c.neutral, source: c.source }, c.mark ? { mark: c.mark } : {})),
+      primary_from: colors.primary ? colors.primary.from_role : '',
+      // What the logo itself paints, neutral or not (neutrals are recorded,
+      // never promoted): its SVG paint by area and its pixels by share.
+      logo_colours: rd.logo ? { kind: rd.logo.kind, paints: rd.logo.paints || [], pixels: rd.logo.pixels || [], selector: rd.logo.selector } : null,
+      swatches: (desk.swatches || []).slice(0, 24),
+    },
+    // The filled call to action on the OTHER pages read (a product page's
+    // "Add to bag"): action colours the home page did not show. The reader
+    // does not promote them; a caller may weigh them as action signals.
+    actions_elsewhere: (extra || []).map((e) => {
+      const b = e.data && e.data.roles && e.data.roles.button_primary;
+      const bg = b && b.style && b.style.background;
+      return bg ? { value: bg, page: e.data.url, role: e.role, selector: b.selector, label: b.label || '', filled: !!b.filled } : null;
+    }).filter((x) => x && x.filled).slice(0, 4),
+    // What the page was, for anyone checking the read: its title, its main
+    // heading and its HTTP status.
+    page_seen: { title: String((desk.title || '')).slice(0, 120), h1: String(((rd.headings && rd.headings.h1) || rd.display || {}).text || '').slice(0, 120), status: desk.status || 0, text_chars: rd.body ? rd.body.chars || 0 : 0 },
+    // Every host the page links to: how a page on another domain is shown to
+    // be the brand's (its own site links to it).
+    link_hosts: [...new Set((desk.links || []).map((u) => { try { return new URL(u).hostname.toLowerCase(); } catch (_) { return ''; } }).filter(Boolean))].slice(0, 200),
     fonts,
     read: { desktop: trimCap(desk), mobile: trimCap(mob) },
     card_source: rd.card ? null : ((extra || []).find((e) => e.data.roles && e.data.roles.card) ? { desktop: Object.assign({}, (extra || []).find((e) => e.data.roles && e.data.roles.card).data.roles, { __page: ((extra || []).find((e) => e.data.roles && e.data.roles.card) || {}).data.url }) } : null),
@@ -566,6 +741,106 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     partial: !!partial,
     notes: notes || [],
   };
+}
+
+/**
+ * The colours an IMAGE paints, read by drawing it: the bytes are fetched
+ * through render-net (SSRF rules, byte budget), shown as a data: URL in an
+ * empty page that makes no request, and screenshotted with a transparent
+ * background - so an SVG, a PNG and an ICO are read alike, and only the
+ * pixels the image paints are counted. Returns { url, pixels, type } or null.
+ */
+async function imageColours(context, url, ctx, opts) {
+  const o = opts || {};
+  if (!/^https?:\/\//i.test(String(url || ''))) return null;
+  const r = await net.fetchFollow(url, ctx, { kind: 'resource' }).catch(() => null);
+  if (!r || !r.ok) return { url, pixels: [], error: (r && r.reason) || 'no answer' };
+  if (r.status >= 300 || !r.body || !r.body.length) return { url, pixels: [], status: r.status, error: `HTTP ${r.status}` };
+  const type = String((r.headers && (r.headers['content-type'] || r.headers['Content-Type'])) || '').split(';')[0].trim().toLowerCase();
+  const sniff = r.body.slice(0, 256).toString('utf8');
+  const mime = /^image\//.test(type) ? type : (/<svg[\s>]/i.test(sniff) ? 'image/svg+xml' : (r.body[0] === 0x89 && r.body[1] === 0x50 ? 'image/png' : ''));
+  if (!mime || r.body.length > (o.maxBytes || 1500000)) return { url, pixels: [], status: r.status, error: mime ? 'larger than this reader draws' : `not an image (${type || 'no content type'})` };
+  const page = await context.newPage();
+  try {
+    const box = o.box || 240;
+    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}img{display:block;max-width:${box}px;max-height:${box}px;width:auto;height:auto}img[src$=".svg"],img.svg{width:${box}px;height:${box}px;object-fit:contain}</style></head><body><img id="i" class="${mime === 'image/svg+xml' ? 'svg' : ''}" src="data:${mime};base64,${r.body.toString('base64')}"></body></html>`, { waitUntil: 'load', timeout: 5000 });
+    const ok = await page.evaluate(() => { const i = document.getElementById('i'); return !!(i && i.complete && i.naturalWidth > 0); }).catch(() => false);
+    if (!ok) return { url, pixels: [], status: r.status, error: 'the browser could not draw it' };
+    const png = await page.locator('#i').screenshot({ omitBackground: true, timeout: 4000 }).catch(() => null);
+    return { url: r.finalUrl || url, type: mime, pixels: identity().pixelColours(png, '') };
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+/**
+ * Read ONE image a brand publishes (its logo file, an icon) for the colours it
+ * paints: a fresh browser, an offline context (the image is shown from a
+ * data: URL, so the page can make no request), the bytes fetched through
+ * render-net. Never throws. Returns { ok, renderer, image: { url, type,
+ * pixels }, mark } or { ok:false, renderer, reason }.
+ */
+async function readImage(url, opts) {
+  const o = Object.assign({}, opts || {});
+  const t0 = Date.now();
+  const launcher = require('./render-browser.js');
+  try {
+    return await launcher.withBrowser(async (browser, info) => {
+      const ctx = {
+        policy: Object.assign({ dnsCache: new Map() }, o.policy || {}), deadline: t0 + (o.deadlineMs || 30000),
+        budget: net.makeBudget(8 * 1048576, 12), perRequestMs: Number(o.perRequestMs) > 0 ? Number(o.perRequestMs) : undefined,
+        inScope: () => false, robotsFor: () => Promise.resolve([]),
+      };
+      // robots.txt first, as for any document this reader opens: an image
+      // read on its own (not as part of a page) is a request of ours.
+      let target;
+      try { target = new URL(url); } catch (_) { return { ok: false, renderer: 'unavailable', reason: 'That is not a valid URL.', wall_ms: Date.now() - t0 }; }
+      const robotsFetch = async (u) => {
+        const r = await net.fetchFollow(u, ctx, { kind: 'resource' });
+        return r.ok && r.status >= 200 && r.status < 300 ? { ok: true, status: r.status, body: r.body.toString('utf8') } : { ok: false, status: r.status || 0, body: '' };
+      };
+      const rules = await siteCrawl().robotsInfo(target.origin, robotsFetch, 6000).then((r) => r.disallow, () => []);
+      if (!net.robotsAllows(rules, url)) return { ok: false, renderer: 'blocked', reason: `${target.hostname} disallows ${target.pathname} in its robots.txt, and this platform honours it.`, wall_ms: Date.now() - t0 };
+      const context = await browser.newContext({ viewport: { width: 320, height: 320 }, deviceScaleFactor: 1, serviceWorkers: 'block', javaScriptEnabled: false, offline: true, acceptDownloads: false });
+      const got = await imageColours(context, url, ctx, { box: 240 });
+      if (!got || !got.pixels || !got.pixels.length) {
+        const st = got && got.status;
+        if (st === 401 || st === 403 || st === 429 || st === 503) return { ok: false, renderer: 'blocked', reason: `${target.hostname} answered HTTP ${st} for ${target.pathname}. That is the site refusing an automated reader.`, wall_ms: Date.now() - t0 };
+        if (got && /timed? ?out/i.test(String(got.error || ''))) return { ok: false, renderer: 'timeout', reason: `${target.hostname} did not answer for ${target.pathname} in time.`, wall_ms: Date.now() - t0 };
+        return { ok: false, renderer: 'unavailable', reason: `${url} did not answer with an image this reader could draw (${(got && got.error) || 'no answer'}).`, wall_ms: Date.now() - t0 };
+      }
+      return { ok: true, renderer: 'chromium', renderer_info: info, image: got, mark: identity().markIdentity(got.pixels), wall_ms: Date.now() - t0 };
+    }, { prefer: o.prefer });
+  } catch (e) {
+    return { ok: false, renderer: 'unavailable', reason: (e && e.message) || 'The image could not be read.', wall_ms: Date.now() - t0 };
+  }
+}
+
+/** browserconfig.xml's TileColor and the site icons' pixels (see readRendered). */
+async function readDeclarations(context, desk, manifestJson, ctx) {
+  const out = { icons: [] };
+  const left = () => ctx.deadline - Date.now();
+  if (left() < 8000) return out;
+  if (desk.meta && desk.meta.ms_config) {
+    const r = await net.fetchFollow(desk.meta.ms_config, ctx, { kind: 'resource' }).catch(() => null);
+    if (r && r.ok && r.status < 300 && r.body) {
+      const m = /<TileColor>\s*([^<\s]+)\s*<\/TileColor>/i.exec(r.body.toString('utf8'));
+      const h = m ? identityHex(m[1]) : '';
+      if (h) out.browserconfig = { url: r.finalUrl, tile_color: h };
+    }
+  }
+  // At most two icons: an SVG favicon, and the largest touch / app icon.
+  const icons = ((desk.assets && desk.assets.icons) || []).filter((i) => i.url && !/mask-icon/i.test(i.rel || ''));
+  const svg = icons.find((i) => /svg/i.test(i.type || '') || /\.svg(\?|$)/i.test(i.url));
+  const size = (i) => parseInt(String(i.sizes || '').split('x')[0], 10) || 0;
+  const raster = icons.filter((i) => i !== svg).sort((a, b) => (/apple-touch/i.test(b.rel) ? 1000 : 0) + size(b) - (/apple-touch/i.test(a.rel) ? 1000 : 0) - size(a))[0]
+    || ((manifestJson && manifestJson.icons) || []).map((i) => ({ url: i.src, rel: 'manifest icon', sizes: i.sizes })).sort((a, b) => size(b) - size(a))[0];
+  for (const ic of [svg, raster].filter(Boolean)) {
+    if (left() < 6000) break;
+    const got = await imageColours(context, ic.url, ctx).catch(() => null);
+    if (got && got.pixels && got.pixels.length) out.icons.push({ url: got.url, rel: ic.rel || 'icon', type: got.type, pixels: got.pixels });
+  }
+  return out;
 }
 
 /**
@@ -612,6 +887,10 @@ async function readRendered(url, opts) {
   const limits = o.limits || null;
   const ctx = {
     policy, deadline, transport: o.transport, perRequestMs: Number(o.perRequestMs) > 0 ? Number(o.perRequestMs) : undefined, limits,
+    navMs: Number(o.navMs) > 0 ? Number(o.navMs) : undefined,
+    // A brand's own guidelines/press page: read the logo it shows in content
+    // when that image names the brand (render-capture content_logos).
+    contentLogoName: typeof o.contentLogoName === 'string' ? o.contentLogoName.slice(0, 60) : '',
     budget: net.makeBudget((limits && limits.maxBytesTotal) || net.LIMITS.maxBytesTotal, limits && limits.maxRequests),
     inScope: (u) => sc.inScope(u, hosts) || (policy.allowOrigins && (() => { try { return policy.allowOrigins.has(new URL(u).origin); } catch (_) { return false; } })()),
     robotsFor: (u) => {
@@ -673,9 +952,21 @@ async function readRendered(url, opts) {
     const e = new Error(`${new URL(home).hostname} served a ${verdict.reason.replace(/_/g, ' ')} page instead of the site (${verdict.served}). Nothing was read from it.`);
     e.code = 'blocked'; e.verdict = verdict; throw e;
   }
+  // An empty document (HTTP 202 with no title, heading, text or mark) is not
+  // a rendered brand page. Treating it as one made the next sentence "no
+  // brand colour" for a host that never served the site.
+  if (blankCapture(deskCap.data)) {
+    await deskCap.page.close().catch(() => {});
+    const st = deskCap.data && deskCap.data.status;
+    const e = new Error(`${new URL(home).hostname} answered${st ? ` HTTP ${st}` : ''} but did not serve a page (no title, no heading and no text).`);
+    e.code = 'unavailable'; e.status = st || 0; throw e;
+  }
 
   let mobCap = null;
-  if (Date.now() < deadline - 8000) {
+  // `mobile: false`: a caller reading a page only for the identity it
+  // declares (a brand's guidelines or press page) skips the phone width.
+  if (o.mobile === false) notes.push('The phone-width read was not asked for.');
+  else if (Date.now() < deadline - 8000) {
     const t2 = Date.now();
     try {
       ctx.ledger.prefetched.set(home, await net.fetchFollow(home, firstCtx, { kind: 'document' }));
@@ -722,10 +1013,15 @@ async function readRendered(url, opts) {
       try {
         const j = JSON.parse(r.body.toString('utf8'));
         const tc = core().normHex(j.theme_color || '');
-        manifestJson = { url: r.finalUrl, theme_color: tc, icons: Array.isArray(j.icons) ? j.icons.map((i) => ({ src: (() => { try { return new URL(i.src, r.finalUrl).toString(); } catch (_) { return ''; } })(), sizes: i.sizes || '', type: i.type || '' })).filter((i) => i.src) : [] };
+        manifestJson = { url: r.finalUrl, theme_color: tc, background_color: core().normHex(j.background_color || '') || '', icons: Array.isArray(j.icons) ? j.icons.map((i) => ({ src: (() => { try { return new URL(i.src, r.finalUrl).toString(); } catch (_) { return ''; } })(), sizes: i.sizes || '', type: i.type || '' })).filter((i) => i.src) : [] };
       } catch (_) { notes.push('The web app manifest is not valid JSON.'); }
     }
   }
+
+  // What the site declares about itself beside the page: its browserconfig.xml
+  // tile colour, and the pixels of its own icons (an SVG favicon, the touch
+  // icon). Each through the same door, bounded, skipped when time is short.
+  const declared = await readDeclarations(desktopCtx, deskCap.data, manifestJson, ctx).catch((e) => { notes.push(`The site's icon and tile declarations could not be read: ${e.message}`); return {}; });
 
   timings.total_ms = Date.now() - t0;
   if (ctx.budget.exhausted) {
@@ -749,7 +1045,7 @@ async function readRendered(url, opts) {
     start, desk: deskCap.data, mob: mobCap && mobCap.data, extra,
     states: deskCap.states, ledger: ctx.ledger,
     renderer: o.renderer || { source: 'caller', version: (() => { try { return browser.version(); } catch (_) { return ''; } })() },
-    manifestJson, timings, partial, notes,
+    manifestJson, timings, partial, notes, declared,
   });
   const shots = {
     desktop: deskCap.shots, mobile: mobCap ? mobCap.shots : null,
@@ -788,7 +1084,7 @@ async function readSite(url, opts) {
         browser, policy: o.policy, transport: o.transport, keepPages: true, limits: o.limits,
         // Threaded through (review: the first document of six starter sites
         // died at the 9 s default because readSite dropped these).
-        perRequestMs: o.perRequestMs, firstDocumentMs: o.firstDocumentMs,
+        perRequestMs: o.perRequestMs, firstDocumentMs: o.firstDocumentMs, navMs: o.navMs, mobile: o.mobile, contentLogoName: o.contentLogoName,
         deadlineMs: Math.max(15000, Math.min(o.manifestMs || 62000, left() - 25000)),
         maxPages: o.maxPages, renderer: info,
       }), Math.max(10000, left() - 5000), 'reading the site');
@@ -1144,8 +1440,27 @@ async function extractWithRender(auth, args, opts) {
   return fitResponse(out);
 }
 
+/**
+ * A capture that is not a page: no title, no heading, almost no text and no
+ * logo, button or header. HTTP 202/204 counts when it also has no mark.
+ * A real page that is only a logo still counts (the mark is the page).
+ */
+function blankCapture(data) {
+  const d = data || {};
+  const title = String(d.title || '').trim();
+  const roles = d.roles || {};
+  const h1 = String(((roles.headings && roles.headings.h1) || roles.display || {}).text || '').trim();
+  const chars = roles.body && roles.body.chars ? Number(roles.body.chars) || 0 : 0;
+  const hasMark = !!(roles.logo || roles.button_primary || roles.header);
+  const empty = !title && !h1 && chars < 40 && !hasMark;
+  const status = Number(d.status) || 0;
+  if (status === 202 || status === 204) return empty || (!hasMark && chars < 40 && !h1);
+  return empty;
+}
+
 module.exports = {
-  readRendered, readSite, buildManifest, identityCandidates, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
+  readRendered, readSite, buildManifest, identityCandidates, markCandidates, rankIdentity, imageColours, readImage, fontFacesFrom, cssNamesFrom, drawnFaces, scoringBrand,
+  blankCapture,
   extractWithRender, renderProbe, fieldsFromManifest, fitResponse, rateCheck, resetRateLimits, clientIp, RATE, RATES, READ_HARD_MS, BROWSER_MARGIN_MS, PROBE_HTML,
   VIEWPORTS, DEFAULTS, MARKER,
 };

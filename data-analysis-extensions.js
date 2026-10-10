@@ -202,7 +202,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   async function postJson(op, payload) {
     var token = await userToken();
-    if (!token) throw new Error('Sign in with your mobile number and PIN to change or test alert settings.');
+    if (!token) throw new Error('Sign in with Gmail to change or test alert settings.');
     var r = await fetch(API, {
       method: 'POST', credentials: 'same-origin', cache: 'no-store',
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },

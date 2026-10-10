@@ -206,7 +206,8 @@
         "selector": "div#profile-description > div.metafield-rich_text_field > h1",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://mamaearth.in/",
@@ -214,13 +215,13 @@
         "selector": "div#profile-description > div.metafield-rich_text_field > p:nth-of-type(1)",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
   "palette": {
     "primary": "#00aeef",
-    "accent": "#00aeef",
     "ink": "#1d1d1d",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -493,6 +494,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Mamaearth]",

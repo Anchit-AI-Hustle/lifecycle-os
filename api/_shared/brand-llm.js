@@ -20,8 +20,13 @@
 // inside another tenant's workspace.
 const BRAND_LLM_NAME = 'KicksGPT';
 function assistantNameFor(brand) {
-  if (!brand || brand.is_default || String(brand.slug || '').toLowerCase() === 'knickgasm') return BRAND_LLM_NAME;
-  return `${brand.name || 'Brand'} Assistant`;
+  // KicksGPT is tenant zero's assistant. A missing brand, or a workspace that
+  // merely saved that slug, is not that assistant (isTenantZeroBrand).
+  let zero = null;
+  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(brand); } catch (_) { zero = null; }
+  if (zero === true) return BRAND_LLM_NAME;
+  if (!brand || !brand.name) return 'Assistant';
+  return `${brand.name} Assistant`;
 }
 const BRAND_LLM_TAGLINE = "your brand's own intelligence, grounded in your own data";
 

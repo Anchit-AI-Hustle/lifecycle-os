@@ -210,7 +210,8 @@
         "selector": "div.framer-dbcp77:nth-of-type(1) > div.framer-1tezxao > div.ssr-variant.hidden-6wsqng:nth-of-type(1) > div.framer-1skhacy > h1.framer-text.framer-styles-preset-3ermk9",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://razorpay.com/",
@@ -218,7 +219,8 @@
         "selector": "div.framer-m55ugu:nth-of-type(2) > div.framer-1vo146e > div.framer-kpwivd > div.framer-hi6lvp:nth-of-type(2) > p.framer-text",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
@@ -323,6 +325,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Razorpay]",
