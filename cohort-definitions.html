@@ -118,9 +118,9 @@
        gateShipped); its product cohorts come from its own catalogue. -->
   <section class="panel" id="panel-product" role="tabpanel" data-shipped-for="knickgasm" data-shipped-label="product cohorts">
     <h2>Product Cohorts</h2>
-    <p class="lede">Grouped by what a customer buys: product category, finer collection, and purchase mode. This decides which world a message lives in and which cross-grade is natural. Products &amp; Botanicals are one-time only, Coffee and Supplements lead with subscription.</p>
+    <p class="lede">Grouped by what a customer buys: product category, finer collection, and purchase mode. This decides which world a message lives in and which cross-grade is natural. Custom pairs are made to order and bought one at a time; care kits and accessories attach to a pair.</p>
     <div class="stage-h"><h3>By category</h3></div><div id="prod-cat"></div>
-    <div class="stage-h"><h3>By collection (within Products &amp; Botanicals)</h3></div><div id="prod-coll"></div>
+    <div class="stage-h"><h3>By collection (within custom pairs)</h3></div><div id="prod-coll"></div>
     <div class="stage-h"><h3>By purchase mode</h3></div><div id="prod-mode"></div>
   </section>
 
@@ -166,17 +166,17 @@ const ENGAGEMENT = [
     def:'Bought a custom pair and still open and click regularly.',
     objective:'Sustain the habit, grow the basket, cross-grade to controllers and care kits.',
     voice:'Talk to a friend who is already in. Depth, range and the next pair, never a hard sell.',
-    mix:['T&amp;B x2','Coffee x2','Supplements x2'] },
+    mix:['Pairs x2','Controllers x2','Care x2'] },
   { code:'Cohort E', name:'Controller / Accessory Buyers / Non-Engagers', badge:'',
-    def:'Bought Coffee Collection or a supplement, then went quiet on email.',
+    def:'Bought a custom controller or an accessory, then went quiet on email.',
     objective:'Protect the subscription window, win the reorder before the routine breaks.',
     voice:'Steady and useful. Reorder rhythm, refill value, the gifts they already earned. No pressure.',
-    mix:['Coffee x3','Supplements x2','T&amp;B x1'] },
+    mix:['Controllers x3','Care x2','Pairs x1'] },
   { code:'Cohort F', name:'Multi-Category / Engaged (near-VIP)', badge:'',
     def:'Bought across two or more categories and stays engaged. The highest-potential slice.',
     objective:'Deepen loyalty, move to subscription, invite to first-look and referral.',
     voice:'Recognition and access. Treat as an insider, provenance and early drops over discounts.',
-    mix:['Coffee x2','T&amp;B x2','Supplements x2'] },
+    mix:['Pairs x2','Controllers x2','Care x2'] },
 ];
 const ENGLEVEL = [
   {code:'Highly Engaged', def:'Opened and clicked more than once in the last 30 days.', use:'Highest send tolerance. First look at drops, reviews and referral asks.'},
