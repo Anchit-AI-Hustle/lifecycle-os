@@ -224,14 +224,30 @@ test.describe('3. a phone account and the oldest workspace', () => {
     const data = await rs.run(req, () => adapter.ownData());
     expect(took, 'the built catalogue was read for a person with no workspace').toBe(0);
     expect(data.products).toEqual([]);
-    // The scheduler - no request in scope - still resolves tenant zero and may use it.
-    const cron = new svc.SmartBrainDbAdapter(svc.smartConfig({}), null);
-    let cronTook = 0;
-    cron.builtCatalogProducts = () => { cronTook += 1; return [{ id: 'tenant-zero-sku', title: 'Tenant zero product' }]; };
-    const cronData = await cron.ownData();
-    expect(await cron.workspace()).toBe('ws-oldest');
-    expect(cronTook).toBe(1);
-    expect(cronData.products.map((p) => p.id)).toEqual(['tenant-zero-sku']);
+    // The scheduler - no request in scope - resolves the oldest workspace. Being
+    // the oldest is not enough to own the built catalogue (2026-10-10): the
+    // live project's oldest was "Mamaearth". "Oldest Brand" is not tenant zero.
+    const scope = require(path.join(A.ROOT, 'api/_shared/workspace-scope.js'));
+    const runCron = async () => {
+      scope.invalidate();
+      const cron = new svc.SmartBrainDbAdapter(svc.smartConfig({}), null);
+      let n = 0;
+      cron.builtCatalogProducts = () => { n += 1; return [{ id: 'tenant-zero-sku', title: 'Tenant zero product' }]; };
+      const out = await cron.ownData();
+      return { ws: await cron.workspace(), took: n, ids: out.products.map((p) => p.id) };
+    };
+    const other = await runCron();
+    expect(other.ws).toBe('ws-oldest');
+    expect(other.took, 'the oldest workspace holding another brand read tenant zero\'s catalogue').toBe(0);
+    // The oldest workspace that IS tenant zero's brand still owns it.
+    const row = w.db.table('brand_workspaces').find((r) => r.id === 'ws-oldest');
+    const was = row.name;
+    row.name = require(path.join(A.ROOT, 'api/_shared/brand-runtime.js')).defaultBrand().name;
+    try {
+      const zero = await runCron();
+      expect(zero.took).toBe(1);
+      expect(zero.ids).toEqual(['tenant-zero-sku']);
+    } finally { row.name = was; scope.invalidate(); }
   });
 
   test('one layer down, the adapter and the planner hold the same line on their own', async () => {
