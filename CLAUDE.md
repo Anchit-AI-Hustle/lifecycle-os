@@ -43,7 +43,7 @@ with `brand_workspace_save` modelled from its migration, the wizard on the devic
   it (the KNICKGASM preset's included) - a slug follows the NAME on create and is never taken from a body, server
   (`slugFor`) and device alike; an update keeps it unless asked for the slug the current name makes. This also
   closes **device rows synced into an account** (sync sends the row's slug). (5) **A brand book of another brand**
-  filled untyped name/website/legal entity - Apply asks first when the book names another brand or site, and records
+  filled untyped name/website/legal entity - Apply asks first when the book names a website on another domain (a name alone that differs is applied and WARNS - a typed variant is not a mix), and records
   `brand_document.describes`. (6) **A name typed after a read** stays the person's and a re-read keeps it; it WARNS
   when it matches nothing in the website. (7) **"user" from an earlier read**: accepting a site value marks it
   `user`, and the rule still attributes it to that site. (8) **Two tabs** editing two brands: executed, NOT a mixing
