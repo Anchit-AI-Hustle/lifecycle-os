@@ -4,6 +4,17 @@ The operator's words: *"implement signin and signup like this ... and comment ou
 other signin and signup - signin/signup with mobile number and a 4 digit password - save in
 db (neon) or local browser cache whichever can be used - just like in parwah-hq"*.
 
+> **2026-10-09: PIN only, again.** Google sign-in through Supabase Auth was restored on
+> 2026-10-05 and is now **removed** (not commented out) from `auth.js`, `brand-context.js`,
+> `supabase/config.toml`, `.env.example` and `selfhost/`. The owner's words: *"only keep PIN
+> option, that too only 4-digit"*. Every server gate that verifies a Supabase session
+> (`requireUser()`, the analytics operator gate, the broker's `op=me`) refuses one an OAuth
+> provider minted (`mobile-auth-supabase.oauthProvider()`), so switching the provider back on
+> in a dashboard is not a way in. Each PIN try is now CLAIMED before it is checked in the Neon
+> store and on the device too (the Supabase store already did), so a burst of guesses cannot
+> reach the right PIN past the fifth try, and no response names the account holder before the
+> PIN is right. Gated by `tests/pin-only-signin.spec.js`.
+
 This is the ONE sign-in now. Google/Supabase OAuth in `auth.js`, the gate's Google button
 in `brand-context.js` and the Mailer Studio's own overlay login (`vhd_users` /
 `vhd_session`) are **commented out, not deleted**, each under a dated banner. Nothing in the
