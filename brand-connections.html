@@ -165,6 +165,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   <section class="panel on" id="panel-platforms" role="tabpanel" aria-labelledby="tab-platforms">
     <div class="banner info" id="storageNote">Checking how secrets are stored on this deployment.</div>
+    <div id="catalogCard" hidden></div>
     <div id="platforms"><p class="muted">Loading the platforms you can connect.</p></div>
   </section>
 
@@ -475,6 +476,59 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
   }
 
+  /* ── the brand's catalogue import (2026-10-10) ─────────────────────────
+     What the last import read of what the store declares, in the importer's
+     own sentences, and Continue import when it stopped part-way. A device
+     brand keeps this beside its catalogue; an account brand asks the server.
+     Shown only when there is an import to describe. */
+  function brandApi(op, body, query) {
+    return window.BrandContext.api(op, { body: body || null, query: query || '' });
+  }
+  function renderCatalog(cov, resumable, note) {
+    var el = $('catalogCard');
+    if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.className = 'banner info';
+    el.innerHTML = '<b>' + (cov.complete ? 'Product catalogue: read completely' : 'Product catalogue: read in part') + '</b>' +
+      '<ul style="margin:6px 0 4px;padding-left:18px">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      (note ? '<p class="note">' + esc(note) + '</p>' : '') +
+      (resumable ? '<button type="button" class="btn" id="catalogContinue">Continue import</button>' : '') +
+      '<p class="note" id="catalogStatus"></p>';
+    var b = $('catalogContinue');
+    if (b) b.addEventListener('click', continueCatalog);
+  }
+  async function loadCatalog() {
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (!b || !b.id) return;
+      var isDevice = window.BrandContext.device && window.BrandContext.device.isDeviceId && window.BrandContext.device.isDeviceId(b.id);
+      if (isDevice) {
+        var cat = window.BrandContext.deviceCatalog ? window.BrandContext.deviceCatalog(b.id) : null;
+        if (cat && cat.coverage) renderCatalog(cat.coverage, !!cat.cursor, 'Kept on this device, beside the brand.');
+        return;
+      }
+      if (window.LifecycleStatus && window.LifecycleStatus.refusal && window.LifecycleStatus.refusal('Reading your catalogue import')) return;
+      var st = await brandApi('catalog-status', null, '&workspace_id=' + encodeURIComponent(b.id));
+      if (st && st.coverage) renderCatalog(st.coverage, !!st.resume_available, (typeof st.live === 'number' ? st.live + ' products in the catalogue now' + (st.stale ? ', ' + st.stale + ' the store no longer lists (kept, not used)' : '') + '.' : ''));
+    } catch (_) { /* a convenience: the page stands without it */ }
+  }
+  async function continueCatalog() {
+    var b = window.BrandContext && window.BrandContext.brand;
+    var line = $('catalogStatus');
+    if (!b || !b.id) return;
+    var btn = $('catalogContinue');
+    if (btn) btn.disabled = true;
+    if (line) line.textContent = 'Continuing the import…';
+    try {
+      var r = await brandApi('catalog-import', { workspace_id: b.id, continue: true });
+      renderCatalog(r.coverage, !!r.resume_available, r.imported + ' products read in this step' + (typeof r.live === 'number' ? ', ' + r.live + ' in the catalogue now' : '') + '.');
+      toast(r.complete ? 'The catalogue import finished.' : 'Read ' + r.imported + ' more products; the store was not read to the end yet.');
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      if (line) window.LifecycleFailure.show(line, e, { title: 'The import did not continue' });
+    }
+  }
+
   function selectTab(name) {
     Array.prototype.forEach.call($('tabs').querySelectorAll('.tab'), function (t) {
       t.setAttribute('aria-selected', t.getAttribute('data-tab') === name ? 'true' : 'false');
@@ -537,6 +591,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
     }
     load();
+    (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(loadCatalog, function () {});
   }
 
   document.addEventListener('DOMContentLoaded', function () { boot(0); });

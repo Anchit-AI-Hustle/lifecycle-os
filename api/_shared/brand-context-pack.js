@@ -1687,7 +1687,18 @@ async function stageCatalog(store, pack, ctx) {
       method: 'POST',
       body: { p_workspace: pack.workspace_id, p_fields: {}, p_source: {} },
     }).catch(() => null);            // no-op: only here to surface an unapplied migration early
-    return { catalog: Object.assign({ ran: true, region: String(region).toLowerCase(), url }, out) };
+    // A store too large for this one call is read in part, and the pack says
+    // so: the rest continues from the cursor kept on the workspace (Continue
+    // import on the catalogue step, or the daily refresh), never reported as
+    // the whole catalogue.
+    const partial = out && out.complete === false;
+    return {
+      catalog: Object.assign({ ran: true, region: String(region).toLowerCase(), url }, out, partial ? {
+        note: 'The catalogue was read in part in this step (' + ((out.coverage && out.coverage.sentences) || []).slice(-1).join(' ')
+          + ') It continues from where it stopped on Continue import, and on the daily refresh.',
+      } : {}),
+      markers: partial ? [MARKER('rest of the product catalog (import continuing)', 'all', String(region).toLowerCase())] : undefined,
+    };
   } catch (e) {
     return {
       catalog: {
@@ -2313,16 +2324,21 @@ async function devicePackStep({ workspaceId, brand, pack, refresh = false, catal
   // filing them. They go to the device's catalogue ONCE, beside the brand, and
   // the pack keeps the count - so a row is never carried back and forth on
   // every later step, nor kept twice.
-  let products = null;
+  // The same goes for the cursor of a store read that did not finish: it is
+  // the device CATALOGUE's to keep (Continue import resumes from it), and it is
+  // never carried on the pack row back and forth.
+  let products = null, catalogCursor = null, catalogRun = null;
   const row = store.state.pack;
   if (row && row.catalog && Array.isArray(row.catalog.products)) {
     products = row.catalog.products;
-    const { products: _drop, ...rest } = row.catalog;
+    catalogCursor = row.catalog.cursor || null;
+    catalogRun = row.catalog.run || null;
+    const { products: _drop, cursor: _c, ...rest } = row.catalog;
     row.catalog = rest;
     if (step.pack && step.pack.catalog) step.pack = Object.assign({}, step.pack, { catalog: rest });
   }
   const context = await contextFor(store, workspaceId, {});
-  return { step, row, context, products, knowledge_rows: store.state.kb.length };
+  return { step, row, context, products, catalog_cursor: catalogCursor, catalog_run: catalogRun, knowledge_rows: store.state.kb.length };
 }
 
 module.exports = {

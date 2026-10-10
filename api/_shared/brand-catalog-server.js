@@ -54,8 +54,16 @@ const { AsyncLocalStorage } = require('async_hooks');
 
 const SCOPE = new AsyncLocalStorage();
 
-/** How many of a workspace's own products one generation may hold in memory. */
-const MAX_ROWS = 500;
+/**
+ * How many of a workspace's own products one generation may hold in memory.
+ * It was 500 and read in ONE request ordered by title, so a brand that imported
+ * 2,600 products reached every generator as its first 500 alphabetically, and
+ * PostgREST's max_rows (1,000) would have cut a larger single read anyway
+ * (measured 2026-10-10). Rows are read page by page now, up to this ceiling.
+ */
+const MAX_ROWS = 20000;
+/** PostgREST's per-request cap (supabase/config.toml [api] max_rows). */
+const PAGE_ROWS = 1000;
 /** Per-workspace catalogue cache TTL. Short: an import must show up promptly. */
 const TTL = 60_000;
 
@@ -154,7 +162,14 @@ function fromRow(row) {
   return {
     n: title,
     i: img,
-    imgs: img ? [img] : undefined,
+    // Every image the import read for this product (image_urls), the first
+    // being image_url; the resolver's provenance rules apply to each.
+    imgs: (() => {
+      const all = [img].concat(Array.isArray(row.image_urls) ? row.image_urls : [])
+        .filter((u) => typeof u === 'string' && /^https?:\/\//.test(u));
+      const uniq = [...new Set(all)].slice(0, 12);
+      return uniq.length ? uniq : undefined;
+    })(),
     t: cols,
     h: handle,
     sku: row.sku || '',
@@ -197,17 +212,37 @@ async function workspaceRows(workspaceId) {
   if (hit && Date.now() - hit.at < TTL) return hit.rows;
   const env = serviceEnv();
   if (!env) return [];
+  const cols = 'region,sku,handle,title,product_type,collections,price,compare_at,currency,image_url,product_url,workspace_id';
+  // Live rows only: a product a complete re-import no longer found is kept
+  // (stale_at) but never built into an asset. A database without migration
+  // 20261010002000 has no stale_at / image_urls, and reads the old columns.
+  const shapes = [`${cols},image_urls&stale_at=is.null`, cols];
   try {
-    const q = 'brand_catalog_products'
-      + '?select=region,sku,handle,title,product_type,collections,price,compare_at,currency,image_url,product_url,workspace_id'
-      + `&workspace_id=eq.${encodeURIComponent(id)}`
-      + `&order=title.asc&limit=${MAX_ROWS}`;
-    const r = await fetch(`${env.url}/rest/v1/${q}`, {
-      headers: { apikey: env.key, Authorization: `Bearer ${env.key}` },
-    });
-    if (!r.ok) return [];
-    const raw = await r.json().catch(() => []);
-    const rows = (Array.isArray(raw) ? raw : []).map(fromRow).filter(Boolean)
+    let out = null;
+    for (const shape of shapes) {
+      const got = [];
+      let failed = false;
+      // Advance by the rows RECEIVED and stop only on an EMPTY page: a short
+      // page is what max_rows looks like, not the end.
+      for (let offset = 0; offset < MAX_ROWS; ) {
+        const q = 'brand_catalog_products'
+          + `?select=${shape}`
+          + `&workspace_id=eq.${encodeURIComponent(id)}`
+          + `&order=title.asc,id.asc&limit=${PAGE_ROWS}&offset=${offset}`;
+        const r = await fetch(`${env.url}/rest/v1/${q}`, {
+          headers: { apikey: env.key, Authorization: `Bearer ${env.key}` },
+        });
+        if (!r.ok) { failed = true; break; }
+        const page = await r.json().catch(() => null);
+        if (!Array.isArray(page)) { failed = true; break; }
+        if (!page.length) break;
+        got.push(...page);
+        offset += page.length;
+      }
+      if (!failed) { out = got; break; }
+    }
+    if (!out) return [];
+    const rows = out.slice(0, MAX_ROWS).map(fromRow).filter(Boolean)
       // Defence in depth: PostgREST already filtered, but a row that somehow
       // carries another workspace's id is dropped rather than rendered.
       .filter((p) => !p.__workspace_id || String(p.__workspace_id) === id);

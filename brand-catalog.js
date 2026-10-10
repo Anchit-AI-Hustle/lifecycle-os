@@ -175,7 +175,9 @@
   function deviceRows(brand, region) {
     var cat = null;
     try { cat = (window.BrandContext && window.BrandContext.deviceCatalog) ? window.BrandContext.deviceCatalog(brand.id) : null; } catch (_) { cat = null; }
-    var all = ((cat && Array.isArray(cat.products)) ? cat.products : []).map(normRow).filter(function (p) { return p.name || p.handle; });
+    // A product a complete re-import no longer found is kept beside the brand
+    // (stale_at) but is not offered to anything that builds an asset.
+    var all = ((cat && Array.isArray(cat.products)) ? cat.products : []).filter(function (p) { return p && !p.stale_at; }).map(normRow).filter(function (p) { return p.name || p.handle; });
     var narrowed = forRegion(all, region);
     var origin = (cat && cat.source && typeof cat.source === 'object') ? cat.source
       : (brand.catalog_source && typeof brand.catalog_source === 'object' && brand.catalog_source.kind ? brand.catalog_source : null);

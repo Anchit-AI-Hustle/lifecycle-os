@@ -4,6 +4,66 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A catalogue import reads the WHOLE store, says what it did not get, and resumes (2026-10-10)
+The operator: *"catalog fetching? How to fix that for each brand and ensure everything fetched"*.
+`api/_shared/catalog-import.js` (routes, rows, coverage, cursor, merge, daily refresh) behind
+`brand-workspace-core.rowsFromStore()` / `readCatalogSource()` / `importCatalog()` / `deviceCatalogImport()`, migration
+`20261010002000_catalog_import_merge.sql` (`brand_catalog_merge()`), gated by `tests/catalog-import-complete.spec.js`
+(17, executed: real stores on 127.0.0.1 in `tests/lib/catalog-fixture-stores.js`, reached through the shipped paths; 22
+  mutations, each restoring one defect, fail it; the
+SQL run on PGlite). Still 12/12 functions, still two crons.
+- **Measured first, through the shipped paths** (before -> after): Shopify 2,600 products 2,499 -> 2,600 (a `page <= 10`
+  cap), variants 0 -> 7,800, images 2,600 -> 7,800, currency none -> USD, device kept 2,000 -> 2,600, the generators saw
+  **500** -> 2,600 (`brand-catalog-server MAX_ROWS = 500`, one read ordered by title, and PostgREST's `max_rows` 1,000
+  behind it); Shopify with the feed off, 60 in its sitemap: 1 -> 60; WooCommerce, 300 in gzipped child sitemaps: 2 -> 300;
+  a UK store under `/en-gb/`: 40 rows filed under UK **at US prices** -> GBP from the UK store; robots.txt disallowing 5 of
+  40: 2 read and **a disallowed page fetched** -> 35 read, none fetched; a slow store of 150: 1 -> 150 across resumable
+  steps; a store answering 429 + Retry-After: 0 ("no usable product rows") -> 600.
+- **The root of most of it: the default page fetcher refused anything that was not text/html**, and robots.txt and
+  sitemaps went through it whenever no fetcher was injected - i.e. in production. Every robots.txt read as absent (the
+  crawler whose user agent says it respects robots.txt fetched disallowed pages) and every XML sitemap read as absent.
+  Every test injected its own fetcher, which is why none saw it. `site-crawl.defaultAssetFetch` reads them now (gzip
+  included), and robots is RFC 9309 everywhere (`parseRobots`/`robotsAllows`: groups, Allow, `*`, `$`, longest match;
+  `Disallow: /` honoured; a robots.txt that answers 5xx or not at all is "disallow everything" and nothing is read).
+- **Routes, chosen on purpose.** Shopify's `/products.json` (the one feed this repo already called) at limit=250 until an
+  EMPTY page (a short page is not the end: Shopify pages by position and drops products off the online store), skipped
+  when the store declares another platform. Otherwise the site's own sitemaps (robots `Sitemap:` else `/sitemap.xml`,
+  index -> children, `.xml.gz`), then each product page's JSON-LD `Product` / `ProductGroup.hasVariant` / `Offer` /
+  `AggregateOffer` (or OpenGraph product tags). Crawl only when there is no sitemap. No new platform endpoint: WooCommerce's
+  Store API, BigCommerce's storefront GraphQL and the rest are not called.
+- **Each market from its own store**: `regions[].store_url` for that market, else the start page's own `hreflang`
+  alternate, else the URL given - and the coverage says which. Currency is the store's declared `Shopify.currency.active`
+  on that market's page or the JSON-LD `priceCurrency`; the feed carries none, and none is ever assumed.
+- **Coverage in sentences, on every import**: "Found X of the Y products the site declares in <its product sitemaps>",
+  the source per product (feed / sitemap JSON-LD / crawl), what was skipped and why (robots with examples, off-scope, no
+  product declared, no title, unreachable, duplicates, the stated 20,000-per-market cap), what the store did not state
+  (`[DATA REQUIRED BEFORE LAUNCH: price|product image|currency, <product>, <REGION>]`, never a number), the Retry-After
+  waits, and `PARTIAL: ... at feed page N / URL n of N. Continue import resumes exactly there`.
+- **Resumable on the existing row, never a new function.** One call reads until its budget (55 s interactive) and returns
+  a cursor; the account path keeps it in `brand_workspaces.catalog_import` (not in the columns every brand read selects),
+  a phone sign-in's device keeps it beside its catalogue. Continue import (`op=catalog-import {continue:true}`) resumes,
+  and the EXISTING daily cron (`/api/brain?action=cron` step `catalog_refresh`) continues a partial import first, then
+  re-reads the store read longest ago (> 20 h) - service role, workspace named on every write; a CSV/JSON catalogue is
+  never touched. A 429/503 waits what Retry-After asks; one longer than the step stops it with the cursor.
+- **Upsert, never a duplicate, never a silent delete.** `brand_catalog_merge()` matches (workspace, region, handle, sku)
+  with NULL equal to NULL (the table's unique key let a sku-less row be inserted twice) under an advisory lock, stamps the
+  run, and only when a run has read its WHOLE source marks the rows of the same source family it did not see
+  `stale_at` (kept; a returning product comes back to life; a CSV row is never staled by a store run). State and
+  `catalog_source` are written in the same transaction - the row's update policy is OWNER-only, so an editor's import
+  used to record nothing about its source (a 204 with zero rows). The device merge (`BrandContext.device.mergeCatalog`) is
+  its twin; a Chromium test diffs the two. New columns: `image_urls`, `variants`, `source_url`, `last_seen_run`,
+  `last_seen_at`, `stale_at`, `updated_at`. A database without the migration falls back to the old atomic replace for a
+  one-call import and says so; a partial one is refused with that sentence.
+- **The rows reach the generators**: `brand-catalog-server.workspaceRows` pages to an empty page (live rows only, every
+  image in `imgs`), `MAX_ROWS` 20,000; `productCount` / `catalog-status` page too (a single read said 1,000 for every
+  larger catalogue). Provenance rules there were not changed (another branch owns them).
+- **What the operator sees**: the onboarding catalogue step and `/connections` render the coverage sentences in the
+  accent rule (an ordinary state, not a failure frame) and a **Continue import** button while partial; `op=catalog-status`.
+- Known limits, said: one row per product (variants inside it); JSON-LD `category` only as a string; a sitemap that
+  does not name its product children is read whole and the coverage says it declares no product total; a device keeps at
+  most 10,000 rows (a browser holds a bounded amount); the context pack's catalogue stage takes ONE step and leaves the
+  rest to Continue import / the daily refresh.
+
 ## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
 `auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
 never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,
