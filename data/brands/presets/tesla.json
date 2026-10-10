@@ -8,42 +8,373 @@
     "label": "Tesla",
     "sector": "Automotive",
     "blurb": "Automotive. Template for a considered high-value purchase with a long consideration window.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.tesla.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
+    "verified_at": "2026-10-05",
+    "source": "www.tesla.com refused an automated read (blocked); read the brand's own https://www.tesla.cn/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #cc0000 from msapplication-TileColor the page declares (meta[name=msapplication-TileColor]). Agreed by icon. Headings Universal Sans Display, body Universal Sans Display, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.tesla.cn/",
+          "role": "page ground",
+          "selector": "body#page-homepage",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.tesla.cn/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-brand-label",
+          "host": "www.tesla.cn",
+          "registrable": "tesla.cn",
+          "website_host": "www.tesla.com",
+          "label": "tesla"
+        }
+      },
+      "primary": {
+        "value": "#cc0000",
+        "exact": "#cc0000",
+        "derived": false,
+        "kind": "tile-color",
+        "strength": 70,
+        "score": 94,
+        "from_role": "identity",
+        "signal": "msapplication-TileColor the page declares",
+        "source": {
+          "page": "https://www.tesla.cn/",
+          "role": "tile colour",
+          "selector": "meta[name=msapplication-TileColor]",
+          "viewport": "desktop",
+          "property": "content",
+          "signal": "computed"
+        },
+        "read_url": "https://www.tesla.cn/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-brand-label",
+          "host": "www.tesla.cn",
+          "registrable": "tesla.cn",
+          "website_host": "www.tesla.com",
+          "label": "tesla"
+        },
+        "corroborated_by": [
+          {
+            "kind": "icon",
+            "value": "#c90000",
+            "signal": "site icon pixels (apple-touch-icon)",
+            "page": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/apple-touch-icon-152x152.png"
+          }
+        ],
+        "outranked": [
+          {
+            "value": "#3e6ae1",
+            "kind": "action",
+            "signal": "the primary call to action, as rendered",
+            "score": 55,
+            "page": "https://www.tesla.cn/"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#171a20",
+        "exact": "",
+        "derived": true,
+        "from_role": "navigation link",
+        "note": "The read found no body copy; the navigation link text the site renders (#171a20) is the ink.",
+        "source": {
+          "page": "https://www.tesla.cn/",
+          "role": "navigation link",
+          "selector": "a#dx-nav-item--shop",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.tesla.cn/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-brand-label",
+          "host": "www.tesla.cn",
+          "registrable": "tesla.cn",
+          "website_host": "www.tesla.com",
+          "label": "tesla"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://www.tesla.cn/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-brand-label",
+          "host": "www.tesla.cn",
+          "registrable": "tesla.cn",
+          "website_host": "www.tesla.com",
+          "label": "tesla"
+        }
+      },
+      "muted": {
+        "value": "#171a20",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://www.tesla.cn/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-brand-label",
+          "host": "www.tesla.cn",
+          "registrable": "tesla.cn",
+          "website_host": "www.tesla.com",
+          "label": "tesla"
+        }
+      },
+      "accent": {
+        "value": "#3e6ae1",
+        "exact": "#3e6ae1",
+        "derived": false,
+        "kind": "action",
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered",
+        "source": {
+          "page": "https://www.tesla.cn/",
+          "role": "primary call to action",
+          "selector": "div.tcl-flex-module__content > div.tcl-flex-module__container.tcl-align-content--center:nth-of-type(1) > div.tcl-flex-module__component.tcl-flex-module__component--cta_group:nth-of-type(3) > div.tcl-button-group.tcl-button-group--flex > a.tcl-button.tds-btn:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.tesla.cn/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-brand-label",
+          "host": "www.tesla.cn",
+          "registrable": "tesla.cn",
+          "website_host": "www.tesla.com",
+          "label": "tesla"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "blocked",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.tesla.cn/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "conflicts": [
+      {
+        "kind": "brand_colour_vs_action_colour",
+        "message": "The site declares #cc0000 as its own colour (msapplication-TileColor the page declares) but renders its primary call to action in #3e6ae1. These are different facts and only you know which one is the brand primary. The primary below is the declared one; the action colour is the accent."
+      }
+    ],
+    "read_from": [
+      "https://www.tesla.cn/"
+    ],
+    "reads": [
+      {
+        "url": "https://www.tesla.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "blocked",
+        "owned": "website",
+        "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+      },
+      {
+        "url": "https://www.tesla.com/apple-touch-icon.png",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.tesla.com answered HTTP 403 for /apple-touch-icon.png. That is the site refusing an automated reader."
+      },
+      {
+        "url": "https://www.tesla.com/favicon.svg",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.svg)",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.tesla.com answered HTTP 403 for /favicon.svg. That is the site refusing an automated reader."
+      },
+      {
+        "url": "https://www.tesla.com/favicon.ico",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.ico)",
+        "renderer": "blocked",
+        "owned": "same-registrable-domain",
+        "reason": "www.tesla.com answered HTTP 403 for /favicon.ico. That is the site refusing an automated reader."
+      },
+      {
+        "url": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/favicon-196x196.png",
+        "role": "identity source",
+        "what": "Tesla icon",
+        "renderer": "blocked",
+        "owned": "same-brand-label",
+        "reason": "www.tesla.cn disallows /themes/custom/tesla_frontend/assets/favicons/favicon-196x196.png in its robots.txt, and this platform honours it."
+      },
+      {
+        "url": "https://www.tesla.cn/",
+        "role": "identity source",
+        "what": "Tesla China site",
+        "renderer": "rendered",
+        "owned": "same-brand-label",
+        "reason": ""
+      }
+    ],
+    "home_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.tesla.com",
       "reason": "www.tesla.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.tesla.cn/",
+        "role": "h1",
+        "selector": "div.tcl-flex-module.tds-scrim--black > div.tcl-flex-module__content > div.tcl-flex-module__container.tcl-align-content--center:nth-of-type(1) > div.tcl-flex-module__component.tcl-flex-module__component--heading1:nth-of-type(1) > h1.tcl-text-line.tcl-text--f56l56",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://www.tesla.cn/",
+        "role": "h1",
+        "selector": "div.tcl-flex-module.tds-scrim--black > div.tcl-flex-module__content > div.tcl-flex-module__container.tcl-align-content--center:nth-of-type(1) > div.tcl-flex-module__component.tcl-flex-module__component--heading1:nth-of-type(1) > h1.tcl-text-line.tcl-text--f56l56",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#cc0000",
+    "accent": "#3e6ae1",
+    "ink": "#171a20",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#171a20",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Universal Sans Display",
+      "stack": "'Universal Sans Display','PingFang SC','Microsoft YaHei',-apple-system,'Arial',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;500",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Universal Sans Display (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Universal Sans Display",
+      "stack": "'Universal Sans Display','PingFang SC','Microsoft YaHei',-apple-system,'Arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Universal Sans Display (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack. No body copy was rendered on the pages read, so body text uses the heading face."
     }
   },
   "voice": {
@@ -58,7 +389,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "tesla.com"
+    "tesla.com",
+    "www.tesla.cn",
+    "digitalassets.tesla.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -114,14 +447,83 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/favicon-196x196.png",
+      "kind": "image",
+      "what": "Tesla icon"
+    },
+    {
+      "url": "https://www.tesla.cn/",
+      "kind": "page",
+      "what": "Tesla China site"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Tesla]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Tesla]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Tesla]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Tesla]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Tesla]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/apple-touch-icon-152x152.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Promo-Model-3-Y-Desktop-CN-v3.jpg",
+      "role": "hero",
+      "alt": "Model 3 和 Model Y",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Card-Model-Y-L-Premium-Localized-Desktop-CN.jpg",
+      "role": "hero",
+      "alt": "Model Y L",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Card-Model-Y-Desktop-LHD-CN.jpg",
+      "role": "hero",
+      "alt": "Model Y",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Card-Model-3-Desktop-CN-v3.jpg",
+      "role": "hero",
+      "alt": "红色 Model 3",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Grid-Financial-CN.png",
+      "role": "photograph",
+      "alt": "体验 Tesla",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Grid-Accessories-Global.png",
+      "role": "photograph",
+      "alt": "配件",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Homepage-Card-Powerwall-2-Desktop.jpg",
+      "role": "photograph",
+      "alt": "Powerwall",
+      "found_on": "https://www.tesla.cn/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.tesla.cn/themes/custom/tesla_frontend/assets/favicons/apple-touch-icon-152x152.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

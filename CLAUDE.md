@@ -4,6 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
+`auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
+never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,
+and #142's conflict resolution broke main and production unseen until #154. Each PR's CI ran on its merge
+ref, built against main as it was when THAT run started; several PRs landing within minutes put a
+combination on main that no run had seen. Gated by `tests/workflows-guarantees.spec.js` (31, executed;
+16 mutations each caught).
+- **The dispatch.** After its merges the job dispatches `ci.yml` on main ONCE (`workflow_dispatch`, one of
+  the two events GITHUB_TOKEN may still raise; `ref` only - ci.yml declares no inputs and the API refuses
+  an undeclared one), with `actions: write`, the one scope added. A refused dispatch FAILS the job and says
+  how to run CI by hand: nothing else tests main.
+- **No loop, no double deploy.** The dispatched run's completion reaches `auto-merge.yml` (job `if` needs
+  `event == 'pull_request'`, and the script refuses any other `CI_EVENT` before an API call: a run on main
+  cannot vouch for a PR) and `deploy-guarantee.yml` (path 1 needs `event == 'push'`; it deliberately ignores
+  the dispatched run, since auto-merge already fired the hook and a second firing is one more of the team's
+  100 deploys a day). It is a TEST of main, not a deploy trigger.
+- **One run per main, the newest.** CI runs on main share a concurrency group and the newer cancels the
+  older (main's HEAD contains it); every PR run keeps a group of its own, so PRs are unchanged. Runs on main
+  therefore never finish out of order.
+- **`main-state` (a job in ci.yml, not a workflow_run listener - the dispatched run is already link three
+  of a chain GitHub caps at three)** runs after every other job on main (`!cancelled()`, push or dispatch):
+  red opens or retitles ONE issue `Main is red at <sha>` (its own bot's, never a person's) naming each
+  failing job with its link; green closes it. Bookkeeping never turns a green main red.
+- **Tested by a MODEL of GitHub, checked first against GitHub's own docs** (`tests/lib/actions-model.js`:
+  the expression language and the trigger rules incl. the GITHUB_TOKEN guard, run over the docs' own
+  examples), so job `if:`s are EVALUATED, never grepped. The fake `gh` holds each write to the job's own
+  `permissions:` (scopes from GitHub's endpoint-permission data). The chain test turns the merge script's
+  real API calls into the events GitHub would emit and asserts which workflows and jobs follow. `yaml`
+  (YAML 1.2, as GitHub reads `on:`) is a devDependency now.
+- `workflow_run` reads the DEFAULT branch's file, so the PR that changes auto-merge.yml is merged by the
+  old version; the dispatch starts with the next merge. `sync-main.yml` (final-product -> main) has the
+  same gap, but no `final-product` branch exists.
+
 ## ⭐ One contact ledger, one fatigue policy, every channel (2026-10-04) — read `docs/publishing-and-deliverability.md` ("Contact fatigue")
 The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
 suppress scheduled marketing emails or WhatsApp messages for 48 hours."* `api/_shared/contact-fatigue.js` (the

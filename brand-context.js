@@ -161,7 +161,7 @@
 
   // `mode` is where brand records live for this visitor right now: 'server'
   // (the account) or 'device' (this browser). See "Where a brand is stored".
-  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false, mode: '', deviceKey: '', refreshAgain: false };
+  var state = { brand: null, needsOnboarding: false, workspaces: [], loaded: false, signedOut: false, mode: '', deviceKey: '', userId: '', refreshAgain: false };
   var listeners = [];
   var readyResolve;
   var readyPromise = new Promise(function (r) { readyResolve = r; });
@@ -582,11 +582,15 @@
     var p = normalizePalette((brand && brand.palette) || {});
     var primary = p.primary || '#6A33D8';
     var accent = p.accent || primary;
-    var ink = p.ink || '#111111';
+    var requestedInk = p.ink || '#111111';
     var surface = p.surface || '#F7F5F2';
     var surfaceAlt = p.surface_alt || shade(surface, 0.6);
-    var muted = p.muted || shade(ink, 0.35);
+    var muted = p.muted || shade(requestedInk, 0.35);
     var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+    // Old saved records can predate palette validation; never render low
+    // contrast body text while their owner is updating the palette.
+    var inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
+    var ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
     var t = brand && brand.typography ? brand.typography : {};
     var states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
     return Object.assign({
@@ -1247,7 +1251,8 @@
     try {
       if (brand.name) {
         // Keep the page's own subject, swap only the brand half of the title.
-        var t = document.title || '';
+        var t = originalPageTitle || '';
+        document.title = t;
         if (SHIPPED_NAME_TEST.test(t)) { SHIPPED_NAME_RX.lastIndex = 0; document.title = t.replace(SHIPPED_NAME_RX, brand.name); }
         else if (t.indexOf(brand.name) < 0) document.title = brand.name + (t ? ' · ' + t : '');
       }
@@ -1317,6 +1322,9 @@
 
   /* ── re-labelling shipped copy ─────────────────────────────────────────── */
 
+  var originalBrandText = new WeakMap();
+  var originalPageTitle = document.title;
+  var brandPaintVersion = 0;
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, CODE: 1, PRE: 1, TEXTAREA: 1, INPUT: 1, NOSCRIPT: 1, KBD: 1, SAMP: 1 };
 
   function relabel(brand) {
@@ -1325,14 +1333,14 @@
     // brand name in the header) so a signed-out visitor never sees any tenant's
     // branding. Relabelling therefore runs for EVERY active brand - tenant zero
     // included, which maps the neutral labels to its own product names.
-    var isZero = /^knickgasm$/i.test(String(brand.slug || brand.name).trim());
+    var isZero = isTenantZero(brand);
     var assistant = isZero ? 'KicksGPT' : brand.name + ' Assistant';
     var agent = isZero ? 'Knickgasm Agent' : brand.name + ' Agent';
 
     // Brand name slots in the neutral header (empty until a brand is active).
     try {
       document.querySelectorAll('.lnav-brandname').forEach(function (el) { el.textContent = brand.name; });
-      document.querySelectorAll('.lnav-mbrand-label').forEach(function (el) { el.textContent = brand.name + ' · Lifecycle OS'; });
+      document.querySelectorAll('.lnav-mbrand-label').forEach(function (el) { el.textContent = 'Lifecycle OS'; });
     } catch (_) {}
 
     function walk(root) {
@@ -1341,7 +1349,8 @@
           var p = node.parentNode;
           if (!p || SKIP_TAGS[p.nodeName]) return NodeFilter.FILTER_REJECT;
           if (p.closest && p.closest('[data-no-brand-swap]')) return NodeFilter.FILTER_REJECT;
-          var v = node.nodeValue;
+          var saved = originalBrandText.get(node);
+          var v = saved && node.nodeValue === saved.rendered ? saved.source : node.nodeValue;
           if (!v || v.length > 4000) return NodeFilter.FILTER_REJECT;
           // Never rewrite anything that looks like a URL, host or identifier —
           // store links, CDN paths and env names must stay byte-exact.
@@ -1360,18 +1369,23 @@
       hits.forEach(function (node) {
         SHIPPED_NAME_RX.lastIndex = 0; SHIPPED_ASSISTANT.lastIndex = 0;
         NEUTRAL_ASSISTANT.lastIndex = 0; NEUTRAL_AGENT.lastIndex = 0;
-        var next = node.nodeValue
+        var saved = originalBrandText.get(node);
+        var source = saved && node.nodeValue === saved.rendered ? saved.source : node.nodeValue;
+        var next = source
           .replace(NEUTRAL_ASSISTANT, assistant)
           .replace(NEUTRAL_AGENT, agent)
           .replace(SHIPPED_ASSISTANT, assistant)
           .replace(SHIPPED_NAME_RX, brand.name);
         // Only write on change: tenant zero's replacements are identity, and an
         // unconditional write would re-trigger the mutation observer forever.
+        originalBrandText.set(node, { source: source, rendered: next });
         if (next !== node.nodeValue) node.nodeValue = next;
       });
     }
 
+    var version = brandPaintVersion;
     function run() {
+      if (version !== brandPaintVersion) return;
       try { walk(document.body); } catch (e) { log(e); }
       try { gateShipped(brand); } catch (e) { log(e); }
     }
@@ -1637,7 +1651,11 @@
 
   function paint(brand) {
     if (!brand) return;
-    applyTokens(brand.tokens);
+    brandPaintVersion++;
+    // Regenerate foregrounds from the saved palette, including older records
+    // whose cached tokens predate the contrast rules.
+    applyTokens(brand.palette && Object.keys(brand.palette).length
+      ? Object.assign({}, brand.tokens || {}, tokensFor(brand)) : brand.tokens);
     applyFonts(brand.fonts_href);
     applyChrome(brand);
     relabel(brand);
@@ -1885,22 +1903,14 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              // 2026-09-28: sign-in is a mobile number and a 4-digit PIN, in
-              // the rail's own panel. The Google sentence and its callback
-              // hint are kept below, commented, for the record:
-              //   'You are not signed in, so there is no workspace to load. Sign in with Google to reach your brands. '
-              //   + 'If sign-in fails, the Google OAuth client needs this deployment\u2019s Supabase callback allowed: '
-              //   + (((window.__SUPABASE__ || {}).url || '<SUPABASE_URL is not configured for this deployment>').replace(/\/+$/, '') + '/auth/v1/callback')
-              ? 'You are not signed in. Sign in with your mobile number and a 4-digit PIN to keep your work under your name, '
+              ? 'You are not signed in, so there is no workspace to load. Sign in with Gmail to reach your brands, '
                 + 'or set up a brand on this device now: it is saved here either way.'
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
-            // DISABLED 2026-09-28, the Google button:
-            // '<button type="button" data-gate-signin ...>Sign in with Google</button>'
-            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with your mobile number</button>'
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Gmail</button>'
               // Signed out is a usable state: a brand can be set up on this
               // device now.
               + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
@@ -1917,24 +1927,13 @@
     document.body.appendChild(el);
     var signin = el.querySelector('[data-gate-signin]');
     if (signin) signin.addEventListener('click', function () {
-      // 2026-09-28: opens auth.js's inline mobile+PIN panel in the rail. The
-      // gate steps aside so the panel can be used; it returns on the next
-      // resolution if there is still no brand.
+      // Google is the sign-in. The gate steps aside so a refusal note in the
+      // rail can be read; a started redirect leaves the page.
+      signin.textContent = 'Opening Google...';
       try {
         var a = window.LifecycleAuth;
         if (a && typeof a.openSignIn === 'function') { removeGate(); a.openSignIn(); return; }
       } catch (_) {}
-      /* ── DISABLED 2026-09-28: the Google redirect. Mobile+PIN replaced it.
-      signin.textContent = 'Opening Google...';
-      try {
-        var a = window.LifecycleAuth;
-        if (a && a.client) {
-          a.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
-          return;
-        }
-      } catch (_) {}
-      ── */
-      // auth.js has not booted yet; it mounts the panel's rail on load.
       location.reload();
     });
     var btn = el.querySelector('[data-gate-about]');
@@ -1964,6 +1963,7 @@
       // The namespace this read is answered from, so the backend listener can
       // tell a sign-in or sign-out apart from a mode that did not change.
       state.deviceKey = deviceKey();
+      state.userId = currentUserId();
       state.refreshAgain = false;
       var r = await api('active');
       var fromDevice = r.storage === 'device';
@@ -2079,7 +2079,10 @@
     var m = knownMode();
     if (!m) return;
     if (!state.loaded) { state.refreshAgain = true; return; }
-    if (m !== state.mode || deviceKey() !== state.deviceKey) refresh();
+    if (m !== state.mode || deviceKey() !== state.deviceKey || currentUserId() !== state.userId) {
+      state.brand = null; clearCache();
+      refresh();
+    }
   });
 
   // ── Workspace-scope every API call ─────────────────────────────────────
@@ -2317,6 +2320,7 @@
 
   window.BrandContext = {
     get brand() { return state.brand; },
+    activeBrand: function () { return state.brand; },
     carry: carry,
     // The catalogue a brand on this device keeps beside itself (2026-10-03):
     // { products, source, owned } or null. Read-only; imports go through api().

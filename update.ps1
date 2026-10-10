@@ -10,7 +10,7 @@ param(
 )
 
 # -- Config -----------------------------------------------------
-$LiveUrl  = "https://knickgasm.vercel.app"
+$LiveUrl  = "https://lifecycle-os.anchit-tandon.com"
 $RepoUrl  = "https://github.com/anchittandon-knickgasm/marketing_mailers__html_architect"
 $VercelDashboard = "https://vercel.com/dashboard"
 

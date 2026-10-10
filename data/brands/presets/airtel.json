@@ -216,7 +216,8 @@
         "selector": "h4#hero-banner-content-0",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       },
       "body": {
         "page": "https://www.airtel.in/",
@@ -224,13 +225,13 @@
         "selector": "div#hero-banner-content-1 > div.wt-col.hero-banner-subheading:nth-of-type(2) > p.wt-typography",
         "viewport": "desktop",
         "property": "font-family",
-        "signal": "computed"
+        "signal": "computed",
+        "observed_at": "2026-10-04"
       }
     }
   },
   "palette": {
     "primary": "#d40000",
-    "accent": "#d40000",
     "ink": "#000000",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -373,6 +374,7 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [],
   "offerings": [],
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Airtel]",

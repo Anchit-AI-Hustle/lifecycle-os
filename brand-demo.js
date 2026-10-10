@@ -19,8 +19,6 @@
   'use strict';
   if (window.BrandDemo) return;
 
-  var OWNER = 'knickgasm';
-
   /* seeded PRNG (mulberry32) so demo figures are stable per brand */
   function seedOf(str) {
     var h = 1779033703 ^ String(str).length;
@@ -40,8 +38,17 @@
   }
 
   function isOwner(brand) {
-    if (!brand || brand.is_default) return true;
-    return String(brand.slug || brand.name || '').toLowerCase() === OWNER;
+    // Who owns the shipped dataset is the server's answer (BrandContext
+    // isTenantZero: owns_shipped, or the shipped shell). A slug of "knickgasm"
+    // is something any workspace can save, including a brand started from
+    // that preset and then renamed, so it is not proof.
+    if (!brand) return true;
+    try {
+      if (window.BrandContext && typeof window.BrandContext.isTenantZero === 'function') {
+        return !!window.BrandContext.isTenantZero(brand);
+      }
+    } catch (_) {}
+    return brand.is_default === true && !brand.id;
   }
 
   /* ── offerings: brand record first, then its matching preset ──────────── */

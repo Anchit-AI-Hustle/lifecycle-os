@@ -1,24 +1,349 @@
 {
-  "format": "preset-observation/2",
-  "ok": false,
-  "palette_ok": false,
+  "format": "preset-observation/3",
+  "ok": true,
   "slug": "sony",
   "start": "https://www.sony.com",
-  "landed": "https://www.sony.com",
-  "observed_at": "2026-10-04",
+  "landed": "https://www.sony.co.jp/en/",
+  "observed_at": "2026-10-05",
+  "read_at": "2026-10-05T08:42:02.318Z",
   "renderer": "blocked",
   "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address.",
-  "read_attempt": {
-    "renderer": "blocked",
-    "at": "2026-10-04",
-    "host": "www.sony.com",
-    "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+  "reads": [
+    {
+      "url": "https://www.sony.com",
+      "role": "home",
+      "what": "home page",
+      "kind": "page",
+      "owned": {
+        "how": "website",
+        "host": "www.sony.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+    },
+    {
+      "url": "https://www.sony.com/apple-touch-icon.png",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.sony.com",
+        "registrable": "sony.com",
+        "website_host": "www.sony.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sony.com answered HTTP 403 for /apple-touch-icon.png. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.sony.com/favicon.svg",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.svg)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.sony.com",
+        "registrable": "sony.com",
+        "website_host": "www.sony.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sony.com answered HTTP 403 for /favicon.svg. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.sony.com/favicon.ico",
+      "role": "identity source",
+      "what": "the site's own icon at its well-known path (/favicon.ico)",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-registrable-domain",
+        "host": "www.sony.com",
+        "registrable": "sony.com",
+        "website_host": "www.sony.com"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "blocked",
+      "ok": false,
+      "reason": "www.sony.com answered HTTP 403 for /favicon.ico. That is the site refusing an automated reader."
+    },
+    {
+      "url": "https://www.sony.co.jp/en/favicon.ico",
+      "role": "identity source",
+      "what": "Sony Group icon",
+      "kind": "image",
+      "owned": {
+        "ok": true,
+        "how": "same-brand-label",
+        "host": "www.sony.co.jp",
+        "registrable": "sony.co.jp",
+        "website_host": "www.sony.com",
+        "label": "sony"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "image",
+      "ok": true,
+      "landed": "https://www.sony.co.jp/en/favicon.ico",
+      "mark": {
+        "verdict": "neutral",
+        "hex": "#000000"
+      }
+    },
+    {
+      "url": "https://www.sony.co.jp/en/",
+      "role": "identity source",
+      "what": "Sony Group global site",
+      "kind": "page",
+      "owned": {
+        "ok": true,
+        "how": "same-brand-label",
+        "host": "www.sony.co.jp",
+        "registrable": "sony.co.jp",
+        "website_host": "www.sony.com",
+        "label": "sony"
+      },
+      "at": "2026-10-05",
+      "attempts": 1,
+      "renderer": "rendered",
+      "ok": true,
+      "landed": "https://www.sony.co.jp/en/"
+    }
+  ],
+  "design_read": {
+    "url": "https://www.sony.co.jp/en/",
+    "role": "identity source",
+    "landed": "https://www.sony.co.jp/en/"
   },
   "reader": {
     "module": "api/_shared/brand-render.js",
-    "manifest_version": "",
-    "browser": "",
-    "chromium": ""
+    "manifest_version": "design-manifest/1",
+    "browser": "preinstalled",
+    "chromium": "148.0.7778.96"
   },
-  "note": "www.sony.com blocked an automated read on 2026-10-04. Nothing was filled in from it; the preset stays on the neutral default."
+  "pages": [
+    {
+      "url": "https://www.sony.co.jp/en/",
+      "role": "home"
+    }
+  ],
+  "viewports": {
+    "desktop": {
+      "w": 1440,
+      "h": 900
+    },
+    "mobile": null
+  },
+  "partial": false,
+  "regression": null,
+  "conflicts": [],
+  "markers": [
+    "[DATA REQUIRED BEFORE LAUNCH: brand primary colour (the site renders no identity colour and no coloured call to action), www.sony.co.jp]",
+    "[DATA REQUIRED BEFORE LAUNCH: primary call to action, www.sony.co.jp]",
+    "[DATA REQUIRED BEFORE LAUNCH: product card (no repeated unit with an image, a title and a price was rendered on the pages read), www.sony.co.jp]"
+  ],
+  "logo_url": "https://www.sony.co.jp/en/favicon.ico",
+  "logo_signal": "the icon the page declares (link rel=icon)",
+  "assets": [
+    {
+      "url": "https://www.sony.co.jp/en/favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-3-423x238.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-8-426x240.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-0-6-420x236.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-0-5-708x398.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-5-426x240.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-7-702x396.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://www.sony.co.jp/assets_revamp2025/images/bg-img-4-708x398.jpg",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://www.sony.co.jp/en/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "palette_candidates": [
+    {
+      "kind": "header",
+      "value": "#000000",
+      "score": 58,
+      "state": "passed over",
+      "page": "https://www.sony.co.jp/en/"
+    }
+  ],
+  "read_details": [
+    {
+      "url": "https://www.sony.co.jp/en/favicon.ico",
+      "logo": {
+        "kind": "file",
+        "verdict": "neutral",
+        "hex": "#000000"
+      }
+    },
+    {
+      "url": "https://www.sony.co.jp/en/",
+      "logo": {
+        "kind": "svg",
+        "verdict": "neutral",
+        "hex": "#ffffff"
+      },
+      "fonts": {
+        "heading": "SSTJapanesePro",
+        "body": "SSTJapanesePro"
+      },
+      "content_logos": 0,
+      "seen": {
+        "title": "Sony Corporation - Home",
+        "h1": "SONY",
+        "status": 200,
+        "text_chars": 89
+      }
+    }
+  ],
+  "home_attempt": {
+    "renderer": "blocked",
+    "at": "2026-10-05",
+    "host": "www.sony.com",
+    "reason": "www.sony.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
+  },
+  "palette_ok": false,
+  "palette": null,
+  "palette_evidence": {
+    "surface": {
+      "value": "#ffffff",
+      "exact": "#111111",
+      "derived": true,
+      "note": "DERIVED: the site paints its page #111111, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.",
+      "source": {
+        "page": "https://www.sony.co.jp/en/",
+        "role": "page ground",
+        "selector": "body",
+        "viewport": "desktop",
+        "property": "background-color",
+        "signal": "computed"
+      },
+      "read_url": "https://www.sony.co.jp/en/",
+      "read_role": "identity source",
+      "observed_at": "2026-10-05",
+      "owned": {
+        "ok": true,
+        "how": "same-brand-label",
+        "host": "www.sony.co.jp",
+        "registrable": "sony.co.jp",
+        "website_host": "www.sony.com",
+        "label": "sony"
+      }
+    },
+    "primary": {
+      "value": "",
+      "passed_over": [
+        {
+          "value": "#000000",
+          "from": "the header background",
+          "why": "1.11:1 against the page, a tint of the page that cannot carry buttons or bands"
+        }
+      ]
+    }
+  },
+  "palette_reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.11:1 against the page, a tint of the page that cannot carry buttons or bands)",
+  "typography": {
+    "heading": {
+      "family": "SSTJapanesePro",
+      "stack": "'SSTJapanesePro','SST W20 Light','SST W55 Light','Helvetica Neue',sans-serif",
+      "google": false,
+      "weights": "150;300;400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "SSTJapanesePro (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the heading role",
+      "source": {
+        "page": "https://www.sony.co.jp/en/",
+        "role": "h1",
+        "selector": "header.cg-header.j-cg-header > div.cg-header__main > div.cg-header__inner > div.cg-header__navigations:nth-of-type(1) > h1.cg-header__logo",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://www.sony.co.jp/en/"
+    },
+    "body": {
+      "family": "SSTJapanesePro",
+      "stack": "'SSTJapanesePro','SST W20 Light','SST W55 Light','Helvetica Neue',sans-serif",
+      "google": false,
+      "weights": "150;300;400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "weights_read": true,
+      "note": "SSTJapanesePro (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack.",
+      "signal": "computed font-family of the body copy role",
+      "source": {
+        "page": "https://www.sony.co.jp/en/",
+        "role": "body copy",
+        "selector": "div.c-ui-container > div.cp-home-mission__content > div.cp-home-mission__hgroup:nth-of-type(1) > p.cp-home-mission__title-jp.j-cp-home-mission__title-jp > span:nth-of-type(6)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed"
+      },
+      "read_url": "https://www.sony.co.jp/en/"
+    }
+  },
+  "read_attempt": {
+    "renderer": "rendered",
+    "at": "2026-10-05",
+    "host": "www.sony.co.jp",
+    "reason": "the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.11:1 against the page, a tint of the page that cannot carry buttons or bands)"
+  },
+  "note": "www.sony.co.jp was read on 2026-10-05, and the rendered site shows no brand colour a preset can use (#000000 from the header background: 1.11:1 against the page, a tint of the page that cannot carry buttons or bands). The preset stays on the neutral default."
 }

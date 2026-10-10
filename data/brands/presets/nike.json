@@ -8,42 +8,341 @@
     "label": "Nike",
     "sector": "Sportswear",
     "blurb": "Global sportswear. Template for a drop-led lifecycle: launch, restock and franchise anniversaries.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.nike.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
+    "verified_at": "2026-10-05",
+    "source": "www.nike.com refused an automated read (blocked); read the brand's own https://about.nike.com/en in Chromium 148.0.7778.96 on 2026-10-05. Primary #111111 from the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome (div.css-1g29ua3:nth-of-type(2) > div.css-1ncvbdy > ul.css-1ael3wi > li.css-1swgu3s:nth-of-type(1) > a.css-lpu0nl-f-ui-3). Headings FuturaNike, body Helvetica Neue, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://about.nike.com/en/",
+          "role": "page ground",
+          "selector": "body",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://about.nike.com/en",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "about.nike.com",
+          "registrable": "nike.com",
+          "website_host": "www.nike.com"
+        }
+      },
+      "primary": {
+        "value": "#111111",
+        "exact": "#111111",
+        "derived": false,
+        "kind": "action",
+        "strength": 55,
+        "score": 55,
+        "from_role": "action",
+        "signal": "the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome",
+        "source": {
+          "page": "https://about.nike.com/en/newsroom",
+          "role": "primary call to action",
+          "selector": "div.css-1g29ua3:nth-of-type(2) > div.css-1ncvbdy > ul.css-1ael3wi > li.css-1swgu3s:nth-of-type(1) > a.css-lpu0nl-f-ui-3",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://about.nike.com/en/newsroom",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "about.nike.com",
+          "registrable": "nike.com",
+          "website_host": "www.nike.com"
+        },
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "web app manifest theme_color",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#333333",
+        "exact": "#808080",
+        "derived": true,
+        "note": "DERIVED from #808080: the body copy as rendered measures 3.95:1 on #ffffff, and no other text the site renders reads there, so it is darkened until it does (12.63:1).",
+        "source": {
+          "page": "https://about.nike.com/en/",
+          "role": "body copy",
+          "selector": "div.css-17zn0o8 > div.css-1kg3sj5 > div.css-npwm7i:nth-of-type(2) > div.css-98luji > div.css-1n9dcr1-f-body-2",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://about.nike.com/en",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "about.nike.com",
+          "registrable": "nike.com",
+          "website_host": "www.nike.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://about.nike.com/en",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "about.nike.com",
+          "registrable": "nike.com",
+          "website_host": "www.nike.com"
+        }
+      },
+      "muted": {
+        "value": "#333333",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "https://about.nike.com/en/",
+          "role": "body copy",
+          "selector": "div.css-17zn0o8 > div.css-1kg3sj5 > div.css-npwm7i:nth-of-type(2) > div.css-98luji > div.css-1n9dcr1-f-body-2",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://about.nike.com/en",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "about.nike.com",
+          "registrable": "nike.com",
+          "website_host": "www.nike.com"
+        }
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders no chromatic colour at all; this preset has no accent rather than one the site does not use.",
+        "read_url": "https://about.nike.com/en",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "about.nike.com",
+          "registrable": "nike.com",
+          "website_host": "www.nike.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "blocked",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://about.nike.com/en/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "read_from": [
+      "https://about.nike.com/en/newsroom",
+      "https://about.nike.com/en"
+    ],
+    "reads": [
+      {
+        "url": "https://www.nike.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "blocked",
+        "owned": "website",
+        "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
+      },
+      {
+        "url": "https://about.nike.com/en",
+        "role": "identity source",
+        "what": "Nike, Inc. corporate site",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://about.nike.com/en/newsroom",
+        "role": "identity source",
+        "what": "Nike newsroom",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.nike.com/apple-touch-icon.png",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/apple-touch-icon.png)",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.nike.com/favicon.svg",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.svg)",
+        "renderer": "unavailable",
+        "owned": "same-registrable-domain",
+        "reason": "https://www.nike.com/favicon.svg did not answer with an image this reader could draw (HTTP 404)."
+      },
+      {
+        "url": "https://www.nike.com/favicon.ico",
+        "role": "identity source",
+        "what": "the site's own icon at its well-known path (/favicon.ico)",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      }
+    ],
+    "home_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.nike.com",
       "reason": "www.nike.com served a bot wall page instead of the site (a Kasada challenge (Kasada), a page titled \"Nike. Just Do It. Nike.com\", whose first heading reads \"Error\"). Nothing was read from it."
+    },
+    "typography_evidence": {
+      "heading": {
+        "page": "https://about.nike.com/en/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div.css-g4alsf > div.titlecontainer.css-154kyn0 > div > div.css-19sk4h4:nth-of-type(1) > span.css-1fm46b5-f-display-4",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://about.nike.com/en/",
+        "role": "body copy",
+        "selector": "div.css-17zn0o8 > div.css-1kg3sj5 > div.css-npwm7i:nth-of-type(2) > div.css-98luji > div.css-1n9dcr1-f-body-2",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#111111",
+    "ink": "#333333",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#333333",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "FuturaNike",
+      "stack": "'FuturaNike','FuturaNike',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "FuturaNike (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Helvetica Neue",
+      "stack": "'Helvetica Neue','Helvetica Neue','Helvetica',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Helvetica Neue (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -58,7 +357,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "nike.com"
+    "nike.com",
+    "about.nike.com",
+    "nmp.about.nike.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -234,14 +535,83 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://about.nike.com/en",
+      "kind": "page",
+      "what": "Nike, Inc. corporate site"
+    },
+    {
+      "url": "https://about.nike.com/en/newsroom",
+      "kind": "page",
+      "what": "Nike newsroom"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Nike]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Nike]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Nike]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Nike]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Nike]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://about.nike.com/apple-touch-icon.png",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "the icon the page declares (link rel=apple-touch-icon)"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/730595cb-adb5-4e57-b90f-2190c37e4882/20250915-img-0638.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjIwOCwid2lkdGgiOjI0MDAsImhlaWdodCI6MTM0N30sInJlc2l6ZSI6eyJ3aWR0aCI6MTA4MH19fQ%3D%3D&s=abf394cd6022ce0d0d5c12b29485ae79ea6397c1889ff34575a3fe676b937436",
+      "role": "hero",
+      "alt": "",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/412311af-5388-4bcd-b4ac-e4be088ab686/final-tribrand-black-3000x2000.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjozMDAwLCJoZWlnaHQiOjIwMDB9LCJyZXNpemUiOnsid2lkdGgiOjEyOH19fQ%3D%3D&s=ffff2459f7e19a9d5285713b593ecd0b2a730e6f7aa14444e35db477db73d376",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/22a5690f-d477-471e-9531-77b9014dae88/nike-inc-fy27-q1-earnings-3000x2000.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjozMDAwLCJoZWlnaHQiOjIwMDB9LCJyZXNpemUiOnsid2lkdGgiOjEyOH19fQ%3D%3D&s=813fa43efb69751802cff8988e97f2c0ad15c406985ec3fa51a6828838be9f4b",
+      "role": "photograph",
+      "alt": "Red Nike Pegasus Plus 2 running shoe with Swoosh logo floating on dark background. NIKE, Inc. FY27 Q1 text, Nike, Jordan",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/eddc157e-0aec-42be-8dca-64bb7a6bd83e/swooshfly-1.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjAsIndpZHRoIjozMjAwLCJoZWlnaHQiOjIxMzJ9LCJyZXNpemUiOnsid2lkdGgiOjEyOH19fQ%3D%3D&s=e0d18894c607c02a37f0d10e52ff41956e642b0c3f98756490bfab6040bdbf39",
+      "role": "photograph",
+      "alt": "The Nike Swooshfly running shoe in white, black and orange floats against a dark background, showcasing its translucent ",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/94d5fed9-38cc-4dde-afcd-9df9ded9257f/sabrina-ionescu-3.jpeg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjI2Nywid2lkdGgiOjMyMDAsImhlaWdodCI6MTgwMH0sInJlc2l6ZSI6eyJ3aWR0aCI6NjQwfX19&s=5a1a000b3ee31d0e143321d4bc4a18c83d1ec62dec78620739b26b655b96e4cc",
+      "role": "photograph",
+      "alt": "Sabrina Ionescu speaking with Jess Sims at the Sabrina 2 signature collection launch in New York City",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/8ef0c961-a24e-457e-9bfa-75bcb8176000/dylan-scott-hyrox-world-championship-portrait-1.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjowLCJ0b3AiOjk2Nywid2lkdGgiOjI1NjAsImhlaWdodCI6MTQzNn0sInJlc2l6ZSI6eyJ3aWR0aCI6NjQwfX19&s=7ef936cfc8c97f3d9f8448dd469f4202efc8a2e38a106025d26dd7b768d4e106",
+      "role": "photograph",
+      "alt": "",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://nmp.about.nike.com/about/prod/18d2aed7-2ed8-4a54-a370-3eb65cf8ca6e/nike-cade-cunningham-detroit-2026-2.jpg?m=eyJlZGl0cyI6eyJqcGVnIjp7InF1YWxpdHkiOjEwMH0sIndlYnAiOnsicXVhbGl0eSI6MTAwfSwiZXh0cmFjdCI6eyJsZWZ0IjoxNDksInRvcCI6MCwid2lkdGgiOjI2NjYsImhlaWdodCI6MTk5OX0sInJlc2l6ZSI6eyJ3aWR0aCI6NjQwfX19&s=8c2d4f31c78637575b8e50db45ebfb3cf6f452b5780094037d5ee2b6eb319d3d",
+      "role": "photograph",
+      "alt": "Nike Basketball athlete Cade Cunningham",
+      "found_on": "https://about.nike.com/en/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://about.nike.com/apple-touch-icon.png",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

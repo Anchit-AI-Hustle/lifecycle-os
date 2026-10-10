@@ -208,7 +208,6 @@
   },
   "palette": {
     "primary": "#191919",
-    "accent": "#191919",
     "ink": "#191919",
     "surface": "#ffffff",
     "surface_alt": "#ffffff",
@@ -420,6 +419,13 @@
       "image_url": "",
       "product_url": "",
       "placeholder": true
+    }
+  ],
+  "identity_sources": [
+    {
+      "url": "https://about.puma.com/en",
+      "kind": "page",
+      "what": "PUMA corporate site"
     }
   ],
   "offerings": [],

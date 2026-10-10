@@ -29,6 +29,7 @@ const F = require('./brand-guide-fixtures');
 const ROOT = path.resolve(__dirname, '..');
 const HOST = 'http://app.example.test';
 const DOCS = 'https://docs.harbourlight.example';      // sends CORS: the browser reads it directly
+const SITE = 'https://shop.harbourlight.example';      // a public website, CORS HTML, not a brand book
 const NOCORS = 'https://drive.harbourlight.example';   // sends none: read through op=document-fetch
 const PAUSED = 'paused-project.supabase.co';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
@@ -149,6 +150,9 @@ async function open(page, world, opts) {
     const m = PDFJS_RX.exec(u);
     if (m) return route.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', 'build', m[1])) });
     if (/\/auth\/v1\/health/.test(u)) return route.abort('addressunreachable');
+    if (u.startsWith(SITE)) {
+      return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', headers: { 'access-control-allow-origin': '*' }, body: '<!doctype html><html><head><title>Harbourlight</title></head><body><h1>Harbourlight</h1></body></html>' });
+    }
     if (u.startsWith(DOCS)) {
       const p = new URL(u).pathname;
       const cors = { 'access-control-allow-origin': '*' };
@@ -475,6 +479,26 @@ test('a linked document is read directly when its host allows a browser, and thr
   await page.click('#docUrlRun');
   await expect(page.locator('#docStatus')).toContainText('Paste the address of your brand guidelines first');
   expect(world.net.escaped).toEqual([]);
+});
+
+test('a website pasted as the brand-guidelines link is read with Read my site', async ({ page }) => {
+  const log = await open(page, world);
+  await page.fill('#docUrl', SITE + '/');
+  await page.click('#docUrlRun');
+  await expect(page.locator('#docStatus')).toContainText('is your website, so it is read with Read my site');
+  await expect(page.locator('#docBlock .vh-failure')).toHaveCount(0);
+  await expect.poll(() => log.api.filter((x) => x === 'brand:extract').length).toBe(1);
+  await expect(page.locator('#xUrl')).toHaveValue(SITE + '/');
+  expect(log.docFetch, 'the website was fetched as a document').toEqual([]);
+});
+
+test('a sign-in page pasted as the brand-guidelines link stays a refusal', async ({ page }) => {
+  const log = await open(page, world);
+  await page.fill('#docUrl', NOCORS + '/login');
+  await page.click('#docUrlRun');
+  await expect(page.locator('#docBlock')).toContainText('web page, not a document');
+  await expect(page.locator('#docBlock .vh-failure')).toHaveCount(1);
+  expect(log.api.filter((x) => x === 'brand:extract')).toEqual([]);
 });
 
 /* ═══ 6. the server op: SSRF guard on every hop ═══════════════════════════ */
