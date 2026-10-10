@@ -4,6 +4,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Brand X's output carries brand X's context, and nobody else's (2026-10-10)
+The operator, non-negotiable: *"Ensure respective brand and content context match always"*. Gated by
+`tests/brand-content-invariant.spec.js` (executed) over `tests/lib/brand-invariant-fixtures.js`: three
+synthetic brands with unmistakable tokens (Quillforth Gazette, IN news, INR; Brambleweld Larder, UK food,
+GBP; Ozzlewick, a name and nothing else), tenant zero's tokens DERIVED from its record and built catalogue.
+- **One gate, every generator, through the shipped routers**: brain.js, calendar.js, generate.js (every
+  mode), the five pipeline stages, public-config, competitor, kb - in a DEVICE world (carried brand) and an
+  ACCOUNT world (fake-supabase workspace + its own `brand_catalog_products`), the asset generators also with
+  every model DOWN (template paths). The scripted `llm.js` records every PROMPT, so a prompt is judged like
+  an output: no other brand's token, the brand's own name/palette/type/claims/legal sender where it has
+  them, a DATA REQUIRED marker where it has none, the HOME market never 'US'. Also: a signed-in account with
+  NO workspace, the `/lp/:id` page an approval serves, and every app page in Chromium with the brand active.
+  Every generator the routers DECLARE (MODEL_FEATURE, `_CAL_FEATURE`, GENERATES, MODE_FEATURE, the pipeline
+  directory) is in the table or in `EXEMPT` with a reason, so a new one without coverage fails.
+- **What it found, all fixed at the source**: generate.js's eight system prompts were written AS tenant
+  zero (name, hexes, fonts, banned list, a tea brand's sensory scenes, invented examples to copy) and a
+  custom brand only got a block prepended - rewritten from `brand-runtime.promptFacts()`; the buyer agent,
+  team copilot, analyst, console, agentic strategist/reviewer/ideation, V1 calendar strategist, quality loop,
+  feature/platform agents and KicksGPT's domain + voice lines all named tenant zero; `getBrandKit()` was
+  tenant zero's kit for every caller and `scrubBannedPhrases` swapped its vocabulary into others' copy;
+  copy-framework beats glossed for sneakers went into every brief (`briefBeats()`); `?action=smart-brain-
+  generate-slot` built the raw request entry as tenant zero and preview/approve trusted an inline entry's
+  `brand`/`workspace_id` (service-role catalogue read of ANY workspace) - `scopeInlineEntry()`; the trigger
+  mailer's variants carried no brand (tenant zero's name, store, palette, legal sender) and printed '$' for
+  every market but UK; the lifecycle programme (tenant zero's lanes, table and store) was planned/listed/
+  built for every brand - refused with a marker now, as are the legacy slot engine (`brain-generate`) and a
+  lifecycle `entry_id` on mailer-assets; social's placeholder SVG, the motion ad, `design-system.resolve`,
+  `brandPal`, review-recovery and the template mailer/LP all fell back to tenant zero's hexes or families
+  (`NEUTRAL_PALETTE`/`NEUTRAL_FONTS`, `fontStacks()`, `paletteOf()`); `carriedBrand()` dropped
+  `legal_entity`; the brand block had no legal sender; `resolve()` answered TENANT ZERO for a signed-in
+  person with no workspace / an unreadable row (unresolved placeholder now); `scopedBrand()` read the
+  unresolved placeholder and a carried record as "no brand" (`namesBrand()`); agentic runs planned US+UK for
+  an India-only brand; logo/domain/platform-agents/revenue-os ignored a device brand; an inline entry with
+  no market was built for "all" (home market now); the playbook hub showed tenant zero's growth narrative.
+- **Two harness defects hid half of it**: `router-harness` re-parsed `req.body` on every read (@vercel/node
+  memoises), so generate.js's `req.body.__brand` vanished and every generate.js prompt in every test was
+  tenant zero's; and a probe whose crash printed nothing read as "clean" - assert the run happened.
+- **Left as found, on purpose**: `tokens()`'s no-palette fallback (#6A33D8, a Montserrat head) is
+  CONTRACT.md's recorded decision, shared with the browser port and the theme baselines (redacted in the gate,
+  named); `daily-calendar` 500s on main (`smart-brain-plan.horizonCoverage` never existed here); the
+  `X-KNICKGASM-LP` header / download name; `scenario-model.sanitizeBrand`'s tenant-zero substitutions.
+
 ## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
 `auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
 never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,

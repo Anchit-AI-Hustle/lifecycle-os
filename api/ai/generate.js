@@ -28,6 +28,40 @@ const scrubDashes = SMscen.scrubDashes;
 const brandScrub = (s) => { try { return SMscen.sanitizeBrand ? SMscen.sanitizeBrand(String(s)) : scrubDashes(s); } catch (_) { return scrubDashes(s); } };
 const CF = require('../_shared/copy-frameworks.js');
 
+// ── WHOSE PROMPT (2026-10-10) ───────────────────────────────────────────────
+// Every system prompt in this file was written AS tenant zero: its name, its
+// "premium D2C Indian heritage sneaker" descriptor, its four hexes, its two
+// typefaces, its preferred and banned vocabulary, a sibling tea brand's
+// sensory scenes ("steam rising", "where the leaves come from") and invented
+// examples to imitate ("4.8/5 across 12,400 reviews", "Free shipping over $49
+// · 30-day guarantee", "REVIVE15"). A custom workspace got a short OPERATIVE
+// BRAND block prepended and the rest of the prompt unchanged, so the model was
+// briefed with BOTH brands, and every `portable_prompt` handed to the operator
+// to paste into another model carried tenant zero's identity. A device brand
+// with no workspace id did not even get the block. Every brand fact below now
+// comes from the brand this REQUEST resolved, or is a DATA REQUIRED marker.
+function _rtm() { return require('../_shared/brand-runtime.js'); }
+function promptBrand(body) {
+  const b = body && body.__brand;
+  try { return _rtm().scopedBrand(b, { allowTenantZero: true }) || {}; } catch (_) { return b || {}; }
+}
+function brandLines(b) {
+  const f = _rtm().promptFacts(b);
+  const quoted = (a) => a.map((x) => `"${x}"`).join(', ');
+  return {
+    f, name: f.name,
+    identity: `${f.name}: ${f.descriptor}`,
+    palette: f.palette, typography: f.typography, tone: f.tone,
+    preferred: f.preferred.length ? f.preferred.join(', ') : "the brand's own vocabulary (none supplied)",
+    banned: f.banned.length ? quoted(f.banned) : '(no brand-specific banned phrases on file)',
+    claims: f.claims.length ? f.claims.join(' | ') : `[DATA REQUIRED BEFORE LAUNCH: verifiable claims, ${f.name}]`,
+  };
+}
+/** The audience line for a market: what the brief and record say, never an assumed persona. */
+function audienceFor(L, m) {
+  return `${m}: ${L.name}'s own customers in ${m}. [DATA REQUIRED BEFORE LAUNCH: audience definition, ${L.name}, ${m}] Describe them only from the brief and any TARGET AUDIENCE supplied; never assume an age, income, gender or lifestyle.`;
+}
+
 // Walk a parsed LLM JSON payload and brand-scrub (banned phrases + em/en dashes)
 // every generated STRING value. Object keys are never touched; URL-like values
 // are skipped so links/handles stay byte-identical.
@@ -74,12 +108,12 @@ const AD_FORMATS = {
 // tampered with by browser-side edits)
 // ────────────────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT_CONCEPTS = `You are a D2C growth director for KNICKGASM — premium Indian heritage sneaker brand. Output STRICT JSON ONLY: {"concepts":[3 concepts]}. Each concept has: id, name (2-5w), hook (≤80ch), emotional_driver, visual_direction, tone, layout_archetype (one of: hero-led-editorial|product-grid-conversion|storytelling-narrative|single-product-spotlight|gift-bundle-showcase|ritual-journey|comparison-discovery|editorial-trend-roundup|limited-drop-countdown|subscription-anchor), hero_focus, risk_profile (safe|balanced|bold), hero_concept (2-3 sentences), section_flow (array of 5 mod sections), visual_prompt_extension (120-200ch), subject_lines [3 ≤60ch each], preheader (≤90ch no terminal period), copy {eyebrow, headline:[2 lines], sub_copy ≤200ch, cta ≤3w, section_title, ann_bar}, cta_options [3 ≤3w each], product_handles [3-5 from AVAILABLE_PRODUCTS], scores {brand_fit:1-10, conversion_potential:1-10, novelty:1-10}, performance_notes {recommended_subject_index, swap_if_low_open, personalization_token}, primary_hook (offer|benefit|origin-freshness), secondary_hook, user_emotional_state (curiosity-trust|reward-upgrade|reactivation-incentive), internal_critique {strongest_subject_index, strongest_subject_reason, weakest_section, weakest_reason, open_rate_lever, ctr_lever}, rationale.
+const SYSTEM_PROMPT_CONCEPTS = (L) => `You are a D2C growth director for ${L.identity}. Output STRICT JSON ONLY: {"concepts":[3 concepts]}. Each concept has: id, name (2-5w), hook (≤80ch), emotional_driver, visual_direction, tone, layout_archetype (one of: hero-led-editorial|product-grid-conversion|storytelling-narrative|single-product-spotlight|gift-bundle-showcase|ritual-journey|comparison-discovery|editorial-trend-roundup|limited-drop-countdown|subscription-anchor), hero_focus, risk_profile (safe|balanced|bold), hero_concept (2-3 sentences), section_flow (array of 5 mod sections), visual_prompt_extension (120-200ch), subject_lines [3 ≤60ch each], preheader (≤90ch no terminal period), copy {eyebrow, headline:[2 lines], sub_copy ≤200ch, cta ≤3w, section_title, ann_bar}, cta_options [3 ≤3w each], product_handles [3-5 from AVAILABLE_PRODUCTS], scores {brand_fit:1-10, conversion_potential:1-10, novelty:1-10}, performance_notes {recommended_subject_index, swap_if_low_open, personalization_token}, primary_hook (offer|benefit|origin-freshness), secondary_hook, user_emotional_state (curiosity-trust|reward-upgrade|reactivation-incentive), internal_critique {strongest_subject_index, strongest_subject_reason, weakest_section, weakest_reason, open_rate_lever, ctr_lever}, rationale.
 
 MANDATORY: exactly 3 concepts; risk distribution = exactly one safe + one balanced + one bold; all 3 layout_archetype unique; products ONLY from AVAILABLE_PRODUCTS handles.
 
-BANNED phrases: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "You won't believe", "Hurry", "Don't miss out", "Last chance", "While supplies last".
-PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
+BANNED phrases: ${L.banned}; and no false urgency ("You won't believe", "Hurry", "Don't miss out", "Last chance", "While supplies last").
+PREFERRED: ${L.preferred}.
 
 VARIANT DIVERGENCE: the runtime renders TWO variants of every concept on different archetypes from same compatible pool. Your section_flow must work in both.
 
@@ -87,22 +121,23 @@ REGENERATE DIVERGENCE: if regenerate_counter > 0, force divergence on hero angle
 
 First char of output MUST be { · last char }. No markdown, no commentary.`;
 
-const SYSTEM_PROMPT_CREATE_BRIEF = `You are simultaneously the Head of Growth and the Creative Director at KNICKGASM — a $100M premium D2C Indian heritage sneaker brand. You are writing a COMPLETE, PRODUCTION-READY campaign brief whose ONLY job is to bring revenue when this email is sent. Every line of the brief should answer the question: "what is the specific behaviour we want from the reader, and what is the most concrete thing we can put on the page to trigger it?"
+const SYSTEM_PROMPT_CREATE_BRIEF = (L) => `You are simultaneously the Head of Growth and the Creative Director at ${L.identity}. You are writing a COMPLETE, PRODUCTION-READY campaign brief whose ONLY job is to bring revenue when this email is sent. Every line of the brief should answer the question: "what is the specific behaviour we want from the reader, and what is the most concrete thing we can put on the page to trigger it?"
 
 GROWTH-LEADER LENS (apply to every section):
-- Open-rate driver = subject line specificity. Vague subject = no open = no revenue. Subject lines must reference a benefit, a number, a name, or an occasion — never "Sneaker you will love".
+- Open-rate driver = subject line specificity. Vague subject = no open = no revenue. Subject lines must reference a benefit, a number, a name, or an occasion — never a vague "you will love it".
 - Click-through driver = a single dominant proposition above the fold. One offer, one CTA, one hero. Multiple competing offers tank CTR.
 - Conversion driver = price-anchoring + scarcity + reorder ease. Show price + strikethrough + % OFF, name the deadline, make ADD TO CART one tap.
 - LTV driver = the brief should always carry a soft post-purchase hook (subscription, bundle save, free-shipping threshold) so even a single conversion lifts AOV or repeat rate.
 - Anti-pattern: emotional copy with no reason-to-act. Beautiful prose that does not move the reader to click is a failed brief.
 
 BRAND IDENTITY:
-- KNICKGASM. Single-studio sneakers, streetwear colorways, gift sets. [DATA REQUIRED BEFORE LAUNCH: certifications and fulfilment timeline, this brand]
-- Palette: deep purple #D0473E / amber lava #6A33D8 / parchment chalk #FFFFFF / near-black #111111
-- Typography: Montserrat (headings), Instrument Sans (body/buttons)
-- Voice: calm-confident-premium. PREFERRED: ritual, restore, balance, origin, one-of-one, lace-up, heritage, crafted
-- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out
-- EMOTIONAL TONE: Write copy that makes people FEEL something. Think of the moment: holding a warm pair on a cold morning, the colorway filling a quiet kitchen, the first step that slows the whole world down. Copy should read like a letter from a friend, not a billboard. Sensory details (steam, warmth, scent, texture, sound of pouring) create connection. Every headline should make someone pause mid-scroll.
+- ${L.identity}.
+- Palette: ${L.palette}
+- Typography: ${L.typography}
+- Voice: ${L.tone}. PREFERRED: ${L.preferred}
+- BANNED: ${L.banned}
+- VERIFIABLE CLAIMS (the only statements of fact allowed): ${L.claims}
+- EMOTIONAL TONE: Write copy that makes people FEEL something, grounded in this brand's own products and the moment its customer uses them. Copy should read like a letter from a friend, not a billboard. Concrete sensory detail that is TRUE of this brand's product creates connection. Every headline should make someone pause mid-scroll.
 
 YOUR BRIEF MUST INCLUDE ALL OF THE FOLLOWING (450-600 words, flowing prose organized in clear sections):
 
@@ -116,12 +151,12 @@ YOUR BRIEF MUST INCLUDE ALL OF THE FOLLOWING (450-600 words, flowing prose organ
 • PREHEADER — 80-100 character preview text that complements (not repeats) the subject line
 • ANNOUNCEMENT BAR — exact 8-12 word text. Format: "[OFFER/HOOK] · [FRESHNESS] · [TRUST SIGNAL]"
 • HERO HEADLINE — two variants:
-  Line 1: Emotionally resonant, max 6 words — makes the reader feel understood (e.g. "The Quiet Morning Ritual" or "Some Moments Deserve This")
-  Line 2: Sensory/poetic continuation, max 6 words (e.g. "That Changes Everything" or "Warmth in Every Step")
-• SUB-COPY — 2-3 sentences (40-60 words). Paint a sensory scene: steam rising, warmth spreading through hands, the moment of stillness before the day begins. Mention the hero product by name. The reader should feel like you wrote this just for them — personal, warm, never salesy.
+  Line 1: Emotionally resonant, max 6 words — makes the reader feel understood
+  Line 2: Sensory/poetic continuation, max 6 words
+• SUB-COPY — 2-3 sentences (40-60 words). Paint a concrete scene of this brand's customer using the hero product. Mention the hero product by name. The reader should feel like you wrote this just for them — personal, warm, never salesy.
 • CTA BUTTON TEXT — primary (max 3 words, action verb: "Shop the Collection") + softer alternative ("Explore Now")
 • OFFER DETAILS — exact discount %, promo code (if any), free shipping threshold, expiry/urgency mechanic
-• OFFER SUB-LINE — one line below offer CTA (e.g. "Free shipping on orders $49+ · No minimum")
+• OFFER SUB-LINE — one line below offer CTA, stating only an offer, threshold or policy the brief or the brand record supplies
 
 ━━━ PRODUCT SYSTEM (use ONLY products from the provided list) ━━━
 • HERO PRODUCT — exact name, price, discount % (calculate: Math.round((1-price/compare_at)*100)), why it anchors
@@ -129,17 +164,11 @@ YOUR BRIEF MUST INCLUDE ALL OF THE FOLLOWING (450-600 words, flowing prose organ
 • PRODUCT SECTION TITLE — 4-6 word heading for the product grid (e.g. "Curated For Your Ritual")
 
 ━━━ VISUAL DIRECTION ━━━
-• IMAGE A (product-led, 60 words): Name the exact hero product box. Surface material (marble/linen/wood). Light: direction, color temperature (warm 3500K/cool 5500K). Camera angle (45° overhead/eye-level). DOF. Surrounding botanicals specific to product (embroidery roots for embroidery sneaker, etc).
-• IMAGE B (lifestyle/editorial, 60 words): NO product visible. Human warmth. Different time of day from A. Atmospheric mood. Steam, hands holding pair, morning ritual, evening calm. Specific setting (kitchen/studio/desk).
+• IMAGE A (product-led, 60 words): Name the exact hero product. Surface material. Light: direction, color temperature (warm 3500K/cool 5500K). Camera angle (45° overhead/eye-level). DOF. Props specific to this product.
+• IMAGE B (lifestyle/editorial, 60 words): NO product visible. Human warmth. Different time of day from A. Atmospheric mood. A specific setting where this brand's customer actually uses it.
 
 ━━━ SOCIAL PROOF & TRUST ━━━
-• 3 TESTIMONIAL QUOTES — each 15-25 words, deeply personal and specific (NOT generic praise). Write them as real moments: "There is a moment every morning when I hold the warm pair and the world goes quiet" NOT "Great product, highly recommend". Each should tell a tiny story. Reviewer names MUST match the target market region:
-  US/Global: American names (Sarah M., James T., Michelle R.)
-  UK: British names (Charlotte W., Oliver P., Sophie B.)
-  IN: Indian names (Priya S., Arjun K., Meera R.)
-  AU: Australian names (Emma L., Jack W., Olivia M.)
-  ME: Middle Eastern names (Fatima A., Omar H., Layla K.)
-  EU: European names (Marie L., Thomas B., Anna S.)
+• TESTIMONIALS — ONLY reviews the brief supplies, quoted verbatim with the reviewer exactly as supplied. Never write a testimonial or invent a reviewer name. With none supplied, write [DATA REQUIRED BEFORE LAUNCH: approved review library, ${L.name}] in this section.
 
 ━━━ EMAIL STRUCTURE (section-by-section flow) ━━━
 Describe the 11-section email layout:
@@ -158,18 +187,19 @@ RULES:
 - If no discount exists, state "Premium value — no code needed"
 - Every sentence must be specific to THIS campaign — generic output is rejected
 - The brief must feel like a senior creative director firing off a complete production brief
-- Reviewer names MUST match the target market (American names for US, British for UK, Indian for IN, etc)
+- Never invent a testimonial, reviewer, rating or review count
 - The output must be so detailed that someone could build the complete email from this brief alone`;
 
 
-const SYSTEM_PROMPT_SUGGESTED_PROMPTS = `You are a Creative Director + Director of Growth at KNICKGASM — a premium D2C Indian heritage sneaker brand (Aesop / AG1 / Net-a-Porter standard). Generate exactly 6 campaign briefs as a JSON array. Each is a director-grade email campaign prompt that a downstream AI pipeline uses to produce a flawless premium mailer.
+const SYSTEM_PROMPT_SUGGESTED_PROMPTS = (L) => `You are a Creative Director + Director of Growth at ${L.identity}. Generate exactly 6 campaign briefs as a JSON array. Each is a director-grade email campaign prompt that a downstream AI pipeline uses to produce a flawless premium mailer.
 
-KNICKGASM BRAND:
-- Ultra-premium Indian heritage sneaker. Single-studio sourcing. Certifications: [DATA REQUIRED BEFORE LAUNCH: certifications, this brand].
-- Palette: deep purple #D0473E / amber #6A33D8 / chalk #FFFFFF
-- Tone: calm-confident-premium. Ritual not regimen. Story over price.
-- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, dont miss out
-- PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted
+BRAND:
+- ${L.identity}.
+- Palette: ${L.palette}
+- Tone: ${L.tone}.
+- BANNED: ${L.banned}
+- PREFERRED: ${L.preferred}
+- VERIFIABLE CLAIMS (the only facts allowed): ${L.claims}
 
 For each campaign:
 1. Pick a different emotional angle and campaign archetype (Sale, Launch, Gift, Seasonal, Bestseller, Routine, Discovery — no two the same)
@@ -183,7 +213,7 @@ Return ONLY a valid JSON array — no markdown, no code fences, no explanation. 
 
 // FINAL MASTER PROMPT — Full 11-step orchestration system
 // Used by mailer_full mode (fallback path when pipeline is unavailable)
-const SYSTEM_PROMPT_MAILER_FULL = `You are a Creative Director + Director of Growth at a $100M premium D2C brand.
+const SYSTEM_PROMPT_MAILER_FULL = (L) => `You are a Creative Director + Director of Growth at ${L.identity}.
 
 You DO NOT generate outputs directly.
 You operate as a deterministic system that:
@@ -301,22 +331,23 @@ FINAL OUTPUT JSON SCHEMA
 - NEVER produce generic layouts
 - NEVER ignore Step 8 validation
 
-KNICKGASM BRAND:
-Palette (ONLY these 4 hex): #D0473E / #6A33D8 / #111111 / #FFFFFF. Fonts (STRICT): Montserrat for headings (fallback 'Montserrat','Raleway',Georgia,serif), Instrument Sans for body (fallback 'Instrument Sans','Helvetica Neue',Arial,sans-serif). NO other fonts or colors.
+BRAND (${L.name}):
+Palette (ONLY these): ${L.palette}. Typography (STRICT): ${L.typography}. NO other fonts or colors.
+VERIFIABLE CLAIMS (the only statements of fact allowed): ${L.claims}.
 
 GROWTH-LEADER OUTPUT CHECKLIST (every brief MUST include all 8):
-1. Subject lines: 3 options. Each must reference a NUMBER (% off, count, days left, price), a SPECIFIC product/category, or a NAMED occasion. No vague "Sneaker you'll love".
+1. Subject lines: 3 options. Each must reference a NUMBER the brief supplies (% off, count, days left, price), a SPECIFIC product/category, or a NAMED occasion. No vague "you'll love it".
 2. Hero headline: TWO lines, max 6 words each. Line 1 = the offer or sensory hook. Line 2 = the emotional payoff. Must wrap legibly at 280px (avoid 7+ words per line).
 3. Sub-copy: 2-3 sentences (40-70 words) that name the hero PRODUCT, the BENEFIT to the reader's day, and the SPECIFIC offer/code if present. Sensory but never floral-only.
-4. Benefit bullets: EXACTLY 4 short lines (≤9 words each). Each bullet starts with a verb or concrete claim. Mix functional + emotional. e.g. "Soothes digestion · feels lighter by lunch", "Steady energy · no paint crash", "Single-studio · zero artificial fillers".
-5. Offer banner copy: an EXPLICIT discount line with the % AND the code AND the urgency mechanic ("Use REVIVE15 · 15% off · Ends Sunday"). If the campaign has no discount, state the value-prop concretely ("Free shipping over $49 · 30-day guarantee").
-6. Social proof line: a specific number ("Trusted by India's largest sneaker customisers", "4.8/5 across 12,400 reviews"), not generic "loved by many".
-7. Urgency strip: one specific scarcity or time-bound trigger relevant to the campaign type ("⚡ Ends Sunday · Stock running low", "🎁 Order by Tuesday for guaranteed delivery", "✨ First batch — limited supply").
+4. Benefit bullets: EXACTLY 4 short lines (≤9 words each). Each bullet starts with a verb or concrete claim taken from the products supplied or the verifiable claims above. Mix functional + emotional.
+5. Offer banner copy: the discount, code and deadline EXACTLY as the brief supplies them. Never invent a code, a percentage, a threshold or a guarantee; with no offer in the brief, state the value-prop from the verifiable claims.
+6. Social proof line: only a verifiable claim above or an approved review the brief supplies; otherwise [DATA REQUIRED BEFORE LAUNCH: approved social proof, ${L.name}]. Never a rating or review count nobody supplied.
+7. Urgency strip: only a deadline or stock fact the brief supplies; otherwise omit it. No invented scarcity.
 8. Variant divergence: every brief is rendered as TWO mailers (A=conversion, B=narrative). Hero headline + sub-copy must read well in BOTH a conversion-led grid layout AND a story-led editorial layout. Avoid copy that only works in one frame.
 
 ANTI-PATTERN: a brief that produces beautiful prose but no concrete reason-to-act is a failed brief. Every section must answer "why click NOW" with specifics.
-BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME caps, hurry, don't miss out.
-PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
+BANNED: ${L.banned}.
+PREFERRED: ${L.preferred}.
 
 First char { · last char }. No markdown. No commentary.`;
 
@@ -361,7 +392,11 @@ module.exports = async function handler(req, res) {
   body = body || {};
 
   const mode = body.mode || 'create_brief';
-  const market = body.market || 'US';
+  // The brand this request resolved, and its HOME market when the request
+  // names none - never a literal 'US' for a brand that does not sell there.
+  const _pb = promptBrand(body);
+  const _L = brandLines(_pb);
+  const market = body.market || _rtm().homeRegion(_pb) || `[DATA REQUIRED BEFORE LAUNCH: home market, ${_L.name}]`;
   const markets = body.markets || [market];
   const theme = body.theme || body.type || '';
   const campaign_brief = body.campaign_brief || body.brief || body.prompt || '';
@@ -377,32 +412,23 @@ module.exports = async function handler(req, res) {
   // other files and keep their own cost-appropriate tiers.)
   const tier = 'premium';
 
-  let systemPrompt = SYSTEM_PROMPT_CREATE_BRIEF;
+  let systemPrompt = SYSTEM_PROMPT_CREATE_BRIEF(_L);
   let userMessage = '';
   let response_format = undefined;
 
   if (mode === 'suggested_prompts') {
-    systemPrompt = SYSTEM_PROMPT_SUGGESTED_PROMPTS;
+    systemPrompt = SYSTEM_PROMPT_SUGGESTED_PROMPTS(_L);
     response_format = { type: 'json_object' };
     const mktList = Array.isArray(markets) ? markets.join(', ') : market;
-    const mktContext = {
-      US: 'urban US professionals 30-55, $55+ AOV, values quality and origin story',
-      UK: 'UK sneaker-culture audience, appreciate provenance and craft, premium gifters',
-      IN: 'Indian domestic audience, value tradition and festivity',
-      AU: 'Australian streetwear seekers, outdoor lifestyle, clean-label conscious',
-      ME: 'Middle East audience, love rich hand-painted kicks and vibrant colorways',
-      EU: 'European health-conscious shoppers, certification story resonates where the brand actually holds one',
-      Global: 'International premium audience, discovery-minded, seeking authentic Indian heritage'
-    };
-    const mktDesc = (Array.isArray(markets) ? markets : [market]).map(m => `${m}: ${mktContext[m] || m}`).join('; ');
+    const mktDesc = (Array.isArray(markets) ? markets : [market]).map(m => audienceFor(_L, m)).join('; ');
     userMessage = `MARKETS TO FOCUS ON: ${mktList}\nMARKET AUDIENCE: ${mktDesc}\nCAMPAIGN TYPE FILTER: ${theme || 'Mixed — generate variety across Sale, Launch, Gift, Seasonal, Bestseller, Routine'}\nSEASON CONTEXT: ${season || 'Year-round'}\n\nGenerate 6 diverse, elite director-grade campaign briefs now. Each must be a different emotional angle and conversion strategy. No two briefs should share the same archetype or hero product. Return only the JSON array.`;
   } else if (mode === 'concepts') {
-    systemPrompt = SYSTEM_PROMPT_CONCEPTS;
+    systemPrompt = SYSTEM_PROMPT_CONCEPTS(_L);
     response_format = { type: 'json_object' };
     const productsBlock = selected_products.slice(0, 30).map(p => `- handle:${p.handle||p.id||''} | name:${p.name||p.n||''} | category:${p.category||''} | price:${p.price||''} | compare_at:${p.compare_at||''} | image:${p.image_url||p.i||''}`).join('\n');
     userMessage = `BRIEF: ${campaign_brief.substring(0, 800)}\nMARKET: ${market}\nTYPE: ${theme}\nVARIANT: ${variant}\nREGENERATE_COUNTER: ${regenerate_counter}\n${previous_outputs_summary ? 'PREVIOUS_OUTPUT_HASH: ' + previous_outputs_summary + '\n' : ''}\nAVAILABLE_PRODUCTS:\n${productsBlock || '(none provided — use category defaults)'}\n\nGenerate the JSON now.`;
   } else if (mode === 'mailer_full') {
-    systemPrompt = SYSTEM_PROMPT_MAILER_FULL + '\n\n' + CF.frameworkMenuDirective();
+    systemPrompt = SYSTEM_PROMPT_MAILER_FULL(_L) + '\n\n' + CF.frameworkMenuDirective();
     response_format = { type: 'json_object' };
     const productsBlock = selected_products.slice(0, 5).map(p => `- name:"${p.name||p.n||''}" | url:"${p.url||p.pdp_url||''}" | price:"${p.price||''}" | compare_price:"${p.compare_at||p.compare_price||''}" | image:"${p.image_url||p.i||''}"`).join('\n');
     userMessage = `INPUTS:\nmarket: ${market}\ntheme: ${theme}\ncampaign_brief: ${campaign_brief.substring(0, 1000)}\nvariant: ${variant}\nregenerate_counter: ${regenerate_counter}\n${previous_outputs_summary ? 'previous_outputs_summary: ' + previous_outputs_summary + '\n' : ''}selected_products:\n${productsBlock || '(none)'}\n\nReturn the strict JSON now.`;
@@ -410,9 +436,9 @@ module.exports = async function handler(req, res) {
     // Target User Segment generator — director-grade, growth-leader thinking.
     // Output is a paragraph of 60-120 words describing WHO will open this mailer
     // and convert. No bullet points. Plain text only.
-    systemPrompt = `You are the Head of Growth at KNICKGASM, a $100M premium D2C Indian heritage sneaker brand. Given a campaign brief, market, and campaign type, write a precise Target User Segment description that the creative team will use to anchor copy, imagery, and CTAs.
+    systemPrompt = `You are the Head of Growth at ${_L.identity}. Given a campaign brief, market, and campaign type, write a precise Target User Segment description that the creative team will use to anchor copy, imagery, and CTAs.
 WRITE 60–120 WORDS, plain text only (no bullets, no headers, no markdown). Cover, in this order:
-1. WHO they are — age band (e.g. "30–55"), income/AOV bracket, role/lifestyle, key sneaker behaviour (daily drinker / gifter / discoverer / lapsed).
+1. WHO they are — age band (e.g. "30–55"), income/AOV bracket, role/lifestyle, key purchase behaviour (regular buyer / gifter / discoverer / lapsed).
 2. WHERE they are — name the COUNTRY of the target market only (e.g. "in the US", "in the UK", "in India"). DO NOT name specific cities, states, regions, neighbourhoods, or zip codes — the segment travels nation-wide and must read naturally to a customer in any city of that country.
 3. WHAT they value — provenance, ritual, gift-giving, convenience, savings — pick 1–2 that align with the brief.
 4. WHY they will convert on THIS specific brief — name the conversion trigger explicitly (offer ends Sunday / new drop just dropped / under $50 gift / 3-month subscription saves 15%).
@@ -420,7 +446,7 @@ WRITE 60–120 WORDS, plain text only (no bullets, no headers, no markdown). Cov
 HARD RULES:
 - COUNTRY ONLY for geography. No city names, no regions ("the Midwest", "the South-East"), no neighbourhoods, no zip codes, no stadium-stat numbers ("12.4M households").
 - Avoid demographic stats and percentages — describe behaviour and intent in plain English instead.
-- Avoid platitudes ("sneaker lovers", "streetwear enthusiasts"). Reference the actual brief language.
+- Avoid platitudes ("category lovers", "enthusiasts"). Reference the actual brief language.
 - Specificity comes from BEHAVIOUR ("buys premium grocery weekly", "gifts 3-4 times a year") and TRIGGER ("the 15% off code", "the new drop"), not from city/stat name-dropping.
 Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     userMessage = `MARKET: ${market}\nCAMPAIGN TYPE: ${theme || 'Bestseller'}\nCAMPAIGN BRIEF:\n${(campaign_brief || '').substring(0, 1200)}\n${body.seed_segment ? 'SEED (refine, do not discard): ' + String(body.seed_segment).substring(0, 400) + '\n' : ''}\nWrite the Target User Segment now. Country-level geography only.`;
@@ -435,11 +461,12 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     const histArr = Array.isArray(body.history) ? body.history.slice(-8) : [];
     const userMsg = String(body.message || body.prompt || '').slice(0, 2000);
     systemPrompt = [
-      'You are KNICKGASM Studio Assistant — a sharp, warm marketing copilot inside the KNICKGASM (premium Indian heritage sneaker) email Mailer Studio.',
+      `You are the ${_L.name} Studio Assistant, a sharp, warm marketing copilot inside the email Mailer Studio for ${_L.identity}.`,
       'Help the user brainstorm campaigns, sharpen subject lines and copy, critique the current mailer, and answer marketing questions.',
-      'VOICE: warm, sensory, story-driven, premium. PREFER words like ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
-      'Brand palette is deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF. Headings Montserrat, body Instrument Sans.',
+      `VOICE: ${_L.tone}. PREFER: ${_L.preferred}.`,
+      `NEVER use: ${_L.banned}.`,
+      `Brand palette: ${_L.palette}. Typography: ${_L.typography}.`,
+      `The only statements of fact allowed: ${_L.claims}.`,
       'Be concise and practical. Short paragraphs or tight lists. When asked for copy, give ready-to-paste options. Plain text only — no markdown headers.'
     ].join('\n');
     const ctxLines = [
@@ -474,7 +501,7 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
     response_format = { type: 'json_object' };
     const surface = String(body.surface || '').toLowerCase();
     const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
-    const targetMarket = body.market || body.region || market || 'US';
+    const targetMarket = body.market || body.region || market;
     const referenceUrl = String(body.reference_url || '').trim();
 
     // Optional: fetch the reference URL + a tiny snippet of its text so the
@@ -485,7 +512,7 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), 5000);
         const rr = await fetch(referenceUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 KnickgasmRef/1.0' },
+          headers: { 'User-Agent': 'Mozilla/5.0 LifecycleOSRef/1.0' },
           signal: ctrl.signal,
           redirect: 'follow',
         }).catch(() => null);
@@ -511,13 +538,11 @@ Return ONLY the segment text. No preamble, no quotes around it, no JSON.`;
        problem. Neither is in data/brands/_default.json's approved claims, and
        CLAUDE.md says never assert anything else as fact - so the descriptor now
        comes from the brand's own record and nothing is added to it. */
-    const _gb = (() => { try { return require('../_shared/brand-runtime.js').scopedBrand(null); } catch (_) { return {}; } })();
-    const _gbName = _gb.name || 'this brand';
-    const _gbDesc = [_gb.industry, _gb.tagline].filter(Boolean).join(' — ') || '[DATA REQUIRED BEFORE LAUNCH: brand descriptor]';
-    const BRAND_GUARDRAILS = `BRAND: ${_gbName} — ${_gbDesc}.
-PALETTE: deep purple #D0473E / amber lava #6A33D8 / chalk #FFFFFF / black #111111.
-BANNED: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don't miss out".
-PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
+    const BRAND_GUARDRAILS = `BRAND: ${_L.identity}.
+PALETTE: ${_L.palette}.
+BANNED: ${_L.banned}.
+PREFERRED: ${_L.preferred}.
+VERIFIABLE CLAIMS (the only facts allowed): ${_L.claims}.
 COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for India, € for EU.`;
 
     const SURFACE_SCHEMAS = {
@@ -532,9 +557,9 @@ COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for
   "keywords": "<comma-separated 6-12 keywords, lowercase, no quotes>",
   "headlines": "<3-5 headlines, one per line, each ≤30 chars>",
   "desc": "<2 descriptions, one per line, each ≤90 chars>",
-  "overlay_headline": "<headline BAKED onto the creative image — ≤6 words, sells the calm/happy end-state (P01), never an ingredient or feature>",
+  "overlay_headline": "<headline BAKED onto the creative image — ≤6 words, sells the end-state the product delivers, never a feature list>",
   "overlay_sub": "<supporting line baked under the headline — ≤8 words, sensory + concrete>",
-  "offer": "<the EXACT on-creative offer baked into the image — the real P01 offer, e.g. 'Starter Pack · 65% OFF + free gifts'. Concise, ≤40 chars, fits an offer pill.>"
+  "offer": "<the on-creative offer EXACTLY as the prompt states it, ≤40 chars; an empty string when the prompt states no offer. Never invent one.>"
 }`,
       },
       meta: {
@@ -548,9 +573,9 @@ COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for
   "aud": "<one-sentence audience targeting — interests + lookalike if relevant>",
   "primary": "<primary text, 60-180 chars, emotional + concrete + ends with implicit CTA>",
   "headline": "<≤40 chars headline>",
-  "overlay_headline": "<headline BAKED onto the creative image — ≤6 words, sells the calm/happy end-state (P01), never an ingredient or feature>",
+  "overlay_headline": "<headline BAKED onto the creative image — ≤6 words, sells the end-state the product delivers, never a feature list>",
   "overlay_sub": "<supporting line baked under the headline — ≤8 words, sensory + concrete>",
-  "offer": "<the EXACT on-creative offer baked into the image — the real P01 offer, e.g. 'Starter Pack · 65% OFF + free gifts'. Concise, ≤40 chars, fits an offer pill.>"
+  "offer": "<the on-creative offer EXACTLY as the prompt states it, ≤40 chars; an empty string when the prompt states no offer. Never invent one.>"
 }`,
       },
       tiktok: {
@@ -566,9 +591,9 @@ COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for
   "caption": "<≤140 chars on-screen text — short phrases separated by · or , >",
   "creator": "<@handle if relevant, else empty string>",
   "hashtags": "<3-6 hashtags space-separated, lowercase, no marketing-speak>",
-  "overlay_headline": "<headline BAKED onto the static 9:16 key-frame — ≤6 words, sells the calm/happy end-state (P01), never an ingredient or feature>",
+  "overlay_headline": "<headline BAKED onto the static 9:16 key-frame — ≤6 words, sells the end-state the product delivers, never a feature list>",
   "overlay_sub": "<supporting line baked under the headline — ≤8 words, sensory + concrete>",
-  "offer": "<the EXACT on-creative offer baked into the image — the real P01 offer, e.g. 'Starter Pack · 65% OFF + free gifts'. Concise, ≤40 chars, fits an offer pill.>"
+  "offer": "<the on-creative offer EXACTLY as the prompt states it, ≤40 chars; an empty string when the prompt states no offer. Never invent one.>"
 }`,
       },
       'lp-mailer': {
@@ -576,7 +601,7 @@ COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for
         fields: `{
   "hero": "<hero headline — repeats the mailer's promise verbatim, ≤80 chars>",
   "sub": "<one line of reassurance / detail, ≤140 chars>",
-  "offer": "<offer + promo code, e.g. FLASH25 — 25% off this week>",
+  "offer": "<the offer and code exactly as the prompt states them; empty when it states none>",
   "notes": "<2-4 sentences on who lands here, the cohort intent, the conversion trigger>"
 }`,
       },
@@ -585,7 +610,7 @@ COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for
         fields: `{
   "hero": "<≤40 chars hero, must match the ad headline verbatim>",
   "sub": "<one-sentence value prop, matches the ad's promise>",
-  "offer": "<offer + promo code>",
+  "offer": "<the offer and code exactly as the prompt states them; empty when it states none>",
   "notes": "<audience · placements · objective · why this offer for them>"
 }`,
       },
@@ -603,7 +628,7 @@ COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for
         fields: `{
   "hero": "<the video's opening hook, verbatim — conversational, mobile-first>",
   "sub": "<top creator quote or social-proof line>",
-  "offer": "<offer + promo code>",
+  "offer": "<the offer and code exactly as the prompt states them; empty when it states none>",
   "notes": "<creator handle · hashtag · audience · 2 sentences>"
 }`,
       },
@@ -624,7 +649,7 @@ ${schema.fields}
 
 RULES:
 - Fill EVERY field with a concrete, on-brand value derived from the prompt.
-- If the prompt doesn't specify a value, infer a sensible default from KNICKGASM's brand + the target market.
+- If the prompt doesn't specify a value, infer a sensible default from ${_L.name}'s brand record + the target market; never invent an offer, code, price, claim or review.
 - Numbers (budget) must be plain integers, not strings.
 - Strings must obey the character limits inside <…>.
 - Never use the banned phrases.
@@ -633,7 +658,7 @@ RULES:
 
 Target market for this autofill: ${targetMarket}.`;
 
-    userMessage = `USER PROMPT:\n"""\n${userPrompt}\n"""\n\n${referenceSnippet ? `REFERENCE PAGE (mirror the structure, voice, length, conversion logic — but rewrite for KNICKGASM and the prompt above):\n"""\n${referenceSnippet}\n"""\n\n` : ''}Return the JSON object now. Do not include any text outside the JSON.`;
+    userMessage = `USER PROMPT:\n"""\n${userPrompt}\n"""\n\n${referenceSnippet ? `REFERENCE PAGE (mirror the structure, voice, length, conversion logic — but rewrite for ${_L.name} and the prompt above):\n"""\n${referenceSnippet}\n"""\n\n` : ''}Return the JSON object now. Do not include any text outside the JSON.`;
   } else if (mode === 'landing_page') {
     // FULL AI-written landing page — returns ONE complete, mobile-first HTML
     // document (no JSON). The client previews it in the inline modal and falls
@@ -649,38 +674,28 @@ Target market for this autofill: ${targetMarket}.`;
     // instruction to print a specific wordmark is not something to leave in a
     // prompt and hope is disobeyed. It is derived from the active brand now,
     // with a DATA REQUIRED marker wherever that brand has not supplied a fact.
-    const _lpBrand = (body && body.__brand && body.__brand.id) ? body.__brand : null;
-    const _lpRt = require('../_shared/brand-runtime.js');
-    const lpRegion = (body.region || body.market || market || 'US');
-    const _lpFacts = _lpBrand ? _lpRt.regionFacts(_lpBrand, lpRegion) : null;
-    const LP_STORE = { US:'https://knickgasm.com', UK:'https://knickgasm.com', IN:'https://knickgasm.in', Global:'https://knickgasm.com', EU:'https://knickgasm.com', AU:'https://knickgasm.com', ME:'https://knickgasm.com' };
-    const lpBase = _lpBrand
-      ? (_lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${lpRegion}]`)
-      : (LP_STORE[lpRegion] || LP_STORE.US);
-    const _lpName = _lpBrand ? (_lpBrand.name || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]') : 'KNICKGASM';
-    const _lpPal = (_lpBrand && _lpBrand.palette) || null;
-    const _lpType = (_lpBrand && _lpBrand.typography) || null;
-    const _lpVoice = (_lpBrand && _lpBrand.voice) || null;
-    const _lpList = (a, fallback) => (Array.isArray(a) && a.length ? a.join(', ') : fallback);
-    const _lpPaletteRule = _lpPal
-      ? `Colour palette ONLY: ${['primary','accent','ink','surface','surface_alt'].map((k) => _lpPal[k]).filter(Boolean).join(', ') || '[DATA REQUIRED BEFORE LAUNCH: brand palette, all, all]'}. No other colours.`
-      : 'Colour palette ONLY: #D0473E, #6A33D8, #111111, #FFFFFF. No other colours.';
-    const _lpTypeRule = _lpType
-      ? `Headings in ${(_lpType.heading && (_lpType.heading.stack || _lpType.heading.family)) || '[DATA REQUIRED BEFORE LAUNCH: typography.heading]'}. Body in ${(_lpType.body && (_lpType.body.stack || _lpType.body.family)) || '[DATA REQUIRED BEFORE LAUNCH: typography.body]'}.`
-      : "Headings in a serif stack: 'Montserrat','Raleway',Georgia,serif. Body in a sans stack: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.";
-    const _lpVoiceRule = _lpVoice
-      ? `Voice: ${_lpVoice.tone || '[DATA REQUIRED BEFORE LAUNCH: voice.tone]'}. Prefer: ${_lpList(_lpVoice.preferred, 'the brand\'s own vocabulary')}.`
-      : 'Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.';
-    const _lpBannedRule = (_lpVoice && Array.isArray(_lpVoice.banned) && _lpVoice.banned.length)
-      ? `NEVER use: ${_lpVoice.banned.join(', ')}.`
-      : "NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.";
-    const _lpClaims = (_lpBrand && Array.isArray(_lpBrand.claims) && _lpBrand.claims.length)
-      ? _lpBrand.claims.join(' | ')
-      : (_lpBrand ? '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]' : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, all, all]');
+    // The brand this request resolved, ALWAYS (2026-10-10): the tenant-zero
+    // fallbacks that stood here for a request with no workspace id (a device
+    // brand, the unresolved placeholder) are gone. Tenant zero's own page is
+    // derived from its own record like any other brand's.
+    const _lpBrand = _pb;
+    const _lpRt = _rtm();
+    const lpRegion = (body.region || body.market || market);
+    const _lpFacts = _lpRt.regionFacts(_lpBrand, lpRegion);
+    const lpBase = _lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : `[DATA REQUIRED BEFORE LAUNCH: region store URL, ${_L.name}, ${lpRegion}]`;
+    const _lpName = _L.name;
+    const _lpFs = _lpRt.fontStacks(_lpBrand);
+    const _lpPaletteRule = `Colour palette ONLY: ${_L.palette}. No other colours.`;
+    const _lpTypeRule = (_lpFs.declared.head || _lpFs.declared.body)
+      ? `Headings in ${_lpFs.head}. Body in ${_lpFs.body}.`
+      : `Typography: [DATA REQUIRED BEFORE LAUNCH: brand typography, ${_L.name}]; until it is supplied use the system stack ${_lpFs.body}.`;
+    const _lpVoiceRule = `Voice: ${_L.tone}. Prefer: ${_L.preferred}.`;
+    const _lpBannedRule = `NEVER use: ${_L.banned}.`;
+    const _lpClaims = _L.claims;
     const lpChannel = String(body.channel || 'landing');
     response_format = undefined;
     systemPrompt = [
-      `You are a senior D2C conversion copywriter AND front-end developer for ${_lpName}${_lpBrand && _lpBrand.industry ? `, ${_lpBrand.industry}` : ''}${_lpBrand && _lpBrand.tagline ? ` (${_lpBrand.tagline})` : (_lpBrand ? '' : '')}.`,
+      `You are a senior D2C conversion copywriter AND front-end developer for ${_L.identity}.`,
       'Output ONE complete, production-ready, single-file HTML document, from <!doctype html> to </html>, with ALL CSS inline in a <style> block and NO external dependencies (no CDNs, no web fonts, no <script>). Return ONLY the HTML, no commentary before or after, no markdown fences.',
       '',
       'MOBILE-FIRST (hard requirement): design for a 360px phone first, then enhance up.',
@@ -707,7 +722,7 @@ Target market for this autofill: ${targetMarket}.`;
       `Channel intent: ${lpChannel} (write for how this channel's visitors arrive). Market: ${lpRegion}. Store base: ${lpBase}.`,
       `Hero headline: ${body.hero || '(write a strong, specific one)'}`,
       `Sub-headline: ${body.sub || '(write a supporting sensory line)'}`,
-      `Offer / mechanic: ${body.offer || '(no explicit discount, sell on quality, provenance and ritual)'}`,
+      `Offer / mechanic: ${body.offer || '(no explicit discount: sell on what the verifiable claims say, and invent no offer)'}`,
       body.notes ? `Extra notes / story / audience: ${body.notes}` : '',
       body.prompt ? `Free-text brief: ${body.prompt}` : '',
       '',
@@ -715,18 +730,11 @@ Target market for this autofill: ${targetMarket}.`;
     ].filter(Boolean).join('\n');
   } else {
     // create_brief mode (default)
-    systemPrompt = SYSTEM_PROMPT_CREATE_BRIEF + '\n\n' + CF.frameworkMenuDirective();
-    // Market context — informs audience psychology and visual direction
-    const mktContext = {
-      US:     'Urban US professionals 30-55. Value origin story + morning ritual. $55+ AOV. Expect premium provenance, not discounts.',
-      UK:     'UK sneaker-culture audience. Provenance and craft matter. Premium gifting occasion. Appreciate studio names and drop seasons.',
-      IN:     'Indian domestic audience. Value tradition, festivity, hand-painted kicks culture. Gifting + family occasions drive purchase.',
-      AU:     'Australian streetwear seekers. Outdoor lifestyle, clean-label conscious. Ethical sourcing story resonates strongly.',
-      ME:     'Middle East audience. Love rich hand-painted kicks and vibrant colorways. Gifting occasions, premium packaging, bold designs.',
-      EU:     'European health-conscious shoppers. [DATA REQUIRED BEFORE LAUNCH: certifications, this brand]. Provenance and sustainability over price.',
-      Global: 'International premium audience. Discovery-minded. Seeking authentic Indian heritage and origin stories.'
-    };
-    const audienceCtx = mktContext[market] || `${market} market audience`;
+    systemPrompt = SYSTEM_PROMPT_CREATE_BRIEF(_L) + '\n\n' + CF.frameworkMenuDirective();
+    // Market context: what this brand's record says about the market, and a
+    // marker for the audience it has not defined - never an assumed persona.
+    const audienceCtx = audienceFor(_L, market);
+    const _cur = ((_rtm().regionFacts(_pb, market) || {}).currency) || '';
 
     // Product block — name + price + discount % + image URL so the LLM can build a genuine product system
     const productsBlock = selected_products.length
@@ -736,10 +744,10 @@ Target market for this autofill: ${targetMarket}.`;
           const compareAt = parseFloat(p.compare_at || p.compare_price) || 0;
           const imgUrl = p.image_url || p.i || '';
           const parts = [name];
-          if (price) parts.push('$' + price.toFixed(2));
+          if (price) parts.push(_cur + price.toFixed(2));
           if (compareAt && compareAt > price) {
             const disc = Math.round((1 - price / compareAt) * 100);
-            parts.push('was $' + compareAt.toFixed(2) + ' (' + disc + '% off)');
+            parts.push('was ' + _cur + compareAt.toFixed(2) + ' (' + disc + '% off)');
           }
           if (p.category || p.type) parts.push(p.category || p.type);
           if (imgUrl) parts.push('image: ' + imgUrl);
@@ -753,8 +761,8 @@ Target market for this autofill: ${targetMarket}.`;
       'lead with the OFFER — discount %, urgency, code',
       'lead with the HERO PRODUCT — what makes this specific box special',
       'lead with the AUDIENCE MOMENT — the daily ritual the buyer is craving',
-      'lead with the ORIGIN STORY — where the leaves come from',
-      'lead with the SOCIAL PROOF — what tens of thousands of customers already know',
+      'lead with the ORIGIN STORY — where the product comes from, as the brand record states it',
+      'lead with the SOCIAL PROOF — only the verifiable claims and approved reviews supplied, never an invented count',
       'lead with the SEASONAL HOOK — why right now, this week',
       'lead with the PROBLEM-SOLUTION — what the buyer is silently trying to fix'
     ];
@@ -767,11 +775,11 @@ Target market for this autofill: ${targetMarket}.`;
       `SEED IDEA FROM USER: ${campaign_brief || '(none provided — derive a strong, specific campaign concept from the campaign type and market above)'}`,
       userAudience ? `TARGET AUDIENCE (already set by user — the brief MUST speak to this segment):\n${userAudience}` : '',
       productsBlock
-        ? `PRODUCTS FROM THE LIVE KNICKGASM CATALOG (use EXACT names and prices verbatim — do NOT invent SKUs or prices):\n${productsBlock}`
-        : `PRODUCTS: (none provided). Do NOT invent specific product names, prices, or URLs. Refer to KNICKGASM offerings at CATEGORY level only (for example "our one-of-one Jordan", "an coffee collection", "a embroidery themed sneaker") — no fabricated SKU names, no made-up prices, no product links.`,
+        ? `PRODUCTS FROM ${_L.name}'S OWN CATALOG (use EXACT names and prices verbatim — do NOT invent SKUs or prices):\n${productsBlock}`
+        : `PRODUCTS: (none provided). Do NOT invent specific product names, prices, or URLs. Refer to ${_L.name}'s offerings at CATEGORY level only, in the brand's own words — no fabricated SKU names, no made-up prices, no product links.`,
       ``,
       `THIS GENERATION'S CREATIVE ANGLE: ${angle}.`,
-      `CREATIVITY SEED: ${creativitySeed} — use this to deliberately diverge from any previous brief you've drafted for KNICKGASM. Different headline phrasing, different hero pick when sensible, different subject-line angles, different opening sentence.`,
+      `CREATIVITY SEED: ${creativitySeed} — use this to deliberately diverge from any previous brief you've drafted for ${_L.name}. Different headline phrasing, different hero pick when sensible, different subject-line angles, different opening sentence.`,
       `REGENERATION #${regenerate_counter || 0}: each regeneration must read as a FRESH brief, not a paraphrase of the last one.`,
       ``,
       `HARD RULES:`,
@@ -813,8 +821,10 @@ Target market for this autofill: ${targetMarket}.`;
   // regions in the generated asset rather than tenant zero's. One insertion
   // point covers every mode. No active brand means no change at all.
   try {
-    const _b = body && body.__brand;
-    if (_b && _b.id) {
+    const _b = _pb;
+    let _bz = false;
+    try { _bz = require('../_shared/brand-catalog-server.js').isTenantZeroBrand(_b) === true; } catch (_) { _bz = false; }
+    if (_b && !_bz && _rtm().namesBrand(_b)) {
       const _rt = require('../_shared/brand-runtime.js');
       systemPrompt = [
         'OPERATIVE BRAND — this block OVERRIDES every brand name, palette, typeface, product,',
@@ -877,18 +887,19 @@ Target market for this autofill: ${targetMarket}.`;
         console.warn('[generate] All providers failed for create_brief — using heuristic fallback');
         const typeMap = { Sale: 'conversion-focused flash sale', Launch: 'new product launch', Gift: 'premium gifting', Seasonal: 'seasonal campaign', Bestseller: 'bestseller showcase', Story: 'brand storytelling', Routine: 'daily ritual', Discovery: 'product discovery' };
         const typeDesc = typeMap[theme] || theme || 'premium campaign';
-        const mktMap = { US: 'US professionals 30-55', UK: 'UK sneaker lovers', IN: 'Indian consumers', AU: 'Australian streetwear seekers', ME: 'Middle East audience', EU: 'European premium shoppers', Global: 'global audience' };
-        const audience = mktMap[market] || 'premium sneaker audience';
+        // Built from the inputs and the brand record only (2026-10-10). The old
+        // text was tenant zero's (and a tea brand's): an invented code
+        // ("KNICKGASM20"), an invented 20%, a "$55 AOV" and "packed within 72
+        // hours", for every brand.
         const prodNames = selected_products.slice(0, 3).map(p => p.name || p.n || '').filter(Boolean);
-        const heroProduct = prodNames[0] || 'KNICKGASM Signature Collection';
-        const supportProducts = prodNames.slice(1).join(' and ') || 'complementary streetwear colorways';
-
+        const heroProduct = prodNames[0] || `[DATA REQUIRED BEFORE LAUNCH: hero product, ${_L.name}, ${market}]`;
+        const supportProducts = prodNames.slice(1).join(' and ');
         const offerMatch = campaign_brief.match(/(\d{1,2})\s*%/);
-        const offerPct = offerMatch ? offerMatch[1] : '20';
         const codeMatch = campaign_brief.match(/(?:code|coupon)\s+([A-Z0-9]{4,15})/i);
-        const promoCode = codeMatch ? codeMatch[1].toUpperCase() : 'KNICKGASM' + offerPct;
-
-        const heuristicBrief = `Our next ${typeDesc} targets ${audience}, aiming for an AOV exceeding $55 by leveraging the unmatched premium provenance of our one-of-one sneakers. We're leading with a compelling offer: experience the crisp clarity of our finest sneakers with up to ${offerPct}% off for a limited time using code ${promoCode}. This isn't just a discount: it's an invitation to elevate your daily ritual with studio-fresh sneakers, picked and packed within 72 hours of drop.\n\nOur hero product anchoring this campaign is ${heroProduct}, a one-of-one jewel perfect for a discerning morning ritual. To build a richer basket we'll feature ${supportProducts} as supporting products. These selections offer variety and cater to both the ritualistic black sneaker drinker and the health-conscious individual.\n\nOur audience craves moments of calm and intentionality. They're seeking authenticity and connection, a premium experience that integrates into their demanding lives. A truly authentic sneaker with a clear origin story tips them towards purchase.\n\nFor subject lines, test these: Your Morning Ritual, Elevated. | ${offerPct}% Off Premium Sneakers, Limited Time. | Freshness From The studio archives Awaits.`;
+        const offerLine = offerMatch
+          ? `The offer is ${offerMatch[1]}% off${codeMatch ? ` with code ${codeMatch[1].toUpperCase()}` : ''}, exactly as the brief states it.`
+          : 'The brief states no offer, so none is made.';
+        const heuristicBrief = `Our next ${typeDesc} for ${_L.name} speaks to ${_L.name}'s customers in ${market}. ${offerLine}\n\nThe hero product anchoring this campaign is ${heroProduct}.${supportProducts ? ` Supporting products: ${supportProducts}.` : ''}\n\nProof comes only from the brand's verifiable claims: ${_L.claims}.\n\nVoice: ${_L.tone}.`;
 
         return res.status(200).json({
           ok: true, mode, provider: 'heuristic', model: 'fallback-v1', text: brandScrub(heuristicBrief),
@@ -943,7 +954,7 @@ Target market for this autofill: ${targetMarket}.`;
         let quality = null;
         try {
           const ql = require('../_shared/quality-loop.js');
-          const out = await ql.runQualityLoop({ spec: parsed, brief: userMessage, userGeminiKey });
+          const out = await ql.runQualityLoop({ spec: parsed, brief: userMessage, userGeminiKey, brand: _pb });
           data = out.spec || parsed;
           quality = out.quality || null;
         } catch (qe) {

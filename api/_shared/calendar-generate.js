@@ -428,7 +428,7 @@ function buildScenario(label, { startDate, daysReq, markets, capacity, analytics
 // scenario AFTER the deterministic result is fully built — it never touches any
 // plan row or projected number. Any failure/timeout leaves the deterministic
 // body unchanged. Returns a narrative_status string for the UI.
-async function attachStrategistNarratives(scenarios) {
+async function attachStrategistNarratives(scenarios, brand) {
   let callLLM, parseJSON;
   try { callLLM = require('./llm.js'); parseJSON = require('./llm.js').parseJSON; } catch (_) { return 'skipped_no_llm'; }
   if (typeof callLLM !== 'function') return 'skipped_no_llm';
@@ -443,7 +443,10 @@ async function attachStrategistNarratives(scenarios) {
     },
     assumptions: s.assumptions,
   }));
-  const sys = "You are KNICKGASM's senior growth strategist. Voice: warm, precise, story-driven. NEVER use: \"wellness journey\", \"transform\", \"liquid gold\", \"game-changer\", \"LIMITED TIME\" in caps, \"hurry\", \"don't miss out\", \"last chance\", \"while supplies last\". Return STRICT JSON only, no markdown fences.";
+  // The brand the plan is FOR (2026-10-10): this named tenant zero and its
+  // banned list for every brand's calendar.
+  const F = require('./brand-runtime.js').promptFacts(brand || require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }));
+  const sys = `You are ${F.name}'s senior growth strategist. Voice: ${F.tone}.${F.banned.length ? ` NEVER use: ${F.banned.map((x) => `"${x}"`).join(', ')}.` : ''} No false urgency. Return STRICT JSON only, no markdown fences.`;
   const user = `For each calendar scenario, write a 2-3 sentence strategist_narrative: why these levers fit, what must be true for the projection to hold, and — for best, why it is a stretch ceiling not a committed target; for emergency, why it is the right floor. Scenarios:\n${JSON.stringify(summary)}\n\nReturn JSON: { "narratives": { "best": "", "medium": "", "conservative": "", "emergency": "", "instant": "" } }`;
 
   let timer;
@@ -493,10 +496,12 @@ module.exports = async function handler(req, res) {
   // a shipped four-market list. A brand that sells in one country gets a
   // one-market plan; a brand with no regions declared gets a stated gap.
   let markets = Array.isArray(body.markets) && body.markets.length ? body.markets : [];
+  let planBrand = null;
+  try { planBrand = await require('./brand-runtime.js').resolve(req); } catch (_) { planBrand = null; }
   if (!markets.length) {
     try {
       const rt = require('./brand-runtime.js');
-      const brand = await rt.resolve(req);
+      const brand = planBrand;
       const home = rt.homeRegion(brand);
       const codes = ((brand && brand.regions) || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
       markets = codes.sort((a, b) => (a === home ? -1 : b === home ? 1 : 0));
@@ -526,7 +531,7 @@ module.exports = async function handler(req, res) {
   // MaxPower-only: attach narratives after the deterministic result exists.
   let narrative_status = tier === 'maxpower' ? 'pending' : 'skipped_budget';
   if (tier === 'maxpower') {
-    narrative_status = await attachStrategistNarratives(scenarios).catch(() => 'skipped_error');
+    narrative_status = await attachStrategistNarratives(scenarios, planBrand).catch(() => 'skipped_error');
   }
 
   return res.status(200).json({

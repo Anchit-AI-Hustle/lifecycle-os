@@ -209,15 +209,15 @@ async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs 
   throw lastErr;
 }
 
-function brandName(ctx) {
-  let b = (ctx && ctx.brand && ctx.brand.id) ? ctx.brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
-  return b.name || 'this brand';
-}
+// A carried device record or the unresolved placeholder IS the brand here
+// (scopedBrand.namesBrand): `.id` alone read the placeholder as "no brand".
 function brandRecord(ctx) {
-  let b = (ctx && ctx.brand && ctx.brand.id) ? ctx.brand : null;
-  if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
+  let b = null;
+  try { b = require('./brand-runtime.js').scopedBrand(ctx && ctx.brand); } catch (_) { b = {}; }
   return b || {};
+}
+function brandName(ctx) {
+  return brandRecord(ctx).name || 'this brand';
 }
 function brandPersona(ctx, role) {
   const b = brandRecord(ctx);
@@ -523,7 +523,8 @@ async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line 
   // product; use it (HD), preferring the catalog gallery, and fall back ONLY to
   // the on-brand SVG placeholder. Diffusion is never used for a product shot.
   let real = null;
-  try { real = (catalogImage && catalogImage.imagesFor(ctx.focus.product, ctx.market || 'UK', { width: 1200, brand: ctx.brand })[0]) || null; } catch (_) { real = null; }
+  const _mk = ctx.market || (() => { try { return require('./brand-runtime.js').homeRegion(brandRecord(ctx)); } catch (_) { return ''; } })();
+  try { real = (catalogImage && catalogImage.imagesFor(ctx.focus.product, _mk, { width: 1200, brand: ctx.brand })[0]) || null; } catch (_) { real = null; }
   if (!real && ctx.focus.product && ctx.focus.product.image) {
     try { real = (catalogImage && catalogImage.hd(ctx.focus.product.image, 1200)) || ctx.focus.product.image; } catch (_) { real = ctx.focus.product.image; }
   }
@@ -534,20 +535,24 @@ async function designAgent(ctx, ideology, remainingMs) { // eslint-disable-line 
 }
 function placeholderImage(ctx) {
   if (!brandPlaceholder) return null;
-  try { return brandPlaceholder.brandPlaceholderDataUri('1080x1350', ctx.focus.product.title.split(',')[0].toUpperCase()); } catch (_) { return null; }
+  // THIS brand's panel: with no brand argument the placeholder painted tenant
+  // zero's name in tenant zero's colours on every workspace's post (2026-10-10).
+  try { return brandPlaceholder.brandPlaceholderDataUri('1080x1350', ctx.focus.product.title.split(',')[0].toUpperCase(), brandRecord(ctx)); } catch (_) { return null; }
 }
 
 // ── Agent 6: Audio/Video — storyboard + graceful video job ───────────────────
 function fallbackStoryboard(ctx, ideology) {
   const name = ctx.focus.product.title.split(',')[0];
   return {
-    script: 'Hook (spoken, 1 line): "' + (ctx.focus.type === 'coffee' ? 'Your afternoon pair, rebuilt.' : 'Two minutes. One studio. ' + name + '.') + '" Then ambient sound only — kit, pour, steam — closing on the product and the CTA.',
+    // Brand-neutral (2026-10-10): this fallback described another company's
+    // product ("the pair", steam, pouring, deep-purple ceramics) for every brand.
+    script: 'Hook (spoken, 1 line): "' + name + ', up close." Then ambient sound only, closing on the product and the CTA.',
     storyboard: [
-      '0-2s — HOOK: extreme close-up, steam curling off the pair in golden-hour light (9:16, product barely out of focus behind).',
-      '2-5s — RITUAL: hands warming the pair / pouring; ' + name + ' pack visible on chalk linen with deep-purple ceramics.',
+      '0-2s — HOOK: extreme close-up of ' + name + ' in soft natural light (9:16, product barely out of focus behind).',
+      '2-5s — IN USE: ' + name + ' in its everyday setting, on the brand\'s own surface and accent colours.',
       '5-8s - REVEAL: product front and centre, brand accent light; end card text: "' + name + ' | ' + brandName(ctx) + '".',
     ],
-    audio: 'No voiceover after the hook; natural kit/pour foley, soft room tone. Music: sparse, warm, no percussion.',
+    audio: 'No voiceover after the hook; natural foley, soft room tone. Music: sparse, warm, no percussion.',
     on_screen_text: [ideology.theme, ctx.focus.type === 'tb' ? 'One-time pack. No strings.' : 'Subscribe & save.'],
   };
 }

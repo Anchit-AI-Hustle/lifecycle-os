@@ -56,10 +56,24 @@ function productLines(products = [], currency = '$', brandName = brandRuntime.de
 // (audio beds, audience, proposition, palette hexes) now derives from the
 // ACTIVE brand record, with an explicit DATA-REQUIRED marker where the brand
 // has not supplied the fact — never another brand's value.
+/**
+ * The brand a prompt is FOR (2026-10-10): the record passed, else the brand
+ * the request resolved, else tenant zero only with nothing in scope. Every
+ * site here tested `brand.id`, so a carried device brand worked and the
+ * UNRESOLVED placeholder (a signed-in account with no workspace) was briefed
+ * as tenant zero - its name, palette, claims, legal sender and audio beds.
+ */
+function promptBrand(brand) {
+  try { return brandRuntime.scopedBrand(brand || null, { allowTenantZero: true }) || brandRuntime.defaultBrand(); } catch (_) { return brand || brandRuntime.defaultBrand(); }
+}
+/** The shipped default record itself (no request, no workspace): tenant zero's own prompt. */
+function isShippedDefault(b) { return !b || b === brandRuntime.defaultBrand(); }
+
 function creativeFacts(brand) {
   const zero = brandRuntime.defaultBrand();
-  const b = (brand && brand.id) ? brand : zero;
-  const isZero = !brand || !brand.id || String(b.slug || '') === String(zero.slug || '');
+  const b = promptBrand(brand);
+  let isZero = isShippedDefault(b);
+  if (!isZero) { try { isZero = require('./brand-catalog-server.js').isTenantZeroBrand(b) === true; } catch (_) { isZero = false; } }
   const name = b.name || zero.name || 'the brand';
   const p = b.palette || {};
   const hexes = ['primary', 'accent', 'surface', 'ink'].map((k) => p[k]).filter(Boolean);
@@ -179,7 +193,8 @@ function buildMasterPrompt(o = {}) {
   const { assetType = 'mailer', brief = '', products = [], variant = 'V2', platform = 'meta', cohort = '', extra = '', brand = null } = o;
   // A prompt with no market named is built for the brand's HOME market (tenant
   // zero's own when no brand was resolved), never for a literal 'US'.
-  const market = o.market || brandRuntime.homeRegion(brand || brandRuntime.defaultBrand());
+  const pb = promptBrand(brand);
+  const market = o.market || brandRuntime.homeRegion(pb);
 
   // Multi-tenant: when the caller resolved an active brand workspace, the whole
   // prompt is built from THAT brand instead of tenant zero. `brand` comes from
@@ -189,14 +204,14 @@ function buildMasterPrompt(o = {}) {
   let BLOCK = BRAND_BLOCK;
   let brandName = brandRuntime.defaultBrand().name;
   let facts = regionFacts(market);
-  const cf = creativeFacts(brand);
-  if (brand && brand.id) {
+  const cf = creativeFacts(pb);
+  if (!isShippedDefault(pb)) {
     try {
-      BLOCK = brandRuntime.brandBlock(brand);
-      brandName = brand.name || brandName;
+      BLOCK = brandRuntime.brandBlock(pb);
+      brandName = pb.name || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
       // A brand with no store for this market gets an explicit marker, never
       // tenant zero's store URL.
-      facts = brandRuntime.regionFacts(brand, market) || {
+      facts = brandRuntime.regionFacts(pb, market) || {
         store: `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${market}]`,
         presell: `[DATA REQUIRED BEFORE LAUNCH: region store URL, all, ${market}]`,
         currency: '', locale: 'en',
@@ -404,8 +419,9 @@ function promptsFor(asset, assetType, opt = {}) {
 // `brandBlockFor(brand)` lets any prompt site swap tenant zero's block for the
 // caller's active brand without importing brand-runtime directly.
 function brandBlockFor(brand) {
-  if (!brand || !brand.id) return BRAND_BLOCK;
-  try { return require('./brand-runtime.js').brandBlock(brand); }
+  const pb = promptBrand(brand);
+  if (isShippedDefault(pb)) return BRAND_BLOCK;
+  try { return require('./brand-runtime.js').brandBlock(pb); }
   catch (_) { return BRAND_BLOCK; }
 }
 

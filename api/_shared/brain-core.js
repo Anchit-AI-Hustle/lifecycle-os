@@ -233,15 +233,58 @@ const FALLBACK_BRAND = {
   store_urls: { US: 'https://knickgasm.com', UK: 'https://knickgasm.com', IN: 'https://knickgasm.com', Global: 'https://knickgasm.com' },
 };
 
+/**
+ * The kit for the brand the request being served resolved, when that brand is
+ * not tenant zero (2026-10-10). FALLBACK_BRAND is tenant zero's palette,
+ * typefaces, vocabulary and store URLs, and it was the kit for EVERY caller:
+ * team-chat briefed a news brand's copilot with another company's colours and
+ * words. Built from the brand's own record; a missing value stays missing.
+ */
+function kitForScopedBrand() {
+  let b = null;
+  try { b = require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { return null; }
+  let zero = false;
+  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(b) === true; } catch (_) { zero = false; }
+  if (!b || zero) return null;
+  const rt = require('./brand-runtime.js');
+  const p = rt.paletteOf(b);
+  const f = rt.fontStacks(b);
+  const v = b.voice || {};
+  const stores = {};
+  for (const r of (Array.isArray(b.regions) ? b.regions : [])) if (r && r.code && r.store_url) stores[r.code] = r.store_url;
+  return {
+    // The record's identity rides the kit, so a renderer handed the kit can
+    // answer "whose" (brain-generate's brandLabel / senderIdentity / storeUrl).
+    id: b.id || '', slug: b.slug || '', name: b.name || '', owns_shipped: false, carried: b.carried === true, unresolved: b.unresolved === true,
+    tagline: b.tagline || '', industry: b.industry || '', website: b.website || '', legal_entity: b.legal_entity || b.legal_name || '',
+    regions: Array.isArray(b.regions) ? b.regions : [], claims: Array.isArray(b.claims) ? b.claims : [],
+    __brand_name: b.name || '',
+    __not_tenant_zero: true,
+    palette: { primary: p.primary, accent: p.accent, ink: p.ink, surface: p.surface, forest_green: p.primary, lava: p.accent, near_black: p.ink, chalk: p.surface },
+    typography: { headings: { fallback: f.head }, body: { fallback: f.body } },
+    banned_phrases: Array.isArray(v.banned) ? v.banned.filter(Boolean) : [],
+    preferred_lexicon: Array.isArray(v.preferred) ? v.preferred.filter(Boolean) : [],
+    voice: v.tone || `[DATA REQUIRED BEFORE LAUNCH: voice.tone, ${b.name || 'this brand'}]`,
+    store_urls: stores,
+  };
+}
+
 async function getBrandKit() {
+  const own = kitForScopedBrand();
   try {
     const rows = await db().select('smart_assets', { filters: { id: 'eq.asset_brand_kit' }, limit: 1 });
-    if (rows[0] && rows[0].content) return { ...FALLBACK_BRAND, ...rows[0].content };
+    if (rows[0] && rows[0].content) return { ...(own || FALLBACK_BRAND), ...rows[0].content };
   } catch (_) { /* fallback */ }
-  return FALLBACK_BRAND;
+  return own || FALLBACK_BRAND;
 }
 
 function scrubBannedPhrases(text, brand) {
+  // Another brand's own banned list, removed rather than swapped: the swaps
+  // below are tenant zero's vocabulary ("lace-up", "a final pour") and put
+  // its words into every other brand's copy (2026-10-10).
+  if (brand && brand.__not_tenant_zero) {
+    try { return require('./brand-runtime.js').scrubForBrand(text, { voice: { banned: brand.banned_phrases || [], no_em_dashes: false } }); } catch (_) { return String(text || ''); }
+  }
   let out = String(text || '');
   const swaps = {
     'wellness journey': 'daily ritual', transform: 'restore', 'liquid gold': 'golden lace-up',

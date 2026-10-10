@@ -113,7 +113,7 @@ function buildBrief(entry, fw) {
     '',
     ctaRulesBlock(purchaseMode),
     '',
-    CF.copyFrameworkBriefBlock(framework),
+    CF.copyFrameworkBriefBlock(framework, entry && entry.brand),
     '',
     brandGatesBlock(entry && entry.brand),
   ].filter(Boolean).join('\n');
