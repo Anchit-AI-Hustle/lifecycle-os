@@ -2191,6 +2191,18 @@ function coherenceSummary(brand) {
   return { ok: c.ok, blocking: c.blocking, count: c.conflicts.length, summary: c.summary };
 }
 
+/**
+ * Whose catalogue this record carries, for GENERATION (2026-10-10): the
+ * coherence rule's catalogue verdict, so a page (brand-catalog.js) never shows
+ * or composes another brand's products under this brand's name. Mirrored by
+ * catalogIdentityFor() in brand-context.js.
+ */
+function catalogIdentitySummary(brand) {
+  if (!brand || typeof brand !== 'object') return null;
+  const v = coherence.catalogIdentity(brand);
+  return { excluded: v.excluded, domain: v.domain, allowed: v.allowed, marker: v.marker, sentence: v.sentence };
+}
+
 function shellPayload(brand, extra) {
   if (!brand) return null;
   return Object.assign({
@@ -2211,6 +2223,7 @@ function shellPayload(brand, extra) {
     fonts_href: fontsHref(brand),
     files: filesSummary(brand),
     coherence: coherenceSummary(brand),
+    catalog_identity: catalogIdentitySummary(brand),
   }, extra || {});
 }
 

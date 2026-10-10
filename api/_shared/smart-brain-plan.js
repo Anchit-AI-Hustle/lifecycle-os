@@ -355,7 +355,13 @@ function strategyNote(brand, marketInfo) {
   const name = (brand && brand.name) || 'this brand';
   return '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, ' + name + ', ' + where + '] '
     + 'The rolling calendar is still built, from lifecycle strategy: education, second order, pre-lapse retention, expansion and reactivation, one job a day. '
-    + 'Product, price, audience size and revenue stay unmarked until this brand\'s own catalogue and analytics are connected.';
+    + 'Product, price, audience size and revenue stay unmarked until this brand\'s own catalogue and analytics are connected.'
+    + excludedCatalogLine(brand);
+}
+/** The sentence a plan carries when the record's catalogue is another brand's. */
+function excludedCatalogLine(brand) {
+  const v = brand ? catalogServer.catalogVerdict(brand) : null;
+  return v && v.excluded ? ' ' + v.marker + ' ' + v.sentence : '';
 }
 
 /**
@@ -484,7 +490,81 @@ function _resolveBrandOfferings(brand) {
     } catch (_) { /* no preset dir - fall through */ }
   }
   if (!raw) return [];
-  return raw.map((o) => KINDS.normalizeOffering(o)).filter(Boolean);
+  // Another brand's products never become this brand's offerings (2026-10-10):
+  // a product offering read off a catalogue the coherence rule calls another
+  // brand's, or whose page is on another brand's site, is dropped here, once,
+  // for every planner that reads offerings.
+  const verdict = catalogServer.catalogVerdict(brand);
+  return raw.map((o) => KINDS.normalizeOffering(o)).filter(Boolean).filter((o) => !offeringForeign(o, verdict));
+}
+
+/**
+ * Is this offering (or a slot's hero) another brand's product, under the
+ * catalogue verdict? Judged by the SAME rule as a catalogue row
+ * (brand-coherence catalogRowForeign): its page when it names one, else the
+ * catalogue it was read from. An offering the person typed (no page, not read
+ * from a catalogue) is theirs.
+ */
+function offeringForeign(o, verdict) {
+  if (!o || typeof o !== 'object' || !verdict) return false;
+  const url = String(o.source_url || o.url || o.product_url || '').trim();
+  const fromCatalog = !!(o.source && typeof o.source === 'object' && o.source.type === 'workspace_catalog');
+  if (url) return require('./brand-coherence.js').catalogRowForeign({ product_url: url }, verdict);
+  return fromCatalog && verdict.excluded === true;
+}
+
+/** The products a slot names: its hero offering, hero product and supports. */
+function slotForeignProducts(entry, verdict) {
+  if (!entry || !verdict) return false;
+  if (entry.strategy_only === true || (entry.heroProduct && entry.heroProduct.placeholder === true && !entry.heroOffering)) return false;
+  const items = [entry.heroOffering, entry.offering].concat(Array.isArray(entry.supportingProducts) ? entry.supportingProducts : []).filter(Boolean);
+  return items.some((o) => offeringForeign(o, verdict));
+}
+
+/** The verdict when a stored or inline slot names another brand's product. */
+async function staleForeignSlot(entry, config) {
+  if (!entry || typeof entry !== 'object') return null;
+  const probe = { workspace_id: entry.workspace_id || null };
+  try { await stampBrand(probe, config); } catch (_) { /* fall back to the slot's own */ }
+  const brand = probe.brand || entry.brand || null;
+  const verdict = brand ? catalogServer.catalogVerdict(brand) : null;
+  return verdict && slotForeignProducts(entry, verdict) ? verdict : null;
+}
+
+/**
+ * Strip another brand's products from a slot before anything is written from
+ * it: the hero becomes the catalogue marker, supporting products and the
+ * product offering go, and the slot says why. Returns the verdict when it
+ * scrubbed, else null. The slot keeps its date, market, cohort and objective.
+ */
+function scrubForeignProducts(entry) {
+  const verdict = entry && entry.brand ? catalogServer.catalogVerdict(entry.brand) : null;
+  if (!verdict || !slotForeignProducts(entry, verdict)) return null;
+  const where = entry.market ? String(entry.market).toUpperCase() : '';
+  const name = (entry.brand && entry.brand.name) || 'this brand';
+  entry.heroProduct = {
+    title: `[DATA REQUIRED BEFORE LAUNCH: product catalogue, ${name}${where ? ', ' + where : ''}]`,
+    sku: null, handle: null, category: null, placeholder: true,
+  };
+  entry.heroOffering = null;
+  entry.offering = null;
+  entry.supportingProducts = [];
+  entry.theme = entry.objective || entry.theme || '';
+  // Everything the slot said ABOUT that product goes too: the CTA named its
+  // product type, the rationale and the analysis named the product.
+  entry.cta = strategyCta(entry.objective);
+  entry.why = `${verdict.sentence || 'This slot named another brand\'s product.'} Planned for ${name}${where ? ' (' + where + ')' : ''} without a product until its own catalogue is connected.`;
+  try {
+    entry.analysis = buildEntryAnalysis({
+      cohort: { name: (entry.cohort && entry.cohort.name) || '', size: null }, product: entry.heroProduct,
+      channels: Array.isArray(entry.channels) ? entry.channels : [], objective: entry.objective, market: where || '',
+      confidence: { score: typeof entry.confidence === 'number' ? entry.confidence : 0.35, factors: [] }, dataSource: 'lifecycle-strategy',
+    });
+  } catch (_) { delete entry.analysis; }
+  entry.catalog_excluded = { domain: verdict.domain, marker: verdict.marker, sentence: verdict.sentence || 'This slot named products read from another brand\'s site; they are not used.' };
+  const gaps = Array.isArray(entry.data_gaps) ? entry.data_gaps : [];
+  entry.data_gaps = [...new Set(gaps.concat([verdict.marker]))];
+  return verdict;
 }
 
 function _mulberry32(seedStr) {
@@ -904,6 +984,17 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     }).catch(() => [])) || [];
   }
   const storedById = new Map(stored.map((r) => [r.id, r]));
+  // Slots already stored from a catalogue the coherence rule now calls another
+  // brand's (2026-10-10): a writable one is archived with the reason, so the
+  // prebuild queue never builds it and the plan never shows it; an approved
+  // one is left to its reviewer (getPlan hides it, preview shows the marker).
+  const staleForeign = [];
+  if (!pb.isZero && pb.brand) {
+    const verdict = catalogServer.catalogVerdict(pb.brand);
+    for (const r of stored) {
+      if ((r.status === 'tentative' || r.status === 'rejected') && slotForeignProducts(r.payload || {}, verdict)) staleForeign.push({ row: r, verdict });
+    }
+  }
 
   // New slots are inserted (never overwriting an existing row); refreshes to
   // tentative/rejected slots are applied as CONDITIONAL updates so a human
@@ -984,6 +1075,14 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       // ignore-duplicates: if a concurrent sync already created the row, leave it untouched.
       const ins = await db.upsert(config.tableNames.calendarEntries, inserts, 'id', { resolution: 'ignore-duplicates' });
       if (ins.ok) results.inserted = (ins.rows || []).length; else results.warnings.push(ins.warning);
+    }
+    for (const sf of staleForeign) {
+      if (fresh.some((e) => e.id === sf.row.id)) continue;   // re-planned in place above
+      const log = Array.isArray(sf.row.change_log) ? sf.row.change_log.slice(-30) : [];
+      const detail = `Archived: planned from another brand's catalogue (${sf.verdict.domain || 'another site'}). ${sf.verdict.sentence || ''}`.trim();
+      log.push({ at: nowIso(), kind: 'catalogue_excluded', detail });
+      const upd = await db.update(config.tableNames.calendarEntries, { id: `eq.${sf.row.id}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', change_log: log, updated_at: nowIso() }).catch(() => null);
+      if (upd && upd.ok) changes.push({ id: sf.row.id, kind: 'catalogue_excluded', detail: `${sf.row.date} ${sf.row.market}: ${detail}` });
     }
     for (const u of updates) {
       // OPTIMISTIC LOCK: the status filter means a row a human approved between our
@@ -2628,6 +2727,10 @@ function traceRun(run, stage, fields) {
  */
 async function buildCampaign(entry, config, opts = {}) {
   await stampBrand(entry, config);
+  // Another brand's products never reach a writer (2026-10-10): a slot planned
+  // from a catalogue the coherence rule now calls another brand's is built
+  // with the catalogue marker in the hero, not with that brand's product.
+  scrubForeignProducts(entry);
   // A slot with no market is built for the brand's HOME market (2026-10-10),
   // never for none: an inline entry with no market came back with every
   // region-scoped fact, currency and marker reading "all".
@@ -2839,6 +2942,13 @@ function reportProofGap(campaign, entry, trace) {
 function reportCatalogGaps(campaign, entry, trace) {
   try {
     const scope = catalogServer.currentScope();
+    // A catalogue excluded as another brand's is said on the campaign, with
+    // the domain it came from, whether or not a photo slot was left empty.
+    const excl = (entry && entry.catalog_excluded) || (scope && scope.catalog_excluded) || null;
+    if (excl && excl.marker) {
+      campaign.data_gaps = [...new Set((Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []).concat([excl.marker, excl.sentence].filter(Boolean)))];
+      campaign.catalog_excluded = { domain: excl.domain || '', marker: excl.marker, sentence: excl.sentence || '' };
+    }
     const email = campaign.assets && campaign.assets.email;
     const hasImage = !!(email && ((email.creative && email.creative.image) || /<img\s/i.test(String(email.html || ''))));
     if (hasImage) return;
@@ -2883,6 +2993,27 @@ async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   const db = new SmartBrainDbAdapter(config);
   const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });
   if (!entry) throw new Error(`Calendar entry ${id || ''} not found — run a daily sync first or pass the entry inline.`);
+
+  // A slot planned from a catalogue now judged another brand's (2026-10-10):
+  // nothing saved for it is replayed - not a prebuilt bundle, not a final
+  // campaign - because each names that brand's product. It is built again with
+  // the catalogue marker in the hero, shown, and not stored over the old one.
+  const foreign = await staleForeignSlot(entry, config);
+  if (foreign) {
+    const fc = await buildCampaign(effectiveEntry(entry), config, { id, withCreatives: false });
+    fc.status = 'preview';
+    fc.calendar_entry_id = entry.id || id || null;
+    return {
+      ok: true, preview: true, persisted: false, stale: true,
+      catalog_excluded: { domain: foreign.domain, marker: foreign.marker, sentence: foreign.sentence },
+      note: `${foreign.sentence} This slot was planned from that catalogue; run Daily Sync to re-plan it.`.trim(),
+      campaign: fc, copywriter: fc.copywriter,
+      email_html: fc.assets?.email?.html || null,
+      email_variants: fc.assets?.email?.variants || null,
+      landing_html: fc.assets?.landing_pages?.[0]?.html || null,
+      ads: fc.assets?.ads || [],
+    };
+  }
 
   // Approved/final slots return the FINAL saved campaign — the reviewer sees
   // exactly what ships, never a fresh regeneration — EXCEPT when that saved
@@ -2992,6 +3123,15 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   const db = new SmartBrainDbAdapter(config);
   const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });
   if (!entry) throw new Error(`Calendar entry ${id || ''} not found — run a daily sync first or pass the entry inline.`);
+
+  // Approving publishes; a slot that names another brand's product is not
+  // published, built over, or re-approved (2026-10-10). Re-plan it first.
+  const foreign = await staleForeignSlot(entry, config);
+  if (foreign) {
+    const e = new Error(`${foreign.sentence} This slot was planned from that catalogue, so it is not approved. Run Daily Sync to re-plan it from this brand's own record.`.trim());
+    e.status = 409; e.code = 'catalogue_excluded';
+    throw e;
+  }
 
   // IDEMPOTENCY: a slot already approved with a generated campaign must NOT be
   // regenerated — that would orphan the prior campaign + its ads/LP rows. Return

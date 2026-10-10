@@ -4,6 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Another brand's catalogue never reaches generation (2026-10-10)
+Production, /brain, the brand "Mamaearth" (IN): Smart Brain's mailers said "Uncompromising Chicken Black Pepper
+Salami", "100% premium chicken, no pork" - Deli Chic's products. The live record (`tests/fixtures/live-mixed-brand.js`)
+carries a catalogue imported from delichic.co.in; `brand-coherence.js` called it a BLOCKING conflict, but only at
+activation, and every planner and writer read the workspace's rows as this brand's products. Gated by
+`tests/catalog-identity-generation.spec.js` (executed: the shipped calendar router over the fake project with the
+scripted model recording every prompt, the browser in Chromium; 25 mutations, each restoring one leak, all caught).
+- **One rule, the coherence rule's own verdict**: `catalogIdentity(record)` / `catalogRowForeign(row, verdict)` live
+  INSIDE the BRAND-COHERENCE block (byte-identical in `brand-context.js`). A `catalog_source` conflict that blocks and
+  is not in `brand_data.coherence.accepted` excludes the catalogue; `allowed` = the website's domain, the catalogue's
+  when not excluded, and any KEPT catalogue domain; a row is judged by `source_url`/`product_url`, a row with no page
+  follows its catalogue. Never write a second domain comparison.
+- **Enforced at**: `brand-catalog-server` `resolve()` (rows judged; no brand on the call reads the workspace record)
+  and `productsFor()` (a full record's verdict wins over a thinner pinned scope); `smart-brain-plan`
+  `_resolveBrandOfferings` (offerings read off the catalogue or on another site dropped), `buildCampaign`
+  (`scrubForeignProducts`: hero -> `[DATA REQUIRED BEFORE LAUNCH: product catalogue, <brand>, <market>]`, CTA/why/
+  analysis rebuilt, `catalog_excluded` + `data_gaps`), the strategy plan note (names the domain), preview (a stale
+  slot is rebuilt with the marker and nothing saved is replayed or stored), approve (`409 catalogue_excluded`), Daily
+  Sync (writable stale slots ARCHIVED with change_log `catalogue_excluded`; approved ones are the reviewer's, hidden
+  by getPlan's existing own-offerings filter); `brain-agent.deviceChat`; `brand-runtime.carriedBrand` carries the kept
+  ids; shells carry `catalog_identity` (server `shellPayload`, device `shellPayloadFor`); browser
+  `BrandContext.catalogForGeneration` (brand-catalog.js, agent.html, telesuite.html use it), BrandCatalog's account
+  path, `carry()` sends `catalog_source` + kept ids from the FULL device record (the shell had neither), smart-brain
+  console's kept plan (`foreignSlot`).
+- **"Clear that" on a catalogue conflict removes the products** on a device brand (`BrandContext.device.clearCatalog`);
+  an account brand's rows stay in the table but are never used (each is judged by its own page); a re-import replaces them.
+- Known limits: agent.html / telesuite.html swaps are one-token and not driven by the gate (phone sign-in is gone); a
+  Shopify row whose product_url is on `*.myshopify.com` under a custom-domain website reads as another site (the same
+  answer the coherence rule gives its catalog_source).
+
 ## ⭐ Sign-in is GOOGLE ONLY, and the mobile number + PIN sign-in is switched OFF (2026-10-10) — read `docs/google-signin.md`
 The owner's words: *"No signin with mobile number - only Google signin pls"*. This SUPERSEDES the PIN-only
 section below (2026-10-09) and every mobile-number section after it (2026-09-28 … 2026-10-03), which are
