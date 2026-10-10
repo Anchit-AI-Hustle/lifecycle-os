@@ -494,7 +494,7 @@ async function smartBrain(req, res, smartAction) {
   } catch (err) {
     // A refusal the planner states (a slot planned from another brand's
     // catalogue, 409 catalogue_excluded) is an answer, not a crash.
-    if (err && err.code === 'catalogue_excluded') return res.status(409).json({ ok: false, error: err.code, message: err.message });
+    if (err && (err.code === 'catalogue_excluded' || err.code === 'brand_changed')) return res.status(409).json({ ok: false, error: err.code, message: err.message });
     console.error('[api/calendar smart-brain]', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
