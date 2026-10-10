@@ -444,7 +444,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var GOOGLE_FONTS = ['Inter','Lora','Montserrat','Playfair Display','DM Sans','Instrument Sans','Space Grotesk',
     'Manrope','Work Sans','Source Serif 4','Fraunces','Poppins','Nunito','Karla','Libre Baskerville','IBM Plex Sans','Outfit','Bricolage Grotesque'];
 
-  var step = 1, paletteCheck = null, workspaces = [], catalogCount = null, busy = false;
+  var step = 1, paletteCheck = null, workspaces = [], catalogCount = null, catalogExcluded = null, busy = false;
   // Set by go(). Boot restores a saved step asynchronously, and must not do it
   // once the operator has moved somewhere themselves.
   var __navigated = false;
@@ -1023,7 +1023,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             '<button type="button" class="imp-tab" data-imp="file">Upload a file</button>' +
           '</div>' +
           '<div data-panel="storefront">' +
-            '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc((brand.regions[0] && brand.regions[0].store_url) || '') + '">' +
+            '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc(ownStoreUrl(brand.regions[0]) || ((brand.regions[0] && brand.regions[0].store_url) ? (brand.website || '') : '')) + '">' +
             '<p class="muted" style="margin-top:6px">Reads the store\'s public product feed at <code>/products.json</code> (Shopify and compatible). If there is no feed there, it crawls your own pages instead and takes only what they DECLARE in structured data. Read only, no credentials, and the source is recorded on every row.</p>' +
           '</div>' +
           '<div data-panel="csv" style="display:none">' +
@@ -1042,7 +1042,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             (actionsOff()
               ? '<button type="button" class="btn primary" id="doImport" disabled aria-disabled="true" data-needs-account="catalog-import">Import catalog</button>'
               : '<button type="button" class="btn primary" id="doImport" data-credit-feature="brand.catalog_import">Import catalog</button>') +
-            '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + (isLocalId(brand.id) ? ' products kept on this device.' : ' products in this workspace.')) + '</span>' +
+            '<span class="muted" id="impStatus">' + (catalogCount == null ? 'No catalog imported yet.' : catalogCount + (isLocalId(brand.id) ? ' products kept on this device' : ' products in this workspace') + ' are ' + esc(brand.name || 'this brand') + '\'s.' + excludedLine()) + '</span>' +
           '</div>' +
           // Two reasons an import can be off, each stated where it applies.
           // No HOME market: the catalogue is partitioned by market, so with no
@@ -2309,23 +2309,57 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var c = $('impContinue');
     if (c) c.addEventListener('click', continueImport);
   }
+  /* "612 products in this workspace" counted another site's rows as this
+     brand's (2026-10-10, the live record: Nike's products under DelhiChic).
+     The count is the brand's OWN rows; rows another brand's site supplied are
+     counted apart and said to be excluded, as the generators exclude them. */
+  function excludedLine() {
+    if (!catalogExcluded || !catalogExcluded.count) return '';
+    var doms = (catalogExcluded.domains || []).join(', ');
+    return ' ' + catalogExcluded.count + ' more ' + (catalogExcluded.count === 1 ? 'was' : 'were') + ' read from another site' + (doms ? ' (' + doms + ')' : '') +
+      ' and ' + (catalogExcluded.count === 1 ? 'is' : 'are') + ' excluded: never used for ' + (brand.name || 'this brand') + '.';
+  }
+  function noteTally(b) {
+    if (!b) return;
+    if (typeof b.products === 'number') catalogCount = b.products;
+    catalogExcluded = typeof b.products_excluded === 'number' ? { count: b.products_excluded, domains: b.products_excluded_domains || [] } : null;
+  }
   function afterImport(r) {
     var status = $('impStatus');
-    catalogCount = typeof r.live === 'number' ? r.live : r.imported;
+    catalogCount = typeof r.own === 'number' ? r.own : (typeof r.live === 'number' ? r.live : r.imported);
+    catalogExcluded = typeof r.excluded === 'number' ? { count: r.excluded, domains: r.excluded_domains || [] } : null;
     var counts = r.imported + ' products imported' + (r.complete === false ? ' in this step' : '');
-    if (typeof r.live === 'number') counts += ', ' + r.live + ' in the catalogue now';
+    if (typeof r.own === 'number') counts += ', ' + r.own + ' in ' + (brand.name || 'this brand') + '\'s catalogue now';
+    else if (typeof r.live === 'number') counts += ', ' + r.live + ' in the catalogue now';
     if (r.staled) counts += ', ' + r.staled + ' the store no longer lists marked stale (kept, not used)';
-    if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+    if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.' + excludedLine();
     renderCoverage(r.coverage, !!r.resume_available);
     toast(r.complete === false ? 'Read ' + r.imported + ' products; the store was not read to the end yet. Continue import resumes it.' : 'Imported ' + r.imported + ' products.', 4200);
+  }
+  async function saveBeforeImport() {
+    var saved = await save(true);
+    if (!saved) {
+      var e = new Error('This brand could not be saved, so its store settings on screen were not sent. Nothing was imported. Save it, then import.');
+      e.code = 'save_before_import_failed';
+      throw e;
+    }
+    return saved;
   }
   async function continueImport() {
     if (busy || !brand.id) return;
     var status = $('impStatus');
     try {
+      // The store settings on screen are the ones read (2026-10-10): a region
+      // store edited and not yet saved is saved first, and the URL in the
+      // import box goes with the request, so a cursor for another source is
+      // discarded by the server instead of resumed.
+      await saveBeforeImport();
       busy = true;
       if (status) status.textContent = 'Continuing the import…';
-      var r = await api('catalog-import', { workspace_id: brand.id, region: importRegion().toLowerCase(), continue: true });
+      var cont = { workspace_id: brand.id, region: importRegion().toLowerCase(), continue: true };
+      var box = $('impUrl');
+      if (box && box.value.trim()) cont.url = box.value.trim();
+      var r = await api('catalog-import', cont);
       afterImport(r);
     } catch (e) {
       window.LifecycleFailure.show(status, e, { title: 'The import did not continue' });
@@ -2355,11 +2389,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      ad, mailer and storefront then renders the DATA REQUIRED marker where a
      photo would be. This says so on the catalogue step and on review, with
      the brand's own store prefilled and one button that imports it. */
+  /* A region's store URL, only when it is on this brand's own site (the
+     coherence rule's ownership function): the live record prefilled the
+     import box with another brand's store (nike.in under delichic.co.in), and
+     one press imported its products (2026-10-10). '' otherwise. */
+  function ownStoreUrl(r) {
+    var u = String((r && r.store_url) || '').trim();
+    if (!u) return '';
+    var L = coh();
+    if (!L || !brand.website) return u;
+    var a = L.registrableDomain(L.hostOf(brand.website)), b = L.registrableDomain(L.hostOf(u));
+    return (!a || !b || L.sameBrand(a, b)) ? u : '';
+  }
   function storeFeedUrl() {
     var regs = Array.isArray(brand.regions) ? brand.regions : [];
     var home = null;
-    for (var i = 0; i < regs.length; i++) if (regs[i] && regs[i].home && regs[i].store_url) { home = regs[i]; break; }
-    return String((home && home.store_url) || (regs[0] && regs[0].store_url) || brand.website || '').trim();
+    for (var i = 0; i < regs.length; i++) if (regs[i] && regs[i].home && ownStoreUrl(regs[i])) { home = regs[i]; break; }
+    return String(ownStoreUrl(home) || ownStoreUrl(regs[0]) || brand.website || '').trim();
   }
   function storeFeedCallout() {
     if (catalogCount) return '';
@@ -2411,7 +2457,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!region) { gateImport(); toast('Add the market you sell in, and mark it Home, before importing.', 4200); return; }
       var status = $('impStatus');
       try {
-        if (!brand.id) { await save(true); }
+        // Save first, always: the server reads the SAVED record's regions, so
+        // a store URL corrected on screen and not yet saved was ignored and the
+        // old store read again (2026-10-10).
+        await saveBeforeImport();
         if (!brand.id) throw new Error('Save the brand first.');
         // The catalogue is imported for the HOME market (the flagged region,
         // else the row the record leads with), never a literal.
@@ -3922,7 +3971,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .forEach(function (f) { origins()[f] = { origin: 'default' }; });
     extraction = null; extractError = null; rendered = null; domainSwitch = null; xUrlDraft = null; presetPicked = '';
     DOC.report = null; DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = []; DOC.status = ''; DOC.identityAsk = null; DOC.identityOk = false;
-    catalogCount = null;
+    catalogCount = null; catalogExcluded = null;
     snapshotSeen();
     try { $('title').textContent = 'Onboard a brand'; $('lede').textContent = 'A new brand, from a blank record.'; } catch (_) {}
   }
@@ -3940,7 +3989,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         brand.id = r.brand.id;
         brand.slug = r.brand.slug;
         if (wasPending && brand.id) adoptPendingFiles();
-        if (typeof r.brand.products === 'number') catalogCount = r.brand.products;
+        noteTally(r.brand);
       }
       if (!silent) toast('Saved.');
       return r.brand;
@@ -4009,6 +4058,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           });
           docLoaded();
           catalogCount = typeof r.brand.products === 'number' ? r.brand.products : null;
+          noteTally(r.brand);
           [brand.typography.heading, brand.typography.body].forEach(function (f) { if (f && f.google !== false) loadPreviewFont(f.family); });
           var s = +(new URLSearchParams(location.search).get('step') || r.brand.onboarding_step || 1);
           $('title').textContent = 'Edit ' + brand.name;
