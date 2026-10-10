@@ -14,13 +14,16 @@
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <meta name="theme-color" content="#D0473E">
 <link href="https://fonts.googleapis.com/css2?family=Raleway+Garamond:ital,wght@0,500;0,600;1,500&family=Proxima+Nova&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- Intentionally NO auth.js: this is a public, sign-in-free 3D storefront demo.
-     brand-context + brand-catalog ARE loaded, and both degrade to a no-op when
-     signed out: the page used to fetch /data/catalog/products_us.json directly,
-     so a signed-in workspace whose brand is not tenant zero browsed tenant
-     zero's 436 sneakers as though they were its own products. -->
+<!-- auth.js mounts the app rail so /3d is never a dead-end: a visitor can
+     reach the rest of the product and Sign in with Gmail from here. The
+     storefront itself stays public. brand-context + brand-catalog ARE loaded,
+     and both degrade to a no-op when signed out: the page used to fetch
+     /data/catalog/products_us.json directly, so a signed-in workspace whose
+     brand is not tenant zero browsed tenant zero's 436 sneakers as though
+     they were its own products. -->
 <script src="/brand-context.js" defer></script>
 <script src="/brand-catalog.js" defer></script>
+<script src="/auth.js?v=20261005" defer></script>
 <style>
   :root{
     --green:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
@@ -839,10 +842,13 @@ async function start3D(){
     if(b&&B.isTenantZero&&!B.isTenantZero(b)){
       var name=esc(b.name||'this brand');
       document.title=name+' · 3D Storefront';
-      document.body.innerHTML='<main style="max-width:720px;margin:60px auto;padding:0 20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#111">'+
+      var rail = document.getElementById('lifecycle-nav');
+      if (rail) rail.parentNode.removeChild(rail);
+      document.body.innerHTML='<main id="lc-content" style="max-width:720px;margin:60px auto;padding:0 20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#111">'+
         '<h1 style="font-size:24px;margin:0 0 10px">No 3D storefront on the record for '+name+'</h1>'+
         '<p style="line-height:1.6">[DATA REQUIRED BEFORE LAUNCH: 3D storefront (catalogue, collections and store copy), '+name+'.] '+
         'The storefront that shipped here was built from another workspace\'s catalogue and copy. This platform never shows one brand\'s store under another brand\'s name.</p></main>';
+      if (rail) document.body.insertBefore(rail, document.body.firstChild);
       return;
     }
     init();

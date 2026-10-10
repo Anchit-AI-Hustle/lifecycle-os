@@ -187,10 +187,13 @@
   // once the active brand is confirmed to be the one the dataset describes.
   var SHIPPED = window.LIFECYCLE_ANALYTICS || null;
   window.LIFECYCLE_ANALYTICS = { markets: {}, __pending: true };
-  window.__ANALYTICS_OWNER__ = 'knickgasm';
   window.__restoreAnalytics = function (brand) {
-    var slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
-    var isOwner = !brand || brand.is_default || slug === window.__ANALYTICS_OWNER__;
+    var isOwner = !brand || (brand.is_default === true && !brand.id);
+    try {
+      if (brand && window.BrandContext && typeof window.BrandContext.isTenantZero === 'function') {
+        isOwner = !!window.BrandContext.isTenantZero(brand);
+      }
+    } catch (_) { if (brand) isOwner = false; }
     if (isOwner && SHIPPED) { window.LIFECYCLE_ANALYTICS = SHIPPED; return true; }
     return false;
   };

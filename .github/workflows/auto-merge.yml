@@ -48,15 +48,32 @@
 # deleted afterwards (the repository has "delete branch on merge" OFF), never
 # main / final-product / snowflake-streamlit-app.
 #
-# WHAT A MERGE BY THIS WORKFLOW DOES NOT DO. Events caused by GITHUB_TOKEN do
-# not start new workflow runs (GitHub's recursion guard; only workflow_dispatch
-# and repository_dispatch are exempt). So the push to main that this merge
-# creates runs NEITHER the CI workflow on main NOR mobile-builds.yml. Vercel's
-# Git integration is a GitHub App and still receives the push. For the deploy
-# guarantee, whose normal trigger is "CI succeeded on main", this job therefore
-# fires deploy-guarantee.yml directly through `repository_dispatch` after every
-# merge it makes. mobile-builds.yml is left as it is: it is not part of this
-# change, and its "Run workflow" button still works.
+# WHAT A MERGE BY THIS WORKFLOW DOES NOT START, AND WHAT THIS JOB STARTS
+# INSTEAD. Events caused by GITHUB_TOKEN do not start new workflow runs
+# (GitHub's recursion guard; only workflow_dispatch and repository_dispatch are
+# exempt). So the push to main that this merge creates runs NEITHER the CI
+# workflow on main NOR mobile-builds.yml. Vercel's Git integration is a GitHub
+# App and still receives the push. Two things follow:
+#   - CI ON MAIN (2026-10-04). Measured that day: 13bf5f4 (#141), 7ac473b (#144)
+#     and dba59c8 (#143), all merged here, had ZERO check runs; only 8fd5f4f
+#     (#140, merged by hand) ran CI on main. Each PR's CI had run on its merge
+#     ref, built against main as it was when that run STARTED, so three PRs
+#     landing within minutes put a combination on main - and in production -
+#     that no run had seen. So after the merges, this job dispatches ci.yml on
+#     main (workflow_dispatch, exempt), ONCE however many PRs it merged: CI
+#     tests main's HEAD, which contains all of them. That dispatched run is a
+#     TEST of main, not a deploy trigger: deploy-guarantee.yml deliberately
+#     ignores it (the hook was already fired below), and when it is red the
+#     failed run and the "Main is red at <sha>" issue (ci.yml `main-state`)
+#     say so. A dispatch that fails FAILS this job: nothing else tests main.
+#     The dispatched run completes and its own workflow_run reaches THIS
+#     workflow; Gate 2 skips it, and the script refuses it again from the
+#     event value, so a run on main can never be read as vouching for a PR.
+#   - THE DEPLOY GUARANTEE, whose normal trigger is "CI succeeded on a push to
+#     main", is fired directly through `repository_dispatch` after every merge
+#     this job makes.
+# mobile-builds.yml is left as it is: it is not part of this change, and its
+# "Run workflow" button still works.
 #
 # DEPENDABOT. Expected to merge, and here is exactly why, and what is not
 # provable from here. (a) Dependabot pushes are made by the Dependabot app, not
@@ -77,7 +94,11 @@
 #
 # FIRST RUN. `workflow_run` only reads the workflow file on the DEFAULT branch,
 # so the PR that adds this file is merged by hand, once; from then on it is
-# live for every PR.
+# live for every PR. The same holds for every CHANGE to it: a PR that edits
+# this file is merged by the version already on main, and the new behaviour
+# starts with the NEXT merge. (The PR that added the CI dispatch also added
+# `workflow_dispatch` to ci.yml in the same merge, so by the first dispatch
+# main's ci.yml accepts it.)
 name: Auto-merge after CI
 
 on:
@@ -105,7 +126,9 @@ jobs:
     runs-on: ubuntu-latest
     # Gate 1 (the reason this file exists): only a CI run that COMPLETED WITH
     # SUCCESS can lead to a merge. Gate 2: only CI runs raised by a pull_request
-    # event describe a PR head; a push-to-main run has nothing to merge.
+    # event describe a PR head. A run raised by a push to main, by the
+    # workflow_dispatch this job itself fires after a merge, or by a person
+    # pressing "Run workflow" tested main, not a PR, and has nothing to merge.
     # Gate 3: guard 2 of 3 for the SiS branch.
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
@@ -114,6 +137,7 @@ jobs:
     permissions:
       pull-requests: write   # merge the PR
       contents: write        # the merge commit, deleting the head branch, and the repository_dispatch
+      actions: write         # dispatch ci.yml on main after a merge (POST .../actions/workflows/ci.yml/dispatches)
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
@@ -123,6 +147,8 @@ jobs:
       HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
       HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
       HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+      CI_EVENT: ${{ github.event.workflow_run.event }}
+      CI_WORKFLOW_FILE: ci.yml
       CI_RUN_ID: ${{ github.event.workflow_run.id }}
       CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
       THIS_RUN_ID: ${{ github.run_id }}
@@ -136,7 +162,17 @@ jobs:
           say()  { echo "$*"; }
           skip() { echo "::notice title=Auto-merge skipped PR #$1::$2"; echo "SKIPPED PR #$1: $2"; }
 
-          say "Trigger: CI run $CI_RUN_ID ($CI_RUN_URL) succeeded on $HEAD_REPO@$HEAD_BRANCH = $HEAD_SHA"
+          say "Trigger: CI run $CI_RUN_ID ($CI_RUN_URL), raised by '$CI_EVENT', succeeded on $HEAD_REPO@$HEAD_BRANCH = $HEAD_SHA"
+
+          # Gate 2 again, on the value the event carried. A CI run that a
+          # pull_request did not raise (the dispatch this job makes after a
+          # merge, a push to main, "Run workflow") tested main, not a PR head,
+          # so it cannot vouch for whichever PR the API names at that commit.
+          # Before any API call: there is nothing to look up.
+          if [ "$CI_EVENT" != "pull_request" ]; then
+            echo "::notice title=Auto-merge: nothing to merge::CI run $CI_RUN_ID was raised by '$CI_EVENT', not by a pull request, so it tested no PR head. Nothing is merged and nothing is dispatched."
+            exit 0
+          fi
 
           # Guard 3 of 3 for the SiS branch, on the value the event carried. The
           # loop below re-checks the PR's OWN head ref from the API as well,
@@ -164,6 +200,7 @@ jobs:
           fi
 
           failures=0
+          merged=0
           for n in $candidates; do
             pr="$(gh api "repos/$REPO/pulls/$n")"
             # GitHub computes mergeability lazily; the first read can say "unknown".
@@ -243,6 +280,7 @@ jobs:
               merge_sha="$(jq -r '.sha' <<<"$resp")"
               echo "::notice title=Auto-merged PR #$n::$PR_TITLE -> $MAIN as $merge_sha (CI run $CI_RUN_ID green on $HEAD_SHA)"
               say "MERGED PR #$n into $MAIN as $merge_sha"
+              merged=$((merged + 1))
             else
               if [ "$(gh api "repos/$REPO/pulls/$n" | jq -r '.merged')" = "true" ]; then
                 say "PR #$n was merged by someone else while this job ran. Nothing to do."
@@ -268,14 +306,30 @@ jobs:
             esac
 
             # A merge made with GITHUB_TOKEN starts no `push` workflow on main,
-            # so CI does not run on this merge commit and deploy-guarantee.yml's
-            # workflow_run trigger never sees it. Fire it directly.
+            # so deploy-guarantee.yml's "CI succeeded on a push to main" path
+            # never sees it (the CI run dispatched below is not a push, and
+            # deploy-guarantee ignores it on purpose). Fire it directly.
             if gh api -X POST "repos/$REPO/dispatches" -f event_type=deploy-guarantee \
                  -f "client_payload[sha]=$merge_sha" -f "client_payload[pr]=$n" \
-                 -f "client_payload[reason]=auto-merge of PR #$n (a GITHUB_TOKEN merge starts no push workflow, so CI does not run on $MAIN for it)" >/dev/null; then
+                 -f "client_payload[reason]=auto-merge of PR #$n (a GITHUB_TOKEN merge starts no push workflow, so CI on a push to $MAIN never fires for it)" >/dev/null; then
               say "Dispatched deploy-guarantee for $merge_sha"
             else
               echo "::warning::PR #$n merged, but the deploy-guarantee dispatch failed. Vercel's Git integration still deploys $MAIN on its own; the hook can also be fired from the Actions tab (Deploy guarantee -> Run workflow)."
             fi
           done
+
+          # The merges above started no CI on main (see header). Dispatch it ONCE,
+          # after the last merge: CI tests main's HEAD, which holds every one of
+          # them. `ref` only - ci.yml declares no inputs, and the API refuses one
+          # it does not declare. A failure here FAILS the job, because nothing
+          # else will test what is now on main.
+          if [ "$merged" -gt 0 ]; then
+            if resp="$(gh api -X POST "repos/$REPO/actions/workflows/$CI_WORKFLOW_FILE/dispatches" -f "ref=$MAIN" 2>&1)"; then
+              say "Dispatched CI ($CI_WORKFLOW_FILE) on $MAIN after $merged merge(s), so the combination now on $MAIN is tested"
+            else
+              resp="${resp//$'\n'/ }"   # one line: a newline ends a workflow command
+              echo "::error::Merged, but CI could not be dispatched on $MAIN ($resp), so what is now on $MAIN is UNTESTED. Run it by hand: Actions -> CI -> Run workflow -> $MAIN. A 403 means this job no longer has 'actions: write'."
+              failures=1
+            fi
+          fi
           exit "$failures"

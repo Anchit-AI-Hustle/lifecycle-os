@@ -3,48 +3,300 @@
   "name": "Samsung",
   "tagline": "",
   "industry": "Consumer technology",
-  "website": "https://www.samsung.com",
+  "website": "https://www.samsung.com/us/",
   "preset": {
     "label": "Samsung",
     "sector": "Consumer technology",
     "blurb": "Consumer electronics. Template for a flagship launch plus trade-in programme.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.samsung.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
-      "renderer": "rendered",
-      "at": "2026-10-04",
-      "host": "www.samsung.com",
-      "reason": "the rendered site shows no brand colour a preset can use (#1429a0 from the reader's primary: measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor's))"
+    "verified_at": "2026-10-05",
+    "source": "Rendered https://www.samsung.com/us/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #008aff from the brand's own logo file, its pixels (100% of its coloured pixels) on https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png. Headings SamsungOne, body SamsungOne, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.samsung.com/us/",
+          "role": "page ground",
+          "selector": "canvas (no background declared)",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.samsung.com/us/",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.samsung.com"
+        }
+      },
+      "primary": {
+        "value": "#008aff",
+        "exact": "#008aff",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 116,
+        "from_role": "identity",
+        "signal": "the brand's own logo file, its pixels (100% of its coloured pixels)",
+        "source": {
+          "page": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png",
+          "role": "logo file",
+          "selector": "",
+          "viewport": "",
+          "property": "pixels",
+          "signal": "rendered"
+        },
+        "read_url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "resources.samsung.com",
+          "registrable": "samsung.com",
+          "website_host": "www.samsung.com"
+        },
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "the header background",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#000000",
+        "exact": "#000000",
+        "derived": false,
+        "source": {
+          "page": "https://www.samsung.com/us/",
+          "role": "body copy",
+          "selector": "div.text-editor__inner-wrap.padding-top--48 > div.text-editor__inner.desktop-padding-left-right--large > div.text-editor__column-wrap > div.text-editor__column.description-text-size--small > p:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.samsung.com/us/",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.samsung.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no card colour, so cards use the page surface.",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": ""
+        },
+        "read_url": "https://www.samsung.com/us/",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.samsung.com"
+        }
+      },
+      "muted": {
+        "value": "#000000",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "https://www.samsung.com/us/",
+          "role": "body copy",
+          "selector": "div.text-editor__inner-wrap.padding-top--48 > div.text-editor__inner.desktop-padding-left-right--large > div.text-editor__column-wrap > div.text-editor__column.description-text-size--small > p:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.samsung.com/us/",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.samsung.com"
+        }
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://www.samsung.com/us/",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.samsung.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
     },
-    "logo_signal": "the icon the page declares (link rel=apple-touch-icon)"
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.samsung.com/us/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "read_from": [
+      "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png",
+      "https://www.samsung.com/us/"
+    ],
+    "reads": [
+      {
+        "url": "https://www.samsung.com/us/",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      },
+      {
+        "url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png",
+        "role": "identity source",
+        "what": "Samsung site icon",
+        "renderer": "image",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      },
+      {
+        "url": "https://www.samsung.com/us/about-us/brand-identity/",
+        "role": "identity source",
+        "what": "Samsung brand identity",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      }
+    ],
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.samsung.com/us/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div.hd08-hero-kv-home__inner:nth-of-type(1) > div.hd08-hero-kv-home__contents > div.hd08-hero-kv-home__text-wrap.text-black:nth-of-type(1) > p.hd08-hero-kv-home__desc:nth-of-type(2) > span.hd08-hero-kv-home__desc-text.hd08-hero-kv-home__desc-text--pc-only:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://www.samsung.com/us/",
+        "role": "body copy",
+        "selector": "div.text-editor__inner-wrap.padding-top--48 > div.text-editor__inner.desktop-padding-left-right--large > div.text-editor__column-wrap > div.text-editor__column.description-text-size--small > p:nth-of-type(1)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#008aff",
+    "ink": "#000000",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#000000",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "SamsungOne",
+      "stack": "'SamsungOne','arial',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "SamsungOne (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "SamsungOne",
+      "stack": "'SamsungOne','arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "SamsungOne (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -160,10 +412,20 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://resources.samsung.com/etc.clientlibs/samsung/clientlibs/consumer/global/clientlib-common/resources/images/Favicon.png",
+      "kind": "image",
+      "what": "Samsung site icon"
+    },
+    {
+      "url": "https://www.samsung.com/us/about-us/brand-identity/",
+      "kind": "page",
+      "what": "Samsung brand identity"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Samsung]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Samsung]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Samsung]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Samsung]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Samsung]"
@@ -212,16 +474,16 @@
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/26-da-bespoke-ai-home-feature-kv-na-pc.jpg?$1440_N_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_MiniLED_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "Enabling better living",
+      "alt": "Mini LED M80H",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     },
     {
-      "url": "https://images.samsung.com/is/image/samsung/assets/us/ref.jpg?$560_560_JPG$",
+      "url": "https://images.samsung.com/is/image/samsung/assets/us/CF2026_FramePro_SCOM-152050_HPWebTile_560x560.jpg?$560_560_JPG$",
       "role": "photograph",
-      "alt": "Bespoke Refrigerator",
+      "alt": "The Frame Pro",
       "found_on": "https://www.samsung.com/us/",
       "signal": "image rendered on the page"
     }

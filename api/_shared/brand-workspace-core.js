@@ -153,7 +153,7 @@ async function verifyCaller(req) {
       message: 'You are not signed in, so this could not be saved to your account. '
         + (v.reason === 'no_database'
           ? 'A sign-in kept on this device only cannot be checked by the server.'
-          : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
+          : 'Your sign-in has expired or was signed out. Sign in again with Gmail.'),
       hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
       mobile_reason: v.reason,
     };
@@ -653,10 +653,10 @@ function tokens(brand) {
   const p = normalizePalette((brand && brand.palette) || {});
   const primary = p.primary || '#6A33D8';
   const accent = p.accent || primary;
-  const ink = p.ink || '#111111';
+  const requestedInk = p.ink || '#111111';
   const surface = p.surface || '#F7F5F2';
   const surfaceAlt = p.surface_alt || shade(surface, 0.6);
-  const muted = p.muted || shade(ink, 0.35);
+  const muted = p.muted || shade(requestedInk, 0.35);
   // Text tokens are measured against the WORST-CASE surface they can land
   // on, not the lightest. A brand's page surface is often a tint while its
   // cards are white, and the shared rail is tinted too; a colour tuned
@@ -664,6 +664,11 @@ function tokens(brand) {
   // nav group labels were landing at 3.6:1. Whichever of the two the brand
   // colour reads worse on is the one that has to pass.
   const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+  // Brand records created before contrast validation may contain pale ink on
+  // a pale surface. Keep their chosen palette when possible, but always paint
+  // readable body copy while the record is repaired in Brand & Credits.
+  const inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
+  const ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
   const t = brand && brand.typography ? brand.typography : {};
   const states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
 

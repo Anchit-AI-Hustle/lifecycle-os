@@ -1,31 +1,46 @@
 'use strict';
 /**
- * scripts/lib/preset-observation.js — turn ONE rendered read of a starter
- * brand's own site into the observation the preset builder absorbs.
+ * scripts/lib/preset-observation.js — turn the rendered reads of a starter
+ * brand's OWN material into the observation the preset builder absorbs.
  * ---------------------------------------------------------------------------
- * The read itself is not done here. It is done by the platform's one rendered
- * reader, `api/_shared/brand-render.js` (`readSite` / `readRendered`): headless
- * Chromium, computed styles by element ROLE, every value carrying the page,
- * role, selector and viewport it was measured on. A second reader beside it
- * would drift from it - this repo has recorded that defect class more than
- * once - so the preset harvester only MAPS the reader's design manifest onto
- * the preset's palette and type slots, and says where each value came from.
+ * The reads themselves are not done here. They are done by the platform's one
+ * rendered reader, `api/_shared/brand-render.js` (`readSite` for a page,
+ * `readImage` for a logo file): headless Chromium, computed styles by element
+ * ROLE, every value carrying the page, role, selector and viewport it was
+ * measured on. A second reader beside it would drift from it - this repo has
+ * recorded that defect class more than once - so the preset harvester only
+ * MAPS what the reader measured onto the preset's palette and type slots, and
+ * says where each value came from.
+ *
+ * WHICH READS. The brand's home page, and the brand's OTHER own material named
+ * in the preset's `identity_sources` (a guidelines, press or newsroom page, its
+ * logo file) - each on the brand's own registrable domain or linked from a
+ * page read there (scripts/lib/brand-ownership.js), never a third party's.
+ * A home page that refuses an automated reader is not forced: the brand's
+ * other pages are read instead, honestly identified, and say so.
  *
  * THE RULES, each one a sentence a reviewer can hold the code to:
  *
  *  - A blocked, timed-out or unavailable read is an OBSERVATION, not an empty
- *    one. It carries `renderer` and the reason, and NO palette. The builder
- *    leaves that preset on the neutral default and the gallery says why
- *    ("<host> blocked an automated read on <date>"). A block page is not a
- *    palette, and a palette from memory is not a read.
- *  - Every hex in the palette is one the manifest measured, or it is DERIVED
- *    from one the manifest measured and labelled so, with the exact value kept
- *    beside it. The only values not read from the site are the four
- *    functional tokens (line/ok/warn/err) every preset shares, labelled as such.
- *  - `primary` is the reader's own choice (identity first, the rendered call to
- *    action when it is the only brand colour). A monochrome site - a black
- *    call to action and no chromatic colour anywhere - keeps that black: it is
- *    what the brand renders. Nothing renders: no primary, no palette.
+ *    one. It carries `renderer` and the reason, and NO palette. When no read
+ *    of the brand's own material yields one, the builder leaves the preset on
+ *    the neutral default and the gallery says why.
+ *  - Every hex in the palette is one a read measured, or it is DERIVED from one
+ *    a read measured and labelled so, with the exact value kept beside it, and
+ *    every value names the page it came from and the date. The only values not
+ *    read are the four functional tokens (line/ok/warn/err) every preset
+ *    shares, labelled as such.
+ *  - `primary` is the STRONGEST identity signal (identity-signals.js KINDS:
+ *    the logo's own paint and pixels, a labelled swatch on the brand's own
+ *    guidelines page, the mask-icon colour, then theme-color, tokens, the
+ *    header), raised by every OTHER kind of signal that agrees with it. A
+ *    signal measured on a consent banner is the vendor's, never taken; the
+ *    same colour from the logo is taken from the logo. A tint of the page is
+ *    passed over. A neutral logo is recorded, never promoted. A site with no
+ *    chromatic signal at all keeps the black call to action it renders
+ *    (monochrome), and says whether its logo agrees.
+ *  - `accent` exists only when the brand genuinely renders a SECOND colour;
+ *    it is never the primary repeated.
  *  - A typeface is the family the role RENDERS in. A proprietary web font the
  *    app cannot load is named, marked `loadable: false` and shown in the
  *    site's own fallback stack; it is never swapped for a lookalike.
@@ -37,8 +52,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'));
+const signals = require(path.join(ROOT, 'api', '_shared', 'identity-signals.js'));
 
-const FORMAT = 'preset-observation/2';
+const FORMAT = 'preset-observation/3';
 const RENDERERS = ['rendered', 'blocked', 'timeout', 'unavailable'];
 
 /** Functional tokens every preset shares. Not this brand's colours. */
@@ -47,12 +63,27 @@ const SEMANTIC_NOTE = 'functional token shared by every preset, not a colour rea
 /** A consent or cookie banner is its vendor's design, not the brand's. */
 const CONSENT = /consent|cookie|onetrust|truste|gdpr|didomi|usercentrics|osano|cookiebot/i;
 const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-sans-serif|ui-serif|ui-monospace|ui-rounded|math|emoji|-apple-system|blinkmacsystemfont)$/i;
+/** Two colours this close (CIEDE2000) are the same colour, read twice. */
+const SAME = 5;
+/** A second colour has to be at least this far from the primary to be one. */
+const DISTINCT = 10;
+/** A page that styles no links shows the engine's defaults. */
+const UA_LINK = new Set(['#0000ee', '#551a8b', '#0000ff']);
+/** Each other KIND of signal that agrees raises a candidate by this much. */
+const CORROBORATION = 12;
+/** What can be a SECOND brand colour: an action or link colour the site
+    renders, or a declared identity colour. Not an icon tile, a header fill or
+    a splash background - those are surfaces, not a brand's second colour. */
+const ACCENT_KINDS = new Set(['action', 'link', 'logo-svg', 'logo-image', 'logo-dark', 'guideline-swatch', 'mask-icon', 'logo-text', 'theme-color', 'manifest-theme', 'tile-color', 'token', 'heading-text']);
+/** Signals that state an exact value (a declaration, a vector paint). */
+const DECLARED_KINDS = new Set(['logo-svg', 'guideline-swatch', 'mask-icon', 'theme-color', 'manifest-theme', 'tile-color', 'token']);
 
 function hostOf(url) {
   try { return new URL(String(url || '')).hostname; } catch (_) { return String(url || ''); }
 }
 
-function hex(v) { return core.normHex(v) || ''; }
+function hex(v) { return (core.normHex(v) || '').toLowerCase(); }
+function dE(a, b) { return require(path.join(ROOT, 'api', '_shared', 'render-regression.js')).deltaE2000(a, b); }
 
 /** A surface the app's text tokens can be built against. */
 function lightSurface(h) {
@@ -97,31 +128,100 @@ function rolesOf(manifest) {
   return (manifest && manifest.read && manifest.read.desktop && manifest.read.desktop.roles) || {};
 }
 
+/** The signal KIND of a reader colour that carries no `kind` (older manifests). */
+function kindFromSignal(signal, fromRole) {
+  const s = String(signal || '');
+  if (fromRole === 'action') return 'action';
+  if (/theme-color/.test(s)) return 'theme-color';
+  if (/manifest/.test(s)) return 'manifest-theme';
+  if (/logo/.test(s)) return 'logo-svg';
+  if (/header/.test(s)) return 'header';
+  if (fromRole === 'link') return 'link';
+  return 'token';
+}
+
+const LINK_KIND = { score: 35, label: 'body link colour, as rendered' };
+function strengthOf(kind) { return kind === 'link' ? LINK_KIND.score : ((signals.KINDS[kind] || {}).score || 0); }
+
 /**
- * The palette a preset can activate with, from the manifest's measured colours.
- * Returns { ok, palette, evidence, reason, gate }.
- *
- * The reader decides what each colour IS (identity, action, body copy). This
- * decides only what a PRESET can use, and every refusal is recorded beside the
- * value taken instead (`evidence.primary.passed_over`):
- *  - a colour measured on a consent or cookie widget is that vendor's, not
- *    the brand's;
- *  - a "brand colour" that measures under 1.5:1 against the page is a tint of
- *    the page (a pale header, the palest step of a token scale) and cannot
- *    carry the app's primary role - buttons and bands in it would vanish. The
- *    next colour the site renders is taken, in the reader's own order.
+ * Every colour candidate one read offers, each with its kind, strength,
+ * signal, source and the read it came from. `read`: { manifest, url, role,
+ * observed_at, owned } or, for a logo FILE, { image: { url, pixels }, mark }.
  */
-function paletteFromManifest(manifest) {
-  const m = manifest || {};
+/** A token or selector a third-party widget paints (a careers page's Glassdoor colour). */
+const VENDOR_MARK = /glassdoor|onetrust|trustarc|cookiebot|truste|quantcast|didomi|osano|usercentrics/i;
+
+function candidatesOf(read) {
+  const out = [];
+  const add = (value, kind, signal, source, label, extra) => {
+    const v = hex(value);
+    if (!v) return;
+    // The browser's own default link colours are the engine's, not the brand's.
+    if (kind === 'link' && UA_LINK.has(v)) return;
+    // A widget names itself in a token (--glassdoor-brand-color). A consent
+    // button is a different case and is judged later, by its selector.
+    if (kind === 'token' && VENDOR_MARK.test(`${signal || ''} ${(source && source.selector) || ''} ${(source && source.property) || ''}`)) return;
+    out.push(Object.assign({ value: v, kind, strength: strengthOf(kind), signal, source: sourceOf({ source }), label: label || signal, read }, extra || {}));
+  };
+  if (read.image) {
+    const mark = read.mark || signals.markIdentity(read.image.pixels);
+    if (mark.verdict === 'colour') add(mark.hex, 'logo-image', `the brand's own logo file, its pixels (${Math.round(mark.share_of_chromatic * 100)}% of its coloured pixels)`, { page: read.image.url || read.url, role: 'logo file', selector: '', viewport: '', property: 'pixels', signal: 'rendered' }, 'the brand\'s logo file');
+    return out;
+  }
+  const m = read.manifest || {};
+  const colors = m.colors || {};
+  const rd = rolesOf(m);
+  const page = m.url || m.start || read.url || '';
+  if (colors.primary) add(colors.primary.value, colors.primary.kind || kindFromSignal(colors.primary.signal, colors.primary.from_role), colors.primary.signal || 'the reader\'s primary', colors.primary.source, 'the reader\'s primary', { from_role: colors.primary.from_role || '' });
+  if (colors.accent && /action|identity|link/.test(colors.accent.from_role || '')) add(colors.accent.value, kindFromSignal(colors.accent.signal, colors.accent.from_role), colors.accent.from_role === 'action' ? 'the primary call to action, as rendered' : (colors.accent.signal || 'identity colour, as rendered'), colors.accent.source, 'the reader\'s accent', { from_role: colors.accent.from_role });
+  for (const c of ((m.identity && m.identity.candidates) || [])) {
+    if (!c) continue;
+    add(c.value, c.kind || kindFromSignal(c.signal), c.signal || 'identity colour', c.source, c.signal || 'an identity candidate', { from_role: 'identity' });
+  }
+  const btn = rd.button_primary && rd.button_primary.style ? rd.button_primary.style.background : '';
+  if (btn) add(btn, 'action', 'the primary call to action, as rendered', { page, role: 'primary call to action', selector: rd.button_primary.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' }, 'the primary call to action', { from_role: 'action' });
+  const hdr = rd.header && rd.header.style ? rd.header.style.background : '';
+  if (hdr) add(hdr, 'header', 'header background as rendered', { page, role: 'header', selector: rd.header.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' }, 'the header background', { from_role: 'identity' });
+  // The filled call to action on the other pages the reader opened (a
+  // product page's "Add to bag").
+  for (const a of m.actions_elsewhere || []) {
+    add(a.value, 'action', `the primary call to action on the ${a.role || 'other'} page, as rendered`, { page: a.page || page, role: 'primary call to action', selector: a.selector || '', viewport: 'desktop', property: 'background-color', signal: 'computed' }, `the call to action on ${a.page || 'another page'}`, { from_role: 'action' });
+  }
+  // One value from one kind of signal in one read is one candidate.
+  const seen = new Set();
+  return out.filter((c) => { const k = `${c.kind}|${c.value}`; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+/** Where a value came from, for the evidence: the read, its page, its date. */
+function readRef(read) {
+  return {
+    read_url: (read && (read.url || (read.manifest && read.manifest.url) || (read.image && read.image.url))) || '',
+    read_role: (read && read.role) || 'home',
+    observed_at: (read && read.observed_at) || '',
+    owned: (read && read.owned) || null,
+  };
+}
+
+/**
+ * The palette a preset can activate with, from every read of the brand's own
+ * material. `reads[0]`, when it has a manifest, is the DESIGN read: the page
+ * whose surface, text colours and type the preset takes (the home page when
+ * it rendered). Returns { ok, palette, evidence, reason, gate }.
+ */
+function paletteFromReads(readsIn) {
+  const reads = (readsIn || []).filter(Boolean);
+  const design = reads.find((r) => r.manifest) || null;
+  const m = (design && design.manifest) || {};
   const colors = m.colors || {};
   const rd = rolesOf(m);
   const page = m.url || m.start || '';
+  const designRef = readRef(design);
   const evidence = {};
   const take = (role, value, c, extra) => {
-    evidence[role] = Object.assign({ value, exact: value, derived: false, source: sourceOf(c) }, extra || {});
+    evidence[role] = Object.assign({ value, exact: value, derived: false, source: sourceOf(c) }, designRef, extra || {});
   };
-  const derive = (role, value, exact, note, c) => {
-    evidence[role] = { value, exact: exact || '', derived: true, note, source: sourceOf(c) };
+  const derive = (role, value, exact, note, c, ref) => {
+    evidence[role] = Object.assign({ value, exact: exact || '', derived: true, note, source: sourceOf(c) }, ref || designRef);
   };
   const roleSource = (role, r, property) => ({ page, role, selector: (r && r.selector) || '', viewport: 'desktop', property, signal: 'computed' });
 
@@ -134,47 +234,133 @@ function paletteFromManifest(manifest) {
     derive('surface', surface, surfaceExact,
       surfaceExact
         ? `DERIVED: the site paints its page ${surfaceExact}, a dark ground. A preset's page surface must be light (every text token is built against it, and a dark-neutral surface is refused activation), so the surface is white and the exact value is kept here.`
-        : 'DERIVED: the read measured no page ground, so the surface is white.',
+        : (design ? 'DERIVED: the read measured no page ground, so the surface is white.' : 'DERIVED: no page of the brand\'s could be rendered (only its logo file was read), so the surface is white.'),
       colors.surface);
   }
 
-  // primary: the reader's choice first, then what else the site renders.
+  // Every candidate from every read, judged and scored.
+  const all = [];
+  for (const r of reads) for (const c of candidatesOf(r)) all.push(c);
   const passedOver = [];
-  const usable = (value, source, label) => {
-    const h = hex(value);
-    if (!h) return false;
-    if (CONSENT.test((source && source.selector) || '')) { passedOver.push({ value: h, from: label, why: 'measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor\'s)' }); return false; }
-    const vsPage = core.contrast(h, surface);
-    if (vsPage < 1.5 || (surfaceExact && core.contrast(h, surfaceExact) < 1.5)) { passedOver.push({ value: h, from: label, why: `${Math.min(vsPage, surfaceExact ? core.contrast(h, surfaceExact) : vsPage)}:1 against the page, a tint of the page that cannot carry buttons or bands` }); return false; }
-    return true;
-  };
-  const candidates = [];
-  if (colors.primary) candidates.push({ value: colors.primary.value, source: sourceOf(colors.primary), from_role: colors.primary.from_role || '', signal: colors.primary.signal || 'computed', label: 'the reader\'s primary' });
-  if (colors.accent && /action|identity/.test(colors.accent.from_role || '')) candidates.push({ value: colors.accent.value, source: sourceOf(colors.accent), from_role: colors.accent.from_role, signal: colors.accent.from_role === 'action' ? 'the primary call to action, as rendered' : 'identity colour, as rendered', label: 'the reader\'s accent' });
-  for (const c of ((m.identity && m.identity.candidates) || [])) {
-    if (c && !c.neutral) candidates.push({ value: c.value, source: sourceOf(c), from_role: 'identity', signal: c.signal || 'identity colour', label: c.signal || 'an identity candidate' });
+  const isConsent = (c) => CONSENT.test((c.source && c.source.selector) || '');
+  const tintRatio = (v) => Math.min(core.contrast(v, surface), surfaceExact ? core.contrast(v, surfaceExact) : Infinity);
+  const usable = [];
+  for (const c of all) {
+    if (isConsent(c)) {
+      const by = all.find((o) => o !== c && !isConsent(o) && signals.chromatic(o.value) && dE(o.value, c.value) <= SAME);
+      passedOver.push({ value: c.value, from: c.label, why: by
+        ? `measured on a consent or cookie banner; the same colour is the brand's by ${by.signal}, which is taken from there instead`
+        : 'measured on a consent or cookie banner, which is not an identity signal (its styling is often the consent vendor\'s)' });
+      continue;
+    }
+    const tr = tintRatio(c.value);
+    if (tr < 1.5) { passedOver.push({ value: c.value, from: c.label, why: `${tr}:1 against the page, a tint of the page that cannot carry buttons or bands` }); continue; }
+    usable.push(c);
   }
-  const btn = rd.button_primary && rd.button_primary.style ? rd.button_primary.style.background : '';
-  if (btn) candidates.push({ value: btn, source: roleSource('primary call to action', rd.button_primary, 'background-color'), from_role: 'action', signal: 'the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome', label: 'the primary call to action' });
-  const hdr = rd.header && rd.header.style ? rd.header.style.background : '';
-  if (hdr) candidates.push({ value: hdr, source: roleSource('header', rd.header, 'background-color'), from_role: 'identity', signal: 'header background as rendered; the site renders no other colour that reads on its page', label: 'the header background' });
-  let primary = '';
-  for (const c of candidates) {
-    if (!usable(c.value, c.source, c.label)) continue;
-    primary = hex(c.value);
-    evidence.primary = { value: primary, exact: primary, derived: false, from_role: c.from_role, signal: c.signal, source: c.source };
-    break;
+  const chromaticC = usable.filter((c) => signals.chromatic(c.value));
+  // One mark read two ways (its SVG paint and its pixels) is ONE signal:
+  // agreement is counted between FAMILIES of signal, not kinds.
+  const family = (k) => (/^logo-/.test(k) ? 'logo' : (k === 'theme-color' || k === 'manifest-theme' ? 'browser-colour' : k));
+  for (const c of chromaticC) {
+    const agree = new Map();
+    for (const o of chromaticC) if (o !== c && family(o.kind) !== family(c.kind) && dE(o.value, c.value) <= SAME && !agree.has(family(o.kind))) agree.set(family(o.kind), o);
+    c.corroborated_by = [...agree.values()].slice(0, 4).map((o) => ({ kind: o.kind, value: o.value, signal: o.signal, page: o.source.page || readRef(o.read).read_url }));
+    c.score = c.strength + CORROBORATION * Math.min(2, agree.size);
+  }
+  // A guidelines page shows the logo on several fields. The colour it shows
+  // twice (two greens) is the brand's; a one-off field (one purple tile) is
+  // a sample. The same colour measured on two pages counts the same way.
+  const pageOf = (c) => (c.source && c.source.page) || readRef(c.read).read_url || '';
+  const isContent = (c) => !!(c.source && c.source.role === 'content logo');
+  const hueClose = (a, b) => {
+    const ra = signals.rgbOf(a), rb = signals.rgbOf(b);
+    if (!ra || !rb) return false;
+    const d = Math.abs(signals.hueOf(ra) - signals.hueOf(rb));
+    return Math.min(d, 360 - d) <= 14;
+  };
+  for (const c of chromaticC) {
+    const seen = new Set([`${pageOf(c)}|${c.value}`]);
+    let extras = 0;
+    for (const o of chromaticC) {
+      if (o === c) continue;
+      const close = dE(o.value, c.value) <= SAME || (isContent(c) && isContent(o) && hueClose(c.value, o.value));
+      if (!close) continue;
+      const key = `${pageOf(o)}|${o.value}`;
+      if (seen.has(key)) continue;
+      if (pageOf(o) === pageOf(c) && !(isContent(c) && isContent(o))) continue;
+      seen.add(key);
+      extras += 1;
+    }
+    if (extras) c.score += CORROBORATION * Math.min(2, extras);
+  }
+  // A single content logo that nothing else on the brand's material agrees
+  // with is a photograph or a campaign field, not the mark. It drops below
+  // the site's own icon, token, swatch and button.
+  const AGREES = new Set(['icon', 'token', 'guideline-swatch', 'logo-svg', 'action', 'mask-icon', 'theme-color', 'manifest-theme', 'tile-color']);
+  for (const c of chromaticC) {
+    if (!isContent(c)) continue;
+    const repeated = chromaticC.some((o) => o !== c && isContent(o) && (dE(o.value, c.value) <= SAME || hueClose(c.value, o.value)));
+    const agrees = chromaticC.some((o) => o !== c && !isContent(o) && AGREES.has(o.kind) && (dE(o.value, c.value) <= SAME || hueClose(c.value, o.value)));
+    if (!repeated && !agrees) c.score -= 70;
+  }
+  chromaticC.sort((a, b) => b.score - a.score || b.strength - a.strength || signals.chromaOf(b.value) - signals.chromaOf(a.value));
+  let chosen = chromaticC[0] || null;
+  let monochrome = null;
+  if (!chosen) {
+    // No chromatic signal anywhere: a site whose call to action is black (or
+    // near it) is monochrome, and keeps that black. Never a grey header.
+    const act = usable.find((c) => c.kind === 'action' && core.luminance(c.value) < 0.05);
+    if (act) {
+      chosen = act;
+      const logoNeutral = reads.map((r) => r.manifest && r.manifest.identity && r.manifest.identity.logo_colours).filter(Boolean)
+        .map((lc) => signals.markIdentity((lc.paints && lc.paints.length ? lc.paints : lc.pixels) || [])).find((v) => v.verdict === 'neutral');
+      monochrome = { logo: logoNeutral ? logoNeutral.hex : '' };
+    }
   }
   const seen = new Set();
   const passed = passedOver.filter((p) => { const k = p.value + p.why; if (seen.has(k)) return false; seen.add(k); return true; });
-  if (!primary) {
+  // Every candidate weighed, for the record and the harvest log.
+  const considered = all.slice(0, 40).map((c) => ({
+    kind: c.kind, value: c.value, score: c.score != null ? c.score : c.strength,
+    state: c === chosen ? 'chosen' : (passedOver.some((p) => p.value === c.value && p.from === c.label) ? 'passed over' : (signals.chromatic(c.value) ? 'outranked' : 'neutral')),
+    page: c.source.page || readRef(c.read).read_url,
+  }));
+  if (!chosen) {
     return {
+      considered,
       ok: false, palette: null, evidence: Object.assign(evidence, { primary: { value: '', passed_over: passed } }),
       reason: passed.length
         ? `the rendered site shows no brand colour a preset can use (${passed.map((p) => `${p.value} from ${p.from}: ${p.why}`).join('; ')})`
         : 'The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header.',
     };
   }
+  // A logo read from its PIXELS gives the colour as drawn (compressed,
+  // resampled). When a colour the site DECLARES agrees with it, the declared
+  // hex is the exact value; the pixels are why it is the brand's.
+  let exactFrom = null;
+  if (!monochrome && chosen.kind === 'logo-image') {
+    exactFrom = chromaticC.filter((c) => c !== chosen && DECLARED_KINDS.has(c.kind) && dE(c.value, chosen.value) <= SAME)
+      .sort((a, b) => dE(a.value, chosen.value) - dE(b.value, chosen.value))[0] || null;
+  }
+  const primary = exactFrom ? exactFrom.value : chosen.value;
+  const signalText = monochrome
+    ? `the primary call to action, as rendered; the site renders no chromatic brand colour that reads on its page, so its identity is monochrome${monochrome.logo ? ` (its logo mark is ${monochrome.logo}, also neutral)` : ''}`
+    : chosen.signal;
+  evidence.primary = Object.assign({
+    value: primary, exact: primary, derived: false, kind: chosen.kind, strength: chosen.strength, score: chosen.score || chosen.strength,
+    from_role: chosen.kind === 'action' ? 'action' : 'identity', signal: signalText, source: chosen.source,
+  }, readRef(chosen.read));
+  if ((chosen.corroborated_by || []).length) evidence.primary.corroborated_by = chosen.corroborated_by;
+  if (exactFrom) {
+    Object.assign(evidence.primary, {
+      exact_from: { kind: exactFrom.kind, signal: exactFrom.signal, page: exactFrom.source.page || readRef(exactFrom.read).read_url, selector: exactFrom.source.selector || '' },
+      drawn: chosen.value,
+      signal: `${chosen.signal}; exact value ${primary} as the site declares it (${exactFrom.signal}), which the logo's pixels (${chosen.value}) agree with`,
+    });
+  }
+  const outranked = chromaticC.filter((c) => c !== chosen && dE(c.value, primary) > SAME).slice(0, 4)
+    .map((c) => ({ value: c.value, kind: c.kind, signal: c.signal, score: c.score, page: c.source.page || readRef(c.read).read_url }));
+  if (outranked.length) evidence.primary.outranked = outranked;
   if (passed.length) evidence.primary.passed_over = passed;
 
   // ink: body copy as rendered; if it does not read on the page, the heading
@@ -192,23 +378,32 @@ function paletteFromManifest(manifest) {
       const c = hex(r && r.type && r.type.color);
       if (!c || core.contrast(c, surface) < 4.5) continue;
       ink = c;
-      evidence.ink = {
+      evidence.ink = Object.assign({
         value: c, exact: inkExact, derived: true, from_role: name,
         note: inkExact
           ? `The body copy as rendered (${inkExact}) measures ${core.contrast(inkExact, surface)}:1 on ${surface}; the ${name} text the site renders (${c}) reads there, so it is the ink.`
           : `The read found no body copy; the ${name} text the site renders (${c}) is the ink.`,
         source: roleSource(name, r, 'color'),
-      };
+      }, designRef);
       break;
     }
-    if (!ink && inkExact) {
+    if (!ink && surfaceExact && surfaceExact !== surface && core.contrast(surfaceExact, surface) >= 7) {
+      // A dark site, flipped to a light surface: the dark ground the site
+      // paints is a colour it renders, and it reads as text on the light one.
+      ink = surfaceExact;
+      evidence.ink = Object.assign({
+        value: surfaceExact, exact: surfaceExact, derived: true, from_role: 'page ground',
+        note: `The site paints its page ${surfaceExact} with light text on it. On this preset's light surface that dark ground is the text colour (${core.contrast(surfaceExact, surface)}:1); the body copy as rendered (${inkExact || 'none read'}) does not read there.`,
+        source: sourceOf(colors.surface),
+      }, designRef);
+    } else if (!ink && inkExact) {
       // Light text from a dark page, now on a light one: taken well past AA,
       // so body copy reads as body copy and not as a faded caption.
       ink = core.readableAsText(inkExact, surface, 12);
       derive('ink', ink, inkExact, `DERIVED from ${inkExact}: the body copy as rendered measures ${core.contrast(inkExact, surface)}:1 on ${surface}, and no other text the site renders reads there, so it is darkened until it does (${core.contrast(ink, surface)}:1).`, colors.ink);
     } else if (!ink) {
       ink = core.readableAsText(primary, surface, 12);
-      derive('ink', ink, '', `DERIVED from ${primary}: the read found no text colour that reads on ${surface}, so the primary is darkened until it does (${core.contrast(ink, surface)}:1).`, colors.primary);
+      derive('ink', ink, '', `DERIVED from ${primary}: the read found no text colour that reads on ${surface}, so the primary is darkened until it does (${core.contrast(ink, surface)}:1).`, chosen, readRef(chosen.read));
     }
   }
 
@@ -233,26 +428,38 @@ function paletteFromManifest(manifest) {
     derive('muted', muted, mutedExact, `DERIVED from ${mutedExact}: secondary text as rendered measures ${core.contrast(mutedExact, surface)}:1, adjusted to AA.`, colors.muted);
   } else derive('muted', muted, '', 'DERIVED: the read found no secondary text style, so it is the body ink.', colors.ink);
 
-  // accent: the reader's second colour when it is a usable one, else the
-  // primary repeated (said) rather than a colour the site does not use.
-  const accentExact = hex(colors.accent && colors.accent.value);
-  const accentConsent = !!accentExact && CONSENT.test((colors.accent.source && colors.accent.source.selector) || '');
-  let accent = primary;
-  if (accentExact && accentExact !== primary && !accentConsent && core.contrast(accentExact, surface) >= 1.5) {
-    accent = accentExact;
-    take('accent', accentExact, colors.accent, { from_role: colors.accent.from_role || '' });
+  // accent: a SECOND colour the brand renders - an identity or action colour
+  // clearly apart from the primary. None: no accent, and the reason.
+  // A second colour carries fills, rules and chips, so it has to stand off
+  // the page: 3:1 (WCAG 1.4.11 non-text contrast). A pale tint is not one.
+  const second = chromaticC.filter((c) => {
+    if (c === chosen || dE(c.value, primary) <= DISTINCT || !ACCENT_KINDS.has(c.kind) || core.contrast(c.value, surface) < 3) return false;
+    // A logo no other kind of signal agrees with is one mark on one page,
+    // not the brand's second colour (a purple header tile beside a green mark).
+    if (c.kind === 'logo-image' || isContent(c)) {
+      const backed = (c.corroborated_by || []).length || chromaticC.some((o) => o !== c && family(o.kind) !== 'logo' && (dE(o.value, c.value) <= SAME || hueClose(c.value, o.value)));
+      if (!backed) return false;
+    }
+    return true;
+  }).sort((a, b) => b.score - a.score)[0] || null;
+  let accent = '';
+  if (second) {
+    accent = second.value;
+    evidence.accent = Object.assign({ value: accent, exact: accent, derived: false, kind: second.kind, from_role: second.kind === 'action' ? 'action' : (second.kind === 'link' ? 'link' : 'identity'), signal: second.signal, source: second.source }, readRef(second.read));
   } else {
-    const other = accentExact && accentExact !== primary;
-    evidence.accent = {
-      value: primary, exact: other ? accentExact : '', derived: true,
-      note: other
-        ? `The second colour the reader found (${accentExact}) ${accentConsent ? 'was measured on a consent or cookie banner' : `is a tint of the page (${core.contrast(accentExact, surface)}:1)`}, so the accent repeats the primary.`
-        : 'The site renders one brand colour; the accent repeats the primary rather than borrowing a colour the site does not use.',
-      source: evidence.primary.source,
-    };
+    const ra = hex(colors.accent && colors.accent.value);
+    const raRefused = ra && ra !== primary ? passed.find((p) => p.value === ra) : null;
+    evidence.accent = Object.assign({
+      value: '', exact: raRefused ? ra : '', derived: false, absent: true,
+      note: raRefused
+        ? `The second colour the reader found (${ra}) ${/consent/.test(raRefused.why) ? 'was measured on a consent or cookie banner' : `is a tint of the page (${core.contrast(ra, surface)}:1)`}, so this preset has no accent.`
+        : (monochrome
+          ? 'The site renders no chromatic colour at all; this preset has no accent rather than one the site does not use.'
+          : 'The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.'),
+    }, designRef);
   }
 
-  const palette = Object.assign({ primary, accent, ink, surface, surface_alt: surfaceAlt, muted }, SEMANTIC);
+  const palette = Object.assign({ primary }, accent ? { accent } : {}, { ink, surface, surface_alt: surfaceAlt, muted }, SEMANTIC);
   for (const role of Object.keys(SEMANTIC)) evidence[role] = { value: SEMANTIC[role], exact: '', derived: false, note: SEMANTIC_NOTE, source: { page: '', role: '', selector: '', viewport: '', property: '', signal: 'functional' } };
 
   let gate = core.validatePalette(palette);
@@ -275,12 +482,20 @@ function paletteFromManifest(manifest) {
     }
   }
   if (!gate.ok) {
-    return { ok: false, palette: null, evidence, gate: { errors: gate.errors, warnings: gate.warnings }, reason: `the colours it renders fail the palette gate (${gate.errors.map((e) => e.message).join(' ')})` };
+    return { considered, ok: false, palette: null, evidence, gate: { errors: gate.errors, warnings: gate.warnings }, reason: `the colours it renders fail the palette gate (${gate.errors.map((e) => e.message).join(' ')})` };
   }
-  return { ok: true, palette: Object.assign({}, palette, gate.palette), evidence, gate: { errors: [], warnings: gate.warnings } };
+  const out = Object.assign({}, palette, gate.palette);
+  if (!accent) delete out.accent;
+  return { considered, ok: true, palette: out, evidence, gate: { errors: [], warnings: gate.warnings } };
+}
+
+/** One manifest on its own: the home page read alone. */
+function paletteFromManifest(manifest) {
+  return paletteFromReads([{ manifest, role: 'home', url: (manifest && manifest.url) || '' }]);
 }
 
 /* ── typography ──────────────────────────────────────────────────────────── */
+
 
 function quoted(f) { return GENERIC.test(f) ? f : `'${String(f).replace(/'/g, '')}'`; }
 
@@ -318,6 +533,29 @@ function typographyFromManifest(manifest) {
   const body = slotFrom(fonts.body, 'body');
   if (!heading && body) heading = Object.assign({}, body, { note: `${body.note} The site renders no distinct heading face, so headings use the body face.`, signal: 'the body copy face; no distinct heading face was rendered' });
   if (!heading || !body) return null;
+  return { heading, body };
+}
+
+/**
+ * Typography from every page read: each slot from the first page (home page
+ * first) whose role rendered a family. A careers or press page that renders
+ * the brand's heading face fills the slot the home page could not, and says
+ * which page it came from. A body face nobody rendered is the heading face,
+ * said so - never a lookalike.
+ */
+function typographyFromReads(reads) {
+  const pages = (reads || []).filter((r) => r && r.manifest);
+  let heading = null, body = null, headingPage = '', bodyPage = '';
+  for (const r of pages) {
+    const f = r.manifest.fonts || {};
+    if (!heading && f.heading && f.heading.family) { heading = slotFrom(f.heading, 'heading'); headingPage = r.url; }
+    if (!body && f.body && f.body.family) { body = slotFrom(f.body, 'body'); bodyPage = r.url; }
+  }
+  if (!heading && !body) return null;
+  if (!heading) heading = Object.assign({}, body, { note: `${body.note} The site renders no distinct heading face, so headings use the body face.`, signal: 'the body copy face; no distinct heading face was rendered' }), headingPage = bodyPage;
+  if (!body) body = Object.assign({}, heading, { note: `${heading.note} No body copy was rendered on the pages read, so body text uses the heading face.`, signal: 'the heading face; no body copy was rendered on the pages read' }), bodyPage = headingPage;
+  heading.read_url = headingPage;
+  body.read_url = bodyPage;
   return { heading, body };
 }
 
@@ -414,15 +652,71 @@ function failureObservation(preset, result, observedAt) {
   };
 }
 
-/** A read that produced a manifest. */
-function observationFromRead(preset, result, observedAt) {
-  if (!result || !result.ok || !result.manifest) return failureObservation(preset, result, observedAt);
-  const manifest = result.manifest;
-  const landed = manifest.url || preset.website;
+/** One read's outcome, as the observation lists it. */
+function readRow(entry, observedAt) {
+  const r = entry.result || null;
+  const row = {
+    url: entry.url, role: entry.role, what: entry.what || '', kind: entry.kind || 'page',
+    owned: entry.owned || null, at: observedAt, attempts: entry.attempts || (r ? 1 : 0),
+  };
+  if (entry.refused) return Object.assign(row, { renderer: 'refused', ok: false, reason: entry.refused });
+  if (!r) return Object.assign(row, { renderer: 'unavailable', ok: false, reason: 'not read' });
+  if (r.ok && r.manifest) return Object.assign(row, { renderer: 'rendered', ok: true, landed: r.manifest.url || entry.url });
+  if (r.ok && r.image) return Object.assign(row, { renderer: 'image', ok: true, landed: r.image.url || entry.url, mark: r.mark ? { verdict: r.mark.verdict, hex: r.mark.hex || '' } : null });
+  return Object.assign(row, { renderer: failureRenderer(r), ok: false, reason: String(r.reason || r.message || 'The reader gave no reason.').slice(0, 400) });
+}
+
+/**
+ * The observation for one brand from every read of its own material.
+ * `home`: readSite's result for the preset's website. `sources`: the identity
+ * sources, each { url, kind: 'page'|'image', what, owned, result } or
+ * { url, refused: reason } (not the brand's own, so never read).
+ */
+function observationFromReads(preset, home, sources, observedAt) {
+  const srcs = (sources || []).filter(Boolean);
+  const homeOk = !!(home && home.ok && home.manifest);
+  const rows = [readRow({ url: preset.website, role: 'home', what: 'home page', result: home, attempts: home && home.attempts, owned: { how: 'website', host: hostOf(preset.website) } }, observedAt)]
+    .concat(srcs.map((s) => readRow(Object.assign({ role: 'identity source' }, s), observedAt)));
+  const okSources = srcs.filter((s) => !s.refused && s.result && s.result.ok && (s.result.manifest || s.result.image));
+  if (!homeOk && !okSources.length) {
+    const base = failureObservation(preset, home || { ok: false, renderer: 'unavailable', reason: 'not read' }, observedAt);
+    if (srcs.length) {
+      base.reads = rows;
+      base.note = [readSentence(base.read_attempt), sourcesSentence(rows), 'Nothing was filled in; the preset stays on the neutral default.'].filter(Boolean).join(' ');
+    }
+    return base;
+  }
+  // The DESIGN read: the home page when it rendered, else the first of the
+  // brand's own pages that did. Its surface, text and type are the preset's.
+  const reads = [];
+  if (homeOk) reads.push({ manifest: home.manifest, url: preset.website, role: 'home', observed_at: observedAt, owned: rows[0].owned });
+  for (const s of okSources) {
+    if (s.result.manifest) reads.push({ manifest: s.result.manifest, url: s.url, role: 'identity source', what: s.what || '', observed_at: observedAt, owned: s.owned });
+    else reads.push({ image: s.result.image, mark: s.result.mark, url: s.url, role: 'identity source', what: s.what || '', observed_at: observedAt, owned: s.owned });
+  }
+  const designRead = reads.find((r) => r.manifest) || null;
+  const manifest = designRead ? designRead.manifest : null;
+  const designResult = homeOk ? home : (okSources.find((s) => s.result.manifest) || {}).result;
+  const landed = manifest ? (manifest.url || preset.website) : preset.website;
   const host = hostOf(landed);
-  const pal = paletteFromManifest(manifest);
-  const type = typographyFromManifest(manifest);
-  const assets = assetsFromManifest(manifest);
+  const pal = paletteFromReads(reads);
+  const type = typographyFromReads(reads);
+  // What each page's own logo and fonts were, for the record (and the log).
+  const perRead = reads.map((r) => {
+    const m = r.manifest;
+    if (!m) return { url: r.url, logo: r.mark ? { kind: 'file', verdict: r.mark.verdict, hex: r.mark.hex || '' } : null };
+    const lc = m.identity && m.identity.logo_colours;
+    const v = lc ? signals.markIdentity((lc.paints && lc.paints.length ? lc.paints : lc.pixels) || []) : null;
+    return {
+      url: r.url,
+      logo: lc ? { kind: lc.kind, verdict: v.verdict, hex: v.hex || (v.colours || []).join(' ') } : null,
+      fonts: m.fonts ? { heading: (m.fonts.heading || {}).family || '', body: (m.fonts.body || {}).family || '' } : null,
+      content_logos: ((m.read && m.read.desktop && m.read.desktop.content_logos) || []).length,
+      seen: m.page_seen || null,
+    };
+  });
+  const assets = manifest ? assetsFromManifest(manifest) : { logo_url: '', logo_signal: '', assets: [] };
+  const homeRow = rows[0];
   const base = {
     format: FORMAT,
     ok: true,
@@ -430,19 +724,26 @@ function observationFromRead(preset, result, observedAt) {
     start: preset.website,
     landed,
     observed_at: observedAt,
-    read_at: manifest.read_at || '',
-    renderer: 'rendered',
-    reader: readerInfo(result, manifest),
-    pages: (manifest.pages || []).map((p) => ({ url: p.url, role: p.role })),
-    viewports: manifest.viewports || {},
-    partial: !!manifest.partial,
-    regression: regressionSummary(result.regression),
-    conflicts: (manifest.conflicts || []).map((c) => ({ kind: c.kind, message: c.message })),
-    markers: (manifest.markers || []).slice(0, 20),
+    read_at: manifest ? (manifest.read_at || '') : '',
+    // `renderer` is the HOME page's outcome; `reads` lists every read.
+    renderer: homeOk ? 'rendered' : homeRow.renderer,
+    reason: homeOk ? '' : homeRow.reason,
+    reads: rows,
+    design_read: designRead ? { url: designRead.url, role: designRead.role, landed } : null,
+    reader: readerInfo(designResult, manifest),
+    pages: manifest ? (manifest.pages || []).map((p) => ({ url: p.url, role: p.role })) : [],
+    viewports: manifest ? (manifest.viewports || {}) : {},
+    partial: !!(manifest && manifest.partial),
+    regression: homeOk ? regressionSummary(home.regression) : null,
+    conflicts: manifest ? (manifest.conflicts || []).map((c) => ({ kind: c.kind, message: c.message })) : [],
+    markers: manifest ? (manifest.markers || []).slice(0, 20) : [],
     logo_url: assets.logo_url,
     logo_signal: assets.logo_signal,
     assets: assets.assets,
+    palette_candidates: pal.considered || [],
+    read_details: perRead,
   };
+  if (!homeOk) base.home_attempt = { renderer: homeRow.renderer, at: observedAt, host: hostOf(preset.website), reason: homeRow.reason };
   if (!pal.ok) {
     return Object.assign(base, {
       palette_ok: false,
@@ -455,9 +756,12 @@ function observationFromRead(preset, result, observedAt) {
     });
   }
   const p = pal.evidence.primary;
-  const source = `Rendered ${landed} in Chromium${base.reader.chromium ? ' ' + base.reader.chromium : ''} on ${observedAt}. `
+  const from = p.read_url && hostOf(p.read_url) !== host ? ` on ${p.read_url}` : '';
+  const source = (homeOk ? `Rendered ${landed}` : `${hostOf(preset.website)} refused an automated read (${homeRow.renderer}); read the brand's own ${designRead ? designRead.url : p.read_url}`)
+    + ` in Chromium${base.reader.chromium ? ' ' + base.reader.chromium : ''} on ${observedAt}. `
     + `Primary ${pal.palette.primary} from ${p.signal || 'the rendered page'}`
-    + (p.source && p.source.selector ? ` (${p.source.selector})` : '') + '.'
+    + (p.source && p.source.selector ? ` (${p.source.selector})` : '') + from + '.'
+    + ((p.corroborated_by || []).length ? ` Agreed by ${p.corroborated_by.map((c) => c.kind).join(', ')}.` : '')
     + (type ? ` Headings ${type.heading.family}, body ${type.body.family}, as rendered.` : '');
   return Object.assign(base, {
     palette_ok: true,
@@ -469,8 +773,39 @@ function observationFromRead(preset, result, observedAt) {
   });
 }
 
+/** "Its own other material was tried too: about.example.com (blocked)."
+ *  One host in one state is one fact. A failure on the home host in the
+ *  home read's own state is already the home sentence (three blocked icons
+ *  on www.example.com are not three new facts), so it is left out. */
+function sourcesSentence(rows) {
+  const list = rows || [];
+  const home = list.find((r) => r.role === 'home');
+  const homeHost = home ? hostOf(home.url) : '';
+  const homeState = home ? home.renderer : '';
+  const seen = new Set();
+  const parts = [];
+  for (const r of list) {
+    if (!r || r.role !== 'identity source') continue;
+    const host = hostOf(r.url);
+    const state = r.renderer === 'refused' ? 'not shown to be the brand\'s' : r.renderer;
+    if (homeHost && host === homeHost && state === homeState) continue;
+    const key = `${host}|${state}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    parts.push(`${host} (${state})`);
+  }
+  if (!parts.length) return '';
+  return `Its own other material was tried too: ${parts.join(', ')}.`;
+}
+
+/** A single read (the home page alone), as before identity sources existed. */
+function observationFromRead(preset, result, observedAt) {
+  if (!result || !result.ok || !result.manifest) return failureObservation(preset, result, observedAt);
+  return observationFromReads(preset, result, [], observedAt);
+}
+
 module.exports = {
   FORMAT, RENDERERS, SEMANTIC,
-  observationFromRead, failureObservation, failureRenderer, readSentence,
-  paletteFromManifest, typographyFromManifest, assetsFromManifest, regressionSummary, hostOf,
+  observationFromRead, observationFromReads, failureObservation, failureRenderer, readSentence, sourcesSentence,
+  paletteFromManifest, paletteFromReads, candidatesOf, typographyFromManifest, typographyFromReads, assetsFromManifest, regressionSummary, hostOf,
 };

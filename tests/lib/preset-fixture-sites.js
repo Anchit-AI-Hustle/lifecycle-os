@@ -95,6 +95,15 @@ const WALLED = `<!doctype html><html><head><title>Access Denied</title></head><b
 <p>Reference #18.4f2c1302.1696000000.1a2b3c4d</p></body></html>`;
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+/* The logo is a mark in the brand's own green, as a real storefront's is: the
+   reader takes a logo's colours as its strongest identity signal (2026-10-05),
+   and a placeholder pixel there would be read as the brand's colour. */
+const LOGO_PNG = (() => {
+  const { PNG: P } = require('pngjs');
+  const p = new P({ width: 140, height: 36 });
+  for (let i = 0; i < p.data.length; i += 4) { p.data[i] = 0x0b; p.data[i + 1] = 0x6e; p.data[i + 2] = 0x4f; p.data[i + 3] = 255; }
+  return P.sync.write(p);
+})();
 
 function siteHandler(kind) {
   return (req, res) => {
@@ -103,6 +112,7 @@ function siteHandler(kind) {
     if (u.pathname === '/robots.txt') return send(200, 'text/plain', 'User-agent: *\nAllow: /\n');
     if (kind === 'walled') return send(403, 'text/html; charset=utf-8', WALLED);
     if (u.pathname === '/fonts/harbour.ttf' && FONT) return send(200, 'font/ttf', FONT);
+    if (u.pathname === '/logo.png') return send(200, 'image/png', LOGO_PNG);
     if (/\.(png|ico)$/.test(u.pathname)) return send(200, 'image/png', PNG);
     if (u.pathname === '/' || u.pathname === '') return send(200, 'text/html; charset=utf-8', kind === 'brand-a' ? BRAND_A : BRAND_MONO);
     return send(404, 'text/html; charset=utf-8', '<!doctype html><title>Not found</title><p>Not found</p>');

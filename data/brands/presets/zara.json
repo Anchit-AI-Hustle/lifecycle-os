@@ -15,10 +15,11 @@
     "typography_source": "default",
     "read_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.zara.com",
       "reason": "www.zara.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+    },
+    "read_sources_note": ""
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -287,6 +288,18 @@
       "image_url": "",
       "product_url": "",
       "placeholder": true
+    }
+  ],
+  "identity_sources": [
+    {
+      "url": "https://www.zara.com/us/",
+      "kind": "page",
+      "what": "Zara US store front"
+    },
+    {
+      "url": "https://www.zara.com/es/en/",
+      "kind": "page",
+      "what": "Zara Spain store front (English)"
     }
   ],
   "offerings": [],

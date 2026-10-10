@@ -31,12 +31,16 @@
 //   - a brand's rules are its own, editable, and held to the spec;
 //   - the gate reads no store on its own (its input can be a request body);
 //     only a member's request reads the brand's ledger;
-//   - the daily sync re-judges a stored slot when the ledger moves.
+//   - the daily sync re-judges a stored slot when the ledger moves;
+//   - (review) a person is found through the identifiers the ledger itself
+//     links, to a stated limit that warns when hit; a request's carried
+//     history only ADDS to a store, never replaces it; and the calendar
+//     router reads a workspace's ledger only for a verified member of it.
 //
 // Run: npx playwright test tests/contact-fatigue-executed.spec.js --project=desktop-1280
 const { test, expect } = require('@playwright/test');
 const path = require('path');
-const { FakeSupabase, envScope, SERVICE_KEY, ANON_KEY, BASE } = require('./lib/fake-supabase.js');
+const { FakeSupabase, envScope, makeReq, makeRes, SERVICE_KEY, ANON_KEY, BASE } = require('./lib/fake-supabase.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const fatigue = require(path.join(ROOT, 'api', '_shared', 'contact-fatigue.js'));
@@ -655,4 +659,141 @@ test('the daily sync re-judges a stored slot when the ledger moves, says so in i
   // Nothing moved since: the third sync leaves the row alone.
   const third = await plan.syncDaily({ config: cfg, days: 3 });
   expect(third.changes.find((c) => c.id === slot.id)).toBeUndefined();
+});
+
+/* ── 12. review: three findings, each reproduced before it was fixed ────── */
+
+const HASHED = (o) => Object.assign({ event_id: o.id, channel: o.channel, message_class: o.cls || 'promotional', occurred_at: iso(o.at) }, o.who);
+
+test('a person is found through the identifiers the ledger links: an old row tying an address to a number lets a phone-only SMS hold the email, and a chain past the stated limit warns', async () => {
+  const db = world();
+  // Thirty days ago a receipt reached the address AND the number - the only
+  // row that says they are one person (transactional, so it counts toward
+  // nothing). Today at 10:00 a promotional SMS reached the NUMBER only.
+  const put = await ledger.ingest(AUTH_A, 'ws-a', [
+    HASHED({ id: 'bridge-1', channel: 'email', cls: 'transactional', at: T0 - 30 * DAY, who: { email: 'buyer@example.test', phone: '+44 7700 900123' } }),
+    HASHED({ id: 'sms-phone-only', channel: 'sms', at: T0, who: { phone: '+44 7700 900123' } }),
+  ]);
+  expect(put.recorded).toBe(2);
+  const ev = await ledger.evaluateSend({ workspaceId: 'ws-a', channel: 'email', message_class: 'promotional', at: iso(T0 + HOUR), recipients: [{ email: 'buyer@example.test' }] });
+  expect(ev).toMatchObject({ status: 'computed', suppressed: 1, by_reason: { cooldown: 1 }, earliest_allowed_at: iso(T0 + 48 * HOUR) });
+  expect(ev.links_incomplete).toBeFalsy();
+  // The same through the shipped dispatch queue: blocked, not queued.
+  const queued = await dispatch.enqueue(AUTH_A, 'ws-a', EMAIL_SPEC(T0 + HOUR));
+  expect(queued).toMatchObject({ ok: false, blocked: true });
+  expect(checkOf(queued.preflight, 'contact_fatigue').fatigue).toMatchObject({ suppressed: 1, by_reason: { cooldown: 1 } });
+
+  // A chain of old rows, each tying one identifier to the next. Within the
+  // stated limit (the recipient's own identifiers plus LINK_HOPS more) the SMS
+  // at its far end is found; past it the verdict says the link was not
+  // followed to its end, and the gate WARNS rather than passing a count it
+  // knows is a lower bound.
+  expect(ledger.LINK_HOPS).toBe(4);
+  const chain = (tag, n) => {
+    const ids = [];
+    for (let i = 0; i <= n; i++) ids.push(i % 3 === 0 ? { email: `${tag}${i}@example.test` } : i % 3 === 1 ? { phone: `+44 7700 90${tag === 'near' ? 1 : 2}${String(i).padStart(3, '0')}` } : { provider: 'klaviyo', external_profile_id: `${tag.toUpperCase()}P${i}` });
+    const rows = [];
+    for (let i = 0; i < n; i++) rows.push(HASHED({ id: `${tag}-link-${i}`, channel: 'email', cls: 'transactional', at: T0 - (40 - i) * DAY, who: Object.assign({}, ids[i], ids[i + 1]) }));
+    rows.push(HASHED({ id: `${tag}-sms`, channel: 'sms', at: T0, who: ids[n] }));
+    return { first: ids[0], rows };
+  };
+  const near = chain('near', 4);     // the SMS is 4 links from the address
+  const far = chain('far', 6);       // the SMS is 6 links from the address
+  await ledger.ingest(AUTH_A, 'ws-a', near.rows.concat(far.rows));
+  const atNear = await ledger.evaluateSend({ workspaceId: 'ws-a', channel: 'email', message_class: 'promotional', at: iso(T0 + HOUR), recipients: [near.first] });
+  expect(atNear).toMatchObject({ status: 'computed', suppressed: 1, by_reason: { cooldown: 1 } });
+  expect(atNear.links_incomplete).toBeFalsy();
+  const atFar = await ledger.evaluateSend({ workspaceId: 'ws-a', channel: 'email', message_class: 'promotional', at: iso(T0 + HOUR), recipients: [far.first] });
+  expect(atFar).toMatchObject({ status: 'computed', suppressed: 0, links_incomplete: true });
+  expect(atFar.note).toMatch(/linked identifiers were followed 4 links from the recipients/i);
+  expect(atFar.note).toMatch(/lower bound/);
+  const gate = await dispatch.enqueue(AUTH_A, 'ws-a', EMAIL_SPEC(T0 + HOUR, { asset_ref: 'far-1', recipients: [far.first] }));
+  const c = checkOf(gate.preflight, 'contact_fatigue');
+  expect(c.status, 'a count the gate knows is a lower bound is not a pass').toBe('warn');
+  expect(c.detail).toMatch(/followed 4 links/);
+});
+
+test('a request cannot erase the ledger: carried history only ADDS to the store - an empty one still meets the cool-down, a new carried touch holds, a carried copy of a stored touch counts once', async () => {
+  const db = world();
+  await ledger.ingest(AUTH_A, 'ws-a', [EVENT('sms-0', 'sms', T0, { email: 'buyer@example.test' })]);
+  // An editor's dispatch that posts an EMPTY history with the email: the
+  // stored SMS still holds it, through the shipped queue.
+  const erased = await dispatch.enqueue(AUTH_A, 'ws-a', EMAIL_SPEC(T0 + HOUR, { contact_ledger: { touches: [] } }));
+  expect(erased).toMatchObject({ ok: false, blocked: true });
+  const c = checkOf(erased.preflight, 'contact_fatigue');
+  expect(c.status).toBe('block');
+  expect(c.fatigue).toMatchObject({ status: 'computed', suppressed: 1, by_reason: { cooldown: 1 } });
+  expect(db.table('preflight_audits').some((a) => a.overridden_by), 'nothing was overridden').toBe(false);
+  // The router's door says the same for a member.
+  const viaRouter = await ledger.evaluateForCaller(AUTH_A, 'ws-a', { channel: 'email', message_class: 'promotional', at: iso(T0 + HOUR), recipients: [PERSON], carried: { touches: [] } });
+  expect(viaRouter).toMatchObject({ status: 'computed', suppressed: 1, by_reason: { cooldown: 1 } });
+
+  // A carried touch the store does not hold is ADDED: it can only hold more.
+  const other = await dispatch.enqueue(AUTH_A, 'ws-a', EMAIL_SPEC(T0 + HOUR, {
+    asset_ref: 'mailer-other', recipients: [{ email: 'other@example.test' }],
+    contact_ledger: { touches: [{ channel: 'whatsapp', message_class: 'promotional', occurred_at: iso(T0), email: 'other@example.test' }] },
+  }));
+  expect(other).toMatchObject({ ok: false, blocked: true });
+  expect(checkOf(other.preflight, 'contact_fatigue').fatigue).toMatchObject({ suppressed: 1, by_reason: { cooldown: 1 } });
+
+  // A carried COPY of a stored touch is one touch: one stored promotional
+  // email this week plus this one is two, inside the preferred cap; counted
+  // twice it would be three and held.
+  await ledger.ingest(AUTH_A, 'ws-a', [HASHED({ id: 'q-1', channel: 'email', at: T0 - 3 * DAY, who: { provider: 'klaviyo', external_profile_id: 'QQ1', email: 'q@example.test' } })]);
+  const dup = await ledger.evaluateSend({
+    workspaceId: 'ws-a', channel: 'email', message_class: 'promotional', at: iso(T0 + HOUR), recipients: [{ email: 'q@example.test' }],
+    carried: { touches: [{ channel: 'email', message_class: 'promotional', occurred_at: iso(T0 - 3 * DAY), email: 'q@example.test' }] },
+  });
+  expect(dup).toMatchObject({ status: 'computed', suppressed: 0, eligible: 1, ledger_source: 'ledger+request' });
+});
+
+test('the calendar router reads a workspace\'s contact ledger only for a verified member of it: an anonymous browser request and another brand\'s member naming it get no ledger numbers, and no ledger query is made', async () => {
+  const db = world();
+  Object.assign(db.workspaces['ws-b'], {
+    name: 'Other Brand', slug: 'other-brand', regions: [{ code: 'UK', name: 'United Kingdom', home: true }],
+    offerings: [{ kind: 'product', name: 'Other Tee', url: 'https://other.example.test/p/tee' }],
+  });
+  db.syncIdentityTables();
+  require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js')).invalidate();
+  const calendar = require(path.join(ROOT, 'api', 'calendar.js'));
+  const call = async (action, { token = null, method = 'GET', body = null, query = {} } = {}) => {
+    const req = makeReq({ token, method, body: body || {}, query: Object.assign({ action }, query), headers: { origin: 'https://app.example.test' } });
+    const res = makeRes();
+    await calendar(req, res);
+    expect(res.code, JSON.stringify(res.payload).slice(0, 300)).toBe(200);
+    return res.payload;
+  };
+  const LEDGER_FOR_B = (c) => /contact_touch_ledger|contact_fatigue_rules/.test(c.url) && /ws-b/.test(c.url);
+
+  // The OWNER reads its own ledger: learn a slot's cohort and record a touch
+  // for it, so a leak would show up as a number.
+  const before = await call('smart-brain-plan', { token: 'tok-b', query: { workspace_id: 'ws-b' } });
+  const slot = before.entries[1];
+  expect(slot.reach.eligibility.label).toBe('Eligibility unknown — no send history');
+  await ledger.ingest(AUTH_B, 'ws-b', [EVENT('b-sms-1', 'sms', Date.parse(`${slot.date}T09:00:00Z`) - 5 * HOUR, { cohort_key: slot.cohort.name, external_profile_id: 'B1' })]);
+  const own = await call('smart-brain-plan', { token: 'tok-b', query: { workspace_id: 'ws-b' } });
+  expect(own.entries.find((e) => e.id === slot.id).reach.eligibility).toMatchObject({ status: 'partial', suppressed: 1, by_reason: { cooldown: 1 } });
+
+  const unchecked = (out) => {
+    expect(out.entries.length).toBeGreaterThan(0);
+    for (const e of out.entries) {
+      const el = e.reach.eligibility;
+      expect(el).toMatchObject({ status: 'unavailable', eligible: null, suppressed: null, deferred: null, by_reason: null });
+      expect(el.reason).toMatch(/^(unverified|not_member)$/);
+      expect(el.note).toMatch(/unchecked/);
+      expect(el.label).toBe('Eligibility unchecked: contact ledger not read for this request');
+      expect(e.reach.planned_recipients).toBeNull();
+    }
+  };
+  // An anonymous BROWSER request naming ws-b, and a signed-in member of ws-a
+  // naming ws-b: plan (GET) and the daily sync (POST, nothing persisted).
+  for (const who of [{ token: null, reason: 'unverified' }, { token: 'tok-a', reason: 'not_member' }]) {
+    db.clearCalls();
+    const p = await call('smart-brain-plan', { token: who.token, query: { workspace_id: 'ws-b' } });
+    unchecked(p);
+    expect(p.entries[0].reach.eligibility.reason).toBe(who.reason);
+    const s = await call('smart-brain-sync-daily', { token: who.token, method: 'POST', body: { workspace_id: 'ws-b', persist: false, prebuild: false, days: 3 } });
+    unchecked({ entries: s.plan || s.entries || [] });
+    expect(db.calls.filter(LEDGER_FOR_B), `${who.reason}: no ledger or rules query for ws-b`).toEqual([]);
+  }
 });

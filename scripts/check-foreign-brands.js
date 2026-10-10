@@ -71,6 +71,11 @@ const FOREIGN_FIGURES = [
  * (Black Swoosh) x Nike Air Force 1" - so banning the bare word would fail the
  * build on the brand's own products. The compounds below are specific enough
  * to be unambiguous.
+ *
+ * "roundel" beside "BMW" is that maker's circular badge (the starter preset
+ * names its logo "BMW roundel"), not another retailer's ad network. The
+ * lookbehind keeps every other "roundel" — Target's network, a campaign, a
+ * channel — a finding.
  */
 const FOREIGN_TRADE = [
   { rx: /\bmoringa\b/i, what: 'another company\'s product line' },
@@ -86,7 +91,7 @@ const FOREIGN_TRADE = [
   { rx: /\bmeno\s*stat\b/i, what: 'another company\'s campaign family' },
   { rx: /\binstacart\b/i, what: 'a retail channel this brand does not sell through' },
   { rx: /\bcostco\b/i, what: 'a retail channel this brand does not sell through' },
-  { rx: /\broundel\b/i, what: 'another retailer\'s ad network' },
+  { rx: /(?<!bmw )\broundel\b/i, what: 'another retailer\'s ad network' },
   { rx: /\btarget\.com\b/i, what: 'a retail channel this brand does not sell through' },
 ];
 

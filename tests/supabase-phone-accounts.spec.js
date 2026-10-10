@@ -624,10 +624,10 @@ test('SUPABASE MODE IN THE BROWSER: sign up in the rail, the session survives a 
     await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending'), null, { timeout: 20000 });
 
-    // Sign up through the rail's panel - the same panel and state machine as every other mode.
-    const btn = page.locator('#lnav-signin');
-    await btn.waitFor({ state: 'attached', timeout: 15000 });
-    await btn.evaluate((el) => el.click());
+    // The Sign in chip starts Google. This case still drives the phone panel
+    // the product keeps for a number that already has an account.
+    await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.mobile && window.LifecycleAuth.mobile.openPanel), null, { timeout: 15000 });
+    await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
     await page.waitForSelector('#lnav-mauth');
     await expect(page.locator('#lnav-mauth-mode')).toContainText('Account saved in the database (lifecycle-os-fake.supabase.test)', { timeout: 8000 });
     await page.selectOption('#lnav-mauth-cc', '+91');
@@ -1155,7 +1155,8 @@ test('REVIEW (device -> Supabase): a device account made while the project was d
     f.down = true; f.healthy = false;
     await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending'), null, { timeout: 20000 });
-    await page.locator('#lnav-signin').evaluate((el) => el.click());
+    await page.waitForFunction(() => !!(window.LifecycleAuth && window.LifecycleAuth.mobile && window.LifecycleAuth.mobile.openPanel), null, { timeout: 15000 });
+    await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
     await page.waitForSelector('#lnav-mauth');
     await expect(page.locator('#lnav-mauth')).toHaveAttribute('data-mode', 'device', { timeout: 8000 });
     await page.selectOption('#lnav-mauth-cc', '+91');

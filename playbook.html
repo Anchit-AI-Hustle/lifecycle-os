@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Knickgasm Growth &amp; Automation Playbook</title>
+<title>Growth &amp; Automation Playbook</title>
 <link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
@@ -12,7 +12,7 @@
 <meta property="og:image" content="/assets/lifecycle-os-og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
-<meta name="description" content="The Knickgasm Growth and Automation Playbook: market intelligence, knowledge base, buyer avatars, real-time analytics, and the content automation and Shopify sync engine, in one command tower.">
+<meta name="description" content="Growth and Automation Playbook: market intelligence, knowledge base, buyer avatars, real-time analytics, and the content automation engine, for the active brand.">
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- The asset generator below writes a hero product, price and URL into every
      block it emits. Those must come from the ACTIVE brand's catalogue, not from
@@ -406,7 +406,7 @@ table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}
           </table>
         </div>
         <div class="card p-5">
-          <h3 class="font-head text-lg text-knickgasm-green">The Knickgasm edge</h3>
+          <h3 class="font-head text-lg text-knickgasm-green">The edge</h3>
           <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">One-of-one work on a genuine original pair, made by a named artist, is a position none of the others hold at once. The move: pair the craft story with a repeat-commission anchor, and reserve discounts for the discount-responsive switcher rather than the full-margin loyalist. Tiering here is a directional benchmark, not audited market data.</p>
         </div>
       </section>
@@ -681,7 +681,7 @@ defaults:
         <div>
           <div class="text-[11px] tracking-[.16em] uppercase font-bold text-knickgasm-lava">Real-Time Analytics</div>
           <h2 class="font-head text-3xl text-knickgasm-green mt-1">Intraday Pace Tracking</h2>
-          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Rolling hour-over-hour indicators mirroring the knickgasm_dtc_data_engine DuckDB instance. These are illustrative live-shape readings; the engine link at the bottom carries the real feed.</p>
+          <p class="text-sm mt-2 max-w-3xl" style="color:var(--soft);">Rolling hour-over-hour indicators mirroring the data engine. These are illustrative live-shape readings; the engine link at the bottom carries the real feed.</p>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-3">
@@ -795,9 +795,9 @@ defaults:
             <label class="block text-sm" id="motion-assets">
               <span class="text-[11px] uppercase font-bold" style="color:var(--soft);">Market</span>
               <select id="gen-market" class="mt-1 w-full rounded-lg border px-3 py-2" style="border-color:var(--line);">
-                <option value="US" selected>US (knickgasm.com)</option>
-                <option value="UK">UK (knickgasm.com)</option>
-                <option value="Global">Global (knickgasm.com)</option>
+                <option value="US" selected>US</option>
+                <option value="UK">UK</option>
+                <option value="Global">Global</option>
               </select>
             </label>
           </div>
@@ -824,7 +824,7 @@ defaults:
         <div class="grid gap-5 lg:grid-cols-2">
           <div class="card p-6">
             <h3 class="font-head text-lg text-knickgasm-green">1. Shopify Content CDN Route</h3>
-            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Direct route to the Knickgasm UK store content files. Upload the generated asset there to mint a cdn.shopify.com URL.</p>
+            <p class="text-sm mt-2" style="color:var(--knickgasm-ink);">Upload the generated asset to the active brand's own store files. A hosted URL has to come from that store.</p>
             <a href="https://admin.shopify.com/store/knickgasmuk/content/files" target="_blank" rel="noopener"
                class="btn-lava inline-block px-5 py-2.5 text-sm mt-4">Open Shopify content files &#8599;</a>
             <p class="text-[12px] mt-3 code-out" style="color:var(--soft);">admin.shopify.com/store/knickgasmuk/content/files</p>
@@ -851,7 +851,7 @@ defaults:
 
       <footer class="pt-8 border-t text-[12.5px]" style="border-color:var(--line);color:var(--soft);">
         Growth &amp; Automation Playbook. Market sizing is not stated here until a named, dated source is wired in; live pace mirrors the
-        <a class="underline decoration-knickgasm-lava" href="/data-engine">knickgasm_dtc_data_engine</a>.
+        <a class="underline decoration-knickgasm-lava" href="/data-engine">the data engine</a>.
         Every generated asset is locked to the brand palette, typography, and copy rules.
       </footer>
     </div>
@@ -963,7 +963,17 @@ defaults:
   });
 
   // ---------- Asset generator ----------
-  var STORE = { US:'knickgasm.com', UK:'knickgasm.com', Global:'knickgasm.com' };
+  function activeStore(){
+    try {
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (!b) return '';
+      var regions = b.regions || [];
+      var row = regions.filter(function(r){ return r && r.home; })[0] || regions[0];
+      var u = (row && row.store_url) || b.website || '';
+      return String(u).replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0];
+    } catch(_) { return ''; }
+  }
+  function activeName(){ try { var b = window.BrandContext && window.BrandContext.brand; return (b && b.name) || ''; } catch(_) { return ''; } }
   var CUR   = { US:'$', UK:'£', Global:'$' };
   // Hooks describe BEHAVIOUR, which is brand-independent. The hero product and
   // its price and URL are not: they are resolved from the ACTIVE brand's own
@@ -993,14 +1003,15 @@ defaults:
   }
 
   function mailerBlock(a, market){
-    var store = STORE[market], cur = CUR[market];
+    var store = activeStore() || '[DATA REQUIRED BEFORE LAUNCH: store host, active brand]', cur = CUR[market];
+    var brand = activeName() || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
     return [
-'<!-- Knickgasm mailer :: '+a.name+' :: '+market+' -->',
+'<!-- mailer :: '+a.name+' :: '+market+' -->',
 '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;font-family:\'Instrument Sans\',\'Helvetica Neue\',Arial,sans-serif;color:#111111;">',
 '  <tr><td align="center" style="padding:28px 16px;">',
 '    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid rgba(23,23,23,.12);border-radius:12px;overflow:hidden;">',
 '      <tr><td style="background:#D0473E;padding:22px 28px;">',
-'        <span style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;color:#FFFFFF;font-size:24px;">Knickgasm</span>',
+'        <span style="font-family:\'Montserrat\',\'Raleway\',Georgia,serif;color:#FFFFFF;font-size:24px;">'+brand+'</span>',
 '      </td></tr>',
 '      <tr><td style="padding:34px 28px 8px;">',
 '        <h1 style="margin:0;font-family:\'Montserrat\',Georgia,serif;color:#D0473E;font-size:28px;line-height:1.15;">One pair. One artist. Nobody else has it.</h1>',
@@ -1021,7 +1032,7 @@ defaults:
   }
 
   function socialBlock(a, market){
-    var store = STORE[market], cur = CUR[market];
+    var store = activeStore() || '[DATA REQUIRED BEFORE LAUNCH: store host, active brand]', cur = CUR[market];
     return [
 '/* Paid social ad :: '+a.name+' :: '+market+' */',
 'PRIMARY TEXT:',
@@ -1041,7 +1052,7 @@ defaults:
   }
 
   function motionBlock(a, market){
-    var store = STORE[market];
+    var store = activeStore() || '[DATA REQUIRED BEFORE LAUNCH: store host, active brand]';
     return [
 '{',
 '  "asset_type": "motion",',

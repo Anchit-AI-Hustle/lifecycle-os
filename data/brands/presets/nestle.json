@@ -15,10 +15,11 @@
     "typography_source": "default",
     "read_attempt": {
       "renderer": "blocked",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.nestle.com",
       "reason": "www.nestle.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
-    }
+    },
+    "read_sources_note": ""
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -199,6 +200,18 @@
       "image_url": "",
       "product_url": "",
       "placeholder": true
+    }
+  ],
+  "identity_sources": [
+    {
+      "url": "https://www.nestle.com/media",
+      "kind": "page",
+      "what": "Nestle media page"
+    },
+    {
+      "url": "https://www.nestle.com/about",
+      "kind": "page",
+      "what": "Nestle about page"
     }
   ],
   "offerings": [],

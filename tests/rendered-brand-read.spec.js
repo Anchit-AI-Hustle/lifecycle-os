@@ -77,10 +77,13 @@ test('(a) utility-first: the display heading, the CTA and the card are read as R
   expect(c.price.text).toBe('$48.00');
   expect(c.title.type).toMatchObject({ size: 18, weight: 600, color: '#14281d' });
   expect(out.manifest.read.mobile.roles.display.type.size).toBe(36);
-  // Every value carries where it was read.
-  expect(out.manifest.colors.primary.source).toMatchObject({ role: 'primary call to action', viewport: 'desktop', signal: 'computed' });
-  expect(out.manifest.colors.primary.source.selector).toContain('a.mt-8.inline-block');
+  // Every value carries where it was read. The site's MARK paints its green
+  // (the logo is the strongest identity signal, 2026-10-05), and its call to
+  // action renders the same green.
+  expect(out.manifest.colors.primary.source).toMatchObject({ role: 'logo', viewport: 'desktop', signal: 'computed', property: 'pixels' });
+  expect(out.manifest.colors.primary.kind).toBe('logo-image');
   expect(out.manifest.colors.primary.value).toBe('#0f5132');
+  expect(role(out, 'button_primary').selector).toContain('a.mt-8.inline-block');
   // BEFORE: the parser publishes no heading scale for this site at all.
   const p = await parse('a');
   const h1Row = (p.fields.typography.scale || []).find((r) => r.slot === 'h1');
@@ -136,7 +139,8 @@ test('(e) an inline-SVG logo is the logo, its markup kept, its fill the identity
   expect(lg.kind).toBe('svg');
   expect(lg.inline_svg).toContain('<circle');
   expect(lg.rendered).toMatchObject({ w: 140, h: 36 });
-  expect(out.manifest.colors.primary).toMatchObject({ value: '#c2185b', from_role: 'identity', signal: 'logo mark fill as rendered' });
+  // The mark's paint by AREA (2026-10-05), not the first shape's fill.
+  expect(out.manifest.colors.primary).toMatchObject({ value: '#c2185b', from_role: 'identity', kind: 'logo-svg', signal: expect.stringMatching(/^logo mark paint as rendered/) });
   // Our landing page draws it as an IMAGE (a data: URL), never as markup.
   expect(out.regression.ok).toBe(true);
   const lp = require('../api/_shared/render-regression.js');
