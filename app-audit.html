@@ -4,21 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Overall App Audit & Live Diagnostics · Lifecycle OS</title>
-<link rel="icon" href="/favicon.png">
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<script src="/brand-context.js?early=1"></script>
 <style>
   :root {
-    --bg: #F8FAFC;
-    --panel: #FFFFFF;
-    --border: #E2E8F0;
-    --ink: #0F172A;
-    --muted: #64748B;
-    --good: #10B981;
-    --warn: #F59E0B;
-    --bad: #EF4444;
-    --brand: #8B1E1E;
-    --line: #E2E8F0;
-    --chalk: #0F172A;
-    --soft: #64748B;
+    /* The active brand's tokens (brand-context.js / theme.css). Text colours are
+       the AA-adjusted *-text tokens, never a raw brand colour. */
+    --bg: var(--brand-surface, #FFFFFF);
+    --panel: var(--vh-panel, #FFFFFF);
+    --border: var(--vh-line, rgba(0,0,0,.12));
+    --ink: var(--brand-ink, #111111);
+    --muted: var(--vh-muted, #556059);
+    --good: var(--brand-ok, #1a7f37);
+    --warn: #9a7420;
+    --bad: var(--brand-err, #c0392b);
+    --brand: var(--brand-primary-text, var(--brand-ink, #111111));
+    --line: var(--vh-line, rgba(0,0,0,.12));
+    --chalk: var(--brand-ink, #111111);
+    --soft: var(--vh-muted, #556059);
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
@@ -33,7 +43,7 @@
   .live-card-title { font-size: 16px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
   .live-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--good); display: inline-block; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
   .live-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-  .live-item { background: #F1F5F9; border-radius: 8px; padding: 14px; border: 1px solid #E2E8F0; }
+  .live-item { background: var(--vh-panel-2, #F1F5F9); border-radius: 8px; padding: 14px; border: 1px solid var(--line); }
   .live-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
   .live-value { font-size: 15px; font-weight: 700; color: var(--ink); }
   .live-desc { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
@@ -45,9 +55,9 @@
   .score-ring span { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
   .overall .meta h2 { font-size: 17px; margin: 0 0 4px; color: var(--ink); }
   .overall .meta p { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
-  .target { display: inline-block; background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+  .target { display: inline-block; background: var(--vh-panel-2, #F1F5F9); color: var(--warn); border: 1px solid var(--warn); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
   .axes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-  .axis { background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--muted); }
+  .axis { background: var(--vh-panel-2, #F1F5F9); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--muted); }
   .axis b { color: var(--ink); font-size: 13px; display: block; }
 
   /* Feature Grid */
@@ -67,7 +77,7 @@
   .bars { margin: 10px 0; }
   .bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 11px; color: var(--muted); }
   .bar .lbl { width: 90px; flex-shrink: 0; }
-  .bar .track { flex: 1; height: 6px; background: #F1F5F9; border-radius: 3px; overflow: hidden; }
+  .bar .track { flex: 1; height: 6px; background: var(--vh-panel-2, #F1F5F9); border-radius: 3px; overflow: hidden; }
   .bar .fill { height: 100%; border-radius: 3px; }
   .bar .v { width: 28px; text-align: right; font-weight: 700; color: var(--ink); }
   .note { font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; line-height: 1.4; }
@@ -88,7 +98,7 @@
       <div class="live-card-title">
         <span class="live-pulse"></span> Live Workspace & System Diagnostics
       </div>
-      <button onclick="runLiveProbes()" style="background:#0F172A; color:#FFF; border:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+      <button onclick="runLiveProbes()" style="background:var(--brand-primary, #111111); color:var(--brand-on-primary, #FFFFFF); border:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
         Re-probe Live State ⟳
       </button>
     </div>
@@ -101,7 +111,7 @@
       <div class="live-item">
         <div class="live-label">Catalog Provenance</div>
         <div class="live-value" id="diagCatalog">Probing...</div>
-        <div class="live-desc" id="diagCatalogDesc">Checking data/catalog/products_in.json</div>
+        <div class="live-desc" id="diagCatalogDesc">Reading the active brand's own catalogue...</div>
       </div>
       <div class="live-item">
         <div class="live-label">Database Mode</div>
@@ -110,126 +120,121 @@
       </div>
       <div class="live-item">
         <div class="live-label">Campaign Guardrails</div>
-        <div class="live-value" style="color:#10B981;">Strict Isolation Active</div>
+        <div class="live-value" style="color:var(--good);">Strict Isolation Active</div>
         <div class="live-desc">Foreign catalog fallback eliminated for other brands.</div>
       </div>
     </div>
   </div>
 
-  <!-- Overall Gauge -->
+  <!-- Overall: counted from the live checks above, never a typed score -->
   <div class="overall">
     <div class="score-ring" id="ring">
-      <b id="ringScore">7.2</b>
-      <span>Current</span>
+      <b id="ringScore">…</b>
+      <span>checks passing</span>
     </div>
     <div class="meta">
-      <h2>Honest Deployment Readiness</h2>
-      <p id="overallText">System is operational. Connect authentic product catalog and API keys for full automation.</p>
-      <span class="target">Target: All subsystems verified with live data</span>
-      <div class="axes" id="overallAxes"></div>
+      <h2>Deployment readiness</h2>
+      <p id="overallText">Running the live checks for the active brand.</p>
+      <span class="target">Target: every check passing with this brand's own data</span>
     </div>
   </div>
 
-  <!-- Blockers & Scorecard -->
-  <div class="sec-h">System Status & Blockers</div>
-  <div class="blockers" id="blockers"></div>
-
-  <div class="sec-h">Architecture Baseline Scorecard (Reference)</div>
-  <div class="grid" id="grid"></div>
-
-  <div class="sec-h">Actionable Roadmap to Full Production</div>
+  <div class="sec-h">What to do next</div>
   <ol class="road" id="road"></ol>
 
-  <p class="foot">Note: Legacy testbed references from July 2026 have been replaced. The score above accurately reflects your active tenant's real configuration.</p>
+  <p class="foot">Every line on this page is read live for the brand that is active now. Nothing here is a typed score.</p>
 </div>
 
+<script src="/brand-catalog.js"></script>
 <script>
-async function runLiveProbes() {
-  // 1. Check BrandContext
-  const brand = (window.BrandContext && window.BrandContext.activeBrand) 
-    ? window.BrandContext.activeBrand() 
-    : { name: 'Deli Chic', category: 'Poultry & Gourmet Deli' };
-
-  document.getElementById('diagBrand').textContent = brand.name || 'Deli Chic';
-  document.getElementById('diagBrandDesc').textContent = 'Active tenant for all calendar & mailer generations.';
-
-  // 2. Check Catalog
-  try {
-    const res = await fetch('/data/catalog/products_in.json');
-    if (res.ok) {
-      const items = await res.json();
-      document.getElementById('diagCatalog').textContent = `${items.length} Products Loaded`;
-      document.getElementById('diagCatalog').style.color = '#10B981';
-      document.getElementById('diagCatalogDesc').textContent = 'Serving authentic poultry & deli products.';
-    } else {
-      document.getElementById('diagCatalog').textContent = 'Pending Upload';
-      document.getElementById('diagCatalog').style.color = '#F59E0B';
-      document.getElementById('diagCatalogDesc').textContent = 'Waiting for data/catalog/products_in.json.';
-    }
-  } catch (_) {
-    document.getElementById('diagCatalog').textContent = 'Local Standalone';
-  }
-
-  // 3. Check DB Config
-  try {
-    const res = await fetch('/api/public-config?action=auth&op=status');
-    if (res.ok) {
-      const cfg = await res.json();
-      if (cfg.mode === 'server') {
-        document.getElementById('diagDb').textContent = 'Remote Postgres Connected';
-        document.getElementById('diagDb').style.color = '#10B981';
-        document.getElementById('diagDbDesc').textContent = 'Supabase/Neon active; sessions sync app-wide.';
-      } else {
-        document.getElementById('diagDb').textContent = 'Standalone Device Mode';
-        document.getElementById('diagDb').style.color = '#F59E0B';
-        document.getElementById('diagDbDesc').textContent = 'Saved in local storage; features unlocked locally.';
-      }
-    }
-  } catch (_) {
-    document.getElementById('diagDb').textContent = 'Offline';
-  }
+/* Every check reads the ACTIVE brand. No brand name, file or score is typed
+   into this page: one brand's diagnostics shown under another brand is the
+   cross-brand defect this platform exists to prevent. */
+var LIVE = { brand: null, catalog: null, db: null };
+function setLive(id, text, tone, desc) {
+  var v = document.getElementById(id);
+  v.textContent = text;
+  v.style.color = tone === 'good' ? 'var(--good)' : tone === 'bad' ? 'var(--bad)' : 'var(--warn)';
+  if (desc != null) document.getElementById(id + 'Desc').textContent = desc;
+}
+function activeBrand() {
+  return new Promise(function (resolve) {
+    var B = window.BrandContext;
+    if (!B) return resolve(null);
+    var now = (B.activeBrand && B.activeBrand()) || B.brand || null;
+    if (now) return resolve(now);
+    if (B.onChange) { var done = false; B.onChange(function (st) { if (!done && st && st.brand) { done = true; resolve(st.brand); } }); }
+    setTimeout(function () { resolve((B.activeBrand && B.activeBrand()) || B.brand || null); }, 4000);
+  });
+}
+function homeRegion(brand) {
+  var regs = (brand && Array.isArray(brand.regions)) ? brand.regions : [];
+  var home = regs.filter(function (r) { return r && r.home === true; })[0] || regs[0];
+  return home ? String(home.code || home.region || '').toLowerCase() : '';
+}
+function summarise() {
+  var checks = [LIVE.brand, LIVE.catalog, LIVE.db];
+  var done = checks.filter(function (c) { return c != null; }).length;
+  var pass = checks.filter(function (c) { return c === true; }).length;
+  document.getElementById('ringScore').textContent = done < checks.length ? '…' : pass + '/' + checks.length;
+  var road = [];
+  if (LIVE.brand === false) road.push('Activate a brand on /onboarding: every check below is read for that brand.');
+  if (LIVE.catalog === false) road.push('Import this brand\'s own catalogue (onboarding step 5, or /connections). Until then its assets render image-free with a DATA REQUIRED marker.');
+  if (LIVE.db === false) road.push('Point this deployment at its Supabase project so accounts and brands are saved server-side (see docs/mobile-pin-signin.md, "Supabase mode").');
+  if (done === checks.length && !road.length) road.push('Every live check passes for this brand.');
+  document.getElementById('road').innerHTML = '';
+  road.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; document.getElementById('road').appendChild(li); });
+  document.getElementById('overallText').textContent = done < checks.length
+    ? 'Running the live checks for the active brand.'
+    : pass + ' of ' + checks.length + ' live checks pass for ' + ((LIVE.brandName) || 'this deployment') + '.';
 }
 
-// Render Core Metrics
-(function(){
-  var BLOCKERS = [
-    { tag:'ACTIVE GUARD', h:'Brand Catalog Isolation — ENFORCED', p:'Legacy CSV fallbacks are disabled. When no catalog is connected for a food brand, image-free placeholders render instead of cross-brand shoe leaks.' },
-    { tag:'STORAGE', h:'Dual Storage Architecture', p:'Supports remote Supabase Postgres when configured, with seamless standalone device-mode fallback.' },
-    { tag:'COMPLIANCE', h:'Google OAuth & Legal Verification', p:'Updated Google Limited Use disclosures and visible homepage footer links are live.' }
-  ];
+async function runLiveProbes() {
+  LIVE = { brand: null, catalog: null, db: null };
+  summarise();
+  // 1. The active brand
+  var brand = await activeBrand();
+  if (brand && brand.name) {
+    LIVE.brand = true; LIVE.brandName = brand.name;
+    setLive('diagBrand', brand.name, 'good', 'Every calendar, mailer, ad and landing page is generated for this brand.');
+  } else {
+    LIVE.brand = false;
+    setLive('diagBrand', 'No brand active', 'warn', 'Choose or create a brand on /onboarding.');
+  }
+  summarise();
 
-  var ROAD = [
-    'Catalog: Seed data/catalog/products_in.json with authentic Deli Chic poultry items.',
-    'UI: High-contrast selection styles and centered 600px mailer layouts enabled.',
-    'Branding: Updated to official Lifecycle OS app icon and Google OAuth assets.'
-  ];
+  // 2. THIS brand's own catalogue, through the one brand-aware resolver
+  try {
+    if (!brand || !window.BrandCatalog) throw new Error(brand ? 'catalogue resolver unavailable' : 'no active brand');
+    var res = await window.BrandCatalog.load(homeRegion(brand) || 'global');
+    var n = (res.products || []).length;
+    LIVE.catalog = n > 0;
+    setLive('diagCatalog', n ? n + (n === 1 ? ' product' : ' products') : 'No catalogue', n ? 'good' : 'warn', window.BrandCatalog.describe(res));
+  } catch (e) {
+    LIVE.catalog = false;
+    setLive('diagCatalog', 'Not checked', 'warn', String(e && e.message || e));
+  }
+  summarise();
 
-  var FEATURES = [
-    { name:'Smart Brain (/brain)', path:'/brain', a:8.5, i:8.5, e:8.0, r:7.5, note:'Catalog isolation active; legacy fallbacks removed for active brands.' },
-    { name:'Mailer Studio (/studio)', path:'/studio', a:8.5, i:8.5, e:8.0, r:7.5, note:'600px bordered email templates active; word wrapping enforced.' },
-    { name:'Data Analysis', path:'/data-analysis', a:8.5, i:8.5, e:8.0, r:8.0, note:'Multi-region market selection with clean empty states.' },
-    { name:'Landing Pages', path:'/lp', a:8.5, i:8.5, e:8.5, r:8.0, note:'Structured D2C landing pages driven by active brand palette.' }
-  ];
-
-  document.getElementById('blockers').innerHTML = BLOCKERS.map(b => `
-    <div class="blocker"><div class="tag">${b.tag}</div><h3>${b.h}</h3><p>${b.p}</p></div>
-  `).join('');
-
-  document.getElementById('road').innerHTML = ROAD.map(r => `<li>${r}</li>`).join('');
-
-  document.getElementById('grid').innerHTML = FEATURES.map(f => {
-    var avg = ((f.a + f.i + f.e + f.r) / 4).toFixed(1);
-    return `<div class="card">
-      <div class="top">
-        <div><div class="name">${f.name}</div><div class="path">${f.path}</div></div>
-        <div class="pill" style="color:#0F172A">${avg}</div>
-      </div>
-      <div class="note">${f.note}</div>
-    </div>`;
-  }).join('');
-
-  runLiveProbes();
-})();
+  // 3. Where accounts and brands are kept
+  try {
+    var r = await fetch('/api/public-config?action=auth&op=status', { cache: 'no-store' });
+    var cfg = r.ok ? await r.json() : {};
+    if (cfg.mode === 'supabase' || cfg.mode === 'server') {
+      LIVE.db = true;
+      setLive('diagDb', cfg.mode === 'supabase' ? 'Supabase connected' : 'Database connected', 'good', 'Accounts and brands are saved server-side.');
+    } else {
+      LIVE.db = false;
+      setLive('diagDb', 'Device mode', 'warn', 'Accounts and brands are saved in this browser' + (cfg.reason ? ' (' + cfg.reason + ')' : '') + '.');
+    }
+  } catch (_) {
+    LIVE.db = false;
+    setLive('diagDb', 'Not answering', 'bad', 'The status endpoint did not answer.');
+  }
+  summarise();
+}
+runLiveProbes();
+try { if (window.BrandContext && window.BrandContext.onChange) window.BrandContext.onChange(function () { runLiveProbes(); }); } catch (_) {}
 </script>
 
 <script src="/auth.js" defer></script>
