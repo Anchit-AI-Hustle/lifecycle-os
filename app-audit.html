@@ -7,73 +7,78 @@
 <link rel="icon" href="/favicon.png">
 <style>
   :root {
-    --bg: #F8FAFC;
-    --panel: #FFFFFF;
-    --border: #E2E8F0;
-    --ink: #0F172A;
-    --muted: #64748B;
-    --good: #10B981;
-    --warn: #F59E0B;
-    --bad: #EF4444;
-    --brand: #8B1E1E;
-    --line: #E2E8F0;
-    --chalk: #0F172A;
-    --soft: #64748B;
+    /* On the Lifecycle OS surface contract (design/lifecycle-os/CONTRACT.md):
+       every colour is a role token, so the page wears the active brand and
+       its status text is the AA-adjusted *-text token, never the raw fill. */
+    --aa-bg: var(--vh-bg);
+    --aa-panel: var(--vh-panel);
+    --aa-sunken: var(--vh-panel-2);
+    --aa-border: var(--vh-line);
+    --aa-ink: var(--vh-ink);
+    --aa-muted: var(--vh-ink-dim);
+    --aa-good: var(--vh-ok-text);
+    --aa-warn: var(--vh-warn-text);
+    --aa-warn-edge: var(--vh-warn);
+    --aa-bad: var(--vh-err-text);
+    --aa-brand: var(--vh-primary-text);
+    --aa-line: var(--vh-line);
+    --aa-chalk: var(--vh-ink);
+    --aa-soft: var(--vh-ink-dim);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  body { margin: 0; background: var(--aa-bg); color: var(--aa-ink); font-family: var(--vh-font-body); line-height: 1.5; }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 80px; }
-  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--brand); }
-  h1 { font-size: 28px; font-weight: 800; color: var(--ink); margin: 6px 0 10px; }
-  .lede { font-size: 14px; color: var(--muted); max-width: 760px; margin-bottom: 24px; line-height: 1.6; }
+  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--aa-brand); }
+  h1 { font-size: 28px; font-weight: 800; color: var(--aa-ink); margin: 6px 0 10px; }
+  .lede { font-size: 14px; color: var(--aa-muted); max-width: 760px; margin-bottom: 24px; line-height: 1.6; }
 
   /* Live Health Banner */
-  .live-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+  .live-card { background: var(--aa-panel); border: 1px solid var(--aa-border); border-radius: 12px; padding: 24px; margin-bottom: 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
   .live-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
-  .live-card-title { font-size: 16px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
-  .live-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--good); display: inline-block; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+  .live-card-title { font-size: 16px; font-weight: 700; color: var(--aa-ink); display: flex; align-items: center; gap: 8px; }
+  .live-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--aa-good); display: inline-block; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
   .live-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-  .live-item { background: #F1F5F9; border-radius: 8px; padding: 14px; border: 1px solid #E2E8F0; }
-  .live-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-  .live-value { font-size: 15px; font-weight: 700; color: var(--ink); }
-  .live-desc { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .live-item { background: var(--aa-sunken); border-radius: 8px; padding: 14px; border: 1px solid var(--aa-border); }
+  .live-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--aa-muted); margin-bottom: 4px; }
+  .live-value { font-size: 15px; font-weight: 700; color: var(--aa-ink); }
+  .live-desc { font-size: 11.5px; color: var(--aa-muted); margin-top: 4px; line-height: 1.4; }
 
   /* Overall Gauge section */
-  .overall { display: flex; gap: 24px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
-  .score-ring { width: 96px; height: 96px; border-radius: 50%; border: 6px solid var(--warn); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
-  .score-ring b { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1; }
-  .score-ring span { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
-  .overall .meta h2 { font-size: 17px; margin: 0 0 4px; color: var(--ink); }
-  .overall .meta p { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
-  .target { display: inline-block; background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+  .overall { display: flex; gap: 24px; align-items: center; background: var(--aa-panel); border: 1px solid var(--aa-border); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+  .score-ring { width: 96px; height: 96px; border-radius: 50%; border: 6px solid var(--aa-warn-edge); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+  .score-ring b { font-size: 26px; font-weight: 800; color: var(--aa-ink); line-height: 1; }
+  .score-ring span { font-size: 10px; font-weight: 700; color: var(--aa-muted); text-transform: uppercase; margin-top: 4px; }
+  .overall .meta h2 { font-size: 17px; margin: 0 0 4px; color: var(--aa-ink); }
+  .overall .meta p { font-size: 13px; color: var(--aa-muted); margin: 0 0 8px; }
+  .target { display: inline-block; background: var(--aa-sunken); color: var(--aa-warn); border: 1px solid var(--aa-warn-edge); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
   .axes { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-  .axis { background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--muted); }
-  .axis b { color: var(--ink); font-size: 13px; display: block; }
+  .axis { background: var(--aa-sunken); border: 1px solid var(--aa-border); border-radius: 6px; padding: 6px 12px; font-size: 11px; color: var(--aa-muted); }
+  .axis b { color: var(--aa-ink); font-size: 13px; display: block; }
 
   /* Feature Grid */
-  .sec-h { font-size: 17px; font-weight: 700; color: var(--ink); margin: 28px 0 12px; }
+  .sec-h { font-size: 17px; font-weight: 700; color: var(--aa-ink); margin: 28px 0 12px; }
   .blockers { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-  .blocker { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--warn); border-radius: 8px; padding: 14px; }
-  .blocker .tag { font-size: 10px; font-weight: 800; color: var(--warn); text-transform: uppercase; }
-  .blocker h3 { font-size: 14px; margin: 4px 0 6px; color: var(--ink); }
-  .blocker p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.4; }
+  .blocker { background: var(--aa-panel); border: 1px solid var(--aa-border); border-left: 4px solid var(--aa-warn-edge); border-radius: 8px; padding: 14px; }
+  .blocker .tag { font-size: 10px; font-weight: 800; color: var(--aa-warn); text-transform: uppercase; }
+  .blocker h3 { font-size: 14px; margin: 4px 0 6px; color: var(--aa-ink); }
+  .blocker p { font-size: 12px; color: var(--aa-muted); margin: 0; line-height: 1.4; }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-top: 10px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card { background: var(--aa-panel); border: 1px solid var(--aa-border); border-radius: 10px; padding: 16px; }
   .card .top { display: flex; justify-content: space-between; align-items: flex-start; }
-  .card .name { font-size: 14px; font-weight: 700; color: var(--ink); }
-  .card .path { font-size: 11px; color: var(--muted); font-family: monospace; }
+  .card .name { font-size: 14px; font-weight: 700; color: var(--aa-ink); }
+  .card .path { font-size: 11px; color: var(--aa-muted); font-family: monospace; }
   .pill { font-size: 18px; font-weight: 800; line-height: 1; }
   .bars { margin: 10px 0; }
-  .bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 11px; color: var(--muted); }
+  .bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 11px; color: var(--aa-muted); }
   .bar .lbl { width: 90px; flex-shrink: 0; }
-  .bar .track { flex: 1; height: 6px; background: #F1F5F9; border-radius: 3px; overflow: hidden; }
+  .bar .track { flex: 1; height: 6px; background: var(--aa-sunken); border-radius: 3px; overflow: hidden; }
   .bar .fill { height: 100%; border-radius: 3px; }
-  .bar .v { width: 28px; text-align: right; font-weight: 700; color: var(--ink); }
-  .note { font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; line-height: 1.4; }
-  .road { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 24px; font-size: 13px; color: var(--muted); }
+  .bar .v { width: 28px; text-align: right; font-weight: 700; color: var(--aa-ink); }
+  .note { font-size: 12px; color: var(--aa-muted); border-top: 1px solid var(--aa-border); padding-top: 8px; margin-top: 8px; line-height: 1.4; }
+  .road { background: var(--aa-panel); border: 1px solid var(--aa-border); border-radius: 10px; padding: 12px 24px; font-size: 13px; color: var(--aa-muted); }
   .road li { margin: 8px 0; line-height: 1.5; }
-  .foot { font-size: 11px; color: var(--muted); margin-top: 24px; line-height: 1.6; }
+  .foot { font-size: 11px; color: var(--aa-muted); margin-top: 24px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -88,7 +93,7 @@
       <div class="live-card-title">
         <span class="live-pulse"></span> Live Workspace & System Diagnostics
       </div>
-      <button onclick="runLiveProbes()" style="background:#0F172A; color:#FFF; border:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+      <button onclick="runLiveProbes()" style="background:var(--vh-primary); color:var(--vh-on-primary); border:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
         Re-probe Live State ⟳
       </button>
     </div>
@@ -110,7 +115,7 @@
       </div>
       <div class="live-item">
         <div class="live-label">Campaign Guardrails</div>
-        <div class="live-value" style="color:#10B981;">Strict Isolation Active</div>
+        <div class="live-value" style="color:var(--aa-good);">Strict Isolation Active</div>
         <div class="live-desc">Foreign catalog fallback eliminated for other brands.</div>
       </div>
     </div>
@@ -159,11 +164,11 @@ async function runLiveProbes() {
     if (res.ok) {
       const items = await res.json();
       document.getElementById('diagCatalog').textContent = `${items.length} Products Loaded`;
-      document.getElementById('diagCatalog').style.color = '#10B981';
-      document.getElementById('diagCatalogDesc').textContent = 'Serving authentic poultry & deli products.';
+      document.getElementById('diagCatalog').style.color = 'var(--aa-good)';
+      document.getElementById('diagCatalogDesc').textContent = 'The catalogue file answered.';
     } else {
       document.getElementById('diagCatalog').textContent = 'Pending Upload';
-      document.getElementById('diagCatalog').style.color = '#F59E0B';
+      document.getElementById('diagCatalog').style.color = 'var(--aa-warn)';
       document.getElementById('diagCatalogDesc').textContent = 'Waiting for data/catalog/products_in.json.';
     }
   } catch (_) {
@@ -177,11 +182,11 @@ async function runLiveProbes() {
       const cfg = await res.json();
       if (cfg.mode === 'server') {
         document.getElementById('diagDb').textContent = 'Remote Postgres Connected';
-        document.getElementById('diagDb').style.color = '#10B981';
+        document.getElementById('diagDb').style.color = 'var(--aa-good)';
         document.getElementById('diagDbDesc').textContent = 'Supabase/Neon active; sessions sync app-wide.';
       } else {
         document.getElementById('diagDb').textContent = 'Standalone Device Mode';
-        document.getElementById('diagDb').style.color = '#F59E0B';
+        document.getElementById('diagDb').style.color = 'var(--aa-warn)';
         document.getElementById('diagDbDesc').textContent = 'Saved in local storage; features unlocked locally.';
       }
     }
@@ -222,7 +227,7 @@ async function runLiveProbes() {
     return `<div class="card">
       <div class="top">
         <div><div class="name">${f.name}</div><div class="path">${f.path}</div></div>
-        <div class="pill" style="color:#0F172A">${avg}</div>
+        <div class="pill" style="color:var(--aa-ink)">${avg}</div>
       </div>
       <div class="note">${f.note}</div>
     </div>`;
