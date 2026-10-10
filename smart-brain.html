@@ -73,35 +73,37 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Automated Calendar">
 <style>
-  :root{--green:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF;--muted:#48524c}
-  *{box-sizing:border-box} body{margin:0;background:#ffffff;color:#111111;font-family:Inter,system-ui,Arial,sans-serif;padding:28px}
+  *{box-sizing:border-box} body{margin:0;background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);padding:28px}
+  button,input,select,textarea{font-family:inherit}
   .wrap{max-width:1280px;margin:0 auto}.top{display:flex;gap:18px;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap}
-  .eyebrow{color:var(--brand-accent-text);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}h1{font-family:Georgia,serif;font-size:40px;line-height:1.05;margin:8px 0 10px}p{color:#556059;line-height:1.55}
-  .btn{border:0;border-radius:10px;background:var(--lava);color:var(--brand-on-accent,#fff);padding:12px 16px;font-weight:800;cursor:pointer}
-  .btn.secondary{background:transparent;color:#111111;border:1px solid rgba(171,135,67,.35)}
+  .eyebrow{color:var(--vh-accent-text);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}h1{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:40px;line-height:1.05;margin:8px 0 10px}p{color:var(--vh-ink-dim);line-height:1.55}
+  .btn{border:0;border-radius:10px;background:var(--vh-primary);color:var(--vh-on-primary);padding:12px 16px;font-weight:800;cursor:pointer}
+  .btn:hover{background:var(--brand-primary-dark)}
+  .btn.secondary{background:var(--vh-panel);color:var(--vh-primary-text);border:1px solid var(--vh-line-hot)}
+  .btn.secondary:hover{background:var(--vh-panel-2);border-color:var(--vh-primary-text)}
   .btn:disabled{opacity:.5;cursor:wait}
   .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
-  .mkchip{border:1px solid rgba(171,135,67,.4);background:transparent;color:#111111;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
-  .mkchip:hover{border-color:var(--lava);color:#111111}
-  .mkchip.on{background:var(--brand-primary,#D0473E);color:var(--brand-on-primary,#fff);border-color:var(--lava)}
-  .akbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 10px;padding:8px 0;border-bottom:1px solid rgba(171,135,67,.18)}
+  .mkchip{border:1px solid var(--vh-line-hot);background:var(--vh-panel);color:var(--vh-ink);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+  .mkchip:hover{border-color:var(--vh-primary-text);color:var(--vh-ink)}
+  .mkchip.on{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary)}
+  .akbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 10px;padding:8px 0;border-bottom:1px solid var(--vh-line)}
   /* Prompt bar. The kind chip is part of the button, not a tooltip: an operator
      copying in a hurry reads the button, never the title attribute. */
   .pkbar{border-bottom:0;padding-bottom:0;margin-bottom:4px}
   .pkind{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800;
-         letter-spacing:.04em;text-transform:uppercase;background:rgba(0,0,0,.16);vertical-align:middle}
+         letter-spacing:.04em;text-transform:uppercase;background:var(--vh-panel);color:var(--vh-ink);vertical-align:middle}
   .pknote{margin:0 0 10px;font-size:11px}
   .akstatus{font-size:12px;font-weight:700}
-  .akstatus.approved{color:#0a7d33} .akstatus.rejected{color:#b91c1c}
-  .btn.ok{background:var(--brand-primary);color:var(--brand-on-primary)}.btn.no{background:transparent;color:#b91c1c;border:1px solid rgba(232,154,154,.4)}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#ffffff;border:1px solid rgba(171,135,67,.18);border-radius:16px;padding:18px}
-  .card h2{font-size:16px;margin:0 0 8px}.metric{font-size:30px;color:#111111;font-weight:800}.label{font-size:11px;color:#48524c;letter-spacing:.12em;text-transform:uppercase}
+  .akstatus.approved{color:var(--vh-ok-text)} .akstatus.rejected{color:var(--vh-err-text)}
+  .btn.ok{background:var(--vh-panel);color:var(--vh-ok-text);border:1px solid var(--vh-ok)}.btn.ok:hover{background:var(--vh-panel-2)}.btn.no{background:var(--vh-panel);color:var(--vh-err-text);border:1px solid var(--vh-err)}.btn.no:hover{background:var(--vh-panel-2)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:16px;padding:18px}
+  .card h2{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:16px;margin:0 0 8px}.metric{font-size:30px;color:var(--vh-ink);font-weight:800}.label{font-size:11px;color:var(--vh-ink-dim);letter-spacing:.12em;text-transform:uppercase}
   .wide{grid-column:span 4}.two{grid-column:span 2}
-  pre{white-space:pre-wrap;word-break:break-word;background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.16);border-radius:12px;padding:14px;max-height:420px;overflow:auto;color:#556059;font-size:12px}
+  pre{white-space:pre-wrap;word-break:break-word;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:12px;padding:14px;max-height:420px;overflow:auto;color:var(--vh-ink-dim);font-family:var(--vh-font-mono);font-size:12px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th{font-size:10px;color:#48524c;letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:8px 8px;border-bottom:1px solid rgba(171,135,67,.25)}
-  td{padding:9px 8px;border-bottom:1px solid rgba(171,135,67,.1);vertical-align:top}
-  tr:hover td{background:rgba(171,135,67,.05)}
+  th{font-size:10px;color:var(--vh-ink-dim);letter-spacing:.1em;text-transform:uppercase;text-align:left;padding:8px 8px;border-bottom:1px solid var(--vh-line-hot)}
+  td{padding:9px 8px;border-bottom:1px solid var(--vh-line);vertical-align:top}
+  tr:hover td{background:var(--vh-panel-2)}
   /* Calendar table: keep readable on narrow screens by scrolling horizontally
      (the .tblscroll wrapper is overflow-x:auto) instead of crushing columns to
      one character per line. */
@@ -112,62 +114,63 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      it overflows and paints over the next column. */
   #plantable{table-layout:auto;min-width:1020px}
   #plantable th,#plantable td{white-space:nowrap;padding:12px 10px;vertical-align:top}
-  #plantable tbody tr.planrow:hover td{background:rgba(171,135,67,.06)}
+  #plantable tbody tr.planrow:hover td{background:var(--vh-panel-2)}
   #plantable td.cohort{white-space:normal;max-width:150px}
   #plantable td.obj,#plantable th.obj{white-space:normal;max-width:190px}
   #plantable td.why,#plantable th.why{white-space:normal;max-width:280px}
   #plantable td.chan,#plantable th.chan{white-space:normal;max-width:150px}
   /* Clamp long copy to 2 lines — the full text lives in View / the decision panel. */
   .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .pill{display:inline-block;border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:var(--vh-ink);white-space:nowrap}
+  .pill{display:inline-block;border:1px solid var(--vh-line-hot);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:var(--vh-ink);white-space:nowrap}
   /* Why / Analysis panel — clear focus hierarchy */
-  .an-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#6A33D8;margin:0 0 6px}
-  .an-focus{background:linear-gradient(90deg,rgba(0,74,43,.35),rgba(0,74,43,.08));border-left:3px solid #6A33D8;border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 16px}
-  .an-focus .lead{font-size:17px;line-height:1.4;color:#111111;margin:0}
-  .an-focus .sub{font-size:13px;line-height:1.55;color:#556059;margin:8px 0 0}
+  .an-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-accent-text);margin:0 0 6px}
+  .an-focus{background:var(--vh-panel-2);border-left:3px solid var(--vh-accent);border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 16px}
+  .an-focus .lead{font-size:17px;line-height:1.4;color:var(--vh-ink);margin:0}
+  .an-focus .sub{font-size:13px;line-height:1.55;color:var(--vh-ink-dim);margin:8px 0 0}
   .an-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 16px}
   @media(max-width:720px){.an-grid{grid-template-columns:1fr}}
-  .an-card{background:rgba(171,135,67,.06);border:1px solid rgba(171,135,67,.2);border-radius:10px;padding:13px 15px}
-  .an-callout{background:rgba(29,107,69,.18);border:1px solid rgba(143,231,185,.3);border-radius:10px;padding:13px 15px;margin:0 0 16px}
-  .an-callout .big{font-size:15px;color:#111111;font-weight:600}
-  .an-confbar{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0 10px}
-  .an-confbar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#1d6b45,#0a7d33)}
-  .an-conf-num{font-size:26px;font-weight:800;color:#111111;font-variant-numeric:tabular-nums;line-height:1}
-  .an-factor{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(171,135,67,.14);font-size:12.5px;color:#556059}
-  .an-factor b{color:#111111;font-weight:600}
-  .an-driver{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(171,135,67,.12)}
-  .an-driver .sig{color:#6A33D8;font-weight:700;font-size:12px;min-width:120px}
-  .an-driver .val{color:#111111;font-size:13px}
-  .an-driver .imp{color:#6b7770;font-size:11.5px;display:block;margin-top:2px}
+  .an-card{background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:10px;padding:13px 15px}
+  .an-callout{background:var(--vh-panel-2);border:1px solid var(--vh-line);border-left:4px solid var(--vh-ok);border-radius:10px;padding:13px 15px;margin:0 0 16px}
+  .an-callout .big{font-size:15px;color:var(--vh-ink);font-weight:600}
+  .an-confbar{height:9px;border-radius:999px;background:var(--vh-panel);border:1px solid var(--vh-line);overflow:hidden;margin:8px 0 10px}
+  .an-confbar > i{display:block;height:100%;border-radius:999px;background:var(--vh-ok)}
+  .an-conf-num{font-size:26px;font-weight:800;color:var(--vh-ink);font-variant-numeric:tabular-nums;line-height:1}
+  .an-factor{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--vh-line);font-size:12.5px;color:var(--vh-ink-dim)}
+  .an-factor b{color:var(--vh-ink);font-weight:600}
+  .an-driver{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--vh-line)}
+  .an-driver .sig{color:var(--vh-accent-text);font-weight:700;font-size:12px;min-width:120px}
+  .an-driver .val{color:var(--vh-ink);font-size:13px}
+  .an-driver .imp{color:var(--vh-ink-dim);font-size:11.5px;display:block;margin-top:2px}
   .an-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
-  .an-chip{background:rgba(171,135,67,.12);border:1px solid rgba(171,135,67,.35);border-radius:999px;padding:4px 11px;font-size:11.5px;color:#111111}
+  .an-chip{background:var(--vh-panel);border:1px solid var(--vh-line-hot);border-radius:999px;padding:4px 11px;font-size:11.5px;color:var(--vh-ink)}
   .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700}
-  .st.tentative{background:rgba(171,135,67,.16);color:var(--vh-ink)}.st.approved{background:rgba(29,107,69,.3);color:#0a7d33}.st.final{background:var(--brand-primary);color:var(--brand-on-primary)}.st.rejected{background:rgba(180,60,60,.22);color:#b91c1c}
-  .feed{max-height:300px;overflow:auto}.feed p{margin:6px 0;font-size:13px;border-left:2px solid rgba(171,135,67,.35);padding-left:10px}
+  .st{background:var(--vh-panel-2);border:1px solid var(--vh-line)}.st.tentative{color:var(--vh-ink)}.st.approved{color:var(--vh-ok-text);border-color:var(--vh-ok)}.st.final{background:var(--vh-panel);color:var(--vh-ok-text);border-color:var(--vh-ok)}.st.rejected{color:var(--vh-err-text);border-color:var(--vh-err)}
+  .feed{max-height:300px;overflow:auto}.feed p{margin:6px 0;font-size:13px;border-left:2px solid var(--vh-line-hot);padding-left:10px}
   .conf{font-variant-numeric:tabular-nums}
-  .sbspin{display:inline-block;width:11px;height:11px;border:2px solid rgba(171,135,67,.35);border-top-color:var(--vh-ink);border-radius:50%;animation:sbspin .7s linear infinite;vertical-align:-1px}
+  .sbspin{display:inline-block;width:11px;height:11px;border:2px solid var(--vh-line-hot);border-top-color:var(--vh-ink);border-radius:50%;animation:sbspin .7s linear infinite;vertical-align:-1px}
   @keyframes sbspin{to{transform:rotate(360deg)}}
   /* Funnel preview */
   #preview{margin:0 0 12px}
   .pvbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-  .pvtabs{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 12px;border-bottom:1px solid rgba(171,135,67,.2)}
-  .pvtab{background:transparent;border:0;border-bottom:2px solid transparent;color:#556059;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;border-radius:6px 6px 0 0}
-  .pvtab:hover{color:#111111}
-  .pvtab.on{color:#111111;border-bottom-color:var(--lava);background:rgba(171,135,67,.08)}
-  .adimg{width:100%;max-height:420px;object-fit:cover;border-radius:8px;margin:4px 0 12px;border:1px solid rgba(171,135,67,.2);display:block}
+  .pvtabs{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 12px;border-bottom:1px solid var(--vh-line)}
+  .pvtab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--vh-ink-dim);padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;border-radius:6px 6px 0 0}
+  .pvtab:hover{color:var(--vh-ink)}
+  .pvtab.on{color:var(--vh-ink);border-bottom-color:var(--vh-accent);background:var(--vh-panel-2)}
+  .adimg{width:100%;max-height:420px;object-fit:cover;border-radius:8px;margin:4px 0 12px;border:1px solid var(--vh-line);display:block}
   .pvpane{display:none}.pvpane.on{display:block}
   /* Stacked sections. Each asset keeps its own heading so a long row stays
      readable, and a rule separates one asset from the next. */
-  .pvsec{border-top:1px solid rgba(171,135,67,.22);padding:14px 0 4px;margin:0}
+  .pvsec{border-top:1px solid var(--vh-line);padding:14px 0 4px;margin:0}
   .pvsec:first-of-type{border-top:0;padding-top:4px}
   .pvsech{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;
-    text-transform:uppercase;color:#556059}
-  .pvframe{width:100%;height:560px;border:1px solid rgba(171,135,67,.22);border-radius:12px;background:#fff}
+    text-transform:uppercase;color:var(--vh-ink-dim)}
+  .pvframe{width:100%;height:560px;border:1px solid var(--vh-line);border-radius:12px;background:var(--vh-panel)}
   .pvexport{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
-  .pvnote{color:#556059;font-size:12px;margin:0 0 10px}
-  .adcard{background:var(--vh-panel-tan);border:1px solid rgba(171,135,67,.16);border-radius:12px;padding:14px;margin-bottom:10px}
-  .adcard h4{margin:0 0 6px;font-size:12px;color:var(--brand-accent-text);letter-spacing:.08em;text-transform:uppercase}
-  .adcard .k{color:#48524c;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
+  .pvnote{color:var(--vh-ink-dim);font-size:12px;margin:0 0 10px}
+  .pvnote.is-error{color:var(--vh-err-text);background:var(--vh-panel-2);border-left:3px solid var(--vh-err)}
+  .adcard{background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:12px;padding:14px;margin-bottom:10px}
+  .adcard h4{margin:0 0 6px;font-size:12px;color:var(--vh-accent-text);letter-spacing:.08em;text-transform:uppercase}
+  .adcard .k{color:var(--vh-ink-dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
   .adcard .v{color:var(--vh-ink);line-height:1.55;font-size:13px;white-space:pre-wrap}
   /* ── Ad creative previews ─────────────────────────────────────────────────
      Every colour resolves through the ACTIVE brand's tokens. The old markup
@@ -175,45 +178,58 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      var(--vh-ink), a dark-neutral section background the spec forbids. Frames
      now sit on the page surface with a hairline, and text on a brand fill uses
      the contrast-checked --brand-on-* token. */
-  .adframe{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--vh-border-soft);background:var(--vh-surface-card)}
-  .adshot{display:block;width:100%;height:auto;object-fit:cover;background:var(--vh-surface-card)}
+  .adframe{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--vh-line);background:var(--vh-panel)}
+  .adshot{display:block;width:100%;height:auto;object-fit:cover;background:var(--vh-panel)}
   .adshot-empty{display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;
-    background:var(--vh-surface-card);border:1px dashed var(--vh-ink-dim);color:var(--vh-ink-dim);font-size:12px}
-  .adratio{position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;color:var(--brand-on-primary,#fff);
-    background:var(--vh-green);padding:3px 7px;border-radius:6px}
+    background:var(--vh-panel);border:1px dashed var(--vh-ink-dim);color:var(--vh-ink-dim);font-size:12px}
+  .adratio{position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;color:var(--vh-on-primary);
+    background:var(--vh-primary);padding:3px 7px;border-radius:6px}
   /* The scrim exists so composed copy stays AA-legible over any photograph. It
      is a readability treatment on an image, not a section background. */
-  .adover{position:absolute;left:0;right:0;bottom:0;padding:12px 14px;
-    background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.62))}
-  .adover-h{font-family:var(--vh-font-head);font-size:18px;line-height:1.2;font-weight:700;color:#fff;
-    text-shadow:0 1px 6px rgba(0,0,0,.7)}
+  .adover{position:absolute;left:0;right:0;bottom:0;padding:12px 14px;isolation:isolate}
+  .adover::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--vh-ink);opacity:.62;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000);mask-image:linear-gradient(180deg,transparent,#000)}
+  .adover-h{font-family:var(--vh-font-head);font-size:18px;line-height:1.2;font-weight:700;color:var(--vh-bg);
+    text-shadow:0 1px 6px var(--vh-ink)}
   .adover-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
-  .adproof{font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);padding:4px 9px;border-radius:99px}
-  .adcta{background:var(--vh-lava);color:var(--brand-on-accent,#fff);font-weight:800;font-size:12px;padding:8px 15px;border-radius:8px}
-  .advcta{display:inline-block;background:var(--vh-lava);color:var(--brand-on-accent,#fff);font-weight:800;font-size:12px;
+  .adproof{font-size:11px;font-weight:700;color:var(--vh-bg);background:var(--vh-ink);padding:4px 9px;border-radius:99px}
+  .adcta{background:var(--vh-accent);color:var(--vh-on-accent);font-weight:800;font-size:12px;padding:8px 15px;border-radius:8px}
+  .advcta{display:inline-block;background:var(--vh-accent);color:var(--vh-on-accent);font-weight:800;font-size:12px;
     padding:8px 16px;border-radius:8px;margin:8px 0}
-  .advstage{display:flex;justify-content:center;background:var(--vh-surface-card);border:1px solid var(--vh-border-soft);
+  .advstage{display:flex;justify-content:center;background:var(--vh-panel-2);border:1px solid var(--vh-line);
     border-radius:12px;padding:10px}
-  .advframe{width:270px;height:480px;max-width:100%;border:0;border-radius:10px;background:var(--vh-surface-card)}
+  .advframe{width:270px;height:480px;max-width:100%;border:0;border-radius:10px;background:var(--vh-panel)}
   .advnote{color:var(--vh-ink-dim);font-size:12px;line-height:1.5;margin:0 0 8px}
-  .adgap{color:var(--vh-ink);border:1px dashed var(--vh-ink-dim);border-radius:8px;padding:8px 10px;background:var(--vh-panel-tan)}
+  .adgap{color:var(--vh-ink);border:1px dashed var(--vh-marker-edge);border-radius:8px;padding:8px 10px;background:var(--vh-marker-ground)}
   .advboard{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px}
-  .advshot{flex:0 0 132px;border:1px solid var(--vh-border-soft);border-radius:8px;overflow:hidden;background:var(--vh-surface-card)}
-  .advshot-t{background:var(--vh-green);color:var(--brand-on-primary,#fff);font-size:10px;font-weight:800;padding:3px 7px}
+  .advshot{flex:0 0 132px;border:1px solid var(--vh-line);border-radius:8px;overflow:hidden;background:var(--vh-panel)}
+  .advshot-t{background:var(--vh-primary);color:var(--vh-on-primary);font-size:10px;font-weight:800;padding:3px 7px}
   .advshot-b{color:var(--vh-ink);font-size:11px;line-height:1.4;padding:7px 8px}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--lava);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--vh-accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
   /* Action outcome bar. Three states only, matching the three ways an action can
      end: it changed rows, it changed nothing, or it failed. */
   .actstate{margin-top:10px;padding:9px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;max-width:520px}
-  .actstate.busy{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.3);color:#556059}
-  .actstate.ok{background:rgba(29,107,69,.14);border:1px solid rgba(29,107,69,.35);color:#0A7D33}
-  .actstate.empty{background:rgba(171,135,67,.1);border:1px solid rgba(171,135,67,.35);color:#556059}
-  .actstate.err{background:rgba(185,28,28,.1);border:1px solid rgba(185,28,28,.35);color:#B91C1C}
-  .planempty{color:#556059;line-height:1.55}
-  .planempty b{color:#111111}
-  .planerr{color:#B91C1C;line-height:1.55}
+  .actstate{background:var(--vh-panel-2);border:1px solid var(--vh-line);color:var(--vh-ink)}
+  .actstate.busy{border-left:4px solid var(--vh-accent);color:var(--vh-ink-dim)}
+  .actstate.ok{border-left:4px solid var(--vh-ok);color:var(--vh-ok-text)}
+  .actstate.empty{border-left:4px solid var(--vh-accent);color:var(--vh-ink-dim)}
+  .actstate.err{border-left:4px solid var(--vh-err);color:var(--vh-err-text)}
+  .planempty{color:var(--vh-ink-dim);line-height:1.55}
+  .planempty b{color:var(--vh-ink)}
+  .planerr{color:var(--vh-err-text);line-height:1.55}
   @keyframes spin{to{transform:rotate(360deg)}}
   @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two{grid-column:span 1}h1{font-size:30px}.pvframe{height:460px}}
+  /* Inline colours the script used to write, as roles. */
+  .tdim{color:var(--vh-ink-dim)} .tink{color:var(--vh-ink)} .tok{color:var(--vh-ok-text)} .terr{color:var(--vh-err-text)}
+  .tprim{color:var(--vh-primary-text)}
+  .feas{background:var(--vh-panel-2);border-color:var(--vh-line)}
+  .feas.is-ok{color:var(--vh-ok-text);border-color:var(--vh-ok)} .feas.is-warn{color:var(--vh-warn-text);border-color:var(--vh-warn)}
+  .feas.is-err{color:var(--vh-err-text);border-color:var(--vh-err)} .feas.is-data{color:var(--vh-ink);border:1px dashed var(--vh-marker-edge);background:var(--vh-marker-ground)}
+  .feas.is-none{color:var(--vh-ink-dim)}
+  .pill[data-qa]{background:var(--vh-panel-2)} .pill[data-qa="ok"]{color:var(--vh-ok-text);border-color:var(--vh-ok)} .pill[data-qa="warn"]{color:var(--vh-warn-text);border-color:var(--vh-warn)}
+  .pvroot{border:1px solid var(--vh-line-hot);border-radius:14px;padding:18px 20px;background:var(--vh-panel-2)}
+  .sb-dialog-scrim{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;isolation:isolate}
+  .sb-dialog-scrim::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--vh-ink);opacity:.45}
 </style>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
@@ -223,7 +239,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div>
       <div class="eyebrow" id="brainEyebrow">Lifecycle OS · Smart Brain</div>
       <h1 id="brainTitle">Smart Brain</h1>
-      <p style="color:#556059;margin:.1em 0 .4em;font-size:14px">Agentic campaign planning, cohort orchestration, and content generation</p>
+      <p class="tdim" style="margin:.1em 0 .4em;font-size:14px">Agentic campaign planning, cohort orchestration, and content generation</p>
       <p>This engine keeps a tentative <b>90-day calendar</b> per market, re-reviewed daily against the latest data (auto via cron at <span id="cronAt">03:30 UTC</span>, or manually below). Approving a slot generates the full funnel: mailer, Meta/Google/TikTok ads, and a hosted landing page, for final human check.</p>
     </div>
     <div id="autobar">
@@ -247,14 +263,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
     <div class="card wide" id="dualmode">
       <h2>Agentic Generation</h2>
-      <p style="color:#48524c;margin:.2em 0 1em">Run the full pipeline as an <b>agentic</b> flow (data → analysis → planning → calendar → content → assets → review → ideation). Always runs on the <b>Premium</b> model cascade.</p>
+      <p class="tdim" style="margin:.2em 0 1em">Run the full pipeline as an <b>agentic</b> flow (data → analysis → planning → calendar → content → assets → review → ideation). Always runs on the <b>Premium</b> model cascade.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
         <span class="label" style="margin-right:4px">Mode</span>
         <span class="btn sm" style="cursor:default;pointer-events:none" title="One mode: an agentic pipeline powered by the premium model cascade">🤖 Agentic</span>
         <button type="button" id="runAgentic" class="btn" onclick="runAgentic()">🤖 Run Agentic Flow</button>
       </div>
       <p id="agenticWhy" class="vh-status" role="status" hidden></p>
-      <div id="agenticOut" class="feed"><p style="color:#48524c">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
+      <div id="agenticOut" class="feed"><p class="tdim">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
     </div>
 
     <div class="card wide">
@@ -270,28 +286,28 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         </div>
       </div>
       <div id="mktfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 8px">
-        <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Region</span>
+        <span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Region</span>
         <!-- region chips are injected per plan from the ACTIVE brand's own markets -->
-        <span id="mktcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
+        <span id="mktcount" class="tdim" style="font-size:12px;margin-left:6px"></span>
       </div>
       <div id="durfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
-        <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Duration</span>
+        <span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Duration</span>
         <button type="button" class="mkchip on" data-dur="7" onclick="setDur(7)">Next 7 days</button>
         <button type="button" class="mkchip" data-dur="30" onclick="setDur(30)">30 days</button>
         <button type="button" class="mkchip" data-dur="60" onclick="setDur(60)">60 days</button>
         <button type="button" class="mkchip" data-dur="90" onclick="setDur(90)">90 days</button>
         <button type="button" class="mkchip" data-dur="all" onclick="setDur('all')">All</button>
-        <span id="durcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
+        <span id="durcount" class="tdim" style="font-size:12px;margin-left:6px"></span>
       </div>
       <div id="catfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
-        <span style="color:#556059;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Catalog</span>
+        <span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Catalog</span>
         <!-- chips are injected per plan from the active brand's own offering kinds -->
-        <span id="catcount" style="color:#48524c;font-size:12px;margin-left:6px"></span>
+        <span id="catcount" class="tdim" style="font-size:12px;margin-left:6px"></span>
       </div>
       <div class="tblscroll">
       <table id="plantable">
         <thead><tr><th>Date</th><th>Market</th><th class="cohort">Cohort</th><th class="obj">Objective · Hero</th><th class="why">Why (analysis)</th><th class="chan">Channels</th><th>Conf.</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody id="plan"><tr><td colspan="9" style="color:#48524c">Loading plan…</td></tr></tbody>
+        <tbody id="plan"><tr><td colspan="9" class="tdim">Loading plan…</td></tr></tbody>
       </table>
       </div>
     </div>
@@ -575,7 +591,7 @@ async function runAgentic(){
       window.LifecycleFailure.show(out, d, { title: 'The agentic run did not complete' }); return;
     }
     const stages = (d.stages||[]).map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--vh-panel-tan)"><b>${s.ok?'✓':'✗'} ${esc(s.stage)}</b> — ${esc(s.summary||'')}</div>`).join('');
-    const ideas = (d.ideation&&d.ideation.ideas||[]).map(i=>`<li><b>${esc(i.title)}</b> — ${esc(i.action||i.why||'')} <span style="color:#48524c">(${esc(i.impact||'')}/${esc(i.effort||'')})</span></li>`).join('');
+    const ideas = (d.ideation&&d.ideation.ideas||[]).map(i=>`<li><b>${esc(i.title)}</b> — ${esc(i.action||i.why||'')} <span class="tdim">(${esc(i.impact||'')}/${esc(i.effort||'')})</span></li>`).join('');
     // One row per DAY the run actually produced assets for. This is the thing
     // the period selector was always supposed to drive.
     const built = (d.campaigns||[]);
@@ -585,7 +601,7 @@ async function runAgentic(){
           + `<td style="padding:5px 8px">${c.score==null?'—':esc(String(c.score))}${c.passed===false?' ⚠':''}</td></tr>`).join('')
       : '';
     const coverage = d.days_requested
-      ? `<p style="color:#48524c;margin-top:6px">Built <b>${d.days_built}</b> of <b>${d.days_planned}</b> planned send(s) across the next ${d.days_requested} day(s).`
+      ? `<p class="tdim" style="margin-top:6px">Built <b>${d.days_built}</b> of <b>${d.days_planned}</b> planned send(s) across the next ${d.days_requested} day(s).`
         + (d.days_remaining > 0
           ? ` The remaining ${d.days_remaining} are queued for the background prebuild and appear on the dashboard as they finish.`
           : ' Every planned send in the window has its assets.')
@@ -597,7 +613,7 @@ async function runAgentic(){
       ${coverage}
       ${dayRows ? `<h2 style="font-size:18px;margin-top:14px">Assets by day</h2>
         <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
-        <thead><tr style="text-align:left;color:#48524c">
+        <thead><tr class="tdim" style="text-align:left">
           <th style="padding:5px 8px">Date</th><th style="padding:5px 8px">Market</th>
           <th style="padding:5px 8px">Cohort</th><th style="padding:5px 8px">Subject</th>
           <th style="padding:5px 8px">Score</th></tr></thead><tbody>${dayRows}</tbody></table>` : ''}
@@ -713,12 +729,12 @@ function fmtMoney(n, currency){
 }
 function feasBadge(f){
   if(!f || !f.status) return '';
-  const m = { 'FEASIBLE':['#e8f3ec','#0a7d33'], 'REQUIRES MORE ELIGIBLE REACH':['#3a2f12','#7a5f28'], 'NOT FEASIBLE':['#3a1c1c','#e89a9a'], 'DATA REQUIRED':['#1b2b33','#9fd0e6'] }[f.status] || ['#22323a','#556059'];
+  const m = { 'FEASIBLE':'is-ok', 'REQUIRES MORE ELIGIBLE REACH':'is-warn', 'NOT FEASIBLE':'is-err', 'DATA REQUIRED':'is-data' }[f.status] || 'is-none';
   // The figure is printed in the currency the planner computed it in (the
   // record's `currency`), in the brand's number format. A typed '$' labelled
   // every brand's projection as dollars whatever it was.
   const rev = (f.projected_revenue!=null) ? ` · ~${esc(fmtMoney(f.projected_revenue, f.currency))}` : '';
-  return `<br><span class="pill" style="background:${m[0]};color:${m[1]};font-size:10px" title="${esc(f.note||'')}">${esc(f.status)}${rev}</span>`;
+  return `<br><span class="pill feas ${m}" style="font-size:10px" title="${esc(f.note||'')}">${esc(f.status)}${rev}</span>`;
 }
 // Who this slot may actually reach (2026-10-04): the contact ledger's verdict
 // for the slot, never the cohort's size standing in for it. The pill used to
@@ -732,7 +748,7 @@ function reachPill(r){
   const label = el && el.label ? el.label : (n != null ? `→ ${Number(n).toLocaleString()} recipients` : 'Eligibility unknown');
   const cap = r.frequency_cap || {};
   const tip = [el && el.note, cap.action, r.widen_note, r.per_user_per_week ? `Per user: ${r.per_user_per_week.min}-${r.per_user_per_week.max} mailers/week.` : ''].filter(Boolean).join(' · ');
-  const pill = `<br><span class="pill" data-eligibility="${esc((el && el.status) || '')}" style="background:var(--vh-panel-tan);color:#0a7d33;font-size:10px" title="${esc(tip)}">${esc(label)}${n != null && el && el.status === 'computed' ? ` · → ${Number(n).toLocaleString()} planned` : ''}</span>`;
+  const pill = `<br><span class="pill" data-eligibility="${esc((el && el.status) || '')}" style="background:var(--vh-panel-2);color:var(--vh-ok-text);font-size:10px" title="${esc(tip)}">${esc(label)}${n != null && el && el.status === 'computed' ? ` · → ${Number(n).toLocaleString()} planned` : ''}</span>`;
   const capPill = cap.status && cap.status !== 'SAFE'
     ? `<br><span class="pill" data-cap="${esc(cap.status)}" style="background:var(--vh-panel-tan);color:var(--vh-ink);font-size:10px" title="${esc(cap.action || '')}">Cap: ${esc(cap.status.replace(/_/g, ' '))} · ${esc(String(cap.sends_in_rolling_7d))} in 7 days</span>`
     : '';
@@ -792,7 +808,7 @@ function renderPlan(){
   const approvableVisible = PLAN.filter(e => slotVisible(e) && e.status!=='approved' && e.status!=='final' && e.status!=='rejected').length;
   const ab = $('approveAll');
   if(ab){ ab.style.display = approvableVisible ? '' : 'none'; ab.textContent = `✓ Approve all (${approvableVisible})`; }
-  if(!shown){ $('plan').innerHTML = `<tr><td colspan="9" style="color:#48524c">No sends for the selected region + duration. Widen the duration or pick another region.</td></tr>`; return; }
+  if(!shown){ $('plan').innerHTML = `<tr><td colspan="9" class="tdim">No sends for the selected region + duration. Widen the duration or pick another region.</td></tr>`; return; }
   // Iterate over ALL entries (keep index i aligned to PLAN for viewEntry/approve),
   // emitting nothing for rows filtered out by the region selector.
   const strategy = PLAN.find(e => e && e.strategy_only && e.strategy_note);
@@ -819,7 +835,7 @@ function renderPlan(){
     const verdict = isGen
       ? `<span class="st approved">✓ approved</span>`
       : rejected
-        ? `<span class="st" style="background:#3a1c1c;color:#e89a9a">✗ rejected</span>`
+        ? `<span class="st rejected">✗ rejected</span>`
         : `<span class="st tentative">draft</span>`;
     const reviewCtl = isGen ? '' : rejected
       // A rejected slot can be REGENERATED (fresh copy + assets from the latest
@@ -841,15 +857,15 @@ function renderPlan(){
     const lpHref = e.generated_campaign_id
       ? `/lp/${encodeURIComponent(e.generated_campaign_id)}${e.__built_at ? `?v=${e.__built_at}` : ''}`
       : '';
-    const status = `${verdict}${lpHref ? `<br><a href="${esc(lpHref)}" target="_blank" style="color:#0a7d33;font-size:11px">landing page ↗</a>` : ''}${reviewCtl}`;
+    const status = `${verdict}${lpHref ? `<br><a href="${esc(lpHref)}" target="_blank" class="tok" style="font-size:11px">landing page ↗</a>` : ''}${reviewCtl}`;
     return `<tr class="planrow" id="planrow-${i}">
-    <td>${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-ink);color:var(--vh-ink);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
+    <td>${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
     <td><b>${esc(e.market === 'UNDECLARED' ? 'Home market undeclared' : e.market)}</b>${e.festival ? `<br><span class="pill">🎉 ${esc(e.festival.name)}</span>` : ''}</td>
-    <td class="cohort">${esc(e.cohort?.name)}<br><span style="color:#48524c;font-size:11px">${e.cohort?.size ?? '—'} profiles</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
-    <td class="obj"><div class="clamp2" style="font-weight:600;color:#111111">${esc(e.objective)}</div><span style="color:#556059;font-size:12px">${esc(e.heroProduct?.title || '')}${(e.supportingProducts&&e.supportingProducts.length)?` <span style="color:#7a8a80">· + ${esc(e.supportingProducts.map(p=>p.title).filter(Boolean).join(', '))}</span>`:''}</span></td>
+    <td class="cohort">${esc(e.cohort?.name)}<br><span class="tdim" style="font-size:11px">${e.cohort?.size ?? '—'} profiles</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
+    <td class="obj"><div class="clamp2 tink" style="font-weight:600">${esc(e.objective)}</div><span class="tdim" style="font-size:12px">${esc(e.heroProduct?.title || '')}${(e.supportingProducts&&e.supportingProducts.length)?` <span class="tdim">· + ${esc(e.supportingProducts.map(p=>p.title).filter(Boolean).join(', '))}</span>`:''}</span></td>
     <td class="why"><div class="clamp2" style="font-size:12px;color:var(--vh-ink-dim);line-height:1.45" title="${esc(why)}">${esc(why)}</div></td>
     <td class="chan">${(e.channels||[]).map(c=>`<span class="pill">${esc(c)}</span>`).join('')}</td>
-    <td class="conf" title="${esc(confTip)}">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}${confLabel?`<br><span style="color:#556059;font-size:10px;text-transform:uppercase;letter-spacing:.06em">${esc(confLabel)}</span>`:''}</td>
+    <td class="conf" title="${esc(confTip)}">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}${confLabel?`<br><span class="tdim" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em">${esc(confLabel)}</span>`:''}</td>
     <td>${status}</td>
     <td style="white-space:nowrap">
       <button type="button" class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
@@ -857,7 +873,7 @@ function renderPlan(){
       <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
     </td>
   </tr>
-  <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-tan);border-bottom:2px solid rgba(171,135,67,.3)"><div class="expbody" id="expbody-${i}" style="padding:16px 18px"></div></td></tr>`;}).join('');
+  <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}" style="padding:16px 18px"></div></td></tr>`;}).join('');
 }
 
 // ── Funnel preview (generate-on-demand, before approval) ────────────────────
@@ -892,9 +908,9 @@ function renderAd(ad){
   // and a consumer-tech brand both reviewed their ads in tenant zero's red and
   // purple. --brand-*-text are the contrast-adjusted TEXT forms; --brand-on-*
   // are for text sitting ON a filled chip.
-  const vtag = `<span class="pill" style="font-size:10px;background:${ctype==='video'?'var(--vh-lava)':'var(--vh-green)'};color:${ctype==='video'?'var(--brand-on-accent,#fff)':'var(--brand-on-primary,#fff)'}">${esc(ad.variant||(ctype==='video'?'Video':'Static'))}</span>`;
+  const vtag = `<span class="pill" style="font-size:10px;background:${ctype==='video'?'var(--vh-accent)':'var(--vh-primary)'};color:${ctype==='video'?'var(--vh-on-accent)':'var(--vh-on-primary)'}">${esc(ad.variant||(ctype==='video'?'Video':'Static'))}</span>`;
   const cta = esc(ad.cta||'Shop Now');
-  const qa = ad.__qa ? `<span class="pill" title="${esc((ad.__qa.issues||[]).join(' · ')||'passed all checks')}" style="font-size:10px;background:${ad.__qa.ok?'var(--vh-pos)':'var(--vh-warn)'};color:#fff">QA ${ad.__qa.ok?'✓':'⚠'} ${ad.__qa.score}/10</span>` : '';
+  const qa = ad.__qa ? `<span class="pill" title="${esc((ad.__qa.issues||[]).join(' · ')||'passed all checks')}" style="font-size:10px" data-qa="${ad.__qa.ok?'ok':'warn'}">QA ${ad.__qa.ok?'✓':'⚠'} ${ad.__qa.score}/10</span>` : '';
   const cr = ad.creative||{};
   // A build note (a missing catalogue photo, a motion build that failed) is
   // PRINTED. A silently empty frame is indistinguishable from a design choice.
@@ -1011,7 +1027,7 @@ function analysisPanelHTML(a){
   const conf = a.confidence||{};
   const pct = conf.score!=null ? Math.round(conf.score*100) : null;
   const drivers = (a.drivers||[]).filter(d=>d && (d.signal||d.value)).map(d=>`<div class="an-driver"><span class="sig">${esc(d.signal||'')}</span><span class="val">${esc(d.value||'')}${d.implication?`<span class="imp">${esc(d.implication)}</span>`:''}</span></div>`).join('');
-  const factors = (conf.factors||[]).map(f=>`<div class="an-factor"><span><b>${esc(f.label)}</b>${f.detail?`<br><span style="color:#6b7770;font-size:11px">${esc(f.detail)}</span>`:''}</span><span style="color:${f.delta>=0?'#0a7d33':'#b91c1c'};font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700">${f.delta>=0?'+':''}${f.delta}</span></div>`).join('');
+  const factors = (conf.factors||[]).map(f=>`<div class="an-factor"><span><b>${esc(f.label)}</b>${f.detail?`<br><span class="tdim" style="font-size:11px">${esc(f.detail)}</span>`:''}</span><span class="${f.delta>=0?'tok':'terr'}" style="font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700">${f.delta>=0?'+':''}${f.delta}</span></div>`).join('');
   const ev = a.evidence||{};
   const evBits = [];
   if(ev.own_campaign && ev.own_campaign.name) evBits.push(`Proven: ${esc(ev.own_campaign.name)}`);
@@ -1029,17 +1045,17 @@ function analysisPanelHTML(a){
         <p class="lead">${esc(a.hypothesis||a.summary||'')}</p>
         ${a.summary && a.hypothesis ? `<p class="sub">${esc(a.summary)}</p>` : ''}
       </div>
-      ${ei?`<div class="an-callout"><div class="an-eyebrow">What to watch</div><div class="big">↑ Move <b>${esc(ei.metric||'')}</b> ${esc(ei.direction||'up')}</div>${ei.basis?`<div style="color:#556059;font-size:12.5px;margin-top:5px">Basis: ${esc(ei.basis)}</div>`:''}</div>`:''}
+      ${ei?`<div class="an-callout"><div class="an-eyebrow">What to watch</div><div class="big">↑ Move <b>${esc(ei.metric||'')}</b> ${esc(ei.direction||'up')}</div>${ei.basis?`<div class="tdim" style="font-size:12.5px;margin-top:5px">Basis: ${esc(ei.basis)}</div>`:''}</div>`:''}
       <div class="an-grid">
         <div class="an-card">
           <div class="an-eyebrow">Confidence ${conf.label?`· ${esc(conf.label)}`:''}</div>
-          <div style="display:flex;align-items:baseline;gap:6px"><span class="an-conf-num">${pct!=null?pct:'—'}</span><span style="color:#6b7770;font-size:13px">${pct!=null?'%':''}</span></div>
+          <div style="display:flex;align-items:baseline;gap:6px"><span class="an-conf-num">${pct!=null?pct:'—'}</span><span class="tdim" style="font-size:13px">${pct!=null?'%':''}</span></div>
           ${pct!=null?`<div class="an-confbar"><i style="width:${pct}%"></i></div>`:''}
-          ${factors||'<span style="color:#6b7770;font-size:12px">No adjustment factors.</span>'}
+          ${factors||'<span class="tdim" style="font-size:12px">No adjustment factors.</span>'}
         </div>
         <div class="an-card">
           <div class="an-eyebrow">Why — data drivers</div>
-          ${drivers||'<span style="color:#6b7770;font-size:12px">No structured data drivers on this slot (running on planning priors).</span>'}
+          ${drivers||'<span class="tdim" style="font-size:12px">No structured data drivers on this slot (running on planning priors).</span>'}
         </div>
       </div>
       ${evBits.length?`<div class="an-eyebrow">Evidence</div><div class="an-chips">${evBits.map(b=>`<span class="an-chip">${b}</span>`).join('')}</div>`:''}
@@ -1194,7 +1210,7 @@ function renderPreview(payload, e, i, opts){
     const id = 'pv-lp' + (li ? '-' + li : '');
     const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
     tab(id, label, first);
-    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" style="color:#0a7d33">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
     first = false;
   });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
@@ -1222,7 +1238,7 @@ function renderPreview(payload, e, i, opts){
     </div>
     <div class="pvnote">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
     ${complianceHTML(campaign)}
-    ${(() => { const tr = payload.agent_trace || campaign.agent_trace; if(!Array.isArray(tr)||!tr.length) return ''; return `<div class="pvnote" style="margin-top:4px">Agent pipeline:${tr.map(a=>`<span class="pill" style="background:${a.ok?'var(--vh-panel-tan)':'#3a1414'};color:${a.ok?'#0a7d33':'#ffd9d0'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`; })()}
+    ${(() => { const tr = payload.agent_trace || campaign.agent_trace; if(!Array.isArray(tr)||!tr.length) return ''; return `<div class="pvnote" style="margin-top:4px">Agent pipeline:${tr.map(a=>`<span class="pill" style="background:var(--vh-panel-2);color:${a.ok?'var(--vh-ok-text)':'var(--vh-err-text)'};border-color:${a.ok?'var(--vh-ok)':'var(--vh-err)'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`; })()}
     ${(() => {
       // When copy fell back to the template (no LLM provider answered), show the
       // EXACT reason inline so the cause is visible — not buried in a tooltip.
@@ -1231,7 +1247,7 @@ function renderPreview(payload, e, i, opts){
       const fb = Array.isArray(tr) ? tr.find(a=>a && a.agent==='fallback' && a.output && a.output.reason) : null;
       if(!isFallback && !fb) return '';
       const reason = (fb && fb.output && fb.output.reason) || 'the LLM cascade returned nothing for this slot';
-      return `<div class="pvnote" style="margin-top:4px;color:#ffd9d0;background:#3a1414;border-radius:6px;padding:6px 9px;font-size:11px">⚠ Copy used the <b>template fallback</b>: ${esc(reason)}. This means no LLM provider answered — check that at least one text API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / CEREBRAS_API_KEY / XAI_API_KEY) is set and not quota-exhausted for this deployment, then Regenerate.</div>`;
+      return `<div class="pvnote is-error" style="margin-top:4px;border-radius:6px;padding:6px 9px;font-size:11px">⚠ Copy used the <b>template fallback</b>: ${esc(reason)}. This means no LLM provider answered — check that at least one text API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / CEREBRAS_API_KEY / XAI_API_KEY) is set and not quota-exhausted for this deployment, then Regenerate.</div>`;
     })()}
     ${(() => {
       // A jump strip, not a switcher: the row is tall now, so these scroll to a
@@ -1265,9 +1281,9 @@ function decisionPanelHTML(e){
   const dl = (label, value, sub) => (value || sub) ? `
       <tr>
         <td style="color:var(--vh-ink);font-size:12px;font-weight:700;vertical-align:top;padding:10px 18px 10px 0;white-space:nowrap">${esc(label)}</td>
-        <td style="color:#111111;font-size:13.5px;line-height:1.55;padding:10px 0;border-bottom:1px solid rgba(171,135,67,.14)">${value||''}${sub?`<div style="color:#556059;font-size:12px;margin-top:3px">${sub}</div>`:''}</td>
+        <td class="tink" style="font-size:13.5px;line-height:1.55;padding:10px 0;border-bottom:1px solid var(--vh-line)">${value||''}${sub?`<div class="tdim" style="font-size:12px;margin-top:3px">${sub}</div>`:''}</td>
       </tr>` : '';
-  const li = (label, text) => text ? `<li style="margin:0 0 9px;line-height:1.55;color:#111111;font-size:13.5px"><b style="color:#D0473E">${esc(label)}:</b> ${esc(text)}</li>` : '';
+  const li = (label, text) => text ? `<li class="tink" style="margin:0 0 9px;line-height:1.55;font-size:13.5px"><b class="tprim">${esc(label)}:</b> ${esc(text)}</li>` : '';
 
   // ── Section 1 · why this slot was chosen ──
   const cohortName = e.cohort?.name || d.cohort?.choice || '—';
@@ -1289,10 +1305,10 @@ function decisionPanelHTML(e){
   const mix     = hero ? `Hero ${hero}${supporting.length?` plus ${supporting.join(', ')} to lift basket within the same ritual`:''}.` : '';
   const brand   = 'Montserrat headings, Instrument Sans body, the four brand colours only, no banned phrases or em/en-dashes.';
 
-  return `<div class="pvroot" style="border:1px solid rgba(171,135,67,.35);border-radius:14px;padding:18px 20px;background:var(--vh-panel-tan)">
-    <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(171,135,67,.2);padding-bottom:12px;margin-bottom:14px">
-      <span class="pill" style="background:var(--vh-panel-tan);color:#0a7d33;font-size:10px;letter-spacing:.06em">WHY YOU'RE SEEING THIS</span>
-      <span style="color:#D0473E;font-size:15px;font-weight:700">The complete logic, analysis &amp; reason</span>
+  return `<div class="pvroot">
+    <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--vh-line);padding-bottom:12px;margin-bottom:14px">
+      <span class="pill" style="background:var(--vh-panel);color:var(--vh-ok-text);font-size:10px;letter-spacing:.06em">WHY YOU'RE SEEING THIS</span>
+      <span class="tprim" style="font-size:15px;font-weight:700">The complete logic, analysis &amp; reason</span>
     </div>
     <div style="color:var(--vh-ink);font-size:14px;font-weight:700;margin:0 0 6px">1 · Why this slot was chosen for the calendar</div>
     <table style="width:100%;border-collapse:collapse;margin:0 0 16px">
@@ -1805,9 +1821,9 @@ function sbConfirm(msg, okLabel){
   return new Promise(resolve=>{
     const old = document.getElementById('sbconfirm'); if(old) old.remove();
     const ov = document.createElement('div'); ov.id = 'sbconfirm';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(10,20,16,.55);padding:20px';
-    ov.innerHTML = `<div role="dialog" aria-modal="true" style="background:#fff;border:1px solid rgba(171,135,67,.3);border-radius:14px;max-width:460px;width:100%;padding:22px 22px 18px;box-shadow:0 30px 80px rgba(0,0,0,.45);font-family:inherit">`+
-      `<div style="font-size:14px;line-height:1.55;color:#111111;margin-bottom:18px">${esc(msg)}</div>`+
+    ov.className = 'sb-dialog-scrim';
+    ov.innerHTML = `<div role="dialog" aria-modal="true" style="background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:14px;max-width:460px;width:100%;padding:22px 22px 18px;box-shadow:var(--vh-lift-2);font-family:inherit">`+
+      `<div style="font-size:14px;line-height:1.55;color:var(--vh-ink);margin-bottom:18px">${esc(msg)}</div>`+
       `<div style="display:flex;gap:10px;justify-content:flex-end">`+
       `<button type="button" class="btn sm secondary" id="sbcn">Cancel</button>`+
       `<button type="button" class="btn sm ok" id="sbcy">${esc(okLabel || 'Generate')}</button></div></div>`;
@@ -1831,7 +1847,7 @@ async function sbPreflight(){
   if(!rep.anyConfigured){
     const m = 'Cannot generate — no text AI provider is connected. ' + (rep.summary||'') +
               ((rep.missing||[]).length ? ' Missing: ' + rep.missing.join(', ') : '');
-    if(det) det.innerHTML = `<span style="color:#b91c1c">⚠ ${esc(m)}</span>`;
+    if(det) det.innerHTML = `<span class="terr">⚠ ${esc(m)}</span>`;
     return false;
   }
   if(!rep.anyUsable){
@@ -1903,7 +1919,7 @@ async function approveAll(){
     if(det) det.innerHTML = `<span class="sbspin"></span> Approving <b>${n+1}</b> of <b>${targets.length}</b>: ${esc(e.date)} ${esc(e.market)} — ${esc(e.objective)} &nbsp; ✓${ok}${fails.length?` ✕${fails.length}`:''} `+
       `<button type="button" class="btn sm secondary" onclick="window.__SB_GEN_CANCEL=true">Stop</button>`;
     try{ await generateEntry(i, { silent: true }); ok++; }
-    catch(err){ fails.push(`${e.date} ${e.market}: ${err.message}`); if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">approve failed: ${esc(err.message)}</span>`; }
+    catch(err){ fails.push(`${e.date} ${e.market}: ${err.message}`); if(rev) rev.innerHTML = `<span class="terr" style="font-size:11px">approve failed: ${esc(err.message)}</span>`; }
     await new Promise(r=>setTimeout(r, 0));   // yield → the UI repaints each step
   }
   if(ab){ ab.disabled = false; }
@@ -1928,7 +1944,7 @@ async function approveRow(i){
     renderPlan();
     sbState('ok', `Approved ${e.date || ''} ${e.market || ''}. The row now shows its locked status and its landing page link.`);
   }catch(err){
-    if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">approve failed: ${esc(err.message)}</span>`;
+    if(rev) rev.innerHTML = `<span class="terr" style="font-size:11px">approve failed: ${esc(err.message)}</span>`;
     sbState('err', `Approve failed for ${e.date || ''} ${e.market || ''}: ${err.message}`);
   }
 }
@@ -1947,7 +1963,7 @@ async function rejectRow(i){
     renderPlan();
     sbState('ok', `Rejected ${e.date || ''} ${e.market || ''}. The row now shows the rejected status and its recovery controls.`);
   }catch(err){
-    if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">reject failed: ${esc(err.message)}</span>`;
+    if(rev) rev.innerHTML = `<span class="terr" style="font-size:11px">reject failed: ${esc(err.message)}</span>`;
     sbState('err', `Reject failed for ${e.date || ''} ${e.market || ''}: ${err.message}`);
   }
 }
@@ -1966,7 +1982,7 @@ async function resetRow(i){
     renderPlan();
     sbState('ok', `Cleared the rejected status on ${e.date || ''} ${e.market || ''}. The row is back to draft.`);
   }catch(err){
-    if(rev) rev.innerHTML = `<span style="color:#b91c1c;font-size:11px">reset failed: ${esc(err.message)}</span>`;
+    if(rev) rev.innerHTML = `<span class="terr" style="font-size:11px">reset failed: ${esc(err.message)}</span>`;
     sbState('err', `Reset failed for ${e.date || ''} ${e.market || ''}: ${err.message}`);
   }
 }
