@@ -30,11 +30,19 @@ function title(file) {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return sanitizeTitleText(match ? match[1] : path.basename(file, '.html'));
 }
+// Every design indexed here was built from ONE workspace's own record and
+// catalogue (tenant zero's): its landing pages, its campaigns, its products.
+// Each entry says so, so any surface that lists them can offer them to that
+// workspace only - a tenant's landing page is an artefact of that tenant.
+const OWNER = (() => {
+  try { return String(JSON.parse(fs.readFileSync(path.join(ROOT, 'data/brands/_default.json'), 'utf8')).slug || '').toLowerCase(); }
+  catch (_) { return ''; }
+})();
 function entry(file, family) {
   const parts = file.split('/');
   const variant = (path.basename(file).match(/Variant([A-Z]\d?)/i) || [])[1] || '';
   const angle = family === 'Airbrush Matrix' ? parts[2].replace(/-/g, ' ') : '';
-  return { id: file.replace(/\.html$/i, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase(), title: title(file), family, angle, variant, url: '/' + file };
+  return { id: file.replace(/\.html$/i, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase(), title: title(file), family, angle, variant, url: '/' + file, owner: OWNER };
 }
 const designs = [];
 for (const g of groups) {
@@ -45,7 +53,7 @@ for (const g of groups) {
   }
 }
 for (const file of roots) if (fs.existsSync(path.join(ROOT, file))) designs.push(entry(file, 'Standalone Concepts'));
-const out = { count: designs.length, designs };
+const out = { count: designs.length, owner: OWNER, designs };
 fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'data/website-designs.json'), JSON.stringify(out, null, 2) + '\n');
 console.log(`Built data/website-designs.json with ${designs.length} direct templates.`);

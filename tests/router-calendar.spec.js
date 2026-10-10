@@ -179,6 +179,35 @@ test.describe('connectors-check', () => {
 });
 
 test.describe('lifecycle-*', () => {
+  // The lifecycle programme (its product lanes, its table, its store) is
+  // tenant zero's, so it is served only to tenant zero's own workspace and
+  // refused with a marker to every other brand (2026-10-10). The session here
+  // is tenant zero's operator: the server's own determination (ownsShipped,
+  // the oldest workspace) says this workspace owns the shipped material.
+  let ownsShipped = true;
+  test.beforeEach(() => {
+    ownsShipped = true;
+    require(H.ROOT + '/api/_shared/brand-runtime.js').invalidate();
+    S.on('api/_shared/brand-workspace-core.js', 'ownsShipped', async () => ownsShipped);
+  });
+  test('the programme is refused, with the marker, to a brand that is not tenant zero', async () => {
+    ownsShipped = false;
+    S.on(LIFE_GEN, 'generateLifecycleCalendar', async () => ({ entries: [], persisted: false }));
+    S.on(LIFE_BUILD, 'buildLifecycleMailer', async () => ({ ok: true }));
+    // The plan answers with NOTHING planned and the marker (a plan is a view);
+    // building a mailer from tenant zero's row is a refusal.
+    const g = await call('lifecycle-generate', { json: { start_date: '2026-10-01', market: 'US' } });
+    noHarnessError(g);
+    expect(g.status).toBe(200);
+    expect(g.out.entries).toEqual([]);
+    expect(g.out.data_gaps[0]).toMatch(/DATA REQUIRED BEFORE LAUNCH: lifecycle product lanes and cohort programme, Harness Brand/);
+    const m = await call('lifecycle-build-mailer', { json: { id: 'entry_3' } });
+    noHarnessError(m);
+    expect(m.status).toBe(409);
+    expect(JSON.stringify(m.out)).toMatch(/DATA REQUIRED BEFORE LAUNCH: lifecycle product lanes and cohort programme/);
+    expect(S.hits(LIFE_GEN)).toEqual([]);
+    expect(S.hits(LIFE_BUILD)).toEqual([]);
+  });
   test('lifecycle-generate builds the cohort calendar from the posted brief (metered)', async () => {
     S.on(LIFE_GEN, 'generateLifecycleCalendar', async () => ({ entries: [{ id: 'e1' }], persisted: false }));
     const r = await call('lifecycle-generate', { json: { start_date: '2026-10-01', days: 7, cohorts: ['champions'], cadence_per_week: 2, market: 'US' } });
@@ -521,8 +550,14 @@ sb('sync-status', { run: { json: { limit: 5 } }, stubs: () => S.on(PLAN, 'syncSt
 sb('export', { run: { json: { entries: [{ date: '2026-10-01', id: 'a' }] } }, stubs: () => { S.on(EXPORT, 'buildExportCsv', () => 'date,id\n2026-10-01,a\n'); S.on(PLAN, 'getPlan', async () => ({ entries: [] })); },
   expect: (r) => {
     expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toMatch(/^text\/csv/);
-    expect(r.headers['content-disposition']).toBe('attachment; filename="knickgasm-automated-calendar-2026-10-01.csv"');
-    expect(r.text).toBe('date,id\n2026-10-01,a\n'); expect(last(EXPORT, 'buildExportCsv')).toEqual([[{ date: '2026-10-01', id: 'a' }]]);
+    // Named for, and written for, the brand THIS request resolved to (the
+    // signed-in workspace), never tenant zero: entries posted from the browser
+    // carry no brand, and the prompts fell back to tenant zero's record.
+    expect(r.headers['content-disposition']).toBe('attachment; filename="harness-brand-automated-calendar-2026-10-01.csv"');
+    expect(r.text).toBe('date,id\n2026-10-01,a\n');
+    const posted = last(EXPORT, 'buildExportCsv')[0];
+    expect(posted.map((e) => ({ date: e.date, id: e.id }))).toEqual([{ date: '2026-10-01', id: 'a' }]);
+    expect(posted[0].brand && posted[0].brand.slug).toBe(H.BRAND_ROW.slug);
     expect(S.hits(PLAN, 'getPlan')).toEqual([]);            // the reviewer's own entries were used, not a re-pull
   },
   cases: [{ name: 'with no entries posted it exports the stored plan', run: { method: 'GET' }, expect: (r) => { expect(r.status).toBe(200); expect(last(PLAN, 'getPlan')[0]).toEqual({ config: { workspace_id: H.WS } }); expect(r.headers['content-disposition']).toContain('calendar-plan.csv'); } }],
@@ -575,7 +610,7 @@ sb('preview', { run: { json: { id: 'entry_1', reviewer: 'op' } }, stubs: () => S
   cases: [{ name: 'neither id nor entry is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(PLAN)).toEqual([]); } }],
 });
 sb('approve', { run: { json: { entry: { id: 'x' }, reviewer: 'op' } }, stubs: () => S.on(PLAN, 'approveEntry', async () => ({ ok: true, approved: true })),
-  expect: (r) => { expect(r.out).toEqual({ ok: true, approved: true }); expect(last(PLAN, 'approveEntry')[0]).toEqual({ id: undefined, entry: { id: 'x' }, reviewer: 'op', config: { workspace_id: H.WS } }); },
+  expect: (r) => { expect(r.out).toEqual({ ok: true, approved: true }); expect(last(PLAN, 'approveEntry')[0]).toEqual({ id: undefined, entry: { id: 'x', workspace_id: H.WS, brand: expect.objectContaining({ id: H.WS, name: 'Harness Brand' }) }, reviewer: 'op', config: { workspace_id: H.WS } }); },
   cases: [{ name: 'GET is a 405', run: { method: 'GET' }, expect: (r) => { expect(r.status).toBe(405); } }],
 });
 sb('reject', { run: { json: { id: 'entry_1', notes: 'off-brand' } }, stubs: () => S.on(PLAN, 'rejectEntry', async () => ({ ok: true })),
@@ -593,7 +628,7 @@ for (const alias of ['run-daily', 'daily']) {
     expect: (r) => { expect(r.out).toMatchObject({ ok: true, mode: 'stubbed' }); expect(F.runDaily).toEqual([{ config: { workspace_id: H.WS }, startDate: '2026-10-01', days: 5, persist: true }]); } });
 }
 sb('generate-slot', { run: { json: { entry: { id: 'slot_1', theme: 't' } } },
-  expect: (r) => { expect(r.out).toEqual({ ok: true, campaign: { id: 'camp_harness', entry: { id: 'slot_1', theme: 't' } } }); expect(F.generated.length).toBe(1); expect(F.generated[0][0].workspace_id).toBe(H.WS); },
+  expect: (r) => { expect(r.out).toMatchObject({ ok: true, campaign: { id: 'camp_harness', entry: { id: 'slot_1', theme: 't', brand: { id: H.WS, name: 'Harness Brand' } } } }); expect(F.generated.length).toBe(1); expect(F.generated[0][0].workspace_id).toBe(H.WS); },
   cases: [{ name: 'no entry is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(F.generated).toEqual([]); } }],
 });
 sb('feedback', { run: { json: { target_id: 'entry_1', verdict: 'approve', notes: 'n', reviewer: 'op' } },

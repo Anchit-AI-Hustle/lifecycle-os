@@ -170,7 +170,9 @@ head(opts.title, opts.desc),
 sidebar(opts.prefix, opts.activeKey),
 '  <main class="flex-1 min-w-0">',
 mobileBar,
-'    <div class="max-w-[1080px] mx-auto px-6 md:px-10 py-10 space-y-14">',
+// Tenant zero's own playbook: any other active brand sees the gap, never
+// another company's growth narrative (brand-context.js gateShipped).
+'    <div class="max-w-[1080px] mx-auto px-6 md:px-10 py-10 space-y-14" data-shipped-for="knickgasm" data-shipped-label="growth and automation playbook">',
 opts.main,
 '    </div>',
 '  </main>',

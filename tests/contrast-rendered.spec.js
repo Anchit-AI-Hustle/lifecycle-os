@@ -196,7 +196,7 @@ const PAGES = [
   'research.html', 'knowledge-base.html', 'competitor-benchmarking.html',
   'ad-campaigns.html', 'landing-pages.html', 'assets.html', 'social-media.html',
   'growth-os.html', 'kicksgpt.html', 'cohort-definitions.html', 'payments.html',
-  'brand-connections.html', 'team.html', 'app-audit.html',
+  'brand-connections.html', 'team.html', 'app-audit.html', 'brand-doc.html',
 ];
 
 for (const p of PAGES) {

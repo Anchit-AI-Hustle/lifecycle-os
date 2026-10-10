@@ -28,7 +28,23 @@ const PASS_THRESHOLD = 7;   // same gate as api/ai/pipeline/score.js
 const DEFAULT_TIME_BOX_MS = 25000;
 
 // ── Scoring rubric (adapted from api/ai/pipeline/score.js for spec JSON) ─────
-const SCORE_SYSTEM = `You are a senior email marketing quality auditor for KNICKGASM (premium D2C Indian heritage sneaker). You are scoring a mailer SPEC (strategy + two variant plans + copy + image prompts, as JSON) BEFORE it is built into HTML. Output STRICT JSON only — no commentary, no markdown.
+// Both prompts are written for the brand the mailer is FOR (2026-10-10): they
+// named tenant zero, its product, its palette, its typefaces and its banned
+// list for every brand's mailer, and the revision pass then rewrote another
+// brand's copy towards them.
+function auditFacts(brand) {
+  const rt = require('./brand-runtime.js');
+  let b = brand;
+  try { b = rt.scopedBrand(brand, { allowTenantZero: true }); } catch (_) { b = brand || {}; }
+  const f = rt.promptFacts(b);
+  return {
+    who: `${f.name} (${f.descriptor})`,
+    banned: f.banned.length ? f.banned.join(', ') : 'none on file',
+    preferred: f.preferred.length ? f.preferred.join(', ') : "the brand's own vocabulary",
+    palette: f.palette, typography: f.typography,
+  };
+}
+const SCORE_SYSTEM_FOR = (A) => `You are a senior email marketing quality auditor for ${A.who}. You are scoring a mailer SPEC (strategy + two variant plans + copy + image prompts, as JSON) BEFORE it is built into HTML. Output STRICT JSON only — no commentary, no markdown.
 
 ━━ SCORING CRITERIA (0-10 each) ━━
 
@@ -44,7 +60,7 @@ content_density:
   0  = Empty/placeholder fields ("", "TBD", lorem) or missing sections
 
 copy_quality:
-  10 = Premium, brand-aligned, emotionally specific, sensory; zero banned phrases (wellness journey, transform, liquid gold, game-changer, LIMITED TIME in caps, hurry, don't miss out, last chance, while supplies last); concrete reason-to-act with numbers/offers
+  10 = Premium, brand-aligned, emotionally specific, sensory; zero banned phrases (${A.banned}) and no false urgency; concrete reason-to-act with numbers/offers
   5  = Adequate; some generic marketing copy
   0  = Generic copy, banned phrases present, or no reason-to-act anywhere
 
@@ -61,14 +77,14 @@ variant_divergence:
   "critique": "2-4 sentences naming the SPECIFIC weakest fields/sections and exactly what to change (quote the offending copy where useful)"
 }`;
 
-const REVISE_SYSTEM = `You are the Creative Director + Director of Growth at KNICKGASM (premium D2C Indian heritage sneaker). A quality auditor scored the mailer spec below under the pass threshold. Revise it to fix EVERY point in the critique while preserving everything that already works.
+const REVISE_SYSTEM_FOR = (A) => `You are the Creative Director + Director of Growth at ${A.who}. A quality auditor scored the mailer spec below under the pass threshold. Revise it to fix EVERY point in the critique while preserving everything that already works.
 
 HARD RULES:
 - Return the COMPLETE revised spec as STRICT JSON with EXACTLY the same schema and top-level keys as the input (synthesis, strategy, vibe, product_logic, theme, image_style_lock, variant_a, variant_b — keep any extra keys the input has). Do not drop, rename, or add top-level keys.
 - Keep product names, prices, and URLs from the input verbatim — never invent SKUs.
-- Palette ONLY #D0473E / #6A33D8 / #111111 / #FFFFFF. Headings Montserrat, body Instrument Sans.
-- BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last.
-- PREFERRED: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.
+- Palette ONLY ${A.palette}. Typography ${A.typography}.
+- BANNED: ${A.banned}.
+- PREFERRED: ${A.preferred}.
 - Variant B must stay structurally opposite to Variant A (narrative-led, no product grids, understated CTA).
 First char { · last char }. No markdown, no commentary.`;
 
@@ -101,7 +117,10 @@ function withDeadline(promise, ms) {
  *   brief  — the campaign brief/user message that produced it (context for scoring)
  * Returns { spec, quality: { scored, score, revised } } — never throws.
  */
-async function runQualityLoop({ spec, brief = '', userGeminiKey = '', timeBoxMs = DEFAULT_TIME_BOX_MS } = {}) {
+async function runQualityLoop({ spec, brief = '', userGeminiKey = '', timeBoxMs = DEFAULT_TIME_BOX_MS, brand = null } = {}) {
+  const A = auditFacts(brand);
+  const SCORE_SYSTEM = SCORE_SYSTEM_FOR(A);
+  const REVISE_SYSTEM = REVISE_SYSTEM_FOR(A);
   const quality = { scored: false, score: null, revised: false };
   if (!spec || typeof spec !== 'object') return { spec, quality };
   const deadline = Date.now() + timeBoxMs;

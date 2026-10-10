@@ -258,7 +258,97 @@ const BRANDS = [
   }
 ];
 
-/* ---------------- dark OS shell ---------------- */
+/* ---------------- the OS shell ----------------
+   These pages are tenant zero's OWN competitor studies: every row compares a
+   competitor with that one brand's catalogue, prices and proof. So (2026-10-05):
+     - the study sits inside data-shipped-for="knickgasm" + data-no-brand-swap:
+       shown only to the workspace the SERVER says is tenant zero
+       (BrandContext.isTenantZero, owns_shipped; never a slug), and never
+       renamed for anyone else - a renamed comparison is a false one;
+     - until the active brand is known the study is HELD invisible (the hold
+       is set before the study is parsed), so another brand never sees it,
+       not even for the moment the brand layer takes to answer;
+     - any other brand is shown ITS OWN competitor set from its own record
+       (competitors + market_study tiers), or the DATA REQUIRED marker;
+     - the title and description name no brand: the study's own heading does;
+     - colours are the ACTIVE brand's tokens on its own light surface (these
+       were a dark-neutral page in tenant zero's red and purple). */
+const GATE_SLUG = "knickgasm";
+const HOLD = "(function(){try{var B=window.BrandContext,c=B&&B.brand;if(B&&!(c&&B.isTenantZero&&B.isTenantZero(c)))document.documentElement.setAttribute('data-gb-hold','1');}catch(_){}})();";
+const RUNTIME = String(function gbRuntime() {
+  var B = window.BrandContext;
+  var study = document.getElementById('gb-study');
+  var own = document.getElementById('gb-own');
+  function release() { document.documentElement.removeAttribute('data-gb-hold'); }
+  if (!B || !study || !own) { release(); return; }
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+  function http(u) { var s = String(u || '').trim(); return /^https?:\/\/[^\s"'<>]+$/i.test(s) ? s : ''; }
+  function lift(b) {
+    var d = (b && b.brand_data) || {};
+    var out = Object.assign({}, b || {});
+    ['competitors', 'market_study'].forEach(function (k) { if (out[k] == null && d[k] != null) out[k] = d[k]; });
+    return out;
+  }
+  /* The brand's OWN competitor set: the record's competitors list, then the
+     brands its own market study names per tier. Nothing else. */
+  function ownSet(b) {
+    var rows = [];
+    (Array.isArray(b.competitors) ? b.competitors : []).forEach(function (x) {
+      var n = typeof x === 'string' ? x : x && (x.name || x.brand);
+      if (n) rows.push({ name: n, site: x && typeof x === 'object' ? http(x.website || x.url) : '', tier: '' });
+    });
+    var ms = b.market_study && typeof b.market_study === 'object' ? b.market_study : {};
+    Object.keys(ms).forEach(function (k) {
+      var st = ms[k] || {};
+      (Array.isArray(st.tiers) ? st.tiers : []).forEach(function (t) {
+        (Array.isArray(t.brands) ? t.brands : []).forEach(function (x) {
+          if (x && x.name) rows.push({ name: x.name, site: http(x.website), tier: (t.name || '') + (k ? ' (' + k + ')' : '') });
+        });
+      });
+    });
+    return rows;
+  }
+  function showOwn(b) {
+    var name = b.name || 'this brand';
+    var rows = ownSet(b);
+    var list = rows.length
+      ? '<ul class="gb-list">' + rows.slice(0, 60).map(function (r) {
+        return '<li>' + (r.site ? '<a href="' + esc(r.site) + '" target="_blank" rel="noopener">' + esc(r.name) + '</a>' : esc(r.name)) +
+          (r.tier ? ' <span class="gb-muted">' + esc(r.tier) + '</span>' : '') + '</li>';
+      }).join('') + '</ul>'
+      : '<p><span class="gb-marker">[DATA REQUIRED BEFORE LAUNCH: competitor set, ' + esc(name) + ']</span></p>';
+    study.innerHTML = '<div class="card p-5"><p class="gb-muted">The competitor studies at this address were built from another workspace\'s own record and catalogue, so they are not shown for ' + esc(name) + '.</p>' +
+      '<p><span class="gb-marker">[DATA REQUIRED BEFORE LAUNCH: competitor study, ' + esc(name) + ']</span></p></div>';
+    own.innerHTML = '<div class="kicker">Competitor set &middot; ' + esc(name) + '</div>' +
+      '<h1 class="font-head text-[32px] leading-tight">' + esc(name) + '\'s competitors</h1>' +
+      '<p class="gb-muted mt-2">From ' + esc(name) + '\'s own record: the competitors it lists and the brands its market study names. Nothing is filled in from another brand.</p>' + list +
+      '<p class="mt-4"><a href="/kb/brand/market">Market Intelligence for ' + esc(name) + '</a> &middot; <a href="/research#competitors">Market Study</a> &middot; <a href="/competitor-benchmarking">Competitor Benchmarking</a></p>';
+    own.hidden = false;
+    document.title = 'Competitor set · ' + name + ' · Lifecycle OS';
+  }
+  var decided = '';
+  function keyOf(b) { return b ? String(b.id || '') + '|' + String(b.slug || '') : 'none'; }
+  function decide(b) {
+    decided = keyOf(b);
+    if (!b || (B.isTenantZero && B.isTenantZero(b))) { own.hidden = true; release(); return; }
+    var read = (b.id && B.api)
+      ? B.api('get', { query: '&id=' + encodeURIComponent(b.id) }).then(function (r) { return (r && r.brand) || b; }).catch(function () { return b; })
+      : Promise.resolve(b);
+    return read.then(function (full) { showOwn(lift(full)); release(); });
+  }
+  var ready = B.ready ? B.ready() : Promise.resolve(B.brand);
+  Promise.resolve(ready).then(function (b) { return decide(B.brand || b || null); }).catch(function () {
+    study.innerHTML = '<div class="card p-5"><p>The active brand could not be read, so this study is not shown.</p></div>';
+    release();
+  });
+  // Another brand activated after this page decided: decide again, from the
+  // page as it was built (the study may already have been replaced).
+  window.addEventListener('brandcontext:change', function (ev) {
+    var b = ev && ev.detail ? ev.detail.brand : null;
+    if (decided && keyOf(b) !== decided) { try { location.reload(); } catch (_) {} }
+  });
+}).replace(/^function gbRuntime\(\) \{\n?/, '(function () {\n').replace(/\}$/, '})();');
+
 function page(title, desc, main) {
   return [
 '<!DOCTYPE html>',
@@ -269,35 +359,46 @@ function page(title, desc, main) {
 '<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">',
 '<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">',
 '<meta name="description" content="' + desc + '">',
+'<script src="/brand-context.js?early=1"></script>',
+'<script>' + HOLD + '</script>',
 '<script src="https://cdn.tailwindcss.com"></script>',
-'<script>tailwind.config={theme:{extend:{colors:{vgreen:"#D0473E",vgold:"#6A33D8",vcream:"#FFFFFF"},fontFamily:{head:["Lora","Raleway","Georgia","serif"]}}}};</script>',
+'<script>if(window.tailwind){tailwind.config={theme:{extend:{fontFamily:{head:["Lora","Raleway","Georgia","serif"]}}}};}</script>',
 '<style>',
-'  body{margin:0;background:#0a1410;color:#e8ede9;font-family:Inter,"Instrument Sans","Helvetica Neue",Arial,sans-serif;padding:26px 30px;}',
+'  html[data-gb-hold] #gb-study{visibility:hidden}',
+'  [hidden]{display:none !important}',
+'  body{margin:0;background:var(--brand-surface,Canvas);color:var(--brand-ink,CanvasText);font-family:var(--vh-font-body,system-ui,sans-serif);padding:26px 30px;}',
 '  @media(min-width:961px){body{margin-left:var(--lsb-w,248px);}}',
 '  .lc-main{max-width:1040px;margin:0 auto;}',
-'  h1,h2,h3,.font-head{font-family:"Lora","Raleway",Georgia,serif;}',
-'  .kicker{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--vgold);font-weight:800;}',
-'  .card{background:#0f1d18;border:1px solid rgba(171,135,67,.2);border-radius:16px;}',
-'  a{color:var(--vgold);} a:hover{color:#e8d9b4;}',
+'  h1,h2,h3,h4,.font-head{font-family:var(--vh-font-head,Georgia,serif);color:var(--brand-ink,CanvasText);}',
+'  .kicker{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand-accent-text,CanvasText);font-weight:800;}',
+'  .card{background:var(--brand-surface-alt,Canvas);border:1px solid var(--brand-line,GrayText);border-radius:16px;}',
+'  a{color:var(--brand-primary-text,LinkText);}',
+'  .gb-muted{color:var(--brand-ink-muted,CanvasText);}',
+'  .gb-marker{font-weight:600;background:var(--brand-accent-soft,Canvas);border-left:3px solid var(--brand-accent-text,CanvasText);padding:1px 6px;}',
+'  .gb-list{margin:12px 0 0;padding-left:20px;} .gb-list li{margin:4px 0;}',
 '  table.cmp{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}',
-'  table.cmp th,table.cmp td{border-bottom:1px solid rgba(171,135,67,.16);padding:11px 14px;text-align:left;vertical-align:top;overflow-wrap:break-word;}',
-'  table.cmp thead th{background:#D0473E;color:#FFFFFF;text-transform:uppercase;letter-spacing:.05em;font-size:10.5px;}',
+'  table.cmp th,table.cmp td{border-bottom:1px solid var(--brand-line,GrayText);padding:11px 14px;text-align:left;vertical-align:top;overflow-wrap:break-word;}',
+'  table.cmp thead th{background:var(--brand-primary,Highlight);color:var(--brand-on-primary,HighlightText);text-transform:uppercase;letter-spacing:.05em;font-size:10.5px;}',
 '  table.cmp td.param,table.cmp th:first-child{width:200px;}',
-'  table.cmp td.param{color:#9fb0a8;font-weight:700;}',
-'  table.cmp td.vah{background:rgba(171,135,67,.08);color:#f2ead6;}',
+'  table.cmp td.param{color:var(--brand-ink-muted,CanvasText);font-weight:700;}',
+'  table.cmp td.vah{background:var(--brand-primary-tint,Canvas);}',
 '  table.cmp tr:last-child td{border-bottom:0;}',
-'  .pill{display:inline-block;background:rgba(171,135,67,.14);color:#f0e2bf;border:1px solid rgba(171,135,67,.38);border-radius:999px;padding:3px 11px;font-size:11px;font-weight:700;margin:0 6px 6px 0;}',
-'  .swot h4{color:var(--vcream);} .swot li{color:#cdd8d0;}',
-'  .btn{display:inline-block;background:var(--vgold);color:#0a1410;font-weight:800;border-radius:10px;padding:10px 16px;text-decoration:none;}',
-'  .btn.ghost{background:transparent;color:#e8ede9;border:1px solid rgba(171,135,67,.4);}',
+'  .pill{display:inline-block;background:var(--brand-primary-tint,Canvas);color:var(--brand-ink,CanvasText);border:1px solid var(--brand-line,GrayText);border-radius:999px;padding:3px 11px;font-size:11px;font-weight:700;margin:0 6px 6px 0;}',
+'  .swot li{color:var(--brand-ink,CanvasText);}',
+'  .btn{display:inline-block;background:var(--brand-primary,ButtonFace);color:var(--brand-on-primary,ButtonText);font-weight:800;border-radius:10px;padding:10px 16px;text-decoration:none;}',
+'  .btn.ghost{background:transparent;color:var(--brand-primary-text,CanvasText);border:1px solid var(--brand-line-strong,GrayText);}',
 '  table:has(th){table-layout:fixed;width:100%;border-collapse:collapse;}',
 '  table:has(th) th,table:has(th) td{box-sizing:border-box;vertical-align:top;overflow-wrap:break-word;text-align:center;}',
 '  table:has(th) th:first-child,table:has(th) td:first-child{text-align:left;}',
 '</style></head>',
 '<body>',
 '<main class="lc-main">',
+'<section id="gb-own" hidden aria-live="polite"></section>',
+'<div id="gb-study" data-shipped-for="' + GATE_SLUG + '" data-shipped-label="this competitor study" data-no-brand-swap>',
 main,
+'</div>',
 '</main>',
+'<script>' + RUNTIME + '</script>',
 '<script src="/auth.js?v=20260705" defer></script>',
 '</body></html>',
 ''
@@ -311,50 +412,50 @@ function buildBrand(b) {
     return '<tr><td class="param">' + p[0] + '</td><td>' + (b[p[1]] || "-") + '</td><td class="vah">' + (V[p[1]] || "-") + '</td></tr>';
   }).join("\n            ");
   const strat = b.strategies.map(function (s) { return '<span class="pill">' + s + '</span>'; }).join("");
-  const steps = b.edge.map(function (s, i) { return '<li><b class="text-vcream">Move ' + (i + 1) + '.</b> ' + s + '</li>'; }).join("");
+  const steps = b.edge.map(function (s, i) { return '<li><b>Move ' + (i + 1) + '.</b> ' + s + '</li>'; }).join("");
   const main = [
-'  <nav class="text-[12.5px] mb-3" style="color:#9fb0a8;"><a href="/research#competitors">Market Study</a> &rsaquo; <a href="/growth-book/brands/index.html">Competitor detail</a> &rsaquo; <span style="color:#e8ede9;">' + b.name + '</span></nav>',
+'  <nav class="text-[12.5px] mb-3 gb-muted"><a href="/research#competitors">Market Study</a> &rsaquo; <a href="/growth-book/brands/index.html">Competitor detail</a> &rsaquo; <span>' + b.name + '</span></nav>',
 '  <div class="kicker">Competitor detail · ' + b.tier + '</div>',
-'  <h1 class="font-head text-[38px] leading-tight" style="color:var(--vcream);">' + b.name + ' vs KNICKGASM</h1>',
-'  <p class="mt-2 max-w-3xl text-[14px]" style="color:#9fb0a8;">' + b.vertical + '. Full side-by-side comparison across products, offers, pricing, base sneaker and provenance, retention and UX. KNICKGASM figures are exact, read from the built catalogs. Competitor figures that could not be read off an official page are marked n/v or POA, never guessed.</p>',
+'  <h1 class="font-head text-[38px] leading-tight">' + b.name + ' vs KNICKGASM</h1>',
+'  <p class="mt-2 max-w-3xl text-[14px] gb-muted">' + b.vertical + '. Full side-by-side comparison across products, offers, pricing, base sneaker and provenance, retention and UX. KNICKGASM figures are exact, read from the built catalogs. Competitor figures that could not be read off an official page are marked n/v or POA, never guessed.</p>',
 '  <p class="mt-3"><a class="btn ghost" href="' + b.site + '" target="_blank" rel="noopener">Visit ' + b.name + ' live site &#8599;</a></p>',
 
-'  <h2 class="font-head text-[24px] mt-8 mb-2" style="color:var(--vcream);">Side-by-side comparison: ' + b.name + ' vs KNICKGASM</h2>',
+'  <h2 class="font-head text-[24px] mt-8 mb-2">Side-by-side comparison: ' + b.name + ' vs KNICKGASM</h2>',
 '  <div class="card overflow-x-auto"><table class="cmp" style="min-width:640px;"><thead><tr><th>Parameter</th><th>' + b.name + '</th><th>KNICKGASM</th></tr></thead><tbody>',
 '            ' + rows,
 '  </tbody></table></div>',
 
-'  <h2 class="font-head text-[24px] mt-8 mb-2" style="color:var(--vcream);">SWOT Analysis of ' + b.name + ' vs KNICKGASM</h2>',
+'  <h2 class="font-head text-[24px] mt-8 mb-2">SWOT Analysis of ' + b.name + ' vs KNICKGASM</h2>',
 '  <div class="grid gap-4 md:grid-cols-2 swot">',
 '    <div class="card p-5"><h4 class="font-head">Strengths of ' + b.name + '</h4>' + li(b.strengths) + '</div>',
 '    <div class="card p-5"><h4 class="font-head">Weaknesses of ' + b.name + '</h4>' + li(b.weaknesses) + '</div>',
-'    <div class="card p-5" style="border-color:rgba(171,135,67,.45);"><h4 class="font-head">How KNICKGASM can win vs ' + b.name + '</h4><ul class="mt-1 space-y-1 text-[13px]">' + steps + '</ul></div>',
+'    <div class="card p-5"><h4 class="font-head">How KNICKGASM can win vs ' + b.name + '</h4><ul class="mt-1 space-y-1 text-[13px]">' + steps + '</ul></div>',
 '    <div class="card p-5"><h4 class="font-head">Common strategies ' + b.name + ' uses</h4><div class="mt-2">' + strat + '</div></div>',
 '  </div>',
 
-'  <p class="mt-8 text-[12.5px]" style="color:#9fb0a8;"><a href="/research#competitors">&larr; Back to the competitor grid</a> · Use the Visit live site link above to see ' + b.name + '\'s current storefront, products and creatives.</p>'
+'  <p class="mt-8 text-[12.5px] gb-muted"><a href="/research#competitors">&larr; Back to the competitor grid</a> · Use the Visit live site link above to see ' + b.name + '\'s current storefront, products and creatives.</p>'
   ].join("\n");
-  return page(b.name + " vs KNICKGASM :: Market Study", "Full comparison of " + b.name + " vs KNICKGASM: products, offers, pricing, base sneaker and provenance, retention and UX.", main);
+  return page(b.name + " :: Competitor study", "Competitor study of " + b.name + ": products, offers, pricing, retention and UX.", main);
 }
 
 /* index of all brand detail pages */
 function buildIndex() {
   const cards = BRANDS.map(function (b) {
     return '<a class="card p-4 block" href="/growth-book/brands/' + b.slug + '.html" style="text-decoration:none;">' +
-      '<div class="flex items-center justify-between"><span class="font-head text-[18px]" style="color:var(--vcream);">' + b.name + '</span><span class="pill" style="margin:0;">' + b.tier + '</span></div>' +
-      '<div class="text-[12px] mt-1" style="color:#9fb0a8;">' + b.vertical + '</div>' +
-      '<div class="text-[12.5px] mt-2" style="color:#cdd8d0;">' + b.benefit + '</div></a>';
+      '<div class="flex items-center justify-between"><span class="font-head text-[18px]">' + b.name + '</span><span class="pill" style="margin:0;">' + b.tier + '</span></div>' +
+      '<div class="text-[12px] mt-1 gb-muted">' + b.vertical + '</div>' +
+      '<div class="text-[12.5px] mt-2">' + b.benefit + '</div></a>';
   }).join("\n        ");
   const main = [
 '  <div class="kicker">Market Study · Competitor detail pages</div>',
-'  <h1 class="font-head text-[38px] leading-tight" style="color:var(--vcream);">Competitor detail &amp; KNICKGASM comparison</h1>',
-'  <p class="mt-2 max-w-3xl text-[14px]" style="color:#9fb0a8;">A dedicated page per brand across the custom-sneaker arena: bespoke studios, brand configurators, the marketplace long tail, resale and sneaker care. Products, offers, pricing, base sneaker and provenance, retention, channels, cohorts and UX, each compared directly to KNICKGASM.</p>',
+'  <h1 class="font-head text-[38px] leading-tight">Competitor detail &amp; KNICKGASM comparison</h1>',
+'  <p class="mt-2 max-w-3xl text-[14px] gb-muted">A dedicated page per brand across the custom-sneaker arena: bespoke studios, brand configurators, the marketplace long tail, resale and sneaker care. Products, offers, pricing, base sneaker and provenance, retention, channels, cohorts and UX, each compared directly to KNICKGASM.</p>',
 '  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mt-6">',
 '        ' + cards,
 '  </div>',
 '  <p class="mt-8 text-[12.5px]"><a href="/research#competitors">&larr; Back to the Market Study competitor grid</a></p>'
   ].join("\n");
-  return page("Competitor detail :: Market Study", "Index of competitor detail pages, each comparing the brand to KNICKGASM.", main);
+  return page("Competitor detail :: Market Study", "Index of competitor detail pages.", main);
 }
 
 BRANDS.forEach(function (b) { fs.writeFileSync(path.join(OUT, b.slug + ".html"), buildBrand(b)); console.log("wrote brands/" + b.slug + ".html"); });

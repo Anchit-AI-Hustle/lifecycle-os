@@ -790,6 +790,23 @@ function funnelSpec(slot, cohort, copy) {
 
 // ── main entry ───────────────────────────────────────────────────────────────
 async function generateForSlot(slotId, { persist = true } = {}) {
+  // This engine is TENANT ZERO's (2026-10-10): its fallback copy, its landing
+  // pages (the Campaign Hub compiler), its sender identity and its collection
+  // slugs are one brand's content, so a slot generated here for any other
+  // brand came back as that brand's sneaker copy under its own name. Another
+  // brand's slot is built by the Smart Brain builder (smart-brain-preview /
+  // approve), which derives every asset from that brand's own record.
+  try {
+    const rt = require('./brand-runtime.js');
+    const sb = rt.scopedBrand(null, { allowTenantZero: true });
+    if (require('./brand-catalog-server.js').isTenantZeroBrand(sb) !== true) {
+      const name = (sb && sb.name) || 'this brand';
+      const e = new Error(`This slot engine is built on another brand's content, so nothing was generated for ${name}. Build the slot from the Smart Brain calendar, which derives every asset from ${name}'s own record. [DATA REQUIRED BEFORE LAUNCH: slot assets from this brand's own record, ${name}]`);
+      e.status = 409; e.code = 'slot_engine_not_this_brand';
+      e.data_gaps = [`[DATA REQUIRED BEFORE LAUNCH: slot assets from this brand's own record, ${name}]`];
+      throw e;
+    }
+  } catch (e) { if (e && e.code === 'slot_engine_not_this_brand') throw e; }
   const d = db();
   const [slotRows, brand] = await Promise.all([
     d.select('smart_calendar', { filters: { id: `eq.${slotId}` }, limit: 1 }),
