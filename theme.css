@@ -322,8 +322,12 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
    the ground is --vh-panel-2, a light panel. Never a dark-neutral background:
    that is a HARD rule here and validatePalette()/asset-no-black-background
    enforce it elsewhere.
+   .vh-failure-specimen is the same frame DRAWN as documentation (the
+   /design-system sheet): nothing failed, so it carries no .vh-failure, no
+   role=alert and no data-failure - the classes and attributes a page, a
+   screen reader and the signed-out sweep read as "this page failed".
    ============================================================================ */
-.vh-failure {
+.vh-failure, .vh-failure-specimen {
   display: block;
   margin: 0;
   padding: 12px 14px;
