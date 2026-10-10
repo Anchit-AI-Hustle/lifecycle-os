@@ -142,7 +142,7 @@
         <p class="lede">The full growth analytics workbench for the active brand. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
       </div>
       <div class="mkt" id="mktToggle" role="tablist" aria-label="Market">
-        <button type="button" data-mkt="US" class="on">🇺🇸 United States</button>
+        <button type="button" data-mkt="US">🇺🇸 United States</button>
         <button type="button" data-mkt="UK">🇬🇧 United Kingdom</button>
         <button type="button" data-mkt="GLOBAL">🌍 Global</button>
         <button type="button" data-mkt="IN">🇮🇳 India</button>
@@ -205,7 +205,12 @@
   // MKT comes from the ?mkt= URL param — remap through a literal allowlist so the
   // stored value is always a constant (never the raw, potentially-hostile input).
   // This clears the taint at the source; every use below is then a fixed string.
-  var MKT = ({ US:'US', UK:'UK', GLOBAL:'GLOBAL', IN:'IN' })[(new URLSearchParams(location.search).get('mkt') || 'US').toUpperCase()] || 'US';
+  // With no ?mkt= the page opens on the ACTIVE BRAND's home market once its
+  // data is known (refresh below), never on a literal US (2026-10-05).
+  var MKT_ASKED = ({ US:'US', UK:'UK', GLOBAL:'GLOBAL', IN:'IN' })[(new URLSearchParams(location.search).get('mkt') || '').toUpperCase()] || '';
+  /* No market is chosen until the data says which markets it has: a typed
+     'US' put the US tab on for every brand, data or none (2026-10-10). */
+  var MKT = MKT_ASKED || '';
 
   // Normalise each market so a widget only appears when its data actually
   // exists (some markets export fewer datasets than others — e.g. UK ships
@@ -242,7 +247,11 @@
     IN:     { label:'India',          region:'in',     cur:'₹', store:'knickgasm.com' }
   };
   function meta(mk){
-    var m = MARKET_META[mk] || { label:mk, region:String(mk||'').toLowerCase(), cur:'$', store:'' };
+    // The symbol is the brand's own for this market (its record, else its
+    // country's), never '$' for a market the table does not carry.
+    var bl = null; try { bl = window.RegionContext && window.RegionContext.localeOf ? window.RegionContext.localeOf(mk) : null; } catch (_) { bl = null; }
+    var m = MARKET_META[mk] || { label:mk, region:String(mk||'').toLowerCase(), cur:'', store:'' };
+    if (bl && bl.symbol) m = Object.assign({}, m, { cur: bl.symbol });
     // The store host is the ACTIVE brand's own region store. The shipped map is
     // tenant zero's and is only ever shown when no brand is active at all.
     try {
@@ -262,7 +271,7 @@
   function mktLabel(mk){ return meta(mk||MKT).label; }
 
   // ── formatting ──────────────────────────────────────────────────────────
-  function cur(){ return meta(MKT).cur || '$'; }
+  function cur(){ return meta(MKT).cur || ''; }
   function money(v){ v=+v||0; if(Math.abs(v)>=1000000) return cur()+(v/1000000).toFixed(2)+'M'; if(Math.abs(v)>=1000) return cur()+(v/1000).toFixed(1)+'K'; return cur()+v.toFixed(0); }
   function moneyFull(v){ return cur()+(+v||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
   function intf(v){ return (+v||0).toLocaleString(); }
@@ -949,9 +958,13 @@
       var g=document.getElementById('grid');
       if(g) g.innerHTML='<div class="empty" style="padding:32px;text-align:center;line-height:1.65">No live data connected yet.<br>This view shows <b>only real data</b> pulled from your connected sources (Supabase / the read-only Shopify, Klaviyo and WebEngage syncs). Once the daily sync populates Supabase, the KPIs, cohorts and channel breakdowns appear here automatically. No sample or static figures are shown.</div>';
       var fn0=document.getElementById('footnote'); if(fn0) fn0.textContent='Awaiting live data from the connected sources.';
+      // The tabs are the DATASET's markets; with no data there is none to pick.
+      document.querySelectorAll('#mktToggle button').forEach(function(b){ b.classList.remove('on'); b.style.display='none'; });
       return;
     }
-    if(!marketHasData(MKT)){ var k=Object.keys(A.markets).filter(marketHasData); if(k.length) MKT=k[0]; }
+    var home = (window.RegionContext && window.RegionContext.home) || '';
+    if(!MKT_ASKED && home && marketHasData(home)) MKT = home;
+    if(!marketHasData(MKT)){ var k=Object.keys(A.markets).filter(marketHasData); if(k.length) MKT=(home && k.indexOf(home)>=0) ? home : k[0]; }
     // Regions are BRAND-TRUE: a brand sold only in India shows only an India
     // toggle. Buttons for markets the active dataset has no data for are
     // hidden, not rendered as dead tabs.

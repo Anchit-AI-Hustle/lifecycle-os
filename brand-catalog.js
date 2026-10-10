@@ -251,7 +251,8 @@
   }
 
   function load(region, opts) {
-    var key = fam(region || 'us') || 'us';
+    // No region named: the brand's HOME market (2026-10-05), never 'us'.
+    var key = fam(region || (window.RegionContext && window.RegionContext.home) || '') || '';
     var o = opts || {};
     return activeBrand().then(function (brand) {
       // No active brand: the gate is up; render nothing rather than tenant zero's

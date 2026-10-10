@@ -990,7 +990,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!SR || listening || ended || speaking) return;
       try {
         recog = new SR();
-        recog.continuous = false; recog.interimResults = true; recog.lang = 'en-US';
+        recog.continuous = false; recog.interimResults = true;
+        // The brand's home-market locale (en-IN for an Indian brand), not a typed en-US (2026-10-05).
+        recog.lang = ((window.RegionContext && window.RegionContext.localeOf && window.RegionContext.localeOf(window.RegionContext.home).locale) || navigator.language || 'en');
         var finalText = '';
         recog.onstart = function () { listening = true; $('mic').classList.add('live'); $('mic').textContent = 'Listening'; status('Listening…'); };
         recog.onresult = function (ev) {

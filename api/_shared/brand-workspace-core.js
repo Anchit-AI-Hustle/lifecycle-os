@@ -1893,7 +1893,16 @@ async function assertCanWrite(auth, workspaceId, what) {
  * catalogue identically and differ only in where the rows are kept.
  */
 async function readCatalogSource({ region, kind, text, url, scope }) {
-  const reg = str(region, 12).toLowerCase() || 'us';
+  // Rows are filed under the region asked for, else the brand's HOME market
+  // (its record's flag) - never a literal 'us' (2026-10-05). The wizard
+  // already refuses without a home market; this is the same rule one layer
+  // down, for every other caller.
+  const reg = str(region, 12).toLowerCase() || require('./brand-locale.js').homeMarket(scope).toLowerCase();
+  if (!reg) {
+    const marker = require('./brand-locale.js').marker('home market', scope && scope.name ? scope : 'this brand');
+    const e = new Error(`${marker} No region was named and the brand's record lists no market, so there is nowhere to file these products. Add its regions in Brand setup, then import.`);
+    e.status = 400; e.code = 'region_required'; throw e;
+  }
   const k = str(kind).toLowerCase();
 
   if (text && String(text).length > MAX_UPLOAD_CHARS) {
@@ -1997,9 +2006,10 @@ const DEVICE_ROW_FIELDS = ['region', 'sku', 'handle', 'title', 'description', 'p
  *  account in Supabase Auth (mode 'supabase', #119) has workspaces like any account. */
 function isPhoneAuth(auth) { return !!(auth && auth.ok !== false && auth.provider === 'mobile-pin' && auth.mode !== 'supabase'); }
 
-async function deviceCatalogImport(auth, { region = 'us', kind, text, url, brand }) {
+async function deviceCatalogImport(auth, { region = '', kind, text, url, brand }) {
   const b = brand && typeof brand === 'object' && !Array.isArray(brand) ? brand : {};
   const scope = {
+    name: typeof b.name === 'string' ? b.name.slice(0, 120) : '',
     website: httpUrl(b.website) || httpUrl(url) || '',
     regions: Array.isArray(b.regions) ? b.regions.slice(0, 20) : [],
     asset_hosts: Array.isArray(b.asset_hosts) ? b.asset_hosts.filter((h) => typeof h === 'string').slice(0, 20) : [],
@@ -2031,7 +2041,7 @@ async function deviceCatalogImport(auth, { region = 'us', kind, text, url, brand
   };
 }
 
-async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true, brand }) {
+async function importCatalog(auth, { workspace_id, region = '', kind, text, url, replace = true, brand }) {
   // A mobile-number sign-in has no workspace row to file under: the rows go
   // back to its device instead (see deviceCatalogImport above).
   if (isPhoneAuth(auth)) return deviceCatalogImport(auth, { region, kind, text, url, brand });
@@ -2557,7 +2567,7 @@ async function handle(req, res) {
       case 'catalog-import': {
         return res.status(200).json(await importCatalog(auth, {
           workspace_id: str(body.workspace_id || q.workspace_id),
-          region: body.region || q.region || 'us',
+          region: body.region || q.region || '',
           kind: body.kind || q.kind,
           text: body.text,
           url: body.url || q.url,
