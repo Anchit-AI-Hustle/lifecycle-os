@@ -719,7 +719,7 @@
       // brand-catalog.js is the ONE reader of a brand's catalogue (2026-10-05):
       // loaded on every page, so no page has a reason to fetch one itself.
       [['/brand-context.js?v=20260809', 'data-vh-brand'],
-        ['/brand-catalog.js?v=20261005', 'data-vh-catalog'],
+        ['/brand-catalog.js?v=20261010', 'data-vh-catalog'],
         ['/region-context.js?v=20261005', 'data-vh-region'],
         ['/credits.js?v=20260809', 'data-vh-credits']].forEach(function (pair) {
         if (d.querySelector('script[' + pair[1] + ']')) return;
