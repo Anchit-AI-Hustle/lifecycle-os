@@ -245,7 +245,7 @@
     <div id="collist"></div>
   </div>
 
-  <div class="overlay hero">
+  <div class="overlay hero" data-shipped-for="knickgasm" data-shipped-label="storefront hero copy">
     <div class="eb">Single-studio · Hand-painted</div>
     <h1>Lace-up a moment that restores.</h1>
     <p>Spin the collection. Tap a box to bring it forward and check out in one tap.</p>
@@ -290,20 +290,20 @@
     <div class="pgrid" id="pGrid"></div>
   </section>
 
-  <section id="reviews-sec" hidden>
+  <section id="reviews-sec" hidden data-shipped-for="knickgasm" data-shipped-label="storefront reviews">
     <div class="sec-eyebrow">Reviews</div>
     <h2 class="sec-h">In their words</h2>
     <p class="sec-sub">Real, verified reviews from KNICKGASM customers. Hand-painted by India's best artists.</p>
     <div class="reviewgrid" id="reviewGrid"></div>
   </section>
 
-  <section class="story">
+  <section class="story" data-shipped-for="knickgasm" data-shipped-label="storefront origin story">
     <div class="sec-eyebrow">Our origin</div>
     <h2 class="sec-h">From the studio, within 48 hours</h2>
     <p class="sec-sub" style="margin:0 auto;color:var(--vh-panel-tan)">There is a moment when the right pair of kicks does more than warm your hands. KNICKGASM sources one-of-one leaves and ships them fresh from India, so every lace-up carries the season it was picked in.</p>
   </section>
 
-  <section id="why-sec">
+  <section id="why-sec" data-shipped-for="knickgasm" data-shipped-label="storefront benefits">
     <div class="sec-eyebrow">Why KNICKGASM</div>
     <h2 class="sec-h">Sneaker worth the ritual</h2>
     <div class="benefits">
@@ -314,7 +314,7 @@
     </div>
   </section>
 
-  <section class="trust">
+  <section class="trust" data-shipped-for="knickgasm" data-shipped-label="storefront trust strip">
     <div>Hand-painted one-of-one</div><div>[DATA REQUIRED BEFORE LAUNCH: verified-review proof]</div><div>[DATA REQUIRED BEFORE LAUNCH: endorsement proof]</div><div>Studio-fresh · Ethically sourced</div>
   </section>
 
@@ -325,104 +325,73 @@
 
 <script type="module">
 const THREE_CDN='https://esm.sh/three@0.169.0';
-// Verified regional storefronts (real PDPs + /products.json live here). The
-// marketing hosts knickgasm.com / knickgasm.com / knickgasm.in / knickgasm.com redirect
-// to these. Prices in each built catalog are already in the region's currency.
-const REGIONS={
-  us:    {label:'US',     base:'https://knickgasm.com',  ccy:'$', cat:'/data/catalog/products_us.json'},
-  uk:    {label:'UK',     base:'https://knickgasm.com',   ccy:'£', cat:'/data/catalog/products_uk.json'},
-  global:{label:'Global', base:'https://knickgasm.com',  ccy:'$', cat:'/data/catalog/products_global.json'},
-  in:    {label:'India',  base:'https://knickgasm.com', ccy:'₹', cat:null} // no built catalog → live /products.json
-};
-const CCY_RE=/^[₹£$€]/;
+// The ACTIVE brand's store and catalogue (2026-10-05). This page carried
+// tenant zero's store host as a literal per region and fetched its shipped
+// catalogue and live feed itself; both now come from brand-catalog.js, the one
+// reader: the brand's own rows (on this device or its account), tenant zero's
+// shipped file for tenant zero, or - for a visitor with no brand at all - the
+// shipped default this public demo was built as. Never another brand's.
+const REGION_LABEL={us:'US',uk:'UK',global:'Global',in:'India'};
+const CCY_RE=/^[^0-9.]/;
 const _q=new URLSearchParams(location.search);
 // Accept ?region= (this page) OR ?variant= (the /3d, /3d/us, /3d/uk, /3d/global
 // routes). 'signature' is the brand/default view → US catalog.
 let REGION=(_q.get('region')||_q.get('variant')||'us').toLowerCase();
 if(REGION==='signature') REGION='us';
-if(!REGIONS[REGION]) REGION='us';
-const RC=REGIONS[REGION];
+if(!/^[a-z]{2,8}$/.test(REGION)) REGION='us';
+// base/ccy are the brand's own, filled in by brandStore() before anything renders.
+const RC={label:REGION_LABEL[REGION]||REGION.toUpperCase(), base:'', ccy:''};
+function brandStore(){
+  const B=window.BrandContext, BC=window.BrandCatalog;
+  const b=(B&&B.brand)||null;
+  RC.base=(BC&&BC.storeBase(REGION))||'';
+  const regs=(b&&Array.isArray(b.regions))?b.regions:[];
+  const hit=regs.find(r=>r&&BC&&BC.region(r.code)===BC.region(REGION));
+  RC.ccy=(hit&&(hit.symbol||hit.currency))||({us:'$',uk:'£',global:'$',in:'₹'}[REGION]||'');
+}
 // Collections map to the REAL tags produced by scripts/build-catalog.js deriveTags()
-// (kicks, green, black, detox, immunity, sleep, gift, bestseller, ...). Earlier this
-// pointed Themed->'themed' and Gear->'gear' (tags that never exist) so those
-// collections were always empty; fixed to the actual tag vocabulary.
-const COLLECTIONS=['Best Sellers','Black Sneaker','Green Sneaker','Themed','Kicks','Immunity','Gifts'];
-const COLLECTION_TAGS={'Best Sellers':'bestseller','Black Sneaker':'black','Green Sneaker':'green','Themed':'detox','Kicks':'kicks','Immunity':'immunity','Gifts':'gift'};
-
-// Minimal, honest fallback (no fabricated prices/handles) — used only if the
-// live catalog fetch fails. Links go to the region's storefront home.
-const FALLBACK=[
-  {title:'Embroidery Spiced Themed Sneaker',price:'',img:null,url:RC.base,tags:['themed']},
-  {title:'English Breakfast Black Sneaker',price:'',img:null,url:RC.base,tags:['black']},
-  {title:'Signature Green Sneaker',price:'',img:null,url:RC.base,tags:['green']},
-  {title:'Sweet Pastel Themed Sneaker',price:'',img:null,url:RC.base,tags:['themed']},
-  {title:'Earl Grey Citrus Black Sneaker',price:'',img:null,url:RC.base,tags:['black']},
-  {title:"India's Original Hand-painted Kicks",price:'',img:null,url:RC.base,tags:['kicks']}
-];
-
-const $=id=>document.getElementById(id);
-const state={all:[],products:[],selected:0,qty:1,usedFallback:false,catalogNote:''};
-
-// Resolve through the shared BrandCatalog resolver when it is present AND a
-// brand is actually active. Returns null to mean "no brand context, carry on
-// with the public tenant-zero demo path"; returns a (possibly empty) product
-// list otherwise, which the caller must not fall back from.
-async function brandScopedCatalog(){
-  try{
-    if(!window.BrandCatalog||!window.BrandContext) return null;
-    const brand=await window.BrandContext.ready();
-    if(!brand) return null;                       // signed out: public demo
-    const res=await window.BrandCatalog.load(REGION==='in'?'global':REGION);
-    if(res.source==='none'){
-      state.catalogNote=res.reason||'No catalogue is connected for this brand.';
-      return [];
-    }
-    return normProducts(res.products||[]);
-  }catch(_){ return null; }
+// (kicks, green, black, detox, immunity, sleep, gift, bestseller, ...) for tenant
+// zero. Another brand's collections are read off ITS OWN rows (ownCollections).
+let COLLECTIONS=['Best Sellers','Black Sneaker','Green Sneaker','Themed','Kicks','Immunity','Gifts'];
+let COLLECTION_TAGS={'Best Sellers':'bestseller','Black Sneaker':'black','Green Sneaker':'green','Themed':'detox','Kicks':'kicks','Immunity':'immunity','Gifts':'gift'};
+function ownCollections(rows){
+  const count={};
+  rows.forEach(p=>[].concat(p.collections||[],p.t||[]).forEach(c=>{const k=String(c||'').trim();if(k)count[k]=(count[k]||0)+1;}));
+  const top=Object.keys(count).sort((x,y)=>count[y]-count[x]).slice(0,6);
+  COLLECTIONS=['All'].concat(top);
+  COLLECTION_TAGS={All:''};
+  top.forEach(c=>{COLLECTION_TAGS[c]=c.toLowerCase();});
 }
 
+const $=id=>document.getElementById(id);
+const state={all:[],products:[],selected:0,qty:1,catalogNote:''};
+
+function brandName(){ const b=window.BrandContext&&window.BrandContext.brand; return (b&&b.name)||'KNICKGASM'; }
+function ownsTenantZeroStore(){ const B=window.BrandContext; const b=B&&B.brand; return !b||!B.isTenantZero||B.isTenantZero(b); }
+function escH(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function normProducts(list){
+  const BC=window.BrandCatalog;
   return list.map(p=>({
-    title:p.n||'', img:p.i||null,
+    title:p.name||p.n||'', img:p.img||p.i||null,
     price:p.price?(CCY_RE.test(String(p.price))?String(p.price):RC.ccy+p.price):'',
-    url:`${RC.base}/products/${p.h||''}`,
-    tags:Array.isArray(p.t)?p.t.map(x=>String(x).toLowerCase()):[]
+    url:(BC&&BC.productUrl(p,REGION))||RC.base||'',
+    tags:[].concat(p.t||[],p.collections||[]).map(x=>String(x).toLowerCase())
   }));
 }
 
 async function loadCatalog(){
-  // 0) The ACTIVE brand's own catalogue, when someone is signed in. A brand that
-  //    is not tenant zero must never be shown the shipped products below: they
-  //    are one company's. `source:'none'` means it has no catalogue of its own,
-  //    and the honest answer is an empty storefront with a reason, not another
-  //    brand's shelves.
-  const scoped = await brandScopedCatalog();
-  if(scoped) return scoped;
-  // 1) same-origin built catalog (US/UK/Global), CORS-enabled + fast. Reached
-  //    only by a signed-out visitor, for whom this IS tenant zero's public
-  //    storefront demo (its title, palette and store URLs).
-  if(RC.cat){
-    try{
-      const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),9000);
-      const res=await fetch(RC.cat,{signal:ctrl.signal,headers:{Accept:'application/json'}});
-      clearTimeout(t);
-      if(res.ok){const list=await res.json(); if(Array.isArray(list)&&list.length) return normProducts(list);}
-    }catch(_){}
-  }
-  // 2) public storefront /products.json (India, or if the built file is missing).
+  // The ONE reader. `source:'none'` means this brand has no catalogue of its
+  // own, and the honest answer is an empty storefront with a reason.
+  if(!window.BrandCatalog){ state.catalogNote='The catalogue resolver did not load, so no products can be shown.'; return []; }
   try{
-    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),9000);
-    const res=await fetch(`${RC.base}/products.json?limit=24`,{signal:ctrl.signal,headers:{Accept:'application/json'}});
-    clearTimeout(t);
-    if(res.ok){
-      const j=await res.json();
-      const list=(j.products||[]).map(p=>{const v=(p.variants||[])[0]||{};
-        return {n:p.title,i:(p.images&&p.images[0]&&p.images[0].src)||null,price:v.price?RC.ccy+v.price:'',h:p.handle,t:(p.tags||[])};});
-      if(list.length) return normProducts(list);
+    const res=await window.BrandCatalog.load(REGION,{shippedPreview:true});
+    const rows=(res.products||[]).filter(p=>p.name);
+    if(!rows.length||res.source==='offerings'){
+      state.catalogNote=res.reason||window.BrandCatalog.describe(res);
+      return [];
     }
-  }catch(_){}
-  state.usedFallback=true;
-  return FALLBACK;
+    return normProducts(rows);
+  }catch(_){ state.catalogNote='This brand\u2019s catalogue could not be read.'; return []; }
 }
 
 function hasWebGL(){try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'));}catch(_){return false;}}
@@ -482,7 +451,7 @@ function renderCheckout(){
   $('coName').textContent=p.title||'Select a product';
   $('coPrice').textContent=p.price||'';
   $('coThumb').style.backgroundImage=p.img?`url("${p.img}")`:'none';
-  $('coBuy').href=p.url||RC.base;
+  $('coBuy').href=p.url||RC.base||'#';
   $('qVal').textContent=state.qty;
 }
 
@@ -524,6 +493,9 @@ function setupReveal(){
 // no approved reviews (e.g. India, no file), the section stays hidden rather than
 // inventing testimonials. Filters out complaints / low ratings / non-substantive.
 async function loadReviews(){
+  // These files are tenant zero's own approved reviews: no other brand's store
+  // shows them (its proof comes from its own review library, not here).
+  if(!ownsTenantZeroStore()) return;
   var file = ({us:'us',uk:'uk',global:'global'})[REGION]; // no IN reviews file → omit
   if(!file) return;
   var esc=function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
@@ -602,18 +574,20 @@ function renderContent(){
   }
   const fl=$('footLinks');
   if(fl){
+    // The brand's own store, or the marker saying it is not on the record.
+    const storeMissing=`<span>[DATA REQUIRED BEFORE LAUNCH: store URL, ${escH(brandName())}, ${RC.label}]</span>`;
     fl.innerHTML=
       `<div><h5>Shop</h5>
-        <a href="${RC.base}/collections" target="_blank" rel="noopener">All collections</a>
-        <a href="${RC.base}" target="_blank" rel="noopener">${RC.label} store home</a></div>`+
+        ${RC.base?`<a href="${RC.base}/collections" target="_blank" rel="noopener">All collections</a>
+        <a href="${RC.base}" target="_blank" rel="noopener">${RC.label} store home</a>`:storeMissing}</div>`+
       `<div><h5>Regions</h5>
         <a href="?variant=us">United States</a><a href="?variant=uk">United Kingdom</a>
         <a href="?variant=global">Global</a><a href="?variant=in">India</a></div>`+
       `<div><h5>Explore</h5>
         <a href="#stage">The 3D atelier</a><a href="#bestsellers-sec">Bestsellers</a>
         <a href="#collections-sec">Collections</a></div>`+
-      `<div><h5>KNICKGASM</h5>
-        <a href="${RC.base}" target="_blank" rel="noopener">${RC.label} storefront</a>
+      `<div><h5>${escH(brandName())}</h5>
+        ${RC.base?`<a href="${RC.base}" target="_blank" rel="noopener">${RC.label} storefront</a>`:storeMissing}
         <div style="font-size:12px;color:var(--vh-ink-dim);margin-top:6px">Powered by Shopify · Prices in ${RC.ccy}</div></div>`;
   }
 }
@@ -624,17 +598,23 @@ async function init(){
   // Region is fixed by the URL the page was opened with (/3d, /3d/us, /3d/uk,
   // /3d/global). There is deliberately NO in-page country switcher: the region is
   // chosen upstream so the storefront stays a single focused market.
+  brandStore();
   $('brandRegion').textContent=(RC.label==='US'?'USA':RC.label).toUpperCase();
 
-  buildCollections();
   state.all=await loadCatalog();
+  // Another brand's shelves are named from ITS OWN rows, and its name heads the store.
+  if(!ownsTenantZeroStore()){
+    ownCollections(state.all);
+    document.querySelectorAll('.topbar .brand').forEach(el=>{ if(el.firstChild&&el.firstChild.nodeType===3) el.firstChild.nodeValue=brandName(); });
+    const fh=document.querySelector('#fallback h1'); if(fh) fh.textContent=brandName();
+  }
+  buildCollections();
   state.products=pickScene(state.all);
   renderCheckout();
   renderContent();   // populate the full-depth scroll sections (works with 3D or 2D)
   loadReviews();     // real verified reviews for this region (hidden if none approved)
   setupReveal();     // luxury scroll-reveal on the content sections
   if(state.catalogNote) note(state.catalogNote);
-  else if(state.usedFallback) note(`Live ${RC.label} catalog unavailable right now — showing a limited sample. Product links still open the ${RC.label} store.`);
 
   // qty + variation wiring (works in both 3D and 2D)
   $('qMinus').onclick=()=>{state.qty=Math.max(1,state.qty-1);renderCheckout();};
@@ -836,19 +816,32 @@ async function start3D(){
    module, in document order, so BrandContext exists by the time this runs. */
 (function start(){
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function marker(b, why){
+    var name=esc(b.name||'this brand');
+    document.title=name+' · 3D Storefront';
+    var rail=document.getElementById('lifecycle-nav');
+    if(rail) rail.parentNode.removeChild(rail);
+    document.body.innerHTML='<main id="lc-content" style="max-width:720px;margin:60px auto;padding:0 20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#111">'+
+      '<h1 style="font-size:24px;margin:0 0 10px">No 3D storefront on the record for '+name+'</h1>'+
+      '<p style="line-height:1.6">[DATA REQUIRED BEFORE LAUNCH: 3D storefront (catalogue, collections and store copy), '+name+'.] '+
+      (why?esc(why)+' ':'')+
+      'The storefront that shipped here was built from another workspace\'s catalogue and copy. This platform never shows one brand\'s store under another brand\'s name; import '+name+'\'s catalogue in the brand setup and its own products fill this store.</p></main>';
+    if(rail) document.body.insertBefore(rail, document.body.firstChild);
+  }
   function go(){
     var B=window.BrandContext;
     var b=B&&B.brand;
     if(b&&B.isTenantZero&&!B.isTenantZero(b)){
-      var name=esc(b.name||'this brand');
-      document.title=name+' · 3D Storefront';
-      var rail = document.getElementById('lifecycle-nav');
-      if (rail) rail.parentNode.removeChild(rail);
-      document.body.innerHTML='<main id="lc-content" style="max-width:720px;margin:60px auto;padding:0 20px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#111">'+
-        '<h1 style="font-size:24px;margin:0 0 10px">No 3D storefront on the record for '+name+'</h1>'+
-        '<p style="line-height:1.6">[DATA REQUIRED BEFORE LAUNCH: 3D storefront (catalogue, collections and store copy), '+name+'.] '+
-        'The storefront that shipped here was built from another workspace\'s catalogue and copy. This platform never shows one brand\'s store under another brand\'s name.</p></main>';
-      if (rail) document.body.insertBefore(rail, document.body.firstChild);
+      // Another brand's OWN catalogue fills the store (its rows, its photos,
+      // its store links, its collections); tenant zero's copy sections are
+      // replaced by brand-context's gate. Without one: the marker.
+      var BC=window.BrandCatalog;
+      if(!BC){ marker(b, 'The catalogue resolver did not load.'); return; }
+      BC.load(REGION).then(function(res){
+        var rows=((res&&res.products)||[]).filter(function(p){return p.name;});
+        if((res.source==='device'||res.source==='brand')&&rows.length){ document.title=(b.name||'Brand')+' · 3D Storefront'; init(); }
+        else marker(b, res&&res.reason);
+      },function(){ marker(b, 'The catalogue could not be read.'); });
       return;
     }
     init();
