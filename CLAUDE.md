@@ -4,6 +4,57 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Sign-in is GOOGLE ONLY, and the mobile number + PIN sign-in is switched OFF (2026-10-10) — read `docs/google-signin.md`
+The owner's words: *"No signin with mobile number - only Google signin pls"*. This SUPERSEDES the PIN-only
+section below (2026-10-09) and every mobile-number section after it (2026-09-28 … 2026-10-03), which are
+kept as the record. Gated by `tests/google-only-signin.spec.js` (executed: the shipped handlers in Node with
+`global.fetch` throwing on anything unrouted; all 55 pages that load `auth.js` in Chromium, three states).
+- **The browser**: the rail chip and the brand gate's button read **Sign in with Google** and call one
+  function, `beginGoogleSignIn()` - restored from `6192ec5`/`df425b1`/`282bfe7` with everything it had: it
+  waits for the boot to decide, refuses `unconfigured`/`unreachable`/`sdk` with the standing bar's own
+  sentence naming the host (**no press ever navigates to a host that is down**), reads
+  `/auth/v1/settings` and refuses `external.google === false` (`provider-off`) with the dashboard steps,
+  then `signInWithOAuth({provider:'google', options:{redirectTo: <origin>/, queryParams:{prompt:
+  'select_account'}}})` with `lc-return-to` restoring the page after the Site-URL bounce. The client
+  persists the session (PKCE); `apiToken()` is the Google JWT, sent only as `Authorization` on
+  same-origin `/api/`. There is no panel, no phone or PIN input, no `LifecycleAuth.mobile`.
+- **A phone session left in a browser is ENDED on boot** (`endLegacyPhoneSession()`): the session and the
+  device-account map are removed, a server/Supabase phone session is revoked (`op=signout`, best effort),
+  and one accent-rule sentence says so (bar + rail note, `data-kind="phone-ended"`). Its token is sent on
+  nothing else. **Its device brands are never deleted**: `lifecycle.brand.device.workspaces.<phone id>`
+  stays put AND is copied (with its `.catalog.`/`.pack.` side keys) into the unscoped key the signed-out
+  wizard reads - that namespace was localStorage behind a 4-digit PIN whose hash sat beside it, so the copy
+  exposes nothing a person at the keyboard could not already read. Signed in with Google, the per-account
+  namespace is the Supabase user id, and onboarding OFFERS the account's AND the unscoped rows for sync
+  (`BrandContext.device.syncable()`), never uploading unasked.
+- **The server**: `?action=auth&op=enter` answers **410 `pin_signin_removed`** for every method before any
+  database, rate limit or GoTrue call; `op=status` is `{mode:'google', pin_signin:false}`; `op=me` 401;
+  `op=signout(_all)` revokes what it can and answers 200. `verifyCaller()` refuses a token of the PIN shape
+  (a LIVE Neon session, the 2026-09-30 `mode:'device'` principal, a forgery) **exactly like no token**,
+  before any lookup, and refuses a Supabase PHONE account's JWT and any OAuth provider but Google; a Google
+  account is admitted. `verifyToken()` never admits anything. So nothing downstream ever sees
+  `provider:'mobile-pin'` or `mode:'device'`: those branches (credits' phone rules, TeleSuite's device
+  store, brand-runtime's carried brand) are unreachable and left in place; `CREDITS_COMP_PHONES` is moot and
+  harmless; the three operator emails stay comp through their Google sign-in. `sessionCheckable()` (the open
+  extract path) now asks only whether the Supabase project answers.
+- **`supabase/config.toml`**: `[auth.external.google]` back, the redirect allowlist back, phone provider OFF
+  (`[auth.sms] enable_signup = false`), email sign-up off, and `[auth] enable_signup = TRUE` - that switch
+  governs every provider, and with it off GoTrue refuses to create the user a FIRST Google sign-in brings.
+- **Signed out stays fully usable**, unchanged: production points at a PAUSED project, so until it answers
+  the app is the `unreachable` signed-out state - every page opens, brands save to the device, the bar names
+  the host, the chip says why and does not navigate. What production needs is in `docs/google-signin.md`
+  (project reachable, Google provider on with a Web OAuth client, Site URL + `/**` allowlist).
+- **Retired whole, the reason in each header**: `pin-only-signin`, `mobile-pin-signin`,
+  `supabase-phone-accounts`. **Retired in part** (the phone/device cases; the rest kept): `phone-signin-features`,
+  `phone-signin-everywhere`, `agents-executed`, `agents-review`, `agents-pages`, `catalog-provenance`,
+  `brand-guide-upload`, `rendered-read-wizard`. **Re-pointed at Google**: `signed-out-actions` (its third
+  state is a Google session against the shipped routers), `read-site-after-signin` (the wizard's decision
+  equals the server's answer, incl. a leftover phone session = signed out), `standalone-no-database` (a
+  device token is refused, no model reached), `onboarding-without-backend`, `signin-config`,
+  `nav-rail-everywhere`, `no-native-dialogs`, `brand-gate-signin`, `signed-out-usable`. Mutation-verified:
+  a PIN panel restored (on press, or on every page), `op=enter` re-accepted, and a PIN-shaped token
+  re-admitted as a principal each fail `google-only-signin`.
+
 ## ⭐ A brand's knowledge documents are its own, at their own address (2026-10-10)
 Production, a phone sign-in with "Deli Chic" active: /knowledge-base's Brand Knowledge Base cards linked
 tenant zero's `knowledge/brand/0N-*.md`, and auth.js wrote each into an about:blank window in tenant zero's
@@ -149,7 +200,7 @@ with `brand_workspace_save` modelled from its migration, the wizard on the devic
   (`claude/brand-context-invariant`) and catalogue import (`claude/catalog-fetch-complete`); clearing a catalogue
   source does not delete imported products (re-import replaces them).
 
-## ⭐ Sign-in is a mobile number and a 4-digit PIN ONLY (2026-10-09) — read `docs/mobile-pin-signin.md`
+## [SUPERSEDED 2026-10-10: Google is the only sign-in, see the top section] Sign-in is a mobile number and a 4-digit PIN ONLY (2026-10-09) — read `docs/mobile-pin-signin.md`
 The owner's words: *"only keep PIN option, that too only 4-digit - this is for all projects"*. The Google
 sign-in restored on 2026-10-05 (#161, #163, #165) is REMOVED from `auth.js` (no `signInWithOAuth`, no
 OAuth callback handling, the Supabase client is anonymous again), `brand-context.js`, `supabase/config.toml`
@@ -847,7 +898,7 @@ the real reader in Chromium, the real builder, the real gallery).
   measured at AA in Chromium through every ancestor's opacity - the step fades in, and a measurement
   taken mid-fade reads 1:1.
 
-## ⭐ Signing in with a phone never turns a feature off (2026-10-03)
+## [SUPERSEDED 2026-10-10: Google is the only sign-in, see the top section] Signing in with a phone never turns a feature off (2026-10-03)
 The operator's words, with a phone screenshot of production `/onboarding` after signing in with a
 mobile number and PIN: *"All features must work even with signin by number and pin"* (earlier: *"not
 working after signin"*). Production is DEVICE mode (no `DATABASE_URL`, Supabase paused). #115 made
@@ -895,7 +946,7 @@ shipped routers, every fix mutation-verified.
   plan-maintenance actions (heal, activate-scenario, recalibrate) still refuse — the console calls none.
 
 
-## ⭐ Phone accounts live in Supabase Auth (2026-10-03) — read `docs/mobile-pin-signin.md` ("Supabase mode")
+## [SUPERSEDED 2026-10-10: Google is the only sign-in, see the top section] Phone accounts live in Supabase Auth (2026-10-03) — read `docs/mobile-pin-signin.md` ("Supabase mode")
 The operator's words: "use supabase cli and remote host for supabase account creation", "All features must
 work even with signin by number and pin" (and: the new project is `lifecycle-os`, never named after a tenant). A phone account in
 Neon or the browser has no Supabase identity, so every RLS-gated feature refused it after a sign-in that had
@@ -1001,7 +1052,7 @@ PR #115 (`e67304a`) and PR #116 (`05d0e42`) were merged with failing CI; product
 - Local runs cannot download WebKit, so the 24 `studio.spec.js` tests on iphone-se/iphone-12/ipad
   run only in CI. Do not merge on red: the rule is every push and deployment green.
 
-## ⭐ Features run without DATABASE_URL (2026-09-30) — read `docs/mobile-pin-signin.md`, `docs/agents-status.md`
+## [SUPERSEDED 2026-10-10: Google is the only sign-in, see the top section] Features run without DATABASE_URL (2026-09-30) — read `docs/mobile-pin-signin.md`, `docs/agents-status.md`
 Production is device mode (`no_database_url`) with model keys and no Neon. Until this date
 `LifecycleStatus.refusal()` blocked every server action for a device-mode sign-in, `apiToken()`
 never sent the token, `verifyToken()` returned `no_database`, and the credit meter 503'd against
@@ -1012,7 +1063,7 @@ Origin still do not reach a model. A deployment that HAS a database still refuse
 is not in `app_sessions`. TeleSuite still refuses a phone account. Gated by
 `tests/standalone-no-database.spec.js`.
 
-## ⭐ Every agent answers a phone account, and only a listed number spends (2026-09-29) — read `docs/agents-status.md`
+## [SUPERSEDED 2026-10-10: Google is the only sign-in, see the top section] Every agent answers a phone account, and only a listed number spends (2026-09-29) — read `docs/agents-status.md`
 PR #112 (`48dfa26`, `3425ff7`) executed every agent action in three states and fixed what running them
 found: a phone token fell through `workspace-scope.resolve()` as USERLESS and was scoped to the oldest
 workspace, so KicksGPT answered a phone account as tenant zero; `brand-runtime.resolve()` threw for it and
@@ -1357,7 +1408,7 @@ combined 57,631/102,459 (56.2%) → 60,699/102,478 (59.2%), 1738 tests, 0 failed
   `mailer-assets` defaults `market` to the literal `'UK'` and competitor.js's `benchmark` to `'US'`
   (the 2026-09-15 home-market sweep missed both); `agent-sync` defaults to tenant zero's agent id.
 
-## ⭐ The one sign-in is a mobile number and a 4-digit PIN (2026-09-28) — read `docs/mobile-pin-signin.md`
+## [SUPERSEDED 2026-10-10: Google is the only sign-in, see the top section] The one sign-in is a mobile number and a 4-digit PIN (2026-09-28) — read `docs/mobile-pin-signin.md`
 `api/_shared/mobile-auth-core.js` + `phone-rules.js` on `public-config.js?action=auth&op=status|enter|me|
 signout|signout_all` (still 12/12), the `MAUTH` block in `auth.js`, gated by `tests/mobile-pin-signin.spec.js`
 (24 tests, executed). The operator's words: "signin/signup with mobile number and a 4 digit password - save in

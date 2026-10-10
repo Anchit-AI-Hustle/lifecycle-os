@@ -6,7 +6,16 @@
 // popup and the buyer widget on a landing page - are opened as real pages
 // served from this repo, with every /api/ call FORWARDED to the shipped
 // routers running in this process (tests/agents-harness.js): nothing here
-// models a server. Two sessions, both seeded the way auth.js stores them:
+// models a server.
+//
+// ── 2026-10-10: GOOGLE IS THE ONLY SIGN-IN ──────────────────────────────────
+// The two phone sessions below (device, and a listed server-mode number) are
+// switched off. The pages are now driven with a GOOGLE session - supabase-js
+// restoring an access token the fake project verifies, for an account whose
+// active brand is its own workspace - and a LEFTOVER phone session is shown
+// to be ended on boot and to reach no model. Retired with that change: the
+// TeleSuite device-library runs and the listed number's wallet pill (both
+// existed only for a phone principal). The history of this file:
 //
 //   device   a mobile+PIN session kept only in this browser, on a deployment
 //            with no DATABASE_URL - the state production is in today. The
@@ -39,41 +48,21 @@ const TELESUITE = require(path.join(A.ROOT, 'api', '_shared', 'telesuite-core.js
 const HOST = 'http://app.agents.test';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const RAW = /\b(sign_in_required|not_authenticated|session_verification_unavailable|invalid_session|credits_require_account|no_active_brand|account_type_unsupported|workspace_unresolved|unauthori[sz]ed|http 401|http 403|http 409)\b/i;
-const DEVICE_SENTENCE = /saved on this device only|exists only in this browser/i;
+const DEVICE_SENTENCE = /saved on this device only|exists only in this browser|mobile number|\bPIN\b/i;
 
-// WHERE the device sentence is looked for (2026-10-03). PR #115 deliberately
-// turned the device session from a REFUSAL into a working state, and the same
-// change made the rail's account line say so: auth.js mauthModeSentence()
-// prefixes it "Local / Demo Mode. Saved on this device only: ..." (asserted in
-// mobile-pin-signin.spec.js). These tests then read the WHOLE body for "saved
-// on this device only", so they failed on the very status line the change
-// introduced, and CI was red from the merge onwards. What they guard is the
-// refusal that used to stand where the answer goes ("Not run: this sign-in is
-// saved on this device only ... exists only in this browser"). So the rail's
-// mode line is taken OUT of the text searched, and is asserted on its own to
-// say Local / Demo Mode - the check is not looser, it is aimed: the refusal
-// must be absent from the page, and the mode must be stated in the rail.
-async function outsideRailMode(page) {
-  const r = await page.evaluate(() => {
-    const body = (document.body && document.body.innerText) || '';
-    const el = document.getElementById('lnav-umode');
-    const mode = el ? (el.innerText || el.textContent || '').trim() : '';
-    return { body, mode };
-  });
-  expect(r.mode, 'the rail states where this account lives').toMatch(/^Local \/ Demo Mode\. Saved on this device only/);
-  const i = r.body.indexOf(r.mode);
-  return i < 0 ? r.body : r.body.slice(0, i) + r.body.slice(i + r.mode.length);
-}
-
-/** Seed the session and the device brand the way auth.js and brand-context.js store them. */
+/**
+ * Seed the page: a Google session supabase-js restores (args.google), or a
+ * LEFTOVER phone session the way auth.js stored one before 2026-10-10
+ * (args.phone), or nothing.
+ */
 function seed(args) {
   try {
-    const users = {};
-    users[args.user.phone] = Object.assign({}, args.user, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: args.session.expires, pinSetAt: args.session.expires });
-    localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(users));
-    localStorage.setItem('lifecycle.auth.session', JSON.stringify(args.session));
-    localStorage.setItem('lifecycle.brand.device.workspaces.' + args.user.id, JSON.stringify({ version: 1, active_id: args.brand.id, workspaces: [args.brand] }));
+    if (args.phone) {
+      localStorage.setItem('lifecycle.auth.session', JSON.stringify(args.phone.session));
+      localStorage.setItem('lifecycle.brand.device.workspaces.' + args.phone.user.id, JSON.stringify({ version: 1, active_id: args.phone.brand.id, workspaces: [args.phone.brand] }));
+    }
   } catch (_) {}
+  var googleSession = args.google || null;
   // CDN libraries the harness blocks: a no-op stand-in each, so a page is
   // measured on its own code.
   function Noop() {}
@@ -88,8 +77,8 @@ function seed(args) {
     createClient: function () {
       return {
         auth: {
-          getSession: async function () { return { data: { session: null } }; },
-          getUser: async function () { return { data: { user: null } }; },
+          getSession: async function () { return { data: { session: googleSession } }; },
+          getUser: async function () { return { data: { user: googleSession && googleSession.user } }; },
           onAuthStateChange: function () { return { data: { subscription: { unsubscribe: function () {} } } }; },
           signInWithOAuth: async function () { return { error: null }; },
           signOut: async function () { return {}; },
@@ -110,14 +99,21 @@ function watch(page) {
   return log;
 }
 
+/** The Google account the fake project holds: `tok-owner` -> user-owner, whose active brand is its own workspace. */
+const GOOGLE = {
+  access_token: 'tok-owner', refresh_token: 'r-owner', expires_at: Math.floor(Date.now() / 1000) + 86400,
+  user: { id: 'user-owner', email: 'owner@example.test', app_metadata: { provider: 'google', providers: ['google'] }, user_metadata: { name: 'Owner Person' } },
+};
+
 async function open(page, w, file, mode, anonymous) {
   const log = watch(page);
-  if (!anonymous) {
-    const user = { id: w.tokens.phoneUserId, phone: A.PHONE.e164, cc: A.PHONE.cc, local: A.PHONE.phone, name: A.PHONE.name };
-    await page.addInitScript(seed, { user, session: w.session(mode), brand: A.deviceBrand() });
+  if (anonymous) {
+    await page.addInitScript(seed, {});
+  } else if (mode === 'phone') {
+    const user = { id: w.tokens.phoneUserId, phone: A.PHONE.e164, name: A.PHONE.name };
+    await page.addInitScript(seed, { phone: { user, session: w.session('server'), brand: A.deviceBrand() } });
   } else {
-    await page.addInitScript(seed, { user: { id: 'nobody', phone: '+910000000000' }, session: null, brand: A.deviceBrand() });
-    await page.addInitScript(() => { try { localStorage.removeItem('lifecycle.auth.session'); } catch (_) {} });
+    await page.addInitScript(seed, { google: GOOGLE });
   }
   await page.route(/^https?:\/\/(?!app\.agents\.test)/, (route) => {
     const u = route.request().url();
@@ -140,32 +136,6 @@ async function open(page, w, file, mode, anonymous) {
   return log;
 }
 
-/** Seed this device's TeleSuite library for the phone account and its device brand. */
-async function seedTelesuite(page, w) {
-  const key = 'lifecycle.telesuite.device.' + w.tokens.phoneUserId + '.' + A.deviceBrand().id;
-  await page.addInitScript((k) => {
-    try {
-      if (localStorage.getItem(k)) return;
-      localStorage.setItem(k, JSON.stringify({ runs: [], items: [{ id: 'dev-item-1', kind: 'product', name: 'Harbour Lamp', category: 'Lamp',
-        content: 'Table lamp, recycled glass.', attributes: {}, source: 'typed', created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z' }] }));
-    } catch (_) {}
-  }, key);
-  return key;
-}
-
-/** Run the pitch tool on the device library and read back what was kept. */
-async function runPitch(page, log, key) {
-  await page.waitForSelector('#run', { timeout: 20000 });
-  await page.selectOption('#form select[data-f="product"]', 'Harbour Lamp');
-  await page.click('#run');
-  await expect.poll(() => log.api.filter((r) => /action=telesuite&op=pitch/.test(r.url)).map((r) => r.status), { timeout: 20000 }).toEqual([200]);
-  await expect(page.locator('#out')).toContainText(/scripted/i, { timeout: 15000 });
-  // The library and the history are this device's: no library or dashboard
-  // request reached the server, and the run is kept here.
-  expect(log.api.filter((r) => /action=telesuite&op=(items|item-save|runs|summary)\b/.test(r.url))).toEqual([]);
-  return page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), key);
-}
-
 async function bodyText(page) { return page.evaluate(() => (document.body && document.body.innerText) || ''); }
 
 function clean(log, shown, label) {
@@ -178,28 +148,36 @@ function clean(log, shown, label) {
   expect(shown, `${label}: a raw code rendered`).not.toMatch(RAW);
 }
 
-/* ═══ the device session: production's state today ═══════════════════════ */
+/* ═══ a Google session: the one sign-in ═══════════════════════════════════ */
 
-test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
+test.describe('a Google session', () => {
   let w;
-  test.beforeAll(async () => { w = await A.world({ serverMode: false }); });
+  test.beforeAll(async () => {
+    w = await A.world();
+    // The account's own wallet on its own brand, funded, so a metered turn
+    // is held and settled rather than refused for an empty balance.
+    w.db.insert('credit_wallets', { user_id: 'user-owner', workspace_id: 'ws-oldest', balance: 100000, held: 0, lifetime_granted: 100000, lifetime_spent: 0, low_balance_threshold: 50 });
+  });
   test.afterAll(async () => { await w.close(); });
   test.beforeEach(() => { w.reset(); });
 
-  test('KicksGPT: the turn runs, and the transcript shows the scripted reply', async ({ page }) => {
-    const log = await open(page, w, 'kicksgpt.html', 'device');
+  test('KicksGPT: the turn runs as the account, and the transcript shows the scripted reply', async ({ page }) => {
+    const log = await open(page, w, 'kicksgpt.html', 'google');
+    expect(await page.evaluate(() => window.LifecycleAuth.backend.kind)).toBe('signed-in');
     await page.fill('#q', 'What is our best cohort?');
     await page.click('#send');
     const bot = page.locator('#chat .msg.bot:not(.status)').last();
     await expect(bot).toHaveText(/Scripted reply for this turn/, { timeout: 15000 });
     const turn = log.api.filter((r) => /action=brand-chat/.test(r.url));
     expect(turn.map((r) => r.status)).toEqual([200]);
-    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
-    clean(log, await bodyText(page), 'kicksgpt');
+    expect(w.llm.calls.map((c) => c.stage)).toContain('kicksgpt');
+    const shown = await bodyText(page);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
+    clean(log, shown, 'kicksgpt');
   });
 
   test('the concierge agent: the empty box is told what to do, then a turn leaves', async ({ page }) => {
-    const log = await open(page, w, 'agent.html', 'device');
+    const log = await open(page, w, 'agent.html', 'google');
     await page.waitForSelector('#send');
     await page.click('#send');
     await expect(page.locator('#askNote')).toHaveText(/Type a question first/);
@@ -207,45 +185,33 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     await page.click('#send');
     await expect.poll(() => log.api.filter((r) => /action=agent-chat/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
     const shown = await bodyText(page);
-    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'agent');
   });
 
   test('the social pipeline console: Run and Load reach the server, never a red banner with a code', async ({ page }) => {
-    const log = await open(page, w, 'social-media.html', 'device');
+    const log = await open(page, w, 'social-media.html', 'google');
     await page.click('#runBtn');
     await expect.poll(() => log.api.filter((r) => /action=social-run-daily/.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
     await page.click('#loadBtn');
     await expect.poll(() => log.api.filter((r) => /action=social-list/.test(r.url)).length, { timeout: 10000 }).toBeGreaterThan(0);
     const shown = await bodyText(page);
-    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'social');
   });
 
-  test('the TeleSuite hub starts, its library is on this device, and a tool run returns its result and is kept in this device\'s history', async ({ page }) => {
+  test('the TeleSuite hub starts and its tool form carries no refusal', async ({ page }) => {
     const tool = TELESUITE.SUBFEATURES.find((s) => s.kind === 'tool' && s.key === 'pitch-generator');
-    const key = await seedTelesuite(page, w);
-    const log = await open(page, w, 'telesuite.html#' + tool.key, 'device');
+    const log = await open(page, w, 'telesuite.html#' + tool.key, 'google');
     await page.waitForSelector('#run', { timeout: 20000 });
     expect(log.api.filter((r) => /op=registry/.test(r.url)).map((r) => r.status)).toEqual([200]);
-    expect(await page.locator('#form .vh-status').count(), 'the tool form still carries a refusal').toBe(0);
-    const kept = await runPitch(page, log, key);
-    expect(kept.runs.map((r) => r.feature)).toEqual(['pitch']);
-    expect(w.llm.calls.map((c) => c.stage)).toContain('telesuite-pitch');
+    expect(await page.locator('#form .vh-status').count(), 'the tool form carries a refusal').toBe(0);
     clean(log, await bodyText(page), 'telesuite');
   });
 
   test('the Smart Brain console: the agentic run reaches the server', async ({ page }) => {
-    const log = await open(page, w, 'smart-brain.html', 'device');
+    const log = await open(page, w, 'smart-brain.html', 'google');
     await page.waitForSelector('#runAgentic');
-    // "Reaches the server" is the REQUEST leaving (2026-10-03). log.api is
-    // filled on RESPONSE, and in device mode the run now actually runs: 8
-    // stages, with a 15 s asset budget of its own (agentic-orchestrator.js
-    // assetBudgetMs). A 15 s poll on the response was shorter than the
-    // server's own budget, so the test timed out on a run that was working.
-    // The request must still leave within 15 s; the answer is then awaited
-    // for longer than the server budgets, and the rendered result is checked
-    // - which is what found the "[object Object]" cohort cells.
     test.setTimeout(150000);
     const sent = page.waitForRequest((r) => /action=agentic-run/.test(r.url()), { timeout: 15000 });
     const answered = page.waitForResponse((r) => /action=agentic-run/.test(r.url()), { timeout: 90000 });
@@ -255,20 +221,19 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
     await expect(page.locator('#agenticOut')).not.toContainText('please wait', { timeout: 10000 });
     expect(log.api.filter((r) => /action=agentic-run/.test(r.url)).map((r) => r.status)).toEqual([200]);
     const shown = await bodyText(page);
-    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'smart-brain');
   });
 
   test('the landing-page agent: Generate reaches /api/ai/', async ({ page }) => {
-    const log = await open(page, w, 'landing-page-agent.html', 'device');
+    const log = await open(page, w, 'landing-page-agent.html', 'google');
     await page.fill('#prompt', 'A complete brief for a launch page: product, audience, offer, proof, visuals, CTA.');
     await page.click('#generate');
     await expect.poll(() => log.api.filter((r) => /\/api\/ai\//.test(r.url)).length, { timeout: 15000 }).toBeGreaterThan(0);
     const shown = await bodyText(page);
-    expect(await outsideRailMode(page)).not.toMatch(DEVICE_SENTENCE);
+    expect(shown).not.toMatch(DEVICE_SENTENCE);
     clean(log, shown, 'landing-page-agent');
   });
-
 });
 
 /* ═══ the buyer widget: an anonymous visitor on a landing page ═══════════ */
@@ -276,7 +241,7 @@ test.describe('device-mode mobile+PIN session, no DATABASE_URL', () => {
 test('the buyer widget on a landing page shows the server\'s sentence, never the word "undefined"', async ({ page }) => {
   const w = await A.world({ serverMode: false });
   try {
-    const log = await open(page, w, 'coffee-collection-landing-with-agent.html', 'device', true);
+    const log = await open(page, w, 'coffee-collection-landing-with-agent.html', 'google', true);
     await page.waitForSelector('#vah-agent-fab', { timeout: 20000 });
     await page.click('#vah-agent-fab');
     await page.waitForSelector('#vah-q', { timeout: 10000 });
@@ -292,38 +257,25 @@ test('the buyer widget on a landing page shows the server\'s sentence, never the
   } finally { await w.close(); }
 });
 
-/* ═══ the server-mode session of a LISTED number: the happy path ═════════ */
+/* ═══ a LEFTOVER phone session: ended on boot, and reaches no model ═══════ */
 
-test.describe('server-mode mobile+PIN session, number listed', () => {
+test.describe('a mobile-number session left in the browser (switched off 2026-10-10)', () => {
   let w;
   test.beforeAll(async () => { w = await A.world({ compPhones: A.PHONE.e164 }); });
   test.afterAll(async () => { await w.close(); });
   test.beforeEach(() => { w.reset(); });
 
-  test('KicksGPT answers as the brand kept on the device, with the scripted reply, and the pill shows a wallet', async ({ page }) => {
-    const log = await open(page, w, 'kicksgpt.html', 'server');
+  test('KicksGPT: the session is ended, the turn is refused with a sentence, and no model or wallet is reached - even for a listed number', async ({ page }) => {
+    const log = await open(page, w, 'kicksgpt.html', 'phone');
+    expect(await page.evaluate(() => [window.LifecycleAuth.session, localStorage.getItem('lifecycle.auth.session'), window.LifecycleAuth.backend.kind]))
+      .toEqual([null, null, 'signed-out']);
     await page.fill('#q', 'What is our best cohort?');
     await page.click('#send');
-    const bot = page.locator('#chat .msg.bot:not(.status)').last();
-    await expect(bot).toHaveText(/Scripted reply for this turn/, { timeout: 15000 });
-    const turn = log.api.find((r) => /action=brand-chat/.test(r.url));
-    expect(turn && turn.status).toBe(200);
-    expect(w.llm.calls.map((c) => c.stage)).toContain('kicksgpt');
-    // The credit pill loaded the LISTED number's wallet - a balance, not the
-    // "no wallet" sentence.
-    await expect(page.locator('.lc-credit-pill')).toHaveAttribute('data-credits-state', 'wallet', { timeout: 15000 });
-    await expect(page.locator('.lc-credit-pill')).toHaveText(/credits/i);
-    clean(log, await bodyText(page), 'kicksgpt server');
-  });
-
-  test('TeleSuite: a listed number runs a tool on its device library, metered on its wallet', async ({ page }) => {
-    const tool = TELESUITE.SUBFEATURES.find((s) => s.kind === 'tool' && s.key === 'pitch-generator');
-    const key = await seedTelesuite(page, w);
-    const log = await open(page, w, 'telesuite.html#' + tool.key, 'server');
-    const kept = await runPitch(page, log, key);
-    expect(kept.runs.map((r) => r.feature)).toEqual(['pitch']);
-    expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the run was not metered').toBe(1);
-    expect(w.db.calls.filter((c) => /telesuite_/.test(c.url)), 'a phone account\'s run was filed in a workspace table').toEqual([]);
-    clean(log, await bodyText(page), 'telesuite server');
+    await page.waitForTimeout(1500);
+    expect(w.llm.calls, 'a leftover phone session reached the model').toEqual([]);
+    expect(w.db.calls.filter((c) => /rpc\/credit_|credit_wallets/.test(c.url)), 'a leftover phone session touched the ledger').toEqual([]);
+    const shown = await bodyText(page);
+    expect(shown).not.toMatch(/Scripted reply/);
+    clean(log, shown.replace(/Mobile-number sign-in has ended\.[^\n]*/g, ''), 'kicksgpt leftover phone');
   });
 });

@@ -163,16 +163,11 @@ function deviceRow(name) {
 function seed(args) {
   try {
     localStorage.clear();
-    const expires = new Date(Date.now() + 80 * 86400000).toISOString();
-    const users = {};
-    users[args.user.phone] = Object.assign({}, args.user, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: expires, pinSetAt: expires });
-    localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(users));
-    localStorage.setItem('lifecycle.auth.session', JSON.stringify({
-      token: 'DEVICEtokenTHEMESWEEP0123456789abcdefghijklmn', mode: 'device', provider: 'mobile-pin',
-      user: { id: args.user.id, name: args.user.name, phone: args.user.phone }, expires,
-      storage: { mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' },
-    }));
-    localStorage.setItem('lifecycle.brand.device.workspaces.' + args.user.id, JSON.stringify({ version: 1, active_id: args.row.id, workspaces: [args.row] }));
+    // The active brand is kept on THIS DEVICE for a signed-out visitor - the
+    // state production is in, and the only device state since 2026-10-10,
+    // when the mobile-number sign-in that used to seed a per-account
+    // namespace here was switched off (Google is the only sign-in).
+    localStorage.setItem('lifecycle.brand.device.workspaces', JSON.stringify({ version: 1, active_id: args.row.id, workspaces: [args.row] }));
   } catch (_) { /* a page with no storage is measured as it is */ }
   // CDN globals the host refuses, as no-ops, so a page is measured on its own
   // code ("Chart is not defined" is the harness, not the page).

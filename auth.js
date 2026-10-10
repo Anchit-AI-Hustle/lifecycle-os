@@ -3,28 +3,27 @@
  * auth.js — Lifecycle OS shared auth + cross-step navigation header.
  *
  * Drop this <script> into any page in the project. It:
- *   1. Bootstraps an ANONYMOUS Supabase client from window.__SUPABASE__ (set in
- *      HTML head) OR from the /api/public-config endpoint at runtime, for the
- *      pages that read anon-open tables. It never holds a Supabase session of
- *      its own and never accepts an OAuth callback.
- *   2. SIGN-IN IS A MOBILE NUMBER AND A 4-DIGIT PIN, AND NOTHING ELSE
- *      (2026-10-09, the owner's words: "only keep PIN option, that too only
- *      4-digit"). The rail's "Sign in" chip opens an inline panel on the
- *      current page: country code + number, then the PIN, then (for a new
- *      number) a name - one Continue button whose label changes. The PIN is
- *      checked on the server whenever the deployment keeps accounts there
- *      (mode 'supabase' or 'server'); with no account store at all it is a
- *      DEVICE LOCK kept in this browser (mode 'device', PBKDF2-hashed, same
- *      5-try / 15-minute lockout). The Google sign-in that ran here from
- *      2026-10-05 to 2026-10-09 is removed, not commented out.
+ *   1. Bootstraps a Supabase client from window.__SUPABASE__ (set in HTML head)
+ *      OR from the /api/public-config endpoint at runtime. The client persists
+ *      the session and accepts the Google OAuth callback (PKCE).
+ *   2. SIGN-IN IS GOOGLE, THROUGH SUPABASE AUTH, AND NOTHING ELSE (2026-10-10,
+ *      the owner's words: "No signin with mobile number - only Google signin
+ *      pls"). The rail's "Sign in with Google" chip starts Google sign-in and
+ *      never hands the browser to a host that is not there or to a project
+ *      whose Google provider is off. redirectTo is this origin's root (the
+ *      Site URL) so a missing wildcard allowlist cannot 400 the bounce;
+ *      rememberReturnTo / restoreReturnTo send the person back to the page
+ *      they pressed from. The mobile number + 4-digit PIN sign-in that ran
+ *      from 2026-09-28 is switched OFF: there is no panel, the server refuses
+ *      op=enter, and a phone session left in this browser is ended on boot
+ *      (its device brands are kept). See endLegacyPhoneSession().
  *   3. Renders a shared left rail with cross-step navigation so any stage
  *      can jump to any other stage.
  *   4. Provides window.LifecycleAuth.{client, session, user, signOut,
  *      openSignIn, apiToken, backend} for any page that needs the caller.
  *
- * The session persists in localStorage under `lifecycle.auth.session` for 90
- * days. LifecycleAuth.internal stays FALSE for a phone account: it is keyed on
- * a verified email domain and a phone account has no email.
+ * supabase-js keeps the Google session under `sb-<ref>-auth-token`.
+ * LifecycleAuth.internal is true only for a signed-in Google account.
  * Open external links in a new tab; same-app links stay in same tab.
  */
 (function () {
@@ -308,22 +307,13 @@
        signed-out          a reachable backend, no session
        unreachable         the configured database is not answering
        unconfigured        no SUPABASE_URL at all
-       unverified-session  a server-mode phone account whose database is down
-       no-wallet           a phone account asked for a METERED feature: the
-                           server refuses it before a wallet exists
-                           (credits-core's credits_require_account), so the
-                           page says so rather than sending
 
-     Device-mode (2026-09-30) is NOT a refusal. A mobile+PIN sign-in saved
-     only in this browser used to block every server action with "this
-     sign-in is saved on this device only" - so on a deployment with no
-     DATABASE_URL (production's state) no feature ran. The server now
-     admits that token as a device principal and runs features unmetered;
-     the page sends the request and the server is the judge. Being signed
-     OUT is still a refusal: sign in on this device, then features run.
+     (Until 2026-10-10 a mobile+PIN sign-in had three more states here -
+     device, unverified-session, no-wallet. That sign-in is switched off; a
+     Google session is verified by the server on every request.)
 
      `refusal(what, {metered})` answers null when the action may proceed (a
-     verified server-mode session, the localhost preview, or a state auth.js
+     Google session, the localhost preview, or a state auth.js
      has not decided yet - the server is the judge then). Pages call it in
      their request helper and THROW the result; every existing catch that goes
      through LifecycleFailure.show() then renders the status line, because
@@ -338,61 +328,17 @@
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     };
     // The server's codes for "no account it can act for" - ordinary for a
-    // visitor who is not signed in or is signed in on this device only.
+    // visitor who is not signed in.
     var ORDINARY = { sign_in_required: 1, not_authenticated: 1, operator_session_required: 1 };
-    // The server's codes for "a phone account cannot do this", in ANY state.
-    var PHONE_ONLY = { credits_require_account: 1, account_type_unsupported: 1 };
-    var WALLET = 'Paid features are metered against a credit wallet, and a wallet belongs to an email account in the '
-      + 'database or to a mobile number the operator has listed. This mobile-number sign-in has no wallet because its '
-      + 'number is not listed, so this feature is not available on it yet.';
+    // The server's codes for "a mobile-number sign-in cannot do this". Since
+    // 2026-10-10 no such sign-in exists (Google only), so a request carrying a
+    // leftover phone token is answered as a signed-out one; the codes are kept
+    // so an old answer still reads as a status, never a red frame.
+    var PHONE_ONLY = { credits_require_account: 1, account_type_unsupported: 1, pin_signin_removed: 1 };
+    var SIGN_IN = 'Sign in with Google (the Sign in with Google chip in the menu)';
 
     function hostOf() { try { return new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { return ''; } }
     function backend() { var a = window.LifecycleAuth; return (a && a.backend) || { kind: 'pending' }; }
-    function session() { var a = window.LifecycleAuth; return (a && a.session) || null; }
-    function creditsConfigured() { try { return !(window.Credits && window.Credits.configured === false); } catch (e) { return true; } }
-    /**
-     * Has the server ALREADY said this phone account has no wallet? Decided
-     * from the balance answer the pill loaded, never assumed (2026-09-29): a
-     * phone number the operator listed (CREDITS_COMP_PHONES) holds a wallet
-     * and is metered on it, so refusing every phone account here would have
-     * kept the one account allowed to spend from ever sending. Unknown (the
-     * pill has not answered yet) means the server judges.
-     */
-    function walletKnownAbsent() {
-      try { var C = window.Credits; return !!(C && C.loaded && C.unavailable === 'mobile_account'); } catch (e) { return false; }
-    }
-    /**
-     * A server-mode phone session whose boot check has not answered YET
-     * (2026-09-29). The stored session is seated on the first frame as
-     * provisional (`verified:false`) and op=me is asked afterwards; in that
-     * window the backend is already `signed-in`, so decide() did not wait,
-     * and refusal() read `verified:false` as "the database your account is
-     * in is not answering" - the credit pill and the first TeleSuite view of
-     * every listed account were refused on every sign-in. The tell is the
-     * Supabase state still being `pending`: init() is deciding. Not decided
-     * is not down.
-     */
-    function verifying(s) {
-      return !!(s && s.provider === 'mobile-pin' && (s.mode === 'server' || s.mode === 'supabase') && s.verified === false && backend().supabase === 'pending');
-    }
-    /** Resolve once the boot check has answered, or after `ms`. */
-    function verified(ms) {
-      if (!verifying(session())) return Promise.resolve();
-      return new Promise(function (resolve) {
-        var done = false;
-        var finish = function () { if (done) return; done = true; try { window.removeEventListener('lifecycleauth:backend', onEvent); } catch (e) {} resolve(); };
-        var onEvent = function () { if (!verifying(session())) finish(); };
-        window.addEventListener('lifecycleauth:backend', onEvent);
-        setTimeout(finish, ms || 8000);
-      });
-    }
-    /** The sentence the sign-in panel gave for where this device account lives. */
-    function deviceReason() {
-      try {
-        var s = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null');
-        return (s && s.storage && s.storage.message) || '';
-      } catch (e) { return ''; }
-    }
     function codeOf(e) {
       if (!e) return '';
       var p = (e && typeof e === 'object' && e.payload && typeof e.payload === 'object') ? e.payload : (e && typeof e === 'object' ? e : {});
@@ -405,51 +351,20 @@
      * the action ("Generating the plan", "Your usage and ledger").
      */
     function refusal(what, opts) {
-      var o = opts || {};
       var subject = cap(what || 'This action');
-      var s = session();
       var kind = backend().kind || 'pending';
       var host = hostOf();
       var state = '', lead = '', body = '', code = 'sign_in_required', status = 401;
-      if (s && s.provider === 'mobile-pin') {
-        // Still being checked: the server is the judge, and it verifies the
-        // token itself on every request.
-        if (verifying(s)) return null;
-        if (s.mode === 'device' && s.transition) {
-          state = 'account-transition';
-          lead = 'Not run: this account is saved on this device only.';
-          body = subject + ' runs on the server for an account in the database, which is answering now: sign in again with the same number and PIN to move this account there, then try again. Everything kept on this device keeps working.';
-          code = 'sign_in_required'; status = 401;
-        } else if (s.mode === 'device') {
-          // STANDALONE (2026-09-30): the server admits this token as a device
-          // principal and runs features without a ledger. Blocking here is
-          // what made "no feature works without DATABASE_URL". The mode line
-          // already says the account lives on this device; the request goes.
-          return null;
-        } else if (s.verified === false) {
-          state = 'unverified-session';
-          lead = 'Not run: the database your account is in is not answering.';
-          body = subject + ' needs that database' + (host ? ' (' + host + ')' : '')
-            + ', which is not answering right now, so it did not run and nothing was sent.';
-          code = 'backend_unreachable'; status = 503;
-        } else if (o.metered && creditsConfigured() && walletKnownAbsent()) {
-          state = 'no-wallet';
-          lead = 'Not available on this mobile-number sign-in.';
-          body = subject + ' is metered against a credit wallet, and a wallet belongs to an email account in the database '
-            + 'or to a mobile number the operator has listed. This mobile-number sign-in has no wallet because its number is not listed, so nothing was sent.';
-          code = 'credits_require_account'; status = 403;
-        } else return null;
-      } else if (kind === 'signed-out') {
+      if (kind === 'signed-out') {
         state = 'signed-out';
         lead = 'Not run: you are signed out.';
         body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
-          + 'Sign in with your mobile number and 4-digit PIN (the Sign in chip in the menu), then try again; '
-          + 'everything else on this page keeps working.';
+          + SIGN_IN + ', then try again; everything else on this page keeps working.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
         lead = 'Not run: the workspace database is unreachable.';
         body = subject + ' needs the database this deployment points at' + (host ? ' (' + host + ')' : '')
-          + ', which is not answering, so it did not run and nothing was sent. Everything else on this page keeps working.';
+          + ', which is not answering, so it did not run and nothing was sent. Sign in with Google needs it too. Everything else on this page keeps working.';
         code = 'backend_unreachable'; status = 503;
       } else if (kind === 'unconfigured') {
         state = 'unconfigured';
@@ -458,8 +373,8 @@
           + 'so it did not run and nothing was sent.';
         code = 'supabase_not_configured'; status = 503;
       } else {
-        // A verified server-mode session, the localhost preview, the SDK
-        // failing to load, or a boot still deciding: the server is the judge.
+        // A Google session, the localhost preview, the SDK failing to load,
+        // or a boot still deciding: the server is the judge.
         return null;
       }
       var e = new Error(lead + ' ' + body);
@@ -476,7 +391,7 @@
       // A device brand cannot hold encrypted platform credentials. That is a
       // state of this sign-in, said as a status, never a red frame.
       if (code === 'device_account') return true;
-      if (PHONE_ONLY[code]) { var s = session(); return !!(s && s.provider === 'mobile-pin'); }
+      if (PHONE_ONLY[code]) return true;
       if (ORDINARY[code]) return !!refusal('This');
       return false;
     }
@@ -500,9 +415,8 @@
         return statusHtml('Kept on this device.', dm);
       }
       if (PHONE_ONLY[code]) {
-        var m = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
-        if (!m || /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/.test(m)) m = WALLET;
-        return statusHtml((o.title ? subjectOf(o.title) + ': ' : '') + 'not available on a mobile-number sign-in.', m);
+        return statusHtml((o.title ? subjectOf(o.title) + ': ' : '') + 'not run.',
+          'Sign-in is with Google now; a mobile-number sign-in is not accepted. ' + SIGN_IN + ', then try again.');
       }
       var r = refusal(o.title ? subjectOf(o.title) : 'This action');
       if (!r) return statusHtml('', (e && e.message) || 'This did not run.');
@@ -531,7 +445,7 @@
      * bounded by the same 8 s brand-context.js allows the gate.
      */
     function decide(what, opts) {
-      var settled = function () { return verified(8000).then(function () { return refusal(what, opts); }); };
+      var settled = function () { return Promise.resolve(refusal(what, opts)); };
       var a = window.LifecycleAuth;
       var kind = a && a.backend && a.backend.kind;
       // Already decided: answer now. `pending`, or auth.js not assigned yet
@@ -584,49 +498,15 @@
       if (window.__lcFetchPatched || typeof window.fetch !== 'function') return;
       window.__lcFetchPatched = true;
       var nativeFetch = window.fetch.bind(window);
-      // A stored DEVICE session: created HERE, at load, because pages make
-      // their first API calls before init() runs. init() resolves it.
-      try {
-        var raw0 = JSON.parse(localStorage.getItem('lifecycle.auth.session') || 'null');
-        if (raw0 && raw0.mode === 'device' && raw0.token) {
-          // `decided` is set ONLY by init() once it knows whether the server
-          // takes a device token. Until then the token is withheld (fail
-          // closed): waiting calls are released after 30 s at the latest, but
-          // WITHOUT the device token (review finding, 2026-10-03: a 6-second
-          // release sent it while op=status was still in flight).
-          var dd0 = { done: false, decided: false, token: String(raw0.token) };
-          dd0.promise = new Promise(function (r) { dd0.resolve = function () { if (!dd0.done) { dd0.done = true; r(); } }; });
-          setTimeout(function () { dd0.resolve(); }, 30000);
-          window.__lcDeviceDecided = dd0;
-        }
-      } catch (_) { /* no storage: nothing to wait for */ }
 
+      // The Google session's access token (a Supabase JWT), and nothing else.
+      // A mobile-number token is never sent (2026-10-10): that sign-in is
+      // switched off and the server refuses one exactly like no token at all.
       function currentToken() {
-        // A token the server can act on (2026-09-30): a server-mode session
-        // (verified against app_sessions) OR a device-mode session on a
-        // deployment with no DATABASE_URL. The server admits the latter as
-        // a device principal so features run; it still refuses a token that
-        // is not our shape, a JWT, or a server-to-server call with no Origin.
-        // Sending nothing used to turn a signed-in device user into an
-        // anonymous caller, which every agent then refused.
         try {
           var a = window.LifecycleAuth;
           if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
-          if (a && a.session && a.session.access_token && a.session.provider === 'mobile-pin') return a.session.access_token;
         } catch (_) {}
-        // 2026-09-28: the scan of Supabase's `sb-*-auth-token` localStorage
-        // entries is DISABLED. Nothing can produce a Supabase session any
-        // more (Google sign-in was removed), so a token found there is a
-        // leftover from before this change, not a session.
-        // try {
-        //   for (var i = 0; i < localStorage.length; i++) {
-        //     var k = localStorage.key(i);
-        //     if (!k || k.indexOf('-auth-token') < 0) continue;
-        //     var v = JSON.parse(localStorage.getItem(k) || 'null');
-        //     var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
-        //     if (t) return t;
-        //   }
-        // } catch (_) {}
         return '';
       }
 
@@ -642,62 +522,26 @@
           var url = (typeof input === 'string') ? input : (input && input.url) || '';
           if (!isOwnApi(url)) return nativeFetch(input, init);
 
-          // Wait for the boot to decide who is signed in before the first
-          // authenticated API request. Public config/auth bootstrap must
-          // never wait on itself.
+          // Restore the Google session before the first authenticated API
+          // request. Public config/auth bootstrap must never wait on itself.
           if (new URL(url, location.href).pathname !== '/api/public-config' && !authReady.settled) {
             return authReady.promise.then(function () { return window.fetch(input, init); });
-          }
-
-          // A DEVICE session waits for the boot to decide whether its token is
-          // one the server accepts (review finding, 2026-10-03): with the
-          // account database answering, it is refused, and the first API
-          // calls of the page (the credit pill) were answered 401.
-          var dd = window.__lcDeviceDecided;
-          // The auth endpoint and the public config (what init() itself
-          // reads to decide) never wait: waiting on them would deadlock.
-          // Neither needs a token, so neither is sent one before the decision.
-          if (dd && !dd.done && !(/[?&]action=/.test(url) && !/[?&]action=auth(&|$)/.test(url))) return nativeFetch(input, init);
-          if (dd && !dd.done) {
-            return dd.promise.then(function () {
-              // A caller that set the header ITSELF (credits.js, brand-context)
-              // read apiToken() before the decision: a device token the server
-              // now refuses is taken back off, and the call goes as it would
-              // have gone had it been made a moment later.
-              var dev = dd.token || '';
-              if (dev && !currentToken()) {
-                var strip = function (h) {
-                  if (h.get('Authorization') === 'Bearer ' + dev) h.delete('Authorization');
-                  if (h.get('X-Lifecycle-Token') === dev) h.delete('X-Lifecycle-Token');
-                };
-                if (typeof input !== 'string' && input && typeof Request !== 'undefined' && input instanceof Request) {
-                  var rq = new Request(input, init || undefined); strip(rq.headers); return window.fetch(rq);
-                }
-                var o2 = Object.assign({}, init || {}); var h2 = new Headers(o2.headers || {}); strip(h2); o2.headers = h2;
-                return window.fetch(input, o2);
-              }
-              return window.fetch(input, init);
-            });
           }
 
           var token = currentToken();
           if (!token) return nativeFetch(input, init);
 
           // Request object: clone with the header added, leaving the body alone.
-          // Both headers: X-Lifecycle-Token is where a mobile+PIN token
-          // travels, and the bearer is what every existing gate reads.
           if (typeof input !== 'string' && input && typeof Request !== 'undefined' && input instanceof Request) {
             if (input.headers && input.headers.get && input.headers.get('Authorization')) return nativeFetch(input, init);
             var req = new Request(input, init || undefined);
             if (!req.headers.get('Authorization')) req.headers.set('Authorization', 'Bearer ' + token);
-            if (!req.headers.get('X-Lifecycle-Token')) req.headers.set('X-Lifecycle-Token', token);
             return nativeFetch(req);
           }
 
           var opts = Object.assign({}, init || {});
           var headers = new Headers((opts && opts.headers) || {});
           if (!headers.get('Authorization')) headers.set('Authorization', 'Bearer ' + token);
-          if (!headers.get('X-Lifecycle-Token')) headers.set('X-Lifecycle-Token', token);
           opts.headers = headers;
           return nativeFetch(input, opts);
         } catch (_) {
@@ -2143,7 +1987,10 @@
         #lifecycle-nav .lnav-skip:focus {
           left: 8px; outline: 2px solid var(--vh-focus); outline-offset: 2px;
         }
-        #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px; }
+        /* A 44px target (2026-10-10): with Google the only sign-in, this chip is
+           what every signed-out visitor presses, on a phone too. */
+        #lifecycle-nav .lnav-signin { color: var(--vh-link); text-decoration: none; font-weight: 600; padding: 4px 8px;
+          display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box; }
         /* A press held while boot settles: dimmed and waiting, no colour of its own. */
         #lifecycle-nav .lnav-signin[aria-busy="true"] { opacity: .72; cursor: progress; }
         /* Why sign-in did not happen, said UNDER the button that was pressed.
@@ -2164,35 +2011,9 @@
         #lifecycle-nav .lnav-signin-note code { font-family: var(--vh-font-mono, monospace); font-size: 10.5px; }
         #lifecycle-nav .lnav-signin-note b { color: var(--vh-ink); }
         #lifecycle-nav .lnav-signin-note[data-kind="expired"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
-        /* Mobile number + PIN sign-in (2026-09-28): an inline panel in the
-           rail, on the current page - no navigation, no dialog. Brand tokens
-           only: the primary button takes the brand's primary with its
-           contrast-computed on-primary text, everything else sits on the
-           panel surface in ink. The one-sentence mode line is a .vh-status. */
-        #lifecycle-nav .lnav-mauth { margin: 6px 8px 0; padding: 10px; border-radius: 8px; background: var(--vh-panel-2);
-          border: 1px solid var(--vh-line); font-size: 12px; color: var(--vh-ink); text-align: left; }
-        #lifecycle-nav .lnav-mauth h4 { margin: 0 0 6px; font-size: 12.5px; font-weight: 700; color: var(--vh-ink); font-family: inherit; }
-        #lifecycle-nav .lnav-mauth label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
-          color: var(--vh-ink-dim, var(--vh-ink)); margin: 8px 0 3px; font-weight: 600; }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-row { display: flex; gap: 6px; }
-        #lifecycle-nav .lnav-mauth select, #lifecycle-nav .lnav-mauth input { width: 100%; box-sizing: border-box; min-width: 0;
-          font: inherit; font-size: 13px; padding: 7px 8px; border-radius: 6px; border: 1px solid var(--vh-line);
-          background: var(--vh-panel); color: var(--vh-ink); }
-        #lifecycle-nav .lnav-mauth select { width: 84px; flex: none; }
-        #lifecycle-nav .lnav-mauth input:focus, #lifecycle-nav .lnav-mauth select:focus { outline: 2px solid var(--vh-focus); outline-offset: 1px; }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-pin { letter-spacing: .45em; text-align: center; font-size: 16px; }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-note { margin: 6px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--vh-ink); }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-actions { display: flex; gap: 6px; margin-top: 10px; }
-        #lifecycle-nav .lnav-mauth button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 10px; border-radius: 6px;
-          cursor: pointer; border: 1px solid var(--vh-line); background: transparent; color: var(--vh-ink); }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-go { flex: 1; background: var(--vh-primary); color: var(--vh-on-primary); border-color: transparent; }
-        #lifecycle-nav .lnav-mauth button[disabled] { opacity: .6; cursor: progress; }
-        #lifecycle-nav .lnav-mauth .vh-status { margin: 0 0 6px; }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-err { margin-top: 8px; }
-        #lifecycle-nav .lnav-mauth .lnav-mauth-err:empty { display: none; }
-        #lifecycle-nav .lnav-mauth [hidden] { display: none !important; }
-        #lifecycle-nav .lnav-umode { margin: 4px 8px 0; }
-        html.lnav-collapsed #lifecycle-nav .lnav-umode, html.lnav-collapsed #lifecycle-nav .lnav-mauth { display: none; }
+        /* A phone sign-in ended on boot (2026-10-10): an ordinary state, the accent edge. */
+        #lifecycle-nav .lnav-signin-note[data-kind="phone-ended"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
+        html.lnav-collapsed #lifecycle-nav .lnav-signin-with { display: none; }
 
         @media (max-width: 960px) {
           #lifecycle-nav .lnav-mbar { display: flex; }
@@ -2478,11 +2299,11 @@
   }
 
   // The user block at the foot of the rail: the account chip + sign-out when a
-  // session exists, a "Sign in" link otherwise. It is the ONLY part of the
-  // rail that depends on the session, which is why it can be swapped in place
-  // (see setRailUser) instead of the whole rail waiting for the session to
-  // resolve. The chip opens the mobile number + 4-digit PIN panel.
-  const SIGN_IN_LABEL = 'Sign in';
+  // session exists, a "Sign in with Google" link otherwise. It is the ONLY
+  // part of the rail that depends on the session, which is why it can be
+  // swapped in place (see setRailUser) instead of the whole rail waiting for
+  // the session to resolve. Google is the only sign-in (2026-10-10).
+  const SIGN_IN_LABEL = 'Sign in with Google';
   function bindSkipTarget(wrap) {
     const skip = wrap && wrap.querySelector('.lnav-skip');
     if (!skip) return;
@@ -2507,31 +2328,35 @@
   function escHtml(v) {
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
-  /** The only sign-in a visitor is offered: a mobile number and a 4-digit PIN. */
+  /** The only sign-in a visitor is offered: Google, through Supabase Auth. */
   function signInLabelHtml() {
-    return SIGN_IN_LABEL;
+    return 'Sign in<span class="lnav-signin-with"> with Google</span>';
   }
-  function paintSignInLabel(btn) {
+  function paintSignInLabel(btn, opts) {
     if (!btn) return;
-    btn.textContent = signInLabelHtml();
+    // A press in flight owns the label ("Checking sign-in…"). clearSignInNote
+    // must not take it back; the press itself restores with { force: true }.
+    if (btn.dataset.busy && !(opts && opts.force)) return;
+    btn.innerHTML = signInLabelHtml();
     btn.setAttribute('aria-label', SIGN_IN_LABEL);
     btn.removeAttribute('title');
   }
   function railUserHtml(user) {
-    // Two user shapes reach here: a mobile+PIN user {id, phone, name} (the one
-    // sign-in since 2026-09-28) and the localhost "Local preview" stub, which
-    // keeps the Supabase-era {email, user_metadata} shape.
+    // A Google user (Supabase's {email, user_metadata:{name|full_name,
+    // avatar_url}}) and the localhost "Local preview" stub, which has the
+    // same shape.
+    const um = (user && user.user_metadata) || {};
     const display = user
-      ? String(user.name || (user.user_metadata && user.user_metadata.name) || user.email || user.phone || '?').trim()
+      ? String(um.name || um.full_name || user.email || '?').trim()
       : '';
     const initials = display.slice(0, 1).toUpperCase();
     const avatar = user
       ? (user.user_metadata && user.user_metadata.avatar_url
-          ? `<span class="lnav-avatar"><img src="${escHtml(user.user_metadata.avatar_url)}" alt=""></span>`
+          ? `<span class="lnav-avatar"><img src="${escHtml(user.user_metadata.avatar_url)}" alt="" referrerpolicy="no-referrer"></span>`
           : `<span class="lnav-avatar">${escHtml(initials)}</span>`)
       : '';
     return user
-      ? `<div class="lnav-user"${user.phone ? ` title="${escHtml(user.phone)}"` : ''}>${avatar}<span class="lnav-uname">${escHtml(display)}</span>
+      ? `<div class="lnav-user"${user.email ? ` title="${escHtml(user.email)}"` : ''}>${avatar}<span class="lnav-uname">${escHtml(display)}</span>
            <button class="lnav-signout" id="lnav-signout" title="Sign out">⎋</button></div>`
       : `<div class="lnav-user"><a class="lnav-signin" id="lnav-signin" href="/" aria-label="${escHtml(SIGN_IN_LABEL)}">${signInLabelHtml()}</a></div>`;
   }
@@ -2542,11 +2367,11 @@
       // a deployment with no client at all, which sent an unconfigured
       // deployment's visitor to the homepage instead of telling them why.
       e.preventDefault();
-      // The chip opens the mobile number + 4-digit PIN panel on THIS page. No
-      // navigation, no dialog, no other provider. The panel needs nothing from
-      // boot (not the config, not the SDK), so there is nothing to wait for; it
-      // asks the server where accounts are saved and says so in one line.
-      mauthOpenPanel(root, { from: signinBtn });
+      // Google is the only sign-in (2026-10-10). A press during boot waits
+      // (the chip says so) and is diagnosed only once the host is known, so
+      // a slow config fetch is never reported as a missing project, and a
+      // host that is not there is NAMED, never navigated to.
+      beginGoogleSignIn(root);
     };
     const signoutBtn = root.querySelector('#lnav-signout');
     if (signoutBtn) signoutBtn.onclick = () => window.LifecycleAuth.signOut();
@@ -2709,6 +2534,175 @@
     return { promise, settled: false, settle() { if (!this.settled) { this.settled = true; resolve(); } } };
   })();
 
+  /**
+   * Which signed-out state is this browser in? One of
+   *   unconfigured | sdk | unreachable | signed-out
+   * - the same four the standing bar names, decided the same way, so the bar
+   * and the sign-in button can never disagree about what is wrong.
+   */
+  async function signedOutState() {
+    const cfg = window.__SUPABASE__ || {};
+    if (!cfg.url) return 'unconfigured';
+    // A URL but no client: the SDK never loaded (boot()'s catch). This used to
+    // be reported as "no Supabase configuration", which sends the operator to
+    // check an env var that is set.
+    if (!(window.LifecycleAuth && window.LifecycleAuth.client)) return 'sdk';
+    return (await authHostReachable(cfg.url)) ? 'signed-out' : 'unreachable';
+  }
+
+  /**
+   * What this Auth project publishes about its providers.
+   *
+   * GET /auth/v1/settings is public. `external.google === false` was the live
+   * production state on 2026-10-05: GoTrue then answers authorize with
+   * 400 validation_failed "Unsupported provider: provider is not enabled",
+   * and because signInWithOAuth NAVIGATES the person sees that JSON instead
+   * of a sentence. Unreadable settings fail OPEN - a CORS miss, a timeout
+   * or a harness that only answers /health must not block a working project.
+   * Never prefetch /auth/v1/authorize: that call spends the PKCE verifier.
+   */
+  const SETTINGS_CACHE = new Map();
+  function authSettings(url, anonKey) {
+    if (!url) return Promise.resolve(null);
+    const key = String(url);
+    if (SETTINGS_CACHE.has(key)) return SETTINGS_CACHE.get(key);
+    const probe = (async () => {
+      const ctl = new AbortController();
+      const timer = setTimeout(function () { ctl.abort(); }, 4000);
+      try {
+        const res = await fetch(url.replace(/\/+$/, '') + '/auth/v1/settings', {
+          headers: { apikey: anonKey || '', Authorization: 'Bearer ' + (anonKey || '') },
+          signal: ctl.signal,
+        });
+        if (!res.ok) return null;
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (!ct.includes('application/json')) return null;
+        return await res.json();
+      } catch (e) {
+        return null;
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    SETTINGS_CACHE.set(key, probe);
+    return probe;
+  }
+  function googleProviderOff(settings) {
+    if (!settings || typeof settings !== 'object') return false;
+    const ext = settings.external;
+    if (!ext || typeof ext !== 'object') return false;
+    return ext.google === false;
+  }
+
+  /**
+   * Start Google sign-in, but never hand the browser to a host that is not
+   * there, or to a project whose Google provider is off. Resolves to null
+   * when the redirect has been started, otherwise to `{ kind, message, html }`
+   * naming the state that refused it. The sentence is signedOutSentence()'s -
+   * the SAME words the standing bar shows for that state.
+   */
+  async function signInRefusal() {
+    // Never diagnose a boot still in flight (see authReady). This also covers
+    // window.__startGoogleSignIn__, which pages and tests call directly.
+    await authReady.promise;
+    const kind = await signedOutState();
+    if (kind !== 'signed-out') {
+      const s = signedOutSentence(kind);
+      return { kind: kind, message: s.text, html: s.html };
+    }
+    const cfg = window.__SUPABASE__ || {};
+    const settings = await authSettings(cfg.url, cfg.anonKey);
+    if (googleProviderOff(settings)) {
+      const s = signedOutSentence('provider-off');
+      return { kind: 'provider-off', message: s.text, html: s.html };
+    }
+    const client = window.LifecycleAuth && window.LifecycleAuth.client;
+    if (!(client && client.auth && typeof client.auth.signInWithOAuth === 'function')) {
+      const s = signedOutSentence('sdk');
+      return { kind: 'sdk', message: s.text, html: s.html };
+    }
+    rememberReturnTo();
+    const { error } = await client.auth.signInWithOAuth(googleSignInOptions());
+    if (!error) return null;
+    const message = 'Sign-in failed: ' + (error.message || error);
+    return { kind: 'failed', message: message, html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }) };
+  }
+
+  /** String form of signInRefusal(): '' on success, the sentence on refusal. */
+  async function startGoogleSignIn() {
+    return beginGoogleSignIn(document.getElementById('lifecycle-nav'));
+  }
+
+  /**
+   * Say why sign-in did not happen, where the user is looking: a note under
+   * the rail's Sign-in button carrying the state's sentence, and the standing
+   * bar brought back into view (re-shown if it had been dismissed) so the two
+   * explanations are visibly the same one.
+   */
+  function showSignInRefusal(wrap, btn, refusal) {
+    btn.textContent = 'Sign-in unavailable';
+    btn.setAttribute('aria-label', 'Sign-in unavailable');
+    btn.title = refusal.message;
+    btn.setAttribute('aria-describedby', 'lnav-signin-note');
+    let note = wrap.querySelector('#lnav-signin-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'lnav-signin-note';
+      note.className = 'lnav-signin-note';
+      note.setAttribute('role', 'alert');
+      const footer = btn.closest('.lnav-user') || btn;
+      footer.insertAdjacentElement('afterend', note);
+    }
+    note.setAttribute('data-kind', refusal.kind);
+    note.innerHTML = refusal.html;
+    if (refusal.kind === 'failed') return;   // an OAuth error is not a deployment state
+    const bar = injectSignedOutNotice(refusal.kind, { force: true });
+    if (!bar) return;
+    try { bar.scrollIntoView({ block: 'nearest' }); } catch (_) { /* older engines */ }
+    bar.style.outline = '2px solid var(--vh-warn)';
+    bar.style.outlineOffset = '-2px';
+    setTimeout(function () { bar.style.outline = ''; bar.style.outlineOffset = ''; }, 2400);
+  }
+
+  /**
+   * The Sign in chip and LifecycleAuth.openSignIn share this. Returns '' when
+   * Google has been asked to take over, otherwise the sentence that refused it.
+   */
+  async function beginGoogleSignIn(root) {
+    const nav = root || document.getElementById('lifecycle-nav');
+    const btn = nav && nav.querySelector('#lnav-signin');
+    if (btn && btn.dataset.busy) return '';
+    if (btn) btn.dataset.busy = '1';
+    try {
+      const waited = !authReady.settled;
+      if (waited && btn) {
+        btn.textContent = 'Checking sign-in…';
+        btn.setAttribute('aria-label', 'Checking sign-in');
+        btn.setAttribute('aria-busy', 'true');
+      }
+      const refusal = await signInRefusal();
+      if (waited && btn) {
+        paintSignInLabel(btn, { force: true });
+        btn.removeAttribute('aria-busy');
+      }
+      if (!refusal) return '';
+      if (btn && nav) showSignInRefusal(nav, btn, refusal);
+      return refusal.message || '';
+    } catch (err) {
+      const message = 'Sign-in failed: ' + ((err && err.message) || err);
+      if (btn && nav) {
+        showSignInRefusal(nav, btn, {
+          kind: 'failed',
+          message: message,
+          html: window.LifecycleFailure.html(err instanceof Error ? err : new Error(message), { title: 'Sign-in failed' }),
+        });
+      }
+      return message;
+    } finally {
+      if (btn) delete btn.dataset.busy;
+    }
+  }
+
   async function getConfig() {
     if (window.__SUPABASE__?.url && window.__SUPABASE__?.anonKey) return window.__SUPABASE__;
     try {
@@ -2755,30 +2749,37 @@
    * bar has always used, `text` is the same words with no markup.
    */
   function signedOutSentence(kind) {
-    // THREE states someone can fix, not one, and naming the wrong one sends
+    // FOUR states someone can fix, not one, and naming the wrong one sends
     // the reader to check the thing that is not broken. `unconfigured` is a
     // missing env var on the deployment; `unreachable` is a project that no
     // longer answers, and its host is worth printing because that is the value
     // that has to change; `sdk` is the supabase-js CDN not loading;
-    // `signed-out` is the ordinary case where everything works and this
-    // visitor simply has no session.
+    // `provider-off` is a reachable project whose Google provider is disabled
+    // (GoTrue 400 validation_failed); `signed-out` is the ordinary case where
+    // everything works and this visitor simply has no session.
     var host = '';
     try { host = new URL((window.__SUPABASE__ || {}).url).host; } catch (e) { /* none configured */ }
-    // 2026-09-28: sign-in is a mobile number and a PIN (auth.js's own panel),
-    // so none of these states blocks signing in any more. Each says what the
-    // Supabase state means for DATA on this page, and that sign-in is unaffected.
+    // 2026-10-10: sign-in is Google, and Google needs this Supabase project.
+    // Each state says what is wrong and that the pages stay open.
     var html;
     if (kind === 'sdk') {
       html = '<b>The Supabase library did not load.</b> auth.js loads '
         + 'supabase-js from a CDN and that request failed - an ad blocker, a network policy or a CDN '
-        + 'outage will all do this. Every page is still open and usable, and signing in with your mobile '
-        + 'number does not need it; only data a page reads straight from the database is unavailable until '
-        + 'it loads. Retry on a different network or allow <code>cdn.jsdelivr.net</code>, then reload.';
+        + 'outage will all do this. Every page is still open and usable. Sign in with Google needs that '
+        + 'library, so it cannot run until it loads. Retry on a different network or allow '
+        + '<code>cdn.jsdelivr.net</code>, then reload.';
     } else if (kind === 'signed-out') {
       html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Sign in with your mobile number and a 4-digit PIN</b> (the Sign in '
+        + 'what this browser holds. <b>Sign in with Google</b> (the Sign in with Google '
         + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
         + '"not signed in", not "no data".';
+    } else if (kind === 'provider-off' && host) {
+      html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
+        + '</code>). Sign in with Google cannot start because the Auth server refuses it with '
+        + '<code>validation_failed</code>: provider is not enabled. In the Supabase dashboard open '
+        + '<b>Authentication → Providers → Google</b>, turn the provider on, set the Client ID and '
+        + 'Client Secret from a Google Cloud OAuth web client, and add the Authorized redirect URI '
+        + '<code>https://' + host + '/auth/v1/callback</code>. Then reload. Every page stays open.';
     } else if (kind === 'unreachable' && host) {
       // Host-neutral on purpose: SUPABASE_URL may name a hosted project OR a
       // self-hosted stack (docs/self-hosted-supabase.md); the probe derives
@@ -2786,16 +2787,18 @@
       html = '<b>Running without a workspace database.</b> The database this deployment points at (<code>' + host
         + '</code>) cannot be reached - its Supabase project has most '
         + 'likely been deleted, renamed or paused, or the self-hosted stack is down. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
-        + 'still works and keeps your brands on this device. Point <code>SUPABASE_URL</code> '
-        + 'and <code>SUPABASE_ANON_KEY</code> at a live backend to restore saved work.';
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Google needs that '
+        + 'project, so it cannot run until it answers; brands you set up meanwhile are kept on this device. '
+        + 'Point <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> at a live backend to restore saved work.';
     } else {
       html = '<b>Running without a workspace database.</b> This deployment has no <code>SUPABASE_URL</code> / '
         + '<code>SUPABASE_ANON_KEY</code> set. Every page is open and '
-        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Signing in with your mobile number '
-        + 'still works and keeps your brands on this device. Set them on the deployment to '
-        + 'restore saved work.';
+        + 'usable, but <b>nothing is loaded from or saved to a server.</b> Sign in with Google needs those '
+        + 'values; brands you set up meanwhile are kept on this device. Set them on the deployment to restore saved work.';
     }
+    // A mobile-number sign-in this browser held was ended on this boot
+    // (2026-10-10): said once, first, in the same bar.
+    if (phoneEndedNote) html = '<b>Mobile-number sign-in has ended.</b> ' + phoneEndedNote + ' ' + html;
     var tmp = document.createElement('div');
     tmp.innerHTML = html;
     return { kind: kind, html: html, text: tmp.textContent };
@@ -2843,7 +2846,19 @@
 
   function injectSignedOutNotice(kind, opts) {
     var existing = document.getElementById('lc-authnotice');
-    if (existing) return existing;
+    if (existing) {
+      // Sign-in may learn a more specific state (Google is off) after boot
+      // already painted "signed out". force:true is a request for the
+      // explanation, so the bar's words have to match the chip's.
+      if (opts && opts.force && existing.getAttribute('data-kind') !== kind) {
+        existing.setAttribute('data-kind', kind);
+        var existingTxt = existing.querySelector('#lc-authnotice-text');
+        if (existingTxt) existingTxt.innerHTML = signedOutSentence(kind).html;
+        existing.style.boxShadow = 'inset 0 3px 0 ' + (kind === 'signed-out'
+          ? 'var(--vh-accent)' : 'var(--vh-warn)');
+      }
+      return existing;
+    }
     // Dismissed for this tab? Check before building anything.
     if (!(opts && opts.force)) {
       try { if (sessionStorage.getItem('lc-authnotice-hid')) return null; } catch (e) { /* private mode */ }
@@ -2946,9 +2961,11 @@
     // a missing env var, a project that no longer answers, and simply being
     // logged out are three different things to be told.
     const url = (window.__SUPABASE__ || {}).url;
-    if (!url) { injectSignedOutNotice('unconfigured'); setBackendState('unconfigured'); return; }
+    if (!url) { injectSignedOutNotice('unconfigured', { force: !!phoneEndedNote }); setBackendState('unconfigured'); return; }
     const kind = (await authHostReachable(url)) ? 'signed-out' : 'unreachable';
-    injectSignedOutNotice(kind);
+    // A phone sign-in ended on this boot is news: shown even in a tab that
+    // dismissed the bar earlier.
+    injectSignedOutNotice(kind, { force: !!phoneEndedNote });
     setBackendState(kind);
   }
 
@@ -2985,16 +3002,10 @@
   };
   let backendResolve;
   const backendFirst = new Promise((r) => { backendResolve = r; });
-  // `extra` (2026-09-28) carries the mobile+PIN session summary
-  // (`session: {provider, mode, name, phone, verified}`) and the Supabase
-  // state on its own (`supabase: unconfigured|unreachable|reachable|sdk`),
-  // because for a phone account `kind:'signed-in'` says who is here while the
-  // workspace database can still be unreachable - two different facts.
-  // A no-session kind IS a statement about Supabase, so it is published as one
-  // (2026-09-29). Without it a sign-in made on this page carried `supabase:
-  // 'pending'` forward from the signed-out decision (mauthApply copies the
-  // previous value), and anything asking "is the workspace database down?" for
-  // a phone session read "not decided" until the next reload.
+  // `extra` carries the Supabase state on its own (`supabase: unconfigured|
+  // unreachable|reachable|sdk`). A no-session kind IS a statement about
+  // Supabase, so it is published as one (2026-09-29); a Google session is
+  // 'reachable' by construction (applySupabaseUser).
   const SUPABASE_OF_KIND = { unconfigured: 'unconfigured', unreachable: 'unreachable', 'signed-out': 'reachable', sdk: 'sdk' };
   function backendSnapshot(kind, extra) {
     const k = BACKEND_KINDS[kind] ? kind : 'pending';
@@ -3027,690 +3038,134 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════
-     SIGN IN / SIGN UP WITH A MOBILE NUMBER AND A 4-DIGIT PIN (2026-09-28)
+     MOBILE NUMBER + PIN SIGN-IN IS SWITCHED OFF (2026-10-10)
 
-     The operator's words: "signin/signup with mobile number and a 4 digit
-     password - save in db (neon) or local browser cache whichever can be used -
-     just like in parwah-hq". This block is the browser half. The server half is
-     api/_shared/mobile-auth-core.js, mounted on
-     /api/public-config?action=auth&op=status|enter|me|signout|signout_all.
+     The owner's words: "No signin with mobile number - only Google signin
+     pls". From 2026-09-28 to 2026-10-10 this block was the browser half of a
+     mobile number + 4-digit PIN sign-in (a panel in the rail, a device store
+     in localStorage, a Neon or Supabase account on the server). It is gone:
+     no panel is rendered, nothing here can create or sign in an account, and
+     the server refuses `op=enter` (api/_shared/mobile-auth-core.js) and every
+     phone or device token exactly like no token at all.
 
-     ONE FLOW, TWO STORES. `op=status` says whether a database is there to keep
-     accounts in (mode 'server') or not (mode 'device', with the reason). In
-     server mode the panel posts to `op=enter` and the server runs the state
-     machine. In device mode THIS FILE runs the same state machine against
-     localStorage: accounts keyed by E.164 in `lifecycle.auth.device.users`
-     (name, PBKDF2-SHA256 of the PIN via WebCrypto with a random salt, tries,
-     lockedUntil), the same weak-PIN list, the same 5 tries / 15 minutes. The
-     rules are a MIRROR of the server's (phone-rules.js + mobile-auth-core.js)
-     and tests/mobile-pin-signin.spec.js drives both over the same inputs so
-     the copies cannot drift apart unnoticed.
-
-     THE SESSION is `lifecycle.auth.session` = {token, user:{id,name,phone},
-     mode, expires, storage}. A server-mode token is validated with `op=me` on
-     every boot (a 401 clears it; a database that is not answering keeps it and
-     SAYS so). A device-mode token is meaningful only in this browser and is
-     never sent to the server - see apiToken().
-
-     SUPABASE MODE (2026-10-03) comes FIRST when op=status answers it: the
-     server brokers sign-up and sign-in against the project's auth service
-     (the PIN is turned into a password only there, under a pepper) and
-     returns a real Supabase session, kept here as {token: access_token,
-     refresh_token, expires_at, ...} with mode 'supabase', renewed before it
-     expires (mauthRefresh) and revoked on sign-out. See
-     api/_shared/mobile-auth-supabase.js and docs/mobile-pin-signin.md.
-
-     WHAT THIS IS NOT: a phone number typed here is not verified (no SMS), so
-     an account is self-asserted. The PIN and the lockout are what make the
-     number not the whole key. LifecycleAuth.internal stays false.
+     WHAT A BROWSER THAT USED IT STILL HOLDS, and what boot does with it:
+       lifecycle.auth.session        the phone session. ENDED: removed, the
+                                     server asked to revoke it (best effort),
+                                     and one accent-rule sentence says so.
+       lifecycle.auth.device.users   device accounts (name + PBKDF2 of the
+                                     PIN). Removed: nothing reads them, and a
+                                     4-digit PIN hash is not worth keeping.
+       lifecycle.brand.device.workspaces.<phone account id>
+                                     the brands that account kept on this
+                                     device. KEPT where they are, never deleted,
+                                     and COPIED into the device store a signed-
+                                     out visitor sees (the unscoped key), so
+                                     they stay usable here and are offered for
+                                     sync once a Google account is signed in.
+     Why copying them out of the account's namespace exposes nothing new: that
+     namespace was keyed by an id in plain localStorage, behind a 4-digit PIN
+     whose PBKDF2 hash sat beside it - ten thousand guesses away from anyone at
+     the keyboard. It separated people sharing a browser; it never protected a
+     brand from them, and the alternative is a person's brands vanishing.
      ═══════════════════════════════════════════════════════════════════════════ */
 
-  const MAUTH_SESSION_KEY = 'lifecycle.auth.session';
-  const MAUTH_USERS_KEY = 'lifecycle.auth.device.users';
-  const MAUTH_API = '/api/public-config?action=auth';
-  const MAUTH = {
-    PIN_LEN: 4,
-    // MIRROR of mobile-auth-core.js WEAK_PINS. The parity test asserts equality.
-    WEAK_PINS: [
-      '0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999',
-      '1234', '4321', '2580', '0852', '1212', '2121', '1122', '2211', '1010', '0101',
-      '2020', '2000', '2001', '1004', '6969', '0007', '4200',
-    ],
-    MAX_TRIES: 5,
-    LOCK_MINUTES: 15,
-    SESSION_DAYS: 90,
-    PBKDF2_ITERATIONS: 120000,
-    DEFAULT_CC: '+91',
-    // MIRROR of api/_shared/phone-rules.js PHONE_CC (the `re` is kept as source
-    // so the parity test can compare it as text).
-    PHONE_CC: {
-      '+91':  { min: 10, max: 10, re: '^[6-9]\\d{9}$', name: 'India' },
-      '+1':   { min: 10, max: 10, re: '^[2-9]\\d{9}$', name: 'USA / Canada' },
-      '+44':  { min: 9,  max: 10, name: 'UK' },
-      '+971': { min: 8,  max: 9,  name: 'UAE' },
-      '+61':  { min: 9,  max: 9,  name: 'Australia' },
-      '+65':  { min: 8,  max: 8,  re: '^[3689]\\d{7}$', name: 'Singapore' },
-      '+49':  { min: 7,  max: 11, name: 'Germany' },
-      '+81':  { min: 9,  max: 10, name: 'Japan' },
-      '+86':  { min: 11, max: 11, name: 'China' },
-      '+92':  { min: 10, max: 10, name: 'Pakistan' },
-      '+880': { min: 10, max: 10, name: 'Bangladesh' },
-      '+977': { min: 10, max: 10, name: 'Nepal' },
-      '+94':  { min: 9,  max: 9,  name: 'Sri Lanka' },
-    },
-  };
-  const MAUTH_WEAK = new Set(MAUTH.WEAK_PINS);
+  const LEGACY_SESSION_KEY = 'lifecycle.auth.session';
+  const LEGACY_USERS_KEY = 'lifecycle.auth.device.users';
+  const DEVICE_BRANDS_KEY = 'lifecycle.brand.device.workspaces';
+  // The sentence the standing bar and the rail note carry on the boot that
+  // ended a phone session; '' otherwise.
+  let phoneEndedNote = '';
 
-  function mauthNormPhone(v, cc) {
-    const raw = String(v || '').replace(/[()\-\s.]/g, '');
-    let code = null;
-    let local = null;
-    if (raw.startsWith('+')) {
-      const digits = raw.slice(1);
-      if (!/^\d{6,15}$/.test(digits)) return null;
-      for (const k of Object.keys(MAUTH.PHONE_CC).sort((a, b) => b.length - a.length)) {
-        if (raw.startsWith(k)) { code = k; local = raw.slice(k.length); break; }
-      }
-      if (!code) {
-        for (const n of [3, 2, 1]) {
-          const l = digits.slice(n);
-          if (l.length >= 6 && l.length <= 12) { code = '+' + digits.slice(0, n); local = l; break; }
-        }
-        if (!code) return null;
-        return { e164: code + local, cc: code, local };
-      }
-    } else {
-      if (!/^\d{4,14}$/.test(raw)) return null;
-      code = (cc && /^\+\d{1,3}$/.test(String(cc))) ? String(cc) : MAUTH.DEFAULT_CC;
-      local = raw;
-    }
-    const rule = MAUTH.PHONE_CC[code];
-    if (rule) {
-      if (local.length < rule.min || local.length > rule.max) return null;
-      if (rule.re && !new RegExp(rule.re).test(local)) return null;
-    } else if (local.length < 6 || local.length > 12) return null;
-    return { e164: code + local, cc: code, local };
-  }
-  function mauthPhoneError(cc) {
-    const r = MAUTH.PHONE_CC[cc && /^\+\d{1,3}$/.test(String(cc)) ? String(cc) : MAUTH.DEFAULT_CC] || null;
-    if (!r) return 'That does not look like a valid number for that country code.';
-    const len = r.min === r.max ? r.min + ' digits' : r.min + '-' + r.max + ' digits';
-    return 'A ' + r.name + ' number has ' + len + ' after the country code. Please check it.';
-  }
-  function mauthPinError(pin) {
-    const p = String(pin == null ? '' : pin);
-    if (!/^[0-9]+$/.test(p)) return 'Your PIN is ' + MAUTH.PIN_LEN + ' digits, numbers only.';
-    if (p.length !== MAUTH.PIN_LEN) return 'Your PIN is ' + MAUTH.PIN_LEN + ' digits, you typed ' + p.length + '.';
-    if (MAUTH_WEAK.has(p)) return 'That PIN is one of the first anyone would try. Please pick another.';
-    let up = true;
-    let down = true;
-    for (let i = 1; i < p.length; i++) {
-      if (+p[i] !== +p[i - 1] + 1) up = false;
-      if (+p[i] !== +p[i - 1] - 1) down = false;
-    }
-    if (up || down) return 'That PIN is one of the first anyone would try. Please pick another.';
-    return null;
-  }
-  function mauthLockMessage(until) {
-    const mins = Math.max(1, Math.ceil((new Date(until) - Date.now()) / 60000));
-    return 'Too many wrong PINs. Try again in ' + mins + (mins === 1 ? ' minute' : ' minutes') + '.';
-  }
-  function mauthTriesMessage(left) {
-    return 'That PIN is not right. ' + left + ' ' + (left === 1 ? 'try' : 'tries') + ' left.';
+  function readJsonKey(k) {
+    try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { return null; }
   }
 
-  /* ── storage ─────────────────────────────────────────────────────────── */
-
-  function mauthReadUsers() {
+  /**
+   * Copy the brands each legacy phone account kept on this device into the
+   * signed-out device store, by id, without overwriting a row already there
+   * and without removing the originals. Side records kept beside a brand
+   * (`<key>.<kind>.<id>`: its catalogue, its context pack) come too.
+   * Returns how many brands are now reachable that were not.
+   */
+  function keepLegacyDeviceBrands(ids, activeFrom) {
+    let copied = 0;
     try {
-      const u = JSON.parse(localStorage.getItem(MAUTH_USERS_KEY) || 'null');
-      return u && typeof u === 'object' && !Array.isArray(u) ? u : {};
-    } catch (_) { return {}; }
-  }
-  function mauthWriteUsers(users) {
-    try { localStorage.setItem(MAUTH_USERS_KEY, JSON.stringify(users || {})); return true; } catch (_) { return false; }
-  }
-  function mauthClearSession() { try { localStorage.removeItem(MAUTH_SESSION_KEY); } catch (_) { /* nothing to clear */ } }
-  function mauthWriteSession(s) {
-    try { localStorage.setItem(MAUTH_SESSION_KEY, JSON.stringify(s)); return true; } catch (_) { return false; }
-  }
-  /**
-   * The stored session, or null. Expired -> cleared. A device session whose
-   * account is no longer in the device store (cleared storage, another
-   * person's export) -> cleared: a session is a claim about an account that
-   * must still exist.
-   */
-  function mauthReadSession() {
-    let s;
-    try { s = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null'); } catch (_) { return null; }
-    if (!s || typeof s !== 'object' || !s.token || !s.user || !s.user.id || !s.user.phone) return null;
-    if (s.mode !== 'server' && s.mode !== 'device' && s.mode !== 'supabase') return null;
-    // A Supabase session (2026-10-03) carries no `expires`: its access token
-    // lives an hour and is REFRESHED (mauthRefresh), so an expired access
-    // token is not an ended session. Without a refresh token it cannot be
-    // renewed, and is not a session at all.
-    if (s.mode === 'supabase' && !s.refresh_token) { mauthClearSession(); return null; }
-    if (s.expires && !(new Date(s.expires) > new Date())) { mauthClearSession(); return null; }
-    if (s.mode === 'device') {
-      const u = mauthReadUsers()[s.user.phone];
-      if (!u || u.id !== s.user.id) { mauthClearSession(); return null; }
-      s.user.name = u.name;
-    }
-    return s;
-  }
-
-  /* ── crypto (device mode) ────────────────────────────────────────────── */
-
-  function mauthRandomHex(bytes) {
-    const a = new Uint8Array(bytes);
-    (window.crypto || window.msCrypto).getRandomValues(a);
-    return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-  function mauthRandomToken() {
-    const a = new Uint8Array(32);
-    (window.crypto || window.msCrypto).getRandomValues(a);
-    let s = '';
-    for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]);
-    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-  function mauthSubtle() {
-    try { return window.crypto && window.crypto.subtle && typeof window.crypto.subtle.deriveBits === 'function' ? window.crypto.subtle : null; } catch (_) { return null; }
-  }
-  async function mauthPbkdf2(pin, saltHex, iterations) {
-    const subtle = mauthSubtle();
-    const enc = new TextEncoder();
-    const salt = new Uint8Array(saltHex.match(/.{2}/g).map((h) => parseInt(h, 16)));
-    const key = await subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits']);
-    const bits = await subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
-    return Array.from(new Uint8Array(bits), (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  /* ── the device state machine (MIRROR of mobile-auth-core.enter) ─────── */
-
-  async function mauthDeviceEnter(b) {
-    const np = mauthNormPhone(b.phone, b.cc);
-    if (!np) return { status: 400, body: { ok: false, error: 'phone_invalid', message: mauthPhoneError(b.cc) } };
-    if (!mauthSubtle()) {
-      // WebCrypto's subtle API exists only in a secure context (https, or
-      // localhost). Refusing is the only honest answer: a PIN stored in the
-      // clear is not a PIN.
-      return { status: 503, body: { ok: false, error: 'insecure_context', message: 'This page is not served over HTTPS, so the browser will not hash a PIN here. Open the site over https:// to sign in.' } };
-    }
-    const users = mauthReadUsers();
-    let u = users[np.e164];
-    const isNew = !u;
-    const now = new Date().toISOString();
-    if (isNew) {
-      const name = String(b.name || '').trim().slice(0, 60);
-      if (!name) return { status: 200, body: { ok: true, exists: false, message: 'This number is new here, so we will set you up. Already have an account? Check the number.' } };
-      const perr = mauthPinError(b.pin);
-      if (perr) return { status: 200, body: { ok: true, exists: false, needPin: true, error: 'pin_invalid', message: perr } };
-      const salt = mauthRandomHex(16);
-      const hash = await mauthPbkdf2(b.pin, salt, MAUTH.PBKDF2_ITERATIONS);
-      u = { id: 'dev-' + mauthRandomHex(8), phone: np.e164, cc: np.cc, local: np.local, name, salt, hash, iterations: MAUTH.PBKDF2_ITERATIONS, tries: 0, lockedUntil: null, createdAt: now, pinSetAt: now };
-      users[np.e164] = u;
-      if (!mauthWriteUsers(users)) return { status: 507, body: { ok: false, error: 'device_storage_unavailable', message: 'This browser refused to store the account (storage is full or blocked), so nothing was saved.' } };
-    } else if (!u.hash) {
-      const perr = mauthPinError(b.pin);
-      if (perr) return { status: 200, body: { ok: true, exists: true, setPin: true, error: b.pin ? 'pin_invalid' : null, message: b.pin ? perr : 'Choose a new ' + MAUTH.PIN_LEN + '-digit PIN for this account.' } };
-      u.salt = mauthRandomHex(16);
-      u.hash = await mauthPbkdf2(b.pin, u.salt, MAUTH.PBKDF2_ITERATIONS);
-      u.iterations = MAUTH.PBKDF2_ITERATIONS; u.tries = 0; u.lockedUntil = null; u.pinSetAt = now;
-      mauthWriteUsers(users);
-    } else {
-      if (u.lockedUntil && new Date(u.lockedUntil) > new Date()) {
-        return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: u.lockedUntil, message: mauthLockMessage(u.lockedUntil) } };
-      }
-      // Never a name before the PIN: anyone can type any number.
-      if (!b.pin) return { status: 200, body: { ok: true, exists: true, needPin: true, message: 'Welcome back. Type your PIN.' } };
-      if (!/^\d{4}$/.test(String(b.pin))) {
-        return { status: 200, body: { ok: true, exists: true, needPin: true, error: 'pin_invalid', message: 'Your PIN is ' + MAUTH.PIN_LEN + ' digits.' } };
-      }
-      // The try is CLAIMED (counted and written) before the PIN is checked,
-      // as on the server: the hash below awaits, and a burst of guesses from
-      // other tabs must find each earlier one already counted.
-      const expiredLock = u.lockedUntil && !(new Date(u.lockedUntil) > new Date());
-      const tries = (expiredLock ? 0 : (u.tries || 0)) + 1;
-      u.tries = tries; if (expiredLock) u.lockedUntil = null;
-      mauthWriteUsers(users);
-      const lockNow = (store, acct) => {
-        acct.tries = 0; acct.lockedUntil = new Date(Date.now() + MAUTH.LOCK_MINUTES * 60000).toISOString();
-        store[np.e164] = acct; mauthWriteUsers(store);
-        return { status: 429, body: { ok: false, locked: true, error: 'pin_locked', until: acct.lockedUntil, message: mauthLockMessage(acct.lockedUntil) } };
-      };
-      // A try beyond the fifth was claimed by a guess already in flight.
-      if (tries > MAUTH.MAX_TRIES) return lockNow(users, u);
-      const hash = await mauthPbkdf2(b.pin, u.salt, u.iterations || MAUTH.PBKDF2_ITERATIONS);
-      const now2 = mauthReadUsers();
-      const cur = now2[np.e164] && now2[np.e164].id === u.id ? now2[np.e164] : u;
-      if (hash !== u.hash) {
-        if (tries >= MAUTH.MAX_TRIES || (cur.tries || 0) >= MAUTH.MAX_TRIES) return lockNow(now2, cur);
-        return { status: 401, body: { ok: false, wrongPin: true, left: MAUTH.MAX_TRIES - tries, error: 'pin_wrong', message: mauthTriesMessage(MAUTH.MAX_TRIES - tries) } };
-      }
-      cur.tries = 0; cur.lockedUntil = null; now2[np.e164] = cur; mauthWriteUsers(now2);
-      u = cur;
-    }
-    const expires = new Date(Date.now() + MAUTH.SESSION_DAYS * 86400000).toISOString();
-    return {
-      status: 200,
-      body: { ok: true, exists: true, created: isNew, token: mauthRandomToken(), expires, mode: 'device', user: { id: u.id, name: u.name, phone: u.phone }, message: isNew ? 'Account created on this device.' : 'Signed in.' },
-    };
-  }
-
-  /* ── the server ──────────────────────────────────────────────────────── */
-
-  async function mauthFetch(op, body, token) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) { headers['X-Lifecycle-Token'] = token; headers.Authorization = 'Bearer ' + token; }
-    const res = await fetch(MAUTH_API + '&op=' + encodeURIComponent(op), {
-      method: body ? 'POST' : 'GET', headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store',
-    });
-    const json = await res.json().catch(() => ({}));
-    return { status: res.status, body: json && typeof json === 'object' ? json : {} };
-  }
-  let mauthStatusPromise = null;
-  /** Where accounts are saved right now, from the server; one request per page load. */
-  function mauthStatus(force) {
-    if (mauthStatusPromise && !force) return mauthStatusPromise;
-    mauthStatusPromise = mauthFetch('status').then((r) => {
-      const b = r.body || {};
-      if (r.status === 200 && (b.mode === 'supabase' || b.mode === 'server' || b.mode === 'device')) return b;
-      return { ok: false, mode: 'device', reason: 'status_unavailable', host: '', message: 'Saved on this device only: the server could not say whether a database is configured.' };
-    }).catch(() => ({ ok: false, mode: 'device', reason: 'status_unavailable', host: '', message: 'Saved on this device only: the server could not be reached to ask about a database.' }));
-    return mauthStatusPromise;
-  }
-
-  /* ── a Supabase session: renewed before it runs out (2026-10-03) ─────────
-     In `supabase` mode the server brokers sign-up and sign-in (the PIN is
-     turned into a password only there) and hands back a REAL Supabase
-     session: an access token that lives an hour and a refresh token. This
-     browser keeps both in `lifecycle.auth.session`, renews the access token
-     a minute before it expires, and gives the session to the anonymous
-     supabase-js client through setSession() so anything that reads through
-     that client reads as this person.
-
-     THE RENEWAL GOES STRAIGHT TO THE AUTH SERVICE, not through our server:
-     POST <SUPABASE_URL>/auth/v1/token?grant_type=refresh_token with the
-     public anon key, body {refresh_token} - the call supabase-js makes for
-     auth.refreshSession() (https://supabase.com/docs/reference/javascript/auth-refreshsession;
-     the request shape is the `grant_type=refresh_token` example of `/token`
-     in the Auth server's OpenAPI). Supabase rate-limits that endpoint per IP
-     (https://supabase.com/docs/guides/auth/rate-limits), and through a
-     serverless function every person would share the function's addresses.
-
-     ONE RENEWAL AT A TIME, ACROSS TABS. The refresh token is single-use, so
-     the stored session is re-read before each renewal, a renewal another tab
-     already made is adopted from the `storage` event, and a refusal for a
-     token another tab has since replaced is not an ended session. */
-  /* ONE SESSION STATE, SHARED BY EVERY TAB (review findings, 2026-10-03).
-     The stored record IS the session for every tab of the origin:
-       absent                       signed out - every tab drops its copy
-       {.., state:'verified'}       checked with op=me after the last change
-       {.., state:'unverified'}     KEPT, but could not be checked or renewed
-                                    (the auth service not answering): said
-                                    under the chip, brands on the device,
-                                    retried every minute
-     Every transition is written to the record first and applied from it, and
-     the `storage` event applies other tabs' transitions here. Seven review
-     findings were one defect seen from seven paths: a tab deciding the
-     session's state from what IT had last seen. */
-  let mauthRefreshTimer = null;
-  let mauthRefreshing = null;
-  const MAUTH_RETRY_MS = 60000;
-  function mauthNeedsRefresh(sess, marginSec) {
-    const at = Number(sess && sess.expires_at) || 0;
-    return !at || at - Math.floor(Date.now() / 1000) <= (marginSec == null ? 60 : marginSec);
-  }
-  function mauthStopRefresh() { if (mauthRefreshTimer) { clearTimeout(mauthRefreshTimer); mauthRefreshTimer = null; } }
-  /** Next tick: a minute while unverified, else a minute before the access token expires. */
-  function mauthScheduleRefresh(sess, inMs) {
-    mauthStopRefresh();
-    if (!sess || sess.mode !== 'supabase') return;
-    const due = inMs ? inMs : sess.state === 'unverified'
-      ? MAUTH_RETRY_MS
-      : Math.max(5000, ((Number(sess.expires_at) || 0) - 60) * 1000 - Date.now());
-    mauthRefreshTimer = setTimeout(() => { mauthTick().catch(() => {}); }, Math.min(due, 2147483000));
-  }
-  /** Write a state to the shared record, then apply it here. */
-  function mauthSetState(state, extra) {
-    const cur = mauthReadSession();
-    if (!cur || cur.mode !== 'supabase') return null;
-    Object.assign(cur, extra || {}, { state, checked_at: new Date().toISOString() });
-    mauthWriteSession(cur);
-    mauthApply(cur, { verified: state === 'verified', status: { mode: 'supabase', host: (cur.storage && cur.storage.host) || '' } });
-    return cur;
-  }
-  /** The session ended (refused renewal, op=me 401, or signed out in another tab). */
-  function mauthEnd(opts) {
-    const o = opts || {};
-    if (o.clearStored !== false) mauthClearSession();
-    mauthUnapply();
-    try {
-      const c = window.LifecycleAuth && window.LifecycleAuth.client;
-      // https://supabase.com/docs/reference/javascript/auth-signout (scope 'local': this client only)
-      if (c && c.auth && typeof c.auth.signOut === 'function') Promise.resolve(c.auth.signOut({ scope: 'local' })).catch(() => {});
-    } catch (_) {}
-    try { if (window.BrandContext && window.BrandContext.clearCache) window.BrandContext.clearCache(); } catch (_) {}
-    try { setBackendState('signed-out'); } catch (_) {}
-    mauthExpiredNote(document.getElementById('lifecycle-nav'));
-  }
-  /**
-   * One tick: renew if due, then check if unverified. A renewal that could
-   * not be MADE marks the session unverified (kept, said, retried) - review
-   * finding: the tick used to leave it looking verified with a dead token.
-   */
-  async function mauthTick() {
-    const s = mauthReadSession();
-    if (!s || s.mode !== 'supabase') return;
-    let r = { ok: true };
-    if (mauthNeedsRefresh(s, 60)) r = await mauthRefresh(s.token);
-    if (r.expired) return mauthEnd();
-    if (!r.ok) { mauthSetState('unverified'); return; }
-    const cur = mauthReadSession();
-    if (!cur) return;
-    if (cur.state !== 'unverified') { mauthScheduleRefresh(cur); return; }
-    // Another tab made this renewal and is checking it now: its verdict
-    // arrives through the record. Only if it never does is it asked here.
-    if (r.adopted && !mauthTick.waited) { mauthTick.waited = true; mauthScheduleRefresh(cur, 10000); return; }
-    mauthTick.waited = false;
-    const v = await mauthValidate(cur);
-    if (v.ok) { const now = mauthReadSession() || cur; mauthSetState('verified', { user: Object.assign({}, now.user, v.user) }); return; }
-    if (v.expired) return mauthEnd();
-    mauthSetState('unverified');
-  }
-  /** Hand the session to the anonymous supabase-js client, when there is one and it can take it. */
-  function mauthClientSession(sess) {
-    try {
-      const c = window.LifecycleAuth && window.LifecycleAuth.client;
-      if (!c || !c.auth || typeof c.auth.setSession !== 'function' || !sess || !sess.token || !sess.refresh_token) return;
-      // https://supabase.com/docs/reference/javascript/auth-setsession
-      Promise.resolve(c.auth.setSession({ access_token: sess.token, refresh_token: sess.refresh_token })).catch(() => {});
-    } catch (_) { /* the client is a convenience; the API calls carry the token themselves */ }
-  }
-  /**
-   * Apply the stored record here (a renewal this tab made, or one another tab
-   * made). Its STATE comes with it: a tab that adopts a pair renewed elsewhere
-   * also adopts the verified state that tab wrote, instead of staying
-   * unverified on an hour-long timer (review finding).
-   */
-  function mauthAdopt(sess) {
-    if (!sess) return;
-    const live = window.LifecycleAuth && window.LifecycleAuth.session;
-    const verified = sess.mode !== 'supabase' || sess.state !== 'unverified';
-    const status = { mode: sess.mode, host: (sess.storage && sess.storage.host) || '' };
-    const sameUser = !!(live && live.provider === 'mobile-pin' && live.user && sess.user && live.user.id === sess.user.id);
-    if (!sameUser) {
-      // ANOTHER PERSON (or nobody, before): a sign-out and a sign-in here.
-      // The whole record replaces the session - name, user, token, mode - and
-      // the cached brand of the previous person goes with it (review finding,
-      // 2026-10-03: the old name stayed on screen over the new token).
-      try { if (live && window.BrandContext && window.BrandContext.clearCache) window.BrandContext.clearCache(); } catch (_) {}
-      mauthApply(sess, { verified, status });
-      return;
-    }
-    if (live.verified !== verified || live.mode !== sess.mode || (live.user.name || '') !== (sess.user.name || '')) {
-      mauthApply(sess, { verified, status });
-      return;
-    }
-    live.access_token = sess.token;
-    live.expires_at = sess.expires_at || null;
-    if (sess.mode === 'supabase') { mauthClientSession(sess); mauthScheduleRefresh(sess); }
-  }
-  /**
-   * Renew the stored Supabase session. `{ok}`, `{expired}` (the service
-   * refused the refresh token: the session ended), or `{unreachable}` (no
-   * answer, or no config to ask with - the session is kept and tried again).
-   */
-  /* Only these refusals END a session: the refresh token or its session is
-     gone (https://supabase.com/docs/guides/auth/debugging/error-codes).
-     Anything else - no answer, a 429, a 5xx, no public config to ask with, or
-     a refusal this file does not recognise - is a renewal that could not be
-     MADE, and the session is kept, marked unverified, and tried again.
-     Review finding (2026-10-03): every non-success used to end the session,
-     so an auth host that was down for a minute signed everybody out. */
-  const MAUTH_REFRESH_ENDED = {
-    refresh_token_not_found: 1, refresh_token_already_used: 1, session_not_found: 1,
-    session_expired: 1, user_not_found: 1, user_banned: 1,
-  };
-  const mauthSleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  /**
-   * Renew the stored Supabase session. `{ok}`, `{expired}` (the service
-   * refused the refresh token: the session ended), or `{unreachable}` (no
-   * answer, or no config to ask with - the session is kept and tried again).
-   *
-   * `basis` is the access token the caller holds. ACROSS TABS (review finding,
-   * 2026-10-03): the refresh token is single-use, and an in-tab promise does
-   * not stop another tab spending it too - the loser read
-   * `refresh_token_already_used` as "signed out" and cleared the session every
-   * tab shares. So the whole renewal runs under a Web Lock where the browser
-   * has one, and re-reads the stored session INSIDE it: a pair another tab
-   * already renewed is adopted without a request. Either way, a refusal is
-   * checked against storage twice (now, and after the other tab's write has
-   * had time to land) before it is believed.
-   */
-  function mauthRefresh(basis) {
-    if (mauthRefreshing) return mauthRefreshing;
-    const run = async () => {
-      const s = mauthReadSession();
-      if (!s || s.mode !== 'supabase' || !s.refresh_token) return { ok: false, expired: true };
-      // Another tab renewed while this one waited for the lock: adopt it.
-      if (basis && s.token !== basis && !mauthNeedsRefresh(s, 60)) { mauthAdopt(s); return { ok: true, adopted: true }; }
-      const retry = () => ({ ok: false, unreachable: true });
-      let cfg = null;
-      try { cfg = await getConfig(); } catch (_) { cfg = null; }
-      if (!cfg || !cfg.url || !cfg.anonKey) return retry();
-      const used = s.refresh_token;
-      let res = null, j = {};
-      try {
-        res = await fetch(String(cfg.url).replace(/\/+$/, '') + '/auth/v1/token?grant_type=refresh_token', {
-          method: 'POST', cache: 'no-store',
-          headers: { apikey: cfg.anonKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: used }),
+      const into = readJsonKey(DEVICE_BRANDS_KEY) || { version: 1, active_id: '', workspaces: [] };
+      if (!Array.isArray(into.workspaces)) into.workspaces = [];
+      const have = new Set(into.workspaces.map((w) => w && w.id));
+      ids.forEach((id) => {
+        const from = readJsonKey(DEVICE_BRANDS_KEY + '.' + id);
+        if (!from || !Array.isArray(from.workspaces)) return;
+        from.workspaces.forEach((w) => {
+          if (!w || !w.id || have.has(w.id)) return;
+          into.workspaces.push(w); have.add(w.id); copied++;
         });
-        j = await res.json().catch(() => ({}));
-      } catch (_) { res = null; }
-      if (res && res.ok && j && j.access_token && j.refresh_token) {
-        const cur = mauthReadSession() || s;
-        cur.token = j.access_token;
-        cur.refresh_token = j.refresh_token;
-        cur.expires_at = Number(j.expires_at) || (Math.floor(Date.now() / 1000) + (Number(j.expires_in) || 3600));
-        mauthWriteSession(cur);
-        mauthAdopt(cur);
-        // localStorage reaches another tab's process a moment AFTER this
-        // write, and a tab waiting on the lock reads it as soon as the lock
-        // is released: holding the lock briefly is what lets it see the new
-        // pair instead of spending the old one.
-        if (mauthHasLocks()) await mauthSleep(300);
-        return { ok: true };
-      }
-      const code = String((j && (j.error_code || (typeof j.code === 'string' ? j.code : '') || j.error)) || '');
-      if (!res || res.status === 429 || res.status >= 500 || !MAUTH_REFRESH_ENDED[code]) return retry();
-      // Refused for good - unless another tab renewed in the meantime, in
-      // which case its pair is the session now. Checked twice without a lock.
-      const newer = () => { const n = mauthReadSession(); return n && n.mode === 'supabase' && n.refresh_token && n.refresh_token !== used ? n : null; };
-      let n = newer();
-      if (!n) { await mauthSleep(1200); n = newer(); }
-      if (n) { mauthAdopt(n); return { ok: true, adopted: true }; }
-      return { ok: false, expired: true };
-    };
-    mauthRefreshing = (mauthHasLocks()
-      ? navigator.locks.request('lifecycle.auth.refresh', run)
-      : run()).finally(() => { mauthRefreshing = null; });
-    return mauthRefreshing;
-  }
-  function mauthHasLocks() {
-    try { return !!(navigator.locks && typeof navigator.locks.request === 'function'); } catch (_) { return false; }
-  }
-  try {
-    window.addEventListener('storage', (ev) => {
-      if (ev.key !== MAUTH_SESSION_KEY && ev.key !== null) return;
-      const s = mauthReadSession();
-      const live = window.LifecycleAuth && window.LifecycleAuth.session;
-      // Signed out in another tab (review finding): the record is gone, so
-      // this tab's copy, its supabase-js session and apiToken() go with it.
-      if (!s) { if (live && live.provider === 'mobile-pin') mauthEnd({ clearStored: false }); return; }
-      if (live && live.access_token === s.token && live.user && live.user.id === s.user.id && s.mode !== 'supabase') return;
-      mauthAdopt(s);
-    });
-  } catch (_) { /* no storage events: each tab renews on its own timer */ }
-
-  /* ── the session, applied ────────────────────────────────────────────── */
-
-  function mauthUserOf(sess) {
-    return { id: sess.user.id, phone: sess.user.phone, name: sess.user.name || '', provider: 'mobile-pin', mode: sess.mode };
-  }
-  /** A token the SERVER can act on: server-mode, and device-mode on a standalone deployment. */
-  function mauthApiToken() {
-    const s = window.LifecycleAuth && window.LifecycleAuth.session;
-    if (!(s && s.provider === 'mobile-pin' && s.access_token)) return '';
-    // A device token is withheld until the boot has decided whether the
-    // server still takes it - whatever the time (fail closed).
-    if (s.mode === 'device') { const dd = window.__lcDeviceDecided; if (dd && !dd.decided) return ''; }
-    // A device token on a deployment whose account database answers is one
-    // the server refuses: none is sent; the refusal sentence says what to do.
-    if (s.mode === 'device' && s.transition) return '';
-    // An unverified Supabase session whose access token has run out holds a
-    // token the server can only refuse: none is sent, and the page's own
-    // refusal (the session cannot be checked) is what the person sees.
-    if (s.mode === 'supabase' && s.verified === false && mauthNeedsRefresh(s, 0)) return '';
-    return s.access_token;
-  }
-  /** The one sentence for where this account and its brands live. */
-  function mauthModeSentence(sess, st, verified, transition) {
-    if (sess.mode === 'device' && transition) {
-      const host = (st && st.host) || '';
-      return 'Saved on this device only. The account database' + (host ? ' (' + host + ')' : '') + ' is answering now: sign in again with the same number and PIN to move this account there, and the brands on this device will be offered for sync.';
-    }
-    if (sess.mode === 'device') {
-      const m = (st && st.mode === 'device' && st.message) || (sess.storage && sess.storage.message) || 'Saved on this device only.';
-      if (/^Local \/ Demo Mode/i.test(m)) return m;
-      return 'Local / Demo Mode. ' + m;
-    }
-    if (verified === false) {
-      const host = (st && st.host) || (sess.storage && sess.storage.host) || 'the configured host';
-      return 'Account in the database (' + host + '), which is not answering right now: nothing there can be checked or saved until it does.';
-    }
-    if (sess.mode === 'supabase') {
-      const host = (st && st.host) || (sess.storage && sess.storage.host) || '';
-      return 'Account saved in the database' + (host ? ' (' + host + ')' : '') + '; brands are saved to your account.';
-    }
-    return 'Account saved in the database.';
-  }
-  function mauthSetModeLine(text) {
-    const nav = document.getElementById('lifecycle-nav');
-    if (!nav) return;
-    let el = nav.querySelector('#lnav-umode');
-    if (!text) { if (el) el.remove(); return; }
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'lnav-umode';
-      el.className = 'vh-status lnav-umode';
-      el.setAttribute('role', 'status');
-      const footer = nav.querySelector('.lnav-user');
-      if (footer) footer.insertAdjacentElement('afterend', el); else return;
-    }
-    el.textContent = text;
-  }
-  /**
-   * Make this session THE session: LifecycleAuth.session/user, the backend
-   * decision (kind 'signed-in', with the mobile summary and the Supabase state
-   * as separate facts), the rail's chip, the mode line. `internal` stays false.
-   */
-  function mauthApply(sess, opts) {
-    const o = opts || {};
-    const user = mauthUserOf(sess);
-    const verified = o.verified !== false;
-    window.LifecycleAuth.session = { provider: 'mobile-pin', mode: sess.mode, access_token: sess.token, user, expires: sess.expires || null, expires_at: sess.expires_at || null, verified };
-    // A DEVICE account on a deployment whose account database now answers
-    // (review finding, 2026-10-03): it keeps working on this device, but the
-    // server refuses its token, so it is flagged for the move (see below).
-    if (sess.mode === 'device' && o.transition) window.LifecycleAuth.session.transition = o.transition;
-    window.LifecycleAuth.user = user;
-    if (sess.mode === 'supabase') { mauthClientSession(sess); mauthScheduleRefresh(sess); }
-    setBackendState('signed-in', {
-      session: { provider: 'mobile-pin', mode: sess.mode, name: user.name, phone: user.phone, verified },
-      supabase: o.supabase || (window.LifecycleAuth.backend && window.LifecycleAuth.backend.supabase) || 'pending',
-    });
-    removeLoginWall();
-    const bar = document.getElementById('lc-authnotice');
-    if (bar) bar.remove();
-    setRailUser(user);
-    mauthSetModeLine(mauthModeSentence(sess, o.status || null, verified, o.transition));
-    mauthTransitionButton(sess.mode === 'device' && o.transition ? sess : null);
-  }
-  /** "Move this account to the database": opens the panel with the number and name filled in. */
-  function mauthTransitionButton(sess) {
-    const nav = document.getElementById('lifecycle-nav');
-    if (!nav) return;
-    let btn = nav.querySelector('#lnav-utransition');
-    if (!sess) { if (btn) btn.remove(); return; }
-    if (!btn) {
-      btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'lnav-utransition';
-      btn.className = 'lnav-signin';
-      btn.textContent = 'Move this account to the database';
-      btn.addEventListener('click', () => {
-        const live = window.LifecycleAuth && window.LifecycleAuth.session;
-        mauthOpenPanel(null, { prefill: { phone: (live && live.user && live.user.phone) || '', name: (live && live.user && live.user.name) || '' } });
+        if (!into.active_id && id === activeFrom && from.active_id && have.has(from.active_id)) into.active_id = from.active_id;
+        const prefix = DEVICE_BRANDS_KEY + '.' + id + '.';
+        const side = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.indexOf(prefix) === 0) side.push(k);
+        }
+        side.forEach((k) => {
+          const to = DEVICE_BRANDS_KEY + '.' + k.slice(prefix.length);
+          if (localStorage.getItem(to) === null) localStorage.setItem(to, localStorage.getItem(k));
+        });
       });
-      const line = nav.querySelector('#lnav-umode');
-      if (line) line.insertAdjacentElement('afterend', btn); else return;
-    }
+      if (copied) localStorage.setItem(DEVICE_BRANDS_KEY, JSON.stringify(into));
+    } catch (_) { /* storage blocked or full: the originals are untouched either way */ }
+    return copied;
   }
-  function mauthUnapply() {
-    mauthStopRefresh();
-    window.LifecycleAuth.session = null;
-    window.LifecycleAuth.user = null;
-    mauthSetModeLine('');
-    setRailUser(null);
-  }
-  /** Boot: is the stored server-mode session still good? */
-  async function mauthValidate(sess) {
-    let r;
-    // A Supabase session that cannot be checked right now: KEPT, unverified,
-    // with the host, so the mode line says so and the renewal is retried.
-    const keep = () => ({ ok: false, unreachable: true, host: (sess.storage && sess.storage.host) || '', status: { mode: 'supabase', host: (sess.storage && sess.storage.host) || '' } });
-    // A Supabase access token lives an hour. One that has run out (a tab
-    // reopened tomorrow) is renewed FIRST, so op=me is asked with a token
-    // that can answer. Only a renewal the service REFUSES is a session that
-    // ended; one that could not be made (review finding, 2026-10-03) keeps it.
-    if (sess.mode === 'supabase' && mauthNeedsRefresh(sess, 60)) {
-      const rf = await mauthRefresh(sess.token);
-      if (rf.expired) return { ok: false, expired: true };
-      if (rf.ok) sess = mauthReadSession() || sess;
-      // Not renewed: op=me is still asked. If it answers 401, the branch
-      // below decides - and a renewal that cannot be made keeps the session.
+
+  /**
+   * End a mobile-number sign-in left in this browser. Runs first on every
+   * boot; does nothing when there is nothing to end. Never deletes a brand.
+   */
+  function endLegacyPhoneSession() {
+    let had = false;
+    try { had = localStorage.getItem(LEGACY_SESSION_KEY) !== null || localStorage.getItem(LEGACY_USERS_KEY) !== null; } catch (_) { return false; }
+    if (!had) return false;
+    const sess = readJsonKey(LEGACY_SESSION_KEY);
+    const users = readJsonKey(LEGACY_USERS_KEY);
+    const ids = [];
+    const sessId = sess && sess.user && sess.user.id ? String(sess.user.id) : '';
+    if (sessId) ids.push(sessId);
+    if (users && typeof users === 'object') {
+      Object.keys(users).forEach((k) => { const u = users[k]; if (u && u.id && ids.indexOf(String(u.id)) < 0) ids.push(String(u.id)); });
     }
-    try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; }
-    if (r.status === 401 && sess.mode === 'supabase') {
-      // Revoked, or expired between the check above and the call: one
-      // renewal, one more ask. A renewal that could not be MADE keeps the
-      // session (the 401 alone cannot tell "ended" from "needs renewing").
-      const rf = await mauthRefresh(sess.token);
-      if (rf.expired) return { ok: false, expired: true };
-      if (!rf.ok) return keep();
-      sess = mauthReadSession() || sess;
-      try { r = await mauthFetch('me', null, sess.token); } catch (_) { r = { status: 0, body: {} }; }
+    const copied = keepLegacyDeviceBrands(ids, sessId);
+    // A session the server kept (Neon, or a Supabase phone account) is
+    // revoked there too, so a copy of its token is worth nothing. Best effort:
+    // the server refuses every phone token anyway.
+    if (sess && typeof sess.token === 'string' && sess.token && (sess.mode === 'server' || sess.mode === 'supabase')) {
+      try {
+        fetch('/api/public-config?action=auth&op=signout', {
+          method: 'POST', keepalive: true, cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.token, 'X-Lifecycle-Token': sess.token },
+          body: JSON.stringify({ op: 'signout' }),
+        }).catch(() => {});
+      } catch (_) { /* nothing to revoke with */ }
     }
-    if (r.status === 200 && r.body && r.body.ok && r.body.user && sess.mode === 'supabase') {
-      return { ok: true, user: r.body.user, status: { mode: 'supabase', host: r.body.host || (sess.storage && sess.storage.host) || '', message: r.body.message || 'Account saved in the database.' } };
+    try { localStorage.removeItem(LEGACY_SESSION_KEY); localStorage.removeItem(LEGACY_USERS_KEY); } catch (_) {}
+    try { localStorage.removeItem('lc-brand-context'); } catch (_) {}
+    if (sess && sess.token) {
+      phoneEndedNote = 'Sign-in is with Google now, so the mobile-number sign-in this browser held was ended. '
+        + (copied
+          ? 'The ' + copied + (copied === 1 ? ' brand' : ' brands') + ' it kept on this device ' + (copied === 1 ? 'is' : 'are') + ' still here.'
+          : 'Any brands it kept on this device are still here.');
     }
-    if (r.status === 200 && r.body && r.body.ok && r.body.user) return { ok: true, user: r.body.user, status: { mode: 'server', message: r.body.message || 'Account saved in the database.' } };
-    if (r.status === 401) return { ok: false, expired: true };
-    return { ok: false, unreachable: true, host: (r.body && r.body.host) || '', status: r.body && r.body.mode ? r.body : null };
+    return !!phoneEndedNote;
   }
-  async function mauthSignOut() {
-    const s = mauthReadSession();
-    // Server AND Supabase sessions are ended on the server: a Supabase one is
-    // revoked through POST /auth/v1/logout (its refresh token stops working),
-    // so a copy of it taken from this browser is worth nothing afterwards.
-    if (s && (s.mode === 'server' || s.mode === 'supabase')) { try { await mauthFetch('signout', { op: 'signout' }, s.token); } catch (_) { /* the session is gone from this browser either way */ } }
-    mauthStopRefresh();
-    mauthClearSession();
-  }
-  /** Tell a returning visitor their sign-in ended, under the Sign in chip. */
-  function mauthExpiredNote(nav) {
+
+  // Run NOW, while auth.js is still being evaluated - before brand-context.js
+  // (which auth.js injects, and which paints the first frame from the device
+  // store) runs - so the first frame already shows the brands the ended
+  // sign-in kept, not the default and then a flash to them.
+  endLegacyPhoneSession();
+
+  /** Under the Sign in chip: the phone sign-in ended on this boot, in the accent rule. */
+  function phoneEndedRailNote(nav) {
+    if (!phoneEndedNote) return;
     const btn = nav && nav.querySelector('#lnav-signin');
     if (!btn) return;
     let note = nav.querySelector('#lnav-signin-note');
@@ -3721,234 +3176,129 @@
       note.setAttribute('role', 'status');
       (btn.closest('.lnav-user') || btn).insertAdjacentElement('afterend', note);
     }
-    note.setAttribute('data-kind', 'expired');
-    note.textContent = 'Your sign-in expired or was signed out elsewhere. Sign in again with your mobile number and PIN.';
+    note.setAttribute('data-kind', 'phone-ended');
+    note.textContent = phoneEndedNote;
     btn.setAttribute('aria-describedby', 'lnav-signin-note');
   }
 
-  /* ── the panel ───────────────────────────────────────────────────────── */
+  /* ── The Google session (Supabase Auth) ───────────────────────────────── */
 
-  function mauthPanelHtml() {
-    const ccOpts = Object.keys(MAUTH.PHONE_CC).map((cc) =>
-      `<option value="${cc}"${cc === MAUTH.DEFAULT_CC ? ' selected' : ''}>${cc}</option>`).join('');
-    return `<form class="lnav-mauth" id="lnav-mauth" novalidate autocomplete="on" aria-label="Sign in with your mobile number">
-      <h4 id="lnav-mauth-title">Sign in with your mobile number</h4>
-      <div class="vh-status" id="lnav-mauth-mode" role="status">Checking where accounts are saved…</div>
-      <label for="lnav-mauth-phone">Mobile number</label>
-      <div class="lnav-mauth-row">
-        <select id="lnav-mauth-cc" aria-label="Country code">${ccOpts}</select>
-        <input type="tel" id="lnav-mauth-phone" inputmode="tel" maxlength="14" placeholder="98765 43210" autocomplete="tel-national">
-      </div>
-      <div id="lnav-mauth-pinwrap" hidden>
-        <p class="lnav-mauth-note" id="lnav-mauth-pinnote" hidden></p>
-        <label for="lnav-mauth-pin" id="lnav-mauth-pinlabel">Your 4-digit PIN</label>
-        <input type="password" id="lnav-mauth-pin" class="lnav-mauth-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" placeholder="&#8226;&#8226;&#8226;&#8226;" aria-describedby="lnav-mauth-pinnote">
-      </div>
-      <div id="lnav-mauth-namewrap" hidden>
-        <p class="lnav-mauth-note" id="lnav-mauth-newnote" hidden></p>
-        <label for="lnav-mauth-name">Your name</label>
-        <input type="text" id="lnav-mauth-name" maxlength="60" placeholder="e.g. Priya" autocomplete="name">
-      </div>
-      <div class="lnav-mauth-err" id="lnav-mauth-err" role="alert"></div>
-      <div class="lnav-mauth-actions">
-        <button type="submit" class="lnav-mauth-go" id="lnav-mauth-go">Continue</button>
-        <button type="button" id="lnav-mauth-cancel">Cancel</button>
-      </div>
-    </form>`;
-  }
-
-  /**
-   * Open the inline panel under the rail's Sign-in chip (or return the one
-   * already open). The flow is parwah-hq's, state for state: number ->
-   * (PIN row appears) -> (name row appears for a new number) -> one Continue
-   * button whose label changes. Nothing navigates, nothing is a dialog.
-   */
-  function mauthOpenPanel(root, opts) {
-    const nav = root || document.getElementById('lifecycle-nav');
-    if (!nav) return null;
-    const o = opts || {};
-    let panel = nav.querySelector('#lnav-mauth');
-    if (panel) { try { panel.querySelector('#lnav-mauth-phone').focus(); } catch (_) {} return panel; }
-    clearSignInNote(nav);
-    const tmp = document.createElement('div');
-    tmp.innerHTML = mauthPanelHtml();
-    panel = tmp.firstElementChild;
-    const footer = nav.querySelector('.lnav-user');
-    if (footer) footer.insertAdjacentElement('afterend', panel);
-    else (nav.querySelector('.lnav-side') || nav).appendChild(panel);
-    // The rail is a drawer on a phone; make sure it is open when a page asks.
-    // ONLY when it IS a drawer, and ONLY for as long as the panel is up.
-    // Found by driving production's bytes on a desktop viewport (2026-09-29):
-    // `open` was added unconditionally, and the drawer's backdrop
-    // (`#lifecycle-nav.open .lnav-backdrop`, a 55% black sheet with
-    // pointer-events) is not scoped to the phone breakpoint - so on a desktop,
-    // where the rail is always visible and nothing needs opening, the whole
-    // page went dim the moment Sign in was pressed and STAYED dim and
-    // unclickable after the person had signed in or pressed Cancel. Nothing
-    // said why; the only way out was to click the dark area or press Escape.
-    // The rail is a drawer when the burger is RENDERED - a box on screen, not
-    // a breakpoint copied from the stylesheet and not the burger's own
-    // computed display, which stays `flex` on a desktop because it is the
-    // burger's PARENT bar that the media query hides (a child of a
-    // display:none element keeps its own value; the first version of this
-    // check read it and opened the drawer on every desktop). What this panel
-    // opened it closes again when it goes; a drawer the person opened
-    // themselves is left exactly as they had it.
-    let openedDrawer = false;
-    if (o.openDrawer !== false) {
-      try {
-        const burger = nav.querySelector('#lnav-burger');
-        const isDrawer = !!burger && burger.getClientRects().length > 0;
-        if (isDrawer && !nav.classList.contains('open')) { nav.classList.add('open'); openedDrawer = true; }
-      } catch (_) { /* no drawer to open */ }
-    }
-    const closePanel = () => {
-      panel.remove();
-      if (openedDrawer) { try { nav.classList.remove('open'); } catch (_) {} }
-    };
-
-    const $ = (id) => panel.querySelector('#' + id);
-    const cc = $('lnav-mauth-cc'), phone = $('lnav-mauth-phone'), pinwrap = $('lnav-mauth-pinwrap'), pin = $('lnav-mauth-pin');
-    const pinlabel = $('lnav-mauth-pinlabel'), pinnote = $('lnav-mauth-pinnote'), namewrap = $('lnav-mauth-namewrap');
-    const name = $('lnav-mauth-name'), newnote = $('lnav-mauth-newnote'), err = $('lnav-mauth-err'), go = $('lnav-mauth-go');
-    const modeLine = $('lnav-mauth-mode');
-    // Prefilled for the move from a device account (same number, same name).
-    if (o.prefill && o.prefill.phone) {
-      const e164 = String(o.prefill.phone);
-      const code = Object.keys(MAUTH.PHONE_CC).sort((x, y) => y.length - x.length).find((c) => e164.indexOf(c) === 0);
-      if (code) { try { cc.value = code; } catch (_) {} phone.value = e164.slice(code.length); }
-      if (o.prefill.name) name.value = o.prefill.name;
-    }
-    let status = null;
-
-    const show = (el, on) => { el.hidden = !on; };
-    const fail = (msg, focusEl) => {
-      err.innerHTML = window.LifecycleFailure.html(new Error(msg), { title: 'Not signed in' });
-      if (focusEl) { try { focusEl.focus(); } catch (_) {} }
-    };
-    const clear = () => { err.innerHTML = ''; };
-    const busy = (on) => { go.disabled = !!on; $('lnav-mauth-cancel').disabled = !!on; go.setAttribute('aria-busy', on ? 'true' : 'false'); };
-
-    // Where would an account made here go? Said before anything is typed,
-    // and said differently when an account in the database cannot be used
-    // because the database is not answering - a device sign-up then is NOT
-    // the same account, and this is the one place to say so.
-    mauthStatus().then((st) => {
-      status = st;
-      panel.setAttribute('data-mode', st.mode);
-      let line = st.message || ((st.mode === 'server' || st.mode === 'supabase') ? 'Account saved in the database.' : 'Saved on this device only.');
-      if (st.mode === 'device' && st.reason === 'database_unreachable') {
-        line += ' If you already have an account in the database, it cannot be used until the database answers; signing up here makes a separate account on this device only.';
-      }
-      modeLine.textContent = line;
-    });
-
-    panel.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      clear();
-      const ccV = cc.value, phoneV = phone.value.trim();
-      if (!mauthNormPhone(phoneV, ccV)) return fail(mauthPhoneError(ccV), phone);
-      if (!namewrap.hidden && !name.value.trim()) return fail('Please type your name.', name);
-      if (!pinwrap.hidden && !/^\d{4}$/.test(pin.value.trim())) return fail('Your PIN is 4 digits.', pin);
-      busy(true);
-      const st = status || await mauthStatus();
-      const body = { phone: phoneV, cc: ccV, name: namewrap.hidden ? '' : name.value.trim(), pin: pin.value.trim() || undefined, device: String(navigator.platform || 'browser').slice(0, 80) };
-      let r;
-      try { r = (st.mode === 'server' || st.mode === 'supabase') ? await mauthFetch('enter', Object.assign({ op: 'enter' }, body)) : await mauthDeviceEnter(body); }
-      catch (e) { busy(false); return fail(window.LifecycleFailure.sentence(e)); }
-      busy(false);
-      const j = r.body || {};
-      // A wrong PIN, or an account locked after five: both keep the person
-      // here with the reason.
-      if (!j.ok && (j.wrongPin || j.locked)) {
-        show(pinwrap, true); pin.value = '';
-        fail(j.message || 'That PIN is not right.', pin);
-        panel.setAttribute('data-state', j.locked ? 'locked' : 'wrong-pin');
-        return;
-      }
-      if (!j.ok) { fail(j.message || 'Could not sign you in.'); return; }
-      // A known number that has a PIN, or one that needs to choose one. Both
-      // ask here rather than letting the number alone in.
-      if (j.exists && (j.needPin || j.setPin)) {
-        show(pinwrap, true);
-        pinlabel.textContent = j.setPin ? 'Choose a 4-digit PIN' : 'Your 4-digit PIN';
-        show(pinnote, true);
-        pinnote.textContent = j.setPin
-          ? 'This account has no PIN on record. Choose four digits you will remember, not a run and not your birth year.'
-          : 'Welcome back. Type your PIN.';
-        go.textContent = j.setPin ? 'Set my PIN and continue' : 'Sign in';
-        panel.setAttribute('data-state', j.setPin ? 'set-pin' : 'need-pin');
-        if (j.error) fail(j.message, pin); else { try { pin.focus(); } catch (_) {} }
-        return;
-      }
-      if (!j.exists) {
-        // Say what happened: "this number is new" is the news, a field quietly
-        // appearing is not, and a mistyped digit otherwise makes a second
-        // account without anyone noticing.
-        const first = namewrap.hidden;
-        show(namewrap, true); show(pinwrap, true);
-        pinlabel.textContent = 'Choose a 4-digit PIN';
-        show(pinnote, true);
-        pinnote.textContent = 'You will type this to sign in. Four digits, not a run and not your birth year.';
-        go.textContent = 'Create my account and continue';
-        show(newnote, true);
-        if (first) newnote.textContent = 'This number is new here, so we will set you up. Already have an account? Check the number above.';
-        panel.setAttribute('data-state', 'new');
-        if (j.error) fail(j.message, pin); else { try { name.focus(); } catch (_) {} }
-        return;
-      }
-      // Signed in.
-      const sess = { token: j.token, user: j.user, mode: j.mode || st.mode, expires: j.expires || null, provider: 'mobile-pin', storage: { mode: st.mode, reason: st.reason || '', host: st.host || '', message: st.message || '' } };
-      // A Supabase session (2026-10-03): the refresh token and the access
-      // token's expiry travel with it, so it can be renewed before it runs out.
-      if (sess.mode === 'supabase') { sess.refresh_token = j.refresh_token || ''; sess.expires_at = Number(j.expires_at) || 0; sess.state = 'verified'; sess.checked_at = new Date().toISOString(); }
-      // THE MOVE FROM A DEVICE ACCOUNT: the same number and PIN just signed in
-      // to the account database, so the brands this person kept under their
-      // device account are theirs - copied into the new account's device
-      // namespace, where onboarding OFFERS them for sync. Nothing is uploaded.
-      try {
-        const prev = window.LifecycleAuth && window.LifecycleAuth.session;
-        if (prev && prev.mode === 'device' && prev.transition && sess.mode !== 'device' && prev.user && sess.user && prev.user.phone === sess.user.phone) {
-          const base = 'lifecycle.brand.device.workspaces.';
-          const from = JSON.parse(localStorage.getItem(base + prev.user.id) || 'null');
-          if (from && Array.isArray(from.workspaces) && from.workspaces.length) {
-            const to = JSON.parse(localStorage.getItem(base + sess.user.id) || 'null') || { version: 1, active_id: '', workspaces: [] };
-            const have = new Set((to.workspaces || []).map((w) => w.id));
-            to.workspaces = (to.workspaces || []).concat(from.workspaces.filter((w) => !have.has(w.id)));
-            localStorage.setItem(base + sess.user.id, JSON.stringify(to));
-          }
+  // Shown while an OAuth callback is being exchanged, so a signed-out bar
+  // never flashes over a sign-in that is a beat away from resolving.
+  function injectSigningInOverlay() {
+    if (document.getElementById('lifecycle-signingin')) return;
+    const el = document.createElement('div');
+    el.id = 'lifecycle-signingin';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `
+      <style>
+        #lifecycle-signingin {
+          position: fixed; inset: 0; z-index: 9999; background: var(--vh-surface, #ffffff);
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 18px; font-family: var(--vh-font-body, system-ui, sans-serif); color: var(--vh-ink, #111111);
         }
-      } catch (_) { /* the device rows stay where they were */ }
-      if (!mauthWriteSession(sess)) { fail('This browser refused to remember the sign-in (storage is full or blocked).'); return; }
-      closePanel();
-      mauthApply(sess, { verified: true, status: st });
-    });
-    $('lnav-mauth-cancel').addEventListener('click', closePanel);
-    try { panel.scrollIntoView({ block: 'nearest' }); } catch (_) {}
-    try { phone.focus(); } catch (_) {}
-    return panel;
+        #lifecycle-signingin .lsi-ring {
+          width: 40px; height: 40px; border-radius: 50%;
+          border: 3px solid var(--vh-line, #ebebeb); border-top-color: var(--vh-accent, #6A33D8);
+          animation: lsi-spin 0.8s linear infinite;
+        }
+        @keyframes lsi-spin { to { transform: rotate(360deg); } }
+        #lifecycle-signingin .lsi-t { font-size: 13.5px; letter-spacing: 0.02em; }
+      </style>
+      <div class="lsi-ring"></div>
+      <div class="lsi-t">Completing sign-in…</div>
+    `;
+    (document.body || document.documentElement).appendChild(el);
+  }
+  function removeSigningInOverlay() {
+    const el = document.getElementById('lifecycle-signingin');
+    if (el) el.remove();
   }
 
-  /**
-   * A Google session left in this browser by the 2026-10-05 to 2026-10-09
-   * sign-in (supabase-js kept it under `sb-<ref>-auth-token`, with a PKCE
-   * verifier beside it, and `lc-return-to` for the bounce). Nothing reads
-   * them any more; they are removed so a refresh token for a sign-in that no
-   * longer exists does not sit in storage.
-   */
-  function dropLeftoverOAuthSession() {
+  // True while the browser is on a Supabase OAuth callback (PKCE ?code=, an
+  // ?error=, or an implicit #access_token). During this window the signed-out
+  // bar must not flash: detectSessionInUrl is exchanging the code and
+  // onAuthStateChange will fire SIGNED_IN momentarily.
+  function oauthCallbackInProgress() {
     try {
-      const drop = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && (/^sb-[A-Za-z0-9-]+-auth-token(-code-verifier)?$/.test(k) || k === 'lc-return-to')) drop.push(k);
-      }
-      drop.forEach((k) => localStorage.removeItem(k));
-    } catch (_) { /* storage blocked: nothing to remove */ }
+      const sp = new URLSearchParams(location.search || '');
+      if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
+      const hash = location.hash || '';
+      if (/access_token=|error=/.test(hash)) return true;
+    } catch (_) {}
+    return false;
+  }
+  /**
+   * Google OAuth options. redirectTo is ALWAYS this origin's root: that is the
+   * Site URL every deployment allowlists. A per-page pathname 400s when the
+   * wildcard is missing (docs/oauth-redirect-migration.md) and the person
+   * lands on Chrome's error with no in-app sentence. rememberReturnTo /
+   * restoreReturnTo send them back to the page they pressed from.
+   * prompt=select_account is the account picker: without it a browser already
+   * signed into one Google account never offers another.
+   */
+  function googleSignInOptions() {
+    return {
+      provider: 'google',
+      options: {
+        redirectTo: location.origin + '/',
+        queryParams: { prompt: 'select_account' },
+      },
+    };
+  }
+  function sameAppPath(a, b) {
+    const norm = (p) => {
+      p = String(p || '/');
+      if (p === '' || p === '/index.html') return '/';
+      return p;
+    };
+    return norm(a) === norm(b);
+  }
+  function rememberReturnTo() {
+    try { localStorage.setItem('lc-return-to', location.pathname + location.search + location.hash); } catch (_) {}
+  }
+  function restoreReturnTo() {
+    let target = null;
+    try { target = localStorage.getItem('lc-return-to'); localStorage.removeItem('lc-return-to'); } catch (_) {}
+    if (!target || !target.startsWith('/') || target.startsWith('//')) return;
+    if (new URL(target, location.origin).origin !== location.origin) return;
+    const targetPath = target.split('?')[0].split('#')[0];
+    // Only redirect if we actually landed somewhere else (avoid loops / no-ops).
+    // `/` and `/index.html` are the same app page: a bounce between them after
+    // the Site-URL callback would loop.
+    if (targetPath && !sameAppPath(targetPath, location.pathname)) {
+      location.replace(target);
+    }
+  }
+
+  function clearGoogleAccountCache() {
+    try { window.BrandContext?.clearCache?.(); } catch (_) {}
+    try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
+  }
+
+  /** A Google session is the sign-in. The access token is the Supabase JWT. */
+  function applySupabaseUser(session) {
+    if (!session || !session.user) return;
+    if (window.LifecycleAuth.user && window.LifecycleAuth.user.id !== session.user.id) clearGoogleAccountCache();
+    window.LifecycleAuth.session = session;
+    window.LifecycleAuth.user = session.user;
+    applyAccessMode(session.user);
+    setBackendState('signed-in', { supabase: 'reachable' });
+    removeLoginWall();
+    removeSigningInOverlay();
+    const bar = document.getElementById('lc-authnotice');
+    if (bar) bar.remove();
+    setRailUser(session.user);
+  }
+  /** The Google session's access token, '' when there is none or it has run out. */
+  function sessionApiToken() {
+    const s = window.LifecycleAuth && window.LifecycleAuth.session;
+    if (!(s && s.access_token)) return '';
+    return s.expires_at && s.expires_at * 1000 <= Date.now() ? '' : s.access_token;
   }
 
   async function init() {
-    dropLeftoverOAuthSession();
+    window.__startGoogleSignIn__ = startGoogleSignIn;
     window.LifecycleAuth = {
       client: null,
       session: null,
@@ -3960,150 +3310,110 @@
       backend: backendSnapshot('pending'),
       backendState: () => backendFirst,
       ready: () => authReady.promise,
-      // Mobile number + 4-digit PIN, the one sign-in: open the inline panel
-      // on this page. `apiToken` is the token the SERVER can check ('' for a
-      // device-only sign-in), and `mobile.rules` is exposed so the parity test
-      // can hold this copy to the server's.
-      openSignIn: (opts) => mauthOpenPanel(null, opts),
+      // Google is the only sign-in (2026-10-10).
+      openSignIn: () => beginGoogleSignIn(document.getElementById('lifecycle-nav')),
+      googleSignInOptions,
+      restoreReturnTo,
       // Why an action that needs the server cannot run right now, or null.
       // See serverActions(): pages ask BEFORE sending, and throw the answer.
       serverActionRefusal: (what, opts) => (window.LifecycleStatus ? window.LifecycleStatus.refusal(what, opts) : null),
-      apiToken: mauthApiToken,
-      mobile: {
-        SESSION_KEY: MAUTH_SESSION_KEY, USERS_KEY: MAUTH_USERS_KEY,
-        rules: { PIN_LEN: MAUTH.PIN_LEN, WEAK_PINS: MAUTH.WEAK_PINS.slice(), MAX_TRIES: MAUTH.MAX_TRIES, LOCK_MINUTES: MAUTH.LOCK_MINUTES, SESSION_DAYS: MAUTH.SESSION_DAYS, DEFAULT_CC: MAUTH.DEFAULT_CC, PHONE_CC: MAUTH.PHONE_CC, normPhone: mauthNormPhone, phoneError: mauthPhoneError, pinError: mauthPinError },
-        status: mauthStatus,
-        deviceEnter: mauthDeviceEnter,
-        openPanel: (opts) => mauthOpenPanel(null, opts),
-      },
+      apiToken: sessionApiToken,
       signOut: async () => {
-        await mauthSignOut();
+        try {
+          if (window.LifecycleAuth.client && window.LifecycleAuth.client.auth) await window.LifecycleAuth.client.auth.signOut();
+        } catch (_) { /* the session is dropped from this browser either way */ }
         window.LifecycleAuth.session = null;
         window.LifecycleAuth.user = null;
         // Drop this account's cached brand. A browser is often shared, and the
         // brand payload carries voice rules, regions and store URLs, so it must
         // not survive into the next person's session.
-        try { if (window.BrandContext && window.BrandContext.clearCache) window.BrandContext.clearCache(); } catch (_) {}
-        try { localStorage.removeItem('lc-brand-context'); localStorage.removeItem('lc-credits'); } catch (_) {}
+        clearGoogleAccountCache();
         applyAccessMode(null);
         location.reload();
       },
     };
 
     // THE RAIL FIRST, BEFORE ANY NETWORK. Every await below this line can take
-    // seconds (the config fetch), and none of them changes what the rail lists.
-    // Only the user block at its foot depends on the session, and setRailUser()
-    // swaps that in when the session is known. A page with no navigation for
-    // 25 s is a page whose features are gone for anyone who does not know the URLs.
+    // seconds (the config fetch, the SDK, the session lookup), and none of them
+    // changes what the rail lists. Only the user block at its foot depends on
+    // the session, and setRailUser() swaps that in when the session is known.
     injectTopbar(null);
 
-    // A STORED MOBILE+PIN SESSION SEATS THE CHIP NOW, like the cached brand
-    // paints the first frame. A device session is valid by construction (its
-    // account is in this browser); a server session is provisional until op=me
-    // answers below, and a 401 takes it back.
-    const stored = mauthReadSession();
-    // Until the boot knows whether a device token is still accepted, same-
-    // origin API calls wait (see the fetch wrapper, which made the promise at
-    // load). Decided below, or after six seconds at the latest.
-    const decideDevice = () => { const dd = window.__lcDeviceDecided; if (dd && dd.resolve) { dd.decided = true; dd.resolve(); } };
-    if (stored) mauthApply(stored, { verified: stored.mode === 'device', status: stored.storage || null });
-
     const config = await getConfig();
-    let supabaseState = 'unconfigured';
-    // A DEVICE account, and the account database now answers (review finding,
-    // 2026-10-03): the server refuses a device token while it does, so every
-    // gated action used to end in a bare 401. The account keeps working on
-    // this device; its token is no longer sent; the mode line, the refusal
-    // sentence and a button say how to move it (same number, same PIN).
-    // Decided BEFORE the SDK loads (found by phone-signin-everywhere): a
-    // supabase-js CDN that does not load throws out of init() below, and the
-    // decision was never made - so the token stayed withheld for every call.
-    if (config) {
-      if (stored && stored.mode === 'device') {
-        let st = null;
-        try { st = await mauthStatus(); } catch (_) { st = null; }
-        if (st && st.mode === 'supabase') mauthApply(stored, { verified: true, status: st, transition: 'supabase', supabase: 'pending' });
-      }
-      decideDevice();
-    }
     if (!config) {
-      decideDevice();   // no project configured: a device token is what the server takes
       authReady.settle();   // no config means no SDK to wait for
       const isLocal = location.protocol === 'file:' ||
         /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
-      if (!stored) {
-        // No Supabase configured. On localhost / file:// (dev preview) the
-        // "Local preview" stub keeps the pages that read a user working. A real
-        // mobile+PIN session (above) outranks it, which is why this is inside
-        // `!stored`.
-        if (isLocal) {
-          setRailUser({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
-          setBackendState('local');
-          return;
-        }
-        if (isOpenPage()) { injectTopbar(null); setBackendState('unconfigured'); return; }
-        // NO WORKSPACE DATABASE AT ALL. The app runs on whatever local state it
-        // has, and SAYS so. Signing in with a mobile number still works: the
-        // account goes to the Neon database when DATABASE_URL is set, else to
-        // this device.
-        injectTopbar(null);
-        injectSignedOutNotice('unconfigured');
-        setBackendState('unconfigured');
+      // No Supabase configured. On localhost / file:// (dev preview) the
+      // "Local preview" stub keeps the pages that read a user working.
+      if (isLocal && !phoneEndedNote) {
+        setRailUser({ email: 'local@preview', user_metadata: { name: 'Local preview' } });
+        setBackendState('local');
         return;
       }
-    } else {
-      // AN ANONYMOUS CLIENT ONLY. A few pages read anon-open tables through
-      // it; it never holds a session of its own. persistSession:false so a
-      // Supabase session left in localStorage is not read back,
-      // detectSessionInUrl:false so an OAuth callback is inert.
-      const sdk = await loadSupabaseSDK();
-      const client = sdk.createClient(config.url, config.anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      });
-      window.LifecycleAuth.client = client;
-      supabaseState = (await authHostReachable(config.url)) ? 'reachable' : 'unreachable';
-    }
-
-    // A SERVER-MODE SESSION IS CHECKED WITH THE DATABASE, every boot. Three
-    // answers: good (the name is refreshed from the record), expired (401:
-    // cleared, and the person is told under the chip), or the database is not
-    // answering (kept, marked unverified, and the mode line says exactly that
-    // rather than showing a device sign-up as if it were the same account).
-    let expired = false;
-    if (stored && (stored.mode === 'server' || stored.mode === 'supabase')) {
-      const v = await mauthValidate(stored);
-      if (v.expired) {
-        mauthClearSession();
-        mauthUnapply();
-        expired = true;
-      } else if (v.ok) {
-        // Re-read: a refresh inside mauthValidate may have rotated the tokens.
-        const cur = mauthReadSession() || stored;
-        cur.user = Object.assign({}, cur.user, v.user);
-        if (cur.mode === 'supabase') { cur.state = 'verified'; cur.checked_at = new Date().toISOString(); }
-        mauthWriteSession(cur);
-        mauthApply(cur, { verified: true, status: v.status, supabase: supabaseState });
-      } else {
-        const cur = mauthReadSession() || stored;
-        if (cur.mode === 'supabase') { cur.state = 'unverified'; cur.checked_at = new Date().toISOString(); mauthWriteSession(cur); }
-        mauthApply(cur, { verified: false, status: v.status, supabase: supabaseState });
-      }
-    }
-    authReady.settle();
-
-    if (window.LifecycleAuth.session) {
-      // Signed in with a mobile number. No standing bar: the mode line under
-      // the chip says where the account and its brands live, and the Supabase
-      // state travels on the backend record for anything that needs it.
-      setBackendState('signed-in', { supabase: supabaseState });
+      if (isOpenPage() && !phoneEndedNote) { injectTopbar(null); setBackendState('unconfigured'); return; }
+      // NO WORKSPACE DATABASE AT ALL. The app runs on whatever local state it
+      // has, and SAYS so. Google sign-in needs that database, so the notice
+      // names the missing values and the pages stay open.
+      injectTopbar(null);
+      clearSignInNote();
+      injectSignedOutNotice('unconfigured', { force: !!phoneEndedNote });
+      setBackendState('unconfigured');
+      phoneEndedRailNote(document.getElementById('lifecycle-nav'));
       return;
     }
+
+    // The client holds the Google session. persistSession reads it back on
+    // the next page; detectSessionInUrl exchanges the OAuth code (PKCE).
+    const sdk = await loadSupabaseSDK();
+    const client = sdk.createClient(config.url, config.anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
+    });
+    window.LifecycleAuth.client = client;
+    const reachable = await authHostReachable(config.url);
+    if (client.auth && typeof client.auth.onAuthStateChange === 'function') {
+      client.auth.onAuthStateChange((_event, sess) => {
+        if (sess && sess.user) {
+          applySupabaseUser(sess);
+          restoreReturnTo();
+          return;
+        }
+        if (window.LifecycleAuth.user) {
+          clearGoogleAccountCache();
+          window.LifecycleAuth.session = null;
+          window.LifecycleAuth.user = null;
+          applyAccessMode(null);
+          setRailUser(null);
+          void gateSignedOut();
+        }
+      });
+    }
+    // A host that does not answer cannot hand back or renew a session, and
+    // asking supabase-js for one makes it retry the refresh for ~25 s first
+    // (measured 2026-09-15). Signed out, said, and the rail is already up.
+    if (reachable) {
+      if (oauthCallbackInProgress()) injectSigningInOverlay();
+      let googleSession = null;
+      try {
+        if (client.auth && typeof client.auth.getSession === 'function') {
+          const got = await client.auth.getSession();
+          googleSession = got && got.data && got.data.session;
+        }
+      } catch (_) { googleSession = null; }
+      if (googleSession && googleSession.user) {
+        applySupabaseUser(googleSession);
+        authReady.settle();
+        restoreReturnTo();
+        return;
+      }
+      removeSigningInOverlay();
+    }
+    authReady.settle();
     // Signed out. EVERY page is open - there is no gated set.
     await gateSignedOut();
     // AFTER gateSignedOut(), which clears any note written against an earlier
     // state: this one describes the state just decided.
-    if (expired) mauthExpiredNote(document.getElementById('lifecycle-nav'));
-
+    phoneEndedRailNote(document.getElementById('lifecycle-nav'));
   }
 
   // init() is async and was invoked with NO catch, so any rejection — most

@@ -18,23 +18,31 @@
  * that has to track an external resource drifts; on a multi-tenant platform, one
  * project ref is the same defect class as one brand's colour.
  *
- * ── SINCE 2026-09-28 ────────────────────────────────────────────────────────
- * Sign-in is a mobile number and a 4-digit PIN in the rail's own panel
- * (tests/mobile-pin-signin.spec.js); the Google redirect is commented out.
- * The guard this file drove (`__startGoogleSignIn__`) is gone WITH the
- * redirect, so the claim moves one level up: pressing Sign in opens the panel
- * on the current page and hands the browser to NO host - reachable, dead or
- * unconfigured alike. The stub still records any signInWithOAuth call, and
- * every navigation is still captured, so a redirect sneaking back shows up as
- * evidence. The "no baked-in project ref" file check stays as it was.
+ * ── SINCE 2026-10-05 ────────────────────────────────────────────────────────
+ * Sign-in is Google again, through Supabase Auth. A dead or missing project
+ * is still refused BEFORE signInWithOAuth, because that call navigates and a
+ * dead host becomes Chrome's NXDOMAIN with no in-app error. A reachable host
+ * whose GET /auth/v1/settings says external.google === false is also refused
+ * (production: GoTrue 400 validation_failed "Unsupported provider: provider
+ * is not enabled") - the chip names the host and the dashboard steps, and
+ * authorize is never called (that would spend PKCE). Settings that cannot
+ * be read fail OPEN, so a harness that only answers /health still starts
+ * Google. A reachable host with Google on (or unread) starts Google with a
+ * stable canonical Site-URL redirectTo and the Gmail account picker
+ * (prompt=select_account), remembers the page the person was on, and does
+ * not open the mobile PIN panel. The stub records every signInWithOAuth
+ * call, and every navigation is still captured. The "no baked-in project
+ * ref" file check stays as it was.
  *
- * ── 2026-10-09: PIN ONLY ───────────────────────────────────────────────────
- * Google sign-in ran again from 2026-10-05 to 2026-10-09 and is removed (not
- * commented out). The owner's words: "only keep PIN option, that too only
- * 4-digit". These tests hold the same claim as before - Sign in opens the
- * mobile number + PIN panel and starts no OAuth on any host - plus: the
- * signed-out brain calendar asks for that sign-in, and the checked-in Auth
- * config declares no OAuth provider and no email sign-up.
+ * ── 2026-10-10: GOOGLE ONLY ─────────────────────────────────────────────────
+ * Between 2026-10-09 and 2026-10-10 this file held the opposite claim (PIN
+ * only: Sign in opened the mobile panel, no OAuth). The owner's words now:
+ * "No signin with mobile number - only Google signin pls". The Google claims
+ * above are back, worded "Sign in with Google", with redirectTo = this
+ * origin's root (the Site URL in production), and the checked-in config
+ * declares Google, the production allowlist, the phone provider OFF and
+ * email sign-up off. A stored phone session ending on boot is gated in
+ * tests/google-only-signin.spec.js.
  *
  * Run: npx playwright test tests/signin-config.spec.js
  */
@@ -89,7 +97,7 @@ test('no Supabase project ref is hardcoded into anything the browser runs', () =
  * Every navigation the page attempts is recorded and blocked, so a redirect to
  * a dead host shows up as evidence instead of as a broken test.
  */
-async function boot(page, { authHost, reachable, file = 'index.html' }) {
+async function boot(page, { authHost, reachable, googleEnabled, file = 'index.html' }) {
   const navigations = [];
   await page.addInitScript(() => {
     // A minimal stand-in for supabase-js: records the OAuth call, never leaves.
@@ -112,6 +120,16 @@ async function boot(page, { authHost, reachable, file = 'index.html' }) {
       return reachable
         ? route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
         : route.abort('addressunreachable');   // what a dead DNS name looks like
+    }
+    if (/\/auth\/v1\/settings/.test(url)) {
+      // Production's document (2026-10-05): external.google === false.
+      // Unstated means the request is aborted, which the app must fail OPEN
+      // on - otherwise every existing reachable-host case would refuse Google.
+      if (googleEnabled === undefined) return route.abort('failed');
+      return route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ external: { google: googleEnabled }, disable_signup: false }),
+      });
     }
     if (/\/auth\/v1\/authorize/.test(url)) { navigations.push(url); return route.abort('failed'); }
     if (route.request().resourceType() === 'script') {
@@ -139,7 +157,7 @@ async function boot(page, { authHost, reachable, file = 'index.html' }) {
   return navigations;
 }
 
-/** Press the rail's Sign in and read what happened: the panel, the OAuth stub, where the page is. */
+/** Press the rail's Sign in and read what happened: the note, the OAuth stub, where the page is. */
 async function pressAndRead(page) {
   const btn = page.locator('#lnav-signin');
   await btn.waitFor({ state: 'attached', timeout: 15000 });
@@ -147,111 +165,148 @@ async function pressAndRead(page) {
     if (!/intercepts pointer events|Timeout/.test(String(e.message))) throw e;
     await btn.evaluate((el) => el.click());
   }
-  await page.waitForTimeout(400);
-  return page.evaluate(() => ({
-    panel: !!document.getElementById('lnav-mauth'),
-    panelOnPage: !!(document.getElementById('lnav-mauth') && document.getElementById('lifecycle-nav').contains(document.getElementById('lnav-mauth'))),
-    oauth: (window.__OAUTH_CALLS__ || []).length,
-    path: location.pathname,
-    startGoogle: typeof window.__startGoogleSignIn__,
-    google: /Sign in with (Google|Gmail)/i.test(document.body.innerText || ''),
-  }));
+  await page.waitForFunction(() => {
+    const n = document.getElementById('lnav-signin-note');
+    return (window.__OAUTH_CALLS__ || []).length > 0 || !!(n && n.getAttribute('data-kind'));
+  }, null, { timeout: 8000 });
+  return page.evaluate(() => {
+    const note = document.getElementById('lnav-signin-note');
+    const btn = document.getElementById('lnav-signin');
+    const call = (window.__OAUTH_CALLS__ || [])[0] || null;
+    return {
+      panel: !!document.getElementById('lnav-mauth'),
+      oauth: (window.__OAUTH_CALLS__ || []).length,
+      provider: call && call.provider,
+      redirectTo: call && call.options && call.options.redirectTo,
+      prompt: call && call.options && call.options.queryParams && call.options.queryParams.prompt,
+      path: location.pathname,
+      origin: location.origin,
+      startGoogle: typeof window.__startGoogleSignIn__,
+      kind: note ? note.getAttribute('data-kind') : null,
+      note: note ? note.textContent : '',
+      button: btn ? (btn.textContent || '').trim() : null,
+    };
+  });
 }
 
-test('an unreachable auth host: Sign in opens the mobile panel here and the browser is sent nowhere', async ({ page }) => {
+test('an unreachable auth host: Sign in stays on this page, names the host, and the browser is sent nowhere', async ({ page }) => {
   const navs = await boot(page, { authHost: 'https://deleted-project.supabase.co', reachable: false });
   const got = await pressAndRead(page);
   expect(got.oauth, 'signInWithOAuth was called for a host that does not resolve').toBe(0);
-  expect(got.panel, 'no inline sign-in panel opened').toBe(true);
-  expect(got.panelOnPage).toBe(true);
+  expect(got.panel, 'the mobile PIN panel opened').toBe(false);
   expect(got.path).toBe('/index.html');
-  expect(got.startGoogle, 'the Google guard is still exposed').toBe('undefined');
-  expect(got.google).toBe(false);
+  expect(got.startGoogle, 'the Google guard is not exposed').toBe('function');
+  expect(got.kind).toBe('unreachable');
+  expect(got.note).toMatch(/deleted-project\.supabase\.co/);
+  expect(got.note).toMatch(/Sign in with Google/i);
+  expect(got.button).toBe('Sign-in unavailable');
   expect(navs.filter((u) => /authorize/.test(u)), 'the browser was navigated to the dead host anyway').toEqual([]);
 });
 
-test('a reachable auth host: the same panel, and still no redirect', async ({ page }) => {
-  // A working Supabase project changes nothing about sign-in any more: the
-  // account lives in the Neon database (or on this device), never with Google.
-  await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true });
+test('Google off on the Auth project: Sign in stays here, names the host, and never starts OAuth', async ({ page }) => {
+  // The live project on 2026-10-05: GET /auth/v1/settings → google:false,
+  // GET /auth/v1/authorize → 400 validation_failed "Unsupported provider:
+  // provider is not enabled". The chip must say that BEFORE the redirect,
+  // because signInWithOAuth navigates and the person otherwise sees JSON.
+  const navs = await boot(page, {
+    authHost: 'https://live-project.supabase.co',
+    reachable: true,
+    googleEnabled: false,
+  });
   const got = await pressAndRead(page);
-  expect(got.oauth, 'signInWithOAuth was called on a reachable host').toBe(0);
-  expect(got.panel).toBe(true);
+  expect(got.oauth, 'signInWithOAuth was called for a project whose Google provider is off').toBe(0);
+  expect(got.panel, 'the mobile PIN panel opened').toBe(false);
+  expect(got.kind).toBe('provider-off');
+  expect(got.note).toMatch(/live-project\.supabase\.co/);
+  expect(got.note).toMatch(/provider is not enabled/i);
+  expect(got.note).toMatch(/Authentication/);
+  expect(got.note).toMatch(/https:\/\/live-project\.supabase\.co\/auth\/v1\/callback/);
+  expect(got.button).toBe('Sign-in unavailable');
   expect(got.path).toBe('/index.html');
+  expect(navs.filter((u) => /authorize/.test(u)), 'authorize was fetched (that spends the PKCE verifier)').toEqual([]);
+  const bar = await page.locator('#lc-authnotice').getAttribute('data-kind');
+  expect(bar, 'the standing bar kept saying signed-out after the chip named the real cause').toBe('provider-off');
 });
 
-test('a deployment with no Supabase configuration: the same panel, and no redirect', async ({ page }) => {
+test('a reachable auth host: Sign in starts Google on this page and does not open the PIN panel', async ({ page }) => {
+  await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true });
+  const got = await pressAndRead(page);
+  expect(got.oauth, 'signInWithOAuth was not called on a reachable host').toBe(1);
+  expect(got.provider).toBe('google');
+  expect(got.redirectTo).toBe(base + '/');
+  expect(got.prompt).toBe('select_account');
+  expect(got.panel).toBe(false);
+  expect(got.kind).toBeNull();
+  expect(got.path).toBe('/index.html');
+  expect(await page.evaluate(() => localStorage.getItem('lc-return-to'))).toBe('/index.html');
+});
+
+test('a deployment with no Supabase configuration: Sign in says what is missing, and no redirect', async ({ page }) => {
   const navs = await boot(page, { authHost: '', reachable: false });
   // This harness serves from 127.0.0.1, and with no config auth.js seats its
-  // "Local preview" stub in place of the Sign in chip - so the panel is
-  // opened through the same entry point the chip and the brand gate call.
-  await page.evaluate(() => window.LifecycleAuth.openSignIn());
-  await page.waitForTimeout(400);
+  // "Local preview" stub in place of the Sign in chip. The same entry point
+  // the chip and the brand gate call still refuses Google before any redirect.
+  const message = await page.evaluate(() => window.LifecycleAuth.openSignIn());
   const got = await page.evaluate(() => ({
     panel: !!document.getElementById('lnav-mauth'),
     oauth: (window.__OAUTH_CALLS__ || []).length,
     path: location.pathname,
   }));
   expect(got.oauth).toBe(0);
-  expect(got.panel).toBe(true);
+  expect(got.panel).toBe(false);
+  expect(message).toMatch(/SUPABASE_URL/);
+  expect(message).toMatch(/Sign in with Google/i);
   expect(got.path).toBe('/index.html');
   expect(navs.filter((u) => /authorize/.test(u))).toEqual([]);
 });
 
-test('the brain calendar, signed out, asks for a mobile number and PIN and never starts OAuth', async ({ page }) => {
+test('the brain calendar, signed out, asks for Google and never shows the missing PIN schema', async ({ page }) => {
   await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true, file: 'smart-brain.html' });
   await page.waitForFunction(() => {
     const t = (document.getElementById('plan') || {}).textContent || '';
-    return /mobile number and 4-digit PIN/i.test(t) || /sign_in_required|Could not load the plan/i.test(t);
+    return /sign in with google/i.test(t) || /sign_in_required|mobile_pin|Could not load the plan/i.test(t);
   }, null, { timeout: 15000 });
   const plan = await page.locator('#plan').innerText();
-  expect(plan).toMatch(/mobile number and 4-digit PIN/i);
-  expect(plan).not.toMatch(/gmail|google/i);
+  expect(plan).toMatch(/sign in with google/i);
   expect(plan).not.toMatch(/sign_in_required/);
+  expect(plan).not.toMatch(/mobile_pin/);
   expect(plan).not.toMatch(/Could not load the plan/i);
+  expect(await page.locator('#changes').innerText()).not.toMatch(/env not linked/i);
+  expect(await page.locator('#lnav-mauth').count()).toBe(0);
   const got = await pressAndRead(page);
-  expect(got.oauth, 'signInWithOAuth was called').toBe(0);
-  expect(got.panel).toBe(true);
-  expect(got.startGoogle).toBe('undefined');
-  expect(got.google).toBe(false);
+  expect(got.oauth).toBe(1);
+  expect(got.provider).toBe('google');
+  expect(got.redirectTo).toBe(base + '/');
+  expect(got.prompt).toBe('select_account');
+  expect(got.panel).toBe(false);
   expect(got.path).toBe('/smart-brain.html');
+  expect(await page.evaluate(() => localStorage.getItem('lc-return-to'))).toBe('/smart-brain.html');
 });
 
-test('a Google session left in storage by the removed sign-in is dropped on boot, and is not a session', async ({ page }) => {
-  await page.addInitScript(() => {
-    if (sessionStorage.getItem('seeded')) return;
-    sessionStorage.setItem('seeded', '1');
-    localStorage.setItem('sb-liveproject-auth-token', JSON.stringify({ access_token: 'a.b.c', refresh_token: 'r', user: { id: 'g1', email: 'someone@gmail.com', app_metadata: { provider: 'google' } } }));
-    localStorage.setItem('sb-liveproject-auth-token-code-verifier', 'v');
+test('a Site-URL bounce sends the person back to the page they signed in from', async ({ page }) => {
+  await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true, file: 'index.html' });
+  await page.waitForFunction(() => !!(window.LifecycleAuth && typeof window.LifecycleAuth.restoreReturnTo === 'function'), null, { timeout: 15000 });
+  await page.evaluate(() => {
     localStorage.setItem('lc-return-to', '/smart-brain.html');
+    window.LifecycleAuth.restoreReturnTo();
   });
-  await boot(page, { authHost: 'https://live-project.supabase.co', reachable: true });
-  const got = await page.evaluate(() => ({
-    keys: Object.keys(localStorage).filter((k) => /^sb-|lc-return-to/.test(k)),
-    user: window.LifecycleAuth && window.LifecycleAuth.user,
-    token: window.LifecycleAuth && window.LifecycleAuth.apiToken(),
-    path: location.pathname,
-  }));
-  expect(got.keys).toEqual([]);
-  expect(got.user).toBeNull();
-  expect(got.token).toBe('');
-  expect(got.path, 'a stored return path still bounced the page').toBe('/index.html');
+  await page.waitForURL(/\/smart-brain\.html$/, { timeout: 8000 });
+  expect(await page.evaluate(() => localStorage.getItem('lc-return-to'))).toBeNull();
 });
 
 /* ═══ 3. configuration outranks a checked-in constant ═════════════════════ */
 
-test('the checked-in Auth config declares no OAuth provider and no public or email sign-up', () => {
-  // A claim about the FILE: `supabase config push` applies what is here.
+test('the checked-in Auth config enables Google, allowlists the production origin, and switches phone sign-in off', () => {
+  // A claim about the FILE: supabase config push is what turns the hosted
+  // provider on, and this file is what it would push.
   const src = fs.readFileSync(path.join(ROOT, 'supabase', 'config.toml'), 'utf8');
-  expect(src, 'an OAuth provider is declared').not.toMatch(/\[auth\.external\.[a-z_]+\]/);
-  expect(src, 'an OAuth redirect allowlist is configured').toMatch(/additional_redirect_urls\s*=\s*\[\s*\]/);
-  expect(src).toMatch(/\[auth\]\s*\n[\s\S]*?enable_signup\s*=\s*false/);
+  expect(src, 'Google is not declared, or not enabled').toMatch(/\[auth\.external\.google\]\s*\nenabled\s*=\s*true\s*\nclient_id\s*=\s*"env\(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID\)"\s*\nsecret\s*=\s*"env\(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET\)"/);
+  expect(src).toMatch(/https:\/\/lifecycle-os\.anchit-tandon\.com\/\*\*/);
+  // enable_signup at the [auth] level governs EVERY provider: off, GoTrue
+  // refuses to create the user a first Google sign-in brings.
+  expect(src, 'project-level sign-up is off, which blocks a first Google sign-in').toMatch(/\njwt_expiry = \d+\n(?:#.*\n)*enable_signup = true\n/);
   expect(src, 'email sign-up is on').toMatch(/\[auth\.email\]\s*\n(?:#.*\n)*enable_signup\s*=\s*false/);
-  expect(src, 'the phone provider the PIN broker needs is off').toMatch(/\[auth\.sms\]\s*\nenable_signup\s*=\s*true/);
-  const env = fs.readFileSync(path.join(ROOT, '.env.example'), 'utf8');
-  expect(env).not.toMatch(/SUPABASE_AUTH_EXTERNAL_GOOGLE/);
-  const selfhost = fs.readFileSync(path.join(ROOT, 'selfhost', 'docker-compose.yml'), 'utf8');
-  expect(selfhost).not.toMatch(/GOTRUE_EXTERNAL_GOOGLE/);
+  expect(src, 'the phone provider the retired PIN broker used is still on').toMatch(/\[auth\.sms\]\s*\nenable_signup\s*=\s*false/);
 });
 
 test('the environment beats the pinned linked-db file', () => {

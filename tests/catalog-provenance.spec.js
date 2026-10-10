@@ -574,6 +574,11 @@ const DRIVE = {
     await page.click('#generate');
     await page.waitForFunction(() => { const f = document.getElementById('frame'); return f && !f.hidden && f.srcdoc && f.srcdoc.length > 200; }, null, { timeout: 25_000 }).catch(() => {});
     st.lpa = await page.evaluate(() => { const f = document.getElementById('frame'); return f ? (f.srcdoc || '') : ''; });
+    // Signed out (the only device state since 2026-10-10, when the phone
+    // sign-in that let a device brand generate was switched off) the page
+    // stops BEFORE sending and says why: nothing is generated, so nothing of
+    // anyone's can leak into it.
+    st.refused = await page.evaluate(() => (document.getElementById('status') || document.body).innerText || '');
   },
   'landing-pages.html': async (page) => {
     const tab = page.locator('#tabs .tab[data-tab="threed"]');
@@ -647,7 +652,10 @@ test.describe('every page, under a brand that is not tenant zero', () => {
     expect(r.driven['lifecycle_mailer_architect_v34.html'].studio.rows).toBe(0);
     expect(r.driven['lifecycle_mailer_architect_v34.html'].studio.imgs).toEqual([]);
     expect(r.driven['lifecycle_mailer_architect_v34.html'].studio.base).toBe('https://delichic.example');
-    expect(r.driven['landing-page-agent.html'].lpa).toContain('[DATA REQUIRED BEFORE LAUNCH: product image, Deli Chic');
+    // The landing-page agent needs a signed-in account since 2026-10-10: it
+    // refused before sending, said so, and generated nothing.
+    expect(r.driven['landing-page-agent.html'].lpa).toBe('');
+    expect(r.driven['landing-page-agent.html'].refused || '', 'the refused generation did not say why').toMatch(/Google/);
     // No catalogue: the storefront is the marker page, not another brand's shelves.
     expect(r.driven['storefront-3d.html'].store.marker).toBe(true);
     expect(r.driven['storefront-3d.html'].store.cards).toEqual([]);
@@ -666,9 +674,10 @@ test.describe('every page, under a brand that is not tenant zero', () => {
     expect(studio.imgs.length).toBeGreaterThan(0);
     expect(studio.imgs.every((u) => DELI_ROWS.some((row) => row.image_url === u)), 'the Studio shows only its own photos: ' + studio.imgs).toBe(true);
     expect(DELI_ROWS.map((row) => row.product_url), 'a mailer links the row\'s own product page').toContain(studio.pdp);
-    const lpa = r.driven['landing-page-agent.html'].lpa;
-    expect(DELI_ROWS.some((row) => lpa.includes(row.image_url)), 'the landing page carries its own product photo').toBe(true);
-    expect(lpa).toContain('https://delichic.example');
+    // The landing-page agent needs a signed-in account since 2026-10-10 (it
+    // used to generate for a phone sign-in kept on this device): nothing left.
+    expect(r.driven['landing-page-agent.html'].lpa).toBe('');
+    expect(r.driven['landing-page-agent.html'].refused || '').toMatch(/Google/);
     // The storefront is the brand's own: its rows, its photos, its links.
     const store = r.driven['storefront-3d.html'].store;
     expect(store.marker).toBe(false);
@@ -695,7 +704,7 @@ test.describe('every page, under a brand that is not tenant zero', () => {
 
 /* ── 5. the setup page says "import your store feed" ─────────────────────── */
 
-test('a device brand made from a template is shown how to import ITS store feed, and the import reaches its pages', async ({ page }) => {
+test('a device brand made from a template is shown how to import ITS store feed, and that the import needs a Google sign-in', async ({ page }) => {
   const PRESET = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'brands', 'presets', 'knickgasm.json'), 'utf8'));
   const imports = [];
   const seen = await install(page, {
@@ -721,30 +730,19 @@ test('a device brand made from a template is shown how to import ITS store feed,
   await expect(callout).toBeVisible();
   await expect(callout).toContainText('started from a template');
   await expect(callout).toContainText('[DATA REQUIRED BEFORE LAUNCH: product image, KNICKGASM]');
-  const btn = callout.locator('[data-import-store]');
-  await expect(btn).toHaveAttribute('data-import-store', 'https://knickgasm.com');
-  // Review says it too.
+  // Signed out (the only device state since 2026-10-10, when the phone
+  // sign-in that let a device brand import was switched off), the import is
+  // the server's read for a signed-in person: the callout names the feed,
+  // offers no button, and the import control says what turns it on. Until
+  // then this test pressed the button and followed the rows to the pages;
+  // that the rows kept beside a device brand are what its pages read is
+  // held by (b) above.
+  await expect(callout.locator('[data-import-store]')).toHaveCount(0);
+  await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/sign in with Google/i);
   await page.click('.step-pip[data-step="6"]');
   await expect(page.locator('#storeFeed')).toContainText('Import its own store feed (knickgasm.com)');
-  // One button imports it, from review.
-  await page.locator('#storeFeed [data-import-store]').click();
-  await expect.poll(() => imports.length, { message: 'the import request left' }).toBe(1);
-  expect(imports[0]).toMatchObject({ kind: 'storefront', url: 'https://knickgasm.com', region: 'in' });
-  await expect(page.locator('#storeFeed')).toBeHidden();
-  // The rows are kept beside the brand on this device and are what its pages read.
-  const after = await page.evaluate(async () => {
-    // The import saved the brand as a draft on this device; activating it is
-    // what makes the app run as it (and what every page reads).
-    const B = window.BrandContext;
-    const id = (B.device.list().find((w) => /knickgasm/i.test(w.name || '')) || {}).id;
-    await B.setActive(id);
-    const r = await window.BrandCatalog.load('in');
-    return { id, kept: (B.deviceCatalog(id) || { products: [] }).products.length, source: r.source, n: r.products.length, zero: B.isTenantZero(B.brand) };
-  });
-  expect(after.kept).toBe(DELI_ROWS.length);
-  expect(after.zero).toBe(false);
-  expect(after.source).toBe('device');
-  expect(after.n).toBe(DELI_ROWS.length);
+  await page.waitForTimeout(300);
+  expect(imports, 'an import left for a signed-out visitor').toEqual([]);
   // At no point did the template reach the shipped catalogue.
   expect(seen.filter((u) => /\/data\/catalog\//.test(u))).toEqual([]);
 });

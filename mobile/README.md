@@ -35,7 +35,7 @@ npm run add:ios && npm run sync && npm run open:ios           # → archive/sign
 - `appId`: `com.knickgasm.lifecycleos` (change before first publish if needed — it's permanent per store listing).
 - `server.url`: the live deployment (`https://lifecycle-os.anchit-tandon.com`).
 - Icons/splash: drop a 1024×1024 PNG and run `npx @capacitor/assets generate` (add `@capacitor/assets`) to produce all Android/iOS icon + splash sizes; otherwise Android Studio/Xcode use placeholders.
-- Auth: sign-in is a mobile number and a 4-digit PIN, brokered by the app's own server (no OAuth redirect), so no redirect or bundle origin has to be allowlisted.
+- Auth: sign-in is Google via Supabase Auth (2026-10-10) - add the app's redirect/bundle origins to the Supabase + Google OAuth allowed lists before store review.
 
 ### Store-review caveat
 Pure web-wrapper apps can draw extra scrutiny (esp. Apple guideline 4.2). The

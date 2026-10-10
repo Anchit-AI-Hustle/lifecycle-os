@@ -18,6 +18,17 @@
 //   6. A phone stub with no mode:'device' is still refused (the list), even
 //      though Neon is unset. Only a device principal is unmetered.
 //
+// ── 2026-10-10: THE DEVICE PRINCIPAL IS GONE ────────────────────────────────
+// Google is the only sign-in (the owner's words: "No signin with mobile number
+// - only Google signin pls"), so the contract above is INVERTED where it named
+// a device token: with no DATABASE_URL, a well-shaped device token from a page
+// is refused exactly like no token (401 sign_in_required, naming Google), and
+// reaches no model, no wallet and no store - on brain.js, generate.js and the
+// credit pill. Points 2, 3 and 5 hold unchanged; the meter's own rule (only a
+// `mode:'device'` principal is unmetered, a phone stub is still refused) is
+// kept as a unit check of credits-core, because a principal of that shape can
+// no longer be produced by requireUser().
+//
 // Run: npx playwright test tests/standalone-no-database.spec.js --project=desktop-1280
 const { test, expect } = require('@playwright/test');
 const path = require('path');
@@ -38,18 +49,20 @@ test.describe('standalone: no DATABASE_URL', () => {
   test.afterAll(async () => { await w.close(); });
   test.beforeEach(() => { w.reset(); });
 
-  test('requireUser admits a well-shaped device token from a page, never a phone from the body', async () => {
+  test('requireUser refuses a well-shaped device token from a page exactly like no token, and invents nothing from the body', async () => {
     const core = require(path.join(A.ROOT, 'api/_shared/brand-workspace-core.js'));
     const r = await core.requireUser({
       headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }),
       body: { phone: '+919876543210', user_id: 'ws-oldest', brand: BRAND },
     });
-    expect(r.ok, JSON.stringify(r)).toBe(true);
-    expect(r.mode).toBe('device');
-    expect(r.provider).toBe('mobile-pin');
-    expect(r.user_id).toMatch(/^device:[0-9a-f]{32}$/);
-    expect(r.phone).toBe('');
-    expect(r.user_id).not.toBe('ws-oldest');
+    expect(r.ok, JSON.stringify(r)).toBe(false);
+    expect(r.status).toBe(401);
+    expect(r.error).toBe('sign_in_required');
+    expect(String(r.message)).toMatch(/Google/);
+    expect(r.mode).toBeUndefined();
+    expect(r.user_id).toBeUndefined();
+    const anon = await core.requireUser({ headers: pageHeaders() });
+    expect([anon.status, anon.error]).toEqual([r.status, r.error]);
   });
 
   test('the same token with no Origin is still anonymous', async () => {
@@ -60,7 +73,7 @@ test.describe('standalone: no DATABASE_URL', () => {
     expect(r.ok).toBe(false);
     expect(r.status).toBe(401);
     expect(r.error).toBe('sign_in_required');
-    expect(String(r.message)).toMatch(/did not come from a page/i);
+    expect(String(r.message)).toMatch(/Google/);
   });
 
   test('no anonymous shape reaches a model: no token, forged JWT, Origin-only, token without Origin', async () => {
@@ -69,6 +82,7 @@ test.describe('standalone: no DATABASE_URL', () => {
       { name: 'browser', headers: pageHeaders() },
       { name: 'forged', headers: pageHeaders({ authorization: 'Bearer ' + FORGED_JWT }) },
       { name: 'serverDevice', headers: { 'x-lifecycle-token': DEVICE_TOKEN } },
+      { name: 'pageDevice', headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }) },
     ];
     const reached = [];
     for (const s of shapes) {
@@ -85,46 +99,18 @@ test.describe('standalone: no DATABASE_URL', () => {
     expect(reached).toEqual([]);
   });
 
-  test('KicksGPT answers as the carried brand, unmetered, from a device session on a page', async () => {
-    const r = await H.request(w.port, {
-      method: 'POST', path: '/api/brain' + H.qs({ action: 'brand-chat' }),
-      json: { message: 'what sells best?', brand: BRAND },
-      headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }),
-    });
-    expect(r.status, r.text.slice(0, 400)).toBe(200);
-    expect(r.out.ok).toBe(true);
-    expect(r.out.reply).toBe('Scripted reply for this turn, with no figure invented.');
-    expect(r.out.brand.name).toBe(BRAND.name);
-    expect(String(r.out.brand.id)).toMatch(/^device:/);
-    expect(JSON.stringify(r.out)).not.toMatch(/Oldest Brand|knickgasm/i);
-    expect(w.llm.calls.map((c) => c.stage)).toContain('kicksgpt');
-    expect(r.out.credits && r.out.credits.charged, 'a standalone turn was metered').toBe(0);
-    expect(r.out.credits && r.out.credits.unmetered, 'the receipt did not say the turn was unmetered').toBe(true);
-    expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)), 'a standalone turn took a credit hold').toEqual([]);
-  });
-
-  test('generate.js admits the same device session and does not 503 credits_unavailable', async () => {
-    const r = await H.request(w.port, {
-      method: 'POST', path: '/api/ai/generate',
-      json: { mode: 'chat', prompt: 'hello there', brand: BRAND },
-      headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }),
-    });
-    expect(r.status, r.text.slice(0, 400)).toBeLessThan(500);
-    expect(r.out && r.out.error, r.text.slice(0, 400)).not.toBe('credits_unavailable');
-    expect(r.out && r.out.error, r.text.slice(0, 400)).not.toBe('sign_in_required');
-  });
-
-  test('the credit pill balance is standalone, not a 503 and not a wallet', async () => {
-    const r = await H.request(w.port, {
-      method: 'GET', path: '/api/public-config' + H.qs({ action: 'credits', op: 'balance' }),
-      headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }),
-    });
-    expect(r.status, r.text.slice(0, 400)).toBe(200);
-    expect(r.out.ok).toBe(true);
-    expect(r.out.wallet).toBe(null);
-    expect(r.out.unavailable).toBe('standalone');
-    expect(r.out.unmetered).toBe(true);
-    expect(String(r.out.message)).toMatch(/Local \/ Demo Mode/i);
+  test('KicksGPT, generate.js and the credit pill refuse a device session on a page: no model, no wallet, no hold', async () => {
+    const H2 = pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN });
+    const chat = await H.request(w.port, { method: 'POST', path: '/api/brain' + H.qs({ action: 'brand-chat' }), json: { message: 'what sells best?', brand: BRAND }, headers: H2 });
+    expect(chat.status, chat.text.slice(0, 300)).toBe(401);
+    expect(chat.out.error).toBe('sign_in_required');
+    const gen = await H.request(w.port, { method: 'POST', path: '/api/ai/generate', json: { mode: 'chat', prompt: 'hello there', brand: BRAND }, headers: H2 });
+    expect(gen.status, gen.text.slice(0, 300)).toBe(401);
+    const pill = await H.request(w.port, { method: 'GET', path: '/api/public-config' + H.qs({ action: 'credits', op: 'balance' }), headers: H2 });
+    expect(pill.status, pill.text.slice(0, 300)).toBe(401);
+    expect(pill.out.unmetered).toBeUndefined();
+    expect(w.llm.calls, 'a device session reached the model').toEqual([]);
+    expect(w.db.calls.filter((c) => /rpc\/credit_|credit_wallets/.test(c.url)), 'a device session touched the ledger').toEqual([]);
   });
 
   test('a phone stub with no mode:device is still refused, even with no DATABASE_URL', async () => {
@@ -143,11 +129,9 @@ test.describe('standalone: no DATABASE_URL', () => {
     expect(m.unmetered, 'an unlisted phone was treated as a device principal').toBeUndefined();
     expect(w.db.calls.filter((c) => /rpc\/credit_hold|credit_wallets/.test(c.url)), 'a wallet was touched for a phone stub').toEqual([]);
 
-    const core = require(path.join(A.ROOT, 'api/_shared/brand-workspace-core.js'));
-    const device = await core.requireUser({
-      headers: pageHeaders({ 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN }),
-    });
-    expect(device.mode).toBe('device');
+    // requireUser() can no longer produce a device principal (above), so the
+    // meter's own rule is checked with one made by hand: the shape it keys on.
+    const device = { ok: true, mode: 'device', user_id: 'device:' + 'a'.repeat(32), email: '' };
     const free = await credits.meter({ query: {}, body: {} }, 'analytics.run', { auth: device });
     expect(free).toMatchObject({ ok: true, unmetered: true, charged: 0, mode: 'device' });
   });

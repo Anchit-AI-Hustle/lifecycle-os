@@ -47,6 +47,15 @@
  * its session table. tests/phone-signin-features.spec.js drives the rest of
  * the wizard's server-run controls in the same state.
  *
+ * SUPERSEDED AGAIN (2026-10-10): Google is the only sign-in (the owner's
+ * words: "No signin with mobile number - only Google signin pls"). There is
+ * no device principal and no account in Neon: a mobile-number session left
+ * in this browser is ended on boot (auth.js endLegacyPhoneSession), so that
+ * browser IS a signed-out one, and its old token is refused by the server
+ * exactly like no token. The signed-in state is a Google session supabase-js
+ * restores; the server verifies it at the project's /auth/v1/user. The
+ * "accounts in a database" dimension is gone with the accounts.
+ *
  * Section 3 is the rule itself: over every state a browser can be in, the
  * wizard's decision must equal what the shipped handler answers to the
  * request that browser would send. A decision copied from somewhere other
@@ -78,15 +87,16 @@ const PAUSED = 'paused-project.supabase.co';
 const LIVE = 'live-project.supabase.co';
 const SITE = 'https://harbourlight.example';
 
-/** Production's answer to `?action=auth&op=status`, verbatim (2026-09-29). */
-const PROD_STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured. Set DATABASE_URL to keep accounts in a database.' };
-/** A deployment that keeps accounts in its database (DATABASE_URL set and answering). */
-const SERVER_STATUS = { ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' };
-
-const DEVICE_USER = { id: 'dev-readsite0001', phone: '+919876543210', cc: '+91', local: '9876543210', name: 'Asha' };
-const SERVER_TOKEN = 'MPINtokenREADSITE0123456789abcdefghijklmnopqr';
-const SERVER_USER = { id: 'aaaaaaaa-0000-4000-8000-000000000101', phone: '+919876543210', name: 'Ravi' };
-const DEVICE_TOKEN = 'DEVICEtokenREADSITE0123456789abcdefghijklmn';
+/** A Google sign-in: a Supabase access token (a JWT, two dots) and its user. */
+const GOOGLE_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhYWFhYWFhYS0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAxMDEifQ.Zml4dHVyZQ';
+const GOOGLE_USER = { id: 'aaaaaaaa-0000-4000-8000-000000000101', email: 'ravi@example.test', app_metadata: { provider: 'google', providers: ['google'] }, user_metadata: { name: 'Ravi' }, identities: [{ provider: 'google' }] };
+/** A mobile-number session from before 2026-10-10, as auth.js stored it. */
+const PHONE_TOKEN = 'DEVICEtokenREADSITE0123456789abcdefghijklmn';
+const PHONE_SESSION = {
+  token: PHONE_TOKEN, mode: 'device', provider: 'mobile-pin',
+  user: { id: 'dev-readsite0001', name: 'Asha', phone: '+919876543210' },
+  expires: new Date(Date.now() + 80 * 86400000).toISOString(),
+};
 
 /* ── the brand's own site, as the server's crawler reads it ─────────────── */
 const PAGES = {
@@ -125,10 +135,8 @@ function response(status, ct, body, url) {
 
 /* ── the server's world, per state ─────────────────────────────────────────
    supabase: 'unreachable' (production: the env names a host that does not
-             resolve), 'unconfigured' (no SUPABASE_URL), 'reachable'.
-   store:    'device' (no DATABASE_URL - production) or 'server' (accounts in
-             a database that answers; the account module's status and token
-             check are answered here, the rest of it runs untouched). */
+             resolve), 'unconfigured' (no SUPABASE_URL), 'reachable' (the
+             project answers, and verifies the Google token at /auth/v1/user). */
 const ENV_KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'DATABASE_URL', 'NEON_DATABASE_URL', 'POSTGRES_URL', 'CREDITS_COMP_PHONES'];
 
@@ -139,8 +147,6 @@ function serverWorld(state) {
     process.env.SUPABASE_URL = 'https://' + (state.supabase === 'reachable' ? LIVE : PAUSED);
     process.env.SUPABASE_ANON_KEY = 'anon-key-for-test';
   }
-  // A server-mode number the operator LISTED may spend; an unlisted one may not.
-  if (state.listed) process.env.CREDITS_COMP_PHONES = SERVER_USER.phone;
   for (const m of [ENTRY, CORE, EXTRACT, LLM, MOBILE]) delete require.cache[m];
 
   // The model: counted, and answered, so a verified caller's voice step has
@@ -149,16 +155,6 @@ function serverWorld(state) {
   const stub = async function callLLM() { llm.calls += 1; return { text: '{"tone":null,"why_not":"fixture"}', provider: 'fixture', model: 'none' }; };
   stub.parseJSON = (t) => JSON.parse(t);
   require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: stub };
-
-  if (state.store === 'server') {
-    const real = require(MOBILE);
-    require.cache[MOBILE].exports = Object.assign({}, real, {
-      status: async () => SERVER_STATUS,
-      verifyToken: async (t) => (t === SERVER_TOKEN
-        ? { ok: true, user: { id: SERVER_USER.id, name: SERVER_USER.name, phone: SERVER_USER.phone }, expires_at: new Date(Date.now() + 86400000).toISOString() }
-        : { ok: false, reason: 'invalid' }),
-    });
-  }
 
   // assertPublicUrl() resolves the host for real; the fixture has no DNS
   // record, so it alone is answered with one public address. The guard's
@@ -169,10 +165,20 @@ function serverWorld(state) {
 
   const net = { supabase: [], escaped: [] };
   const realFetch = global.fetch;
-  global.fetch = async (url) => {
+  global.fetch = async (url, init) => {
     const u = new URL(String(url));
     if (u.hostname === PAUSED) { net.supabase.push(u.pathname); throw new Error('getaddrinfo ENOTFOUND ' + PAUSED); }
-    if (u.hostname === LIVE) { net.supabase.push(u.pathname); return response(/\/auth\/v1\/user/.test(u.pathname) ? 401 : 200, 'application/json', '{}', String(url)); }
+    if (u.hostname === LIVE) {
+      net.supabase.push(u.pathname);
+      if (/\/auth\/v1\/user/.test(u.pathname)) {
+        const h = (init && init.headers) || {};
+        const auth = String(h.authorization || h.Authorization || '');
+        return auth === 'Bearer ' + GOOGLE_TOKEN
+          ? response(200, 'application/json', JSON.stringify(GOOGLE_USER), String(url))
+          : response(401, 'application/json', '{}', String(url));
+      }
+      return response(200, 'application/json', '{}', String(url));
+    }
     if (u.origin === SITE) { const row = PAGES[u.pathname]; return row ? response(200, row.ct, row.body, String(url)) : response(404, 'text/plain', '', String(url)); }
     net.escaped.push(String(url));
     throw new Error('a request left the test world: ' + url);
@@ -213,10 +219,9 @@ async function callShipped(handler, { method, url, headers, body }) {
 function browserExtractRequest(session, url) {
   // From the page: Origin is what a same-origin POST carries.
   const headers = { 'content-type': 'application/json', origin: HOST };
-  // Every phone sign-in sends its token (LifecycleAuth.apiToken(), since
-  // 2026-09-30); a visitor sends none.
-  if (session === 'server') { headers['x-lifecycle-token'] = SERVER_TOKEN; headers.authorization = 'Bearer ' + SERVER_TOKEN; }
-  if (session === 'device') { headers['x-lifecycle-token'] = DEVICE_TOKEN; headers.authorization = 'Bearer ' + DEVICE_TOKEN; }
+  // A Google sign-in sends its access token; a visitor sends none, and so
+  // does a browser whose mobile-number session was ended on boot.
+  if (session === 'google') headers.authorization = 'Bearer ' + GOOGLE_TOKEN;
   return { method: 'POST', url: '/api/public-config?action=brand&op=extract', headers, body: { url } };
 }
 
@@ -227,12 +232,12 @@ async function openWizard(page, state, world) {
   page.on('pageerror', (e) => log.errors.push(String(e.message || e)));
 
   await page.addInitScript((seed) => {
-    // The anonymous supabase-js stand-in auth.js builds its client from. It
-    // never holds a session: the mobile+PIN session is the one sign-in.
+    // The supabase-js stand-in auth.js builds its client from: for 'google'
+    // it restores the Google session, as the real client does from storage.
     window.supabase = {
       createClient: () => ({
         auth: {
-          getSession: async () => ({ data: { session: null } }),
+          getSession: async () => ({ data: { session: seed.google || null } }),
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
           signOut: async () => ({}),
         },
@@ -240,9 +245,8 @@ async function openWizard(page, state, world) {
       }),
     };
     try {
-      if (seed.session) {
-        localStorage.setItem('lifecycle.auth.session', JSON.stringify(seed.session));
-        if (seed.users) localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(seed.users));
+      if (seed.phone) {
+        localStorage.setItem('lifecycle.auth.session', JSON.stringify(seed.phone));
       } else {
         localStorage.removeItem('lifecycle.auth.session');
         localStorage.removeItem('lifecycle.auth.device.users');
@@ -282,17 +286,9 @@ async function openWizard(page, state, world) {
     const headers = await req.allHeaders();
     log.api.push({ url: u.pathname + u.search, headers });
     const json = (body, status) => route.fulfill({ status: status || 200, contentType: 'application/json', body: JSON.stringify(body) });
-    if (action === 'auth') {
-      if (op === 'status') return json(state.store === 'server' ? SERVER_STATUS : PROD_STATUS);
-      if (op === 'me') {
-        return state.store === 'server' && headers['x-lifecycle-token'] === SERVER_TOKEN
-          ? json({ ok: true, mode: 'server', user: SERVER_USER, message: SERVER_STATUS.message })
-          : json({ ok: false, error: 'invalid_session', message: 'Your sign-in has expired or was signed out.' }, 401);
-      }
-      return json({ ok: false, error: 'no_database', mode: 'device', message: 'No database is configured on this deployment, so "' + op + '" cannot run on the server.' }, 503);
-    }
-    // The config and every brand op: the SHIPPED entry point, in this process.
-    if (u.pathname === '/api/public-config' && (!action || action === 'brand')) {
+    // The config, the switched-off PIN router (a leftover session's signout
+    // goes there) and every brand op: the SHIPPED entry point, in this process.
+    if (u.pathname === '/api/public-config' && (!action || action === 'brand' || action === 'auth')) {
       let body = {};
       try { body = req.postDataJSON() || {}; } catch (_) { body = {}; }
       const out = await callShipped(world.handler, { method: req.method(), url: u.pathname + u.search, headers, body });
@@ -309,7 +305,6 @@ async function openWizard(page, state, world) {
     const a = window.LifecycleAuth;
     const b = a && a.backend;
     if (!b || b.kind === 'pending') return false;
-    if (a.session && b.supabase === 'pending') return false;
     const bc = window.BrandContext;
     if (!bc || !bc.loaded || !bc.storage || !bc.storage().known) return false;
     const rs = bc.storage().read_site;
@@ -321,30 +316,11 @@ async function openWizard(page, state, world) {
 }
 
 function seedFor(state) {
-  const expires = new Date(Date.now() + 80 * 86400000).toISOString();
-  if (state.session === 'device') {
-    const users = {};
-    users[DEVICE_USER.phone] = Object.assign({}, DEVICE_USER, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: expires, pinSetAt: expires });
-    return {
-      users,
-      // Exactly how auth.js stores a device-mode sign-in made on production.
-      session: {
-        token: DEVICE_TOKEN, mode: 'device', provider: 'mobile-pin',
-        user: { id: DEVICE_USER.id, name: DEVICE_USER.name, phone: DEVICE_USER.phone }, expires,
-        storage: { mode: 'device', reason: PROD_STATUS.reason, host: '', message: PROD_STATUS.message },
-      },
-    };
+  if (state.session === 'google') {
+    return { google: { access_token: GOOGLE_TOKEN, refresh_token: 'r-fixture', expires_at: Math.floor(Date.now() / 1000) + 86400, user: GOOGLE_USER } };
   }
-  if (state.session === 'server') {
-    return {
-      session: {
-        token: SERVER_TOKEN, mode: 'server', provider: 'mobile-pin',
-        user: { id: SERVER_USER.id, name: SERVER_USER.name, phone: SERVER_USER.phone }, expires,
-        storage: { mode: 'server', reason: '', host: SERVER_STATUS.host, message: SERVER_STATUS.message },
-      },
-    };
-  }
-  return { session: null };
+  if (state.session === 'phone') return { phone: PHONE_SESSION };
+  return {};
 }
 
 /** The wizard's step 1, as a reader sees it. */
@@ -359,7 +335,8 @@ function readStep(page) {
       failures: card ? card.querySelectorAll('[data-failure], .vh-failure').length : -1,
       kind: (window.LifecycleAuth.backend || {}).kind,
       supabase: (window.LifecycleAuth.backend || {}).supabase,
-      session: window.LifecycleAuth.session ? { mode: window.LifecycleAuth.session.mode, provider: window.LifecycleAuth.session.provider } : null,
+      session: window.LifecycleAuth.session ? { id: (window.LifecycleAuth.session.user || {}).id } : null,
+      stored: localStorage.getItem('lifecycle.auth.session'),
       umode: (document.querySelector('#lnav-umode') || {}).textContent || '',
     };
   });
@@ -375,47 +352,37 @@ async function readMySite(page, url) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   1. THE REPORT: signed in on this device, the database paused
+   1. THE REPORT: signed in with Google, the project answering
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('signed in on this device with the database paused (production), "Read my site" is ON, sends the device token, and the report renders', async ({ page }) => {
+test('signed in with Google, "Read my site" is ON, sends the Google token, the server reads FOR this person, and the report renders', async ({ page }) => {
   test.setTimeout(90_000);
-  const state = { supabase: 'unreachable', store: 'device', session: 'device' };
+  const state = { supabase: 'reachable', session: 'google' };
   const world = serverWorld(state);
   try {
     const log = await openWizard(page, state, world);
     const seen = await readStep(page);
-    // The fixture IS production's state, or nothing below means anything.
     expect(seen.kind, 'not signed in').toBe('signed-in');
-    expect(seen.session).toEqual({ mode: 'device', provider: 'mobile-pin' });
-    expect(seen.supabase, 'the Supabase host was not found unreachable').toBe('unreachable');
-    expect(seen.umode).toContain('Saved on this device only: no database is configured');
-
-    await page.fill('#xUrl', SITE + '/');
+    expect(seen.session).toEqual({ id: GOOGLE_USER.id });
     expect(seen.enabled, `signing in turned "Read my site" off: ${seen.note}`).toBe(true);
-    expect(seen.note, 'a disabled-control note is still painted beside an enabled control').toBe('');
+    expect(seen.note).toBe('');
 
     await readMySite(page, SITE + '/');
-
-    // The request that left carries the device sign-in, from the page (#115):
-    // the server reads the site FOR this person, not on the visitor's path.
     expect(log.extract.length, 'op=extract was not sent').toBe(1);
     const sent = log.extract[0];
-    expect(sent.headers['x-lifecycle-token'] || String(sent.headers.authorization || '').replace(/^Bearer /, '')).toBe(DEVICE_TOKEN);
-    expect(sent.headers.origin || sent.headers.referer).toBeTruthy();
+    expect(sent.headers.authorization).toBe('Bearer ' + GOOGLE_TOKEN);
+    expect(sent.headers['x-lifecycle-token'], 'a PIN-era header was sent').toBeUndefined();
     expect(sent.code, `the server refused: ${JSON.stringify(sent.body)}`).toBe(200);
     expect(sent.body.ok).toBe(true);
     expect(sent.body.signed_out).toBeUndefined();
+    expect(world.net.supabase, 'the server did not verify the Google token').toContain('/auth/v1/user');
 
-    // The report, as the operator reads it.
     const report = await page.locator('.xtract').filter({ hasText: 'Read from' }).innerText();
     expect(report).toContain('Read from ' + SITE);
     expect(report).toContain('Harbourlight Goods');
-    // Never "without signing in" to a person who is signed in.
     expect(report).not.toMatch(/without signing in|without an account/i);
     expect((await readStep(page)).failures, 'the report rendered a failure frame').toBe(0);
-
-    // A device principal from a page may reach a model (#115); the voice step ran.
+    // A verified Google account may reach a model: the voice step ran.
     expect(world.llm.calls, 'the voice step did not run for a signed-in person').toBe(1);
     expect(world.net.escaped, 'the server reached a host the test did not claim').toEqual([]);
     expect(log.dialogs).toEqual([]);
@@ -424,12 +391,12 @@ test('signed in on this device with the database paused (production), "Read my s
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   2. THE SAME REQUEST, SIGNED OUT: it was broken on the server too
+   2. SIGNED OUT WITH THE PROJECT PAUSED (production): the open path
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('signed out with the database paused, the ON button actually reads the site (the server used to answer 401 to a request with no token)', async ({ page }) => {
+test('signed out with the project paused, the ON button actually reads the site (the server used to answer 401 to a request with no token)', async ({ page }) => {
   test.setTimeout(90_000);
-  const state = { supabase: 'unreachable', store: 'device', session: 'none' };
+  const state = { supabase: 'unreachable', session: 'none' };
   const world = serverWorld(state);
   try {
     const log = await openWizard(page, state, world);
@@ -456,43 +423,35 @@ test('signed out with the database paused, the ON button actually reads the site
    For each state a browser can be in, the page is loaded and its decision read;
    then the request THAT browser would send is handed to the shipped entry
    point. ON must mean the server reads the site; OFF must mean it refuses.
-   An OFF control must say why in words that are true for this person: never
-   "sign in" to someone who is signed in, and never "sign in" to a visitor for
-   whom signing in would not turn it on.
+   An OFF control says why: "Sign in with Google" to a visitor for whom
+   signing in turns it on, never "sign in" to someone who is signed in.
+   A mobile-number session from before 2026-10-10 is ended on boot, so that
+   browser is a signed-out one, and its old token gets the anonymous answer.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const MATRIX = [
-  // production today, signed out and signed in on the device
-  { supabase: 'unreachable', store: 'device', session: 'none', on: true },
-  { supabase: 'unreachable', store: 'device', session: 'device', on: true },
+  // production today: the project paused
+  { supabase: 'unreachable', session: 'none', on: true },
+  { supabase: 'unreachable', session: 'phone', on: true },
   // no Supabase configured at all
-  { supabase: 'unconfigured', store: 'device', session: 'none', on: true },
-  { supabase: 'unconfigured', store: 'device', session: 'device', on: true },
-  // the project restored: a session could be checked, so the gate is real for
-  // a visitor - and a device sign-in IS one the server acts for (#115)
-  { supabase: 'reachable', store: 'device', session: 'none', on: false },
-  { supabase: 'reachable', store: 'device', session: 'device', on: true },
-  // accounts in a database (DATABASE_URL), Supabase still paused: a device
-  // sign-in from before that is not in the session table, and is refused
-  { supabase: 'unreachable', store: 'server', session: 'none', on: false },
-  { supabase: 'unreachable', store: 'server', session: 'device', on: false },
-  { supabase: 'unreachable', store: 'server', session: 'server', on: true },
-  { supabase: 'unreachable', store: 'server', session: 'server', listed: true, on: true },
-  // accounts in a database, Supabase restored
-  { supabase: 'reachable', store: 'server', session: 'none', on: false },
-  { supabase: 'reachable', store: 'server', session: 'server', on: true },
-  { supabase: 'reachable', store: 'server', session: 'server', listed: true, on: true },
+  { supabase: 'unconfigured', session: 'none', on: true },
+  { supabase: 'unconfigured', session: 'phone', on: true },
+  // the project answering: a session can be checked, so the gate is real
+  { supabase: 'reachable', session: 'none', on: false },
+  { supabase: 'reachable', session: 'phone', on: false },
+  { supabase: 'reachable', session: 'google', on: true },
 ];
 
 for (const state of MATRIX) {
-  const name = `supabase ${state.supabase}, accounts on the ${state.store}, ${state.session === 'none' ? 'signed out' : state.session + '-mode sign-in'}${state.session === 'server' ? (state.listed ? ' (number listed)' : ' (number NOT listed)') : ''}`;
+  const name = `supabase ${state.supabase}, ${state.session === 'none' ? 'signed out' : state.session === 'phone' ? 'a leftover mobile-number session' : 'signed in with Google'}`;
   test(`the wizard's decision equals the server's answer: ${name}`, async ({ page }) => {
     test.setTimeout(60_000);
     const world = serverWorld(state);
     try {
       const log = await openWizard(page, state, world);
       const seen = await readStep(page);
-      expect(!!seen.session, 'the fixture has the wrong session').toBe(state.session !== 'none');
+      expect(!!seen.session, 'the fixture has the wrong session').toBe(state.session === 'google');
+      if (state.session === 'phone') expect(seen.stored, 'the mobile-number session was not ended on boot').toBeNull();
 
       // What the shipped handler answers to the request this browser sends.
       const before = world.llm.calls;
@@ -501,34 +460,26 @@ for (const state of MATRIX) {
       expect(served, `the server's own answer changed for this state: ${out.code} ${JSON.stringify(out.body).slice(0, 240)}`).toBe(state.on);
       expect(seen.enabled, `the wizard says ${seen.enabled ? 'ON' : 'OFF'} and the server ${served ? 'reads' : 'refuses'} (${seen.note})`).toBe(served);
 
-      // Nothing the server did not act FOR reaches a model, in any state: a
-      // server-mode account, or a device principal from a page (#115).
-      // A device principal is unmetered (#115) and its voice step runs. A
-      // server-mode number the operator has NOT listed has no wallet, so its
-      // voice step is skipped and said so (2026-10-03, review): an unlisted
-      // number never reaches a provider.
-      const actedFor = (state.session === 'device' && served) || (state.session === 'server' && state.listed === true && served);
-      expect(world.llm.calls - before, actedFor ? 'a person who may spend did not get the voice step' : 'a model was called for a caller that may not spend').toBe(actedFor ? 1 : 0);
-      if (served && !actedFor) expect(out.body.voice_skipped).toBe(true);
-      if (served && state.session === 'server' && !state.listed) expect(String(out.body.voice_note || '')).toMatch(/not on the operator's list/);
+      // Only a verified Google account reaches a model.
+      const actedFor = state.session === 'google' && served;
+      expect(world.llm.calls - before, actedFor ? 'a signed-in person did not get the voice step' : 'a model was called for a caller nobody verified').toBe(actedFor ? 1 : 0);
+
+      if (state.session === 'phone') {
+        // Had the old token still been sent, the server answers it as it
+        // answers nobody: the same status, and no model.
+        const old = await callShipped(world.handler, Object.assign(browserExtractRequest('none', SITE + '/'), {
+          headers: { 'content-type': 'application/json', origin: HOST, 'x-lifecycle-token': PHONE_TOKEN, authorization: 'Bearer ' + PHONE_TOKEN },
+        }));
+        expect([old.code, !!(old.body && old.body.ok)]).toEqual([out.code, served]);
+        expect(world.llm.calls - before).toBe(0);
+      }
 
       if (!seen.enabled) {
         expect(seen.note, 'a disabled control with no reason').not.toBe('');
         expect(seen.failures, 'a disabled control was rendered as a failure').toBe(0);
-        if (state.session !== 'none') {
-          // THE operator's words: "not working after signin". Never tell a
-          // signed-in person to sign in.
-          expect(seen.note).not.toMatch(/\bsign in\b|\bsign-in first\b|not signed in/i);
-        }
-        if (state.session === 'none') {
-          // Signing in IS the remedy on every deployment now: a server-mode
-          // sign-in is verified, and a device-mode one is admitted (#115).
-          expect(seen.note, 'signing in IS the remedy here, and the note does not say so').toMatch(/\bsign in\b/i);
-        }
-        if (state.session === 'device') {
-          // The stale device sign-in: the remedy is to sign in AGAIN.
-          expect(seen.note).toMatch(/entering your number again/i);
-        }
+        // Signing in IS the remedy, and the sign-in is Google.
+        expect(seen.note, 'the note does not name the remedy').toMatch(/sign in with Google/i);
+        expect(seen.note).not.toMatch(/mobile|number|PIN/i);
       }
       expect(world.net.escaped).toEqual([]);
       expect(log.dialogs).toEqual([]);

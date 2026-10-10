@@ -345,7 +345,7 @@ module.exports = async function handler(req, res) {
       return res.status(down ? 503 : 401).json({
         ok: false, action, error: (a && a.error) || 'sign_in_required',
         message: (a && a.message) || 'You are not signed in, so this could not run.',
-        why: `"${action}" reaches an AI model or a paid provider on this deployment's keys, so it needs a signed-in account (a mobile number and PIN) or the scheduler's secret. Nothing was run and nothing was charged.`,
+        why: `"${action}" reaches an AI model or a paid provider on this deployment's keys, so it needs a signed-in Google account or the scheduler's secret. Nothing was run and nothing was charged.`,
       });
     }
     const spend = require('./_shared/credits-core.js').spenderRefusal(a);

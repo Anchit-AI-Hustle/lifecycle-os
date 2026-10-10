@@ -9,9 +9,15 @@
  * was `unreachable` and a phone had no way to sign in from the first screen
  * (the rail's chip sits behind the gate, in a closed drawer).
  *
- * Since #173 the sign-in is a mobile number and a 4-digit PIN, which works on
- * the device with no account service at all, so the gate's Sign in opens that
- * panel in every no-session state.
+ * Since #173 the sign-in was a mobile number and a 4-digit PIN, and the gate's
+ * Sign in opened that panel. Since 2026-10-10 the ONLY sign-in is Google (the
+ * owner's words: "No signin with mobile number - only Google signin pls"), so
+ * the gate offers "Sign in with Google" in every no-session state, and its
+ * press is the rail's own: with the account service answering it starts
+ * Google OAuth (intercepted here); paused or unconfigured it navigates
+ * nowhere and the standing bar - at the top of a phone's first screen, not
+ * in the closed drawer - says why, naming the host. No phone or PIN field
+ * ever opens.
  *
  * The gate stays out of automation's way (`navigator.webdriver`), so this spec
  * reports the browser as an ordinary one before any page script runs.
@@ -72,26 +78,36 @@ async function open(page, { config, reachable, session }) {
 
 const gateButton = (page) => page.locator('#lc-brand-gate [data-gate-signin]');
 
-for (const [label, config, reachable] of [
-  ['the account service is paused (production, 2026-10-10)', PAUSED, false],
-  ['no account service is configured', NO_BACKEND, false],
-  ['the account service answers', LIVE, true],
+for (const [label, config, reachable, expectOAuth, says] of [
+  ['the account service is paused (production, 2026-10-10)', PAUSED, false, false, /paused-project\.supabase\.co/],
+  ['no account service is configured', NO_BACKEND, false, false, /SUPABASE_URL/],
+  ['the account service answers', LIVE, true, true, null],
 ]) {
-  test(`phone: the gate offers Sign in when ${label}, and pressing it opens the mobile + PIN panel`, async ({ page }) => {
+  test(`phone: the gate offers Sign in with Google when ${label}, and its press ${expectOAuth ? 'starts Google OAuth' : 'navigates nowhere and says why'}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const errors = await open(page, { config, reachable });
     await expect(page.locator('#lc-brand-gate')).toBeVisible({ timeout: 15_000 });
     await expect(gateButton(page)).toBeVisible({ timeout: 15_000 });
-    await expect(gateButton(page)).toHaveText(/Sign in with your mobile number/);
+    await expect(gateButton(page)).toHaveText('Sign in with Google');
     const box = await gateButton(page).boundingBox();
     expect(box.y + box.height, 'Sign in is below the first screen').toBeLessThanOrEqual(844);
+    const before = page.url();
     await gateButton(page).click();
-    await expect(page.locator('#lc-brand-gate'), 'the gate stayed over the sign-in panel').toHaveCount(0, { timeout: 15_000 });
-    const phone = page.locator('#lnav-mauth-phone');
-    await expect(phone, 'the mobile + PIN panel did not open').toBeVisible({ timeout: 15_000 });
-    const pb = await phone.boundingBox();
-    expect(pb.y >= 0 && pb.y + pb.height <= 844, 'the phone field is off the first screen').toBe(true);
-    expect(await page.evaluate(() => window.__OAUTH__.length), 'Google was asked for').toBe(0);
+    await expect(page.locator('#lc-brand-gate'), 'the gate stayed over the answer').toHaveCount(0, { timeout: 15_000 });
+    if (expectOAuth) {
+      await expect.poll(() => page.evaluate(() => window.__OAUTH__.length), { timeout: 15_000 }).toBe(1);
+      expect(await page.evaluate(() => window.__OAUTH__[0].provider)).toBe('google');
+    } else {
+      const bar = page.locator('#lc-authnotice');
+      await expect(bar).toBeVisible({ timeout: 15_000 });
+      await expect(bar).toContainText(says);
+      const bb = await bar.boundingBox();
+      expect(bb.y < 844, 'the reason is off the first screen').toBe(true);
+      await page.waitForTimeout(300);
+      expect(await page.evaluate(() => window.__OAUTH__.length), 'Google was started on a host that cannot answer').toBe(0);
+      expect(page.url()).toBe(before);
+    }
+    expect(await page.locator('#lnav-mauth, input[type="tel"]').count(), 'a phone or PIN field opened').toBe(0);
     expect(errors).toEqual([]);
   });
 }
