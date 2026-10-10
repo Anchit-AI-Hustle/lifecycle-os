@@ -448,8 +448,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // truth. It used to swallow the failure and still say "saved to your library",
   // which is the same class of bug as a stale list: the screen reports a state
   // the system is not in.
+  // Rows are filed under the ACTIVE brand's account workspace: RLS admits a write only for a member of
+  // that workspace (20261009230000). A device brand (id local-*) has no account row, so nothing is sent.
+  const activeWorkspaceId = () => { try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); const id = b && b.id; return (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) ? String(id) : null; } catch (_) { return null; } };
   async function persistLanding(channel, form) {
     const sb = sbClient(); if (!sb) return { ok: false, reason: 'not signed in to the shared database' };
+    const workspaceId = activeWorkspaceId();
+    if (!workspaceId) return { ok: false, reason: 'this brand is kept on this device, not in an account workspace' };
     try {
       const u = sbUser() || {};
       const row = {
@@ -458,7 +463,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         paired_with: channel === 'mailers' ? 'mailer' : channel,
         name: form.hero || '', market: form.region || '',
         hero: form.hero || '', sub: form.sub || '', offer: form.offer || '', notes: form.notes || '',
-        payload: form, origin: location.origin || ''
+        payload: form, origin: location.origin || '', workspace_id: workspaceId
       };
       const { error } = await sb.from('landing_pages_generated').insert([row]);
       if (error) { console.warn('[landing] supabase insert failed:', error.message); return { ok: false, reason: error.message }; }
