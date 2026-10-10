@@ -95,6 +95,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return EXT_TABS.some(function (t) { return t.id === id; });
   }
 
+  /* The ACTIVE brand's home-market conventions (dialling code, time zone),
+     from its record through RegionContext. The form used to offer tenant
+     zero's +91 and Asia/Kolkata to every brand (2026-10-05). */
+  function brandLoc() {
+    try { return (window.RegionContext && window.RegionContext.localeOf) ? (window.RegionContext.localeOf(window.RegionContext.home) || {}) : {}; } catch (_) { return {}; }
+  }
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -102,7 +108,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function num(v) { var n = Number(v); return Number.isFinite(n) ? n : 0; }
   function fmt(v, digits) { return num(v).toLocaleString(undefined, { maximumFractionDigits: digits == null ? 0 : digits }); }
-  function money(v) { return '$' + num(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+  // The brand's home currency and number format (RegionContext), never a typed
+  // '$' (2026-10-05); with no currency on the record, no symbol.
+  function money(v) { var l = brandLoc(); try { if (l.currency) return num(v).toLocaleString(l.locale || undefined, { style: 'currency', currency: l.currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }); } catch (_) {} return num(v).toLocaleString(l.locale || undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
   function percent(v, digits) { return (num(v) * 100).toFixed(digits == null ? 1 : digits) + '%'; }
   function ratio(v, digits) { return num(v).toFixed(digits == null ? 2 : digits) + '×'; }
   function dateTime(v) {
@@ -139,7 +147,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function currentMarket() {
     var b = document.querySelector('#mktToggle button.on');
-    return b ? String(b.getAttribute('data-mkt') || 'US').toUpperCase() : 'US';
+    // The toggle's own market, else the brand's HOME market - never 'US'.
+    var home = (window.RegionContext && window.RegionContext.home) || '';
+    return b ? String(b.getAttribute('data-mkt') || home).toUpperCase() : home;
   }
   function addDays(date, days) { var d = new Date(date); d.setDate(d.getDate() + days); return d; }
   function isoDate(d) { return d.toISOString().slice(0, 10); }
@@ -553,7 +563,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<div class="xform-row"><span>Google Chat</span><label class="xswitch"><input type="checkbox" id="xChat" ' + (s.channels && s.channels.google_chat ? 'checked' : '') + '>Use channel</label></div>' +
         '<div class="xform-row"><span>SMS / message</span><label class="xswitch"><input type="checkbox" id="xSms" ' + (s.channels && s.channels.sms ? 'checked' : '') + '>Use channel</label></div>' +
         '<div class="xform-grid" style="margin-top:12px"><label class="xfield">Analysis cadence<select id="xCadence"><option value="1">Every hour</option><option value="2">Every 2 hours</option><option value="4">Every 4 hours</option><option value="6">Every 6 hours</option><option value="12">Every 12 hours</option><option value="24">Daily</option></select></label>' + inputField('Cooldown (minutes)', 'xCooldown', s.cooldown_minutes || 180, 'number', '1') + '</div></div>' +
-        '<div class="xcard"><h3>Delivery identity & recipients</h3><div class="xform-grid"><label class="xfield">From email<input class="xinput" value="' + esc((s.sender_email) || '') + '" placeholder="(unset — set ALERT_EMAIL env)" disabled></label><label class="xfield">Email recipients<input class="xinput" id="xEmailRecipients" value="' + esc(splitList(s.recipients && s.recipients.email)) + '"></label><label class="xfield">SMS recipients<input class="xinput" id="xSmsRecipients" placeholder="+91…" value="' + esc(splitList(s.recipients && s.recipients.sms)) + '"></label><label class="xfield">Quiet-hours timezone<input class="xinput" id="xTimezone" value="' + esc(q.timezone || 'Asia/Kolkata') + '"></label></div><div class="xform-row"><span>Quiet hours</span><label class="xswitch"><input type="checkbox" id="xQuiet" ' + (q.enabled ? 'checked' : '') + '>Enabled</label></div><div class="xform-grid">' + inputField('Start hour', 'xQuietStart', q.start_hour == null ? 22 : q.start_hour, 'number', '1') + inputField('End hour', 'xQuietEnd', q.end_hour == null ? 7 : q.end_hour, 'number', '1') + '</div><div class="xform-row"><span>Critical alerts bypass quiet hours</span><label class="xswitch"><input type="checkbox" id="xCriticalBypass" ' + (q.critical_bypass ? 'checked' : '') + '>Bypass</label></div></div></div>' +
+        '<div class="xcard"><h3>Delivery identity & recipients</h3><div class="xform-grid"><label class="xfield">From email<input class="xinput" value="' + esc((s.sender_email) || '') + '" placeholder="(unset — set ALERT_EMAIL env)" disabled></label><label class="xfield">Email recipients<input class="xinput" id="xEmailRecipients" value="' + esc(splitList(s.recipients && s.recipients.email)) + '"></label><label class="xfield">SMS recipients<input class="xinput" id="xSmsRecipients" placeholder="' + esc((brandLoc().dial || '+') + '…') + '" value="' + esc(splitList(s.recipients && s.recipients.sms)) + '"></label><label class="xfield">Quiet-hours timezone<input class="xinput" id="xTimezone" placeholder="' + esc(brandLoc().timeZone ? '' : 'Region/City, e.g. the brand\'s own IANA zone') + '" value="' + esc(q.timezone || brandLoc().timeZone || '') + '"></label></div><div class="xform-row"><span>Quiet hours</span><label class="xswitch"><input type="checkbox" id="xQuiet" ' + (q.enabled ? 'checked' : '') + '>Enabled</label></div><div class="xform-grid">' + inputField('Start hour', 'xQuietStart', q.start_hour == null ? 22 : q.start_hour, 'number', '1') + inputField('End hour', 'xQuietEnd', q.end_hour == null ? 7 : q.end_hour, 'number', '1') + '</div><div class="xform-row"><span>Critical alerts bypass quiet hours</span><label class="xswitch"><input type="checkbox" id="xCriticalBypass" ' + (q.critical_bypass ? 'checked' : '') + '>Bypass</label></div></div></div>' +
         '<div class="xcard span12"><h3>Anomaly thresholds</h3><div class="xform-grid">' +
         inputField('Minimum ad ROAS', 'xAdRoas', t.ad_roas_min, 'number', '.1') + inputField('Ad CTR drop fraction', 'xAdCtrDrop', t.ad_ctr_drop_pct, 'number', '.01') +
         inputField('Ad spend spike fraction', 'xSpendSpike', t.ad_spend_spike_pct, 'number', '.01') + inputField('Spend with no conversion ($)', 'xNoConvSpend', t.ad_spend_no_conversion, 'number', '1') +

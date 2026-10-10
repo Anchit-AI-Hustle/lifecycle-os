@@ -176,7 +176,9 @@
   };
   /* Labelling only (region-context.js NAMES): a code absent here shows as itself. */
   var NAMES = { IN: 'India', GLOBAL: 'Global', WORLDWIDE: 'Global', EU: 'Europe', AU: 'Australia', ME: 'Middle East', GB: 'UK' };
-  var NONE = '[DATA REQUIRED BEFORE LAUNCH: regions, all, all]';
+  /* UNPADDED (2026-10-05): `regions, <brand>`; "all, all" is not a fact. */
+  var NONE = '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]';
+  function noneFor(brand) { return '[DATA REQUIRED BEFORE LAUNCH: regions, ' + ((brand && brand.name) || 'this brand') + ']'; }
 
   function family(v) {
     var k = String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
@@ -341,8 +343,8 @@
     return '<button type="button" class="rtab' + (on ? ' on' : '') + '" data-region="' + esc(r.code) + '"' +
       (r.home ? ' data-home="1" title="Home market"' : '') + '>' + esc(name(r.code)) + '</button>';
   }
-  function tabsHTML(regions, selected) {
-    if (!regions.length) return '<span class="rtab" data-region-none="1" style="cursor:default">' + esc(NONE) + '</span>';
+  function tabsHTML(regions, selected, brand) {
+    if (!regions.length) return '<span class="rtab" data-region-none="1" style="cursor:default">' + esc(brand ? noneFor(brand) : NONE) + '</span>';
     return regions.map(function (r) { return tabButton(r, family(r.code) === family(selected)); }).join('');
   }
 
@@ -388,7 +390,7 @@
     var regions = regionsOf(brand);
     var sel = resolveIn(regions, selected) || homeOf(regions);
     var tabs = '<div id="regionTabs" class="lc-tabrow mb-4"><span class="text-[11px] uppercase tracking-widest font-bold" style="color:var(--brand-accent-text,#6A33D8);margin-right:4px">Benchmark table</span>' +
-      '<span id="regionTabsHost" style="display:contents">' + tabsHTML(regions, sel) + '</span>' +
+      '<span id="regionTabsHost" style="display:contents">' + tabsHTML(regions, sel, brand) + '</span>' +
       '<span class="text-[12px]" style="color:var(--soft);margin-left:6px">Filtering the competitor table to <b class="text-vink" id="rgLabel">' + esc(sel ? name(sel) : 'no market configured') + '</b>.</span>' +
       '</div>';
     var body = landscapeRows(brand).length
@@ -417,7 +419,7 @@
       '<div class="kicker mb-2">Regional Market Studies &middot; full reports</div>' +
       '<div id="msRegionTabs" class="lc-tabrow mb-4">' +
         '<span class="text-[11px] uppercase tracking-widest font-bold" style="color:var(--brand-accent-text,#6A33D8);margin-right:4px">Study</span>' +
-        '<span id="msRegionTabsHost" style="display:contents">' + tabsHTML(regions, sel) + '</span>' +
+        '<span id="msRegionTabsHost" style="display:contents">' + tabsHTML(regions, sel, brand) + '</span>' +
       '</div>' +
       regions.map(function (r) { return panelHTML(r.code, brand, { hidden: family(r.code) !== family(sel), docxUrl: docx[r.code] || docx[family(r.code)] || '' }); }).join('\n') +
     '</section>\n' +

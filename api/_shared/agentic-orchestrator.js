@@ -64,9 +64,19 @@ async function reviewStage(campaign, tier) {
  *   opts: { market, brief, tier:'budget'|'maxpower', days, scope, withCreatives, maxRetries }
  */
 async function runAgentic(opts = {}) {
-  const { market = 'US', tier = 'budget', days, maxRetries = 1 } = opts;
+  const { tier = 'budget', days, maxRetries = 1 } = opts;
+  // No default market (2026-10-05). It was 'US', so a caller that named none
+  // planned an American calendar for whichever brand asked. The router
+  // resolves the brand's own market (its HOME market when none is asked);
+  // a run with no market is refused here too rather than invented.
+  const market = String(opts.market || '').trim().toUpperCase();
+  if (!market) {
+    return { ok: false, error: 'market_required', message: '[DATA REQUIRED BEFORE LAUNCH: home market, this brand] No market was given, so the agentic run has nothing to plan for.', stages: [] };
+  }
   const withCreatives = opts.withCreatives != null ? opts.withCreatives : (tier === 'maxpower');
-  const config = svc.smartConfig();
+  // Plan THIS market only. The default config plans US and UK whatever was
+  // asked, so a run for IN came back with American and British slots.
+  const config = svc.smartConfig({ markets: [market] });
   const stages = [];
   const rec = (stage, ok, summary, artifact) => stages.push({ stage, ok, summary, artifact: artifact !== undefined ? trim(artifact) : null });
 
