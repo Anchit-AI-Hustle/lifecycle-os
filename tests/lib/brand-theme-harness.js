@@ -362,6 +362,17 @@ const PROBE = `(async (cfg) => {
   }
   const CHROME = '#lifecycle-nav, #lc-authnotice, .lc-credit-pill, .lc-credit-sheet, #lnav-ipanel';
   const inChrome = (el) => { try { return !!el.closest(CHROME); } catch (_) { return false; } };
+  /* The worst contrast of a text colour, at its inherited opacity, over every
+     ground it may sit on. */
+  function contrastOf(fg, op, g) {
+    let worst = null, worstBg = null;
+    for (const bg of g) {
+      const painted = over({ r: fg.r, g: fg.g, b: fg.b, a: fg.a * op }, bg);
+      const got = ratio(painted, bg);
+      if (worst === null || got < worst) { worst = got; worstBg = bg; }
+    }
+    return { worst, worstBg };
+  }
   function effectiveOpacity(el) { let o = 1, n = el; while (n && n.nodeType === 1) { o *= parseFloat(cs(n).opacity || '1'); n = n.parentElement; } return o; }
   function shown(el) {
     const s = cs(el);
@@ -435,7 +446,16 @@ const PROBE = `(async (cfg) => {
   function grounds(el) {
     const stack = [];
     let n = el, base = null;
+    // An ancestor paints the ground only where it lies BEHIND the text: a 1px
+    // rule whose label is positioned over it (a fieldset-style divider) is
+    // not the label's ground, the panel around both is.
+    const er = el.getBoundingClientRect();
+    const cx = er.left + er.width / 2, cy = er.top + er.height / 2;
     while (n && n.nodeType === 1) {
+      if (n !== el && n !== document.documentElement && n !== document.body) {
+        const nr = n.getBoundingClientRect();
+        if (cx < nr.left || cx > nr.right || cy < nr.top || cy > nr.bottom) { n = n.parentElement; continue; }
+      }
       const own = ownLayers(n);
       if (own.image) return null;
       for (const layer of own.layers) {
@@ -516,7 +536,11 @@ const PROBE = `(async (cfg) => {
     }
 
     // ── a section / panel ground ──
-    if (!control && rect.width >= 120 && rect.height >= 40 && own.layers.length && !own.image) {
+    // A SCRIM is not a section (design/lifecycle-os/CONTRACT.md): a fixed,
+    // viewport-covering, translucent layer that dims the page behind a dialog.
+    const scrim = s.position === 'fixed' && rect.width >= innerWidth * 0.9 && rect.height >= innerHeight * 0.9
+      && own.layers.length && own.layers.every((l) => l.stops.every((c) => c.a < 0.9));
+    if (!control && !scrim && rect.width >= 120 && rect.height >= 40 && own.layers.length && !own.image) {
       if (chrome) result.groundChrome++; else result.ground++;
       const g = grounds(el);
       if (g) {
@@ -549,24 +573,34 @@ const PROBE = `(async (cfg) => {
     const weight = parseInt(s.fontWeight, 10) || 400;
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
     const need = large ? AA_LARGE : AA;
-    let worst = null, worstBg = null;
-    for (const bg of g) {
-      const painted = over({ r: fg.r, g: fg.g, b: fg.b, a: fg.a * op }, bg);
-      const got = ratio(painted, bg);
-      if (worst === null || got < worst) { worst = got; worstBg = bg; }
-    }
+    const { worst, worstBg } = contrastOf(fg, op, g);
     if (worst + 0.005 < need) {
       result.textFails.push({ bt: tag(el), gbt: tag(g.groundEl), gsel: path(g.groundEl), el, sel: path(el), text: ownText.slice(0, 60), ratio: Math.round(worst * 100) / 100, need,
         size, weight, opacity: Math.round(op * 100) / 100, fg: hex(fg) + (fg.a < 1 ? '@' + fg.a : ''), bg: hex(worstBg), chrome });
     }
   }
-  // A failure must be STABLE: re-measure after a beat so an element mid-reveal
-  // (Motion One's rAF springs set no transition and no animation) is dropped.
+  // A failure must be STABLE: measure it again after a beat. An element
+  // mid-reveal (Motion One's rAF springs set no transition and no animation)
+  // changes opacity; a control mid colour-transition (transition:all .3s as a
+  // step pip turns active) changes its colours. Only a pair that still fails,
+  // with its opacity unmoved, is reported.
   if (result.textFails.length) {
     const before = result.textFails.map((f) => effectiveOpacity(f.el));
     await new Promise((r) => setTimeout(r, 400));
     cache.clear();
-    result.textFails = result.textFails.filter((f, i) => f.el.isConnected && Math.abs(effectiveOpacity(f.el) - before[i]) < 0.005);
+    result.textFails = result.textFails.filter((f, i) => {
+      if (!f.el.isConnected) return false;
+      const op2 = effectiveOpacity(f.el);
+      if (Math.abs(op2 - before[i]) >= 0.005) return false;
+      const fg2 = parse(cs(f.el).color);
+      const g2 = grounds(f.el);
+      if (!fg2 || !g2) return false;
+      const again = contrastOf(fg2, op2, g2);
+      if (again.worst + 0.005 >= f.need) return false;
+      f.ratio = Math.round(again.worst * 100) / 100;
+      f.bg = hex(again.worstBg);
+      return true;
+    });
   }
   result.textFails = result.textFails.map((f) => { const o = Object.assign({}, f); delete o.el; return o; });
 

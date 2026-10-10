@@ -397,8 +397,43 @@ function sectionGround(...candidates) {
  * target, moving the chosen colour only as far as AA needs.
  */
 function textOn(ground, surface, ink, target) {
+  const want = target || 4.5;
   const start = readableOn(ground, ink || '#111111', surface || '#ffffff');
-  return readableAsText(start, ground, target || 4.5);
+  const first = readableAsText(start, ground, want);
+  if (contrast(first, ground) >= want) return first;
+  // readableAsText() walks ONE way - away from a light ground, toward white on
+  // a darker one - so on a MID-TONE ground (luminance just under 0.5, a
+  // saturated magenta, a khaki) it walked a dark ink toward white and returned
+  // a failing white. A seeded sweep of 4,000 valid palettes found 947 such
+  // band pairings (tests/design-system.spec.js). Walk both ways and keep the
+  // passing colour nearest the brand's own; on a ground where nothing reaches
+  // `want` (the best a mid-tone allows is ~4.58:1) hold the 4.5 floor instead.
+  return textBothWays(start, ground, want) || textBothWays(start, ground, Math.min(want, 4.5)) || first;
+}
+
+/** The nearest shade of `start`, darker or lighter, that clears `want` on `ground`. */
+function textBothWays(start, ground, want) {
+  const c = normHex(start) || '#111111';
+  for (let t = 0.05; t <= 1.0001; t += 0.05) {
+    for (const dir of [-1, 1]) {
+      const cand = shade(c, dir * t);
+      if (contrast(cand, ground) >= want) return cand;
+    }
+  }
+  return '';
+}
+
+/**
+ * The colour as TEXT on every one of `grounds`: readableAsText() against each
+ * in turn, twice, so a step taken for one ground is re-checked on the others.
+ * On light grounds every step darkens, so the result clears the target on all
+ * of them; it is unchanged when it already does.
+ */
+function readableOnSurfaces(color, grounds, target) {
+  let c = color;
+  const gs = (grounds || []).filter(Boolean);
+  for (let pass = 0; pass < 2; pass++) for (const g of gs) c = readableAsText(c, g, target);
+  return c;
 }
 
 /**
@@ -681,12 +716,16 @@ function tokens(brand) {
   // against white still fails on the tint, which is precisely where the
   // nav group labels were landing at 3.6:1. Whichever of the two the brand
   // colour reads worse on is the one that has to pass.
-  const worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
+  // Text tokens are held to TEXT_AA on BOTH surfaces (readableOnSurfaces).
+  // They used to be tuned against whichever surface the RAW primary read worse
+  // on - for a near-white primary that is the WHITE card, while the darkened
+  // text it becomes reads worse on the tinted page: a random sweep of 17,006
+  // valid palettes found primary-text at 4.28:1 on the brand's own page
+  // surface (design/lifecycle-os/CONTRACT.md, tests/design-system.spec.js).
   // Brand records created before contrast validation may contain pale ink on
   // a pale surface. Keep their chosen palette when possible, but always paint
-  // readable body copy while the record is repaired in Brand & Credits.
-  const inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
-  const ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
+  // readable body copy (held on BOTH surfaces, like every text token).
+  const ink = readableOnSurfaces(requestedInk, [surface, surfaceAlt], TEXT_AA);
   const t = brand && brand.typography ? brand.typography : {};
   const states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
 
@@ -701,18 +740,18 @@ function tokens(brand) {
     // brand colour written on the page. Any rule doing `color:var(--brand-
     // primary)` must use this instead, or it is legible only for brands whose
     // primary happens to be dark.
-    '--brand-primary-text': readableAsText(primary, worstSurface, TEXT_AA),
+    '--brand-primary-text': readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA),
     '--brand-accent': accent,
     '--brand-accent-soft': shade(accent, 0.88),
     '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
-    '--brand-accent-text': readableAsText(accent, worstSurface, TEXT_AA),
+    '--brand-accent-text': readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
     '--brand-ink': ink,
     // Secondary text still has to be READABLE. `shade(ink, .35)` is a fixed
     // 35% lift toward white with no floor, so a brand with a mid-grey ink got
     // a muted token that fails AA - and muted is the colour of most of the
     // small print on every page. AA for body text is the bar here too: this is
     // supporting copy, not decoration.
-    '--brand-ink-muted': readableAsText(muted, worstSurface, TEXT_AA),
+    '--brand-ink-muted': readableOnSurfaces(muted, [surface, surfaceAlt], TEXT_AA),
     '--brand-surface': surface,
     '--brand-surface-alt': surfaceAlt,
     '--brand-line': shade(ink, 0.84),
@@ -723,7 +762,7 @@ function tokens(brand) {
     '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
     '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
     '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-  }, contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states }), componentTokens(brand));
+  }, contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, states }), componentTokens(brand));
 }
 
 /**
@@ -746,17 +785,17 @@ function tokens(brand) {
  * brand-context.js carries the same function for the device path, and the
  * device/server parity test diffs every key.
  */
-function contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states }) {
+function contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, states }) {
   const band = normHex(sectionGround(primary, accent, surface)) || '#ffffff';
   const bandAccent = normHex(sectionGround(accent, primary, surface)) || '#ffffff';
   const text = {
     ink,
-    muted: readableAsText(muted || shade(ink, 0.35), worstSurface, TEXT_AA),
-    primary: readableAsText(primary, worstSurface, TEXT_AA),
-    accent: readableAsText(accent, worstSurface, TEXT_AA),
-    ok: readableAsText(states.ok, worstSurface, TEXT_AA),
-    warn: readableAsText(states.warn, worstSurface, TEXT_AA),
-    err: readableAsText(states.err, worstSurface, TEXT_AA),
+    muted: readableOnSurfaces(muted || shade(ink, 0.35), [surface, surfaceAlt], TEXT_AA),
+    primary: readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA),
+    accent: readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
+    ok: readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA),
+    warn: readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+    err: readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA),
   };
   return {
     '--brand-surface-sunken': sunkenSurface(surface, surfaceAlt, Object.values(text)),
@@ -764,10 +803,10 @@ function contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, wors
     '--brand-on-band': textOn(band, surface, ink, TEXT_AA),
     '--brand-band-accent': bandAccent,
     '--brand-on-band-accent': textOn(bandAccent, surface, ink, TEXT_AA),
-    '--brand-ok-text': readableAsText(states.ok, worstSurface, TEXT_AA),
-    '--brand-warn-text': readableAsText(states.warn, worstSurface, TEXT_AA),
-    '--brand-err-text': readableAsText(states.err, worstSurface, TEXT_AA),
-    '--brand-focus': readableAsText(accent, worstSurface, 3),
+    '--brand-ok-text': readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA),
+    '--brand-warn-text': readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+    '--brand-err-text': readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA),
+    '--brand-focus': readableOnSurfaces(accent, [surface, surfaceAlt], 3),
   };
 }
 
@@ -775,9 +814,10 @@ function contractTokens({ primary, accent, ink, muted, surface, surfaceAlt, wors
  * The SUNKEN panel ground (status line, failure frame, notice bar, the mark's
  * tile): the darker of the two surfaces, darkened only as far as every text
  * token still clears 4.5:1 on it. It used to be the literal #f5f5f5 for every
- * brand, which sits 0.1% of luminance below the TEXT_AA headroom: a text token
- * tuned to exactly 4.9 on white measures 4.49 on it. Stepped at 0.5%, capped at
- * 4%; when even the surface itself is the floor, the panel is not sunk at all.
+ * brand: a cool grey on a cream or tinted surface, and a ground no text token
+ * was ever measured against (a token tuned to exactly 4.9 on white would read
+ * 4.49 on it). Stepped at 0.5%, capped at 4%; when even the surface itself is
+ * the floor, the panel is not sunk at all.
  */
 function sunkenSurface(surface, surfaceAlt, textColours) {
   const base = luminance(surface) <= luminance(surfaceAlt || surface) ? surface : surfaceAlt;
@@ -1907,7 +1947,16 @@ async function assertCanWrite(auth, workspaceId, what) {
  * catalogue identically and differ only in where the rows are kept.
  */
 async function readCatalogSource({ region, kind, text, url, scope }) {
-  const reg = str(region, 12).toLowerCase() || 'us';
+  // Rows are filed under the region asked for, else the brand's HOME market
+  // (its record's flag) - never a literal 'us' (2026-10-05). The wizard
+  // already refuses without a home market; this is the same rule one layer
+  // down, for every other caller.
+  const reg = str(region, 12).toLowerCase() || require('./brand-locale.js').homeMarket(scope).toLowerCase();
+  if (!reg) {
+    const marker = require('./brand-locale.js').marker('home market', scope && scope.name ? scope : 'this brand');
+    const e = new Error(`${marker} No region was named and the brand's record lists no market, so there is nowhere to file these products. Add its regions in Brand setup, then import.`);
+    e.status = 400; e.code = 'region_required'; throw e;
+  }
   const k = str(kind).toLowerCase();
 
   if (text && String(text).length > MAX_UPLOAD_CHARS) {
@@ -2011,9 +2060,10 @@ const DEVICE_ROW_FIELDS = ['region', 'sku', 'handle', 'title', 'description', 'p
  *  account in Supabase Auth (mode 'supabase', #119) has workspaces like any account. */
 function isPhoneAuth(auth) { return !!(auth && auth.ok !== false && auth.provider === 'mobile-pin' && auth.mode !== 'supabase'); }
 
-async function deviceCatalogImport(auth, { region = 'us', kind, text, url, brand }) {
+async function deviceCatalogImport(auth, { region = '', kind, text, url, brand }) {
   const b = brand && typeof brand === 'object' && !Array.isArray(brand) ? brand : {};
   const scope = {
+    name: typeof b.name === 'string' ? b.name.slice(0, 120) : '',
     website: httpUrl(b.website) || httpUrl(url) || '',
     regions: Array.isArray(b.regions) ? b.regions.slice(0, 20) : [],
     asset_hosts: Array.isArray(b.asset_hosts) ? b.asset_hosts.filter((h) => typeof h === 'string').slice(0, 20) : [],
@@ -2045,7 +2095,7 @@ async function deviceCatalogImport(auth, { region = 'us', kind, text, url, brand
   };
 }
 
-async function importCatalog(auth, { workspace_id, region = 'us', kind, text, url, replace = true, brand }) {
+async function importCatalog(auth, { workspace_id, region = '', kind, text, url, replace = true, brand }) {
   // A mobile-number sign-in has no workspace row to file under: the rows go
   // back to its device instead (see deviceCatalogImport above).
   if (isPhoneAuth(auth)) return deviceCatalogImport(auth, { region, kind, text, url, brand });
@@ -2581,7 +2631,7 @@ async function handle(req, res) {
       case 'catalog-import': {
         return res.status(200).json(await importCatalog(auth, {
           workspace_id: str(body.workspace_id || q.workspace_id),
-          region: body.region || q.region || 'us',
+          region: body.region || q.region || '',
           kind: body.kind || q.kind,
           text: body.text,
           url: body.url || q.url,
@@ -2809,7 +2859,7 @@ module.exports = {
   requireUser,
   restAs,
   // colour
-  normHex, contrast, luminance, saturation, isDarkNeutral, shade, readableOn, readableAsText, validatePalette,
+  normHex, contrast, luminance, saturation, isDarkNeutral, shade, readableOn, readableAsText, readableOnSurfaces, validatePalette,
   sectionGround, textOn,
   TEXT_AA,
   // brand
