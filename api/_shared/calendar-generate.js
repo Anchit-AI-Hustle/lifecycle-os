@@ -100,22 +100,33 @@ function isoDate(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-function findFestivalForDate(market, dateStr) {
+// The moment of THIS market on this date, as THIS brand may use it
+// (market-moments.js): tenant zero's whole list for its own plan, the public
+// moments for any other brand - never tenant zero's audience days (Air Max
+// Day, Goku Day) for somebody else, and never another market's holidays.
+function findFestivalForDate(market, dateStr, brand) {
+  if (brand !== undefined) {
+    const mmdd = dateStr.slice(5);
+    return require('./market-moments.js').momentsFor(market, brand).filter((f) => f.scope !== 'global').find((f) => f.date === mmdd) || null;
+  }
   const mmdd = dateStr.slice(5);
   const all = loadFestivals();
   return (all[market] || []).find((f) => f.date === mmdd) || null;
 }
 
-function pickBestSendHourUTC(market, analytics) {
-  // From analytics.bestHourByMarket if present; else market default (UTC).
+/* The send hour, in UTC, for 09:30 LOCAL in the market's own time zone - read
+   from the brand's record (or its country, where the country keeps one zone)
+   and converted by Intl, so summer time moves with the clocks (2026-10-05).
+   It was a typed table - US Eastern 14, UK 9, IN 4, everything else 6 - so an
+   AE or AU market was sent at 06:00 UTC, and a US brand's "local" hour was
+   New York's whatever its audience. A market whose zone the record does not
+   decide gets null and a marker, never a guess. */
+function pickBestSendHourUTC(market, analytics, brand, dateStr) {
   const a = analytics?.bestHourByMarket?.[market];
   if (typeof a === 'number') return a;
-  // Reasonable defaults: target local 9-10am for each market
-  // US-Eastern 9:30am ≈ 14 UTC · UK 9am ≈ 9 UTC · IN 9:30am ≈ 4 UTC · Global 6 UTC
-  if (market === 'US') return 14;
-  if (market === 'UK') return 9;
-  if (market === 'IN') return 4;
-  return 6;
+  const L = require('./brand-locale.js');
+  const tz = L.localeFor(brand || null, market).timeZone;
+  return tz ? L.utcHourOf(9.5, tz, dateStr) : null;
 }
 
 function pickArchetype(segment, festival, content_type) {
@@ -265,7 +276,7 @@ function nextSegmentForDay({ sendsThisWeekBySeg, segmentList, cadenceTable }) {
 // product strategy, it builds the day-by-day plan + meta. Calling it with the
 // medium scenario's levers (cadence ×1.0, all segments, productStrategy 'current')
 // reproduces the original deterministic output.
-function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRanked, cadenceTable, productStrategy }) {
+function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRanked, cadenceTable, productStrategy, brand }) {
   const plan = [];
   for (let m = 0; m < markets.length; m++) {
     const market = markets[m];
@@ -284,7 +295,7 @@ function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRank
         for (const k in sendsThisWeekBySeg) sendsThisWeekBySeg[k] = 0;
       }
 
-      const festival = findFestivalForDate(market, dateStr);
+      const festival = findFestivalForDate(market, dateStr, brand);
 
       // Festivals override capacity if weight >= 8
       const isHighFestival = festival && festival.weight >= 8;
@@ -309,7 +320,8 @@ function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRank
       const content_type = pickContentType(weekIdx, segment.name, festival);
       const archetype    = pickArchetype(segment.name, festival, content_type);
       const hero         = pickHeroProduct(segment.name, festival, analytics, productStrategy);
-      const send_hour    = pickBestSendHourUTC(market, analytics);
+      const send_hour    = pickBestSendHourUTC(market, analytics, brand, dateStr);
+      const send_tz      = (() => { const L = require('./brand-locale.js'); const l = L.localeFor(brand || null, market); return l.timeZone || L.marker('time zone', brand || 'this brand', market); })();
       const subject_hint = buildSubjectHint(segment.name, festival, hero, content_type, market);
       const rationale    = buildRationale({ segment: segment.name, festival, content_type, archetype, hero, segValueRank: segment.valueRank, market });
       const asset_types  = pickAssetTypes({ content_type, archetype, festival, key: `${dateStr}_${market}_${segment.name}` });
@@ -338,6 +350,10 @@ function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRank
         id: `${dateStr}_${market}_${segment.name}_${plan.length}`,
         date: dateStr,
         send_hour_utc: send_hour,
+        // The same send in the market's own clock, for the page to print.
+        // (null when the hour came from the brand's own analytics, which are UTC.)
+        send_time_local: (send_hour == null || typeof analytics?.bestHourByMarket?.[market] === 'number') ? null : '09:30',
+        send_timezone: send_tz,
         market,
         segment: segment.name,
         segment_size: segment.count || null,
@@ -387,7 +403,7 @@ function buildPlan({ startDate, days, markets, capacity, analytics, segmentsRank
 // Applies one scenario's levers (cadence / horizon / segment focus / product
 // strategy) and attaches grounded projected metrics + the hand-authored,
 // brand-scrubbed rationale.
-function buildScenario(label, { startDate, daysReq, markets, capacity, analytics }) {
+function buildScenario(label, { startDate, daysReq, markets, capacity, analytics, brand }) {
   const L = SM.SCENARIO_LEVERS[label];
   const days = SM.scenarioDays(L, daysReq);
   const cap = SM.effectiveCapacity(L, capacity);
@@ -397,7 +413,7 @@ function buildScenario(label, { startDate, daysReq, markets, capacity, analytics
   const eligible = new Set(SM.eligibleSegments(fullRanked.map((s) => s.name), L));
   const segmentsRanked = fullRanked.filter((s) => eligible.has(s.name));
 
-  const { plan, meta } = buildPlan({ startDate, days, markets, capacity: cap, analytics, segmentsRanked, cadenceTable, productStrategy: L.productStrategy });
+  const { plan, meta } = buildPlan({ startDate, days, markets, capacity: cap, analytics, segmentsRanked, cadenceTable, productStrategy: L.productStrategy, brand });
 
   const benchmark = SM.buildEngine1Benchmark(analytics, markets[0]);
   const projected_metrics = SM.projectMetrics(plan, L, benchmark);
@@ -496,19 +512,20 @@ module.exports = async function handler(req, res) {
   // a shipped four-market list. A brand that sells in one country gets a
   // one-market plan; a brand with no regions declared gets a stated gap.
   let markets = Array.isArray(body.markets) && body.markets.length ? body.markets : [];
+  // The brand this plan is FOR: its festivals and its send clock come from it.
   let planBrand = null;
   try { planBrand = await require('./brand-runtime.js').resolve(req); } catch (_) { planBrand = null; }
   if (!markets.length) {
     try {
       const rt = require('./brand-runtime.js');
-      const brand = planBrand;
-      const home = rt.homeRegion(brand);
-      const codes = ((brand && brand.regions) || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+      const home = rt.homeRegion(planBrand);
+      const codes = ((planBrand && planBrand.regions) || []).map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
       markets = codes.sort((a, b) => (a === home ? -1 : b === home ? 1 : 0));
     } catch (_) { markets = []; }
   }
   if (!markets.length) {
-    return res.status(400).json({ error: 'markets_required', message: '[DATA REQUIRED BEFORE LAUNCH: regions, all, all] This brand declares no market, so there is nothing to plan for. Add its regions in Brand setup, or pass `markets` explicitly.' });
+    const marker = require('./brand-locale.js').marker('regions', planBrand || 'this brand');
+    return res.status(400).json({ error: 'markets_required', message: `${marker} This brand declares no market, so there is nothing to plan for. Add its regions in Brand setup, or pass \`markets\` explicitly.` });
   }
   const capacity = +body.capacity_per_market_per_week || 4;
   const analytics = body.analytics || {};
@@ -525,7 +542,7 @@ module.exports = async function handler(req, res) {
 
   // Build all 5 scenarios. Each is self-contained (its own plan + meta +
   // projected_metrics) so the internal UI can render any scenario standalone.
-  const scenarios = SM.SCENARIO_LABELS.map((label) => buildScenario(label, { startDate, daysReq, markets, capacity, analytics }));
+  const scenarios = SM.SCENARIO_LABELS.map((label) => buildScenario(label, { startDate, daysReq, markets, capacity, analytics, brand: planBrand }));
   const medium = scenarios.find((s) => s.label === 'medium') || scenarios[0];
 
   // MaxPower-only: attach narratives after the deterministic result exists.

@@ -209,7 +209,9 @@ async function getAgent(agentId) {
 function agentRow(spec) {
   const id = spec.id || idFor('agent', { name: spec.name, level: spec.level });
   return {
-    id, level: spec.level || 'collection', name: spec.name, market: spec.market || 'US',
+    // An agent with no market serves the brand's HOME market (2026-10-05),
+    // never a literal 'US'; with no brand record, it names none.
+    id, level: spec.level || 'collection', name: spec.name, market: spec.market || require('./brand-locale.js').homeMarket(spec.brand) || '',
     persona: spec.persona || {}, catalog_scope: spec.catalog_scope || {},
     greeting: spec.greeting || `Hi, I'm ${spec.name}. How can I help?`,
     voice: spec.voice || { rate: 1.0, pitch: 1.0, style: 'warm' },

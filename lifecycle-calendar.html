@@ -72,7 +72,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lifecycle OS">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/auth.js?v=20260718light" defer></script>
 <script src="/table-sort.js?v=20260530b" defer></script>
@@ -81,51 +80,77 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <script>
   // Guarded so the page still boots if the Tailwind CDN is unreachable.
   if (window.tailwind) {
+    // Layout only. The colour utilities this page uses (text-ink, bg-bg-card,
+    // border-lava/30 ...) are defined below on the brand's tokens.
     tailwind.config = { theme: { extend: {
-      colors: {
-        bg: { DEFAULT:'#ffffff', soft:'#ffffff', card:'#eef3f0' },
-        ink: { DEFAULT:'#111111', dim:'#556059', mute:'#48524c' },
-        green: { DEFAULT:'#D0473E', bright:'#16a34a' },
-        lava: { DEFAULT:'#6A33D8' }, chalk: '#FFFFFF',
-      },
-      fontFamily: { sans:['Inter','sans-serif'], mono:['"JetBrains Mono"','monospace'] },
+      fontFamily: { sans:['var(--vh-font-body)'], mono:['var(--vh-font-mono)'] },
     }}};
   }
 </script>
 <style>
-  body { background:#ffffff; color:#111111; font-family:'Inter',sans-serif; }
-  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#48524c; font-weight:500; }
-  .card { background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; }
-  .pill { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:99px; }
-  .b-UK { background:rgba(234,88,12,0.15); color:#b45309; }
-  .co-A { background:rgba(59,130,246,0.12); color:#1d4ed8; }
-  .co-B { background:rgba(34,197,94,0.12); color:#0a7d33; }
-  .pt-coffee      { background:rgba(171,135,67,0.18); color:#6A33D8; }
-  .pt-tb          { background:rgba(34,197,94,0.12); color:#0a7d33; }
-  .pt-supplements { background:rgba(168,85,247,0.12); color:#7c3aed; }
-  .pm-one  { color:#b45309; }
-  .pm-sub  { color:#0a7d33; }
-  .st-built { background:rgba(22,163,74,0.18); color:#0a7d33; }
-  .st-planned { background:rgba(148,163,184,0.12); color:#6b7770; }
-  .day { background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:10px; padding:10px; min-height:96px; transition: border-color .15s; }
-  .day:hover { border-color:rgba(171,135,67,0.35); cursor:pointer; }
-  .day.festival { border-color: rgba(171,135,67,0.45); background: rgba(171,135,67,0.04); }
-  .day-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:#556059; }
-  .day-fest { font-size:9px; color:#6A33D8; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-top:2px; }
-  .entry { font-size:10px; line-height:1.25; padding:3px 5px; margin-top:4px; border-radius:4px; background:var(--vh-panel-tan); }
-  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#556059; cursor:pointer; }
-  .filter-chip.active { background:#6A33D8; color:#ffffff; border-color:#6A33D8; }
+  body { background:var(--vh-bg); color:var(--vh-ink); font-family:var(--vh-font-body); }
+  button, input, select, textarea { font-family:inherit; }
+  .font-mono { font-family:var(--vh-font-mono); }
+  /* The page's colour utilities, on the brand's tokens (design/lifecycle-os/CONTRACT.md). */
+  .text-ink, .hover\:text-ink:hover { color:var(--vh-ink); }
+  .text-ink-dim, .text-ink-mute { color:var(--vh-ink-dim); }
+  .text-lava { color:var(--vh-accent-text); }
+  .text-green, .hover\:text-green:hover { color:var(--vh-primary-text); }
+  .bg-bg-card { background:var(--vh-panel-2); }
+  .bg-bg\/95 { background:var(--vh-bg); }
+  .border-lava\/10, .border-lava\/15, .border-lava\/20 { border-color:var(--vh-line); }
+  .border-lava\/30, .hover\:border-lava:hover { border-color:var(--vh-line-hot); }
+  .bg-lava { background:var(--vh-primary); }
+  .text-bg { color:var(--vh-on-primary); }
+  .bg-lava\/20 { background:var(--vh-panel-2); }
+  .bg-lava\/20.text-lava { color:var(--vh-primary-text); }
+  .hover\:bg-lava:hover { background:var(--vh-primary); }
+  .hover\:bg-lava:hover.hover\:text-bg, .hover\:text-bg:hover { color:var(--vh-on-primary); }
+  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:var(--vh-ink-dim); font-weight:500; }
+  .card { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600; padding:3px 9px; border-radius:99px; background:var(--vh-panel-2); border:1px solid var(--vh-line); color:var(--vh-ink); }
+  .b-UK { color:var(--vh-accent-text); }
+  .co-A { color:var(--vh-primary-text); border-color:var(--vh-chart-1); }
+  .co-B { color:var(--vh-ink-dim); border-color:var(--vh-chart-3); }
+  .pt-coffee      { color:var(--vh-accent-text); }
+  .pt-tb          { color:var(--vh-primary-text); }
+  .pt-supplements { color:var(--vh-ink); }
+  .pm-one  { color:var(--vh-warn-text); }
+  .pm-sub  { color:var(--vh-ok-text); }
+  .st-built { color:var(--vh-ok-text); border-color:var(--vh-ok); }
+  .st-planned { color:var(--vh-ink-dim); }
+  .day { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:10px; padding:10px; min-height:96px; transition: border-color .15s; }
+  .day:hover { border-color:var(--vh-line-hot); cursor:pointer; }
+  .day.festival { border-color:var(--vh-accent); background:var(--vh-panel-2); }
+  .day-num { font-family:var(--vh-font-mono); font-size:11px; color:var(--vh-ink-dim); }
+  .day-fest { font-size:9px; color:var(--vh-accent-text); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-top:2px; }
+  .entry { font-size:10px; line-height:1.25; padding:3px 5px; margin-top:4px; border-radius:4px; background:var(--vh-panel-2); color:var(--vh-ink); }
+  .legend-dot.is-festival { background:var(--vh-accent); }
+  .legend-dot.is-a { background:var(--vh-chart-1); }
+  .legend-dot.is-b { background:var(--vh-chart-3); }
+  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid var(--vh-line); background:var(--vh-panel); color:var(--vh-ink-dim); cursor:pointer; }
+  .filter-chip.active { background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--vh-primary); }
   .filter-chip:disabled { opacity:0.85; cursor:default; }
-  .cohort-check { display:flex; align-items:center; gap:7px; font-size:12px; color:#556059; cursor:pointer; padding:4px 0; }
-  .cohort-check input { accent-color:#6A33D8; width:14px; height:14px; }
-  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#48524c; padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.18); text-align:left; }
-  td { padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.06); font-size:12.5px; vertical-align:top; }
-  tr:hover td { background:rgba(171,135,67,0.04); }
-  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.75); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  .cohort-check { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--vh-ink-dim); cursor:pointer; padding:4px 0; }
+  .cohort-check input { accent-color:var(--vh-primary); width:14px; height:14px; }
+  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--vh-ink-dim); padding:10px 8px; border-bottom:1px solid var(--vh-line-hot); text-align:left; }
+  td { padding:10px 8px; border-bottom:1px solid var(--vh-line); font-size:12.5px; vertical-align:top; }
+  tr:hover td { background:var(--vh-panel-2); }
+  .why { font-size:11px; line-height:1.5; max-width:320px; color:var(--vh-ink); }
+  .why b, .why-details summary { color:var(--vh-primary-text); }
+  .why-details summary { cursor:pointer; font-size:11px; }
+  .why-dim { color:var(--vh-ink-dim); }
+  .why-up { color:var(--vh-ok-text); }
+  .why-down { color:var(--vh-err-text); }
+  .why-rule { margin-top:6px; border-top:1px solid var(--vh-line-hot); padding-top:4px; }
+  .modal-backdrop { position:fixed; inset:0; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  /* The scrim: the brand's ink at an opacity over the page (CONTRACT.md: a scrim is not a section). */
+  .modal-backdrop::before { content:""; position:absolute; inset:0; background:var(--vh-ink); opacity:.45; z-index:-1; }
   .modal-backdrop.open { display:flex; }
-  .modal-card { background:#ffffff; border:1px solid rgba(171,135,67,0.3); border-radius:12px; max-width:920px; width:100%; max-height:90vh; overflow-y:auto; }
-  iframe.preview { width:100%; min-height:560px; background:#FFFFFF; border:0; border-radius:8px; }
-  input[type="date"], input[type="number"] { color-scheme: dark; }
+  .modal-card { background:var(--vh-panel); color:var(--vh-ink); border:1px solid var(--vh-line); box-shadow:var(--vh-lift-2); border-radius:12px; max-width:920px; width:100%; max-height:90vh; overflow-y:auto; }
+  #vtabs [data-vtab][aria-pressed="true"] { background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--vh-primary); }
+  iframe.preview { width:100%; min-height:560px; background:var(--vh-panel); border:0; border-radius:8px; }
+  input[type="date"], input[type="number"] { color-scheme: light; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -202,9 +227,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <p class="text-xs text-ink-dim mt-1">Each day shows the planned cohort sends (09:00 UTC). Click a day to jump to its rows.</p>
       </div>
       <div class="flex gap-3 text-[11px] text-ink-mute">
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:rgba(171,135,67,0.45);"></span> Festival</span>
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#93c5fd;"></span> Cohort A</span>
-        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#0a7d33;"></span> Cohort B</span>
+        <span class="flex items-center gap-1"><span class="legend-dot is-festival w-2 h-2 rounded-full"></span> Festival</span>
+        <span class="flex items-center gap-1"><span class="legend-dot is-a w-2 h-2 rounded-full"></span> Cohort A</span>
+        <span class="flex items-center gap-1"><span class="legend-dot is-b w-2 h-2 rounded-full"></span> Cohort B</span>
       </div>
     </div>
     <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
@@ -278,22 +303,22 @@ function analysisDetails(p) {
   let body = '';
   if (a) {
     const drivers = (a.drivers || []).map((d) =>
-      '<div style="margin:3px 0;color:#111111"><b style="color:#6A33D8">' + escAttr(d.signal) + ':</b> ' + escAttr(d.value) +
-      (d.implication ? '<div style="font-size:10px;color:#556059">' + escAttr(d.implication) + '</div>' : '') + '</div>').join('');
+      '<div style="margin:3px 0"><b>' + escAttr(d.signal) + ':</b> ' + escAttr(d.value) +
+      (d.implication ? '<div class="why-dim" style="font-size:10px">' + escAttr(d.implication) + '</div>' : '') + '</div>').join('');
     const factors = (a.confidence && a.confidence.factors || []).map((f) =>
-      '<div style="display:flex;justify-content:space-between;gap:8px;color:#111111"><span>' + escAttr(f.label) + '</span><span style="color:' + (f.delta >= 0 ? '#16a34a' : '#b91c1c') + '">' + (f.delta >= 0 ? '+' : '') + f.delta + '</span></div>').join('');
+      '<div style="display:flex;justify-content:space-between;gap:8px"><span>' + escAttr(f.label) + '</span><span class="' + (f.delta >= 0 ? 'why-up' : 'why-down') + '">' + (f.delta >= 0 ? '+' : '') + f.delta + '</span></div>').join('');
     body =
-      '<div style="font-size:11px;line-height:1.5;max-width:320px;color:#111111">' +
+      '<div class="why">' +
         drivers +
-        (a.hypothesis ? '<div style="margin:6px 0"><b style="color:#6A33D8">Hypothesis:</b> ' + escAttr(a.hypothesis) + '</div>' : '') +
-        (a.expected_impact ? '<div style="margin:4px 0"><b style="color:#6A33D8">Expected:</b> ' + escAttr(a.expected_impact.metric || '') + ' ' + escAttr(a.expected_impact.direction || 'up') + '</div>' : '') +
-        (factors ? '<div style="margin-top:6px;border-top:1px solid rgba(171,135,67,.35);padding-top:4px"><b style="color:#6A33D8">Confidence ' + confTxt + '</b>' + factors + '</div>' : '') +
+        (a.hypothesis ? '<div style="margin:6px 0"><b>Hypothesis:</b> ' + escAttr(a.hypothesis) + '</div>' : '') +
+        (a.expected_impact ? '<div style="margin:4px 0"><b>Expected:</b> ' + escAttr(a.expected_impact.metric || '') + ' ' + escAttr(a.expected_impact.direction || 'up') + '</div>' : '') +
+        (factors ? '<div class="why-rule"><b>Confidence ' + confTxt + '</b>' + factors + '</div>' : '') +
       '</div>';
   } else {
-    body = '<div style="font-size:11px;max-width:320px;color:#111111">' + escAttr(summary) + '</div>';
+    body = '<div class="why">' + escAttr(summary) + '</div>';
   }
-  return '<details class="why-details"><summary style="cursor:pointer;font-size:11px;color:#6A33D8">' +
-    escAttr(truncate(summary, 60)) + (confTxt ? ' <span style="color:#556059">(' + confTxt + ')</span>' : '') +
+  return '<details class="why-details"><summary>' +
+    escAttr(truncate(summary, 60)) + (confTxt ? ' <span class="why-dim">(' + confTxt + ')</span>' : '') +
     '</summary><div style="margin-top:6px">' + body + '</div></details>';
 }
 function truncate(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
@@ -542,8 +567,7 @@ function selectVariant(idx) {
   STATE.currentVariant = v;
   document.querySelectorAll('#vtabs [data-vtab]').forEach((b) => {
     const on = parseInt(b.dataset.vtab, 10) === idx;
-    b.style.background = on ? '#6A33D8' : 'transparent';
-    b.style.color = on ? '#ffffff' : '';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
   const ctaUrl = v.cta_url || (STATE.currentMailer && STATE.currentMailer.cta_url) || '';
   const img = v.image;

@@ -9,7 +9,7 @@
 
 let callLLM; try { callLLM = require('./llm.js'); } catch (_) { callLLM = null; }
 
-async function ideate({ analysis = {}, calendar = {}, review = {}, market = 'US', tier = 'budget' } = {}) {
+async function ideate({ analysis = {}, calendar = {}, review = {}, market = require('./brand-locale.js').defaultMarket(), tier = 'budget' } = {}) {
   const ctx = {
     cohorts: (analysis.cohorts || []).map((c) => c.name || c.cohort).filter(Boolean).slice(0, 8),
     winningAngles: (analysis.winningCampaigns || analysis.winning_campaigns || []).slice(0, 5).map((c) => c.name || c.subject).filter(Boolean),

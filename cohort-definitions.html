@@ -25,9 +25,9 @@
   :root[data-theme="dark"]{--bg:var(--vh-ink);--surface:var(--vh-ink);--line:var(--vh-ink);--soft:var(--vh-lava);--ink:var(--vh-panel-tan);--head:var(--vh-ink-dim);--accent:var(--vh-lava);--chip:var(--vh-ink);}
   :root[data-theme="light"]{--bg:#FFFFFF;--surface:#ffffff;--line:var(--vh-panel-tan);--soft:var(--vh-ink);--ink:#111111;--head:#D0473E;--accent:#6A33D8;--chip:var(--vh-panel-tan);}
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.55;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--vh-font-body);font-size:15px;line-height:1.55;}
   .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
-  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--brand-primary-text,var(--head));margin:0;text-wrap:balance;}
+  h1,h2,h3{font-family:var(--vh-font-head);color:var(--brand-primary-text,var(--head));margin:0;text-wrap:balance;}
   h1{font-size:32px;} h2{font-size:21px;margin-top:2px;} h3{font-size:16px;}
   .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--brand-accent-text);font-weight:700;}
   p.lede{color:var(--soft);max-width:72ch;margin:6px 0 0;}
@@ -36,14 +36,14 @@
   .tab{cursor:pointer;border:0;background:transparent;color:var(--soft);font-family:inherit;font-size:13.5px;font-weight:700;padding:9px 14px;border-bottom:3px solid transparent;margin-bottom:-1px;border-radius:6px 6px 0 0;white-space:nowrap;transition:background .12s,color .12s;}
   .tab:hover{color:var(--brand-primary-text,var(--head));background:var(--chip);}
   /* Selected tab: solid green pill + chalk text + lava underline — unmistakable in light and dark */
-  .tab.active{color:var(--chalk);background:var(--violet);border-bottom-color:var(--lava);box-shadow:0 1px 0 var(--lava);}
-  .tab.active .chip{background:rgba(251,245,234,0.16);color:var(--chalk);}
+  .tab.active{color:var(--vh-on-primary);background:var(--vh-primary);border-bottom-color:var(--lava);box-shadow:0 1px 0 var(--lava);}
+  .tab.active .chip{background:rgba(251,245,234,0.16);color:var(--vh-ink);}
   .tab.active .cnt{background:rgba(251,245,234,0.18)!important;color:var(--chalk)!important;}
   .tab:focus-visible{outline:2px solid var(--lava);outline-offset:2px;}
   .panel{display:none;padding-top:20px;} .panel.active{display:block;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0;}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;}
-  .card .n{font-family:'Montserrat','Raleway',Georgia,serif;font-size:28px;color:var(--brand-primary-text,var(--head));font-variant-numeric:tabular-nums;line-height:1;}
+  .card .n{font-family:var(--vh-font-head);font-size:28px;color:var(--brand-primary-text,var(--head));font-variant-numeric:tabular-nums;line-height:1;}
   .card .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);margin-top:5px;}
   .card .d{color:var(--soft);font-size:13px;margin-top:8px;}
   .card.link{cursor:pointer;transition:border-color .15s;} .card.link:hover{border-color:var(--accent);}
@@ -52,12 +52,12 @@
      every other brand and landed at 4.1:1 on the grey panel. The dark-scheme
      twin put --brand-ink-muted (a token tuned against the light surface) on the
      ink itself, ~3.4:1 - live for anyone whose OS is in dark mode. */
-  .v2{background:var(--vh-panel-tan);color:var(--brand-primary-text,var(--head));}
-  @media (prefers-color-scheme:dark){.v2{background:var(--brand-ink,#111111);color:var(--brand-surface,#ffffff);}}
-  :root[data-theme="dark"] .v2{background:var(--brand-ink,#111111);color:var(--brand-surface,#ffffff);}
+  .v2{background:var(--vh-panel-2);color:var(--brand-primary-text,var(--head));}
+  @media (prefers-color-scheme:dark){.v2{background:var(--vh-panel-2);color:inherit;}}
+  :root[data-theme="dark"] .v2{background:var(--vh-panel-2);color:inherit;}
   .row{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:15px 18px;margin-bottom:10px;}
   .row .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
-  .row .code{font-family:ui-monospace,'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--brand-accent-text);letter-spacing:.05em;}
+  .row .code{font-family:var(--vh-font-mono);font-size:11px;font-weight:700;color:var(--brand-accent-text);letter-spacing:.05em;}
   .row .name{font-weight:700;color:var(--brand-primary-text,var(--head));font-size:15px;}
   .row dl{margin:10px 0 0;display:grid;grid-template-columns:130px 1fr;gap:5px 14px;}
   .row dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;padding-top:2px;}

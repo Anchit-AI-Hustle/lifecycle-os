@@ -269,7 +269,7 @@ async function analyse(agent, collected, { question, tier, timeoutMs, brand }) {
 async function runAgent(id, opts = {}) {
   const agent = AGENTS.find((a) => a.id === String(id).toLowerCase());
   if (!agent) return { ok: false, error: `Unknown platform agent '${id}'`, available: AGENTS.map((a) => a.id) };
-  const { market = 'US', days = 30, hours = 720, since, until, question = '', tier = 'standard', timeoutMs = 25000 } = opts;
+  const { market = require('./brand-locale.js').defaultMarket(), days = 30, hours = 720, since, until, question = '', tier = 'standard', timeoutMs = 25000 } = opts;
   // Resolved once per agent run and handed to the prompt. Never defaulted to
   // a brand: analystIdentity() would rather say "unresolved" than assume one.
   const brand = opts.brand || null;
@@ -330,7 +330,7 @@ async function runAll(opts = {}) {
   const actions = agents.flatMap((a) => (a.action_items || []).map((x) => Object.assign({ platform: a.label, platform_id: a.agent }, x)));
   const order = { P0: 0, P1: 1, P2: 2 };
   return {
-    ok: true, generated_at: iso(), market: opts.market || 'US',
+    ok: true, generated_at: iso(), market: opts.market || '',
     coverage: {
       total: agents.length, connected: connected.length, blocked: agents.length - connected.length,
       analysed: agents.filter((a) => a.analysed).length,

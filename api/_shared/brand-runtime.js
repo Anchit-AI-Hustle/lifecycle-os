@@ -264,9 +264,25 @@ function carriedBrand(body, auth) {
   const cs = obj(src.catalog_source);
   const catalogSource = Object.assign(flat(cs, 8, 300), Array.isArray(cs.offering_kinds) ? { offering_kinds: list(cs.offering_kinds, 12, 40) } : {});
   const voice = obj(src.voice);
+  // A region keeps what makes it a MARKET (2026-10-05): its symbol, number
+  // locale, time zone and dialling code, beside its currency and store. They
+  // were dropped here, so a phone sign-in's mailer priced with a guessed
+  // symbol and planned its send hour in nobody's time zone.
   const regions = (Array.isArray(src.regions) ? src.regions : []).filter((r) => r && typeof r === 'object').slice(0, 12).map((r) => ({
-    code: str(r.code, 8), name: str(r.name, 60), currency: str(r.currency, 8), store_url: str(r.store_url, 300), home: r.home === true,
+    code: str(r.code, 8), name: str(r.name, 60), currency: str(r.currency, 8), symbol: str(r.symbol, 8), store_url: str(r.store_url, 300),
+    locale: /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(str(r.locale, 35)) ? str(r.locale, 35) : '',
+    timezone: /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(str(r.timezone || r.time_zone, 60)) ? str(r.timezone || r.time_zone, 60) : '',
+    dial_code: /^\+\d{1,4}$/.test(str(r.dial_code, 6)) ? str(r.dial_code, 6) : '',
+    home: r.home === true,
   }));
+  // The brand's own legal sender line and social profiles (top level, or in
+  // brand_data where the wizard writes them). Footers printed the marker for
+  // every phone sign-in because neither field was carried.
+  const data = obj(src.brand_data);
+  const legal = str(src.legal_entity || data.legal_entity || src.legal_name || data.legal_name, 300);
+  const socialSrc = Array.isArray(src.social) ? src.social : (Array.isArray(data.social) ? data.social : []);
+  const social = socialSrc.filter((x) => x && typeof x === 'object' && /^https:\/\/[^\s"'<>]+$/i.test(String(x.url || ''))).slice(0, 12)
+    .map((x) => ({ platform: str(x.platform, 40).toLowerCase(), url: str(x.url, 300) }));
   const seed = String((auth && auth.user_id) || '') + '|' + name;
   const id = 'device:' + require('crypto').createHash('sha1').update(seed).digest('hex').slice(0, 16);
   return {
@@ -291,10 +307,8 @@ function carriedBrand(body, auth) {
       no_em_dashes: voice.no_em_dashes !== false,
     },
     regions, claims: list(src.claims, 40, 300), offerings: records(src.offerings, 40, 10), competitors: records(src.competitors, 40, 8),
-    // The sender identity a commercial email must carry (CAN-SPAM). It was
-    // dropped here, so every device brand's mailer footer printed the marker
-    // even when the record held its legal entity (2026-10-10).
-    legal_entity: str(src.legal_entity || obj(src.brand_data).legal_entity, 300),
+    legal_entity: legal, social, contact: flat(src.contact || data.contact, 8, 200),
+    timezone: /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(str(src.timezone, 60)) ? str(src.timezone, 60) : '',
     // A device brand's catalogue is not on the server either, and nothing
     // here may reach the shipped files: the slug above is what the gate reads.
     catalog_source: catalogSource,
@@ -397,28 +411,31 @@ function invalidate(workspaceId) {
   }
 }
 
-function missing(field, region) {
-  return `[DATA REQUIRED BEFORE LAUNCH: ${field}, all, ${region || 'all'}]`;
+/* UNPADDED (2026-10-05): `field, brand` and a region only where one applies.
+   It printed "[...: logo URL, all, all]" into every brand block, and "all" is
+   not a fact - the rule brand-workspace-core.launchMarker() already keeps. */
+function missing(field, region, brand) {
+  return require('./brand-locale.js').marker(field, brand || 'this brand', region || '');
 }
 
-function paletteLine(p) {
+function paletteLine(p, brand) {
   const named = [
     ['primary', 'primary'], ['accent', 'accent'], ['ink', 'text'],
     ['surface', 'page surface'], ['surface_alt', 'card surface'],
   ].filter(([k]) => p && p[k]).map(([k, label]) => `${p[k]} ${label}`);
-  if (!named.length) return missing('brand palette');
+  if (!named.length) return missing('brand palette', '', brand);
   const extra = Array.isArray(p.extra) ? p.extra.map((e) => `${e.hex} ${e.name}`) : [];
   return named.concat(extra).join(' · ');
 }
 
-function typographyLine(t) {
+function typographyLine(t, brand) {
   const h = t && t.heading, b = t && t.body;
-  if (!h && !b) return missing('brand typography');
+  if (!h && !b) return missing('brand typography', '', brand);
   const parts = [];
   if (h && h.family) parts.push(`Headings = ${h.stack || `'${h.family}'`}`);
-  else parts.push(`Headings = ${missing('typography.heading')}`);
+  else parts.push(`Headings = ${missing('typography.heading', '', brand)}`);
   if (b && b.family) parts.push(`Body = ${b.stack || `'${b.family}'`}`);
-  else parts.push(`Body = ${missing('typography.body')}`);
+  else parts.push(`Body = ${missing('typography.body', '', brand)}`);
   return parts.join('. ');
 }
 
@@ -475,14 +492,32 @@ function homeRegion(brand) {
   return pick ? String(pick.code).toUpperCase() : '';
 }
 
-function regionLines(regions) {
+function regionLines(regions, brand) {
   const list = Array.isArray(regions) ? regions.filter((r) => r && r.code) : [];
-  if (!list.length) return missing('regions and store URLs');
+  if (!list.length) return missing('regions and store URLs', '', brand);
   const home = homeRegion({ regions: list });
   return list.map((r) =>
-    `${r.code}${String(r.code).toUpperCase() === home ? ' (HOME market)' : ''}: store ${r.store_url || missing('region store URL', r.code)}` +
+    `${r.code}${String(r.code).toUpperCase() === home ? ' (HOME market)' : ''}: store ${r.store_url || missing('region store URL', r.code, brand)}` +
     `${r.currency ? ` · ${r.currency}` : ''}${r.symbol ? ` (${r.symbol})` : ''}`
   ).join(' | ');
+}
+
+/**
+ * The HOME market's own conventions, from the record (2026-10-05): the
+ * currency prices are written in, the number grouping, the time zone a send
+ * hour means and the dialling code - so a generator writes "₹1,299" and
+ * "09:30 IST" for an Indian brand instead of the dollars and US Eastern it
+ * reached for when nothing said otherwise. A gap is the unpadded marker.
+ */
+function localeLine(brand) {
+  const L = require('./brand-locale.js');
+  const l = L.localeFor(brand);
+  if (!l.market) return `${l.marker}. Write no price, currency, send time or phone number until the brand's markets are supplied.`;
+  const parts = [`home market ${l.market}`];
+  parts.push(l.currency ? `prices in ${l.currency}${l.symbol ? ` (${l.symbol})` : ''}, ${l.locale || 'en'} number format (one hundred thousand is written ${L.money(100000, brand, l.market)}; this illustrates the format and is not a price)` : L.marker('currency', brand, l.market));
+  parts.push(l.timeZone ? `send times in ${l.timeZone} local time` : L.marker('time zone', brand, l.market));
+  if (l.dial) parts.push(`phone numbers with ${l.dial}`);
+  return parts.join(' · ') + '. Another market\'s currency, time zone or holidays are never used for this one.';
 }
 
 /**
@@ -496,19 +531,19 @@ function brandBlock(brand) {
   const t = b.typography || {};
 
   const lines = [];
-  lines.push(`BRAND: ${b.name || missing('brand name')}${b.tagline ? ` — ${b.tagline}` : ''}${b.industry ? ` (${b.industry})` : ''}.`);
+  lines.push(`BRAND: ${b.name || missing('brand name', '', b)}${b.tagline ? ` — ${b.tagline}` : ''}${b.industry ? ` (${b.industry})` : ''}.`);
   if (b.website) lines.push(`WEBSITE: ${b.website}`);
-  lines.push(`VOICE: ${v.tone || missing('voice.tone')}.${v.notes ? ` ${v.notes}` : ''}`);
-  lines.push(`PALETTE (use ONLY these): ${paletteLine(p)}.`);
+  lines.push(`VOICE: ${v.tone || missing('voice.tone', '', b)}.${v.notes ? ` ${v.notes}` : ''}`);
+  lines.push(`PALETTE (use ONLY these): ${paletteLine(p, b)}.`);
   lines.push('CONTRAST (strict): every text/background pairing must reach WCAG AA (4.5:1). Never place dark text on a dark ground or light text on a light ground. Never use a black or dark-neutral section background; use the brand primary where a dark ground is wanted.');
-  lines.push(`TYPOGRAPHY (strict): ${typographyLine(t)}. Never introduce another family.`);
+  lines.push(`TYPOGRAPHY (strict): ${typographyLine(t, b)}. Never introduce another family.`);
   const imp = fontImport(t);
   if (imp) lines.push(`For any HTML asset, inject this EXACT import into the <head> <style> before app rules:\n  ${imp}`);
   const pend = Array.isArray(b.pending_hosting) ? b.pending_hosting : [];
   const logo = httpsUrl(b.logo_url);
   lines.push(`LOGO (header, exact — never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30px).`
     : pend.includes('logo') ? `${hostedMarker('logo', b)} - the logo exists only as an uploaded file on the operator's device. Write this marker where the logo goes; never embed an image as data:/base64 and never invent a URL.`
-      : missing('logo URL')}`);
+      : missing('logo URL', '', b)}`);
   if (pend.includes('font')) lines.push(`FONT FILES: ${hostedMarker('font', b)} - a brand font was uploaded as a file and has no hosted URL yet. Use the family name with its fallback stack; never embed the font as data:/base64.`);
   if (pend.includes('image')) lines.push(`BRAND IMAGERY: ${hostedMarker('image', b)} - uploaded brand images are not hosted yet. Never embed an image as data:/base64.`);
   lines.push('FOOTER: "Privacy Policy" and "Terms of Service" must be plain labels with href="#" and no target/onclick routing.');
@@ -524,11 +559,12 @@ function brandBlock(brand) {
   const claims = Array.isArray(b.claims) ? b.claims.filter(Boolean) : [];
   lines.push(claims.length
     ? `VERIFIABLE CLAIMS (the ONLY statements that may be presented as fact; never assert anything else): ${claims.map((c) => `"${c}"`).join(' · ')}.`
-    : `VERIFIABLE CLAIMS: ${missing('verifiable claims')}. Until they are supplied, write no proof, guarantee or credential line at all.`);
+    : `VERIFIABLE CLAIMS: ${missing('verifiable claims', '', b)}. Until they are supplied, write no proof, guarantee or credential line at all.`);
   if (Array.isArray(v.preferred) && v.preferred.length) lines.push(`PREFERRED words: ${v.preferred.join(', ')}.`);
   if (Array.isArray(v.banned) && v.banned.length) lines.push(`BANNED phrases (never use): ${v.banned.map((s) => `"${s}"`).join(', ')}.`);
   if (v.no_em_dashes !== false) lines.push('Never use em dashes or en dashes anywhere in output copy. Use commas, colons or plain hyphens.');
-  lines.push(`REGIONS: ${regionLines(b.regions)}`);
+  lines.push(`REGIONS: ${regionLines(b.regions, b)}`);
+  lines.push(`LOCALE: ${localeLine(b)}`);
   lines.push('NEVER: off-palette tints, fabricated product facts, prices, URLs, reviews, ratings, reviewer names, statistics or filenames. If a fact you need was not supplied, write [DATA REQUIRED BEFORE LAUNCH: field, product, region] in its place instead of inventing one.');
 
   return lines.join('\n');
@@ -544,11 +580,18 @@ function regionFacts(brand, market) {
   const hit = list.find((r) => String(r.code).toUpperCase() === code)
     || list.find((r) => String(r.code).toUpperCase() === home) || list[0];
   if (hit) {
+    // The symbol the record states, else the one Intl prints for the
+    // currency the record (or its country) declares - never a typed '$' for
+    // every currency nobody listed (2026-10-05). The locale is the market's
+    // own (en-IN groups 1,00,000), not a bare 'en'.
+    const loc = require('./brand-locale.js').localeFor(brand, hit.code);
     return {
       store: (hit.store_url || '').replace(/^https?:\/\//, ''),
       presell: (hit.store_url || '').replace(/^https?:\/\//, ''),
-      currency: hit.symbol || (hit.currency === 'GBP' ? '£' : hit.currency === 'EUR' ? '€' : hit.currency === 'INR' ? '₹' : '$'),
-      locale: 'en',
+      currency: hit.symbol || loc.symbol || '',
+      currency_code: loc.currency || '',
+      locale: loc.locale || 'en',
+      time_zone: loc.timeZone || '',
       code: hit.code,
     };
   }

@@ -64,113 +64,119 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta property="og:image" content="/assets/lifecycle-os-og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&display=swap" rel="stylesheet">
 <script src="/auth.js?v=20260818" defer></script>
 <style>
+  /* Every colour and family is a role from design/lifecycle-os/CONTRACT.md.
+     This page declared its own :root with literal fallbacks and named its
+     heading face --head, which brand-context.js writes onto <html> as a legacy
+     COLOUR alias (--head = --brand-primary): every heading's font-family
+     resolved to a hex and fell back to the body face. State words were painted
+     in the raw ok/warn/err FILL colours (never AA by construction) on
+     color-mix() tints, which an engine without color-mix drops whole. */
   *{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --ink:var(--brand-ink,#111111);--muted:var(--brand-ink-muted,#5a6169);
-    --surface:var(--brand-surface,#FFFFFF);--card:var(--brand-surface-alt,#FFFFFF);
-    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#FFFFFF);
-    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,#DDDDDD);
-    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
-    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
-    --mono:var(--brand-font-mono,ui-monospace,Menlo,monospace);
-  }
-  body{font-family:var(--body);background:var(--surface);color:var(--ink);padding:64px 24px 80px;min-height:100vh}
+  body{font-family:var(--vh-font-body);background:var(--vh-bg);color:var(--vh-ink);padding:64px 24px 80px;min-height:100vh}
   .wrap{max-width:1080px;margin:0 auto}
-  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--brand-accent-text);font-weight:600;margin-bottom:10px}
-  h1{font-family:var(--head);font-size:33px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
-  h2{font-family:var(--head);font-size:20px;font-weight:600;margin:30px 0 12px}
-  h3{font-family:var(--head);font-size:15.5px;font-weight:600;margin:0 0 8px}
-  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:780px;margin-bottom:24px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px}
-  .muted{color:var(--muted);font-size:12.5px;line-height:1.65}
-  code{font-family:var(--mono);font-size:12px;background:color-mix(in srgb,var(--muted) 9%,transparent);padding:1px 5px;border-radius:5px}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--vh-accent-text);font-weight:600;margin-bottom:10px}
+  h1{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:33px;font-weight:600;letter-spacing:-.02em;margin-bottom:10px}
+  h2{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:20px;font-weight:600;margin:30px 0 12px}
+  h3{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:15.5px;font-weight:600;margin:0 0 8px}
+  .lede{color:var(--vh-ink-dim);font-size:14.5px;line-height:1.65;max-width:780px;margin-bottom:24px}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;padding:20px;margin-bottom:14px}
+  .muted{color:var(--vh-ink-dim);font-size:12.5px;line-height:1.65}
+  code{font-family:var(--vh-font-mono);font-size:12px;color:var(--vh-ink);background:var(--vh-panel-2);padding:1px 5px;border-radius:5px}
 
   .tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
-  .tab{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--card);
-    font-family:var(--body);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
-  .tab[aria-selected="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+  .tab{padding:9px 16px;border-radius:9px;border:1px solid var(--vh-line);background:var(--vh-panel);
+    font-family:inherit;font-size:13px;font-weight:600;color:var(--vh-ink);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary)}
   .panel{display:none}.panel.on{display:block}
 
-  .banner{border-radius:11px;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:18px;border:1px solid}
-  .banner.info{background:color-mix(in srgb,var(--primary) 7%,transparent);border-color:color-mix(in srgb,var(--primary) 28%,transparent)}
-  .banner.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);border-color:color-mix(in srgb,var(--warn) 34%,transparent)}
-  .banner.err{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:color-mix(in srgb,var(--err) 32%,transparent)}
-  .banner.ok{background:color-mix(in srgb,var(--ok) 8%,transparent);border-color:color-mix(in srgb,var(--ok) 30%,transparent)}
+  /* A banner is the status line's shape: sunken panel, ink words, the state on
+     its left rule (accent for an ordinary note). */
+  .banner{border-radius:11px;padding:14px 16px;font-size:13px;line-height:1.6;margin-bottom:18px;border:1px solid var(--vh-line);
+    border-left:4px solid var(--vh-accent);background:var(--vh-panel-2);color:var(--vh-ink)}
+  .banner.info{border-left-color:var(--vh-accent)}
+  .banner.warn{border-left-color:var(--vh-warn)}
+  .banner.err{border-left-color:var(--vh-err)}
+  .banner.ok{border-left-color:var(--vh-ok)}
 
   .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
   @media(max-width:860px){.grid{grid-template-columns:1fr}h1{font-size:27px}}
-  .conn{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;display:flex;flex-direction:column;gap:9px}
+  .conn{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;padding:17px;display:flex;flex-direction:column;gap:9px}
   .conn .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
   .conn .nm{font-size:15.5px;font-weight:700}
-  .chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
-  .chip.on{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
-  .chip.off{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
-  .chip.plat{background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--brand-primary-text)}
-  .chip.bad{background:color-mix(in srgb,var(--err) 12%,transparent);color:var(--err)}
-  .chip.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--brand-warn-text,#7a6210)}
+  /* A state chip is the contract's status chip: the word in a *-text token on
+     the panel, the state on its edge. */
+  .chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase;
+    background:var(--vh-panel);border:1px solid var(--vh-line);color:var(--vh-ink-dim)}
+  .chip.on{color:var(--vh-ok-text);border-color:var(--vh-ok-text)}
+  .chip.off{color:var(--vh-ink-dim)}
+  .chip.plat{color:var(--vh-primary-text);border-color:var(--vh-line-hot)}
+  .chip.bad{color:var(--vh-err-text);border-color:var(--vh-err-text)}
+  .chip.warn{color:var(--vh-warn-text);border-color:var(--vh-warn-text)}
 
-  label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
-  input[type=text],input[type=datetime-local],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
-    background:var(--surface);color:var(--ink);font-family:var(--body);font-size:13px}
-  textarea{min-height:110px;font-family:var(--mono);font-size:12px;line-height:1.5}
-  input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--primary) 45%,transparent);outline-offset:1px}
+  label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--vh-ink-dim);margin:10px 0 4px}
+  input[type=text],input[type=datetime-local],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--vh-line);border-radius:9px;
+    background:var(--vh-bg);color:var(--vh-ink);font-family:inherit;font-size:13px}
+  textarea{min-height:110px;font-family:var(--vh-font-mono);font-size:12px;line-height:1.5}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--vh-focus);outline-offset:1px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-  button{font-family:var(--body);font-size:13px;font-weight:600;padding:9px 15px;border-radius:9px;border:1px solid var(--line);
-    background:var(--card);color:var(--ink);cursor:pointer}
-  button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
-  button.danger{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+  button{font-family:inherit;font-size:13px;font-weight:600;padding:9px 15px;border-radius:9px;border:1px solid var(--vh-line);
+    background:var(--vh-panel);color:var(--vh-ink);cursor:pointer}
+  button.primary{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary)}
+  button.danger{border-color:var(--vh-err-text);color:var(--vh-err-text)}
   button:disabled{opacity:.5;cursor:not-allowed}
   /* A link that reads as a button. Not a <button> inside an <a>, which is
      invalid HTML and which browsers resolve inconsistently. */
   .btnlink{display:inline-block;font-size:13px;font-weight:600;padding:9px 15px;border-radius:9px;
-    border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none}
-  .btnlink:hover{border-color:var(--primary)}
+    border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink);text-decoration:none}
+  .btnlink:hover{border-color:var(--vh-line-hot)}
 
   /* Domain strength dial */
   .dial{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
   .ring{position:relative;width:132px;height:132px;flex:none}
   .ring svg{transform:rotate(-90deg)}
   .ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .ring .num{font-family:var(--head);font-size:30px;font-weight:600;line-height:1}
-  .ring .gr{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+  .ring .num{font-family:var(--vh-font-head);font-size:30px;font-weight:600;line-height:1}
+  .ring .gr{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-ink-dim);margin-top:3px}
 
   .checklist{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:6px}
   .checklist li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.55}
+  /* A dot that carries state takes the *-text token (3:1 non-text by construction). */
   .dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
-  .dot.pass{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.fail{background:var(--err)}.dot.na{background:var(--muted)}
-  .rec-raw{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all;display:block;margin-top:3px}
+  .dot.pass{background:var(--vh-ok-text)}.dot.warn{background:var(--vh-warn-text)}.dot.fail{background:var(--vh-err-text)}.dot.na{background:var(--vh-ink-dim)}
+  .rec-raw{font-family:var(--vh-font-mono);font-size:11px;color:var(--vh-ink-dim);word-break:break-all;display:block;margin-top:3px}
 
-  .bar{height:9px;border-radius:999px;background:color-mix(in srgb,var(--muted) 16%,transparent);overflow:hidden;margin:7px 0}
-  .bar>i{display:block;height:100%;background:var(--primary);border-radius:999px}
+  .bar{height:9px;border-radius:999px;background:var(--vh-panel-2);border:1px solid var(--vh-line);overflow:hidden;margin:7px 0}
+  .bar>i{display:block;height:100%;background:var(--vh-primary);border-radius:999px}
 
   table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
-  th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+  th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--vh-line);vertical-align:top}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--vh-ink-dim);font-weight:700}
 
-  /* Preflight modal */
-  .modal{position:fixed;inset:0;background:color-mix(in srgb,#000 55%,transparent);display:none;align-items:center;justify-content:center;padding:20px;z-index:60}
+  /* Preflight modal. The scrim is the INK at an opacity (a scrim is not a
+     section), on a layer of its own so the sheet above it stays opaque. */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;z-index:60}
+  .modal::before{content:"";position:fixed;inset:0;background:var(--vh-ink);opacity:.45}
   .modal.on{display:flex}
-  .sheet{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:22px}
+  .sheet{position:relative;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:16px;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:22px;box-shadow:var(--vh-lift-2)}
   .verdict{display:flex;align-items:center;gap:11px;margin-bottom:6px}
-  .verdict .big{font-family:var(--head);font-size:22px;font-weight:600}
-  .fixrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+  .verdict .big{font-family:var(--vh-font-head);font-size:22px;font-weight:600}
+  .fixrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--vh-line)}
   .fixrow:last-child{border-bottom:0}
 
   /* What a sign-in grants (2026-10-04): the operator picks the write capabilities. */
   .caps{display:flex;flex-direction:column;gap:3px;margin-top:2px}
-  .caps .cap{display:flex;gap:7px;align-items:flex-start;margin:0;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink)}
+  .caps .cap{display:flex;gap:7px;align-items:flex-start;margin:0;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--vh-ink)}
   .caps .cap input{width:auto;margin-top:2px}
 
   /* Social gateway (2026-10-04) */
   .gw-sw{display:flex;gap:6px;flex-wrap:wrap}
   .gw-ep{font-size:12px}
-  .gw-ep summary{cursor:pointer;font-weight:600;color:var(--ink)}
+  .gw-ep summary{cursor:pointer;font-weight:600;color:var(--vh-ink)}
   .gw-days{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
-  .gw-day{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:12px;background:var(--card)}
-  .gw-day b{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:600}
+  .gw-day{border:1px solid var(--vh-line);border-radius:9px;padding:6px 9px;font-size:12px;background:var(--vh-panel)}
+  .gw-day b{display:block;font-family:var(--vh-font-mono);font-size:11px;color:var(--vh-ink-dim);font-weight:600}
 </style>
 </head>
 <body>
@@ -829,7 +835,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!r.ok) { window.LifecycleFailure.show(document.getElementById('domain-out'), r, { title: 'Domain check could not be run' }); return; }
     var pct = r.score == null ? 0 : r.score;
     var circ = 2 * Math.PI * 56;
-    var colour = r.score == null ? 'var(--muted)' : r.score >= 75 ? 'var(--ok)' : r.score >= 50 ? 'var(--warn)' : 'var(--err)';
+    var colour = r.score == null ? 'var(--vh-ink-dim)' : r.score >= 75 ? 'var(--vh-ok-text)' : r.score >= 50 ? 'var(--vh-warn-text)' : 'var(--vh-err-text)';
 
     var records = r.records.map(function (rec) {
       var cls = rec.unavailable ? 'na' : rec.passed ? 'pass' : (rec.type === 'BIMI' ? 'na' : 'fail');
@@ -843,8 +849,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     document.getElementById('domain-out').innerHTML =
       '<div class="card"><div class="dial">'
       + '<div class="ring"><svg width="132" height="132">'
-      + '<circle cx="66" cy="66" r="56" fill="none" stroke="color-mix(in srgb,var(--muted) 18%,transparent)" stroke-width="11"/>'
-      + '<circle cx="66" cy="66" r="56" fill="none" stroke="' + colour + '" stroke-width="11" stroke-linecap="round"'
+      + '<circle cx="66" cy="66" r="56" fill="none" style="stroke:var(--vh-line)" stroke-width="11"/>'
+      + '<circle cx="66" cy="66" r="56" fill="none" style="stroke:' + colour + '" stroke-width="11" stroke-linecap="round"'
       + ' stroke-dasharray="' + circ + '" stroke-dashoffset="' + (circ * (1 - pct / 100)) + '"/></svg>'
       + '<div class="val"><span class="num">' + (r.score == null ? '&mdash;' : r.score) + '</span><span class="gr">grade ' + esc(r.grade) + '</span></div></div>'
       + '<div style="flex:1;min-width:230px"><h3>' + esc(r.domain) + '</h3>'

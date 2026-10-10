@@ -336,9 +336,18 @@ module.exports = async function handler(req, res) {
       // here rather than defaulting inside the module is deliberate: there is no
       // honest fallback for "which shop is mine".
       const ownBrand = await universe.brandForWorkspace(ctx.store, ctx.workspaceId).catch(() => null);
+      // The market, when the request names none, is the brand's HOME market
+      // from its own record (2026-10-05) - it was a literal 'US', so an Indian
+      // brand's benchmark read a country it does not sell in.
+      const market = url.searchParams.get('market') || require('./_shared/brand-locale.js').homeMarket(ownBrand) || '';
+      if (!market) {
+        const marker = require('./_shared/brand-locale.js').marker('home market', ownBrand || 'this brand');
+        res.status(409).json({ ok: false, error: 'market_required', marker, message: `${marker} No market was named and the brand's record lists none, so there is no market to benchmark. Add its regions in Brand setup, or name a market.` });
+        return;
+      }
       const result = action === 'benchmark-set'
         ? await bench.benchmarkSet({
-          market: url.searchParams.get('market') || 'US',
+          market,
           category: url.searchParams.get('category'),
           days: parseInt(url.searchParams.get('days'), 10) || 30,
           max: url.searchParams.get('max'),
@@ -347,7 +356,7 @@ module.exports = async function handler(req, res) {
         : await bench.benchmark({
           brand: url.searchParams.get('brand'),
           domain: url.searchParams.get('domain'),
-          market: url.searchParams.get('market') || 'US',
+          market,
           country: url.searchParams.get('country'),
           days: parseInt(url.searchParams.get('days'), 10) || 30,
           limit: parseInt(url.searchParams.get('limit'), 10) || 20,

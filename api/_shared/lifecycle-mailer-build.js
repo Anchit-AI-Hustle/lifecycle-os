@@ -369,7 +369,8 @@ async function buildLifecycleMailer({ id = null, entry = null, force = false } =
   // Real catalog image if the slot has one; else a clean placeholder to fill.
   const hero = resolveHero(row, 536, 340);
 
-  const market = row.market || 'UK';
+  // The row's own market, else the brand's HOME market - never 'UK' (2026-10-05).
+  const market = row.market || require('./brand-locale.js').defaultMarket();
   // Flagship-parity: real inline product grid (hero + supporting picks) resolved
   // by handle/title, and a derived collection CTA for the secondary button.
   const gridProducts = [

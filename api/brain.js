@@ -345,7 +345,7 @@ module.exports = async function handler(req, res) {
       return res.status(down ? 503 : 401).json({
         ok: false, action, error: (a && a.error) || 'sign_in_required',
         message: (a && a.message) || 'You are not signed in, so this could not run.',
-        why: `"${action}" reaches an AI model or a paid provider on this deployment's keys, so it needs a signed-in Google account or the scheduler's secret. Nothing was run and nothing was charged.`,
+        why: `"${action}" reaches an AI model or a paid provider on this deployment's keys, so it needs a signed-in account (a mobile number and PIN) or the scheduler's secret. Nothing was run and nothing was charged.`,
       });
     }
     const spend = require('./_shared/credits-core.js').spenderRefusal(a);
@@ -363,6 +363,26 @@ module.exports = async function handler(req, res) {
       return rt.homeRegion(req.__brand || rt.defaultBrand());
     } catch (_) { return ''; }
   };
+  /* The market a request ASKED for, held to the brand's own list (any
+     spelling: "India" is IN, GB is UK), else home; '' with the marker and a
+     sentence when there is none (brand-locale.marketFor). */
+  const __activeBrand = () => {
+    try { const rt = require('./_shared/brand-runtime.js'); return req.__brand || rt.defaultBrand(); } catch (_) { return req.__brand || null; }
+  };
+  const __marketFor = (asked) => require('./_shared/brand-locale.js').marketFor(__activeBrand(), asked);
+  /* The brand's OWN default agent - its brand-level agent, else its first -
+     when a request names none (2026-10-05). It was tenant zero's
+     'agent_knickgasm', so any other brand's sync and chat reached another
+     company's assistant, or a 404 for it. '' when the brand has none. */
+  const __defaultAgentId = async () => {
+    try {
+      const list = await agents.listAgents();
+      const live = (Array.isArray(list) ? list : []).filter((a) => a && a.id && a.active !== false);
+      const pick = live.find((a) => a.level === 'brand') || live[0];
+      return pick ? String(pick.id) : '';
+    } catch (_) { return ''; }
+  };
+  const __brandRegions = () => { const bb = __activeBrand(); return (bb && Array.isArray(bb.regions)) ? bb.regions.filter((r) => r && r.code) : []; };
 
   try {
     switch (action) {
@@ -603,9 +623,11 @@ module.exports = async function handler(req, res) {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         if (__auth && __auth.ok && __auth.provider === 'mobile-pin' && __auth.mode !== 'supabase') {
           if (!String(b.name || '').trim()) return res.status(400).json({ ok: false, error: 'name_required', message: 'Give the agent a name, then save it.' });
-          return res.json({ ok: true, storage: 'device', agent: agents.agentRow(Object.assign({}, b, { name: String(b.name).trim().slice(0, 80) })), note: 'Kept on this device: this sign-in has no workspace in a database to file the agent in.' });
+          return res.json({ ok: true, storage: 'device', agent: agents.agentRow(Object.assign({}, b, { name: String(b.name).trim().slice(0, 80), brand: req.__brand || null })), note: 'Kept on this device: this sign-in has no workspace in a database to file the agent in.' });
         }
-        const a = await agents.upsertAgent(b);
+        // An agent saved with no market serves the brand's HOME market.
+        const home = b.market ? '' : __homeMarket();
+        const a = await agents.upsertAgent(home ? Object.assign({}, b, { market: home }) : b);
         return res.json({ ok: true, agent: a });
       }
       case 'agent-sync': {
@@ -614,7 +636,9 @@ module.exports = async function handler(req, res) {
           return res.json({ ok: true, storage: 'device', agent: String(b.agent_id || ''), knowledge_items: 0,
             note: 'An agent kept on this device answers from the brand record and the catalogue carried with each turn, so there is no knowledge table to fill for it.' });
         }
-        const out = await agents.syncKnowledge(b.agent_id || 'agent_knickgasm');
+        const syncId = b.agent_id || await __defaultAgentId();
+        if (!syncId) return res.status(400).json({ ok: false, action, error: 'agent_id_required', message: 'Name the agent to sync. This brand has no agent of its own yet: create one on the Agents page, then sync it.' });
+        const out = await agents.syncKnowledge(syncId);
         return res.json({ ok: true, ...out });
       }
       case 'agent-chat': {
@@ -623,7 +647,9 @@ module.exports = async function handler(req, res) {
         if (__auth && __auth.ok && __auth.provider === 'mobile-pin' && __auth.mode !== 'supabase') {
           return res.json(await agents.deviceChat({ agent: b.agent, agentId: b.agent_id, brand: req.__brand, catalog: b.catalog, message: b.message, history: b.history || [], sessionId: b.session_id }));
         }
-        const out = await agents.chat({ agentId: b.agent_id || 'agent_knickgasm', sessionId: b.session_id, message: b.message, context: b.context || {}, history: b.history || [] });
+        const chatId = b.agent_id || await __defaultAgentId();
+        if (!chatId) return res.status(400).json({ ok: false, action, error: 'agent_id_required', message: 'Name the agent to talk to. This brand has no agent of its own yet: create one on the Agents page.' });
+        const out = await agents.chat({ agentId: chatId, sessionId: b.session_id, message: b.message, context: b.context || {}, history: b.history || [] });
         return res.json(out);
       }
       case 'agent-analyze': {
@@ -678,8 +704,20 @@ module.exports = async function handler(req, res) {
         // Dual-mode AGENTIC flow: 8 traced stages (data→analysis→planning→
         // calendar→content→asset→review→ideation). tier 'budget'|'maxpower'.
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        // The market is one the brand's own record lists: the one asked for
+        // (any spelling), else its HOME market. A brand with no market, or an
+        // ask for one it does not serve, is said in a sentence with the
+        // unpadded marker - never planned for a market nobody chose (the
+        // console used to send a literal 'US' for an Indian brand).
+        const want = __marketFor(b.market || (req.query && req.query.market) || '');
+        if (!want.market) {
+          return res.status(409).json({
+            ok: false, action, error: want.home || (b.market && __brandRegions().length) ? 'market_not_served' : 'market_required',
+            marker: want.marker, message: `${want.marker} ${want.reason || ''}`.trim(),
+          });
+        }
         const out = await agentic.runAgentic({
-          market: b.market || __homeMarket(),
+          market: want.market,
           brief: b.brief || b.theme || '',
           tier: b.tier || 'maxpower',
           days: b.days ? parseInt(b.days, 10) : undefined,

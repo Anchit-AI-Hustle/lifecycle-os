@@ -46,6 +46,31 @@ GBP; Ozzlewick, a name and nothing else), tenant zero's tokens DERIVED from its 
   named); `daily-calendar` 500s on main (`smart-brain-plan.horizonCoverage` never existed here); the
   `X-KNICKGASM-LP` header / download name; `scenario-model.sanitizeBrand`'s tenant-zero substitutions.
 
+## ⭐ The design system: one surface contract, read before styling any page (2026-10-05) — read `design/lifecycle-os/CONTRACT.md`
+The operator, on `/studio` with a red-primary brand (red bands, black panels, near-black cards in dark grey
+text): *"create a design schema for lifecycle os"*. `design/lifecycle-os/` holds it: `CONTRACT.md` (surface →
+token → derivation), `tokens.json`, `DESIGN.md` (google design.md alpha, linted by `npm run check:designmd`),
+`BRAND-SCHEMA.md`; assets under `assets/lifecycle-os/` (logo set rendered from the mark, 62-icon stroke sprite
+replacing UI emoji, 6 token-drawn illustrations); every kit component live at `/design-system`. Gated by
+`tests/design-system.spec.js` (executed: the sheet rendered under six palettes, every text run measured
+against the PIXELS behind it; a seeded sweep of 4,000 random valid palettes through `tokens()`; 12 of 14
+mutations caught, the two missed recorded in the PR).
+- **A page picks a ROLE, never a colour.** Grounds `--vh-bg/--vh-panel/--vh-panel-2`, a brand section only
+  via `.vh-band` (`sectionGround()`: a near-black primary falls to the surface), brand colour as text only via
+  a `*-text` token, text on a fill via its `on-*` token. No colour literal in a component rule.
+- **NEW derived tokens** (server `contractTokens()` + device `contractTokensFor()`, parity-tested):
+  `--brand-surface-sunken` (was a cool-grey `#f5f5f5` on every brand's surface), `--brand-band`/
+  `-on-band`/`-band-accent`, `--brand-{ok,warn,err}-text`, `--brand-focus`. `--vh-accent` is defined at last
+  (29 call sites read it undefined; the signed-out notice fell back to tenant zero's purple for every brand).
+- **Found by the sweep, not by reading**: text tokens were tuned against the surface the RAW primary read
+  worse on, so a near-white primary on a tinted page left its text at 4.28:1 on the page itself
+  (`readableOnSurfaces()` holds both surfaces); and `textOn()` walked one way, returning a failing white on a
+  mid-tone band (947 of 4,000 palettes; it walks both ways now, 4.5 floor where 4.9 is unreachable).
+- **The rail's own styles are on tokens**: it painted the active row in tenant zero's red for every brand and
+  the phone bar near-black under near-black text. Inline components take `--vh-lift-1`: a lift-2 shadow on
+  the text below it measured 4.4:1. Light-only by design; no dark theme.
+- The Design System artifact is generated from these files: `node scripts/build-design-system.js --artifact <dir>`.
+
 ## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
 `auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
 never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,
@@ -78,6 +103,22 @@ combination on main that no run had seen. Gated by `tests/workflows-guarantees.s
 - `workflow_run` reads the DEFAULT branch's file, so the PR that changes auto-merge.yml is merged by the
   old version; the dispatch starts with the next merge. `sync-main.yml` (final-product -> main) has the
   same gap, but no `final-product` branch exists.
+
+## ⭐ Market, currency, time zone and locale come from the brand's HOME market (2026-10-10)
+An Indian brand (Deli Chic) pressed Run Agentic Flow on /brain and read "Running agentic flow - Premium,
+US": `agenticMarket()` fell to a literal `'US'` and knew four markets. The same habit sat in ~60 places.
+`api/_shared/brand-locale.js` (server) and `region-context.js` (`localeOf`/`money`/`num`/`marker`, browser)
+hold ONE country table (currency, zone, dial code) and a typed symbol table (Node and Chromium ICU disagree
+on symbols); a parity test holds them equal. Gated by `tests/brand-locale-defaults.spec.js` (executed).
+- **No literal market anywhere**: a market is asked, else the brand's home (`homeRegion`, `RC.home`), else
+  `[DATA REQUIRED BEFORE LAUNCH: home market, <brand>]` - never padded with ", all". agentic-run,
+  mailer-assets, competitor benchmark, lifecycle-generate answer `409 market_required` / `market_not_served`.
+- **Money in the market's own currency** (`₹1,00,000` in en-IN); no `$` fallback in regionFacts, feasibility
+  badges, budgets or KPI strips. The three "Sample metrics" strips (invented dollar figures) are gone.
+- Send times are 09:30 in the brand's own zone (`utcHourOf`), festivals come from `market-moments.js`
+  (tenant zero's list only for tenant zero), and the /brain MODE card says Local / Demo Mode on a device.
+- Every market control (Studio chips, landing agent, KicksGPT, research rail rows) is built from
+  `RegionContext.options()` and opens on home. `UNDECLARED` (#168's strategy calendar) is a state, not a country.
 
 ## ⭐ One contact ledger, one fatigue policy, every channel (2026-10-04) — read `docs/publishing-and-deliverability.md` ("Contact fatigue")
 The operator's roadmap: *"if a user received an SMS at 10:00 AM, the Algorithmic Calendar must automatically
@@ -153,6 +194,14 @@ load `brand-catalog.js` and fetched `/data/catalog/products_*` for every brand. 
   it imports. Server side, a workspace record that only claims the slug is undecided (`null`).
 - No photo of the brand's product → its own ground + `[DATA REQUIRED BEFORE LAUNCH: product image, <brand>,
   <region>]` on the creative, its label and its `data_gaps`; no AI backdrop (an invented product image).
+- **Every page is swept** (follow-up, 2026-10-10): auth.js injects `brand-catalog.js` everywhere; each
+  page with a brand layer is loaded under a device brand with no catalogue and one with its own, and
+  any request for `/data/catalog/`, a tenant-zero store host or CDN photo fails it. A page with no brand
+  layer is listed BY NAME with its reason. Tenant-zero-only images use `data-shipped-src` (painted by
+  brand-context for tenant zero only); storefront-3d renders another brand's OWN rows or the marker;
+  smart-brain links come from the brand's store or say `region store URL` is missing.
+- `data/catalog/products_in.json` (committed in abb2bcc) is NOT read by either resolver: the shipped
+  regions are us/uk/global only.
 
 ## ⭐ A deterministic compliance gate runs before anything is published (2026-10-04)
 `api/_shared/compliance-lint.js`, gated by `tests/compliance-gate.spec.js` (23 tests, executed, 25
