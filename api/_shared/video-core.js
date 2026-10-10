@@ -344,7 +344,12 @@ function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
   const zeroSlug = (() => {
     try { return String((require('./brand-runtime.js').defaultBrand() || {}).slug || ''); } catch (_) { return ''; }
   })();
-  const isZero = !brand || (zeroSlug && String(brand.slug || '') === zeroSlug);
+  // The server's determination first (owns_shipped, stamped from the oldest
+  // workspace); a workspace record that only carries tenant zero's slug is
+  // not tenant zero, and its owner's bed is not licensed to it (2026-10-05).
+  let decided = null;
+  try { decided = brand ? require('./brand-catalog-server.js').isTenantZeroBrand(brand) : null; } catch (_) { decided = null; }
+  const isZero = !brand || (decided !== null ? decided : (!brand.id && zeroSlug && String(brand.slug || '') === zeroSlug));
 
   if (!isZero) {
     const own = (brand && brand.audio_beds) || null;

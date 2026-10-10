@@ -380,6 +380,18 @@ function productsFor(market, { brand = null, workspaceId = null } = {}) {
   //    pass rebuilds slots from several workspaces inside one invocation).
   const zero = isTenantZeroBrand(brand);
   if (zero === true) return { products: shipped(market), source: 'shipped', reason: '' };
+  // A WORKSPACE record whose ownership nobody stamped (it may only carry
+  // tenant zero's slug, which its owner wrote): what this generation pinned
+  // for THIS tenant decides - resolve() asked the workspace rule - and nothing
+  // else does. It never falls through to the no-Supabase shipped default below.
+  if (zero === null && brand && brand.id) {
+    if (scope && sameTenant(scope, brand, workspaceId)) {
+      if (scope.source === 'shipped') return { products: shipped(market), source: 'shipped', reason: '' };
+      if (scope.source === 'brand') return { products: forRegion(scope.products, market), source: 'brand', reason: '' };
+      return none(scope.reason || noCatalogueReason(brand));
+    }
+    return none(noCatalogueReason(brand));
+  }
   if (zero === false) {
     if (scope && scope.source === 'brand' && sameTenant(scope, brand, workspaceId)) {
       return { products: forRegion(scope.products, market), source: 'brand', reason: '' };

@@ -83,7 +83,7 @@
        other active brand the shell replaces it with the DATA REQUIRED marker
        (brand-context.js gateShipped): one brand's store never appears under
        another brand's name. -->
-  <header class="brand" data-shipped-for="knickgasm" data-shipped-label="storefront connector demo (logo)"><img src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
+  <header class="brand" data-shipped-for="knickgasm" data-shipped-label="storefront connector demo (logo)"><img data-shipped-src="https://www.knickgasm.com/cdn/shop/files/logo-website_3.png?v=1754032931&width=310" alt="KNICKGASM"></header>
 
   <div class="wrap" data-shipped-for="knickgasm" data-shipped-label="spatial store connector demo">
     <h1 id="headline">Spatial Store Connector</h1>
@@ -119,7 +119,33 @@
   <!-- The engine: generated from lifecycle-3d-connector-engine.ts, dropped in as a plain global. -->
   <script src="/lifecycle-3d-connector-engine.js"></script>
   <script>
-  (function(){
+  /* This demo is tenant zero's store (its engine reads that store's feeds), so
+     it is STARTED only for tenant zero - the server's determination, read
+     through BrandContext - or for a visitor with no brand. For any other
+     brand the wrap is already the DATA REQUIRED marker, and starting the
+     engine anyway fetched another company's catalogue and 23 of its product
+     photos behind it (tests/catalog-provenance.spec.js, 2026-10-05). The
+     engine's catalogue read goes through brand-catalog.js, the one reader. */
+  (function whenBrand(tries){
+    var B = window.BrandContext;
+    if (B && B.ready) { B.ready().then(decide, decide); return; }
+    if (tries > 40) { decide(); return; }
+    setTimeout(function(){ whenBrand(tries + 1); }, 100);
+    function decide(){
+      var b = window.BrandContext && window.BrandContext.brand;
+      if (b && window.BrandContext.isTenantZero && !window.BrandContext.isTenantZero(b)) return;
+      boot();
+    }
+  })(0);
+  function catalogFetch(url, init) {
+    var m = /\/data\/catalog\/products_([a-z]+)\.json/.exec(String(url));
+    if (!m) return fetch(url, init);
+    if (!window.BrandCatalog) return Promise.resolve(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    return window.BrandCatalog.load(m[1], { shippedPreview: true }).then(function (r) {
+      return new Response(JSON.stringify((r && r.products) || []), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+  }
+  function boot(){
     var V = window.Knickgasm3D;
     var main = document.getElementById('main');
     if(!V || !V.Knickgasm3DConnectorEngine){
@@ -154,7 +180,7 @@
 
     // Boot the engine, forcing the chosen region, and simulate the lander host
     // when previewing off the real try.knickgasm.* domains.
-    var engine = new V.Knickgasm3DConnectorEngine({ forcedRegion: region, enable3D: true });
+    var engine = new V.Knickgasm3DConnectorEngine({ forcedRegion: region, enable3D: true, fetchImpl: catalogFetch });
     var cfg = V.__regions[region];
     var host = simulateMeta ? cfg.tryHost : cfg.storefrontHost;
     var path = simulateMeta && handle ? '/' + handle : (location.pathname);
@@ -240,7 +266,7 @@
       return '<div class="cards">'+one+one+one+one+'</div>';
     }
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  })();
+  }
   </script>
 <script src="/auth.js?v=20260718light" defer></script>
 </body>
