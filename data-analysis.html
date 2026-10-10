@@ -18,111 +18,117 @@
 <style>
   /* Palette locked to the /all-in-one dashboard (near-black-green canvas). */
   :root{
-    --violet:#D0473E; --lava:#6A33D8; --ink:#111111; --chalk:#FFFFFF;
-    --bg:#ffffff; --surface:#ffffff; --tile:var(--vh-panel-tan); --line:rgba(171,135,67,.18); --soft:#556059; --chip:var(--vh-panel-tan);
-    --head:#111111; --accent:#6A33D8;
-    /* Chart categorical palette — chosen for contrast on the dark canvas */
-    --c1:#6A33D8; --c2:var(--vh-lava); --c3:#5FB487; --c4:var(--vh-lava); --c5:#8FD3B0; --c6:var(--vh-panel-tan);
+    /* Role tokens (design/lifecycle-os/CONTRACT.md), never a literal. The
+       legacy names (--ink, --lava, --head, --chip ...) are ALSO set inline on
+       <html> by brand-context.js; these are only their values before a brand
+       paints. --head is the primary as a FILL there, so text never reads it:
+       text uses --vh-primary-text / --vh-heading below. */
+    --violet:var(--vh-primary); --lava:var(--vh-accent); --ink:var(--vh-ink); --chalk:var(--vh-on-primary);
+    --bg:var(--vh-bg); --surface:var(--vh-panel); --tile:var(--vh-panel-2); --line:var(--vh-line); --soft:var(--vh-ink-dim); --chip:var(--vh-panel-2);
+    --head:var(--vh-primary); --accent:var(--vh-accent);
+    /* Chart series: the brand's own (vh-chart-1..4), then its two soft steps. */
+    --c1:var(--vh-chart-1); --c2:var(--vh-chart-2); --c3:var(--vh-chart-3); --c4:var(--vh-chart-4); --c5:var(--brand-primary-soft); --c6:var(--brand-accent-soft);
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,'Instrument Sans','Helvetica Neue',Arial,sans-serif;font-size:15px;line-height:1.5;}
+  body{margin:0;background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);font-size:15px;line-height:1.5;}
+  button,input,select,textarea{font-family:inherit;}
   .wrap{max-width:1240px;margin:0 auto;padding:26px 22px 96px;}
   /* --head is the brand's primary. As a TEXT colour it needs the
      contrast-adjusted form, or headings vanish for a light-primary brand. */
-  h1,h2,h3{font-family:'Montserrat','Raleway',Georgia,serif;color:var(--brand-primary-text,var(--head));margin:0;text-wrap:balance;}
+  h1,h2,h3{font-family:var(--vh-font-head);color:var(--vh-primary-text);margin:0;text-wrap:balance;}
   h1{font-size:30px;} h2{font-size:20px;} h3{font-size:15px;}
-  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--brand-accent-text);font-weight:700;}
-  p.lede{color:var(--soft);max-width:78ch;margin:6px 0 0;}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--vh-accent-text);font-weight:700;}
+  p.lede{color:var(--vh-ink-dim);max-width:78ch;margin:6px 0 0;}
   .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
   /* Market toggle */
-  .mkt{display:inline-flex;gap:6px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px;}
+  .mkt{display:inline-flex;gap:6px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:999px;padding:4px;}
   /* A nav bar stays one row and slides. Its items must not shrink, or they
      compress into unreadable slivers instead of overflowing. */
   .mkt > *{flex:0 0 auto;white-space:nowrap}
-  .mkt button{border:0;background:transparent;color:var(--soft);font-family:inherit;font-weight:700;font-size:13px;padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .15s;}
-  .mkt button.on{background:var(--violet);color:var(--chalk);box-shadow:0 0 0 1.5px var(--lava);}
+  .mkt button{border:0;background:transparent;color:var(--vh-ink-dim);font-family:inherit;font-weight:700;font-size:13px;padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .15s;}
+  .mkt button.on{background:var(--vh-primary);color:var(--vh-on-primary);box-shadow:0 0 0 1.5px var(--vh-accent);}
   /* KPI tiles */
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin:18px 0 6px;}
-  .kpi{background:var(--tile);border:1px solid var(--line);border-radius:12px;padding:15px 16px;min-width:0;overflow:hidden;}
-  .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:700;}
-  .kpi .kv{font-family:'Montserrat',Georgia,serif;font-size:clamp(20px,2vw,25px);color:var(--head);margin-top:4px;font-variant-numeric:tabular-nums;line-height:1.15;overflow-wrap:anywhere;}
-  .kpi .kd{font-size:11.5px;margin-top:6px;color:var(--soft);}
+  .kpi{background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:12px;padding:15px 16px;min-width:0;overflow:hidden;}
+  .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--vh-ink-dim);font-weight:700;}
+  .kpi .kv{font-family:var(--vh-font-head);font-size:clamp(20px,2vw,25px);color:var(--vh-primary-text);margin-top:4px;font-variant-numeric:tabular-nums;line-height:1.15;overflow-wrap:anywhere;}
+  .kpi .kd{font-size:11.5px;margin-top:6px;color:var(--vh-ink-dim);}
   /* Up/down deltas are TEXT, and these two were 3.1:1 and 3.3:1 on the canvas -
      the numbers that carry the whole KPI row. They take the brand's state
      tokens, which are held to AA. */
-  .kpi .up{color:var(--brand-ok,#1a7f37);font-weight:700;} .kpi .down{color:var(--brand-err,#c0392b);font-weight:700;}
+  .kpi .up{color:var(--vh-ok-text);font-weight:700;} .kpi .down{color:var(--vh-err-text);font-weight:700;}
   /* Signals board — auto-computed "what needs attention", ranked by severity. */
   .signals{margin:16px 0 4px;}
-  .sig-head{font-family:'Montserrat',Georgia,serif;font-size:17px;color:var(--head);font-weight:700;margin-bottom:10px;}
-  .sig-sub{font-family:Inter,'Instrument Sans',sans-serif;font-size:11px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:8px;}
+  .sig-head{font-family:var(--vh-font-head);font-size:17px;color:var(--vh-heading);font-weight:700;margin-bottom:10px;}
+  .sig-sub{font-family:var(--vh-font-body);font-size:11px;color:var(--vh-ink-dim);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-left:8px;}
   .sig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:12px;}
-  .sig{background:var(--tile);border:1px solid var(--line);border-left:3px solid var(--lava);border-radius:10px;padding:12px 14px;}
-  .sig-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--soft);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .sig{background:var(--vh-panel-2);border:1px solid var(--vh-line);border-left:3px solid var(--vh-accent);border-radius:10px;padding:12px 14px;}
+  .sig-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--vh-ink-dim);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
   .sig-dot{width:8px;height:8px;border-radius:50%;flex:none;}
-  .sig-v{font-family:'Montserrat',Georgia,serif;font-size:20px;color:var(--head);margin:5px 0 4px;font-variant-numeric:tabular-nums;line-height:1.1;}
-  .sig-d{font-size:12.5px;color:var(--soft);line-height:1.45;}
-  .sig-decomp{margin-top:12px;background:var(--chip);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--soft);border-left:3px solid var(--lava);line-height:1.5;}
-  .sig-decomp b{color:var(--head);} .sig-decomp .up{color:var(--brand-ok,#1a7f37);} .sig-decomp .down{color:var(--brand-err,#c0392b);}
+  .sig-v{font-family:var(--vh-font-head);font-size:20px;color:var(--vh-primary-text);margin:5px 0 4px;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .sig-d{font-size:12.5px;color:var(--vh-ink-dim);line-height:1.45;}
+  .sig-decomp{margin-top:12px;background:var(--vh-panel-2);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--vh-ink-dim);border-left:3px solid var(--vh-accent);line-height:1.5;}
+  .sig-decomp b{color:var(--vh-ink);} .sig-decomp .up{color:var(--vh-ok-text);} .sig-decomp .down{color:var(--vh-err-text);}
   /* Widget grid */
   .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:16px;}
-  .w{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;grid-column:span 6;display:flex;flex-direction:column;min-width:0;}
+  .w{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:16px 18px;grid-column:span 6;display:flex;flex-direction:column;min-width:0;}
   .w.span4{grid-column:span 4;} .w.span8{grid-column:span 8;} .w.span12{grid-column:span 12;} .w.span6{grid-column:span 6;}
   @media (max-width:900px){.w,.w.span4,.w.span8,.w.span6{grid-column:span 12;}}
   @media (max-width:520px){.kpis{grid-template-columns:1fr;}.kpi .kv{font-size:22px;}}
   .w .wh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px;}
-  .w .wt{font-family:'Montserrat',Georgia,serif;font-size:16px;color:var(--head);font-weight:700;}
-  .w .ws{font-size:12px;color:var(--soft);}
-  .w .open{font-size:11px;font-weight:700;color:var(--brand-accent-text);text-transform:uppercase;letter-spacing:.05em;background:none;border:0;cursor:pointer;padding:2px 4px;white-space:nowrap;}
+  .w .wt{font-family:var(--vh-font-head);font-size:16px;color:var(--vh-heading);font-weight:700;}
+  .w .ws{font-size:12px;color:var(--vh-ink-dim);}
+  .w .open{font-size:11px;font-weight:700;color:var(--vh-accent-text);text-transform:uppercase;letter-spacing:.05em;background:none;border:0;cursor:pointer;padding:2px 4px;white-space:nowrap;}
   .w .open:hover{text-decoration:underline;}
   .w.link{cursor:pointer;transition:border-color .15s,box-shadow .15s;}
-  .w.link:hover{border-color:var(--accent);box-shadow:0 6px 22px rgba(0,0,0,.10);}
+  .w.link:hover{border-color:var(--vh-accent);box-shadow:var(--vh-lift-2);}
   .wbody{margin-top:8px;flex:1;min-width:0;}
   /* charts */
   svg{display:block;max-width:100%;height:auto;overflow:visible;}
   /* time-granularity view toggle (detail drill-down) */
-  .tv-toggle{display:inline-flex;gap:4px;background:var(--chip,var(--vh-panel-tan));border:1px solid var(--line);border-radius:11px;padding:4px;margin-top:14px;flex-wrap:wrap;}
-  .tv-tile{border:none;background:transparent;color:var(--soft);font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;}
-  .tv-tile:hover:not(.dis):not(.on){color:var(--ink);}
-  .tv-tile.on{background:#D0473E;color:#FFFFFF;}
+  .tv-toggle{display:inline-flex;gap:4px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:11px;padding:4px;margin-top:14px;flex-wrap:wrap;}
+  .tv-tile{border:none;background:transparent;color:var(--vh-ink-dim);font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;}
+  .tv-tile:hover:not(.dis):not(.on){color:var(--vh-ink);}
+  .tv-tile.on{background:var(--vh-primary);color:var(--vh-on-primary);}
   .tv-tile.dis{opacity:.42;cursor:not-allowed;}
-  .tv-note{font-size:11.5px;color:var(--soft);margin-top:9px;line-height:1.5;}
-  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:12px;color:var(--soft);}
+  .tv-note{font-size:11.5px;color:var(--vh-ink-dim);margin-top:9px;line-height:1.5;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:12px;color:var(--vh-ink-dim);}
   .legend .li{display:inline-flex;align-items:center;gap:6px;}
   .legend .sw{width:11px;height:11px;border-radius:3px;display:inline-block;}
   /* tables */
-  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--vh-line);border-radius:10px;}
   /* table-layout:auto, deliberately: theme.css defaults every table to
      table-layout:fixed, which splits the width equally and leaves a
      white-space:nowrap cell nowhere to put a value wider than its share -
      it overflows and paints over the next column. Sizing columns to their
      content is what makes nowrap safe here. */
   table{table-layout:auto;width:100%;border-collapse:collapse;font-size:13px;min-width:520px;}
-  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap;}
-  th{color:var(--head);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;background:var(--chip);position:sticky;top:0;}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--vh-line);vertical-align:top;white-space:nowrap;}
+  th{color:var(--vh-ink);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;background:var(--vh-panel-2);border-bottom-color:var(--vh-line-hot);position:sticky;top:0;}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
   tr:last-child td{border-bottom:0;}
   /* heatmap */
   .heat{border-collapse:separate;border-spacing:3px;min-width:520px;}
-  .heat td{border:0;border-radius:5px;text-align:center;font-size:11.5px;padding:8px 6px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
-  .heat td.lbl{background:transparent;color:var(--soft);font-weight:700;text-align:left;}
-  .heat th{background:transparent;color:var(--soft);font-size:10px;text-transform:none;letter-spacing:0;}
+  .heat td{border:0;border-radius:5px;text-align:center;font-size:11.5px;padding:8px 6px;color:var(--vh-ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .heat td.lbl{background:transparent;color:var(--vh-ink-dim);font-weight:700;text-align:left;}
+  .heat th{background:transparent;color:var(--vh-ink-dim);font-size:10px;text-transform:none;letter-spacing:0;}
   /* insight box */
-  .insight{background:var(--chip);border-radius:10px;padding:14px 16px;color:var(--soft);font-size:13.5px;margin:14px 0;border-left:3px solid var(--lava);}
-  .insight b{color:var(--head);}
+  .insight{background:var(--vh-panel-2);border-radius:10px;padding:14px 16px;color:var(--vh-ink-dim);font-size:13.5px;margin:14px 0;border-left:3px solid var(--vh-accent);}
+  .insight b{color:var(--vh-ink);}
   /* detail view */
   #detail{display:none;}
   body.detailing #dash{display:none;}
   body.detailing #detail{display:block;}
-  .crumb{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:var(--brand-accent-text);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;padding:6px 0;margin-bottom:6px;}
-  .btn-dl{font-size:12px;font-weight:700;color:var(--brand-on-accent,var(--violet));background:var(--lava);border:0;border-radius:8px;padding:8px 14px;cursor:pointer;}
+  .crumb{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:var(--vh-accent-text);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;padding:6px 0;margin-bottom:6px;}
+  .btn-dl{font-size:12px;font-weight:700;color:var(--vh-on-primary);background:var(--vh-primary);border:0;border-radius:8px;padding:8px 14px;cursor:pointer;}
   .btn-dl:hover{filter:brightness(1.05);}
-  .note{color:var(--soft);font-size:12.5px;border-top:1px solid var(--line);margin-top:26px;padding-top:14px;}
-  .datalink{color:var(--brand-primary-text,var(--head));text-decoration-color:var(--accent);}
-  .bignum{font-family:'Montserrat',Georgia,serif;font-size:30px;color:var(--head);}
-  .empty{color:var(--soft);text-align:center;padding:26px;font-size:13px;}
+  .note{color:var(--vh-ink-dim);font-size:12.5px;border-top:1px solid var(--vh-line);margin-top:26px;padding-top:14px;}
+  .datalink{color:var(--vh-link);text-decoration-color:var(--vh-accent);}
+  .bignum{font-family:var(--vh-font-head);font-size:30px;color:var(--vh-primary-text);}
+  .empty{color:var(--vh-ink-dim);text-align:center;padding:26px;font-size:13px;}
   /* A field this market does not export reads as "not measured", never as a
      zero the reader would take for a finding. */
-  .kunset{font-family:Inter,'Instrument Sans',Arial,sans-serif;font-size:14px;font-weight:600;color:var(--soft);}
+  .kunset{font-family:var(--vh-font-body);font-size:14px;font-weight:600;color:var(--vh-ink-dim);}
 </style>
 </head>
 <body>
@@ -286,7 +292,7 @@
   function _tipEl(){
     if(_daTip) return _daTip;
     _daTip=document.createElement('div');
-    _daTip.style.cssText='position:fixed;z-index:99999;pointer-events:none;background:#ffffff;color:#111111;border:1px solid #6A33D8;border-radius:7px;padding:6px 9px;font:600 11.5px/1.35 Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .1s;white-space:pre;max-width:280px;';
+    _daTip.style.cssText='position:fixed;z-index:99999;pointer-events:none;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-accent);border-radius:7px;padding:6px 9px;font:600 11.5px/1.35 var(--vh-font-body);box-shadow:var(--vh-lift-2);opacity:0;transition:opacity .1s;white-space:pre;max-width:280px;';
     document.body.appendChild(_daTip);
     return _daTip;
   }
@@ -317,18 +323,18 @@
     var grid=''; for(var g=0;g<=4;g++){ var gy=padT+(ih*g/4); var gv=maxY-(maxY-minY)*g/4; grid+='<line x1="'+pad+'" y1="'+gy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+gy.toFixed(1)+'" stroke="var(--line)" stroke-width="1"/><text x="'+(pad-6)+'" y="'+(gy+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--soft)">'+fmt(gv)+'</text>'; }
     // Mean reference line + label.
     var avg=ys.reduce(function(a,b){return a+b;},0)/ys.length, ay=Y(avg);
-    var meanLine='<line x1="'+pad+'" y1="'+ay.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ay.toFixed(1)+'" stroke="var(--c2)" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/><text x="'+(W-padR+3)+'" y="'+(ay+3).toFixed(1)+'" font-size="8.5" fill="var(--c2)">avg '+fmt(avg)+'</text>';
+    var meanLine='<line x1="'+pad+'" y1="'+ay.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ay.toFixed(1)+'" stroke="var(--c2)" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/><text x="'+(W-padR+3)+'" y="'+(ay+3).toFixed(1)+'" font-size="8.5" fill="var(--vh-accent-text)">avg '+fmt(avg)+'</text>';
     var lbls=''; var step=Math.ceil(pts.length/8);
     pts.forEach(function(p,i){ if(i%step===0||i===pts.length-1) lbls+='<text x="'+X(i).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+esc(p.label||'')+'</text>'; });
     var dots=pts.map(function(p,i){var cx=X(i).toFixed(1),cy=Y(p.y).toFixed(1);var tip=(p.label?p.label+'\n':'')+fmt(p.y);return '<circle cx="'+cx+'" cy="'+cy+'" r="2.1" fill="var(--c1)"/><circle cx="'+cx+'" cy="'+cy+'" r="11" fill="transparent" data-tip="'+escA(tip)+'" style="cursor:pointer"/>';}).join('');
     // Peak + latest callouts (peak highlighted; latest carries its value).
     var peakI=0; ys.forEach(function(v,i){ if(v>ys[peakI]) peakI=i; });
     var lastI=pts.length-1;
-    var peakDot='<circle cx="'+X(peakI).toFixed(1)+'" cy="'+Y(ys[peakI]).toFixed(1)+'" r="3.6" fill="var(--c4)"/><text x="'+X(peakI).toFixed(1)+'" y="'+(Y(ys[peakI])-7).toFixed(1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--head)">peak</text>';
-    var lastDot='<circle cx="'+X(lastI).toFixed(1)+'" cy="'+Y(ys[lastI]).toFixed(1)+'" r="3.6" fill="var(--c1)"/><text x="'+X(lastI).toFixed(1)+'" y="'+(Y(ys[lastI])-7).toFixed(1)+'" text-anchor="end" font-size="9" font-weight="700" fill="var(--head)">'+fmt(ys[lastI])+'</text>';
+    var peakDot='<circle cx="'+X(peakI).toFixed(1)+'" cy="'+Y(ys[peakI]).toFixed(1)+'" r="3.6" fill="var(--c4)"/><text x="'+X(peakI).toFixed(1)+'" y="'+(Y(ys[peakI])-7).toFixed(1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--vh-primary-text)">peak</text>';
+    var lastDot='<circle cx="'+X(lastI).toFixed(1)+'" cy="'+Y(ys[lastI]).toFixed(1)+'" r="3.6" fill="var(--c1)"/><text x="'+X(lastI).toFixed(1)+'" y="'+(Y(ys[lastI])-7).toFixed(1)+'" text-anchor="end" font-size="9" font-weight="700" fill="var(--vh-primary-text)">'+fmt(ys[lastI])+'</text>';
     // First->last delta badge.
     var delta=ys[0]?((ys[lastI]-ys[0])/ys[0]):0;
-    var deltaBadge='<text x="'+pad+'" y="11" font-size="10" font-weight="700" fill="'+(delta>=0?'var(--c1)':'#e08a76')+'">'+(delta>=0?'▲ +':'▼ ')+Math.round(delta*100)+'% first to last</text>';
+    var deltaBadge='<text x="'+pad+'" y="11" font-size="10" font-weight="700" fill="'+(delta>=0?'var(--vh-ok-text)':'var(--vh-err-text)')+'">'+(delta>=0?'▲ +':'▼ ')+Math.round(delta*100)+'% first to last</text>';
     var yTitle=opts.yLabel?'<text x="12" y="'+(padT+ih/2).toFixed(1)+'" transform="rotate(-90 12 '+(padT+ih/2).toFixed(1)+')" text-anchor="middle" font-size="9" fill="var(--soft)">'+esc(opts.yLabel)+'</text>':'';
     return '<svg viewBox="0 0 '+W+' '+H+'" role="img">'+grid+meanLine+
       '<path d="'+area+'" fill="var(--c1)" opacity="0.10"/>'+
@@ -374,12 +380,14 @@
       off+=len; return seg;
     }).join('');
     return '<svg viewBox="0 0 '+S+' '+S+'" width="'+S+'" role="img">'+segs+
-      '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="17" font-family="Montserrat,Georgia,serif" fill="var(--head)">'+money(total)+'</text>'+
+      '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="17" font-family="var(--vh-font-head)" fill="var(--vh-primary-text)">'+money(total)+'</text>'+
       '<text x="'+cx+'" y="'+(cy+15)+'" text-anchor="middle" font-size="9" fill="var(--soft)">TOTAL</text></svg>';
   }
   function legend(items){ return '<div class="legend">'+items.map(function(d,i){return '<span class="li"><span class="sw" style="background:'+PAL[i%PAL.length]+'"></span>'+esc(d.label)+(d.disp?' · '+esc(d.disp):'')+'</span>';}).join('')+'</div>'; }
-  function heatColor(v){ if(v==null) return 'var(--chip)'; var t=Math.min(1,v/35); var r=Math.round(0xE4-(0xE4-0x00)*t), g=Math.round(0xCF-(0xCF-0x4A)*t), b=Math.round(0x94-(0x94-0x2B)*t); return 'rgb('+r+','+g+','+b+')'; }
-  function heatText(v){ return (v!=null && v/35>0.5)?'var(--chalk)':'var(--ink)'; }
+  // Three steps of the brand's own primary (tint, soft, the fill itself),
+  // and the label derived for each: ink on a tint, on-primary on the fill.
+  function heatColor(v){ if(v==null) return 'var(--vh-panel-2)'; var t=Math.min(1,v/35); return t>0.5 ? 'var(--vh-primary)' : (t>0.25 ? 'var(--brand-primary-soft)' : 'var(--brand-primary-tint)'); }
+  function heatText(v){ return (v!=null && v/35>0.5)?'var(--vh-on-primary)':'var(--vh-ink)'; }
   function table(head, rows, opts){
     opts=opts||{};
     var th='<tr>'+head.map(function(h,i){return '<th class="'+((opts.num&&opts.num.indexOf(i)>=0)?'num':'')+'">'+esc(h)+'</th>';}).join('')+'</tr>';
@@ -507,11 +515,11 @@
     var fmt=function(v){ return opts.money?money(v):Math.round(v).toLocaleString(); };
     var grid=''; for(var g=0;g<=4;g++){ var gy=padT+(ih*g/4); var gv=max-max*g/4; grid+='<line x1="'+pad+'" y1="'+gy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+gy.toFixed(1)+'" stroke="var(--line)" stroke-width="1"/><text x="'+(pad-6)+'" y="'+(gy+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="var(--soft)">'+fmt(gv)+'</text>'; }
     var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length, ay=padT+ih-(avg/max)*ih;
-    var meanLine='<line x1="'+pad+'" y1="'+ay.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ay.toFixed(1)+'" stroke="var(--c2)" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/><text x="'+(W-padR-2)+'" y="'+(ay-3).toFixed(1)+'" text-anchor="end" font-size="8.5" fill="var(--c2)">avg '+fmt(avg)+'</text>';
+    var meanLine='<line x1="'+pad+'" y1="'+ay.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ay.toFixed(1)+'" stroke="var(--c2)" stroke-width="1" stroke-dasharray="4 3" opacity="0.85"/><text x="'+(W-padR-2)+'" y="'+(ay-3).toFixed(1)+'" text-anchor="end" font-size="8.5" fill="var(--vh-accent-text)">avg '+fmt(avg)+'</text>';
     var peakI=0; vals.forEach(function(v,i){ if(v>vals[peakI]) peakI=i; }); var lastI=items.length-1;
     var out=items.map(function(dd,i){ var x=pad+i*gap+(gap-bw)/2, h=(dd.v/max)*ih, y=padT+ih-h;
       var col=(i===peakI)?'var(--c4)':'var(--c1)';
-      var valLbl=(i===peakI||i===lastI)?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-4).toFixed(1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--head)">'+fmt(dd.v)+'</text>':'';
+      var valLbl=(i===peakI||i===lastI)?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-4).toFixed(1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--vh-primary-text)">'+fmt(dd.v)+'</text>':'';
       return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="2" fill="'+col+'" data-tip="'+escA(dd.label+'\n'+fmt(dd.v))+'" style="cursor:pointer"/>'+valLbl+
         (i%Math.ceil(items.length/8)===0||i===lastI?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="9" fill="var(--soft)">'+esc(dd.label)+'</text>':'');
     }).join('');
@@ -630,7 +638,7 @@
   }
   function renderSignals(){
     var m=d(); var sig=computeSignals(m), dec=revenueDecomp(m);
-    var col={critical:'var(--brand-err,#c0392b)',watch:'var(--lava)',good:'var(--brand-ok,#1a7f37)'};
+    var col={critical:'var(--vh-err-text)',watch:'var(--vh-accent)',good:'var(--vh-ok-text)'};
     var cards=sig.map(function(s){ return '<div class="sig" style="border-left-color:'+col[s.sev]+'">'+
       '<div class="sig-h"><span class="sig-dot" style="background:'+col[s.sev]+'"></span>'+esc(s.label)+'</div>'+
       '<div class="sig-v">'+esc(s.value)+'</div><div class="sig-d">'+esc(s.detail)+'</div></div>'; }).join('');
@@ -709,7 +717,7 @@
     var drill = u.drill && reg && reg.drilldown(u.drill);
     var badge = target ? 'Open ' + target.label : (drill ? 'Open ' + drill.label : 'Connect ' + u.need);
     var href = target ? '/data-analysis?tab=' + target.id : (drill ? drill.href : '');
-    var chip = '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--brand-accent-text);background:rgba(171,135,67,.16);padding:3px 8px;border-radius:6px;white-space:nowrap">'+(href?'→ ':'🔒 ')+esc(badge)+'</span>';
+    var chip = '<span style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--vh-accent-text);background:var(--vh-panel-2);padding:3px 8px;border-radius:6px;white-space:nowrap">'+(href?'→ ':'🔒 ')+esc(badge)+'</span>';
     return '<div class="w span6"><div class="wh"><span class="wt">'+esc(u.t)+'</span>'+
       (href ? '<a class="open" href="'+escA(href)+'">'+chip+'</a>' : chip)+'</div>'+
       '<div class="ws">'+esc(u.s)+'</div>'+
@@ -1009,12 +1017,12 @@
   function emptyState(name) {
     var host = document.querySelector('main') || document.body;
     var el = document.createElement('div');
-    el.style.cssText = 'max-width:720px;margin:26px auto;padding:22px 24px;border:1px solid var(--brand-line,#e3e3e3);border-radius:14px;font-family:var(--brand-font-body,system-ui,sans-serif);line-height:1.6';
+    el.style.cssText = 'max-width:720px;margin:26px auto;padding:22px 24px;border:1px solid var(--vh-line);border-radius:14px;background:var(--vh-panel);color:var(--vh-ink);font-family:var(--vh-font-body);line-height:1.6';
     el.innerHTML =
-      '<h2 style="font-family:var(--brand-font-heading,inherit);margin:0 0 10px;font-size:20px">No analytics connected for ' + name + '</h2>' +
-      '<p style="margin:0 0 10px;opacity:.82">[DATA REQUIRED BEFORE LAUNCH: analytics exports, ' + name + '.] ' +
+      '<h2 style="font-family:var(--vh-font-head);margin:0 0 10px;font-size:20px">No analytics connected for ' + name + '</h2>' +
+      '<p style="margin:0 0 10px;color:var(--vh-ink-dim)">[DATA REQUIRED BEFORE LAUNCH: analytics exports, ' + name + '.] ' +
       'The dataset compiled into this build describes a different brand, and revenue, AOV and order counts read as authoritative, so it is not substituted here.</p>' +
-      '<p style="margin:0;opacity:.82">Connect this brand\'s own commerce or analytics exports, then this workbench fills in.</p>';
+      '<p style="margin:0;color:var(--vh-ink-dim)">Connect this brand\'s own commerce or analytics exports, then this workbench fills in.</p>';
     if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
     // Hide the widgets that would otherwise render zeros as if they were real.
     document.querySelectorAll('[data-widget],.da-grid,.da-tabs').forEach(function (n) { n.style.display = 'none'; });
@@ -1024,7 +1032,7 @@
     var host = document.querySelector('main') || document.body;
     var el = document.createElement('div');
     el.id = 'demo-banner';
-    el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--brand-primary,#c00);border-radius:10px;font-family:var(--brand-font-body,system-ui,sans-serif);font-size:13px;line-height:1.55;opacity:.92';
+    el.style.cssText = 'max-width:980px;margin:14px auto 0;padding:10px 16px;border:1px dashed var(--vh-primary);border-radius:10px;color:var(--vh-ink);font-family:var(--vh-font-body);font-size:13px;line-height:1.55';
     el.innerHTML = '<b>DEMO DATA</b> - generated deterministically from <b>' + String((brand && brand.name) || 'this brand').replace(/[<>&]/g, '') + "</b>'s own offerings and regions. Not real performance. Connect this brand's exports to replace it.";
     if (host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el);
   }

@@ -23,7 +23,7 @@
  *      request with no token `sign_in_required` BEFORE it looks at any
  *      backend, so `openWithoutBackend` (which needs `backend_unreachable`)
  *      could only open for a caller who PRESENTED a token nobody could check.
- *      Nobody presents one any more: Google sign-in is commented out, so no
+ *      Nobody presents one any more: Google sign-in is removed, so no
  *      browser holds a Supabase JWT, and a device token is never sent. The
  *      2026-09-15 tests all sent `'a-stale-token'`; the no-token request -
  *      the only one a browser makes - was never driven. So on production the
@@ -526,9 +526,8 @@ for (const state of MATRIX) {
           expect(seen.note, 'signing in IS the remedy here, and the note does not say so').toMatch(/\bsign in\b/i);
         }
         if (state.session === 'device') {
-          // The stale device sign-in: the remedy is to continue with Gmail,
-          // without telling a person who is already signed in to "sign in".
-          expect(seen.note).toMatch(/continue with Gmail/i);
+          // The stale device sign-in: the remedy is to sign in AGAIN.
+          expect(seen.note).toMatch(/entering your number again/i);
         }
       }
       expect(world.net.escaped).toEqual([]);

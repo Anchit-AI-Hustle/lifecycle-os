@@ -68,39 +68,36 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <style>
-  /* Violet-green canvas, consistent with the locked shell theme (theme.css).
-     --ink stays dark for text ON the lava badge/button; body text is chalk. */
-  :root{--moss:#D0473E;--chalk:#FFFFFF;--lava:#6A33D8;--ink:#111111;
-    --canvas:var(--bg,#D0473E);--panel:var(--surface,var(--vh-ink));--panel2:var(--chip,var(--vh-panel-tan));
-    --txt:var(--vh-ink,#FFFFFF);--dim:var(--ink-dim,var(--vh-lava));--line:rgba(171,135,67,0.28)}
+  /* Every colour and family is a Lifecycle OS role token
+     (design/lifecycle-os/CONTRACT.md), so the page wears the ACTIVE brand.
+     The header and the person's own bubble are brand SECTIONS: the band and
+     the text derived for it (a near-black primary falls through to a light
+     band, never a black one). The send button is a control: the primary fill
+     and its derived label. The spec bans low-opacity copy, so hierarchy comes
+     from size and weight. */
   *{box-sizing:border-box}
-  body{margin:0;background:var(--canvas);color:var(--txt);font-family:'Instrument Sans','Helvetica Neue',Arial,sans-serif;line-height:1.55}
-  /* The header band and the user bubble both painted tenant zero's red as a
-     literal and wrote chalk on it, so they never re-skinned and turned into
-     white-on-pale for any brand with a light primary. --brand-on-primary is the
-     colour computed to sit on that fill, and validatePalette blocks a brand
-     whose best on-primary cannot reach AA. The sub-line's .75 alpha measured
-     2.98:1 even at tenant zero's red; the spec bans low-opacity copy outright,
-     so the hierarchy comes from size and weight instead. */
-  .head{background:var(--brand-primary,#D0473E);color:var(--brand-on-primary,var(--chalk));padding:18px 22px}
-  .head h1{font-family:'Montserrat','Raleway',Georgia,serif;font-size:22px;margin:0}
-  .head .sub{color:var(--brand-on-primary,var(--chalk));font-size:13px;margin-top:4px;font-weight:600}
-  .badge{display:inline-block;background:var(--lava);color:var(--ink);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
+  body{margin:0;background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);line-height:1.55}
+  .head{background:var(--vh-band);color:var(--vh-on-band);padding:18px 22px}
+  .head h1{font-family:var(--vh-font-head);font-size:22px;margin:0}
+  .head .sub{color:var(--vh-on-band);font-size:13px;margin-top:4px;font-weight:600}
+  .badge{display:inline-block;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle}
   .wrap{max-width:860px;margin:0 auto;padding:18px 16px 120px}
   .msg{margin:14px 0;display:flex;gap:10px}
-  .msg .who{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-accent-text);font-weight:700;min-width:64px;padding-top:3px}
-  .msg .body{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;white-space:pre-wrap;flex:1}
-  .msg.user .body{background:var(--brand-primary,#D0473E);color:var(--brand-on-primary,var(--chalk));border-color:var(--brand-primary,#D0473E)}
-  .data{margin-top:10px;font-size:12px;color:var(--dim);background:rgba(0,0,0,.22);border-radius:8px;padding:8px 10px;overflow:auto}
-  .empty{color:var(--dim);text-align:center;padding:40px 0}
-  .bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px}
+  .msg .who{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--vh-accent-text);font-weight:700;min-width:64px;padding-top:3px}
+  .msg .body{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:12px 14px;white-space:pre-wrap;flex:1}
+  .msg.user .body{background:var(--vh-band);color:var(--vh-on-band);border-color:var(--vh-line-hot)}
+  .data{margin-top:10px;font-size:12px;color:var(--vh-ink-dim);background:var(--vh-panel-2);border-radius:8px;padding:8px 10px;overflow:auto}
+  .msg.user .data{color:var(--vh-ink)}
+  .empty{color:var(--vh-ink-dim);text-align:center;padding:40px 0}
+  .bar{position:fixed;bottom:0;left:0;right:0;background:var(--vh-panel);border-top:1px solid var(--vh-line);padding:12px 16px}
   /* Respect the shared LHS sidebar so the composer never slides under it (auth.js sets --lsb-w; body gets margin-left at >=961px). */
   @media (min-width:961px){ .bar{ left:var(--lsb-w,248px); } }
   .bar .row{max-width:860px;margin:0 auto;display:flex;gap:10px}
-  textarea{flex:1;min-height:48px;max-height:160px;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:inherit;background:var(--panel2);color:var(--txt)}
-  button{background:var(--lava);color:var(--ink);border:0;border-radius:10px;padding:0 22px;font-weight:700;cursor:pointer}
+  textarea{flex:1;min-height:48px;max-height:160px;resize:vertical;border:1px solid var(--vh-line);border-radius:10px;padding:11px 13px;font:inherit;background:var(--vh-panel-2);color:var(--vh-ink)}
+  button{background:var(--vh-primary);color:var(--vh-on-primary);border:0;border-radius:10px;padding:0 22px;font-family:inherit;font-weight:700;cursor:pointer}
   button:disabled{opacity:.5;cursor:default}
-  .hint{max-width:860px;margin:8px auto 0;font-size:11.5px;color:var(--dim)}
+  .hint{max-width:860px;margin:8px auto 0;font-size:11.5px;color:var(--vh-ink-dim)}
+  .hint a{color:var(--vh-link)}
 </style>
 </head>
 <body>

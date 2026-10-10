@@ -4,6 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The design system: one surface contract, read before styling any page (2026-10-05) — read `design/lifecycle-os/CONTRACT.md`
+The operator, on `/studio` with a red-primary brand (red bands, black panels, near-black cards in dark grey
+text): *"create a design schema for lifecycle os"*. `design/lifecycle-os/` holds it: `CONTRACT.md` (surface →
+token → derivation), `tokens.json`, `DESIGN.md` (google design.md alpha, linted by `npm run check:designmd`),
+`BRAND-SCHEMA.md`; assets under `assets/lifecycle-os/` (logo set rendered from the mark, 62-icon stroke sprite
+replacing UI emoji, 6 token-drawn illustrations); every kit component live at `/design-system`. Gated by
+`tests/design-system.spec.js` (executed: the sheet rendered under six palettes, every text run measured
+against the PIXELS behind it; a seeded sweep of 4,000 random valid palettes through `tokens()`; 12 of 14
+mutations caught, the two missed recorded in the PR).
+- **A page picks a ROLE, never a colour.** Grounds `--vh-bg/--vh-panel/--vh-panel-2`, a brand section only
+  via `.vh-band` (`sectionGround()`: a near-black primary falls to the surface), brand colour as text only via
+  a `*-text` token, text on a fill via its `on-*` token. No colour literal in a component rule.
+- **NEW derived tokens** (server `contractTokens()` + device `contractTokensFor()`, parity-tested):
+  `--brand-surface-sunken` (was a cool-grey `#f5f5f5` on every brand's surface), `--brand-band`/
+  `-on-band`/`-band-accent`, `--brand-{ok,warn,err}-text`, `--brand-focus`. `--vh-accent` is defined at last
+  (29 call sites read it undefined; the signed-out notice fell back to tenant zero's purple for every brand).
+- **Found by the sweep, not by reading**: text tokens were tuned against the surface the RAW primary read
+  worse on, so a near-white primary on a tinted page left its text at 4.28:1 on the page itself
+  (`readableOnSurfaces()` holds both surfaces); and `textOn()` walked one way, returning a failing white on a
+  mid-tone band (947 of 4,000 palettes; it walks both ways now, 4.5 floor where 4.9 is unreachable).
+- **The rail's own styles are on tokens**: it painted the active row in tenant zero's red for every brand and
+  the phone bar near-black under near-black text. Inline components take `--vh-lift-1`: a lift-2 shadow on
+  the text below it measured 4.4:1. Light-only by design; no dark theme.
+- The Design System artifact is generated from these files: `node scripts/build-design-system.js --artifact <dir>`.
+
 ## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
 `auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
 never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,
