@@ -117,6 +117,30 @@ async function installSignedOut(page, log) {
    moment after load is in every measurement or in none. */
 async function quiet(page) {
   await page.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {});
+  // The shell has DECIDED: auth.js's backend state and the brand layer. A page
+  // like the onboarding wizard draws its first step only after both, and a
+  // decision can wait on a timer (the reachability gate), which neither the
+  // network nor the DOM shows as pending. Bounded: a page without them goes on.
+  await page.evaluate(() => {
+    const within = (p, ms) => Promise.race([Promise.resolve(p).catch(() => {}), new Promise((r) => setTimeout(r, ms))]);
+    const a = window.LifecycleAuth, b = window.BrandContext;
+    return within(Promise.all([
+      a && typeof a.backendState === 'function' ? a.backendState() : null,
+      b && typeof b.ready === 'function' ? b.ready() : null,
+    ]), 12000);
+  }).catch(() => {});
+  // ...and the DOM has stopped changing: no childList mutation for 800 ms
+  // (bounded at 10 s - a ticker never stops). Under load the onboarding wizard
+  // drew its step row AFTER the network went idle, so one run measured the
+  // boot screen and the next the wizard, and the ratchet moved on its own.
+  await page.evaluate(() => new Promise((resolve) => {
+    let t = null;
+    const done = () => { mo.disconnect(); clearTimeout(cap); resolve(); };
+    const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(done, 800); });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+    t = setTimeout(done, 800);
+    const cap = setTimeout(done, 10000);
+  }));
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.waitForTimeout(400);
 }
