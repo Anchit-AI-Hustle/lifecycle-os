@@ -192,6 +192,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* The reason an import control is disabled. Accent rule (brand accent text
      on the surface), never the warn rule: a record still being filled in is an
      ordinary state, and a warning colour here would teach people to ignore it. */
+  .imp-coverage{font-size:12.5px;line-height:1.5;color:var(--ink);border-left:3px solid var(--accent);padding:8px 12px;margin:12px 0 0;background:var(--surface-alt)}
+  .imp-coverage .imp-cov-head{margin:0 0 4px}
+  .imp-coverage .imp-cov-list{margin:0 0 8px;padding-left:18px}
+  .imp-coverage .imp-cov-list li{margin:2px 0}
   .imp-gate{font-size:12px;line-height:1.5;color:var(--vh-accent-text);border-left:3px solid var(--accent);padding:6px 10px;margin:10px 0 0;background:var(--surface-alt)}
   .imp-tab{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer}
   .imp-tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
@@ -1054,6 +1058,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // take the accent rule, not the warn rule - an incomplete record is
           // an ordinary state, not a failure.
           '<p class="imp-gate" id="impGate" hidden></p>' +
+          // What the last import read of what the store declares, and - when it
+          // stopped part-way - the control that resumes it (2026-10-10).
+          '<div class="imp-coverage" id="impCoverage" hidden></div>' +
           (actionsOff()
             ? '<div style="margin-top:10px">' + needsAccountNote('catalog-import', 'The server reads your store for a signed-in person, so the catalogue can be imported once ' + accountClause() + '; it is then kept on this device beside the brand. Everything else on this brand is saved on this device now, and the review step reports the catalogue as still required rather than inventing one.') + '</div>'
             : '') +
@@ -2306,6 +2313,60 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       gate.textContent = region ? '' : marker('home market') + ' Add the market you sell in above and mark it Home before importing: the catalogue is filed per market, so there is nowhere to put these rows yet.';
     }
   }
+  /* Coverage, in the importer's own sentences: found X of Y declared, from
+     which source, what was skipped and why, what the store did not state. A
+     partial import says PARTIAL and offers Continue import, which resumes from
+     the cursor the server (or this device) kept - never a re-read from zero. */
+  function renderCoverage(cov, resumable) {
+    var box = $('impCoverage');
+    if (!box) return;
+    if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML =
+      '<p class="imp-cov-head"><b>' + (cov.complete ? 'Catalogue read completely' : 'Catalogue read in part') + '</b></p>' +
+      '<ul class="imp-cov-list">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      (resumable ? '<button type="button" class="btn" id="impContinue">Continue import</button>' : '');
+    var c = $('impContinue');
+    if (c) c.addEventListener('click', continueImport);
+  }
+  function afterImport(r) {
+    var status = $('impStatus');
+    catalogCount = typeof r.live === 'number' ? r.live : r.imported;
+    var counts = r.imported + ' products imported' + (r.complete === false ? ' in this step' : '');
+    if (typeof r.live === 'number') counts += ', ' + r.live + ' in the catalogue now';
+    if (r.staled) counts += ', ' + r.staled + ' the store no longer lists marked stale (kept, not used)';
+    if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+    renderCoverage(r.coverage, !!r.resume_available);
+    toast(r.complete === false ? 'Read ' + r.imported + ' products; the store was not read to the end yet. Continue import resumes it.' : 'Imported ' + r.imported + ' products.', 4200);
+  }
+  async function continueImport() {
+    if (busy || !brand.id) return;
+    var status = $('impStatus');
+    try {
+      busy = true;
+      if (status) status.textContent = 'Continuing the import…';
+      var r = await api('catalog-import', { workspace_id: brand.id, region: importRegion().toLowerCase(), continue: true });
+      afterImport(r);
+    } catch (e) {
+      window.LifecycleFailure.show(status, e, { title: 'The import did not continue' });
+      toast(window.LifecycleFailure.sentence(e), 4200);
+    } finally { busy = false; }
+  }
+  /* The coverage of the import this brand already has: the device keeps it
+     beside its catalogue; the account path asks the server. */
+  async function loadCoverage() {
+    if (!brand.id) return;
+    try {
+      if (isLocalId(brand.id)) {
+        var cat = window.BrandContext && window.BrandContext.deviceCatalog ? window.BrandContext.deviceCatalog(brand.id) : null;
+        if (cat && cat.coverage) renderCoverage(cat.coverage, !!cat.cursor);
+        return;
+      }
+      if (actionsOff()) return;
+      var st = await api('catalog-status', null, '&workspace_id=' + encodeURIComponent(brand.id));
+      if (st && st.coverage) renderCoverage(st.coverage, !!st.resume_available);
+    } catch (_) { /* the coverage is a convenience; the import controls stand without it */ }
+  }
   /* IMPORT YOUR STORE FEED, said where it is needed (2026-10-05). A template
      (a starter brand from the gallery) brings a look and a website, never a
      product: since tenant zero became the server's determination rather than
@@ -2348,6 +2409,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   function wireImport() {
+    loadCoverage();
     var mode = 'storefront';
     Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (t) {
       t.addEventListener('click', function () {
@@ -2390,10 +2452,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         busy = true; status.textContent = 'Importing…';
         var r = await api('catalog-import', payload);
-        catalogCount = r.imported;
-        status.textContent = r.imported + ' products imported' + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+        afterImport(r);
         var sf = $('storeFeed'); if (sf && r.imported) sf.hidden = true;
-        toast('Imported ' + r.imported + ' products.');
       } catch (e) {
         // This span otherwise reads "N products in this workspace." - a count.
         // An error string dropped into it is read as a count too, so it gets
