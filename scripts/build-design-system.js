@@ -153,7 +153,7 @@ const SURFACES = [
   ['Toast', 'vh-panel', 'vh-ink', 'inset 3px vh-accent (error vh-err-text)', '.vh-toast'],
   ['Notice bar', 'vh-panel-2', 'vh-ink', 'top rule vh-accent (ordinary) or vh-warn (fix-it)', 'auth.js #lc-authnotice, .vh-notice'],
   ['Status line', 'vh-panel-2', 'vh-ink', 'left 4px vh-accent', 'LifecycleStatus, .vh-status'],
-  ['Failure frame', 'vh-panel-2', 'message vh-ink; tag vh-err-text; code vh-ink-dim', 'left 4px vh-err', 'LifecycleFailure, .vh-failure'],
+  ['Failure frame', 'vh-panel-2', 'message vh-ink; tag vh-err-text; code vh-ink-dim', 'left 4px vh-err', 'LifecycleFailure, .vh-failure (.vh-failure-specimen when drawn as documentation)'],
   ['DATA REQUIRED marker', 'vh-marker-ground', 'vh-ink (mono)', 'dashed vh-marker-edge', '.vh-marker, .vh-marker-block'],
   ['Credit pill', 'vh-panel', 'vh-ink; dot vh-primary / vh-warn-text / vh-err-text', 'vh-line', 'credits.js .lc-credit-pill, .vh-credit'],
   ['Local / Demo Mode', 'vh-panel-2', 'vh-ink', 'inset 3px vh-accent', 'auth.js #lnav-umode, .vh-mode'],
