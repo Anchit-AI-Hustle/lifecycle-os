@@ -31,6 +31,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const coherence = require('./brand-coherence.js');
+
 const MAX_CATALOG_ROWS = 5000;      // per import, keeps a serverless call bounded
 const MAX_UPLOAD_CHARS = 6e6;       // ~6MB of pasted/uploaded text
 
@@ -558,8 +560,11 @@ function normalizeRegions(input) {
       currency: str(r.currency, 8).toUpperCase(),
       symbol: str(r.symbol, 4),
       store_url: httpUrl(r.store_url),
-      pdp_pattern: str(r.pdp_pattern, 200) || '{base}/products/{handle}',
-      collection_pattern: str(r.collection_pattern, 200) || '{base}/collections/{slug}',
+      // Only what was stated: /products/{handle} is a Shopify URL scheme, and
+      // filling it in for every brand put tenant zero's store shape on all of
+      // them (2026-10-10). Nothing reads a pattern that is not there.
+      pdp_pattern: str(r.pdp_pattern, 200),
+      collection_pattern: str(r.collection_pattern, 200),
       home,
     });
   }
@@ -1417,6 +1422,55 @@ async function setActive(auth, id) {
   return ws;
 }
 
+/**
+ * A brand's slug FOLLOWS ITS NAME (2026-10-10). On creation it is made from
+ * the name and nothing else: a slug the client sends is ignored, because the
+ * gallery's KNICKGASM preset (and any template) used to hand its own slug to
+ * the brand typed over it - the live record was "Mamaearth" slugged
+ * "food-for-thought". On an update the stored slug is kept, unless the client
+ * asks for the slug its CURRENT name makes (the coherence repair "Use
+ * <slug>"); no other slug is accepted, so one brand's slug is never inherited
+ * by another.
+ */
+function slugFor(b, prev, name) {
+  const fromName = slugify(name);
+  if (!prev || !prev.slug) return fromName || `brand-${Date.now().toString(36)}`;
+  const asked = slugify(b && b.slug);
+  if (asked && asked !== prev.slug && asked === fromName) return asked;
+  return prev.slug;
+}
+
+/**
+ * Activation is where a mixed record would start speaking for a brand, so it
+ * is where a cross-domain IDENTITY mix blocks (2026-10-10). The person may
+ * override, with a reason; the override is recorded on the record (who, when,
+ * why, which conflicts) and the brand activates. Warnings never block.
+ * setActive() itself stays unconditional: the first workspace a person
+ * creates is made active by the save path, before they have seen anything.
+ */
+async function activateChecked(auth, id, override) {
+  const ws = await getWorkspace(auth, id);
+  if (!ws) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
+  const c = coherence.brandCoherence(ws);
+  if (c.blocking) {
+    const reason = str(override && override.reason, 500);
+    if (!reason) {
+      const e = new Error(`${ws.name || 'This brand'} mixes brands, so it was not activated: ${c.conflicts.filter((x) => x.severity === 'block').map((x) => x.message).join(' ')} Keep or clear each value in the review step, or activate anyway with a reason.`);
+      e.status = 409; e.code = 'coherence_blocked'; e.details = c;
+      throw e;
+    }
+    const bd = Object.assign({}, ws.brand_data || {});
+    const coh = Object.assign({}, bd.coherence || {});
+    coh.overrides = (Array.isArray(coh.overrides) ? coh.overrides : []).concat([{
+      at: new Date().toISOString(), by: auth.user_id || null, reason,
+      conflicts: c.conflicts.filter((x) => x.severity === 'block').map((x) => x.id),
+    }]).slice(-20);
+    bd.coherence = coh;
+    await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: { brand_data: bd }, prefer: 'return=minimal' });
+  }
+  return setActive(auth, id);
+}
+
 /** Build the exact row we persist — every field normalised, none invented. */
 function buildRow(input, existing) {
   const b = input && typeof input === 'object' ? input : {};
@@ -1426,7 +1480,7 @@ function buildRow(input, existing) {
 
   const regions = b.regions !== undefined ? normalizeRegions(b.regions) : (prev.regions || []);
   const row = {
-    slug: slugify(b.slug || prev.slug || name) || `brand-${Date.now().toString(36)}`,
+    slug: slugFor(b, prev, name),
     name,
     legal_name: b.legal_name !== undefined ? str(b.legal_name, 200) : (prev.legal_name || null),
     tagline: b.tagline !== undefined ? str(b.tagline, 300) : (prev.tagline || null),
@@ -2062,6 +2116,13 @@ async function listCatalog(auth, { workspace_id, region, limit = 60 }) {
 }
 
 /** The payload the browser shell needs to become this brand. */
+/** The brand-list badge: does this record describe one brand? (brand-coherence.js) */
+function coherenceSummary(brand) {
+  if (!brand || !brand.brand_data) return null;
+  const c = coherence.brandCoherence(brand);
+  return { ok: c.ok, blocking: c.blocking, count: c.conflicts.length, summary: c.summary };
+}
+
 function shellPayload(brand, extra) {
   if (!brand) return null;
   return Object.assign({
@@ -2081,6 +2142,7 @@ function shellPayload(brand, extra) {
     tokens: tokens(brand),
     fonts_href: fontsHref(brand),
     files: filesSummary(brand),
+    coherence: coherenceSummary(brand),
   }, extra || {});
 }
 
@@ -2504,10 +2566,12 @@ async function handle(req, res) {
       case 'save': {
         const ws = await saveWorkspace(auth, body.brand || body);
         const products = ws && ws.id ? await productCount(auth, ws.id) : 0;
-        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws && ws.id) }) });
+        // A save is never refused for a mixed record (the wizard saves as the
+        // person types); it is TOLD, field by field, what disagrees.
+        return res.status(200).json({ ok: true, brand: Object.assign({}, ws, { tokens: tokens(ws), fonts_href: fontsHref(ws), readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws && ws.id), coherence: coherence.brandCoherence(ws || {}) }) });
       }
       case 'activate': {
-        const ws = await setActive(auth, str(body.id || q.id));
+        const ws = await activateChecked(auth, str(body.id || q.id), body.coherence_override);
         const products = await productCount(auth, ws.id);
         return res.status(200).json({ ok: true, brand: shellPayload(ws, { readiness: readiness(ws, { products }), products, owns_shipped: await ownsShipped(ws.id) }) });
       }
@@ -2732,6 +2796,9 @@ async function handle(req, res) {
     }
   } catch (err) {
     const status = err && err.status ? err.status : 500;
+    if (err && err.code === 'coherence_blocked') {
+      return res.status(status).json({ ok: false, error: err.code, code: err.code, message: err.message, coherence: err.details });
+    }
     return res.status(status).json({ ok: false, error: err.message || 'brand_operation_failed', details: err.details || undefined });
   }
 }
@@ -2747,7 +2814,7 @@ module.exports = {
   TEXT_AA,
   // brand
   normalizePalette, normalizeTypography, normalizeVoice, normalizeRegions, tokens, contractTokens, fontsHref,
-  readiness, launchMarker, shellPayload, slugify, DEFAULT_BRAND,
+  readiness, launchMarker, shellPayload, slugify, slugFor, DEFAULT_BRAND, coherenceSummary, activateChecked,
   // catalog
   parseCsv, rowsFromCsv, rowsFromJson, rowsFromStorefront, assertPublicUrl, isPrivateIp, BLOCKED_HOST_RX,
   // data access
