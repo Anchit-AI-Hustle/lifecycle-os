@@ -1360,6 +1360,14 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           const sweep = await universe.refreshDueWorkspaces({ maxWorkspaces: 3 });
           steps.competitor_universe = { due: sweep.due, refreshed: sweep.refreshed, added: sweep.added, note: sweep.note };
         } catch (e) { steps.competitor_universe = { error: e.message }; }
+        // Brand catalogues (2026-10-10): an import that stopped part-way
+        // continues from its cursor, then the store read longest ago is read
+        // again whole (which is what marks a product the store dropped as
+        // stale). Rides this existing daily cron; no third cron.
+        try {
+          const cat = await require('./_shared/catalog-import.js').refreshDue({ maxWorkspaces: 2, budgetMs: 25000 });
+          steps.catalog_refresh = { due: cat.due, refreshed: cat.refreshed, note: cat.note || undefined, skipped: cat.skipped || undefined };
+        } catch (e) { steps.catalog_refresh = { error: e.message }; }
         // Social gateway tokens (2026-10-04): every OAuth connection whose
         // token expires within 7 days is refreshed through its platform's own
         // documented flow; a refusal marks it needs_reauth for the hub. Rides
