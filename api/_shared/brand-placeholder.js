@@ -37,6 +37,10 @@ function _core() { return require('./brand-workspace-core.js'); }
 
 function _brandOf(brand) {
   if (brand && (brand.name || brand.palette)) return brand;
+  // No brand passed: the brand the request being served resolved, and tenant
+  // zero only when nothing is in scope (2026-10-10). A caller that forgot the
+  // argument painted tenant zero's name inside another workspace's asset.
+  try { return require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { /* below */ }
   var core = _core();
   return core.DEFAULT_BRAND || { name: 'this brand', palette: {} };
 }

@@ -33,9 +33,16 @@ function stableIndex(str, n) {
 }
 
 // ─── Layer 1: copywriting frameworks ─────────────────────────────────────────
-// Each: key, name, full (expanded acronym), beats (ordered steps with a KNICKGASM
-// gloss), when_to_use, example (a filled-in ecommerce line per Dimond's rule),
-// source (KB attribution).
+// Each: key, name, full (expanded acronym), beats (the ordered steps, glossed
+// for ANY brand), zero_beats + example (tenant zero's own glosses and a
+// filled-in line - its products, its finish, its artists), when_to_use, source.
+//
+// WHOSE GLOSS (2026-10-10). The beats used to be glossed ONLY for tenant zero
+// ("the same Air Force 1 as everyone in the room", "the original base
+// sneaker, the water and scratch resistant finish") and every brand's mailer
+// brief carried them, so a news brand's copywriter was told its proof was a
+// painted sneaker. briefBeats() hands tenant zero its own glosses and example,
+// and every other brand the neutral ones and no borrowed example.
 
 const COPY_FRAMEWORKS = {
   pas: {
@@ -43,6 +50,11 @@ const COPY_FRAMEWORKS = {
     name: 'PAS',
     full: 'Problem, Agitate, Solution',
     beats: [
+      ['Problem', 'Name the small friction the reader already feels, in the terms this brand\'s own customers would use.'],
+      ['Agitate', 'Make the cost of it vivid and human, never fear-based. No health or anxiety claims.'],
+      ['Solution', 'Present the product as the calm resolution, with one clear next step.'],
+    ],
+    zero_beats: [
       ['Problem', 'Name the small friction the reader already feels - the same stock pair everyone owns, the fit that says nothing, the gift they still have not solved.'],
       ['Agitate', 'Make the cost of it vivid and human, never fear-based. No health or anxiety claims - just the quiet ache of blending into every other pair on the street.'],
       ['Solution', 'Present the product as the calm resolution, with one clear next step.'],
@@ -56,6 +68,11 @@ const COPY_FRAMEWORKS = {
     name: 'BAB',
     full: 'Before, After, Bridge',
     beats: [
+      ['Before', 'The reader\'s ordinary today, the gap this brand closes, stated without exaggeration.'],
+      ['After', 'The better ordinary once they have it - sensory, specific, believable, and true of this brand\'s product.'],
+      ['Bridge', 'The product as the short path from one to the other, with a single CTA.'],
+    ],
+    zero_beats: [
       ['Before', 'Their world today - honest, familiar, no judgement.'],
       ['After', 'The better ordinary once the pair lands - sensory, specific, believable: the double-takes, the questions, the photos.'],
       ['Bridge', 'The product as the short path from one to the other, with a single CTA.'],
@@ -69,6 +86,12 @@ const COPY_FRAMEWORKS = {
     name: 'AIDA',
     full: 'Attention, Interest, Desire, Action',
     beats: [
+      ['Attention', 'A concrete hook in the first line - a detail of the product or the moment it is used.'],
+      ['Interest', 'Why it is relevant now - the launch, the season, the reason to read on.'],
+      ['Desire', 'Make it wanted with proof: only this brand\'s verifiable claims, its real products and honest prices.'],
+      ['Action', 'One clear CTA, no competing links.'],
+    ],
+    zero_beats: [
       ['Attention', 'A visual hook in the first line - a colour, a character, a detail on the toe box.'],
       ['Interest', 'Why it is relevant now - the launch, the season, the reason to read on.'],
       ['Desire', 'Make it wanted with proof: the original base sneaker, the artist behind it, the one-of-one guarantee, honest prices.'],
@@ -84,6 +107,12 @@ const COPY_FRAMEWORKS = {
     full: 'Promise, Picture, Proof, Push',
     beats: [
       ['Promise', 'The outcome the reader gets, stated plainly.'],
+      ['Picture', 'Paint it - the moment the product arrives and is first used.'],
+      ['Proof', 'The evidence: only the verifiable claims and the facts this brand\'s record and catalogue state.'],
+      ['Push', 'The ask, framed by the play\'s CTA rule.'],
+    ],
+    zero_beats: [
+      ['Promise', 'The outcome the reader gets, stated plainly.'],
       ['Picture', 'Paint it - the unboxing, the first lace-up, the walk out the door.'],
       ['Proof', 'The evidence: the original base sneaker, the water and scratch resistant finish, the honest compare-at prices, the named artists.'],
       ['Push', 'The ask, framed by the play\'s CTA rule.'],
@@ -97,6 +126,11 @@ const COPY_FRAMEWORKS = {
     name: 'FAB',
     full: 'Feature, Advantage, Benefit',
     beats: [
+      ['Feature', 'What it is - the concrete thing the customer receives.'],
+      ['Advantage', 'What that does differently.'],
+      ['Benefit', 'What it means for the reader\'s day.'],
+    ],
+    zero_beats: [
       ['Feature', 'What it is - the concrete thing in the box: the silhouette, the artwork, the finish.'],
       ['Advantage', 'What that does differently.'],
       ['Benefit', 'What it means for the reader\'s day.'],
@@ -110,6 +144,11 @@ const COPY_FRAMEWORKS = {
     name: 'Star-Story-Solution',
     full: 'Star, Story, Solution',
     beats: [
+      ['Star', 'The hero of the email - a product, a collection or an offering. The brand speaks as "we"; there is no founder or personal narrator.'],
+      ['Story', 'Its origin and journey, as this brand\'s own record tells it.'],
+      ['Solution', 'Invite the reader into that story with one warm CTA.'],
+    ],
+    zero_beats: [
       ['Star', 'The hero of the email - a one-of-one panel, a collection, the pair itself. The brand speaks as "we"; there is no founder or personal narrator.'],
       ['Story', 'Its origin and journey - the reference it came from, how it was painted, why it exists.'],
       ['Solution', 'Invite the reader into that story with one warm CTA.'],
@@ -176,15 +215,31 @@ function pickCopyFrameworkForCalendar({ framework = null, content_type = '', seg
   return COPY_FRAMEWORKS[key];
 }
 
+/** Is the brand this generation is for tenant zero? (the request's, else the pinned one, else nothing in scope = the shipped default). */
+function forTenantZero(brand) {
+  try {
+    const rt = require('./brand-runtime.js');
+    const b = rt.scopedBrand(brand || null, { allowTenantZero: true });
+    return require('./brand-catalog-server.js').isTenantZeroBrand(b) === true;
+  } catch (_) { return false; }
+}
+
+/** The beats (and example) a brief may use for THIS brand. */
+function briefBeats(fw, brand) {
+  const zero = forTenantZero(brand);
+  return { beats: (zero && fw.zero_beats) || fw.beats, example: zero ? fw.example : '' };
+}
+
 // Multi-line brief block to append to the LLM user message.
-function copyFrameworkBriefBlock(fw) {
+function copyFrameworkBriefBlock(fw, brand) {
   if (!fw) return '';
-  const beats = fw.beats.map(([n, g], i) => `  ${i + 1}. ${n} - ${g}`).join('\n');
+  const bb = briefBeats(fw, brand);
+  const beats = bb.beats.map(([n, g], i) => `  ${i + 1}. ${n} - ${g}`).join('\n');
   return [
     `COPYWRITING FRAMEWORK - structure this email as ${fw.name} (${fw.full}):`,
     beats,
     `Map the framework onto the fields: the hero_headline + hero_subline carry the opening beat, the body_blocks walk the middle beats in order (one beat per block, in sequence), and the final beat lands on the cta_text. Do not name the framework in the copy - let the structure do the work.`,
-    `Worked example (do not copy verbatim): ${fw.example}`,
+    bb.example ? `Worked example (do not copy verbatim): ${bb.example}` : 'Write every beat from THIS brand\'s own products, claims and voice; borrow no example from another brand.',
   ].join('\n');
 }
 
@@ -287,6 +342,7 @@ module.exports = {
   copyFrameworkBriefBlock,
   copyFrameworkSystemLine,
   frameworkMenuDirective,
+  briefBeats,
   strategyStanceForCohort,
   strategyBriefBlock,
   stableIndex,

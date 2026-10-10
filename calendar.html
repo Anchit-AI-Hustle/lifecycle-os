@@ -705,7 +705,7 @@ async function openMailer(entry, dayList) {
       const blob = new Blob([v.html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `knickgasm-mailer-${safe(entry.date)}-${safe(entry.market)}-${k}.html`;
+      a.href = url; a.download = `${((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')}-mailer-${safe(entry.date)}-${safe(entry.market)}-${k}.html`;
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     }));
     // Image-variant brief: copy + download (the variant's exportable artifact).
@@ -721,7 +721,7 @@ async function openMailer(entry, dayList) {
       const blob = new Blob([txt], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `knickgasm-image-brief-${safe(entry.date)}-${safe(entry.market)}.txt`;
+      a.href = url; a.download = `${((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')}-image-brief-${safe(entry.date)}-${safe(entry.market)}.txt`;
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
     }));
   } catch (e) {
@@ -845,7 +845,7 @@ $('btnExport').addEventListener('click', () => {
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `knickgasm-calendar-${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = url; a.download = `${((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')}-calendar-${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
 

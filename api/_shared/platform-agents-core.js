@@ -32,7 +32,7 @@
 
 const callLLM = require('./llm.js');
 const { parseJSON } = require('./llm.js');
-const { EVIDENCE_CONTRACT } = require('./feature-agent.js');
+const { evidenceContract } = require('./feature-agent.js');
 
 const shopify = require('./shopify-core.js');
 const adInsights = require('./ad-insights-core.js');
@@ -242,7 +242,7 @@ async function analyse(agent, collected, { question, tier, timeoutMs, brand }) {
   const sys =
     `You are the ${agent.label} analyst. ${analystIdentity(brand)} You own ONE platform: ` +
     `${agent.brief}. You read ALREADY-FETCHED metrics from that platform and produce decisions, not restated numbers. ` +
-    EVIDENCE_CONTRACT + '\n' +
+    evidenceContract(brand) + '\n' +
     'Stay inside your platform: do not speculate about other channels, and do not compare against benchmarks you were not given. ' +
     'If a caveat says a figure is partial or not revenue, DO NOT build a recommendation on it — flag it instead. ' +
     'Every action item must be something a marketer can execute this week on this platform. Output STRICT JSON only:\n' + SCHEMA;
