@@ -312,6 +312,9 @@
     try { var a = window.LifecycleAuth; return (a && a.backend) || null; } catch (_) { return null; }
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
+  // The backend states in which nobody is signed in (auth.js LifecycleAuth.backend.kind).
+  // 'local' (the localhost preview) and 'signed-in' are not among them.
+  var NO_SESSION_KINDS = ['signed-out', 'unreachable', 'unconfigured', 'sdk'];
   /**
    * The mobile+PIN session (2026-09-28), if that is who is signed in. In
    * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
@@ -1996,9 +1999,12 @@
       state.needsOnboarding = !!r.needs_onboarding;
       state.workspaces = r.workspaces || [];
       state.mode = fromDevice ? 'device' : mode;
-      // Being signed out of a reachable backend is the one device state where
-      // signing in is an answer, so the gate offers it there and only there.
-      state.signedOut = fromDevice && authKind() === 'signed-out';
+      // Nobody is signed in: the gate offers Sign in whatever the backend's
+      // state. It used to offer it only when the account service answered, so
+      // on a deployment whose project was paused (production, 2026-10-10) a
+      // phone showed no way to sign in at all. When sign-in cannot open, the
+      // gate says why in its own body, where a phone can read it.
+      state.signedOut = fromDevice && !mobileSession() && NO_SESSION_KINDS.indexOf(authKind()) !== -1;
       state.loaded = true;
       if (state.brand) {
         // The device store IS the cache for a device brand; the uid-keyed
