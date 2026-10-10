@@ -508,9 +508,13 @@ test('every empty smart-brain answer carries the same keys as a full one', async
   const refusal = router.slice(router.indexOf('workspace_unresolved') - 400, router.indexOf('workspace_unresolved') + 200);
   expect(refusal).toContain('plan: []');
 
+  // The planner's empty return names the brand in an unpadded marker since
+  // 2026-10-05 (emptyPlanNote); tests/brand-locale-defaults.spec.js EXECUTES
+  // that return through the router and asserts its keys.
   const planner = fs.readFileSync(path.join(ROOT, 'api/_shared/smart-brain-plan.js'), 'utf8');
-  const emptyReturn = planner.slice(planner.indexOf('EMPTY_PLAN_NOTE,'), planner.indexOf('EMPTY_PLAN_NOTE,') + 40);
+  const anchor = 'note: emptyPlanNote(pb.brand),';
+  const emptyReturn = planner.slice(planner.indexOf(anchor), planner.indexOf(anchor) + 40);
   expect(emptyReturn.length).toBeGreaterThan(0);
-  const around = planner.slice(Math.max(0, planner.indexOf('EMPTY_PLAN_NOTE,') - 400), planner.indexOf('EMPTY_PLAN_NOTE,'));
+  const around = planner.slice(Math.max(0, planner.indexOf(anchor) - 400), planner.indexOf(anchor));
   expect(around).toContain('plan: []');
 });

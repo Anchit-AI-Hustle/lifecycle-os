@@ -222,12 +222,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function head(role, market) {
     const f = REGION[market] || REGION.US;
-    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + f.store + ', currency ' + f.cur + ' — all prices/copy in ' + f.cur + ').\n\n' + brandBlock() + '\n\n';
+    // The store is the ACTIVE brand's own (2026-10-05); the literal map stands
+    // only when no brand is active.
+    const B = window.BrandContext && window.BrandContext.brand;
+    const store = B
+      ? (((window.BrandCatalog && window.BrandCatalog.storeBase(market)) || B.website || '').replace(/^https?:\/\//, '') ||
+         ('[DATA REQUIRED BEFORE LAUNCH: store URL, ' + (B.name || 'brand name') + ', ' + market + ']'))
+      : f.store;
+    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + store + ', currency ' + f.cur + ' — all prices/copy in ' + f.cur + ').\n\n' + brandBlock() + '\n\n';
   }
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft (off-palette colours, banned phrases, wrong fonts, wrong currency), fix them, and return ONLY the corrected final output.';
 
   function buildPrompt(item) {
-    const r = item.raw || {}, market = item.market || r.region || 'US';
+    const r = item.raw || {}, market = item.market || r.region || ((window.RegionContext && window.RegionContext.home) || '');
     if (item.kind === 'landing') {
       const channel = r.channel || 'landing';
       return head('You are a senior D2C conversion copywriter + front-end developer for KNICKGASM.', market) + [

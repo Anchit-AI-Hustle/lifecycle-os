@@ -44,12 +44,16 @@ const path = require('path');
 function enabled() { return String(process.env.REAL_FACTS_ONLY || '') === '1'; }
 
 const CACHE = {};
-function regionKey(m) { m = String(m || 'US').toLowerCase(); if (m.startsWith('uk')) return 'uk'; if (/global|eu|au|me|row|rest/.test(m)) return 'global'; return 'us'; }
+// The approved-facts FILE for a market. Unknown or Indian markets used to read
+// the US file, so an IN slot could quote approved US reviews - facts carried
+// across regions (2026-10-05). Every market reads only its own file; no market
+// reads none.
+function regionKey(m) { m = String(m || '').toLowerCase(); if (!m) return ''; if (m.startsWith('uk') || m === 'gb') return 'uk'; if (m === 'us' || m === 'usa') return 'us'; if (/global|eu|au|me|row|rest/.test(m)) return 'global'; return m.replace(/[^a-z]/g, ''); }
 function load(region) {
   const r = regionKey(region);
   if (CACHE[r]) return CACHE[r];
   let d = { reviews: {}, ratings: {}, claims: {}, prices: {} };
-  try { const raw = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'brand-facts', `${r}.json`), 'utf8')); if (raw && typeof raw === 'object') d = Object.assign(d, raw); } catch (_) { /* no approved file yet */ }
+  try { if (!r) throw new Error('no market'); const raw = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'data', 'brand-facts', `${r}.json`), 'utf8')); if (raw && typeof raw === 'object') d = Object.assign(d, raw); } catch (_) { /* no approved file yet */ }
   CACHE[r] = d;
   return d;
 }

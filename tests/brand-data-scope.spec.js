@@ -472,7 +472,8 @@ test('the /api/ai/generate landing-page prompt is built from the active brand', 
   expect(src).toMatch(/_lpBannedRule/);
   expect(src).toMatch(/header wordmark "\$\{_lpName\}"/);
   // And a brand without a store for the market gets a marker, not tenant zero's.
-  expect(src).toMatch(/DATA REQUIRED BEFORE LAUNCH: region store URL, all, \$\{lpRegion\}/);
+  // (Unpadded since 2026-10-05: `region store URL, <brand>, <region>`.)
+  expect(src).toMatch(/marker\('region store URL', _lpBrand, lpRegion\)/);
 });
 
 test('WORKSPACE_ID pins a userless job, and never overrides a real user', async () => {

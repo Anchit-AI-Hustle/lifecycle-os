@@ -17,9 +17,9 @@
  *   </script>
  *
  * Data sources (mirrors the engine's hierarchy):
- *   catalog/pricing → same-origin /data/catalog/products_{region}.json
- *                     (built from Shopify, served CORS-enabled) with a public
- *                     Shopify /products.json fallback.
+ *   catalog/pricing → the ACTIVE brand's catalogue through brand-catalog.js
+ *                     (the shipped products_{region}.json for tenant zero
+ *                     only; nothing for a brand that has none).
  *   historical      → /api/brain?action=snowflake-metrics (Snowflake mirror).
  */
 
@@ -90,64 +90,28 @@ export function injectBrandCSSVars(theme) {
   r.style.setProperty('--knickgasm-font', theme.bodyFont);
 }
 
-/* ── Data: catalog (Shopify-built, same-origin) with public fallback ──────── */
-async function fetchTimeout(url, opts, ms) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ms || 9000);
-  try { return await fetch(url, Object.assign({ signal: ctrl.signal }, opts || {})); }
-  finally { clearTimeout(t); }
-}
-
-function shippedCatalogAllowed() {
-  // The built files and knickgasm.com feeds are one brand's catalogue. A
-  // signed-out preview keeps them (there is no other brand on screen). Any
-  // active brand that the server has not marked tenant zero gets nothing
-  // from here: BrandCatalog is the door for that brand's own rows.
-  try {
-    const B = window.BrandContext;
-    if (!B || !B.brand) return true;
-    if (typeof B.isTenantZero === 'function') return !!B.isTenantZero(B.brand);
-  } catch (_) {}
-  return false;
-}
-
+/* ── Data: catalog ─────────────────────────────────────────────────────────
+   The ACTIVE brand's catalogue, through brand-catalog.js - the one reader
+   (2026-10-05). This fetched /data/catalog/products_<region>.json (tenant
+   zero's shipped catalogue) and then tenant zero's live store feed for every
+   brand, so a page that mounted the scene under another brand requested
+   another company's catalogue and its photos. auth.js loads the resolver on
+   every page; this waits for it briefly, and answers [] without it. Store
+   links are the brand's own (productUrl), never a literal host. */
 async function loadCatalog(region) {
-  if (!shippedCatalogAllowed()) return [];
   const store = STORE[region] || STORE.us;
-  // 1) Same-origin built catalog (CORS-enabled, fast, no cross-origin risk).
-  try {
-    const res = await fetchTimeout(`/data/catalog/products_${region}.json`, { headers: { Accept: 'application/json' } });
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list) && list.length) {
-        return list.map((p) => ({
-          title: p.n || '',
-          handle: p.h || '',
-          image: p.i || null,
-          price: p.price ? (String(p.price).startsWith(store.ccy) ? p.price : store.ccy + p.price) : '',
-          url: `${store.base}/products/${p.h || ''}`,
-        }));
-      }
-    }
-  } catch (_) { /* fall through */ }
-  // 2) Public Shopify storefront fallback.
-  try {
-    const res = await fetchTimeout(`${store.base}/products.json?limit=24`, { headers: { Accept: 'application/json' } });
-    if (res.ok) {
-      const json = await res.json();
-      return (json.products || []).map((p) => {
-        const v = (p.variants || [])[0] || {};
-        return {
-          title: p.title || '',
-          handle: p.handle || '',
-          image: (p.images && p.images[0] && p.images[0].src) || null,
-          price: v.price ? store.ccy + v.price : '',
-          url: `${store.base}/products/${p.handle || ''}`,
-        };
-      });
-    }
-  } catch (_) { /* fall through */ }
-  return [];
+  for (let i = 0; i < 40 && !(window.BrandCatalog && window.BrandContext); i++) await new Promise((r) => setTimeout(r, 100));
+  const BC = window.BrandCatalog;
+  if (!BC) return [];
+  let res = null;
+  try { res = await BC.load(region, { shippedPreview: true }); } catch (_) { res = null; }
+  return ((res && res.products) || []).filter((p) => p.name).map((p) => ({
+    title: p.name,
+    handle: p.handle || '',
+    image: p.img || null,
+    price: p.price ? (/^[^0-9]/.test(String(p.price)) ? String(p.price) : store.ccy + p.price) : '',
+    url: BC.productUrl(p, region) || '#',
+  }));
 }
 
 /* ── 2D fallback renderer ─────────────────────────────────────────────────── */
@@ -299,11 +263,11 @@ export async function mountKnickgasm3D(el, opts) {
   const tier = detectTier(opts.tier || el.getAttribute('data-tier'));
 
   // Loading state.
-  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:${el.clientHeight || 320}px;font-family:${theme.bodyFont};color:${theme.accent}">Lacing the scene…</div>`;
+  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:${el.clientHeight || 320}px;font-family:var(--vh-font-body, ${theme.bodyFont});color:var(--vh-accent-text, ${theme.accent})">Lacing the scene…</div>`;
 
   const products = await loadCatalog(route.region);
   if (!products.length) {
-    el.innerHTML = `<div style="padding:28px;font-family:${theme.bodyFont};color:${theme.surface};background:${theme.ink};border-radius:14px">Catalog is briefly unavailable. Please refresh.</div>`;
+    el.innerHTML = `<div style="padding:28px;font-family:var(--vh-font-body, ${theme.bodyFont});color:var(--vh-ink, ${theme.ink});background:var(--vh-panel-2, ${theme.surface});border-left:4px solid var(--vh-accent, ${theme.accent});border-radius:14px">Catalog is briefly unavailable. Please refresh.</div>`;
     return () => {};
   }
 

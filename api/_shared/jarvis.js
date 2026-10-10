@@ -106,14 +106,14 @@ function storeBaseFor(market, brand) {
 
 /**
  * detectNavActions(userText, assistantText, opts) → NavAction[]
- *   opts.market: 'US' | 'UK' | 'IN' | 'EU' | 'AU' | 'ME' | 'GLOBAL' (default 'US')
+ *   opts.market: any market the brand lists (default: the brand's HOME market)
  *   opts.brand:  the ACTIVE brand record; decides both the catalogue that may be
  *                searched and the storefront that may be linked.
  * NavAction = { key, kind: 'product'|'tab', label, href }
  */
 function detectNavActions(userText, assistantText, opts) {
-  const market = String((opts && opts.market) || 'US').toUpperCase();
   const brand = (opts && opts.brand) || null;
+  const market = String((opts && opts.market) || require('./brand-locale.js').homeMarket(brand) || '').toUpperCase();
   const base = storeBaseFor(market, brand);
   const products = loadCatalog(market, brand);
   const corpus = `${assistantText || ''}\n${userText || ''}`;

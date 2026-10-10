@@ -120,6 +120,38 @@
     });
   }
 
+  /* A picture that belongs to tenant zero (its logo, a shipped photo) carries
+     its URL in data-shipped-src, never in src (2026-10-05). An <img src> is
+     fetched while the page parses, before any brand is known, so every page
+     that printed one requested another company's file for every brand, and
+     showed it until something replaced it. It is set here only when the
+     shipped material is the active brand's own (no brand at all keeps the
+     shipped default, as ownsShipped() says). For any other brand an image
+     marked data-brand-logo takes that brand's own https logo; otherwise the
+     brand's NAME stands in its place - never another company's picture. */
+  function paintShippedImages(brand) {
+    var nodes;
+    try { nodes = document.querySelectorAll('img[data-shipped-src]'); } catch (_) { return; }
+    var mine = !brand || isTenantZero(brand);
+    var logo = (brand && /^https:\/\//i.test(String(brand.logo_url || ''))) ? brand.logo_url : '';
+    nodes.forEach(function (img) {
+      if (mine) {
+        if (img.getAttribute('src') !== img.getAttribute('data-shipped-src')) img.setAttribute('src', img.getAttribute('data-shipped-src'));
+        return;
+      }
+      if (logo && img.hasAttribute('data-brand-logo')) {
+        if (img.getAttribute('src') !== logo) { img.setAttribute('src', logo); img.setAttribute('alt', brand.name || ''); }
+        return;
+      }
+      var mark = document.createElement('span');
+      mark.className = 'brand-wordmark';
+      mark.setAttribute('data-shipped-replaced', '1');
+      mark.style.cssText = 'display:inline-block;font-weight:800;letter-spacing:.08em;font-family:var(--brand-font-heading,inherit)';
+      mark.textContent = (brand && brand.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
+      if (img.parentNode) img.parentNode.replaceChild(mark, img);
+    });
+  }
+
   /* The words a brand uses for the thing it sells and the person who takes it.
      The shipped copy was written for tenant zero, so pages said "sneakers",
      "colorway" and "airbrush" to every tenant - The Times of India was offering
@@ -312,6 +344,9 @@
     try { var a = window.LifecycleAuth; return (a && a.backend) || null; } catch (_) { return null; }
   }
   function authKind() { var b = authBackend(); return (b && b.kind) || ''; }
+  // The backend states in which nobody is signed in (auth.js LifecycleAuth.backend.kind).
+  // 'local' (the localhost preview) and 'signed-in' are not among them.
+  var NO_SESSION_KINDS = ['signed-out', 'unreachable', 'unconfigured', 'sdk'];
   /**
    * The mobile+PIN session (2026-09-28), if that is who is signed in. In
    * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
@@ -443,6 +478,13 @@
       if (r > bestC) { bestC = r; best = candidates[i]; }
     }
     return best;
+  }
+  /** Mirrors readableOnSurfaces() on the server: text held on every ground. */
+  function readableOnSurfaces(color, grounds, target) {
+    var c = color;
+    var gs = (grounds || []).filter(Boolean);
+    for (var pass = 0; pass < 2; pass++) for (var i = 0; i < gs.length; i++) c = readableAsText(c, gs[i], target);
+    return c;
   }
   function readableAsText(color, bg, target) {
     var want = target || 4.5;
@@ -586,11 +628,9 @@
     var surface = p.surface || '#F7F5F2';
     var surfaceAlt = p.surface_alt || shade(surface, 0.6);
     var muted = p.muted || shade(requestedInk, 0.35);
-    var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
     // Old saved records can predate palette validation; never render low
     // contrast body text while their owner is updating the palette.
-    var inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
-    var ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
+    var ink = readableOnSurfaces(requestedInk, [surface, surfaceAlt], TEXT_AA);
     var t = brand && brand.typography ? brand.typography : {};
     var states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
     return Object.assign({
@@ -599,13 +639,13 @@
       '--brand-primary-soft': shade(primary, 0.86),
       '--brand-primary-tint': shade(primary, 0.94),
       '--brand-on-primary': readableOn(primary, ink, surface, surfaceAlt),
-      '--brand-primary-text': readableAsText(primary, worstSurface, TEXT_AA),
+      '--brand-primary-text': readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA),
       '--brand-accent': accent,
       '--brand-accent-soft': shade(accent, 0.88),
       '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
-      '--brand-accent-text': readableAsText(accent, worstSurface, TEXT_AA),
+      '--brand-accent-text': readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
       '--brand-ink': ink,
-      '--brand-ink-muted': readableAsText(muted, worstSurface, TEXT_AA),
+      '--brand-ink-muted': readableOnSurfaces(muted, [surface, surfaceAlt], TEXT_AA),
       '--brand-surface': surface,
       '--brand-surface-alt': surfaceAlt,
       '--brand-line': shade(ink, 0.84),
@@ -616,7 +656,7 @@
       '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
       '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
       '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states), componentTokensFor(brand));
+    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, states), componentTokensFor(brand));
   }
   /* Mirrors sectionGround() / textOn() / contractTokens() on the server: the
      design-system contract's derived tokens (design/lifecycle-os/CONTRACT.md).
@@ -630,25 +670,40 @@
     return '#ffffff';
   }
   function textOnFor(ground, surface, ink, target) {
-    return readableAsText(readableOn(ground, ink || '#111111', surface || '#ffffff'), ground, target || 4.5);
+    var want = target || 4.5;
+    var start = readableOn(ground, ink || '#111111', surface || '#ffffff');
+    var first = readableAsText(start, ground, want);
+    if (contrast(first, ground) >= want) return first;
+    // Mirrors textOn(): a mid-tone ground needs the walk the other way.
+    return textBothWaysFor(start, ground, want) || textBothWaysFor(start, ground, Math.min(want, 4.5)) || first;
   }
-  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states) {
+  function textBothWaysFor(start, ground, want) {
+    var c = normHex(start) || '#111111';
+    for (var t = 0.05; t <= 1.0001; t += 0.05) {
+      for (var d = 0; d < 2; d++) {
+        var cand = shade(c, (d === 0 ? -1 : 1) * t);
+        if (contrast(cand, ground) >= want) return cand;
+      }
+    }
+    return '';
+  }
+  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, states) {
     var band = normHex(sectionGroundFor(primary, accent, surface)) || '#ffffff';
     var bandAccent = normHex(sectionGroundFor(accent, primary, surface)) || '#ffffff';
-    var text = [ink, readableAsText(muted || shade(ink, 0.35), worstSurface, TEXT_AA),
-      readableAsText(primary, worstSurface, TEXT_AA), readableAsText(accent, worstSurface, TEXT_AA),
-      readableAsText(states.ok, worstSurface, TEXT_AA), readableAsText(states.warn, worstSurface, TEXT_AA),
-      readableAsText(states.err, worstSurface, TEXT_AA)];
+    var text = [ink, readableOnSurfaces(muted || shade(ink, 0.35), [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA), readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA), readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA)];
     return {
       '--brand-surface-sunken': sunkenSurfaceFor(surface, surfaceAlt, text),
       '--brand-band': band,
       '--brand-on-band': textOnFor(band, surface, ink, TEXT_AA),
       '--brand-band-accent': bandAccent,
       '--brand-on-band-accent': textOnFor(bandAccent, surface, ink, TEXT_AA),
-      '--brand-ok-text': readableAsText(states.ok, worstSurface, TEXT_AA),
-      '--brand-warn-text': readableAsText(states.warn, worstSurface, TEXT_AA),
-      '--brand-err-text': readableAsText(states.err, worstSurface, TEXT_AA),
-      '--brand-focus': readableAsText(accent, worstSurface, 3),
+      '--brand-ok-text': readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA),
+      '--brand-warn-text': readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+      '--brand-err-text': readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA),
+      '--brand-focus': readableOnSurfaces(accent, [surface, surfaceAlt], 3),
     };
   }
   function sunkenSurfaceFor(surface, surfaceAlt, textColours) {
@@ -1388,6 +1443,7 @@
       if (version !== brandPaintVersion) return;
       try { walk(document.body); } catch (e) { log(e); }
       try { gateShipped(brand); } catch (e) { log(e); }
+      try { paintShippedImages(brand); } catch (e) { log(e); }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
     else run();
@@ -1903,14 +1959,14 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              ? 'You are not signed in, so there is no workspace to load. Sign in with Gmail to reach your brands, '
+              ? 'You are not signed in. Sign in with your mobile number and a 4-digit PIN to keep your work under your name, '
                 + 'or set up a brand on this device now: it is saved here either way.'
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
-            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Gmail</button>'
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with your mobile number</button>'
               // Signed out is a usable state: a brand can be set up on this
               // device now.
               + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
@@ -1927,9 +1983,9 @@
     document.body.appendChild(el);
     var signin = el.querySelector('[data-gate-signin]');
     if (signin) signin.addEventListener('click', function () {
-      // Google is the sign-in. The gate steps aside so a refusal note in the
-      // rail can be read; a started redirect leaves the page.
-      signin.textContent = 'Opening Google...';
+      // Opens auth.js's inline mobile + PIN panel in the rail. The gate steps
+      // aside so the panel can be used; it returns on the next resolution if
+      // there is still no brand.
       try {
         var a = window.LifecycleAuth;
         if (a && typeof a.openSignIn === 'function') { removeGate(); a.openSignIn(); return; }
@@ -1976,9 +2032,12 @@
       state.needsOnboarding = !!r.needs_onboarding;
       state.workspaces = r.workspaces || [];
       state.mode = fromDevice ? 'device' : mode;
-      // Being signed out of a reachable backend is the one device state where
-      // signing in is an answer, so the gate offers it there and only there.
-      state.signedOut = fromDevice && authKind() === 'signed-out';
+      // Nobody is signed in: the gate offers Sign in whatever the backend's
+      // state. It used to offer it only when the account service answered, so
+      // on a deployment whose project was paused (production, 2026-10-10) a
+      // phone showed no way to sign in at all. When sign-in cannot open, the
+      // gate says why in its own body, where a phone can read it.
+      state.signedOut = fromDevice && !mobileSession() && NO_SESSION_KINDS.indexOf(authKind()) !== -1;
       state.loaded = true;
       if (state.brand) {
         // The device store IS the cache for a device brand; the uid-keyed
@@ -2004,6 +2063,9 @@
       enforceGate();
       return state.brand;
     } finally {
+      // No active brand: the shipped default's own pictures (paint() runs
+      // only for a brand, so this is the one place the no-brand state lands).
+      if (!state.brand) { try { paintShippedImages(null); } catch (e2) { log(e2); } }
       readyResolve(state.brand);
       // auth.js changed the session while this read was in flight (a server
       // session answered 401 during boot, say): what was just painted may be

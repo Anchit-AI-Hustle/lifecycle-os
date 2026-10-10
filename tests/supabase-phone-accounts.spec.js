@@ -184,7 +184,8 @@ test('sign-in yields a session requireUser() accepts as provider mobile-pin, mod
   const f = project();
   await signUp(f);
   const known = await auth('enter', { phone: PHONE, cc: '+91' });
-  expect(known.body).toMatchObject({ ok: true, exists: true, needPin: true, name: 'Ravi' });
+  expect(known.body).toMatchObject({ ok: true, exists: true, needPin: true });
+  expect(known.body.name, 'a name before the PIN').toBeUndefined();
   const r = await auth('enter', { phone: PHONE, cc: '+91', pin: PIN });
   expect(r.status).toBe(200);
   expect(r.body).toMatchObject({ ok: true, created: false, mode: 'supabase' });

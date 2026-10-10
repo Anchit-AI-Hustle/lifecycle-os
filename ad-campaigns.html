@@ -200,33 +200,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="sub">Plan and brief Google &amp; Meta campaigns, and the landing pages they point to, in the brand system.</div>
   </div>
 
-  <!-- Embedded KPI Dashboard -->
-  <section class="card" style="padding: 16px; margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <div class="label" style="margin: 0;">Sample metrics <span style="color:var(--vh-accent-text);font-weight:700">· illustrative, not live data</span></div>
-      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color:var(--vh-accent-text); text-decoration: none;">Open real analysis →</a>
-    </div>
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="embeddedDashboard">
-      <div style="padding: 12px; background:var(--vh-panel); border-radius: 8px; border:1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color:var(--vh-ink-dim); font-weight: 600;">Ad Spend (30d)</div>
-        <div style="font-size: 18px; font-weight: 700; color:var(--vh-ink); margin-top: 4px;">$45,200</div>
-        <div style="font-size: 10px; color:var(--vh-err-text); margin-top: 4px;">↓ 2% vs prior</div>
-      </div>
-      <div style="padding: 12px; background:var(--vh-panel); border-radius: 8px; border:1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color:var(--vh-ink-dim); font-weight: 600;">Overall ROAS</div>
-        <div style="font-size: 18px; font-weight: 700; color:var(--vh-ink); margin-top: 4px;">3.8x</div>
-        <div style="font-size: 10px; color:var(--vh-ok-text); margin-top: 4px;">↑ 0.2x vs prior</div>
-      </div>
-      <div style="padding: 12px; background:var(--vh-panel); border-radius: 8px; border:1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color:var(--vh-ink-dim); font-weight: 600;">Cost per Acq (CPA)</div>
-        <div style="font-size: 18px; font-weight: 700; color:var(--vh-ink); margin-top: 4px;">$18.50</div>
-        <div style="font-size: 10px; color:var(--vh-ok-text); margin-top: 4px;">↓ $1.20 vs prior</div>
-      </div>
-      <div style="padding: 12px; background:var(--vh-panel); border-radius: 8px; border:1px solid var(--vh-line);">
-        <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color:var(--vh-ink-dim); font-weight: 600;">Top Channel</div>
-        <div style="font-size: 18px; font-weight: 700; color:var(--vh-ink); margin-top: 4px;">Meta Ads</div>
-        <div style="font-size: 10px; color:var(--vh-ink-dim); margin-top: 4px;">4.2x ROAS</div>
-      </div>
+  <!-- KPI strip (2026-10-10): this block used to print invented figures in
+       dollars ("$45,200", "$212,450", "Jordan First Flush") for EVERY brand,
+       labelled illustrative. A number nobody measured reads as this brand's
+       performance, and in another market's currency. It now says what is true. -->
+  <section class="card" style="padding: 16px; margin-bottom: 24px;" id="embeddedDashboard" data-kpi-state="none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <p class="vh-status" style="margin:0">No live metrics are connected for this brand yet, so none are shown here. Figures appear in the brand's own currency once its data is imported.</p>
+      <a href="/dashboard.html" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--vh-ink); text-decoration: none;">Open analysis →</a>
     </div>
   </section>
 
@@ -456,7 +437,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function brandName() {
     var b = activeBrand();
-    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name, all, all]';
+    return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
   }
   function brandWordmark() { return String(brandName()).toUpperCase(); }
   function brandStrapline() {
@@ -468,6 +449,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
 (function () {
   const $ = (s) => document.querySelector(s);
+  /* A daily budget in the market's own currency (the brand's record, else its
+     country's), never a typed '$' (2026-10-05). */
+  function budgetLabel(c) {
+    const RC = window.RegionContext;
+    const l = (RC && RC.localeOf) ? RC.localeOf((c && c.market) || '') : {};
+    const v = c && c.budget;
+    if (v == null || v === '') return '—';
+    const n = Number(v);
+    if (!isFinite(n)) return String(v);
+    try { if (l.currency) return n.toLocaleString(l.locale || undefined, { style: 'currency', currency: l.currency, maximumFractionDigits: 2 }); } catch (_) {}
+    return n.toLocaleString(l.locale || undefined);
+  }
   const esc = (s) => (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // Clamp ad copy to the platform character limit at save (covers both manually
   // typed and AI-autofilled copy), trimming to a word boundary so the platform
@@ -509,7 +502,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft, fix them, and return ONLY the corrected final output.';
   function buildAdPrompt(ch, c) {
     const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' : 'TikTok';
-    const market = c.market || 'US';
+    const market = c.market || ((window.RegionContext && window.RegionContext.home) || '');
     return 'ROLE: You are a senior paid-social/search creative director + performance copywriter for ' + brandName() + '.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK() + '\n\n' + [
       'Produce a scroll-stopping ' + platform + ' ad campaign package.',
       '',
@@ -578,8 +571,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Persist a saved ad to Supabase (best-effort — localStorage stays the source
   // of truth so the UI never blocks on the network). Uploads any base64 creative
   // to Storage first, then stores only the hosted URL on the row.
+  // Rows are filed under the ACTIVE brand's account workspace: RLS admits a write only for a member of
+  // that workspace (20261009230000). A device brand (id local-*) has no account row, so nothing is sent.
+  const activeWorkspaceId = () => { try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); const id = b && b.id; return (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) ? String(id) : null; } catch (_) { return null; } };
   async function persistAd(channel, c) {
     const sb = sbClient(); if (!sb) return;
+    const workspaceId = activeWorkspaceId(); if (!workspaceId) return; // kept on this device (localStorage)
     try {
       // Upload every base64 creative asset to Storage so only hosted URLs are
       // stored on the row. creative_assets is an array of platform-correct
@@ -605,7 +602,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // c (stored in the `copy` JSONB) carries the full creative_assets array,
         // so the multi-asset payload survives without needing a new column.
         copy: c, creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
-        origin: location.origin || ''
+        origin: location.origin || '', workspace_id: workspaceId
       };
       const { data, error } = await sb.from('ads_generated').insert([row]).select('id').single();
       if (error) { console.warn('[ads] supabase insert failed:', error.message); return; }
@@ -647,7 +644,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const v = (id) => (document.getElementById(id)?.value || '').trim();
   // Pull the headline / offer / sub copy + market for a channel.
   function getCopy(ch) {
-    const market = v(CRE_CFG[ch].market) || 'US';
+    const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
     const spec = adSpec[ch] || {};
     const headline = spec.headline
       || (ch === 'g' ? (v('g-headlines').split('\n')[0]) : ch === 'm' ? v('m-headline') : v('t-hook'))
@@ -669,7 +666,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // sneaker scene as a last-resort backdrop. Sent with mode:'ambient' server-side.
   function buildCreativePrompt(ch) {
     const cfg = CRE_CFG[ch];
-    const market = v(cfg.market) || 'US';
+    const market = v(cfg.market) || ((window.RegionContext && window.RegionContext.home) || '');
     const orient = ch === 't' ? 'vertical 9:16 mobile-first social composition' : 'clean centered composition';
     return [
       'Ambient lifestyle backdrop for ' + brandName() + ' — an atmospheric scene with NO product and NO packaging in frame.',
@@ -833,7 +830,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // caption can say whose catalogue that is.
   async function realCatalogImage(ch) {
     const cfg = CRE_CFG[ch];
-    const got = await catalogProducts(v(cfg.market) || 'US');
+    const got = await catalogProducts(v(cfg.market) || ((window.RegionContext && window.RegionContext.home) || ''));
     return { url: pickCatalogImage(ch, got.prods), res: got.res };
   }
   function pickCatalogImage(ch, prods) {
@@ -1005,7 +1002,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // server-returned master_prompt isn't available yet.
   function clientMasterPrompt(ch) {
     const platform = CH_PLATFORM[ch];
-    const market = v(CRE_CFG[ch].market) || 'US';
+    const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
     const f = STORE_FACTS[market] || STORE_FACTS.Global;
     const c = getCopy(ch);
     const brief = [v(CRE_CFG[ch].name), c.headline, c.sub].filter(Boolean).join(' — ');
@@ -1225,7 +1222,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#dm-name').value = ''; $('#dm-budget').value = '';
     const existing = store.calendar[k] || [];
     $('#dm-existing').innerHTML = existing.length
-      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
+      ? '<label class="label">Scheduled</label>' + existing.map((c, i) => `<div class="item" style="margin-bottom:6px"><div class="item-top"><span class="chan chan-${c.channel}">${c.channel}</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${i}">×</button></div><div class="item-meta"><span>${esc(budgetLabel(c))}/day</span><span>${esc(c.market || '')}</span></div></div>`).join('')
       : '';
     $('#dm-existing').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => {
       store.calendar[k].splice(+b.dataset.rm, 1); if (!store.calendar[k].length) delete store.calendar[k]; save(); openDay(k); renderAdPlan();
@@ -1303,7 +1300,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#g-list').innerHTML = store.google.length ? store.google.map((c) => `
       <div class="item">
         <div class="item-top"><span class="chan chan-google">Google</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
-        <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
+        <div class="item-meta"><span><b>${esc(c.type)}</b></span><span>${esc(budgetLabel(c))}/day</span><span>${esc(c.market)}</span><span>→ ${esc(c.url || '')}</span></div>
         ${(c.headlines || []).length ? `<div class="item-copy"><span class="h">Headlines:</span> ${c.headlines.map(esc).join(' · ')}</div>` : ''}
         ${(c.descriptions || []).length ? `<div class="item-copy">${c.descriptions.map(esc).join('<br>')}</div>` : ''}
         ${creativeThumbs(c)}
@@ -1326,7 +1323,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#m-list').innerHTML = store.meta.length ? store.meta.map((c) => `
       <div class="item">
         <div class="item-top"><span class="chan chan-meta">Meta</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
-        <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>$${esc(String(c.budget || '—'))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
+        <div class="item-meta"><span><b>${esc(c.obj)}</b></span><span>${esc(budgetLabel(c))}/day</span><span>${esc(c.market)}</span><span>${esc(c.place || '')}</span></div>
         ${c.aud ? `<div class="item-copy"><span class="h">Audience:</span> ${esc(c.aud)}</div>` : ''}
         ${c.primary ? `<div class="item-copy">${esc(c.primary)}</div>` : ''}
         ${c.headline ? `<div class="item-copy"><span class="h">${esc(c.headline)}</span></div>` : ''}
@@ -1349,7 +1346,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#t-list').innerHTML = store.tiktok.length ? store.tiktok.map((c) => `
       <div class="item">
         <div class="item-top"><span class="chan chan-other">TikTok</span><b>${esc(c.name)}</b><button type="button" class="x" data-rm="${c.id}">×</button></div>
-        <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>$${esc(c.budget)}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
+        <div class="item-meta"><span>${esc(c.obj || '')}</span>${c.budget ? `<span>${esc(budgetLabel(c))}/day</span>` : ''}<span>${esc(c.market || '')}</span>${c.creator ? `<span>${esc(c.creator)}</span>` : ''}</div>
         <div class="item-copy" style="margin-top:6px"><span class="h">${esc(c.hook || '')}</span><br>${esc(c.caption || '')}</div>
         ${c.hashtags ? `<div class="item-meta" style="margin-top:6px"><span>${esc(c.hashtags)}</span></div>` : ''}
         ${creativeThumbs(c)}
@@ -1422,7 +1419,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         const r = await fetch('/api/ai/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || 'US' }),
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || ((window.RegionContext && window.RegionContext.home) || '') }),
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
