@@ -447,6 +447,13 @@
     }
     return best;
   }
+  /** Mirrors readableOnSurfaces() on the server: text held on every ground. */
+  function readableOnSurfaces(color, grounds, target) {
+    var c = color;
+    var gs = (grounds || []).filter(Boolean);
+    for (var pass = 0; pass < 2; pass++) for (var i = 0; i < gs.length; i++) c = readableAsText(c, gs[i], target);
+    return c;
+  }
   function readableAsText(color, bg, target) {
     var want = target || 4.5;
     var c = normHex(color);
@@ -589,11 +596,9 @@
     var surface = p.surface || '#F7F5F2';
     var surfaceAlt = p.surface_alt || shade(surface, 0.6);
     var muted = p.muted || shade(requestedInk, 0.35);
-    var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
     // Old saved records can predate palette validation; never render low
     // contrast body text while their owner is updating the palette.
-    var inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
-    var ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
+    var ink = readableOnSurfaces(requestedInk, [surface, surfaceAlt], TEXT_AA);
     var t = brand && brand.typography ? brand.typography : {};
     var states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
     return Object.assign({
@@ -602,13 +607,13 @@
       '--brand-primary-soft': shade(primary, 0.86),
       '--brand-primary-tint': shade(primary, 0.94),
       '--brand-on-primary': readableOn(primary, ink, surface, surfaceAlt),
-      '--brand-primary-text': readableAsText(primary, worstSurface, TEXT_AA),
+      '--brand-primary-text': readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA),
       '--brand-accent': accent,
       '--brand-accent-soft': shade(accent, 0.88),
       '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
-      '--brand-accent-text': readableAsText(accent, worstSurface, TEXT_AA),
+      '--brand-accent-text': readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
       '--brand-ink': ink,
-      '--brand-ink-muted': readableAsText(muted, worstSurface, TEXT_AA),
+      '--brand-ink-muted': readableOnSurfaces(muted, [surface, surfaceAlt], TEXT_AA),
       '--brand-surface': surface,
       '--brand-surface-alt': surfaceAlt,
       '--brand-line': shade(ink, 0.84),
@@ -619,7 +624,7 @@
       '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
       '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
       '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states), componentTokensFor(brand));
+    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, states), componentTokensFor(brand));
   }
   /* Mirrors sectionGround() / textOn() / contractTokens() on the server: the
      design-system contract's derived tokens (design/lifecycle-os/CONTRACT.md).
@@ -633,25 +638,40 @@
     return '#ffffff';
   }
   function textOnFor(ground, surface, ink, target) {
-    return readableAsText(readableOn(ground, ink || '#111111', surface || '#ffffff'), ground, target || 4.5);
+    var want = target || 4.5;
+    var start = readableOn(ground, ink || '#111111', surface || '#ffffff');
+    var first = readableAsText(start, ground, want);
+    if (contrast(first, ground) >= want) return first;
+    // Mirrors textOn(): a mid-tone ground needs the walk the other way.
+    return textBothWaysFor(start, ground, want) || textBothWaysFor(start, ground, Math.min(want, 4.5)) || first;
   }
-  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states) {
+  function textBothWaysFor(start, ground, want) {
+    var c = normHex(start) || '#111111';
+    for (var t = 0.05; t <= 1.0001; t += 0.05) {
+      for (var d = 0; d < 2; d++) {
+        var cand = shade(c, (d === 0 ? -1 : 1) * t);
+        if (contrast(cand, ground) >= want) return cand;
+      }
+    }
+    return '';
+  }
+  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, states) {
     var band = normHex(sectionGroundFor(primary, accent, surface)) || '#ffffff';
     var bandAccent = normHex(sectionGroundFor(accent, primary, surface)) || '#ffffff';
-    var text = [ink, readableAsText(muted || shade(ink, 0.35), worstSurface, TEXT_AA),
-      readableAsText(primary, worstSurface, TEXT_AA), readableAsText(accent, worstSurface, TEXT_AA),
-      readableAsText(states.ok, worstSurface, TEXT_AA), readableAsText(states.warn, worstSurface, TEXT_AA),
-      readableAsText(states.err, worstSurface, TEXT_AA)];
+    var text = [ink, readableOnSurfaces(muted || shade(ink, 0.35), [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA), readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA), readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA)];
     return {
       '--brand-surface-sunken': sunkenSurfaceFor(surface, surfaceAlt, text),
       '--brand-band': band,
       '--brand-on-band': textOnFor(band, surface, ink, TEXT_AA),
       '--brand-band-accent': bandAccent,
       '--brand-on-band-accent': textOnFor(bandAccent, surface, ink, TEXT_AA),
-      '--brand-ok-text': readableAsText(states.ok, worstSurface, TEXT_AA),
-      '--brand-warn-text': readableAsText(states.warn, worstSurface, TEXT_AA),
-      '--brand-err-text': readableAsText(states.err, worstSurface, TEXT_AA),
-      '--brand-focus': readableAsText(accent, worstSurface, 3),
+      '--brand-ok-text': readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA),
+      '--brand-warn-text': readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+      '--brand-err-text': readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA),
+      '--brand-focus': readableOnSurfaces(accent, [surface, surfaceAlt], 3),
     };
   }
   function sunkenSurfaceFor(surface, surfaceAlt, textColours) {
@@ -1906,21 +1926,20 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              ? 'You are not signed in, so there is no workspace to load. Sign in with Gmail to reach your brands, '
+              ? 'You are not signed in. Sign in with your mobile number and a 4-digit PIN to keep your work under your name, '
                 + 'or set up a brand on this device now: it is saved here either way.'
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
-            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Gmail</button>'
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with your mobile number</button>'
               // Signed out is a usable state: a brand can be set up on this
               // device now.
               + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
             : '<a href="/onboarding" style="background:#111;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px">Set up or choose a brand</a>') +
           '<button type="button" data-gate-about style="background:transparent;color:#111;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer">About this platform</button>' +
         '</div>' +
-        '<p data-gate-signin-note role="status" hidden style="margin:0 0 16px;padding:10px 12px;border-left:3px solid var(--brand-accent-text,#555);background:rgba(0,0,0,.04);font-size:13.5px;line-height:1.55"></p>' +
         '<div data-gate-aboutbody hidden style="border-top:1px solid rgba(0,0,0,.12);padding-top:14px;font-size:13.5px;line-height:1.65;opacity:.85">' +
           '<p style="margin:0 0 8px"><strong>What it is.</strong> A lifecycle-marketing operating system: analytics and cohorts, a rolling campaign calendar, and generation of mailers, ads and landing pages, with a brand assistant over the whole stack.</p>' +
           '<p style="margin:0 0 8px"><strong>How brands work.</strong> You onboard a brand once - identity, colour schema, typography, voice, catalogue. Those become design tokens and prompt rules, so the entire suite re-skins and every generated asset obeys them. You can keep several brands and switch between them.</p>' +
@@ -1931,26 +1950,14 @@
     document.body.appendChild(el);
     var signin = el.querySelector('[data-gate-signin]');
     if (signin) signin.addEventListener('click', function () {
-      // Google is the sign-in. The gate steps aside so a refusal note in the
-      // rail can be read; a started redirect leaves the page.
-      // Google is the sign-in. When it cannot start (no account service on
-      // this deployment, or it is not answering) the refusal is said HERE: the
-      // rail's note sits in a closed drawer on a phone.
-      var a = window.LifecycleAuth;
-      if (!a || typeof a.openSignIn !== 'function') { location.reload(); return; }
-      signin.disabled = true;
-      signin.textContent = 'Opening Google...';
-      var note = el.querySelector('[data-gate-signin-note]');
-      Promise.resolve().then(function () { return a.openSignIn(); }).then(function (refused) {
-        if (!refused) return;   // Google has taken over the page
-        signin.disabled = false;
-        signin.textContent = 'Sign in with Gmail';
-        if (note) { note.textContent = String(refused); note.hidden = false; }
-      }, function (err) {
-        signin.disabled = false;
-        signin.textContent = 'Sign in with Gmail';
-        if (note) { note.textContent = 'Sign-in could not start: ' + String((err && err.message) || err); note.hidden = false; }
-      });
+      // Opens auth.js's inline mobile + PIN panel in the rail. The gate steps
+      // aside so the panel can be used; it returns on the next resolution if
+      // there is still no brand.
+      try {
+        var a = window.LifecycleAuth;
+        if (a && typeof a.openSignIn === 'function') { removeGate(); a.openSignIn(); return; }
+      } catch (_) {}
+      location.reload();
     });
     var btn = el.querySelector('[data-gate-about]');
     if (btn) btn.addEventListener('click', function () {
