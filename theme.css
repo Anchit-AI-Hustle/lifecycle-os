@@ -168,6 +168,11 @@
 /* ── Globally safe polish (no layout-affecting bare-element restyles) ─────── */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+/* Form controls take the page's family. A browser gives them its own (Arial),
+   so every button and input wore no brand's type under any brand. :where()
+   keeps this at zero specificity: any page rule that sets a control's font
+   still wins, though theme.css loads after the page's own styles. */
+:where(button, input, select, textarea) { font-family: inherit; }
 
 /* ── Global table default: header cells sit exactly above their columns ─────
    Element-level (lowest specificity) so ANY per-page `table.<class>` rule

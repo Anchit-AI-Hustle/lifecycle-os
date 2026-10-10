@@ -56,6 +56,135 @@ GBP; Ozzlewick, a name and nothing else), tenant zero's tokens DERIVED from its 
   named); `daily-calendar` 500s on main (`smart-brain-plan.horizonCoverage` never existed here); the
   `X-KNICKGASM-LP` header / download name; `scenario-model.sanitizeBrand`'s tenant-zero substitutions.
 
+## ⭐ A catalogue import reads the WHOLE store, says what it did not get, and resumes (2026-10-10)
+The operator: *"catalog fetching? How to fix that for each brand and ensure everything fetched"*.
+`api/_shared/catalog-import.js` (routes, rows, coverage, cursor, merge, daily refresh) behind
+`brand-workspace-core.rowsFromStore()` / `readCatalogSource()` / `importCatalog()` / `deviceCatalogImport()`, migration
+`20261010002000_catalog_import_merge.sql` (`brand_catalog_merge()`), gated by `tests/catalog-import-complete.spec.js`
+(17, executed: real stores on 127.0.0.1 in `tests/lib/catalog-fixture-stores.js`, reached through the shipped paths; 22
+  mutations, each restoring one defect, fail it; the
+SQL run on PGlite). Still 12/12 functions, still two crons.
+- **Measured first, through the shipped paths** (before -> after): Shopify 2,600 products 2,499 -> 2,600 (a `page <= 10`
+  cap), variants 0 -> 7,800, images 2,600 -> 7,800, currency none -> USD, device kept 2,000 -> 2,600, the generators saw
+  **500** -> 2,600 (`brand-catalog-server MAX_ROWS = 500`, one read ordered by title, and PostgREST's `max_rows` 1,000
+  behind it); Shopify with the feed off, 60 in its sitemap: 1 -> 60; WooCommerce, 300 in gzipped child sitemaps: 2 -> 300;
+  a UK store under `/en-gb/`: 40 rows filed under UK **at US prices** -> GBP from the UK store; robots.txt disallowing 5 of
+  40: 2 read and **a disallowed page fetched** -> 35 read, none fetched; a slow store of 150: 1 -> 150 across resumable
+  steps; a store answering 429 + Retry-After: 0 ("no usable product rows") -> 600.
+- **The root of most of it: the default page fetcher refused anything that was not text/html**, and robots.txt and
+  sitemaps went through it whenever no fetcher was injected - i.e. in production. Every robots.txt read as absent (the
+  crawler whose user agent says it respects robots.txt fetched disallowed pages) and every XML sitemap read as absent.
+  Every test injected its own fetcher, which is why none saw it. `site-crawl.defaultAssetFetch` reads them now (gzip
+  included), and robots is RFC 9309 everywhere (`parseRobots`/`robotsAllows`: groups, Allow, `*`, `$`, longest match;
+  `Disallow: /` honoured; a robots.txt that answers 5xx or not at all is "disallow everything" and nothing is read).
+- **Routes, chosen on purpose.** Shopify's `/products.json` (the one feed this repo already called) at limit=250 until an
+  EMPTY page (a short page is not the end: Shopify pages by position and drops products off the online store), skipped
+  when the store declares another platform. Otherwise the site's own sitemaps (robots `Sitemap:` else `/sitemap.xml`,
+  index -> children, `.xml.gz`), then each product page's JSON-LD `Product` / `ProductGroup.hasVariant` / `Offer` /
+  `AggregateOffer` (or OpenGraph product tags). Crawl only when there is no sitemap. No new platform endpoint: WooCommerce's
+  Store API, BigCommerce's storefront GraphQL and the rest are not called.
+- **Each market from its own store**: `regions[].store_url` for that market, else the start page's own `hreflang`
+  alternate, else the URL given - and the coverage says which. Currency is the store's declared `Shopify.currency.active`
+  on that market's page or the JSON-LD `priceCurrency`; the feed carries none, and none is ever assumed.
+- **Coverage in sentences, on every import**: "Found X of the Y products the site declares in <its product sitemaps>",
+  the source per product (feed / sitemap JSON-LD / crawl), what was skipped and why (robots with examples, off-scope, no
+  product declared, no title, unreachable, duplicates, the stated 20,000-per-market cap), what the store did not state
+  (`[DATA REQUIRED BEFORE LAUNCH: price|product image|currency, <product>, <REGION>]`, never a number), the Retry-After
+  waits, and `PARTIAL: ... at feed page N / URL n of N. Continue import resumes exactly there`.
+- **Resumable on the existing row, never a new function.** One call reads until its budget (55 s interactive) and returns
+  a cursor; the account path keeps it in `brand_workspaces.catalog_import` (not in the columns every brand read selects),
+  a phone sign-in's device keeps it beside its catalogue. Continue import (`op=catalog-import {continue:true}`) resumes,
+  and the EXISTING daily cron (`/api/brain?action=cron` step `catalog_refresh`) continues a partial import first, then
+  re-reads the store read longest ago (> 20 h) - service role, workspace named on every write; a CSV/JSON catalogue is
+  never touched. A 429/503 waits what Retry-After asks; one longer than the step stops it with the cursor.
+- **Upsert, never a duplicate, never a silent delete.** `brand_catalog_merge()` matches (workspace, region, handle, sku)
+  with NULL equal to NULL (the table's unique key let a sku-less row be inserted twice) under an advisory lock, stamps the
+  run, and only when a run has read its WHOLE source marks the rows of the same source family it did not see
+  `stale_at` (kept; a returning product comes back to life; a CSV row is never staled by a store run). State and
+  `catalog_source` are written in the same transaction - the row's update policy is OWNER-only, so an editor's import
+  used to record nothing about its source (a 204 with zero rows). The device merge (`BrandContext.device.mergeCatalog`) is
+  its twin; a Chromium test diffs the two. New columns: `image_urls`, `variants`, `source_url`, `last_seen_run`,
+  `last_seen_at`, `stale_at`, `updated_at`. A database without the migration falls back to the old atomic replace for a
+  one-call import and says so; a partial one is refused with that sentence.
+- **The rows reach the generators**: `brand-catalog-server.workspaceRows` pages to an empty page (live rows only, every
+  image in `imgs`), `MAX_ROWS` 20,000; `productCount` / `catalog-status` page too (a single read said 1,000 for every
+  larger catalogue). Provenance rules there were not changed (another branch owns them).
+- **What the operator sees**: the onboarding catalogue step and `/connections` render the coverage sentences in the
+  accent rule (an ordinary state, not a failure frame) and a **Continue import** button while partial; `op=catalog-status`.
+- Known limits, said: one row per product (variants inside it); JSON-LD `category` only as a string; a sitemap that
+  does not name its product children is read whole and the coverage says it declares no product total; a device keeps at
+  most 10,000 rows (a browser holds a bounded amount); the context pack's catalogue stage takes ONE step and leaves the
+  rest to Continue import / the daily refresh.
+
+## ⭐ A brand record describes ONE brand (2026-10-10)
+The operator: *"check each current brand context information - all messed up and mixed up"*. The only brand in
+the live project was **named Mamaearth, slugged food-for-thought, website https://www.nike.in**, with its social
+profiles, imagery, app icon and legal entity read from mamaearth.in and its catalogue imported from delichic.co.in
+(`tests/fixtures/live-mixed-brand.js`, rebuilt from read-only SELECTs; nothing was written to the project). Every
+field had a source; nothing compared them. `api/_shared/brand-coherence.js` `brandCoherence(record)`, ported byte
+for byte into `brand-context.js` (`BrandContext.coherence`), gated by `tests/brand-record-coherence.spec.js` (37,
+executed: the rule, text + output parity in Chromium, the shipped `handle()` over `tests/lib/fake-supabase.js`
+with `brand_workspace_save` modelled from its migration, the wizard on the device AND account paths; 24 mutations).
+- **The rule.** The IDENTITY SOURCE is the website's registrable domain (the preset harvester's ownership rule:
+  same domain, same label under another suffix - nike.in/nike.com - or a corporate sibling; one suffix list, asserted
+  equal). A value is attributed by the page it was read from (`field_origins[f].url`, `brand_extraction.applied[f]
+  .source_url` when it still says the current value, `social[].source_url`, `imagery[].page`, `brand_assets[].found_on`,
+  `catalog_source.url`); a value only HOSTED somewhere (CDN, social platform) is judged by its page. Another domain:
+  IDENTITY fields (name, tagline, logo, icon, social, legal entity, imagery, assets, claims, catalogue, a brand book
+  that names another site, a template's website/logo under another name) BLOCK activation; design values, home
+  market, asset hosts, a typed name that matches nothing in the domain and a slug made from an earlier name WARN.
+  No website + two sources = every sourced value is a conflict; no website is chosen. A typed value is the
+  person's (a read record beside it is history); a site value accepted with "Use your site's" is STILL that site's.
+- **Where it runs.** Save (never refused; the response carries `coherence`), the brand list (`coherence` badge on
+  every row, server `shellPayload` and device `shellPayloadFor`, so device brands are checked on load), the wizard
+  (step 1 in `#cohSlot` when anything disagrees, always on review) and activation: `activateChecked()` / the device
+  `activate` answer `409 coherence_blocked` naming each field unless `coherence_override.reason` is given, then
+  record `{at, by, reason, conflicts}` in `brand_data.coherence.overrides`. The first workspace a save auto-activates
+  is not checked (the person has seen nothing yet). Repairs: Keep this (recorded in `brand_data.coherence.accepted`),
+  Clear that (only that source's items; palette/type return to the wizard's own placeholder, origin `default`),
+  "This brand is <domain>", "Clear everything from <domain>", "Use <slug>". Nothing is resolved for the person.
+- **Every path that mixed a record, found by driving the wizard, and its fix:**
+  (1) **Read my site on another domain** kept the typed website and let the read replace every machine-owned field
+  (the live record: nike.in website + mamaearth.in read) - now the read waits: "make <domain> the website, then read
+  it", "start a new brand from it" or cancel, and the old domain's values are listed; `brand_extraction.source` now
+  names the latest read, not the first. (2) **"Onboard another brand"** copied the record on screen and cleared four
+  fields - the new brand inherited social, imagery, legal entity, regions, read record and catalogue source; it is a
+  blank record now (`blankBrand()`/`startNewBrand()`). (3) **A gallery preset on an existing brand** kept the id and
+  overwrote name, website, logo, regions, assets AND slug - on an existing brand a preset is design only; on a new one
+  the record says which template (`brand_data.template`). (4) **The preset's slug** rode into every brand built from
+  it (the KNICKGASM preset's included) - a slug follows the NAME on create and is never taken from a body, server
+  (`slugFor`) and device alike; an update keeps it unless asked for the slug the current name makes. This also
+  closes **device rows synced into an account** (sync sends the row's slug). (5) **A brand book of another brand**
+  filled untyped name/website/legal entity - Apply asks first when the book names a website on another domain (a name alone that differs is applied and WARNS - a typed variant is not a mix), and records
+  `brand_document.describes`. (6) **A name typed after a read** stays the person's and a re-read keeps it; it WARNS
+  when it matches nothing in the website. (7) **"user" from an earlier read**: accepting a site value marks it
+  `user`, and the rule still attributes it to that site. (8) **Two tabs** editing two brands: executed, NOT a mixing
+  path (each save is id-scoped; the stale-tab case was #143's). Also: the wizard's boot never loaded
+  `catalog_source`/`asset_hosts`, so it could not see where a catalogue came from.
+- **The shipped brands, audited** (41 presets, tenant zero, 40 observations; the audit is the spec's last block):
+  no preset holds another brand's name, claims, voice, legal entity, store, offering, social or region; every
+  observation was read from the preset's own site. Found and fixed at source: tenant zero's **Shopify URL scheme**
+  (`/products/{handle}`, `/collections/{slug}`) on Apple, The Economic Times, The Times of India and TOI Health &
+  Fitness (`build-brand-presets.js` region() states it only with `shopify:true`; `normalizeRegions` no longer
+  invents it for every brand, server and device; nothing reads a pattern). Kept, explained in the spec: Apple's
+  `cdn-apple.com` asset host, "TOI" in TOI Health & Fitness. Brand CDNs under another name (muscache, etimg,
+  flixcart, toiimg...) are judged by the page their logo was found on.
+- Left as found, scope of other branches: generated OUTPUT carrying only the active brand
+  (`claude/brand-context-invariant`) and catalogue import (`claude/catalog-fetch-complete`); clearing a catalogue
+  source does not delete imported products (re-import replaces them).
+
+## ⭐ Sign-in is a mobile number and a 4-digit PIN ONLY (2026-10-09) — read `docs/mobile-pin-signin.md`
+The owner's words: *"only keep PIN option, that too only 4-digit - this is for all projects"*. The Google
+sign-in restored on 2026-10-05 (#161, #163, #165) is REMOVED from `auth.js` (no `signInWithOAuth`, no
+OAuth callback handling, the Supabase client is anonymous again), `brand-context.js`, `supabase/config.toml`
+(no `[auth.external.*]`, email sign-up off), `.env.example` and `selfhost/`. A leftover `sb-*-auth-token`
+is deleted on boot. Server: `requireUser()`, `data-analysis-core.authorize()` and the broker's `op=me`
+refuse a GoTrue user whose provider is OAuth (`mobile-auth-supabase.oauthProvider()`, read from the
+verified record only). Each PIN try is CLAIMED before it is checked in all three stores (Neon one
+`update ... returning`, Supabase `mobile_pin_attempt`, the device store) and no answer names the
+account holder before the PIN is right. Gated by `tests/pin-only-signin.spec.js` (each guard
+mutation-verified). Never re-add an OAuth or email/password sign-in here.
+
 ## ⭐ The design system: one surface contract, read before styling any page (2026-10-05) — read `design/lifecycle-os/CONTRACT.md`
 The operator, on `/studio` with a red-primary brand (red bands, black panels, near-black cards in dark grey
 text): *"create a design schema for lifecycle os"*. `design/lifecycle-os/` holds it: `CONTRACT.md` (surface →
