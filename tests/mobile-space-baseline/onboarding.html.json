@@ -1,6 +1,7 @@
 {
   "key": "onboarding.html",
   "counts": {
-    "tiny-text": 15
+    "tiny-text": 26,
+    "wide-gutter": 1
   }
 }
