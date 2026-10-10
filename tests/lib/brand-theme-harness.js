@@ -89,7 +89,7 @@ const PALETTES = {
 
 /** The tokens the server derives for a palette - the SAME function, not a copy. */
 function tokensOf(name) {
-  const b = PALETTES[name];
+  const b = paletteDef(name);
   return core.tokens({ palette: b.palette, typography: b.typography });
 }
 
@@ -140,6 +140,16 @@ function appPages() {
   return { kept, excluded };
 }
 
+/*
+ * Brands a spec defines for itself (define()), kept OUT of PALETTES: every
+ * spec in a worker shares this module, and brand-theme-every-page sweeps
+ * Object.keys(PALETTES) - a brand added there by another spec would join its
+ * sweep and move its baseline.
+ */
+const EXTRA = {};
+function define(name, def) { EXTRA[name] = def; return name; }
+function paletteDef(name) { return PALETTES[name] || EXTRA[name]; }
+
 /* ── the host ─────────────────────────────────────────────────────────────── */
 const DEVICE_USER = { id: 'dev-theme0001', phone: '+919876543210', name: 'Theme Sweep' };
 const AUTH_STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' };
@@ -149,15 +159,22 @@ const GENERIC_OK = {
 };
 
 function deviceRow(name) {
-  const b = PALETTES[name];
+  const b = paletteDef(name);
   const id = 'local-theme' + name.replace(/[^a-z0-9]/g, '').slice(0, 12).padEnd(12, '0');
-  return {
+  // `record` (optional): the rest of a full brand record - tagline, website,
+  // voice, claims, legal entity - for a spec that measures CONTENT as well as
+  // colour (tests/brand-content-invariant.spec.js). The row's own identity
+  // fields below always win.
+  const extra = Object.assign({}, b.record || {});
+  for (const k of ['id', 'slug', 'storage', 'status', 'onboarding_step', 'owner_id', 'created_at', 'updated_at', 'catalogue']) delete extra[k];
+  return Object.assign({
     id, slug: b.slug, name: b.name, legal_name: null, tagline: '', industry: '', website: '',
     logo_url: null, favicon_url: null, palette: b.palette, typography: b.typography, voice: {},
     regions: b.regions, asset_hosts: [], catalog_source: {}, brand_data: {},
-    status: 'active', onboarding_step: 6, owner_id: null,
+  }, extra, {
+    id, slug: b.slug, status: 'active', onboarding_step: 6, owner_id: null,
     created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-01T00:00:00.000Z', storage: 'device',
-  };
+  });
 }
 
 function seed(args) {
@@ -777,7 +794,7 @@ async function attribute(page, file, items) {
 /** The probe's cfg for a palette. */
 function probeConfig(name, tagPrefix) {
   const t = tokensOf(name);
-  const b = PALETTES[name];
+  const b = paletteDef(name);
   const hueOf = (h) => {
     const c = core.normHex ? core.normHex(h) : h;
     const [r, g, bb] = [1, 3, 5].map((i) => parseInt(String(c).slice(i, i + 2), 16) / 255);
@@ -822,5 +839,5 @@ function readBaseline() {
 
 module.exports = {
   BASELINE_DIR, baselineFile, readBaseline, FROZEN,
-  ROOT, HOST, PALETTES, TENANT_ZERO_HEX, SIBLING_HEX, tokensOf, appPages, install, open, PROBE, probeConfig, attribute, deviceRow,
+  ROOT, HOST, PALETTES, TENANT_ZERO_HEX, SIBLING_HEX, tokensOf, appPages, install, open, PROBE, probeConfig, attribute, deviceRow, define,
 };

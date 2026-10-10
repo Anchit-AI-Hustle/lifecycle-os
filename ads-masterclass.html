@@ -466,7 +466,7 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
         <span class="role">// captures demand that already exists</span>
       </div>
       <h2>Google catches people at the exact moment they're looking.</h2>
-      <p style="margin-top:14px;max-width:66ch">Meta and TikTok <em>create</em> demand by interrupting. Google <em>drops</em> demand that's already there, someone typed "best coffee collection uk" and told you precisely what they want. That intent is why Google converts higher and costs more per click. You're not convincing anyone to want it; you're making sure you're the one they find.</p>
+      <p style="margin-top:14px;max-width:66ch">Meta and TikTok <em>create</em> demand by interrupting. Google <em>drops</em> demand that's already there, someone typed "best birthday gift ideas uk" and told you precisely what they want. That intent is why Google converts higher and costs more per click. You're not convincing anyone to want it; you're making sure you're the one they find.</p>
 
       <h4>The surfaces, one account, many networks</h4>
       <div class="chips">
@@ -495,9 +495,9 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
       <h4>Keywords &amp; match types, the intent dial</h4>
       <p>Match type controls how loosely Google interprets a keyword. Loosen for reach, tighten for control.</p>
       <div class="spec" style="margin-top:12px">
-        <div class="spec-item"><div class="k">Broad match</div><div class="v"><span class="mono">coffee collection</span> → any related search Google guesses. Max reach, needs heavy negatives + smart bidding to stay clean.</div></div>
-        <div class="spec-item"><div class="k">Phrase match</div><div class="v"><span class="mono">"coffee collection"</span> → searches containing that meaning. The balanced default.</div></div>
-        <div class="spec-item"><div class="k">Exact match</div><div class="v"><span class="mono">[coffee collection]</span> → that intent only. Tightest control, highest intent, least volume.</div></div>
+        <div class="spec-item"><div class="k">Broad match</div><div class="v"><span class="mono">gift ideas</span> → any related search Google guesses. Max reach, needs heavy negatives + smart bidding to stay clean.</div></div>
+        <div class="spec-item"><div class="k">Phrase match</div><div class="v"><span class="mono">"gift ideas"</span> → searches containing that meaning. The balanced default.</div></div>
+        <div class="spec-item"><div class="k">Exact match</div><div class="v"><span class="mono">[gift ideas]</span> → that intent only. Tightest control, highest intent, least volume.</div></div>
         <div class="spec-item"><div class="k">Negative keywords</div><div class="v">The unsung hero. Block "free", "jobs", "recipe" etc. Mine the search-terms report weekly or bleed budget on junk.</div></div>
       </div>
 
@@ -785,12 +785,14 @@ footer b{color:var(--text);font-family:'Bricolage Grotesque'}
 
   /* ---------- AUCTION SIMULATOR ---------- */
   var names=[
-    {n:'BrewCo',s:'premium sneaker brand'},
-    {n:'DailyGrind',s:'coffee subscription'},
-    {n:'ZenLeaf',s:'streetwear startup'},
-    {n:'MorningLabs',s:'D2C supplements'},
-    {n:'RootHerbal',s:'ayurveda brand'},
-    {n:'PeakBrew',s:'functional drinks'}
+    // Fictional bidders. They were another company's trade (coffee, tea,
+    // supplements, sneakers) and read as this brand's market to every brand.
+    {n:'Northwind',s:'established category leader'},
+    {n:'Brightline',s:'subscription service'},
+    {n:'Harbor & Co',s:'marketplace seller'},
+    {n:'Fieldnote',s:'direct-to-consumer startup'},
+    {n:'Kestrel',s:'regional retailer'},
+    {n:'Lumen',s:'new entrant'}
   ];
   var bidC=document.getElementById('bidders');
   var resEl=document.getElementById('simResult');

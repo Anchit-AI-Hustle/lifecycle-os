@@ -79,8 +79,6 @@ function reviewCtaUrl(product, market, brand) {
   return handle ? `${store}/products/${handle}#reviews` : `${store}/#reviews`;
 }
 
-const HEAD = "'Montserrat','Raleway',Georgia,serif";
-const BODY = "'Instrument Sans','Helvetica Neue',Arial,sans-serif";
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
 
 // Brand-compliant review-invitation mailer for one low-rated product. Palette +
@@ -89,7 +87,17 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({
 function reviewMailerHtml(product, market, brand) {
   // Brand identity is derived, never hardcoded: a review-recovery mailer is a
   // shared renderer and must carry the ACTIVE brand's wordmark and wording.
-  if (!brand || !brand.id) { try { brand = require('./brand-runtime.js').scopedBrand(null); } catch (_) { brand = {}; } }
+  try { brand = require('./brand-runtime.js').scopedBrand(brand); } catch (_) { brand = brand || {}; }
+  // THIS brand's type and colours (2026-10-10): the mailer was set in tenant
+  // zero's two families with its red as the button, rule and fallback token.
+  const _rt = require('./brand-runtime.js');
+  const _f = _rt.fontStacks(brand);
+  const HEAD = String(_f.head).replace(/"/g, "'");
+  const BODY = String(_f.body).replace(/"/g, "'");
+  const _p = _rt.paletteOf(brand);
+  const P = _p.primary, ACC = _p.accent;
+  let ON_P = '#ffffff';
+  try { ON_P = require('./brand-workspace-core.js').textOn(P, _p.surface, _p.ink); } catch (_) { ON_P = '#ffffff'; }
   const title = product.title || product.n || ('your last ' + ((brand && brand.name) || 'order'));
   const cta = reviewCtaUrl(product, market, brand);
   let img = null;
@@ -101,19 +109,19 @@ function reviewMailerHtml(product, market, brand) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff">
   <tr><td style="height:32px"></td></tr>
-  <tr><td align="center" style="padding:18px 0 4px"><div style="font-family:${BODY};font-size:22px;letter-spacing:.28em;color:var(--brand-primary,#D0473E);font-weight:700">${esc(String((brand && brand.name) || '').toUpperCase())}</div><div style="font-family:${BODY};font-size:10px;letter-spacing:.22em;color:var(--brand-accent,#6A33D8);text-transform:uppercase;margin-top:4px">${esc(String(market).toUpperCase())}</div></td></tr>
+  <tr><td align="center" style="padding:18px 0 4px"><div style="font-family:${BODY};font-size:22px;letter-spacing:.28em;color:${P};font-weight:700">${esc(String((brand && brand.name) || '').toUpperCase())}</div><div style="font-family:${BODY};font-size:10px;letter-spacing:.22em;color:${ACC};text-transform:uppercase;margin-top:4px">${esc(String(market).toUpperCase())}</div></td></tr>
   <tr><td style="height:18px"></td></tr>
   <tr><td style="padding:0 24px"><h1 style="margin:0;font-family:${HEAD};font-size:26px;line-height:1.3;color:#1b1612;text-align:center">How did the ${esc(title)} land for you?</h1></td></tr>
   <tr><td style="height:16px"></td></tr>
   ${heroImg}
-  <tr><td style="padding:0 24px"><p style="margin:0 0 16px;font-family:${BODY};font-size:16px;color:#4a4a4a;line-height:1.6;text-align:center">Hi {{ first_name|default:'there' }}, you finished your ${esc(title)} a little while ago, so it is fresh in the pair memory. Before the reorder, we would value your honest read.</p>
+  <tr><td style="padding:0 24px"><p style="margin:0 0 16px;font-family:${BODY};font-size:16px;color:#4a4a4a;line-height:1.6;text-align:center">Hi {{ first_name|default:'there' }}, you finished your ${esc(title)} a little while ago, so it is still fresh in your memory. Before the reorder, we would value your honest read.</p>
   <p style="margin:0;font-family:${BODY};font-size:16px;color:#4a4a4a;line-height:1.6;text-align:center">A rating and a line or two, exactly as you would tell a friend. The rough notes help us as much as the kind ones.</p></td></tr>
   <tr><td style="height:26px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#FFFFFF;border:2px solid #D0473E;border-radius:14px;padding:16px 22px;text-align:center"><p style="margin:0 0 6px;font-family:${BODY};font-size:11px;color:#D0473E;font-weight:700;text-transform:uppercase;letter-spacing:2px">Three small prompts</p><p style="margin:0;font-family:${BODY};font-size:15px;color:#1b1612;line-height:1.6">The headline first · the detail that stuck · whether you would craft it again.</p></td></tr></table></td></tr>
+  <tr><td style="padding:0 24px" align="center"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#FFFFFF;border:2px solid ${P};border-radius:14px;padding:16px 22px;text-align:center"><p style="margin:0 0 6px;font-family:${BODY};font-size:11px;color:${P};font-weight:700;text-transform:uppercase;letter-spacing:2px">Three small prompts</p><p style="margin:0;font-family:${BODY};font-size:15px;color:#1b1612;line-height:1.6">The headline first · the detail that stuck · whether you would choose it again.</p></td></tr></table></td></tr>
   <tr><td style="height:26px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><a href="${esc(cta)}" style="display:inline-block;background:#D0473E;color:#ffffff;text-decoration:none;padding:15px 38px;border-radius:8px;font-family:${BODY};font-size:16px;font-weight:600">Leave a rating</a></td></tr>
+  <tr><td style="padding:0 24px" align="center"><a href="${esc(cta)}" style="display:inline-block;background:${P};color:${ON_P};text-decoration:none;padding:15px 38px;border-radius:8px;font-family:${BODY};font-size:16px;font-weight:600">Leave a rating</a></td></tr>
   <tr><td style="height:12px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:13px;color:#9ca3af">Rating plus a line · done before the next pair</p></td></tr>
+  <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:13px;color:#9ca3af">Rating plus a line · done before your next order</p></td></tr>
   <tr><td style="height:28px"></td></tr>
   <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:14px;color:#1b1612;font-weight:600">Warmly,</p><p style="margin:4px 0 0;font-family:${BODY};font-size:14px;color:#1b1612">The ${esc((brand && brand.name) || '')} Team</p></td></tr>
   <tr><td style="height:30px"></td></tr>
