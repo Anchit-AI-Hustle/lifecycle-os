@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Sign-in is a mobile number and a 4-digit PIN ONLY (2026-10-09) — read `docs/mobile-pin-signin.md`
+The owner's words: *"only keep PIN option, that too only 4-digit - this is for all projects"*. The Google
+sign-in restored on 2026-10-05 (#161, #163, #165) is REMOVED from `auth.js` (no `signInWithOAuth`, no
+OAuth callback handling, the Supabase client is anonymous again), `brand-context.js`, `supabase/config.toml`
+(no `[auth.external.*]`, email sign-up off), `.env.example` and `selfhost/`. A leftover `sb-*-auth-token`
+is deleted on boot. Server: `requireUser()`, `data-analysis-core.authorize()` and the broker's `op=me`
+refuse a GoTrue user whose provider is OAuth (`mobile-auth-supabase.oauthProvider()`, read from the
+verified record only). Each PIN try is CLAIMED before it is checked in all three stores (Neon one
+`update ... returning`, Supabase `mobile_pin_attempt`, the device store) and no answer names the
+account holder before the PIN is right. Gated by `tests/pin-only-signin.spec.js` (each guard
+mutation-verified). Never re-add an OAuth or email/password sign-in here.
+
 ## ⭐ CI runs on main after every auto-merge, and a red main opens ONE issue (2026-10-05)
 `auto-merge.yml` merges with GITHUB_TOKEN, and a push made with GITHUB_TOKEN starts NO workflow run, so CI
 never ran on main for an auto-merge: 13bf5f4 (#141), 7ac473b (#144) and dba59c8 (#143) had zero check runs,
