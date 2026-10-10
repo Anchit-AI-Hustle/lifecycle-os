@@ -49,6 +49,14 @@ function evidenceContract(brand) {
   return EVIDENCE_RULE + ` Respect ${f.name}'s brand voice (${f.tone})` +
     (f.banned.length ? ` and never use its banned phrases (${f.banned.join(', ')})` : '') + ' or em/en dashes.';
 }
+// The brand in scope for this request (the pinned generation's, else the
+// request's; tenant zero only with nothing in scope), named with its own
+// industry - never tenant zero's name on another brand's analyst (2026-10-10).
+function brandLabel() {
+  let f = null;
+  try { const rt = require('./brand-runtime.js'); f = rt.promptFacts(rt.scopedBrand(null, { allowTenantZero: true })); } catch (_) { f = null; }
+  return f && f.name ? f.name : 'this brand';
+}
 // Kept as a name for callers that read it at load: the contract as tenant
 // zero's record states it. Request-time callers use evidenceContract().
 const EVIDENCE_CONTRACT = evidenceContract(require('./brand-runtime.js').defaultBrand());
@@ -76,7 +84,7 @@ async function runAnalyst({ feature = 'analytics', question = '', inputs = {}, c
   const remaining = () => deadline - Date.now();
   try {
     const sys =
-      'You are a senior growth analyst for KNICKGASM (premium D2C sneaker + streetwear). You read ALREADY-COMPUTED ' +
+      'You are a senior growth analyst for ' + brandLabel() + '. You read ALREADY-COMPUTED ' +
       'metrics and produce decisions, not restated numbers. ' + evidenceContract() + '\n' +
       'If a caveat says a figure is inaccurate or out-of-scope, DO NOT build a recommendation on it; ' +
       'flag it instead. Output STRICT JSON only:\n' +
@@ -121,7 +129,7 @@ async function runCritic({ feature = 'content', content, context = '', rubric,
   try {
     const dimList = rubric.dimensions.map(d => '  ' + d.key + ' (' + d.label + '): ' + d.guide).join('\n');
     const scoreSys =
-      'You are a senior quality auditor for KNICKGASM. Score the ' + feature + ' on each dimension 0-10. ' +
+      'You are a senior quality auditor for ' + brandLabel() + '. Score the ' + feature + ' on each dimension 0-10. ' +
       evidenceContract() + ' Output STRICT JSON only:\n' +
       '{"scores":{' + rubric.dimensions.map(d => '"' + d.key + '":0').join(',') + '},"overall":0,' +
       '"critique":"name the specific weakest fields and exactly what to change; quote offending copy"}\n\n' +
@@ -149,7 +157,7 @@ async function runCritic({ feature = 'content', content, context = '', rubric,
 
     // ONE revision
     const reviseSys = rubric.reviseSystem ||
-      ('You are the Creative Director at KNICKGASM. An auditor scored the ' + feature + ' below threshold. ' +
+      ('You are the Creative Director at ' + brandLabel() + '. An auditor scored the ' + feature + ' below threshold. ' +
        'Revise it to fix EVERY point in the critique while preserving what works. ' + evidenceContract() +
        ' Return the COMPLETE revised ' + feature + ' in EXACTLY the same shape/keys as the input. ' +
        'No markdown, no commentary.');
