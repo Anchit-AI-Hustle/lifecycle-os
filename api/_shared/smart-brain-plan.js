@@ -264,7 +264,9 @@ async function planningBrand(config, db) {
       // review): testing its slug against tenant zero's let any phone
       // account that sent that slug plan over tenant zero's assortment.
       if (carried.carried === true || carried.storage === 'device') return { isZero: false, brand: carried };
-      return { isZero: require('./brand-catalog-server.js').isTenantZeroBrand(carried) === true, brand: carried };
+      // A workspace record: tenant zero only when the server stamped it so
+      // (owns_shipped, the oldest workspace), never by its slug (2026-10-05).
+      return { isZero: catalogServer.isTenantZeroBrand(carried) === true, brand: carried };
     }
     // A person with no workspace and no brand on the request is not the cron.
     if (requestIsPerson()) return { isZero: false, brand: null };
@@ -278,14 +280,14 @@ async function planningBrand(config, db) {
     };
     if (!env.url || !env.key) return { isZero: false, brand: null };
     let brand = await wsScope.brandForWorkspace(env, wsId);
-    const zero = require('./brand-runtime.js').defaultBrand();
-    const sameName = brand && String(brand.name || '').trim().toLowerCase() === String(zero.name || '').trim().toLowerCase();
-    const isZero = !!sameName && await require('./market-analytics.js').ownsBundledExport(wsId);
+    // brandForWorkspace stamps owns_shipped from the oldest workspace; a
+    // workspace that only carries tenant zero's slug plans from its own data.
+    const isZero = !!brand && catalogServer.isTenantZeroBrand(brand) === true;
     if (brand && !isZero) {
       const catalog = await require('./brand-catalog-server.js').resolve({ brand: { ...brand, owns_shipped: false }, workspaceId: wsId });
       if (catalog.source === 'brand' && catalog.products.length) {
         const products = catalog.products.map(p => ({ kind: 'product', name: p.n, handle: p.h,
-          price: p.price, compare_at: p.compare_at, image: p.i, type: p.type, tags: p.t,
+          price: p.price, compare_at: p.compare_at, image: p.i, type: p.type, tags: p.t, url: p.product_url || '',
           source: { type: 'workspace_catalog', workspace_id: wsId } }));
         const other = _resolveBrandOfferings(brand).filter(o => o.kind !== 'product');
         brand = { ...brand, offerings: products.concat(other), brand_data: { ...brand.brand_data, offerings: products.concat(other) } };
@@ -295,9 +297,16 @@ async function planningBrand(config, db) {
   } catch (_) { return { isZero: false, brand: null }; }
 }
 
-const EMPTY_PLAN_NOTE = '[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, this workspace, all] '
-  + 'The plan generates only from this brand\'s own offerings and data; nothing is borrowed from another brand. '
-  + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+// The marker is UNPADDED (the 2026-09-15 rule): `field, brand` - it read
+// "[...: catalogue and analytics, this workspace, all]", and "all" is not a
+// fact. It names the brand the plan was asked for.
+function emptyPlanNote(brand) {
+  const L = require('./brand-locale.js');
+  const name = (brand && brand.name) || 'this brand';
+  return `${L.marker('catalogue and analytics', brand)} `
+    + `The plan generates only from ${name}'s own offerings and data; nothing is borrowed from another brand. `
+    + 'Connect the brand\'s catalogue in brand setup, then run Daily Sync.';
+}
 
 // A brand with no catalogue and no orders still gets a calendar. The jobs are
 // the lifecycle sequence (education, second order, retention, expansion,
@@ -533,9 +542,14 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       const useOff = rotated.offering;
       const cohort = cohorts[(i + markets.indexOf(market)) % cohorts.length];
       const confidence = Math.round((0.45 + rnd() * 0.3) * 100) / 100;   // demo, deterministic
+      // The public moment of THIS market on this date (Diwali for IN,
+      // Thanksgiving for US), from market-moments.js - never another market's
+      // holidays and never tenant zero's audience days (2026-10-05).
+      const moment = require('./market-moments.js').momentOn(market, date, brand);
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
+        festival: moment ? { name: moment.name, weight: moment.weight, tags: moment.tags } : null,
         status: 'needs_human_verification',
         confidence,
         cohort: { name: cohort, size: 0, estimated: true },
@@ -549,7 +563,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           ? (useOff.type ? 'Order ' + useOff.type : 'Explore the menu') : rotated.cta,
         cta_url: rotated.cta_url || null,
         phase: rotated.phase,
-        why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
+        why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}${moment ? `, on ${moment.name} in ${market}` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
         analysis: buildEntryAnalysis({
           cohort: { name: cohort, size: 0 },
           product: { title: useOff.name, category: useOff.kind },
@@ -843,7 +857,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       return {
         ok: true, mode: db.connected ? 'db-linked' : 'local-fallback',
         synced_at: new Date().toISOString(), horizon_days: horizon,
-        changes: [], insights: [], entries: [], plan: [], note: EMPTY_PLAN_NOTE,
+        changes: [], insights: [], entries: [], plan: [], note: emptyPlanNote(pb.brand),
       };
     }
     const markets = Array.from(new Set(fresh.map((e) => e.market)));
@@ -1068,7 +1082,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
     const planned = withStrategyFallback(pb.brand, entries, start, config.calendarDays, ns);
     entries = planned.entries;
     if (!entries.length) {
-      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: EMPTY_PLAN_NOTE };
+      return { ok: true, mode: db.connected ? 'db-linked' : 'local-fallback', stored: false, entries: [], note: emptyPlanNote(pb.brand) };
     }
     applyContactPolicy(entries, await planContactLedger(config, contact, start), null, start, config);
     return {
@@ -1777,19 +1791,47 @@ function variantMeta(copy) {
 // mailer's link logic): a per-market store, the hero product's PDP, and a
 // category collection. Never emits a merge-tag literal, so every CTA in a
 // preview/download redirects to a real page.
+/* Is this slot tenant zero's? The SERVER's answer (owns_shipped, stamped from
+   the oldest workspace by brand-runtime.resolve and workspace-scope
+   .brandForWorkspace), never the slug a workspace's owner wrote: a workspace
+   that merely carried "knickgasm" got tenant zero's store, collections and
+   handles (2026-10-05). A record that cannot be decided is NOT tenant zero;
+   with no brand at all the generation's pinned catalogue decides, and with
+   neither the slot is nobody's, so it is not tenant zero's. */
+function slotIsTenantZero(entry) {
+  const b = entry && entry.brand;
+  if (b) {
+    const z = catalogServer.isTenantZeroBrand(b);
+    if (z !== null) return z;
+    if (b.id) return false;
+  }
+  const scope = catalogServer.currentScope();
+  if (scope) return scope.source === 'shipped';
+  return false;
+}
+/* The gap a link is left with when the brand publishes no store for this market. */
+function storeGap(brand, market) {
+  const name = String((brand && brand.name) || 'this brand');
+  return `[DATA REQUIRED BEFORE LAUNCH: region store URL, ${name}, ${market || 'all'}]`;
+}
+/* The brand's own store for a market: its region's store_url, else its website. */
+function brandStore(brand, market) {
+  let f = null;
+  try { f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) { f = null; }
+  return f && f.store ? `https://${f.store}` : String((brand && brand.website) || '').replace(/\/$/, '');
+}
 function slotLinks(entry) {
-  // Catalogue collection paths and knickgasm.com belong to tenant zero.
-  // A saved slug is not that proof. Every other brand uses its own store,
-  // or a gap when it has none.
-  let zero = false;
-  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(entry && entry.brand) === true; } catch (_) { zero = false; }
-  if (!zero) {
-    let f = null;
-    try { if (entry.brand) f = require('./brand-runtime.js').regionFacts(entry.brand, entry.market); } catch (_) {}
-    const bStore = f && f.store ? `https://${f.store}` : ((entry.brand && entry.brand.website) || '');
+  // A non-tenant-zero brand's links come from ITS OWN record: its regional
+  // store, the offering's own URL, the hero row's own product page. Tenant
+  // zero keeps the catalogue-mapped collection logic below.
+  if (!slotIsTenantZero(entry)) {
+    const bStore = entry.brand ? brandStore(entry.brand, entry.market) : '';
     const off = entry.heroOffering || entry.offering || {};
-    const target = off.url || bStore || '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
-    return { store: bStore || target, collectionUrl: target, pdpUrl: target };
+    const hp = entry.heroProduct || {};
+    const own = /^https?:\/\//i.test(String(hp.product_url || hp.url || '')) ? String(hp.product_url || hp.url) : '';
+    const target = off.url || own || bStore || storeGap(entry.brand, entry.market);
+    // `pdp` is what the renderers read; `pdpUrl` stays for older callers.
+    return { store: bStore || target, collectionUrl: off.url || bStore || target, pdp: target, pdpUrl: target };
   }
   const facts = regionFacts(entry.market);
   const store = `https://${facts.store || 'knickgasm.com'}`;
@@ -1814,15 +1856,20 @@ function slotLinks(entry) {
 // Resolve a real PDP URL for ANY product (hero or supporting), always on the
 // official per-market store, never fabricating a handle.
 function productUrl(product, market, brand) {
-  let zero = false;
-  try { zero = require('./brand-catalog-server.js').isTenantZeroBrand(brand) === true; } catch (_) { zero = false; }
-  if (!zero) {
-    let f = null;
-    try { if (brand) f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) {}
-    const own = f && f.store ? `https://${f.store}` : ((brand && brand.website) || '');
-    if (!own) return '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
-    const ownHandle = (product && (product.handle || product.h)) || null;
-    return ownHandle ? `${own}/products/${ownHandle}` : own;
+  // Another brand's product links to ITS OWN page (the row's product_url),
+  // else its handle on its OWN store. This built every brand's supporting
+  // product links on tenant zero's store (2026-10-05).
+  if (!slotIsTenantZero({ brand })) {
+    const own = String((product && (product.product_url || product.url)) || '');
+    if (/^https?:\/\//i.test(own)) return own;
+    let row = null;
+    try { row = catalogImage.match(product, market, { brand }); } catch (_) { row = null; }
+    if (row && /^https?:\/\//i.test(String(row.product_url || ''))) return row.product_url;
+    const base = brand ? brandStore(brand, market) : '';
+    let h = null;
+    try { h = catalogImage.handleFor(product, market, { brand }); } catch (_) { h = null; }
+    if (!h) h = (product && (product.handle || product.h)) || null;
+    return base ? (h ? `${base}/products/${h}` : base) : storeGap(brand, market);
   }
   const facts = regionFacts(market);
   const store = `https://${facts.store || 'knickgasm.com'}`;
@@ -3411,6 +3458,9 @@ module.exports = {
   // Executed by tests/agents-review.spec.js inside a request scope: which
   // brand a slot is stamped with, and whether the plan is tenant zero's.
   __test_stampBrand: stampBrand,
+  // Executed by tests/catalog-provenance.spec.js: whose store a slot links to.
+  __test_slotLinks: slotLinks,
+  __test_productUrl: productUrl,
   __test_planningBrand: planningBrand,
   // exported for tests/smart-brain-assets.spec.js. The prompt, the proof gate,
   // the proof block and the ad artefacts are the four things this module can get

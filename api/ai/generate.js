@@ -393,10 +393,12 @@ module.exports = async function handler(req, res) {
 
   const mode = body.mode || 'create_brief';
   // The brand this request resolved, and its HOME market when the request
-  // names none - never a literal 'US' for a brand that does not sell there.
+  // names none (2026-10-05) - never a literal 'US' for a brand that does not
+  // sell there. No home declared: '' and the marker where a market is printed.
   const _pb = promptBrand(body);
   const _L = brandLines(_pb);
-  const market = body.market || _rtm().homeRegion(_pb) || `[DATA REQUIRED BEFORE LAUNCH: home market, ${_L.name}]`;
+  const _locale = require('../_shared/brand-locale.js');
+  const market = body.market || _locale.homeMarket(_pb) || '';
   const markets = body.markets || [market];
   const theme = body.theme || body.type || '';
   const campaign_brief = body.campaign_brief || body.brief || body.prompt || '';
@@ -682,7 +684,7 @@ Target market for this autofill: ${targetMarket}.`;
     const _lpRt = _rtm();
     const lpRegion = (body.region || body.market || market);
     const _lpFacts = _lpRt.regionFacts(_lpBrand, lpRegion);
-    const lpBase = _lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : `[DATA REQUIRED BEFORE LAUNCH: region store URL, ${_L.name}, ${lpRegion}]`;
+    const lpBase = _lpFacts && _lpFacts.store ? `https://${_lpFacts.store}` : _locale.marker('region store URL', _lpBrand, lpRegion);
     const _lpName = _L.name;
     const _lpFs = _lpRt.fontStacks(_lpBrand);
     const _lpPaletteRule = `Colour palette ONLY: ${_L.palette}. No other colours.`;
@@ -787,7 +789,7 @@ Target market for this autofill: ${targetMarket}.`;
       `2. The hero product MUST be one of the products listed.`,
       `3. Geography in copy is COUNTRY-LEVEL only — say "the US" or "the UK" or "India". Do NOT name specific cities, states, regions, neighbourhoods, or zip codes. The brief travels nation-wide.`,
       `4. No demographic stats or percentages of the population. Describe BEHAVIOUR and INTENT in plain English.`,
-      `5. Currency in copy must match the market: $ for US/Global, £ for UK, ₹ for India, € for EU, A$ for AU, AED for ME. Never mix currencies.`,
+      `5. Currency in copy must match the market: ${(() => { const l = _locale.localeFor(_pb, market); return l.currency ? `${l.currency} (${l.symbol}) for ${l.market}, in ${l.locale || 'en'} number format` : _locale.marker('currency', _pb, market || undefined); })()}. Never another market's currency, never mix currencies.`,
       `6. Honor the existing TARGET AUDIENCE block above (if present) — write the brief to land with THAT segment.`,
       ``,
       `Write the brief as flowing prose — no section headers, no numbered lists, no labeled fields.`,
@@ -989,7 +991,7 @@ Target market for this autofill: ${targetMarket}.`;
           offer: fields.offer || '',
         };
         const creative_spec = AD_FORMATS[surf].map((f) => ({ size: f.size, format: f.format, ar: f.ar, overlay }));
-        const targetMarket = body.market || body.region || market || 'US';
+        const targetMarket = body.market || body.region || market;
         const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
         const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null,  assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
         return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt });

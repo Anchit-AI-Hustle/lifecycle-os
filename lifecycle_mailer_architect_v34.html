@@ -122,6 +122,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   --transition:all .22s cubic-bezier(.4,0,.2,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
+button,input,select,textarea{font-family:inherit}
 html{scroll-behavior:smooth}
 body{font-family:var(--vh-font-body);background:var(--bg);background-image:radial-gradient(ellipse 80% 60% at 50% -10%,var(--vh-tint) 0%,transparent 70%);color:var(--body-txt);min-height:100vh;-webkit-font-smoothing:antialiased}
 
@@ -599,7 +600,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .studio-scrim::before{content:"";position:fixed;inset:0;background:var(--vh-ink);opacity:.45;z-index:-1}
 .copilot-dock{
   position:fixed;left:0;right:0;bottom:0;z-index:9000;display:flex;flex-direction:column;
-  background:rgba(251,245,234,.85);-webkit-backdrop-filter:blur(14px) saturate(1.25); backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
+  background:var(--vh-glass-strong);-webkit-backdrop-filter:blur(14px) saturate(1.25); backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
   border-top:1px solid var(--border);box-shadow:0 -6px 24px rgba(0,0,0,.08)
 }
 /* ── expandable history (hidden when collapsed) ── */
@@ -608,10 +609,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   transition:max-height .3s cubic-bezier(.4,0,.2,1),opacity .2s
 }
 .copilot-dock.open .copilot-history{max-height:min(60vh,520px);opacity:1}
-.copilot-hd{display:flex;align-items:center;gap:9px;padding:12px 16px;background:linear-gradient(90deg,var(--g3),var(--g));color:var(--chalk);font-weight:700;font-size:13px}
+.copilot-hd{display:flex;align-items:center;gap:9px;padding:12px 16px;background:var(--vh-band);color:var(--vh-on-band);font-weight:700;font-size:13px}
 .copilot-hd .dotlive{width:8px;height:8px;border-radius:50%;background:var(--vh-ink-dim);animation:livePulse 2s infinite}
 @keyframes livePulse{0%{box-shadow:0 0 0 0 var(--vh-line-hot)}70%{box-shadow:0 0 0 7px var(--vh-line)}100%{box-shadow:0 0 0 0 var(--vh-line)}}
-.copilot-hd .x{margin-left:auto;cursor:pointer;opacity:.85;font-size:16px;background:none;border:none;color:var(--chalk);padding:2px 4px;line-height:1}
+.copilot-hd .x{margin-left:auto;cursor:pointer;font-size:16px;background:none;border:none;color:inherit;padding:2px 4px;line-height:1}
 .copilot-hd .x:hover{opacity:1}
 .copilot-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg);min-height:120px}
 .cmsg{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;animation:fadeUp .25s ease both}
@@ -1039,14 +1040,14 @@ end of the disabled overlay login -->
   </div>
   <!-- ── TAB: Content Preview — structured content document with exact copy ── -->
   <div id="p4-content" style="display:none">
-    <div style="background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));border-radius:12px;padding:16px 20px;margin-bottom:16px;color:var(--vh-on-primary)">
+    <div class="vh-band" style="border-radius:12px;padding:16px 20px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:9px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--vh-ink-dim)">Structured Content Preview</span>
-        <span style="font-size:10.5px;color:var(--vh-ink-dim);font-weight:600">Review exact copy before generating HTML</span>
+        <span style="font-size:9px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:inherit">Structured Content Preview</span>
+        <span style="font-size:10.5px;color:inherit;font-weight:600">Review exact copy before generating HTML</span>
         <span style="flex:1"></span>
-        <span id="contentPreviewVariantLabel" style="font-size:10px;color:var(--vh-ink-dim);font-style:italic"></span>
+        <span id="contentPreviewVariantLabel" style="font-size:10px;color:inherit;font-style:italic"></span>
       </div>
-      <p style="font-size:11px;color:var(--vh-ink-dim);margin:8px 0 0;line-height:1.5">This is the exact content that will go into your final HTML mailer. Review headlines, subcopy, offer text, product cards, and CTAs. Use the feedback box to request changes, then regenerate.</p>
+      <p style="font-size:11px;color:inherit;margin:8px 0 0;line-height:1.5">This is the exact content that will go into your final HTML mailer. Review headlines, subcopy, offer text, product cards, and CTAs. Use the feedback box to request changes, then regenerate.</p>
     </div>
     <div id="contentPreviewBody" style="border:1.5px solid var(--vh-line);border-radius:12px;overflow:hidden;background:var(--vh-panel)">
       <!-- Populated by renderContentPreview() -->
@@ -1068,7 +1069,7 @@ end of the disabled overlay login -->
 
       <!-- ChatGPT Image 2 -->
       <div style="border:1.5px solid var(--vh-line);border-radius:14px;overflow:hidden;background:var(--vh-panel);box-shadow:0 2px 8px var(--vh-line)">
-        <div style="background:linear-gradient(135deg,var(--vh-ink),var(--vh-ink));padding:14px 16px;display:flex;align-items:center;gap:10px">
+        <div style="background:var(--vh-panel-2);padding:14px 16px;display:flex;align-items:center;gap:10px">
           <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">&#129302;</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--vh-ink-dim)">ChatGPT Image 2</div>
@@ -1079,7 +1080,7 @@ end of the disabled overlay login -->
           <p style="font-size:11px;color:var(--vh-ink-dim);line-height:1.6;margin-bottom:12px">Best for: detailed layout prompts, text rendering, multi-section email designs. Use the <strong>Full Layout Prompt</strong> below.</p>
           <div style="display:flex;gap:8px">
             <button type="button" onclick="copyPromptText();showCopyToast('Layout prompt copied — paste into ChatGPT')" style="flex:1;padding:7px 0;background:var(--vh-panel-2);color:var(--vh-ink-dim);border:1px solid var(--vh-line);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--vh-font-body)">&#128203; Copy Prompt</button>
-            <button type="button" onclick="openChatGPT()" style="flex:1;padding:7px 0;background:var(--vh-ink);color:var(--vh-ink-dim);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--vh-font-body)">Open ChatGPT &#8599;</button>
+            <button type="button" onclick="openChatGPT()" style="flex:1;padding:7px 0;background:var(--vh-primary);color:var(--vh-on-primary);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--vh-font-body)">Open ChatGPT &#8599;</button>
           </div>
         </div>
       </div>
@@ -1143,13 +1144,13 @@ end of the disabled overlay login -->
   </div>
   <div id="p4-upload" style="display:none">
     <!-- Server-side AI image generation -->
-    <div style="background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));border-radius:12px;padding:18px 20px;margin-bottom:16px;color:var(--vh-on-primary)">
+    <div class="vh-band" style="border-radius:12px;padding:18px 20px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <span style="font-size:18px">&#9889;</span>
         <span style="font-size:13px;font-weight:700">Generate Mailer Design with AI</span>
-        <span style="font-size:10px;color:var(--vh-ink-dim);margin-left:auto">gpt-image-2 &rarr; Gemini &rarr; Pollinations</span>
+        <span style="font-size:10px;color:inherit;margin-left:auto">gpt-image-2 &rarr; Gemini &rarr; Pollinations</span>
       </div>
-      <p style="font-size:11px;color:var(--vh-ink-dim);line-height:1.5;margin:0 0 12px">Creates a complete mailer creative from your campaign brief + real product data. One click &mdash; the AI builds the full design with your products, prices, and brand palette.</p>
+      <p style="font-size:11px;color:inherit;line-height:1.5;margin:0 0 12px">Creates a complete mailer creative from your campaign brief + real product data. One click &mdash; the AI builds the full design with your products, prices, and brand palette.</p>
       <div style="display:flex;gap:8px">
         <button type="button" id="serverGenBtn" onclick="generateServerImage('A')" style="flex:1;padding:10px;background:var(--vh-accent);color:var(--vh-on-accent);border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--vh-font-body)">&#9889; Generate Variant A</button>
         <button type="button" onclick="generateServerImage('B')" style="flex:1;padding:10px;background:var(--vh-accent);color:var(--vh-on-accent);border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--vh-font-body)">&#9889; Generate Variant B</button>
@@ -1552,7 +1553,28 @@ const REGIONAL_CATALOG={
     featuredHeroes:[]
   }
 };
-function getRegionalCatalog(market){return REGIONAL_CATALOG[market]||REGIONAL_CATALOG.US;}
+/* A market the table does not carry gets a NEUTRAL entry, never the US one,
+   and every entry prices in the ACTIVE brand's own currency for that market
+   (its record, else its country's) - 2026-10-05: an AE or SG brand was priced
+   in dollars because the lookup fell to REGIONAL_CATALOG.US. */
+function _brandLocale(market){try{var RC=window.RegionContext;return (RC&&RC.localeOf)?RC.localeOf(market):null;}catch(e){return null;}}
+/* The currency symbol / code for a market: the brand's own (record, else its
+   country's), else the table this page always carried, else nothing - never
+   a '$' for a market nobody priced (2026-10-05). */
+var _CUR_TABLE={US:['USD','$'],UK:['GBP','£'],IN:['INR','₹'],EU:['EUR','€'],AU:['AUD','A$']};
+function _curSym(mt){var l=_brandLocale(mt);if(l&&l.symbol)return l.symbol;var t=_CUR_TABLE[mt];return t?t[1]:'';}
+function _curCode(mt){var l=_brandLocale(mt);if(l&&l.currency)return l.currency;var t=_CUR_TABLE[mt];return t?t[0]:'';}
+function _curLabel(mt){var c=_curCode(mt),y=_curSym(mt);if(c)return c+(y&&y!==c?' ('+y+')':'');var RC=window.RegionContext;return (RC&&RC.marker)?RC.marker('currency',mt):'[DATA REQUIRED BEFORE LAUNCH: currency, this brand, '+mt+']';}
+function getRegionalCatalog(market){
+  var base=REGIONAL_CATALOG[market]||null;
+  var l=_brandLocale(market);
+  if(!base){
+    var RC=window.RegionContext;
+    base={name:(RC&&RC.label)?RC.label(market):String(market||''),flag:'',baseUrl:(l&&l.store_url)||'',currency:'',currencySymbol:'',freeShippingThreshold:'',shippingNote:'',localesPriority:String(market||''),heroPriceAnchor:'',toneNote:'',socialProof:'',trustBar:''};
+  }
+  if(l&&l.currency){base=Object.assign({},base,{currency:l.currency,currencySymbol:l.symbol||l.currency});}
+  return base;
+}
 window.REGIONAL_CATALOG=REGIONAL_CATALOG;
 window.getRegionalCatalog=getRegionalCatalog;
 
@@ -1660,10 +1682,10 @@ function statusPill(level,msg,detail){
       host.style.cssText='position:fixed;top:74px;right:14px;z-index:10000;display:flex;flex-direction:column;gap:6px;max-width:340px;font-family:var(--vh-font-body);pointer-events:none';
       document.body.appendChild(host);
     }
-    var palette={ok:{edge:'var(--vh-ok-text)',ic:'✓'},info:{edge:'var(--vh-accent)',ic:'ⓘ'},warn:{edge:'var(--vh-warn-text)',ic:'⚠'},err:{edge:'var(--vh-err-text)',ic:'✖'}}[level]||{edge:'var(--vh-accent)',ic:'ⓘ'};
+    var palette={ok:{edge:'var(--vh-ok)',ink:'var(--vh-ok-text)',ic:'✓'},info:{edge:'var(--vh-accent)',ink:'var(--vh-accent-text)',ic:'ⓘ'},warn:{edge:'var(--vh-warn)',ink:'var(--vh-warn-text)',ic:'⚠'},err:{edge:'var(--vh-err)',ink:'var(--vh-err-text)',ic:'✖'}}[level]||{edge:'var(--vh-accent)',ink:'var(--vh-accent-text)',ic:'ⓘ'};
     var pill=document.createElement('div');
     pill.style.cssText='pointer-events:auto;display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:10px;box-shadow:var(--vh-lift-2),inset 3px 0 0 '+palette.edge+';font-size:11.5px;font-weight:600;line-height:1.4;cursor:pointer;min-height:34px';
-    pill.innerHTML='<span style="font-size:13px;flex-shrink:0;color:'+palette.edge+'">'+palette.ic+'</span><span style="flex:1">'+msg+(detail?'<br><span style="font-size:10px;font-weight:400;color:var(--vh-ink-dim)">'+detail+'</span>':'')+'</span><span style="font-size:10px;color:var(--vh-ink-dim);flex-shrink:0">×</span>';
+    pill.innerHTML='<span style="font-size:13px;flex-shrink:0;color:'+palette.ink+'">'+palette.ic+'</span><span style="flex:1">'+msg+(detail?'<br><span style="font-size:10px;font-weight:400;color:var(--vh-ink-dim)">'+detail+'</span>':'')+'</span><span style="font-size:10px;color:var(--vh-ink-dim);flex-shrink:0">×</span>';
     pill.onclick=function(){pill.style.transition='opacity 0.3s';pill.style.opacity='0';setTimeout(function(){pill.remove();},320);};
     host.appendChild(pill);
     var ttl=(level==='warn'||level==='err')?15000:6000;
@@ -1849,7 +1871,7 @@ function brandLogoHTML(o){
   var f=brandFacts();
   var h=o.height||30;
   if(f.logo) return '<img src="'+f.logo+'" alt="'+String(f.name).replace(/"/g,'&quot;')+'" height="'+h+'" style="display:block;border:0;height:'+h+'px;width:auto;margin:0 auto'+(o.style?';'+o.style:'')+'">';
-  return '<span style="font-family:'+_ARCH_FH+';font-size:'+Math.round(h*0.8)+'px;font-weight:bold;letter-spacing:0.12em;display:inline-block;color:'+(o.color||_ARCH_GREEN)+'">'+String(f.name).toUpperCase()+'</span>';
+  return '<span style="font-family:'+(o.font||_ARCH_FH)+';font-size:'+Math.round(h*0.8)+'px;font-weight:bold;letter-spacing:0.12em;display:inline-block;color:'+(o.color||_ARCH_GREEN)+'">'+String(f.name).toUpperCase()+'</span>';
 }
 function brandSocialLinksHTML(color){
   return brandFacts().social.map(function(s){
@@ -1871,7 +1893,15 @@ function brandStyleLine(){
 function brandReviewMarker(what){
   return '[DATA REQUIRED BEFORE LAUNCH: '+(what||'approved customer review')+', '+brandFacts().name+']';
 }
-function getBase(m){return brandFacts(m).store||MARKET_BASE[m]||MARKET_BASE.US;}
+/* The ACTIVE brand's own store, or none (2026-10-05). A brand whose record
+   names no store fell through to MARKET_BASE, so its mailer's every CTA and
+   product link pointed at tenant zero's store. That map is the shipped default
+   only, for a page with no brand at all. */
+function getBase(m){
+  var b=(window.BrandContext&&window.BrandContext.brand)||null;
+  if(b) return brandFacts(m).store||'#';
+  return MARKET_BASE[m]||MARKET_BASE.US;
+}
 function toHandle(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
 /* The name-to-Shopify-handle map that used to sit here listed about a hundred
  * of another company's products. It existed because the baked-in catalogue had
@@ -1881,7 +1911,10 @@ function toHandle(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/
  * home, which is a real page, instead of a slug that 404s. */
 var PROD_HANDLES={};
 function pdpUrl(n,m){
-  // n can be a string (product name) or an object (product with .h handle)
+  // n can be a string (product name) or an object (product with .h handle).
+  // A row that carries its OWN product page (an imported catalogue states it)
+  // links there; a handle is joined to the brand's own store otherwise.
+  if(n&&typeof n==='object'&&typeof n.url==='string'&&/^https?:\/\//i.test(n.url))return n.url;
   if(typeof n==='object'&&n.h)return getBase(m)+'/products/'+n.h;
   var name=typeof n==='string'?n:'';
   // Try PROD_HANDLES lookup first
@@ -1889,6 +1922,7 @@ function pdpUrl(n,m){
   // Then try finding the product in CAT to get the real Shopify handle
   if(!handle&&window.CAT){
     var found=CAT.find(function(c){return c.n===name;});
+    if(found&&typeof found.url==='string'&&/^https?:\/\//i.test(found.url))return found.url;
     if(found&&found.h)handle=found.h;
   }
   // No real handle: link to the store home rather than mint a product path that
@@ -2350,7 +2384,7 @@ function renderMarketChips(){
   var key=opts.map(function(o){return o.code;}).join('|');
   if(key===_mktChipsBuilt) return; _mktChipsBuilt=key;
   if(!opts.length){
-    host.innerHTML='<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-ink-dim)">[DATA REQUIRED BEFORE LAUNCH: regions, all, all] Add this brand\'s markets in Brand setup.</span>';
+    host.innerHTML='<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-ink-dim)">'+String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g,'')+' Add this brand\'s markets in Brand setup.</span>';
     if(!S._mktManualSet){ S.markets=[]; S.market=''; S.activeMarket=''; }
     return;
   }
@@ -2510,7 +2544,7 @@ function gateFinalOutput(){
   var existing=document.getElementById('sanityModal'); if(existing)existing.remove();
   var modal=document.createElement('div');
   modal.id='sanityModal';
-  modal.style.cssText='position:fixed;inset:0;z-index:10002;background:rgba(15,30,22,0.7);-webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif';
+  modal.className='studio-scrim';modal.style.cssText='position:fixed;inset:0;z-index:10002;-webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;font-family:var(--vh-font-body)';
   var hasErr=r.issues.some(function(i){return i.level==='err';});
   var heading=hasErr?'Cannot proceed — fix these first':'Review before continuing';
   var headingColor=hasErr?'#c0392b':'#6A33D8';
@@ -3103,7 +3137,7 @@ window.viewMarketHtml=function(mkt){
   var modal=document.createElement('div');
   modal.id='vhdHtmlViewerModal';
   modal.setAttribute('role','dialog');modal.setAttribute('aria-label','HTML source code for '+mkt);
-  modal.style.cssText='position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);padding:20px 10px;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif';
+  modal.className='studio-scrim';modal.style.cssText='position:fixed;inset:0;z-index:10001;-webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);padding:20px 10px;overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;font-family:var(--vh-font-body)';
   var safeHtml=String(html).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   modal.innerHTML=
     '<div style="background:#fff;border-radius:14px;max-width:1100px;width:100%;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.3);display:flex;flex-direction:column;max-height:calc(100vh - 40px)">'+
@@ -3766,7 +3800,11 @@ function getMarketIntel(mt,prompt){
       currency:'USD',currSym:'$',threshold:'',shippingNote:'',urgency:'Order today',social:'',seasonal:{Sale:'Global Sale',Gift:'International gifting',Launch:'Worldwide launch',Seasonal:'Seasonal Collection'},trustBar:'',cta:'Shop Worldwide',priceAnchor:'',toneNote:'global premium, authentic Indian provenance, international appeal'
     }
   };
-  var o=intel[mt]||intel.US;
+  // A market the table does not carry is NEUTRAL (no other country's holidays
+  // or currency); every market prices in the brand's own currency for it.
+  var o=intel[mt]?Object.assign({},intel[mt]):{currency:'',currSym:'',threshold:'',shippingNote:'',urgency:'Order today',social:'',seasonal:{Sale:'Seasonal sale',Gift:'Gifting',Launch:'New launch',Seasonal:'Seasonal collection'},trustBar:'',cta:'Shop now',priceAnchor:'',toneNote:''};
+  var _bl=_brandLocale(mt);
+  if(_bl&&_bl.currency){o.currency=_bl.currency;o.currSym=_bl.symbol||_bl.currency;}
   // The shipping line is the brand's OWN claim about shipping, verbatim, or nothing.
   o.shippingNote=brandFacts(mt).shipping;
   return o;
@@ -3944,9 +3982,9 @@ function prodBenefit(n){
 // `n` can be a string (product name) or an object (product with .price, .compare_at fields)
 // Returns { regular, currency, currencySymbol, display, raw }
 function prodPrice(n,market){
-  var cat=(window.getRegionalCatalog?getRegionalCatalog(market||_homeMkt()):{currency:'USD',currencySymbol:'$'});
-  var sym=cat.currencySymbol||'$';
-  var cur=cat.currency||'USD';
+  var cat=(window.getRegionalCatalog?getRegionalCatalog(market||_homeMkt()):{currency:'',currencySymbol:''});
+  var sym=cat.currencySymbol||'';
+  var cur=cat.currency||'';
   // ── PRIORITY: Use real catalog price if available ──
   var prodObj=typeof n==='object'?n:null;
   var prodName=prodObj?prodObj.n:(n||'');
@@ -4003,7 +4041,7 @@ function prodPrice(n,market){
   if(l.includes('imperial')||l.includes('silver needle')||l.includes('first flush')||l.includes('arya')||l.includes('jungpana')||l.includes('giddapahar')||l.includes('muscatel'))usd+=7;
   // Market-specific currency conversion (rough, customer-facing tier prices)
   var rate={USD:1,GBP:0.79,EUR:0.93,AUD:1.52,INR:84,CAD:1.36};
-  var cur=cat.currency||'USD';
+  var cur=cat.currency||'';
   var amt=usd*(rate[cur]||1);
   // Round to .99
   var rounded=Math.floor(amt)+0.99;
@@ -4023,8 +4061,8 @@ function prodSalePrice(p,offerPct,market){
     var realPrice=parseFloat(prodObj.price);
     if(!isNaN(realCompare)&&!isNaN(realPrice)&&realCompare>realPrice){
       var realPct=Math.round((1-realPrice/realCompare)*100);
-      var sym=pp.currencySymbol||'$';
-      var cur=pp.currency||'USD';
+      var sym=pp.currencySymbol||'';
+      var cur=pp.currency||'';
       var compareDisplay=cur==='INR'?(sym+Math.round(realCompare).toLocaleString()):(sym+realCompare.toFixed(2));
       var savings=realCompare-realPrice;
       var savingsDisplay=cur==='INR'?(sym+Math.round(savings).toLocaleString()):(sym+savings.toFixed(2));
@@ -4684,7 +4722,7 @@ async function drawLayout(canvas,prompt,market,prods,variant){
     return '⚡ '+[brandClaims(1)[0],brandFacts(market).shipping].filter(Boolean).join(' · ');
   }
   // Currency for prices
-  const curr={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',Global:'$',ME:'$'}[market]||'$';
+  const curr=_curSym(market);
 
   // ── Pre-load all images in parallel (hero + product cards) ────────────────
   async function loadImg(src){
@@ -5276,7 +5314,7 @@ function renderContentPreview(){
   var ann=annBarLine(p,mkt,type);
   var mktIntel=getMarketIntel(mkt,p);
   var mktLabels={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
-  var currSymbol={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',ME:'AED',Global:'$'}[mkt]||'$';
+  var currSymbol=_curSym(mkt);
 
   // Label
   var lblEl=document.getElementById('contentPreviewVariantLabel');
@@ -5337,26 +5375,26 @@ function renderContentPreview(){
   } else {
     // Variant B — full-width hero + centered copy below
     var heroImg=(prods[0]&&prods[0].i)?prods[0].i:'';
-    var heroFallback='<div style=&quot;width:100%;height:220px;display:flex;align-items:center;justify-content:center;background:#D0473E;color:#FFFFFF;font-family:Georgia,serif;font-size:20px;letter-spacing:0.2em&quot;>'+brandFacts().name+'</div>';
+    var heroFallback='<div style=&quot;width:100%;height:220px;display:flex;align-items:center;justify-content:center;background:var(--vh-band);color:var(--vh-on-band);font-family:var(--vh-font-head);font-size:20px;letter-spacing:0.2em&quot;>'+brandFacts().name+'</div>';
     if(heroImg){
       h+='<img src="'+heroImg+'" alt="Hero" onerror="this.onerror=null;this.outerHTML=\''+heroFallback+'\'" style="width:100%;height:auto;display:block;max-height:280px;object-fit:cover">';
     } else {
       h+='<div style="width:100%;height:220px;display:flex;align-items:center;justify-content:center;color:var(--vh-on-band);font-family:var(--vh-font-head);font-size:20px;letter-spacing:0.2em;background:var(--vh-band)">'+brandFacts().name+'</div>';
     }
     h+='<div style="background:var(--vh-band);padding:32px 28px;text-align:center;color:var(--vh-on-band)">';
-    h+='<div style="font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:8px">'+(secTitle||'A STORY IN EVERY STEEP')+'</div>';
+    h+='<div style="font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:inherit;margin-bottom:8px">'+(secTitle||'A STORY IN EVERY STEEP')+'</div>';
     h+='<div style="font-family:var(--vh-font-head);font-size:24px;color:inherit;line-height:1.2;margin-bottom:4px">'+(typeof hl==='object'?hl[0]:hl)+'</div>';
-    if(typeof hl==='object'&&hl[1]) h+='<div style="font-family:var(--vh-font-head);font-size:18px;color:var(--vh-accent-text);line-height:1.2;margin-bottom:12px">'+hl[1]+'</div>';
-    h+='<div style="font-size:13px;color:var(--brand-accent-text);line-height:1.6;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">'+sc+'</div>';
-    h+='<div style="display:inline-block;border:1px solid var(--vh-line);color:inherit;padding:11px 28px;font-size:12px;font-weight:700;letter-spacing:0.1em;border-radius:3px">'+cta+'</div>';
+    if(typeof hl==='object'&&hl[1]) h+='<div style="font-family:var(--vh-font-head);font-size:18px;color:inherit;line-height:1.2;margin-bottom:12px">'+hl[1]+'</div>';
+    h+='<div style="font-size:13px;color:inherit;line-height:1.6;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">'+sc+'</div>';
+    h+='<div style="display:inline-block;border:1px solid currentColor;color:inherit;padding:11px 28px;font-size:12px;font-weight:700;letter-spacing:0.1em;border-radius:3px">'+cta+'</div>';
     h+='</div>';
   }
   h+='</div>';
 
   // ── S5: BENEFIT STRIP ──
-  h+='<div style="padding:16px 20px;background:'+(variant==='B'?'var(--vh-primary)':'var(--vh-panel)')+';display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--vh-line);color:var(--vh-on-band)">';
+  h+='<div style="padding:16px 20px;background:'+(variant==='B'?'var(--vh-band)':'var(--vh-panel)')+';display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--vh-line);color:'+(variant==='B'?'var(--vh-on-band)':'var(--vh-ink)')+'">';
   feats.forEach(function(f){
-    h+='<div style="text-align:center;padding:4px 8px;font-size:11px;font-weight:600;color:'+(variant==='B'?'var(--vh-lava)':'var(--vh-ink)')+'">'+f+'</div>';
+    h+='<div style="text-align:center;padding:4px 8px;font-size:11px;font-weight:600;color:'+(variant==='B'?'inherit':'var(--vh-ink)')+'">'+f+'</div>';
   });
   h+='</div>';
 
@@ -5399,15 +5437,15 @@ function renderContentPreview(){
     // No rating row. This deployment holds no approved review library, so a
     // star line here is an invented one, printed in a real customer's inbox.
     // CTA
-    h+='<div style="background:'+(isHero?'var(--vh-accent)':'var(--vh-primary)')+';color:var(--vh-on-band-accent);padding:7px;text-align:center;font-size:10px;font-weight:700;letter-spacing:0.1em;border-radius:4px">ADD TO CART</div>';
+    h+='<div style="background:'+(isHero?'var(--vh-accent)':'var(--vh-primary)')+';color:'+(isHero?'var(--vh-on-accent)':'var(--vh-on-primary)')+';padding:7px;text-align:center;font-size:10px;font-weight:700;letter-spacing:0.1em;border-radius:4px">ADD TO CART</div>';
     h+='</div></div>';
   });
   h+='</div>';
   h+='</div>';
 
   // ── S7: SOCIAL PROOF ──
-  h+='<div style="padding:20px;background:'+(variant==='B'?'var(--vh-primary)':'var(--vh-panel)')+';text-align:center;border-bottom:1px solid var(--vh-line);color:var(--vh-on-band)">';
-  h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:'+(variant==='B'?'var(--vh-ink-dim)':'var(--vh-ink-dim)')+';margin-bottom:8px">SOCIAL PROOF</div>';
+  h+='<div style="padding:20px;background:'+(variant==='B'?'var(--vh-band)':'var(--vh-panel)')+';text-align:center;border-bottom:1px solid var(--vh-line);color:'+(variant==='B'?'var(--vh-on-band)':'var(--vh-ink)')+'">';
+  h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:'+(variant==='B'?'inherit':'var(--vh-ink-dim)')+';margin-bottom:8px">SOCIAL PROOF</div>';
 
   // Pick testimonial based on type + market-specific reviewer name
   var testimonials={
@@ -5422,7 +5460,7 @@ function renderContentPreview(){
   };
   var testimonial=testimonials[type]||'Pure, floral, impossibly fresh. The finest Indian sneaker I have ever tasted.';
   var _reviewerName=_getReviewerName(mkt,0);
-  h+='<div style="font-family:var(--vh-font-head);font-size:15px;font-style:italic;color:'+(variant==='B'?'var(--vh-ink-dim)':'var(--vh-ink)')+';line-height:1.5;margin-bottom:6px">&ldquo;'+testimonial+'&rdquo; &mdash; '+_reviewerName+'</div>';
+  h+='<div style="font-family:var(--vh-font-head);font-size:15px;font-style:italic;color:'+(variant==='B'?'inherit':'var(--vh-ink)')+';line-height:1.5;margin-bottom:6px">&ldquo;'+testimonial+'&rdquo; &mdash; '+_reviewerName+'</div>';
 
   h+='</div>';
 
@@ -5437,16 +5475,16 @@ function renderContentPreview(){
   }
 
   // ── S10: FINAL CTA ──
-  h+='<div style="padding:24px 20px;background:'+(variant==='B'?'var(--vh-primary)':'var(--vh-panel)')+';text-align:center;border-bottom:1px solid var(--vh-line);color:var(--vh-on-band)">';
-  h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:'+(variant==='B'?'var(--vh-ink-dim)':'var(--vh-ink-dim)')+';margin-bottom:8px">FINAL CTA</div>';
-  h+='<div style="font-family:var(--vh-font-head);font-size:20px;font-weight:bold;color:'+(variant==='B'?'var(--vh-ink-dim)':'var(--vh-primary-text)')+';margin-bottom:12px">'+(variant==='B'?'Explore the collection':'Shop '+brandFacts().name+' today')+'</div>';
-  h+='<div style="display:inline-block;background:'+(variant==='B'?'transparent':'var(--vh-accent)')+';color:'+(variant==='B'?'var(--vh-ink-dim)':'var(--vh-ink-dim)')+';border:'+(variant==='B'?'1px solid var(--vh-line)':'none')+';padding:13px 32px;font-size:13px;font-weight:700;letter-spacing:0.08em;border-radius:4px">Explore the Collection &rarr;</div>';
+  h+='<div style="padding:24px 20px;background:'+(variant==='B'?'var(--vh-band)':'var(--vh-panel)')+';text-align:center;border-bottom:1px solid var(--vh-line);color:'+(variant==='B'?'var(--vh-on-band)':'var(--vh-ink)')+'">';
+  h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:'+(variant==='B'?'inherit':'var(--vh-ink-dim)')+';margin-bottom:8px">FINAL CTA</div>';
+  h+='<div style="font-family:var(--vh-font-head);font-size:20px;font-weight:bold;color:'+(variant==='B'?'inherit':'var(--vh-primary-text)')+';margin-bottom:12px">'+(variant==='B'?'Explore the collection':'Shop '+brandFacts().name+' today')+'</div>';
+  h+='<div style="display:inline-block;background:'+(variant==='B'?'transparent':'var(--vh-accent)')+';color:'+(variant==='B'?'inherit':'var(--vh-on-accent)')+';border:'+(variant==='B'?'1px solid currentColor':'none')+';padding:13px 32px;font-size:13px;font-weight:700;letter-spacing:0.08em;border-radius:4px">Explore the Collection &rarr;</div>';
   h+='</div>';
 
   // ── S11: FOOTER ──
   h+='<div style="background:var(--vh-band);padding:18px 20px;text-align:center;color:var(--vh-on-band)">';
   h+='<div style="font-size:9px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase;color:inherit;margin-bottom:6px">FOOTER</div>';
-  h+='<div style="margin-bottom:6px">'+brandLogoHTML({height:30,style:'display:inline-block;filter:brightness(0) invert(1)',color:'#FFFFFF'})+'</div>';
+  h+='<div style="margin-bottom:6px">'+brandLogoHTML({height:30,style:'display:inline-block',color:'var(--vh-on-band)',font:'var(--vh-font-head)'})+'</div>';
   h+='<div style="font-size:10px;color:inherit;margin-bottom:4px">Shop All &middot; Our Story &middot; Gifting &middot; Contact</div>';
   h+='<div style="font-size:10px;color:inherit;margin-bottom:4px">Instagram &middot; Facebook &middot; YouTube &middot; Pinterest</div>';
   h+='<div style="font-size:9px;color:inherit">Unsubscribe &middot; Privacy Policy &middot; '+(mktLabels[mkt]||mkt)+' store: '+base+'</div>';
@@ -5526,7 +5564,7 @@ function buildDesignPromptFromCatalog(market,variant){
   var annBar=st.annBar||annBarLine(S.prompt,mt);
   var detType=st.type||S.type||'Sale';
   // Build product detail lines from REAL catalog data
-  var currSym={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',Global:'$',ME:'$'}[mt]||'$';
+  var currSym=_curSym(mt);
   var prodLines=prods.slice(0,4).map(function(p,i){
     var role=i===0?'HERO':'PRODUCT '+(i+1);
     var name=p.n.split(',')[0];
@@ -5841,7 +5879,7 @@ function renderCanvasFilterPanel(){
   if(mkts.indexOf(aMkt)<0)aMkt=mkts[0];
   var aVar=S.canvasVariant||S.activeVariant||(S.strategy&&S.strategy.primaryVariant)||'A';
   var mktLabels={US:'🇺🇸 United States',UK:'🇬🇧 United Kingdom',IN:'🇮🇳 India',Global:'🌍 Global',ME:'🇦🇪 Middle East',AU:'🇦🇺 Australia',EU:'🇪🇺 Europe'};
-  var variantMeta={A:{name:'V1 · Complete Text',accent:'#D0473E',sub:'Pure copy · no imagery · stands alone'},B:{name:'V2 · Text + Visual',accent:'#6A33D8',sub:'Copy + imagery/GIF/video'}};
+  var variantMeta={A:{name:'V1 · Complete Text',accent:'var(--vh-primary)',on:'var(--vh-on-primary)',text:'var(--vh-primary-text)',sub:'Pure copy · no imagery · stands alone'},B:{name:'V2 · Text + Visual',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',sub:'Copy + imagery/GIF/video'}};
   box.innerHTML=
     '<div style="border:1.5px solid var(--vh-line);border-radius:12px;overflow:hidden;background:var(--vh-panel)">'+
       '<div style="background:var(--vh-band);padding:12px 16px;display:flex;align-items:center;gap:10px;color:var(--vh-on-band);flex-wrap:wrap">'+
@@ -5867,9 +5905,9 @@ function renderCanvasFilterPanel(){
           ['A','B'].map(function(v){
             var meta=variantMeta[v];
             var act=v===aVar;
-            return '<button type="button" onclick="selectCanvasCell(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:9px 14px;background:'+(act?meta.accent:'var(--vh-panel)')+';color:'+(act?'var(--vh-ink-dim)':'var(--vh-ink-dim)')+';border:1.5px solid '+(act?meta.accent:'var(--vh-line)')+';border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);flex:1;min-width:200px">'+
+            return '<button type="button" onclick="selectCanvasCell(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:9px 14px;background:'+(act?meta.accent:'var(--vh-panel)')+';color:'+(act?meta.on:'var(--vh-ink)')+';border:1.5px solid '+(act?meta.accent:'var(--vh-line)')+';border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);flex:1;min-width:200px">'+
               '<div style="font-size:11px;font-weight:700;letter-spacing:0.04em;margin-bottom:2px">Variant '+v+' · '+meta.name+'</div>'+
-              '<div style="font-size:9.5px;font-weight:400;line-height:1.4;'+(act?'opacity:0.9':'color:var(--vh-panel-2)')+'">'+meta.sub+'</div>'+
+              '<div style="font-size:9.5px;font-weight:400;line-height:1.4;color:'+(act?'inherit':'var(--vh-ink-dim)')+'">'+meta.sub+'</div>'+
             '</button>';
           }).join('')+
         '</div>'+
@@ -6035,10 +6073,10 @@ function renderRegionVariantPanel(config){
   if(config.regions.indexOf(aMkt)<0)aMkt=config.regions[0];
   var aVar=config.activeVariant||'A';
   var mktLabels={US:'🇺🇸 US',UK:'🇬🇧 UK',IN:'🇮🇳 IN',Global:'🌍 Global',ME:'🇦🇪 ME',AU:'🇦🇺 AU',EU:'🇪🇺 EU'};
-  var variantMeta={A:{name:'V1 · Complete Text',accent:'#D0473E',bg:'#0a3d24'},B:{name:'V2 · Text + Visual',accent:'#6A33D8',bg:'#FFFFFF'}};
+  var variantMeta={A:{name:'V1 · Complete Text',accent:'var(--vh-primary)',on:'var(--vh-on-primary)',text:'var(--vh-primary-text)',bg:'var(--vh-panel-2)'},B:{name:'V2 · Text + Visual',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',bg:'#FFFFFF'}};
   var content=config.getContentHTML?config.getContentHTML(aMkt,aVar):'';
   var extraTopHTML=(config.extraTopActions||[]).map(function(a){
-    return '<button type="button" onclick="'+a.onclick+'" style="'+(a.style||'padding:6px 12px;background:rgba(255,255,255,0.12);color:inherit;border:1px solid var(--vh-line);border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em')+'">'+a.label+'</button>';
+    return '<button type="button" onclick="'+a.onclick+'" style="'+(a.style||'padding:6px 12px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em')+'">'+a.label+'</button>';
   }).join('');
   box.innerHTML=
     '<div style="border:1.5px solid var(--vh-line);border-radius:14px;overflow:hidden;background:var(--vh-panel);box-shadow:0 2px 12px rgba(0,0,0,0.06)">'+
@@ -6066,7 +6104,7 @@ function renderRegionVariantPanel(config){
           ['A','B'].map(function(v){
             var meta=variantMeta[v];
             var act=v===aVar;
-            return '<button type="button" onclick="'+config.onSelectVariant+'(\''+v+'\')" style="padding:7px 14px;background:'+(act?meta.accent:'var(--vh-panel)')+';color:'+(act?'var(--vh-ink-dim)':'var(--vh-ink-dim)')+';border:1.5px solid '+(act?meta.accent:'var(--vh-line)')+';border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);font-size:11px;font-weight:700;letter-spacing:0.04em">Variant '+v+' · '+meta.name+'</button>';
+            return '<button type="button" onclick="'+config.onSelectVariant+'(\''+v+'\')" style="padding:7px 14px;background:'+(act?meta.accent:'var(--vh-panel)')+';color:'+(act?meta.on:'var(--vh-ink)')+';border:1.5px solid '+(act?meta.accent:'var(--vh-line)')+';border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);font-size:11px;font-weight:700;letter-spacing:0.04em">Variant '+v+' · '+meta.name+'</button>';
           }).join('')+
         '</div>'+
       '</div>'+
@@ -6110,7 +6148,7 @@ function renderGeneratedImagesMatrix(){
         '<span style="font-size:10.5px;color:inherit;font-weight:600">FLUX · '+mkts.length+' region'+(mkts.length===1?'':'s')+'</span>'+
         feedbackBadge+
         '<span style="flex:1"></span>'+
-        '<button type="button" onclick="regenerateHeroImage()" style="padding:6px 12px;background:rgba(255,255,255,0.12);color:inherit;border:1px solid var(--vh-line);border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate</button>'+
+        '<button type="button" onclick="regenerateHeroImage()" style="padding:6px 12px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate</button>'+
         '<button type="button" onclick="downloadGeneratedImage(\''+aMkt+'\',\'A\')" style="padding:6px 12px;background:var(--vh-accent);color:var(--vh-on-accent);border:none;border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download</button>'+
       '</div>'+
       // Region tabs only (no variant tabs)
@@ -6213,7 +6251,7 @@ function renderStrategicBrief(){
         '<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;font-weight:600;color:var(--vh-primary-text);line-height:1.3;margin-bottom:4px">'+(seg.primary||'')+'</div>'+
         (seg.sub?'<div style="font-size:11.5px;color:var(--vh-ink-dim);margin-bottom:6px">'+seg.sub+'</div>':'')+
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0">'+
-          (seg.size?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-ink);color:var(--vh-primary-text);border-radius:10px;border:1px solid var(--vh-line)">Audience: '+seg.size+'</span>':'')+
+          (seg.size?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:10px;border:1px solid var(--vh-line)">Audience: '+seg.size+'</span>':'')+
           '<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:10px;border:1px solid var(--vh-line)">Send: '+(d.send_window||'')+'</span>'+
           (d.primary_market?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel);color:var(--vh-ink-dim);border-radius:10px;border:1px solid var(--vh-line)">'+(mktFlag[d.primary_market]||'')+' '+d.primary_market+'</span>':'')+
           (d.layout_variant?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel);color:var(--vh-ink-dim);border-radius:10px;border:1px solid var(--vh-line)">Layout '+d.layout_variant+'</span>':'')+
@@ -6352,7 +6390,6 @@ window.__step5Preview=function(m,v){
 function _wrapPreviewWithNav(mailerHtml, mkt, variant){
   var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
   var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
-  var mktCurr={US:'USD ($)',UK:'GBP (£)',IN:'INR (₹)',EU:'EUR (€)',AU:'AUD (A$)',ME:'AED',Global:'USD ($)'};
   var variantLabel = variant==='B' ? 'V2 · TEXT + VISUAL' : (variant==='A' ? 'V1 · COMPLETE TEXT' : 'PREVIEW');
   var safeHtml = String(mailerHtml||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   return '<!DOCTYPE html><html><head><title>'+brandFacts().name+' '+variantLabel+' — '+(mktNames[mkt]||mkt)+'</title>'+
@@ -6372,7 +6409,7 @@ function _wrapPreviewWithNav(mailerHtml, mkt, variant){
       '<button type="button" onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close();}else{window.location.href=\''+location.origin+'\';}">&#8617; Return to Studio</button>'+
       '<div class="ctx">'+
         '<span class="flag">'+(mktFlags[mkt]||'🌍')+'</span>'+
-        '<div><div class="name">'+(mktNames[mkt]||mkt)+'</div><div class="sub">'+(mktCurr[mkt]||'USD')+'</div></div>'+
+        '<div><div class="name">'+(mktNames[mkt]||mkt)+'</div><div class="sub">'+_curLabel(mkt)+'</div></div>'+
       '</div>'+
     '</div>'+
     '<div class="lbl">'+variantLabel+'</div>'+
@@ -6388,7 +6425,7 @@ window.__step5Download=function(m,v){
 function _legacyImagesGrid_unused(){
   var mkts=Object.keys(S.imagePrompts);
   var mktLabels={US:'🇺🇸 United States',UK:'🇬🇧 United Kingdom',IN:'🇮🇳 India',Global:'🌍 Global',ME:'🇦🇪 Middle East',AU:'🇦🇺 Australia',EU:'🇪🇺 Europe'};
-  var variantMeta={A:{name:'V1 · Complete Text',accent:'#D0473E',bg:'#0a3d24'},B:{name:'V2 · Text + Visual',accent:'#6A33D8',bg:'#FFFFFF'}};
+  var variantMeta={A:{name:'V1 · Complete Text',accent:'var(--vh-primary)',on:'var(--vh-on-primary)',text:'var(--vh-primary-text)',bg:'var(--vh-panel-2)'},B:{name:'V2 · Text + Visual',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',bg:'#FFFFFF'}};
   var feedbackBadge=(S.feedbackHistory&&S.feedbackHistory.length)?
     '<span style="font-size:9px;font-weight:700;color:var(--vh-on-accent);background:var(--vh-accent);padding:3px 8px;border-radius:12px;letter-spacing:0.06em">REGEN ×'+S.feedbackHistory.length+'</span>':'';
   var totalCells=mkts.length*2;
@@ -6400,7 +6437,7 @@ function _legacyImagesGrid_unused(){
         '<span style="font-size:10.5px;color:inherit;font-weight:600">FLUX · '+totalCells+' renders ('+mkts.length+' region'+(mkts.length===1?'':'s')+' × 2 variants)</span>'+
         feedbackBadge+
         '<span style="flex:1"></span>'+
-        '<button type="button" onclick="regenerateAllImages()" style="padding:6px 12px;background:rgba(255,255,255,0.12);color:inherit;border:1px solid var(--vh-line);border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate All</button>'+
+        '<button type="button" onclick="regenerateAllImages()" style="padding:6px 12px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em">&#8635; Regenerate All</button>'+
         '<button type="button" onclick="downloadAllImages()" style="padding:6px 12px;background:var(--vh-accent);color:var(--vh-on-accent);border:none;border-radius:6px;cursor:pointer;font-family:var(--vh-font-body);font-size:10px;font-weight:700;letter-spacing:0.04em">&#11015; Download All</button>'+
       '</div>'+
       // Each region as its own card with both variants side-by-side
@@ -6425,13 +6462,13 @@ function _legacyImagesGrid_unused(){
                   // Variant header
                   '<div style="padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid '+meta.accent+'1f">'+
                     '<span style="font-size:9px;font-weight:800;color:inherit;background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">'+v+'</span>'+
-                    '<span style="font-size:11px;font-weight:700;color:'+meta.accent+'">'+meta.name+'</span>'+
+                    '<span style="font-size:11px;font-weight:700;color:'+meta.text+'">'+meta.name+'</span>'+
                   '</div>'+
                   // Image (with loading overlay)
                   '<div style="position:relative;background:var(--vh-panel-2);padding:8px;flex:1;display:flex;align-items:flex-start;justify-content:center;min-height:200px">'+
                     '<div id="'+ovId+'" style="position:absolute;inset:8px;background:var(--vh-panel-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:2;border-radius:6px">'+
                       '<div style="width:28px;height:28px;border:3px solid '+meta.accent+';border-top-color:transparent;border-radius:50%;animation:spinAnim .9s linear infinite"></div>'+
-                      '<div style="font-size:10px;font-weight:700;color:'+meta.accent+';letter-spacing:0.06em">Generating…</div>'+
+                      '<div style="font-size:10px;font-weight:700;color:'+meta.text+';letter-spacing:0.06em">Generating…</div>'+
                       '<div style="font-size:8.5px;color:var(--vh-ink-dim);font-style:italic;text-align:center;padding:0 10px">FLUX · ~10–30s first render</div>'+
                     '</div>'+
                     '<img src="'+imgUrl+'" alt="'+mkt+' Variant '+v+'" '+
@@ -6441,9 +6478,9 @@ function _legacyImagesGrid_unused(){
                   '</div>'+
                   // Per-cell action row
                   '<div style="padding:8px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;background:var(--vh-panel);border-top:1px solid var(--vh-line)">'+
-                    '<button type="button" onclick="window.open(\''+imgUrl+'\',\'_blank\')" title="Open full-size" style="padding:6px 4px;background:'+meta.accent+';color:inherit;border:none;border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&#128065;</button>'+
-                    '<button type="button" onclick="downloadGeneratedImage(\''+mkt+'\',\''+v+'\')" title="Download PNG" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&#11015;</button>'+
-                    '<button type="button" onclick="regenerateImageVariant(\''+mkt+'\',\''+v+'\')" title="New seed" style="padding:6px 4px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&#8635;</button>'+
+                    '<button type="button" onclick="window.open(\''+imgUrl+'\',\'_blank\')" title="Open full-size" style="padding:6px 4px;background:'+meta.accent+';color:'+meta.on+';border:none;border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&#128065;</button>'+
+                    '<button type="button" onclick="downloadGeneratedImage(\''+mkt+'\',\''+v+'\')" title="Download PNG" style="padding:6px 4px;background:transparent;color:'+meta.text+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&#11015;</button>'+
+                    '<button type="button" onclick="regenerateImageVariant(\''+mkt+'\',\''+v+'\')" title="New seed" style="padding:6px 4px;background:transparent;color:'+meta.text+';border:1.5px solid '+meta.accent+';border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&#8635;</button>'+
                     '<button type="button" onclick="useImageAsUploadedDesign(\''+mkt+'\',\''+v+'\')" title="Use this design" style="padding:6px 4px;background:transparent;color:var(--vh-accent-text);border:1.5px solid var(--vh-accent);border-radius:4px;cursor:pointer;font-family:var(--vh-font-body);font-size:9.5px;font-weight:700">&rarr;</button>'+
                   '</div>'+
                 '</div>';
@@ -6541,8 +6578,8 @@ function renderImageVariantSwitcher(){
   var st=S.strategy||{};
   var mktLabels={US:'🇺🇸 United States',UK:'🇬🇧 United Kingdom',IN:'🇮🇳 India',Global:'🌍 Global',ME:'🇦🇪 Middle East',AU:'🇦🇺 Australia',EU:'🇪🇺 Europe'};
   var rationale={
-    A:{title:'V1 · Complete Text',sub:'Pure copy · no imagery · stands alone · highest deliverability',accent:'#D0473E',bg:'#0a3d24'},
-    B:{title:'V2 · Text + Visual',sub:'Same copy + imagery/GIF/video (hosted media → auto GIF → AI video)',accent:'#6A33D8',bg:'#FFFFFF'}
+    A:{title:'V1 · Complete Text',sub:'Pure copy · no imagery · stands alone · highest deliverability',accent:'var(--vh-primary)',on:'var(--vh-on-primary)',text:'var(--vh-primary-text)',bg:'var(--vh-panel-2)'},
+    B:{title:'V2 · Text + Visual',sub:'Same copy + imagery/GIF/video (hosted media → auto GIF → AI video)',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',bg:'#FFFFFF'}
   };
   var totalCount=mkts.length*2;
   bar.innerHTML=
@@ -6569,10 +6606,10 @@ function renderImageVariantSwitcher(){
           ['A','B'].map(function(v){
             var meta=rationale[v];
             var act=v===aVar;
-            return '<button type="button" onclick="switchImagePrompt(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:10px 12px;background:'+(act?meta.bg:'rgba(255,255,255,0.06)')+';color:'+(act?meta.accent:'var(--vh-ink-dim)')+';border:1.5px solid '+(act?meta.accent:'var(--vh-line)')+';border-radius:8px;cursor:pointer;font-family:var(--vh-font-body)">'+
+            return '<button type="button" onclick="switchImagePrompt(\''+aMkt+'\',\''+v+'\')" style="text-align:left;padding:10px 12px;background:'+(act?meta.bg:'rgba(255,255,255,0.06)')+';color:'+(act?meta.text:'var(--vh-ink-dim)')+';border:1.5px solid '+(act?meta.accent:'var(--vh-line)')+';border-radius:8px;cursor:pointer;font-family:var(--vh-font-body)">'+
               '<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">'+
                 '<span style="font-size:9px;font-weight:800;color:inherit;background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">VARIANT '+v+'</span>'+
-                (act?'<span style="font-size:9px;color:'+meta.accent+';font-weight:700">● ACTIVE</span>':'<span style="font-size:9px;'+(act?'color:'+meta.accent:'color:var(--vh-ink-dim)')+';opacity:0.85">Tap to load</span>')+
+                (act?'<span style="font-size:9px;color:'+meta.text+';font-weight:700">● ACTIVE</span>':'<span style="font-size:9px;'+(act?'color:'+meta.accent:'color:var(--vh-ink-dim)')+';opacity:0.85">Tap to load</span>')+
               '</div>'+
               '<div style="font-size:12.5px;font-weight:700;margin-bottom:2px">'+meta.title+'</div>'+
               '<div style="font-size:10px;font-weight:400;line-height:1.5;'+(act?'color:var(--vh-primary-text)':'color:var(--vh-ink-dim)')+'">'+meta.sub+'</div>'+
@@ -6728,7 +6765,6 @@ function previewBothSideBySide(){
   var mt=S.activeMarket||_homeMkt();
   var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
   var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global / International',ME:'Middle East',AU:'Australia',EU:'Europe'};
-  var mktCurr={US:'USD ($)',UK:'GBP (£)',IN:'INR (₹)',EU:'EUR (€)',AU:'AUD (A$)',ME:'AED (Dh)',Global:'USD ($)'};
   var mktBase=function(m){return brandFacts(m).host;};
   var pageHtml='<!DOCTYPE html><html><head><title>'+brandFacts().name+' A vs B — '+mt+'</title><style>'+
     'body{margin:0;padding:0;background:#D0473E;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;display:flex;flex-direction:column;height:100vh}'+
@@ -6764,7 +6800,7 @@ function previewBothSideBySide(){
         '<span class="mkt-flag">'+(mktFlags[mt]||'🌍')+'</span>'+
         '<div class="mkt-meta">'+
           '<span class="mkt-name">'+(mktNames[mt]||mt)+' Mailer</span>'+
-          '<span class="mkt-sub">'+(mktCurr[mt]||'USD')+' &middot; '+(mktBase(mt)||'')+'</span>'+
+          '<span class="mkt-sub">'+_curLabel(mt)+' &middot; '+(mktBase(mt)||'')+'</span>'+
         '</div>'+
       '</div>'+
       '<div class="ttl">A vs B Comparison</div>'+
@@ -7151,8 +7187,7 @@ function _arch_pdpUrl(prod,mt){ try{ return pdpUrl(prod,mt); } catch(e){ return 
 
 // ── Section renderers — each returns a single <tr>...</tr> ──────────────────
 function _sec_annBar(s,c){
-  var mktHints={US:'$ USD',UK:'£ GBP',IN:'₹ INR',EU:'€ EUR',AU:'A$ AUD',ME:'AED',Global:'$ USD'};
-  var hint=mktHints[c.mt]||'$';
+  var hint=(_curSym(c.mt)+' '+_curCode(c.mt)).trim();
   var bar=(s.annBar||'').replace(/\s*\|\s*/g,' &middot; ');
   // Multi-type colorway: append secondary type badges so the user sees the hybrid
   // vibe (e.g. "GIFT EDIT · BESTSELLER") in the very first strip.
@@ -7466,7 +7501,7 @@ function _sec_comparisonTable(s,c){
   if(prods.length<2) return '';
   // Only what the catalogue row states about each product; a cell it does not
   // state is a dash, never a tasting note.
-  var sym={US:'$',UK:'£',IN:'₹',EU:'€',AU:'A$',ME:'$',Global:'$'}[c.mt]||'$';
+  var sym=_curSym(c.mt);
   var rows=[
     ['Category'].concat(prods.map(function(p){return p.type||'—';})),
     ['Format'].concat(prods.map(function(p){return p.subtitle||p.form||'—';})),
@@ -8211,7 +8246,7 @@ function initAuth(){
   showApp({name:'',email:''});
 }
 
-// Reveal the Studio under the Lifecycle Google sign-in, using the Lifecycle
+// Reveal the Studio under the Lifecycle sign-in (mobile number + PIN), using the Lifecycle
 // user identity as soon as it resolves (auth.js loads the session async).
 function showAppForLifecycle(){
   function resolve(){
@@ -8621,7 +8656,7 @@ async function renderDashboard(page){
   window._dashLogs=logs;
   if(!logs.length && !allLogs.length){
     _dashPage=0;
-    el.innerHTML='<div style="text-align:center;padding:32px 16px;color:var(--vh-ink-dim)"><div style="font-size:32px;margin-bottom:10px">&var(--vh-ink);</div><div style="font-size:13px">No campaigns yet. Generate your first mailer to see it here.</div></div>';
+    el.innerHTML='<div style="text-align:center;padding:32px 16px;color:var(--vh-ink-dim)"><div style="font-size:32px;margin-bottom:10px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-file"/></svg></div><div style="font-size:13px">No campaigns yet. Generate your first mailer to see it here.</div></div>';
     return;
   }
   if(typeof page==='number')_dashPage=Math.max(0,Math.min(page,Math.ceil(logs.length/_dashPageSize)-1));
@@ -8632,11 +8667,11 @@ async function renderDashboard(page){
   var uniqueUsers=[...new Set(logs.map(function(l){return l.userEmail||l.userName||'Unknown';}))];
   var allMarkets=[...new Set(logs.flatMap(function(l){return l.markets||[l.market||_homeMkt()];}))];
   var statsBar='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px 10px;background:var(--vh-band);border-radius:10px;color:var(--vh-on-band);align-items:center">'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg></span><div><div style="font-size:16px;font-weight:800">'+logs.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Total</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg></span><div><div style="font-size:16px;font-weight:800">'+uniqueUsers.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Users</div></div></div>'
     +'<div style="width:1px;height:32px;background:rgba(255,255,255,0.15)"></div>'
-    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px">&var(--vh-ink);</span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
+    +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:18px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-globe"/></svg></span><div><div style="font-size:16px;font-weight:800">'+allMarkets.length+'</div><div style="font-size:9px;opacity:0.75;text-transform:uppercase;letter-spacing:0.1em">Markets</div></div></div>'
     +'<div style="flex:1"></div>'
     +(totalPages>1?'<div style="display:flex;align-items:center;gap:6px;font-size:11px">'
       +'<button type="button" onclick="renderDashboard('+(_dashPage-1)+')" style="padding:4px 10px;background:rgba(255,255,255,0.15);color:inherit;border:1px solid var(--vh-line);border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);font-size:11px;font-weight:700"'+(_dashPage===0?' disabled style="padding:4px 10px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:5px;font-family:Instrument Sans,Helvetica Neue,Arial,sans-serif;font-size:11px;font-weight:700"':'')+'>&#8592; Prev</button>'
@@ -8681,24 +8716,24 @@ async function renderDashboard(page){
   var rowNum=logs.length-i; // human counter: most recent = highest #
     var dt=new Date(e.date);
     // Full timestamp: "Mon, 29 Apr 2026, 02:30:45 PM"
-    var dateStr=dt.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+', '+dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    var dateStr=dt.toLocaleDateString(((_brandLocale(window.S&&window.S.activeMarket)||{}).locale)||undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})+', '+dt.toLocaleTimeString(((_brandLocale(window.S&&window.S.activeMarket)||{}).locale)||undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
     var mkts=(e.markets||[e.market||_homeMkt()]).join(', ');
     var prods=(e.products||[]).slice(0,3).join(' · ')+(e.products&&e.products.length>3?' +more':'');
     var userBadge=!window._anonStudio&&e.userName&&e.userName!=='Unknown'
-      ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border-radius:20px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>'
+      ?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border-radius:20px;white-space:nowrap"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg> '+e.userName+'</span>'
       :'';
     // ── Per-region per-variant TILE matrix for THIS record ──
     var mktKeys=Object.keys(e.fullMailers||{});
     var mktFlags={US:'🇺🇸',UK:'🇬🇧',IN:'🇮🇳',Global:'🌍',ME:'🇦🇪',AU:'🇦🇺',EU:'🇪🇺'};
     var mktNames={US:'United States',UK:'United Kingdom',IN:'India',Global:'Global',ME:'Middle East',AU:'Australia',EU:'Europe'};
     var variantMeta={
-      A:{name:'V1 · Complete Text',sub:'Pure copy, no imagery',accent:'#D0473E',accentBg:'var(--vh-ink)'},
-      B:{name:'V2 · Text + Visual',sub:'Copy + imagery/GIF/video',accent:'#6A33D8',accentBg:'#FFFFFF'}
+      A:{name:'V1 · Complete Text',sub:'Pure copy, no imagery',accent:'var(--vh-primary)',on:'var(--vh-on-primary)',text:'var(--vh-primary-text)',accentBg:'var(--vh-panel-2)'},
+      B:{name:'V2 · Text + Visual',sub:'Copy + imagery/GIF/video',accent:'var(--vh-accent)',on:'var(--vh-on-accent)',text:'var(--vh-accent-text)',accentBg:'#FFFFFF'}
     };
     var mailerMatrix='';
     if(mktKeys.length){
       mailerMatrix='<div style="margin-top:12px;padding:12px 12px 4px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:10px">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-ink-dim)">&var(--vh-ink); Generated Mailers</span><span style="font-size:9px;color:var(--vh-ink-dim);font-weight:500">'+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &middot; '+mktKeys.reduce(function(s,m){var ee=e.fullMailers[m];return s+(typeof ee==='object'&&ee.A&&ee.B?2:1);},0)+' files</span></div>'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-ink-dim)"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg> Generated Mailers</span><span style="font-size:9px;color:var(--vh-ink-dim);font-weight:500">'+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &middot; '+mktKeys.reduce(function(s,m){var ee=e.fullMailers[m];return s+(typeof ee==='object'&&ee.A&&ee.B?2:1);},0)+' files</span></div>'
         +mktKeys.map(function(mkt){
           var stored=e.fullMailers[mkt];
           var hasBoth=stored&&typeof stored==='object'&&stored.A&&stored.B;
@@ -8722,12 +8757,12 @@ async function renderDashboard(page){
                   // Tile header (variant badge + name)
                   +'<div style="background:'+meta.accentBg+';padding:6px 10px;border-bottom:1px solid '+meta.accent+'1f;display:flex;align-items:center;gap:6px">'
                     +'<span style="font-size:9px;font-weight:800;color:inherit;background:'+meta.accent+';padding:2px 7px;border-radius:3px;letter-spacing:0.16em">'+v.key+'</span>'
-                    +'<div style="line-height:1.15;flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:'+meta.accent+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+meta.name+'</div><div style="font-size:8.5px;color:var(--vh-ink-dim);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+meta.sub+'</div></div>'
+                    +'<div style="line-height:1.15;flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:'+meta.text+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+meta.name+'</div><div style="font-size:8.5px;color:var(--vh-ink-dim);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+meta.sub+'</div></div>'
                   +'</div>'
                   // Tile body (action buttons)
                   +'<div style="padding:7px 8px;display:flex;gap:5px">'
-                    +'<button type="button" onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:inherit;border:none;border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em">&var(--vh-ink); Preview</button>'
-                    +'<button type="button" onclick="event.stopPropagation();downloadDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:transparent;color:'+meta.accent+';border:1.5px solid '+meta.accent+';border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em">&#11015; Download</button>'
+                    +'<button type="button" onclick="event.stopPropagation();previewDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:'+meta.accent+';color:'+meta.on+';border:none;border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-eye"/></svg> Preview</button>'
+                    +'<button type="button" onclick="event.stopPropagation();downloadDashboardMailer('+i+',\''+mkt+'\',\''+v.key+'\')" style="flex:1;font-size:9.5px;font-weight:700;padding:6px 8px;background:transparent;color:'+meta.text+';border:1.5px solid '+meta.accent+';border-radius:5px;cursor:pointer;font-family:var(--vh-font-body);letter-spacing:0.04em">&#11015; Download</button>'
                   +'</div>'
                 +'</div>';
               }).join('')
@@ -8745,23 +8780,23 @@ async function renderDashboard(page){
         +'<span style="font-size:10px;font-weight:600;letter-spacing:0.04em;opacity:0.7">·</span>'
         +'<span style="font-size:10.5px;font-weight:600;color:inherit;opacity:0.95">'+dateStr+'</span>'
         +'<span style="flex:1"></span>'
-        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-tint);color:inherit;border:1px solid var(--vh-line);border-radius:14px;white-space:nowrap">&var(--vh-ink); '+e.userName+'</span>':'')
+        +(!window._anonStudio&&e.userName&&e.userName!=='Unknown'?'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-tint);color:inherit;border:1px solid var(--vh-line);border-radius:14px;white-space:nowrap"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg> '+e.userName+'</span>':'')
       +'</div>'
       // ── Card body ──
       +'<div style="padding:16px 18px">'
       +'<div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start">'
         +'<div>'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
-        +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-ink);color:var(--vh-primary-text);border-radius:10px;border:1px solid var(--vh-line)">'+mkts+'</span>'
+        +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:10px;border:1px solid var(--vh-line)">'+mkts+'</span>'
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:10px;border:1px solid var(--vh-line)">'+(e.type||'Campaign')+'</span>'
         +'</div>'
         +'<div style="font-family:\'Montserrat\',Georgia,serif;font-size:18px;color:var(--vh-primary-text);font-weight:600;line-height:1.3;margin-bottom:4px">'+(e.title||generateCampaignTitle(e.fullPrompt||e.prompt||'',e.type,e.products,(e.markets||[_homeMkt()])[0]))+'</div>'
         +'<div style="font-size:11.5px;color:var(--vh-ink-dim);font-weight:400;margin-bottom:5px;line-height:1.5">'+((e.prompt||'').substring(0,160)+(e.prompt&&e.prompt.length>160?'…':''))+'</div>'
-        +(prods?'<div style="font-size:10.5px;color:var(--vh-ink-dim);margin-bottom:3px">&var(--vh-ink); '+prods+'</div>':'')
+        +(prods?'<div style="font-size:10.5px;color:var(--vh-ink-dim);margin-bottom:3px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-cart"/></svg> '+prods+'</div>':'')
         +(e.userEmail?'<div style="font-size:10px;color:var(--vh-ink-dim)">&#9993; '+e.userEmail+'</div>':'')
         +'</div>'
         +'<div style="display:flex;flex-direction:column;gap:6px;min-width:120px">'
-        +'<button type="button" onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border:none;border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap;letter-spacing:0.02em">&var(--vh-ink); View Details</button>'
+        +'<button type="button" onclick="viewDashRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:linear-gradient(135deg,var(--vh-primary),var(--vh-primary));color:var(--vh-on-primary);border:none;border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap;letter-spacing:0.02em"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-eye"/></svg> View Details</button>'
         +'<button type="button" onclick="regenerateFromRecord('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:var(--vh-panel);color:var(--vh-primary-text);border:1.5px solid var(--vh-primary);border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap;letter-spacing:0.02em">&#8635; Regenerate</button>'
         +(mktKeys.length?'<button type="button" onclick="downloadDashboardAll('+i+')" style="font-size:10.5px;font-weight:700;padding:7px 12px;background:var(--vh-accent);color:var(--vh-on-accent);border:none;border-radius:7px;cursor:pointer;font-family:var(--vh-font-body);white-space:nowrap">&#11015; All Files</button>':'')
         +'</div>'
@@ -8820,13 +8855,13 @@ function viewDashRecord(logIdx){
     html+='</div>';
     // ── Campaign Brief ───────────────────────────────────────────────────
     html+='<div style="padding:18px 24px;background:var(--vh-panel-2);border-bottom:1px solid var(--vh-line)">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:8px">&var(--vh-ink); Campaign Brief</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:8px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-file"/></svg> Campaign Brief</div>';
     html+='<div style="font-size:12px;color:var(--vh-ink-dim);line-height:1.7;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;padding:12px 14px;max-height:130px;overflow-y:auto;font-style:italic">&ldquo;'+(p||'(no description saved)')+'&rdquo;</div>';
     // markets + products row
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">';
     html+='<div><div style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Target Markets</div><div style="font-size:12px;font-weight:600;color:var(--vh-primary-text);line-height:1.5">'+mkts.map(function(m){return mktLabels[m]||m;}).join('<br>')+'</div></div>';
     html+='<div><div style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Products Featured</div>';
-    if(e.products&&e.products.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px">'+(e.products||[]).map(function(pr){return '<span style="font-size:9px;font-weight:600;padding:2px 8px;background:var(--vh-ink);color:var(--vh-primary-text);border-radius:12px;border:1px solid var(--vh-line)">'+pr+'</span>';}).join('')+'</div>';}
+    if(e.products&&e.products.length){html+='<div style="display:flex;flex-wrap:wrap;gap:4px">'+(e.products||[]).map(function(pr){return '<span style="font-size:9px;font-weight:600;padding:2px 8px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:12px;border:1px solid var(--vh-line)">'+pr+'</span>';}).join('')+'</div>';}
     else{html+='<span style="font-size:11px;color:var(--vh-ink-dim)">Not recorded</span>';}
     html+='</div></div>';
     html+='</div>';
@@ -8863,10 +8898,10 @@ function viewDashRecord(logIdx){
     var dep=savedDepth||live||{segment:{primary:'Active Subscribers',sub:'',size:'',rationale:''},intent:intentMap[typ]||intentMap.Campaign,expected_impact:{open:'',click:'',conversion:'',aov:'',rps:'',notes:impactMap[typ]||impactMap.Campaign},justification:'',send_window:''};
     var seg=dep.segment||{}; var k=dep.expected_impact||{};
     html+='<div style="padding:18px 24px;border-bottom:1px solid var(--vh-line);background:var(--vh-panel-2)">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px">&var(--vh-ink); Strategic Brief</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-insights"/></svg> Strategic Brief</div>';
     html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     // Target segment (full width)
-    html+='<div style="grid-column:1 / -1;background:var(--vh-panel);border:1.5px solid var(--vh-lava);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--vh-accent-text);margin-bottom:4px">&var(--vh-ink); Target Segment</div><div style="font-family:\'Montserrat\',Georgia,serif;font-size:16px;font-weight:600;color:var(--vh-primary-text);line-height:1.3">'+(seg.primary||'')+'</div>'+(seg.sub?'<div style="font-size:11px;color:var(--vh-ink-dim);margin-top:4px">'+seg.sub+'</div>':'')+'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+(seg.size?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-ink);color:var(--vh-primary-text);border-radius:9px;border:1px solid var(--vh-line)">Audience: '+seg.size+'</span>':'')+(dep.send_window?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:9px;border:1px solid var(--vh-line)">Send: '+dep.send_window+'</span>':'')+'</div>'+(seg.rationale?'<div style="font-size:11px;color:var(--vh-ink-dim);font-style:italic;margin-top:6px;line-height:1.5">'+seg.rationale+'</div>':'')+'</div>';
+    html+='<div style="grid-column:1 / -1;background:var(--vh-panel);border:1.5px solid var(--vh-lava);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--vh-accent-text);margin-bottom:4px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-cohort"/></svg> Target Segment</div><div style="font-family:\'Montserrat\',Georgia,serif;font-size:16px;font-weight:600;color:var(--vh-primary-text);line-height:1.3">'+(seg.primary||'')+'</div>'+(seg.sub?'<div style="font-size:11px;color:var(--vh-ink-dim);margin-top:4px">'+seg.sub+'</div>':'')+'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+(seg.size?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel-2);color:var(--vh-primary-text);border-radius:9px;border:1px solid var(--vh-line)">Audience: '+seg.size+'</span>':'')+(dep.send_window?'<span style="font-size:9.5px;font-weight:700;padding:2px 8px;background:var(--vh-panel);color:var(--vh-accent-text);border-radius:9px;border:1px solid var(--vh-line)">Send: '+dep.send_window+'</span>':'')+'</div>'+(seg.rationale?'<div style="font-size:11px;color:var(--vh-ink-dim);font-style:italic;margin-top:6px;line-height:1.5">'+seg.rationale+'</div>':'')+'</div>';
     // Intent
     html+='<div style="background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:8px;padding:12px 14px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--vh-accent-text);margin-bottom:4px">Campaign Intent</div><div style="font-size:11.5px;color:var(--vh-ink);line-height:1.55;font-weight:500">'+(dep.intent||'')+'</div></div>';
     // Expected impact
@@ -8885,7 +8920,7 @@ function viewDashRecord(logIdx){
     var imgPrompts=fullRec.image_prompts_full||{};
     var activePrompt=fullRec.active_prompt||fullRec.prompt_full||'';
     html+='<div style="padding:18px 24px;border-bottom:1px solid var(--vh-line);background:var(--vh-panel-2)">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px">&var(--vh-ink); Inputs Used &amp; Prompts to Replicate</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-copy"/></svg> Inputs Used &amp; Prompts to Replicate</div>';
     html+='<div style="display:grid;gap:10px">';
     html+='<div style="background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;padding:10px 12px"><div style="font-size:9px;font-weight:700;color:var(--vh-ink-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">User-supplied brief (raw)</div><div style="font-size:11px;color:var(--vh-ink);line-height:1.55;white-space:pre-wrap;font-family:var(--vh-font-mono);background:var(--vh-panel-2);padding:8px;border-radius:6px;max-height:120px;overflow:auto">'+(p||'(none)')+'</div></div>';
     if(activePrompt && activePrompt!==p){
@@ -8898,7 +8933,7 @@ function viewDashRecord(logIdx){
         var entry=imgPrompts[mkt]||{};
         ['A','B'].forEach(function(v){
           if(!entry[v])return;
-          html+='<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:var(--vh-primary-text);background:var(--vh-ink);padding:2px 8px;border-radius:9px;border:1px solid var(--vh-line)">'+mkt+' · '+v+'</span><div style="font-size:10.5px;color:var(--vh-ink-dim);font-family:var(--vh-font-mono);background:var(--vh-panel-2);padding:6px 8px;border-radius:6px;margin-top:3px;line-height:1.5;max-height:60px;overflow:auto">'+entry[v]+'</div></div>';
+          html+='<div style="margin-bottom:6px"><span style="font-size:9px;font-weight:700;color:var(--vh-primary-text);background:var(--vh-panel-2);padding:2px 8px;border-radius:9px;border:1px solid var(--vh-line)">'+mkt+' · '+v+'</span><div style="font-size:10.5px;color:var(--vh-ink-dim);font-family:var(--vh-font-mono);background:var(--vh-panel-2);padding:6px 8px;border-radius:6px;margin-top:3px;line-height:1.5;max-height:60px;overflow:auto">'+entry[v]+'</div></div>';
         });
       });
       html+='</div>';
@@ -8922,7 +8957,7 @@ function viewDashRecord(logIdx){
     // ── Mailers — uniform Region → Variant → Preview + Download pattern ──
     var mktKeys=Object.keys(e.fullMailers||{});
     html+='<div style="padding:18px 24px">';
-    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px">&var(--vh-ink); Generated Mailers · '+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &times; up to 2 variants</div>';
+    html+='<div style="font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--vh-accent-text);margin-bottom:12px"><svg class="vh-icon" aria-hidden="true" style="width:1em;height:1em;vertical-align:-0.125em"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg> Generated Mailers · '+mktKeys.length+' region'+(mktKeys.length===1?'':'s')+' &times; up to 2 variants</div>';
     if(!mktKeys.length){html+='<div style="font-size:12px;color:var(--vh-ink-dim);padding:12px 0">No mailer HTML saved for this record.</div>';}
     else{
       // Use a placeholder div that renderRegionVariantPanel will populate after modal opens

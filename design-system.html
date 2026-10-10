@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design System · Lifecycle OS</title>
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<meta name="description" content="The Lifecycle OS design system: the platform's own mark, the surface-to-token contract, and every component of the app, rendered live in the active brand.">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  /* Layout only. Every colour on this page is a contract token: the page is the
+     specimen of the rule it documents, and tests/design-system.spec.js fails on
+     a colour literal here exactly as it does in theme.css. */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--vh-bg); color: var(--vh-ink); font-family: var(--vh-font-body); }
+  .ds { max-width: 1120px; margin: 0 auto; padding: var(--vh-s6) var(--vh-s4) var(--vh-s7); }
+  .ds-head { display: grid; gap: var(--vh-s3); margin-bottom: var(--vh-s6); }
+  .ds-head p { margin: 0; max-width: 72ch; line-height: 1.6; color: var(--vh-ink-dim); }
+  .ds-head .vh-h1 { margin: 0; }
+  .ds-sec { margin: var(--vh-s7) 0 0; }
+  .ds-sec > .vh-h2 { margin: 0 0 var(--vh-s2); }
+  .ds-sec > p { margin: 0 0 var(--vh-s4); max-width: 72ch; color: var(--vh-ink-dim); line-height: 1.6; }
+  .ds-grid { display: grid; gap: var(--vh-s4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+  .ds-comp { display: grid; gap: var(--vh-s3); align-content: start; padding: var(--vh-s5); background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: var(--vh-r-lg); min-width: 0; }
+  .ds-comp > .vh-h3 { margin: 0; }
+  .ds-comp > p { margin: 0; font-size: var(--vh-fs-sm); line-height: 1.55; color: var(--vh-ink-dim); }
+  .ds-demo { display: flex; flex-wrap: wrap; gap: var(--vh-s3); align-items: center; min-width: 0; }
+  .ds-demo-col { display: grid; gap: var(--vh-s3); min-width: 0; }
+  .ds-wide { grid-column: 1 / -1; }
+  .ds-tokens { font-family: var(--vh-font-mono); font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); overflow-wrap: anywhere; }
+  .ds-logos { display: grid; gap: var(--vh-s4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+  .ds-logo { margin: 0; display: grid; gap: var(--vh-s2); align-content: start; padding: var(--vh-s4); background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: var(--vh-r-md); min-width: 0; }
+  .ds-logo img { display: block; max-width: 100%; height: 72px; object-fit: contain; object-position: left center; }
+  .ds-logo b { font-size: var(--vh-fs-sm); }
+  .ds-logo span { font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); line-height: 1.5; }
+  .ds-swatches { display: grid; gap: var(--vh-s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
+  .ds-scale { display: grid; gap: var(--vh-s2); }
+  .ds-scale-row { display: flex; align-items: center; gap: var(--vh-s3); min-width: 0; }
+  .ds-scale-row code { flex: none; width: 92px; }
+  .ds-bar { height: 12px; background: var(--vh-primary); border-radius: 3px; }
+  .ds-box { width: 72px; height: 56px; background: var(--vh-panel); border: 1px solid var(--vh-line-hot); display: grid; place-items: center; font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); }
+  .ds-icons { display: grid; gap: var(--vh-s2); grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .ds-icon { display: grid; justify-items: center; gap: 6px; padding: 10px 6px; border: 1px solid var(--vh-line); border-radius: var(--vh-r-sm); background: var(--vh-panel); color: var(--vh-ink); }
+  .ds-icon span { font-family: var(--vh-font-mono); font-size: 10.5px; color: var(--vh-ink-dim); overflow-wrap: anywhere; text-align: center; }
+  .ds-ills { display: grid; gap: var(--vh-s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+  .ds-ill { margin: 0; display: grid; justify-items: center; gap: 6px; padding: var(--vh-s3); background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: var(--vh-r-md); }
+  .ds-ill span { font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); }
+  .ds-pairs { width: 100%; }
+  .ds-pairs td:first-child, .ds-pairs th:first-child { text-align: left; }
+  .ds-onband { display: flex; align-items: center; gap: var(--vh-s3); }
+  .ds-railnote { display: flex; gap: var(--vh-s3); align-items: flex-start; }
+  #ds-pressed:empty { display: none; }
+  /* A swatch reads its own token; the words beside it sit on the panel. */
+  .ds-sw[data-token="brand-primary"] .vh-swatch-chip { background: var(--brand-primary); }
+  .ds-sw[data-token="brand-primary-dark"] .vh-swatch-chip { background: var(--brand-primary-dark); }
+  .ds-sw[data-token="brand-primary-soft"] .vh-swatch-chip { background: var(--brand-primary-soft); }
+  .ds-sw[data-token="brand-primary-tint"] .vh-swatch-chip { background: var(--brand-primary-tint); }
+  .ds-sw[data-token="brand-on-primary"] .vh-swatch-chip { background: var(--brand-on-primary); }
+  .ds-sw[data-token="brand-primary-text"] .vh-swatch-chip { background: var(--brand-primary-text); }
+  .ds-sw[data-token="brand-accent"] .vh-swatch-chip { background: var(--brand-accent); }
+  .ds-sw[data-token="brand-accent-text"] .vh-swatch-chip { background: var(--brand-accent-text); }
+  .ds-sw[data-token="brand-ink"] .vh-swatch-chip { background: var(--brand-ink); }
+  .ds-sw[data-token="brand-ink-muted"] .vh-swatch-chip { background: var(--brand-ink-muted); }
+  .ds-sw[data-token="brand-surface"] .vh-swatch-chip { background: var(--brand-surface); }
+  .ds-sw[data-token="brand-surface-alt"] .vh-swatch-chip { background: var(--brand-surface-alt); }
+  .ds-sw[data-token="brand-surface-sunken"] .vh-swatch-chip { background: var(--brand-surface-sunken); }
+  .ds-sw[data-token="brand-line"] .vh-swatch-chip { background: var(--brand-line); }
+  .ds-sw[data-token="brand-line-strong"] .vh-swatch-chip { background: var(--brand-line-strong); }
+  .ds-sw[data-token="brand-band"] .vh-swatch-chip { background: var(--brand-band); }
+  .ds-sw[data-token="brand-on-band"] .vh-swatch-chip { background: var(--brand-on-band); }
+  .ds-sw[data-token="brand-focus"] .vh-swatch-chip { background: var(--brand-focus); }
+  .ds-sw[data-token="brand-ok-text"] .vh-swatch-chip { background: var(--brand-ok-text); }
+  .ds-sw[data-token="brand-warn-text"] .vh-swatch-chip { background: var(--brand-warn-text); }
+  .ds-sw[data-token="brand-err-text"] .vh-swatch-chip { background: var(--brand-err-text); }
+  .ds-sw[data-token="chart-1"] .vh-swatch-chip { background: var(--vh-chart-1); }
+  .ds-sw[data-token="chart-2"] .vh-swatch-chip { background: var(--vh-chart-2); }
+  .ds-sw[data-token="chart-3"] .vh-swatch-chip { background: var(--vh-chart-3); }
+  .ds-sw[data-token="chart-4"] .vh-swatch-chip { background: var(--vh-chart-4); }
+  .ds-lift-1 { box-shadow: var(--vh-lift-1); }
+  .ds-lift-2 { box-shadow: var(--vh-lift-2); }
+  .ds-r-sm { border-radius: var(--vh-r-sm); } .ds-r-md { border-radius: var(--vh-r-md); } .ds-r-lg { border-radius: var(--vh-r-lg); } .ds-r-pill { border-radius: var(--vh-r-pill); }
+  @media (max-width: 560px) { .ds { padding: var(--vh-s5) var(--vh-s4) var(--vh-s6); } }
+</style>
+</head>
+<body>
+<main class="ds" id="ds">
+  <header class="ds-head">
+    <span class="vh-eyebrow">Lifecycle OS</span>
+    <h1 class="vh-h1">Design system</h1>
+    <p>Every surface of the app, rendered live in the active brand<span id="ds-brand"></span>. The platform's own mark stays the platform's; every colour below is a role from the surface contract (<code class="vh-code">design/lifecycle-os/CONTRACT.md</code>), derived from the brand's record so it stays readable for any palette.</p>
+    <div class="ds-demo"><span class="vh-mode"><svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-palette"/></svg>Rendered in the active brand</span><span class="vh-state" data-state="ok">Light theme only, by design</span></div>
+    <div id="ds-pressed" class="vh-status" role="status" aria-live="polite"></div>
+  </header>
+
+  <section class="ds-sec" id="identity" data-ds-section="identity">
+    <h2 class="vh-h2">Platform identity</h2>
+    <p>The tab icon, the touch icon, the manifest, the share card and the rail mark identify the TOOL, so they are Lifecycle OS's mark and never a tenant's. The mark's three colours are neutral greys by the page audit's own saturation rule. The active brand's logo appears only in the brand slot beneath the wordmark.</p>
+    <div class="ds-logos">
+      <figure class="ds-logo" data-ds-logo="mark"><img src="/assets/lifecycle-os-mark.svg" alt="Lifecycle OS mark"><b>Mark</b><span>assets/lifecycle-os-mark.svg. Favicon, app icon. Minimum 16px. Clear space: a quarter of its height on every side.</span></figure>
+      <figure class="ds-logo" data-ds-logo="horizontal"><img src="/assets/lifecycle-os/logos/lockup-horizontal.svg" alt="Lifecycle OS horizontal lockup"><b>Horizontal lockup</b><span>Mark and wordmark on one line. Minimum 120px wide.</span></figure>
+      <figure class="ds-logo" data-ds-logo="stacked"><img src="/assets/lifecycle-os/logos/lockup-stacked.svg" alt="Lifecycle OS stacked lockup"><b>Stacked lockup</b><span>Square placements, the about page. Minimum 72px wide.</span></figure>
+      <figure class="ds-logo" data-ds-logo="wordmark"><img src="/assets/lifecycle-os/logos/wordmark.svg" alt="Lifecycle OS wordmark"><b>Wordmark</b><span>The name alone, in the system sans at 700. Never in a tenant's typeface.</span></figure>
+      <figure class="ds-logo" data-ds-logo="mono"><img src="/assets/lifecycle-os/logos/mark-mono.svg" alt="Lifecycle OS mark, one ink"><b>Mono</b><span>One ink, no tile fill: single-colour reproduction.</span></figure>
+      <figure class="ds-logo" data-ds-logo="og"><img src="/assets/lifecycle-os-og.png" alt="Lifecycle OS share card"><b>Share card</b><span>assets/lifecycle-os-og.png, 1200 by 630.</span></figure>
+    </div>
+    <div class="vh-band ds-onband" style="margin-top:var(--vh-s4)" data-ds-band="primary">
+      <span class="los-mark-on-band" role="img" aria-label="Lifecycle OS mark on a brand band"></span>
+      <div><strong>Inverse, on a brand band</strong><br><span>The glyph as a mask, filled with --vh-on-band: the band is sectionGround(), the colour on it is textOn().</span></div>
+    </div>
+  </section>
+
+  <section class="ds-sec" id="colour" data-ds-section="colour">
+    <h2 class="vh-h2">Colour roles</h2>
+    <p>The brand layer, as tokens() derived it for the brand on screen now. A fill is never text: brand colour as text is a *-text token, text on a fill is its on-* token. Values are read from the page as it renders.</p>
+    <div class="ds-swatches" id="ds-swatches">
+      <div class="vh-swatch ds-sw" data-token="brand-primary"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">primary</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-on-primary"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">on-primary</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-primary-text"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">primary-text</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-primary-dark"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">primary-dark</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-primary-soft"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">primary-soft</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-primary-tint"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">primary-tint</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-accent"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">accent</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-accent-text"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">accent-text</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-ink"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">ink</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-ink-muted"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">ink-muted</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-surface"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">surface</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-surface-alt"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">surface-alt</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-surface-sunken"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">surface-sunken</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-line"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">line</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-line-strong"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">line-strong</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-band"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">band</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-on-band"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">on-band</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-focus"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">focus</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-ok-text"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">ok-text</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-warn-text"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">warn-text</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="brand-err-text"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">err-text</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="chart-1"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">chart-1</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="chart-2"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">chart-2</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="chart-3"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">chart-3</span><span class="vh-swatch-value"></span></div>
+      <div class="vh-swatch ds-sw" data-token="chart-4"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">chart-4</span><span class="vh-swatch-value"></span></div>
+    </div>
+    <div class="vh-table-wrap" style="margin-top:var(--vh-s4)">
+      <table class="vh-table ds-pairs" id="ds-pairs">
+        <thead><tr><th>Text token</th><th>On ground</th><th>Contrast</th><th>Needs</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="ds-sec" id="type" data-ds-section="type">
+    <h2 class="vh-h2">Type</h2>
+    <p>Headings take the active brand's heading face (--vh-font-head), text its body face (--vh-font-body), metadata the mono stack. The platform wordmark alone uses the system sans.</p>
+    <div class="ds-comp">
+      <div class="vh-h1">Heading one</div>
+      <div class="vh-h2">Heading two</div>
+      <div class="vh-h3">Heading three</div>
+      <p class="vh-body" style="margin:0">Body text: the sentence a person reads to decide what to do next, in the brand's own body face.</p>
+      <p class="vh-small" style="margin:0">Secondary text in the muted ink, still held to AA.</p>
+      <span class="vh-eyebrow">Eyebrow · metadata</span>
+      <span class="vh-section-label">Section label</span>
+      <span><code class="vh-code">--vh-font-mono</code> for code and identifiers</span>
+      <span><a class="vh-link" href="#type">A link reads in primary-text</a></span>
+    </div>
+  </section>
+
+  <section class="ds-sec" id="scales" data-ds-section="scales">
+    <h2 class="vh-h2">Spacing, radius, elevation</h2>
+    <div class="ds-grid">
+      <div class="ds-comp"><div class="vh-h3">Spacing</div>
+        <div class="ds-scale">
+          <div class="ds-scale-row"><code class="vh-code">--vh-s1</code><span class="ds-bar" style="width:var(--vh-s1)"></span></div>
+          <div class="ds-scale-row"><code class="vh-code">--vh-s2</code><span class="ds-bar" style="width:var(--vh-s2)"></span></div>
+          <div class="ds-scale-row"><code class="vh-code">--vh-s3</code><span class="ds-bar" style="width:var(--vh-s3)"></span></div>
+          <div class="ds-scale-row"><code class="vh-code">--vh-s4</code><span class="ds-bar" style="width:var(--vh-s4)"></span></div>
+          <div class="ds-scale-row"><code class="vh-code">--vh-s5</code><span class="ds-bar" style="width:var(--vh-s5)"></span></div>
+          <div class="ds-scale-row"><code class="vh-code">--vh-s6</code><span class="ds-bar" style="width:var(--vh-s6)"></span></div>
+          <div class="ds-scale-row"><code class="vh-code">--vh-s7</code><span class="ds-bar" style="width:var(--vh-s7)"></span></div>
+        </div>
+      </div>
+      <div class="ds-comp"><div class="vh-h3">Radius</div>
+        <div class="ds-demo"><span class="ds-box ds-r-sm">sm</span><span class="ds-box ds-r-md">md</span><span class="ds-box ds-r-lg">lg</span><span class="ds-box ds-r-pill">pill</span></div>
+        <p>A brand whose own site measures a control or card radius overrides sm and lg through --brand-radius-control and --brand-radius-card.</p>
+      </div>
+      <div class="ds-comp"><div class="vh-h3">Elevation</div>
+        <div class="ds-demo" style="margin-bottom:var(--vh-s6)"><span class="ds-box ds-r-md ds-lift-1">lift 1</span><span class="ds-box ds-r-md ds-lift-2">lift 2</span></div>
+        <p>Two lifts, both neutral shadows. Lift 1 for anything in the flow; lift 2 only for what floats over the page, with room below it, because its shadow falls on the text underneath. Depth, not darkness, carries the instrument look.</p>
+      </div>
+      <div class="ds-comp"><div class="vh-h3">Motion</div>
+        <p>Spring easing for lift and glow, a soft ease for fades and the skeleton shimmer, a one-time reveal on scroll. Reduced motion means less motion, never less content: every animation stops and nothing that was hidden for it stays hidden.</p>
+        <div class="ds-demo"><span class="vh-live" aria-hidden="true"></span><span class="vh-small">Live indicator: the dot is visible without the pulse.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ds-sec" id="components" data-ds-section="components">
+    <h2 class="vh-h2">Components</h2>
+    <p>The kit in theme.css. Every colour in each one is a role from the contract, so each re-skins to the active brand and stays readable for any palette the brand layer accepts.</p>
+    <div class="ds-grid">
+
+      <div class="ds-comp" data-ds-component="Button">
+        <div class="vh-h3">Button</div>
+        <p>Primary for the one action a screen exists for; secondary beside it; ghost for everything quiet. The label is derived for its fill.</p>
+        <div class="ds-demo">
+          <button type="button" class="vh-btn vh-btn-primary" data-ds-demo="primary button"><svg class="vh-icon" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-sparkle"/></svg>Generate plan</button>
+          <button type="button" class="vh-btn vh-btn-secondary" data-ds-demo="secondary button">Save draft</button>
+          <button type="button" class="vh-btn vh-btn-ghost" data-ds-demo="ghost button"><svg class="vh-icon" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-download"/></svg>Download</button>
+        </div>
+        <div class="ds-tokens">vh-primary / vh-on-primary · vh-panel / vh-primary-text · vh-ink / vh-line</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Chip">
+        <div class="vh-h3">Chip and badge</div>
+        <p>A chip is a filter you can press; selected, it is a small primary control. A badge is a label: accent text on the panel.</p>
+        <div class="ds-demo">
+          <button type="button" class="vh-chip" aria-pressed="true" data-ds-toggle>All regions</button>
+          <button type="button" class="vh-chip" aria-pressed="false" data-ds-toggle>Home market</button>
+          <span class="vh-badge">V2</span>
+        </div>
+        <div class="ds-tokens">vh-panel / vh-ink-dim · vh-primary / vh-on-primary · vh-accent-text</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="StatusChip">
+        <div class="vh-h3">Status chip</div>
+        <p>State is a dot and an edge; the words stay ink, so the state never depends on colour alone. An ordinary state wears the accent, never the warning colour.</p>
+        <div class="ds-demo">
+          <span class="vh-state" data-state="ok">Connected</span>
+          <span class="vh-state" data-state="warn">Needs a key</span>
+          <span class="vh-state" data-state="error">Failed</span>
+          <span class="vh-state" data-state="ordinary">On this device</span>
+          <span class="vh-state">Draft</span>
+        </div>
+        <div class="ds-tokens">dots: vh-ok-text · vh-warn-text · vh-err-text · vh-focus</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Card">
+        <div class="vh-h3">Card</div>
+        <p>A frosted surface over the ambient field, with the brand's primary-to-accent energy line along its top edge.</p>
+        <div class="vh-card">
+          <span class="vh-eyebrow">Card eyebrow</span>
+          <div class="vh-h3" style="margin-top:6px">Retention this week</div>
+          <p class="vh-small" style="margin:6px 0 0">Text on a card is ink and muted ink; the card is never a dark panel.</p>
+        </div>
+        <div class="ds-tokens">vh-glass · vh-line · energy line vh-fx-primary to vh-fx-accent</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Band">
+        <div class="vh-h3">Brand band</div>
+        <p>The only way a section wears a brand colour. sectionGround() picks the primary, else the accent, else the surface, so a near-black brand never gets a black section.</p>
+        <div class="vh-band" data-ds-band="primary">
+          <div class="vh-h3">A section in the brand's colour</div>
+          <p style="margin:6px 0 10px">Text on the band is derived for it.</p>
+          <button type="button" class="vh-btn vh-btn-primary" data-ds-demo="button on a band">Act on it</button>
+        </div>
+        <div class="vh-band vh-band-accent" data-ds-band="accent"><b>Accent band</b> for an announcement strip.</div>
+        <div class="ds-tokens">vh-band / vh-on-band · vh-band-accent / vh-on-band-accent</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Input">
+        <div class="vh-h3">Input</div>
+        <p>Frosted on the panel, a brand rule on focus. The placeholder is muted ink; a label is always present.</p>
+        <label class="vh-section-label" for="ds-input">Brand website</label>
+        <input id="ds-input" class="vh-input" type="url" placeholder="https://example.com" autocomplete="off">
+        <label class="vh-section-label" for="ds-select">Home market</label>
+        <select id="ds-select" class="vh-select"><option>India (IN)</option><option>United States (US)</option></select>
+        <div class="ds-tokens">vh-glass-strong · vh-ink · vh-line · focus vh-focus</div>
+      </div>
+
+      <div class="ds-comp ds-wide" data-ds-component="Table">
+        <div class="vh-h3">Table</div>
+        <p>Column rules, not zebra fill; tabular figures; the first column left, the rest centred under their heads.</p>
+        <div class="vh-table-wrap">
+          <table class="vh-table">
+            <thead><tr><th>Cohort</th><th>Customers</th><th>Repeat rate</th><th>State</th></tr></thead>
+            <tbody>
+              <tr><td>New this month</td><td><span class="vh-marker">[DATA REQUIRED BEFORE LAUNCH: segment size, this brand]</span></td><td>-</td><td><span class="vh-state" data-state="ordinary">Not connected</span></td></tr>
+              <tr><td>Second order</td><td>-</td><td>-</td><td><span class="vh-state">Draft</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ds-tokens">th vh-ink-dim on vh-glass-strong · td vh-ink · vh-line · row hover vh-panel-2</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Notice">
+        <div class="vh-h3">Notice bar</div>
+        <p>The standing bar auth.js shows signed out or with no backend. Being signed out is ordinary (accent rule); only a state someone has to fix wears the warning rule.</p>
+        <div class="vh-notice is-ordinary"><div style="flex:1;min-width:0">Signed out. Everything on this page works on this device; sign in with your mobile number and PIN to save to an account.</div><button type="button" class="vh-btn vh-btn-ghost" data-ds-demo="notice dismiss">Dismiss</button></div>
+        <div class="vh-notice"><div style="flex:1;min-width:0">The workspace database is not answering. Brands are saved on this device until it does.</div></div>
+        <div class="ds-tokens">vh-panel-2 · vh-ink · rule vh-accent or vh-warn</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="StatusLine">
+        <div class="vh-h3">Status line</div>
+        <p>LifecycleStatus: one sentence beside the control that was pressed, for a precondition, a receipt or an ordinary refusal. Never a dialog.</p>
+        <div id="ds-status-live" class="ds-demo-col"><div class="vh-status" role="status"><b>Saved on this device.</b> Sign in and it can be synced to your account.</div></div>
+        <div class="ds-tokens">vh-panel-2 · vh-ink · left edge vh-accent</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Failure">
+        <div class="vh-h3">Failure frame</div>
+        <p>LifecycleFailure: a fault, unlike any content surface, so a failure is never read as data. The sentence is ink; the code is machine output, last and quietest. Drawn here as <code class="vh-code">.vh-failure-specimen</code>: the same frame, without the class and role a real failure carries.</p>
+        <div id="ds-failure-live" class="ds-demo-col"><div class="vh-failure-specimen"><span class="vh-failure-tag">Plan could not be generated</span><span class="vh-failure-msg">The generator answered 502 and nothing was charged.</span><span class="vh-failure-code">generator_unavailable</span></div></div>
+        <div class="ds-tokens">vh-panel-2 · tag vh-err-text · message vh-ink · edge vh-err</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Marker">
+        <div class="vh-h3">DATA REQUIRED marker</div>
+        <p>Zero fabrication made visible: a fact the record does not hold is named, never filled. Inline in a slot, or as a block that holds a whole section.</p>
+        <span class="vh-marker">[DATA REQUIRED BEFORE LAUNCH: logo URL, this brand]</span>
+        <div class="vh-marker vh-marker-block">[DATA REQUIRED BEFORE LAUNCH: product image, Example product, US]</div>
+        <div class="ds-tokens">vh-marker-ground · vh-ink mono · dashed vh-marker-edge</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="CreditPill">
+        <div class="vh-h3">Credit pill</div>
+        <p>The balance, with a dot for its state. No wallet on this sign-in is muted, not a warning.</p>
+        <div class="ds-demo">
+          <span class="vh-credit"><span class="vh-credit-dot"></span>240 credits<span class="vh-credit-add">Add</span></span>
+          <span class="vh-credit is-low"><span class="vh-credit-dot"></span>12 credits</span>
+          <span class="vh-credit is-empty"><span class="vh-credit-dot"></span>0 credits</span>
+          <span class="vh-credit is-none"><span class="vh-credit-dot"></span>No wallet</span>
+        </div>
+        <div class="ds-tokens">vh-panel · vh-ink · dot vh-primary / vh-warn-text / vh-err-text</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Mode">
+        <div class="vh-h3">Local / Demo Mode</div>
+        <p>A phone sign-in with no database: features run, saved on this device. An ordinary state, said once, in the accent rule.</p>
+        <span class="vh-mode"><svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-device"/></svg>Local / Demo Mode: saved on this device</span>
+        <div class="ds-tokens">vh-panel-2 · vh-ink · inset vh-accent</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Steps">
+        <div class="vh-h3">Wizard steps</div>
+        <p>Done steps read in primary-text, the current step is a primary control, the rest wait in muted ink.</p>
+        <div class="vh-steps"><span class="vh-step is-done">1 Brand</span><span class="vh-step is-done">2 Colours</span><span class="vh-step" aria-current="step">3 Type</span><span class="vh-step">4 Voice</span></div>
+        <div class="ds-tokens">vh-primary-text · vh-primary / vh-on-primary · vh-ink-dim</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Toast">
+        <div class="vh-h3">Toast</div>
+        <p>A receipt that does not need a place in the page. One sentence, no dialog.</p>
+        <div class="vh-toast" role="status"><svg class="vh-icon" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-check"/></svg><span>Draft saved on this device.</span></div>
+        <div class="vh-toast" data-state="error" role="status"><svg class="vh-icon" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-warning"/></svg><span>The upload was refused: the file is over 6 MB.</span></div>
+        <div class="ds-tokens">vh-panel · vh-ink · edge vh-accent or vh-err-text</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Modal">
+        <div class="vh-h3">Modal</div>
+        <p>A panel over a scrim of the page surface at .78 opacity: the scrim quiets the page without darkening it, and the panel stands off it by its border and lift-2.</p>
+        <div class="vh-modal-stage">
+          <div class="vh-modal-backdrop"></div>
+          <div class="vh-modal" role="dialog" aria-label="Example dialog" style="width:calc(100% - 32px)">
+            <div class="vh-h3">Delete this brand?</div>
+            <p class="vh-small" style="margin:8px 0 14px">Its files on this device are deleted with it.</p>
+            <div class="ds-demo"><button type="button" class="vh-btn vh-btn-primary" data-ds-demo="dialog confirm">Delete</button><button type="button" class="vh-btn vh-btn-ghost" data-ds-demo="dialog cancel">Cancel</button></div>
+          </div>
+        </div>
+        <div class="ds-tokens">vh-panel · vh-ink · scrim vh-bg at .78</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="InfoPanel">
+        <div class="vh-h3">Feature info panel</div>
+        <p>The rail's ? chip: the same five questions for every feature, as headings.</p>
+        <div class="vh-info">
+          <div class="vh-info-eyebrow">Know about this feature</div>
+          <div class="vh-info-title">Design System</div>
+          <div class="vh-info-q">1. What does it do?</div>
+          <div>Shows every component of the app in the active brand.</div>
+          <div class="vh-info-q">2. Who is it for?</div>
+          <div>Anyone building or reviewing a screen.</div>
+        </div>
+        <div class="ds-tokens">vh-panel · eyebrow vh-accent-text · title vh-heading · body vh-ink-dim</div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Swatch">
+        <div class="vh-h3">Swatch</div>
+        <p>A colour and its name. The words sit on the panel, never on the colour.</p>
+        <div class="ds-demo" style="display:grid;grid-template-columns:repeat(3,1fr)">
+          <div class="vh-swatch ds-sw" data-token="brand-primary"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">Primary</span><span class="vh-swatch-value">--brand-primary</span></div>
+          <div class="vh-swatch ds-sw" data-token="brand-accent"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">Accent</span><span class="vh-swatch-value">--brand-accent</span></div>
+          <div class="vh-swatch ds-sw" data-token="brand-surface"><div class="vh-swatch-chip"></div><span class="vh-swatch-name">Surface</span><span class="vh-swatch-value">--brand-surface</span></div>
+        </div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="EmptyState">
+        <div class="vh-h3">Empty state</div>
+        <p>A reason and a next step, with an illustration drawn in the active brand's tokens.</p>
+        <div class="vh-empty">
+          <svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-not-connected"/></svg>
+          <p class="vh-empty-title">No analytics connected yet</p>
+          <p class="vh-empty-text">Connect a store or upload an export, and this view fills from the brand's own data.</p>
+          <a class="vh-btn vh-btn-secondary" href="/connections">Open Connections</a>
+        </div>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Loading">
+        <div class="vh-h3">Loading</div>
+        <p>A skeleton in the shape of what is coming. With reduced motion the shimmer stops; the placeholder stays.</p>
+        <span class="vh-skeleton vh-skeleton-title"></span>
+        <span class="vh-skeleton"></span>
+        <span class="vh-skeleton vh-skeleton-short"></span>
+        <span class="vh-loading"><span class="vh-live" aria-hidden="true"></span>Loading the plan</span>
+      </div>
+
+      <div class="ds-comp" data-ds-component="Rail">
+        <div class="vh-h3">Rail</div>
+        <p>The navigation on the left of this page is the live component: the platform wordmark and mark in ink, the active brand in the slot beneath, the active row a primary control with its derived label, the active group on the sunken panel.</p>
+        <div class="ds-railnote"><svg class="vh-icon" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-menu"/></svg><span class="vh-small">On a phone it is a drawer behind the menu button, under a bar in the brand's surface.</span></div>
+        <div class="ds-tokens">vh-bg · rows vh-ink-dim · active vh-primary / vh-on-primary · group vh-panel-2 / vh-primary-text</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="ds-sec" id="icons" data-ds-section="icons">
+    <h2 class="vh-h2">Icons</h2>
+    <p>One stroke set on a 24px grid, drawn in currentColor so an icon is the colour of the words beside it. These replace the emoji the app used as UI icons; each one's name and the emoji it replaces are in design/lifecycle-os/icons.json.</p>
+    <div class="ds-icons" id="ds-icons">
+<!-- >>> DS:icons generated by scripts/build-design-assets.js -->
+      <div class="ds-icon" title="Home, the start page."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-home"/></svg><span>home</span></div>
+      <div class="ds-icon" title="Data analysis, dashboards, a report."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-analysis"/></svg><span>analysis</span></div>
+      <div class="ds-icon" title="Competitor benchmarking."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-competitor"/></svg><span>competitor</span></div>
+      <div class="ds-icon" title="A mailer, an email, the inbox."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-mailer"/></svg><span>mailer</span></div>
+      <div class="ds-icon" title="A calendar, a date, a schedule."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-calendar"/></svg><span>calendar</span></div>
+      <div class="ds-icon" title="Ad campaigns, paid media."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-ads"/></svg><span>ads</span></div>
+      <div class="ds-icon" title="A landing page, a website."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-landing"/></svg><span>landing</span></div>
+      <div class="ds-icon" title="Knowledge base, documentation, a guide."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-kb"/></svg><span>kb</span></div>
+      <div class="ds-icon" title="Discover, add to a set."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-discover"/></svg><span>discover</span></div>
+      <div class="ds-icon" title="Cohorts, an audience, people."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-cohort"/></svg><span>cohort</span></div>
+      <div class="ds-icon" title="Create, the studio, generate."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-studio"/></svg><span>studio</span></div>
+      <div class="ds-icon" title="Insights, a trend."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-insights"/></svg><span>insights</span></div>
+      <div class="ds-icon" title="Social, share."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-social"/></svg><span>social</span></div>
+      <div class="ds-icon" title="A persona, an avatar."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-avatars"/></svg><span>avatars</span></div>
+      <div class="ds-icon" title="Next, continue, go to."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-arrow-right"/></svg><span>arrow-right</span></div>
+      <div class="ds-icon" title="Back, previous."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-arrow-left"/></svg><span>arrow-left</span></div>
+      <div class="ds-icon" title="Increase, move up, sort ascending."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-arrow-up"/></svg><span>arrow-up</span></div>
+      <div class="ds-icon" title="Decrease, move down, sort descending."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-arrow-down"/></svg><span>arrow-down</span></div>
+      <div class="ds-icon" title="Opens outside this page or app."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg><span>external</span></div>
+      <div class="ds-icon" title="Download a file."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-download"/></svg><span>download</span></div>
+      <div class="ds-icon" title="Upload, import a file."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-upload"/></svg><span>upload</span></div>
+      <div class="ds-icon" title="Refresh, re-run, regenerate."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-refresh"/></svg><span>refresh</span></div>
+      <div class="ds-icon" title="Done, passed, confirmed."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-check"/></svg><span>check</span></div>
+      <div class="ds-icon" title="Close, dismiss, remove from a list."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-close"/></svg><span>close</span></div>
+      <div class="ds-icon" title="Needs attention. Pair with words; never the only signal."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-warning"/></svg><span>warning</span></div>
+      <div class="ds-icon" title="More about this."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-info"/></svg><span>info</span></div>
+      <div class="ds-icon" title="Help, the five questions."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-help"/></svg><span>help</span></div>
+      <div class="ds-icon" title="Copy to the clipboard."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-copy"/></svg><span>copy</span></div>
+      <div class="ds-icon" title="Featured, pinned. Never a rating: a rating is data with a source."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-star"/></svg><span>star</span></div>
+      <div class="ds-icon" title="Generated by a model (AI)."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-sparkle"/></svg><span>sparkle</span></div>
+      <div class="ds-icon" title="A market, a region, all regions."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-globe"/></svg><span>globe</span></div>
+      <div class="ds-icon" title="Audio on, play voice."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-sound-on"/></svg><span>sound-on</span></div>
+      <div class="ds-icon" title="Audio off, muted."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-sound-off"/></svg><span>sound-off</span></div>
+      <div class="ds-icon" title="Voice input, record."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-mic"/></svg><span>mic</span></div>
+      <div class="ds-icon" title="An image, a creative."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-image"/></svg><span>image</span></div>
+      <div class="ds-icon" title="A video, a motion creative."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-video"/></svg><span>video</span></div>
+      <div class="ds-icon" title="Preview, view."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-eye"/></svg><span>eye</span></div>
+      <div class="ds-icon" title="Run now, quick action."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-bolt"/></svg><span>bolt</span></div>
+      <div class="ds-icon" title="An agent, an assistant."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-agent"/></svg><span>agent</span></div>
+      <div class="ds-icon" title="Chat, a conversation."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-chat"/></svg><span>chat</span></div>
+      <div class="ds-icon" title="Send a message."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-send"/></svg><span>send</span></div>
+      <div class="ds-icon" title="Search, find."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-search"/></svg><span>search</span></div>
+      <div class="ds-icon" title="Settings, configure."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-settings"/></svg><span>settings</span></div>
+      <div class="ds-icon" title="A link, a connection."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-link"/></svg><span>link</span></div>
+      <div class="ds-icon" title="A gift, an offer."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-gift"/></svg><span>gift</span></div>
+      <div class="ds-icon" title="Commerce, a store, a cart."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-cart"/></svg><span>cart</span></div>
+      <div class="ds-icon" title="Open the navigation."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-menu"/></svg><span>menu</span></div>
+      <div class="ds-icon" title="Mobile number sign-in, a phone."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-phone"/></svg><span>phone</span></div>
+      <div class="ds-icon" title="Saved on this device (Local / Demo Mode)."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-device"/></svg><span>device</span></div>
+      <div class="ds-icon" title="The backend is unreachable."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-cloud-off"/></svg><span>cloud-off</span></div>
+      <div class="ds-icon" title="A document, a file."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-file"/></svg><span>file</span></div>
+      <div class="ds-icon" title="The zero-fabrication marker: data required before launch."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-data-required"/></svg><span>data-required</span></div>
+      <div class="ds-icon" title="Credits, a metered feature."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-coin"/></svg><span>coin</span></div>
+      <div class="ds-icon" title="Waiting, scheduled, recent."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-clock"/></svg><span>clock</span></div>
+      <div class="ds-icon" title="Colours, the brand kit."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-palette"/></svg><span>palette</span></div>
+      <div class="ds-icon" title="Needs sign-in, private."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-lock"/></svg><span>lock</span></div>
+      <div class="ds-icon" title="Add, new."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-plus"/></svg><span>plus</span></div>
+      <div class="ds-icon" title="Edit."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-edit"/></svg><span>edit</span></div>
+      <div class="ds-icon" title="Delete."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-trash"/></svg><span>trash</span></div>
+      <div class="ds-icon" title="Filter a list."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-filter"/></svg><span>filter</span></div>
+      <div class="ds-icon" title="Play, start."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-play"/></svg><span>play</span></div>
+      <div class="ds-icon" title="Music, a sound bed."><svg class="vh-icon vh-icon-lg" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-music"/></svg><span>music</span></div>
+<!-- <<< DS:icons -->
+    </div>
+  </section>
+
+  <section class="ds-sec" id="illustrations" data-ds-section="illustrations">
+    <h2 class="vh-h2">Illustrations</h2>
+    <p>Empty and placeholder states, drawn only in the active brand's tokens: no hue of their own.</p>
+    <div class="ds-ills">
+<!-- >>> DS:illustrations generated by scripts/build-design-assets.js -->
+      <figure class="ds-ill" title="A list, table or library with no rows yet, for a reason that is nobody's fault (a new brand, a filter with no match goes to no-results)."><svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-empty"/></svg><span>empty: Nothing here yet</span></figure>
+      <figure class="ds-ill" title="A feature that reads a platform or a data source the workspace has not connected. Pair with the Connections action."><svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-not-connected"/></svg><span>not-connected: Not connected yet</span></figure>
+      <figure class="ds-ill" title="A search or a filter that matched nothing. Say what was searched and offer to clear it."><svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-no-results"/></svg><span>no-results: No match</span></figure>
+      <figure class="ds-ill" title="Beside a [DATA REQUIRED BEFORE LAUNCH: ...] marker that blocks a whole section: the slot exists and is honestly empty."><svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-data-required"/></svg><span>data-required: Data required before launch</span></figure>
+      <figure class="ds-ill" title="Local / Demo Mode, a brand kept in this browser: an ordinary state, never an error."><svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-on-device"/></svg><span>on-device: Saved on this device</span></figure>
+      <figure class="ds-ill" title="A queue that finished, a check list with nothing left."><svg class="vh-empty-art" viewBox="0 0 128 96" aria-hidden="true"><use href="/assets/lifecycle-os/illustrations.svg#ill-done"/></svg><span>done: All done</span></figure>
+<!-- <<< DS:illustrations -->
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  'use strict';
+  /* Demo controls do one honest thing: say what was pressed. A control on a
+     specimen page that did nothing would be a dead click. */
+  var pressed = document.getElementById('ds-pressed');
+  document.addEventListener('click', function (ev) {
+    var t = ev.target && ev.target.closest ? ev.target.closest('[data-ds-demo],[data-ds-toggle]') : null;
+    if (!t) return;
+    if (t.hasAttribute('data-ds-toggle')) {
+      var on = t.getAttribute('aria-pressed') === 'true';
+      t.setAttribute('aria-pressed', on ? 'false' : 'true');
+    }
+    pressed.textContent = 'Preview only: the ' + (t.getAttribute('data-ds-demo') || 'chip') + ' is a specimen of the component, so pressing it changes nothing else.';
+  });
+
+  /* Live values: what the page actually resolved for the brand on screen. */
+  function hexOf(c) {
+    var m = String(c || '').match(/rgba?\(([^)]+)\)/);
+    if (!m) return String(c || '').trim();
+    var p = m[1].split(',').map(function (x) { return Math.round(parseFloat(x)); });
+    return '#' + p.slice(0, 3).map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+  }
+  function lum(hex) {
+    var h = String(hex).replace('#', '');
+    if (h.length !== 6) return null;
+    var c = [0, 2, 4].map(function (i) { var v = parseInt(h.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function ratio(a, b) {
+    var la = lum(a), lb = lum(b);
+    if (la == null || lb == null) return null;
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+  var probe = document.createElement('span');
+  probe.style.display = 'none';
+  document.body.appendChild(probe);
+  function resolved(name) {
+    probe.style.color = 'var(--' + name + ')';
+    return hexOf(getComputedStyle(probe).color);
+  }
+  var PAIRS = [
+    ['vh-ink', 'vh-bg', 4.5], ['vh-ink-dim', 'vh-bg', 4.5], ['vh-ink-dim', 'vh-panel-2', 4.5],
+    ['vh-primary-text', 'vh-bg', 4.5], ['vh-primary-text', 'vh-panel-2', 4.5], ['vh-accent-text', 'vh-panel', 4.5],
+    ['vh-on-primary', 'vh-primary', 4.5], ['vh-on-band', 'vh-band', 4.5], ['vh-on-band-accent', 'vh-band-accent', 4.5],
+    ['vh-err-text', 'vh-panel-2', 4.5], ['vh-warn-text', 'vh-panel-2', 4.5], ['vh-ok-text', 'vh-panel-2', 4.5],
+    ['vh-focus', 'vh-bg', 3],
+  ];
+  function paint() {
+    document.querySelectorAll('.ds-sw[data-token]').forEach(function (sw) {
+      var v = sw.querySelector('.vh-swatch-value');
+      var tok = sw.getAttribute('data-token');
+      if (v && !/^--/.test(v.textContent)) v.textContent = resolved(/^chart/.test(tok) ? 'vh-' + tok : tok);
+    });
+    var body = document.querySelector('#ds-pairs tbody');
+    if (body) {
+      body.innerHTML = PAIRS.map(function (p) {
+        var r = ratio(resolved(p[0]), resolved(p[1]));
+        var ok = r != null && r + 0.005 >= p[2];
+        return '<tr><td><code class="vh-code">--' + p[0] + '</code></td><td><code class="vh-code">--' + p[1] + '</code></td>'
+          + '<td>' + (r == null ? '-' : r.toFixed(2) + ':1') + '</td><td><span class="vh-state" data-state="' + (ok ? 'ok' : 'error') + '">'
+          + (ok ? 'meets ' : 'below ') + p[2] + ':1</span></td></tr>';
+      }).join('');
+    }
+  }
+  function brandName(b) {
+    var el = document.getElementById('ds-brand');
+    if (el) el.textContent = b && b.name ? ' (' + b.name + ')' : '';
+  }
+  /* The real components, when the shell has loaded them: the status line and
+     the failure frame are rendered by LifecycleStatus / LifecycleFailure
+     themselves, so this specimen is the shipped markup, not a copy of it. */
+  function live() {
+    try {
+      if (window.LifecycleStatus && typeof window.LifecycleStatus.html === 'function') {
+        document.getElementById('ds-status-live').innerHTML = window.LifecycleStatus.html('Saved on this device.', 'Sign in and it can be synced to your account.');
+      }
+      if (window.LifecycleFailure && typeof window.LifecycleFailure.html === 'function') {
+        var e = new Error('The generator answered 502 and nothing was charged.');
+        e.code = 'generator_unavailable';
+        var host = document.getElementById('ds-failure-live');
+        host.innerHTML = window.LifecycleFailure.html(e, { title: 'Plan could not be generated' });
+        // The shipped markup, drawn as documentation: nothing failed, so the
+        // frame is a .vh-failure-specimen (same styles) with no role=alert and
+        // no data-failure - a screen reader is not told something failed, and
+        // nothing that reads the page for failures counts it as one.
+        host.querySelectorAll('.vh-failure').forEach(function (n) {
+          n.classList.remove('vh-failure'); n.classList.add('vh-failure-specimen');
+          n.removeAttribute('role'); n.removeAttribute('data-failure');
+        });
+      }
+    } catch (_) { /* the static specimen above stays */ }
+  }
+  window.addEventListener('brandcontext:change', function (ev) { brandName(ev && ev.detail && ev.detail.brand); paint(); });
+  window.addEventListener('load', function () {
+    live();
+    paint();
+    try { if (window.BrandContext && typeof window.BrandContext.onChange === 'function') window.BrandContext.onChange(function (s) { brandName(s && s.brand); paint(); }); } catch (_) {}
+  });
+  paint();
+})();
+</script>
+<script defer src="/auth.js"></script>
+</body>
+</html>

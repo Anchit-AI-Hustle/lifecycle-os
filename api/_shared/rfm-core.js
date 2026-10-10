@@ -68,7 +68,9 @@ function scoreUsers(users, { now = null } = {}) {
   // no error anywhere.
   const t = now || Date.now();
   const byMarket = {};
-  for (const u of users) (byMarket[u.market || 'US'] = byMarket[u.market || 'US'] || []).push(u);
+  // A customer whose record names no market is filed as UNASSIGNED, never
+  // under 'US' (2026-10-05): a cohort is not given a market nobody recorded.
+  for (const u of users) { const mk = u.market || 'UNASSIGNED'; (byMarket[mk] = byMarket[mk] || []).push(u); }
   const out = [];
   for (const [market, mu] of Object.entries(byMarket)) {
     const recency = mu.map((u) => daysSince(u.last_order_at, t)).filter((x) => x != null).sort((a, b) => a - b);

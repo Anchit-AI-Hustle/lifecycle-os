@@ -60,29 +60,29 @@ const BRAND_TOKENS = [
   ['brand-primary-soft', 'shade(primary, 0.86)', 'Text selection, soft tints. Only ink text on it.'],
   ['brand-primary-tint', 'shade(primary, 0.94)', 'Illustration ground, decorative tint. Only ink text on it.'],
   ['brand-on-primary', 'readableOn(primary, ink, surface, surface_alt)', 'Text and icons ON a primary fill. validatePalette() blocks activation below 4.5:1.'],
-  ['brand-primary-text', 'readableAsText(primary, worst surface, TEXT_AA)', 'The primary AS TEXT: links, active labels, a selected step. Never write var(--brand-primary) as a text colour.'],
+  ['brand-primary-text', 'readableOnSurfaces(primary, [surface, surface_alt], TEXT_AA)', 'The primary AS TEXT: links, active labels, a selected step. Never write var(--brand-primary) as a text colour.'],
   ['brand-accent', 'palette.accent, else primary', 'Edges and rules for ordinary states, the energy line, the ambient field. Never text.'],
   ['brand-accent-soft', 'shade(accent, 0.88)', 'Illustration soft fill.'],
   ['brand-on-accent', 'readableOn(accent, ink, surface, surface_alt)', 'Text on an accent fill (rare; prefer the band tokens).'],
-  ['brand-accent-text', 'readableAsText(accent, worst surface, TEXT_AA)', 'The accent AS TEXT: eyebrows, badges, the info panel eyebrow.'],
+  ['brand-accent-text', 'readableOnSurfaces(accent, [surface, surface_alt], TEXT_AA)', 'The accent AS TEXT: eyebrows, badges, the info panel eyebrow.'],
   ['brand-ink', 'palette.ink', 'Body text, headings, icons.'],
-  ['brand-ink-muted', 'readableAsText(palette.muted or shade(ink, .35), worst surface, TEXT_AA)', 'Secondary text. Never under AA: muted is still text.'],
+  ['brand-ink-muted', 'readableOnSurfaces(palette.muted or shade(ink, .35), [surface, surface_alt], TEXT_AA)', 'Secondary text. Never under AA: muted is still text.'],
   ['brand-surface', 'palette.surface', 'Page ground and the rail. validatePalette() refuses a dark neutral.'],
   ['brand-surface-alt', 'palette.surface_alt, else shade(surface, 0.6)', 'Panels and cards.'],
   ['brand-surface-sunken', 'sunkenSurface(): the darker surface, darkened while every text token keeps 4.5:1', 'Sunken panel: status line, failure frame, notice bar, hover rows, the mark tile.'],
   ['brand-line', 'shade(ink, 0.84)', 'Hairlines, card and input borders.'],
   ['brand-line-strong', 'shade(ink, 0.68)', 'Emphasised borders: hover, table header rule, the ? chip ring.'],
   ['brand-band', 'sectionGround(primary, accent, surface)', 'A brand-coloured SECTION ground. Never a dark neutral: a near-black primary falls through to the accent, then the surface.'],
-  ['brand-on-band', 'textOn(band, surface, ink, TEXT_AA)', 'Text on --brand-band.'],
+  ['brand-on-band', 'textOn(band, surface, ink, TEXT_AA): both directions, the 4.5 floor on a mid-tone band', 'Text on --brand-band.'],
   ['brand-band-accent', 'sectionGround(accent, primary, surface)', 'The accent as a section ground (announcement strip).'],
   ['brand-on-band-accent', 'textOn(band-accent, surface, ink, TEXT_AA)', 'Text on --brand-band-accent.'],
   ['brand-ok', 'palette.ok, else the code default', 'Success fill, edge or dot. Never text.'],
   ['brand-warn', 'palette.warn, else the code default', 'Warning fill or edge (the fix-it notice rule). Never text.'],
   ['brand-err', 'palette.err, else the code default', 'Error edge (the failure frame). Never text.'],
-  ['brand-ok-text', 'readableAsText(ok, worst surface, TEXT_AA)', 'A success word, a status dot.'],
-  ['brand-warn-text', 'readableAsText(warn, worst surface, TEXT_AA)', 'A warning word, the marker edge.'],
-  ['brand-err-text', 'readableAsText(err, worst surface, TEXT_AA)', 'The failure tag, an error word.'],
-  ['brand-focus', 'readableAsText(accent, worst surface, 3)', 'The keyboard focus ring: the accent held to the 3:1 non-text minimum.'],
+  ['brand-ok-text', 'readableOnSurfaces(ok, [surface, surface_alt], TEXT_AA)', 'A success word, a status dot.'],
+  ['brand-warn-text', 'readableOnSurfaces(warn, [surface, surface_alt], TEXT_AA)', 'A warning word, the marker edge.'],
+  ['brand-err-text', 'readableOnSurfaces(err, [surface, surface_alt], TEXT_AA)', 'The failure tag, an error word.'],
+  ['brand-focus', 'readableOnSurfaces(accent, [surface, surface_alt], 3)', 'The keyboard focus ring: the accent held to the 3:1 non-text minimum.'],
 ];
 
 /* ── the app layer: every --vh-* role token, and what it resolves through ──── */
@@ -149,11 +149,11 @@ const SURFACES = [
   ['Button: ghost', 'transparent (hover vh-panel-2)', 'vh-ink', 'vh-line (hover vh-line-hot)', '.vh-btn-ghost'],
   ['Input', 'vh-glass-strong over vh-panel-2', 'vh-ink; placeholder vh-ink-dim', 'vh-line; focus ring vh-focus', '.vh-input, .vh-select, .vh-textarea'],
   ['Table', 'header vh-glass-strong; rows transparent, hover vh-panel-2', 'th vh-ink-dim; td vh-ink', 'vh-line; header rule vh-line-hot', '.vh-table'],
-  ['Modal', 'vh-panel over a scrim of vh-ink at .45 opacity', 'vh-ink', 'vh-line; elevation vh-lift-2', '.vh-modal, .vh-modal-backdrop, the ? info panel'],
+  ['Modal', 'vh-panel over a scrim of vh-bg at .78 opacity', 'vh-ink', 'vh-line; elevation vh-lift-2', '.vh-modal, .vh-modal-backdrop, the ? info panel'],
   ['Toast', 'vh-panel', 'vh-ink', 'inset 3px vh-accent (error vh-err-text)', '.vh-toast'],
   ['Notice bar', 'vh-panel-2', 'vh-ink', 'top rule vh-accent (ordinary) or vh-warn (fix-it)', 'auth.js #lc-authnotice, .vh-notice'],
   ['Status line', 'vh-panel-2', 'vh-ink', 'left 4px vh-accent', 'LifecycleStatus, .vh-status'],
-  ['Failure frame', 'vh-panel-2', 'message vh-ink; tag vh-err-text; code vh-ink-dim', 'left 4px vh-err', 'LifecycleFailure, .vh-failure'],
+  ['Failure frame', 'vh-panel-2', 'message vh-ink; tag vh-err-text; code vh-ink-dim', 'left 4px vh-err', 'LifecycleFailure, .vh-failure (.vh-failure-specimen when drawn as documentation)'],
   ['DATA REQUIRED marker', 'vh-marker-ground', 'vh-ink (mono)', 'dashed vh-marker-edge', '.vh-marker, .vh-marker-block'],
   ['Credit pill', 'vh-panel', 'vh-ink; dot vh-primary / vh-warn-text / vh-err-text', 'vh-line', 'credits.js .lc-credit-pill, .vh-credit'],
   ['Local / Demo Mode', 'vh-panel-2', 'vh-ink', 'inset 3px vh-accent', 'auth.js #lnav-umode, .vh-mode'],
@@ -277,11 +277,73 @@ function renderContractMd(c) {
   return src.slice(0, bi + GEN_BEGIN.length) + '\n' + contractTables(c) + '\n' + src.slice(ei);
 }
 
+/* ── DESIGN.md front matter (google-labs-code/design.md, alpha) ─────────────
+   The same format the brand context pack emits for a BRAND (see
+   api/_shared/brand-context-pack.js), here for the PLATFORM. Generated, so
+   each value is read from the file that holds it; the prose below the front
+   matter is written by hand. Each token carries its source as a YAML comment. */
+const q = (v) => JSON.stringify(String(v));
+const maxOf = (v) => { const m = String(v).match(/(\d+(?:\.\d+)?)px\s*\)?\s*$/); return m ? `${m[1]}px` : String(v); };
+
+function designFrontMatter(c) {
+  const m = c.platform.mark;
+  const bare = core.tokens({ palette: {} });
+  const sys = mark.WORDMARK_FONT.replace(/'/g, '');
+  const mono = cssVar('vh-font-mono').replace(/^var\(--brand-font-mono,\s*/, '').replace(/\)$/, '').replace(/'/g, '');
+  const fs_ = Object.fromEntries(c.type.scale.map((x) => [x.name.replace('vh-fs-', ''), x.value]));
+  const L = ['---', 'version: alpha', 'name: "Lifecycle OS"',
+    'description: ' + q("The design system of Lifecycle OS, a universal lifecycle-marketing platform: the platform's own neutral mark, and one surface contract every screen takes its colours from, derived from the ACTIVE brand."),
+    'omitted:',
+    '  - section: components',
+    '    reason: ' + q("Every component colour is a role resolved from the active brand at run time (design/lifecycle-os/CONTRACT.md), which a static token reference cannot express without naming one brand's values as the platform's. Components are documented in prose and rendered live on /design-system."),
+    'colors:',
+    `  primary: ${q(m.ink)}  # assets/lifecycle-os-mark.svg --los-ink: the mark's ink, the platform's only identity colour`,
+    `  on-primary: ${q('#FFFFFF')}  # the ground of the share card and the lockups`,
+    `  surface: ${q('#FFFFFF')}  # the ground the logo set is drawn for`,
+    `  surface-container: ${q(m.tile)}  # assets/lifecycle-os-mark.svg --los-tile`,
+    `  on-surface: ${q(m.ink)}  # assets/lifecycle-os-mark.svg --los-ink`,
+    `  outline: ${q(m.line)}  # assets/lifecycle-os-mark.svg --los-line`,
+    `  error: ${q(bare['--brand-err'].toUpperCase())}  # tokens() default --brand-err, the state colour a brand without one gets`,
+    'typography:',
+    '  wordmark:  # scripts/build-platform-mark.js WORDMARK_FONT, the lockups',
+    `    fontFamily: ${q(sys)}`, '    fontSize: "34px"', '    fontWeight: 700',
+    `  headline-lg:  # theme.css --vh-fs-2xl ${fs_['2xl']}, .vh-h1`,
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(maxOf(fs_['2xl']))}`, '    fontWeight: 600', '    lineHeight: 1.1', '    letterSpacing: "-0.02em"',
+    `  headline-md:  # theme.css --vh-fs-xl ${fs_.xl}, .vh-h2`,
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(maxOf(fs_.xl))}`, '    fontWeight: 600', '    lineHeight: 1.2', '    letterSpacing: "-0.01em"',
+    `  title:  # theme.css --vh-fs-lg ${fs_.lg}, .vh-h3`,
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(maxOf(fs_.lg))}`, '    fontWeight: 600', '    lineHeight: 1.3',
+    '  body:  # theme.css --vh-fs-md, .vh-body',
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(fs_.md)}`, '    fontWeight: 400', '    lineHeight: 1.55',
+    '  body-sm:  # theme.css --vh-fs-sm, .vh-small',
+    `    fontFamily: ${q(sys)}`, `    fontSize: ${q(fs_.sm)}`, '    fontWeight: 400', '    lineHeight: 1.5',
+    '  label:  # theme.css --vh-fs-xs, .vh-eyebrow (mono, uppercase)',
+    `    fontFamily: ${q(mono)}`, `    fontSize: ${q(fs_.xs)}`, '    fontWeight: 600', '    letterSpacing: "0.12em"',
+    'rounded:',
+  ];
+  const rk = { 'vh-r-sm': 'sm', 'vh-r-md': 'md', 'vh-r-lg': 'lg', 'vh-r-pill': 'full' };
+  for (const r of c.radius.filter((x) => rk[x.name])) L.push(`  ${rk[r.name]}: ${q(r.value)}  # theme.css --${r.name}`);
+  L.push('spacing:');
+  for (const sp of c.spacing) L.push(`  ${q(sp.name.replace('vh-s', ''))}: ${q(sp.value)}  # theme.css --${sp.name}`);
+  L.push('---');
+  return L.join('\n') + '\n';
+}
+
+function renderDesignMd(c) {
+  const file = path.join(DS, 'DESIGN.md');
+  const src = fs.readFileSync(file, 'utf8');
+  if (!src.startsWith('---\n')) throw new Error('DESIGN.md must open with its front matter');
+  const end = src.indexOf('\n---\n', 4);
+  if (end < 0) throw new Error('DESIGN.md front matter is not closed');
+  return designFrontMatter(c) + src.slice(end + 5);
+}
+
 function outputs() {
   const c = contract();
   return {
     'design/lifecycle-os/tokens.json': JSON.stringify(c, null, 2) + '\n',
     'design/lifecycle-os/CONTRACT.md': renderContractMd(c),
+    'design/lifecycle-os/DESIGN.md': renderDesignMd(c),
   };
 }
 

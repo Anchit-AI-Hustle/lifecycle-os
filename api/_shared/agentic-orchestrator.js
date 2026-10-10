@@ -75,17 +75,18 @@ async function reviewStage(campaign, tier) {
  */
 async function runAgentic(opts = {}) {
   const { tier = 'budget', days, maxRetries = 1 } = opts;
-  const market = opts.market || (() => { try { return require('./brand-runtime.js').homeRegion(runBrand()); } catch (_) { return ''; } })();
+  // No default market (2026-10-05). It was 'US', so a caller that named none
+  // planned an American calendar for whichever brand asked. The router
+  // resolves the brand's own market (its HOME market when none is asked);
+  // a run with no market is refused here too rather than invented.
+  const market = String(opts.market || '').trim().toUpperCase();
+  if (!market) {
+    return { ok: false, error: 'market_required', message: '[DATA REQUIRED BEFORE LAUNCH: home market, this brand] No market was given, so the agentic run has nothing to plan for.', stages: [] };
+  }
   const withCreatives = opts.withCreatives != null ? opts.withCreatives : (tier === 'maxpower');
-  // The brand's OWN markets (2026-10-10): the default config plans US + UK, so
-  // an India-only brand's agentic run built every campaign for two markets it
-  // does not sell in. A brand that declares none is planned as UNDECLARED,
-  // the same as the rolling plan, never as US.
-  const _rb = runBrand();
-  let _zero = false;
-  try { _zero = require('./brand-catalog-server.js').isTenantZeroBrand(_rb) === true; } catch (_) { _zero = false; }
-  const _codes = ((_rb && _rb.regions) || []).map((r) => String((r && r.code) || '').toUpperCase()).filter(Boolean);
-  const config = _zero ? svc.smartConfig() : svc.smartConfig({ markets: _codes.length ? _codes : ['UNDECLARED'] });
+  // Plan THIS market only. The default config plans US and UK whatever was
+  // asked, so a run for IN came back with American and British slots.
+  const config = svc.smartConfig({ markets: [market] });
   const stages = [];
   const rec = (stage, ok, summary, artifact) => stages.push({ stage, ok, summary, artifact: artifact !== undefined ? trim(artifact) : null });
 

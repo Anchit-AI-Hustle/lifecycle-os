@@ -322,8 +322,12 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
    the ground is --vh-panel-2, a light panel. Never a dark-neutral background:
    that is a HARD rule here and validatePalette()/asset-no-black-background
    enforce it elsewhere.
+   .vh-failure-specimen is the same frame DRAWN as documentation (the
+   /design-system sheet): nothing failed, so it carries no .vh-failure, no
+   role=alert and no data-failure - the classes and attributes a page, a
+   screen reader and the signed-out sweep read as "this page failed".
    ============================================================================ */
-.vh-failure {
+.vh-failure, .vh-failure-specimen {
   display: block;
   margin: 0;
   padding: 12px 14px;
@@ -414,7 +418,7 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   .vh-card:hover, .kpi:hover, .tile:hover, .coll:hover, .card:hover,
   [class*="kpi"]:hover, [class*="tile"]:hover {
     transform: translateY(-2px);
-    box-shadow: 0 14px 32px rgba(23,23,23,.12), 0 3px 10px rgba(23,23,23,.06);
+    box-shadow: var(--vh-lift-2);
   }
   /* Buttons feel physical: raised at rest, press down on click. */
   button, .btn, .vh-btn, [role="button"], input[type="submit"] {
@@ -422,16 +426,19 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   }
   button:hover, .btn:hover, .vh-btn:hover, [role="button"]:hover {
     transform: translateY(-1.5px);
-    box-shadow: 0 8px 20px rgba(0,74,43,.18);
+    /* The elevation tokens, not a shadow tinted green from another repo's
+       palette (it reached every plain <button> hover at higher specificity
+       than the futuristic layer's :where() rule). */
+    box-shadow: var(--vh-lift-1);
   }
   button:active, .btn:active, .vh-btn:active, [role="button"]:active {
     transform: translateY(1px);
-    box-shadow: 0 2px 6px rgba(0,74,43,.16);
+    box-shadow: var(--vh-lift-1);
   }
 }
 /* Resting elevation (kept even with reduced motion — shadows are static, safe). */
 .card, .vh-card, .kpi, .tile, .p3d, [data-chart-host] {
-  box-shadow: 0 1px 2px rgba(23,23,23,.05), 0 8px 24px rgba(23,23,23,.06);
+  box-shadow: var(--vh-lift-1);
 }
 
 /* ============================================================================
@@ -1008,7 +1015,7 @@ body::after {
         colour this file decided for itself, which is how one tenant's red
         ended up on every other tenant's rail.
      2. TEXT IS DERIVED FOR ITS GROUND. Brand-coloured text uses a *-text token
-        (adjusted to TEXT_AA against the worst surface by tokens()); text on a
+        (held to TEXT_AA on both surfaces by tokens()); text on a
         brand fill uses an on-* token. Never `color: var(--brand-primary)`.
      3. NO SECTION IS A DARK NEUTRAL. A brand-coloured band paints --vh-band
         (sectionGround(): the primary, else the accent, else the surface, so a
@@ -1096,7 +1103,11 @@ body::after {
   padding: var(--vh-s6) var(--vh-s5);
 }
 .vh-band-accent { background: var(--vh-band-accent); color: var(--vh-on-band-accent); }
-.vh-band :where(h1, h2, h3, h4, p, li, span, small, strong, b, em) { color: inherit; }
+/* Everything that is TEXT inside a band takes the band's derived colour,
+   kit text classes included: a .vh-h3 in a band otherwise kept --vh-heading
+   (the ink) on the brand colour, 2.8:1 on a violet band. Controls keep their
+   own pairing and are not listed. */
+.vh-band :where(h1, h2, h3, h4, p, li, span, small, strong, b, em, .vh-h1, .vh-h2, .vh-h3, .vh-body, .vh-small, .vh-eyebrow, .vh-section-label) { color: inherit; }
 .vh-band a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 /* A control on a band keeps its own derived pairing, outlined in the band's
    text colour so it separates from a band of the same hue. */
@@ -1202,13 +1213,18 @@ body::after {
 
 /* Swatch: a colour and its name; the words sit on the panel, never on the colour. */
 .vh-swatch { display: grid; gap: 6px; min-width: 0; }
-.vh-swatch-chip { height: 56px; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
+.vh-swatch-chip { height: 36px; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
 .vh-swatch-name { font-size: var(--vh-fs-xs); font-weight: 600; color: var(--vh-ink); overflow-wrap: anywhere; }
 .vh-swatch-value { font-family: var(--vh-font-mono); font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); overflow-wrap: anywhere; }
 
-/* Modal and toast. The scrim is the INK at an opacity, not a black literal: it
-   dims the page it covers and is never a section of its own. */
-.vh-modal-backdrop { position: fixed; inset: 0; z-index: var(--vh-z-modal); background: var(--vh-ink); opacity: .45; }
+/* Modal and toast. The scrim is the brand SURFACE at an opacity, a frost: it
+   quiets the page it covers without turning the lights off. It used to be the
+   ink at .45, and the every-page gate measured that as a dark panel ground
+   under every palette - the app is light-only, so a scrim is too. ELEVATION: lift-2
+   is for what floats OVER the page (a modal, a popover); anything that sits in
+   the flow takes lift-1, because a 48px shadow falling on the text below it
+   took muted copy from 4.9:1 to 4.4:1 in the rendered gate. */
+.vh-modal-backdrop { position: fixed; inset: 0; z-index: var(--vh-z-modal); background: var(--vh-bg); opacity: .78; }
 .vh-modal {
   position: fixed; z-index: var(--vh-z-modal); left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: min(560px, calc(100vw - 32px)); max-height: 86vh; overflow: auto;
@@ -1222,13 +1238,24 @@ body::after {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 10px 14px; border-radius: var(--vh-r-md);
   background: var(--vh-panel); color: var(--vh-ink); border: 1px solid var(--vh-line);
-  box-shadow: var(--vh-lift-2), inset 3px 0 0 var(--vh-accent);
+  box-shadow: var(--vh-lift-1), inset 3px 0 0 var(--vh-accent);
   font-size: var(--vh-fs-sm); line-height: 1.5;
 }
-.vh-toast[data-state="error"] { box-shadow: var(--vh-lift-2), inset 3px 0 0 var(--vh-err-text); }
+.vh-toast[data-state="error"] { box-shadow: var(--vh-lift-1), inset 3px 0 0 var(--vh-err-text); }
+
+/* The platform mark on a brand band: the glyph as a mask, filled with the
+   band's derived text colour (the logo set's "inverse"; the mark's own file
+   stays neutral, the colour here is textOn() of the band). */
+.los-mark-on-band {
+  display: inline-block; flex: none; width: 36px; height: 36px;
+  background-color: var(--vh-on-band);
+  -webkit-mask: url(/assets/lifecycle-os/logos/mark-glyph.svg) center / contain no-repeat;
+          mask: url(/assets/lifecycle-os/logos/mark-glyph.svg) center / contain no-repeat;
+}
+.vh-band-accent .los-mark-on-band { background-color: var(--vh-on-band-accent); }
 
 /* Feature info panel (the rail's ? chip; auth.js .lnav-ipanel is the shipped instance). */
-.vh-info { background: var(--vh-panel); color: var(--vh-ink-dim); border: 1px solid var(--vh-line); border-radius: var(--vh-r-lg); box-shadow: var(--vh-lift-2); padding: var(--vh-s5); font-size: 13px; line-height: 1.65; }
+.vh-info { background: var(--vh-panel); color: var(--vh-ink-dim); border: 1px solid var(--vh-line); border-radius: var(--vh-r-lg); box-shadow: var(--vh-lift-1); padding: var(--vh-s5); font-size: 13px; line-height: 1.65; }
 .vh-info-eyebrow { font-family: var(--vh-font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--vh-accent-text); margin-bottom: 3px; }
 .vh-info-title { font-family: var(--vh-font-head); font-size: 18px; font-weight: 600; color: var(--vh-heading); margin: 0 0 10px; }
 .vh-info-q { font-size: 13px; font-weight: 700; color: var(--vh-ink); margin: 14px 0 4px; }

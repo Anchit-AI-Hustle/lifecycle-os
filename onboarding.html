@@ -70,18 +70,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --ink:var(--brand-ink,#111);--muted:var(--brand-ink-muted,#5a6169);
-    --surface:var(--brand-surface,var(--vh-panel-tan));--card:var(--brand-surface-alt,#fff);
-    --primary:var(--brand-primary,#6A33D8);--on-primary:var(--brand-on-primary,#fff);
-    --accent:var(--brand-accent,#D0473E);--line:var(--brand-line,var(--vh-panel-tan));
-    --ok:var(--brand-ok,#1a7f37);--warn:var(--brand-warn,#c9a227);--err:var(--brand-err,#c0392b);
-    --head:var(--brand-font-head,'Lora',Georgia,serif);--body:var(--brand-font-body,'Inter',system-ui,sans-serif);
+    --ink:var(--vh-ink);--muted:var(--vh-ink-dim);
+    --surface:var(--vh-bg);--card:var(--vh-panel);--surface-alt:var(--vh-panel-2);
+    --primary:var(--vh-primary);--on-primary:var(--vh-on-primary);
+    --accent:var(--vh-accent);--line:var(--vh-line);
+    --ok:var(--vh-ok);--warn:var(--vh-warn);--err:var(--vh-err);
+    --head:var(--vh-font-head);--body:var(--vh-font-body);
   }
   body{font-family:var(--body);background:var(--surface);color:var(--ink);min-height:100vh;padding:64px 24px 60px}
+  button,input,select,textarea{font-family:inherit}
   .shell{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:32px;align-items:start}
   @media(max-width:980px){.shell{grid-template-columns:1fr}.preview-wrap{position:static!important}}
 
-  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--brand-accent-text);font-weight:600;margin-bottom:10px}
+  .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--vh-accent-text);font-weight:600;margin-bottom:10px}
   h1{font-family:var(--head);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:10px}
   .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:26px}
 
@@ -89,7 +90,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .step-pip{flex:1;min-width:74px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card);
     font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:.15s}
   .step-pip.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
-  .step-pip.done{border-color:var(--primary);color:var(--brand-primary-text)}
+  .step-pip.done{border-color:var(--vh-primary-text);color:var(--vh-primary-text)}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:26px}
   .card h2{font-family:var(--head);font-size:21px;font-weight:600;margin-bottom:6px}
@@ -97,12 +98,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   .field{margin-bottom:16px}
   label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;letter-spacing:.02em}
-  label .req{color:var(--brand-accent-text)}
+  label .req{color:var(--vh-accent-text)}
   label .note{font-weight:400;color:var(--muted);margin-left:6px}
   input[type=text],input[type=url],input[type=number],select,textarea{
     width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
     color:var(--ink);font:400 14px/1.5 var(--body)}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--vh-focus)}
   textarea{min-height:88px;resize:vertical}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
@@ -110,7 +111,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   .swatch-row{display:flex;align-items:center;gap:9px}
   .swatch-row input[type=color]{width:44px;height:40px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
-  .swatch-row input[type=text]{flex:1;font-family:ui-monospace,Menlo,monospace;text-transform:lowercase}
+  .swatch-row input[type=text]{flex:1;font-family:var(--vh-font-mono);text-transform:lowercase}
 
   .verdict{margin-top:14px;border-radius:11px;padding:13px 15px;font-size:12.5px;line-height:1.65;border:1px solid}
   .verdict.ok{background:color-mix(in srgb,var(--ok) 8%,transparent);border-color:color-mix(in srgb,var(--ok) 32%,transparent)}
@@ -120,26 +121,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .verdict ul{margin:6px 0 0 17px}.verdict li{margin-bottom:3px}
   .ratios{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
   .ratio{font:600 11px/1 var(--body);padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
-  .ratio.pass{border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
-  .ratio.fail{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+  .ratio.pass{border-color:var(--vh-ok);color:var(--vh-ok-text)}
+  .ratio.fail{border-color:var(--vh-err);color:var(--vh-err-text)}
 
   .chips{display:flex;flex-wrap:nowrap;gap:6px;margin-top:8px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
   .chips > *{flex:0 0 auto}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
     background:color-mix(in srgb,var(--primary) 11%,transparent);border:1px solid color-mix(in srgb,var(--primary) 26%,transparent)}
   .chip button{border:0;background:transparent;cursor:pointer;font-size:14px;line-height:1;color:inherit;padding:0}
-  .chip.ban{background:color-mix(in srgb,var(--err) 10%,transparent);border-color:color-mix(in srgb,var(--err) 28%,transparent);color:var(--err)}
+  .chip.ban{background:var(--vh-panel-2);border-color:var(--vh-err);color:var(--vh-err-text)}
 
   .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:9px;border:1px solid var(--line);
     background:var(--card);color:var(--ink);font:600 13.5px/1 var(--body);cursor:pointer;transition:.15s}
   .btn:hover{border-color:var(--primary)}
   .btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
-  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.primary:hover{background:var(--brand-primary-dark);border-color:var(--brand-primary-dark)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .actions{display:flex;gap:10px;justify-content:space-between;margin-top:24px;flex-wrap:wrap}
 
   .preview-wrap{position:sticky;top:64px}
-  .preview{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.08)}
+  .preview{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:var(--vh-panel);box-shadow:var(--vh-lift-2)}
   .pv-bar{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid}
   .pv-logo{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-weight:700;font-size:12px;overflow:hidden}
   .pv-logo img{width:100%;height:100%;object-fit:cover}
@@ -161,14 +162,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .ws.active{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,transparent)}
   .ws-dot{width:24px;height:24px;border-radius:7px;flex:none}
   .ws b{font-size:13.5px}.ws small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
-  .ws .tag{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand-primary-text)}
+  .ws .tag{margin-left:auto;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--vh-primary-text)}
   .ws-acts{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
   .ws-act{font-size:11px;font-weight:600;padding:5px 9px;border-radius:7px;border:1px solid var(--line);
     background:var(--surface);color:var(--ink);cursor:pointer;line-height:1;min-height:28px}
   .ws-act:hover{border-color:var(--primary)}
   /* Destructive, so it reads destructive - but only on hover/focus, because a
      permanently red control in a list is noise until it is the one you want. */
-  .ws-act.danger:hover,.ws-act.danger:focus{border-color:var(--danger,#B3261E);color:var(--danger,#B3261E)}
+  .ws-act.danger:hover,.ws-act.danger:focus{border-color:var(--vh-err);color:var(--vh-err-text)}
   .ws-act[disabled]{opacity:.45;cursor:not-allowed}
   /* Where a brand is stored. A device row is an ordinary row with a quiet chip.
      The sentence above the list takes the ACCENT rule: being unable to reach a
@@ -183,15 +184,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .ws-note .sync{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:9px}
   .ws-note .ws{margin:0;cursor:default}
 
-  .marker{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mix(in srgb,var(--warn) 14%,transparent);
+  .marker{font-family:var(--vh-font-mono);font-size:11px;background:var(--vh-marker-ground);color:var(--vh-ink);border:1px dashed var(--vh-marker-edge);
     padding:2px 6px;border-radius:4px;display:inline-block;margin:2px 0}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;z-index:9999;padding:12px 20px;border-radius:10px;
-    background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.3);display:none}
+    background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);font-size:13px;font-weight:600;box-shadow:inset 3px 0 0 var(--vh-accent),var(--vh-lift-2);display:none}
   .imp-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
   /* The reason an import control is disabled. Accent rule (brand accent text
      on the surface), never the warn rule: a record still being filled in is an
      ordinary state, and a warning colour here would teach people to ignore it. */
-  .imp-gate{font-size:12px;line-height:1.5;color:var(--brand-accent-text);border-left:3px solid var(--accent);padding:6px 10px;margin:10px 0 0;background:var(--surface-alt,#f6f6f6)}
+  .imp-gate{font-size:12px;line-height:1.5;color:var(--vh-accent-text);border-left:3px solid var(--accent);padding:6px 10px;margin:10px 0 0;background:var(--surface-alt)}
   .imp-tab{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer}
   .imp-tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
   .muted{color:var(--muted);font-size:12px;line-height:1.6}
@@ -199,15 +200,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .region-row .region-home{display:flex;justify-content:center;align-items:center;height:100%;cursor:pointer}
   .region-row.region-head span{text-align:left}
   @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}.region-row.region-head{display:none}}
-  .link{color:var(--brand-primary-text);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+  .link{color:var(--vh-link);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
 
   /* Starter brand profiles (step 1). Deliberately industry-varied so the
      gallery reads as "this platform runs any brand", not one vertical. */
   .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;margin:14px 0 6px}
-  .preset{border:1px solid var(--line,#e3e3e3);border-radius:12px;padding:13px;cursor:pointer;
-    background:var(--surface-alt,#fafafa);text-align:left;transition:border-color .12s,transform .12s;font:inherit}
-  .preset:hover{border-color:var(--primary,#1F5FD0);transform:translateY(-1px)}
-  .preset[aria-pressed="true"]{border-color:var(--primary,#1F5FD0);box-shadow:0 0 0 2px var(--primary,#1F5FD0) inset}
+  .preset{border:1px solid var(--line);border-radius:12px;padding:13px;cursor:pointer;
+    background:var(--card);text-align:left;transition:border-color .12s,transform .12s;font:inherit}
+  .preset:hover{border-color:var(--vh-line-hot);transform:translateY(-1px)}
+  .preset[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
   .preset .pname{font-weight:700;font-size:15px;margin-bottom:2px;color:var(--ink)}
   .preset .psector{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:7px}
   .preset .pblurb{font-size:12px;line-height:1.45;color:var(--ink);margin-bottom:9px}
@@ -216,35 +217,35 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .preset .plogo{width:32px;height:32px;object-fit:contain;border-radius:7px;border:1px solid var(--line,#d8d8d8);background:var(--surface,#fff);margin:0 0 8px;display:block}
   .preset .pswatch{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
   .preset .psw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:38px}
-  .preset .psw i{width:24px;height:20px;border-radius:5px;border:1px solid var(--line,#d8d8d8);display:block}
+  .preset .psw i{width:24px;height:20px;border-radius:5px;border:1px solid var(--vh-line-hot);display:block}
   .preset .psw b{font-size:9.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
   .preset .pmeta{font-size:10.5px;color:var(--muted);line-height:1.45}
   .preset .ptype{font-size:11px;color:var(--ink);line-height:1.45;margin-bottom:2px}
   .preset .pwhy{font-size:10.5px;color:var(--ink);line-height:1.45;margin:2px 0 3px}
   .preset-note{font-size:11.5px;color:var(--muted);margin:2px 0 0;line-height:1.5}
   .asset-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .asset-strip img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#e3e3e3);background:var(--surface,#fff)}
+  .asset-strip img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
   /* Suggested options. Deliberately NOT styled like an extracted candidate:
      those carry a source URL and real provenance, these carry a model's
      opinion, and making them look alike would launder one into the other. */
   .sug{margin-top:9px}
   .sug-btn{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:999px;cursor:pointer;
-    border:1px dashed var(--line,#d8d8d8);background:transparent;color:var(--brand-primary-text,#1F5FD0)}
+    border:1px dashed var(--vh-line-hot);background:transparent;color:var(--vh-primary-text)}
   .sug-btn:hover{border-style:solid}
-  .sug-note{font-size:11px;opacity:.66;margin:7px 0 0;line-height:1.5;max-width:62ch}
+  .sug-note{font-size:11px;color:var(--vh-ink-dim);margin:7px 0 0;line-height:1.5;max-width:62ch}
   .sug-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
   .sug-opt{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;cursor:pointer;
-    border:1px dashed var(--line,#d8d8d8);border-radius:9px;padding:7px 10px;background:var(--surface-alt,#fafafa);
+    border:1px dashed var(--vh-line-hot);border-radius:9px;padding:7px 10px;background:var(--card);
     max-width:100%;font:inherit}
-  .sug-opt:hover{border-style:solid;border-color:var(--primary,#1F5FD0)}
-  .sug-val{font-size:12.5px;font-weight:600;color:var(--ink,#111)}
-  .sug-why{font-size:10.5px;opacity:.62;line-height:1.4}
+  .sug-opt:hover{border-style:solid;border-color:var(--vh-line-hot)}
+  .sug-val{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .sug-why{font-size:10.5px;color:var(--vh-ink-dim);line-height:1.4}
   /* Says the swatch above it is a placeholder. Deliberately reads as a warning
      rather than as decoration, and takes its colour from the token that is
      contrast-checked rather than a literal. */
   .preset .pchip{display:inline-block;font-size:10.5px;font-weight:600;line-height:1.3;
-    padding:3px 7px;border-radius:999px;border:1px solid var(--line,#e3e3e3);
-    color:var(--brand-accent-text,#7a4a12);background:var(--surface-alt,#f6f6f6);margin-bottom:6px}
+    padding:3px 7px;border-radius:999px;border:1px solid var(--line);
+    color:var(--vh-accent-text);background:var(--card);margin-bottom:6px}
 
   /* Read-my-site extraction. Every value the crawler proposes is shown with
      the URL and the signal it came from, and nothing is applied until the
@@ -261,13 +262,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xsrc{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5;word-break:break-all}
   .xtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
     padding:2px 6px;border-radius:999px;border:1px solid var(--line);margin-right:5px;vertical-align:1px}
-  .xtag.declared{border-color:color-mix(in srgb,var(--ok) 45%,transparent);color:var(--ok)}
-  .xtag.strong{border-color:color-mix(in srgb,var(--primary) 45%,transparent);color:var(--brand-primary-text)}
+  .xtag.declared{border-color:var(--vh-ok);color:var(--vh-ok-text)}
+  .xtag.strong{border-color:var(--vh-line-hot);color:var(--vh-primary-text)}
   /* The warn hue is a fill/rule colour, not a text colour: at 9.5px it does not
      reach AA on the page. The border carries the warning, the AA-tuned muted
      token carries the word. */
-  .xtag.weak{border-color:color-mix(in srgb,var(--warn) 60%,transparent);color:var(--muted)}
-  .xtag.flag{border-color:color-mix(in srgb,var(--err) 45%,transparent);color:var(--err)}
+  .xtag.weak{border-color:var(--vh-warn);color:var(--muted)}
+  .xtag.flag{border-color:var(--vh-err);color:var(--vh-err-text)}
   .xbtn{border:1px solid var(--line);background:var(--card);border-radius:7px;padding:4px 10px;
     font:600 11px/1.5 var(--body);color:var(--ink);cursor:pointer;flex:none}
   .xbtn:hover{border-color:var(--primary)}
@@ -288,7 +289,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      above scrolls, so auto sizing has somewhere to go. */
   .xtable{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:2px;table-layout:auto}
   .xtable th{text-align:left;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--soft);padding:4px 8px 4px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+    color:var(--vh-ink-dim);padding:4px 8px 4px 0;border-bottom:1px solid var(--line);white-space:nowrap}
   .xtable td{padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:middle;
     font-variant-numeric:tabular-nums}
   .xtable code{font-size:11px}
@@ -301,17 +302,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xclaim{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.55}
   .xclaim input{margin-top:3px;width:auto;flex:none}
   .xdiag{margin-top:11px;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.6;
-    background:color-mix(in srgb,var(--warn,#c9a227) 10%,transparent);
-    border:1px solid color-mix(in srgb,var(--warn,#c9a227) 34%,transparent)}
+    background:var(--vh-panel-2);
+    border:1px solid var(--vh-line);border-left:4px solid var(--vh-warn)}
   .xdiag ul{margin:7px 0 0 16px}
   .xdiag li{margin-top:3px}
   .xlimits{margin-top:11px;font-size:11px;color:var(--muted);line-height:1.6}
   /* The RENDERED read: applied, scored, reversible. Tokens only, no literal
      colour: this panel is painted in whichever brand was just applied. */
-  .xtag.computed{border-color:color-mix(in srgb,var(--primary) 45%,transparent);color:var(--brand-primary-text)}
+  .xtag.computed{border-color:var(--vh-line-hot);color:var(--vh-primary-text)}
   .xr{border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:18px;background:var(--card)}
   .xr h3{font-family:var(--head);font-size:15px;font-weight:600;margin:0 0 4px}
-  .xr .xr-score{display:inline-block;font:700 22px/1 var(--head);margin-right:8px;color:var(--brand-primary-text)}
+  .xr .xr-score{display:inline-block;font:700 22px/1 var(--head);margin-right:8px;color:var(--vh-primary-text)}
   .xr .xr-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
   .xr .xr-pairs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
   .xr figure{margin:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
@@ -466,8 +467,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   /* A brand kept on this device (its id is `local-…`, brand-context.js). */
   function isLocalId(id) { return typeof id === 'string' && id.indexOf('local-') === 0; }
-  /* The clause that names what has to change. Sign-in is Google (2026-10-05). */
-  function accountClause() { return 'you sign in with Gmail'; }
+  /* The clause that names what has to change. Signing in with a mobile number
+     and PIN is the remedy on every deployment (2026-10-03, and the only
+     sign-in since 2026-10-09): a phone sign-in's token is sent, and the server
+     acts for it whether the account is in a database or kept on this device. */
+  function accountClause() { return 'you sign in with your mobile number and PIN'; }
   /* The mobile+PIN session, if that is who is here. */
   function phoneSession() { var s = storageInfo(); return (s && s.session) || null; }
   /* SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). The
@@ -985,6 +989,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     else if (step === 5) {
       c.innerHTML =
         '<h2>Data and catalog</h2>' +
+        storeFeedCallout() +
         xPanel('data') +
         '<p class="hint">Where you sell, and what you sell. Product facts are only ever read from a source you supply — the platform will never invent a price, a URL or a product.</p>' +
         '<div class="field"><label>Regions and stores</label><div id="regions"></div>' +
@@ -1045,6 +1050,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
               '<div style="margin-top:8px">' + r.missing.map(function (m) { return '<div class="marker">' + esc(m.marker) + '</div>'; }).join(' ') + '</div>'
             : 'Everything the platform needs is present.') +
         '</div>' +
+        storeFeedCallout() +
         '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
           '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
           '<button type="button" class="btn" id="saveDraft">Save as draft</button>' +
@@ -1611,7 +1617,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // every deployment now - a server-mode sign-in is verified, and a
       // device-mode one is admitted as the person on this page.
       lead = 'Needs your sign-in.';
-      body = 'Sign in with Gmail (the Sign in with Gmail chip in the menu) and it reads your site'
+      body = 'Sign in with your mobile number and PIN (the Sign in chip in the menu) and it reads your site'
         + (rs.state === 'backend-answers' ? ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.' : '.');
     } else {
       // supabase-js did not load, so this page cannot tell whether the server
@@ -1627,7 +1633,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      it. The remedy that works is to sign in again. */
   function staleSessionSentence(st) {
     var host = st && st.host ? ' (' + st.host + ')' : '';
-    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Sign out and continue with Gmail, and then this works.';
+    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Signing out and entering your number again creates the account there, and then this works.';
   }
 
   function extractBlock() {
@@ -2224,6 +2230,47 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       gate.textContent = region ? '' : marker('home market') + ' Add the market you sell in above and mark it Home before importing: the catalogue is filed per market, so there is nowhere to put these rows yet.';
     }
   }
+  /* IMPORT YOUR STORE FEED, said where it is needed (2026-10-05). A template
+     (a starter brand from the gallery) brings a look and a website, never a
+     product: since tenant zero became the server's determination rather than
+     a slug, even the KNICKGASM template owns no shipped catalogue, so a brand
+     made from one has NO product photos until its own store is read. Every
+     ad, mailer and storefront then renders the DATA REQUIRED marker where a
+     photo would be. This says so on the catalogue step and on review, with
+     the brand's own store prefilled and one button that imports it. */
+  function storeFeedUrl() {
+    var regs = Array.isArray(brand.regions) ? brand.regions : [];
+    var home = null;
+    for (var i = 0; i < regs.length; i++) if (regs[i] && regs[i].home && regs[i].store_url) { home = regs[i]; break; }
+    return String((home && home.store_url) || (regs[0] && regs[0].store_url) || brand.website || '').trim();
+  }
+  function storeFeedCallout() {
+    if (catalogCount) return '';
+    var url = storeFeedUrl();
+    var host = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    var name = esc(brand.name || 'this brand');
+    var fromTemplate = !!presetPicked || originOf('website') === 'preset';
+    var why = fromTemplate
+      ? 'This brand started from a template. A template brings a look and a website, never products: ' + name + ' has no product catalogue yet, so its ads, mailers and storefront show [DATA REQUIRED BEFORE LAUNCH: product image, ' + name + '] where a photo would be.'
+      : name + ' has no product catalogue yet, so its ads, mailers and storefront show [DATA REQUIRED BEFORE LAUNCH: product image, ' + name + '] where a photo would be.';
+    var act = url && !actionsOff()
+      ? ' <button type="button" class="btn primary" data-import-store="' + esc(url) + '" style="margin-left:6px;padding:7px 13px;font-size:12px">Import ' + esc(host || 'the store') + '\'s catalogue</button>'
+      : (url ? '' : ' Add the store URL under Regions and stores, or paste a CSV, to import it.');
+    return '<p class="imp-gate" id="storeFeed" data-store-feed="1">' + why + (url ? ' Import its own store feed (' + esc(host) + ') to use its real product photos.' : '') + act + '</p>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-import-store]');
+    if (!b) return;
+    var url = b.getAttribute('data-import-store');
+    function run() {
+      var inp = $('impUrl'), tab = $('stepCard') && $('stepCard').querySelector('.imp-tab[data-imp="storefront"]');
+      if (tab) tab.click();
+      if (inp) inp.value = url;
+      var d = $('doImport'); if (d && !d.disabled) d.click();
+    }
+    if (step !== 5) { go(5); setTimeout(run, 0); } else run();
+  });
+
   function wireImport() {
     var mode = 'storefront';
     Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (t) {
@@ -2269,6 +2316,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var r = await api('catalog-import', payload);
         catalogCount = r.imported;
         status.textContent = r.imported + ' products imported' + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+        var sf = $('storeFeed'); if (sf && r.imported) sf.hidden = true;
         toast('Imported ' + r.imported + ' products.');
       } catch (e) {
         // This span otherwise reads "N products in this workspace." - a count.

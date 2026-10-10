@@ -265,7 +265,7 @@ test('with a live backend, a signed-out visitor is still not blocked', async ({ 
   // 2026-09-28; it used to promise that the account's brands "load once you
   // sign in", which a phone account - whose brands are on this device - cannot
   // truthfully be told).
-  await expect(bar).toContainText(/sign in with gmail/i);
+  await expect(bar).toContainText(/sign in with your mobile number and a 4-digit pin/i);
   // ...and it must NOT claim the deployment is broken. That is a different
   // state with a different remedy, and crying outage on a healthy deployment
   // is how a notice teaches people to ignore it.
