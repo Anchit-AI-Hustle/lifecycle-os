@@ -1209,16 +1209,18 @@ body::after {
 
 /* Swatch: a colour and its name; the words sit on the panel, never on the colour. */
 .vh-swatch { display: grid; gap: 6px; min-width: 0; }
-.vh-swatch-chip { height: 56px; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
+.vh-swatch-chip { height: 36px; border-radius: var(--vh-r-md); border: 1px solid var(--vh-line); }
 .vh-swatch-name { font-size: var(--vh-fs-xs); font-weight: 600; color: var(--vh-ink); overflow-wrap: anywhere; }
 .vh-swatch-value { font-family: var(--vh-font-mono); font-size: var(--vh-fs-xs); color: var(--vh-ink-dim); overflow-wrap: anywhere; }
 
-/* Modal and toast. The scrim is the INK at an opacity, not a black literal: it
-   dims the page it covers and is never a section of its own. ELEVATION: lift-2
+/* Modal and toast. The scrim is the brand SURFACE at an opacity, a frost: it
+   quiets the page it covers without turning the lights off. It used to be the
+   ink at .45, and the every-page gate measured that as a dark panel ground
+   under every palette - the app is light-only, so a scrim is too. ELEVATION: lift-2
    is for what floats OVER the page (a modal, a popover); anything that sits in
    the flow takes lift-1, because a 48px shadow falling on the text below it
    took muted copy from 4.9:1 to 4.4:1 in the rendered gate. */
-.vh-modal-backdrop { position: fixed; inset: 0; z-index: var(--vh-z-modal); background: var(--vh-ink); opacity: .45; }
+.vh-modal-backdrop { position: fixed; inset: 0; z-index: var(--vh-z-modal); background: var(--vh-bg); opacity: .78; }
 .vh-modal {
   position: fixed; z-index: var(--vh-z-modal); left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: min(560px, calc(100vw - 32px)); max-height: 86vh; overflow: auto;
