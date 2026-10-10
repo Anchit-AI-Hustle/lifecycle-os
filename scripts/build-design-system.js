@@ -149,7 +149,7 @@ const SURFACES = [
   ['Button: ghost', 'transparent (hover vh-panel-2)', 'vh-ink', 'vh-line (hover vh-line-hot)', '.vh-btn-ghost'],
   ['Input', 'vh-glass-strong over vh-panel-2', 'vh-ink; placeholder vh-ink-dim', 'vh-line; focus ring vh-focus', '.vh-input, .vh-select, .vh-textarea'],
   ['Table', 'header vh-glass-strong; rows transparent, hover vh-panel-2', 'th vh-ink-dim; td vh-ink', 'vh-line; header rule vh-line-hot', '.vh-table'],
-  ['Modal', 'vh-panel over a scrim of vh-ink at .45 opacity', 'vh-ink', 'vh-line; elevation vh-lift-2', '.vh-modal, .vh-modal-backdrop, the ? info panel'],
+  ['Modal', 'vh-panel over a scrim of vh-bg at .78 opacity', 'vh-ink', 'vh-line; elevation vh-lift-2', '.vh-modal, .vh-modal-backdrop, the ? info panel'],
   ['Toast', 'vh-panel', 'vh-ink', 'inset 3px vh-accent (error vh-err-text)', '.vh-toast'],
   ['Notice bar', 'vh-panel-2', 'vh-ink', 'top rule vh-accent (ordinary) or vh-warn (fix-it)', 'auth.js #lc-authnotice, .vh-notice'],
   ['Status line', 'vh-panel-2', 'vh-ink', 'left 4px vh-accent', 'LifecycleStatus, .vh-status'],
