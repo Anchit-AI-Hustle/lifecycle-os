@@ -97,67 +97,23 @@ function requireUser(req) {
 }
 
 async function verifyCaller(req) {
-  // ── A MOBILE + PIN SESSION (2026-09-28, standalone 2026-09-30) ─────────────
-  // The one sign-in the browser has now. Its token is 43 base64url characters
-  // with no dots (a Supabase JWT has two), so the two cannot be confused. A
-  // SERVER-mode session is verified against app_sessions in the Neon database.
-  // A DEVICE-mode token (no DATABASE_URL on this deployment) is admitted as
-  // `mode:'device'` so features that do not need a ledger can run; its id is
-  // `device:<hash>` of the token, never a phone number from the body. A raw
-  // server-to-server call with only that token and no page Origin is still
-  // anonymous: a well-shaped token is not a secret, and the 2026-09-29 review
-  // closed "any token at all reaches a model". The page the person is on is
-  // the attribution.
+  // ── GOOGLE IS THE ONLY SIGN-IN (2026-10-10) ─────────────────────────────────
+  // The mobile number + PIN sign-in is switched off. A token of its shape (43
+  // base64url characters, no dots - a Supabase JWT has two) is refused here
+  // EXACTLY like no token at all: the same 401 sign_in_required, decided
+  // before any lookup, so a Neon session, a leftover device session (the
+  // `mode:'device'` principal of 2026-09-30) and a forgery are one answer.
+  // Nothing downstream can see `provider:'mobile-pin'` or `mode:'device'` any
+  // more; the branches that keyed on them are the signed-out branches now.
   const mobile = require('./mobile-auth-core.js');
   const own = mobile.tokenOf(req);
   if (own && mobile.looksLikeToken(own)) {
-    const v = await mobile.verifyToken(own);
-    if (v.ok) {
-      const mode = v.mode === 'device' ? 'device' : 'server';
-      if (mode === 'device') {
-        const h = (req && req.headers) || {};
-        if (!(h.origin || h.Origin || h.referer || h.Referer)) {
-          return {
-            ok: false, status: 401, error: 'sign_in_required',
-            message: 'A sign-in kept on this device only can run features from this app\'s pages. This request did not come from a page, so it did not run.',
-            hint: 'Send the device session as X-Lifecycle-Token from a same-origin page (Origin or Referer).',
-            mobile_reason: 'device_unattributed',
-          };
-        }
-      }
-      return {
-        ok: true, token: own, user_id: v.user.id, email: '',
-        phone: v.user.phone, name: v.user.name, provider: 'mobile-pin',
-        mode,
-      };
-    }
-    if (v.reason === 'unreachable') {
-      // The SAME distinction the header above draws for the Supabase path,
-      // which this branch flattened (found 2026-09-29): a token of our shape
-      // reaches the server ONLY from a server-mode sign-in (auth.js never
-      // sends a device token), so when the database it lives in is not
-      // answering, the account is in the database and the database is down.
-      // Answering 401 "kept on this device only" told a person whose account
-      // is in Neon that they were signed in on a device - the sentence the
-      // browser's own mode line contradicts a few pixels away - and the 401
-      // was the code every catch reads as "sign in again", which cannot help.
-      return {
-        ok: false, status: 503, error: 'backend_unreachable', backend_unreachable: true,
-        message: 'The database your account is in (' + (v.host || 'the configured host') + ') is not answering, '
-          + 'so your sign-in cannot be checked right now and this could not be saved. Nothing about your account has changed; try again once it answers.',
-        hint: 'DATABASE_URL points at a host that did not answer the session lookup.',
-        mobile_reason: v.reason,
-        detail: v.detail,
-      };
-    }
     return {
       ok: false, status: 401, error: 'sign_in_required',
-      message: 'You are not signed in, so this could not be saved to your account. '
-        + (v.reason === 'no_database'
-          ? 'A sign-in kept on this device only cannot be checked by the server.'
-          : 'Your sign-in has expired or was signed out. Sign in again with your mobile number and PIN.'),
-      hint: 'Send X-Lifecycle-Token: <session token> (or Authorization: Bearer <token>) from a server-mode sign-in.',
-      mobile_reason: v.reason,
+      message: 'You are not signed in, so this could not run. Sign-in is with Google now; '
+        + 'a mobile-number sign-in is no longer accepted. Sign in with Google and try again.',
+      hint: 'Send Authorization: Bearer <Supabase access token> from a Google sign-in.',
+      mobile_reason: 'pin_signin_removed',
     };
   }
 
@@ -166,7 +122,7 @@ async function verifyCaller(req) {
     return {
       ok: false, status: 401, error: 'sign_in_required',
       message: 'You are not signed in, so this could not be saved to your account.',
-      hint: 'Send X-Lifecycle-Token: <session token> from a mobile-number sign-in (Authorization: Bearer <token> is accepted too).',
+      hint: 'Send Authorization: Bearer <Supabase access token> from a Google sign-in.',
     };
   }
   let e;
@@ -195,35 +151,23 @@ async function verifyCaller(req) {
         message: 'Your sign-in has expired. Sign in again and retry.',
       };
     }
-    // A PHONE ACCOUNT IN SUPABASE AUTH (2026-10-03). The same verified user
-    // record says whether this is a mobile-number account, read from
-    // app_metadata - which only the service role can write - never from
-    // anything the request says about itself. `provider:'mobile-pin'` keeps
-    // the phone rules everywhere they are keyed (credits: an unlisted number
-    // holds no wallet; a listed one holds a personal wallet), and
-    // `mode:'supabase'` says this phone account HAS a Supabase identity, so
-    // the paths that used to answer "your brands are on the device" for a
-    // phone token (brand-runtime, TeleSuite) read its workspaces like any
-    // account's, through RLS. Every principal verified here is mode
-    // 'supabase': the project answered, so its ledger is the one to meter on.
-    // SIGN-IN IS A MOBILE NUMBER AND A 4-DIGIT PIN ONLY (2026-10-09). A
-    // session an OAuth provider minted (the Google sign-in of 2026-10-05, or
-    // one a dashboard switch turns back on) is refused here, so the provider
-    // being on in the project is never a way into this API.
+    // WHO MAY BE A PRINCIPAL (2026-10-10). Sign-in is Google, so a Google
+    // account is; an account the project holds by email (made by an operator
+    // in the dashboard; public sign-ups are off) is, as it always was. Two are
+    // NOT, read from the record GoTrue returns for the token (app_metadata,
+    // which only the service role writes, and identities) - never from the
+    // request: a phone account the PIN broker made (the switched-off sign-in;
+    // its refresh tokens still work against GoTrue until they are revoked or
+    // the users removed), and any other OAuth provider a dashboard switch
+    // might turn on. Both get the anonymous refusal.
     const supaAuth = require('./mobile-auth-supabase.js');
     const oauth = supaAuth.oauthProvider(user);
-    if (oauth) {
+    if (supaAuth.phoneIdentity(user) || (oauth && oauth !== 'google')) {
       return {
-        ok: false, status: 401, error: 'sign_in_required', provider_refused: oauth,
-        message: 'You are not signed in, so this could not run. Sign in with your mobile number and PIN; '
-          + 'a ' + oauth + ' sign-in is not accepted.',
-      };
-    }
-    const phoneId = supaAuth.phoneIdentity(user);
-    if (phoneId) {
-      return {
-        ok: true, token, user_id: user.id, email: '',
-        phone: phoneId.e164, name: phoneId.name, provider: 'mobile-pin', mode: 'supabase',
+        ok: false, status: 401, error: 'sign_in_required',
+        provider_refused: oauth || 'phone',
+        message: 'You are not signed in, so this could not run. Sign-in is with Google; '
+          + (oauth && oauth !== 'google' ? 'a ' + oauth + ' sign-in' : 'a mobile-number sign-in') + ' is not accepted. Sign in with Google and try again.',
       };
     }
     return { ok: true, token, user_id: user.id, email: String(user.email || '').toLowerCase(), mode: 'supabase' };
@@ -2394,21 +2338,18 @@ async function authHostAnswers(e) {
  * in a sentence naming what an operator would change, why nobody could.
  */
 async function sessionCheckable() {
-  let store = null;
-  try { store = await require('./mobile-auth-core.js').status(); } catch (_) { store = null; }
-  if (!store || store.mode !== 'device') return { checkable: true };
-  const accounts = store.reason === 'no_database_url'
-    ? 'Accounts are kept on each device, because no DATABASE_URL is set.'
-    : `Accounts are not in a database that answers (${store.host || 'the configured database'}).`;
+  // Since 2026-10-10 a session exists in ONE place: the Supabase project
+  // behind Google sign-in. The mobile-number account store is switched off,
+  // so it no longer decides anything here.
   let e;
   try { e = env(); } catch (_) {
-    return { checkable: false, message: `This deployment has no workspace database configured (SUPABASE_URL). ${accounts}` };
+    return { checkable: false, message: 'This deployment has no workspace database configured (SUPABASE_URL), so there is no account to sign in to.' };
   }
   if (await authHostAnswers(e)) return { checkable: true };
   return {
     checkable: false,
     message: `The database this deployment points at (${hostOfUrl(e.url)}) is not answering, so no sign-in can be checked. `
-      + `Its Supabase project has most likely been deleted, renamed or paused. ${accounts}`,
+      + 'Its Supabase project has most likely been deleted, renamed or paused.',
   };
 }
 

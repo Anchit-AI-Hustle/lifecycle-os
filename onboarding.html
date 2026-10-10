@@ -490,12 +490,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   /* A brand kept on this device (its id is `local-…`, brand-context.js). */
   function isLocalId(id) { return typeof id === 'string' && id.indexOf('local-') === 0; }
-  /* The clause that names what has to change. Signing in with a mobile number
-     and PIN is the remedy on every deployment (2026-10-03, and the only
-     sign-in since 2026-10-09): a phone sign-in's token is sent, and the server
-     acts for it whether the account is in a database or kept on this device. */
-  function accountClause() { return 'you sign in with your mobile number and PIN'; }
-  /* The mobile+PIN session, if that is who is here. */
+  /* The clause that names what has to change. Google is the only sign-in
+     (2026-10-10): its token is sent and the server acts for the account. */
+  function accountClause() { return 'you sign in with Google'; }
+  /* The mobile+PIN session, if that were who is here. That sign-in is
+     switched off (2026-10-10), so brand-context answers none. */
   function phoneSession() { var s = storageInfo(); return (s && s.session) || null; }
   /* SIGNING IN WITH A PHONE NEVER TURNS A FEATURE OFF (2026-10-03). The
      operator's words: "All features must work even with signin by number and
@@ -515,11 +514,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function needsAccountNote(what, why) {
     var s = storageInfo() || {};
-    var sa = s.server_actions || {};
-    if (sa.state === 'stale-device-session') {
-      var st = (s.read_site && s.read_site.store) || {};
-      return '<p class="ws-note" data-needs-account="' + esc(what) + '" data-account="mobile-pin"><b>Not available on this sign-in.</b> ' + esc(staleSessionSentence(st)) + '</p>';
-    }
     return '<p class="ws-note" data-needs-account="' + esc(what) + '"><b>Needs your account.</b> ' + esc(why) + '</p>';
   }
   /* The spec's marker, through the same builder the server and the device path
@@ -1653,37 +1647,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      has to be one that WORKS, and never "sign in" to a person who is. */
   function extractNote(s) {
     var rs = (s && s.read_site) || {};
-    var ps = s && s.session;
-    var st = rs.store || {};
     var at = function (h) { return h ? ' (' + h + ')' : ''; };
     var lead, body;
-    if (rs.state === 'stale-device-session') {
-      lead = 'Not available on this sign-in.';
-      body = staleSessionSentence(st);
-    } else if (rs.state === 'accounts-in-database' || rs.state === 'backend-answers') {
-      // No token, and a session could be checked: signing in is the remedy on
-      // every deployment now - a server-mode sign-in is verified, and a
-      // device-mode one is admitted as the person on this page.
+    if (rs.state === 'backend-answers') {
+      // No token, and a session could be checked: signing in with Google is
+      // the remedy.
       lead = 'Needs your sign-in.';
-      body = 'Sign in with your mobile number and PIN (the Sign in chip in the menu) and it reads your site'
-        + (rs.state === 'backend-answers' ? ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.' : '.');
+      body = 'Sign in with Google (the Sign in with Google chip in the menu) and it reads your site'
+        + ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.';
     } else {
       // supabase-js did not load, so this page cannot tell whether the server
       // would read the site; the standing bar names what blocked it.
       lead = 'Not available right now.';
       body = 'This page could not load the library that tells it whether the workspace database answers, so it does not send a request the server may refuse. The bar at the top says what blocked it.';
     }
-    return '<p class="ws-note" data-needs-account="extract" data-read-site="' + esc(rs.state || '') + '"' + (ps ? ' data-account="mobile-pin"' : '') + '><b>' + esc(lead) + '</b> '
+    return '<p class="ws-note" data-needs-account="extract" data-read-site="' + esc(rs.state || '') + '"><b>' + esc(lead) + '</b> '
       + esc(body + ' Every field below can be typed in meanwhile, and the brand is saved on this device.') + '</p>';
   }
-  /* A sign-in kept on this device from before this deployment kept accounts
-     in a database: its token is not in that database, so the server refuses
-     it. The remedy that works is to sign in again. */
-  function staleSessionSentence(st) {
-    var host = st && st.host ? ' (' + st.host + ')' : '';
-    return 'This deployment now keeps accounts in its database' + host + ', and this sign-in was made on this device before it did, so the server cannot check it. Signing out and entering your number again creates the account there, and then this works.';
-  }
-
   function extractBlock() {
     var off = extractOff();
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
@@ -2565,14 +2545,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      rows are and what makes them the account's. */
   function storageNote(st) {
     if (!st || st.mode !== 'device') return '';
-    // A mobile+PIN session (2026-09-28): signed in AND on this device, both at
-    // once, in the one sentence brand-context.js builds for it.
-    if (st.session && st.account_sentence) {
-      return '<p class="ws-note" data-storage-note="device" data-account="mobile-pin"><b>' + esc(st.account_sentence) + '.</b></p>';
-    }
     var how = st.kind === 'signed-out'
-      ? 'Sign in and they can be synced to your account.'
-      : 'Once a database is reachable and you sign in, they can be synced to your account.';
+      ? 'Sign in with Google and they can be synced to your account.'
+      : 'Once a database is reachable and you sign in with Google, they can be synced to your account.';
     return '<p class="ws-note" data-storage-note="device"><b>Saved on this device only.</b> ' + how + '</p>';
   }
 
@@ -2581,7 +2556,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      unasked. The device copies stay until each account row exists. */
   function syncOffer(st) {
     if (!st || st.mode !== 'server' || !st.device_count || !window.BrandContext.device) return '';
-    var rows = window.BrandContext.device.list();
+    var rows = window.BrandContext.device.syncable ? window.BrandContext.device.syncable() : window.BrandContext.device.list();
     if (!rows.length) return '';
     var n = rows.length;
     return '<div class="ws-note" data-sync-offer="' + n + '">' +

@@ -31,6 +31,18 @@
  * Supabase JWT, and a device token with no Origin all stay refused for every
  * op this opens, and none of them reaches a model (#115's rule).
  *
+ * ── 2026-10-10: RETIRED IN PART - GOOGLE IS THE ONLY SIGN-IN ───────────────
+ * The owner's words: "No signin with mobile number - only Google signin pls".
+ * The mobile-number sign-in this file turned ON is switched off, so the five
+ * "signed in with a phone ..." tests, the device-token pack run and the
+ * device-catalogue refusal are RETIRED: no phone principal exists for them to
+ * drive, and a phone token is refused like no token (gated in
+ * tests/google-only-signin.spec.js). What stays is the door, executed - no
+ * token, a forged JWT, and a device token from a page OR with no Origin reach
+ * no model and no store for any op this file opened - and the signed-out
+ * wizard, whose three controls now name Google as the sign-in that turns
+ * them on.
+ *
  * Run: npx playwright test tests/phone-signin-features.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
@@ -341,213 +353,17 @@ function cleanErrors(log) { return log.errors.filter((e) => !/ResizeObserver|Fai
    1. READ MY SITE — the control in the screenshot
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('signed in with a phone on production, "Read my site" is ON and reads the site for this person', async ({ page }) => {
-  test.setTimeout(90_000);
-  const world = serverWorld();
-  try {
-    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID + '&step=1' });
-    await page.waitForSelector('#xRun');
-    const s = await stepState(page, '#xRun');
-    expect(await page.evaluate(() => window.LifecycleAuth.session && window.LifecycleAuth.session.mode)).toBe('device');
-    expect(s.enabled, 'signing in with a phone turned "Read my site" off: ' + s.notes.join(' | ')).toBe(true);
-    expect(s.phoneWords, 'the wizard still says a phone sign-in cannot do this').toBe(false);
-
-    await expect(async () => {
-      await page.fill('#xUrl', SITE + '/');
-      await page.click('#xRun', { timeout: 2000 });
-      await expect(page.locator('.xtract h3').filter({ hasText: /Read from|Could not read/ })).toHaveCount(1, { timeout: 10000 });
-    }).toPass({ timeout: 40000 });
-
-    const sent = log.api.filter((x) => x.op === 'extract');
-    expect(sent.length).toBe(1);
-    expectDeviceRequest(sent[0]);
-    expect(sent[0].code, JSON.stringify(sent[0].body).slice(0, 300)).toBe(200);
-    // Read FOR this person (a device principal), not on the visitor's path.
-    expect(sent[0].body.signed_out).toBeUndefined();
-    const report = await page.locator('.xtract').filter({ hasText: 'Read from' }).innerText();
-    expect(report).toContain('Harbourlight Goods');
-    expect(report).not.toMatch(/without signing in|without an account/i);
-    expect(world.llm.stages).toContain('brand-extract:voice');
-    expect(world.net.escaped).toEqual([]);
-    expect(log.dialogs).toEqual([]);
-    expect(cleanErrors(log)).toEqual([]);
-  } finally { world.restore(); }
-});
-
 /* ═══════════════════════════════════════════════════════════════════════════
    2. SUGGEST OPTIONS
    ═══════════════════════════════════════════════════════════════════════════ */
-
-test('signed in with a phone, "Suggest options" is ON and the options it writes render', async ({ page }) => {
-  test.setTimeout(90_000);
-  const world = serverWorld();
-  try {
-    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID + '&step=4' });
-    await page.waitForSelector('[data-suggest="voice.tone"]');
-    const s = await stepState(page, '[data-suggest="voice.tone"]');
-    expect(s.enabled).toBe(true);
-    expect(s.notes, 'a "needs account" note is still painted for a signed-in person').toEqual([]);
-    expect(await page.locator('[data-suggest-off]').count(), 'suggest buttons are still rendered off').toBe(0);
-
-    await page.click('[data-suggest="voice.tone"]');
-    await expect(page.locator('[data-use-suggest="voice.tone"]').first()).toBeVisible({ timeout: 15000 });
-    expect(await page.locator('[data-use-suggest="voice.tone"]').count()).toBe(3);
-    const sent = log.api.filter((x) => x.op === 'suggest');
-    expect(sent.length).toBe(1);
-    expectDeviceRequest(sent[0]);
-    expect(sent[0].code).toBe(200);
-    expect(world.llm.stages).toEqual(['brand-suggest']);
-
-    // Using one puts it in the field, as the operator's own value.
-    await page.click('[data-use-suggest="voice.tone"][data-i="0"]');
-    await expect(page.locator('[data-path="voice.tone"]')).toHaveValue(/Warm and plain-spoken/);
-    expect((await stepState(page, '#stepCard')).failures).toBe(0);
-    expect(world.net.escaped).toEqual([]);
-    expect(log.dialogs).toEqual([]);
-    expect(cleanErrors(log)).toEqual([]);
-  } finally { world.restore(); }
-});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    3. IMPORT CATALOG — read by the server, kept on the device
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('signed in with a phone, "Import catalog" reads the store and keeps the products on this device', async ({ page }) => {
-  test.setTimeout(90_000);
-  const world = serverWorld();
-  try {
-    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID + '&step=5' });
-    await page.waitForSelector('#doImport');
-    const s = await stepState(page, '#doImport');
-    expect(s.enabled, 'Import catalog is off: ' + s.notes.join(' | ')).toBe(true);
-    expect(s.phoneWords).toBe(false);
-
-    await page.fill('#impUrl', SITE);
-    await page.click('#doImport');
-    await expect(page.locator('#impStatus')).toContainText('3 products imported', { timeout: 15000 });
-    const sent = log.api.filter((x) => x.op === 'catalog-import');
-    expect(sent.length).toBe(1);
-    expectDeviceRequest(sent[0]);
-    expect(sent[0].code).toBe(200);
-    expect(sent[0].body.storage).toBe('device');
-    // The server read the store's own feed; nothing was written anywhere.
-    expect(world.net.site.some((p) => p.startsWith('/products.json'))).toBe(true);
-    expect(world.net.supabase, 'the import tried to file rows in the (paused) workspace database').toBe(0);
-
-    const kept = await deviceSide(page, 'catalog', BRAND_ID);
-    expect(kept && kept.products.map((p) => p.title).sort()).toEqual(['Harbour Lamp', 'Quay Lantern', 'Tide Candle']);
-    expect(kept.owned).toBe(true);
-    expect(kept.products[0].region).toBe('us');
-
-    // The review step counts it: the catalogue is no longer a data gap. Reload
-    // first, so the count is read back from the device and not from memory.
-    await page.goto(HOST + '/onboarding.html?id=' + BRAND_ID + '&step=6', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.verdict');
-    await expect(page.locator('.verdict')).not.toContainText('product catalog');
-    // And the other brand on this device has no catalogue of its own: nothing leaks across.
-    expect(await deviceSide(page, 'catalog', BRAND_ID_2)).toBeNull();
-    expect(world.net.escaped).toEqual([]);
-    expect(log.dialogs).toEqual([]);
-    expect(cleanErrors(log)).toEqual([]);
-  } finally { world.restore(); }
-});
-
-test('signed in with a phone, a pasted CSV imports to this device too', async ({ page }) => {
-  test.setTimeout(90_000);
-  const world = serverWorld();
-  try {
-    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID + '&step=5' });
-    await page.waitForSelector('#doImport');
-    await page.click('.imp-tab[data-imp="csv"]');
-    await page.fill('#impCsv', 'title,handle,sku,price,currency\nBeacon Lamp,beacon-lamp,BL-9,64.00,USD\nPier Sconce,pier-sconce,PS-4,92.00,USD\n');
-    await page.click('#doImport');
-    await expect(page.locator('#impStatus')).toContainText('2 products imported', { timeout: 15000 });
-    const kept = await deviceSide(page, 'catalog', BRAND_ID);
-    expect(kept.products.map((p) => p.sku).sort()).toEqual(['BL-9', 'PS-4']);
-    expect(kept.source && kept.source.kind).toBe('csv');
-    expect(world.llm.calls).toBe(0);
-    expect(world.net.escaped).toEqual([]);
-    expect(log.dialogs).toEqual([]);
-  } finally { world.restore(); }
-});
-
 /* ═══════════════════════════════════════════════════════════════════════════
    4. BUILD CONTEXT PACK — the same stages, driven by this page, kept here
    ═══════════════════════════════════════════════════════════════════════════ */
-
-test('signed in with a phone, "Build context pack" builds the whole pack and DESIGN.md downloads', async ({ page }) => {
-  test.setTimeout(150_000);
-  const world = serverWorld();
-  try {
-    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID_2 + '&step=6' });
-    await page.waitForSelector('#packBuild');
-    const s = await stepState(page, '#packBuild');
-    expect(s.enabled, 'Build context pack is off: ' + s.notes.join(' | ')).toBe(true);
-    expect(s.phoneWords).toBe(false);
-
-    await page.click('#packBuild');
-    await expect(page.locator('#toast')).toContainText('Context pack built.', { timeout: 120000 });
-    await expect(page.locator('.xtract').filter({ hasText: 'Brand context pack' })).toContainText(/Built \d{4}-\d{2}-\d{2} — DESIGN\.md ready/, { timeout: 10000 });
-    const line = await page.locator('.xtract').filter({ hasText: 'Brand context pack' }).innerText();
-    // GitHub could not be reached, and the pack says so rather than "none".
-    expect(line).toMatch(/GitHub NOT searched/);
-    expect(line).toMatch(/3 catalogue row\(s\)/);
-
-    const builds = log.api.filter((x) => x.op === 'context-build');
-    expect(builds.length, 'the browser did not drive the queue').toBeGreaterThanOrEqual(4);
-    for (const b of builds) { expectDeviceRequest(b); expect(b.code, JSON.stringify(b.body).slice(0, 300)).toBe(200); }
-    expect(builds[0].sent.refresh).toBe(true);
-    expect(builds[builds.length - 1].body.done).toBe(true);
-    // The row went back each time and was carried forward each time.
-    expect(builds[1].sent.device_pack && builds[1].sent.device_pack.stage).toBe('extract');
-
-    const kept = await deviceSide(page, 'pack', BRAND_ID_2);
-    expect(kept.row.stage).toBe('done');
-    expect(kept.row.design_md).toMatch(/^---\nversion: alpha/);
-    expect(kept.row.brand_key).toBe('harbourlight.example|harbourlightgoods');
-    expect(kept.context.knowledge.ingested).toBeGreaterThanOrEqual(1);
-    // The pack's catalogue stage read the store; the rows went to the device
-    // catalogue ONCE and the pack keeps the count, not a second copy.
-    const cat = await deviceSide(page, 'catalog', BRAND_ID_2);
-    expect(cat.products.length).toBe(3);
-    expect(cat.owned).toBe(false);
-    expect(JSON.stringify(kept)).not.toContain('"products"');
-
-    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#packDesign')]);
-    expect(dl.suggestedFilename()).toBe('DESIGN.md');
-    // The bytes the browser actually downloaded (a runtime artefact, not a source file).
-    const chunks = [];
-    for await (const c of await dl.createReadStream()) chunks.push(c);
-    const downloaded = Buffer.concat(chunks).toString('utf8');
-    expect(downloaded).toBe(kept.row.design_md);
-    // Read back from the device on a fresh load, without asking the server.
-    const before = log.api.length;
-    await page.goto(HOST + '/onboarding.html?id=' + BRAND_ID_2 + '&step=6', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#packDesign')).toBeVisible({ timeout: 10000 });
-    expect(log.api.slice(before).filter((x) => /^context-/.test(x.op)), 'a device pack was asked of the server').toEqual([]);
-
-    expect(world.net.supabase, 'the pack tried to file in the paused workspace database').toBe(0);
-    expect(world.net.escaped).toEqual([]);
-    expect(log.dialogs).toEqual([]);
-    expect(cleanErrors(log)).toEqual([]);
-  } finally { world.restore(); }
-});
-
-test('a pack run leaves a catalogue the operator imported by hand alone', async () => {
-  const world = serverWorld();
-  try {
-    const out = await callShipped(world.handler, {
-      method: 'POST', url: '/api/public-config?action=brand&op=context-build',
-      headers: { 'x-lifecycle-token': DEVICE_TOKEN, origin: HOST, 'content-type': 'application/json' },
-      body: { workspace_id: BRAND_ID, refresh: true, brand: brandRow(BRAND_ID), catalog_owned: true },
-    });
-    expect(out.code).toBe(200);
-    expect(out.body.storage).toBe('device');
-    expect(out.body.device_pack.catalog.skipped).toBe('user_owned');
-    expect(out.body.catalog_products).toBeNull();
-    expect(world.net.site.some((p) => p.startsWith('/products.json')), 'the store was read for a catalogue the operator owns').toBe(false);
-  } finally { world.restore(); }
-});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    5. THE OTHER SIDE OF THE DOOR — still shut, executed
@@ -563,6 +379,7 @@ const CALLERS = {
   'no token': { 'content-type': 'application/json', origin: HOST },
   'a forged Supabase JWT': { 'content-type': 'application/json', origin: HOST, authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.forged' },
   'a device token with no page Origin': { 'content-type': 'application/json', 'x-lifecycle-token': DEVICE_TOKEN },
+  'a device token from a page (admitted until 2026-10-10)': { 'content-type': 'application/json', origin: HOST, referer: HOST + '/onboarding.html', 'x-lifecycle-token': DEVICE_TOKEN, authorization: 'Bearer ' + DEVICE_TOKEN },
 };
 
 for (const [who, headers] of Object.entries(CALLERS)) {
@@ -599,13 +416,13 @@ test('signed out on production, the three are off with a sentence naming the sig
   try {
     const log = await openWizard(page, world, { session: false, query: '?id=' + BRAND_ID + '&step=4' });
     await page.waitForSelector('[data-suggest-off="voice.tone"]');
-    await expect(page.locator('p[data-needs-account="suggest"]')).toContainText(/sign in with your mobile number and PIN/i);
+    await expect(page.locator('p[data-needs-account="suggest"]')).toContainText(/sign in with Google/i);
     await page.click('.step-pip[data-step="5"]');
     await expect(page.locator('#doImport')).toBeDisabled();
-    await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/sign in with your mobile number and PIN/i);
+    await expect(page.locator('p[data-needs-account="catalog-import"]')).toContainText(/sign in with Google/i);
     await page.click('.step-pip[data-step="6"]');
     await expect(page.locator('#packBuild')).toBeDisabled();
-    await expect(page.locator('p[data-needs-account="context-pack"]')).toContainText(/sign in with your mobile number and PIN/i);
+    await expect(page.locator('p[data-needs-account="context-pack"]')).toContainText(/sign in with Google/i);
     expect((await stepState(page, '#packBuild')).failures).toBe(0);
     expect(log.api.filter((x) => /^(suggest|catalog-import|context-)/.test(x.op))).toEqual([]);
     expect(world.llm.calls).toBe(0);
@@ -614,22 +431,3 @@ test('signed out on production, the three are off with a sentence naming the sig
 });
 
 /* Codex #8 (2026-10-03): a catalogue the browser refuses to keep stops the build and says so. */
-test('a context pack whose catalogue this browser refuses to keep says so, and keeps no pack that claims it', async ({ page }) => {
-  test.setTimeout(120_000);
-  const world = serverWorld();
-  try {
-    await page.addInitScript(() => {
-      const real = Storage.prototype.setItem;
-      Storage.prototype.setItem = function (k, v) { if (/\.catalog\./.test(String(k))) throw new DOMException('quota', 'QuotaExceededError'); return real.call(this, k, v); };
-    });
-    const log = await openWizard(page, world, { query: '?id=' + BRAND_ID_2 + '&step=6' });
-    await page.waitForSelector('#packBuild');
-    await page.click('#packBuild');
-    await expect(page.locator('#toast')).toContainText(/refused to keep them/i, { timeout: 60000 });
-    expect(await deviceSide(page, 'catalog', BRAND_ID_2)).toBeNull();
-    const kept = await deviceSide(page, 'pack', BRAND_ID_2);
-    // No kept step records a catalogue the device does not hold.
-    expect(!kept || !(kept.row.catalog && kept.row.catalog.imported > 0), 'a pack claims catalogue rows the device does not hold').toBe(true);
-    expect(log.dialogs).toEqual([]);
-  } finally { world.restore(); }
-});

@@ -273,6 +273,12 @@ const SCENARIOS = {
     },
     steps: [
       ['plan rows', async (page) => {
+        // This scenario measures the plan TABLE on a phone. Reaching it needs a
+        // signed-in account (2026-10-10: Google is the only sign-in; the phone
+        // sign-in this state used to seat is gone), which this harness does not
+        // model, so the page's signed-out early return is lifted here and the
+        // plan request is answered by the route above.
+        await page.evaluate(() => { window.signedOutPlan = async () => false; });
         await page.click('#refresh');
         await page.waitForSelector('#plan tr.planrow', { timeout: 10000 });
       }],

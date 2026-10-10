@@ -216,19 +216,27 @@
       var u = a && a.session && a.session.user && a.session.user.id;
       if (u) return u;
     } catch (_) {}
-    // 2026-09-28: the scan of Supabase's `sb-*-auth-token` entries is DISABLED.
-    // The mobile+PIN session (auth.js) is the one session source; nothing can
-    // produce a Supabase session any more, so an entry found there is a
-    // leftover, not a person.
-    // try {
-    //   for (var i = 0; i < localStorage.length; i++) {
-    //     var k = localStorage.key(i);
-    //     if (!k || k.indexOf('-auth-token') < 0) continue;
-    //     var v = JSON.parse(localStorage.getItem(k) || 'null');
-    //     var s = v && (v.user || (v.currentSession && v.currentSession.user));
-    //     if (s && s.id) return s.id;
-    //   }
-    // } catch (_) {}
+    return storedGoogleUserId();
+  }
+  /* The Google session supabase-js keeps (`sb-<ref>-auth-token`), read ONLY
+     for the first frame - this file paints before auth.js has booted. Once
+     auth.js has decided, its answer is the only one: a stored session it did
+     not accept (expired, signed out elsewhere) opens nothing. */
+  function storedGoogleUserId() {
+    try {
+      var a = window.LifecycleAuth;
+      var k0 = a && a.backend && a.backend.kind;
+      if (k0 && k0 !== 'pending') return '';
+    } catch (_) {}
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || !/^sb-[A-Za-z0-9-]+-auth-token$/.test(k)) continue;
+        var v = JSON.parse(localStorage.getItem(k) || 'null');
+        var s = v && (v.user || (v.currentSession && v.currentSession.user));
+        if (s && s.id) return String(s.id);
+      }
+    } catch (_) {}
     return '';
   }
 
@@ -297,36 +305,26 @@
   var DEVICE_PREFIX = 'local-';
   /* THE DEVICE STORE IS PER ACCOUNT (review finding, 2026-09-29). A browser is
      shared: a family laptop, a shop's till, an agency's meeting-room machine.
-     With ONE key for every mobile+PIN session, person B signing in saw person
-     A's brands - name, voice rules, store URLs, legal entity - because "on this
-     device" was read as "for whoever is at this device". The namespace is now
-     the signed-in account's id: `<DEVICE_KEY>.<user id>`. The UNSCOPED key is
-     kept for the no-session states only (no database, a database that does
-     not answer, signed out), so onboarding without a backend keeps working
-     exactly as before; a sign-in never silently adopts those anonymous rows
-     (they were typed by nobody in particular, and adopting them would hand
-     A's draft to whoever signs in next), and a sign-out never deletes them.
-     The id comes from auth.js's session when it has booted, else from the
-     stored session - this file paints the first frame BEFORE auth.js runs,
-     and that frame must already be the right person's brand. */
-  var MAUTH_SESSION_KEY = 'lifecycle.auth.session';
+     With ONE key for every signed-in person, person B signing in saw person
+     A's brands. The namespace is the signed-in account's id:
+     `<DEVICE_KEY>.<user id>` - since 2026-10-10 the Google account's Supabase
+     user id (the mobile+PIN sign-in that used its own ids is switched off;
+     auth.js copies what those accounts kept into the unscoped key on boot).
+     The UNSCOPED key is kept for the no-session states (no database, a
+     database that does not answer, signed out), so onboarding without a
+     backend keeps working exactly as before. A sign-in never silently ADOPTS
+     those anonymous rows; they are OFFERED for sync (syncableDevice()), never
+     uploaded unasked, and a sign-out never deletes them. */
   function deviceUserId() {
     try {
       var a = window.LifecycleAuth;
       var s = a && a.session;
-      if (s && s.provider === 'mobile-pin' && s.user && s.user.id) return String(s.user.id);
-      // auth.js has decided and holds no session: a stored one it rejected
-      // (expired, signed out elsewhere) must not open a namespace.
+      if (s && s.user && s.user.id && s.access_token) return String(s.user.id);
+      // auth.js has decided and holds no session: nothing opens a namespace.
       var k = a && a.backend && a.backend.kind;
       if (k && k !== 'pending') return '';
     } catch (_) {}
-    try {
-      var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
-      if (!raw || typeof raw !== 'object' || !raw.token || !raw.user || !raw.user.id) return '';
-      if (raw.mode !== 'server' && raw.mode !== 'device' && raw.mode !== 'supabase') return '';
-      if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
-      return String(raw.user.id);
-    } catch (_) { return ''; }
+    return storedGoogleUserId();
   }
   /** The localStorage key brands live under RIGHT NOW: the account's, or the unscoped one. */
   function deviceKey() {
@@ -353,31 +351,15 @@
   // 'local' (the localhost preview) and 'signed-in' are not among them.
   var NO_SESSION_KINDS = ['signed-out', 'unreachable', 'unconfigured', 'sdk'];
   /**
-   * The mobile+PIN session (2026-09-28), if that is who is signed in. In
-   * server (Neon) and device mode it has NO Supabase JWT: brand_workspaces is
-   * gated by auth.uid() and such an account has none, so its brands live in
-   * the device store. In supabase mode (2026-10-03) it IS a Supabase user
-   * with a real JWT, and modeFor() sends its brands to the account.
+   * The mobile+PIN session, if that were who is signed in. Switched off on
+   * 2026-10-10 (Google is the only sign-in): there is no such session, so this
+   * answers null and every branch that keyed on it is the signed-out or the
+   * Google branch. Kept as a function so the callers read the same as before.
    */
-  function mobileSession() {
-    try {
-      var a = window.LifecycleAuth;
-      var s = a && a.session;
-      if (s && s.provider === 'mobile-pin' && s.user) return { provider: 'mobile-pin', mode: s.mode || 'device', name: s.user.name || '', phone: s.user.phone || '', verified: s.verified !== false };
-      var b = a && a.backend && a.backend.session;
-      if (b && b.provider === 'mobile-pin') return b;
-    } catch (_) {}
-    return null;
-  }
+  function mobileSession() { return null; }
   function modeFor(kind) {
     if (KIND_DEVICE[kind]) return 'device';
-    var ms = mobileSession();
-    // A phone account IN SUPABASE AUTH (2026-10-03) has a Supabase identity
-    // and a real JWT, so brand_workspaces answers it through RLS like any
-    // account: its brands are saved to the ACCOUNT. Only while that session
-    // cannot be checked (the project not answering) do they go to the device.
-    if (ms && ms.mode === 'supabase' && ms.verified) return 'server';
-    if (ms) return 'device';
+    // A Google session (kind 'signed-in') or the localhost preview: the account.
     return 'server';
   }
   /** '' while auth.js has not decided (or is absent). */
@@ -1229,10 +1211,11 @@
 
   /* ── the device store ─────────────────────────────────────────────────── */
 
-  function readDevice() {
+  function readDevice() { return readDeviceAt(deviceKey()); }
+  function readDeviceAt(key) {
     var empty = { version: 1, active_id: '', workspaces: [] };
     try {
-      var d = JSON.parse(localStorage.getItem(deviceKey()) || 'null');
+      var d = JSON.parse(localStorage.getItem(key) || 'null');
       if (!d || typeof d !== 'object' || !Array.isArray(d.workspaces)) return empty;
       return {
         version: 1,
@@ -1241,9 +1224,9 @@
       };
     } catch (_) { return empty; }
   }
-  function writeDevice(d) {
+  function writeDevice(d, atKey) {
     try {
-      var key = deviceKey();
+      var key = atKey || deviceKey();
       var ws = d.workspaces || [];
       if (!ws.length && !d.active_id) { localStorage.removeItem(key); return true; }
       localStorage.setItem(key, JSON.stringify({ version: 1, active_id: d.active_id || '', workspaces: ws }));
@@ -1263,6 +1246,25 @@
   function deviceFind(d, id) {
     for (var i = 0; i < d.workspaces.length; i++) if (d.workspaces[i].id === id) return d.workspaces[i];
     return null;
+  }
+  /**
+   * The device rows a signed-in account is OFFERED to sync: its own namespace
+   * and the unscoped one (brands set up signed out, and those a mobile-number
+   * sign-in kept, which auth.js copied there when it ended that sign-in).
+   * Offering the unscoped rows exposes nothing: anyone at this browser sees
+   * them by signing out. Nothing is uploaded without a click.
+   */
+  function syncableDevice() {
+    var keys = [deviceKey()];
+    if (keys[0] !== DEVICE_KEY) keys.push(DEVICE_KEY);
+    var out = [], seen = {};
+    keys.forEach(function (key) {
+      readDeviceAt(key).workspaces.forEach(function (w) {
+        if (seen[w.id]) return; seen[w.id] = 1;
+        out.push({ key: key, row: w, active: readDeviceAt(key).active_id === w.id });
+      });
+    });
+    return out;
   }
   function deviceActiveRow() { var d = readDevice(); return d.active_id ? deviceFind(d, d.active_id) : null; }
 
@@ -1472,7 +1474,7 @@
     var known = !!(k && k !== 'pending');
     var d = readDevice();
     var ms = known ? mobileSession() : null;
-    var rs = readSite(k, b, ms);
+    var rs = readSite(k, b);
     return {
       mode: known ? modeFor(k) : (window.__LifecycleAuthBooted ? (state.mode || 'server') : 'server'),
       known: known,
@@ -1480,7 +1482,9 @@
       reachable: known ? b.reachable : null,
       signedIn: known ? !!b.signedIn : false,
       host: b.host || '',
-      device_count: d.workspaces.length,
+      // In account mode the rows OFFERED for sync: this account's and the
+      // ones kept for nobody in particular (see syncableDevice()).
+      device_count: (known && modeFor(k) === 'server') ? syncableDevice().length : d.workspaces.length,
       device_active_id: d.active_id || '',
       // The mobile+PIN session (2026-09-28), when that is who is signed in, and
       // the ONE sentence for its state: a phone account is signed in AND its
@@ -1494,7 +1498,7 @@
       server_open: rs.on,
       // Everything else on the wizard that the server runs for a person -
       // Suggest options, Import catalog, Build context pack. See serverActions().
-      server_actions: serverActions(k, ms),
+      server_actions: serverActions(k),
     };
   }
 
@@ -1511,19 +1515,10 @@
          in a database (the account store answers 'server'): that token is not
          in its session table, so the server refuses it, and signing in again
          is what turns them on. */
-  function serverActions(k, ms) {
+  function serverActions(k) {
     if (!k || k === 'pending') return { on: true, decided: false, state: 'undecided' };
-    if (ms) {
-      // A device sign-in on a deployment whose accounts now live in a database
-      // that answers (Neon 'server', or Supabase Auth 'supabase' - #119 refuses
-      // a device token while the project answers) is stale: sign in again.
-      if (ms.mode === 'device' && accountStore && (accountStore.mode === 'server' || accountStore.mode === 'supabase')) return { on: false, decided: true, state: 'stale-device-session' };
-      if (ms.mode === 'device') askAccountStore();
-      var acct = ms.mode === 'server' || ms.mode === 'supabase';
-      return { on: true, decided: acct || !!accountStore, state: acct ? 'server-session' : 'device-session' };
-    }
     if (KIND_DEVICE[k]) return { on: false, decided: true, state: 'signed-out' };
-    // A signed-in account with a database behind it, or the localhost preview.
+    // A Google account with a database behind it, or the localhost preview.
     return { on: true, decided: true, state: 'account' };
   }
 
@@ -1551,57 +1546,27 @@
      Undecided (auth.js still probing, the account store not yet answered) is
      ON: the server judges, as LifecycleStatus.refusal() does for the same
      window. `state` names the branch so the page can say the right sentence. */
-  var accountStore = null, accountStoreAsked = false;
-  function askAccountStore() {
-    if (accountStoreAsked) return;
-    var a = window.LifecycleAuth;
-    var ask = a && a.mobile && typeof a.mobile.status === 'function' ? a.mobile.status : null;
-    if (!ask) return;
-    accountStoreAsked = true;
-    Promise.resolve().then(ask).then(function (st) {
-      accountStore = (st && typeof st === 'object') ? st : { mode: 'device', reason: 'status_unavailable', host: '', message: '' };
-    }, function () {
-      accountStore = { mode: 'device', reason: 'status_unavailable', host: '', message: '' };
-    }).then(function () {
-      try { window.dispatchEvent(new CustomEvent('brandcontext:storage', { detail: { account_store: accountStore } })); } catch (_) {}
-    });
-  }
-  function readSite(k, b, ms) {
-    var out = { on: true, decided: false, state: 'undecided', supabase: '', store: accountStore, host: (b && b.host) || '' };
+  // Since 2026-10-10 accounts live in ONE place, the Supabase project behind
+  // Google sign-in, so the answer is decided from auth.js's record alone:
+  //   - a Google session sends its token: the server reads the site for the
+  //     account, ON.
+  //   - no token, and the project ANSWERS: a session exists to be had, the
+  //     server refuses - OFF, and signing in with Google is the remedy.
+  //   - no token, and the project is down or not configured: nobody could
+  //     present a session, the server's open path reads it - ON.
+  //   - supabase-js did not load: this page cannot tell - OFF, said.
+  function readSite(k, b) {
+    var out = { on: true, decided: false, state: 'undecided', supabase: '', store: null, host: (b && b.host) || '' };
     if (!k || k === 'pending') return out;
-    if (ms && (ms.mode === 'server' || ms.mode === 'supabase')) { out.decided = true; out.state = 'checkable-session'; return out; }
-    // A DEVICE-mode sign-in sends its token since 2026-09-30, and with no
-    // database the server admits it as a device principal from a page - so it
-    // is ON for the same reason a server-mode session is. The one exception is
-    // a deployment whose accounts are now in a database that answers: this
-    // token is not in it, and the server refuses (sign in again).
-    if (ms && ms.mode === 'device') {
-      askAccountStore();
-      if (!accountStore) { out.state = 'device-session'; return out; }
-      out.decided = true;
-      if (accountStore.mode === 'server' || accountStore.mode === 'supabase') { out.on = false; out.state = 'stale-device-session'; return out; }
-      out.state = 'device-session';
-      return out;
-    }
-    // Everything that follows sends NO token.
-    if (!ms && k !== 'unreachable' && k !== 'unconfigured' && k !== 'signed-out' && k !== 'sdk') {
-      // The localhost preview, or a legacy session: the server judges, as before.
-      out.decided = true; out.state = 'server-judges'; return out;
-    }
-    var supa = ms ? String((b && b.supabase) || 'pending') : (k === 'signed-out' ? 'reachable' : k);
-    out.supabase = supa;
-    if (supa === 'pending') return out;
-    askAccountStore();
     out.decided = true;
-    if (supa === 'sdk') { out.on = false; out.state = 'sdk'; return out; }
-    if (supa !== 'unreachable' && supa !== 'unconfigured') {
-      // A session could be checked (Supabase answers): the gate is real. The
-      // account store changes only WHAT to say - whether signing in is the
-      // remedy - so the words are not decided until it has answered.
-      out.on = false; out.state = 'backend-answers'; out.decided = !!accountStore; return out;
+    if (k !== 'unreachable' && k !== 'unconfigured' && k !== 'signed-out' && k !== 'sdk') {
+      // A Google session or the localhost preview: the server judges.
+      out.state = 'server-judges'; return out;
     }
-    if (!accountStore) { out.decided = false; return out; }
-    if (accountStore.mode === 'server') { out.on = false; out.state = 'accounts-in-database'; return out; }
+    var supa = k === 'signed-out' ? 'reachable' : k;
+    out.supabase = supa;
+    if (supa === 'sdk') { out.on = false; out.state = 'sdk'; return out; }
+    if (supa === 'reachable') { out.on = false; out.state = 'backend-answers'; return out; }
     out.state = 'no-backend';
     return out;
   }
@@ -1623,31 +1588,29 @@
   async function syncDeviceToAccount() {
     var mode = await resolveMode();
     if (mode !== 'server') {
-      if (mobileSession()) throw deviceFail(409, 'account_type_unsupported', 'A mobile-number account keeps its brands on this device: there is no record of it in the workspace database to sync to.');
-      throw deviceFail(409, 'sign_in_required', 'Sign in first: brands can only be synced to an account that is reachable.');
+      throw deviceFail(409, 'sign_in_required', 'Sign in with Google first: brands can only be synced to an account that is reachable.');
     }
-    var d = readDevice();
+    var rows = syncableDevice();
     var out = { synced: [], failed: [], remaining: 0 };
-    var wasActive = d.active_id;
     var activated = '';
-    for (var i = 0; i < d.workspaces.length; i++) {
-      var row = d.workspaces[i];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i].row, key = rows[i].key;
       var body = Object.assign({}, row);
       delete body.id; delete body.storage; delete body.owner_id; delete body.created_at; delete body.updated_at;
       try {
         var r = await serverApi('save', { body: { brand: body } });
         if (!r || !r.brand || !r.brand.id) throw new Error('The account did not confirm the saved brand, so the device copy was kept.');
-        var now = readDevice();
+        var now = readDeviceAt(key);
         now.workspaces = now.workspaces.filter(function (w) { return w.id !== row.id; });
         if (now.active_id === row.id) now.active_id = '';
-        writeDevice(now);
+        writeDevice(now, key);
         out.synced.push({ from: row.id, to: r.brand.id, name: row.name });
-        if (row.id === wasActive) activated = r.brand.id;
+        if (rows[i].active && !activated) activated = r.brand.id;
       } catch (e) {
         out.failed.push({ id: row.id, name: row.name, message: (e && e.message) || 'This brand could not be uploaded.' });
       }
     }
-    out.remaining = readDevice().workspaces.length;
+    out.remaining = syncableDevice().length;
     // What was live on this device stays live for the account, unless the
     // account already has a brand of its own in front.
     if (activated && !state.brand) { try { await setActive(activated); } catch (e) { log(e); } }
@@ -2153,19 +2116,7 @@
     try {
       var a = window.LifecycleAuth;
       if (a && typeof a.apiToken === 'function') return a.apiToken() || '';
-      if (a && a.session && a.session.access_token && a.session.provider === 'mobile-pin') return a.session.access_token;
     } catch (_) {}
-    // 2026-09-28: DISABLED - Supabase's project-scoped session keys. Nothing
-    // can produce a Supabase session any more; see currentUserId().
-    // try {
-    //   for (var i = 0; i < localStorage.length; i++) {
-    //     var k = localStorage.key(i);
-    //     if (!k || k.indexOf('-auth-token') < 0) continue;
-    //     var v = JSON.parse(localStorage.getItem(k) || 'null');
-    //     var t = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
-    //     if (t) return t;
-    //   }
-    // } catch (_) {}
     return '';
   }
 
@@ -2434,14 +2385,14 @@
           (o.busy
             ? 'One moment while we load your workspace.'
             : o.signedOut
-              ? 'You are not signed in. Sign in with your mobile number and a 4-digit PIN to keep your work under your name, '
+              ? 'You are not signed in. Sign in with Google to keep your work under your name, '
                 + 'or set up a brand on this device now: it is saved here either way.'
               : 'This platform runs entirely as one brand at a time: its palette, typography, voice, catalogue and market study drive every screen and every generated asset. Until a brand is active there is nothing truthful to show you, so the features stay locked rather than displaying another brand\'s data.') +
         '</p>' +
         (o.busy ? '' :
         '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">' +
           (o.signedOut
-            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with your mobile number</button>'
+            ? '<button type="button" data-gate-signin style="background:#111;color:#fff;border:0;padding:11px 20px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer">Sign in with Google</button>'
               // Signed out is a usable state: a brand can be set up on this
               // device now.
               + '<a href="/onboarding" data-gate-device style="background:transparent;color:#111;text-decoration:none;border:1px solid rgba(0,0,0,.25);padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px">Set up a brand on this device</a>'
@@ -2458,9 +2409,10 @@
     document.body.appendChild(el);
     var signin = el.querySelector('[data-gate-signin]');
     if (signin) signin.addEventListener('click', function () {
-      // Opens auth.js's inline mobile + PIN panel in the rail. The gate steps
-      // aside so the panel can be used; it returns on the next resolution if
-      // there is still no brand.
+      // Google is the sign-in. The gate steps aside so a refusal note in the
+      // rail can be read (a host that is down is named, never navigated to);
+      // a started redirect leaves the page.
+      signin.textContent = 'Opening Google...';
       try {
         var a = window.LifecycleAuth;
         if (a && typeof a.openSignIn === 'function') { removeGate(); a.openSignIn(); return; }
@@ -2706,19 +2658,13 @@
        an anonymous visitor ("arrived without an active workspace"). Found
        2026-10-03 driving ad-campaigns.html against the shipped routers. The
        token is attached here, as glue() already does for a server brand. */
-    /** The phone sign-in's token: auth.js's once it has booted, else the stored session (the first frame runs before it). */
+    /** The Google session's token once auth.js has booted; '' before, and for a visitor. */
     function phoneToken() {
       try {
         var a = window.LifecycleAuth;
-        if (a && a.backend && a.backend.kind && a.backend.kind !== 'pending') {
-          return (mobileSession() && typeof a.apiToken === 'function') ? (a.apiToken() || '') : '';
-        }
-        var raw = JSON.parse(localStorage.getItem(MAUTH_SESSION_KEY) || 'null');
-        if (!raw || raw.provider !== 'mobile-pin' || typeof raw.token !== 'string' || !/^[A-Za-z0-9_-]{40,90}$/.test(raw.token)) return '';
-        if (raw.mode !== 'server' && raw.mode !== 'device') return '';
-        if (raw.expires && !(new Date(raw.expires) > new Date())) return '';
-        return raw.token;
-      } catch (_) { return ''; }
+        if (a && a.backend && a.backend.kind && a.backend.kind !== 'pending' && typeof a.apiToken === 'function') return a.apiToken() || '';
+      } catch (_) {}
+      return '';
     }
     function deviceSend(input, url, init) {
       var i2 = carryInto(url, init);
@@ -2729,13 +2675,11 @@
           if (input && input.headers && input.headers.get && input.headers.get('Authorization')) return { input: input, init: i2 };
           var rq = new Request(input, i2 || undefined);
           rq.headers.set('Authorization', 'Bearer ' + t);
-          if (!rq.headers.get('X-Lifecycle-Token')) rq.headers.set('X-Lifecycle-Token', t);
           return { input: rq, init: undefined };
         }
         var o = Object.assign({}, i2 || {});
         var h = new Headers(o.headers || {});
         if (!h.get('Authorization')) h.set('Authorization', 'Bearer ' + t);
-        if (!h.get('X-Lifecycle-Token')) h.set('X-Lifecycle-Token', t);
         o.headers = h;
         return { input: input, init: o };
       } catch (_) { return { input: input, init: i2 }; }
@@ -2887,6 +2831,8 @@
       key: deviceKey,
       isDeviceId: isDeviceId,
       list: function () { return readDevice().workspaces.map(function (w) { return shellPayloadFor(w); }); },
+      // What a signed-in account is offered to sync (this account's rows and the unscoped ones).
+      syncable: function () { return syncableDevice().map(function (x) { return shellPayloadFor(x.row); }); },
       active: function () { return readDevice().active_id || ''; },
       count: function () { return readDevice().workspaces.length; },
       // The device catalogue's merge, exposed for the parity test against the server's.

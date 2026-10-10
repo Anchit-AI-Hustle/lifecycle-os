@@ -1,4 +1,29 @@
-// Every agent action, EXECUTED, in the three states a caller can be in.
+// Every agent action, EXECUTED, in the states a caller can be in.
+//
+// ── 2026-10-10: GOOGLE IS THE ONLY SIGN-IN ──────────────────────────────────
+// The owner's words: "No signin with mobile number - only Google signin pls".
+// The mobile number + PIN sign-in is switched OFF, so this file's claim about
+// it is INVERTED: a server-mode phone session - one that is LIVE in the Neon
+// app_sessions table this world holds - and a device-mode token are both
+// answered EXACTLY like an anonymous caller, for every action, and reach no
+// model and no store. What a phone session used to reach (its carried brand,
+// its device-kept agents, TeleSuite's device store, a listed number's wallet,
+// the signed voice-session rows) is unreachable now, so those tests are
+// retired here, each named below with its reason:
+//   - "a phone session that carries NO brand record runs as the unresolved
+//     placeholder" and "a carried brand record is bounded and re-keyed":
+//     brand-runtime only takes a carried record for a phone principal, and
+//     none exists; a carried record from anyone else is ignored.
+//   - "telesuite for a phone account runs over what the request carries" and
+//     the three "telesuite voice" tests: the device store and its signed
+//     voice-session rows exist only for a phone principal.
+//   - "the credit meter for a phone account": replaced by the test that a
+//     LISTED number (CREDITS_COMP_PHONES) is refused like anonymous and no
+//     wallet, grant or order is created for it - the list is moot.
+// The Google path (a Supabase session) is executed per action in
+// tests/router-brain.spec.js and tests/router-calendar.spec.js.
+//
+// The history of this file, unchanged:
 //
 // "Ensure all agents are working" (the operator, 2026-09-29). The only sign-in
 // is a mobile number and a 4-digit PIN, so the states that matter are: no
@@ -100,106 +125,43 @@ const call = (action, o) => w.request('/api/brain', Object.assign({}, o, { query
 const T = [];
 const add = (action, def) => T.push(Object.assign({ action }, def));
 
-add('agents', { run: { method: 'GET' }, anonymous: 'demo',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, agents: [], storage: 'device' }); } });
-add('agent-sessions', { run: { method: 'GET' }, anonymous: 'demo',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, sessions: [] }); } });
-add('agent-chat', { run: { json: { message: 'hi there', agent_id: 'agent_x', brand: BRAND } }, anonymous: 'refuse',
-  phone: (r) => {
-    // No workspace row, so the agent is the one the page keeps on the device
-    // (none carried here: the brand's default assistant), answering as the
-    // brand the turn carried (2026-10-03). It used to be a 404.
-    expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(r.out.storage).toBe('device');
-    expect(r.out.reply).toBe('Scripted reply for this turn, with no figure invented.');
-    expect(r.out.agent.name).toBe(BRAND.name + ' assistant');
-    expect(w.llm.calls.map((c) => c.stage)).toEqual(['agent-chat']);
-    expect(JSON.stringify(r.out)).not.toMatch(/KNICKGASM|knickgasm|Oldest Brand/);
-  } });
-add('agent-analyze', { run: { json: { message: 'how many orders last month?' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(typeof r.out.answer).toBe('string'); expect(r.out.answer.length).toBeGreaterThan(20); } });
-add('team-chat', { run: { json: { message: 'what should we plan?', brand: BRAND } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(typeof r.out.reply).toBe('string'); expect(r.out.reply.length).toBeGreaterThan(20); } });
-add('brand-chat', { run: { json: { message: 'what sells best?', brand: BRAND } }, anonymous: 'refuse',
-  phone: (r) => {
-    expect(r.status).toBe(200);
-    expect(r.out.ok).toBe(true);
-    expect(r.out.reply).toBe('Scripted reply for this turn, with no figure invented.');
-    // The brand it answered FOR is the one the request carried - never the
-    // oldest workspace's, never tenant zero's assistant.
-    expect(r.out.brand.name).toBe(BRAND.name);
-    expect(String(r.out.brand.id)).toMatch(/^device:/);
-    expect(JSON.stringify(r.out)).not.toMatch(/Oldest Brand|KicksGPT|knickgasm/i);
-    expect(w.llm.calls.map((c) => c.stage)).toContain('kicksgpt');
-  } });
-add('console-chat', { run: { json: { message: 'what should ship next?' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(String(r.out.reply)).toContain('Scripted reply'); expect(w.llm.calls.length).toBe(1); } });
-add('jarvis', { run: { json: { userText: 'open the shoes', assistantText: 'sure' } }, anonymous: 'public',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(Array.isArray(r.out.actions)).toBe(true); } });
-add('brand-tools', { run: { method: 'GET' }, anonymous: 'public',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(Array.isArray(r.out.tools)).toBe(true); expect(r.out.tools.length).toBeGreaterThan(5); } });
-add('agent-builder', { run: { method: 'GET', query: { op: 'spec' } }, anonymous: 'public',
-  phone: (r) => { expect([200, 503]).toContain(r.status); if (r.out.ok === false) expectSentence(r, 'agent-builder phone'); else expect(r.out.openapi).toBeTruthy(); } });
-add('platform-agents', { run: { method: 'GET', query: { days: '7' } }, anonymous: 'refuse',
-  phone: (r) => {
-    expect(r.status).toBe(200); expect(r.out.ok).toBe(true);
-    // An unconnected platform is never analysed, and its only action item is
-    // the connection step; the model is reached exactly once per platform
-    // that reported itself connected (the WebEngage mirror reads its Supabase
-    // table and answers "connected" even when it holds no rows - recorded,
-    // not changed here).
-    expect(r.out.agents.length).toBeGreaterThan(3);
-    const connected = r.out.agents.filter((a) => a.connected);
-    expect(r.out.coverage.connected).toBe(connected.length);
-    expect(w.llm.calls.length).toBe(connected.length);
-    for (const a of r.out.agents.filter((x) => !x.connected)) { expect(a.analysed).toBe(false); expect(a.action_items[0].action).toMatch(/^Connect /); }
-  } });
-add('revenue-os', { run: { method: 'GET', query: { days: '7' } }, anonymous: 'refuse',
-  phone: (r) => {
-    expect(r.status).toBe(200); expect(r.out.ok).toBe(true);
-    expect(r.out.system).toBe('Lifecycle OS Revenue OS');
-    expect(r.out.operating_loop).toEqual([
-      'demand', 'idea', 'content', 'distribution', 'engagement',
-      'lead', 'conversion', 'revenue', 'attribution', 'learning',
-    ]);
-    expect(Array.isArray(r.out.roles)).toBe(true);
-    expect(r.out.roles).toHaveLength(8);
-    expect(Array.isArray(r.out.opportunity_queue)).toBe(true);
-    // Revenue OS is a controller above the grounded platform analysts. It may
-    // call the model only for platform agents that actually have data; it does
-    // not add a second "CEO" model call of its own.
-    const connected = r.out.source_coverage && Number(r.out.source_coverage.connected || 0);
-    expect(w.llm.calls.length).toBe(connected);
-    for (const x of r.out.opportunity_queue) {
-      expect(x.expected_revenue).toBeNull();
-      expect(x.execution_mode).toBe('recommend_only');
-      expect(x.measurement_plan).toBeTruthy();
-    }
-  } });
-add('social-list', { run: { method: 'GET', query: { date: '2026-10-01' } }, anonymous: 'demo',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, posts: [] }); } });
-add('social-run-daily', { run: { json: { dry_run: true, platforms: ['instagram'], date: '2026-10-01', brand: BRAND } }, anonymous: 'refuse',
-  phone: (r) => {
-    expect(r.status).toBe(200); expect(r.out.ok).toBe(true); expect(r.out.dry_run).toBe(true);
-    // A dry run for a phone account runs as the brand it carried: tenant
-    // zero's product taxonomy and store URLs never appear in it.
-    const payload = JSON.stringify(r.out);
-    expect(payload).not.toMatch(/knickgasm\.com|Air Force|Oldest Brand/i);
-  } });
-add('social-approve', { run: { json: { id: 'p1' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(400); expectSentence(r, 'social-approve phone'); } });
-add('social-skip', { run: { json: {} }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(400); expectSentence(r, 'social-skip phone'); } });
-add('agent-upsert', { run: { json: { name: 'Concierge', level: 'brand' } }, anonymous: 'refuse',
-  phone: (r) => {
-    // Built and handed back for the device to keep; nothing written (2026-10-03).
-    expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, storage: 'device', agent: { name: 'Concierge', level: 'brand' } });
-    expect(w.db.calls.filter((c) => /smart_agents/.test(c.url) && c.method !== 'GET')).toEqual([]);
-  } });
-add('agent-sync', { run: { json: { agent_id: 'agent_x' } }, anonymous: 'refuse',
-  phone: (r) => { expect(r.status).toBe(200); expect(r.out).toMatchObject({ ok: true, storage: 'device', knowledge_items: 0 }); expectSentence({ out: { message: r.out.note }, text: '' }, 'agent-sync phone'); } });
-add('telesuite', { run: { method: 'GET', query: { op: 'registry' } }, anonymous: 'public',
-  phone: (r) => { expect(r.status).toBe(200); expect(Array.isArray(r.out.subfeatures)).toBe(true); expect(r.out.subfeatures.length).toBeGreaterThan(10); } });
+add('agents', { run: { method: 'GET' }, anonymous: 'demo' });
 
+add('agent-sessions', { run: { method: 'GET' }, anonymous: 'demo' });
+
+add('agent-chat', { run: { json: { message: 'hi there', agent_id: 'agent_x', brand: BRAND } }, anonymous: 'refuse' });
+
+add('agent-analyze', { run: { json: { message: 'how many orders last month?' } }, anonymous: 'refuse' });
+
+add('team-chat', { run: { json: { message: 'what should we plan?', brand: BRAND } }, anonymous: 'refuse' });
+
+add('brand-chat', { run: { json: { message: 'what sells best?', brand: BRAND } }, anonymous: 'refuse' });
+
+add('console-chat', { run: { json: { message: 'what should ship next?' } }, anonymous: 'refuse' });
+
+add('jarvis', { run: { json: { userText: 'open the shoes', assistantText: 'sure' } }, anonymous: 'public' });
+
+add('brand-tools', { run: { method: 'GET' }, anonymous: 'public' });
+
+add('agent-builder', { run: { method: 'GET', query: { op: 'spec' } }, anonymous: 'public' });
+
+add('platform-agents', { run: { method: 'GET', query: { days: '7' } }, anonymous: 'refuse' });
+
+add('revenue-os', { run: { method: 'GET', query: { days: '7' } }, anonymous: 'refuse' });
+
+add('social-list', { run: { method: 'GET', query: { date: '2026-10-01' } }, anonymous: 'demo' });
+
+add('social-run-daily', { run: { json: { dry_run: true, platforms: ['instagram'], date: '2026-10-01', brand: BRAND } }, anonymous: 'refuse' });
+
+add('social-approve', { run: { json: { id: 'p1' } }, anonymous: 'refuse' });
+
+add('social-skip', { run: { json: {} }, anonymous: 'refuse' });
+
+add('agent-upsert', { run: { json: { name: 'Concierge', level: 'brand' } }, anonymous: 'refuse' });
+
+add('agent-sync', { run: { json: { agent_id: 'agent_x' } }, anonymous: 'refuse' });
+
+add('telesuite', { run: { method: 'GET', query: { op: 'registry' } }, anonymous: 'public' });
 for (const e of T) {
   test.describe(`?action=${e.action}`, () => {
     test('anonymous: the attribution rule answers with a sentence, demo data or the public answer, and never a 5xx', async () => {
@@ -216,27 +178,35 @@ for (const e of T) {
       expect(w.llm.calls, 'the model was reached for an unattributed caller').toEqual([]);
       expect(w.escaped()).toEqual([]);
     });
-    test('device session: on the wire it is the anonymous state, and it is answered identically', async () => {
-      const a = await call(e.action, Object.assign({}, e.run, { state: 'anonymous' }));
-      w.reset();
-      const d = await call(e.action, Object.assign({}, e.run, { state: 'device' }));
-      expect([d.status, d.out && d.out.ok, d.out && d.out.error]).toEqual([a.status, a.out && a.out.ok, a.out && a.out.error]);
-      expect(w.escaped()).toEqual([]);
-    });
-    test('server-mode phone session: reaches its result, or refuses with a sentence', async () => {
-      const r = await call(e.action, Object.assign({}, e.run, { state: 'phone' }));
-      expectJson(r, `${e.action} phone`); expectNever5xx(r, `${e.action} phone`);
-      if (r.out.ok === false) expectSentence(r, `${e.action} phone`);
-      e.phone(r);
-      // Whatever it did, it never resolved the phone account to the oldest
-      // workspace: the mutation that drops the mobile-token branch in
-      // workspace-scope.resolve() fails brand-chat and social-run-daily above.
-      expect(w.escaped()).toEqual([]);
+    test('a mobile-number session is no credential: a LIVE server-mode one is answered exactly as a forged bearer, a device-mode one (never sent) as anonymous', async () => {
+      // A credential the backend REJECTS is answered with that rejection
+      // (brain.js's attribution rule, 2026-09-29): the same 401 a forged or
+      // expired JWT gets, or the public answer for nobody. Since 2026-10-10 a
+      // phone token - even one that is live in app_sessions - is exactly that.
+      const pairs = [['phone', { state: 'phone' }, { state: 'anonymous', headers: { authorization: 'Bearer ' + H.FORGED } }], ['device', { state: 'device' }, { state: 'anonymous' }]];
+      for (const [label, mine, like] of pairs) {
+        w.reset();
+        const ref = await call(e.action, Object.assign({}, e.run, like));
+        w.reset();
+        const r = await call(e.action, Object.assign({}, e.run, mine));
+        expectJson(r, `${e.action} ${label}`); expectNever5xx(r, `${e.action} ${label}`);
+        // The status and the verdict are the same; the code differs only in
+        // naming WHICH credential was rejected (an expired JWT is
+        // invalid_session, a phone token sign_in_required with the Google sentence).
+        expect([r.status, r.out && r.out.ok], `${e.action} ${label} was not answered as ${like.headers ? 'a forged bearer' : 'anonymous'}`)
+          .toEqual([ref.status, ref.out && ref.out.ok]);
+        if (like.headers && r.status === 401) { expect(r.out.error).toBe('sign_in_required'); expect(r.out.message).toMatch(/Google/); }
+        else expect(r.out && r.out.error).toBe(ref.out && ref.out.error);
+        if (r.out && r.out.ok === false) expectSentence(r, `${e.action} ${label}`);
+        expect(w.llm.calls, `${e.action} ${label} reached the model`).toEqual([]);
+        expect(w.db.calls.filter((c) => /rpc\/credit_/.test(c.url)), `${e.action} ${label} touched the ledger`).toEqual([]);
+        expect(w.escaped()).toEqual([]);
+      }
     });
   });
 }
 
-test('agentic-run: refused for an unattributed browser, and runs for a phone account as the brand it carried', async () => {
+test('agentic-run: refused for an unattributed browser, and for a mobile-number session as a rejected credential', async () => {
   test.setTimeout(120000);
   const anon = await call('agentic-run', { json: { days: 2, withCreatives: false, brand: BRAND }, state: 'anonymous' });
   expect(anon.status).toBe(409); expectSentence(anon, 'agentic-run anonymous');
@@ -244,64 +214,12 @@ test('agentic-run: refused for an unattributed browser, and runs for a phone acc
   w.reset();
   const r = await call('agentic-run', { json: { days: 2, withCreatives: false, tier: 'budget', brand: BRAND }, state: 'phone' });
   expectJson(r, 'agentic-run phone'); expectNever5xx(r, 'agentic-run phone');
-  expect(r.out.ok).toBe(true);
-  expect(Array.isArray(r.out.stages)).toBe(true);
-  expect(r.out.stages.map((s) => s.stage)).toContain('planning');
-  // Every campaign is the carried brand's, never the oldest workspace's - the
-  // mutation that restores stampBrand()'s defaultWorkspaceId fallback for a
-  // request with no workspace fails here.
-  expect(JSON.stringify(r.out)).not.toMatch(/Oldest Brand/);
-  expect(JSON.stringify(r.out)).toContain(BRAND.name);
-  // The only host a build may reach beyond the fixtures is the carried
-  // brand's OWN website (its testimonials are read off its own pages);
-  // nothing escaped to anywhere else.
-  expect(w.escaped()).toEqual([]);
-  const own = w.db.external().filter((c) => c.url.startsWith(A.BRAND_SITE));
-  for (const c of w.db.external()) expect(c.url.startsWith(A.BRAND_SITE) || c.url.startsWith(H.SELF_BASE_URL), `a build reached ${c.url}`).toBe(true);
-  expect(own.length).toBeGreaterThanOrEqual(0);
-});
-
-test('a phone session that carries NO brand record runs as the unresolved placeholder, never as tenant zero', async () => {
-  const r = await call('brand-chat', { json: { message: 'what sells best?' }, state: 'phone' });
-  expect(r.status).toBe(200);
-  expect(r.out.brand.unresolved).toBe(true);
-  expect(String(r.out.brand.name)).toContain('DATA REQUIRED BEFORE LAUNCH');
-  expect(JSON.stringify(r.out.brand)).not.toMatch(/Oldest Brand|KNICKGASM|knickgasm/i);
-});
-
-test('a carried brand record is bounded and re-keyed: a brand_workspaces id in it cannot name a server workspace', async () => {
-  const r = await call('brand-chat', { json: { message: 'hi', brand: Object.assign({}, BRAND, { id: 'ws-oldest', name: 'X'.repeat(500) }) }, state: 'phone' });
-  expect(r.status).toBe(200);
-  expect(r.out.brand.id).not.toBe('ws-oldest');
-  expect(String(r.out.brand.id)).toMatch(/^device:/);
-  expect(r.out.brand.name.length).toBeLessThanOrEqual(120);
-});
-
-test('telesuite for a phone account runs over what the request carries and files nothing on the server (2026-10-03)', async () => {
-  // No brand carried: refused with a sentence before any credit hold or model call.
-  const bare = await call('telesuite', { json: { op: 'pitch', input: { product: 'Harbour Lamp' } }, state: 'phone' });
-  expect(bare.status).toBe(409); expect(bare.out.error).toBe('no_brand_carried'); expectSentence(bare, 'telesuite pitch phone, no brand');
+  expect([r.status, r.out.ok, r.out.error]).toEqual([401, false, 'sign_in_required']);
+  expectSentence(r, 'agentic-run phone');
+  expect(r.out.message).toMatch(/Google/);
   expect(w.llm.calls).toEqual([]);
-  expect(w.db.calls.filter((c) => /rpc\/credit_/.test(c.url))).toEqual([]);
-  w.reset();
-  // The brand and the selected library row carried, as telesuite.html sends them.
-  const item = { id: 'dev-item-1', kind: 'product', name: 'Harbour Lamp', category: 'Lamp', content: 'Table lamp, recycled glass.', attributes: {} };
-  const pitch = await call('telesuite', { json: { op: 'pitch', brand: BRAND, device: { items: [item] }, input: { product: 'Harbour Lamp' } }, state: 'phone' });
-  expect(pitch.status, pitch.text.slice(0, 300)).toBe(200);
-  expect(pitch.out.ok).toBe(true);
-  expect(pitch.out.result).toBeTruthy();
-  // What it wrote comes back for the device, and nothing was filed server-side.
-  expect(pitch.out.device.storage).toBe('device');
-  expect(pitch.out.device.runs.map((r) => r.feature)).toEqual(['pitch']);
-  expect(w.db.calls.filter((c) => /telesuite_|brand_workspaces/.test(c.url)), 'a phone account\'s TeleSuite reached a workspace table').toEqual([]);
-  expect(w.llm.calls.map((c) => c.stage)).toEqual(['telesuite-pitch']);
-  // The listed number spends on its own wallet, exactly as any metered run.
-  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length).toBe(1);
-  w.reset();
-  // A telesuite generation op from an unattributed browser is the demo READ
-  // envelope today (nothing runs, nothing is charged): recorded, not changed.
-  const anon = await call('telesuite', { json: { op: 'pitch', input: { product: 'a product' } }, state: 'anonymous' });
-  expect(anon.status).toBe(200); expect(anon.out.mode).toBe('demo'); expect(w.llm.calls).toEqual([]);
+  expect(JSON.stringify(r.out)).not.toMatch(/Oldest Brand/);
+  expect(w.escaped()).toEqual([]);
 });
 
 test('a store that does not answer is a 503 naming the host, with a sentence, not a 500 carrying a PostgREST error', async () => {
@@ -327,36 +245,22 @@ test.describe('calendar.js smart-brain actions', () => {
   test.afterEach(() => { S.restore(); });
   const cal = (action, o) => w.request('/api/calendar', Object.assign({}, o, { query: Object.assign({ action: `smart-brain-${action}` }, (o && o.query) || {}) }));
 
-  test('plan / sync-daily for a phone account reach the core with NO workspace and persist nothing; approve / reject are refused before the core', async () => {
+  test('plan / sync-daily / approve / reject for a mobile-number session are answered as a forged bearer and reach no core', async () => {
     S.on(PLAN, 'getPlan', async () => ({ ok: true, entries: [] }));
     S.on(PLAN, 'syncDaily', async () => ({ ok: true, mode: 'stubbed', changes: [] }));
     S.on(PLAN, 'approveEntry', async () => ({ ok: true, approved: true }));
     S.on(PLAN, 'previewEntry', async () => ({ ok: true, preview: true, campaign: { campaign_id: 'c1' } }));
     S.on(PLAN, 'rejectEntry', async () => ({ ok: true }));
-    const plan = await cal('plan', { method: 'GET', state: 'phone' });
-    expect(plan.status).toBe(200); expect(plan.out.ok).toBe(true);
-    expect(S.hit(PLAN, 'getPlan').args[0].config.workspace_id).toBeNull();
-    const sync = await cal('sync-daily', { json: { days: 7 }, state: 'phone' });
-    expect(sync.status).toBe(200);
-    const syncArgs = S.hit(PLAN, 'syncDaily').args[0];
-    expect(syncArgs.config.workspace_id).toBeNull();
-    // Computed, never stored, and the scheduler's prebuild chain is not kicked
-    // for a caller who owns nothing to prebuild (2026-09-29, review).
-    expect(syncArgs.persist).toBe(false);
-    expect(sync.out.prebuild_kicked).toBeUndefined();
-    // Approving and rejecting are the reviewer's decisions, which a phone
-    // account keeps on its device (2026-10-03): approve builds exactly as a
-    // preview (never approveEntry, which persists), reject records nothing
-    // here; both answer storage:'device' with the decision to keep.
-    const ok = await cal('approve', { json: { entry: { id: 'e1' }, reviewer: 'op' }, state: 'phone' });
-    expect(ok.status, ok.text.slice(0, 200)).toBe(200);
-    expect(ok.out).toMatchObject({ ok: true, approved: true, persisted: false, storage: 'device', decision: { id: 'e1', status: 'final', campaign_id: 'c1' } });
+    const runs = [['plan', { method: 'GET' }], ['sync-daily', { json: { days: 7 } }], ['approve', { json: { entry: { id: 'e1' }, reviewer: 'op' } }], ['reject', { json: { id: 'e1', notes: 'off-brand' } }]];
+    for (const [action, o] of runs) {
+      const forged = await cal(action, Object.assign({ state: 'anonymous', headers: { authorization: 'Bearer ' + H.FORGED } }, o));
+      const phone = await cal(action, Object.assign({ state: 'phone' }, o));
+      expect([phone.status, phone.out && phone.out.ok], action + ': a phone session was not answered as a forged bearer').toEqual([forged.status, forged.out && forged.out.ok]);
+      expect(phone.status, action).toBeGreaterThanOrEqual(400);
+    }
+    for (const h of S.reached) expect(h.args[0].config.workspace_id, 'a phone session reached the planner as a workspace').toBeFalsy();
     expect(S.hits(PLAN, 'approveEntry')).toEqual([]);
-    expect(S.hits(PLAN, 'previewEntry').length).toBe(1);
-    const no = await cal('reject', { json: { id: 'e1', notes: 'off-brand' }, state: 'phone' });
-    expect(no.status).toBe(200); expect(no.out).toMatchObject({ storage: 'device', decision: { id: 'e1', status: 'rejected' } });
     expect(S.hits(PLAN, 'rejectEntry')).toEqual([]);
-    for (const h of S.reached) expect(h.args[0].config.workspace_id).not.toBe('ws-oldest');
     expect(w.llm.calls).toEqual([]);
     expect(w.escaped()).toEqual([]);
   });
@@ -373,173 +277,33 @@ test.describe('calendar.js smart-brain actions', () => {
   });
 });
 
-/* ── the meter: a listed number holds a wallet, an unlisted one is told so ─── */
+/* ── the meter: a LISTED number is refused like anonymous (2026-10-10) ───── */
 
-test.describe('the credit meter for a phone account', () => {
+test.describe('the credit meter for a mobile-number session', () => {
   const credits = (op, o) => w.request('/api/public-config', Object.assign({}, o, { query: Object.assign({ action: 'credits', op }, (o && o.query) || {}) }));
   const chat = (o) => w.request('/api/ai/generate', Object.assign({ json: { mode: 'chat', message: 'hello', chat_context: {} } }, o));
   const catalog = require(A.ROOT + '/api/_shared/credit-catalog.js');
 
-  test('balance: an unlisted number has no wallet and is told so quietly; a listed number holds its personal wallet with the welcome grant', async () => {
-    const other = await credits('balance', { method: 'GET', state: 'other' });
-    expect(other.status).toBe(200);
-    expect(other.out).toMatchObject({ ok: true, wallet: null, unavailable: 'mobile_account', comp: false });
-    expectSentence(other, 'balance unlisted');
-    expect(w.db.table('credit_wallets').filter((x) => x.user_id === w.tokens.otherUserId)).toEqual([]);
-
-    // The listed number, asking with a DEVICE workspace id on the query the
-    // way credits.js stamps the active brand: the wallet is personal anyway.
-    const listed = await credits('balance', { method: 'GET', state: 'phone', query: { workspace_id: 'local-toi000000000001' } });
-    expect(listed.status).toBe(200);
-    expect(listed.out.ok).toBe(true);
-    expect(listed.out.wallet).toBeTruthy();
-    expect(listed.out.wallet.workspace_id).toBeNull();
-    // The welcome grant was credited exactly once. The balance itself is the
-    // grant LESS whatever this file's earlier tests spent: since 2026-09-29
-    // the brain agents are metered, so a listed number's turns above were paid for.
-    const grants = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId && l.kind === 'grant' && l.ref === 'welcome');
-    expect(grants.length).toBe(1);
-    expect(Number(grants[0].delta)).toBe(catalog.welcomeGrant());
-    expect(Number(listed.out.wallet.balance)).toBeLessThanOrEqual(catalog.welcomeGrant());
-    const spent = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId && l.kind === 'hold').reduce((n, l) => n - Number(l.delta), 0);
-    const back = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId && (l.kind === 'release' || l.kind === 'refund')).reduce((n, l) => n + Number(l.delta), 0);
-    expect(Number(listed.out.wallet.balance)).toBe(catalog.welcomeGrant() - spent + back);
-    expect(listed.out.comp).toBe(true);
-    expect(listed.out.account).toBe('mobile-pin');
-    expect(listed.out.unavailable).toBeUndefined();
-    const rows = w.db.table('credit_wallets').filter((x) => x.user_id === w.tokens.phoneUserId);
-    expect(rows.length).toBe(1); expect(rows[0].workspace_id).toBeNull();
-  });
-
-  test('a metered turn: refused before any hold for an unlisted number; held, run and settled for a listed one', async () => {
-    const anon = await chat({ state: 'anonymous' });
-    expect(anon.status).toBe(401); expect(anon.out.error).toBe('sign_in_required'); expectSentence(anon, 'chat anonymous');
-    const other = await chat({ state: 'other' });
-    expect(other.status).toBe(403); expect(other.out.error).toBe('credits_require_account'); expectSentence(other, 'chat unlisted');
-    expect(w.llm.calls, 'the model was reached for a refused caller').toEqual([]);
-    expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url))).toEqual([]);
-
-    w.reset();
-    const before = w.db.table('credit_wallets').find((x) => x.user_id === w.tokens.phoneUserId);
-    const b0 = before ? before.balance : catalog.welcomeGrant();
-    const r = await chat({ state: 'phone' });
-    expect(r.status, r.text.slice(0, 300)).toBe(200);
-    expect(String(r.out.text)).toContain('Scripted reply');
-    expect(w.llm.calls.length).toBe(1);
-    const q = catalog.quote('assistant.chat', 1, {});
-    expect(r.out.credits).toMatchObject({ feature: 'assistant.chat', charged: q.total });
-    const after = w.db.table('credit_wallets').find((x) => x.user_id === w.tokens.phoneUserId);
-    expect(after.balance).toBe(b0 - q.total);
-    expect(after.workspace_id).toBeNull();
-    const kinds = w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId).map((l) => l.kind);
-    expect(kinds).toContain('hold'); expect(kinds).toContain('spend');
+  test('a number on CREDITS_COMP_PHONES holds no wallet: balance, a metered turn, recharge and ledger are refused like anonymous', async () => {
+    // This world lists the phone account's number. Since 2026-10-10 the list
+    // is moot: no phone session is a principal, so nothing it sends can open
+    // a wallet, take a welcome grant, hold credits or record an order.
+    for (const [label, req] of [
+      ['balance', () => credits('balance', { method: 'GET', state: 'phone' })],
+      ['chat', () => chat({ state: 'phone' })],
+      ['recharge', () => credits('recharge', { json: { pack_key: catalog.PACKS[0].key }, state: 'phone' })],
+      ['ledger', () => credits('ledger', { method: 'GET', state: 'phone' })],
+    ]) {
+      w.reset();
+      const r = await req();
+      expect(r.status, label + ': ' + r.text.slice(0, 300)).toBe(401);
+      expect(r.out.error, label).toBe('sign_in_required');
+      expectSentence(r, label + ' phone');
+    }
+    expect(w.llm.calls, 'the model was reached for a phone session').toEqual([]);
+    expect(w.db.table('credit_wallets').filter((x) => x.user_id === w.tokens.phoneUserId), 'a wallet was opened for a listed number').toEqual([]);
+    expect(w.db.table('credit_ledger').filter((l) => l.user_id === w.tokens.phoneUserId)).toEqual([]);
+    expect(w.db.table('credit_orders').filter((o) => o.user_id === w.tokens.phoneUserId)).toEqual([]);
     expect(w.escaped()).toEqual([]);
   });
-
-  test('recharge: complimentary for a listed number and recorded as such; refused for an unlisted one', async () => {
-    const pack = catalog.PACKS[0].key;
-    const listed = await credits('recharge', { json: { pack_key: pack, workspace_id: 'local-toi000000000001' }, state: 'phone' });
-    expect(listed.status, listed.text.slice(0, 300)).toBe(200);
-    expect(listed.out).toMatchObject({ ok: true, comp: true, credited: true });
-    const order = w.db.table('credit_orders').find((o) => o.user_id === w.tokens.phoneUserId);
-    expect(order).toBeTruthy();
-    expect(order.workspace_id).toBeNull();
-    expect(order.provider).toBe('comp_account');
-    expect(order.provider_ref).toBe('comp:' + A.PHONE.e164);
-    expect(order.amount_minor).toBe(0);
-    const other = await credits('recharge', { json: { pack_key: pack }, state: 'other' });
-    expect(other.status).toBe(403); expect(other.out.error).toBe('credits_require_account'); expectSentence(other, 'recharge unlisted');
-    expect(w.db.table('credit_orders').filter((o) => o.user_id === w.tokens.otherUserId)).toEqual([]);
-  });
-
-  test('ledger and usage answer the personal wallet for a listed number', async () => {
-    const ledger = await credits('ledger', { method: 'GET', state: 'phone', query: { workspace_id: 'local-toi000000000001' } });
-    expect(ledger.status).toBe(200); expect(Array.isArray(ledger.out.entries)).toBe(true); expect(ledger.out.entries.length).toBeGreaterThan(0);
-    const usage = await credits('usage', { method: 'GET', state: 'phone' });
-    expect(usage.status).toBe(200); expect(Array.isArray(usage.out.usage)).toBe(true);
-    const other = await credits('ledger', { method: 'GET', state: 'other' });
-    expect(other.status).toBe(403); expectSentence(other, 'ledger unlisted');
-  });
-});
-
-/* ═══ Codex #10 (2026-10-03): metered voice state never comes from the client ═══ */
-test('telesuite voice: a fabricated voice_session carried from the device cannot skip the meter; a server-signed one is honoured', async () => {
-  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
-  const started = new Date(Date.now() - 10 * 60000).toISOString();
-  const forged = { id: 'forged-session', feature: 'voice_session', status: 'in_progress', title: 'sales call session',
-    input: { call_id: 'call-forged', mode: 'sales' }, output: { billed_minutes: 999 }, units: 999, credits: 0, created_at: started };
-  const turn = (device, callId) => call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device, input: { mode: 'sales', call_id: callId, history: [], utterance: 'hello', product: 'Lamp' } }, state: 'phone', headers: H2 });
-  const r = await turn({ runs: [forged] }, 'call-forged');
-  expect(r.status, r.text.slice(0, 300)).toBe(200);
-  // The forged row was ignored: a fresh session was opened and its first minute METERED.
-  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the forged billed_minutes skipped the meter').toBe(1);
-  const session = (r.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(session && session.id).not.toBe('forged-session');
-  expect(session.signature, 'the server did not sign the session it owns').toMatch(/^[0-9a-f]{64}$/);
-  w.reset();
-  // The signed row the server handed back is honoured on the next turn: no new session.
-  const r2 = await turn({ runs: [session] }, 'call-forged');
-  expect(r2.status).toBe(200);
-  const s2 = (r2.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(!s2 || s2.id === session.id).toBe(true);
-  // A signed row with its counter edited is NOT honoured.
-  w.reset();
-  const edited = Object.assign({}, session, { output: { billed_minutes: 999 }, units: 999 });
-  const r3 = await turn({ runs: [edited] }, 'call-forged');
-  expect(r3.status).toBe(200);
-  const s3 = (r3.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(s3 && s3.id).not.toBe(session.id);
-  // A validly-signed row moved to ANOTHER call, or relabelled as another
-  // feature, is not honoured either: both are inside the signature.
-  w.reset();
-  const moved = Object.assign({}, session, { input: Object.assign({}, session.input, { call_id: 'call-other' }) });
-  const r4 = await turn({ runs: [moved] }, 'call-other');
-  const s4 = (r4.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(s4 && s4.id, 'a signed row from another call was honoured').not.toBe(session.id);
-  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length).toBe(1);
-  w.reset();
-  const relabelled = Object.assign({}, session, { feature: 'voice_sales' });
-  const r5 = await turn({ runs: [relabelled] }, 'call-forged');
-  expect(r5.status).toBe(200);
-  const s5 = (r5.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(s5 && s5.id).not.toBe(session.id);
-  // The signature is derived for THIS use: it is not an HMAC under the raw secret.
-  const crypto = require('crypto');
-  const o = session.output || {}; const i = session.input || {};
-  const raw = crypto.createHmac('sha256', String(process.env.CRON_SECRET || '')).update(JSON.stringify([session.id, session.feature, session.created_at, session.units == null ? null : Number(session.units), o.billed_minutes == null ? null : Number(o.billed_minutes), session.credits == null ? null : Number(session.credits), i.call_id || null, session.status || null])).digest('hex');
-  expect(session.signature).not.toBe(raw);
-});
-
-test('telesuite voice: replaying an OLDER validly-signed session for the same call cannot lower what is due', async () => {
-  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
-  const turn = (device) => call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device, input: { mode: 'sales', call_id: 'call-replay', history: [], utterance: 'hi', product: 'Lamp' } }, state: 'phone', headers: H2 });
-  const t1 = await turn({ runs: [] });
-  const older = (t1.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(older.output.billed_minutes).toBe(1);
-  // The billed counter can only be what the server signed for THIS created_at:
-  // the older row says 1 minute billed against the same start time, so what is
-  // due is computed from the server's clock as elapsed - 1, never less.
-  w.reset();
-  const t2 = await turn({ runs: [older] });
-  expect(t2.status).toBe(200);
-  const s2 = (t2.out.device.runs || []).find((x) => x.feature === 'voice_session') || older;
-  expect(Number((s2.output || {}).billed_minutes)).toBeGreaterThanOrEqual(1);
-  // And a signed row can never claim MORE billed minutes than it was signed with.
-  w.reset();
-  const inflated = Object.assign({}, older, { output: { billed_minutes: 60 }, units: 60 });
-  const t3 = await turn({ runs: [inflated] });
-  const s3 = (t3.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(s3 && s3.id).not.toBe(older.id);
-  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'an inflated counter skipped the meter').toBe(1);
-});
-
-test('telesuite voice: a malformed signature (64 characters, one multi-byte) is dropped, never a 500', async () => {
-  const H2 = { 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone };
-  const bad = { id: 'bad-sig', feature: 'voice_session', status: 'in_progress', input: { call_id: 'call-bad', mode: 'sales' },
-    output: { billed_minutes: 999 }, units: 999, credits: 0, created_at: new Date(Date.now() - 600000).toISOString(), signature: 'é' + 'a'.repeat(63) };
-  const r = await call('telesuite', { json: { op: 'voice_turn', brand: BRAND, device: { runs: [bad] }, input: { mode: 'sales', call_id: 'call-bad', history: [], utterance: 'hi', product: 'Lamp' } }, state: 'phone', headers: H2 });
-  expect(r.status, r.text.slice(0, 300)).toBe(200);
-  const s = (r.out.device.runs || []).find((x) => x.feature === 'voice_session');
-  expect(s && s.id).not.toBe('bad-sig');
-  expect(w.db.calls.filter((c) => /rpc\/credit_hold/.test(c.url)).length, 'the fresh session was not metered').toBe(1);
 });

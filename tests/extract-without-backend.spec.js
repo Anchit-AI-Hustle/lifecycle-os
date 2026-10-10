@@ -344,9 +344,11 @@ test('a caller with NO token is served while nothing could check a session (prod
     // The extractor's own output for voice:false - the handler's flag alone proves nothing.
     expect(out.body.fields.voice.note).toBe('Voice observation was not requested.');
     expect(calls, 'a language model was called for a caller nobody could check').toBe(0);
-    // Why, naming what an operator would change - both halves.
+    // Why, naming what an operator would change: the one host a session
+    // could be checked at (since 2026-10-10 Google, through Supabase Auth, is
+    // the only sign-in, so DATABASE_URL no longer decides anything here).
     expect(out.body.backend_message).toMatch(/fswdwmkgggzyxrdzabnh\.supabase\.co/);
-    expect(out.body.backend_message).toMatch(/DATABASE_URL/);
+    expect(out.body.backend_message).not.toMatch(/DATABASE_URL|mobile|PIN/);
     // Neutral about who is here: a person signed in on the device sends this too.
     expect(out.body.note).not.toMatch(/without signing in/i);
     expect(out.body.note).toMatch(/[Nn]othing was saved/);
@@ -384,22 +386,27 @@ test('a caller with NO token is still refused while Supabase answers: a session 
   } finally { restore(); }
 });
 
-test('a caller with NO token is still refused while the ACCOUNT database answers, even with Supabase paused', async () => {
-  // DATABASE_URL set and answering: a mobile number and PIN signed in here get
-  // a token this server verifies, so the gate is real - and Supabase being
-  // down does not change that.
+test('an account database (DATABASE_URL) answering no longer keeps the gate: with Supabase paused nobody can present a session', async () => {
+  // Until 2026-10-10 a mobile number and PIN signed in against DATABASE_URL
+  // got a token this server verified, so the gate stayed real while it
+  // answered. That sign-in is switched off: the ONLY session is a Google one,
+  // checked at Supabase, so with Supabase down the open path applies whatever
+  // DATABASE_URL says - and the account store is not even asked.
   configure();
   const undo = accountsInDatabase();
-  let probed = 0;
-  const { core, restore } = loadCore({ authFetch: async (u, o) => { probed += 1; return DEAD_AUTH(u, o); }, site: SITE });
+  let asked = 0;
+  const mobile = require(MOBILE);
+  const realStatus = mobile.status;
+  mobile.status = async () => { asked += 1; return realStatus(); };
+  const { core, restore } = loadCore({ authFetch: DEAD_AUTH, site: SITE });
   try {
     const { res, out } = mockRes();
     await core.handle(reqFor('extract', { url: HOST }, ''), res);
-    expect(out.code).toBe(401);
-    expect(out.body.error).toBe('sign_in_required');
-    expect(out.body.pages_visited).toBeUndefined();
-    expect(probed, 'the account store already decided; Supabase need not be asked').toBe(0);
-  } finally { undo(); restore(); }
+    expect(out.code, JSON.stringify(out.body).slice(0, 300)).toBe(200);
+    expect(out.body.signed_out).toBe(true);
+    expect(out.body.voice_skipped).toBe(true);
+    expect(asked, 'the switched-off account store was asked').toBe(0);
+  } finally { mobile.status = realStatus; undo(); restore(); }
 });
 
 test('a Supabase host that does not answer in time counts as ANSWERING: fail closed on doubt', async () => {
