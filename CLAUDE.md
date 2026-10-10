@@ -35,6 +35,75 @@ non-tenant-zero device brands - a rich preset and a bare record - every control 
   an entry that matched nothing in a full run is stale and is deleted. Known limit: the Mailer Studio's
   internal category maps (`heroMap`, `keywordMap`) still name tenant zero's lines; they are code, not
   copy, and are not shown.
+## ⭐ A brand record describes ONE brand (2026-10-10)
+The operator: *"check each current brand context information - all messed up and mixed up"*. The only brand in
+the live project was **named Mamaearth, slugged food-for-thought, website https://www.nike.in**, with its social
+profiles, imagery, app icon and legal entity read from mamaearth.in and its catalogue imported from delichic.co.in
+(`tests/fixtures/live-mixed-brand.js`, rebuilt from read-only SELECTs; nothing was written to the project). Every
+field had a source; nothing compared them. `api/_shared/brand-coherence.js` `brandCoherence(record)`, ported byte
+for byte into `brand-context.js` (`BrandContext.coherence`), gated by `tests/brand-record-coherence.spec.js` (37,
+executed: the rule, text + output parity in Chromium, the shipped `handle()` over `tests/lib/fake-supabase.js`
+with `brand_workspace_save` modelled from its migration, the wizard on the device AND account paths; 24 mutations).
+- **The rule.** The IDENTITY SOURCE is the website's registrable domain (the preset harvester's ownership rule:
+  same domain, same label under another suffix - nike.in/nike.com - or a corporate sibling; one suffix list, asserted
+  equal). A value is attributed by the page it was read from (`field_origins[f].url`, `brand_extraction.applied[f]
+  .source_url` when it still says the current value, `social[].source_url`, `imagery[].page`, `brand_assets[].found_on`,
+  `catalog_source.url`); a value only HOSTED somewhere (CDN, social platform) is judged by its page. Another domain:
+  IDENTITY fields (name, tagline, logo, icon, social, legal entity, imagery, assets, claims, catalogue, a brand book
+  that names another site, a template's website/logo under another name) BLOCK activation; design values, home
+  market, asset hosts, a typed name that matches nothing in the domain and a slug made from an earlier name WARN.
+  No website + two sources = every sourced value is a conflict; no website is chosen. A typed value is the
+  person's (a read record beside it is history); a site value accepted with "Use your site's" is STILL that site's.
+- **Where it runs.** Save (never refused; the response carries `coherence`), the brand list (`coherence` badge on
+  every row, server `shellPayload` and device `shellPayloadFor`, so device brands are checked on load), the wizard
+  (step 1 in `#cohSlot` when anything disagrees, always on review) and activation: `activateChecked()` / the device
+  `activate` answer `409 coherence_blocked` naming each field unless `coherence_override.reason` is given, then
+  record `{at, by, reason, conflicts}` in `brand_data.coherence.overrides`. The first workspace a save auto-activates
+  is not checked (the person has seen nothing yet). Repairs: Keep this (recorded in `brand_data.coherence.accepted`),
+  Clear that (only that source's items; palette/type return to the wizard's own placeholder, origin `default`),
+  "This brand is <domain>", "Clear everything from <domain>", "Use <slug>". Nothing is resolved for the person.
+- **Every path that mixed a record, found by driving the wizard, and its fix:**
+  (1) **Read my site on another domain** kept the typed website and let the read replace every machine-owned field
+  (the live record: nike.in website + mamaearth.in read) - now the read waits: "make <domain> the website, then read
+  it", "start a new brand from it" or cancel, and the old domain's values are listed; `brand_extraction.source` now
+  names the latest read, not the first. (2) **"Onboard another brand"** copied the record on screen and cleared four
+  fields - the new brand inherited social, imagery, legal entity, regions, read record and catalogue source; it is a
+  blank record now (`blankBrand()`/`startNewBrand()`). (3) **A gallery preset on an existing brand** kept the id and
+  overwrote name, website, logo, regions, assets AND slug - on an existing brand a preset is design only; on a new one
+  the record says which template (`brand_data.template`). (4) **The preset's slug** rode into every brand built from
+  it (the KNICKGASM preset's included) - a slug follows the NAME on create and is never taken from a body, server
+  (`slugFor`) and device alike; an update keeps it unless asked for the slug the current name makes. This also
+  closes **device rows synced into an account** (sync sends the row's slug). (5) **A brand book of another brand**
+  filled untyped name/website/legal entity - Apply asks first when the book names a website on another domain (a name alone that differs is applied and WARNS - a typed variant is not a mix), and records
+  `brand_document.describes`. (6) **A name typed after a read** stays the person's and a re-read keeps it; it WARNS
+  when it matches nothing in the website. (7) **"user" from an earlier read**: accepting a site value marks it
+  `user`, and the rule still attributes it to that site. (8) **Two tabs** editing two brands: executed, NOT a mixing
+  path (each save is id-scoped; the stale-tab case was #143's). Also: the wizard's boot never loaded
+  `catalog_source`/`asset_hosts`, so it could not see where a catalogue came from.
+- **The shipped brands, audited** (41 presets, tenant zero, 40 observations; the audit is the spec's last block):
+  no preset holds another brand's name, claims, voice, legal entity, store, offering, social or region; every
+  observation was read from the preset's own site. Found and fixed at source: tenant zero's **Shopify URL scheme**
+  (`/products/{handle}`, `/collections/{slug}`) on Apple, The Economic Times, The Times of India and TOI Health &
+  Fitness (`build-brand-presets.js` region() states it only with `shopify:true`; `normalizeRegions` no longer
+  invents it for every brand, server and device; nothing reads a pattern). Kept, explained in the spec: Apple's
+  `cdn-apple.com` asset host, "TOI" in TOI Health & Fitness. Brand CDNs under another name (muscache, etimg,
+  flixcart, toiimg...) are judged by the page their logo was found on.
+- Left as found, scope of other branches: generated OUTPUT carrying only the active brand
+  (`claude/brand-context-invariant`) and catalogue import (`claude/catalog-fetch-complete`); clearing a catalogue
+  source does not delete imported products (re-import replaces them).
+
+## ⭐ Sign-in is a mobile number and a 4-digit PIN ONLY (2026-10-09) — read `docs/mobile-pin-signin.md`
+The owner's words: *"only keep PIN option, that too only 4-digit - this is for all projects"*. The Google
+sign-in restored on 2026-10-05 (#161, #163, #165) is REMOVED from `auth.js` (no `signInWithOAuth`, no
+OAuth callback handling, the Supabase client is anonymous again), `brand-context.js`, `supabase/config.toml`
+(no `[auth.external.*]`, email sign-up off), `.env.example` and `selfhost/`. A leftover `sb-*-auth-token`
+is deleted on boot. Server: `requireUser()`, `data-analysis-core.authorize()` and the broker's `op=me`
+refuse a GoTrue user whose provider is OAuth (`mobile-auth-supabase.oauthProvider()`, read from the
+verified record only). Each PIN try is CLAIMED before it is checked in all three stores (Neon one
+`update ... returning`, Supabase `mobile_pin_attempt`, the device store) and no answer names the
+account holder before the PIN is right. Gated by `tests/pin-only-signin.spec.js` (each guard
+mutation-verified). Never re-add an OAuth or email/password sign-in here.
+
 ## ⭐ The design system: one surface contract, read before styling any page (2026-10-05) — read `design/lifecycle-os/CONTRACT.md`
 The operator, on `/studio` with a red-primary brand (red bands, black panels, near-black cards in dark grey
 text): *"create a design schema for lifecycle os"*. `design/lifecycle-os/` holds it: `CONTRACT.md` (surface →
