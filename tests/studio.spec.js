@@ -71,7 +71,17 @@ async function waitForBuiltEmail(page, mkt) {
         try { const out = fn(null, m); return `${name}: returned ${typeof out}, length ${out ? out.length : 0}`; }
         catch (err) { return `${name}: threw ${err && err.stack ? err.stack.split('\n').slice(0, 4).join(' | ') : String(err)}`; }
       };
-      return [one('buildEmail'), one('buildEmailVariantB'), `readyState ${document.readyState}`].join('\n');
+      // What the Studio holds: an empty build means no products were picked,
+      // and these say which link of that chain broke (markets, chips,
+      // catalogue, pick, a validation message left on the page).
+      const S = window.S || {};
+      const len = (a) => (Array.isArray(a) ? a.length : 'n/a');
+      const chips = Array.from(document.querySelectorAll('#mktChips .mkt-chip')).map((c) => c.getAttribute('data-mkt') + (c.classList.contains('on') ? '*' : '')).join(',');
+      const err = Array.from(document.querySelectorAll('[id^="validErr_"], [role="alert"]')).map((e) => (e.textContent || '').trim()).filter(Boolean).join(' | ').slice(0, 200);
+      return [one('buildEmail'), one('buildEmailVariantB'), `readyState ${document.readyState}`,
+        `markets ${JSON.stringify(S.markets)} market ${S.market} chips [${chips}]`,
+        `CAT ${len(window.CAT)} finalProds ${len(S.finalProds)} manualProds ${len(S.manualProds)} step2 visible ${!!(document.getElementById('p2') && document.getElementById('p2').offsetParent)}`,
+        `messages: ${err || 'none'}`].join('\n');
     }, mkt).catch((err) => `could not evaluate: ${err.message}`);
     throw new Error(`The Studio did not build both variants for ${mkt}:\n${why}\n(${e.message})`);
   }
