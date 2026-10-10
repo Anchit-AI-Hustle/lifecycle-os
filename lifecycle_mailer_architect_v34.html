@@ -9459,6 +9459,13 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- Single generation mode: Premium + Agentic (the only mode). The tier picker
      was removed; every /api/ai/generate + image call runs on the premium model
      cascade, and "Agentic" opens the full 8-stage flow at /brain. -->
+<style>
+  /* Phones (2026-10-10): this pill sat on the rail's phone bar exactly where
+     the credit pill sits (both top:10px right:12px). Below the bar on a phone,
+     and a 44px target with a 12px label on touch. */
+  @media (max-width:960px){ #vhdMode{ top:calc(var(--ltb-h,50px) + 6px) !important; } }
+  @media (pointer:coarse){ #vhdMode{ padding:0 4px !important; } #vhdMode > a{ display:inline-flex; align-items:center; min-height:44px; font-size:12px !important; } }
+</style>
 <div id="vhdMode" style="position:fixed;top:10px;right:12px;z-index:9000;display:flex;gap:8px;align-items:center;background:var(--vh-panel-2);border:1px solid var(--vh-primary);border-radius:999px;padding:5px 10px;box-shadow:0 2px 10px rgba(0,0,0,0.12);font-family:var(--vh-font-body)">
   <a href="/brain" title="The single mode: an agentic pipeline powered by the premium (highest-accuracy) model cascade" style="font-size:11px;font-weight:700;text-decoration:none;border-radius:999px;padding:4px 10px;background:var(--vh-accent);color:var(--vh-on-accent)">🤖 Agentic ↗</a>
 </div>
