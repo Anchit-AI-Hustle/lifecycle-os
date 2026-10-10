@@ -1,10 +1,6 @@
 {
   "key": "team.html",
   "counts": {
-    "floor": 5,
-    "font": 27,
-    "foreign": 5,
-    "ground": 1,
-    "text": 6
+    "floor": 5
   }
 }
