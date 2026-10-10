@@ -87,35 +87,41 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   tailwind.config = {
     theme: { extend: {
       colors: {
-        bg:    { DEFAULT:'#ffffff', soft:'#ffffff', card:'#eef3f0', deep:'#eef3f0' },
-        ink:   { DEFAULT:'#111111', dim:'#556059', mute:'#48524c' },
-        // DEFAULT is a FILL (bg-green). Text must not reuse it: it is one brand's
-        // red, hardcoded, and it measured 4.02:1 on the soft-green panel - below
-        // AA for every brand including tenant zero. `ink` is the contrast-adjusted
-        // token, and every text-green-ink became text-green-ink.
-        green: { DEFAULT:'#D0473E', ink:'var(--brand-primary-text, #c6433b)', bright:'#16a34a', soft:'rgba(22,163,74,0.12)' },
-        lava:  { DEFAULT:'#6A33D8', soft:'rgba(171,135,67,0.12)' },
-        chalk: '#FFFFFF',
-        red:   '#ef4444',
-        amber: '#f59e0b',
-        blue:  '#3b82f6',
-        violet:'#a855f7',
+        // Every colour is a Lifecycle OS role token (design/lifecycle-os/
+        // CONTRACT.md), so the utilities wear the ACTIVE brand. A FILL and the
+        // text that sits on it are separate keys: green (fill) carries chalk
+        // (its derived label colour); every colour used AS TEXT is a *-text
+        // token. Opacity modifiers (border-line) cannot apply to a token, so
+        // the hairlines are their own keys: line / line-hot.
+        bg:    { DEFAULT:'var(--vh-bg)', soft:'var(--vh-bg)', card:'var(--vh-panel-2)', deep:'var(--vh-panel-2)' },
+        ink:   { DEFAULT:'var(--vh-ink)', dim:'var(--vh-ink-dim)', mute:'var(--vh-ink-dim)' },
+        green: { DEFAULT:'var(--vh-primary)', ink:'var(--vh-primary-text)', bright:'var(--vh-ok-text)', soft:'var(--vh-panel-2)' },
+        lava:  { DEFAULT:'var(--vh-accent-text)', soft:'var(--vh-panel-2)' },
+        chalk: 'var(--vh-on-primary)',
+        line:  { DEFAULT:'var(--vh-line)', hot:'var(--vh-line-hot)' },
+        red:   'var(--vh-err-text)',
+        amber: 'var(--vh-warn-text)',
+        blue:  'var(--vh-primary-text)',
+        violet:'var(--vh-accent-text)',
       },
+      borderColor: { DEFAULT:'var(--vh-line)' },
       fontFamily: {
-        sans: ['Inter','system-ui','sans-serif'],
-        mono: ['"JetBrains Mono"','monospace'],
+        sans: ['var(--vh-font-body)'],
+        mono: ['var(--vh-font-mono)'],
       },
     }},
   };
 </script>
 <style>
   * { box-sizing: border-box; }
-  body { background:#ffffff; color:#111111; font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  body { background:var(--vh-bg); color:var(--vh-ink); font-family:var(--vh-font-body); -webkit-font-smoothing:antialiased; }
+  button, input, select, textarea { font-family:inherit; }
+  .font-mono { font-family:var(--vh-font-mono); }
   .scrollbar-thin::-webkit-scrollbar { width:6px; height:6px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background:rgba(171,135,67,0.25); border-radius:3px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background:var(--vh-line-hot); border-radius:3px; }
   .scrollbar-thin::-webkit-scrollbar-track { background:transparent; }
-  .card { background:#ffffff; border:1px solid rgba(171,135,67,0.18); border-radius:12px; }
-  .card-hover:hover { border-color:rgba(171,135,67,0.35); transition:border-color .2s; }
+  .card { background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; }
+  .card-hover:hover { border-color:var(--vh-line-hot); transition:border-color .2s; }
   .kpi-val { font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
   /* ─── Mobile KPI tile clip fix ─────────────────────────────────────── */
   .card .text-2xl, .kpi-val {
@@ -135,17 +141,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     .card .text-2xl { font-size: 16px !important; }
     .card .text-2xl.kpi-val { font-size: 16px !important; }
   }
-  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:#48524c; font-weight:500; }
+  .label { font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:var(--vh-ink-dim); font-weight:500; }
   .pill { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; }
-  .nav-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:#556059; transition:all .15s; cursor:pointer; position:relative; }
-  .nav-item:hover { background:rgba(171,135,67,0.08); color:#111111; }
-  .nav-item.active { background:rgba(171,135,67,0.14); color:#111111; border-left:2px solid #6A33D8; padding-left:10px; }
+  .nav-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:var(--vh-ink-dim); transition:all .15s; cursor:pointer; position:relative; }
+  .nav-item:hover { background:var(--vh-panel); color:var(--vh-ink); }
+  .nav-item.active { background:var(--vh-panel); color:var(--vh-ink); border-left:2px solid var(--vh-accent); padding-left:10px; }
   .nav-item svg { width:14px; height:14px; opacity:.6; flex-shrink:0; margin-top:1px; }
-  .nav-item.active svg { opacity:1; color:#6A33D8; }
+  .nav-item.active svg { opacity:1; color:var(--vh-accent-text); }
   .nav-text { display:flex; flex-direction:column; gap:1px; line-height:1.2; min-width:0; }
   .nav-title { font-weight:600; font-size:12.5px; }
-  .nav-sub { font-size:10px; color:#48524c; font-weight:400; }
-  .nav-item.active .nav-sub { color:#556059; }
+  .nav-sub { font-size:10px; color:var(--vh-ink-dim); font-weight:400; }
+  .nav-item.active .nav-sub { color:var(--vh-ink-dim); }
 
   /* ── Sidebar collapse mode ─────────────────────────────────────────── */
   aside.sidebar { width:14rem; transition: width 0.22s cubic-bezier(0.65,0,0.35,1); }
@@ -169,11 +175,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     content: attr(data-tip);
     position: absolute; left: calc(100% + 8px); top: 50%;
     transform: translateY(-50%) translateX(-4px);
-    background: var(--vh-panel-tan); border: 1px solid rgba(171,135,67,0.3);
-    color: #111111; padding: 6px 10px; border-radius: 6px;
+    background: var(--vh-panel); border: 1px solid var(--vh-line-hot);
+    color: var(--vh-ink); padding: 6px 10px; border-radius: 6px;
     font-size: 11px; white-space: nowrap;
     opacity: 0; pointer-events: none; transition: opacity 0.12s, transform 0.12s;
-    z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 200; box-shadow: var(--vh-lift-2);
   }
   body.sb-collapsed .nav-item:hover::after {
     opacity: 1; transform: translateY(-50%) translateX(0);
@@ -185,11 +191,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     width:36px; height:32px; flex:none;
     display:flex; flex-direction:column; justify-content:center; gap:4px;
     padding:7px 8px; border-radius:8px;
-    border:1px solid rgba(171,135,67,0.2); background:transparent; cursor:pointer;
+    border:1px solid var(--vh-line); background:transparent; cursor:pointer;
     transition:all .15s;
   }
-  .sb-hamburger:hover { border-color:rgba(171,135,67,0.5); background:rgba(171,135,67,0.08); }
-  .sb-hamburger span { display:block; height:2px; border-radius:2px; background:#6A33D8; transition:transform .22s, opacity .22s; }
+  .sb-hamburger:hover { border-color:var(--vh-line-hot); background:var(--vh-panel); }
+  .sb-hamburger span { display:block; height:2px; border-radius:2px; background:var(--vh-accent); transition:transform .22s, opacity .22s; }
   .sb-hamburger span:nth-child(1){ width:18px; }
   .sb-hamburger span:nth-child(2){ width:14px; }
   .sb-hamburger span:nth-child(3){ width:18px; }
@@ -205,7 +211,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       width:16rem !important; z-index:70;
       transform:translateX(-100%);
       transition:transform .25s cubic-bezier(0.65,0,0.35,1);
-      box-shadow:0 0 50px rgba(0,0,0,0.6);
+      box-shadow:var(--vh-lift-2);
       overflow-y:auto;
     }
     body.sb-open aside.sidebar { transform:translateX(0); }
@@ -218,17 +224,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     body.sb-collapsed .sb-top { justify-content:flex-start; padding:14px 16px 8px; }
     /* the in-drawer hamburger turns into a close affordance */
     .sb-backdrop {
-      position:fixed; inset:0; background:rgba(0,0,0,0.55);
+      position:fixed; inset:0; background:var(--vh-ink);
       z-index:65; opacity:0; pointer-events:none; transition:opacity .25s;
     }
-    body.sb-open .sb-backdrop { opacity:1; pointer-events:auto; }
+    body.sb-open .sb-backdrop { opacity:.55; pointer-events:auto; }
     /* hamburger button shown in the page header to open the drawer */
     .sb-mobile-toggle {
       display:inline-flex; flex-direction:column; justify-content:center; gap:4px;
       width:40px; height:34px; flex:none; padding:8px 9px; border-radius:8px;
-      border:1px solid rgba(171,135,67,0.3); background:transparent; cursor:pointer;
+      border:1px solid var(--vh-line-hot); background:transparent; cursor:pointer;
     }
-    .sb-mobile-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:#6A33D8; }
+    .sb-mobile-toggle span { display:block; width:18px; height:2px; border-radius:2px; background:var(--vh-accent); }
   }
   @media (max-width: 640px) {
     /* tighten the filter header so chips never overlap */
@@ -236,9 +242,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     header .h-5.w-px { display:none; }   /* drop vertical dividers when wrapped */
     main > .p-6 { padding:16px 14px !important; }
   }
-  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid rgba(171,135,67,0.25); color:#556059; cursor:pointer; transition:all .15s; user-select:none; }
-  .filter-chip:hover { border-color:#6A33D8; color:#111111; }
-  .filter-chip.active { background:#6A33D8; color:#ffffff; border-color:#6A33D8; }
+  .filter-chip { padding:5px 11px; border-radius:99px; font-size:11px; font-weight:600; border:1px solid var(--vh-line-hot); background:var(--vh-panel); color:var(--vh-ink-dim); cursor:pointer; transition:all .15s; user-select:none; }
+  .filter-chip:hover { border-color:var(--vh-accent); color:var(--vh-ink); }
+  .filter-chip.active { background:var(--vh-primary); color:var(--vh-on-primary); border-color:var(--vh-primary); }
   .view { display:none; }
   .view.active { display:block; animation: fadeIn .25s ease; }
   /* Honest empty state — shown when no real data is connected/uploaded. */
@@ -246,31 +252,34 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   body.no-data #emptyState { display:block; animation: fadeIn .25s ease; }
   body.no-data .view.active { display:none; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-  .insight { padding:14px 16px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:#ffffff; }
-  .insight.crit { border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.04); }
-  .insight.warn { border-color:rgba(245,158,11,0.35); background:rgba(245,158,11,0.04); }
-  .insight.good { border-color:rgba(22,163,74,0.35); background:rgba(22,163,74,0.04); }
-  .insight-body { font-size:13px; line-height:1.55; color:#556059; margin-top:4px; }
-  .insight-meta { display:flex; gap:14px; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#48524c; margin-top:10px; font-weight:600; }
-  .insight-meta b { color:#111111; }
+  .insight { padding:14px 16px; border-radius:10px; border:1px solid var(--vh-line); background:var(--vh-panel); }
+  .insight.crit { border-color:var(--vh-err); box-shadow:inset 3px 0 0 var(--vh-err); }
+  .insight.warn { border-color:var(--vh-warn); box-shadow:inset 3px 0 0 var(--vh-warn); }
+  .insight.good { border-color:var(--vh-ok); box-shadow:inset 3px 0 0 var(--vh-ok); }
+  .insight-body { font-size:13px; line-height:1.55; color:var(--vh-ink-dim); margin-top:4px; }
+  .insight-meta { display:flex; gap:14px; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--vh-ink-dim); margin-top:10px; font-weight:600; }
+  .insight-meta b { color:var(--vh-ink); }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
-  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:#48524c; font-weight:500; text-align:left; padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.18); }
-  td { padding:10px 8px; border-bottom:1px solid rgba(171,135,67,0.06); font-size:13px; }
-  tr:hover td { background:rgba(171,135,67,0.04); }
+  th { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--vh-ink-dim); font-weight:500; text-align:left; padding:10px 8px; border-bottom:1px solid var(--vh-line-hot); }
+  td { padding:10px 8px; border-bottom:1px solid var(--vh-line); font-size:13px; }
+  tr:hover td { background:var(--vh-panel-2); }
   .badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:4px; }
-  .b-US { background:rgba(59,130,246,0.15); color:#1d4ed8; }
-  .b-UK { background:rgba(234,88,12,0.15); color:#b45309; }
-  .b-Global { background:rgba(171,135,67,0.18); color:#6A33D8; }
-  .seg { padding:12px 14px; border-radius:10px; border:1px solid rgba(171,135,67,0.2); background:var(--vh-panel-tan); }
+  .badge { border:1px solid var(--vh-line); background:var(--vh-panel-2); }
+  .b-US { color:var(--vh-primary-text); }
+  .b-UK { color:var(--vh-accent-text); }
+  .b-Global { color:var(--vh-ink); }
+  .seg { padding:12px 14px; border-radius:10px; border:1px solid var(--vh-line); background:var(--vh-panel-2); }
   .seg-name { font-weight:700; font-size:13px; }
-  .seg-meta { font-size:11px; color:#556059; margin-top:4px; }
-  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.7); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  .seg-meta { font-size:11px; color:var(--vh-ink-dim); margin-top:4px; }
+  /* The scrim is the INK at an opacity, under the dialog (CONTRACT.md). */
+  .modal-backdrop { position:fixed; inset:0; background:transparent; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); z-index:80; display:none; align-items:center; justify-content:center; padding:20px; }
+  .modal-backdrop::before { content:""; position:absolute; inset:0; background:var(--vh-ink); opacity:.55; z-index:-1; }
   .modal-backdrop.open { display:flex; }
-  .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:#ffffff; font-weight:600; border-radius:2px; }
-  .apex-tooltip-custom { background:#ffffff !important; border:1px solid #6A33D8 !important; color:#111111 !important; font-family:'Inter',sans-serif !important; }
-  .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; }
-  .delta-up { color:var(--vh-ink-dim); background:rgba(34,197,94,0.1); }
-  .delta-down { color:#ef4444; background:rgba(239,68,68,0.1); }
+  .heatmap-cell { display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--vh-on-primary); font-weight:600; border-radius:2px; }
+  .apex-tooltip-custom { background:var(--vh-panel) !important; border:1px solid var(--vh-accent) !important; color:var(--vh-ink) !important; font-family:var(--vh-font-body) !important; }
+  .delta { font-size:11px; font-weight:600; padding:2px 7px; border-radius:4px; background:var(--vh-panel-2); }
+  .delta-up { color:var(--vh-ok-text); }
+  .delta-down { color:var(--vh-err-text); }
 </style>
 </head>
 <body class="min-h-screen">
@@ -279,7 +288,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <div class="flex min-h-screen">
 
   <!-- Sidebar -->
-  <aside class="sidebar bg-bg-deep border-r border-lava/20 flex-none flex flex-col">
+  <aside class="sidebar bg-bg-deep border-r border-line flex-none flex flex-col">
     <!-- Top hamburger + brand -->
     <div class="sb-top">
       <button type="button" class="sb-hamburger" id="sbCollapseBtn" aria-label="Collapse sidebar" title="Collapse / expand menu">
@@ -342,8 +351,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         </div>
       </div>
     </nav>
-    <div class="p-3 border-t border-lava/15">
-      <button type="button" id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">
+    <div class="p-3 border-t border-line">
+      <button type="button" id="btnExport" class="w-full text-[11px] uppercase tracking-wider font-semibold py-2 rounded border border-line text-ink-dim hover:border-lava hover:text-ink transition">
         ↓ Export…
       </button>
       <div class="text-[10px] text-ink-mute mt-3 font-mono leading-snug">
@@ -359,14 +368,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <!-- Main -->
   <main class="flex-1 min-w-0">
     <!-- Top filter bar -->
-    <header class="sticky z-30 bg-bg/90 backdrop-blur border-b border-lava/15 px-6 py-3" style="top:var(--ltb-h,0px)">
+    <header class="sticky z-30 bg-bg backdrop-blur border-b border-line px-6 py-3" style="top:var(--ltb-h,0px)">
       <div class="flex flex-wrap items-center gap-3">
         <button type="button" class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>
         <!-- All + one chip per region the ACTIVE brand declares (region-context.js);
              this page aggregates, so All stays the default. Built by buildRegionChips. -->
         <div class="flex gap-1.5" id="regionChips"><button type="button" class="filter-chip active" data-region="ALL">All</button></div>
-        <div class="h-5 w-px bg-lava/20"></div>
+        <div class="h-5 w-px bg-line"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Trend</div>
         <div class="flex gap-1.5" id="granChips" title="Time granularity for the whole dashboard — day-on-day, week-on-week, month-on-month or year-on-year">
           <button type="button" class="filter-chip" data-gran="day" title="Day-on-day · last 60 days">Day</button>
@@ -374,16 +383,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <button type="button" class="filter-chip active" data-gran="month" title="Month-on-month · last 12 months">Month</button>
           <button type="button" class="filter-chip" data-gran="year" title="Year-on-year · all years">Year</button>
         </div>
-        <div class="h-5 w-px bg-lava/20"></div>
+        <div class="h-5 w-px bg-line"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Currency</div>
         <div class="flex gap-1.5" id="currencyChips" title="Show all revenue in US dollars or Indian rupees">
           <button type="button" class="filter-chip" data-cur="USD">$ USD</button>
           <button type="button" class="filter-chip" data-cur="INR">₹ INR</button>
         </div>
         <div class="flex-1"></div>
-        <button type="button" id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⛓ Link database</button>
-        <button type="button" id="btnUpload" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
-        <button type="button" id="btnResetSeed" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink transition">⟳ Reset</button>
+        <button type="button" id="btnLinkDb" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-line text-ink-dim hover:border-lava hover:text-ink transition">⛓ Link database</button>
+        <button type="button" id="btnUpload" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded bg-green text-chalk hover:opacity-90 transition">⬆ Upload data</button>
+        <button type="button" id="btnResetSeed" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-1.5 rounded border border-line text-ink-dim hover:border-lava hover:text-ink transition">⟳ Reset</button>
       </div>
     </header>
 
@@ -391,13 +400,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="p-6 space-y-6" id="viewContainer">
       <!-- Empty state: no real data connected yet -->
       <section id="emptyState">
-        <div class="rounded-xl border border-lava/25 bg-panel/60 p-10 text-center max-w-2xl mx-auto mt-6">
+        <div class="rounded-xl border border-line bg-bg-card p-10 text-center max-w-2xl mx-auto mt-6">
           <div class="text-4xl mb-3">📊</div>
           <h2 class="font-head text-2xl text-ink mb-2" style="color:var(--brand-accent-text)">Connect your data to begin</h2>
           <p class="text-sm text-ink-dim leading-relaxed mb-6">This dashboard runs on your real customer, order and campaign data only. It does not display sample or synthetic numbers. Link a Supabase database or upload CSV / XLSX exports to compute RFM segments, cohorts and campaign KPIs.</p>
           <div class="flex flex-wrap gap-3 justify-center">
-            <button type="button" id="emptyLinkDb" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded border border-lava/40 text-ink hover:border-lava transition">⛓ Link database</button>
-            <button type="button" id="emptyUpload" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90 transition">⬆ Upload data</button>
+            <button type="button" id="emptyLinkDb" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded border border-line-hot text-ink hover:border-lava transition">⛓ Link database</button>
+            <button type="button" id="emptyUpload" class="text-[12px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-green text-chalk hover:opacity-90 transition">⬆ Upload data</button>
           </div>
           <p class="text-[11px] text-ink-mute mt-5">Expected columns: customers (last_order_at, orders_count, total_spent, region), orders (ordered_at, region, total, product), campaigns (sent_at, sends, opens, clicks, conversions, revenue, region, channel, content_type).</p>
         </div>
@@ -465,7 +474,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="card p-4 mb-5">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold">All campaigns</h3>
-            <input id="campSearch" type="text" placeholder="Filter by name…" class="text-xs bg-bg-deep border border-lava/20 rounded px-3 py-1.5 text-ink placeholder:text-ink-mute focus:outline-none focus:border-lava w-56">
+            <input id="campSearch" type="text" placeholder="Filter by name…" class="text-xs bg-bg-deep border border-line rounded px-3 py-1.5 text-ink placeholder:text-ink-mute focus:outline-none focus:border-lava w-56">
           </div>
           <div class="overflow-x-auto scrollbar-thin">
             <table class="w-full min-w-[900px]" data-sortable>
@@ -630,8 +639,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             <p class="text-sm text-ink-dim mt-1">Computed every refresh. Each insight: WHY · IMPACT · ACTION. Severity drives priority.</p>
           </div>
           <div class="flex gap-2">
-            <div class="pill bg-red/10 text-red"><span class="font-bold" id="insightCntCrit">0</span> Critical</div>
-            <div class="pill bg-amber/10 text-amber"><span class="font-bold" id="insightCntWarn">0</span> Warn</div>
+            <div class="pill bg-green-soft text-red"><span class="font-bold" id="insightCntCrit">0</span> Critical</div>
+            <div class="pill bg-green-soft text-amber"><span class="font-bold" id="insightCntWarn">0</span> Warn</div>
             <div class="pill bg-green-soft text-green-bright"><span class="font-bold" id="insightCntGood">0</span> Opportunity</div>
           </div>
         </div>
@@ -684,7 +693,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </label>
     </div>
 
-    <label class="flex items-start gap-2 cursor-pointer mb-4 p-3 rounded border border-lava/20">
+    <label class="flex items-start gap-2 cursor-pointer mb-4 p-3 rounded border border-line">
       <input type="checkbox" id="uploadAppend" class="mt-0.5 accent-lava">
       <div>
         <div class="text-sm font-medium">Add to current data (don't replace)</div>
@@ -696,8 +705,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div id="uploadNote" class="vh-status mb-4" role="status" hidden></div>
 
     <div class="flex gap-2 justify-end">
-      <button type="button" id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
-      <button type="button" id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">Apply & recompute</button>
+      <button type="button" id="uploadCancel" class="text-[12px] px-4 py-2 rounded border border-line text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button type="button" id="uploadApply" class="text-[12px] px-4 py-2 rounded bg-green text-chalk font-semibold hover:opacity-90">Apply & recompute</button>
     </div>
   </div>
 </div>
@@ -722,12 +731,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div id="linkDbJson" class="space-y-3">
       <div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Endpoint URL</div>
-        <input id="dbJsonUrl" type="url" placeholder="https://your-api.example.com/analytics" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+        <input id="dbJsonUrl" type="url" placeholder="https://your-api.example.com/analytics" class="w-full bg-bg-deep border border-line rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
         <div class="text-[11px] text-ink-mute mt-1.5">Must return JSON shaped <code class="text-lava">{ campaigns:[], customers:[], orders:[], products:[] }</code> (any subset). CORS must allow this origin.</div>
       </div>
       <div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Auth header (optional)</div>
-        <input id="dbJsonAuth" type="text" placeholder="Bearer xxxxx" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+        <input id="dbJsonAuth" type="text" placeholder="Bearer xxxxx" class="w-full bg-bg-deep border border-line rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
       </div>
     </div>
 
@@ -736,18 +745,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Project URL</div>
-          <input id="dbSbUrl" type="url" placeholder="https://your-supabase-host (hosted or self-hosted)" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+          <input id="dbSbUrl" type="url" placeholder="https://your-supabase-host (hosted or self-hosted)" class="w-full bg-bg-deep border border-line rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
         </div>
         <div>
           <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-1">Anon / service key</div>
-          <input id="dbSbKey" type="password" placeholder="eyJhbGci…" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+          <input id="dbSbKey" type="password" placeholder="eyJhbGci…" class="w-full bg-bg-deep border border-line rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
         </div>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">campaigns table</div><input id="dbSbCampaigns" placeholder="campaigns" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
-        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">customers table</div><input id="dbSbCustomers" placeholder="customers" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
-        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">orders table</div><input id="dbSbOrders" placeholder="orders" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
-        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">products table</div><input id="dbSbProducts" placeholder="products" class="w-full bg-bg-deep border border-lava/30 rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">campaigns table</div><input id="dbSbCampaigns" placeholder="campaigns" class="w-full bg-bg-deep border border-line rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">customers table</div><input id="dbSbCustomers" placeholder="customers" class="w-full bg-bg-deep border border-line rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">orders table</div><input id="dbSbOrders" placeholder="orders" class="w-full bg-bg-deep border border-line rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
+        <div><div class="text-[10px] uppercase tracking-wider text-lava font-semibold mb-1">products table</div><input id="dbSbProducts" placeholder="products" class="w-full bg-bg-deep border border-line rounded px-2.5 py-1.5 text-sm text-ink focus:border-lava outline-none"></div>
       </div>
       <div class="text-[11px] text-ink-mute">Reads each table via the Supabase REST API (<code class="text-lava">/rest/v1/{table}?select=*</code>). Leave a table blank to skip it.</div>
     </div>
@@ -755,8 +764,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="text-[11px] mb-3 mt-3 leading-snug" id="linkDbStatus"></div>
 
     <div class="flex gap-2 justify-end">
-      <button type="button" id="linkDbCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
-      <button type="button" id="linkDbConnect" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">⛓ Connect & recompute</button>
+      <button type="button" id="linkDbCancel" class="text-[12px] px-4 py-2 rounded border border-line text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button type="button" id="linkDbConnect" class="text-[12px] px-4 py-2 rounded bg-green text-chalk font-semibold hover:opacity-90">⛓ Connect & recompute</button>
     </div>
   </div>
 </div>
@@ -796,7 +805,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <!-- View picker (only for single-view scope) -->
     <div class="mb-4" id="exportViewWrap">
       <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold mb-2">Which view</div>
-      <select id="exportView" class="w-full bg-bg-deep border border-lava/30 rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
+      <select id="exportView" class="w-full bg-bg-deep border border-line rounded px-3 py-2 text-sm text-ink focus:border-lava outline-none">
         <option value="exec">Revenue Pulse</option>
         <option value="campaigns">Campaigns Deep-Dive</option>
         <option value="segments">Audience Segments</option>
@@ -822,8 +831,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div id="exportNote" class="vh-status mb-4" role="status" hidden></div>
 
     <div class="flex gap-2 justify-end">
-      <button type="button" id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
-      <button type="button" id="exportRun" class="text-[12px] px-4 py-2 rounded bg-lava text-bg font-semibold hover:opacity-90">↓ Download</button>
+      <button type="button" id="exportCancel" class="text-[12px] px-4 py-2 rounded border border-line text-ink-dim hover:border-lava hover:text-ink">Cancel</button>
+      <button type="button" id="exportRun" class="text-[12px] px-4 py-2 rounded bg-green text-chalk font-semibold hover:opacity-90">↓ Download</button>
     </div>
   </div>
 </div>
@@ -2139,7 +2148,7 @@ function renderInsights() {
   $('insightList').innerHTML = list.map((ins) => `
     <div class="insight ${ins.sev}">
       <div class="flex items-start gap-3">
-        <div class="pill ${ins.sev === 'crit' ? 'bg-red/10 text-red' : ins.sev === 'warn' ? 'bg-amber/10 text-amber' : 'bg-green-soft text-green-bright'} flex-none">${ins.sev === 'crit' ? 'CRITICAL' : ins.sev === 'warn' ? 'WATCH' : 'OPPORTUNITY'}</div>
+        <div class="pill ${ins.sev === 'crit' ? 'bg-green-soft text-red' : ins.sev === 'warn' ? 'bg-green-soft text-amber' : 'bg-green-soft text-green-bright'} flex-none">${ins.sev === 'crit' ? 'CRITICAL' : ins.sev === 'warn' ? 'WATCH' : 'OPPORTUNITY'}</div>
         <div class="flex-1 min-w-0">
           <h3 class="text-sm font-semibold">${ins.title}</h3>
           <div class="insight-body">${ins.body}</div>

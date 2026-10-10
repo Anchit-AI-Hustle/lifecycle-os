@@ -8,7 +8,7 @@
 # and the false half was blocking a page this repo deliberately serves to
 # everyone.
 #
-# True: almost every page requires a Google sign-in, and indexing those would
+# True: almost every page is for a signed-in person, and indexing those would
 # put search results in front of people that lead to a login wall and nothing
 # else. Those stay disallowed.
 #
