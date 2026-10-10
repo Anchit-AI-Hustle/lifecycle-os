@@ -444,6 +444,13 @@
     }
     return best;
   }
+  /** Mirrors readableOnSurfaces() on the server: text held on every ground. */
+  function readableOnSurfaces(color, grounds, target) {
+    var c = color;
+    var gs = (grounds || []).filter(Boolean);
+    for (var pass = 0; pass < 2; pass++) for (var i = 0; i < gs.length; i++) c = readableAsText(c, gs[i], target);
+    return c;
+  }
   function readableAsText(color, bg, target) {
     var want = target || 4.5;
     var c = normHex(color);
@@ -586,11 +593,9 @@
     var surface = p.surface || '#F7F5F2';
     var surfaceAlt = p.surface_alt || shade(surface, 0.6);
     var muted = p.muted || shade(requestedInk, 0.35);
-    var worstSurface = contrast(primary, surface) <= contrast(primary, surfaceAlt) ? surface : surfaceAlt;
     // Old saved records can predate palette validation; never render low
     // contrast body text while their owner is updating the palette.
-    var inkWorstSurface = contrast(requestedInk, surface) <= contrast(requestedInk, surfaceAlt) ? surface : surfaceAlt;
-    var ink = readableAsText(requestedInk, inkWorstSurface, TEXT_AA);
+    var ink = readableOnSurfaces(requestedInk, [surface, surfaceAlt], TEXT_AA);
     var t = brand && brand.typography ? brand.typography : {};
     var states = { ok: p.ok || '#1a7f37', warn: p.warn || '#c9a227', err: p.err || '#c0392b' };
     return Object.assign({
@@ -599,13 +604,13 @@
       '--brand-primary-soft': shade(primary, 0.86),
       '--brand-primary-tint': shade(primary, 0.94),
       '--brand-on-primary': readableOn(primary, ink, surface, surfaceAlt),
-      '--brand-primary-text': readableAsText(primary, worstSurface, TEXT_AA),
+      '--brand-primary-text': readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA),
       '--brand-accent': accent,
       '--brand-accent-soft': shade(accent, 0.88),
       '--brand-on-accent': readableOn(accent, ink, surface, surfaceAlt),
-      '--brand-accent-text': readableAsText(accent, worstSurface, TEXT_AA),
+      '--brand-accent-text': readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
       '--brand-ink': ink,
-      '--brand-ink-muted': readableAsText(muted, worstSurface, TEXT_AA),
+      '--brand-ink-muted': readableOnSurfaces(muted, [surface, surfaceAlt], TEXT_AA),
       '--brand-surface': surface,
       '--brand-surface-alt': surfaceAlt,
       '--brand-line': shade(ink, 0.84),
@@ -616,7 +621,7 @@
       '--brand-font-head': (t.heading && t.heading.stack) || "'Montserrat',Georgia,serif",
       '--brand-font-body': (t.body && t.body.stack) || "system-ui,-apple-system,Segoe UI,sans-serif",
       '--brand-font-mono': (t.mono && t.mono.stack) || 'ui-monospace,SFMono-Regular,Menlo,monospace',
-    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states), componentTokensFor(brand));
+    }, contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, states), componentTokensFor(brand));
   }
   /* Mirrors sectionGround() / textOn() / contractTokens() on the server: the
      design-system contract's derived tokens (design/lifecycle-os/CONTRACT.md).
@@ -630,25 +635,40 @@
     return '#ffffff';
   }
   function textOnFor(ground, surface, ink, target) {
-    return readableAsText(readableOn(ground, ink || '#111111', surface || '#ffffff'), ground, target || 4.5);
+    var want = target || 4.5;
+    var start = readableOn(ground, ink || '#111111', surface || '#ffffff');
+    var first = readableAsText(start, ground, want);
+    if (contrast(first, ground) >= want) return first;
+    // Mirrors textOn(): a mid-tone ground needs the walk the other way.
+    return textBothWaysFor(start, ground, want) || textBothWaysFor(start, ground, Math.min(want, 4.5)) || first;
   }
-  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, worstSurface, states) {
+  function textBothWaysFor(start, ground, want) {
+    var c = normHex(start) || '#111111';
+    for (var t = 0.05; t <= 1.0001; t += 0.05) {
+      for (var d = 0; d < 2; d++) {
+        var cand = shade(c, (d === 0 ? -1 : 1) * t);
+        if (contrast(cand, ground) >= want) return cand;
+      }
+    }
+    return '';
+  }
+  function contractTokensFor(primary, accent, ink, muted, surface, surfaceAlt, states) {
     var band = normHex(sectionGroundFor(primary, accent, surface)) || '#ffffff';
     var bandAccent = normHex(sectionGroundFor(accent, primary, surface)) || '#ffffff';
-    var text = [ink, readableAsText(muted || shade(ink, 0.35), worstSurface, TEXT_AA),
-      readableAsText(primary, worstSurface, TEXT_AA), readableAsText(accent, worstSurface, TEXT_AA),
-      readableAsText(states.ok, worstSurface, TEXT_AA), readableAsText(states.warn, worstSurface, TEXT_AA),
-      readableAsText(states.err, worstSurface, TEXT_AA)];
+    var text = [ink, readableOnSurfaces(muted || shade(ink, 0.35), [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(primary, [surface, surfaceAlt], TEXT_AA), readableOnSurfaces(accent, [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA), readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+      readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA)];
     return {
       '--brand-surface-sunken': sunkenSurfaceFor(surface, surfaceAlt, text),
       '--brand-band': band,
       '--brand-on-band': textOnFor(band, surface, ink, TEXT_AA),
       '--brand-band-accent': bandAccent,
       '--brand-on-band-accent': textOnFor(bandAccent, surface, ink, TEXT_AA),
-      '--brand-ok-text': readableAsText(states.ok, worstSurface, TEXT_AA),
-      '--brand-warn-text': readableAsText(states.warn, worstSurface, TEXT_AA),
-      '--brand-err-text': readableAsText(states.err, worstSurface, TEXT_AA),
-      '--brand-focus': readableAsText(accent, worstSurface, 3),
+      '--brand-ok-text': readableOnSurfaces(states.ok, [surface, surfaceAlt], TEXT_AA),
+      '--brand-warn-text': readableOnSurfaces(states.warn, [surface, surfaceAlt], TEXT_AA),
+      '--brand-err-text': readableOnSurfaces(states.err, [surface, surfaceAlt], TEXT_AA),
+      '--brand-focus': readableOnSurfaces(accent, [surface, surfaceAlt], 3),
     };
   }
   function sunkenSurfaceFor(surface, surfaceAlt, textColours) {
