@@ -324,6 +324,17 @@ async function brandForWorkspace(env, workspaceId) {
     // paths that build most of its assets.
     const raw = rows[0] || null;
     const brand = raw ? require('./brand-runtime.js').normalizeBrand(raw) : null;
+    // Whether this workspace owns tenant zero's shipped material is decided
+    // HERE, from the oldest workspace (the rule ownsBundledExport applies),
+    // never from the slug the workspace's owner wrote (2026-10-05). Every
+    // background path (cron, prebuild, approve, social, the brand LLM) reaches
+    // a workspace through this door, so the catalogue gate, the planner and
+    // the link builders all read the same answer.
+    if (brand) {
+      let zero = null;
+      try { zero = await defaultWorkspaceId(env); } catch (_) { zero = null; }
+      brand.owns_shipped = !!zero && String(zero) === id;
+    }
     if (brand) BRAND_CACHE.set(id, { brand, at: Date.now() });
     return brand;
   } catch (_) { return null; }

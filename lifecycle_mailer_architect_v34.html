@@ -1872,7 +1872,15 @@ function brandStyleLine(){
 function brandReviewMarker(what){
   return '[DATA REQUIRED BEFORE LAUNCH: '+(what||'approved customer review')+', '+brandFacts().name+']';
 }
-function getBase(m){return brandFacts(m).store||MARKET_BASE[m]||MARKET_BASE.US;}
+/* The ACTIVE brand's own store, or none (2026-10-05). A brand whose record
+   names no store fell through to MARKET_BASE, so its mailer's every CTA and
+   product link pointed at tenant zero's store. That map is the shipped default
+   only, for a page with no brand at all. */
+function getBase(m){
+  var b=(window.BrandContext&&window.BrandContext.brand)||null;
+  if(b) return brandFacts(m).store||'#';
+  return MARKET_BASE[m]||MARKET_BASE.US;
+}
 function toHandle(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
 /* The name-to-Shopify-handle map that used to sit here listed about a hundred
  * of another company's products. It existed because the baked-in catalogue had
@@ -1882,7 +1890,10 @@ function toHandle(n){return n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/
  * home, which is a real page, instead of a slug that 404s. */
 var PROD_HANDLES={};
 function pdpUrl(n,m){
-  // n can be a string (product name) or an object (product with .h handle)
+  // n can be a string (product name) or an object (product with .h handle).
+  // A row that carries its OWN product page (an imported catalogue states it)
+  // links there; a handle is joined to the brand's own store otherwise.
+  if(n&&typeof n==='object'&&typeof n.url==='string'&&/^https?:\/\//i.test(n.url))return n.url;
   if(typeof n==='object'&&n.h)return getBase(m)+'/products/'+n.h;
   var name=typeof n==='string'?n:'';
   // Try PROD_HANDLES lookup first
@@ -1890,6 +1901,7 @@ function pdpUrl(n,m){
   // Then try finding the product in CAT to get the real Shopify handle
   if(!handle&&window.CAT){
     var found=CAT.find(function(c){return c.n===name;});
+    if(found&&typeof found.url==='string'&&/^https?:\/\//i.test(found.url))return found.url;
     if(found&&found.h)handle=found.h;
   }
   // No real handle: link to the store home rather than mint a product path that
