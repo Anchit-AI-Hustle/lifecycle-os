@@ -192,6 +192,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* The reason an import control is disabled. Accent rule (brand accent text
      on the surface), never the warn rule: a record still being filled in is an
      ordinary state, and a warning colour here would teach people to ignore it. */
+  .imp-coverage{font-size:12.5px;line-height:1.5;color:var(--ink);border-left:3px solid var(--accent);padding:8px 12px;margin:12px 0 0;background:var(--surface-alt)}
+  .imp-coverage .imp-cov-head{margin:0 0 4px}
+  .imp-coverage .imp-cov-list{margin:0 0 8px;padding-left:18px}
+  .imp-coverage .imp-cov-list li{margin:2px 0}
   .imp-gate{font-size:12px;line-height:1.5;color:var(--vh-accent-text);border-left:3px solid var(--accent);padding:6px 10px;margin:10px 0 0;background:var(--surface-alt)}
   .imp-tab{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer}
   .imp-tab.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
@@ -326,6 +330,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xr-fallback{border-left:3px solid var(--accent)}
   @media (max-width:640px){.xr .xr-pairs{grid-template-columns:minmax(0,1fr)}}
   .xlimits li{margin-left:16px}
+  /* Is this record ONE brand? (2026-10-10) */
+  .coh{margin:14px 0 4px;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px}
+  .coh h3{margin:0 0 4px;font-size:14px}
+  .coh p,.coh li{font-size:12px;line-height:1.55;color:var(--ink)}
+  .coh .coh-src{color:var(--muted);word-break:break-all}
+  .coh ul{margin:8px 0 0;padding:0;list-style:none}
+  .coh li{padding:7px 0;border-top:1px solid var(--line)}
+  .coh .coh-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+  .coh .btn{padding:3px 10px;font-size:11px}
+  .coh textarea{width:100%;min-height:54px;margin-top:6px;font:inherit;font-size:12px}
 
   /* Brand guideline document + file-or-URL asset controls (2026-10-04).
      "Upload a file" is a LABEL around a hidden file input, so the press opens
@@ -388,7 +402,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      `brand` is exactly what gets persisted. Nothing here is ever auto-filled
      with a guess: an untouched field stays empty and is reported on step 6 as
      a [DATA REQUIRED BEFORE LAUNCH: ...] marker instead. */
-  var brand = {
+  /* A NEW brand starts from exactly this, and from nothing of the brand that
+     was on screen before (2026-10-10): "Onboard another brand" used to copy
+     the previous record and clear four fields, so the new brand inherited the
+     old one's social profiles, imagery, legal entity, regions, read record
+     and catalogue source under a new name. */
+  function blankBrand() { return {
     id: '', slug: '', name: '', tagline: '', industry: '', website: '', logo_url: '', favicon_url: '',
     palette: { primary: '#1F5FD0', accent: '#111111', ink: '#111111', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' },
     typography: {
@@ -403,7 +422,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
        reported gap. */
     regions: [],
     brand_data: {}, status: 'draft', onboarding_step: 1
-  };
+  }; }
+  var brand = blankBrand();
   /* The starting palette and type above are this wizard's PLACEHOLDERS, not a
      person's choice, and the record says so (origin 'default'): a read may
      replace them. A value with NO recorded origin is treated the other way -
@@ -438,6 +458,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      the brand model - so a decision that landed after the operator started
      typing wiped the address they had typed. */
   var xUrlDraft = null;
+  /* "Read my site" asked for a site on ANOTHER domain than this brand's
+     website: the read waits for the person to say which brand it is for. */
+  var domainSwitch = null;
 
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -690,6 +713,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (path.indexOf('palette.') === 0) { syncColourPair(path, v); renderVerdict(); }
         paintPreview();
       });
+      // A website on another domain makes every value read from the old one
+      // a conflict (2026-10-10): show them when the field is left, never later.
+      // Repainted in its own slot, never by a full render: re-rendering the
+      // step on a blur replaced the field the person was moving into.
+      if (path === 'website' || path === 'name') el.addEventListener('change', function () { var slot = $('cohSlot'); if (slot && step === 1) slot.innerHTML = coherenceBlock(false); });
     });
   }
 
@@ -917,7 +945,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">Start from your own website, from your brand guidelines, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
-        extractBlock() + xRenderedPanel() + xPanel('brand') +
+        extractBlock() + xRenderedPanel() + '<div id="cohSlot">' + coherenceBlock(false) + '</div>' + xPanel('brand') +
         docBlock() +
         // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
         // shipped brand name into the active brand's throughout the page, which
@@ -1030,6 +1058,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // take the accent rule, not the warn rule - an incomplete record is
           // an ordinary state, not a failure.
           '<p class="imp-gate" id="impGate" hidden></p>' +
+          // What the last import read of what the store declares, and - when it
+          // stopped part-way - the control that resumes it (2026-10-10).
+          '<div class="imp-coverage" id="impCoverage" hidden></div>' +
           (actionsOff()
             ? '<div style="margin-top:10px">' + needsAccountNote('catalog-import', 'The server reads your store for a signed-in person, so the catalogue can be imported once ' + accountClause() + '; it is then kept on this device beside the brand. Everything else on this brand is saved on this device now, and the review step reports the catalogue as still required rather than inventing one.') + '</div>'
             : '') +
@@ -1050,6 +1081,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
               '<div style="margin-top:8px">' + r.missing.map(function (m) { return '<div class="marker">' + esc(m.marker) + '</div>'; }).join(' ') + '</div>'
             : 'Everything the platform needs is present.') +
         '</div>' +
+        coherenceBlock(true) +
         storeFeedCallout() +
         '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
           '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
@@ -1180,30 +1212,46 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .then(function (d) {
         var p = d && d.preset;
         if (!p) return;
-        // Never clobber the workspace id: the operator may be editing an
-        // existing brand and only wants the preset's design/voice values.
-        var keepId = brand.id;
-        ['name','tagline','industry','website','logo_url','slug'].forEach(function (k) { if (p[k]) brand[k] = p[k]; });
+        /* A template is ANOTHER brand's identity (2026-10-10). On a brand that
+           already exists (it has an id) only its DESIGN is a template - the
+           colours, fonts and voice - and the brand keeps its own name,
+           website, logo, regions, assets and slug: copying those kept the id
+           and turned the brand into the preset. On a new (unsaved) brand the
+           template is the starting point, the record says which template
+           (brand_data.template), and the slug is made from the NAME, never
+           taken from the preset (the KNICKGASM preset's slug used to ride
+           into every brand built from it). */
+        var existing = !!brand.id;
+        if (!existing) {
+          // Laid over the unsaved form, not a wipe of it: what the person has
+          // already read or applied stays, and anything from another source
+          // than the template is then listed by the coherence check.
+          if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {};
+          ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) brand[k] = p[k]; });
+          brand.slug = slugify(brand.name);
+          if (p.regions) brand.regions = JSON.parse(JSON.stringify(p.regions));
+          if (p.asset_hosts) brand.asset_hosts = p.asset_hosts.slice();
+          brand.brand_data.brand_assets = (p.brand_assets || []).filter(function (a) { return a && a.url; }).map(function (a) {
+            return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
+          });
+          brand.brand_data.template = { slug: slug, name: p.name || '', website: p.website || '' };
+        }
         if (p.palette) brand.palette = JSON.parse(JSON.stringify(p.palette));
         if (p.typography) brand.typography = JSON.parse(JSON.stringify(p.typography));
         if (p.voice) brand.voice = JSON.parse(JSON.stringify(p.voice));
-        if (p.regions) brand.regions = JSON.parse(JSON.stringify(p.regions));
-        if (p.asset_hosts) brand.asset_hosts = p.asset_hosts.slice();
-        brand.brand_data = brand.brand_data || {};
-        brand.brand_data.brand_assets = (p.brand_assets || []).filter(function (a) { return a && a.url; }).map(function (a) {
-          return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
-        });
-        brand.id = keepId;
         // What the template filled is the TEMPLATE's (origin 'preset'), so a
         // read of the brand's own site may replace it; a value the template
         // did not carry keeps whatever origin it had.
-        ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) markOrigin(k, 'preset'); });
+        if (!existing) ['name', 'tagline', 'industry', 'website', 'logo_url'].forEach(function (k) { if (p[k]) markOrigin(k, 'preset'); });
         if (p.palette) Object.keys(p.palette).forEach(function (k) { markOrigin('palette.' + k, 'preset'); });
         if (p.typography) ['heading', 'body'].forEach(function (k) { if (p.typography[k]) markOrigin('typography.' + k, 'preset'); });
         if (p.voice && p.voice.tone) markOrigin('voice.tone', 'preset');
-        if (p.regions) markOrigin('regions', 'preset');
+        if (!existing && p.regions) markOrigin('regions', 'preset');
+        if (!existing && p.asset_hosts) markOrigin('asset_hosts', 'preset');
+        if (!existing && (p.brand_assets || []).length) markOrigin('brand_data.brand_assets', 'preset');
         presetPicked = slug;
-        markOrigins(['name', 'tagline', 'website', 'logo_url', 'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body', 'voice.tone', 'voice.preferred', 'voice.banned'], 'preset', { source: 'preset ' + slug });
+        markOrigins((existing ? [] : ['name', 'tagline', 'website', 'logo_url']).concat(['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body', 'voice.tone', 'voice.preferred', 'voice.banned']), 'preset', { source: 'preset ' + slug });
+        if (existing) toast('Applied the ' + p.name + ' template\'s colours, fonts and voice to ' + (brand.name || 'this brand') + '. Its name, website, logo, regions and assets are ' + p.name + '\'s, so ' + (brand.name || 'this brand') + ' keeps its own.', 6200);
         // The preset's website replaces whatever was being typed.
         xUrlDraft = null;
         render();
@@ -1648,6 +1696,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>') +
       '</div>' +
       (off ? '<div style="margin-top:10px">' + extractNote(storageInfo()) + '</div>' : '') +
+      (domainSwitch ? '<div class="coh" data-domain-switch="' + esc(domainSwitch.to) + '"><h3>' + esc(domainSwitch.to) + ' is not this brand\'s website</h3>' +
+        '<p>' + esc(brand.name || 'This brand') + '\'s website is ' + esc(domainSwitch.from) + '. Reading ' + esc(domainSwitch.to) + ' into it would put another site\'s name, logo, profiles and colours into this record. Which is it?</p>' +
+        '<div class="coh-acts"><button type="button" class="btn primary" data-dswitch="website">Make ' + esc(domainSwitch.to) + ' this brand\'s website, then read it</button>' +
+        '<button type="button" class="btn" data-dswitch="new">Start a new brand from ' + esc(domainSwitch.to) + '</button>' +
+        '<button type="button" class="btn" data-dswitch="cancel">Cancel</button></div>' +
+        '<p class="coh-src">If you make it the website, every value read from ' + esc(domainSwitch.from) + ' is listed below for you to keep or clear.</p></div>' : '') +
       '<p class="xmeta" style="margin-top:8px">Same rules as the catalog importer: your own domain only, robots.txt respected, read only, and no page is fetched from a private or internal address.</p>' +
       '</div>';
   }
@@ -1664,17 +1718,32 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       field_origin: (brand.brand_data && brand.brand_data.field_origin) || {}
     };
   }
-  async function runExtract() {
+  function coh() { return (window.BrandContext && window.BrandContext.coherenceLib) || null; }
+  function regOf(u) { var L = coh(); return L ? L.registrableDomain(L.hostOf(u)) : ''; }
+  async function runExtract(opts) {
     if (extractBusy || extractOff()) return;
     var input = $('xUrl');
     var url = input ? input.value.trim() : '';
     if (!url) { toast('Enter your website address first.'); return; }
+    /* ONE brand, one identity source (2026-10-10). A read of a site on another
+       registrable domain than this brand's website merged two companies into
+       one record: the live brand kept its typed website (nike.in) while a read
+       of mamaearth.in replaced its name, tagline, icon, social profiles,
+       imagery and legal entity. The person says which brand the read is for. */
+    var L = coh();
+    if (L && brand.website && !(opts && opts.confirmed)) {
+      var from = regOf(brand.website), to = regOf(url);
+      if (from && to && !L.sameBrand(from, to)) { domainSwitch = { url: url, from: from, to: to }; render(); return; }
+    }
+    domainSwitch = null;
     extractBusy = true; extractError = null; render();
     try {
       if (!brand.website) { brand.website = url; }
       var r = await api('extract', { url: url, workspace_id: brand.id || undefined, brand: scoringDraft() });
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
+      // The record of reads names the read that produced its values, not the first one ever made.
+      if (brand.brand_data && brand.brand_data.brand_extraction) { brand.brand_data.brand_extraction.source = r.start || url; brand.brand_data.brand_extraction.extracted_at = new Date().toISOString(); }
       if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);
       // Saved through the path this brand already uses (the device store or the
       // account), so a reload keeps it. A brand with no name yet stays in the form.
@@ -2126,6 +2195,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (rv) { revertRendered(); return; }
     var acc = e.target && e.target.closest ? e.target.closest('[data-xaccept]') : null;
     if (acc) { acceptRendered(acc.getAttribute('data-xaccept')); return; }
+    var ds = e.target && e.target.closest ? e.target.closest('[data-dswitch]') : null;
+    if (ds && domainSwitch) {
+      var sw = domainSwitch, how = ds.getAttribute('data-dswitch');
+      domainSwitch = null;
+      if (how === 'cancel') { render(); return; }
+      if (how === 'new') { startNewBrand(); go(1); }
+      brand.website = sw.url;
+      setOrigin('website', 'user');
+      xUrlDraft = sw.url;
+      render();
+      var xi = $('xUrl'); if (xi) xi.value = sw.url;
+      runExtract({ confirmed: true });
+      return;
+    }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
     if (run) runExtract();
   });
@@ -2230,6 +2313,60 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       gate.textContent = region ? '' : marker('home market') + ' Add the market you sell in above and mark it Home before importing: the catalogue is filed per market, so there is nowhere to put these rows yet.';
     }
   }
+  /* Coverage, in the importer's own sentences: found X of Y declared, from
+     which source, what was skipped and why, what the store did not state. A
+     partial import says PARTIAL and offers Continue import, which resumes from
+     the cursor the server (or this device) kept - never a re-read from zero. */
+  function renderCoverage(cov, resumable) {
+    var box = $('impCoverage');
+    if (!box) return;
+    if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML =
+      '<p class="imp-cov-head"><b>' + (cov.complete ? 'Catalogue read completely' : 'Catalogue read in part') + '</b></p>' +
+      '<ul class="imp-cov-list">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      (resumable ? '<button type="button" class="btn" id="impContinue">Continue import</button>' : '');
+    var c = $('impContinue');
+    if (c) c.addEventListener('click', continueImport);
+  }
+  function afterImport(r) {
+    var status = $('impStatus');
+    catalogCount = typeof r.live === 'number' ? r.live : r.imported;
+    var counts = r.imported + ' products imported' + (r.complete === false ? ' in this step' : '');
+    if (typeof r.live === 'number') counts += ', ' + r.live + ' in the catalogue now';
+    if (r.staled) counts += ', ' + r.staled + ' the store no longer lists marked stale (kept, not used)';
+    if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+    renderCoverage(r.coverage, !!r.resume_available);
+    toast(r.complete === false ? 'Read ' + r.imported + ' products; the store was not read to the end yet. Continue import resumes it.' : 'Imported ' + r.imported + ' products.', 4200);
+  }
+  async function continueImport() {
+    if (busy || !brand.id) return;
+    var status = $('impStatus');
+    try {
+      busy = true;
+      if (status) status.textContent = 'Continuing the import…';
+      var r = await api('catalog-import', { workspace_id: brand.id, region: importRegion().toLowerCase(), continue: true });
+      afterImport(r);
+    } catch (e) {
+      window.LifecycleFailure.show(status, e, { title: 'The import did not continue' });
+      toast(window.LifecycleFailure.sentence(e), 4200);
+    } finally { busy = false; }
+  }
+  /* The coverage of the import this brand already has: the device keeps it
+     beside its catalogue; the account path asks the server. */
+  async function loadCoverage() {
+    if (!brand.id) return;
+    try {
+      if (isLocalId(brand.id)) {
+        var cat = window.BrandContext && window.BrandContext.deviceCatalog ? window.BrandContext.deviceCatalog(brand.id) : null;
+        if (cat && cat.coverage) renderCoverage(cat.coverage, !!cat.cursor);
+        return;
+      }
+      if (actionsOff()) return;
+      var st = await api('catalog-status', null, '&workspace_id=' + encodeURIComponent(brand.id));
+      if (st && st.coverage) renderCoverage(st.coverage, !!st.resume_available);
+    } catch (_) { /* the coverage is a convenience; the import controls stand without it */ }
+  }
   /* IMPORT YOUR STORE FEED, said where it is needed (2026-10-05). A template
      (a starter brand from the gallery) brings a look and a website, never a
      product: since tenant zero became the server's determination rather than
@@ -2272,6 +2409,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   function wireImport() {
+    loadCoverage();
     var mode = 'storefront';
     Array.prototype.forEach.call($('stepCard').querySelectorAll('.imp-tab'), function (t) {
       t.addEventListener('click', function () {
@@ -2314,10 +2452,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         busy = true; status.textContent = 'Importing…';
         var r = await api('catalog-import', payload);
-        catalogCount = r.imported;
-        status.textContent = r.imported + ' products imported' + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.';
+        afterImport(r);
         var sf = $('storeFeed'); if (sf && r.imported) sf.hidden = true;
-        toast('Imported ' + r.imported + ' products.');
       } catch (e) {
         // This span otherwise reads "N products in this workspace." - a count.
         // An error string dropped into it is read as a count too, so it gets
@@ -2348,6 +2484,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '"' + (local ? ' data-storage="device"' : '') + '>' +
             '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
             '<span><b>' + esc(w.name) + '</b>' + (local ? '<span class="ws-chip" data-storage-chip="device">on this device</span>' : '') +
+              (w.coherence && !w.coherence.ok ? '<span class="xtag ' + (w.coherence.blocking ? 'flag' : 'weak') + '" data-coherence-badge="' + (w.coherence.blocking ? 'block' : 'warn') + '" title="' + esc(w.coherence.summary) + '">' + (w.coherence.blocking ? 'Mixed brands' : 'Check') + ' &middot; ' + w.coherence.count + '</span>' : '') +
               '<small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
             '<span class="ws-acts">' +
               (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
@@ -2649,20 +2786,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         loadWorkspaces();
       } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
     });
-    $('newBrand').addEventListener('click', function () {
-      brand = JSON.parse(JSON.stringify(brand));
-      brand.id = ''; brand.slug = ''; brand.name = ''; brand.website = ''; brand.logo_url = ''; brand.tagline = '';
-      // The cleared fields belong to nobody yet; the rest are copied with their origins.
-      if (brand.brand_data && brand.brand_data.field_origin) ['name', 'website', 'logo_url', 'tagline'].forEach(function (k) { delete brand.brand_data.field_origin[k]; });
-      catalogCount = null; go(1);
-    });
+    $('newBrand').addEventListener('click', function () { startNewBrand(); go(1); });
     $('activate').addEventListener('click', async function () {
       var pc = checkPalette();
       if (!pc.ok) { toast('The colour schema still fails the design rules. Fix step 2 first.'); return go(2); }
+      /* A record that mixes brands does not go live by accident (2026-10-10):
+         keep or clear each value, or activate anyway with a reason, which is
+         recorded on the brand with who and when. */
+      var cc = coherenceOf();
+      var override = null;
+      if (cc && cc.blocking) {
+        var why = $('cohReason') ? $('cohReason').value.trim() : '';
+        if (!why) { toast('This brand mixes brands. Keep or clear each value above, or give a reason to activate it anyway.', 5200); var rb = $('cohReason'); if (rb) rb.focus(); return; }
+        override = { reason: why };
+      }
       brand.status = 'active';
       try {
         var saved = await save();
-        var live = await window.BrandContext.setActive(brand.id);
+        var live = await window.BrandContext.setActive(brand.id, override ? { coherence_override: override } : undefined);
         toast((saved && saved.storage === 'device') || (live && live.storage === 'device')
           ? 'This brand is now live across the app on this device.'
           : 'This brand is now live across the app.');
@@ -2937,6 +3078,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     DOC.imgUrls.forEach(function (u) { try { URL.revokeObjectURL(u); } catch (_) {} });
     DOC.report = rep;
     DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = [];
+    DOC.identityAsk = null; DOC.identityOk = false;
     DOC.imgUrls = (rep.images || []).map(function (im) { return URL.createObjectURL(im.blob); });
     DOC.logoPick = (rep.images || []).findIndex(function (im) { return im.mentions_logo; });
   }
@@ -2964,6 +3106,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function docApply() {
     var rep = DOC.report;
     if (!rep || DOC.busy) return;
+    /* A brand book names its brand (2026-10-10). Applying another brand's
+       book filled this brand's untyped name, website and legal entity with
+       that brand's, and its colours and fonts with the rest. When the book
+       names a website on another domain, the person says which brand it is
+       before anything is applied. */
+    var dName = rep.fields && rep.fields.name ? String(rep.fields.name.value || '') : '';
+    var dSite = rep.fields && rep.fields.website ? String(rep.fields.website.value || '') : '';
+    var Lc = coh();
+    if (!DOC.identityOk && Lc) {
+      var foldN = function (v) { return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ''); };
+      var otherSite = dSite && brand.website && !Lc.sameBrand(regOf(dSite), regOf(brand.website));
+      var otherName = dName && brand.name && foldN(dName).indexOf(foldN(brand.name)) < 0 && foldN(brand.name).indexOf(foldN(dName)) < 0;
+      // A website on another domain is a clear mix: ask. A name alone that
+      // differs (a typed variant, a trading name) is applied, and the record
+      // keeps what the book describes, so the coherence check WARNS on it.
+      if (otherSite) { DOC.identityAsk = { name: dName, website: dSite }; render(); return; }
+      void otherName;
+    }
+    DOC.identityAsk = null;
     DOC.busy = true; DOC.error = null; DOC.errorTitle = '';
     DOC.snapshot = JSON.parse(JSON.stringify(brand));
     DOC.added = [];
@@ -3056,6 +3217,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         DOC.added.push({ kind: 'document', id: dref.id });
       } else if (rep.source.url) bfiles().document = { url: rep.source.url, name: rep.source.name, source: 'url' };
       bd().brand_document = { name: rep.source.name, url: rep.source.url || '', kind: rep.source.kind, pages: rep.pages || null, read_at: new Date().toISOString(),
+        describes: { name: dName, website: dSite },
         applied: results.filter(function (r) { return r.status === 'applied' || r.status === 'replaced' || r.status === 'merged'; }).map(function (r) { return r.field; }),
         missing: (rep.missing || []).slice() };
       (rep.missing || []).forEach(function (m) { results.push({ field: m, status: 'missing' }); });
@@ -3199,6 +3361,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (f.rules['image-treatment']) out += docRow('components', 'Image treatment', esc(f.rules['image-treatment'].value), f.rules['image-treatment'].prov);
     out += '</div>';
     if (r.notes.length || r.limits.length) out += '<div class="xlimits"><b>What this read could not take</b><ul>' + r.notes.concat(r.limits).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+    if (DOC.identityAsk) out += '<div class="coh" data-doc-identity><h3>This document describes ' + esc(DOC.identityAsk.name || DOC.identityAsk.website) + '</h3>' +
+      '<p>It names ' + esc([DOC.identityAsk.name, DOC.identityAsk.website].filter(Boolean).join(', ')) + '; this brand is ' + esc([brand.name, brand.website].filter(Boolean).join(', ')) + '. Applying it would put another brand\'s name, website, colours and words into this record.</p>' +
+      '<div class="coh-acts"><button type="button" class="btn" data-doc-identity-go>Apply it to ' + esc(brand.name || 'this brand') + ' anyway</button>' +
+      '<button type="button" class="btn" data-doc-identity-cancel>Cancel</button></div></div>';
     out += '<div class="doc-acts">' + (DOC.results
       ? '<button type="button" class="btn" id="docRevert">Revert</button>'
       : '<button type="button" class="btn primary" id="docApply">Apply everything the document states</button>') + '</div>';
@@ -3574,6 +3740,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       }, url);
     });
     var ap = $('docApply'); if (ap) ap.addEventListener('click', docApply);
+    var dig = c.querySelector('[data-doc-identity-go]'); if (dig) dig.addEventListener('click', function () { DOC.identityOk = true; DOC.identityAsk = null; docApply(); });
+    var dic = c.querySelector('[data-doc-identity-cancel]'); if (dic) dic.addEventListener('click', function () { DOC.identityAsk = null; DOC.status = 'Nothing from the document was applied.'; render(); });
     var rv = $('docRevert'); if (rv) rv.addEventListener('click', docRevert);
     Array.prototype.forEach.call(c.querySelectorAll('[data-doc-logo]'), function (b) {
       b.addEventListener('click', function () { var i = +b.getAttribute('data-doc-logo'); DOC.logoPick = DOC.logoPick === i ? -1 : i; render(); });
@@ -3611,6 +3779,166 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         slot.innerHTML = '<img alt="" src="' + esc(pv.url) + '"><span>' + esc((pv.ref && pv.ref.name) || hostLabel(pv.url)) + (pv.ref && pv.ref.width ? ' · ' + pv.ref.width + '×' + pv.ref.height + ' px' : '') + '</span>' + where;
       }).catch(function () {});
     });
+  }
+
+  /* ── IS THIS RECORD ONE BRAND? (2026-10-10) ────────────────────────────
+     The live project's only brand was named Mamaearth, slugged
+     food-for-thought, with nike.in as its website and its profiles, imagery
+     and legal entity read from mamaearth.in. BrandContext.coherence is the
+     server's rule (api/_shared/brand-coherence.js, ported): the website's
+     registrable domain is the identity source, and every value read from
+     another domain is listed here with where it came from. Nothing is
+     resolved for the person: each conflict offers Keep (recorded) or Clear,
+     and each foreign domain offers "this brand IS that domain" and "clear
+     everything from it". Shown on step 1 when something disagrees, and always
+     on the review step, where an identity mix blocks activation unless a
+     reason is given. */
+  function coherenceOf() {
+    try { return window.BrandContext && window.BrandContext.coherence ? window.BrandContext.coherence(brand) : null; } catch (_) { return null; }
+  }
+  function coherenceBlock(review) {
+    var c = coherenceOf();
+    if (!c) return '';
+    if (c.ok && !review) return '';
+    var foreign = [];
+    c.conflicts.forEach(function (x) { if (x.domain && x.domain.indexOf(':') < 0 && (!c.identity || x.domain !== c.identity.domain) && foreign.indexOf(x.domain) < 0) foreign.push(x.domain); });
+    var rows = c.conflicts.map(function (x) {
+      return '<li data-conflict="' + esc(x.id) + '" data-severity="' + esc(x.severity) + '" data-field="' + esc(x.field) + '">' +
+        '<span class="xtag ' + (x.severity === 'block' ? 'flag' : 'weak') + '">' + (x.severity === 'block' ? 'Mixed' : 'Check') + '</span> ' +
+        '<b>' + esc(x.label) + (x.count > 1 ? ' (' + x.count + ')' : '') + ':</b> ' + esc(x.value || '') + '<br>' + esc(x.message) +
+        (x.source_url ? '<br><span class="coh-src">Source: ' + esc(x.source_url) + '</span>' : '') +
+        '<div class="coh-acts">' +
+          (x.kind === 'slug_name' ? '<button type="button" class="btn" data-coh-slug="' + esc(x.expected) + '">Use ' + esc(x.expected) + '</button>' : '<button type="button" class="btn" data-coh-clear="' + esc(x.id) + '">Clear that</button>') +
+          '<button type="button" class="btn" data-coh-keep="' + esc(x.id) + '">Keep this</button>' +
+        '</div></li>';
+    }).join('');
+    var groups = foreign.map(function (d) {
+      return '<div class="coh-acts" data-coh-domain="' + esc(d) + '">' +
+        '<button type="button" class="btn" data-coh-is="' + esc(d) + '">This brand is ' + esc(d) + '</button>' +
+        '<button type="button" class="btn" data-coh-clear-domain="' + esc(d) + '">Clear everything from ' + esc(d) + '</button></div>';
+    }).join('');
+    var idLine = c.identity ? 'Identity source: ' + esc(c.identity.host) + ' (the website).' : 'No website yet, so nothing says which brand the read values belong to.';
+    return '<div class="coh" data-coherence data-blocking="' + (c.blocking ? 'true' : 'false') + '" data-conflicts="' + c.conflicts.length + '">' +
+      '<h3>' + (c.ok ? 'One brand' : (c.blocking ? 'This record mixes brands' : 'Check this record')) + '</h3>' +
+      '<p data-coherence-summary>' + esc(c.summary) + ' ' + idLine + '</p>' +
+      (c.domains.length ? '<p class="coh-src">Read from: ' + c.domains.map(function (d) { return esc(d.domain) + ' (' + esc(d.fields.join(', ')) + ')'; }).join('; ') + '</p>' : '') +
+      groups + (rows ? '<ul>' + rows + '</ul>' : '') +
+      (c.accepted.length ? '<p class="coh-src" data-coh-accepted="' + c.accepted.length + '">' + c.accepted.length + ' kept by you.</p>' : '') +
+      (review && c.blocking ? '<label for="cohReason" style="display:block;margin-top:8px;font-size:12px">To activate it as it is, say why (recorded on the brand):</label><textarea id="cohReason" data-coh-reason></textarea>' : '') +
+      '</div>';
+  }
+  function cohGroupOf(item, field) {
+    var L = coh();
+    if (!L || !item || typeof item !== 'object') return '';
+    var u = field === 'brand_data.social' ? item.source_url : field === 'brand_data.imagery' ? (item.page || item.url) : field === 'brand_data.brand_assets' ? (item.found_on || item.url) : item.url;
+    return L.registrableDomain(L.hostOf(u));
+  }
+  function dropProvenance(f) {
+    var d = bd();
+    var x = d.brand_extraction && d.brand_extraction.applied;
+    var alt = f.replace(/^brand_data\./, '');
+    if (x) { delete x[f]; delete x[alt]; }
+    if (d.field_origins) delete d.field_origins[f];
+    if (d.field_origin) delete d.field_origin[f];
+    lastSeen[f] = normVal(getField(f));
+  }
+  var PLACEHOLDER = blankBrand();
+  /** Clear ONE conflict's value(s) - only what came from that conflict's source. */
+  function clearConflict(x) {
+    var f = x.field, d = bd();
+    var L = coh();
+    var fromDomain = function (u) { return L ? L.registrableDomain(L.hostOf(u)) === x.domain : false; };
+    if (f === 'brand_data.social' || f === 'brand_data.imagery' || f === 'brand_data.brand_assets') {
+      var key = f.slice(11);
+      d[key] = (Array.isArray(d[key]) ? d[key] : []).filter(function (it) { return x.kind === 'template' ? false : cohGroupOf(it, f) !== x.domain; });
+      if (!d[key].length) dropProvenance(f);
+      return;
+    }
+    if (f === 'brand_data.claims') {
+      var ap = (d.brand_extraction && d.brand_extraction.applied) || {};
+      var gone = Object.keys(ap).filter(function (k) { return /^claims\[\d+\]$/.test(k) && fromDomain(ap[k].source_url); }).map(function (k) { return String(ap[k].value || '').trim().toLowerCase(); });
+      d.claims = (Array.isArray(d.claims) ? d.claims : []).filter(function (cl) { return gone.indexOf(String(cl || '').trim().toLowerCase()) < 0; });
+      return;
+    }
+    if (f === 'catalog_source') { brand.catalog_source = {}; catalogCount = null; toast('Cleared the catalogue source. Import this brand\'s own catalogue on step 5; an import replaces the products.', 5200); return; }
+    if (f === 'regions') {
+      brand.regions = brand.regions.filter(function (r) { return x.kind === 'template' ? false : !(r && fromDomain(r.store_url)); });
+      if (x.kind === 'template') dropProvenance('regions');
+      return;
+    }
+    if (f === 'regions.home') { brand.regions.forEach(function (r) { r.home = false; }); dropProvenance(f); return; }
+    if (f === 'asset_hosts') {
+      brand.asset_hosts = (brand.asset_hosts || []).filter(function (h) { return x.kind === 'template' ? false : !fromDomain('https://' + h); });
+      dropProvenance(f);
+      return;
+    }
+    if (f === 'brand_data.brand_document') { delete d.brand_document; return; }
+    if (f === 'brand_data.legal_entity') { delete d.legal_entity; dropProvenance(f); return; }
+    if (f === 'brand_data.design_system') { delete d.design_system; dropProvenance(f); return; }
+    if (f.indexOf('palette.') === 0 || f.indexOf('typography.') === 0) {
+      // Back to the wizard's own placeholder, labelled as one (origin
+      // 'default'), never another value presented as the brand's.
+      var k = f.split('.')[1];
+      if (f.indexOf('palette.') === 0) brand.palette[k] = PLACEHOLDER.palette[k] || '';
+      else brand.typography[k] = JSON.parse(JSON.stringify(PLACEHOLDER.typography[k] || null));
+      dropProvenance(f);
+      markOrigin(f, 'default');
+      origins()[f] = { origin: 'default' };
+      return;
+    }
+    if (f === 'voice.tone') { brand.voice.tone = ''; dropProvenance(f); return; }
+    if (f === 'name' || f === 'tagline' || f === 'logo_url' || f === 'favicon_url' || f === 'website') { brand[f] = ''; dropProvenance(f); return; }
+  }
+  function cohRecordKeep(id) {
+    var d = bd();
+    if (!d.coherence || typeof d.coherence !== 'object') d.coherence = {};
+    var list = Array.isArray(d.coherence.accepted) ? d.coherence.accepted : [];
+    if (!list.some(function (a) { return (a && a.id) === id; })) list.push({ id: id, at: new Date().toISOString(), origin: 'user' });
+    d.coherence.accepted = list;
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-coh-keep],[data-coh-clear],[data-coh-slug],[data-coh-is],[data-coh-clear-domain]') : null;
+    if (!t) return;
+    var c = coherenceOf();
+    if (!c) return;
+    var byId = function (id) { return c.conflicts.filter(function (x) { return x.id === id; })[0]; };
+    var said = '';
+    if (t.hasAttribute('data-coh-keep')) { var k = byId(t.getAttribute('data-coh-keep')); if (k) { cohRecordKeep(k.id); said = 'Kept ' + k.label + '. Recorded as your decision.'; } }
+    else if (t.hasAttribute('data-coh-clear')) { var x = byId(t.getAttribute('data-coh-clear')); if (x) { clearConflict(x); said = 'Cleared ' + x.label + (x.domain && x.domain.indexOf(':') < 0 ? ' from ' + x.domain : '') + '.'; } }
+    else if (t.hasAttribute('data-coh-slug')) { brand.slug = t.getAttribute('data-coh-slug'); said = 'The slug now follows the name: ' + brand.slug + '.'; }
+    else if (t.hasAttribute('data-coh-clear-domain')) {
+      var dom = t.getAttribute('data-coh-clear-domain');
+      var n = 0;
+      c.conflicts.forEach(function (y) { if (y.domain === dom) { clearConflict(y); n++; } });
+      said = 'Cleared ' + n + ' value(s) read from ' + dom + '.';
+    }
+    else if (t.hasAttribute('data-coh-is')) {
+      var dm = t.getAttribute('data-coh-is');
+      var src = c.conflicts.filter(function (y) { return y.domain === dm && y.source_url; })[0];
+      var site = '';
+      try { site = new URL(src.source_url).origin; } catch (_) { site = 'https://' + dm; }
+      brand.website = site;
+      setOrigin('website', 'user');
+      xUrlDraft = null;
+      said = 'The website is now ' + site + '. Anything read from another site is listed for you to keep or clear.';
+    }
+    render();
+    if (said) toast(said, 4200);
+    save(true);
+  });
+
+  /* A new brand is a blank record: nothing of the brand on screen is carried
+     into it (2026-10-10). */
+  function startNewBrand() {
+    brand = blankBrand();
+    DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
+    ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body']
+      .forEach(function (f) { origins()[f] = { origin: 'default' }; });
+    extraction = null; extractError = null; rendered = null; domainSwitch = null; xUrlDraft = null; presetPicked = '';
+    DOC.report = null; DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = []; DOC.status = ''; DOC.identityAsk = null; DOC.identityOk = false;
+    catalogCount = null;
+    snapshotSeen();
+    try { $('title').textContent = 'Onboard a brand'; $('lede').textContent = 'A new brand, from a blank record.'; } catch (_) {}
   }
 
   /* ── persistence ────────────────────────────────────────────────────── */
@@ -3671,6 +3999,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           if (r.brand.typography && r.brand.typography.heading) brand.typography = r.brand.typography;
           if (r.brand.voice) brand.voice = Object.assign(brand.voice, r.brand.voice);
           if (r.brand.regions && r.brand.regions.length) brand.regions = r.brand.regions;
+          // Where the catalogue was imported from and which hosts serve its
+          // assets are part of the record the coherence check reads (2026-10-10).
+          if (r.brand.catalog_source && typeof r.brand.catalog_source === 'object') brand.catalog_source = r.brand.catalog_source;
+          if (Array.isArray(r.brand.asset_hosts)) brand.asset_hosts = r.brand.asset_hosts;
           // brand_data is the overflow column: verifiable claims, social
           // profiles, legal entity, market study, extraction provenance. The
           // wizard sends its whole model on every save and buildRow() takes any
