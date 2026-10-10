@@ -91,21 +91,32 @@ function isUnresolved(brand) { return !!(brand && brand.unresolved === true); }
  * The brand this generation is for. NEVER tenant zero unless tenant zero is
  * genuinely what is in scope.
  */
+/**
+ * A record that NAMES the brand this generation is for: a workspace row or a
+ * preset (id / slug), a record a phone account carried, or the unresolved
+ * placeholder. The placeholder has no id on purpose, and before 2026-10-10 it
+ * was therefore read as "no brand" here and the caller fell through to tenant
+ * zero - the one answer the placeholder exists to prevent.
+ */
+function namesBrand(b) {
+  return !!(b && typeof b === 'object' && (b.id || b.slug || b.carried === true || b.unresolved === true));
+}
+
 function scopedBrand(candidate, opts) {
   const o = opts || {};
-  if (candidate && (candidate.id || candidate.slug)) return candidate;
+  if (namesBrand(candidate)) return candidate;
 
   // The catalogue scope pins {brand, workspaceId} for a generation subtree.
   try {
     const scope = require('./brand-catalog-server.js').currentScope();
-    if (scope && scope.brand && (scope.brand.id || scope.brand.slug)) return scope.brand;
+    if (scope && namesBrand(scope.brand)) return scope.brand;
   } catch (_) { /* outside a pinned generation */ }
 
   // The request scope carries the HTTP request the handler is serving.
   try {
     const rs = require('./request-scope.js');
     const req = rs.currentRequest && rs.currentRequest();
-    if (req && req.__brand && (req.__brand.id || req.__brand.slug)) return req.__brand;
+    if (req && namesBrand(req.__brand)) return req.__brand;
   } catch (_) { /* outside a wrapped handler */ }
 
   // A caller that explicitly wants tenant zero asks for it by name.
@@ -318,6 +329,14 @@ function defaultBrand() {
  */
 async function resolve(req, opts) {
   const o = opts || {};
+  // Set once a PERSON is known to be asking. From then on no failure answers
+  // tenant zero (2026-10-10): a signed-in account with no workspace, a row it
+  // could not read and a lookup that threw all used to fall to defaultBrand(),
+  // and every caller that took resolve() at its word (generate.js, the
+  // landing-page agent, the mailer trigger, the image route, growth-os, the
+  // pipeline) then wrote that person's asset as tenant zero. Only a call with
+  // no verified person (the scheduler, a script) keeps the shipped default.
+  let person = false;
   try {
     const q = (req && req.query) || {};
     const body = (req && req.body && typeof req.body === 'object') ? req.body : {};
@@ -325,6 +344,7 @@ async function resolve(req, opts) {
 
     const auth = o.auth || await brandCore.requireUser(req);
     if (!auth || !auth.ok) return defaultBrand();
+    person = true;
 
     // A MOBILE+PIN ACCOUNT HAS NO WORKSPACE ROW (2026-09-29). Its brands live
     // on the device it signed in on, so there is nothing here to look up -
@@ -345,7 +365,7 @@ async function resolve(req, opts) {
     // Existing generator clients send no workspace_id, so that is the common
     // path, not an edge case. The preference lookup is one cheap indexed read.
     const id = explicit || await brandCore.activeWorkspaceId(auth);
-    if (!id) return defaultBrand();
+    if (!id) return unresolvedBrand('a signed-in account with no brand workspace');
 
     const key = `${auth.user_id}|${id}`;
     const hit = CACHE.get(key);
@@ -355,7 +375,8 @@ async function resolve(req, opts) {
     const ws = await brandCore.getWorkspace(auth, id);
     // Normalise BEFORE caching, so every consumer of the cached row sees the
     // same shape and the hoist cost is paid once per TTL rather than per read.
-    const brand = ws ? normalizeBrand(ws) : defaultBrand();
+    if (!ws) return unresolvedBrand('the brand workspace could not be read for this account');
+    const brand = normalizeBrand(ws);
     // Whether THIS workspace owns tenant zero's shipped material is the
     // server's determination (the oldest workspace), stamped on the record so
     // brand-catalog-server.isTenantZeroBrand() never reads it off the slug,
@@ -366,7 +387,7 @@ async function resolve(req, opts) {
     CACHE.set(key, { brand, at: Date.now() });
     return brand;
   } catch (_) {
-    return defaultBrand();
+    return person ? unresolvedBrand('the brand workspace could not be read for this account') : defaultBrand();
   }
 }
 
@@ -526,6 +547,11 @@ function brandBlock(brand) {
   if (pend.includes('font')) lines.push(`FONT FILES: ${hostedMarker('font', b)} - a brand font was uploaded as a file and has no hosted URL yet. Use the family name with its fallback stack; never embed the font as data:/base64.`);
   if (pend.includes('image')) lines.push(`BRAND IMAGERY: ${hostedMarker('image', b)} - uploaded brand images are not hosted yet. Never embed an image as data:/base64.`);
   lines.push('FOOTER: "Privacy Policy" and "Terms of Service" must be plain labels with href="#" and no target/onclick routing.');
+  // The sender a commercial email must name (CAN-SPAM), from THIS record
+  // (2026-10-10). The block never carried it, so a writer asked for a footer
+  // had nothing of the brand's to put there.
+  const legal = String(b.legal_entity || b.legal_name || '').trim();
+  lines.push(`LEGAL SENDER (email footer, exact): ${legal || `[DATA REQUIRED BEFORE LAUNCH: legal sender name and postal address, ${b.name || 'this brand'}]`}`);
   // The block forbids fabricating a claim but never said what this brand may
   // actually assert, so a generator had nothing approved to reach for and every
   // proof line came out as a DATA REQUIRED marker even when the brand had
@@ -635,7 +661,94 @@ function scrubHtmlForBrand(html, brand) {
   return s.replace(/[^\S\r\n]{2,}/g, ' ');
 }
 
+/* ── one brand's facts, for a renderer or a prompt (2026-10-10) ─────────────
+ *
+ * Every renderer and prompt builder used to carry its own fallback for a brand
+ * that had not supplied a value, and nearly every one of those fallbacks was
+ * TENANT ZERO's value: its two font stacks, its four hexes, its banned list.
+ * A brand with no typography got another company's typefaces and looked
+ * finished. These are the one place a fallback is decided, and none of them
+ * is anybody's brand: a generic system stack, a neutral palette that passes
+ * the design rules, and a DATA REQUIRED marker wherever a PROMPT would state
+ * the fact.
+ */
+const NEUTRAL_FONTS = Object.freeze({
+  head: "Georgia,'Times New Roman',serif",
+  body: "system-ui,-apple-system,'Segoe UI',Arial,sans-serif",
+});
+// Not a brand colour: a mid blue chosen to pass the section-ground and AA
+// rules with white text, used only where a record has no palette at all.
+const NEUTRAL_PALETTE = Object.freeze({
+  primary: '#2B4C7E', accent: '#2B4C7E', ink: '#1F2328', surface: '#FFFFFF', surface_alt: '#F6F7F9', line: '#E3E6EA', muted: '#5B6470',
+});
+
+function familyOf(slot) {
+  if (!slot) return '';
+  if (typeof slot === 'string') return slot.replace(/['"\\<>;{}]/g, '').split(',')[0].trim();
+  return String(slot.family || '').replace(/['"\\<>;{}]/g, '').trim();
+}
+function stackOfSlot(slot, generic) {
+  if (!slot) return '';
+  const own = typeof slot === 'object' ? String(slot.stack || '').trim() : '';
+  const fam = familyOf(slot);
+  const s = own || (fam ? `'${fam}'` : '');
+  if (!s) return '';
+  return /(?:^|,)\s*(?:serif|sans-serif|monospace|system-ui|cursive)\s*$/i.test(s) ? s : `${s},${generic}`;
+}
+
+/** The brand's own heading/body stacks, else a generic system stack - never another brand's family. */
+function fontStacks(brand) {
+  const t = (brand && brand.typography) || {};
+  const head = stackOfSlot(t.heading, 'Georgia,serif');
+  const body = stackOfSlot(t.body, 'Arial,sans-serif');
+  return {
+    head: head || body || NEUTRAL_FONTS.head,
+    body: body || head || NEUTRAL_FONTS.body,
+    headFamily: familyOf(t.heading), bodyFamily: familyOf(t.body),
+    declared: { head: !!head, body: !!body },
+  };
+}
+
+/** The brand's palette over the neutral one: a missing key is neutral, never another brand's hex. */
+function paletteOf(brand) {
+  const p = (brand && brand.palette) || {};
+  const out = Object.assign({}, NEUTRAL_PALETTE);
+  for (const k of Object.keys(p)) if (typeof p[k] === 'string' && /^#[0-9a-f]{3,8}$/i.test(p[k].trim())) out[k] = p[k].trim();
+  if (!p.accent && p.primary) out.accent = out.primary;
+  out.declared = !!(p.primary || p.accent);
+  return out;
+}
+
+/**
+ * The facts a PROMPT states about this brand, each its own value or a marker.
+ * One derivation for every prompt builder, so no builder can keep a private
+ * copy of tenant zero's identity paragraph.
+ */
+function promptFacts(brand) {
+  const b = brand || {};
+  const tag = b.name || 'this brand';
+  const v = b.voice || {};
+  const fonts = fontStacks(b);
+  const pal = b.palette || {};
+  const hexes = ['primary', 'accent', 'ink', 'surface'].map((k) => pal[k]).filter(Boolean);
+  return {
+    name: b.name || missing('brand name'),
+    descriptor: [b.industry, b.tagline].filter(Boolean).join(' - ') || `[DATA REQUIRED BEFORE LAUNCH: brand descriptor, ${tag}]`,
+    palette: hexes.length ? hexes.join(' / ') : `[DATA REQUIRED BEFORE LAUNCH: brand palette, ${tag}]`,
+    typography: (fonts.declared.head || fonts.declared.body)
+      ? `${fonts.headFamily || fonts.bodyFamily} (headings), ${fonts.bodyFamily || fonts.headFamily} (body)`
+      : `[DATA REQUIRED BEFORE LAUNCH: brand typography, ${tag}]`,
+    tone: v.tone || `[DATA REQUIRED BEFORE LAUNCH: voice.tone, ${tag}]`,
+    preferred: Array.isArray(v.preferred) ? v.preferred.filter(Boolean) : [],
+    banned: Array.isArray(v.banned) ? v.banned.filter(Boolean) : [],
+    claims: Array.isArray(b.claims) ? b.claims.filter(Boolean) : [],
+    legal: b.legal_entity || b.legal_name || '',
+    home: homeRegion(b),
+  };
+}
+
 module.exports = {
+  NEUTRAL_FONTS, NEUTRAL_PALETTE, fontStacks, paletteOf, promptFacts, namesBrand,
   scopedBrand, unresolvedBrand, isUnresolved, carriedBrand,
   resolve, brandBlock, regionFacts, homeRegion, scrubForBrand, scrubHtmlForBrand,
   defaultBrand, isDefault, normalizeBrand, invalidate, HOISTED,

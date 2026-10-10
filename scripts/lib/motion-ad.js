@@ -39,16 +39,25 @@ const PALETTE = { green: '#D0473E', lava: '#6A33D8', ink: '#111111', chalk: '#FF
  * omit it and every value below is byte-identical to what shipped before, so the
  * existing `npm run build:july` output does not move.
  */
+/** The neutral fallback a NAMED brand gets for a value its record lacks (2026-10-10). */
+function neutral() {
+  try { return require('../../api/_shared/brand-runtime.js'); } catch (_) { return null; }
+}
 function paletteOf(spec) {
   const b = (spec && spec.brand) || null;
   const p = (b && b.palette) || {};
+  // A brand was named but did not supply a colour: the NEUTRAL palette, never
+  // tenant zero's. A brand with no palette at all got tenant zero's red and
+  // purple on its video ad (2026-10-10). Only a spec with NO brand (the
+  // tenant-zero build scripts) keeps the shipped palette byte for byte.
+  const N = b ? ((neutral() && neutral().NEUTRAL_PALETTE) || { primary: '#2B4C7E', accent: '#2B4C7E', ink: '#1F2328', surface: '#FFFFFF' }) : null;
   return {
-    green: p.primary || PALETTE.green,   // brand PRIMARY (the field name is historic)
+    green: p.primary || (N ? N.primary : PALETTE.green),   // brand PRIMARY (the field name is historic)
     // brand ACCENT; a brand that renders one colour has none, and its own
     // primary stands in (never tenant zero's purple - 2026-10-05).
-    lava:  p.accent  || p.primary || PALETTE.lava,
-    ink:   p.ink     || PALETTE.ink,
-    chalk: p.surface || PALETTE.chalk,
+    lava:  p.accent  || p.primary || (N ? N.accent : PALETTE.lava),
+    ink:   p.ink     || (N ? N.ink : PALETTE.ink),
+    chalk: p.surface || (N ? N.surface : PALETTE.chalk),
   };
 }
 /* ── colour maths, resolved HERE rather than by the viewer's engine ─────────
@@ -90,9 +99,12 @@ function fontsOf(spec) {
   // engine's default face. The stack is the value; a bare string (the older
   // shape callers passed) is still accepted.
   const stackOf = (v) => (v && typeof v === 'object' ? (v.stack || (v.family ? `'${v.family}',sans-serif` : '')) : (typeof v === 'string' ? v : ''));
+  // A named brand with no typography gets a generic stack, never tenant
+  // zero's two families (2026-10-10); no brand at all keeps the shipped ones.
+  const NF = (spec && spec.brand) ? ((neutral() && neutral().NEUTRAL_FONTS) || { head: 'Georgia,serif', body: 'Arial,sans-serif' }) : null;
   return {
-    head: stackOf(t.heading) || stackOf(t.head) || "'Montserrat','Raleway',Georgia,serif",
-    body: stackOf(t.body) || "'Instrument Sans','Helvetica Neue',Arial,sans-serif",
+    head: stackOf(t.heading) || stackOf(t.head) || (NF ? NF.head : "'Montserrat','Raleway',Georgia,serif"),
+    body: stackOf(t.body) || (NF ? NF.body : "'Instrument Sans','Helvetica Neue',Arial,sans-serif"),
   };
 }
 
