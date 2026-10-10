@@ -84,7 +84,7 @@ git clone https://github.com/anchittandon-create/KNICKGASM lifecycle-os && cd li
 # 2. configuration
 cp selfhost/.env.example selfhost/.env
 node scripts/selfhost-keys.js --write      # JWT_SECRET + ANON_KEY + SERVICE_ROLE_KEY + every other secret
-$EDITOR selfhost/.env                      # the lines marked EDIT: URLs, DB_MODE
+$EDITOR selfhost/.env                      # the lines marked EDIT: URLs, DB_MODE, Google client
 ```
 
 `selfhost-keys.js` is the part people get wrong, so it is explicit: `ANON_KEY` and
@@ -167,18 +167,32 @@ the WebSocket URL from the client's base URL; `credits.js` and
 `SMART_BRAIN_SUPABASE_URL` / `SMART_BRAIN_SUPABASE_KEY` are optional overrides for a
 *separate* Smart Brain project; leave them unset so the brain uses the same box.
 
-### Sign-in: mobile number + 4-digit PIN (no OAuth provider)
+### Google sign-in
 
-Sign-in is a mobile number and a 4-digit PIN only (2026-10-09; the Google
-sign-in that briefly ran is removed). The app's server creates each account
-through GoTrue's admin endpoint and signs it in with the phone + password
-grant (the PIN is turned into a long derived password under
-`MOBILE_PIN_PEPPER`; see `docs/mobile-pin-signin.md`, "Supabase mode"). So in
-`selfhost/.env`: `ENABLE_PHONE_SIGNUP=true` (the phone provider must be on),
-`DISABLE_SIGNUP=true` and `ENABLE_EMAIL_SIGNUP=false` (public sign-ups off; the
-admin endpoint is not affected), and no OAuth provider. Apply
-`supabase/migrations/` (the `mobile_pin_*` functions) to the box, set
-`MOBILE_PIN_PEPPER` on the app deployment, restart `auth`.
+`auth.js` signs in with `supabase.auth.signInWithOAuth({ provider: 'google' })`, so
+the flow is browser → **your** GoTrue → Google → **your** GoTrue callback → back to
+`redirectTo`. Two things change from the hosted setup described in
+`docs/oauth-redirect-migration.md` (which is about *domain* moves and still holds
+for the app side):
+
+1. **Google Cloud Console → OAuth client (Web application) → Authorized redirect
+   URIs** — the hosted value was `https://<ref>.supabase.co/auth/v1/callback`; it
+   becomes **`https://<your-host>/auth/v1/callback`** (GoTrue registers
+   `${API_EXTERNAL_URL}/callback`, and `API_EXTERNAL_URL` is
+   `SUPABASE_PUBLIC_URL + /auth/v1`). Add the new one; keep the old while both run.
+   This is Console-only — there is no API for a Web-application client's redirect
+   URIs, as that doc records.
+2. **The Supabase redirect allowlist** is now `SITE_URL` + `ADDITIONAL_REDIRECT_URLS`
+   in `selfhost/.env` (`https://lifecycle-os.anchit-tandon.com/**`), instead of the
+   Management-API call `scripts/migrate-oauth.js` makes. That script targets hosted
+   projects only; it is not needed here.
+
+Google is the ONLY sign-in (2026-10-10; the mobile number + PIN broker is switched
+off, so keep `ENABLE_PHONE_SIGNUP=false` and `ENABLE_EMAIL_SIGNUP=false`, and
+`DISABLE_SIGNUP=false` because that switch also blocks a first Google sign-in).
+Put the client id/secret in `GOOGLE_CLIENT_ID` / `GOOGLE_SECRET`, keep
+`GOOGLE_ENABLED=true`, restart `auth`. Google refuses `http://` redirect URIs on
+non-localhost hosts, so TLS is a prerequisite, not a nicety.
 
 ### TLS: Caddy in front (one block)
 

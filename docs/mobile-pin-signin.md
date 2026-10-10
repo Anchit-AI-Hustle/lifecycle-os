@@ -1,5 +1,13 @@
 # Sign in with a mobile number and a 4-digit PIN (2026-09-28)
 
+> **HISTORICAL - SWITCHED OFF ON 2026-10-10.** Sign-in is Google, through Supabase Auth, and
+> nothing else: read [`docs/google-signin.md`](google-signin.md). The owner's words: *"No signin
+> with mobile number - only Google signin pls"*. Everything below describes a sign-in that no
+> longer exists: `op=enter` answers 410 `pin_signin_removed`, every gate refuses a phone or
+> device token exactly like no token at all, and a phone session left in a browser is ended on
+> boot (its device brands are kept). Kept as the record of what those accounts were.
+
+
 The operator's words: *"implement signin and signup like this ... and comment out all
 other signin and signup - signin/signup with mobile number and a 4 digit password - save in
 db (neon) or local browser cache whichever can be used - just like in parwah-hq"*.

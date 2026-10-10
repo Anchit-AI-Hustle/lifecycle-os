@@ -17,6 +17,13 @@
  *     a 500, never a raw code - and starts no sign-in, writes no state row;
  *   - a caller with no token is still refused exactly as before.
  *
+ * ── 2026-10-10: GOOGLE IS THE ONLY SIGN-IN ──────────────────────────────────
+ * The mobile number + PIN sign-in is switched off, so a phone token (the
+ * device-mode token this file drove) is now refused EXACTLY like no token: a
+ * 401 with a sentence naming Google, never a 500, never a raw code, no state
+ * row written, no sign-in started. The `device_account` answer it used to
+ * get exists only for a phone principal, which no gate admits any more.
+ *
  * Run: npx playwright test tests/connections-device-account.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
@@ -29,30 +36,24 @@ test.beforeEach(() => { w.reset(); });
 
 const connections = (op, o) => w.request('/api/public-config', Object.assign({}, o, { query: Object.assign({ action: 'connections', op }, (o && o.query) || {}) }));
 
-test('list: nothing connected, the registry to show, and why - not a 500', async () => {
-  const r = await connections('list', { state: 'phone' });
-  expect(r.status, r.text).toBe(200);
-  expect(r.out).toMatchObject({ ok: true, storage: 'device', workspace_id: null, connections: [], routing: { entries: [], use_platform_fallback: true } });
-  expect(r.out.note).toMatch(/kept on this device/);
-  expect(r.out.providers.length, 'the platforms are still shown').toBeGreaterThan(5);
-  expect(r.text).not.toMatch(/connections_router_failed/);
-  expect(w.escaped()).toEqual([]);
-});
-
-test('Connect, save, publishing and disconnect answer the same sentence with 409 - and start nothing', async () => {
+test('a phone token is refused like no token, at list and at every op - never a 500, and nothing is started', async () => {
   for (const [op, json] of [
+    ['list', undefined],
     ['oauth-start', { provider: 'youtube', capabilities: ['post'], return_to: '/publishing' }],
     ['save', { provider: 'openai', fields: { api_key: 'sk-test-0000000000000000' } }],
     ['publishing', { provider: 'meta_ads', enabled: true }],
     ['oauth-disconnect', { provider: 'meta' }],
   ]) {
-    const r = await connections(op, { state: 'phone', json });
-    expect(r.status, `${op}: ${r.text}`).toBe(409);
-    expect(r.out, op).toMatchObject({ ok: false, error: 'device_account', storage: 'device' });
-    expect(r.out.message, op).toMatch(/kept on this device/);
-    expect(r.out.message, op).not.toMatch(/sign in/i);
+    const anon = await connections(op, Object.assign({ state: 'anonymous' }, json ? { json } : {}));
+    const r = await connections(op, Object.assign({ state: 'phone' }, json ? { json } : {}));
+    expect(r.status, `${op}: ${r.text}`).toBe(401);
+    expect(r.status, op).toBe(anon.status);
+    expect(r.out.ok, op).toBe(false);
+    expect(r.out.storage, op).toBeUndefined();
+    expect(String(r.out.message || ''), op).toMatch(/Google/);
+    expect(r.text, op).not.toMatch(/connections_router_failed/);
   }
-  expect(w.db.table('oauth_authorization_states'), 'no sign-in was started').toEqual([]);
+  expect(w.db.table('oauth_authorization_states'), 'a sign-in was started').toEqual([]);
   expect(w.escaped()).toEqual([]);
 });
 

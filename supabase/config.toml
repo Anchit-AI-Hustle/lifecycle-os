@@ -24,20 +24,36 @@ api_url = "http://127.0.0.1"
 
 [auth]
 enabled = true
+# The production URL is canonical for every environment's Google redirect.
 site_url = "https://lifecycle-os.anchit-tandon.com"
-# Sign-in is a mobile number and a 4-digit PIN only (2026-10-09). No OAuth
-# provider is configured (the Google sign-in of 2026-10-05 is removed), so no
-# redirect target is needed. `supabase config push` applies this file; the
-# hosted dashboard's own provider switches still have to be checked by hand
-# (Authentication > Sign In / Providers: Google OFF, Email OFF, Phone ON).
-additional_redirect_urls = []
+# Google is the ONLY sign-in (2026-10-10). auth.js always sends redirectTo =
+# <origin>/ (this Site URL in production) and restores the page afterwards,
+# so a missing wildcard cannot 400 the bounce. A hosted project that does not
+# list these, or whose Google provider is OFF, answers 400 validation_failed
+# on /auth/v1/authorize - auth.js reads /auth/v1/settings first and says so.
+additional_redirect_urls = [
+  "http://localhost:3001",
+  "http://localhost:3001/**",
+  "https://lifecycle-os.anchit-tandon.com",
+  "https://lifecycle-os.anchit-tandon.com/**",
+]
 jwt_expiry = 3600
-# PUBLIC sign-ups OFF (2026-10-03). Every account is a mobile number + PIN
-# created by the server through the admin endpoint (POST /auth/v1/admin/users,
-# service role), which this setting does not affect. With it on, anyone holding
-# the public anon key could POST /auth/v1/signup and take a number before its
-# owner does.
-enable_signup = false
+# ON, because this switch governs EVERY provider: with it off GoTrue refuses
+# to create the user a FIRST Google sign-in brings ("Signups not allowed for
+# this instance"), OAuth included. Which providers may create a user is
+# decided per provider below: Google on, email off, phone off.
+enable_signup = true
+
+# Google OAuth. Secrets come from the environment so they are never committed.
+# `supabase config push` is what turns the hosted provider on; this file alone
+# does not. Client ID + secret are minted in Google Cloud Console as a Web
+# application; the only Authorized redirect URI GoTrue uses is
+# https://<project-ref>.supabase.co/auth/v1/callback.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = false
 
 [auth.email]
 # No email accounts: email + password is not a way in.
@@ -45,12 +61,11 @@ enable_signup = false
 enable_confirmations = false
 double_confirm_changes = true
 
-# Phone sign-in (2026-10-03): the PHONE PROVIDER must be on for the password
-# grant with a phone number (POST /auth/v1/token?grant_type=password, body
-# {phone, password}) - "Enabling phone and password-based authentication",
-# https://supabase.com/docs/guides/auth/passwords - and that page names this
-# key for config files. No SMS is sent: the server creates each user with
-# phone_confirm=true, so confirmations stay off and no SMS provider is needed.
+# Phone sign-in is SWITCHED OFF (2026-10-10). From 2026-10-03 the PIN broker
+# signed phone accounts in with the password grant, which needs this provider
+# on. Off, the grant refuses every phone account, so a phone password derived
+# anywhere is not a way in. The phone users already in auth.users stay until
+# an operator removes them; the API refuses their sessions either way.
 [auth.sms]
-enable_signup = true
+enable_signup = false
 enable_confirmations = false

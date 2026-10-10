@@ -23,6 +23,15 @@
  *   (c) the browser's locale table (region-context.js) against the server's
  *       (api/_shared/brand-locale.js), over every country code.
  *
+ * ── 2026-10-10: GOOGLE IS THE ONLY SIGN-IN ──────────────────────────────────
+ * (a) and (b) drove a mobile-number sign-in carrying a device brand; that
+ * sign-in is switched off, and a carried record is read only for it. They now
+ * drive a GOOGLE account whose ACTIVE brand is the same record, kept as its
+ * workspace in the fake project (the routers resolve it through RLS like any
+ * account's), so what is asserted - the market, the money, the marker - is
+ * the same claim about the same record. The every-page sweep keeps the
+ * signed-out device brand (the state production is in).
+ *
  * Run: npx playwright test tests/brand-locale-defaults.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
@@ -76,9 +85,11 @@ const BARE = deviceBrand({
 
 /* ── the page, against the shipped routers ──────────────────────────────── */
 function seed(args) {
+  var googleSession = args.google || null;
   try {
-    if (sessionStorage.getItem('__seeded')) return;
+    if (sessionStorage.getItem('__seeded')) throw 0;
     sessionStorage.setItem('__seeded', '1');
+    if (googleSession) throw 0;
     const users = {};
     users[args.user.phone] = Object.assign({}, args.user, { salt: '00'.repeat(16), hash: 'ab'.repeat(32), iterations: 120000, tries: 0, lockedUntil: null, createdAt: args.session.expires, pinSetAt: args.session.expires });
     localStorage.setItem('lifecycle.auth.device.users', JSON.stringify(users));
@@ -89,7 +100,7 @@ function seed(args) {
     createClient: function () {
       return {
         auth: {
-          getSession: async function () { return { data: { session: null } }; },
+          getSession: async function () { return { data: { session: googleSession } }; },
           onAuthStateChange: function () { return { data: { subscription: { unsubscribe: function () {} } } }; },
           signOut: async function () { return {}; },
         },
@@ -106,7 +117,25 @@ function seed(args) {
  * /api/ call answered by the shipped routers except the ones `hold` claims
  * (a route the test answers itself, so it can read the request first).
  */
-async function open(page, w, file, brand, hold) {
+/**
+ * A Google account whose ACTIVE brand is `brand`, as a workspace in the fake
+ * project: the routers resolve it through RLS like any account's.
+ */
+function googleAccount(w, key, brand) {
+  // A Google access token is a JWT whose `sub` is the user: workspace-scope
+  // reads the caller's active workspace from it, exactly as in production.
+  const id = 'ws-' + key, uid = 'user-' + key, token = require('./router-harness').jwtShaped(uid);
+  const row = Object.assign({}, brand, { id, owner_id: uid });
+  delete row.storage;
+  w.db.addUser(token, uid, key + '@example.test').addWorkspace(id, uid, row).setActive(uid, id).syncIdentityTables();
+  return {
+    token, uid, id,
+    headers: { origin: A.ORIGIN, referer: A.ORIGIN + '/page', authorization: 'Bearer ' + token },
+    session: { access_token: token, refresh_token: 'r-' + key, expires_at: Math.floor(Date.now() / 1000) + 86400, user: { id: uid, email: key + '@example.test', app_metadata: { provider: 'google' }, user_metadata: { name: brand.name + ' owner' } } },
+  };
+}
+
+async function open(page, w, file, brand, hold, account) {
   const log = { dialogs: [], errors: [], api: [] };
   page.on('dialog', async (d) => { log.dialogs.push(d.type()); await d.dismiss().catch(() => {}); });
   page.on('pageerror', (e) => log.errors.push(String(e.message || e)));
@@ -118,7 +147,7 @@ async function open(page, w, file, brand, hold) {
     log.api.push({ url: u.replace(HOST, ''), status: r.status(), out });
   });
   const user = { id: w.tokens.phoneUserId, phone: A.PHONE.e164, cc: A.PHONE.cc, local: A.PHONE.phone, name: A.PHONE.name };
-  await page.addInitScript(seed, { user, session: w.session('device'), brand });
+  await page.addInitScript(seed, account ? { google: account.session } : { user, session: w.session('device'), brand });
   await page.route(/^https?:\/\/(?!app\.agents\.test)/, (route) => {
     const u = route.request().url();
     if (/\/auth\/v1\/health/.test(u)) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
@@ -159,10 +188,14 @@ function holdAgentic() {
   return h;
 }
 
-test.describe('/brain for a phone sign-in kept on this device, no DATABASE_URL', () => {
+test.describe('/brain for a Google account whose active brand is the record', () => {
   let w;
+  const acct = {};
   test.beforeAll(async () => {
-    w = await A.world({ serverMode: false });
+    w = await A.world();
+    acct.DELI = googleAccount(w, 'deli', DELI);
+    acct.BRIT = googleAccount(w, 'brit', BRIT);
+    acct.BARE = googleAccount(w, 'bare', BARE);
     // The device brands' own sites: a generation may read a brand's own
     // origin (its testimonials), answered 404 so nothing is found or invented.
     for (const site of ['https://delichic.example', 'https://britco.example']) w.db.route((u) => u.startsWith(site), () => response(404, 'not found'));
@@ -171,14 +204,14 @@ test.describe('/brain for a phone sign-in kept on this device, no DATABASE_URL',
   test.beforeEach(() => { w.reset(); });
 
   const CASES = [
-    { brand: DELI, market: 'IN', label: 'an Indian brand: its home market IN' },
-    { brand: BRIT, market: 'UK', label: 'a UK brand whose record leads with US: its HOME market UK' },
+    { brand: DELI, key: 'DELI', market: 'IN', label: 'an Indian brand: its home market IN' },
+    { brand: BRIT, key: 'BRIT', market: 'UK', label: 'a UK brand whose record leads with US: its HOME market UK' },
   ];
   for (const c of CASES) {
     test(`Run Agentic Flow, ${c.label}`, async ({ page }) => {
       test.setTimeout(180_000);
       const hold = holdAgentic();
-      const log = await open(page, w, 'smart-brain.html', c.brand, hold);
+      const log = await open(page, w, 'smart-brain.html', c.brand, hold, acct[c.key]);
       expect(await page.evaluate(() => window.RegionContext.home)).toBe(c.market);
       await expect(page.locator('#runAgentic')).toBeEnabled();
       await expect(page.locator('#agenticWhy')).toBeHidden();
@@ -191,9 +224,9 @@ test.describe('/brain for a phone sign-in kept on this device, no DATABASE_URL',
       hold.release();
       await expect(page.locator('#agenticOut')).not.toContainText('please wait', { timeout: 15_000 });
 
-      // The MODE card states the real mode: no database, the brand on this device.
-      await expect(page.locator('#mode')).toHaveText('Local / Demo Mode (on this device)');
-      await expect(page.locator('#mode')).not.toHaveText(/DB/);
+      // The MODE card states the real mode: an account, its brand in the database.
+      await expect(page.locator('#mode')).toHaveText(/^DB/);
+      await expect(page.locator('#mode')).not.toHaveText(/Local \/ Demo Mode/);
       // The cron line is in the brand's own time zone where its record decides one.
       if (c.market === 'IN') await expect(page.locator('#cronAt')).toContainText('09:00');
       expect(log.errors).toEqual([]);
@@ -204,7 +237,7 @@ test.describe('/brain for a phone sign-in kept on this device, no DATABASE_URL',
   test('a brand with no market: the button is off with the unpadded marker, and nothing is sent', async ({ page }) => {
     test.setTimeout(180_000);
     const hold = holdAgentic();
-    const log = await open(page, w, 'smart-brain.html', BARE, hold);
+    const log = await open(page, w, 'smart-brain.html', BARE, hold, acct.BARE);
     expect(await page.evaluate(() => window.RegionContext.home)).toBe('');
     const btn = page.locator('#runAgentic');
     await expect(btn).toBeDisabled();
@@ -230,16 +263,19 @@ test.describe('/brain for a phone sign-in kept on this device, no DATABASE_URL',
     expect(await page.locator('#plan').innerText()).not.toMatch(PADDED);
     expect(await page.locator('#plan').innerText()).not.toMatch(/\b(US|UK|USD|GBP)\b/);
     expect(await page.locator('#syncstate').innerText()).not.toMatch(PADDED);
-    await expect(page.locator('#mode')).toHaveText('Local / Demo Mode (on this device)');
+    await expect(page.locator('#mode')).toHaveText(/^DB/);
     expect(log.errors).toEqual([]);
   });
 });
 
 /* ── the routers, with a carried device brand ───────────────────────────── */
-test.describe('the routers resolve the market from the carried brand', () => {
+test.describe('the routers resolve the market from the account\'s brand', () => {
   let w;
-  const deviceHeaders = () => ({ 'x-lifecycle-token': w.tokens.phone, authorization: 'Bearer ' + w.tokens.phone });
-  const carry = (b) => { const o = Object.assign({}, b); delete o.id; return o; };
+  const acct = {};
+  // The brand travels as the ACCOUNT's active workspace: a body naming one
+  // is not how a Google account's brand is chosen, so none is carried.
+  const carry = () => undefined;
+  const as = (b) => acct[b === DELI ? 'DELI' : b === BRIT ? 'BRIT' : 'BARE'].headers;
   /** Swap one exported function of a loaded module for a recorder; returns [calls, restore]. */
   function record(rel, fn, answer) {
     const mod = require(path.join(ROOT, rel));
@@ -248,7 +284,13 @@ test.describe('the routers resolve the market from the carried brand', () => {
     mod[fn] = async (...args) => { calls.push(args); return typeof answer === 'function' ? answer(...args) : answer; };
     return [calls, () => { mod[fn] = real; }];
   }
-  test.beforeAll(async () => { w = await A.world({ serverMode: false }); });
+  test.beforeAll(async () => {
+    w = await A.world();
+    acct.DELI = googleAccount(w, 'deli', DELI);
+    acct.BRIT = googleAccount(w, 'brit', BRIT);
+    acct.BARE = googleAccount(w, 'bare', BARE);
+    for (const k of Object.keys(acct)) w.db.insert('credit_wallets', { user_id: acct[k].uid, workspace_id: acct[k].id, balance: 100000, held: 0, lifetime_granted: 100000, lifetime_spent: 0, low_balance_threshold: 50 });
+  });
   test.afterAll(async () => { await w.close(); });
   test.beforeEach(() => { w.reset(); });
 
@@ -256,22 +298,26 @@ test.describe('the routers resolve the market from the carried brand', () => {
     const [calls, restore] = record('api/_shared/agentic-orchestrator.js', 'runAgentic', { ok: true, stages: [] });
     try {
       for (const [b, want] of [[DELI, 'IN'], [BRIT, 'UK']]) {
-        const r = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { tier: 'budget', days: 2, withCreatives: false, brand: carry(b) }, state: 'device', headers: deviceHeaders() });
+        w.reset();
+        const r = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { tier: 'budget', days: 2, withCreatives: false, brand: carry(b) }, headers: as(b) });
         expect(r.status, r.text.slice(0, 300)).toBe(200);
         expect(calls.pop()[0].market).toBe(want);
       }
       // "India" spelt as a page chip spells it reaches the core as the record's IN.
-      const spelt = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { market: 'India', days: 2, withCreatives: false, brand: carry(DELI) }, state: 'device', headers: deviceHeaders() });
+      w.reset();
+      const spelt = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { market: 'India', days: 2, withCreatives: false, brand: carry(DELI) }, headers: as(DELI) });
       expect(spelt.status).toBe(200);
       expect(calls.pop()[0].market).toBe('IN');
 
-      const bare = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { days: 2, withCreatives: false, brand: carry(BARE) }, state: 'device', headers: deviceHeaders() });
+      w.reset();
+      const bare = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { days: 2, withCreatives: false, brand: carry(BARE) }, headers: as(BARE) });
       expect(bare.status).toBe(409);
       expect(bare.out.error).toBe('market_required');
       expect(bare.out.message).toContain('[DATA REQUIRED BEFORE LAUNCH: home market, Bare Brand]');
       expect(bare.out.message).not.toMatch(PADDED);
 
-      const notServed = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { market: 'US', days: 2, withCreatives: false, brand: carry(DELI) }, state: 'device', headers: deviceHeaders() });
+      w.reset();
+      const notServed = await w.request('/api/brain', { query: { action: 'agentic-run' }, json: { market: 'US', days: 2, withCreatives: false, brand: carry(DELI) }, headers: as(DELI) });
       expect(notServed.status).toBe(409);
       expect(notServed.out.error).toBe('market_not_served');
       expect(notServed.out.message).toMatch(/Deli Chic does not list US/);
@@ -295,29 +341,24 @@ test.describe('the routers resolve the market from the carried brand', () => {
   test('mailer-assets: no market asked fills the assets for the brand\'s home market, not UK', async () => {
     const [calls, restore] = record('api/_shared/asset-agent.js', 'fillMailerAssets', { ok: true, html: '<p>x</p>', assets: [] });
     try {
-      const r = await w.request('/api/brain', { query: { action: 'mailer-assets' }, json: { html: '<!-- IMAGE: hero --><p>x</p>', brand: carry(DELI) }, state: 'device', headers: deviceHeaders() });
+      const r = await w.request('/api/brain', { query: { action: 'mailer-assets' }, json: { html: '<!-- IMAGE: hero --><p>x</p>', brand: carry(DELI) }, headers: as(DELI) });
       expect(r.status, r.text.slice(0, 300)).toBe(200);
       expect(calls[0][1].market).toBe('IN');
     } finally { restore(); }
   });
 
-  test('plan and Daily Sync say where the plan lives: on the device, with the brand\'s own unpadded marker', async () => {
-    const plan = await w.request('/api/calendar', { query: { action: 'smart-brain-plan' }, state: 'device', headers: deviceHeaders() });
-    expect(plan.status).toBe(200);
-    expect(plan.out.mode).toBe('device');
-    expect(plan.out.storage).toBe('device');
-    const sync = await w.request('/api/calendar', { query: { action: 'smart-brain-sync-daily' }, json: { brand: carry(BARE) }, state: 'device', headers: deviceHeaders() });
+  test('Daily Sync for an account\'s brand: never a country it did not declare, with its own unpadded marker', async () => {
+    const sync = await w.request('/api/calendar', { query: { action: 'smart-brain-sync-daily' }, json: {}, headers: as(BARE) });
     expect(sync.status, sync.text.slice(0, 300)).toBe(200);
-    expect(sync.out.mode).toBe('device');
     // A brand with no market and no catalogue gets the lifecycle-strategy
     // calendar under UNDECLARED: never a country it did not declare.
     expect(sync.out).toMatchObject({ ok: true });
     expect(Array.from(new Set((sync.out.plan || []).map((e) => e.market)))).toEqual(['UNDECLARED']);
-    expect(sync.out.note).toContain('[DATA REQUIRED BEFORE LAUNCH: catalogue and analytics, Bare Brand');
-    expect(sync.out.note).not.toMatch(PADDED);
+    expect(JSON.stringify(sync.out)).not.toMatch(PADDED);
     // The Indian brand's plan is IN, every slot.
-    const deli = await w.request('/api/calendar', { query: { action: 'smart-brain-sync-daily' }, json: { brand: carry(DELI) }, state: 'device', headers: deviceHeaders() });
-    expect(deli.status).toBe(200);
+    w.reset();
+    const deli = await w.request('/api/calendar', { query: { action: 'smart-brain-sync-daily' }, json: {}, headers: as(DELI) });
+    expect(deli.status, deli.text.slice(0, 300)).toBe(200);
     expect((deli.out.plan || []).length).toBeGreaterThan(0);
     expect(Array.from(new Set(deli.out.plan.map((e) => e.market)))).toEqual(['IN']);
   });

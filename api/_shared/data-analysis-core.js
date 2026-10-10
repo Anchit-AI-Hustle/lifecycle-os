@@ -88,7 +88,9 @@ async function authorize(req, { cron = false } = {}) {
   if (secret && token === secret) return { ok: true, kind: 'cron' };
   if (cron) return { ok: false, status: 401, error: 'cron_secret_required' };
   if (!token) return { ok: false, status: 401, error: 'operator_session_required' };
-  // A MOBILE+PIN SIGN-IN (2026-10-03). Every tab answered it 401
+  // A MOBILE+PIN TOKEN. Since 2026-10-10 (Google only) requireUser refuses
+  // every such token like no token at all, so this branch answers 401.
+  // History: (2026-10-03) every tab answered it 401
   // invalid_operator_session: this gate only knew a Supabase JWT, and a phone
   // token is not one. The operator's words: "All features must work even with
   // signin by number and pin". It is verified the way every other gate
@@ -107,9 +109,12 @@ async function authorize(req, { cron = false } = {}) {
     const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: `Bearer ${token}` }, cache: 'no-store' });
     if (!r.ok) return { ok: false, status: 401, error: 'invalid_operator_session' };
     const user = await r.json(), email = text(user.email).toLowerCase();
-    // Sign-in is a mobile number and PIN only (2026-10-09): an OAuth session
-    // (the removed Google sign-in) is not an operator session.
-    if (require('./mobile-auth-supabase.js').oauthProvider(user)) return { ok: false, status: 401, error: 'invalid_operator_session' };
+    // Sign-in is Google (2026-10-10): a Google session is an operator session.
+    // A phone account the switched-off PIN broker made, or another OAuth
+    // provider, is not - the same rule as brand-workspace-core.verifyCaller.
+    const supaAuth = require('./mobile-auth-supabase.js');
+    const oauth = supaAuth.oauthProvider(user);
+    if (supaAuth.phoneIdentity(user) || (oauth && oauth !== 'google')) return { ok: false, status: 401, error: 'invalid_operator_session' };
     // Any VALID session is allowed. This used to default to a single tenant's
     // email domain, which locked every operator who onboarded their own brand
     // out of the whole analytics surface with a bare 403.

@@ -120,6 +120,51 @@ async function callShipped(handler, { method, url, headers, body }) {
   return out;
 }
 
+/**
+ * Run the html pipeline stage (every provider down: its own renderer) for
+ * `brand`, as a GOOGLE session - the one sign-in since 2026-10-10. The stage
+ * resolves the brand for the request (brand-runtime.resolve); here that is
+ * the record under test, so what is executed is the renderer the operator's
+ * brand reaches. The session is verified at a fake /auth/v1/user; every
+ * other host throws.
+ */
+async function htmlStageAsGoogle(brand, body) {
+  const LLM = require.resolve('../api/_shared/llm.js');
+  const realLlm = require.cache[LLM];
+  const real = require(LLM);
+  const down = async () => { throw new Error('every provider is down'); };
+  for (const k of Object.keys(real)) down[k] = real[k];
+  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
+  const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+  for (const k of ENV_KEYS) delete process.env[k];
+  process.env.SUPABASE_URL = 'https://proj.supabase.co';
+  process.env.SUPABASE_ANON_KEY = 'anon';
+  const realFetch = global.fetch;
+  const JWT = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJnb29nbGUtYSJ9.c2ln';
+  global.fetch = async (u, init) => {
+    if (String(u) === 'https://proj.supabase.co/auth/v1/user' && String(((init || {}).headers || {}).authorization || '') === 'Bearer ' + JWT) {
+      return new Response(JSON.stringify({ id: 'google-a', email: 'a@example.com', app_metadata: { provider: 'google' } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('no network in this test: ' + u);
+  };
+  const runtime = require('../api/_shared/brand-runtime.js');
+  const realResolve = runtime.resolve;
+  runtime.resolve = async () => brand;
+  try {
+    const stage = require('../api/ai/pipeline/html.js');
+    return await callShipped(stage, {
+      method: 'POST', url: '/api/ai/pipeline/html',
+      headers: { origin: 'https://app.example.test', referer: 'https://app.example.test/studio', authorization: 'Bearer ' + JWT },
+      body,
+    });
+  } finally {
+    runtime.resolve = realResolve;
+    global.fetch = realFetch;
+    for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+    if (realLlm) require.cache[LLM] = realLlm; else delete require.cache[LLM];
+  }
+}
+
 /* ── the page ─────────────────────────────────────────────────────────────── */
 function sessionFor(user, token) {
   return {
@@ -692,36 +737,20 @@ test('a font is a file or a URL, and it actually loads; a file that is not a fon
   const lp = sbPlan.lpHtml({ brand, market: 'US', heroProduct: { title: 'Lantern' } }, { landing: { headline: 'Light, made by hand' } }, 'cid-font', null);
   expect(lp, 'the /lp/:id page').toContain(face);
   // The html stage's own renderer (the path every provider being down takes).
-  const LLM = require.resolve('../api/_shared/llm.js');
-  const realLlm = require.cache[LLM];
-  const real = require(LLM);
-  const down = async () => { throw new Error('every provider is down'); };
-  for (const k of Object.keys(real)) down[k] = real[k];
-  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
-  const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
-  for (const k of ENV_KEYS) delete process.env[k];
-  const realFetch = global.fetch;
-  global.fetch = async (u) => { throw new Error('no network in this test: ' + u); };
-  try {
-    const stage = require('../api/ai/pipeline/html.js');
-    const out = await callShipped(stage, {
-      method: 'POST', url: '/api/ai/pipeline/html',
-      headers: { origin: 'https://app.example.test', referer: 'https://app.example.test/studio', authorization: 'Bearer ' + TOKEN_A, 'x-lifecycle-token': TOKEN_A },
-      body: { variant: 'A', brand, market: 'US', plan: {}, strategy: {} },
-    });
-    expect(out.code, JSON.stringify(out.body).slice(0, 300)).toBe(200);
-    expect(out.body._heuristic).toBe(true);
-    expect(String(out.body.html || ''), 'the mailer').toContain(face);
-  } finally {
-    global.fetch = realFetch;
-    for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
-    if (realLlm) require.cache[LLM] = realLlm; else delete require.cache[LLM];
-  }
+  const out = await htmlStageAsGoogle(brand, { variant: 'A', brand, market: 'US', plan: {}, strategy: {} });
+  expect(out.code, JSON.stringify(out.body).slice(0, 300)).toBe(200);
+  expect(out.body._heuristic).toBe(true);
+  expect(String(out.body.html || ''), 'the mailer').toContain(face);
 });
 
 /* ═══ 8. device storage: per account, deleted with the brand, never in an email ═ */
-test('files stay on this device under the account, survive a reload, are invisible to another account, and go with the brand', async ({ page, context }) => {
-  await open(page, world, { session: sessionFor(USER_A, TOKEN_A) });
+test('files stay on this device, survive a reload, and go with the brand', async ({ page, context }) => {
+  // Signed out (the state production is in: its project is paused). Until
+  // 2026-10-10 this also signed in two mobile-number accounts on the same
+  // browser to show A's files invisible to B; that sign-in is switched off.
+  // The per-account namespace is the Google account's id now, asserted in
+  // tests/google-only-signin.spec.js.
+  await open(page, world);
   await page.fill('input[data-path="name"]', 'Harbourlight Goods');
   await upload(page, '[data-asset-file="logo"]', 'logo.png', 'image/png', LOGO_PNG);
   await expect(page.locator('[data-asset-note="logo"]')).toContainText('Kept on this device');
@@ -732,7 +761,7 @@ test('files stay on this device under the account, survive a reload, are invisib
   const keys = async () => page.evaluate(async (bid) => (await window.BrandContext.files.list(bid)).map((f) => f.slot), id);
   await expect.poll(keys).toEqual(['logo']);
   const ns = await page.evaluate(() => window.BrandContext.files.namespace());
-  expect(ns).toBe('lifecycle.brand.device.workspaces.' + USER_A.id);
+  expect(ns).toBe('lifecycle.brand.device.workspaces');
   // The reload keeps it, and the preview paints it from IndexedDB.
   await page.goto(HOST + '/onboarding.html?id=' + encodeURIComponent(id), { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded && window.BrandDocument);
@@ -742,17 +771,7 @@ test('files stay on this device under the account, survive a reload, are invisib
   const carried = await page.evaluate(() => JSON.stringify(window.BrandContext.carry()));
   expect(JSON.parse(carried).pending_hosting).toEqual(['logo']);
   expect(carried).not.toMatch(/data:|base64|blob:/);
-  // Another person signs in on the same browser: none of A's files.
-  await page.evaluate((s) => localStorage.setItem('lifecycle.auth.session', JSON.stringify(s)), sessionFor(USER_B, TOKEN_B));
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded);
-  expect(await page.evaluate(() => window.BrandContext.files.namespace())).toBe('lifecycle.brand.device.workspaces.' + USER_B.id);
-  expect(await keys()).toEqual([]);
-  // A again; deleting the brand deletes its files.
-  await page.evaluate((s) => localStorage.setItem('lifecycle.auth.session', JSON.stringify(s)), sessionFor(USER_A, TOKEN_A));
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded);
-  await expect.poll(keys).toEqual(['logo']);
+  // Deleting the brand deletes its files.
   await page.evaluate((bid) => window.BrandContext.api('delete', { body: { id: bid } }), id);
   expect(await keys()).toEqual([]);
   void context;
@@ -760,6 +779,8 @@ test('files stay on this device under the account, survive a reload, are invisib
 
 test('a generated mailer for a brand whose logo is only on the device carries the hosted-URL marker and no base64', async () => {
   const runtime = require('../api/_shared/brand-runtime.js');
+  // carriedBrand() is the sanitiser a carried record goes through; it is
+  // called directly (the phone principal that reached it is switched off).
   const auth = { ok: true, provider: 'mobile-pin', mode: 'device', user_id: 'device:abc' };
   // Exactly what the page carries (the test above asserts carry() for real).
   const carried = { name: 'Harbourlight Goods', palette: { primary: '#1a6b3c', accent: '#b8531f', ink: '#15201c', surface: '#fbfaf6' }, typography: {}, voice: {}, regions: [], pending_hosting: ['logo'], logo_url: 'data:image/png;base64,iVBORw0KGgo=' };
@@ -770,33 +791,14 @@ test('a generated mailer for a brand whose logo is only on the device carries th
   expect(block).toContain('[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, Harbourlight Goods]');
   expect(block, 'the logo bytes reached the prompt').not.toMatch(/;base64,|data:image\/|iVBORw0KGgo/);
   // The html stage's own renderer (the path every provider being down takes), executed.
-  const LLM = require.resolve('../api/_shared/llm.js');
-  const realLlm = require.cache[LLM];
-  const real = require(LLM);
-  const down = async () => { throw new Error('every provider is down'); };
-  for (const k of Object.keys(real)) down[k] = real[k];
-  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
-  const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
-  for (const k of ENV_KEYS) delete process.env[k];
-  const realFetch = global.fetch;
-  global.fetch = async (u) => { throw new Error('no network in this test: ' + u); };
-  try {
-    const stage = require('../api/ai/pipeline/html.js');
-    const out = await callShipped(stage, {
-      method: 'POST', url: '/api/ai/pipeline/html',
-      headers: { origin: 'https://app.example.test', referer: 'https://app.example.test/studio', authorization: 'Bearer ' + TOKEN_A, 'x-lifecycle-token': TOKEN_A },
-      body: { variant: 'A', brand: carried, market: 'US', plan: {}, strategy: {} },
-    });
+  {
+    const out = await htmlStageAsGoogle(b, { variant: 'A', brand: carried, market: 'US', plan: {}, strategy: {} });
     expect(out.code, JSON.stringify(out.body).slice(0, 300)).toBe(200);
     expect(out.body._heuristic).toBe(true);
     const mail = String(out.body.html || '');
     expect(mail.length).toBeGreaterThan(1500);
     expect(mail).toContain('[DATA REQUIRED BEFORE LAUNCH: hosted logo URL, Harbourlight Goods]');
     expect(mail, 'base64 reached a generated mailer').not.toMatch(/;base64,|data:image|blob:|iVBORw0KGgo/);
-  } finally {
-    global.fetch = realFetch;
-    for (const k of ENV_KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
-    if (realLlm) require.cache[LLM] = realLlm; else delete require.cache[LLM];
   }
 });
 
