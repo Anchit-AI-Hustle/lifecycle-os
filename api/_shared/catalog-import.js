@@ -141,6 +141,8 @@ function regionCountry(region) {
 
 /* ── the one door for every request ─────────────────────────────────────── */
 
+const hdr = (r, name) => { try { return r && r.headers && typeof r.headers.get === 'function' ? r.headers.get(name) : null; } catch (_) { return null; } };
+
 /**
  * GET a URL on the brand's own hosts. Redirects are followed by HAND, hop by
  * hop, and every hop is re-checked against the brand's scope and the SSRF
@@ -166,14 +168,17 @@ async function getText(url, ctx, { accept, timeoutMs } = {}) {
       return { ok: false, status: 0, url: at, reason: ctrl.signal.aborted ? 'timeout' : 'unreachable', error: String((e && e.message) || e) };
     }
     ctx.stats.requests += 1;
-    if (r.status >= 300 && r.status < 400 && r.headers.get('location')) {
+    if (r.status >= 300 && r.status < 400 && hdr(r, 'location')) {
       clearTimeout(timer);
-      at = httpAbs(r.headers.get('location'), at);
+      at = httpAbs(hdr(r, 'location'), at);
       if (!at) return { ok: false, status: r.status, url, reason: 'bad_redirect' };
       continue;
     }
     let buf;
-    try { buf = Buffer.from(await r.arrayBuffer()); } catch (e) { clearTimeout(timer); return { ok: false, status: r.status, url: at, reason: ctrl.signal.aborted ? 'timeout' : 'unreachable' }; }
+    // Bytes when the response offers them (gzip is detected by its magic
+    // bytes), else its text: the one fetch seam is also answered by minimal
+    // Response-shaped objects.
+    try { buf = typeof r.arrayBuffer === 'function' ? Buffer.from(await r.arrayBuffer()) : Buffer.from(String(await r.text()), 'utf8'); } catch (e) { clearTimeout(timer); return { ok: false, status: r.status, url: at, reason: ctrl.signal.aborted ? 'timeout' : 'unreachable' }; }
     clearTimeout(timer);
     if (buf.length > 1 && buf[0] === 0x1f && buf[1] === 0x8b) {
       try { buf = zlib.gunzipSync(buf, { maxOutputLength: LIMITS.maxSitemapBytes }); }
@@ -181,8 +186,8 @@ async function getText(url, ctx, { accept, timeoutMs } = {}) {
     }
     return {
       ok: r.ok, status: r.status, url: at, body: buf.toString('utf8'),
-      contentType: String(r.headers.get('content-type') || ''),
-      retryAfter: r.headers.get('retry-after'),
+      contentType: String(hdr(r, 'content-type') || ''),
+      retryAfter: hdr(r, 'retry-after'),
     };
   }
   return { ok: false, status: 0, url: at, reason: 'too_many_redirects' };

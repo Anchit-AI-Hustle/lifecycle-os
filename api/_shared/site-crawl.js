@@ -474,7 +474,7 @@ async function defaultAssetFetch(url, timeoutMs, ua) {
       headers: { 'User-Agent': ua, Accept: 'text/plain,application/xml,text/xml,*/*' },
     });
     if (!r.ok) return { ok: false, status: r.status, body: '' };
-    let buf = Buffer.from(await r.arrayBuffer());
+    let buf = typeof r.arrayBuffer === 'function' ? Buffer.from(await r.arrayBuffer()) : Buffer.from(String(await r.text()), 'utf8');
     if (buf.length > 1 && buf[0] === 0x1f && buf[1] === 0x8b) {
       try { buf = require('zlib').gunzipSync(buf, { maxOutputLength: 52428800 }); } catch (_) { return { ok: false, status: r.status, body: '' }; }
     }
