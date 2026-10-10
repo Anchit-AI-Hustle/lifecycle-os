@@ -8,42 +8,284 @@
     "label": "Amazon",
     "sector": "Marketplace",
     "blurb": "General marketplace. Template for a subscription plus replenishment lifecycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.amazon.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
-      "renderer": "rendered",
-      "at": "2026-10-04",
-      "host": "www.amazon.com",
-      "reason": "The rendered site shows no brand colour: no identity colour, no filled call to action and no coloured header."
+    "verified_at": "2026-10-05",
+    "source": "Rendered https://www.amazon.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #ff6200 from logo pixels as rendered (100% of its coloured pixels) (a#nav-logo-sprites > span.nav-sprite.nav-logo-base:nth-of-type(1)). Agreed by icon. Headings Amazon Ember Modern Display, body Arial, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.amazon.com/",
+          "role": "page ground",
+          "selector": "body.a-m-us.a-aui_72554-c",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.amazon.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.amazon.com"
+        }
+      },
+      "primary": {
+        "value": "#ff6200",
+        "exact": "#ff6200",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 128,
+        "from_role": "identity",
+        "signal": "logo pixels as rendered (100% of its coloured pixels)",
+        "source": {
+          "page": "https://www.amazon.com/",
+          "role": "logo",
+          "selector": "a#nav-logo-sprites > span.nav-sprite.nav-logo-base:nth-of-type(1)",
+          "viewport": "desktop",
+          "property": "pixels",
+          "signal": "computed"
+        },
+        "read_url": "https://www.amazon.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.amazon.com"
+        },
+        "corroborated_by": [
+          {
+            "kind": "icon",
+            "value": "#ff6200",
+            "signal": "site icon pixels (icon)",
+            "page": "https://www.amazon.com/favicon.ico"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#2c2c2c",
+        "exact": "#dddddd",
+        "derived": true,
+        "note": "DERIVED from #dddddd: the body copy as rendered measures 1.36:1 on #ffffff, and no other text the site renders reads there, so it is darkened until it does (13.97:1).",
+        "source": {
+          "page": "https://www.amazon.com/",
+          "role": "body copy",
+          "selector": "div#navFooter > div.navFooterLine.navFooterLinkLine:nth-of-type(5) > span",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.amazon.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.amazon.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.amazon.com/",
+          "role": "product card",
+          "selector": "div.a-cardui > div.a-section.a-spacing-none > div > div > div._single-video-card_style_overlay__3Sx3u",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.amazon.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.amazon.com"
+        }
+      },
+      "muted": {
+        "value": "#2c2c2c",
+        "exact": "",
+        "derived": true,
+        "note": "DERIVED: the read found no secondary text style, so it is the body ink.",
+        "source": {
+          "page": "https://www.amazon.com/",
+          "role": "body copy",
+          "selector": "div#navFooter > div.navFooterLine.navFooterLinkLine:nth-of-type(5) > span",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.amazon.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.amazon.com"
+        }
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://www.amazon.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.amazon.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
+    },
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.amazon.com/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "read_from": [
+      "https://www.amazon.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.amazon.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      },
+      {
+        "url": "https://www.aboutamazon.com/",
+        "role": "identity source",
+        "what": "About Amazon, the company's own news site (linked from amazon.com)",
+        "renderer": "blocked",
+        "owned": "linked-from",
+        "reason": "www.aboutamazon.com served a bot wall page instead of the site (an AWS WAF challenge (AWS WAF), a page titled \"Amazon News: Breaking news about Amazon and latest company updates\", whose first heading "
+      }
+    ],
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.amazon.com/",
+        "role": "display heading (largest text near the top)",
+        "selector": "div > div.a-cardui-header.theming-card-header > h2.a-spacing-none > div.a-section.experimental-header-title-font > span.wdTitle.a-text-bold",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://www.amazon.com/",
+        "role": "body copy",
+        "selector": "div#navFooter > div.navFooterLine.navFooterLinkLine:nth-of-type(5) > span",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
     }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#ff6200",
+    "ink": "#2c2c2c",
+    "surface": "#ffffff",
+    "surface_alt": "#ffffff",
+    "muted": "#2c2c2c",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Amazon Ember Modern Display",
+      "stack": "'Amazon Ember Modern Display','Amazon Ember','Arial',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "500;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Amazon Ember Modern Display (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Arial",
+      "stack": "'Arial',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500;600",
+      "kind": "local",
+      "loadable": true,
+      "note": "A system font stack: each device picks the face, exactly as on the site."
     }
   },
   "voice": {
@@ -58,7 +300,9 @@
   ],
   "regions": [],
   "asset_hosts": [
-    "amazon.com"
+    "amazon.com",
+    "www.amazon.com",
+    "m.media-amazon.com"
   ],
   "catalog_source": {
     "kind": "placeholder",
@@ -290,14 +534,78 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.aboutamazon.com/",
+      "kind": "page",
+      "what": "About Amazon, the company's own news site (linked from amazon.com)"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, Amazon]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, Amazon]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Amazon]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Amazon]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Amazon]"
   ],
+  "brand_assets": [
+    {
+      "url": "https://www.amazon.com/favicon.ico",
+      "role": "logo",
+      "alt": "",
+      "found_on": "https://www.amazon.com/",
+      "signal": "the icon the page declares (link rel=icon)"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/G/01/pbdd26/desktopswm/PBDD26_LU_SWM_EN._CB768353469_.jpg",
+      "role": "photograph",
+      "alt": "This is the alt text",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/61i3H2ZHJWL._AC_AIweblab1431263,T1_FMavif_SF1282.5,2052_QL54_.jpg?aicid=homepage-single-creative-card",
+      "role": "hero",
+      "alt": "Prime Big Deals drop Oct 6-7 Exclusively for members",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/71Wk4CzGEEL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "MARVEL Mr. Fantastic Official Youth Halloween Costume - Premium Quality Padded Jumpsuit with Boot Tops and Gloves (S)",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/81xtReS9vSL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Rex Inflatable Costume for Kids, Official Disney Toy Story Inflatable T Rex Costume with Fan, Child Size Up to 7-8",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/81KnrRV0waL._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Disguise Pokemon Pikachu Costume, Officially Licensed Kids Halloween Dress Up Outfit, Size (7-8)",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/91R3Nmtel3L._AC_AIweblab1374086,T2_FMavif_SF217.5,435_QL54_.jpg?aicid=homepage-faceout",
+      "role": "hero",
+      "alt": "Disney Nightmare Before Christmas Oogie Boogie Costume, Official Oogie Boogie Green Costume, Toddler Size (3T-4T)",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    },
+    {
+      "url": "https://m.media-amazon.com/images/I/21+soVrmToL._AIweblab1431263,T1_FMavif_SF1065,132_QL54_._FMpng_.png?aicid=homepage-card-logo",
+      "role": "photograph",
+      "alt": "Amazon Haul",
+      "found_on": "https://www.amazon.com/",
+      "signal": "image rendered on the page"
+    }
+  ],
+  "logo_url": "https://www.amazon.com/favicon.ico",
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"
 }

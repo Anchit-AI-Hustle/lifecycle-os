@@ -315,8 +315,9 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
 
    So it is deliberately unlike every content surface in the suite: an
    uppercase tag naming what could not be done, a heavy left edge in the error
-   colour, and a panel tint. No hard colour anywhere - the edge and tag take
-   --vh-err (brand-derived, defaulting through --brand-err), the SENTENCE takes
+   colour, and a panel tint. No hard colour anywhere - the edge takes --vh-err
+   (brand-derived, defaulting through --brand-err) and the tag takes
+   --vh-err-text (the same colour adjusted to AA for text), the SENTENCE takes
    --vh-ink so the information itself can never be the low-contrast part, and
    the ground is --vh-panel-2, a light panel. Never a dark-neutral background:
    that is a HARD rule here and validatePalette()/asset-no-black-background

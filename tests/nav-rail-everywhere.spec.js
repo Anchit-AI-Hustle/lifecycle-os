@@ -118,7 +118,6 @@ const EXCLUDED = {
   'landing-pages/final/knickgasm-uk-presell-grail-drop-v1.html': 'rendered landing artefact behind /lp/grail-drop-v1, framed by /templates',
   'landing-pages/final/knickgasm-uk-presell-grail-drop-v2.html': 'rendered landing artefact behind /lp/grail-drop-v2, framed by /templates',
   'landing-pages/final/lp_all_in_one_agent_v2.html': 'rendered landing artefact, framed by /templates',
-  'storefront-3d.html': 'full-bleed WebGL storefront WEBSITE (/3d), framed by /templates; its own header says why it carries no auth.js',
   'campaign.html': 'campaign-variant renderer (/c/:theme/:variant) that document.write()s the artefact over itself; its own header says why',
   'lifecycle-usa-d2c-dashboard.html': 'embedded inside /data-analysis?tab=review as an <iframe>; its standalone routes redirect there',
   // Retired routes: meta-refresh / location.replace stubs that vercel.json also
@@ -127,12 +126,9 @@ const EXCLUDED = {
   'data-analysis-contrast.html': 'redirect stub; vercel.json redirects it to /data-analysis',
   'mailer-discovery.html': 'redirect stub (location.replace) to /competitor-benchmarking.html#discover',
   // Documents, not app surfaces.
-  'privacy.html': 'legal page, bare by rule (auth.js isOpenPage names it)',
-  'terms.html': 'legal page, bare by rule (auth.js isOpenPage names it)',
   'styleguide.html': 'isolated 3D style-guide specimens; bare by instruction',
   'docs/deck.html': 'full-screen slide deck (/deck): body{overflow:hidden}, a rail would cover the slide',
   'docs/prd-deck.html': 'full-screen slide deck (/prd-deck): same',
-  'playbook/index.html': 'static playbook sub-site (index + dossiers + features); its in-app counterpart playbook.html at /playbook-single carries the shell',
   'ads-masterclass.html': 'unrouted lesson document: no rewrite, no rail row, no link anywhere in the app',
 };
 
@@ -365,7 +361,8 @@ test('the sweep covers a real page list, and every excluded page exists for the 
   // A sweep over nothing passes everything.
   expect(SWEPT.length, 'too few app pages to sweep').toBeGreaterThan(45);
   for (const f of ['index.html', 'research.html', 'smart-brain.html', 'template-gallery.html', 'premium-experience.html',
-    'lifecycle-usa-july-calendar-mailer-studio.html', 'lifecycle_mailer_architect_v34.html', 'onboarding.html']) {
+    'lifecycle-usa-july-calendar-mailer-studio.html', 'lifecycle_mailer_architect_v34.html', 'onboarding.html',
+    'privacy.html', 'terms.html', 'storefront-3d.html', 'playbook/index.html']) {
     expect(SWEPT, `${f} is not in the sweep`).toContain(f);
   }
   // An exclusion for a file that no longer exists is a stale exclusion, and a
@@ -378,6 +375,32 @@ test('the sweep covers a real page list, and every excluded page exists for the 
   const landed = (vercel.rewrites || []).map((r) => String(r.destination).split('?')[0]).filter((d) => d.endsWith('.html')).map((d) => d.replace(/^\//, ''));
   const unaccounted = landed.filter((f) => fs.existsSync(path.join(ROOT, f)) && !SWEPT.includes(f) && !EXCLUDED[f]);
   expect(unaccounted, 'rewrite destinations neither swept nor excluded').toEqual([]);
+});
+
+test('the rail is a labelled landmark with a skip link to the page content', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const page = await ctx.newPage();
+  await open(page, 'privacy.html', { config: WITH_BACKEND, reachable: true });
+  const a11y = await page.evaluate(() => {
+    const side = document.querySelector('#lifecycle-nav .lnav-side');
+    const skip = document.querySelector('#lifecycle-nav .lnav-skip');
+    const chip = document.getElementById('lnav-signin');
+    return {
+      label: side && (side.getAttribute('aria-label') || ''),
+      role: side && side.getAttribute('role'),
+      skip: skip && (skip.textContent || '').trim(),
+      href: skip && skip.getAttribute('href'),
+      target: !!(document.getElementById('lc-content') || document.querySelector('main, [role="main"]')),
+      chip: chip && (chip.textContent || '').trim(),
+    };
+  });
+  await ctx.close();
+  expect(a11y.role).toBe('navigation');
+  expect(a11y.label).toMatch(/main navigation/i);
+  expect(a11y.skip).toMatch(/skip to main content/i);
+  expect(a11y.href).toBe('#lc-content');
+  expect(a11y.target, 'no main-content target for the skip link').toBe(true);
+  expect(a11y.chip).toBe('Sign in with Gmail');
 });
 
 /* ═══ 1. the rail is rendered, anchored, uncovered, on every app page ══════ */
@@ -443,12 +466,10 @@ test('the rail is up while /api/public-config is still stalled, on every kind of
   }
 });
 
-/* SINCE 2026-09-28 the rail's Sign in opens the mobile+PIN panel on the page
-   (tests/mobile-pin-signin.spec.js); the Google guard and its "Checking
-   sign-in…" wait are commented out with it. The four cases below keep their
-   claims - a press during boot never diagnoses a healthy backend as broken, a
-   sign-in seats the chip IN PLACE, the rail never waits on the session lookup -
-   re-targeted at the session source that exists now. */
+/* SINCE 2026-10-05 the rail's Sign in starts Google. A press during boot
+   waits (the chip says "Checking sign-in…") and is diagnosed only once the
+   host is known. A phone session that already exists still seats the chip
+   in place through its own panel. */
 
 /** A stored server-mode mobile+PIN session, as a returning visitor's browser holds it. */
 const STORED = (name) => ({
@@ -459,15 +480,13 @@ const STORED = (name) => ({
 });
 const SERVER_STATUS = { status: 200, body: { ok: true, mode: 'server', host: 'ep-fixture.neon.tech', message: 'Account saved in the database.' } };
 
-test('Sign-in pressed while the config is stalled opens the panel at once, and never calls a healthy backend broken', async ({ browser }) => {
+test('Sign-in pressed while the config is stalled waits, and never calls a healthy backend broken', async ({ browser }) => {
   test.setTimeout(120_000);
-  // The rail is up before the config answers (test above), so its button can
-  // be pressed while boot is still in flight. The panel needs nothing from
-  // boot - not the config, not the SDK - so it opens at once; and no note may
-  // diagnose the stalled config as "unconfigured" or the unbuilt client as
-  // "sdk" (the Codex finding on 8c9245e, still guarded). Two backends, one
-  // press each, 400 ms into a 5 s stall; every note kind the page ever renders
-  // is recorded, not just the last one on screen.
+  // The rail is up before the config answers, so its button can be pressed
+  // while boot is still in flight. The press waits: the chip says so, and no
+  // note may diagnose the stalled config as "unconfigured" or the unbuilt
+  // client as "sdk". Once boot settles, a healthy host starts Google and a
+  // dead host is named. The PIN panel stays closed either way.
   const sdk = () => ({
     getSession: async () => ({ data: { session: null } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
@@ -486,16 +505,30 @@ test('Sign-in pressed while the config is stalled opens the panel at once, and n
     const panelMid = await page.evaluate(() => !!document.getElementById('lnav-mauth'));
     expect(configAnswered.at, `${label}: the config had already answered, so this measured a settled boot`).toBeNull();
     expect(mid.configSeen).toBe(false);
-    expect(panelMid, `${label}: the panel did not open while boot was in flight`).toBe(true);
+    expect(panelMid, `${label}: the PIN panel opened while boot was in flight`).toBe(false);
     expect(mid.note, `${label}: a refusal note was rendered while boot was still in flight`).toBe(false);
-    expect(mid.text, `${label}: the chip changed its words for a press that needs no wait`).toBe('Sign in');
-    // Boot settles: nothing is handed to Google either way, and no note ever
-    // named a deployment fault.
+    expect(mid.text, `${label}: the chip did not say it was waiting`).toBe('Checking sign-in…');
+    expect(mid.oauthCalls, `${label}: Google was started before the host was known`).toBe(0);
     await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind !== 'pending', null, { timeout: 15000 });
-    const end = await readSignIn(page);
-    expect(end.oauthCalls, `${label}: the browser was handed to Google`).toBe(0);
-    expect(end.note).toBe(false);
-    expect(await page.evaluate(() => !!document.getElementById('lnav-mauth')), `${label}: boot settling closed the panel`).toBe(true);
+    if (reachable) {
+      await page.waitForFunction(() => (window.__oauthCalls || []).length > 0, null, { timeout: 8000 });
+      const end = await readSignIn(page);
+      expect(end.oauthCalls).toBe(1);
+      expect(end.note).toBe(false);
+      const call = await page.evaluate(() => (window.__oauthCalls || [])[0] || null);
+      expect(call.provider).toBe('google');
+      expect(call.options.redirectTo).toMatch(/\/$/);
+      expect(call.options.queryParams.prompt).toBe('select_account');
+    } else {
+      await page.waitForFunction(() => {
+        const n = document.getElementById('lnav-signin-note');
+        return n && n.getAttribute('data-kind') === 'unreachable';
+      }, null, { timeout: 8000 });
+      const end = await readSignIn(page);
+      expect(end.oauthCalls, `${label}: the browser was handed to a dead host`).toBe(0);
+      expect(end.kind).toBe('unreachable');
+    }
+    expect(await page.evaluate(() => !!document.getElementById('lnav-mauth')), `${label}: the PIN panel opened`).toBe(false);
     const kinds = await page.evaluate(() => window.__noteKinds.slice());
     expect(kinds.filter((k) => k === 'unconfigured' || k === 'sdk'),
       `${label}: a boot in flight was diagnosed as a deployment fault (notes seen: ${kinds.join(', ')})`).toEqual([]);
@@ -522,7 +555,9 @@ test('a sign-in completing in the panel seats the chip in place, with no note be
   await open(page, 'smart-brain.html', { config: WITH_BACKEND, reachable: false, auth });
   await page.waitForFunction(() => window.LifecycleAuth && window.LifecycleAuth.backend && window.LifecycleAuth.backend.kind === 'unreachable', null, { timeout: 10000 });
   await page.evaluate(() => { window.__railBefore = document.querySelector('#lifecycle-nav .lnav-side'); });
-  await pressSignIn(page);
+  // The Sign in chip starts Google. This case is the stored-phone panel,
+  // opened the way a phone session opens it.
+  await page.evaluate(() => window.LifecycleAuth.mobile.openPanel());
   await page.waitForSelector('#lnav-mauth', { timeout: 5000 });
   await page.fill('#lnav-mauth-phone', '9876543210');
   await page.click('#lnav-mauth-go');

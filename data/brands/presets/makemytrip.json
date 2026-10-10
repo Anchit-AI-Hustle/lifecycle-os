@@ -15,10 +15,11 @@
     "typography_source": "default",
     "read_attempt": {
       "renderer": "timeout",
-      "at": "2026-10-04",
+      "at": "2026-10-05",
       "host": "www.makemytrip.com",
       "reason": "The site could not be opened: timed out."
-    }
+    },
+    "read_sources_note": "Its own other material was tried too: careers.makemytrip.com (timeout), investors.makemytrip.com (timeout)."
   },
   "palette": {
     "primary": "#2B2B2B",
@@ -156,6 +157,23 @@
       "image_url": "",
       "product_url": "",
       "placeholder": true
+    }
+  ],
+  "identity_sources": [
+    {
+      "url": "https://www.makemytrip.com/flights/",
+      "kind": "page",
+      "what": "MakeMyTrip flights page"
+    },
+    {
+      "url": "https://careers.makemytrip.com/",
+      "kind": "page",
+      "what": "MakeMyTrip careers site"
+    },
+    {
+      "url": "https://investors.makemytrip.com/",
+      "kind": "page",
+      "what": "MakeMyTrip investor relations"
     }
   ],
   "offerings": [],

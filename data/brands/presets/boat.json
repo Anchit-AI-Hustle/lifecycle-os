@@ -8,43 +8,285 @@
     "label": "boAt",
     "sector": "Consumer electronics",
     "blurb": "D2C audio and wearables. Template for a launch and accessory attach lifecycle.",
-    "verified_at": null,
-    "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.boat-lifestyle.com.",
-    "needs_extraction": true,
-    "palette_source": "default",
-    "typography_source": "default",
-    "read_attempt": {
-      "renderer": "rendered",
-      "at": "2026-10-04",
-      "host": "www.boat-lifestyle.com",
-      "reason": "the rendered site shows no brand colour a preset can use (#ecf0f4 from the reader's primary: 1.15:1 against the page, a tint of the page that cannot carry buttons or bands; #ffffff from the header background: 1:1 against the page, a tint of the page that cannot carry buttons or bands)"
+    "verified_at": "2026-10-05",
+    "source": "Rendered https://www.boat-lifestyle.com/ in Chromium 148.0.7778.96 on 2026-10-05. Primary #bc0016 from the brand's logo shown on its own page (\"Business_Standard //www.boat-lifestyle.com/cdn/shop/files/Business_Sta\") (div#MultiCarousel_press1 > div.custom_press_slider.MultiCarousel-inner > div.item:nth-of-type(3) > div.press-logos:nth-of-type(2) > img.press-list__logo-image). Headings Metropolis, body Metropolis, as rendered.",
+    "needs_extraction": false,
+    "palette_source": "verified",
+    "typography_source": "verified",
+    "logo_signal": "the icon the page declares (link rel=shortcut icon)",
+    "palette_evidence": {
+      "surface": {
+        "value": "#ffffff",
+        "exact": "#ffffff",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "page ground",
+          "selector": "html.js",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.boat-lifestyle.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.boat-lifestyle.com"
+        }
+      },
+      "primary": {
+        "value": "#bc0016",
+        "exact": "#bc0016",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 116,
+        "from_role": "identity",
+        "signal": "the brand's logo shown on its own page (\"Business_Standard //www.boat-lifestyle.com/cdn/shop/files/Business_Sta\")",
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "content logo",
+          "selector": "div#MultiCarousel_press1 > div.custom_press_slider.MultiCarousel-inner > div.item:nth-of-type(3) > div.press-logos:nth-of-type(2) > img.press-list__logo-image",
+          "viewport": "desktop",
+          "property": "pixels",
+          "signal": "computed"
+        },
+        "read_url": "https://www.boat-lifestyle.com/pages/contact-us",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "www.boat-lifestyle.com",
+          "registrable": "boat-lifestyle.com",
+          "website_host": "www.boat-lifestyle.com"
+        },
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "meta theme-color",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      },
+      "ink": {
+        "value": "#4e5358",
+        "exact": "#4e5358",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "body copy",
+          "selector": "div.article-list.article-layout--columns:nth-of-type(2) > div.article:nth-of-type(1) > div.article__inner > div.article--details:nth-of-type(2) > div.user-content:nth-of-type(2)",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.boat-lifestyle.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.boat-lifestyle.com"
+        }
+      },
+      "surface_alt": {
+        "value": "#e3e3e3",
+        "exact": "#e3e3e3",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "product card",
+          "selector": "product-list.product-list.product-list--center > div.small-grids > div.product-list__inner > product-item.product-item.two-point-o:nth-of-type(1) > div.product__wrapper",
+          "viewport": "desktop",
+          "property": "background-color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.boat-lifestyle.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.boat-lifestyle.com"
+        }
+      },
+      "muted": {
+        "value": "#666666",
+        "exact": "#666666",
+        "derived": false,
+        "source": {
+          "page": "https://www.boat-lifestyle.com/",
+          "role": "secondary text",
+          "selector": "div#MultiCarousel_press1 > div.custom_press_slider.MultiCarousel-inner > div.item.active:nth-of-type(1) > div.press-content:nth-of-type(1) > p",
+          "viewport": "desktop",
+          "property": "color",
+          "signal": "computed"
+        },
+        "read_url": "https://www.boat-lifestyle.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.boat-lifestyle.com"
+        }
+      },
+      "accent": {
+        "value": "",
+        "exact": "",
+        "derived": false,
+        "absent": true,
+        "note": "The site renders one brand colour; this preset has no accent rather than the primary repeated or a colour the site does not use.",
+        "read_url": "https://www.boat-lifestyle.com",
+        "read_role": "home",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "how": "website",
+          "host": "www.boat-lifestyle.com"
+        }
+      },
+      "line": {
+        "value": "#e4e4e4",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "ok": {
+        "value": "#1a7f37",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "warn": {
+        "value": "#c9a227",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      },
+      "err": {
+        "value": "#c0392b",
+        "exact": "",
+        "derived": false,
+        "note": "functional token shared by every preset, not a colour read from this brand",
+        "source": {
+          "page": "",
+          "role": "",
+          "selector": "",
+          "viewport": "",
+          "property": "",
+          "signal": "functional"
+        }
+      }
     },
-    "logo_signal": "the icon the page declares (link rel=shortcut icon)"
+    "renderer": "rendered",
+    "reader": {
+      "module": "api/_shared/brand-render.js",
+      "manifest_version": "design-manifest/1",
+      "browser": "preinstalled",
+      "chromium": "148.0.7778.96"
+    },
+    "read_pages": [
+      {
+        "url": "https://www.boat-lifestyle.com/",
+        "role": "home"
+      }
+    ],
+    "regression": null,
+    "read_from": [
+      "https://www.boat-lifestyle.com/pages/contact-us",
+      "https://www.boat-lifestyle.com"
+    ],
+    "reads": [
+      {
+        "url": "https://www.boat-lifestyle.com",
+        "role": "home",
+        "what": "home page",
+        "renderer": "rendered",
+        "owned": "website",
+        "reason": ""
+      },
+      {
+        "url": "https://www.boat-lifestyle.com/pages/contact-us",
+        "role": "identity source",
+        "what": "boAt contact page",
+        "renderer": "rendered",
+        "owned": "same-registrable-domain",
+        "reason": ""
+      }
+    ],
+    "typography_evidence": {
+      "heading": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "h1",
+        "selector": "div#shopify-section-header > store-header.header.header--bordered > div.container:nth-of-type(1) > div.header__wrapper > h1.header__logo",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      },
+      "body": {
+        "page": "https://www.boat-lifestyle.com/",
+        "role": "body copy",
+        "selector": "div.article-list.article-layout--columns:nth-of-type(2) > div.article:nth-of-type(1) > div.article__inner > div.article--details:nth-of-type(2) > div.user-content:nth-of-type(2)",
+        "viewport": "desktop",
+        "property": "font-family",
+        "signal": "computed",
+        "observed_at": "2026-10-05"
+      }
+    }
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
-    "ink": "#111111",
-    "surface": "#FFFFFF",
-    "surface_alt": "#F5F5F5",
-    "muted": "#6A6A6A",
-    "line": "#E4E4E4",
+    "primary": "#bc0016",
+    "ink": "#4e5358",
+    "surface": "#ffffff",
+    "surface_alt": "#e3e3e3",
+    "muted": "#666666",
+    "line": "#e4e4e4",
     "ok": "#1a7f37",
     "warn": "#c9a227",
     "err": "#c0392b"
   },
   "typography": {
     "heading": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Metropolis",
+      "stack": "'Metropolis',sans-serif",
       "google": false,
-      "weights": "600;700"
+      "weights": "400;500;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Metropolis (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     },
     "body": {
-      "family": "system-ui",
-      "stack": "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif",
+      "family": "Metropolis",
+      "stack": "'Metropolis',sans-serif",
       "google": false,
-      "weights": "400;500;600"
+      "weights": "400;500;600;700",
+      "kind": "webfont",
+      "loadable": false,
+      "note": "Metropolis (brand font, shown in fallback): a web font served from the brand's own host, which this app does not load. Text renders in the site's own fallback stack."
     }
   },
   "voice": {
@@ -159,10 +401,15 @@
       "placeholder": true
     }
   ],
+  "identity_sources": [
+    {
+      "url": "https://www.boat-lifestyle.com/pages/contact-us",
+      "kind": "page",
+      "what": "boAt contact page"
+    }
+  ],
   "offerings": [],
   "data_gaps": [
-    "[DATA REQUIRED BEFORE LAUNCH: brand palette, boAt]",
-    "[DATA REQUIRED BEFORE LAUNCH: typography, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, boAt]"

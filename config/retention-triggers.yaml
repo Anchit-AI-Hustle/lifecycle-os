@@ -6,7 +6,7 @@
 version: "1.0.0"
 
 defaults:
-  base_url: "https://knickgasm.vercel.app"
+  base_url: "https://lifecycle-os.anchit-tandon.com"
   timezone: "America/New_York"
   webhook_method: "POST"
   webhook_auth_header: "X-Lifecycle-Secret"

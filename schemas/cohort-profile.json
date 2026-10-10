@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://knickgasm.vercel.app/schemas/cohort-profile.json",
+  "$id": "https://lifecycle-os.anchit-tandon.com/schemas/cohort-profile.json",
   "title": "KNICKGASM Cohort Profile",
   "description": "Canonical user/cohort profile payload for the Lifecycle OS retention engine. Captures identity, demographics, geography, purchase vectors, lifecycle health flags, and cohort assignments used by segmentation and automated retention triggers.",
   "type": "object",

@@ -449,7 +449,7 @@ function wrapHtml(rawHtml) {
 
 // Base URL of this deployment (for the public raw-HTML endpoint).
 function appBaseUrl() {
-  return (process.env.SCREENSHOT_BASE_URL || 'https://knickgasm.vercel.app').replace(/\/$/, '');
+  return (process.env.SCREENSHOT_BASE_URL || 'https://lifecycle-os.anchit-tandon.com').replace(/\/$/, '');
 }
 // Stable key for an email → used to look up its HTML at the raw endpoint.
 function emailKey(address, subject, receivedAt) {
@@ -861,8 +861,8 @@ async function appendBrands(list, nowIso) {
 // therefore refused for any brand that is not tenant zero; that brand's own
 // competitors must be added or discovered for it.
 async function seedBrands(nowIso, brand) {
-  const slug = String((brand && (brand.slug || brand.name)) || '').toLowerCase();
-  const isTenantZero = !brand || slug === 'knickgasm';
+  let isTenantZero = false;
+  try { isTenantZero = require('./brand-catalog-server.js').isTenantZeroBrand(brand) === true; } catch (_) { isTenantZero = false; }
   if (!isTenantZero) {
     return {
       ok: true, skipped: true, added: 0,

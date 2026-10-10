@@ -69,7 +69,7 @@ const INCLUDED_WITHOUT_SHELL = {
   // Rail group "3D Storefront & Websites": /3d, /3d/us, /3d/uk, /3d/global, /3d/in.
   // A public, sign-in-free demo by design (its own header comment), but a
   // signed-in operator of any brand reaches it from the rail.
-  'storefront-3d.html': 'offered to every tenant from the rail (/3d/*) although it carries no shell',
+  'storefront-3d.html': 'offered to every tenant from the rail (/3d/*); the public demo never shows another brand\'s catalogue',
   // Rail rows "Landing Page Templates" (/templates). A registry of tenant
   // zero's own final landing pages; for any other brand it renders the
   // DATA REQUIRED marker through data-shipped-for, never that registry. It
