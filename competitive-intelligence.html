@@ -120,7 +120,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
     <div class="row" style="margin-bottom:6px;">
       <select id="brand"><option value="">All brands</option></select>
-      <select id="category"><option value="">All categories</option><option>product</option><option>coffee</option><option>supplements</option><option>lifestyle</option><option>dtc</option></select>
+      <!-- Categories are the ones the competitor data actually carries (added as
+           rows load). A typed list here was another company's product lines. -->
+      <select id="category"><option value="">All categories</option></select>
       <select id="region"><option value="">All regions</option><option>US</option><option>UK</option><option>IN</option><option>EU</option><option>AU</option></select>
       <select id="days"><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
       <input id="search" placeholder="Search copy / subject…" style="flex:1;min-width:160px" />
@@ -164,6 +166,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       const r = await fetch(API+'?action=ci-brands'); const j = await r.json();
       const sel = $('brand'); const list = (j.brands||[]);
       list.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=(b.name||('brand '+b.id))+(b.category?' · '+b.category:''); sel.appendChild(o); });
+      addCategories(list.map(b=>b.category));
     }catch(e){}
   }
 
@@ -200,6 +203,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ${p.offer?`<span class=pill lava>${esc(typeof p.offer==='string'?p.offer:JSON.stringify(p.offer)).slice(0,50)}</span>`:''}
       <div><a href="${esc(l.url)}" target="_blank" rel="noopener">view ↗</a></div></div>`;
   }
+  // The category filter offers what the loaded competitor rows carry, nothing typed in advance.
+  function addCategories(list){
+    const sel=$('category'); if(!sel) return;
+    const have=new Set(Array.from(sel.options).map(o=>o.value));
+    (list||[]).map(c=>String(c||'').trim()).filter(Boolean).forEach(c=>{ if(!have.has(c)){ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); have.add(c); } });
+  }
   function offerCard(o){
     return `<div class="card"><h4>${esc(o.offer_type)}${o.offer_value?' · '+o.offer_value+(o.offer_unit==='percent'?'%':''):''}</h4>
       <div class="meta">${esc(o.brand_name||'')} · ${esc(o.product_category||'')} · ${esc(o.region||'')}</div>
@@ -215,6 +224,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if(state.mode==='offers'){
         const j = await jget('ci-offers',{category:state.category,region:state.region,brand_id:state.brand,days:state.days});
         const rows=(j.offers||[]).filter(o=>matchQ(o.raw_text+o.brand_name));
+        addCategories(rows.map(o=>o.product_category));
         // group counts by type for a quick board
         const by={}; rows.forEach(o=>by[o.offer_type]=(by[o.offer_type]||0)+1);
         P.innerHTML = `<div class="row" style="margin-bottom:10px">${Object.entries(by).map(([t,n])=>`<span class=pill>${esc(t)}: ${n}</span>`).join('')||'<span class=muted>No offers in range</span>'}</div>`+

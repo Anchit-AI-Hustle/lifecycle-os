@@ -512,7 +512,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           { label: 'Live experiments', value: fmt(k.live_experiments) }, { label: 'Significant winners', value: fmt(k.significant_winners) }, { label: 'SRM flags', value: fmt(k.srm_flags) },
           { label: 'Competitor pages', value: fmt(k.competitor_pages) }, { label: 'Competitor brands', value: fmt(k.competitor_brands) },
         ]) + '<div class="xgrid"><div class="xcard span12"><h3>Connector & data coverage</h3><div class="xmeta">' + boolBadge(d.connector && d.connector.connected) + '<span>Sources: <b>' + esc((d.connector && d.connector.sources || []).join(' · ')) + '</b></span></div>' + note(d.connector && d.connector.note || '') + '<div class="xmetric-list"><div class="xmetric"><b>Own pages</b><br>' + esc((av.pages && av.pages.rows || 0) + ' rows') + '</div><div class="xmetric"><b>Experiments</b><br>' + esc((av.experiments && av.experiments.rows || 0) + ' rows') + '</div><div class="xmetric"><b>Competitors</b><br>' + esc((av.competitors && av.competitors.rows || 0) + ' rows') + '</div></div></div></div>' +
-          '<div class="xcard span12"><h3>KNICKGASM landing-page performance</h3>' + table(['Page','Status','Visitors','Views','Clicks','CTR','Conversions','CVR','Revenue','AOV','Avg view','Load'], pages, { limit: 200 }) + '</div>' +
+          '<div class="xcard span12"><h3>Own landing-page performance</h3>' + table(['Page','Status','Visitors','Views','Clicks','CTR','Conversions','CVR','Revenue','AOV','Avg view','Load'], pages, { limit: 200 }) + '</div>' +
           '<div class="xcard span12"><h3>A/B experiments & result quality</h3><p>Includes lift, confidence, winner status, revenue impact and sample-ratio mismatch checks.</p>' + table(['Experiment','Status','Variants','Winner','Lift','Confidence','Significant','SRM','Revenue impact'], experiments, { limit: 150 }) + '</div>' +
           '<div class="xcard span12"><h3>Competitor landing-page benchmark</h3><p>Competitor numbers appear only where the authorised export provides them; unavailable estimates are left blank.</p>' + table(['Brand','Page','Type','Offer','Active days','Linked ads','Est. spend','CVR','Source'], competitors, { limit: 250 }) + '</div>';
       } catch (e) { body.innerHTML = failure('Landing Pages & Experiments', e); }
@@ -637,6 +637,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
    */
   function renderReview(panel, tab) {
     var market = currentMarket();
+    // The embedded review (lifecycle-usa-d2c-dashboard.html) was built from ONE
+    // workspace's own US export: its products, its store, its review counts.
+    // Any other brand gets the gap stated, never that report under its name -
+    // the same rule as brand-catalog-server.ownsBundledExport on the server.
+    var B = window.BrandContext;
+    if (B && B.brand && typeof B.ownsShipped === 'function' && !B.ownsShipped()) {
+      var name = String(B.brand.name || 'this brand');
+      panel.innerHTML = panelTitle(tab.label, tab.what) +
+        note('[DATA REQUIRED BEFORE LAUNCH: sales and business review, ' + name + '.] This deep-dive is built from a brand\'s own order, catalogue and storefront exports. None are on the record for ' + name + ' yet, and this platform never shows another brand\'s review in place of yours. Connect a store and an analytics source under Connections to populate it.', '');
+      state.reviewFrame = null; state.reviewReady = false;
+      return;
+    }
     panel.innerHTML = panelTitle(tab.label, tab.what) +
       (market !== 'US' ? note('This retained deep-dive is the verified US review. The tabs above stay market-aware for ' + market + '.', '') : '') +
       '<div class="xreview-note">' + note('Every chart, calculation, source note and drill-down of the review is below, with its own section nav. The retired standalone routes redirect here.', 'good') + '</div>' +

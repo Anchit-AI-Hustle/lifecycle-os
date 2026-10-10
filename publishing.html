@@ -447,6 +447,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!res.ok) { var e = new Error(json.message || json.error || ('HTTP ' + res.status)); e.payload = json; throw e; }
     return json;
   }
+  // An adapter's `doc` is "<url> (what the page says)": the link is the URL
+  // alone, with a scheme. The whole string used to be the href, so every
+  // annotated source - and the SDK one, written without https:// - opened as
+  // a path on THIS site that does not exist.
+  function docHref(doc) {
+    var u = (String(doc || '').match(/^\s*(\S+)/) || [])[1] || '';
+    if (/^https?:\/\//i.test(u)) return u;
+    return /^[a-z0-9.-]+\.[a-z]{2,}\//i.test(u) ? 'https://' + u : '';
+  }
   function esc(s) { var d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
   function note(kind, text) {
     document.getElementById('msg').innerHTML = '<div class="banner ' + kind + '">' + esc(text) + '</div>';
@@ -1001,7 +1010,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           + eps.map(function (x) {
             return '<tr><td><code>' + esc(x.op) + '</code></td><td>' + esc(x.method) + (x.read ? ' (read)' : '') + '</td>'
               + '<td>' + (x.verified ? chip('on', 'verified') : chip('warn', 'unverified')) + '</td>'
-              + '<td>' + (x.doc ? '<a href="' + esc(x.doc) + '" target="_blank" rel="noopener">docs</a>' : '') + '</td></tr>';
+              + '<td>' + (docHref(x.doc) ? '<a href="' + esc(docHref(x.doc)) + '" target="_blank" rel="noopener" title="' + esc(x.doc) + '">docs</a>' : (x.doc ? '<span class="muted">' + esc(x.doc) + '</span>' : '')) + '</td></tr>';
           }).join('') + '</tbody></table></details>' : '')
         + (p.webhook && p.webhook.callback
           ? '<div class="muted">Webhook callback <code>' + esc(p.webhook.callback) + '</code>' + (p.webhook.verification ? ': ' + esc(p.webhook.verification) : '') + '</div>'

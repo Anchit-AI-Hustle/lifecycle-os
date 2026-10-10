@@ -824,7 +824,7 @@ end of the disabled overlay login -->
       <textarea id="promptIn"
         style="min-height:120px;font-size:13px;line-height:1.7"
         oninput="(function(el){var c=document.getElementById('promptCharCount');if(c)c.textContent=el.value.length+' chars';_updateSmartAIBtn(el.value.trim().length>0);_autoUpdateChipsFromPrompt(el.value);})(this)"
-        placeholder="e.g. 20% off the featured range with code DRIP20. Focus on the story behind the offering and everyday use. Warm, confident tone."></textarea>
+        placeholder="e.g. 20% off the featured range with code SAVE20. Focus on the story behind the offering and everyday use. Warm, confident tone."></textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap" id="smartAIRow">
         <!-- Primary CTA — adapts: Create (empty) or Enhance (has content) -->
         <button type="button" id="smartAIBtn" onclick="smartAIBrief(event)" style="background:var(--vh-primary);color:var(--vh-on-primary);font-weight:700;padding:9px 18px;border:none;border-radius:8px;cursor:pointer;font-size:12px;letter-spacing:0.02em;font-family:var(--vh-font-body);display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px var(--vh-line-hot);transition:all 0.2s">&#127775; Create Brief with AI</button>
@@ -886,7 +886,7 @@ end of the disabled overlay login -->
         style="min-height:64px;font-size:13px;line-height:1.65;width:100%;padding:11px 13px;border:1.5px solid var(--vh-line);border-radius:9px;font-family:var(--vh-font-body);outline:none;resize:vertical"
         oninput="(function(el){S.audience=el.value;_audienceManualSet=el.value.trim().length>0;})(this)"
         onfocus="this.style.borderColor='#D0473E'" onblur="this.style.borderColor='#e0d8cc'"
-        placeholder="e.g. Urban lifestyle-curious professionals, 28-42, in NYC/LA. Buy premium grocery, drink 1-2 pairs daily, trust farm-direct origin. Lapsed buyers in last 90 days who tried our products but didn't repeat."></textarea>
+        placeholder="e.g. Customers who bought once in the last 90 days and have not bought again. Describe who they are only from your own data: the cohort, its size and what it bought."></textarea>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button id="audienceAIBtn" type="button" onclick="generateAudienceWithAI(event)" style="background:var(--vh-panel);color:var(--vh-primary-text);border:1.5px solid var(--vh-primary);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;font-family:var(--vh-font-body);letter-spacing:0.02em;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s">&#129504; Generate with AI</button>
         <span style="font-size:10.5px;color:var(--vh-ink-dim);flex:1;line-height:1.5">AI infers a precise segment from your brief, market, and campaign type, refine if needed.</span>
@@ -929,7 +929,7 @@ end of the disabled overlay login -->
       <span>Select Products</span>
       <span style="font-size:18px;line-height:1">&rarr;</span>
     </button>
-    <p style="text-align:center;font-size:11px;color:var(--vh-ink-dim);margin:10px 0 0;line-height:1.5"> We'll auto-pick the best matching products from the KNICKGASM catalog, or you can choose manually in the next step. </p>
+    <p style="text-align:center;font-size:11px;color:var(--vh-ink-dim);margin:10px 0 0;line-height:1.5"> We'll auto-pick the best matching products from your brand's own catalogue, or you can choose manually in the next step. </p>
 
   </div>
 </div>
@@ -3113,7 +3113,7 @@ function downloadMarketMailer(mkt){
   var blob=new Blob([html],{type:'text/html'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download='knickgasm-mailer-'+mkt.toLowerCase()+'-variant'+v+'-'+Date.now()+'.html';
+  a.download=((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')+'-mailer-'+mkt.toLowerCase()+'-variant'+v+'-'+Date.now()+'.html';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
   showCopyToast(mkt+' mailer (Variant '+v+') downloaded!');
@@ -5847,7 +5847,7 @@ function downloadVariant(v){
   var html=typeof entry==='string'?entry:(entry[v]||'');
   if(!html){showCopyToast('Variant '+v+' not available');return;}
   var slug=(S.prompt||'knickgasm-email').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').substring(0,40)||'knickgasm-email';
-  var fname='knickgasm-email-'+slug+'-'+S.activeMarket.toLowerCase()+'-variant'+v+'.html';
+  var fname=((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')+'-email-'+slug+'-'+S.activeMarket.toLowerCase()+'-variant'+v+'.html';
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');a.href=url;a.download=fname;a.style.display='none';
@@ -6729,7 +6729,7 @@ function downloadMatrixCell(mkt,variant){
   var slug=(S.prompt||'knickgasm').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').substring(0,32)||'knickgasm';
   var blob=new Blob([html],{type:'text/html;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='knickgasm-'+slug+'-'+mkt.toLowerCase()+'-variant'+variant+'.html';
+  a.download=((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')+'-'+slug+'-'+mkt.toLowerCase()+'-variant'+variant+'.html';
   a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
   showCopyToast('Downloaded '+mkt+' Variant '+variant);
@@ -7878,31 +7878,32 @@ _ARCH_INK+'   Ink       — body text on light backgrounds',
 '                     into product or copy decisions.',
 '',
 'Layer 4  full raw    ONLY for extracting % discount amounts and promo codes.',
-'                     (e.g. "20% off" and "DRIP20" can appear anywhere)',
+'                     (e.g. "20% off" and "SAVE20" can appear anywhere)',
 '',
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
 'HOOK LINE PRIORITY WATERFALL — first match wins, do not skip steps',
 '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
 'Evaluate cleanSrc (Layers 1+2) in this exact order:',
+'Each <slot> below is filled from the brief, the active catalogue or the brand record; a slot with no source is a [DATA REQUIRED BEFORE LAUNCH: ...] marker, never printed as written.',
 '',
 '1. % discount + specific product',
-'   → "20% off our Hand-painted Kicks — farm-direct from India\'s finest studios"',
+'   → "20% off <hero product> — <one approved claim from the brand record>"',
 '',
 '2. % discount + promo code',
-'   → "20% off with code DRIP20 — India\'s finest sneakers, now within reach"',
+'   → "20% off with code <CODE> — <hero product>, now within reach"',
 '',
 '3. % discount only',
-'   → "20% off — farm-direct Indian sneakers, fresh from source to your pair"',
+'   → "20% off — <the category the catalogue names>, from <brand>"',
 '',
 '4. Occasion:',
 '   Mother\'s Day / mum / mom',
-'   → "The gift that shows how much you care — premium Indian sneaker, beautifully packaged"',
+'   → "The gift that shows how much you care — <hero product>, gift-ready"',
 '   Father\'s Day / dad / father',
-'   → "For the dad who deserves something extraordinary — premium Indian sneaker, gift-ready"',
-'   Diwali → "Celebrate the festival of lights with the finest sneakers from India"',
-'   Christmas → "The perfect festive gift — premium Indian sneakers, beautifully presented"',
-'   Eid → "Share the warmth of Eid with India\'s finest sneakers"',
-'   New Year → "Start the new year right — premium Indian sneakers for a mindful 2026"',
+'   → "For the dad who deserves something extraordinary — <hero product>"',
+'   Diwali → "Celebrate the festival of lights with <hero product>"',
+'   Christmas → "The perfect festive gift — <hero product>"',
+'   Eid → "Share the warmth of Eid with <hero product>"',
+'   New Year → "Start the new year right — <hero product>"',
 '',
 '5. Specific product named in the brief:',
 '   Lead with that product, using the exact name and subtitle the ACTIVE',
@@ -8078,7 +8079,7 @@ function downloadHTML(){
   if(!S.finalHTML){showCopyToast('No HTML to download yet');return;}
   const slug=(S.prompt||'knickgasm-email').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').substring(0,40)||'knickgasm-email';
   const v=S.activeVariant||'A';
-  const fname='knickgasm-email-'+slug+'-variant'+v+'.html';
+  const fname=((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')+'-email-'+slug+'-variant'+v+'.html';
   const blob=new Blob([S.finalHTML],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -9045,7 +9046,7 @@ function downloadDashboardMailer(logIdx,mkt,variant){
     var blob=new Blob([html],{type:'text/html'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download='knickgasm-'+slug+'-'+mkt.toLowerCase()+'-variant'+(variant||'A')+'.html';
+    a.download=((window.lcFileStem && window.lcFileStem()) || 'lifecycle-os')+'-'+slug+'-'+mkt.toLowerCase()+'-variant'+(variant||'A')+'.html';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
   }catch(e){showCopyToast('Could not download this mailer.');}
