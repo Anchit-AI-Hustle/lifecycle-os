@@ -843,7 +843,7 @@
     var c = readSide('catalog', id);
     return c && Array.isArray(c.products) ? c : null;
   }
-  function deviceProductCount(id) { var c = deviceCatalog(id); return c ? c.products.length : 0; }
+  function deviceProductCount(id) { var c = deviceCatalog(id); return c ? c.products.filter(function (p) { return p && !p.stale_at; }).length : 0; }
   /** A refusal shaped like the server's, so every caller's catch reads it the same way. */
   function deviceFail(status, code, message, details) {
     var e = new Error(message);
@@ -1738,16 +1738,28 @@
     var stored = readSide('pack', id) || {};
     if (op === 'catalog-import') {
       body.brand = deviceBrandBody(row);
+      var held = deviceCatalog(id);
+      // Continue import: the cursor this device kept from the last step.
+      if (body.continue === true) {
+        if (!held || !held.cursor) throw deviceFail(409, 'nothing_to_continue', 'There is no unfinished catalogue import on this brand to continue. Import it again to read it from the start.');
+        body.cursor = held.cursor;
+        body.region = held.cursor.region || body.region;
+      }
       var r = await serverApi(op, { body: body, query: o.query });
       if (!r || !Array.isArray(r.products)) throw deviceFail(502, 'catalog_not_returned', 'The server read the catalogue but did not hand the products back, so nothing was kept on this device.');
+      // MERGED into what this device already keeps (upsert by identity, a
+      // product the source no longer lists marked stale once the run is
+      // complete) - the twin of the server's brand_catalog_merge().
+      var merged = mergeDeviceCatalog(held ? held.products : [], r.products, { run: r.run, complete: !!r.complete && body.replace !== false, family: r.family || [] });
+      var live = merged.rows.filter(function (x) { return !x.stale_at; }).length;
       // Imported by hand: the operator owns it, and a context pack run leaves
       // it alone (catalog_owned) exactly as a `user` provenance row would.
-      if (!writeSide('catalog', id, { products: r.products, source: r.source || null, owned: true, region: r.region || '', imported_at: new Date().toISOString() })) {
+      if (!writeSide('catalog', id, { products: merged.rows, source: r.source || null, owned: true, region: r.region || '', imported_at: new Date().toISOString(), cursor: r.complete ? null : (r.cursor || null), run: r.run || null, coverage: r.coverage || null })) {
         throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the catalogue (storage is full or blocked), so nothing was kept.');
       }
       saveCatalogSource(id, r.source);
-      var out = Object.assign({}, r);
-      delete out.products;
+      var out = Object.assign({}, r, { inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: live });
+      delete out.products; delete out.cursor;
       return out;
     }
     if (op === 'context-build') {
@@ -1761,7 +1773,9 @@
       // "N catalogue rows" while holding none (Codex, 2026-10-03).
       if (rb && Array.isArray(rb.catalog_products) && rb.catalog_products.length && !(cat && cat.owned)) {
         var src = (rb.device_pack && rb.device_pack.catalog && rb.device_pack.catalog.source) || null;
-        if (!writeSide('catalog', id, { products: rb.catalog_products, source: src, owned: false, imported_at: new Date().toISOString() })) {
+        var pc = rb.device_pack && rb.device_pack.catalog;
+        var pm = mergeDeviceCatalog(cat ? cat.products : [], rb.catalog_products, { run: rb.catalog_run, complete: !!(pc && pc.complete), family: ['shopify_public', 'sitemap_jsonld', 'site_crawl'] });
+        if (!writeSide('catalog', id, { products: pm.rows, source: src, owned: false, imported_at: new Date().toISOString(), cursor: rb.catalog_cursor || null, run: rb.catalog_run || null, coverage: (pc && pc.coverage) || null })) {
           throw deviceFail(507, 'device_storage_unavailable', 'The context pack read ' + rb.catalog_products.length + ' products from your store, but this browser refused to keep them (storage is full or blocked), so the build stopped here and nothing from this step was kept. Free some browser storage, or import a smaller catalogue (Paste CSV on step 5), then build again.');
         }
         saveCatalogSource(id, src);
@@ -1772,7 +1786,7 @@
         }
       }
       var outb = Object.assign({}, rb || {});
-      delete outb.device_pack; delete outb.catalog_products;
+      delete outb.device_pack; delete outb.catalog_products; delete outb.catalog_cursor;
       return outb;
     }
     if (op === 'context-pack') {
@@ -1793,6 +1807,42 @@
       return { ok: true, packs: stored.context && stored.context.pack ? [stored.context.pack] : [], storage: 'device' };
     }
     throw deviceFail(400, 'unknown_brand_operation', 'That operation has no device implementation.');
+  }
+  /**
+   * Merge one import step's rows into the catalogue this device keeps: the twin
+   * of catalog-import.mergeRows() / brand_catalog_merge() (a parity test runs
+   * both on the same input). Identity is region + handle + sku, an absent value
+   * equal to an absent value; a row is updated in place, never duplicated; once
+   * a run has read its WHOLE source, a row of the same source family it did not
+   * see is marked stale (kept, never deleted).
+   */
+  function mergeDeviceCatalog(existing, incoming, opts) {
+    var o = opts || {};
+    var when = o.at || new Date().toISOString();
+    var key = function (r) { return String(r.region || '').toLowerCase() + '|' + (r.handle == null ? '' : r.handle) + '|' + (r.sku == null ? '' : r.sku); };
+    var out = (Array.isArray(existing) ? existing : []).map(function (r) { return Object.assign({}, r); });
+    var index = {};
+    out.forEach(function (r, i) { index[key(r)] = i; });
+    var inserted = 0, updated = 0, staled = 0;
+    (Array.isArray(incoming) ? incoming : []).forEach(function (r) {
+      var k = key(r);
+      var row = Object.assign({}, r, { last_seen_run: o.run, last_seen_at: when, stale_at: null });
+      if (Object.prototype.hasOwnProperty.call(index, k)) { out[index[k]] = Object.assign(out[index[k]], row); updated += 1; }
+      else { index[k] = out.length; out.push(row); inserted += 1; }
+    });
+    if (o.complete) {
+      var fam = {}; (o.family || []).forEach(function (f) { fam[f] = 1; });
+      var hasFam = (o.family || []).length > 0;
+      var regions = {}; var hasRegions = false;
+      (incoming || []).forEach(function (r) { regions[String(r.region || '').toLowerCase()] = 1; hasRegions = true; });
+      out.forEach(function (r) {
+        if (r.last_seen_run === o.run || r.stale_at) return;
+        if (hasFam && !fam[r.source]) return;
+        if (hasRegions && !regions[String(r.region || '').toLowerCase()]) return;
+        r.stale_at = when; staled += 1;
+      });
+    }
+    return { rows: out, inserted: inserted, updated: updated, staled: staled };
   }
   /** Record where the device catalogue came from on the brand row itself, as the account path records it on the workspace. */
   function saveCatalogSource(id, source) {
@@ -2350,6 +2400,8 @@
       list: function () { return readDevice().workspaces.map(function (w) { return shellPayloadFor(w); }); },
       active: function () { return readDevice().active_id || ''; },
       count: function () { return readDevice().workspaces.length; },
+      // The device catalogue's merge, exposed for the parity test against the server's.
+      mergeCatalog: mergeDeviceCatalog,
     },
     // Uploaded brand files (IndexedDB, per account) and field origins (2026-10-04).
     files: files,
