@@ -525,6 +525,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function bucketCategory(){ return state.src + '-' + state.chan; }
 
   async function getSb() {
+    // The signed-in session's client first: RLS admits brand rows only for a member, which an
+    // anonymous client never is (20261009230000).
+    const signed = window.LifecycleAuth && window.LifecycleAuth.client;
+    if (signed && window.LifecycleAuth.session) return { sb: signed };
     const cfgR = await fetch('/api/public-config'); const cfg = await cfgR.json();
     const sbUrl = cfg?.supabase?.url, anon = cfg?.supabase?.anonKey;
     if (!sbUrl || !anon) return null;
@@ -556,6 +560,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const READABLE = /\.(txt|md|markdown|csv|tsv|json|xml|html?|log|ya?ml|srt|vtt|rtf|ini|conf|js|ts|py|sql|sh|pdf|docx|pptx|xlsx|xlsm|xls)$/i;
   const SEND_LIMIT = 3 * 1024 * 1024;   // ~4.5MB request cap once base64-encoded
 
+  // Rows are filed under the ACTIVE brand's account workspace: RLS admits a write only for a member of
+  // that workspace (20261009230000). A device brand (id local-*) has no account row, so nothing is sent.
+  const activeWorkspaceId = () => { try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); const id = b && b.id; return (id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) ? String(id) : null; } catch (_) { return null; } };
   async function uploadToKb(fileList) {
     const status = $('kbAddStatus');
     const files = Array.from(fileList || []);
@@ -574,12 +581,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       done++;
       status.textContent = 'Reading ' + done + '/' + files.length + ': ' + f.name + '…';
       const rel = (f.webkitRelativePath || f.name);
-      if (sbCtx && sbCtx.sb) {
+      const kbWorkspaceId = activeWorkspaceId();
+      if (sbCtx && sbCtx.sb && kbWorkspaceId) {
         try {
-          const path = category + '/' + Date.now() + '_' + rel.replace(/[^\w./\-]+/g, '_');
+          const path = kbWorkspaceId + '/' + category + '/' + Date.now() + '_' + rel.replace(/[^\w./\-]+/g, '_');
           await sbCtx.sb.storage.from('knowledge-base').upload(path, f, { upsert: false, contentType: f.type || 'application/octet-stream' });
           const pub = sbCtx.sb.storage.from('knowledge-base').getPublicUrl(path).data?.publicUrl || '';
-          await sbCtx.sb.from('kb_files').insert({ storage_path: path, file_name: f.name, mime_type: f.type || 'application/octet-stream', size_bytes: f.size, category, region, public_url: pub, uploaded_by: 'dashboard' });
+          await sbCtx.sb.from('kb_files').insert({ storage_path: path, file_name: f.name, mime_type: f.type || 'application/octet-stream', size_bytes: f.size, category, region, public_url: pub, uploaded_by: 'dashboard', workspace_id: kbWorkspaceId });
         } catch (err) { console.warn('[kb] storage', f.name, err.message); }
       }
 
