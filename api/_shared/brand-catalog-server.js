@@ -229,6 +229,7 @@ async function workspaceRows(workspaceId) {
     for (const shape of shapes) {
       const got = [];
       let failed = false;
+      let prevFirst = null;
       // Advance by the rows RECEIVED and stop only on an EMPTY page: a short
       // page is what max_rows looks like, not the end.
       for (let offset = 0; offset < MAX_ROWS; ) {
@@ -243,6 +244,12 @@ async function workspaceRows(workspaceId) {
         const page = await r.json().catch(() => null);
         if (!Array.isArray(page)) { failed = true; break; }
         if (!page.length) break;
+        // A server (or a proxy in front of it) that ignores `offset` hands the
+        // same page back for ever: the same first row twice is the end, not
+        // more products.
+        const first = JSON.stringify(page[0]);
+        if (first === prevFirst) break;
+        prevFirst = first;
         got.push(...page);
         offset += page.length;
       }
