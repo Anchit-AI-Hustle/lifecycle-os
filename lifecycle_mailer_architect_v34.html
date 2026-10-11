@@ -5676,7 +5676,7 @@ async function generateServerImage(variant){
     });
     if(!res.ok){var err=await res.json().catch(function(){return {};});throw new Error((err.message||err.error||'Server error')+' '+res.status);}
     var data=await res.json();
-    if(!data.ok||!data.image_data_url)throw new Error('No image returned');
+    if(!data.ok||!data.image_data_url)throw new Error(data.detail||'No image returned');
     S.uploadedDesignUrl=data.image_data_url;
     var img=document.getElementById('uploadedImg');
     var preview=document.getElementById('uploadPreview');
