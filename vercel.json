@@ -293,6 +293,18 @@
       "destination": "/onboarding.html?step=6"
     },
     {
+      "source": "/catalog",
+      "destination": "/brand-catalogue.html"
+    },
+    {
+      "source": "/brand-catalogue",
+      "destination": "/brand-catalogue.html"
+    },
+    {
+      "source": "/brand-context",
+      "destination": "/brand-context-view.html"
+    },
+    {
       "source": "/credits",
       "destination": "/credits.html"
     },
