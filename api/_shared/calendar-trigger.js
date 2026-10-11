@@ -21,6 +21,27 @@ const { buildMasterPrompt } = require('../_shared/master-prompt.js');
 const CF = require('../_shared/copy-frameworks.js');
 const catalogServer = require('./brand-catalog-server.js');
 
+// What the copywriter returns (output-contract.js): the OUTPUT REQUIREMENT
+// this request ends with, shared with lifecycle-mailer-build.js ("the same
+// contract"), with the subject and preheader limits READ from the email
+// contract. The parser below checks the same keys.
+const OC = require('./output-contract.js');
+function mailerCopySpec(brandName, region) {
+  const L = require('./asset-contracts.js').slotLimit;
+  return {
+    id: 'mailer-copy', kind: 'data', format: 'json', brand: brandName || 'this brand', region: region || '',
+    returns: 'ONE JSON object: the copy of one lifecycle email (subject, preview text, hero, body blocks, call to action).',
+    schema: {
+      subject_line: { type: 'string', max: L('email.mailer', 'subject') },
+      preview_text: { type: 'string', max: L('email.mailer', 'preheader'), note: 'extends the subject, never repeats it' },
+      hero_headline: { type: 'string', note: '8 words at most' },
+      hero_subline: { type: 'string', note: '18 words at most' },
+      body_blocks: { type: 'array', count: [1, 4], items: { type: 'object', of: { heading: 'string', body: 'string' } } },
+      cta_text: { type: 'string', note: '4 words at most' },
+    },
+  };
+}
+
 // ─── Brand-derived identity for every rendered mailer ─────────────────────────
 // This renderer is shared by the Smart Brain variants, so nothing in it may be
 // hardcoded to one tenant. Name, palette, store URL and the legal sender block
@@ -287,13 +308,10 @@ module.exports = async function handler(req, res) {
   const strategy = await safeCall(async () => {
     const out = await llm({
       systemPrompt:
-        'You are the lifecycle copywriter for ' + brandNameOf(entry) + '. Produce a strict JSON object with keys: ' +
-        'subject_line (string, ≤ 60 chars), preview_text (string, ≤ 90 chars), ' +
-        'hero_headline (string, ≤ 8 words), hero_subline (string, ≤ 18 words), ' +
-        'body_blocks (array of {heading, body}), cta_text (string, ≤ 4 words). ' +
+        'You are the lifecycle copywriter for ' + brandNameOf(entry) + '. ' +
         'Use the active brand\'s own voice as stated in its brand block. ' +
         CF.copyFrameworkSystemLine(framework) + ' No banned phrases.',
-      userMessage: brief,
+      userMessage: OC.append(brief, mailerCopySpec(brandNameOf(entry), market)),
       responseFormat: { type: 'json_object' },
       maxTokens: 3000,
       temperature: 0.75,
@@ -840,4 +858,4 @@ function esc(s) {
 // module.exports stays the HTTP handler above; these let sibling _shared
 // modules (lifecycle-mailer-build.js) reuse the exact same brand-compliant
 // renderer instead of copying it.
-module.exports.helpers = { renderTextVariant, regionBase, lookupHandle, esc };
+module.exports.helpers = { renderTextVariant, regionBase, lookupHandle, esc, mailerCopySpec };

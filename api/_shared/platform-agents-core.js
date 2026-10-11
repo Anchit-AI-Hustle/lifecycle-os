@@ -210,11 +210,26 @@ const AGENTS = [
 ];
 
 // ── The analysis step ───────────────────────────────────────────────────────
-const SCHEMA =
-  '{"insights":[{"observation":"","evidence":"quoted figure(s) from METRICS","hypothesis":"if X then Y because Z",' +
-  '"target_metric":"","expected_impact":"","confidence":"low|med|high"}],' +
-  '"action_items":[{"action":"","why":"","target_metric":"","effort":"low|med|high","priority":"P0|P1|P2","owner":""}],' +
-  '"summary":"2-3 sentences"}';
+// The analyst's answer, as the OUTPUT REQUIREMENT every request ends with
+// (output-contract.js): the keys the parser below reads are the keys the model
+// is shown.
+const OC = require('./output-contract.js');
+function analystSpec(agent, brand) {
+  return {
+    id: 'platform-agent.' + agent.id, kind: 'data', format: 'json', brand: (brand && brand.name) || 'this brand',
+    missing: 'A figure that is not in METRICS is not quoted: say it is not in the data. Never estimate one.',
+    returns: `ONE JSON object: up to 6 insights and up to 6 action items for ${agent.label} this week, and a 2-3 sentence summary.`,
+    schema: {
+      insights: { type: 'array', count: [0, 6], items: { type: 'object', of: {
+        observation: 'string', evidence: { type: 'string', note: 'quoted figure(s) from METRICS' }, hypothesis: { type: 'string', note: '"if X then Y because Z"' },
+        target_metric: 'string', expected_impact: 'string', confidence: { type: 'string', enum: ['low', 'med', 'high'] } } } },
+      action_items: { type: 'array', count: [0, 6], items: { type: 'object', of: {
+        action: 'string', why: 'string', target_metric: 'string', effort: { type: 'string', enum: ['low', 'med', 'high'] },
+        priority: { type: 'string', enum: ['P0', 'P1', 'P2'] }, owner: 'string' } } },
+      summary: { type: 'string', note: '2-3 sentences' },
+    },
+  };
+}
 
 /**
  * Who the analyst works for.
@@ -245,13 +260,13 @@ async function analyse(agent, collected, { question, tier, timeoutMs, brand }) {
     evidenceContract(brand) + '\n' +
     'Stay inside your platform: do not speculate about other channels, and do not compare against benchmarks you were not given. ' +
     'If a caveat says a figure is partial or not revenue, DO NOT build a recommendation on it — flag it instead. ' +
-    'Every action item must be something a marketer can execute this week on this platform. Output STRICT JSON only:\n' + SCHEMA;
-  const user =
+    'Every action item must be something a marketer can execute this week on this platform.';
+  const user = OC.append(
     `PLATFORM: ${agent.label}\nSOURCE: ${collected.source}\n` +
     (question ? `QUESTION: ${question}\n` : '') +
     'METRICS (JSON):\n' + JSON.stringify(collected.metrics).slice(0, 12000) + '\n' +
-    (collected.caveats.length ? '\nDATA CAVEATS (do not lean on these):\n' + JSON.stringify(collected.caveats).slice(0, 2000) : '') +
-    '\n\nReturn the JSON now.';
+    (collected.caveats.length ? '\nDATA CAVEATS (do not lean on these):\n' + JSON.stringify(collected.caveats).slice(0, 2000) : ''),
+    analystSpec(agent, brand));
   const out = await callLLM({
     systemPrompt: sys, userMessage: user, responseFormat: { type: 'json_object' },
     maxTokens: 1200, temperature: 0.3, timeoutMs, stage: `platform-agent-${agent.id}`, tier, preferProvider: 'gemini+',

@@ -52,6 +52,34 @@ for every Open/Copy button) and `tests/image-prompt-subject.spec.js` (the Studio
   `api/ai/image.js` takes `product {title, category, image_url}` + `require_product` (422 marker, no provider call)
   and puts the SUBJECT first: Pollinations keeps 1,500 characters and the brand preamble alone is that long.
 
+## ⭐ Every prompt ends with its OUTPUT REQUIREMENT, and the caller parses by the same spec (2026-10-11)
+The operator: *"ENSURE PROMPT QUALITY FOR AI CLEARLY DEFINES THE OUTPUT REQUIREMENT AND FORMAT TOO"*.
+`api/_shared/output-contract.js` (UMD; the browser loads the byte-identical root `/output-contract.js`) renders
+ONE block from a spec `{id, kind: asset|element|data|reply, format: json|html|text|markdown|sections, returns,
+schema|shape, lines, forbid, missing, brand, region}`: the deliverable, how to mark a missing fact
+(`[DATA REQUIRED BEFORE LAUNCH: <field>, <brand>, <region>]`), what not to return, then the format and its keys
+LAST (the asset-prompt rule: a long prompt closes by pinning the container). The SAME spec parses (`parse`) and
+checks (`validate`, never rewrites) the answer; character limits are READ via `asset-contracts.slotLimit()`.
+Gated by `tests/prompt-output-contracts.spec.js` (executed: every generator the routers declare driven through the
+shipped routers with the scripted llm.js recording every prompt, then driven again with the model ANSWERING each
+prompt in its own contract's shape; modules no router reaches called directly; every file that calls a model listed;
+the Studio, asset library, Ad Campaigns and Landing Pages copy prompts in Chromium; 9 mutations caught).
+- **A JSON request is in JSON response mode exactly when its block says JSON**, and vice versa (the judge checks both).
+- **Never test a model answer with `out.ok`**: `callLLM` answers `{ text, provider, model }`. kb.js's ingest and daily
+  digest and ingest-guardrail's Phase 2 tested `out.ok`, so every summary failed, every digest was empty and the
+  guardrail kept every item as "LLM unavailable"; tests passed because stubs answered `{ ok: true }`. The harness's
+  contract answers carry no `ok` now. kb-files parsed the answer OBJECT (every summary empty); lifecycle-mailer-build's
+  `writeCopy` read an undeclared `entry` (every call threw before the model).
+- **Prompt vs parser mismatches fixed**: suggested_prompts asked for a top-level JSON ARRAY in JSON-object mode;
+  create_brief's system asked for "clear sections", its user message for "no section headers"; autofill briefed Meta
+  primary text 60-180 and TikTok captions 140 (contracts: 125, 100); the master mailer prompt and the Studio email
+  prompt asked for subject lines "before the HTML" AND "only the HTML" (sections now / inside the HTML); the master
+  prompt told the model to "assume the most on-brand detail" (now the marker); generate.js returned an lp-* autofill's
+  JSON as "[object Object]" once parsed (found by the contract pass).
+- Element prompts to an IMAGE model (`buildElementPrompt`, the Studio hero prompt) end with a one-line `OUTPUT:` -
+  a multi-line block is text an image model may paint. Exempt by name in the gate: the pipeline images stage, tts,
+  video-generate.
+
 ## ⭐ Another brand's catalogue never reaches generation (2026-10-10)
 Production, /brain, the brand "Mamaearth" (IN): Smart Brain's mailers said "Uncompromising Chicken Black Pepper
 Salami", "100% premium chicken, no pork" - Deli Chic's products. The live record (`tests/fixtures/live-mixed-brand.js`)

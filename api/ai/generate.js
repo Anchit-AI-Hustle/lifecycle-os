@@ -28,6 +28,133 @@ const scrubDashes = SMscen.scrubDashes;
 const brandScrub = (s) => { try { return SMscen.sanitizeBrand ? SMscen.sanitizeBrand(String(s)) : scrubDashes(s); } catch (_) { return scrubDashes(s); } };
 const CF = require('../_shared/copy-frameworks.js');
 
+// ── WHAT EACH MODE RETURNS (2026-10-11) ─────────────────────────────────────
+// One spec per mode, rendered as the OUTPUT REQUIREMENT block every prompt in
+// this file ends with (api/_shared/output-contract.js), and the SAME spec the
+// answer is parsed with below. Before this: suggested_prompts asked for a JSON
+// ARRAY under a JSON-object response mode (a provider in JSON mode cannot
+// return a top-level array), create_brief's system prompt asked for "clear
+// sections" while its user message asked for prose with "no section headers",
+// and autofill briefed Meta primary text as 60-180 characters and TikTok
+// captions as 140 while the asset contracts hold 125 and 100. Copy limits are
+// READ from asset-specs.js here, never re-typed.
+const OC = require('../_shared/output-contract.js');
+const _SPECS = require('../_shared/asset-specs.js');
+const _ACON = require('../_shared/asset-contracts.js');
+const LAYOUT_ARCHETYPES = ['hero-led-editorial', 'product-grid-conversion', 'storytelling-narrative', 'single-product-spotlight', 'gift-bundle-showcase', 'ritual-journey', 'comparison-discovery', 'editorial-trend-roundup', 'limited-drop-countdown', 'subscription-anchor'];
+const SECTION_TYPES = ['split-hero', 'full-bleed', 'centered', 'two-col-grid', 'three-col-grid', 'banner', 'button-row'];
+const slotMax = _ACON.slotLimit;
+const _MAILER_SUBJECT = slotMax('email.mailer', 'subject');
+const _MAILER_PREHEADER = slotMax('email.mailer', 'preheader');
+const _VARIANT_SCHEMA = {
+  layout_plan: { type: 'object', of: { hero_type: { type: 'string', enum: ['split-hero', 'full-bleed', 'centered'] }, flow: 'string', spacing: 'string', color_scheme: { type: 'object', note: 'role -> hex, from the brand palette only' } } },
+  sections: { type: 'array', count: [5, 11], items: { type: 'object', of: {
+    id: 'string', type: { type: 'string', enum: SECTION_TYPES }, purpose: 'string',
+    copy: { type: 'object', of: { eyebrow: 'string', headline: 'string', subcopy: 'string', cta: 'string' } },
+    layout: 'string', image_slot: { type: 'string', enum: ['hero', 'product', 'lifestyle', 'none'] }, ux_intent: 'string' } } },
+  image_requirements: { type: 'array', count: 3, items: { type: 'object', of: {
+    slot: { type: 'string', enum: ['hero', 'product', 'lifestyle'] }, prompt: { type: 'string', note: 'a photograph description, no text in the image' },
+    size: { type: 'string', enum: ['1536x1024', '1024x1024'] }, negative_prompt: 'string' } } },
+  copy_framework: { type: 'object', of: { tone: 'string', voice: 'string', headline_style: 'string', cta_verb: 'string' } },
+  subject_lines: { type: 'array', count: 3, items: { type: 'string', max: _MAILER_SUBJECT } },
+  preheader: { type: 'string', max: _MAILER_PREHEADER },
+};
+function genContract(mode, ctx) {
+  const c = ctx || {};
+  const brand = c.brand; const region = c.region || '';
+  const A = _SPECS.ADS;
+  switch (mode) {
+    case 'concepts': return { id: 'generate.concepts', kind: 'data', format: 'json', brand, region,
+      returns: 'ONE JSON object whose "concepts" key holds exactly three campaign concepts (one safe, one balanced, one bold), each on a different layout archetype.',
+      schema: { concepts: { type: 'array', count: 3, items: { type: 'object', of: {
+        id: 'string', name: { type: 'string', note: '2-5 words' }, hook: { type: 'string', max: 80 }, emotional_driver: 'string', visual_direction: 'string', tone: 'string',
+        layout_archetype: { type: 'string', enum: LAYOUT_ARCHETYPES }, hero_focus: 'string', risk_profile: { type: 'string', enum: ['safe', 'balanced', 'bold'] },
+        hero_concept: { type: 'string', note: '2-3 sentences' }, section_flow: { type: 'array', count: 5, items: 'string' }, visual_prompt_extension: { type: 'string', max: 200 },
+        subject_lines: { type: 'array', count: 3, items: { type: 'string', max: _MAILER_SUBJECT } }, preheader: { type: 'string', max: _MAILER_PREHEADER, note: 'no terminal period' },
+        copy: { type: 'object', of: { eyebrow: 'string', headline: { type: 'array', count: 2, items: 'string' }, sub_copy: { type: 'string', max: 200 }, cta: { type: 'string', note: '3 words at most' }, section_title: 'string', ann_bar: 'string' } },
+        cta_options: { type: 'array', count: 3, items: 'string' }, product_handles: { type: 'array', count: [3, 5], items: { type: 'string', note: 'a handle from AVAILABLE_PRODUCTS' } },
+        scores: { type: 'object', of: { brand_fit: { type: 'integer', min: 1, max: 10 }, conversion_potential: { type: 'integer', min: 1, max: 10 }, novelty: { type: 'integer', min: 1, max: 10 } } },
+        performance_notes: { type: 'object', of: { recommended_subject_index: 'integer', swap_if_low_open: 'string', personalization_token: 'string' } },
+        primary_hook: { type: 'string', enum: ['offer', 'benefit', 'origin-freshness'] }, secondary_hook: 'string',
+        user_emotional_state: { type: 'string', enum: ['curiosity-trust', 'reward-upgrade', 'reactivation-incentive'] },
+        internal_critique: { type: 'object', of: { strongest_subject_index: 'integer', strongest_subject_reason: 'string', weakest_section: 'string', weakest_reason: 'string', open_rate_lever: 'string', ctr_lever: 'string' } },
+        rationale: 'string' } } } } };
+    case 'mailer_full': return { id: 'generate.mailer_full', kind: 'data', format: 'json', brand, region,
+      returns: 'ONE JSON object: the strategy and TWO structurally different email mailer specs (variant_a control, variant_b experimental) with their image prompts. Specs, not HTML.',
+      forbid: ['HTML', 'a rendered email'],
+      schema: {
+        synthesis: { type: 'object', of: { audience_truth: 'string', business_goal: 'string', product_roles: 'string', conversion_levers: 'string', market_context: 'string' } },
+        strategy: { type: 'object', of: { name: { type: 'string', enum: ['Conversion Push', 'Ritual Reinforcement', 'Desire Creation', 'AOV Expansion', 'Catalog Expansion'] }, why: 'string' } },
+        vibe: { type: 'object', of: { tone: 'string', pace: 'string', visual_energy: 'string', avoid: 'string' } },
+        product_logic: { type: 'object', of: { hero_product: { type: 'string', note: 'a name from selected_products, or the marker' }, supporting_products: { type: 'array', items: 'string' }, aov_logic: 'string' } },
+        theme: { type: 'object', of: { theme_name: 'string', core_idea: 'string', visual_world: 'string', conversion_reason: 'string' } },
+        image_style_lock: { type: 'string', note: 'one photography style for every image' },
+        variant_a: { type: 'object', of: _VARIANT_SCHEMA },
+        variant_b: { type: 'object', of: _VARIANT_SCHEMA },
+      } };
+    case 'suggested_prompts': return { id: 'generate.suggested_prompts', kind: 'data', format: 'json', brand, region,
+      returns: 'ONE JSON object whose "prompts" key holds exactly six campaign briefs, each a different campaign type and emotional angle.',
+      schema: { prompts: { type: 'array', count: 6, items: { type: 'object', of: {
+        icon: { type: 'string', note: 'a single emoji' }, type: { type: 'string', note: '"<Campaign Name> - <Market>"' },
+        mkt: { type: 'string', note: 'one of the focus markets given' },
+        ctype: { type: 'string', enum: ['Sale', 'Launch', 'Gift', 'Seasonal', 'Bestseller', 'Routine', 'Discovery'] },
+        text: { type: 'string', note: 'the director brief, 150-200 words' } } } } } };
+    case 'audience_segment': return { id: 'generate.audience_segment', kind: 'element', format: 'text', brand, region, missing: 'say',
+      returns: 'ONE Target User Segment description: a single paragraph of 60-120 words.',
+      forbid: ['bullets or numbered lists', 'quotation marks around the paragraph', 'city, state, region or postcode names'] };
+    case 'chat': return { id: 'generate.chat', kind: 'reply', format: 'text', brand, region, missing: 'say',
+      returns: 'ONE reply to the operator\'s last message: short paragraphs or a tight list; when copy is asked for, ready-to-paste options.',
+      formatRule: 'Plain text only. A list may use "- " at the start of a line.' };
+    case 'landing_page': return { id: 'generate.landing_page', kind: 'asset', format: 'html', brand, region,
+      returns: 'ONE complete, production-ready, single-file, mobile-first landing page as an HTML document.',
+      lines: ['All CSS inline in ONE <style> block. No <script>, no external stylesheet, no CDN, no web-font link.',
+        'Includes <meta name="viewport" content="width=device-width, initial-scale=1">.',
+        'Every image is a hosted URL the brief supplied, or a labelled empty placeholder box; never an invented URL.'] };
+    case 'autofill': {
+      const s = String(c.surface || '');
+      const lim = { meta: A.meta.copy, google: A.google.copy, tiktok: A.tiktok.copy };
+      const overlay = {
+        overlay_headline: { type: 'string', note: 'baked onto the creative image, 6 words at most, the end-state the product delivers, never a feature list' },
+        overlay_sub: { type: 'string', note: 'baked under the headline, 8 words at most' },
+        offer: { type: 'string', max: 40, note: 'the offer EXACTLY as the prompt states it; an empty string when it states none' },
+      };
+      const market = { type: 'string', note: 'the target market code' };
+      const budget = { type: 'integer', min: 20, max: 200, note: 'daily budget in the market currency, a plain integer' };
+      const SURF = {
+        google: { what: 'a Google Search ad campaign', schema: Object.assign({
+          name: { type: 'string', max: 60 }, type: { type: 'string', enum: ['Search', 'Performance Max', 'Display', 'Shopping', 'YouTube'] }, budget, market,
+          url: { type: 'string', note: 'final landing path, starting with /, never absolute' },
+          keywords: { type: 'string', note: '6-12 lowercase keywords, comma-separated, no quotes' },
+          headlines: { type: 'string', note: `3-5 headlines, one per line, each at most ${slotMax('ad.google.rsa', 'headlines')} characters` },
+          desc: { type: 'string', note: `2 descriptions, one per line, each at most ${slotMax('ad.google.rsa', 'descriptions')} characters` } }, overlay) },
+        meta: { what: 'a Meta (Facebook + Instagram) ad campaign', schema: Object.assign({
+          name: { type: 'string', max: 60 }, obj: { type: 'string', enum: ['Sales / Conversions', 'Traffic', 'Awareness', 'Engagement', 'Leads'] }, budget, market,
+          place: { type: 'string', enum: ['Advantage+ (all)', 'Feed', 'Stories/Reels', 'Manual'] }, aud: { type: 'string', note: 'one sentence: interests, lookalike if relevant' },
+          primary: { type: 'string', max: lim.meta.primaryText, note: 'primary text, concrete, ends with an implicit call to action' },
+          headline: { type: 'string', max: lim.meta.headline } }, overlay) },
+        tiktok: { what: 'a TikTok ad campaign', schema: Object.assign({
+          name: { type: 'string', max: 60 }, obj: { type: 'string', enum: ['Web Conversions', 'Traffic', 'Reach', 'App Promotion', 'Video Views', 'Lead Generation'] }, budget, market,
+          place: { type: 'string', enum: ['TikTok In-Feed', 'Spark Ads', 'TopView', 'Pangle Network'] }, aud: { type: 'string', note: 'one line: interests and lifestyle' },
+          hook: { type: 'string', max: 80, note: 'conversational opener, native to TikTok' },
+          caption: { type: 'string', max: lim.tiktok.caption, note: 'on-screen text, short phrases' },
+          creator: { type: 'string', note: 'an @handle the prompt names, else an empty string' },
+          hashtags: { type: 'string', note: `at most ${lim.tiktok.hashtags} lowercase hashtags, space-separated` } }, overlay) },
+        'lp-mailer': { what: 'a landing page paired with a mailer', schema: { hero: { type: 'string', max: 80, note: "repeats the mailer's promise verbatim" }, sub: { type: 'string', max: 140 }, offer: { type: 'string', note: 'the offer and code exactly as the prompt states them; empty when it states none' }, notes: { type: 'string', note: '2-4 sentences: who lands here, the intent, the conversion trigger' } } },
+        'lp-meta': { what: 'a landing page paired with a Meta ad', schema: { hero: { type: 'string', max: lim.meta.headline, note: 'matches the ad headline verbatim' }, sub: { type: 'string', note: "one sentence, the ad's promise" }, offer: { type: 'string', note: 'the offer and code exactly as the prompt states them; empty when it states none' }, notes: { type: 'string', note: 'audience, placements, objective, why this offer' } } },
+        'lp-google': { what: 'a landing page paired with a Google search ad', schema: { hero: { type: 'string', note: 'the target keyword(s), comma-separated, appearing verbatim on the page' }, sub: { type: 'string', max: slotMax('ad.google.rsa', 'headlines'), note: 'matches the keyword intent' }, offer: { type: 'string', note: 'the offer exactly as the prompt states it; empty when it states none' }, notes: { type: 'string', note: 'match type, search intent, 2 sentences; no invented conversion rate' } } },
+        'lp-tiktok': { what: 'a landing page paired with a TikTok ad', schema: { hero: { type: 'string', note: "the video's opening hook, verbatim" }, sub: { type: 'string', note: 'a creator quote or social-proof line ONLY if the prompt supplies one, else the marker' }, offer: { type: 'string', note: 'the offer and code exactly as the prompt states them; empty when it states none' }, notes: { type: 'string', note: 'creator handle, hashtag, audience, 2 sentences' } } },
+      };
+      const x = SURF[s];
+      if (!x) return null;
+      return { id: 'generate.autofill.' + s, kind: 'data', format: 'json', brand, region, what: x.what,
+        returns: `ONE JSON object that fills every form field of ${x.what}.`, schema: x.schema };
+    }
+    default: return { id: 'generate.create_brief', kind: 'element', format: 'text', brand, region,
+      returns: 'ONE production-ready campaign brief written as flowing prose paragraphs (450-600 words) that covers every element listed in the task.',
+      forbid: ['section headers, labelled fields or numbered lists', 'JSON', 'a finished HTML email'] };
+  }
+}
+
 // ── WHOSE PROMPT (2026-10-10) ───────────────────────────────────────────────
 // Every system prompt in this file was written AS tenant zero: its name, its
 // "premium D2C Indian heritage sneaker" descriptor, its four hexes, its two
@@ -139,7 +266,7 @@ BRAND IDENTITY:
 - VERIFIABLE CLAIMS (the only statements of fact allowed): ${L.claims}
 - EMOTIONAL TONE: Write copy that makes people FEEL something, grounded in this brand's own products and the moment its customer uses them. Copy should read like a letter from a friend, not a billboard. Concrete sensory detail that is TRUE of this brand's product creates connection. Every headline should make someone pause mid-scroll.
 
-YOUR BRIEF MUST INCLUDE ALL OF THE FOLLOWING (450-600 words, flowing prose organized in clear sections):
+YOUR BRIEF MUST INCLUDE ALL OF THE FOLLOWING (450-600 words of flowing prose. The headings below list WHAT to cover; they are not headings to print):
 
 ━━━ CAMPAIGN IDENTITY ━━━
 • CAMPAIGN NAME — 2-4 ownable words specific to THIS campaign
@@ -208,8 +335,7 @@ For each campaign:
 4. Vary markets across the 6 prompts based on the provided focus markets
 5. Each brief should diverge in emotional register from every other
 
-Return ONLY a valid JSON array — no markdown, no code fences, no explanation. Format:
-[{"icon":"<single emoji>","type":"<Campaign Name> — <Market>","mkt":"<US|UK|IN|AU|ME|EU|Global>","ctype":"<Sale|Launch|Gift|Seasonal|Bestseller|Routine|Discovery>","text":"<director brief 150-200 words>"},...]`;
+Return the briefs exactly as the OUTPUT REQUIREMENT at the end of this prompt states.`;
 
 // FINAL MASTER PROMPT — Full 11-step orchestration system
 // Used by mailer_full mode (fallback path when pipeline is unavailable)
@@ -266,8 +392,8 @@ For EACH variant:
 - layout_plan: { hero_type (split-hero|full-bleed|centered), flow, spacing, color_scheme }
 - sections[]: each with { id, type (split-hero|full-bleed|centered|two-col-grid|three-col-grid|banner|button-row), purpose, copy: {eyebrow,headline,subcopy,cta}, layout, image_slot (hero|product|lifestyle|none), ux_intent }
 - copy_framework: { tone, voice, headline_style, cta_verb }
-- subject_lines: [3 options ≤58 chars]
-- preheader: ≤85 chars
+- subject_lines: 3 options (limit in the OUTPUT REQUIREMENT)
+- preheader: one line (limit in the OUTPUT REQUIREMENT)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP 7: IMAGE GENERATION PROMPTS (MANDATORY for gpt-image-1)
@@ -296,34 +422,7 @@ Check:
 - Theme reflected in copy and visuals?
 If ANY fails → regenerate that component internally before outputting.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FINAL OUTPUT JSON SCHEMA
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-{
-  "synthesis": { "audience_truth":"", "business_goal":"", "product_roles":"", "conversion_levers":"", "market_context":"" },
-  "strategy": { "name":"", "why":"" },
-  "vibe": { "tone":"", "pace":"", "visual_energy":"", "avoid":"" },
-  "product_logic": { "hero_product":"", "supporting_products":[], "aov_logic":"" },
-  "theme": { "theme_name":"", "core_idea":"", "visual_world":"", "conversion_reason":"" },
-  "image_style_lock": "global photography style for ALL images",
-  "variant_a": {
-    "layout_plan": { "hero_type":"", "flow":"", "spacing":"", "color_scheme":{} },
-    "sections": [{ "id":"", "type":"", "purpose":"", "copy":{"eyebrow":"","headline":"","subcopy":"","cta":""}, "layout":"", "image_slot":"", "ux_intent":"" }],
-    "image_requirements": [{ "slot":"hero", "prompt":"", "size":"1536x1024", "negative_prompt":"" }, { "slot":"product", "prompt":"", "size":"1024x1024", "negative_prompt":"" }, { "slot":"lifestyle", "prompt":"", "size":"1024x1024", "negative_prompt":"" }],
-    "copy_framework": { "tone":"", "voice":"", "headline_style":"", "cta_verb":"" },
-    "subject_lines": ["","",""],
-    "preheader": ""
-  },
-  "variant_b": {
-    "layout_plan": { "hero_type":"", "flow":"", "spacing":"", "color_scheme":{} },
-    "sections": [{ "id":"", "type":"", "purpose":"", "copy":{"eyebrow":"","headline":"","subcopy":"","cta":""}, "layout":"", "image_slot":"", "ux_intent":"" }],
-    "image_requirements": [{ "slot":"hero", "prompt":"", "size":"1536x1024", "negative_prompt":"" }, { "slot":"product", "prompt":"", "size":"1024x1024", "negative_prompt":"" }, { "slot":"lifestyle", "prompt":"", "size":"1024x1024", "negative_prompt":"" }],
-    "copy_framework": { "tone":"", "voice":"", "headline_style":"", "cta_verb":"" },
-    "subject_lines": ["","",""],
-    "preheader": ""
-  }
-}
+The exact keys, types and limits of the answer are in the OUTPUT REQUIREMENT at the end of this prompt: return exactly that object.
 
 ━━ NON-NEGOTIABLE RULES ━━
 - NEVER reuse same structure across variants
@@ -423,7 +522,7 @@ module.exports = async function handler(req, res) {
     response_format = { type: 'json_object' };
     const mktList = Array.isArray(markets) ? markets.join(', ') : market;
     const mktDesc = (Array.isArray(markets) ? markets : [market]).map(m => audienceFor(_L, m)).join('; ');
-    userMessage = `MARKETS TO FOCUS ON: ${mktList}\nMARKET AUDIENCE: ${mktDesc}\nCAMPAIGN TYPE FILTER: ${theme || 'Mixed — generate variety across Sale, Launch, Gift, Seasonal, Bestseller, Routine'}\nSEASON CONTEXT: ${season || 'Year-round'}\n\nGenerate 6 diverse, elite director-grade campaign briefs now. Each must be a different emotional angle and conversion strategy. No two briefs should share the same archetype or hero product. Return only the JSON array.`;
+    userMessage = `MARKETS TO FOCUS ON: ${mktList}\nMARKET AUDIENCE: ${mktDesc}\nCAMPAIGN TYPE FILTER: ${theme || 'Mixed — generate variety across Sale, Launch, Gift, Seasonal, Bestseller, Routine'}\nSEASON CONTEXT: ${season || 'Year-round'}\n\nGenerate 6 diverse, elite director-grade campaign briefs now. Each must be a different emotional angle and conversion strategy. No two briefs should share the same archetype or hero product. Return the JSON object the OUTPUT REQUIREMENT below describes.`;
   } else if (mode === 'concepts') {
     systemPrompt = SYSTEM_PROMPT_CONCEPTS(_L);
     response_format = { type: 'json_object' };
@@ -440,7 +539,7 @@ module.exports = async function handler(req, res) {
     // and convert. No bullet points. Plain text only.
     systemPrompt = `You are the Head of Growth at ${_L.identity}. Given a campaign brief, market, and campaign type, write a precise Target User Segment description that the creative team will use to anchor copy, imagery, and CTAs.
 WRITE 60–120 WORDS, plain text only (no bullets, no headers, no markdown). Cover, in this order:
-1. WHO they are — age band (e.g. "30–55"), income/AOV bracket, role/lifestyle, key purchase behaviour (regular buyer / gifter / discoverer / lapsed).
+1. WHO they are — their purchase behaviour (regular buyer / gifter / discoverer / lapsed) and what the brief or SEED says about them. State an age, income or gender ONLY if the brief or SEED states it; never assume one.
 2. WHERE they are — name the COUNTRY of the target market only (e.g. "in the US", "in the UK", "in India"). DO NOT name specific cities, states, regions, neighbourhoods, or zip codes — the segment travels nation-wide and must read naturally to a customer in any city of that country.
 3. WHAT they value — provenance, ritual, gift-giving, convenience, savings — pick 1–2 that align with the brief.
 4. WHY they will convert on THIS specific brief — name the conversion trigger explicitly (offer ends Sunday / new drop just dropped / under $50 gift / 3-month subscription saves 15%).
@@ -547,113 +646,24 @@ PREFERRED: ${_L.preferred}.
 VERIFIABLE CLAIMS (the only facts allowed): ${_L.claims}.
 COUNTRY-LEVEL geo only. No cities. Currency: $ for US/Global, £ for UK, ₹ for India, € for EU.`;
 
-    const SURFACE_SCHEMAS = {
-      google: {
-        what: 'a Google Search ad campaign',
-        fields: `{
-  "name": "<≤60 chars campaign name>",
-  "type": "<Search|Performance Max|Display|Shopping|YouTube>",
-  "budget": <integer daily budget in market currency, 20-200>,
-  "market": "<US|UK|IN|Global|EU|AU|ME>",
-  "url": "<final landing URL — start with /, never absolute>",
-  "keywords": "<comma-separated 6-12 keywords, lowercase, no quotes>",
-  "headlines": "<3-5 headlines, one per line, each ≤30 chars>",
-  "desc": "<2 descriptions, one per line, each ≤90 chars>",
-  "overlay_headline": "<headline BAKED onto the creative image — ≤6 words, sells the end-state the product delivers, never a feature list>",
-  "overlay_sub": "<supporting line baked under the headline — ≤8 words, sensory + concrete>",
-  "offer": "<the on-creative offer EXACTLY as the prompt states it, ≤40 chars; an empty string when the prompt states no offer. Never invent one.>"
-}`,
-      },
-      meta: {
-        what: 'a Meta (Facebook + Instagram) ad campaign',
-        fields: `{
-  "name": "<≤60 chars campaign name>",
-  "obj": "<Sales / Conversions|Traffic|Awareness|Engagement|Leads>",
-  "budget": <integer daily budget, 20-200>,
-  "market": "<US|UK|IN|Global|EU|AU|ME>",
-  "place": "<Advantage+ (all)|Feed|Stories/Reels|Manual>",
-  "aud": "<one-sentence audience targeting — interests + lookalike if relevant>",
-  "primary": "<primary text, 60-180 chars, emotional + concrete + ends with implicit CTA>",
-  "headline": "<≤40 chars headline>",
-  "overlay_headline": "<headline BAKED onto the creative image — ≤6 words, sells the end-state the product delivers, never a feature list>",
-  "overlay_sub": "<supporting line baked under the headline — ≤8 words, sensory + concrete>",
-  "offer": "<the on-creative offer EXACTLY as the prompt states it, ≤40 chars; an empty string when the prompt states no offer. Never invent one.>"
-}`,
-      },
-      tiktok: {
-        what: 'a TikTok ad campaign',
-        fields: `{
-  "name": "<≤60 chars campaign name>",
-  "obj": "<Web Conversions|Traffic|Reach|App Promotion|Video Views|Lead Generation>",
-  "budget": <integer daily budget, 20-200>,
-  "market": "<US|UK|IN|Global|AU|ME>",
-  "place": "<TikTok In-Feed|Spark Ads|TopView|Pangle Network>",
-  "aud": "<one-line audience — interests, age, lifestyle>",
-  "hook": "<≤80 chars opener — conversational, sounds native to TikTok, not marketing speak>",
-  "caption": "<≤140 chars on-screen text — short phrases separated by · or , >",
-  "creator": "<@handle if relevant, else empty string>",
-  "hashtags": "<3-6 hashtags space-separated, lowercase, no marketing-speak>",
-  "overlay_headline": "<headline BAKED onto the static 9:16 key-frame — ≤6 words, sells the end-state the product delivers, never a feature list>",
-  "overlay_sub": "<supporting line baked under the headline — ≤8 words, sensory + concrete>",
-  "offer": "<the on-creative offer EXACTLY as the prompt states it, ≤40 chars; an empty string when the prompt states no offer. Never invent one.>"
-}`,
-      },
-      'lp-mailer': {
-        what: 'a landing page paired with a mailer',
-        fields: `{
-  "hero": "<hero headline — repeats the mailer's promise verbatim, ≤80 chars>",
-  "sub": "<one line of reassurance / detail, ≤140 chars>",
-  "offer": "<the offer and code exactly as the prompt states them; empty when it states none>",
-  "notes": "<2-4 sentences on who lands here, the cohort intent, the conversion trigger>"
-}`,
-      },
-      'lp-meta': {
-        what: 'a landing page paired with a Meta ad',
-        fields: `{
-  "hero": "<≤40 chars hero, must match the ad headline verbatim>",
-  "sub": "<one-sentence value prop, matches the ad's promise>",
-  "offer": "<the offer and code exactly as the prompt states them; empty when it states none>",
-  "notes": "<audience · placements · objective · why this offer for them>"
-}`,
-      },
-      'lp-google': {
-        what: 'a landing page paired with a Google search ad',
-        fields: `{
-  "hero": "<the target keyword(s), comma-separated — must appear verbatim on the page>",
-  "sub": "<≤30 chars headline that exactly matches the keyword intent>",
-  "offer": "<offer or discount>",
-  "notes": "<match type · search intent · expected CVR · 2 sentences>"
-}`,
-      },
-      'lp-tiktok': {
-        what: 'a landing page paired with a TikTok ad',
-        fields: `{
-  "hero": "<the video's opening hook, verbatim — conversational, mobile-first>",
-  "sub": "<top creator quote or social-proof line>",
-  "offer": "<the offer and code exactly as the prompt states them; empty when it states none>",
-  "notes": "<creator handle · hashtag · audience · 2 sentences>"
-}`,
-      },
-    };
 
-    const schema = SURFACE_SCHEMAS[surface];
+    // The field schema per surface is the OUTPUT REQUIREMENT itself
+    // (genContract('autofill')), so the keys the form reads are the keys the
+    // model was shown.
+    const schema = genContract('autofill', { surface });
     if (!schema) {
-      return res.status(400).json({ ok: false, error: `Unknown surface "${surface}". Use one of: ${Object.keys(SURFACE_SCHEMAS).join(', ')}` });
+      return res.status(400).json({ ok: false, error: `Unknown surface "${surface}". Use one of: google, meta, tiktok, lp-mailer, lp-meta, lp-google, lp-tiktok` });
     }
 
     systemPrompt = `You autofill ${schema.what} from a single user prompt.
 
 ${BRAND_GUARDRAILS}
 
-OUTPUT FORMAT — return STRICT JSON ONLY, matching this exact shape (no markdown, no commentary, first character {, last character }):
-
-${schema.fields}
-
 RULES:
 - Fill EVERY field with a concrete, on-brand value derived from the prompt.
 - If the prompt doesn't specify a value, infer a sensible default from ${_L.name}'s brand record + the target market; never invent an offer, code, price, claim or review.
 - Numbers (budget) must be plain integers, not strings.
-- Strings must obey the character limits inside <…>.
+- Strings must obey the character limits in the OUTPUT REQUIREMENT.
 - Never use the banned phrases.
 - COUNTRY-LEVEL geography only.
 - Currency in copy must match the market.
@@ -798,6 +808,14 @@ Target market for this autofill: ${targetMarket}.`;
     ].filter(Boolean).join('\n');
   }
 
+  // ── The OUTPUT REQUIREMENT: the last thing the model reads ─────────────
+  // Rendered from the same spec the answer is parsed with below, and part of
+  // the portable prompt, so a model in another tab is told the same thing.
+  const outputSpec = genContract(mode, { brand: _L.name, region: (mode === 'autofill' ? (body.market || body.region || market) : (mode === 'landing_page' ? (body.region || body.market || market) : market)), surface: String(body.surface || '').toLowerCase() });
+  const taskMessage = Array.isArray(userMessage) ? userMessage.join("\n") : String(userMessage || "");
+  userMessage = OC.append(taskMessage, outputSpec);
+  if (outputSpec.format === 'json') response_format = { type: 'json_object' };
+
   // ── Portable prompt ─────────────────────────────────────────────────────
   // The exact, self-contained instructions this tool used. Returned with EVERY
   // creation so the user can paste it into ChatGPT / Gemini / Claude and get the
@@ -929,23 +947,15 @@ Target market for this autofill: ${targetMarket}.`;
 
     const text = result.text || '';
     if (mode === 'concepts' || mode === 'mailer_full' || mode === 'suggested_prompts') {
-      let parsed;
-      // Robust JSON extraction: handles markdown fences, prose prefix/suffix (Gemini habit)
-      const tryParse = (t) => {
-        try { return JSON.parse(t); } catch (_) {}
-        const s = t.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
-        try { return JSON.parse(s); } catch (_) {}
-        const bs = t.indexOf('{'), be = t.lastIndexOf('}');
-        if (bs !== -1 && be > bs) { try { return JSON.parse(t.slice(bs, be + 1)); } catch (_) {} }
-        // Also try array extraction for suggested_prompts
-        const as = t.indexOf('['), ae = t.lastIndexOf(']');
-        if (as !== -1 && ae > as) { try { return JSON.parse(t.slice(as, ae + 1)); } catch (_) {} }
-        return null;
-      };
-      parsed = tryParse(text);
+      // Parsed by the SAME spec the prompt was briefed with (fences and a
+      // prose prefix tolerated); its problems are reported, never repaired.
+      let parsed = OC.parse(text, outputSpec);
       if (!parsed) {
         return res.status(502).json({ error: 'json_parse_failed', provider: result.provider, raw: text.substring(0, 600) });
       }
+      const output_check = OC.validate(parsed, outputSpec);
+      // suggested_prompts has always answered with the briefs as an array.
+      if (mode === 'suggested_prompts' && Array.isArray(parsed.prompts)) parsed = parsed.prompts;
 
       // ── Quality loop (mailer_full only, additive) ─────────────────────────
       // Bounded critique→revise pass (score on 'fast'; one 'premium' revision
@@ -956,19 +966,19 @@ Target market for this autofill: ${targetMarket}.`;
         let quality = null;
         try {
           const ql = require('../_shared/quality-loop.js');
-          const out = await ql.runQualityLoop({ spec: parsed, brief: userMessage, userGeminiKey, brand: _pb });
+          const out = await ql.runQualityLoop({ spec: parsed, brief: taskMessage, userGeminiKey, brand: _pb });
           data = out.spec || parsed;
           quality = out.quality || null;
         } catch (qe) {
           console.warn('[generate] quality loop unavailable: ' + String(qe && qe.message || qe).slice(0, 120));
         }
         return res.status(200).json({
-          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt,
+          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt, output_check,
           ...(quality ? { quality } : {})
         });
       }
 
-      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt });
+      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check });
     }
 
     // ── Autofill on an ad surface: also return the portable master_prompt and a
@@ -979,11 +989,7 @@ Target market for this autofill: ${targetMarket}.`;
     if (mode === 'autofill') {
       const surf = String(body.surface || '').toLowerCase();
       if (AD_FORMATS[surf]) {
-        let fields = {};
-        try { fields = JSON.parse(text); } catch (_) {
-          const a = text.indexOf('{'), b = text.lastIndexOf('}');
-          if (a !== -1 && b > a) { try { fields = JSON.parse(text.slice(a, b + 1)); } catch (_) {} }
-        }
+        let fields = OC.parse(text, outputSpec) || {};
         fields = deepScrubDashes(fields, body && body.__brand);
         const overlay = {
           headline: fields.overlay_headline || '',
@@ -998,7 +1004,13 @@ Target market for this autofill: ${targetMarket}.`;
       }
     }
 
-    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), portable_prompt });
+    // Text modes are read by the same spec: a stray fence is removed, an HTML
+    // page is cut from <!doctype html> to </html>.
+    // A JSON reply (an lp-* autofill) is handed back as the JSON text the page
+    // parses, fences removed; it is checked against its spec all the same.
+    const readBack = OC.parse(text, outputSpec);
+    const textOut = outputSpec.format === 'json' ? (readBack ? JSON.stringify(deepScrubDashes(readBack, body && body.__brand)) : brandScrub(OC.stripFences(text))) : readBack;
+    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: outputSpec.format === 'json' ? textOut : brandScrub(textOut), portable_prompt, output_check: OC.validate(readBack, outputSpec) });
 
   } catch (e) {
     return res.status(500).json({ error: 'server_error', provider: 'cascade', detail: String(e && e.message || e).substring(0, 300) });

@@ -23,6 +23,7 @@ const { helpers } = require('./calendar-trigger.js');
 const { COHORTS, PLAYS, ALLOWED_TEMPLATE_STYLES, purchaseModeForProductType } = require('./lifecycle-cohorts.js');
 const { loadProductTypes } = require('./lifecycle-calendar-generate.js');
 const CF = require('./copy-frameworks.js');
+const OC = require('./output-contract.js');
 
 const { buildEntryAnalysis } = require('./output-reasoning.js');
 
@@ -121,19 +122,20 @@ function buildBrief(entry, fw) {
 
 // ─── LLM call (single call, same contract as calendar-trigger.js) ───────────
 
-async function writeCopy(brief, frameworkLine) {
+// `entry` was read here and declared nowhere in this module, so every call
+// threw a ReferenceError before reaching the model and both variants fell to
+// the template (2026-10-11). The row's brand and market are passed in now.
+async function writeCopy(brief, frameworkLine, row) {
+  const brandName = (row && row.brand && row.brand.name) || 'the active brand';
   const out = await llm({
     systemPrompt:
-      'You are the lifecycle copywriter for ' + ((entry && entry.brand && entry.brand.name) || 'the active brand') + '. Produce a strict JSON object with keys: ' +
-      'subject_line (string, ≤ 60 chars), preview_text (string, ≤ 90 chars), ' +
-      'hero_headline (string, ≤ 8 words), hero_subline (string, ≤ 18 words), ' +
-      'body_blocks (array of {heading, body}), cta_text (string, ≤ 4 words). ' +
+      'You are the lifecycle copywriter for ' + brandName + '. ' +
       'Use the active brand\'s own voice as stated in the gates below. ' +
       (frameworkLine ? frameworkLine + ' ' : '') +
       'Obey every brand gate, ' +
       'CTA rule and product fact in the brief exactly - no invented prices, no banned phrases, ' +
       'no founder voice, no medical claims.',
-    userMessage: brief,
+    userMessage: OC.append(brief, helpers.mailerCopySpec(brandName, row && row.market)),
     responseFormat: { type: 'json_object' },
     maxTokens: 3000,
     temperature: 0.7,
@@ -355,8 +357,8 @@ async function buildLifecycleMailer({ id = null, entry = null, force = false } =
   // the one that succeeded (both diverge only by framework). Fail only if BOTH
   // reject.
   const [pA, pB] = await Promise.allSettled([
-    writeCopy(buildBrief(row, fwA), CF.copyFrameworkSystemLine(fwA)),
-    writeCopy(buildBrief(row, fwB), CF.copyFrameworkSystemLine(fwB)),
+    writeCopy(buildBrief(row, fwA), CF.copyFrameworkSystemLine(fwA), row),
+    writeCopy(buildBrief(row, fwB), CF.copyFrameworkSystemLine(fwB), row),
   ]);
   if (pA.status !== 'fulfilled' && pB.status !== 'fulfilled') {
     throw new Error('mailer copy generation failed for both variants: ' + String((pA.reason && pA.reason.message) || pA.reason));

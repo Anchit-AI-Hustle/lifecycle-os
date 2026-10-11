@@ -193,8 +193,41 @@ function festivalFor(dateIso, market, brand) {
 // on the configured keys, callLLM throws and the agent drops to its deterministic
 // template. Retrying standard then fast reaches smaller real models (incl. free
 // tiers) so social copy is LLM-written whenever any provider/model works.
-async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs = 15000, temperature = 0.7 }) {
+// What each of the seven agents returns: the OUTPUT REQUIREMENT every request
+// ends with (output-contract.js). Platform limits come from PLATFORM_SPECS,
+// the table the fallbacks and the validators already read.
+const OC = require('./output-contract.js');
+function socialSpec(stage, ctx, keys) {
+  const brand = brandName(ctx);
+  const base = { kind: 'data', format: 'json', brand };
+  const per = (of) => { const o = {}; for (const k of keys || []) o[k] = { type: 'object', of: of(k) }; return o; };
+  switch (stage) {
+    case 'social-ideology': return Object.assign(base, { id: 'social.ideology', returns: 'ONE JSON object: today\'s single creative theme for every social channel.',
+      schema: { theme: 'string', narrative: 'string', mood: 'string', visual_direction: 'string', calendar_moment: { type: 'string', required: false, note: 'the calendar moment named above, or null' } } });
+    case 'social-hypothesis': return Object.assign(base, { id: 'social.hypothesis', returns: 'ONE JSON object: one falsifiable hypothesis on what will perform today, with its signals and what to avoid.',
+      schema: { hypothesis: 'string', signals: { type: 'array', count: [1, 5], items: 'string' }, avoid: { type: 'array', items: 'string' } } });
+    case 'social-strategy': return Object.assign(base, { id: 'social.strategy', returns: 'ONE JSON object: the objective, CTA and link for every platform key listed.',
+      schema: { per_platform: { type: 'object', of: per(() => ({ objective: { type: 'string', enum: ['awareness', 'traffic', 'conversion'] }, cta: 'string', link: { type: 'string', note: 'exactly the focus product URL given' } })) } } });
+    case 'social-content': return Object.assign(base, { id: 'social.content', returns: 'ONE JSON object: today\'s post for every platform key listed, each inside its platform\'s limits.',
+      schema: { posts: { type: 'object', of: per((k) => {
+        const s = PLATFORM_SPECS[k] || {};
+        if (k === 'blog') return { title: 'string', slug: 'string', meta_description: { type: 'string', max: 160 }, body_markdown: { type: 'string', note: 'an 800-1200 word editorial post in markdown' } };
+        return { caption: { type: 'string', max: s.char_limit || undefined, note: s.word_range ? `${s.word_range[0]}-${s.word_range[1]} words` : undefined },
+          hook: 'string', hashtags: { type: 'array', count: s.hashtags ? [s.hashtags[0], s.hashtags[1]] : undefined, items: { type: 'string', note: 'starts with #' } },
+          alt_text: 'string', title: { type: 'string', required: false } };
+      }) } } });
+    case 'social-video': return Object.assign(base, { id: 'social.video', returns: 'ONE JSON object: an 8-second 9:16 storyboard for TikTok, Reels and Shorts.',
+      schema: { script: 'string', storyboard: { type: 'array', count: 3, items: { type: 'string', note: 'one shot' } }, audio: 'string', on_screen_text: { type: 'array', items: 'string' } } });
+    case 'social-compile': return Object.assign(base, { id: 'social.compile', missing: false, returns: 'ONE JSON object: a one-sentence day summary and a one-sentence QA note.',
+      schema: { day_summary: { type: 'string', note: 'one sentence' }, qa_note: { type: 'string', note: 'one sentence' } } });
+    default: return null;
+  }
+}
+
+async function llmJson({ tier, stage, system, user, maxTokens = 1200, timeoutMs = 15000, temperature = 0.7, keys = null, ctx = null }) {
   if (!callLLM) throw new Error('llm unavailable');
+  const spec = socialSpec(stage, ctx || {}, keys);
+  if (spec) user = OC.append(user, spec);
   const tiers = [...new Set([tier || 'premium', 'standard', 'fast'])];
   let lastErr;
   for (const t of tiers) {
@@ -260,7 +293,7 @@ function fallbackIdeology(ctx) {
 async function ideologyAgent(ctx, timeoutMs) {
   const f = ctx.festival;
   const out = await llmJson({
-    tier: 'premium', stage: 'social-ideology', timeoutMs, maxTokens: 700,
+    ctx, tier: 'premium', stage: 'social-ideology', timeoutMs, maxTokens: 700,
     system: brandPersona(ctx, 'creative director') + ' Set today\'s single creative theme for all social channels. Reply as strict JSON: {"theme":"","narrative":"","mood":"","visual_direction":"","calendar_moment":null}.\n' + brandGates(ctx),
     user: 'Date: ' + ctx.date + ' (UK).\nCalendar moment: ' + (f ? (f.name + (f.upcoming ? ' in ' + f.days_away + ' day(s)' : ' today') + ', tags: ' + (f.tags || []).join(', ')) : 'none — lean on the everyday ritual') + '.\nProduct focus today (rotation): ' + ctx.focus.label + ' — hero product: ' + ctx.focus.product.title + '.\nRecent themes to NOT repeat: ' + JSON.stringify(ctx.recentThemes.slice(0, 8)) + '.\nGive one theme that works across Instagram, TikTok, LinkedIn, X, Pinterest, YouTube Shorts, Threads and a blog post.',
   });
@@ -289,7 +322,7 @@ function fallbackHypothesis(ctx) {
 }
 async function hypothesisAgent(ctx, ideology, timeoutMs) {
   const out = await llmJson({
-    tier: 'standard', stage: 'social-hypothesis', timeoutMs, maxTokens: 600,
+    ctx, tier: 'standard', stage: 'social-hypothesis', timeoutMs, maxTokens: 600,
     system: brandPersona(ctx, 'growth analyst') + ' Given today\'s signals, state a falsifiable hypothesis on what will perform. Reply as strict JSON: {"hypothesis":"","signals":[""],"avoid":[""]}.',
     user: 'Theme: ' + ideology.theme + '\nFocus: ' + ctx.focus.label + ' / ' + ctx.focus.product.title + ' (' + ctx.focus.purchase_mode + ')\nCalendar: ' + (ctx.festival ? ctx.festival.name : 'none') + '\nRecent post themes (avoid repeating): ' + JSON.stringify(ctx.recentThemes.slice(0, 10)),
   });
@@ -353,7 +386,7 @@ function fallbackStrategy(ctx, keys) {
 }
 async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
   const out = await llmJson({
-    tier: 'premium', stage: 'social-strategy', timeoutMs, maxTokens: 1400, temperature: 0.4,
+    ctx, keys, tier: 'premium', stage: 'social-strategy', timeoutMs, maxTokens: 1400, temperature: 0.4,
     system: brandPersona(ctx, 'business strategist') + ' Decide the objective (awareness | traffic | conversion), CTA and link target per platform. The ONLY allowed link is the provided product URL (real handle). Reply as strict JSON: {"per_platform":{"<key>":{"objective":"","cta":"","link":""}}} with exactly these keys: ' + keys.join(', ') + '.\n' + brandGates(ctx),
     user: 'Theme: ' + ideology.theme + '\nHypothesis: ' + hypothesis.hypothesis + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nPurchase mode: ' + ctx.focus.purchase_mode + ' (use only this purchase mode; never introduce subscription language the brand does not offer)',
   });
@@ -464,7 +497,7 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
     return k + ': ' + s.platform + '/' + s.format + ', ' + (s.word_range ? (s.word_range[0] + '-' + s.word_range[1] + ' words') : ('max ' + s.char_limit + ' chars')) + ', ' + s.hashtags[0] + '-' + s.hashtags[1] + ' hashtags, tone: ' + s.tone + ', objective: ' + strategy.per_platform[k].objective + ', CTA: ' + strategy.per_platform[k].cta + ', link: ' + strategy.per_platform[k].link;
   }).join('\n');
   const out = await llmJson({
-    tier: 'premium', stage: 'social-content', timeoutMs, maxTokens: 6500,
+    ctx, keys, tier: 'premium', stage: 'social-content', timeoutMs, maxTokens: 6500,
     system: brandPersona(ctx, 'senior content writer') + ' Write today\'s copy for EVERY platform key listed, obeying each platform\'s limits and tone. Reply as strict JSON: {"posts":{"<key>":{"caption":"","hook":"","hashtags":[""],"alt_text":"","title":""}}}. The "blog" key instead needs {"title","slug","meta_description","body_markdown"} where body_markdown is a full 800-1200 word editorial SEO post. Hashtags without the pound sign are invalid.\n' + brandGates(ctx),
     user: 'Date: ' + ctx.date + ' (UK)\nTheme: ' + ideology.theme + '\nNarrative: ' + ideology.narrative + '\nFocus product: ' + ctx.focus.product.title + ' → ' + ctx.focus.product.url + '\nProduct facts you may state: ' + focusLine(ctx.focus) + '\nPlatform specs:\n' + specLines,
   });
@@ -564,7 +597,7 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
   if (callLLM && budget >= 5000) {
     try {
       const out = await llmJson({
-        tier: 'standard', stage: 'social-video', timeoutMs: budget, maxTokens: 700,
+        ctx, tier: 'standard', stage: 'social-video', timeoutMs: budget, maxTokens: 700,
         system: brandPersona(ctx, 'short-form video director') + ' Write an 8-second 9:16 storyboard for TikTok / Reels / Shorts. Reply as strict JSON: {"script":"","storyboard":["shot 1","shot 2","shot 3"],"audio":"","on_screen_text":[""]}.\n' + brandGates(ctx),
         user: 'Theme: ' + ideology.theme + '\nProduct: ' + ctx.focus.product.title + '\nHook to open on: ' + ((content.posts.tiktok && content.posts.tiktok.hook) || ideology.theme),
       });
@@ -673,7 +706,7 @@ async function compileAgent(ctx, posts, timeoutMs) {
   if (!callLLM || timeoutMs < 5000) return fb;
   try {
     const out = await llmJson({
-      tier: 'fast', stage: 'social-compile', timeoutMs, maxTokens: 300, temperature: 0.3,
+      ctx, tier: 'fast', stage: 'social-compile', timeoutMs, maxTokens: 300, temperature: 0.3,
       system: 'You are the QA editor closing out a day-package of social posts. Reply as strict JSON: {"day_summary":"","qa_note":""} — one sentence each.',
       user: 'Posts: ' + posts.map((p) => p.key + ' (' + p.objective + ')').join(', ') + '. Theme: ' + (posts[0] ? posts[0].theme : '') + '. Product: ' + ctx.focus.product.title + '.',
     });
