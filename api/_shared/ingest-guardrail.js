@@ -129,19 +129,23 @@ Strict Context Bounds:
 3. Definition of Junk (Reject if ANY are true):
 - The data is a general marketing quote or "thought leadership" post without hard numbers or tangible changes.
 - The strategy is about general e-commerce (e.g., "How to optimize Shopify checkout for any store").
-- The change is a minor backend bug fix or routine site maintenance with zero strategy impact.
-
-Output Requirement: output EXACTLY this JSON, no conversational text:
-{"is_actionable_context": true/false, "rejection_reason": "reason ONLY if false, else empty string"}`;
+- The change is a minor backend bug fix or routine site maintenance with zero strategy impact.`;
+const OC = require('./output-contract.js');
+const P2_SPEC = { id: 'ingest-guardrail.verdict', kind: 'data', format: 'json', missing: false,
+  returns: 'ONE JSON object: the verdict on whether this item is actionable market-intelligence context.',
+  schema: { is_actionable_context: 'boolean', rejection_reason: { type: 'string', note: 'the reason ONLY when false, else an empty string' } } };
 
 async function phase2(item) {
   if (!callLLM) return { relevant: true, skipped: true, reason: 'no LLM configured — Phase 2 skipped (kept)' };
   const body = String((item && (item.text || item.raw_text || item.body)) || '').slice(0, 6000);
-  const user = `TITLE: ${(item && item.title) || ''}\nURL: ${(item && item.url) || ''}\nCONTENT:\n"""\n${body}\n"""\nReturn the JSON verdict.`;
+  const user = OC.append(`TITLE: ${(item && item.title) || ''}\nURL: ${(item && item.url) || ''}\nCONTENT:\n"""\n${body}\n"""`, P2_SPEC);
   try {
     const out = await callLLM({ systemPrompt: P2_SYS, userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 120, temperature: 0, timeoutMs: 20000, stage: 'ingest-guardrail', tier: 'fast' });
-    if (!out || !out.ok || !out.text) return { relevant: true, skipped: true, reason: 'LLM unavailable — kept' };
-    const j = JSON.parse(out.text.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1'));
+    // callLLM's answer carries no `ok`: `!out.ok` here kept EVERY item as
+    // "LLM unavailable", so the gatekeeper never judged one (2026-10-11).
+    if (!out || !out.text) return { relevant: true, skipped: true, reason: 'LLM unavailable — kept' };
+    const j = OC.parse(out.text, P2_SPEC);
+    if (!j) return { relevant: true, skipped: true, reason: 'Phase 2 answer was not the JSON verdict — kept' };
     const actionable = j.is_actionable_context !== false;
     return { relevant: actionable, reason: actionable ? '' : (j.rejection_reason || 'not actionable D2C context') };
   } catch (e) { return { relevant: true, skipped: true, reason: `Phase 2 error (${e.message}) — kept` }; }

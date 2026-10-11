@@ -55,6 +55,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 </script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
+<script src="/output-contract.js"></script>
 <!-- The ONE catalogue resolver (2026-10-05). Without it this page fetched
      tenant zero's shipped catalogue for every brand, and a momos brand's Google
      ads were composed over another company's sneaker photos. -->
@@ -998,8 +999,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   const AD_SPEC = {
     google: 'Google (Responsive Search + Performance Max): 15 headlines (≤30 chars), 4 descriptions (≤90 chars), long headline (≤90), business name. PRODUCED creatives are static images at 1.91:1 (1200×628) and 1:1 (1200×1200).',
-    meta: 'Meta (Facebook/Instagram Feed + Reels + Stories): primary text (≤125 chars before truncation), headline (≤40), description. PRODUCED creatives are static images at 1:1 (1080×1080, Feed) and 9:16 (1080×1920, Story/Reel).',
-    tiktok: 'TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, brand-safe audio direction, caption, and 3 hashtag options. The PRODUCED creative is a static 9:16 (1080×1920) key-frame/cover image.',
+    meta: 'Meta (Facebook/Instagram Feed + Reels + Stories): primary text (≤125 chars before truncation), headline (≤40), description (≤30). PRODUCED creatives are static images at 1:1 (1080×1080, Feed) and 9:16 (1080×1920, Story/Reel).',
+    tiktok: 'TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, brand-safe audio direction, caption (≤100 chars), and 3 hashtag options. The PRODUCED creative is a static 9:16 (1080×1920) key-frame/cover image.',
   };
   // Client-side mirror of buildMasterPrompt({assetType:'ad'}) for when the
   // server-returned master_prompt isn't available yet.
@@ -1027,7 +1028,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       'VISUALS (produced asset): one still on-palette image per size with the overlay baked in. If a hosted product image/MP4 URL is supplied, its first frame is the base still. Motion (GIF/short video) is an OPTIONAL follow-up brief — never a delivered asset here. To produce the actual video ad, hand this brief to OpenMontage (open-source agentic video pipeline): https://github.com/Open-Montage/OpenMontage',
       '',
       'QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims.',
-    ].filter((l) => l !== null && l !== undefined).join('\n').trim();
+    ].filter((l) => l !== null && l !== undefined).join('\n').trim()
+    // It said what to make and never what to RETURN (2026-10-11). The same
+    // OUTPUT REQUIREMENT the server's master prompt closes with, from the
+    // shared /output-contract.js; the copy limits are the Platform spec's.
+      + '\n\n' + window.OutputContract.block({
+        id: 'ad-campaigns.master.' + platform, kind: 'asset', format: 'sections', brand: brandName(), region: market,
+        returns: 'ONE complete ' + platform.toUpperCase() + ' ad unit, ready to upload: its copy, its creative briefs and the destination URL.',
+        forbid: ['base64 or data: URIs (images are hosted URLs)', 'an image in place of the copy and the briefs', 'a delivered video (motion is a follow-up brief only)'],
+        formatRule: 'These labelled sections, in this order, each starting with its heading on its own line:',
+        lines: [
+          'COPY: every text field the platform requires, one per line, each inside its limit in the Platform spec above.',
+          'CREATIVE BRIEFS: one per static size in the Platform spec: the still visual, the baked-in overlay wording, its pixel placement and safe zones.',
+          'DESTINATION URL: the store link above, or the DATA REQUIRED marker it carries.',
+        ],
+      });
   }
   async function copyMasterPrompt(ch, btn) {
     const text = lastMasterPrompt[ch] || clientMasterPrompt(ch);

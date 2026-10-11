@@ -55,6 +55,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 </script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
+<script src="/output-contract.js"></script>
 
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -786,9 +787,12 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       f.notes ? '- Extra notes / story: ' + f.notes : '',
       '- Channel intent: ' + channel + ' — mobile-first, one clear primary CTA, match how this channel\'s visitors arrive.',
       '',
-      'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof / testimonials; FAQ; final CTA; footer; plus a sticky mobile CTA.',
-      'OUTPUT: return ONLY the full HTML document (from <!doctype html> to </html>) with inline CSS and no external dependencies. No commentary before or after.'
-    ].filter(Boolean).join('\n');
+      'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof (only quotes this brief supplies, else the DATA REQUIRED marker); FAQ; final CTA; footer; plus a sticky mobile CTA.'
+    ].filter(Boolean).join('\n') + '\n\n' + window.OutputContract.block({
+      id: 'landing-pages.prompt', kind: 'asset', format: 'html', brand: brandName(), region: region,
+      returns: 'ONE complete, production-ready, single-file responsive landing page as an HTML document.',
+      formatRule: 'ONE HTML document, from <!doctype html> to </html>.',
+      lines: ['Inline CSS, no external dependencies (no CDN, no web-font link, no framework).', 'Every image is a hosted URL the brief supplied, or a labelled empty placeholder box; never base64, never an invented URL.'] });
   }
   function copyText(txt, statusEl) {
     function done(ok) { if (statusEl) statusEl.textContent = ok ? '✓ AI prompt copied — paste it into ChatGPT, Gemini or Claude.' : 'Could not copy automatically — see console.'; if (!ok) console.log('[landing] AI prompt:\n' + txt); }

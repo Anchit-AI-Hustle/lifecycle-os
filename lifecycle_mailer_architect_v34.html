@@ -79,6 +79,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <!-- Supabase JS SDK (used for cross-device dashboard storage) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Lifecycle OS shared auth + cross-step nav -->
+<!-- The OUTPUT REQUIREMENT every prompt this page builds ends with (shared with the server: api/_shared/output-contract.js). -->
+<script src="/output-contract.js"></script>
 <script src="/auth.js?v=20260718light" defer></script>
 <style id="lifecycle-os-overrides">
   /* When this Studio is rendered inside the Lifecycle OS shell (auth.js
@@ -4600,7 +4602,7 @@ function buildHeroPhotoPrompt(mkt,variant,prods){
     'No text of any kind in the image: no words, letters, numbers, prices, discount codes, badges, ratings or logos. No packaging lettering in focus.',
     (fb?'Art-direction feedback to apply: '+fb:''),
     '',
-    'Return the image only. No text baked into the image, no watermark, no logo, no border, no collage of options. One frame.'
+    'OUTPUT: the image only. No text baked into the image, no watermark, no logo, no border, no collage of options. One frame.'
   ].filter(function(x){return x!==null&&x!==undefined;}).join('\n').replace(/\n{3,}/g,'\n\n');
 }
 /** The ASSET prompt: ONE complete HTML email, for the active brand, market and
@@ -4656,21 +4658,31 @@ function buildEmailAssetPrompt(mkt,variant){
     ].concat(prodLines,[
     '',
     'SECTIONS AND COPY',
-    '  Subject line + preheader: write 3 subject lines and 1 preheader from the copy below.',
+    '  Subject line + preheader: inside the HTML document - the chosen subject line as its <title>, the two alternatives in an HTML comment right after <head>, and the preheader as the hidden preheader text right after <body>.',
     '  1. Header: logo (or the brand name as text), on the surface.',
     '  2. Hero: headline "'+[].concat(hl).filter(Boolean).join(' ')+'", sub-copy "'+sc+'", button "'+cta+'" linking to '+(hero?pdpUrl(hero.product,mkt):(f.store||_promptMarker('region store URL',mkt)))+'.'+(variant==='B'?(hero&&hero.image?' Hero image: '+hero.image+' (or a hosted hero photograph made with the separate hero photo prompt).':' Hero image: '+_promptMarker('product image',mkt)+'.'):''),
     '  3. Product cards: one per product above, equal size and aligned: title, price, button.',
     '  4. Proof: '+brandReviewMarker()+' Never invent a review, a rating or a reviewer.',
-    '  5. Footer: '+footer+' | {{ unsubscribe }} link | the store link above.',
-    '',
-    'OUTPUT FORMAT',
-    '  One HTML email document, starting with <!DOCTYPE html> and ending with </html>.',
-    '  Table-based layout (Outlook renders with the Word engine), a 600px content column, every style inline on its element. No flexbox, no grid, no JavaScript.',
-    '  Every image is an <img> with the hosted https URL given above and real alt text. Never base64, never a data: URI (Gmail clips a message past about 102KB).',
-    '  It must read completely with images turned off.',
-    '  Do NOT render the email as a picture: no image of an email, no screenshot, no mockup in a device frame.',
-    'Return only the HTML document. Not an image, not a screenshot, not a mockup, not a plan.'
-  ])).filter(function(x){return x!=='';}).join('\n').replace(/\n(OFFER|PRODUCTS|SECTIONS AND COPY|OUTPUT FORMAT)/g,'\n\n$1');
+    '  5. Footer: '+footer+' | {{ unsubscribe }} link | the store link above.'
+  ])).filter(function(x){return x!=='';}).join('\n').replace(/\n(OFFER|PRODUCTS|SECTIONS AND COPY)/g,'\n\n$1')
+  // The OUTPUT REQUIREMENT, from the shared contract (/output-contract.js,
+  // the same file the server's prompts end with): what to return, how to mark
+  // a missing fact, what not to return, and the container LAST. It used to ask
+  // for "3 subject lines and 1 preheader" AND "only the HTML document": a
+  // model given both returned prose above the HTML. Both live inside it now.
+    + '\n\n' + window.OutputContract.block({
+      id:'studio.email', kind:'asset', format:'html', brand:f.name, region:mkt,
+      returns:'ONE complete, self-contained HTML email for '+f.name+', Variant '+variant+' ('+kind+'), ready to paste into an ESP.',
+      forbid:['an image, a screenshot or a mockup of the email in a device frame','a plan, a list of sections or copy notes'],
+      formatRule:'One HTML email document, starting with <!DOCTYPE html> and ending with </html>.',
+      lines:[
+        'Table-based layout (Outlook renders with the Word engine), a 600px content column, every style inline on its element. No flexbox, no grid, no JavaScript.',
+        'Every image is an <img> with the hosted https URL given above and real alt text. Never base64, never a data: URI (Gmail clips a message past about 102KB).',
+        'It must read completely with images turned off.',
+        'Do NOT render the email as a picture: no image of an email, no screenshot, no mockup in a device frame.',
+        'Return only the HTML document. Not an image, not a screenshot, not a mockup, not a plan.'
+      ]
+    });
 }
 /* The legacy entry points, kept by name for every caller in this file. The
    image prompt is now the ELEMENT prompt above. */
@@ -6936,7 +6948,7 @@ async function analyzeImageAndBuildEmail(base64DataUrl,prods,prompt,market){
     const kbPrompt=(typeof buildClaudeSystemPromptFromKB==='function')?buildClaudeSystemPromptFromKB():null;
     const systemPrompt=kbPrompt||('You are a world-class HTML email developer and D2C campaign specialist. Your output is deployed directly in Klaviyo/Mailchimp for '+brandFacts().name+'.\n\nYour task: analyse the uploaded campaign design image and reproduce it as a flawless production-ready HTML email, ensuring EVERY element — copy, headline, offer, products, and tone — reflects the campaign brief provided by the user.\n\nOFFICIAL BRAND STYLE GUIDE (only these colours are on-brand):\n• '+brandStyleLine()+'\n• Hero headlines: 40-48px heading family, bold. Section headings: 18-22px heading family, bold. Body: 12-13px body family.\n\nHTML TECHNICAL REQUIREMENTS:\n1. Reproduce the design EXACTLY — every section, colour, font size, spacing, hierarchy, and copy\n2. TABLE-BASED layout ONLY — zero divs for layout, zero flexbox (Outlook 2016+ requirement)\n3. ALL styles INLINE on every element — only @media queries allowed in <style> in <head>\n4. Product images: use EXACT Shopify CDN URLs provided — never placeholder or invented URLs\n5. All CTA/nav links: use EXACT market-specific URLs provided\n6. MSO conditional comments: <!--[if mso]> ... <![endif]--> for Outlook rendering\n7. Preheader: <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px"> after <body>\n8. Bulletproof CTA buttons: <a> tag with VML fallback for Outlook\n9. Images: border="0" style="display:block;border:0;outline:none;text-decoration:none" + alt text\n10. Footer: '+brandFacts().legalLine+' | unsubscribe + privacy policy links\n11. 600px wide centred table, background #FFFFFF\n12. Mobile @media max-width:600px responsive overrides\n13. MSO XML namespace in <head>\n14. LANGUAGE: ALL copy — headings, body, CTAs, labels, footer — MUST be in English regardless of market.\n\nOutput ONLY raw HTML starting with <!DOCTYPE html>. No markdown. No explanation. No code fences.');
     const offer2=offerText(prompt);const code2=offerCode(prompt);const cta2=ctaText(prompt);const hl2=heroHeadline(prompt);const sc2=subCopy(prompt);
-    const userText='You are looking at a '+brandFacts().name+' email campaign design. Study every section, colour, font size, spacing, layout hierarchy, and copy block precisely.\n\nReproduce it as a complete standalone production-ready HTML email that ALSO reflects the campaign brief below.\n\n====================================================\nCAMPAIGN BRIEF (CRITICAL — every headline and CTA must reflect this)\n====================================================\nDescription: '+prompt.substring(0,350)+'\nMarket: '+market+(code2?' | Promo Code: "'+code2+'" (must appear prominently)':'')+(offer2?' | Offer: '+offer2:'')+'\nSuggested Hero Headline: "'+hl2[0]+(hl2[1]?' / '+hl2[1]:'')+'"'+'\nSuggested Sub-copy: "'+sc2.substring(0,120)+'"\nSuggested CTA: "'+cta2+'"\n====================================================\n\nEXACT PRODUCT IMAGE TAGS TO USE (copy src URLs verbatim):\n'+prodImgTags+'\n\nMARKET-SPECIFIC LINKS (use these exact URLs):\n- Base URL: '+base+'\n- Main Collection CTA: '+collUrl+'\n'+prodLinks+'\n- Unsubscribe: '+base+'/pages/unsubscribe\n- Privacy Policy: '+base+'/pages/privacy-policy\n\nTECHNICAL SPEC:\n- Email width: 600px, tables use explicit width="600"\n- All <img>: border="0" style="display:block;border:0;outline:none;text-decoration:none"\n- CTA buttons: bulletproof VML method for Outlook + standard <a>\n- Include MSO conditional comments in <head>\n- Preheader div immediately after <body>\n- Output ONLY the complete HTML starting with <!DOCTYPE html>';
+    const userText='You are looking at a '+brandFacts().name+' email campaign design. Study every section, colour, font size, spacing, layout hierarchy, and copy block precisely.\n\nReproduce it as a complete standalone production-ready HTML email that ALSO reflects the campaign brief below.\n\n====================================================\nCAMPAIGN BRIEF (CRITICAL — every headline and CTA must reflect this)\n====================================================\nDescription: '+prompt.substring(0,350)+'\nMarket: '+market+(code2?' | Promo Code: "'+code2+'" (must appear prominently)':'')+(offer2?' | Offer: '+offer2:'')+'\nSuggested Hero Headline: "'+hl2[0]+(hl2[1]?' / '+hl2[1]:'')+'"'+'\nSuggested Sub-copy: "'+sc2.substring(0,120)+'"\nSuggested CTA: "'+cta2+'"\n====================================================\n\nEXACT PRODUCT IMAGE TAGS TO USE (copy src URLs verbatim):\n'+prodImgTags+'\n\nMARKET-SPECIFIC LINKS (use these exact URLs):\n- Base URL: '+base+'\n- Main Collection CTA: '+collUrl+'\n'+prodLinks+'\n- Unsubscribe: '+base+'/pages/unsubscribe\n- Privacy Policy: '+base+'/pages/privacy-policy\n\nTECHNICAL SPEC:\n- Email width: 600px, tables use explicit width="600"\n- All <img>: border="0" style="display:block;border:0;outline:none;text-decoration:none"\n- CTA buttons: bulletproof VML method for Outlook + standard <a>\n- Include MSO conditional comments in <head>\n- Preheader div immediately after <body>'+'\n\n'+window.OutputContract.block({id:'studio.design-to-html',kind:'asset',format:'html',brand:brandFacts().name,region:market,returns:'ONE complete, production-ready HTML email that reproduces the attached design and carries the campaign brief above.',forbid:['a description of the design','an image or screenshot of the email'],formatRule:'ONE HTML email document, starting with <!DOCTYPE html> and ending with <\/html>.',lines:['Table-based, every style inline, only @media queries in the <head> <style>; product images are the exact src URLs above, never base64.']});
     setStatus('Claude is analysing your design and writing the HTML email...');
     const response=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',

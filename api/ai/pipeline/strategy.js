@@ -66,32 +66,48 @@ If B resembles A on any of these, rewrite B from a different emotional entry poi
 - Every section must earn its place; no filler. Max 3 products in the product section.
 - Use only the palette, typography, claims and voice in the BRAND block. Never a colour or font from anywhere else.
 
-OUTPUT: STRICT JSON ONLY - first character {, last character }. No markdown, no commentary.
-SCHEMA (all fields required):
-{
-  "strategic_lock": { "audience_truth": "", "business_goal": "", "purchase_barrier": "", "conversion_trigger": "" },
-  "product_selection": {
-    "hero": { "name": "exact name from the supplied list, or the DATA REQUIRED marker", "handle": "", "why": "" },
-    "supporting": [{ "name": "", "handle": "", "role": "AOV / expansion / system", "why": "" }],
-    "product_system": "", "aov_logic": ""
-  },
-  "strategy_type": "Conversion Push | Repeat Purchase | AOV Expansion | Brand Building",
-  "strategy": "", "reasoning": "",
-  "vibe": { "emotional_tone": "", "pace": "", "visual_energy": "", "positioning": "", "avoid": "" },
-  "theme": { "name": "", "core_idea": "", "emotional_driver": "", "conversion_logic": "", "visual_world": "" },
-  "structure": {
-    "sections": ["announcement_bar", "brand_header", "hero", "benefit_strip", "product_reveal", "offer_bar", "footer"],
-    "layout_rules": "",
-    "visual_system": { "color_palette": "", "typography": "", "spacing_rhythm": "", "image_style": "" }
-  },
-  "image_style_lock": "50-70 words: camera, light source, surface, depth of field, colour temperature, compositional energy - ownable to this brief",
-  "variant_a_concept": { "emotional_angle": "", "headline_register": "", "template_key": "launch | sale | story | gift | routine | discovery | bestseller | seasonal | editorial | founder", "color_approach": "${ap.A}", "opening_section": "hero (product visible in section 1)", "hero_scene": "" },
-  "variant_b_concept": { "emotional_angle": "", "headline_register": "", "template_key": "must differ from A", "color_approach": "${ap.B}", "opening_section": "narrative or lifestyle (no product in the first 2 sections)", "hero_scene": "" },
-  "variant_divergence_contract": { "layout_difference": "", "color_difference": "", "copy_difference": "", "section_order_difference": "", "product_treatment_difference": "" }
-}`;
+OUTPUT: the OUTPUT REQUIREMENT at the end of this prompt names every key, its type and its limit. Return exactly that object.`;
+}
+
+/** What this stage returns: the prompt's OUTPUT REQUIREMENT and the spec the answer is read by. */
+const SECTION_IDS = ['announcement_bar', 'brand_header', 'hero', 'narrative', 'context', 'product_reveal', 'benefit_strip', 'social_proof', 'lifestyle_moment', 'origin_proof', 'offer_bar', 'cta', 'footer'];
+const TEMPLATE_KEYS = ['launch', 'sale', 'story', 'gift', 'routine', 'discovery', 'bestseller', 'seasonal', 'editorial', 'founder'];
+function outputSpec(ctx) {
+  const ap = approaches(ctx.tokens);
+  const concept = (approach, opening) => ({ type: 'object', of: {
+    emotional_angle: 'string', headline_register: 'string', template_key: { type: 'string', enum: TEMPLATE_KEYS },
+    color_approach: { type: 'string', note: `exactly "${approach}"` }, opening_section: { type: 'string', note: opening }, hero_scene: 'string' } });
+  return {
+    id: 'pipeline.strategy', kind: 'data', format: 'json', brand: ctx.brand.name, region: ctx.market,
+    returns: 'ONE JSON object: the locked strategy for this mailer and the two opposite variant execution contracts. A plan for the downstream stages, not copy and not HTML.',
+    forbid: ['HTML', 'finished email copy'],
+    schema: {
+      strategic_lock: { type: 'object', of: { audience_truth: 'string', business_goal: 'string', purchase_barrier: 'string', conversion_trigger: 'string' } },
+      product_selection: { type: 'object', of: {
+        hero: { type: 'object', of: { name: { type: 'string', note: 'exact name from the supplied list, or the DATA REQUIRED marker' }, handle: 'string', why: 'string' } },
+        supporting: { type: 'array', count: [0, 3], items: { type: 'object', of: { name: 'string', handle: 'string', role: { type: 'string', note: 'AOV, expansion or system' }, why: 'string' } } },
+        product_system: 'string', aov_logic: 'string' } },
+      strategy_type: { type: 'string', enum: ['Conversion Push', 'Repeat Purchase', 'AOV Expansion', 'Brand Building'] },
+      strategy: 'string', reasoning: 'string',
+      vibe: { type: 'object', of: { emotional_tone: 'string', pace: 'string', visual_energy: 'string', positioning: 'string', avoid: 'string' } },
+      theme: { type: 'object', of: { name: { type: 'string', note: '2-4 words' }, core_idea: 'string', emotional_driver: 'string', conversion_logic: 'string', visual_world: 'string' } },
+      structure: { type: 'object', of: {
+        sections: { type: 'array', count: [3, 7], items: { type: 'string', enum: SECTION_IDS } },
+        layout_rules: 'string',
+        visual_system: { type: 'object', of: { color_palette: 'string', typography: 'string', spacing_rhythm: 'string', image_style: 'string' } } } },
+      image_style_lock: { type: 'string', note: '50-70 words: camera, light source, surface, depth of field, colour temperature, compositional energy' },
+      variant_a_concept: concept(ap.A, 'hero (product visible in section 1)'),
+      variant_b_concept: concept(ap.B, 'narrative or lifestyle (no product in the first 2 sections); template_key differs from A'),
+      variant_divergence_contract: { type: 'object', of: { layout_difference: 'string', color_difference: 'string', copy_difference: 'string', section_order_difference: 'string', product_treatment_difference: 'string' } },
+    },
+  };
 }
 
 function userMessage(ctx, o) {
+  return P.OC.append(task(ctx, o), outputSpec(ctx));
+}
+
+function task(ctx, o) {
   const campaignType = o.type || 'Campaign';
   const campaignName = o.brief
     ? (o.brief.split(/[.!?\n]/)[0].trim().substring(0, 80) || (campaignType + ' · ' + ctx.market))
@@ -280,6 +296,7 @@ async function handler(req, res) {
     return res.status(200).json({
       ok: true, provider, model, stage: 'strategy',
       ...(quota_warning ? { quota_warning: true, exhausted_keys } : {}),
+      output_check: P.OC.validate(parsed, outputSpec(ctx)),
       ...enforceDivergence(parsed, ctx),
     });
   } catch (e) {

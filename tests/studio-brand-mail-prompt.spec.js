@@ -320,9 +320,12 @@ test('the Prompts tab leads with the EMAIL (HTML) prompt, and every Open / Copy 
   expect(order.mono.split('\n')[0]).toMatch(/^DELIVERABLE: Return ONE complete, self-contained HTML email/);
 
   const head = (t) => t.split('\n')[0];
-  const tail = (t) => t.trim().split('\n').slice(-1)[0];
+  // Since 2026-10-11 the prompt ends with the shared OUTPUT REQUIREMENT
+  // block (output-contract.js); the container pin is its last line.
+  const tail = (t) => t.trim().split('\n').slice(-2)[0];
   const isEmail = (t, what) => {
     expect(head(t), `${what}: opens by naming the deliverable`).toMatch(/^DELIVERABLE: Return ONE complete, self-contained HTML email \(table layout, inline CSS, 600px, images-off safe\)/);
+    expect(t.trim().split('\n').slice(-1)[0], `${what}: ends with the OUTPUT REQUIREMENT`).toBe('=== END OUTPUT REQUIREMENT ===');
     expect(tail(t), `${what}: closes by pinning the container`).toBe('Return only the HTML document. Not an image, not a screenshot, not a mockup, not a plan.');
     expect(t, what).toContain('Do NOT render the email as a picture');
     expect(t, what).not.toMatch(/PHOTOGRAPH, not an email/i);

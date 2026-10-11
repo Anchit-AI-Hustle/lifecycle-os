@@ -693,7 +693,10 @@ add('console-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse',
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, reply: 'stubbed reply' });
     expect(llmCalls.length).toBe(1);
-    expect(llmCalls[0]).toMatchObject({ userMessage: 'what should ship next?', stage: 'console' });
+    expect(llmCalls[0]).toMatchObject({ stage: 'console' });
+    // The operator's message, then the OUTPUT REQUIREMENT the reply is held to (2026-10-11).
+    expect(llmCalls[0].userMessage.startsWith('what should ship next?\n\n=== OUTPUT REQUIREMENT ===')).toBe(true);
+    expect(llmCalls[0].userMessage.trim().endsWith('=== END OUTPUT REQUIREMENT ===')).toBe(true);
     expect(llmCalls[0].systemPrompt).toContain('"theme":"t"');   // the live context reached the model
     expect(last(M.analysis, 'runDaily')[0]).toEqual({ persist: false });
   },

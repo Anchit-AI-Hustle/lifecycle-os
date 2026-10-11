@@ -23,7 +23,7 @@ const PASS_THRESHOLD = 7;      // Minimum score per dimension
 const DIVERGENCE_MIN = 8;      // Variant B divergence must score this or above
 
 function systemPrompt(ctx) {
-  return `You are a senior email marketing quality auditor for ${ctx.brand.name}. Score two email variants against the criteria below. Output STRICT JSON only: no commentary, no markdown.
+  return `You are a senior email marketing quality auditor for ${ctx.brand.name}. Score two email variants against the criteria below.
 
 ━━ SCORING CRITERIA ━━
 strategy_alignment (0-10): 10 = every section serves the stated strategy and the hero product is prominent; 5 = strategy loosely present; 0 = no connection.
@@ -36,15 +36,7 @@ variant_divergence (0-10, Variant B only): 10 = B is visually and structurally o
 - Variant B variant_divergence >= ${DIVERGENCE_MIN}
 - content_density >= 7 for both (empty sections must be retried)
 
-━━ OUTPUT SCHEMA ━━
-{
-  "scores_a": { "strategy_alignment": 0, "content_density": 0, "copy_quality": 0, "overall": 0 },
-  "scores_b": { "strategy_alignment": 0, "content_density": 0, "copy_quality": 0, "variant_divergence": 0, "overall": 0 },
-  "pass": true,
-  "weak_variant": null,
-  "failure_reasons": ["specific reason"],
-  "retry_reason": "one concise instruction for the retry, or null if pass"
-}`;
+The answer is the JSON object the OUTPUT REQUIREMENT at the end of this prompt describes.`;
 }
 
 /**
@@ -89,7 +81,29 @@ function fingerprint(html, t) {
   };
 }
 
+/** What this stage returns: the OUTPUT REQUIREMENT and the spec the answer is read by. */
+function outputSpec(ctx) {
+  const score = { type: 'integer', min: 0, max: 10 };
+  return {
+    id: 'pipeline.score', kind: 'data', format: 'json', brand: ctx.brand.name, region: ctx.market,
+    missing: 'A criterion that cannot be judged from what is shown scores low and says why in failure_reasons; never a guessed score.',
+    returns: 'ONE JSON object: the scores of Variant A and Variant B on every criterion, the pass verdict, and the reasons.',
+    schema: {
+      scores_a: { type: 'object', of: { strategy_alignment: score, content_density: score, copy_quality: score, overall: score } },
+      scores_b: { type: 'object', of: { strategy_alignment: score, content_density: score, copy_quality: score, variant_divergence: score, overall: score } },
+      pass: 'boolean',
+      weak_variant: { type: 'string', enum: ['A', 'B', 'both'], required: false, note: 'null when both pass' },
+      failure_reasons: { type: 'array', items: { type: 'string', note: 'one specific reason' } },
+      retry_reason: { type: 'string', required: false, note: 'one concise instruction for the retry; null when pass' },
+    },
+  };
+}
+
 function userMessage(ctx, o, fpA, fpB) {
+  return P.OC.append(task(ctx, o, fpA, fpB), outputSpec(ctx));
+}
+
+function task(ctx, o, fpA, fpB) {
   const s = o.strategy_output || {};
   const summary = (plan) => ({
     layout_flow: (plan.layout_plan || {}).flow,
@@ -162,6 +176,7 @@ async function handler(req, res) {
       return res.status(502).json({ ok: false, error: 'json_parse_failed', provider, message: 'The model did not return valid JSON for the score.', raw: String(text || '').substring(0, 300) });
     }
 
+    const output_check = P.OC.validate(parsed, outputSpec(ctx));
     // The pass logic is enforced here as well; the model is not trusted alone.
     const sa = parsed.scores_a || {};
     const sb = parsed.scores_b || {};
@@ -172,7 +187,7 @@ async function handler(req, res) {
     parsed.pass = !aFails && !bFails && !divergenceFails;
     parsed.weak_variant = (aFails && bFails) ? 'both' : aFails ? 'A' : (bFails || divergenceFails) ? 'B' : null;
 
-    return res.status(200).json({ ok: true, stage: 'score', provider, model, fingerprint: { a: fpA, b: fpB }, ...parsed });
+    return res.status(200).json({ ok: true, stage: 'score', provider, model, fingerprint: { a: fpA, b: fpB }, output_check, ...parsed });
   } catch (e) {
     // The scoring model failed. The pipeline completes rather than looping,
     // but the caller is told no score was produced, and the meter refunds:

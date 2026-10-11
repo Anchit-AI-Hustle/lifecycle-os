@@ -21,42 +21,46 @@
 
 const P = require('../../_shared/pipeline-core.js');
 
-function schema(ctx, variant) {
+/**
+ * What this stage returns: the OUTPUT REQUIREMENT its prompt ends with and the
+ * spec the answer is read by. Subject and preheader limits are the email
+ * contract's own (asset-contracts.js), read, never re-typed.
+ */
+function outputSpec(ctx, variant) {
   const t = ctx.tokens;
+  const text = ctx.mailerType === 'text';
   const scheme = variant === 'B'
-    ? `{ "background": "${t.primary}", "primary": "${t.onPrimary}", "accent": "${t.accent}", "text": "${t.onPrimary}", "section_note": "opening sections on the primary; may move to the surface for the product reveal" }`
-    : `{ "background": "${t.surface}", "primary": "${t.primaryAsText}", "accent": "${t.accent}", "text": "${t.onSurface}" }`;
-  const images = ctx.mailerType === 'text'
-    ? '"image_requirements": [],'
-    : `"image_requirements": [
-    { "slot": "hero", "prompt": "55-70 words: exact subject, surface, light source and direction, camera angle, time of day, colour temperature, compositional focus. No text, no logos.", "size": "1536x1024", "negative_prompt": "no text overlays, no logos, no UI elements, no email layout, no stock look, no artificial lighting, no clutter" },
-    { "slot": "product", "prompt": "55-70 words: the hero product on a tactile surface, natural sidelight, close angle. No text, no logos.", "size": "1024x1024", "negative_prompt": "no text overlays, no logos, no UI elements, no stock look, no artificial lighting" },
-    { "slot": "lifestyle", "prompt": "55-70 words: a person or hands with the product in a real setting, warm natural light. No text, no logos.", "size": "1024x1024", "negative_prompt": "no text overlays, no logos, no UI elements, no stock look, no artificial lighting" }
-  ],`;
-  return `{
-  "variant": "${variant}",
-  "layout_plan": {
-    "hero": "specific layout", "benefit_section": "", "product_section": "", "proof_section": "", "offer_section": "", "cta_section": "",
-    "color_scheme": ${scheme},
-    "spacing": "e.g. 32px between sections, 24px internal padding",
-    "flow": "${variant === 'B' ? 'editorial-narrative' : 'structured-conversion'}"
-  },
-  "sections": [
-    {
-      "id": "announcement_bar | brand_header | hero | narrative | context | product_reveal | benefit_strip | social_proof | offer_bar | cta | footer",
-      "type": "split-hero | full-bleed | centered | two-col-grid | three-col-grid | banner | button-row",
-      "purpose": "one sentence",
-      "copy": { "eyebrow": "", "headline": "max 8 words", "subcopy": "max 40 words, full sentence", "cta": "max 4 words" },
-      "layout": "precise table-structure instruction for the HTML stage",
-      "image_slot": "${ctx.mailerType === 'text' ? 'none' : 'hero | product | lifestyle | none'}",
-      "ux_intent": ""
-    }
-  ],
-  ${images}
-  "copy_framework": { "tone": "", "voice": "", "headline_style": "", "cta_verb": "" },
-  "subject_lines": ["<= 60 characters", "<= 60 characters", "<= 60 characters"],
-  "preheader": "<= 90 characters, extends the subject rather than repeating it, no terminal period"
-}`;
+    ? `background ${t.primary}, primary ${t.onPrimary}, accent ${t.accent}, text ${t.onPrimary}; opening sections on the primary`
+    : `background ${t.surface}, primary ${t.primaryAsText}, accent ${t.accent}, text ${t.onSurface}`;
+  const img = (slot, size, what) => ({ type: 'object', of: {
+    slot: { type: 'string', enum: slot }, prompt: { type: 'string', note: `55-70 words: ${what}. No text, no logos` },
+    size: { type: 'string', enum: size }, negative_prompt: 'string' } });
+  return {
+    id: 'pipeline.variant', kind: 'data', format: 'json', brand: ctx.brand.name, region: ctx.market,
+    returns: `ONE JSON object: the creative plan for VARIANT ${variant} (sections with their final copy, layout, image slots, subject lines, preheader). A plan the HTML stage executes, not HTML.`,
+    forbid: ['HTML', 'a rendered email'],
+    schema: {
+      variant: { type: 'string', enum: [variant] },
+      layout_plan: { type: 'object', of: {
+        hero: 'string', benefit_section: 'string', product_section: 'string', proof_section: 'string', offer_section: 'string', cta_section: 'string',
+        color_scheme: { type: 'object', note: scheme },
+        spacing: 'string', flow: { type: 'string', enum: [variant === 'B' ? 'editorial-narrative' : 'structured-conversion'] } } },
+      sections: { type: 'array', count: [3, 9], items: { type: 'object', of: {
+        id: { type: 'string', enum: ['announcement_bar', 'brand_header', 'hero', 'narrative', 'lifestyle', 'context', 'product_reveal', 'benefit_strip', 'social_proof', 'offer_bar', 'offer_inline', 'cta', 'footer'] },
+        type: { type: 'string', enum: ['split-hero', 'full-bleed', 'centered', 'two-col-grid', 'three-col-grid', 'banner', 'button-row'] },
+        purpose: { type: 'string', note: 'one sentence' },
+        copy: { type: 'object', of: { eyebrow: 'string', headline: { type: 'string', note: '8 words at most' }, subcopy: { type: 'string', note: '40 words at most, a full sentence' }, cta: { type: 'string', note: '4 words at most' } } },
+        layout: { type: 'string', note: 'a precise table-structure instruction for the HTML stage' },
+        image_slot: { type: 'string', enum: text ? ['none'] : ['hero', 'product', 'lifestyle', 'none'] },
+        ux_intent: 'string' } } },
+      image_requirements: text
+        ? { type: 'array', count: 0, note: 'empty: a TEXT mailer has no photographs' }
+        : { type: 'array', count: 3, items: img(['hero', 'product', 'lifestyle'], ['1536x1024', '1024x1024'], 'exact subject, surface, light source and direction, camera angle, time of day, colour temperature, compositional focus'), note: 'in this order: hero (1536x1024), product (1024x1024), lifestyle (1024x1024)' },
+      copy_framework: { type: 'object', of: { tone: 'string', voice: 'string', headline_style: 'string', cta_verb: 'string' } },
+      subject_lines: { type: 'array', count: 3, items: { type: 'string', max: P.slotLimit('email.mailer', 'subject') } },
+      preheader: { type: 'string', max: P.slotLimit('email.mailer', 'preheader'), note: 'extends the subject rather than repeating it, no terminal period' },
+    },
+  };
 }
 
 function systemPrompt(ctx, variant) {
@@ -75,13 +79,11 @@ RULES THAT OUTRANK THE VARIANT RULES:
 - A price, a compare-at price, a discount, a code, a shipping threshold, a rating, a review count, a units-sold figure or a testimonial appears ONLY if it was supplied. Nothing supplied means the section carries the DATA REQUIRED marker or is left out; never a plausible number.
 - Max 3 products in the product section. Every section content-complete; no filler.
 - Copy uses the voice, preferred words and banned list in the BRAND block. No em dashes or en dashes in any copy field.
-- Subject lines at most 60 characters, preheader at most 90: the inbox truncates past those.
+- Subject lines and the preheader stay inside the limits in the OUTPUT REQUIREMENT: the inbox truncates past them.
 
 REGENERATION (regenerate_counter > 0): change the headline angle, the CTA wording, the benefit framing and the hero scene; never repeat a previous headline or CTA.
 
-OUTPUT: STRICT JSON ONLY. First character {, last character }. No markdown.
-SCHEMA:
-${schema(ctx, variant)}`;
+OUTPUT: the OUTPUT REQUIREMENT at the end of this prompt names every key, its type and its limit. Return exactly that object.`;
 
   if (variant === 'B') {
     return `${common}
@@ -115,6 +117,10 @@ ${schema(ctx, variant)}`;
 }
 
 function userMessage(ctx, o) {
+  return P.OC.append(task(ctx, o), outputSpec(ctx, o.variant));
+}
+
+function task(ctx, o) {
   const s = o.strategy_output || {};
   const lock = s.strategic_lock || {};
   const structure = s.structure || {};
@@ -362,6 +368,7 @@ async function handler(req, res) {
     catch (_) {
       return res.status(502).json({ ok: false, error: 'json_parse_failed', provider, variant: o.variant, message: 'The model did not return valid JSON for the variant plan.', raw: String(text || '').substring(0, 400) });
     }
+    const output_check = P.OC.validate(parsed, outputSpec(ctx, o.variant));
     parsed.variant = o.variant;
     // A text mailer has no image slots, whatever the model answered.
     if (ctx.mailerType === 'text') {
@@ -370,7 +377,7 @@ async function handler(req, res) {
     }
 
     return res.status(200).json({
-      ok: true, provider, model, stage: 'variant', variant: o.variant, mailer_type: ctx.mailerType,
+      ok: true, provider, model, stage: 'variant', variant: o.variant, mailer_type: ctx.mailerType, output_check,
       ...(quota_warning ? { quota_warning: true, exhausted_keys } : {}),
       ...parsed,
     });

@@ -29,6 +29,9 @@
  */
 
 const wsScope = require('./_shared/workspace-scope.js');
+// Every prompt this router builds ends with its OUTPUT REQUIREMENT
+// (api/_shared/output-contract.js), and the answer is read by the same spec.
+const OC = require('./_shared/output-contract.js');
 
 /**
  * The workspace filter for a scoped table, or a sentinel that means "return
@@ -394,12 +397,23 @@ async function dailyDigest(req, res, env) {
     markets.length ? `markets ${markets.join('/')}` : '',
     verticals.length ? `verticals ${verticals.join(', ')}` : '',
   ].filter(Boolean).join(' · ') || 'the markets and verticals present in the log';
-  const SYS = `You are a market-intelligence analyst for ${who}. Synthesise the last 24 hours of clean competitor/market signals into ONE concise operational daily lesson (2-4 short paragraphs). Group by PATTERN not by source: name the brands, quote hard numbers/changes where present, and call out coordinated shifts (e.g. several brands moving to the same hook, a shared offer-architecture change). Cover Offer Architecture, Acquisition Hooks, Retention Flows and channel/retail expansion, restricted to ${scopeLine}. Use ONLY the markets and verticals that appear in the log; never introduce an industry, market or vertical that is not there. No fluff, no thought-leadership. Return STRICT JSON: {"digest_md":"<markdown lesson>","signals":[{"pattern":"<short>","brands":["..."],"vertical":"<one that appears in the log>","market":"<one that appears in the log>","evidence":"<one line>"}]}.`;
+  const SYS = `You are a market-intelligence analyst for ${who}. Synthesise the last 24 hours of clean competitor/market signals into ONE concise operational daily lesson (2-4 short paragraphs). Group by PATTERN not by source: name the brands, quote hard numbers/changes where present, and call out coordinated shifts (e.g. several brands moving to the same hook, a shared offer-architecture change). Cover Offer Architecture, Acquisition Hooks, Retention Flows and channel/retail expansion, restricted to ${scopeLine}. Use ONLY the markets and verticals that appear in the log; never introduce an industry, market or vertical that is not there. No fluff, no thought-leadership.`;
   const logLines = rows.map((x, i) => `[${i + 1}] (${x.market || '?'}/${x.vertical || '?'}) ${x.title || ''} — ${String(x.summary || '').slice(0, 300)}`).join('\n');
   try {
-    const out = await callLLM({ systemPrompt: SYS, userMessage: `CLEAN LEARNING LOG (last 24h, ${rows.length} entries):\n${logLines}\n\nReturn the JSON digest.`, responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.4, timeoutMs: 40000, stage: 'kb-daily-digest', tier: 'fast' });
-    if (out && out.ok && out.text) {
-      const j = JSON.parse(out.text.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1'));
+    const digestSpec = { id: 'kb.daily-digest', kind: 'data', format: 'json', brand: (digestBrand && digestBrand.name) || 'this brand',
+      missing: 'A number or a brand that is not in the log is not written; a pattern seen once is said to be seen once.',
+      returns: 'ONE JSON object: the daily lesson in markdown and the patterns behind it.',
+      schema: { digest_md: { type: 'string', note: 'the lesson in markdown, 2-4 short paragraphs' },
+        signals: { type: 'array', count: [0, 12], items: { type: 'object', of: {
+          pattern: { type: 'string', note: 'short' }, brands: { type: 'array', items: 'string' },
+          vertical: { enum: verticals.length ? verticals : undefined, type: 'string', note: 'one that appears in the log' },
+          market: { enum: markets.length ? markets : undefined, type: 'string', note: 'one that appears in the log' },
+          evidence: { type: 'string', note: 'one line from the log' } } } } } };
+    const out = await callLLM({ systemPrompt: SYS, userMessage: OC.append(`CLEAN LEARNING LOG (last 24h, ${rows.length} entries):\n${logLines}`, digestSpec), responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.4, timeoutMs: 40000, stage: 'kb-daily-digest', tier: 'fast' });
+    // callLLM answers { text, provider, model } and has no `ok`: the old
+    // `out.ok &&` here made every digest come back empty (2026-10-11).
+    if (out && out.text) {
+      const j = OC.parse(out.text, digestSpec) || {};
       digest_md = String(j.digest_md || '').slice(0, 6000);
       signals = Array.isArray(j.signals) ? j.signals.slice(0, 12) : [];
     }
@@ -497,15 +511,15 @@ async function ingest(req, res, env) {
     : 'this brand';
   const SYSTEM_PROMPT = `You are the knowledge curator for ${curatorFor}. You receive raw extracted text from a web page and distill it into a useful reference for the marketing team.
 
-Return STRICT JSON ONLY:
-{"summary":"<60-120 words>","key_points":["<5 takeaways>"],"tags":["<2-5 short tags>"]}
-
 Rules:
 - Be specific. Reference numbers, brand names, frameworks if mentioned.
 - Skip headers, ads, navigation.
-- Summarise only what the page says. Never add a fact about ${curatorFor} that the page does not contain.
-- If the text is empty/garbage, return {"summary":"<could not extract content>","key_points":[],"tags":["error"]}.
-- Output the JSON object only, starting with { and ending with }.`;
+- Summarise only what the page says. Never add a fact about ${curatorFor} that the page does not contain.`;
+  const ingestSpec = { id: 'kb.ingest', kind: 'data', format: 'json', brand: (ingestBrand && ingestBrand.name) || 'this brand',
+    missing: 'If the text is empty or unreadable, the answer is {"summary":"could not extract content","key_points":[],"tags":["error"]}.',
+    returns: 'ONE JSON object: the reference summary of this page for the marketing team.',
+    schema: { summary: { type: 'string', note: '60-120 words' }, key_points: { type: 'array', count: [0, 5], items: 'string' },
+      tags: { type: 'array', count: [1, 5], items: { type: 'string', note: 'short, lowercase' } } } };
 
   async function summarize(textBody, urlForContext) {
     if (!textBody || textBody.length < 60) {
@@ -513,9 +527,10 @@ Rules:
     }
     const userMsg = `URL: ${urlForContext}\n\nExtracted text:\n"""\n${textBody.slice(0, 30000)}\n"""`;
     try {
-      const out = await callLLM({ systemPrompt: SYSTEM_PROMPT, userMessage: userMsg, responseFormat: { type: 'json_object' }, maxTokens: 700, temperature: 0.3, timeoutMs: 35000, stage: 'kb-ingest', tier: 'fast' });
-      if (!out || !out.ok || !out.text) throw new Error(out && out.err ? String(out.err) : 'no LLM response');
-      const json = JSON.parse(out.text.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1'));
+      const out = await callLLM({ systemPrompt: SYSTEM_PROMPT, userMessage: OC.append(userMsg, ingestSpec), responseFormat: { type: 'json_object' }, maxTokens: 700, temperature: 0.3, timeoutMs: 35000, stage: 'kb-ingest', tier: 'fast' });
+      // callLLM has no `ok` on its answer: `!out.ok` failed every summary (2026-10-11).
+      if (!out || !out.text) throw new Error('no LLM response');
+      const json = OC.parse(out.text, ingestSpec) || {};
       return {
         summary: String(json.summary || '').slice(0, 2000),
         key_points: Array.isArray(json.key_points) ? json.key_points.slice(0, 8).map(String) : [],
