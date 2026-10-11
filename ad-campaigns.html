@@ -225,13 +225,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <section class="panel" id="panel-calendar">
     <div class="card">
       <div class="cal-head" style="justify-content:space-between;align-items:center">
-        <h3 style="font-family:var(--vh-font-head);font-size:18px;font-weight:600;margin:0">Ad calendar, the Knickgasm Brain plan</h3>
+        <h3 style="font-family:var(--vh-font-head);font-size:18px;font-weight:600;margin:0">Ad calendar, the Smart Brain plan</h3>
         <div style="display:flex;gap:8px;align-items:center">
           <div id="ad-mkt" style="display:flex;gap:4px"></div>
           <button type="button" class="btn btn-ghost" id="ad-refresh" title="Reload the plan">↻</button>
         </div>
       </div>
-      <p class="note" style="margin:8px 0 14px">This is the <b>same rolling plan as the Knickgasm Brain</b> mailer calendar, identical slots, cohorts, dates and reasoning. Each slot's paid-social ad set (Meta, Google, TikTok) is generated from the same strategy, copy and real catalog assets as its mailer. Review and approval happen in the Brain; approving a slot there locks its ads here too.</p>
+      <p class="note" style="margin:8px 0 14px">This is the <b>same rolling plan as the Smart Brain</b> mailer calendar, identical slots, cohorts, dates and reasoning. Each slot's paid-social ad set (Meta, Google, TikTok) is generated from the same strategy, copy and real catalog assets as its mailer. Review and approval happen in the Brain; approving a slot there locks its ads here too.</p>
       <div id="ad-plan"></div>
       <div id="ad-plan-empty" class="cal-empty" style="display:none"></div>
       <div style="margin-top:14px;border-top:1px solid var(--vh-line);padding-top:12px">
@@ -258,7 +258,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div><label class="label">Daily budget</label><input id="g-budget" type="number" placeholder="50"></div>
         </div>
         <div class="row">
-          <div><label class="label">Market</label><select id="g-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Market</label><select id="g-market" data-brand-markets></select></div>
           <div><label class="label">Final URL</label><input id="g-url" placeholder="/landing"></div>
         </div>
         <label class="label">Keywords (comma-separated)</label>
@@ -310,7 +310,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div><label class="label">Daily budget</label><input id="m-budget" type="number" placeholder="40"></div>
         </div>
         <div class="row">
-          <div><label class="label">Market</label><select id="m-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Market</label><select id="m-market" data-brand-markets></select></div>
           <div><label class="label">Placements</label><select id="m-place"><option>Advantage+ (all)</option><option>Feed</option><option>Stories/Reels</option><option>Manual</option></select></div>
         </div>
         <label class="label">Audience</label>
@@ -363,7 +363,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div><label class="label">Daily budget</label><input id="t-budget" type="number" placeholder="40"></div>
         </div>
         <div class="row">
-          <div><label class="label">Market</label><select id="t-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>AU</option><option>ME</option></select></div>
+          <div><label class="label">Market</label><select id="t-market" data-brand-markets></select></div>
           <div><label class="label">Placement</label><select id="t-place"><option>TikTok In-Feed</option><option>Spark Ads</option><option>TopView</option><option>Pangle Network</option></select></div>
         </div>
         <label class="label">Audience</label>
@@ -416,7 +416,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <input id="dm-name" placeholder="Campaign name">
     <div class="row">
       <div><label class="label">Budget</label><input id="dm-budget" type="number" placeholder="50"></div>
-      <div><label class="label">Market</label><select id="dm-market"><option>US</option><option>UK</option><option>IN</option><option>Global</option><option>EU</option><option>AU</option><option>ME</option></select></div>
+      <div><label class="label">Market</label><select id="dm-market" data-brand-markets></select></div>
     </div>
     <div class="btn-row">
       <button type="button" class="btn btn-ghost" data-close>Cancel</button>
@@ -1006,17 +1006,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function clientMasterPrompt(ch) {
     const platform = CH_PLATFORM[ch];
     const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
-    const f = STORE_FACTS[market] || STORE_FACTS.Global;
+    // The market's own currency (the brand's record, else its country's), never a '$' fallback.
+    const loc = (window.RegionContext && window.RegionContext.localeOf) ? window.RegionContext.localeOf(market) : {};
+    const f = { currency: loc.currency || (STORE_FACTS[market] && STORE_FACTS[market].currency) || ('[DATA REQUIRED BEFORE LAUNCH: currency, ' + brandName() + ', ' + String(market || '').toUpperCase() + ']') };
     const c = getCopy(ch);
     const brief = [v(CRE_CFG[ch].name), c.headline, c.sub].filter(Boolean).join(' — ');
     return [
-      "You are KNICKGASM's senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.",
+      'You are ' + brandName() + "'s senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.",
       '',
-      'BRAND: KNICKGASM — premium one-of-one Indian sneakers & streetwear.',
-      'VOICE: warm, sensory, emotionally resonant, story-driven.',
-      'PALETTE (use ONLY these four): #D0473E deep purple · #6A33D8 lava · #111111 near-black · #FFFFFF chalk.',
-      "TYPOGRAPHY (strict): Headings = 'Montserrat'. Body = 'Instrument Sans'. Never introduce other fonts.",
-      'BANNED phrases: "wellness journey", "transform", "liquid gold", "game-changer", "LIMITED TIME" (caps), "hurry", "don\'t miss out", "last chance", "while supplies last".',
+      'BRAND: ' + brandName() + ((activeBrand() && activeBrand().tagline) ? ' — ' + activeBrand().tagline : '') + '.',
+      BRAND_BLOCK(),
       '',
       'MARKET: ' + market + ' · Store: ' + storeFor(market) + ' · Currency: ' + f.currency,
       brief ? '\nCAMPAIGN BRIEF:\n' + brief : '',
@@ -1060,7 +1059,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
   window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
 
-  // ── Calendar — the SAME rolling plan as the Knickgasm Brain mailer calendar ──
+  // ── Calendar — the SAME rolling plan as the Smart Brain mailer calendar ──
   // Not a separate manual grid: it reads the Smart Brain plan (identical slots,
   // cohorts, dates, reasoning) and renders each slot's paid-social AD SET, built
   // from the same strategy + copy + real catalog assets as that slot's mailer.
@@ -1095,22 +1094,44 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (_) { return null; }
   }
   const intf = (n) => (+n || 0).toLocaleString();
-  let AD_PLAN = [], AD_MKT = 'US';
+  /* The market row and every Market select are the ACTIVE brand's own regions
+     (region-context.js), opening on its HOME market, with an All row only when
+     the brand has more than one. They were typed ("US UK ALL", and seven
+     markets in each form), so an India-only brand was offered two markets it
+     does not sell in and an aggregate over one (2026-10-10). */
+  let AD_PLAN = [], AD_MKT = '';
+  function brandMarkets() {
+    const rc = window.RegionContext;
+    return (rc && typeof rc.options === 'function') ? rc.options({ all: 'ALL' }) : [];
+  }
+  // The four Market selects are <select data-brand-markets>: region-context.js
+  // fills them with the brand's own markets and opens them on its home.
+  function fillMarketSelects() {
+    try { if (window.RegionContext && window.RegionContext.fillSelects) window.RegionContext.fillSelects(); } catch (_) {}
+  }
   const AD_PREVIEW = {};
   const CHAN_COL = { google: 'chan-google', meta: 'chan-meta', tiktok: 'chan-other' };
-  const adVisible = (e) => AD_MKT === 'ALL' || String(e.market || '').toUpperCase() === AD_MKT;
+  const sameMarket = (a, b) => {
+    const rc = window.RegionContext;
+    return rc && rc.family ? rc.family(a) === rc.family(b) : String(a || '').toUpperCase() === String(b || '').toUpperCase();
+  };
+  const adVisible = (e) => AD_MKT === 'ALL' || sameMarket(e.market, AD_MKT);
   function renderAdMkt() {
     const host = $('#ad-mkt'); if (!host) return;
-    host.innerHTML = ['US', 'UK', 'ALL'].map((m) => `<button type="button" class="tab${AD_MKT === m ? ' active' : ''}" data-admkt="${m}" style="padding:5px 12px;font-size:12px">${m}</button>`).join('');
-    host.querySelectorAll('[data-admkt]').forEach((b) => { b.onclick = () => { AD_MKT = b.dataset.admkt; renderAdMkt(); renderAdPlan(); }; });
+    const opts = brandMarkets();
+    const rc = window.RegionContext;
+    if (!opts.some((o) => o.code === AD_MKT)) AD_MKT = (rc && rc.home) || (opts[0] && opts[0].code) || '';
+    if (!opts.length) { host.innerHTML = '<span class="note">' + esc(rc && rc.marker ? rc.marker('home market') : '[DATA REQUIRED BEFORE LAUNCH: home market]') + '</span>'; return; }
+    host.innerHTML = opts.map((o) => `<button type="button" class="tab${AD_MKT === o.code ? ' active' : ''}" data-admkt="${esc(o.code)}"${o.home ? ' title="Home market"' : ''} style="padding:5px 12px;font-size:12px">${esc(o.all ? 'All' : o.code)}</button>`).join('');
+    host.querySelectorAll('[data-admkt]').forEach((b) => { b.onclick = () => { AD_MKT = b.dataset.admkt; renderAdMkt(); if (!AD_PLAN_LOADING) renderAdPlan(); }; });
   }
   // AD_PLAN_ERROR separates "the plan is empty" from "the plan could not be
   // read". Both used to collapse into the same "No plan yet" line, so an
   // unreachable API looked like a brand with nothing scheduled.
-  let AD_PLAN_ERROR = '';
+  let AD_PLAN_ERROR = '', AD_PLAN_LOADING = false;
   async function loadAdPlan() {
-    const host = $('#ad-plan'); if (host) host.innerHTML = '<p class="note">Loading the Knickgasm Brain plan…</p>';
-    AD_PLAN_ERROR = '';
+    const host = $('#ad-plan'); if (host) host.innerHTML = '<p class="note">Loading the Smart Brain plan…</p>';
+    AD_PLAN_ERROR = ''; AD_PLAN_LOADING = true;
     try {
       const r = await fetch(BRAIN + '?action=smart-brain-plan');
       const d = await r.json();
@@ -1119,6 +1140,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       AD_PLAN = d.entries || d.plan || [];
       if (!AD_PLAN.length) AD_PLAN = (await deviceSmartBrainPlan()) || [];
     } catch (e) { AD_PLAN = []; AD_PLAN_ERROR = (e && e.message) || String(e); }
+    AD_PLAN_LOADING = false;
     renderAdPlan();
   }
   function adStatus(e) {
@@ -1268,7 +1290,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   $('#g-ai').onclick = async () => {
     const name = $('#g-name').value.trim() || 'Google Search campaign';
-    const text = await aiBrief($('#g-ai-note'), $('#g-market').value, 'Sale', name + ' — write Google Ads headlines and descriptions for KNICKGASM sneaker.');
+    const text = await aiBrief($('#g-ai-note'), $('#g-market').value, 'Sale', name + ' — write Google Ads headlines and descriptions for ' + brandName() + '.');
     if (!text) return;
     const heads = extractLines(text, 'HERO HEADLINE').concat(extractLines(text, 'SUBJECT'));
     if (heads.length) $('#g-headlines').value = heads.slice(0, 5).join('\n');
@@ -1278,7 +1300,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   };
   $('#m-ai').onclick = async () => {
     const name = $('#m-name').value.trim() || 'Meta campaign';
-    const text = await aiBrief($('#m-ai-note'), $('#m-market').value, 'Launch', name + ' — write a Meta primary text and headline for KNICKGASM sneaker.');
+    const text = await aiBrief($('#m-ai-note'), $('#m-market').value, 'Launch', name + ' — write a Meta primary text and headline for ' + brandName() + '.');
     if (!text) return;
     const subs = extractLines(text, 'SUB-COPY'); if (subs.length) $('#m-primary').value = subs[0];
     const heads = extractLines(text, 'HERO HEADLINE'); if (heads.length) $('#m-headline').value = heads[0].slice(0, 40);
@@ -1367,7 +1389,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   };
   $('#t-ai').onclick = async () => {
     const name = $('#t-name').value.trim() || 'TikTok campaign';
-    const text = await aiBrief($('#t-ai-note'), $('#t-market').value, 'Launch', name + ' — write a TikTok hook (≤80 chars, native, conversational) + caption (≤120 chars, no marketing-speak) for KNICKGASM sneaker.');
+    const text = await aiBrief($('#t-ai-note'), $('#t-market').value, 'Launch', name + ' — write a TikTok hook (≤80 chars, native, conversational) + caption (≤120 chars, no marketing-speak) for ' + brandName() + '.');
     if (!text) return;
     // Naive split: first line → hook, rest → caption
     const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -1376,7 +1398,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   };
 
   // ── Init ─────────────────────────────────────────────────────────────
-  renderAdMkt(); loadAdPlan(); renderGoogle(); renderMeta(); renderTikTok();
+  fillMarketSelects(); renderAdMkt(); loadAdPlan(); renderGoogle(); renderMeta(); renderTikTok();
+  // The brand's markets arrive with the brand (and change with it).
+  (function watchRegions(waited) {
+    if (!window.RegionContext) { if (waited < 6000) setTimeout(() => watchRegions(waited + 100), 100); return; }
+    // While the plan is still being read the loading line stays: an empty
+    // render here would say "No plan yet" about a plan nobody has read.
+    window.RegionContext.onChange(() => { fillMarketSelects(); renderAdMkt(); if (!AD_PLAN_LOADING) renderAdPlan(); });
+  })(0);
 
   // ── Single-prompt autofill ───────────────────────────────────────────
   // The Generate-from-prompt bar at the top of each ad form. Calls

@@ -295,7 +295,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <span></span><span></span><span></span>
       </button>
       <div class="nav-brand-head sb-full-label">
-        <div class="nav-brand-title text-lava font-bold tracking-widest text-[11px]">KNICKGASM · DTC</div>
+        <div class="nav-brand-title text-lava font-bold tracking-widest text-[11px]"><span data-brand-name>Brand</span> · DTC</div>
         <div class="text-green-ink font-semibold text-sm leading-tight">Retention OS</div>
       </div>
     </div>
@@ -2274,10 +2274,14 @@ function buildRegionChips() {
   const key = opts.map((o) => o.code).join('|');
   if (key === _regionChipsBuilt) return; _regionChipsBuilt = key;
   const host = $('regionChips');
+  // All exists only for a brand with more than one market (options() adds it
+  // then); a one-market brand's view IS that market, chosen.
+  const want = opts.some((o) => o.code === STATE.region) ? STATE.region
+    : (opts.some((o) => o.all) ? 'ALL' : ((opts[0] && opts[0].code) || 'ALL'));
   host.innerHTML = opts.length
-    ? opts.map((o) => '<button type="button" class="filter-chip' + (o.all ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
-    : '<button type="button" class="filter-chip active" data-region="ALL">All</button><span class="text-[11px] text-ink-mute" style="align-self:center">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
-  if (STATE.region !== 'ALL' && !opts.some((o) => o.code === STATE.region)) { STATE.region = 'ALL'; try { destroyCharts(); rerender(); } catch (_) {} }
+    ? opts.map((o) => '<button type="button" class="filter-chip' + (o.code === want ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
+    : '<span class="text-[11px] text-ink-mute" style="align-self:center">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
+  if (STATE.region !== want) { STATE.region = want; try { destroyCharts(); rerender(); } catch (_) {} }
 }
 (function watchRegions(w) {
   const waited = w || 0;

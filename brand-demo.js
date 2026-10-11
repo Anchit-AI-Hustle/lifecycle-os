@@ -198,8 +198,18 @@
   /* Owner-only artifact pages (tenant zero campaign reports): replace the page
      body with an honest note when another brand is active. */
   function guardOwnerArtifact(label) {
+    /* Held invisible until the owner is decided (2026-10-10): the report used
+       to stay on screen - tenant zero's products, prices and name - for as long
+       as the brand and its offerings took to load, under every other brand. */
+    var hold = document.createElement('style');
+    hold.setAttribute('data-owner-guard-hold', '');
+    hold.textContent = 'body{visibility:hidden!important}';
+    (document.head || document.documentElement).appendChild(hold);
+    var release = function () { if (hold.parentNode) hold.parentNode.removeChild(hold); };
+    setTimeout(release, 12000);
     ready().then(function (ctx) {
-      if (ctx.owner) return;
+      if (ctx.owner) { release(); return; }
+      release();
       var name = (ctx.brand && ctx.brand.name) || 'the active brand';
       document.title = label + ' (tenant-zero artifact)';
       document.body.innerHTML =

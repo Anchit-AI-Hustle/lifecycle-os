@@ -744,11 +744,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function boot() {
     if (!document.getElementById('anTabs') || !document.getElementById('dash')) return setTimeout(boot, 80);
     injectCss(); installPanel(); removeSeparateReviewEntry(); addTabs();
-    document.querySelectorAll('#mktToggle button').forEach(function (b) {
-      b.addEventListener('click', function () {
-        setTimeout(function () { renderGrowthBand(); if (state.tab) openTab(state.tab); }, 10);
-      });
+    // The market buttons are the brand's own, built (and rebuilt) by the page
+    // from region-context.js, so the click is caught on their row.
+    var mktRow = document.getElementById('mktToggle');
+    if (mktRow) mktRow.addEventListener('click', function (e) {
+      if (!(e.target.closest && e.target.closest('button[data-mkt]'))) return;
+      setTimeout(function () { renderGrowthBand(); if (state.tab) openTab(state.tab); }, 10);
     });
+    window.addEventListener('da:markets-built', function () { setTimeout(renderGrowthBand, 10); });
     // The dataset arrives AFTER this script boots: the page starts with the
     // analytics global cleared and only restores it once the active brand is
     // resolved, then calls __daRefresh. Without following that hook the band
