@@ -668,9 +668,28 @@ function scriptRendered(html) {
    product CATEGORIES, tags or brands (WooCommerce's product_cat-sitemap.xml,
    product_tag-sitemap.xml, product-category-sitemap.xml): counting those as
    products put category pages into the denominator and the read queue. */
-const PRODUCT_SITEMAP = /product/i;
-const NOT_PRODUCT_SITEMAP = /product[_-]?(?:cat\b|cat[_-]|categor|tag|brand|type|collection|attribute)/i;
-const isProductSitemap = (u) => PRODUCT_SITEMAP.test(u) && !NOT_PRODUCT_SITEMAP.test(u);
+/* 2026-10-11, the live probe of Nykaa: blog sitemaps such as
+   /beauty-blog/sitemaps/product-reviews/top-brands.xml were typed "product"
+   because their path CONTAINED "product", and the read spent its budget on
+   1,060 blog pages. A sitemap is classified by the WORDS of its path (split on
+   / - _ . and digits), not by a substring: a word that names a non-product
+   subtree (blog, reviews, category, pages, ...) makes it non-product whatever
+   else it says; "product"/"products" makes it a product sitemap; a child of a
+   product index is one too. */
+const NON_PRODUCT_WORDS = new Set(['blog', 'blogs', 'article', 'articles', 'news', 'review', 'reviews', 'category', 'categories', 'cat', 'cats', 'collection', 'collections', 'brand', 'brands', 'page', 'pages', 'tag', 'tags', 'author', 'authors', 'help', 'faq', 'faqs', 'post', 'posts', 'video', 'videos', 'guide', 'guides', 'search', 'press', 'careers', 'attribute', 'attributes', 'type', 'types']);
+function sitemapWords(u) {
+  let p = '';
+  try { p = new URL(u).pathname.toLowerCase(); } catch (_) { p = String(u || '').toLowerCase(); }
+  return p.replace(/\.(?:xml|txt)(?:\.gz)?$|\.gz$/, '').split(/[\/\-_.\d]+/).filter(Boolean);
+}
+/** 'product' | 'non-product' | 'other', from the sitemap's own path; a child of a product index inherits 'product'. */
+function sitemapClass(u, parentTyped) {
+  const w = sitemapWords(u);
+  if (w.some((x) => NON_PRODUCT_WORDS.has(x))) return 'non-product';
+  if (w.some((x) => x === 'product' || x === 'products')) return 'product';
+  return parentTyped ? 'product' : 'other';
+}
+const isProductSitemap = (u) => sitemapClass(u, false) === 'product';
 
 /**
  * Every sitemap the site declares, as a queue on the cursor: index -> index ->
@@ -698,13 +717,39 @@ async function enumerateSitemaps(st, ctx) {
   const seen = new Set(sm.seen || []);
   const typed = new Set(st.pending || []);
   const other = new Set(st.other || []);
-  const cap = LIMITS.maxProducts * 2;
+  const cap = LIMITS.maxProducts;
   const inBase = (u) => { try { return !st.prefix || new URL(u).pathname.startsWith(st.prefix + '/'); } catch (_) { return false; } };
   const note = (t) => { if (sm.notes.length < 40) sm.notes.push(t); };
   let stop = null;
+  if (!sm.other_markets) sm.other_markets = {};
+  if (!sm.non_product) sm.non_product = { count: 0, examples: [] };
+  const queueItem = (u, parent) => {
+    const cls = sitemapClass(u, !!(parent && parent.typed));
+    return { url: u, depth: parent ? parent.depth + 1 : 0, typed: cls === 'product', cls, foreign: (parent && parent.foreign) || (foreignLocale(u, st) || {}).prefix || '' };
+  };
+  const market = (f) => (sm.other_markets[f.prefix] = sm.other_markets[f.prefix] || { prefix: f.prefix, country: f.country, sitemaps: 0, products: 0 });
   while (sm.queue.length && Date.now() < ctx.deadline - 2000) {
+    // Product sitemaps FIRST: the read never spends its time on a blog
+    // before the store's own product index.
+    let at = sm.queue.findIndex((q) => q && q.typed && !q.foreign);
+    if (at < 0) at = 0;
+    if (at > 0) sm.queue.unshift(sm.queue.splice(at, 1)[0]);
     const item = sm.queue[0];
     if (!item || !item.url || seen.has(item.url)) { sm.queue.shift(); continue; }
+    if (item.cls === undefined) Object.assign(item, queueItem(item.url, null), { depth: item.depth || 0 });
+    // A subtree that lists no products (blog, reviews, categories, pages):
+    // never read for a catalogue, and counted.
+    if (item.cls === 'non-product') {
+      sm.queue.shift(); seen.add(item.url);
+      sm.non_product.count += 1;
+      if (sm.non_product.examples.length < 3) sm.non_product.examples.push(item.url);
+      continue;
+    }
+    // Another MARKET's locale subtree (/en-us/ for an IN import): its product
+    // sitemaps are read only to COUNT what belongs to that market; nothing
+    // from them is queued for this one, and anything else there is skipped.
+    const fl = item.foreign ? { prefix: item.foreign, country: (foreignLocale(item.url, st) || {}).country || (sm.other_markets[item.foreign] || {}).country || '' } : null;
+    if (fl && !item.typed && !/sitemap|index/.test(sitemapWords(item.url).join(' '))) { sm.queue.shift(); seen.add(item.url); market(fl).sitemaps += 1; continue; }
     if (sm.read >= LIMITS.maxSitemaps) {
       sm.unread += sm.queue.length; sm.queue = [];
       note(`This importer reads at most ${LIMITS.maxSitemaps.toLocaleString('en-US')} sitemaps per import; ${sm.unread.toLocaleString('en-US')} more were declared and not read.`);
@@ -724,11 +769,14 @@ async function enumerateSitemaps(st, ctx) {
     st.progress = (st.progress || 0) + 1;
     if (!r.ok) { note(`The sitemap ${item.url} did not answer (${r.status || r.reason}).`); continue; }
     const kind = sitemapKind(r.body);
-    if (kind === 'html' || kind === 'unknown') {
+    if (kind === 'html' || kind === 'unknown' || kind === 'xml') {
       // A bot challenge, a login wall or a "not found" page answered 200: it
       // is not a sitemap, and nothing in it is a list of this store's URLs.
       sm.not_sitemaps += 1;
-      note(`${item.url} answered ${kind === 'html' ? 'an HTML page' : 'something that is not a sitemap'} (${r.contentType || 'no content type'}), not a sitemap, so nothing was taken from it.`);
+      const root = kind === 'xml' ? xmlRoot(r.body) : '';
+      note(kind === 'html' ? `${item.url} answered an HTML page (${r.contentType || 'no content type'}), not a sitemap, so nothing was taken from it.`
+        : kind === 'xml' ? `${item.url} is an XML document whose root element is <${root || 'none'}>, not a sitemap's <urlset> or <sitemapindex>, so nothing was taken from it.`
+          : `${item.url} answered ${String(r.body || '').trim() ? 'something that is not a sitemap' : 'an empty body'} (${r.contentType || 'no content type'}), so nothing was taken from it.`);
       continue;
     }
     sm.found = true;
@@ -743,7 +791,7 @@ async function enumerateSitemaps(st, ctx) {
         for (const c of kids) {
           const u = httpAbs(c, item.url);
           if (!u || seen.has(u) || item.depth + 1 >= LIMITS.maxSitemapDepth) continue;
-          sm.queue.push({ url: u, depth: item.depth + 1, typed: (item.typed && !NOT_PRODUCT_SITEMAP.test(u)) || isProductSitemap(u) });
+          sm.queue.push(queueItem(u, item));
         }
         if (kids.length === locs.length) { sm.indexes += 1; if (sm.sources.length < 200) sm.sources.push({ url: item.url, kind: 'index (a urlset listing sitemaps)', declared: locs.length }); continue; }
         const set = new Set(kids);
@@ -757,17 +805,26 @@ async function enumerateSitemaps(st, ctx) {
       for (const c of locs) {
         const u = httpAbs(c, item.url);
         if (!u || seen.has(u)) continue;
-        sm.queue.push({ url: u, depth: item.depth + 1, typed: (item.typed && !NOT_PRODUCT_SITEMAP.test(u)) || isProductSitemap(u) });
+        sm.queue.push(queueItem(u, item));
       }
       continue;
     }
-    if (sm.sources.length < 200) sm.sources.push({ url: item.url, kind: 'urlset', declared: locs.length, products: !!item.typed });
+    if (sm.sources.length < 200) sm.sources.push({ url: item.url, kind: 'urlset', declared: locs.length, products: !!item.typed, market: item.foreign || undefined });
+    if (!locs.length) note(`The sitemap ${item.url} is a <urlset> that lists no URLs.`);
     sm.urlsets += 1;
+    if (item.foreign) {
+      const f = market({ prefix: item.foreign, country: (foreignLocale(item.url, st) || {}).country || '' });
+      f.sitemaps += 1;
+      if (item.typed) f.products += locs.length;
+      continue;
+    }
     if (item.typed) {
       if (!sm.typed_any) { sm.typed_any = true; other.clear(); }
       for (const loc of locs) {
         const u = httpAbs(loc, item.url);
         if (!u || !inBase(u) || typed.has(u)) continue;
+        const lf = foreignLocale(u, st);
+        if (lf) { market(lf).products += 1; continue; }
         typed.add(u);
         sm.typed_total += 1;
         if (st.pending.length < cap) st.pending.push(u); else sm.overflow += 1;
@@ -775,7 +832,7 @@ async function enumerateSitemaps(st, ctx) {
     } else if (!sm.typed_any) {
       for (const loc of locs) {
         const u = httpAbs(loc, item.url);
-        if (!u || !inBase(u) || other.has(u) || u.replace(/\/$/, '') === st.base) continue;
+        if (!u || !inBase(u) || other.has(u) || u.replace(/\/$/, '') === st.base || foreignLocale(u, st)) continue;
         if (other.size >= cap) { sm.overflow += 1; continue; }
         other.add(u);
       }
@@ -789,13 +846,22 @@ async function enumerateSitemaps(st, ctx) {
 
 /** What a sitemap response IS: an index, a urlset, a text sitemap (one URL per line), an HTML page, or unknown. */
 function sitemapKind(body) {
-  const b = String(body || '').slice(0, 4000).replace(/^\uFEFF/, '').trim();
-  if (crawl.isSitemapIndex(body)) return 'index';
-  if (/<(?:[a-z0-9]+:)?urlset\b/i.test(b) || /<url>\s*<loc>/i.test(b)) return 'urlset';
+  const all = String(body || '').replace(/^\uFEFF/, '');
+  const b = all.slice(0, 4000).trim();
+  if (crawl.isSitemapIndex(all)) return 'index';
+  // Anywhere in the body: a long comment or stylesheet header can push the
+  // root element past any fixed prefix (the live "pages.xml ... text/xml").
+  if (/<(?:[a-z0-9]+:)?urlset\b/i.test(all) || /<url>\s*<loc>/i.test(all)) return 'urlset';
   if (/<html\b|<!doctype html|<body\b/i.test(b)) return 'html';
   const lines = b.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
   if (lines.length && lines.every((x) => /^https?:\/\/\S+$/i.test(x))) return 'text';
-  return 'unknown';
+  return /^<\?xml|^</.test(b) ? 'xml' : 'unknown';
+}
+/** The root element of an XML document, for saying what a non-sitemap IS. */
+function xmlRoot(body) {
+  const s = String(body || '').replace(/^\uFEFF/, '').replace(/<\?[\s\S]*?\?>/g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/<!DOCTYPE[^>]*>/i, '');
+  const m = /<([A-Za-z_][\w:.-]*)/.exec(s);
+  return m ? m[1] : '';
 }
 /** A text sitemap (sitemaps.org): one absolute URL per line, UTF-8. */
 function textSitemapLocs(body) {
@@ -806,12 +872,62 @@ function looksLikeSitemap(u) {
   try { const p = new URL(u).pathname.toLowerCase(); return /\.(?:xml|txt)(?:\.gz)?$/.test(p) || /\.gz$/.test(p) || /sitemap/.test(p); } catch (_) { return false; }
 }
 
+/**
+ * The market a URL's locale path belongs to, when it is ANOTHER market than
+ * this import's: the site's own hreflang alternates (st.locale_prefixes,
+ * prefix -> country) first, else a locale-shaped first segment (/en-us/,
+ * /ar-sa/, /en_gb/). The live Lenskart probe: an IN import read /en-us/,
+ * /en-ae/, /en-sa/, /ar-sa/, /en-th/ and /th-th/ product sitemaps and filed
+ * USD rows under IN. null when the URL is this market's (or carries no locale).
+ */
+function foreignLocale(u, st) {
+  let p;
+  try { p = new URL(u).pathname; } catch (_) { return null; }
+  const own = regionCountry(st.region);
+  if (st.prefix && (p === st.prefix || p.startsWith(st.prefix + '/'))) return null;
+  for (const f of (st.locale_prefixes || [])) {
+    if (f.country && f.country !== own && (p === f.prefix || p.startsWith(f.prefix + '/'))) return { prefix: f.prefix, country: f.country };
+  }
+  const m = /^\/([a-z]{2})[-_]([a-z]{2})(?=\/|$)/i.exec(p);
+  if (m) {
+    let c = m[2].toUpperCase();
+    if (c === 'UK') c = 'GB';
+    if (c !== own) return { prefix: `/${m[1].toLowerCase()}-${m[2].toLowerCase()}`, country: c };
+  }
+  return null;
+}
+/** The locale path prefixes the start page's hreflang alternates declare, with their market. */
+function localePrefixes(html, start) {
+  const out = [];
+  let host = '';
+  try { host = new URL(start).host; } catch (_) { return out; }
+  for (const m of String(html || '').matchAll(/<link\b[^>]*>/gi)) {
+    const tag = m[0];
+    if (!/rel=["']?alternate/i.test(tag)) continue;
+    const hl = (/hreflang=["']([^"']+)["']/i.exec(tag) || [])[1] || '';
+    const href = (/href=["']([^"']+)["']/i.exec(tag) || [])[1] || '';
+    const country = (hl.split('-')[1] || '').toUpperCase();
+    if (!country) continue;
+    let u; try { u = new URL(href, start); } catch (_) { continue; }
+    if (u.host !== host) continue;
+    const prefix = u.pathname.replace(/\/$/, '');
+    if (!prefix) continue;
+    out.push({ prefix, country: country === 'UK' ? 'GB' : country });
+  }
+  return out.slice(0, 60);
+}
+/** The currency a market prices in, from the one country table; '' for a zone (EU, GLOBAL). */
+function marketCurrency(reg) {
+  const c = LOC.countryOf(reg);
+  return c && LOC.COUNTRY[c] ? LOC.COUNTRY[c][0] : '';
+}
+
 /** Once every sitemap is read: the read queue and the denominator. */
 function finishSitemaps(st, stats) {
   const sm = st.sm;
-  if (!sm.typed_any) st.pending = (st.other || []).slice(0, LIMITS.maxProducts * 2);
+  if (!sm.typed_any) st.pending = (st.other || []).slice(0, LIMITS.maxProducts);
   st.other = [];
-  if (sm.overflow) stats.skipped.cap += sm.overflow;
+  if (sm.overflow) stats.cap_urls = (stats.cap_urls || 0) + sm.overflow;
   st.declared = sm.found
     ? { count: sm.typed_any ? sm.typed_total : null, urls: st.pending.length + (sm.typed_any ? 0 : sm.overflow), by: sm.typed_any ? 'the site\'s product sitemaps' : 'the site\'s sitemaps (they do not say which URLs are products)', complete: !sm.unread }
     : null;
@@ -914,7 +1030,15 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   };
   const rows = [];
   const seen = new Set((prev && prev.seen_keys) || []);
+  const wantCurrency = marketCurrency(reg);
   const keep = (row) => {
+    // A row priced in another market's currency is not this market's row
+    // (2026-10-11: /en-us/ pages in USD filed under IN).
+    if (wantCurrency && row.currency && String(row.currency).toUpperCase() !== wantCurrency) {
+      stats.skipped.wrong_currency = (stats.skipped.wrong_currency || 0) + 1;
+      if ((stats.currency_examples = stats.currency_examples || []).length < 3) stats.currency_examples.push(`${row.product_url || row.title} (${row.currency})`);
+      return false;
+    }
     const key = `${row.handle || ''}|${(row.product_url || '').toLowerCase()}`;
     const hkey = `h:${row.handle || ''}`;
     if ((row.handle && seen.has(hkey)) || seen.has(key)) { stats.skipped.duplicate += 1; return false; }
@@ -970,6 +1094,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
         currency: declaredCurrency(baseHtml),
         storefront,
         prefix: new URL(rb.base).pathname.replace(/\/$/, ''),
+        locale_prefixes: localePrefixes(homeHtml, start),
         sm: { queue: firstSm.map((u) => ({ url: u, depth: 0, typed: isProductSitemap(u) })), seen: [], sources: [], notes: [], read: 0, indexes: 0, urlsets: 0, found: false, done: false, typed_any: false, typed_total: 0, overflow: 0, unread: 0, not_sitemaps: 0, nested_in_urlset: 0, from_robots: declaredSm.length > 0 },
         sitemap: null,
         declared: null,
@@ -1064,40 +1189,99 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   }
 
   // ── the sitemap's product pages.
+  //
+  // THROTTLING (2026-10-11, the live Nykaa probe: 1,297 product pages "did
+  // not answer" - the store dropping parallel connections, not 1,297 dead
+  // pages). A page that fails with no answer, a 403 or a 5xx is RETRIED, never
+  // written off on its first try; when at least half a batch fails that way
+  // the read halves its parallelism (to one at a time) and backs off, and it
+  // speeds up again after a run of answers. A page is reported unreachable
+  // only after failing at one-at-a-time three times. A store that refuses even
+  // one at a time stops the step ('throttled') with a wait; the next step
+  // (or the chain) resumes after it. A 404/410 is a page the sitemap lists and
+  // the store no longer has: counted apart, as stale entries.
   if (!stopped && st.route === 'sitemap') {
     const pending = Array.isArray(st.pending) ? st.pending : [];
-    while (st.pos < pending.length && Date.now() < ctx.deadline - 1500) {
-      const batch = pending.slice(st.pos, st.pos + LIMITS.pdpConcurrency);
-      const results = await Promise.all(batch.map(async (u) => {
-        if (!ctx.inScope(u)) return { u, skip: 'off_scope' };
-        if (!(await allowed(u, ctx))) return { u, skip: 'robots' };
-        const r = await getPolite(u, ctx, { accept: 'text/html' });
-        if (r.reason === 'rate_limited') return { u, stop: { reason: 'rate_limited', retry_after: r.retry_after, wait_ms: r.wait_ms } };
-        if (r.reason === 'timeout') return { u, stop: { reason: 'timeout' } };
-        if (!r.ok) return { u, skip: 'unreachable', status: r.status || r.reason };
-        if (r.url !== u && !ctx.inScope(r.url)) return { u, skip: 'off_scope' };
-        return Object.assign({ u }, rowFromPage(r.body, r.url, { region: reg, source: 'sitemap_jsonld' }));
-      }));
-      let halt = null, advanced = 0;
-      for (const x of results) {
-        if (x.stop) { halt = Object.assign({ at: `URL ${st.pos + advanced + 1} of ${pending.length}` }, x.stop); break; }
+    if (!Array.isArray(st.retry)) st.retry = [];
+    if (!st.conc) st.conc = LIMITS.pdpConcurrency;
+    const fetchOne = async (it) => {
+      const u = it.u;
+      if (!ctx.inScope(u)) return { it, skip: 'off_scope' };
+      if (!(await allowed(u, ctx))) return { it, skip: 'robots' };
+      const r = await getPolite(u, ctx, { accept: 'text/html' });
+      if (r.reason === 'rate_limited') return { it, stop: { reason: 'rate_limited', retry_after: r.retry_after, wait_ms: r.wait_ms } };
+      if (r.reason === 'timeout') return { it, stop: { reason: 'timeout' } };
+      if (r.status === 404 || r.status === 410) return { it, skip: 'not_found', status: r.status };
+      if (!r.ok && (r.status === 0 || r.status === 403 || r.status >= 500)) return { it, transient: r.status || r.reason };
+      if (!r.ok) return { it, skip: 'unreachable', status: r.status || r.reason };
+      if (r.url !== u && !ctx.inScope(r.url)) return { it, skip: 'off_scope' };
+      return Object.assign({ it }, rowFromPage(r.body, r.url, { region: reg, source: 'sitemap_jsonld' }));
+    };
+    while ((st.pos < pending.length || st.retry.length) && Date.now() < ctx.deadline - 1500) {
+      const retrying = st.retry.length > 0 && (st.pos >= pending.length || st.retry_due);
+      const batch = retrying ? st.retry.splice(0, st.conc) : pending.slice(st.pos, st.pos + st.conc).map((u) => ({ u, tries: 0 }));
+      st.retry_due = false;
+      const results = await Promise.all(batch.map(fetchOne));
+      let halt = null, advanced = 0, failed = 0, answered = 0;
+      for (let i = 0; i < results.length; i++) {
+        const x = results[i];
+        if (x.stop) {
+          halt = Object.assign({ at: retrying ? `a retried URL (${x.it.u})` : `URL ${st.pos + advanced + 1} of ${pending.length}` }, x.stop);
+          if (retrying) st.retry.unshift(...results.slice(i).map((y) => y.it));
+          break;
+        }
         advanced += 1;
+        if (x.transient != null) {
+          failed += 1;
+          x.it.tries = (x.it.tries || 0) + 1;
+          x.it.last = x.transient;
+          if (x.it.tries >= 3 && st.conc === 1) {
+            stats.skipped.unreachable += 1;
+            if (stats.unreachable_examples.length < 10) stats.unreachable_examples.push(`${x.it.u} (${x.transient})`);
+          } else st.retry.push(x.it);
+          continue;
+        }
+        answered += 1;
         if (x.skip) {
           stats.skipped[x.skip] = (stats.skipped[x.skip] || 0) + 1;
-          if (x.skip === 'robots' && stats.robots_examples.length < 10) stats.robots_examples.push(x.u);
-          if (x.skip === 'unreachable' && stats.unreachable_examples.length < 10) stats.unreachable_examples.push(`${x.u} (${x.status})`);
-          if (x.skip === 'script_rendered' && stats.script_examples.length < 10) stats.script_examples.push(x.u);
+          if (x.skip === 'robots' && stats.robots_examples.length < 10) stats.robots_examples.push(x.it.u);
+          if ((x.skip === 'unreachable' || x.skip === 'not_found') && stats.unreachable_examples.length < 10) stats.unreachable_examples.push(`${x.it.u} (${x.status})`);
+          if (x.skip === 'script_rendered' && stats.script_examples.length < 10) stats.script_examples.push(x.it.u);
           continue;
         }
         if (x.row && keep(x.row)) stats.by_source.sitemap_jsonld += 1;
       }
-      st.pos += advanced;
-      st.progress = (st.progress || 0) + advanced;
+      if (!retrying) st.pos += advanced;
+      st.progress = (st.progress || 0) + answered + (retrying ? 0 : advanced - answered - failed);
       if (halt) { stopped = halt; break; }
+      if (failed && failed * 3 >= batch.length) {
+        // The store is shedding parallel requests: fewer at a time, a pause,
+        // and the failed pages again before new ones.
+        stats.throttled = (stats.throttled || 0) + 1;
+        stats.min_conc = Math.min(stats.min_conc || LIMITS.pdpConcurrency, Math.max(1, Math.floor(st.conc / 2)));
+        st.fail_streak = (st.fail_streak || 0) + 1;
+        if (st.conc === 1 && st.fail_streak >= 4 && !answered) {
+          stopped = { reason: 'throttled', at: `URL ${st.pos} of ${pending.length}`, wait_ms: 60000 };
+          break;
+        }
+        // The level that failed is the ceiling from now on: speed returns up
+        // to one below it, never back to where the store shed requests.
+        st.ceiling = Math.max(1, st.conc - 1);
+        st.conc = Math.max(1, Math.floor(st.conc / 2));
+        st.ok_streak = 0;
+        st.retry_due = true;
+        const wait = Math.min(8000, 1000 * Math.pow(2, Math.min(3, st.fail_streak - 1)));
+        if (wait < ctx.deadline - Date.now() - 2000) { stats.throttle_waited_ms = (stats.throttle_waited_ms || 0) + wait; await sleep(wait); }
+      } else if (!failed) {
+        st.fail_streak = 0;
+        st.ok_streak = (st.ok_streak || 0) + batch.length;
+        if (st.ok_streak >= 24 && st.conc < (st.ceiling || LIMITS.pdpConcurrency)) { st.conc += 1; st.ok_streak = 0; }
+        if (st.retry.length) st.retry_due = true;
+      }
     }
     if (!stopped) {
-      if (st.pos >= pending.length) st.route = 'done';
-      else stopped = { reason: 'time', at: `URL ${st.pos + 1} of ${pending.length}` };
+      if (st.pos >= pending.length && !st.retry.length) st.route = 'done';
+      else stopped = { reason: 'time', at: st.pos < pending.length ? `URL ${st.pos + 1} of ${pending.length}` : `${st.retry.length} URL(s) to retry` };
     }
   }
 
@@ -1133,7 +1317,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   }
 
   // A wait the store asked for, kept for the next step to honour.
-  if (stopped && stopped.reason === 'rate_limited' && stopped.wait_ms && !stopped.waiting) {
+  if (stopped && (stopped.reason === 'rate_limited' || stopped.reason === 'throttled') && stopped.wait_ms && !stopped.waiting) {
     st.not_before = Date.now() + stopped.wait_ms;
     st.retry_after = stopped.retry_after || null;
     st.waited_at = stopped.at;
@@ -1186,10 +1370,17 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   if (k.no_product_declared) s.push(`${plural(k.no_product_declared, 'page')} in the sitemap declare no product (no JSON-LD Product and no OpenGraph product tags), so nothing was taken from ${k.no_product_declared === 1 ? 'it' : 'them'}.`);
   if (k.script_rendered) s.push(`${plural(k.script_rendered, 'page')} declare${k.script_rendered === 1 ? 's' : ''} ${k.script_rendered === 1 ? 'its' : 'their'} product only after JavaScript runs (the page as served is an application shell with no JSON-LD or OpenGraph product${stats.script_examples && stats.script_examples.length ? `, e.g. ${stats.script_examples[0]}` : ''}); this importer reads pages as served, so nothing was taken from ${k.script_rendered === 1 ? 'it' : 'them'}. A CSV or JSON export of the catalogue covers them.`);
   if (k.no_title) s.push(`${plural(k.no_title, 'product')} skipped because ${k.no_title === 1 ? 'it states' : 'they state'} no title.`);
-  if (k.unreachable) s.push(`${plural(k.unreachable, 'page')} did not answer${stats.unreachable_examples.length ? ` (e.g. ${stats.unreachable_examples[0]})` : ''}.`);
+  if (k.not_found) s.push(`${plural(k.not_found, 'URL')} the sitemaps list answered 404 or 410: the sitemap lists pages the store no longer has (stale entries), so there was nothing to read.`);
+  if (stats.throttled) s.push(`The store stopped answering requests made in parallel ${plural(stats.throttled, 'time')} (throttling, not missing pages): the importer slowed to ${stats.min_conc || 1} at a time, backed off (${Math.round((stats.throttle_waited_ms || 0) / 1000)} s in all) and read every failed page again.`);
+  if (k.unreachable) s.push(`${plural(k.unreachable, 'page')} did not answer even when read one at a time, three times${stats.unreachable_examples.length ? ` (e.g. ${stats.unreachable_examples[0]})` : ''}.`);
+  if (k.wrong_currency) s.push(`${plural(k.wrong_currency, 'product')} priced in another currency than ${R}'s ${marketCurrency(region)} ${k.wrong_currency === 1 ? 'was' : 'were'} not filed under ${R}${stats.currency_examples && stats.currency_examples.length ? ` (e.g. ${stats.currency_examples[0]})` : ''}: a row belongs to the market whose prices it carries.`);
   if (stats.rate_limited) s.push(`The store asked to slow down ${plural(stats.rate_limited, 'time')}; every Retry-After was obeyed (${Math.round(stats.waited_ms / 1000)} s waited in all).`);
   if (k.duplicate) s.push(`${plural(k.duplicate, 'duplicate')} (the same handle or URL listed twice) counted once.`);
-  if (k.cap) s.push(`This importer reads at most ${LIMITS.maxProducts.toLocaleString('en-US')} products per market per run; ${plural(k.cap, 'more')} were not read.`);
+  const capUrls = (stats.cap_urls || 0) + (k.cap || 0);
+  if (capUrls) s.push(`LIMIT: this importer reads at most ${LIMITS.maxProducts.toLocaleString('en-US')} product URLs per market per import (the list of URLs still to read travels on the brand's row between steps), so the first ${LIMITS.maxProducts.toLocaleString('en-US')} the sitemaps list were read and ${capUrls.toLocaleString('en-US')} more were not.`);
+  const om = st.sm && st.sm.other_markets ? Object.values(st.sm.other_markets) : [];
+  for (const f of om.slice(0, 12)) s.push(`${f.prefix}/ is the ${f.country || 'another market\'s'} store${f.products ? `: ${plural(f.products, 'product')} in its product sitemaps` : ''}, not read for ${R}.`);
+  if (st.sm && st.sm.non_product && st.sm.non_product.count) s.push(`${plural(st.sm.non_product.count, 'sitemap')} of pages that are not products (blog, reviews, categories, pages${st.sm.non_product.examples.length ? `, e.g. ${st.sm.non_product.examples[0]}` : ''}) ${st.sm.non_product.count === 1 ? 'was' : 'were'} not read for the catalogue.`);
   const m = stats.missing;
   if (m.price) s.push(`${plural(m.price, 'product')} state no price; ${m.price === 1 ? 'it carries' : 'they carry'} ${MARKER('price', '<product>', R)} rather than a number.`);
   if (m.image) s.push(`${plural(m.image, 'product')} state no image; ${m.image === 1 ? 'it carries' : 'they carry'} ${MARKER('product image', '<product>', R)}.`);
@@ -1197,6 +1388,7 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   if (stopped) {
     const why = stopped.reason === 'rate_limited'
       ? `the store asked to slow down (429${stopped.retry_after ? `, Retry-After ${stopped.retry_after}` : ''}) at ${stopped.at}`
+      : stopped.reason === 'throttled' ? `the store kept refusing requests even one at a time at ${stopped.at} (throttling); the next step waits ${Math.round((stopped.wait_ms || 0) / 1000)} s and retries`
       : stopped.reason === 'robots_unreachable'
         ? `robots.txt could not be read (${stopped.at}); RFC 9309 says to treat that as "disallow everything", so nothing was read`
         : stopped.reason === 'timeout' ? `a request timed out at ${stopped.at}`
@@ -1356,11 +1548,11 @@ function chainAfter(parsed, depth, { server = true } = {}) {
   if (parsed.complete) return { active: false, done: true, depth, updated_at: at };
   const stop = parsed.coverage && parsed.coverage.stopped;
   if (stop && stop.reason === 'robots_unreachable') return { active: false, depth, updated_at: at, stopped: 'robots.txt could not be read, so nothing may be read until it answers' };
-  if (stop && stop.reason === 'rate_limited' && stop.wait_ms > CHAIN.maxWaitMs) {
+  if (stop && (stop.reason === 'rate_limited' || stop.reason === 'throttled') && stop.wait_ms > CHAIN.maxWaitMs) {
     const until = new Date(Date.now() + stop.wait_ms).toISOString();
     return { active: false, depth, updated_at: at, resume_after: until, stopped: `the store asked to wait ${Math.round(stop.wait_ms / 1000)} s (Retry-After), longer than a step may wait; it is read again after ${until}, by the daily refresh or Continue import` };
   }
-  if (!parsed.progressed && !(stop && stop.reason === 'rate_limited')) {
+  if (!parsed.progressed && !(stop && (stop.reason === 'rate_limited' || stop.reason === 'throttled'))) {
     return { active: false, depth, updated_at: at, stopped: `the last step read nothing new${stop ? ` (${stop.reason === 'timeout' ? 'a request timed out' : stop.reason === 'unreachable' ? 'the store stopped answering' : 'its time ran out'} at ${stop.at})` : ''}, so it was not started again automatically` };
   }
   if (depth > CHAIN.maxSteps) return { active: false, depth, updated_at: at, stopped: `it has run ${CHAIN.maxSteps} steps in a row` };
@@ -1530,6 +1722,6 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
 module.exports = {
   refreshDue, chainStep, continueWorkspace, chainAfter, chainSentence, chainBusy, fireNext, staleAliasRegions, selfBaseUrl, CHAIN,
   step, mergeRows, familyOf, rowKey, coverageOf,
-  rowFromFeed, rowFromPage, enumerateSitemaps, isProductSitemap, scriptRendered, parseRobots, robotsAllows, retryAfterMs,
+  rowFromFeed, rowFromPage, enumerateSitemaps, isProductSitemap, sitemapClass, foreignLocale, marketCurrency, scriptRendered, parseRobots, robotsAllows, retryAfterMs,
   regionalBase, ownScope, identityOf, cursorProblem, foreignStoreSentence, declaredCurrency, handleFromUrl, canonRegion, regionAliases, LIMITS, USER_AGENT, MARKER,
 };

@@ -490,6 +490,127 @@ test('/connections follows an import continuing by itself until it is complete, 
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   4b. What the probe found on the REAL stores (2026-10-11, runs 38111611525
+       and 38111613094), reproduced: Lenskart's per-market locale subtrees and
+       Nykaa's blog "product-reviews" sitemaps, product index and throttling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+test('an IN import reads ONLY the IN store: /en-us/, /en-ae/, /ar-sa/ sitemaps are another market\'s, named with their counts, never read for IN; a row in another currency is not filed under IN', async () => {
+  test.setTimeout(120_000);
+  const d = deviceWorld();
+  try {
+    const T = st.stores['lensworld.example'].truth;
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
+    expect(r.complete).toBe(true);
+    expect(new Set(r.products.map((p) => p.currency))).toEqual(new Set(['INR']));
+    expect(r.products.every((p) => !/\/(en-us|en-ae|ar-sa)\//.test(p.product_url))).toBe(true);
+    expect(r.products).toHaveLength(T.inProducts - T.inStale - T.inWrongCurrency);
+    // The denominator is the IN store's own product sitemap, not every locale's.
+    expect(said(r.coverage)).toContain(`of the ${T.inDeclared} products the site declares in the site's product sitemaps`);
+    expect(said(r.coverage)).toContain(`/en-us/ is the US store: ${T.us} products in its product sitemaps, not read for IN.`);
+    expect(said(r.coverage)).toContain(`/en-ae/ is the AE store: ${T.ae} products in its product sitemaps, not read for IN.`);
+    expect(said(r.coverage)).toContain(`/ar-sa/ is the SA store: ${T.sa} products in its product sitemaps, not read for IN.`);
+    // No product page of another market was even requested.
+    expect(hitsOf('lensworld.example', /^\/(en-us|en-ae|ar-sa)\/frame-/)).toHaveLength(0);
+    expect(said(r.coverage)).toContain(`${T.inWrongCurrency} products priced in another currency than IN's INR were not filed under IN`);
+    expect(said(r.coverage)).toContain(`${T.inStale} URLs the sitemaps list answered 404 or 410`);
+    // What is not a sitemap is named for what it is; a urlset behind a long
+    // header is a sitemap; categories/pages sitemaps are not read for products.
+    expect(said(r.coverage)).toContain('feeds/catalogue.xml is an XML document whose root element is <rss>');
+    expect(said(r.coverage)).not.toContain('extra-sitemap.xml');
+    expect(hitsOf('lensworld.example', /^\/extra-sitemap\.xml$/)).toHaveLength(1);
+    expect(hitsOf('lensworld.example', /categories\.xml|pages\.xml/)).toHaveLength(0);
+
+    // The US import of the same site reads the US store and only it, in USD.
+    st.reset();
+    const us = await core.importCatalog(PHONE, { region: 'us', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
+    expect(us.products).toHaveLength(T.us);
+    expect(new Set(us.products.map((p) => p.currency))).toEqual(new Set(['USD']));
+    expect(us.products.every((p) => /\/en-us\//.test(p.product_url))).toBe(true);
+    expect(said(us.coverage)).toContain('/en-ae/ is the AE store');
+  } finally { d.restore(); }
+});
+
+test('product sitemaps are typed by the WORDS of their path: blog "product-reviews" sitemaps are not products and are never read; the store\'s own product index is read FIRST', async () => {
+  test.setTimeout(120_000);
+  for (const [u, want] of [
+    ['https://x.example/beauty-blog/sitemaps/product-reviews/top-brands.xml', 'non-product'],
+    ['https://x.example/beauty-blog/sitemaps/product-launches-reviews/a.xml', 'non-product'],
+    ['https://x.example/sitemap-v2/sitemap-products-index.xml', 'product'],
+    ['https://x.example/products.xml', 'product'],
+    ['https://x.example/product-sitemap2.xml.gz', 'product'],
+    ['https://x.example/product_cat-sitemap.xml', 'non-product'],
+    ['https://x.example/sitemap-v2/sitemap-dp-index.xml', 'other'],
+  ]) expect(imp.sitemapClass(u, false), u).toBe(want);
+  expect(imp.sitemapClass('https://x.example/sitemaps/p/a/7.xml.gz', true)).toBe('product');
+  expect(imp.sitemapClass('https://x.example/blog/7.xml', true)).toBe('non-product');
+
+  const d = deviceWorld();
+  try {
+    const T = st.stores['beautymart.example'].truth;
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://beautymart.example', brand: { website: 'https://beautymart.example' } });
+    expect(r.complete).toBe(true);
+    expect(r.products).toHaveLength(T.products);
+    expect(hitsOf('beautymart.example', /^\/beauty-blog\//)).toHaveLength(0);
+    expect(hitsOf('beautymart.example', /sitemap-(reviews|categories)-index/)).toHaveLength(0);
+    const sm = hitsOf('beautymart.example', /\.xml$/).map((h) => h.path);
+    expect(sm[0]).toBe('/sitemap-v2/sitemap-index.xml');
+    expect(sm[1]).toBe('/sitemap-v2/sitemap-products-index.xml');
+    expect(said(r.coverage)).toContain('of the 700 products the site declares');
+    expect(said(r.coverage)).toMatch(/3 sitemaps of pages that are not products/);
+    expect(said(r.coverage)).toContain('was tried once; it answered 429');
+  } finally { d.restore(); }
+});
+
+test('a store that drops parallel connections is THROTTLING, not dead pages: the read slows to one at a time, backs off, retries every failed page and reads them all', async () => {
+  test.setTimeout(150_000);
+  const d = deviceWorld();
+  const B = st.stores['beautymart.example'];
+  B.maxInflight = 2; B.pdpDelayMs = 15;
+  try {
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://beautymart.example', brand: { website: 'https://beautymart.example' } });
+    expect(B.dropped).toBeGreaterThan(0);                     // the store really did drop connections
+    expect(r.complete).toBe(true);
+    expect(r.products).toHaveLength(B.truth.products);        // and every product was read in the end
+    expect(said(r.coverage)).toMatch(/The store stopped answering requests made in parallel \d+ times? \(throttling, not missing pages\): the importer slowed to [12] at a time/);
+    expect(said(r.coverage)).not.toMatch(/did not answer even when read one at a time/);
+  } finally { d.restore(); }
+});
+
+test('a store that refuses even one request at a time stops the step as THROTTLED with a wait and its place kept - no page is written off', async () => {
+  test.setTimeout(150_000);
+  const d = deviceWorld();
+  const B = st.stores['beautymart.example'];
+  B.maxInflight = -1;                                       // every product page dropped
+  try {
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://beautymart.example', brand: { website: 'https://beautymart.example' }, budgetMs: 45000 });
+    expect(r.complete).toBe(false);
+    expect(r.coverage.stopped).toMatchObject({ reason: 'throttled', wait_ms: 60000 });
+    expect(r.coverage.not_before).toBeTruthy();
+    expect(r.coverage.skipped.unreachable || 0).toBe(0);
+    expect(said(r.coverage)).toContain('the store kept refusing requests even one at a time');
+    expect(r.cursor).toBeTruthy();
+    expect(r.drive).toBe(true);
+  } finally { d.restore(); }
+});
+
+test('the per-market limit is a stated LIMIT with the numbers (never "mores"), and the first URLs the sitemaps list are the ones read', async () => {
+  test.setTimeout(120_000);
+  const d = deviceWorld();
+  const was = imp.LIMITS.maxProducts;
+  imp.LIMITS.maxProducts = 300;
+  try {
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://beautymart.example', brand: { website: 'https://beautymart.example' } });
+    expect(r.products).toHaveLength(300);
+    expect(said(r.coverage)).toContain('of the 700 products the site declares');
+    expect(said(r.coverage)).toContain('LIMIT: this importer reads at most 300 product URLs per market per import');
+    expect(said(r.coverage)).toContain('the first 300 the sitemaps list were read and 400 more were not');
+    expect(said(r.coverage)).not.toMatch(/mores\b/);
+    expect(r.products.map((p) => p.title).slice(0, 2)).toEqual(['Serum 0001', 'Serum 0002']);
+  } finally { imp.LIMITS.maxProducts = was; d.restore(); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
    5. The probe a runner can dispatch at a real store
    ═══════════════════════════════════════════════════════════════════════════ */
 
