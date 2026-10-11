@@ -1979,6 +1979,11 @@
     var version = brandPaintVersion;
     function run() {
       if (version !== brandPaintVersion) return;
+      // A slot the page reserves for the active brand's NAME (2026-10-10):
+      // <span data-brand-name>Brand</span>. Pages used to type tenant zero's
+      // name there and rely on the text rename below, which stops watching
+      // after 20 s - a line drawn later kept the literal.
+      try { document.querySelectorAll('[data-brand-name]').forEach(function (el) { if (el.textContent !== brand.name) el.textContent = brand.name; }); } catch (e) { log(e); }
       try { walk(document.body); } catch (e) { log(e); }
       try { gateShipped(brand); } catch (e) { log(e); }
       try { paintShippedImages(brand); } catch (e) { log(e); }

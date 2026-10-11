@@ -198,6 +198,15 @@ test('an observed template carries that observation and nothing else', () => {
     if (!fs.existsSync(obsPath)) continue;
     const obs = JSON.parse(fs.readFileSync(obsPath, 'utf8'));
     const preset = load(row.slug);
+    // A palette read off a careers, press, investor or group-corporate page
+    // is not the brand's (2026-10-10): the builder keeps that preset on the
+    // default, by the same consumerSite() rule the harvester applies.
+    const { consumerSite } = require(path.join(ROOT, 'scripts', 'lib', 'brand-ownership.js'));
+    const readFrom = [obs.landed, obs.design_read && obs.design_read.url].filter(Boolean);
+    if (obs.format === 'preset-observation/3' && readFrom.some((u) => !consumerSite(u, preset.website || '').ok)) {
+      expect(row.palette_source, `${row.slug} took a palette from a page that is not its consumer site`).toBe('default');
+      continue;
+    }
     if (!obs.ok || obs.palette_ok === false) {
       expect(row.palette_source, `${row.slug} was given a brand colour from a page that was not read`).toBe('default');
       // A read that did not produce a palette says why, in the observation

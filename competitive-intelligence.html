@@ -123,7 +123,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <!-- Categories are the ones the competitor data actually carries (added as
            rows load). A typed list here was another company's product lines. -->
       <select id="category"><option value="">All categories</option></select>
-      <select id="region"><option value="">All regions</option><option>US</option><option>UK</option><option>IN</option><option>EU</option><option>AU</option></select>
+      <!-- The brand's own markets (All only when it has more than one), region-context.js. -->
+      <select id="region" data-brand-markets="all"></select>
       <select id="days"><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
       <input id="search" placeholder="Search copy / subject…" style="flex:1;min-width:160px" />
     </div>
@@ -266,7 +267,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     document.querySelectorAll('#modeTabs .tab').forEach(x=>x.classList.remove('active'));
     t.classList.add('active'); state.mode=t.dataset.mode; state.source=''; refresh();
   });
-  ['brand','category','region','days'].forEach(id=>$(id).onchange=()=>{ state[id]=$(id).value; refresh(); });
+  // The region select holds the brand's own markets; "ALL" (offered only to a
+  // brand with more than one) is the unfiltered view the API reads as ''.
+  const regionOf = () => { const v = $('region').value; return v === 'ALL' ? '' : v; };
+  ['brand','category','region','days'].forEach(id=>$(id).onchange=()=>{ state[id]=id==='region'?regionOf():$(id).value; refresh(); });
+  (function watchRegions(w){
+    if(!window.RegionContext){ if(w<6000) setTimeout(()=>watchRegions(w+100),100); return; }
+    window.RegionContext.onChange(()=>{ const r = regionOf(); if (r !== state.region) { state.region = r; refresh(); } });
+  })(0);
   $('search').oninput=()=>{ state.q=$('search').value; clearTimeout(window.__t); window.__t=setTimeout(refresh,250); };
 
   loadBrands().then(refresh);
