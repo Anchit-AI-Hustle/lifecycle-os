@@ -44,12 +44,17 @@ function marketOf(entry) {
   const e = entry || {};
   if (e.market) return String(e.market);
   const rt = require('./brand-runtime.js');
-  return rt.homeRegion(e.brand || rt.defaultBrand());
+  // The entry's brand, else the brand THIS request resolved, else the
+  // unresolved placeholder - never tenant zero's home market (2026-10-11).
+  const brand = e.brand || rt.scopedBrand(null);
+  return rt.homeRegion(brand) || require('./brand-locale.js').marker('home market', rt.isUnresolved(brand) ? 'this brand' : brand);
 }
 
 function storeBase(market, brand) {
   const rt = require('./brand-runtime.js');
-  const mk = String(market || rt.homeRegion(brand || rt.defaultBrand())).toUpperCase();
+  brand = brand || rt.scopedBrand(null);
+  const mk = String(market || rt.homeRegion(brand)).toUpperCase();
+  if (rt.isUnresolved(brand)) return require('./brand-locale.js').marker('region store URL', 'this brand', /^[A-Z]{2,6}$/.test(mk) ? mk : '');
   if (brand && (brand.id || brand.slug)) {
     let f = null;
     try { f = rt.regionFacts(brand, mk); } catch (_) { f = null; }
@@ -251,7 +256,9 @@ function assetPrompts(entry, market, hero, supporting) {
     // falls back to tenant zero, so every other brand's export shipped tenant
     // zero's claims, banned-phrase list, palette and store URLs as the standing
     // instructions for its own campaign.
-    brand: entry.brand || null,
+    // Out of any request scope with no brand on the entry: the unresolved
+    // placeholder, never tenant zero (2026-10-11).
+    brand: entry.brand || require('./brand-runtime.js').scopedBrand(null),
   };
   const section = (label, o) => `### ${label}\n${buildMasterPrompt(o)}`;
   const imageNote = hero && hero.image

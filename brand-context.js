@@ -799,8 +799,16 @@
       files: filesSummaryFor(brand),
       coherence: coherenceSummaryFor(brand),
       catalog_identity: catalogIdentityFor(brand),
+      template: templateSlugFor(brand),
       storage: 'device',
     }, extra || {});
+  }
+  /** Mirrors templateSlug() on the server: the preset slug the record was made from. */
+  function templateSlugFor(brand) {
+    var t = brand && brand.brand_data && brand.brand_data.template;
+    if (!t) return '';
+    var s = String(typeof t === 'object' ? (t.slug || '') : t).trim().toLowerCase();
+    return /^[a-z0-9-]{1,60}$/.test(s) ? s : '';
   }
   /** Mirrors filesSummary() on the server: ids, family names and https URLs only. */
   function filesSummaryFor(brand) {

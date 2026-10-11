@@ -460,6 +460,12 @@ function withStrategyFallback(brand, entries, start, days, ns) {
 // Register/Subscribe/Start-reading CTAs, never promoting a past event).
 // Only the NUMBERS are demo: deterministic per brand+slot, and every reach or
 // feasibility figure that would need real analytics stays DATA REQUIRED.
+/** The preset a record says it was created from (brand_data.template), slug only. */
+function templateSlugOf(brand) {
+  const t = brand && (brand.template || (brand.brand_data && brand.brand_data.template));
+  if (!t) return '';
+  return String(typeof t === 'object' ? (t.slug || '') : t).trim().toLowerCase();
+}
 function _resolveBrandOfferings(brand) {
   const fs = require('fs');
   const path = require('path');
@@ -472,19 +478,18 @@ function _resolveBrandOfferings(brand) {
     try {
       const dir = path.join(process.cwd(), 'data', 'brands', 'presets');
       const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
-      // A renamed preset retains its old slug. That is not evidence that
-      // this workspace owns the preset's products. Never match by slug,
-      // prefix or shared name words; require the complete public identity.
-      const name = String(brand.name || '').trim().toLowerCase();
+      // A renamed preset retains its old slug, and a name can be anybody's.
+      // A preset's offerings are this brand's only when the record SAYS it
+      // was made from that template (brand_data.template) AND its website is
+      // the preset's host (2026-10-11) - the same rule as the browser's
+      // brand-catalog.js / brand-demo.js presetMatches().
+      const tpl = templateSlugOf(brand);
       const website = host(brand.website);
-      if (name && website) {
-        for (const f of fs.readdirSync(dir)) {
-          if (!f.endsWith('.json') || f === 'index.json') continue;
-          const preset = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
-          if (String(preset.name || '').trim().toLowerCase() === name && host(preset.website) === website) {
-            if (Array.isArray(preset.offerings)) raw = preset.offerings;
-            break;
-          }
+      if (tpl && website && /^[a-z0-9-]{1,60}$/.test(tpl)) {
+        const f = path.join(dir, tpl + '.json');
+        if (fs.existsSync(f)) {
+          const preset = JSON.parse(fs.readFileSync(f, 'utf8'));
+          if (String(preset.slug || tpl).trim().toLowerCase() === tpl && host(preset.website) === website && Array.isArray(preset.offerings)) raw = preset.offerings;
         }
       }
     } catch (_) { /* no preset dir - fall through */ }
@@ -847,19 +852,40 @@ function brandIdentity(brand) {
   const legal = brand.legal_entity || bd.legal_entity || brand.legal_name || bd.legal_name || '';
   let cat = '';
   try { const v = catalogServer.catalogVerdict(brand); if (v) cat = `${v.source_domain || ''}|${v.excluded ? 'x' : ''}|${(v.kept || []).join(',')}`; } catch (_) { /* no verdict */ }
+  // What a slot's assets were WRITTEN from, beyond who the brand is
+  // (2026-10-11): its colours, its type families, its voice (tone and banned
+  // words), its claims and its markets with their currencies. A slot planned
+  // or built before any of these changed carried the old palette, the old
+  // claims or another currency, and replayed them as current.
+  const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+  const palette = obj(brand.palette);
+  const pal = Object.keys(palette).sort().map((k) => `${k}=${fold(palette[k])}`).join(',');
+  const typo = obj(brand.typography);
+  const fam = (t) => fold(t && typeof t === 'object' ? (t.family || t.stack || '') : t);
+  const type = Object.keys(typo).sort().map((k) => `${k}=${fam(typo[k])}`).join(',');
+  const voice = obj(brand.voice);
+  const list = (v) => (Array.isArray(v) ? v : []).map((x) => fold(x && typeof x === 'object' ? (x.text || x.name || '') : x)).filter(Boolean).sort().join('|');
+  const claims = list(brand.claims || bd.claims) + '#' + list(brand.approved_claims || bd.approved_claims);
+  const regions = (Array.isArray(brand.regions) ? brand.regions : []).filter((r) => r && r.code)
+    .map((r) => `${fold(r.code)}:${fold(r.currency)}${r.home === true ? ':home' : ''}`).sort().join(',');
   const parts = [
     brand.id || '', fold(brand.name || bd.name), host(brand.website || bd.website || ''),
     fold(typeof legal === 'object' ? (legal.name || JSON.stringify(legal)) : legal),
     cat, brand.owns_shipped === true ? 'zero' : '',
+    pal, type, fold(voice.tone), list(voice.banned), claims, regions,
   ];
-  return 'bi1:' + crypto.createHash('sha256').update(parts.join('\u0001')).digest('hex').slice(0, 24);
+  return 'bi2:' + crypto.createHash('sha256').update(parts.join('\u0001')).digest('hex').slice(0, 24);
 }
 const IDENTITY_KEY = '__brand_identity';
 function identityMatches(stamp, current) { return !!current && stamp === current; }
 // A stored row speaks for its slot; an inline entry with no row is judged only
 // when it carries a stamp (a device plan built in this request carries none).
 function slotForOtherRecord(entry, row, ident) {
-  if (!ident) return false;
+  // No identity for the brand this request plans for: a stored row or a
+  // stamped slot cannot be checked against it, so it is not replayed
+  // (2026-10-11). An unstamped inline slot built in this request has nothing
+  // stored to replay.
+  if (!ident) return !!row || !!(entry && entry[IDENTITY_KEY]);
   if (row) return !identityMatches((row.payload || {})[IDENTITY_KEY], ident);
   return !!(entry && entry[IDENTITY_KEY]) && entry[IDENTITY_KEY] !== ident;
 }
@@ -3713,6 +3739,9 @@ module.exports = {
   // brand a slot is stamped with, and whether the plan is tenant zero's.
   __test_stampBrand: stampBrand,
   __test_brandIdentity: brandIdentity,
+  __test_slotForOtherRecord: slotForOtherRecord,
+  // tests/review-leak-fixes.spec.js: which preset offerings a brand may take.
+  __test_resolveBrandOfferings: _resolveBrandOfferings,
   // Executed by tests/catalog-provenance.spec.js: whose store a slot links to.
   __test_slotLinks: slotLinks,
   __test_productUrl: productUrl,
