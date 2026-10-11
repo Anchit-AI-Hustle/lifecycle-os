@@ -219,7 +219,7 @@
         <div class="vh-h3">Chip and badge</div>
         <p>A chip is a filter you can press; selected, it is a small primary control. A badge is a label: accent text on the panel.</p>
         <div class="ds-demo">
-          <button type="button" class="vh-chip" aria-pressed="true" data-ds-toggle>All regions</button>
+          <button type="button" class="vh-chip" aria-pressed="true" data-ds-toggle>All cohorts</button>
           <button type="button" class="vh-chip" aria-pressed="false" data-ds-toggle>Home market</button>
           <span class="vh-badge">V2</span>
         </div>
@@ -268,7 +268,8 @@
         <label class="vh-section-label" for="ds-input">Brand website</label>
         <input id="ds-input" class="vh-input" type="url" placeholder="https://example.com" autocomplete="off">
         <label class="vh-section-label" for="ds-select">Home market</label>
-        <select id="ds-select" class="vh-select"><option>India (IN)</option><option>United States (US)</option></select>
+        <!-- The specimen select holds the ACTIVE brand's own markets (region-context.js), never two typed ones. -->
+        <select id="ds-select" class="vh-select" data-brand-markets></select>
         <div class="ds-tokens">vh-glass-strong · vh-ink · vh-line · focus vh-focus</div>
       </div>
 

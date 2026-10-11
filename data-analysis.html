@@ -141,12 +141,10 @@
         <h1>Data Analysis</h1>
         <p class="lede">The full growth analytics workbench for the active brand. Every widget drills into a detailed page with the complete data, a bigger chart, a growth read, and a CSV download. This is where all the analysis a D2C growth team needs gets done.</p>
       </div>
-      <div class="mkt" id="mktToggle" role="tablist" aria-label="Market">
-        <button type="button" data-mkt="US">🇺🇸 United States</button>
-        <button type="button" data-mkt="UK">🇬🇧 United Kingdom</button>
-        <button type="button" data-mkt="GLOBAL">🌍 Global</button>
-        <button type="button" data-mkt="IN">🇮🇳 India</button>
-      </div>
+      <!-- One button per market the ACTIVE brand declares (region-context.js),
+           built by buildMktToggle(); a market with no data is hidden. These were
+           four typed markets for every brand (2026-10-10). -->
+      <div class="mkt" id="mktToggle" role="tablist" aria-label="Market"></div>
     </div>
 
     <div class="mkt" id="anTabs" role="tablist" aria-label="Analysis section" style="margin:14px 0 4px;flex-wrap:nowrap;max-width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin">
@@ -884,7 +882,34 @@
   function renderMarket(){ if(marketHasData(MKT)){ renderKPIs(); renderSignals(); renderGrid(); renderFootnote(); } else { renderEmptyMarket(); } }
   function setMarket(mk){ MKT=mk; document.querySelectorAll('#mktToggle button').forEach(function(b){ b.classList.toggle('on', b.dataset.mkt===mk); }); renderMarket(); closeDetail(); }
 
-  document.querySelectorAll('#mktToggle button').forEach(function(b){ b.addEventListener('click',function(){ setMarket(b.dataset.mkt); }); });
+  var mktHost = document.getElementById('mktToggle');
+  if (mktHost) mktHost.addEventListener('click', function(e){ var b = e.target.closest ? e.target.closest('button[data-mkt]') : null; if (b) setMarket(b.dataset.mkt); });
+  function buildMktToggle(){
+    var host = document.getElementById('mktToggle'), rc = window.RegionContext;
+    if (!host || !rc || typeof rc.options !== 'function') return false;
+    var opts = rc.options();
+    // No active brand at all (the shipped preview, which shows the shipped
+    // export): the export's own markets. A brand that has no regions gets none.
+    var B = window.BrandContext;
+    if (!opts.length && !(B && B.brand) && A && A.markets) {
+      opts = Object.keys(A.markets).map(function(k){ return { code: k, label: rc.label ? rc.label(k) : k, home: false }; });
+    }
+    var key = opts.map(function(o){ return o.code; }).join('|');
+    if (host.getAttribute('data-built') === key) return false;
+    host.setAttribute('data-built', key);
+    host.innerHTML = opts.map(function(o){
+      return '<button type="button" data-mkt="' + String(o.code).replace(/[^A-Za-z0-9_-]/g, '') + '"' + (o.home ? ' title="Home market"' : '') + '>' + String(o.label).replace(/[&<>"]/g, '') + '</button>';
+    }).join('');
+    return true;
+  }
+  (function watchRegions(w){
+    if(!window.RegionContext){ if(w<6000) setTimeout(function(){ watchRegions(w+100); },100); return; }
+    window.RegionContext.onChange(function(){
+      if (!buildMktToggle()) return;
+      document.querySelectorAll('#mktToggle button').forEach(function(b){ b.classList.toggle('on', b.dataset.mkt===MKT); b.style.display = marketHasData(b.dataset.mkt) ? '' : 'none'; });
+      try { window.dispatchEvent(new CustomEvent('da:markets-built')); } catch (_) {}
+    });
+  })(0);
   // Apply the opening tab (?tab=) to the strip and the rail before any clicks.
   (function applyOpeningTab(){
     var btns = document.querySelectorAll('#anTabs button');
@@ -946,6 +971,7 @@
   function boot(){
     A = window.LIFECYCLE_ANALYTICS || A;
     mergeLive();
+    buildMktToggle();
     Object.keys(A.markets||{}).forEach(function(mk){
       var m = A.markets[mk];
       if(!m) return;

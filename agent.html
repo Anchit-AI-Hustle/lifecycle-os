@@ -159,7 +159,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 </head>
 <body>
 <div class="shell">
-  <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700">KNICKGASM · Voice &amp; Chat Concierge <span style="background:var(--vh-primary);color:var(--vh-on-primary);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
+  <div style="font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--lava-ink);font-weight:700"><span data-brand-name>Brand</span> · Voice &amp; Chat Concierge <span style="background:var(--vh-primary);color:var(--vh-on-primary);border-radius:999px;padding:2px 9px;font-size:10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">CUSTOMER-FACING</span></div>
   <h1>Talk to an expert</h1>
   <div class="sub" id="agentSub">This is the customer-facing concierge, the tool your customers talk to. Ask about what we offer, how it works and what to expect, by voice or text. Honest answers, zero pressure. Pick a specialist:</div>
   <div class="agentbar" id="agentbar"></div>
@@ -182,10 +182,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
       <div>
         <label for="afMarket">Market</label>
-        <select id="afMarket">
-          <option>US</option><option>UK</option><option>IN</option>
-          <option>EU</option><option>AU</option><option>Global</option>
-        </select>
+        <!-- The brand's own markets, opening on its home (region-context.js). -->
+        <select id="afMarket" data-brand-markets></select>
       </div>
       <div>
         <label for="afScope">Focus, categories (optional)</label>

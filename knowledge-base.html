@@ -207,7 +207,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="subtab" data-chan="landing">▦ Landing Pages</button>
   </div>
 
-  <!-- Region filter — applies to all KNICKGASM + Competitor channels. -->
+  <!-- Region filter — applies to the brand's own and its competitors' channels. -->
   <div id="kbRegions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
     <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--vh-ink-dim); font-weight:600; align-self:center; margin-right:8px">Region</span>
     <!-- All + one chip per region the ACTIVE brand declares (region-context.js). This
@@ -788,7 +788,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       host.appendChild(b);
     });
     if(!opts.length){ const m=document.createElement('span'); m.className='region-chip'; m.style.cursor='default'; m.textContent=(window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]'); host.appendChild(m); }
-    if(state.region && !opts.some(o=>o.code===state.region)){ state.region=''; render(); }
+    // All aggregates over the brand's OWN markets, so it exists only when there
+    // is more than one; a one-market brand's library is that market (2026-10-10).
+    let allChip = host.querySelector('.region-chip[data-region=""]');
+    if (opts.length < 2) { if (allChip) allChip.remove(); }
+    else if (!allChip) {
+      allChip = document.createElement('button'); allChip.type='button'; allChip.className='region-chip'; allChip.dataset.region=''; allChip.textContent='All';
+      const firstChip = host.querySelector('.region-chip'); host.insertBefore(allChip, firstChip || null);
+    }
+    if (opts.length === 1) { if (state.region !== opts[0].code) { state.region = opts[0].code; render(); } }
+    else if(state.region && !opts.some(o=>o.code===state.region)){ state.region=''; render(); }
     host.querySelectorAll('.region-chip[data-region]').forEach(x=>x.classList.toggle('active', x.dataset.region===(state.region||'')));
   }
   (function watchRegions(w){
