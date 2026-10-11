@@ -665,6 +665,15 @@ module.exports = async function handler(req, res) {
       const { html, diag } = await plan.landingPageResolve(id, {}, req.query?.v || null);
       // ?debug=1 → JSON diagnostics (no secrets) so a 404 is diagnosable live.
       if (req.query?.debug) { res.setHeader('Content-Type', 'application/json'); return res.status(200).json({ ok: true, diag }); }
+      // A page made for another version of its brand's record is not served
+      // as that brand's (2026-10-11): 410 with the sentence, in no brand's
+      // colours. The stored page is kept, not deleted.
+      if (diag.brand_changed) {
+        const esc = (t) => String(t || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(410).send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page withdrawn</title></head><body style="font-family:system-ui,sans-serif;max-width:640px;margin:48px auto;padding:0 16px;line-height:1.6"><p data-brand-changed>${esc(diag.message)}</p></body></html>`);
+      }
       if (!html) {
         // NEVER serve a dead page. The /lp URL always hosts a REAL, on-brand KNICKGASM
         // landing page: the campaign's own if persisted (any generated campaign,

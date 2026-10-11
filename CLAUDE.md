@@ -4,6 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A brand set up or changed uses ONLY its current context: one site, one record, one fingerprint (2026-10-11)
+The operator: *"ensure if any brand is set up or changed, then it only uses the updated context and correct brand
+specific ... schema and assets"*, *"if anywhere one url is being referenced in the brand, the same url only must be
+referenced"*, *"each brand must have its own unique and real brand identity"*. Live: the only workspace was renamed
+Mamaearth -> DelhiChic -> Deli Chic -> Lenskart (lenskart.com) keeping a delichic.co.in catalogue read off nike.in.
+Gated by `tests/brand-change-current-context.spec.js` (13, executed: the brand router over `brand-save-fake`, the /lp
+resolver + route, the review library, the context pack, the KB router, /assets, two tabs and the wizard in Chromium;
+25 mutations, each restoring one defect, all caught).
+- **ONE fingerprint**: `brandIdentity()` moved to `api/_shared/brand-identity.js` (Smart Brain imports it; the
+  BRAND-IDENTITY block is byte for byte in `brand-context.js`, its SHA-256 written out and checked against Node's).
+  Shells carry `identity`. `/lp/:id` serves a stored page only for the version it was made for, else **410** with
+  `staleSentence()` (row kept; unstamped = made before, same answer). Mirror rows (`ads_generated.copy`,
+  `landing_pages_generated.payload`, `mailers_generated.reasoning`) and the Studio / landing / ad libraries carry it;
+  `LCStore` keys are `key::<id>::<fingerprint>` (an earlier version's state is kept, never listed) and pre-scoping
+  state is inherited by TENANT ZERO only; /assets lists only this workspace's rows of this version, says how many it
+  did not, and its copied prompt is the active brand's record (it was tenant zero's six literals).
+- **ONE site rule where values are WRITTEN** (BRAND-COHERENCE block, both copies): a store URL TYPED on another site
+  is `409 url_off_site` (the sentence offers "make <domain> the website" / "start a new brand"); a logo or icon is a
+  FILE and stays judged by the page it was found on. Every value READ from another site (catalogue, tagline, logo,
+  icon, legal entity, social, imagery, assets, claims, design system, region stores, asset hosts) is
+  `setAsideForeign()`-ed into `brand_data.coherence.set_aside` (kept, never applied, history carried across saves a
+  form never saw); a set-aside catalogue still excludes its rows. A record ESTABLISHED at its site (its name read
+  from it, or fitting its host) is never re-pointed or renamed into another brand (`409 brand_change_refused`; the
+  wizard offers only "start a new brand"); a second record of the same site is `409 brand_exists` (server and
+  device). "Make <domain> the website" stays for a record whose name was never that site's (a mixed record's repair).
+- **Where values are USED**: `brand-runtime.coherentForGeneration` is `COHERENCE.forGeneration` now (the device shell
+  uses it too) and also withholds colours, type families and a measured design system read from another site; the
+  shell paints the withheld record (`withheld` lists what). Reviews read from another site are passed over, and a
+  review scan of an earlier website is not an answer about this one (`site:<domain>` in the scan note). A context pack
+  about another site or name is reported (`hidden`, the sentence) and never applied (`409 brand_changed`). The KB
+  guardrail's Phase 1 and 2 read the workspace's OWN vocabulary (tenant zero keeps its lists; none = skipped, said).
+- **Presets** are labelled demos (`brand_data.template.demo`); one applied to a brand with its own website copies
+  nothing, and preset-origin values under another website BLOCK (`template:*`). **"Set up from my website"** runs the
+  rendered read (platform, robots, sitemaps), the catalogue import from the same site and the context pack, in order,
+  each step said; on a device it says the server steps were not run. Another tab switching the brand repaints and
+  reloads every open page (brand setup exempt).
+- Tests changed on purpose: `brand-record-coherence` (a save sets the live mix aside; an established Nike is not
+  offered "make mamaearth.in the website"; a preset copies nothing onto a brand with a website), `brand-scoped-state`
+  (inheritance is tenant zero's), `router-calendar` (a served page carries the fingerprint), `brand-guide-upload` and
+  `brand-theme-every-page` (the template / history they seed is this brand's), `prompt-output-contracts` (the KB page
+  for a news brand is news, not a sneaker studio: the guardrail now drops the latter).
+- Known limits: the Studio's history before this lived under the unscoped `vhd_logs` and is no longer listed; device
+  side keys (`.catalog.`/`.pack.`) are judged by the coherence verdict, not the fingerprint; agent, TeleSuite and
+  social rows were not re-judged here.
+
 ## ⭐ Competitor discovery works for every brand, from what the brand ITSELF publishes (2026-10-11)
 Production, /competitor-benchmarking#discover, "Deli Chic" (IN): "Find & add new brands" answered "Nothing added.
 [DATA REQUIRED BEFORE LAUNCH: brand industry or offerings, ...]" and Seed added nothing: `discoveryBrief()` refused
