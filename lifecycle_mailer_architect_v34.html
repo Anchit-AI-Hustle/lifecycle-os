@@ -2447,11 +2447,15 @@ function renderMarketChips(){
 function renderStandaloneMarketChips(){
   var host=document.getElementById('mktChips'); if(!host) return;
   var keys=Object.keys(window.REGIONAL_CATALOG||{});
+  // A redraw never discards a market the person already picked: a late second
+  // render (WebKit) used to wipe the chosen chip, so go2() saw no market.
+  var kept=Array.prototype.map.call(host.querySelectorAll('.mkt-chip.on'),function(c){return c.getAttribute('data-mkt');})
+    .filter(function(k){return keys.indexOf(k)>=0;});
   host.innerHTML=keys.map(function(k){
     var c=REGIONAL_CATALOG[k]||{};
-    return '<button type="button" class="mkt-chip" data-mkt="'+escStudio(k)+'" onclick="toggleMarket(\''+escStudio(k)+'\',this)">'+(c.flag?c.flag+' ':'')+escStudio(c.name||k)+'</button>';
+    return '<button type="button" class="mkt-chip'+(kept.indexOf(k)>=0?' on':'')+'" data-mkt="'+escStudio(k)+'" onclick="toggleMarket(\''+escStudio(k)+'\',this)">'+(c.flag?c.flag+' ':'')+escStudio(c.name||k)+'</button>';
   }).join('')+'<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-ink-dim);align-self:center">No brand is active on this page: pick the target market.</span>';
-  S.markets=[]; S.market=''; S.activeMarket='';
+  S.markets=kept.slice(); S.market=kept[0]||''; S.activeMarket=kept[0]||'';
 }
 (function watchRegionsForStudio(w){
   var waited=w||0;
