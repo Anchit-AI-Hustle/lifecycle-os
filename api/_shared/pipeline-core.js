@@ -67,6 +67,9 @@
 const brandRuntime = require('./brand-runtime.js');
 const core = require('./brand-workspace-core.js');
 const contracts = require('./asset-contracts.js');
+// What each stage RETURNS: the OUTPUT REQUIREMENT every stage prompt ends with
+// and the spec its answer is parsed by (api/_shared/output-contract.js).
+const OC = require('./output-contract.js');
 const evidence = require('./creative-evidence.js');
 const specs = require('./asset-specs.js');
 
@@ -302,6 +305,6 @@ function mount(handler, featureKey, opts) {
 const MAILER = specs.MAILER;
 
 module.exports = {
-  admit, briefing, tokens, storeFor, linkFor, legalFor, productLines, marker,
+  admit, briefing, tokens, storeFor, linkFor, legalFor, productLines, marker, OC, slotLimit: contracts.slotLimit,
   llm, parseJSON, mount, MAILER,
 };

@@ -996,7 +996,7 @@ async function checkConnection(auth, workspaceId, providerId) {
     const key = secrets.api_key || (reg.llm_provider === 'ollama' ? 'ollama' : '');
     try {
       const r = await callLLM({
-        systemPrompt: 'Reply with the single word: ok', userMessage: 'ping',
+        systemPrompt: 'Reply with the single word: ok', userMessage: require('./output-contract.js').append('ping', require('./output-contract.js').PROBE),
         maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
         overrides: { order: [reg.llm_provider], models: {}, keys: { [reg.llm_provider]: key }, bases, fallback: false },
       });

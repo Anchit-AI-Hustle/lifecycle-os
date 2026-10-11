@@ -228,8 +228,11 @@ async function narrate(result) {
     const callLLM = require('./llm.js');
     const bad = result.checks.filter(c => ['MISMATCH', 'MISSING', 'MISLEADING'].includes(c.verdict));
     const sys = 'You are a data-accuracy auditor for a D2C analytics app. Given deterministic validation results (already computed, do NOT change any number), write a tight 3-sentence plain-English verdict: (1) does the live analysis match the source-of-truth report, (2) what is genuinely wrong vs merely different-in-scope, (3) the single highest-priority fix. No preamble, no markdown headings. Do not invent figures beyond those provided.';
-    const user = 'Summary counts: ' + JSON.stringify(result.summary) + '\nFailing/flagged checks: ' +
-      JSON.stringify(bad.map(c => ({ metric: c.metric, verdict: c.verdict, delta: c.delta, note: c.note })));
+    const user = require('./output-contract.js').append('Summary counts: ' + JSON.stringify(result.summary) + '\nFailing/flagged checks: ' +
+      JSON.stringify(bad.map(c => ({ metric: c.metric, verdict: c.verdict, delta: c.delta, note: c.note }))), {
+      id: 'data-validation.narrative', kind: 'reply', format: 'text', missing: 'say',
+      returns: 'ONE verdict of exactly three plain-English sentences: (1) whether the live analysis matches the source-of-truth report, (2) what is genuinely wrong versus merely different in scope, (3) the single highest-priority fix.',
+      forbid: ['a number that is not in the results given'] });
     const text = await callLLM({
       systemPrompt: sys, userMessage: user, maxTokens: 320, temperature: 0.3,
       timeoutMs: 18000, stage: 'data-validation-narrative', preferProvider: 'gemini+',
@@ -248,4 +251,4 @@ async function validate(opts) {
   return result;
 }
 
-module.exports = { validate, runValidation, loadMarketData };
+module.exports = { validate, runValidation, loadMarketData, narrate };
