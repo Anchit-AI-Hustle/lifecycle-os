@@ -125,6 +125,8 @@ const WORKSPACE_SCOPED = new Set([
   'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
   'brand_catalog_products',
+  // is_brand_member policies (20260813120000 / 20260810120000)
+  'brand_competitors', 'kb_knowledge',
 ]);
 
 function uuid() { return crypto.randomUUID(); }
