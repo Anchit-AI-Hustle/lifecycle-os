@@ -293,7 +293,7 @@ test.describe('the server', () => {
     const live = w.db.table('smart_calendar_entries').filter((x) => x.status === 'tentative' && x.workspace_id === 'ws-coherent');
     expect(live.length).toBeGreaterThan(0);
     const ident = live[0].payload.__brand_identity;
-    expect(ident).toMatch(/^bi1:/);
+    expect(ident).toMatch(/^bi2:/);
     expect(live.every((x) => x.payload.__brand_identity === ident)).toBe(true);
 
     // A fresh slot pointed at a campaign built for another record: preview

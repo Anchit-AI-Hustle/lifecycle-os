@@ -18,13 +18,16 @@
 //   standard : anthropic(sonnet) → openai(5-mini)   → gemini(3.5-flash) → grok(4.1-fast) → groq → cerebras → ollama → sakana
 //   fast     : anthropic(haiku)  → openai(5-nano)   → gemini(2.5-flash, free) → groq → cerebras → ollama → sakana
 //
-// DEMOTION RULES (blueprint docs/quality-upgrade-blueprint.md):
-//   • 429/402, 5xx, timeout, or 400 whose body matches
-//     insufficient_quota|quota|billing|credit|balance → demote (next model/provider).
+// DEMOTION RULES (see classifyFailure below for the full table):
+//   • A key that is rejected or out of quota is dead for the rest of the call:
+//     the next key of that provider, then the next provider.
+//   • 429 rate limit, 5xx, an empty/refused/unparseable answer → next model.
 //   • Model-not-found (404, or 400 naming a model error) → demote WITHIN the
 //     provider to its next model first, then across providers.
-//   • Plain 400 without billing/model keywords = request bug → do NOT demote;
-//     the cascade aborts immediately so the bad request surfaces to the caller.
+//   • Any other 400, a timeout or a network/DNS failure → next provider.
+//   • The cascade never stops early: when every provider has failed it throws
+//     one error naming each provider tried and why, and those never tried.
+//   • timeoutMs bounds one attempt (body included); budgetMs bounds the call.
 //
 // Within OpenAI, quota exhaustion rotates keys (OPENAI_API_KEY/_2/_3) before
 // falling to the next provider. All model IDs are env-overridable:
@@ -168,33 +171,97 @@ function providerOrder(tier) {
 }
 
 // ── Failure classification (drives demotion) ─────────────────────────────────
-//   'quota'       429/402, or 400 with billing keywords → demote
-//   'model'       404, or 400 naming a model problem → within-provider demote
-//   'bad_request' plain 400 → request bug — ABORT the cascade (no demotion)
-//   'auth'        401/403 → this key/provider is dead, demote
-//   'timeout'     network abort → next provider (don't burn time on sibling models)
-//   'transient'   5xx/529/anything else → demote
+// Every failure a provider can return is one of these, and each has exactly one
+// consequence. The cascade NEVER stops early on any of them (2026-10-11): the
+// worst outcome of trying the next provider is one more fast failure, while the
+// worst outcome of stopping is a whole generation lost to one provider's quirk.
+//
+//   'auth'        401/403, or a 400 that says the KEY is bad (Gemini answers an
+//                 invalid key with HTTP 400 API_KEY_INVALID). KEY-specific: the
+//                 next key of the same provider is tried, then the next provider.
+//                 That key is never sent again in this call.
+//   'billing'     402, or a 400/403/429 whose body names quota/billing/credit
+//                 (OpenAI `insufficient_quota` / `billing_hard_limit_reached`,
+//                 Anthropic "credit balance is too low"). KEY-specific, as above.
+//   'rate_limit'  429 with no billing words: per-model on several providers, so
+//                 the next model is tried; Retry-After is recorded, never slept on.
+//   'model'       404, or a 400 naming a model problem → next model of the same
+//                 provider (within-provider demotion), then the next provider.
+//   'bad_request' any other 400/422. Each provider gets a request body THIS file
+//                 built for it, so a 400 from one is that provider's objection,
+//                 not proof the prompt is bad: the next PROVIDER is tried (its
+//                 sibling models would receive the same body and are skipped).
+//                 Until 2026-10-11 this ABORTED the whole cascade, so an invalid
+//                 Gemini key (HTTP 400) or a provider that rejected one parameter
+//                 failed every generation while five other providers were up.
+//   'timeout'     the per-attempt timer fired, or the network/DNS failed, or the
+//                 body never arrived → next provider (siblings share the host).
+//   'empty'       200 with no usable text: empty content, a refusal, a safety
+//                 block, an unparseable body → next model.
+//   'transient'   5xx / anything else → next model.
+const BILLING_RE = /insufficient_quota|billing|credit balance|credit_balance|exceeded your current quota|quota[ _]exceeded|resource_exhausted|payment required|out of credits|insufficient (?:credits|funds|balance)|\bquota\b|\bcredits?\b|\bbalance\b/i;
+const HARD_BILLING_RE = /insufficient_quota|billing|credit balance|payment required|out of credits/i;
+const RATE_RE = /rate[ _-]?limit|requests per|tokens per|per minute|too many requests/i;
+const BAD_KEY_RE =/api[ _-]?key[ _-]?(?:not[ _-]?valid|invalid|expired)|invalid[ _-]api[ _-]?key|incorrect api key|invalid x-api-key|invalid_api_key|API_KEY_INVALID|authentication_error|unauthori[sz]ed|permission_denied/i;
+const MODEL_ERR_RE = /model_not_found|model not found|does not exist|unknown model|invalid model|decommissioned|deprecated|no longer (?:available|supported)|is not supported|not supported for|not found for api version|unsupported model/i;
+
 function classifyFailure(status, errBody) {
   const body = String(errBody || '');
   if (status === 0) return 'timeout';
-  const isBilling = /insufficient_quota|quota|billing|credit|balance/i.test(body);
-  if (status === 429 || status === 402 || (status === 400 && isBilling)) return 'quota';
-  const isModelErr = /model_not_found|model not found|does not exist|unknown model|invalid model|decommissioned|deprecated|no longer (?:available|supported)|not supported/i.test(body);
-  if (status === 404 || (status === 400 && isModelErr)) return 'model';
-  if (status === 400) return 'bad_request';
-  if (status === 401 || status === 403) return 'auth';
+  if (status === 200) return 'empty';
+  if (status === 401 || (status === 403 && !BILLING_RE.test(body))) return 'auth';
+  if (status === 400 && BAD_KEY_RE.test(body)) return 'auth';
+  if (status === 402) return 'billing';
+  if (status === 429) {
+    // A 429 is a quota only when it says so and is not a per-minute rate limit
+    // ("Quota exceeded for requests per minute" is a rate limit by another name).
+    if (HARD_BILLING_RE.test(body)) return 'billing';
+    return (BILLING_RE.test(body) && !RATE_RE.test(body)) ? 'billing' : 'rate_limit';
+  }
+  if ((status === 400 || status === 403) && BILLING_RE.test(body)) return 'billing';
+  if (status === 404 || ((status === 400 || status === 422) && MODEL_ERR_RE.test(body))) return 'model';
+  if (status === 400 || status === 422 || status === 413) return 'bad_request';
   return 'transient';
 }
 
+// What each class means, in the words the final error uses.
+const KIND_WORDS = {
+  auth: 'key rejected', billing: 'quota / billing exhausted', rate_limit: 'rate limited',
+  model: 'model unavailable', bad_request: 'request refused', timeout: 'timeout / network',
+  empty: 'no usable text', transient: 'provider error', budget: 'call budget exhausted',
+};
+
+/** Seconds a Retry-After header asks for (delta-seconds or HTTP-date), or null. */
+function retryAfterSeconds(h) {
+  if (!h) return null;
+  const s = String(h).trim();
+  if (/^\d+(?:\.\d+)?$/.test(s)) return Math.round(Number(s));
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? Math.max(0, Math.round((t - Date.now()) / 1000)) : null;
+}
+
+// Strip BOM (U+FEFF), zero-width spaces, and whitespace — Vercel env can inject invisible chars
+function _clean(s) { return String(s || '').replace(/[﻿​ ]/g, '').trim(); }
+
 /**
- * callLLM({ systemPrompt, userMessage, responseFormat, maxTokens, temperature, timeoutMs, stage, tier, preferProvider, userGeminiKey, overrides })
+ * callLLM({ systemPrompt, userMessage, responseFormat, maxTokens, temperature, timeoutMs, budgetMs, stage, tier, preferProvider, exclusive, userGeminiKey, overrides })
  *   tier: 'premium' | 'standard' (default) | 'fast'
  *         (legacy: 'maxpower'→premium, 'budget'→standard — existing callers unchanged)
+ *   timeoutMs: the cap on ONE attempt (one provider, one model, one key).
+ *   budgetMs:  the cap on the WHOLE cascade (default LLM_TOTAL_BUDGET_MS, else
+ *         max(2 × timeoutMs, 50s)). No attempt is given more than what is left,
+ *         and once it is spent the cascade stops and says which providers it
+ *         never reached, rather than running past the serverless limit.
+ *   preferProvider: try this provider FIRST; the rest of the cascade still
+ *         follows it. `exclusive: true` makes it the only one (the live probe,
+ *         which asks whether ONE provider answers, is the only caller).
  *   overrides: { order, models, keys, bases, fallback } — a workspace's own
  *         routing. Omitted by every existing caller; when omitted, the routing
  *         of the request being served is used, and failing that the default.
- * Returns { text, provider, model, seed, quota_warning?, exhausted_keys?, routing }
- * Throws on all providers failing (err._providerErrors carries per-provider detail).
+ * Returns { text, provider, model, seed, quota_warning?, exhausted_keys?, routing, attempts }
+ * Throws when every provider fails: the message names each provider tried and
+ * why, err._providerErrors carries per-attempt detail and err._skipped the
+ * providers that were never tried (no key / outside the routing / no budget).
  */
 module.exports = async function callLLM(opts) {
   const {
@@ -206,11 +273,18 @@ module.exports = async function callLLM(opts) {
     timeoutMs     = 30000,
     stage         = 'llm',
     userGeminiKey = '',
-    preferProvider = '',     // per-call provider preference — same values as APP_AI_PROVIDER; lets callers pin the provider that already worked this turn
+    preferProvider = '',     // per-call provider preference — same values as APP_AI_PROVIDER
+    exclusive     = false,
     tier          = (process.env.APP_AI_TIER || 'standard')
   } = opts;
 
   const tierNorm = normalizeTier(tier);
+  const startedAt = Date.now();
+  const budgetMs = Number(opts.budgetMs) > 0 ? Number(opts.budgetMs)
+    : (Number(process.env.LLM_TOTAL_BUDGET_MS) > 0 ? Number(process.env.LLM_TOTAL_BUDGET_MS) : Math.max(2 * timeoutMs, 50000));
+  const remaining = () => budgetMs - (Date.now() - startedAt);
+  // An attempt shorter than this cannot complete a generation; it is not started.
+  const MIN_ATTEMPT_MS = 750;
 
   // An explicit override beats the ambient one (the connection check pins a
   // single provider that way); `overrides: null` explicitly asks for the
@@ -218,36 +292,32 @@ module.exports = async function callLLM(opts) {
   const ov = (opts.overrides !== undefined) ? opts.overrides : await scopedOverrides();
   const ovKeys  = (ov && ov.keys) || {};
   const ovModels = (ov && ov.models) || {};
-  const ovOrder = (ov && Array.isArray(ov.order)) ? ov.order.filter(Boolean) : [];
+  const ovOrder = _dedupe((ov && Array.isArray(ov.order)) ? ov.order.map((p) => String(p || '').toLowerCase().trim()) : []);
 
-  // Provider preference: per-call preferProvider wins over the APP_AI_PROVIDER env.
-  // Values: 'gemini', 'openai', 'anthropic', 'grok', 'groq', 'cerebras', 'gemini+', or empty (default cascade)
-  //
   // A workspace order is an explicit human decision about which providers see
   // this brand's data; preferProvider is an internal latency optimisation that
   // pins whichever provider answered first this turn. The decision outranks the
   // optimisation, so the pin is dropped when a workspace order exists rather
   // than being allowed to run a provider the workspace left out.
-  const preferredProvider = ovOrder.length ? '' : (preferProvider || process.env.APP_AI_PROVIDER || '').toLowerCase().trim();
+  const preferredProvider = ovOrder.length ? '' : String(preferProvider || process.env.APP_AI_PROVIDER || '').toLowerCase().trim();
 
   // A workspace key REPLACES the platform's for that provider — including the
   // rotation set, so a workspace never falls back onto platform OpenAI quota.
-  const openaiKeys = ovKeys.openai ? [ovKeys.openai] : [
+  // The platform's three keys are cleaned and de-duplicated: the same key set
+  // twice would be sent twice after it had already been refused.
+  const openaiKeys = _dedupe(ovKeys.openai ? [_clean(ovKeys.openai)] : [
     process.env.OPENAI_API_KEY,
     process.env.OPENAI_API_KEY_2,
     process.env.OPENAI_API_KEY_3
-  ].filter(Boolean);
+  ].map(_clean));
 
-  // Strip BOM (U+FEFF), zero-width spaces, and whitespace — Vercel env can inject invisible chars
-  const _clean = s => (s || '').replace(/[﻿​ ]/g, '').trim();
   const anthropicKey = _clean(ovKeys.anthropic) || _clean(process.env.ANTHROPIC_API_KEY);
   const geminiKey    = _clean(ovKeys.gemini) || _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
   const grokKey      = _clean(ovKeys.grok) || _clean(process.env.XAI_API_KEY);
   const groqKey      = _clean(ovKeys.groq) || _clean(process.env.GROQ_API_KEY);
   const cerebrasKey  = _clean(ovKeys.cerebras) || _clean(process.env.CEREBRAS_API_KEY);
   // OpenRouter — accept the canonical name OR the existing mixed-case env var name
-  // (`OpenRouter_API_KEY`) already provisioned in this project. Node env names are
-  // case-sensitive, so both spellings are read explicitly.
+  // (`OpenRouter_API_KEY`) already provisioned in this project.
   const openrouterKey = _clean(ovKeys.openrouter) || _clean(process.env.OPENROUTER_API_KEY) || _clean(process.env.OpenRouter_API_KEY);
   // GitHub Models — dedicated token or a plain GitHub PAT.
   const githubKey    = _clean(ovKeys.github) || _clean(process.env.GITHUB_MODELS_TOKEN) || _clean(process.env.GITHUB_TOKEN);
@@ -263,42 +333,13 @@ module.exports = async function callLLM(opts) {
   };
   if (ov && ov.bases) for (const k of Object.keys(ov.bases)) if (ov.bases[k]) bases[k] = ov.bases[k];
 
-  // Cloudflare Workers AI — needs BOTH account id (folded into the base) and token.
   const cloudflareKey = _clean(ovKeys.cloudflare) || _clean(process.env.CLOUDFLARE_API_TOKEN);
   const cloudflareOn  = !!bases.cloudflare && !!cloudflareKey;
-  // Optional tail rungs (skipped cleanly unless configured):
-  //   Ollama gate = OLLAMA_BASE_URL present (auth optional).
-  //   Sakana gate = both SAKANA_BASE_URL and SAKANA_API_KEY present. Forward-looking:
-  //   Sakana AI has no broadly-documented public chat API today, so this rung stays
-  //   inert until a base URL + key are supplied.
   const ollamaKey    = _clean(ovKeys.ollama) || _clean(process.env.OLLAMA_API_KEY) || 'ollama';
   const ollamaOn     = !!bases.ollama;
   const sakanaKey    = _clean(process.env.SAKANA_API_KEY);
   const sakanaOn     = !!bases.sakana && !!sakanaKey;
-  // Debug: key PRESENCE only, never a key. The workspace flag says whose keys
-  // are in play without naming the workspace or the value.
   console.log('[llm] Keys present: groq=' + !!groqKey + ' cerebras=' + !!cerebrasKey + ' gemini=' + !!geminiKey + ' tier=' + tierNorm + ' workspace_routing=' + !!ov);
-
-  if (!openaiKeys.length && !anthropicKey && !geminiKey && !grokKey && !groqKey && !cerebrasKey && !openrouterKey && !githubKey && !cloudflareOn && !ollamaOn) {
-    throw new Error('No AI provider configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, GITHUB_MODELS_TOKEN, CLOUDFLARE_API_TOKEN(+CLOUDFLARE_ACCOUNT_ID)');
-  }
-
-  // When a preferred provider is set, skip others to avoid wasting time on failed providers
-  // Special: 'gemini+' means Gemini first, then Groq+Cerebras as backup (skip OpenAI/Anthropic/Grok)
-  const isGeminiPlus = preferredProvider === 'gemini+';
-  const skip = {
-    openai:    isGeminiPlus ? true  : !!(preferredProvider && preferredProvider !== 'openai'),
-    anthropic: isGeminiPlus ? true  : !!(preferredProvider && preferredProvider !== 'anthropic'),
-    gemini:    isGeminiPlus ? false : !!(preferredProvider && preferredProvider !== 'gemini'),
-    grok:      isGeminiPlus ? true  : !!(preferredProvider && preferredProvider !== 'grok'),
-    groq:      isGeminiPlus ? false : !!(preferredProvider && preferredProvider !== 'groq'),
-    cerebras:  isGeminiPlus ? false : !!(preferredProvider && preferredProvider !== 'cerebras'),
-    openrouter: isGeminiPlus ? true : !!(preferredProvider && preferredProvider !== 'openrouter'),
-    github:    isGeminiPlus ? true  : !!(preferredProvider && preferredProvider !== 'github'),
-    cloudflare: isGeminiPlus ? true : !!(preferredProvider && preferredProvider !== 'cloudflare'),
-    ollama:    isGeminiPlus ? true  : !!(preferredProvider && preferredProvider !== 'ollama'),
-    sakana:    isGeminiPlus ? true  : !!(preferredProvider && preferredProvider !== 'sakana')
-  };
 
   const hasKey = {
     openai:    openaiKeys.length > 0,
@@ -310,217 +351,174 @@ module.exports = async function callLLM(opts) {
     openrouter: !!openrouterKey,
     github:    !!githubKey,
     cloudflare: cloudflareOn,  // gated on CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
-    ollama:    ollamaOn,   // gated on OLLAMA_BASE_URL (auth optional)
-    sakana:    sakanaOn    // gated on SAKANA_BASE_URL + SAKANA_API_KEY
+    ollama:    ollamaOn,       // gated on OLLAMA_BASE_URL (auth optional)
+    sakana:    sakanaOn        // gated on SAKANA_BASE_URL + SAKANA_API_KEY
   };
+
+  if (!Object.keys(hasKey).some((p) => p !== 'sakana' && hasKey[p])) {
+    const e = new Error('No AI provider configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, GITHUB_MODELS_TOKEN, CLOUDFLARE_API_TOKEN(+CLOUDFLARE_ACCOUNT_ID)');
+    e._providerErrors = [];
+    e._skipped = Object.keys(hasKey).map((p) => ({ provider: p, reason: 'no key configured' }));
+    e._noProvider = true;
+    throw e;
+  }
 
   const seed             = genSeed();
   const seededUserMessage = userMessage + '\n\n<!-- gen_seed:' + seed + ' -->';
 
-  // ── Provider helpers ────────────────────────────────────────────────────────
-
-  async function _openai(model, key) {
+  // ── One HTTP attempt, bounded end to end ───────────────────────────────────
+  // The timer covers the BODY as well as the headers. It used to be cleared as
+  // soon as the status line arrived, so a provider that answered 200 and then
+  // stalled mid-body held the call until the platform killed the function.
+  async function attempt(provider, model, url, init, perAttemptMs, readText) {
+    const ms = Math.max(1, Math.min(perAttemptMs, remaining()));
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    console.log('[llm][' + stage + '] openai model=' + model + ' key=...' + key.slice(-4) + ' seed=' + seed);
+    const t = setTimeout(() => ctrl.abort(), ms);
     try {
-      const r = await fetch(bases.openai + '/chat/completions', {
-        method: 'POST', cache: 'no-store',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }],
-          max_tokens: maxTokens, temperature,
-          ...(responseFormat ? { response_format: responseFormat } : {})
-        }),
-        signal: ctrl.signal
-      });
-      clearTimeout(t);
+      const r = await fetch(url, Object.assign({ method: 'POST', cache: 'no-store', signal: ctrl.signal }, init));
       if (!r.ok) {
         const err = await r.text().catch(() => '');
-        console.error('[llm][' + stage + '] OpenAI ' + r.status, err.substring(0, 200));
-        return { ok: false, status: r.status, err };
+        const ra = retryAfterSeconds(r.headers && typeof r.headers.get === 'function' ? r.headers.get('retry-after') : null);
+        console.error('[llm][' + stage + '] ' + provider + ' ' + r.status + ' model=' + model, String(err).substring(0, 200));
+        return { ok: false, status: r.status, err, retry_after_s: ra };
       }
-      const data = await r.json();
-      const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-      if (!String(text).trim()) { console.warn('[llm][' + stage + '] openai EMPTY content on ' + model + ' — demoting'); return { ok: false, status: 502, err: 'empty_response' }; }
-      console.log('[llm][' + stage + '] openai ok len=' + text.length);
-      return { ok: true, text, provider: 'openai', model };
+      let data;
+      try { data = JSON.parse(await r.text()); }
+      catch (e) {
+        if (ctrl.signal.aborted) return { ok: false, status: 0, err: 'timeout after ' + ms + 'ms (body)' };
+        return { ok: false, status: 200, err: 'invalid_json_body' };
+      }
+      const got = readText(data || {});
+      if (got.refusal) { console.warn('[llm][' + stage + '] ' + provider + ' refused on ' + model + ' — demoting'); return { ok: false, status: 200, err: 'refusal: ' + got.refusal }; }
+      if (!String(got.text || '').trim()) { console.warn('[llm][' + stage + '] ' + provider + ' EMPTY content on ' + model + ' — demoting'); return { ok: false, status: 200, err: 'empty_response' }; }
+      console.log('[llm][' + stage + '] ' + provider + ' ok model=' + model + ' len=' + got.text.length);
+      return { ok: true, text: got.text, provider, model };
     } catch (e) {
+      const aborted = ctrl.signal.aborted;
+      return { ok: false, status: 0, err: aborted ? ('timeout after ' + ms + 'ms') : (e && e.message) || String(e) };
+    } finally {
       clearTimeout(t);
-      return { ok: false, status: 0, err: e.message || String(e) };
     }
   }
 
-  async function _anthropic(model) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    console.log('[llm][' + stage + '] anthropic model=' + model + ' seed=' + seed);
+  // OpenAI-shaped answer: content, or a refusal / content filter.
+  function readChat(data) {
+    const c = data.choices && data.choices[0];
+    const msg = (c && c.message) || {};
+    const content = typeof msg.content === 'string' ? msg.content
+      : Array.isArray(msg.content) ? msg.content.map((p) => (p && (p.text || '')) || '').join('') : '';
+    if (!String(content).trim() && msg.refusal) return { refusal: String(msg.refusal).slice(0, 160) };
+    if (c && c.finish_reason === 'content_filter') return { refusal: 'content_filter' };
+    return { text: content };
+  }
+
+  function _openai(model, key) {
+    return attempt('openai', model, bases.openai + '/chat/completions', {
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }],
+        max_tokens: maxTokens, temperature,
+        ...(responseFormat ? { response_format: responseFormat } : {})
+      }),
+    }, timeoutMs, readChat);
+  }
+
+  function _anthropic(model) {
     // Claude has no native JSON mode — inject instruction into system prompt
     const claudeSystem = responseFormat
       ? systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. First character must be { and last must be }. No markdown fences, no commentary, no text before or after.'
       : systemPrompt;
-    try {
-      const r = await fetch(bases.anthropic + '/messages', {
-        method: 'POST', cache: 'no-store',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01'
-        },
-        // 4.6+ Claude models reject temperature+top_p together (and some reject
-        // temperature outright) — we NEVER send top_p, and only send temperature
-        // on legacy claude-3* models (none in the default chains; env override only).
+    return attempt('anthropic', model, bases.anthropic + '/messages', {
+      headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+      // 4.6+ Claude models reject temperature+top_p together (and some reject
+      // temperature outright) — we NEVER send top_p, and only send temperature
+      // on legacy claude-3* models (none in the default chains; env override only).
+      body: JSON.stringify(Object.assign({
+        model, max_tokens: maxTokens, system: claudeSystem,
+        messages: [{ role: 'user', content: seededUserMessage }]
+      }, /^claude-3/.test(model) ? { temperature } : {})),
+    }, timeoutMs, (data) => {
+      // Every TEXT block, in order. A response can open with a thinking block,
+      // and reading only content[0] read that as "no text" on a good answer.
+      const blocks = Array.isArray(data.content) ? data.content : [];
+      const out = blocks.filter((b) => b && b.type !== 'thinking' && b.type !== 'redacted_thinking' && typeof b.text === 'string').map((b) => b.text).join('');
+      if (data.stop_reason === 'refusal') return { refusal: 'stop_reason refusal' };
+      return { text: out };
+    });
+  }
+
+  function _gemini(model) {
+    const combined = systemPrompt + '\n\n---\nUSER REQUEST:\n' + seededUserMessage;
+    // Gemini free tier can be slower — give 30% more time than other providers
+    return attempt('gemini', model,
+      bases.gemini + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(geminiKey), {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: combined }] }],
+          generationConfig: {
+            temperature, maxOutputTokens: maxTokens,
+            ...(responseFormat ? { responseMimeType: 'application/json' } : {}),
+            // thinkingConfig only for 2.5 thinking models — causes 400 on other families
+            ...(responseFormat && model.includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {})
+          }
+        }),
+      }, Math.round(timeoutMs * 1.3), (data) => {
+        const cand = data.candidates && data.candidates[0];
+        const parts = (cand && cand.content && Array.isArray(cand.content.parts)) ? cand.content.parts : [];
+        const out = parts.filter((p) => p && !p.thought && typeof p.text === 'string').map((p) => p.text).join('');
+        if (!out.trim() && data.promptFeedback && data.promptFeedback.blockReason) return { refusal: 'blocked: ' + data.promptFeedback.blockReason };
+        if (!out.trim() && cand && /SAFETY|RECITATION|BLOCKLIST|PROHIBITED/i.test(String(cand.finishReason || ''))) return { refusal: 'finishReason ' + cand.finishReason };
+        return { text: out };
+      });
+  }
+
+  // Grok / Groq / Cerebras / OpenRouter / GitHub / Cloudflare / Ollama / Sakana
+  // are OpenAI-compatible chat endpoints.
+  function _openaiCompatible(providerName, base, key, extra) {
+    return function (model) {
+      return attempt(providerName, model, base + '/chat/completions', {
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
         body: JSON.stringify(Object.assign({
           model,
-          max_tokens: maxTokens,
-          system: claudeSystem,
-          messages: [{ role: 'user', content: seededUserMessage }]
-        }, /^claude-3/.test(model) ? { temperature } : {})),
-        signal: ctrl.signal
-      });
-      clearTimeout(t);
-      if (!r.ok) {
-        const err = await r.text().catch(() => '');
-        console.error('[llm][' + stage + '] Anthropic ' + r.status, err.substring(0, 200));
-        return { ok: false, status: r.status, err };
-      }
-      const data = await r.json();
-      const text = (data.content && data.content[0] && data.content[0].text) || '';
-      if (!String(text).trim()) { console.warn('[llm][' + stage + '] anthropic EMPTY content on ' + model + ' — demoting'); return { ok: false, status: 502, err: 'empty_response' }; }
-      console.log('[llm][' + stage + '] anthropic ok model=' + model + ' len=' + text.length);
-      return { ok: true, text, provider: 'anthropic', model };
-    } catch (e) {
-      clearTimeout(t);
-      return { ok: false, status: 0, err: e.message || String(e) };
-    }
-  }
-
-  async function _gemini(model) {
-    const ctrl = new AbortController();
-    // Gemini free tier can be slower — give 30% more time than other providers
-    const t = setTimeout(() => ctrl.abort(), Math.round(timeoutMs * 1.3));
-    const combined = systemPrompt + '\n\n---\nUSER REQUEST:\n' + seededUserMessage;
-    console.log('[llm][' + stage + '] gemini model=' + model + ' seed=' + seed);
-    try {
-      const r = await fetch(
-        bases.gemini + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(geminiKey),
-        {
-          method: 'POST', cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: combined }] }],
-            generationConfig: {
-              temperature, maxOutputTokens: maxTokens,
-              ...(responseFormat ? { responseMimeType: 'application/json' } : {}),
-              // thinkingConfig only for 2.5 thinking models — causes 400 on other families
-              ...(responseFormat && model.includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {})
-            }
-          }),
-          signal: ctrl.signal
-        }
-      );
-      clearTimeout(t);
-      if (!r.ok) {
-        const err = await r.text().catch(() => '');
-        console.error('[llm][' + stage + '] Gemini ' + r.status + ' model=' + model, err.substring(0, 200));
-        return { ok: false, status: r.status, err };
-      }
-      const data = await r.json();
-      const text = (
-        data.candidates && data.candidates[0] &&
-        data.candidates[0].content && data.candidates[0].content.parts &&
-        data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text
-      ) || '';
-      if (!String(text).trim()) { console.warn('[llm][' + stage + '] gemini EMPTY content on ' + model + ' — demoting'); return { ok: false, status: 502, err: 'empty_response' }; }
-      console.log('[llm][' + stage + '] gemini ok model=' + model + ' len=' + text.length);
-      return { ok: true, text, provider: 'gemini', model };
-    } catch (e) {
-      clearTimeout(t);
-      return { ok: false, status: 0, err: e.message || String(e) };
-    }
-  }
-
-  // Grok / Groq / Cerebras are OpenAI-compatible chat endpoints.
-  function _openaiCompatible(providerName, base, key, extra) {
-    return async function (model) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), timeoutMs);
-      console.log('[llm][' + stage + '] ' + providerName + ' model=' + model + ' seed=' + seed);
-      try {
-        const r = await fetch(base + '/chat/completions', {
-          method: 'POST', cache: 'no-store',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-          body: JSON.stringify(Object.assign({
-            model,
-            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }],
-            temperature
-          }, extra(model))),
-          signal: ctrl.signal
-        });
-        clearTimeout(t);
-        if (!r.ok) {
-          const err = await r.text().catch(() => '');
-          console.error('[llm][' + stage + '] ' + providerName + ' ' + r.status, err.substring(0, 200));
-          return { ok: false, status: r.status, err };
-        }
-        const data = await r.json();
-        const text = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
-        // Empty content (e.g. a reasoning model that spent the whole token budget on
-        // its hidden reasoning field, or a JSON-mode truncation) is NOT a usable
-        // answer — demote so the cascade tries the next model/provider instead of
-        // returning a blank "success" that surfaces downstream as an LLM error.
-        if (!String(text).trim()) { console.warn('[llm][' + stage + '] ' + providerName + ' EMPTY content on ' + model + ' — demoting'); return { ok: false, status: 502, err: 'empty_response' }; }
-        console.log('[llm][' + stage + '] ' + providerName + ' ok model=' + model + ' len=' + text.length);
-        return { ok: true, text, provider: providerName, model };
-      } catch (e) {
-        clearTimeout(t);
-        return { ok: false, status: 0, err: e.message || String(e) };
-      }
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }],
+          temperature
+        }, extra(model))),
+      }, timeoutMs, readChat);
     };
   }
-
-  const _grok = _openaiCompatible('grok', bases.grok, grokKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
-  const _groq = _openaiCompatible('groq', bases.groq, groqKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
-  // Cerebras: free tier caps output at 8K; no response_format support yet.
-  const _cerebras = _openaiCompatible('cerebras', bases.cerebras, cerebrasKey, () => ({
-    max_tokens: Math.min(maxTokens, 8192)
-  }));
-  // OpenRouter (OpenAI-compatible). Optional ranking headers omitted (not required).
-  const _openrouter = _openaiCompatible('openrouter', bases.openrouter, openrouterKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
-  // GitHub Models (OpenAI-compatible). Free GPT-4o family via a GitHub PAT.
-  const _github = _openaiCompatible('github', bases.github, githubKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
-  // Cloudflare Workers AI (OpenAI-compatible at /ai/v1). Free daily allowance.
-  const _cloudflare = _openaiCompatible('cloudflare', bases.cloudflare, cloudflareKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
-  // Optional tail rungs (OpenAI-compatible). Only ever reached if configured
-  // (hasKey.ollama / hasKey.sakana gate them in the cascade loop).
-  const _ollama = _openaiCompatible('ollama', bases.ollama, ollamaKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
-  const _sakana = _openaiCompatible('sakana', bases.sakana, sakanaKey, () => ({
-    max_tokens: maxTokens,
-    ...(responseFormat ? { response_format: responseFormat } : {})
-  }));
+  const _std = () => ({ max_tokens: maxTokens, ...(responseFormat ? { response_format: responseFormat } : {}) });
+  const CALL = {
+    anthropic: _anthropic,
+    gemini: _gemini,
+    grok: _openaiCompatible('grok', bases.grok, grokKey, _std),
+    groq: _openaiCompatible('groq', bases.groq, groqKey, _std),
+    // Cerebras: free tier caps output at 8K; no response_format support yet.
+    cerebras: _openaiCompatible('cerebras', bases.cerebras, cerebrasKey, () => ({ max_tokens: Math.min(maxTokens, 8192) })),
+    openrouter: _openaiCompatible('openrouter', bases.openrouter, openrouterKey, _std),
+    github: _openaiCompatible('github', bases.github, githubKey, _std),
+    cloudflare: _openaiCompatible('cloudflare', bases.cloudflare, cloudflareKey, _std),
+    ollama: _openaiCompatible('ollama', bases.ollama, ollamaKey, _std),
+    sakana: _openaiCompatible('sakana', bases.sakana, sakanaKey, _std),
+  };
 
   // ── Tier-ordered cascade ────────────────────────────────────────────────────
   let openaiKeysExhausted = 0;
-  const _providerErrors = []; // Track each provider's failure for diagnostics
+  const _providerErrors = []; // one row per failed ATTEMPT, in the order made
+  const _skipped = [];        // providers never tried, and why
+  let budgetOut = false;
+
+  function record(provider, model, result, keyIndex) {
+    const kind = classifyFailure(result.status, result.err);
+    const row = {
+      provider, model, status: result.status, kind, reason: KIND_WORDS[kind] || kind,
+      err: String(result.err || '').substring(0, 120),
+    };
+    if (keyIndex) row.key_index = keyIndex;
+    if (result.retry_after_s != null) row.retry_after_s = result.retry_after_s;
+    _providerErrors.push(row);
+    return kind;
+  }
 
   function _success(result) {
     return { text: result.text, provider: result.provider, model: result.model, seed,
@@ -528,78 +526,69 @@ module.exports = async function callLLM(opts) {
              // Which routing decided this call, and whether the key that paid
              // for it was the workspace's. Never the key, only the fact.
              routing: ov ? 'workspace' : 'platform',
-             workspace_key: !!ovKeys[result.provider] };
+             workspace_key: !!ovKeys[result.provider],
+             // What failed before this answer, so a caller can see it was a fallback.
+             attempts: _providerErrors.slice(), fell_back: _providerErrors.length > 0 };
   }
 
-  function _abortBadRequest(providerName, result) {
-    // Plain 400 = request bug (blueprint: do NOT demote across providers).
-    _providerErrors.push({ provider: providerName, status: result.status, err: String(result.err || '').substring(0, 120) });
-    const err = new Error('Bad request (HTTP 400, non-billing) from ' + providerName + ' [' + stage + '] — not demoting. ' + String(result.err || '').substring(0, 250));
-    err._providerErrors = _providerErrors;
-    err._badRequest = true;
-    throw err;
-  }
+  const budgetLeft = () => {
+    if (remaining() >= MIN_ATTEMPT_MS) return true;
+    budgetOut = true;
+    return false;
+  };
 
   // Runs one provider's model chain with within-provider demotion.
-  // Returns the last failure result, or the success result.
+  // Returns the success result, or null when the chain is exhausted.
   async function runChain(providerName, callFn, models) {
-    let result = null;
     for (const model of models) {
-      result = await callFn(model);
+      if (!budgetLeft()) return null;
+      const result = await callFn(model);
       if (result.ok) return result;
-      const kind = classifyFailure(result.status, result.err);
-      if (kind === 'bad_request') _abortBadRequest(providerName, result);
-      if (kind === 'model') {
-        console.warn('[llm][' + stage + '] ' + providerName + ' model-not-found on ' + model + ' — demoting within provider');
-        continue;
+      const kind = record(providerName, model, result);
+      // The key is dead (auth/billing), the host is not answering, or this
+      // provider refused the body every sibling would receive: the rest of
+      // this chain would fail the same way, so go to the next provider.
+      if (kind === 'auth' || kind === 'billing' || kind === 'timeout' || kind === 'bad_request') {
+        console.warn('[llm][' + stage + '] ' + providerName + ' ' + result.status + ' (' + kind + ') — falling to next provider');
+        return null;
       }
-      // NOTE: no wait-and-retry on Gemini 429. In practice the free-tier 429 is a
-      // DAILY-quota exhaustion (not a per-minute blip), so a 4s wait+retry never
-      // recovered and just burned ~8-10s per call across the two Gemini models —
-      // stacking into function timeouts when several LLM calls run in one request.
-      // Demote immediately to the next model/provider instead.
-      if (kind === 'quota' || kind === 'transient') {
-        console.warn('[llm][' + stage + '] ' + providerName + ' ' + result.status + ' (' + kind + ') on ' + model + ' — trying next model');
-        continue;
-      }
-      // 'auth' or 'timeout' → don't waste time on sibling models, fall to next provider
-      console.warn('[llm][' + stage + '] ' + providerName + ' ' + result.status + ' (' + kind + ') — falling to next provider');
-      break;
+      // NOTE: no wait-and-retry on a 429. The free-tier 429 is usually a DAILY
+      // quota, so sleeping never recovered and stacked into function timeouts.
+      console.warn('[llm][' + stage + '] ' + providerName + ' ' + result.status + ' (' + kind + ') on ' + model + ' — trying next model');
     }
-    return result;
+    return null;
   }
 
-  // OpenAI needs key rotation inside the model loop.
+  // OpenAI rotates keys inside the model loop. A key that answered auth or
+  // billing is dead for the rest of THIS call and is never sent again, even to
+  // a sibling model; a model error moves on to the next model with the keys
+  // that are still alive.
   async function runOpenai(models) {
-    let result = null;
+    const dead = new Set();
     for (const model of models) {
-      let modelNotFound = false;
+      let nextModel = false;
       for (let ki = 0; ki < openaiKeys.length; ki++) {
-        result = await _openai(model, openaiKeys[ki]);
+        if (dead.has(ki)) continue;
+        if (!budgetLeft()) return null;
+        const result = await _openai(model, openaiKeys[ki]);
         if (result.ok) return result;
-        const kind = classifyFailure(result.status, result.err);
-        if (kind === 'bad_request') _abortBadRequest('openai', result);
-        if (kind === 'quota') {
-          openaiKeysExhausted++;
-          console.warn('[llm][' + stage + '] OpenAI key #' + (ki + 1) + ' quota exhausted — rotating');
+        const kind = record('openai', model, result, ki + 1);
+        if (kind === 'billing' || kind === 'auth') {
+          dead.add(ki);
+          if (kind === 'billing') openaiKeysExhausted++;
+          console.warn('[llm][' + stage + '] OpenAI key #' + (ki + 1) + ' ' + kind + ' — rotating');
           continue; // next key, same model
         }
-        if (kind === 'auth') {
-          console.warn('[llm][' + stage + '] OpenAI key #' + (ki + 1) + ' auth failure — rotating');
-          continue; // next key, same model
-        }
-        if (kind === 'model') { modelNotFound = true; break; } // demote within-provider
-        // timeout / transient → next provider
+        if (kind === 'rate_limit') { console.warn('[llm][' + stage + '] OpenAI key #' + (ki + 1) + ' rate limited — rotating'); continue; }
+        if (kind === 'model' || kind === 'empty' || kind === 'transient') { nextModel = true; break; }
+        // timeout / bad_request → next provider
         console.warn('[llm][' + stage + '] OpenAI ' + result.status + ' (' + kind + ') — falling to next provider');
-        return result;
+        return null;
       }
-      if (modelNotFound) {
-        console.warn('[llm][' + stage + '] OpenAI model-not-found on ' + model + ' — demoting within provider');
-        continue;
-      }
-      break; // all keys quota/auth-exhausted for this model — no point trying siblings
+      if (dead.size >= openaiKeys.length) return null; // every key is dead
+      if (!nextModel) return null;                       // every live key rate limited on this model
     }
-    return result;
+    return null;
   }
 
   // The cascade order. A workspace order comes FIRST and in full; the tier's
@@ -607,61 +596,84 @@ module.exports = async function callLLM(opts) {
   // platform to finish the job (`fallback`). A workspace that turned fallback
   // off has said its brand's prompts go to the providers it named and nowhere
   // else, so the cascade ends there even if that means failing.
+  const known = (p) => hasKey[p] !== undefined;
   let order;
-  if (ovOrder.length) {
-    order = ovOrder.filter((p) => hasKey[p] !== undefined);
+  let outsideRouting = [];
+  if (ov && ov.fallback === false && !ovOrder.length) {
+    // "Only my providers" with no explicit order: the providers the workspace
+    // CONNECTED, in the tier's order. This used to run the platform's whole
+    // default cascade on the platform's keys, which is the one thing switching
+    // the fallback off says not to do.
+    const mine = new Set((Array.isArray(ov.configured) && ov.configured.length ? ov.configured : Object.keys(ovKeys)).map((p) => String(p).toLowerCase()));
+    order = providerOrder(tierNorm).filter((p) => mine.has(p));
+    for (const p of mine) if (known(p) && order.indexOf(p) < 0) order.push(p);
+    outsideRouting = providerOrder(tierNorm).filter((p) => !mine.has(p));
+  } else if (ovOrder.length) {
+    order = ovOrder.filter(known);
     if (ov.fallback !== false) {
       for (const p of providerOrder(tierNorm)) if (order.indexOf(p) < 0) order.push(p);
+    } else {
+      outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
     }
+  } else if (preferredProvider === 'gemini+') {
+    // 'gemini+' is a deliberate FREE-ONLY route: Gemini, then the free rungs.
+    order = providerOrder(tierNorm).filter((p) => p === 'gemini' || p === 'groq' || p === 'cerebras');
+    outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
   } else {
-    order = providerOrder(tierNorm);
-    // Honor an explicit preferProvider even if the tier's default order omits it (e.g. grok on 'fast').
-    if (preferredProvider && !isGeminiPlus && hasKey[preferredProvider] !== undefined && order.indexOf(preferredProvider) < 0) {
-      order.push(preferredProvider);
+    order = providerOrder(tierNorm).slice();
+    if (preferredProvider && known(preferredProvider)) {
+      // A preferred provider goes FIRST, and the rest of the cascade still
+      // follows it. It used to SKIP every other provider, so a pinned provider
+      // that stumbled once left the call with no fallback at all (the sticky
+      // provider in brand-llm.js and the analyst->copy pin both hit this).
+      order = [preferredProvider].concat(order.filter((p) => p !== preferredProvider));
+      if (exclusive) { outsideRouting = order.slice(1); order = [preferredProvider]; }
     }
   }
+  order = _dedupe(order);
+  for (const p of outsideRouting) if (hasKey[p]) _skipped.push({ provider: p, reason: 'outside this call\'s routing' });
 
-  for (const providerName of order) {
-    if (skip[providerName] || !hasKey[providerName]) continue;
+  for (let i = 0; i < order.length; i++) {
+    const providerName = order[i];
+    if (!hasKey[providerName]) { _skipped.push({ provider: providerName, reason: 'no key configured' }); continue; }
+    if (!budgetLeft()) {
+      for (const p of order.slice(i)) if (hasKey[p]) _skipped.push({ provider: p, reason: 'call budget exhausted (' + budgetMs + 'ms)' });
+      break;
+    }
     console.warn('[llm][' + stage + '] Trying ' + providerName + ' (tier=' + tierNorm + ')');
     // A workspace's model chain replaces the tier chain for that provider. It
     // may name a model this platform does not ship, which is deliberate: the
-    // account paying for the call knows what it can reach, and llm.js already
-    // demotes within a provider on a model-not-found.
+    // account paying for the call knows what it can reach, and a model-not-found
+    // demotes within the provider.
     const chosen = ovModels[providerName];
-    const models = (Array.isArray(chosen) && chosen.length) ? chosen : modelsFor(providerName, tierNorm);
-    let result;
-    if (providerName === 'openai') {
-      result = await runOpenai(models);
-    } else {
-      const fn = providerName === 'anthropic' ? _anthropic
-        : providerName === 'gemini' ? _gemini
-        : providerName === 'grok' ? _grok
-        : providerName === 'groq' ? _groq
-        : providerName === 'cerebras' ? _cerebras
-        : providerName === 'openrouter' ? _openrouter
-        : providerName === 'github' ? _github
-        : providerName === 'cloudflare' ? _cloudflare
-        : providerName === 'ollama' ? _ollama
-        : _sakana;
-      result = await runChain(providerName, fn, models);
-    }
+    const models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(providerName, tierNorm)).map((m) => String(m || '').trim()));
+    const result = providerName === 'openai'
+      ? await runOpenai(models)
+      : await runChain(providerName, CALL[providerName], models);
     if (result && result.ok) return _success(result);
-    if (result) {
-      _providerErrors.push({ provider: providerName, status: result.status, err: String(result.err || '').substring(0, 120) });
+    if (budgetOut) {
+      for (const p of order.slice(i + 1)) if (hasKey[p]) _skipped.push({ provider: p, reason: 'call budget exhausted (' + budgetMs + 'ms)' });
+      break;
     }
   }
 
-  // === All providers exhausted — build detailed diagnostic ===
+  // === All providers exhausted — one error that names each and why ===
   const _failLog = _providerErrors.map(function (e) { return e.provider + ':' + e.status; }).join(' → ');
-  const _fullLog = _providerErrors.map(function (e) { return e.provider + '(' + e.status + '): ' + e.err; }).join(' | ');
-  console.error('[llm][' + stage + '] ALL PROVIDERS FAILED: ' + _fullLog);
+  const tried = _providerErrors.map(function (e) {
+    return e.provider + (e.model ? ' (' + e.model + (e.key_index ? ', key #' + e.key_index : '') + ')' : '') + ': ' + e.reason +
+      (e.status ? ' HTTP ' + e.status : '') + (e.retry_after_s != null ? ', retry after ' + e.retry_after_s + 's' : '');
+  }).join('; ');
+  const notTried = _skipped.map(function (s) { return s.provider + ': ' + s.reason; }).join('; ');
+  console.error('[llm][' + stage + '] ALL PROVIDERS FAILED: ' + tried + (notTried ? ' | not tried: ' + notTried : ''));
   const last = _providerErrors[_providerErrors.length - 1];
   const errMsg = last ? String(last.err || '').substring(0, 250) : 'All providers exhausted';
   const err = new Error(
-    'All providers failed [' + stage + '] cascade=' + (_failLog || 'none-attempted') + ' | last=' + errMsg
+    'All providers failed [' + stage + '] cascade=' + (_failLog || 'none-attempted') +
+    ' | tried: ' + (tried || 'none') + (notTried ? ' | not tried: ' + notTried : '') + ' | last=' + errMsg
   );
   err._providerErrors = _providerErrors;
+  err._skipped = _skipped;
+  if (budgetOut) err._budgetExhausted = true;
   throw err;
 };
 
@@ -774,3 +786,5 @@ module.exports.corsHeaders = function corsHeaders(res) {
 module.exports.normalizeTier = normalizeTier;
 module.exports.modelsFor = modelsFor;
 module.exports.providerOrder = providerOrder;
+module.exports.classifyFailure = classifyFailure;
+module.exports.retryAfterSeconds = retryAfterSeconds;

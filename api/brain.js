@@ -326,7 +326,7 @@ module.exports = async function handler(req, res) {
       const rt = require('./_shared/brand-runtime.js');
       req.__brand = req.__public_unattributed
         ? rt.unresolvedBrand('no brand on this request: a signed-out page with no active brand')
-        : await rt.resolve(req, Object.assign({ workspace_id: __wsId }, __auth ? { auth: __auth } : {}));
+        : await rt.resolve(req, Object.assign({ workspace_id: __wsId, named_workspace: hadExplicit ? __wsId : '' }, __auth ? { auth: __auth } : {}));
     } catch (_) { req.__brand = null; }
   } catch (_) { /* scoping must never hard-fail the router */ }
 
@@ -360,14 +360,16 @@ module.exports = async function handler(req, res) {
   const __homeMarket = () => {
     try {
       const rt = require('./_shared/brand-runtime.js');
-      return rt.homeRegion(req.__brand || rt.defaultBrand());
+      // No brand resolved: the unresolved placeholder (no home market, so the
+      // caller states the gap), never tenant zero's IN (2026-10-11).
+      return rt.homeRegion(req.__brand || rt.unresolvedBrand('no brand resolved for this request'));
     } catch (_) { return ''; }
   };
   /* The market a request ASKED for, held to the brand's own list (any
      spelling: "India" is IN, GB is UK), else home; '' with the marker and a
      sentence when there is none (brand-locale.marketFor). */
   const __activeBrand = () => {
-    try { const rt = require('./_shared/brand-runtime.js'); return req.__brand || rt.defaultBrand(); } catch (_) { return req.__brand || null; }
+    try { const rt = require('./_shared/brand-runtime.js'); return req.__brand || rt.unresolvedBrand('no brand resolved for this request'); } catch (_) { return req.__brand || null; }
   };
   const __marketFor = (asked) => require('./_shared/brand-locale.js').marketFor(__activeBrand(), asked);
   /* The brand's OWN default agent - its brand-level agent, else its first -

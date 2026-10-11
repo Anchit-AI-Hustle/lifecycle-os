@@ -105,14 +105,36 @@ test('a slot stored for an earlier version of the record is not shown, and the p
   expect(onlyOld.entries.every(e => e.__brand_identity === stampFor(brand))).toBe(true);
 });
 
-test('the fingerprint moves with the name, the website, the legal sender and the catalogue source', () => {
-  const base = { ...deli, legal_entity: 'Deli Chic Foods Pvt Ltd', catalog_source: { url: 'https://deli.example.com' } };
+test('the fingerprint moves with the name, the website, the legal sender, the catalogue source, the palette, the type, the voice, the claims and the markets', () => {
+  const base = {
+    ...deli, legal_entity: 'Deli Chic Foods Pvt Ltd', catalog_source: { url: 'https://deli.example.com' },
+    typography: { heading: { family: 'Fraunces' }, body: { family: 'Mulish' } },
+    voice: { tone: 'warm', banned: ['guilt-free'] }, claims: ['Made fresh daily in Pune'],
+  };
   const a = stampFor(base);
-  expect(a).toMatch(/^bi1:[0-9a-f]{24}$/);
+  expect(a).toMatch(/^bi2:[0-9a-f]{24}$/);
   expect(stampFor({ ...base })).toBe(a);
-  for (const changed of [{ name: 'Mamaearth' }, { website: 'https://www.nike.in' }, { legal_entity: 'Honasa Consumer Ltd' }, { catalog_source: { url: 'https://www.nike.in' } }]) {
+  // Key order does not move it; a value does.
+  expect(stampFor({ ...base, palette: { ink: base.palette.ink, surface: base.palette.surface, accent: base.palette.accent, primary: base.palette.primary } })).toBe(a);
+  for (const changed of [
+    { name: 'Mamaearth' }, { website: 'https://www.nike.in' }, { legal_entity: 'Honasa Consumer Ltd' }, { catalog_source: { url: 'https://www.nike.in' } },
+    { palette: { ...base.palette, primary: '#D0473E' } }, { palette: { ...base.palette, accent: '#6A33D8' } },
+    { typography: { ...base.typography, heading: { family: 'Montserrat' } } }, { typography: { ...base.typography, body: { family: 'Instrument Sans' } } },
+    { voice: { ...base.voice, tone: 'bold, energetic' } }, { voice: { ...base.voice, banned: ['guilt-free', 'superfood'] } },
+    { claims: ['India\'s largest sneaker customisers'] }, { approved_claims: [{ text: 'Clinically proven' }] },
+    { regions: [{ code: 'UK', currency: 'GBP', home: true }] }, { regions: [{ code: 'IN', currency: 'USD', home: true }] },
+  ]) {
     expect(stampFor({ ...base, ...changed }), JSON.stringify(changed)).not.toBe(a);
   }
+});
+
+test('with no identity for the brand in scope, a stored or stamped slot is never replayed unchecked', () => {
+  const other = plan.__test_slotForOtherRecord;
+  const row = { id: 'r1', payload: { __brand_identity: stampFor(deli) } };
+  expect(other({ id: 'r1' }, row, null), 'a stored row with no current identity').toBe(true);
+  expect(other({ id: 'x', __brand_identity: stampFor(deli) }, null, null), 'a stamped inline slot with no current identity').toBe(true);
+  expect(other({ id: 'x' }, null, null), 'an unstamped slot built in this request').toBe(false);
+  expect(other({ id: 'r1' }, row, stampFor(deli)), 'the same record').toBe(false);
 });
 
 test('a stored slot is built with the CURRENT record, never the brand it was planned under', async () => {

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand Context - Lifecycle OS</title>
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<meta name="description" content="Everything the platform holds and uses for the active brand, field by field, with where each value came from.">
+<link rel="stylesheet" href="/theme.css">
+<script src="/brand-context.js?early=1"></script>
+<script src="/brand-catalogue-panel.js?v=20261011"></script>
+<style>
+  /* Roles only (design/lifecycle-os/CONTRACT.md). The one exception is a
+     palette swatch, whose ground IS the brand's own value shown as data. */
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);padding:clamp(14px,4vw,28px) clamp(10px,3vw,20px)}
+  .wrap{max-width:1100px;margin:0 auto}
+  .eyebrow{color:var(--vh-accent-text);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+  h1{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:clamp(26px,5vw,38px);line-height:1.1;margin:8px 0 10px;overflow-wrap:anywhere}
+  .lede{color:var(--vh-ink-dim);font-size:15px;line-height:1.6;margin:0 0 14px;max-width:780px}
+  .toc{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 18px}
+  .toc a{display:inline-flex;align-items:center;min-height:44px;padding:6px 12px;border:1px solid var(--vh-line);border-radius:999px;background:var(--vh-panel);color:var(--vh-ink);font-size:13px;text-decoration:none}
+  .toc a:hover{border-color:var(--vh-line-hot)}
+  .sec{margin:0 0 16px}
+  .sec.vh-card{padding:16px}
+  .sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px}
+  .sec h2{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:18px;margin:0}
+  .sec-edit{display:inline-flex;align-items:center;min-height:44px;font-size:13px;color:var(--vh-primary-text);font-weight:700}
+  .facts{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:0;margin:0}
+  .facts dt,.facts dd{margin:0;padding:9px 0;border-top:1px solid var(--vh-line);min-width:0}
+  .facts dt{font-size:13px;font-weight:700;color:var(--vh-ink);padding-right:12px}
+  .facts dd{font-size:14px;color:var(--vh-ink);overflow-wrap:anywhere}
+  .val{display:block}
+  .val > a{display:inline-flex;align-items:center;min-height:44px;max-width:100%;overflow-wrap:anywhere}
+  .orig{display:block;margin-top:3px;font-size:12px;color:var(--vh-ink-dim)}
+  .orig a{color:var(--vh-primary-text)}
+  .mk{display:inline-block;padding:2px 8px;border:1px dashed var(--vh-marker-edge);background:var(--vh-marker-ground);color:var(--vh-ink);border-radius:6px;font-size:12.5px}
+  .list{margin:0;padding-left:18px}.list li{margin:2px 0}
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:10px;margin:4px 0 10px}
+  .sw{border:1px solid var(--vh-line);border-radius:12px;overflow:hidden;background:var(--vh-panel-2);min-width:0}
+  .sw-chip{height:54px;border-bottom:1px solid var(--vh-line)}
+  .sw-txt{padding:8px 10px;font-size:12.5px;line-height:1.45;overflow-wrap:anywhere}
+  .sw-txt b{display:block;font-size:13px}
+  .recslot{display:block;margin-bottom:4px}.recslot img{max-height:48px;max-width:160px;display:block}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+  details{margin-top:8px}summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:13px;font-weight:700}
+  .tok{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 12px;font-size:12.5px}
+  .tok span{min-width:0;overflow-wrap:anywhere}
+  .note{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--vh-accent);background:var(--vh-panel-2);border-radius:0 10px 10px 0;font-size:13px;line-height:1.5}
+  .note.warn{border-left-color:var(--vh-warn)}
+  @media (max-width:640px){body{padding-left:10px;padding-right:10px}.sec.vh-card{padding:14px 10px}.facts{grid-template-columns:minmax(0,1fr)}.facts dd{border-top:0;padding-top:0}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="eyebrow">Lifecycle OS · Brand &amp; Credits</div>
+  <h1 id="ctxTitle">Brand context</h1>
+  <p class="lede">Everything the platform holds and uses for the active brand, field by field, with where each value came from: typed by a person, read from the brand guidelines, read from the site, a template, or the wizard's own default. A missing fact is marked, never filled in. To change anything, use the Edit link on its section.</p>
+  <nav class="toc" id="ctxToc" aria-label="Sections"></nav>
+  <div id="ctxBody" role="status" aria-live="polite"><p class="vh-status">Reading the active brand's record…</p></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var body = document.getElementById('ctxBody');
+  var toc = document.getElementById('ctxToc');
+  var seq = 0;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function isObj(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+  function str(v) { return v == null ? '' : String(v).trim(); }
+  function filled(v) { if (v == null) return false; if (typeof v === 'string') return v.trim() !== ''; if (Array.isArray(v)) return v.length > 0; if (typeof v === 'object') return Object.keys(v).length > 0; return true; }
+  function nameOf(b) { return (b && b.name) || 'this brand'; }
+  function marker(field, b) { return '[DATA REQUIRED BEFORE LAUNCH: ' + field + ', ' + nameOf(b) + ']'; }
+  function mk(field, b) { return '<span class="mk" data-marker>' + esc(marker(field, b)) + '</span>'; }
+  function getAt(o, p) { return String(p).split('.').reduce(function (a, k) { return a == null ? undefined : a[k]; }, o); }
+  function safeUrl(u) { u = str(u); return /^https?:\/\//i.test(u) ? u : ''; }
+  function link(u, label) { var s = safeUrl(u); return s ? '<a href="' + esc(s) + '" rel="noopener noreferrer" target="_blank">' + esc(label || s) + '</a>' : esc(u); }
+
+  var ORIGIN_LABEL = {
+    user: 'typed by a person', document: 'read from the brand guidelines', 'site-render': 'measured on the rendered site',
+    'site-parse': 'read from the site', auto: 'read from the site', preset: 'from a starter template', 'default': 'the wizard\'s default',
+  };
+  /** Where a field's CURRENT value came from: the guideline reader's record
+      (field_origins), else the plain map (field_origin), else the site read's
+      applied record; a filled value with none of them is the person's - the
+      same reading onboarding.html's originOf() and the coherence rule make. */
+  function originOf(rec, f, value) {
+    var bd = isObj(rec.brand_data) ? rec.brand_data : {};
+    var fos = isObj(bd.field_origins) ? bd.field_origins : {};
+    var plain = isObj(bd.field_origin) ? bd.field_origin : {};
+    var fo = isObj(fos[f]) ? fos[f] : null;
+    var ex = isObj(bd.brand_extraction) && isObj(bd.brand_extraction.applied) ? bd.brand_extraction.applied : {};
+    var alt = f.indexOf('brand_data.') === 0 ? f.slice(11) : '';
+    var ap = isObj(ex[f]) ? ex[f] : (alt && isObj(ex[alt]) ? ex[alt] : null);
+    var origin = str((fo && fo.origin) || plain[f]);
+    var url = safeUrl((fo && (fo.url || fo.source_url)) || (ap && ap.source_url) || '');
+    var detail = str((fo && fo.source && !safeUrl(fo.source) ? fo.source : '') || (ap && ap.signal) || '');
+    if (!origin && ap) origin = str(ap.origin) || 'site-parse';
+    if (!origin && (filled(value) || value === false)) origin = 'user';
+    return { origin: origin, url: url, detail: detail };
+  }
+  function originHTML(o) {
+    if (!o || !o.origin) return '';
+    return '<span class="orig" data-origin="' + esc(o.origin) + '">Source: ' + esc(ORIGIN_LABEL[o.origin] || o.origin) +
+      (o.detail ? ' (' + esc(o.detail) + ')' : '') + (o.url ? ' · ' + link(o.url) : '') + '</span>';
+  }
+  function scalarHTML(v) {
+    if (Array.isArray(v)) return v.length ? '<ul class="list">' + v.map(function (x) { return '<li>' + scalarHTML(x) + '</li>'; }).join('') + '</ul>' : '';
+    if (isObj(v)) return Object.keys(v).filter(function (k) { return filled(v[k]) && typeof v[k] !== 'function'; })
+      .map(function (k) { return '<span class="val"><b>' + esc(k.replace(/_/g, ' ')) + ':</b> ' + (isObj(v[k]) || Array.isArray(v[k]) ? esc(JSON.stringify(v[k]).slice(0, 240)) : (safeUrl(v[k]) ? link(v[k]) : esc(v[k]))) + '</span>'; }).join('');
+    if (typeof v === 'boolean') return v ? 'yes' : 'no';
+    return safeUrl(v) ? link(v) : esc(v);
+  }
+  /** One fact: its label, its value or the marker, and its source. */
+  function fact(rec, b, f, label, opts) {
+    var o = opts || {};
+    var v = o.value !== undefined ? o.value : (f.indexOf('brand_data.') === 0 ? getAt(rec.brand_data || {}, f.slice(11)) : getAt(rec, f));
+    var has = filled(v) || v === false;
+    var shown = has ? (o.render ? o.render(v) : scalarHTML(v)) : mk(o.marker || label.toLowerCase(), b);
+    return '<dt>' + esc(label) + '</dt><dd data-field="' + esc(f) + '"' + (has ? '' : ' data-missing') + '><span class="val">' + shown + '</span>' +
+      (has && !o.noOrigin ? originHTML(originOf(rec, f, v)) : '') + '</dd>';
+  }
+  function section(id, title, stepN, rec, inner) {
+    var href = '/onboarding?step=' + stepN + '&id=' + encodeURIComponent(rec.id || '');
+    return '<section class="vh-card sec" id="sec-' + id + '" data-section="' + id + '">' +
+      '<div class="sec-head"><h2>' + esc(title) + '</h2><a class="sec-edit" data-edit href="' + esc(href) + '">Edit in Brand Setup</a></div>' + inner + '</section>';
+  }
+  function facts(rows) { return '<dl class="facts">' + rows.join('') + '</dl>'; }
+
+  /* ── sections ─────────────────────────────────────────────────────────── */
+  function identity(rec, b) {
+    // The record's own logo and icon, shown in a brand slot: the place a
+    // brand's mark belongs (docs/platform-identity.md), never page chrome.
+    var img = function (v) { return safeUrl(v) ? '<span data-brand-slot="record" class="recslot"><img src="' + esc(v) + '" alt=""></span>' + link(v) : esc(v); };
+    return section('identity', 'Identity', 1, rec, facts([
+      fact(rec, b, 'name', 'Brand name', { marker: 'brand name' }),
+      fact(rec, b, 'slug', 'Slug', { noOrigin: true }),
+      fact(rec, b, 'website', 'Website'),
+      fact(rec, b, 'tagline', 'Tagline'),
+      fact(rec, b, 'industry', 'Industry'),
+      fact(rec, b, 'brand_data.legal_entity', 'Legal entity'),
+      fact(rec, b, 'logo_url', 'Logo', { marker: 'logo URL', render: img }),
+      fact(rec, b, 'favicon_url', 'App icon', { marker: 'app icon', render: img }),
+    ]));
+  }
+  function palette(rec, b) {
+    var p = isObj(rec.palette) ? rec.palette : {};
+    var ROLES = [['primary', 'Primary'], ['accent', 'Accent'], ['ink', 'Text'], ['surface', 'Page surface'], ['surface_alt', 'Card surface'], ['muted', 'Secondary text']];
+    var HEX = /^#[0-9a-f]{3,8}$/i;
+    var sw = ROLES.map(function (r) {
+      var v = str(p[r[0]]);
+      var f = 'palette.' + r[0];
+      if (!v) return '<div class="sw" data-field="' + f + '" data-missing><div class="sw-txt"><b>' + esc(r[1]) + '</b>' + mk(r[1].toLowerCase() + ' colour', b) + '</div></div>';
+      // The brand's own value, shown as data: the one colour this page paints.
+      return '<div class="sw" data-field="' + f + '"><div class="sw-chip"' + (HEX.test(v) ? ' style="background:' + v + '"' : '') + '></div>' +
+        '<div class="sw-txt"><b>' + esc(r[1]) + '</b><span class="mono">' + esc(v) + '</span>' + originHTML(originOf(rec, f, v)) + '</div></div>';
+    }).join('');
+    var tk = isObj(rec.tokens) ? rec.tokens : {};
+    var keys = Object.keys(tk).filter(function (k) { return /^--brand-/.test(k); }).sort();
+    var derived = keys.length
+      ? '<details><summary>Derived tokens (' + keys.length + ')</summary><div class="tok">' + keys.map(function (k) { return '<span class="mono">' + esc(k) + '</span><span class="mono">' + esc(tk[k]) + '</span>'; }).join('') + '</div></details>'
+      : '';
+    var check = null;
+    try { check = window.BrandContext && window.BrandContext.validatePalette ? window.BrandContext.validatePalette(p) : null; } catch (_) { check = null; }
+    var verdict = check && check.ok === false
+      ? '<p class="note warn">The design rules do not pass on this palette: ' + esc(((check.errors || check.issues || [])[0] || {}).message || 'see the Colour schema step') + '</p>' : '';
+    return section('palette', 'Palette', 2, rec, '<div class="swatches">' + sw + '</div>' + verdict + derived);
+  }
+  function typography(rec, b) {
+    var t = isObj(rec.typography) ? rec.typography : {};
+    var face = function (v) {
+      if (!isObj(v)) return esc(v);
+      return '<span class="val"><b>' + esc(v.family || '') + '</b></span>' +
+        (v.stack ? '<span class="val mono">' + esc(v.stack) + '</span>' : '') +
+        (v.weights ? '<span class="val">Weights: ' + esc(v.weights) + '</span>' : '') +
+        '<span class="val">' + (v.google === false ? 'Self-hosted or brand font' : 'Google Fonts') + (v.src ? ' · ' + link(v.src, 'font file') : '') + '</span>';
+    };
+    var extra = Object.keys(t).filter(function (k) { return k !== 'heading' && k !== 'body' && filled(t[k]); });
+    var ds = isObj(rec.brand_data) && isObj(rec.brand_data.design_system) ? rec.brand_data.design_system : null;
+    var scale = ds && (ds.type_scale || ds.typography || ds.headings);
+    return section('typography', 'Typography', 3, rec, facts([
+      fact(rec, b, 'typography.heading', 'Heading font', { marker: 'heading font', render: face, value: isObj(t.heading) && t.heading.family ? t.heading : undefined }),
+      fact(rec, b, 'typography.body', 'Body font', { marker: 'body font', render: face, value: isObj(t.body) && t.body.family ? t.body : undefined }),
+    ].concat(extra.map(function (k) { return fact(rec, b, 'typography.' + k, 'Type ' + k.replace(/_/g, ' '), { noOrigin: true }); }))
+      .concat(scale ? [fact(rec, b, 'brand_data.design_system', 'Measured type scale', { value: scale })] : [fact(rec, b, 'typography.scale', 'Type scale', { marker: 'typography scale', value: '' })])));
+  }
+  function voice(rec, b) {
+    var chips = function (v) { return Array.isArray(v) ? esc(v.join(', ')) : esc(v); };
+    return section('voice', 'Voice and guardrails', 4, rec, facts([
+      fact(rec, b, 'voice.tone', 'Tone', { marker: 'tone of voice' }),
+      fact(rec, b, 'voice.preferred', 'Preferred vocabulary', { marker: 'preferred vocabulary', render: chips }),
+      fact(rec, b, 'voice.banned', 'Banned phrases', { marker: 'banned phrases', render: chips }),
+      fact(rec, b, 'voice.no_em_dashes', 'No em or en dashes'),
+      fact(rec, b, 'voice.notes', 'Notes for the writer', { marker: 'writer notes' }),
+    ]));
+  }
+  function regions(rec, b) {
+    var rs = Array.isArray(rec.regions) ? rec.regions : [];
+    var home = rs.filter(function (r) { return r && r.home === true; })[0];
+    var rows = [fact(rec, b, 'regions.home', 'Home market', { marker: 'home market', value: home ? str(home.code).toUpperCase() : '' })];
+    rs.forEach(function (r, i) {
+      if (!r) return;
+      var code = str(r.code).toUpperCase() || ('Region ' + (i + 1));
+      rows.push('<dt>' + esc(code) + (r.home ? ' (home)' : '') + '</dt><dd data-field="regions.' + esc(code) + '">' +
+        '<span class="val"><b>Currency:</b> ' + (r.currency ? esc(r.currency) + (r.symbol ? ' (' + esc(r.symbol) + ')' : '') : mk('currency', b)) + '</span>' +
+        '<span class="val"><b>Store:</b> ' + (safeUrl(r.store_url) ? link(r.store_url) : mk('region store URL', b)) + '</span>' +
+        (r.language || r.locale ? '<span class="val"><b>Locale:</b> ' + esc(r.locale || r.language) + '</span>' : '') + '</dd>');
+    });
+    if (!rs.length) rows.push('<dt>Markets</dt><dd data-field="regions" data-missing>' + mk('markets served', b) + '</dd>');
+    return section('regions', 'Markets', 5, rec, facts(rows));
+  }
+  function claims(rec, b) {
+    var bd = isObj(rec.brand_data) ? rec.brand_data : {};
+    var appr = Array.isArray(bd.approved_claims) ? bd.approved_claims : (Array.isArray(rec.approved_claims) ? rec.approved_claims : []);
+    var cited = function (v) {
+      return '<ul class="list">' + v.map(function (c) {
+        if (!isObj(c)) return '<li>' + esc(c) + '</li>';
+        var cit = isObj(c.citation) ? c.citation : {};
+        return '<li>' + esc(c.text || '') + (cit.source || cit.url ? ' <span class="orig">Citation: ' + esc(cit.source || '') + (cit.url ? ' · ' + link(cit.url) : '') + '</span>' : ' ' + mk('citation, ' + str(c.text), b)) +
+          (Array.isArray(c.regions) && c.regions.length ? ' <span class="orig">Markets: ' + esc(c.regions.join(', ')) + '</span>' : '') + '</li>';
+      }).join('') + '</ul>';
+    };
+    return section('claims', 'Claims', 4, rec, facts([
+      fact(rec, b, 'brand_data.claims', 'Verifiable claims', { marker: 'verifiable claims' }),
+      fact(rec, b, 'brand_data.approved_claims', 'Approved claims with citations', { marker: 'approved claim + citation', value: appr.length ? appr : undefined, render: cited, noOrigin: true }),
+    ]));
+  }
+  function itemsWithSource(list, urlKey, srcKey) {
+    return '<ul class="list">' + list.map(function (x) {
+      if (!isObj(x)) return '<li>' + (safeUrl(x) ? link(x) : esc(x)) + '</li>';
+      var u = x[urlKey] || x.url || x.src;
+      var label = x.platform || x.kind || x.alt || x.role || '';
+      var src = x[srcKey] || x.source_url || x.page || x.found_on;
+      return '<li>' + (label ? '<b>' + esc(label) + ':</b> ' : '') + (safeUrl(u) ? link(u) : esc(u || '')) +
+        (src ? '<span class="orig" data-origin="site">Found on ' + link(src) + '</span>' : '') + '</li>';
+    }).join('') + '</ul>';
+  }
+  function presence(rec, b) {
+    var bd = isObj(rec.brand_data) ? rec.brand_data : {};
+    var social = Array.isArray(bd.social) ? bd.social : [];
+    var imagery = Array.isArray(bd.imagery) ? bd.imagery : [];
+    var assets = Array.isArray(bd.brand_assets) ? bd.brand_assets : [];
+    return section('presence', 'Social, imagery and assets', 1, rec, facts([
+      fact(rec, b, 'brand_data.social', 'Social profiles', { marker: 'social profiles', render: function (v) { return itemsWithSource(v, 'url', 'source_url'); }, value: social.length ? social : undefined }),
+      fact(rec, b, 'brand_data.imagery', 'Brand imagery', { marker: 'brand imagery', render: function (v) { return itemsWithSource(v, 'url', 'page'); }, value: imagery.length ? imagery : undefined }),
+      fact(rec, b, 'brand_data.brand_assets', 'Brand assets', { marker: 'brand assets', render: function (v) { return itemsWithSource(v, 'url', 'found_on'); }, value: assets.length ? assets : undefined }),
+      fact(rec, b, 'asset_hosts', 'Asset hosts', { noOrigin: true, render: function (v) { return esc(Array.isArray(v) ? v.join(', ') : v); } }),
+    ]));
+  }
+  function design(rec, b) {
+    var bd = isObj(rec.brand_data) ? rec.brand_data : {};
+    var ds = isObj(bd.design_system) ? bd.design_system : null;
+    var comp = isObj(bd.design_components) ? bd.design_components : null;
+    var summary = function (o) {
+      var keys = Object.keys(o).filter(function (k) { return filled(o[k]); });
+      return '<span class="val">' + keys.length + ' part(s) recorded: ' + esc(keys.slice(0, 16).join(', ')) + '</span>' +
+        (o.source_url || o.url ? '<span class="orig">Measured on ' + link(o.source_url || o.url) + '</span>' : '');
+    };
+    var doc = isObj(bd.brand_document) ? bd.brand_document : null;
+    return section('design', 'Design system', 1, rec, facts([
+      fact(rec, b, 'brand_data.design_system', 'Measured from the site', { marker: 'measured design system', value: ds || undefined, render: summary }),
+      fact(rec, b, 'brand_data.design_components', 'From the brand guidelines', { marker: 'design components', value: comp || undefined, render: summary, noOrigin: true }),
+      fact(rec, b, 'brand_data.brand_document', 'Brand guidelines document', { marker: 'brand guidelines', value: doc || undefined, noOrigin: true,
+        render: function (d) { return esc(d.name || 'applied') + (d.describes ? ' <span class="orig">Describes: ' + esc(typeof d.describes === 'string' ? d.describes : JSON.stringify(d.describes)) + '</span>' : ''); } }),
+    ]));
+  }
+  function catalogue(rec, b, cat) {
+    var src = isObj(rec.catalog_source) ? rec.catalog_source : null;
+    var P = window.BrandCataloguePanel;
+    var rows = [fact(rec, b, 'catalog_source', 'Source', { marker: 'catalogue source', value: src && src.kind ? src : undefined,
+      render: function () { return esc(P ? P.sourceLine(src) : src.kind); } })];
+    if (cat && !cat.error) {
+      rows.push('<dt>Products generation can use</dt><dd data-field="catalog.count" data-cat-count="' + cat.rows.length + '"><span class="val"><b>' + cat.rows.length + '</b>' +
+        (cat.stale ? ', ' + cat.stale + ' no longer listed by the store (kept, not used)' : '') + '</span></dd>');
+      rows.push('<dt>Excluded</dt><dd data-field="catalog.excluded" data-cat-excluded="' + (cat.excluded || 0) + '"><span class="val">' +
+        (cat.excluded ? cat.excluded + ' read from another brand\'s site' + (cat.verdict && cat.verdict.domain ? ' (' + esc(cat.verdict.domain) + ')' : '') + ', never used' : 'None') + '</span></dd>');
+      if (cat.coverage && Array.isArray(cat.coverage.sentences) && cat.coverage.sentences.length)
+        rows.push('<dt>Coverage</dt><dd data-field="catalog.coverage"><span class="val">' + esc(cat.coverage.sentences[0]) + (cat.resumable ? ' The import stopped part-way and can be continued.' : '') + '</span></dd>');
+    } else if (cat && cat.error) {
+      rows.push('<dt>Products</dt><dd data-field="catalog.count"><span class="val">The catalogue could not be read just now.</span></dd>');
+    }
+    return section('catalogue', 'Catalogue', 5, rec, facts(rows) + '<p style="margin:10px 0 0"><a class="vh-btn vh-btn-secondary" data-cat-link href="/catalog">Open the catalogue</a></p>');
+  }
+  function coherence(rec, b) {
+    var B = window.BrandContext;
+    var c = null;
+    try { c = B && B.coherence ? B.coherence(rec) : null; } catch (_) { c = null; }
+    var bd = isObj(rec.brand_data) ? rec.brand_data : {};
+    var cr = isObj(bd.coherence) ? bd.coherence : {};
+    var overrides = Array.isArray(cr.overrides) ? cr.overrides : [];
+    var parts = [];
+    if (!c) parts.push('<p class="vh-status">The coherence check is not available on this page.</p>');
+    else {
+      parts.push('<p class="note' + (c.blocking ? ' warn' : '') + '" data-coherence="' + (c.ok ? 'ok' : (c.blocking ? 'block' : 'warn')) + '">' + esc(c.summary) + '</p>');
+      if (c.conflicts && c.conflicts.length) parts.push('<ul class="list">' + c.conflicts.map(function (x) {
+        return '<li><b>' + esc(x.severity === 'block' ? 'Blocks activation' : 'Check') + ':</b> ' + esc(x.message || x.label) + '</li>'; }).join('') + '</ul>');
+    }
+    var acc = Array.isArray(cr.accepted) ? cr.accepted : [];
+    parts.push(facts([
+      '<dt>Kept by a person</dt><dd data-field="coherence.accepted"><span class="val">' + (acc.length ? acc.length + ' value(s) kept with "Keep this"' : 'None') + '</span></dd>',
+      '<dt>Overrides</dt><dd data-field="coherence.overrides"><span class="val">' + (overrides.length ? '<ul class="list">' + overrides.map(function (o) {
+        return '<li>' + esc(str(o.at).slice(0, 10)) + ': ' + esc(o.reason || '') + '</li>'; }).join('') + '</ul>' : 'None') + '</span></dd>',
+    ]));
+    return section('coherence', 'Is this record one brand?', 1, rec, parts.join(''));
+  }
+  function contextPack(rec, b, pack) {
+    var inner;
+    if (!pack) inner = '<p class="vh-status">The context pack could not be read just now.</p>';
+    else if (!pack.pack) inner = '<p class="vh-status" data-pack="none">' + esc(pack.note || 'No context pack has been built for this brand yet.') + ' ' + mk('brand context pack', b) + '</p>';
+    else {
+      var p = pack.pack;
+      inner = facts([
+        '<dt>Status</dt><dd data-field="pack.status" data-pack="' + esc(p.status || '') + '"><span class="val">' + esc(p.status || 'unknown') + (p.stage ? ' (stage: ' + esc(p.stage) + ')' : '') + '</span></dd>',
+        '<dt>Built</dt><dd data-field="pack.completed_at"><span class="val">' + esc(str(p.completed_at || p.updated_at).slice(0, 10) || 'not finished') + '</span></dd>',
+        '<dt>DESIGN.md</dt><dd data-field="pack.design_md"><span class="val">' + (pack.design_md || p.has_design_md ? 'Built' : 'Not built') + '</span></dd>',
+        '<dt>Outstanding</dt><dd data-field="pack.markers"><span class="val">' + ((pack.markers || []).length ? esc((pack.markers || []).length + ' data requirement(s)') : 'None') + '</span></dd>',
+      ]);
+    }
+    return section('pack', 'Brand context pack', 6, rec, inner);
+  }
+
+  var TOC = [['identity', 'Identity'], ['palette', 'Palette'], ['typography', 'Typography'], ['voice', 'Voice'], ['regions', 'Markets'], ['claims', 'Claims'],
+    ['presence', 'Social & assets'], ['design', 'Design system'], ['catalogue', 'Catalogue'], ['coherence', 'Coherence'], ['pack', 'Context pack']];
+
+  async function load() {
+    var my = ++seq;
+    var B = window.BrandContext;
+    if (!B) { body.innerHTML = '<p class="vh-status">' + esc(marker('active brand', null)) + ' No brand layer is loaded on this page.</p>'; return; }
+    var b = null;
+    try { var first = await B.ready(); b = B.brand || first || null; } catch (_) { b = B.brand || null; }
+    if (my !== seq) return;
+    if (!b) {
+      toc.innerHTML = '';
+      body.innerHTML = '<p class="vh-status" data-ctx-empty>No brand is active, so there is no brand context to show. <a href="/onboarding">Set up or choose a brand</a>.</p>';
+      return;
+    }
+    document.getElementById('ctxTitle').textContent = nameOf(b) + ' context';
+    var rec = null;
+    try { var got = await B.api('get', { query: '&id=' + encodeURIComponent(b.id || '') }); rec = (got && got.brand) || null; }
+    catch (e) {
+      if (my !== seq) return;
+      body.innerHTML = '';
+      if (window.LifecycleFailure && window.LifecycleFailure.show) window.LifecycleFailure.show(body, e, { title: 'The brand record could not be read' });
+      else body.innerHTML = '<p class="vh-status">The brand record could not be read: ' + esc((e && e.message) || e) + '</p>';
+      return;
+    }
+    if (my !== seq) return;
+    rec = rec || b;
+    var cat = null, pack = null;
+    try { cat = window.BrandCataloguePanel ? await window.BrandCataloguePanel.read(B, rec) : null; } catch (_) { cat = { error: true }; }
+    try { pack = await B.api('context-pack', { query: '&workspace_id=' + encodeURIComponent(rec.id || '') }); } catch (_) { pack = null; }
+    if (my !== seq) return;
+    toc.innerHTML = TOC.map(function (t) { return '<a href="#sec-' + t[0] + '">' + esc(t[1]) + '</a>'; }).join('');
+    body.removeAttribute('role');
+    body.innerHTML = [identity(rec, b), palette(rec, b), typography(rec, b), voice(rec, b), regions(rec, b), claims(rec, b),
+      presence(rec, b), design(rec, b), catalogue(rec, b, cat), coherence(rec, b), contextPack(rec, b, pack)].join('');
+  }
+  window.addEventListener('brandcontext:change', load);
+  load();
+})();
+</script>
+<script defer src="/auth.js"></script>
+</body>
+</html>

@@ -282,7 +282,7 @@ module.exports = async function handler(req, res) {
     const results = await Promise.all(PROVIDERS.map(async (p) => {
       if (!keyPresent(p.id)) return { provider: p.id, label: p.label, configured: false, ok: false, verdict: 'not configured', generate_key_at: p.gen };
       try {
-        const r = await withCap(callLLM({ systemPrompt: 'Reply with the single word: ok', userMessage: 'ping', maxTokens: 64, temperature: 0, timeoutMs: 4500, stage: 'probe', preferProvider: p.id }), 6500);
+        const r = await withCap(callLLM({ systemPrompt: 'Reply with the single word: ok', userMessage: 'ping', maxTokens: 64, temperature: 0, timeoutMs: 4500, stage: 'probe', preferProvider: p.id, exclusive: true }), 6500);
         return { provider: p.id, label: p.label, configured: true, ok: true, model: r.model, verdict: 'ok — answered' };
       } catch (e) {
         const det = (e && e._providerErrors && e._providerErrors[0]) || {};

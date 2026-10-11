@@ -220,15 +220,23 @@
      them rather than an empty state. Never another brand's. */
   var OFFERINGS_CACHE = {};
   function hostOf(u) { try { return String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase(); } catch (_) { return ''; } }
+  /* A preset's offerings are this brand's only when the record SAYS it was
+     made from that template (brand_data.template, carried on the shell as
+     `template`) AND the brand's website is that preset's host (2026-10-11).
+     Matching by host alone, a slug prefix or name containment handed
+     "Boathouse Coffee" boAt's, "Apple Pie Bakery" Apple's offerings. The
+     server twin is smart-brain-plan _resolveBrandOfferings. */
+  function templateOf(brand) {
+    var t = brand && (brand.template || (brand.brand_data && brand.brand_data.template));
+    if (!t) return '';
+    return String(typeof t === 'object' ? (t.slug || '') : t).trim().toLowerCase();
+  }
   function presetMatches(brand, preset) {
     if (!brand || !preset) return false;
-    if (hostOf(brand.website) && hostOf(brand.website) === hostOf(preset.website)) return true;
-    var bs = String(brand.slug || '').toLowerCase(), ps = String(preset.slug || '').toLowerCase();
-    if (bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0)) return true;
-    var bn = String(brand.name || '').trim().toLowerCase(), pn = String(preset.name || '').trim().toLowerCase();
-    // Full-string containment only - never token overlap, which would match
-    // "The Times of India" to "The Economic Times" on {the, times}.
-    return !!(bn && pn && (bn === pn || bn.indexOf(pn) >= 0 || pn.indexOf(bn) >= 0));
+    var t = templateOf(brand), ps = String(preset.slug || '').trim().toLowerCase();
+    if (!t || !ps || t !== ps) return false;
+    var bh = hostOf(brand.website);
+    return !!(bh && bh === hostOf(preset.website));
   }
   function brandOfferings(brand) {
     if (Array.isArray(brand.offerings) && brand.offerings.length) return Promise.resolve(brand.offerings);
@@ -276,7 +284,7 @@
       }
       return {
         products: [], source: 'none', brand: brandRef(brand), origin: null,
-        reason: why || ('No catalogue is connected for ' + (brand.name || 'this brand') +
+        reason: why || (marker(region, 'product catalogue', brand) + ' No catalogue is connected for ' + (brand.name || 'this brand') +
                 '. Import one from the brand setup; another brand\'s products are never substituted.'),
       };
     });

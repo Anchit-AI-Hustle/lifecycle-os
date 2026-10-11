@@ -2308,7 +2308,17 @@ function shellPayload(brand, extra) {
     files: filesSummary(brand),
     coherence: coherenceSummary(brand),
     catalog_identity: catalogIdentitySummary(brand),
+    // The preset this record was created from (brand_data.template), slug
+    // only: the browser takes a preset's offerings only for that template on
+    // that host (brand-catalog.js presetMatches, 2026-10-11).
+    template: templateSlug(brand),
   }, extra || {});
+}
+function templateSlug(brand) {
+  const t = brand && brand.brand_data && brand.brand_data.template;
+  if (!t) return '';
+  const s = String(typeof t === 'object' ? (t.slug || '') : t).trim().toLowerCase();
+  return /^[a-z0-9-]{1,60}$/.test(s) ? s : '';
 }
 
 /**
