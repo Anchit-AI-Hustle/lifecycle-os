@@ -398,6 +398,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" id="bd-refresh" class="cb-cta cb-cta-ghost" style="padding:4px 12px; font-size:11px" title="Reload the brand universe from the database">↻ Refresh list</button>
     <span id="bd-count" class="count"></span>
   </div>
+  <!-- Shown only when discovery has nothing of the brand's own to search from
+       (2026-10-11): the person says what the brand sells, it is saved to the
+       ACTIVE brand as its industry (typed, so it is theirs), and discovery runs
+       again. Nothing is proposed or filled in for them. -->
+  <form id="bd-industry" style="display:none;margin:-4px 0 14px;padding:12px 14px;border:1px solid var(--vh-line);border-radius:10px;background:var(--vh-panel)" novalidate>
+    <label for="bd-industry-input" id="bd-industry-label" style="display:block;font-weight:700;color:var(--vh-ink);font-size:13px;margin-bottom:6px">What does the active brand sell?</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="bd-industry-input" type="text" maxlength="120" autocomplete="off" placeholder="In your own words, for example the kind of products it sells" style="flex:1;min-width:220px;padding:8px 10px;border:1px solid var(--vh-line);border-radius:8px;font:inherit;font-size:max(16px,1em);color:var(--vh-ink);background:var(--vh-bg)">
+      <button type="submit" id="bd-industry-save" class="cb-cta cb-cta-solid">Save and find competitors</button>
+    </div>
+    <div id="bd-industry-note" class="vh-status" role="status" hidden></div>
+  </form>
+  <div id="bd-hidden" class="vh-status" role="status" hidden style="margin:-4px 0 14px"></div>
 
   <!-- Column legend so the Newsletter / Subscription columns are self-explanatory -->
   <div style="background:var(--vh-tint); border:1px solid var(--vh-line); border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:var(--vh-ink-dim); line-height:1.6">
@@ -1227,8 +1240,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (brandsLoaded && !force) return;
     $('bd-rows').innerHTML = '<tr><td colspan="6" style="padding:16px;color:#556059">Loading…</td></tr>';
     let brands = [];
-    try { const r = await fetch(API + '?action=brands'); const d = await r.json(); brands = d.brands || []; } catch {}
+    let hidden = null;
+    try { const r = await fetch(API + '?action=brands'); const d = await r.json(); brands = d.brands || []; hidden = d.hidden || null; } catch {}
     brandsLoaded = true;
+    // Rows found for another brand this workspace used to be are hidden, not
+    // deleted; say how many and why.
+    const hn = $('bd-hidden');
+    if (hn) { hn.hidden = !(hidden && hidden.count); hn.textContent = (hidden && hidden.count) ? String(hidden.note || (hidden.count + ' competitors found for another brand are hidden.')) : ''; }
     await loadFollows();
     // Refresh the shared universe so Mailers/Meta/Google/TikTok/Landing tabs
     // all track the SAME brands as this Discover tab.
@@ -1252,13 +1270,41 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <td style="padding:9px 12px;white-space:nowrap">${followChips(b.brandName, b.domain || '')}</td>
       </tr>`).join('');
   }
+  /* The ACTIVE brand, read from the brand layer - never a literal. */
+  function activeBrand() { try { return (window.BrandContext && window.BrandContext.brand) || null; } catch (_) { return null; } }
+  function activeBrandName() { const b = activeBrand(); return (b && String(b.name || '').trim()) || 'the active brand'; }
+  function hideIndustryForm() { const f = $('bd-industry'); if (f) f.style.display = 'none'; }
+  function showIndustryForm(name) {
+    const f = $('bd-industry'); if (!f) return;
+    $('bd-industry-label').textContent = 'What does ' + (name || activeBrandName()) + ' sell?';
+    const note = $('bd-industry-note'); note.hidden = true; note.textContent = '';
+    f.style.display = 'block';
+  }
+  function statusLine(lead, body) {
+    if (window.LifecycleStatus) window.LifecycleStatus.show($('bd-status'), lead + ' ' + body);
+    else $('bd-status').textContent = lead + ' ' + body;
+  }
   async function runBrandAction(btn, action, busyText) {
     const orig = btn.textContent; btn.disabled = true; btn.textContent = busyText;
     $('bd-status').textContent = '';
+    hideIndustryForm();
     try {
+      // Signed out, or no database: say so before anything is sent.
+      if (window.LifecycleStatus) { const ref = await window.LifecycleStatus.decide('Finding competitors'); if (ref) throw ref; }
+      // A brand kept on this device has no workspace on the server, and the
+      // competitor list is kept with a workspace: say that, in one sentence.
+      const ab = activeBrand();
+      if (ab && (String(ab.id || '').indexOf('local-') === 0 || ab.storage === 'device')) {
+        statusLine('Kept on this device.', activeBrandName() + ' is saved on this device only, and a competitor list is kept with a brand in your account. Sign in with Google and sync this brand to your account, then run this again.');
+        return;
+      }
       const r = await fetch(API + '?action=' + action, { method: 'POST' });
       const d = await r.json();
+      if (d.error === 'workspace_unresolved') { statusLine('Not run.', d.note || 'No active brand on this request, so nothing was read or written.'); return; }
       if (!d.ok) throw new Error(d.error || 'failed');
+      // Discovery had nothing of the brand's own to search from: ask what it
+      // sells, right here, and keep the marker on screen.
+      if (d.needs === 'industry') showIndustryForm(d.brand_name);
       // A run that adds nothing is a real answer, not a silent no-op. When the
       // brand's own record names no competitor and research found none, the
       // server returns the data gap, and the gap is what the operator needs to
@@ -1281,6 +1327,43 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       window.LifecycleFailure.show($('bd-status'), e, { title: 'Nothing was added' });
     } finally { btn.disabled = false; btn.textContent = orig; }
   }
+  /* Save what the person typed as the ACTIVE brand's industry, through the
+     brand layer's own save (the account brand, or the one on this device),
+     then run discovery again. Only the industry is sent for an account brand:
+     every other field keeps its stored value and its owner. */
+  async function saveIndustryAndRun(ev) {
+    if (ev) ev.preventDefault();
+    const input = $('bd-industry-input');
+    const note = $('bd-industry-note');
+    const value = String(input.value || '').trim();
+    note.hidden = true; note.textContent = '';
+    if (!value) { note.hidden = false; note.textContent = 'Type what ' + activeBrandName() + ' sells first.'; return; }
+    const B = window.BrandContext;
+    const b = activeBrand();
+    if (!B || typeof B.api !== 'function' || !b || !b.id) { note.hidden = false; note.textContent = 'No active brand is loaded yet, so nothing was saved.'; return; }
+    const btn = $('bd-industry-save');
+    const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const body = { id: b.id, industry: value };
+      if (String(b.id).indexOf('local-') === 0) {
+        // A device brand keeps who set each field in its own record.
+        const full = await B.api('get', { query: '&id=' + encodeURIComponent(b.id) });
+        const bd = Object.assign({}, (full && full.brand && full.brand.brand_data) || {});
+        bd.field_origin = Object.assign({}, bd.field_origin || {}, { industry: 'user' });
+        bd.field_origins = Object.assign({}, bd.field_origins || {}, { industry: { origin: 'user', at: new Date().toISOString() } });
+        body.brand_data = bd;
+      }
+      await B.api('save', { body: { brand: body } });
+      if (typeof B.refresh === 'function') { try { await B.refresh(); } catch (_) {} }
+      hideIndustryForm();
+      btn.disabled = false; btn.textContent = orig;
+      await runBrandAction($('bd-discover'), 'discover', '✨ Searching…(~20s)');
+    } catch (e) {
+      note.hidden = false;
+      window.LifecycleFailure.show(note, e, { title: 'The industry was not saved' });
+    } finally { btn.disabled = false; btn.textContent = orig; }
+  }
+  $('bd-industry').addEventListener('submit', saveIndustryAndRun);
   $('bd-discover').addEventListener('click', function () { runBrandAction(this, 'discover', '✨ Searching…(~20s)'); });
   $('bd-seed').addEventListener('click', function () { runBrandAction(this, 'seed', '⬇ Reading brand record…'); });
   $('bd-refresh').addEventListener('click', async function () {

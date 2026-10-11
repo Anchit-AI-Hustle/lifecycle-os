@@ -1,0 +1,68 @@
+# Read ONE store with the shipped catalogue importer and report what it walked.
+#
+# WHY A WORKFLOW. The agent containers that edit this repo cannot reach brand
+# hosts (2026-10-11: lenskart.com and nykaa.com were refused by the egress
+# proxy), so the live sitemap shapes behind an import's coverage could only be
+# modelled in fixtures. GitHub's runners can reach them.
+#
+# WHAT IT RUNS. scripts/catalog-probe.js: brand-workspace-core.rowsFromStore(),
+# the reader every catalogue import uses, with its SSRF guard, its own honest
+# user agent, robots.txt and Retry-After - step after step from its own cursor.
+# No database, no secret, no write: the coverage, a sample of rows and the
+# sitemap tree go to the run summary and an artifact.
+#
+# DISPATCH ONLY. No push or pull_request trigger: it reads third-party sites,
+# so it runs only when a person asks, for the URL they name.
+name: Catalogue probe (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Store URL to read (https://...)
+        required: true
+        type: string
+      region:
+        description: Market code the rows are read for (IN, US, GB, ...)
+        required: true
+        default: IN
+        type: string
+      steps:
+        description: Maximum steps to run (each up to ~50 s)
+        required: false
+        default: '6'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-probe-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Read the store
+        env:
+          PROBE_URL: ${{ inputs.url }}
+          PROBE_REGION: ${{ inputs.region }}
+          PROBE_STEPS: ${{ inputs.steps }}
+        run: node scripts/catalog-probe.js --url "$PROBE_URL" --region "$PROBE_REGION" --steps "$PROBE_STEPS" --out catalog-probe-out
+      - name: Upload what was read
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-probe-${{ github.run_id }}
+          path: catalog-probe-out
+          if-no-files-found: warn

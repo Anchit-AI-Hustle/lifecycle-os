@@ -253,7 +253,9 @@ test('the rail drawer and the ? info panel fit a phone and scroll inside themsel
 /* ═══ 3. states one load never reaches ══════════════════════════════════════ */
 
 const PLAN = [0, 1, 2].map((n) => ({
-  id: 'slot-' + n, date: '2026-10-1' + n, market: 'IN', cohort: { name: 'Lapsed readers ' + n, size: 1200 + n },
+  // Dates are relative to today: the console drops slots already in the past,
+  // so a fixed date turned row 0 into nothing the day it passed.
+  id: 'slot-' + n, date: new Date(Date.now() + (n + 2) * 86400000).toISOString().slice(0, 10), market: 'IN', cohort: { name: 'Lapsed readers ' + n, size: 1200 + n },
   objective: 'Reactivation with the weekend edition', heroProduct: { title: 'Weekend edition' }, channels: ['email', 'push'],
   confidence: 0.72, status: 'tentative', rationale: 'Reason ' + n,
 }));
