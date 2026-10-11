@@ -1208,6 +1208,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .then(function (d) {
         var p = d && d.preset;
         if (!p) return;
+        /* A starter template is ANOTHER brand's identity, and since 2026-10-11
+           none of it - not even its colours, fonts or voice - is copied onto a
+           brand that has its own website (the operator: "do not customise or
+           mix any brands ever"). Such a brand is set up from its own site;
+           only a brand with no website yet may start as a labelled demo of
+           the template. */
+        var L0 = coh();
+        var own = brand.website ? regOf(brand.website) : '';
+        if (own && !(L0 && p.website && L0.sameBrand(own, regOf(p.website)))) {
+          toast(p.name + ' is a starter template: another brand\'s identity. ' + (brand.name || 'This brand') + ' has its own website (' + own + '), so nothing of ' + p.name + '\'s is copied onto it. Press "Set up from my website" to read ' + own + ' instead.', 7200);
+          return;
+        }
         /* A template is ANOTHER brand's identity (2026-10-10). On a brand that
            already exists (it has an id) only its DESIGN is a template - the
            colours, fonts and voice - and the brand keeps its own name,
@@ -1230,7 +1242,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           brand.brand_data.brand_assets = (p.brand_assets || []).filter(function (a) { return a && a.url; }).map(function (a) {
             return { url: a.url, role: a.role || '', alt: a.alt || '', found_on: a.found_on || '' };
           });
-          brand.brand_data.template = { slug: slug, name: p.name || '', website: p.website || '' };
+          // A labelled DEMO of the template, never a brand of its own.
+          brand.brand_data.template = { slug: slug, name: p.name || '', website: p.website || '', demo: true };
         }
         if (p.palette) brand.palette = JSON.parse(JSON.stringify(p.palette));
         if (p.typography) brand.typography = JSON.parse(JSON.stringify(p.typography));
@@ -1675,12 +1688,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         (off
           ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
           : '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +
-            (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>') +
+            (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>' +
+            '<button type="button" class="btn" id="xSetup" data-credit-feature="brand.extract">' + (setupBusy ? 'Setting up...' : 'Set up from my website') + '</button>') +
       '</div>' +
+      (setupLog.length ? '<ol class="xmeta" data-setup-log style="margin:10px 0 0 18px">' + setupLog.map(function (l) { return '<li data-setup-step="' + esc(l.step) + '" data-state="' + esc(l.state) + '">' + esc(l.text) + '</li>'; }).join('') + '</ol>' : '') +
       (off ? '<div style="margin-top:10px">' + extractNote(storageInfo()) + '</div>' : '') +
       (domainSwitch ? '<div class="coh" data-domain-switch="' + esc(domainSwitch.to) + '"><h3>' + esc(domainSwitch.to) + ' is not this brand\'s website</h3>' +
         '<p>' + esc(brand.name || 'This brand') + '\'s website is ' + esc(domainSwitch.from) + '. Reading ' + esc(domainSwitch.to) + ' into it would put another site\'s name, logo, profiles and colours into this record. Which is it?</p>' +
-        '<div class="coh-acts"><button type="button" class="btn primary" data-dswitch="website">Make ' + esc(domainSwitch.to) + ' this brand\'s website, then read it</button>' +
+        // A brand ESTABLISHED at its site (it holds values read from it) is
+        // that brand: the other site is another brand, so only "start a new
+        // brand" is offered, and this record is kept as it is (2026-10-11).
+        (switchRefusal(domainSwitch) ? '<p data-dswitch-refused>' + esc(switchRefusal(domainSwitch).message) + '</p>' : '') +
+        '<div class="coh-acts">' + (switchRefusal(domainSwitch) ? '' : '<button type="button" class="btn primary" data-dswitch="website">Make ' + esc(domainSwitch.to) + ' this brand\'s website, then read it</button>') +
         '<button type="button" class="btn" data-dswitch="new">Start a new brand from ' + esc(domainSwitch.to) + '</button>' +
         '<button type="button" class="btn" data-dswitch="cancel">Cancel</button></div>' +
         '<p class="coh-src">If you make it the website, every value read from ' + esc(domainSwitch.from) + ' is listed below for you to keep or clear.</p></div>' : '') +
@@ -1702,6 +1721,54 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function coh() { return (window.BrandContext && window.BrandContext.coherenceLib) || null; }
   function regOf(u) { var L = coh(); return L ? L.registrableDomain(L.hostOf(u)) : ''; }
+  /* ── SET UP FROM MY WEBSITE (2026-10-11) ───────────────────────────────
+     The operator: every brand is set up "from its original and source url and
+     sitemap and all available platform details". One action runs, in order,
+     the existing readers on THIS site only: the rendered read (identity,
+     palette, type, design system, logo and icon, social, legal entity,
+     regions and home market; the platform the site declares; robots and its
+     sitemaps), then the catalogue import from the same site, then the context
+     pack. Each value keeps the page it was read from; what the site does not
+     publish stays the DATA REQUIRED marker. Each step says what it did. */
+  var setupBusy = false, setupLog = [];
+  function setupNote(step, state, text) {
+    var i = setupLog.findIndex(function (l) { return l.step === step; });
+    var row = { step: step, state: state, text: text };
+    if (i >= 0) setupLog[i] = row; else setupLog.push(row);
+    render();
+  }
+  async function setUpFromWebsite() {
+    if (setupBusy || extractBusy) return;
+    var input = $('xUrl');
+    var url = input ? input.value.trim() : '';
+    if (!url) { toast('Enter your website address first.'); return; }
+    setupBusy = true; setupLog = [];
+    try {
+      setupNote('read', 'running', 'Reading ' + url + ': identity, colours, type, logo, social profiles, legal entity, markets, platform, robots.txt and sitemaps.');
+      await runExtract();
+      if (domainSwitch) { setupNote('read', 'waiting', domainSwitch.to + ' is not this brand\'s website: choose above, then set up again.'); return; }
+      if (!extraction) { setupNote('read', 'failed', 'The site could not be read, so nothing else was run.'); return; }
+      var sf = (extraction.fields && extraction.fields.storefront) || extraction.storefront || null;
+      var plat = sf && sf.platform && sf.platform.name ? ' The site declares its platform: ' + sf.platform.name + ' (' + (sf.platform.source_url || extraction.start || url) + ').' : ' The site declares no commerce platform.';
+      setupNote('read', 'done', 'Read ' + (extraction.pages_visited || 0) + ' page(s) of ' + (extraction.start || url) + '.' + plat);
+      if (actionsOff() || !brand.id) { setupNote('catalog', 'skipped', 'The catalogue import and the context pack need the brand saved where a server can read it; they were not run.'); return; }
+      var region = importRegion();
+      if (!region) setupNote('catalog', 'skipped', marker('home market') + ' The site declared no home market, so there is nowhere to file the catalogue.');
+      else {
+        setupNote('catalog', 'running', 'Importing the catalogue from ' + brand.website + ' for ' + region + '.');
+        try {
+          await saveBeforeImport();
+          var r = await api('catalog-import', { workspace_id: brand.id, region: region.toLowerCase(), kind: 'storefront', url: brand.website });
+          afterImport(r);
+          setupNote('catalog', r.complete === false ? 'partial' : 'done', 'Imported ' + r.imported + ' products from ' + brand.website + (r.complete === false ? '; the store was not read to the end yet, and Continue import resumes it.' : '.'));
+        } catch (e) { setupNote('catalog', 'failed', window.LifecycleFailure.sentence(e)); }
+      }
+      setupNote('pack', 'running', 'Building the context pack from ' + brand.website + '.');
+      await buildPack();
+      setupNote('pack', packState ? 'done' : 'failed', packState ? 'Context pack built from ' + (packState.site_url || brand.website) + '.' : 'The context pack could not be built.');
+    } finally { setupBusy = false; render(); }
+  }
+
   async function runExtract(opts) {
     if (extractBusy || extractOff()) return;
     var input = $('xUrl');
@@ -2193,6 +2260,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
     if (run) runExtract();
+    var su = e.target && e.target.closest ? e.target.closest('#xSetup') : null;
+    if (su) setUpFromWebsite();
   });
 
   document.addEventListener('input', function (e) {
@@ -2208,6 +2277,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     noteSource('palette.' + role, { value: sel.getAttribute('data-xrole'), signal: 'operator assigned from an extracted candidate', source_url: extraction ? extraction.start : '', confidence: 'declared', origin: 'user' });
     render();
   });
+
+  /** The save's own refusal for re-pointing this brand at another site (brand-coherence identityChangeRefusal), or null. */
+  function switchRefusal(sw) {
+    try {
+      var lib = window.BrandContext && window.BrandContext.coherenceLib;
+      return lib && lib.identityChangeRefusal ? lib.identityChangeRefusal({ website: sw.url }, brand) : null;
+    } catch (_) { return null; }
+  }
 
   function actions(back, next) {
     return '<div class="actions">' +
@@ -2462,6 +2539,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* "X of Y, continuing": the import's own count against what the site declares. */
   function progressLine(cov) {
     if (!cov) return '';
+    // Every market, its own count (2026-10-11): "IN 567 of 600 · US 130 of 130".
+    if (Array.isArray(cov.markets) && cov.markets.length) {
+      return cov.markets.map(function (m) { return m.code + ' ' + (m.found || 0) + (m.declared ? ' of ' + m.declared : ''); }).join(' · ') + ' products read';
+    }
     var y = cov.declared && (cov.declared.count || cov.declared.urls);
     return (cov.found || 0) + (y ? ' of ' + y + (cov.declared.partial ? ' so far' : '') : '') + ' products read';
   }
@@ -2494,7 +2575,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         if (!r.drive || r.progressed === false) break;
         var stop = r.coverage && r.coverage.stopped;
-        var wait = stop && stop.reason === 'rate_limited' ? (stop.wait_ms || 0) : 0;
+        var wait = stop && (stop.reason === 'rate_limited' || stop.reason === 'throttled') ? (stop.wait_ms || 0) : 0;
         if (wait > 120000) break;
         if (wait) { if (status) status.textContent = progressLine(r.coverage) + '; the store asked to wait ' + Math.round(wait / 1000) + ' s, then this continues.'; await pause(wait); }
         if (status) status.textContent = progressLine(r.coverage) + ', continuing…';
@@ -2523,8 +2604,39 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (typeof b.products === 'number') catalogCount = b.products;
     catalogExcluded = typeof b.products_excluded === 'number' ? { count: b.products_excluded, domains: b.products_excluded_domains || [] } : null;
   }
+  /* EVERY market the site publishes is shown on the brand (2026-10-11): a
+     market the import found (hreflang, a locale store, a regional domain) and
+     the record does not list yet is ADDED to its regions with where it came
+     from, through the ordinary save. A row already on the record - typed or
+     read - is never changed. */
+  function famCode(c) { c = String(c || '').toUpperCase().replace(/[^A-Z]/g, ''); return ({ GB: 'UK', GBR: 'UK', IND: 'IN', INDIA: 'IN', USA: 'US' })[c] || c; }
+  async function applyMarkets(ms) {
+    if (!Array.isArray(ms) || !ms.length || !brand || !Array.isArray(brand.regions)) return [];
+    var have = {};
+    brand.regions.forEach(function (r) { have[famCode(r && r.code)] = 1; });
+    var added = [];
+    ms.forEach(function (m) {
+      var code = String(m && m.code || '').toUpperCase();
+      if (!code || have[famCode(code)]) return;
+      have[famCode(code)] = 1;
+      brand.regions.push({ code: code, currency: m.currency || '', store_url: m.store_url || '', source: 'site read: ' + (m.source || 'the store'), home: false });
+      added.push(code);
+    });
+    if (!added.length) return added;
+    if (!originOf('regions')) setOrigin('regions', 'site-parse');
+    // The import that found them is still finishing (save() refuses while
+    // busy): wait for it, then save through the ordinary path.
+    for (var i = 0; i < 100 && busy; i++) await pause(100);
+    var saved = null;
+    try { saved = await save(true); } catch (_) { saved = null; }
+    return saved ? added : [];
+  }
   function afterImport(r, auto) {
     var status = $('impStatus');
+    var ms = (r && r.markets) || (r && r.coverage && r.coverage.markets) || null;
+    if (ms) applyMarkets(ms).then(function (added) {
+      if (added.length && status) status.textContent += ' Markets this store publishes were added to the brand\'s regions: ' + added.join(', ') + '.';
+    });
     catalogCount = typeof r.own === 'number' ? r.own : (typeof r.live === 'number' ? r.live : r.imported);
     catalogExcluded = typeof r.excluded === 'number' ? { count: r.excluded, domains: r.excluded_domains || [] } : null;
     var counts = r.imported + ' products imported' + (r.complete === false ? ' in this step' : '');

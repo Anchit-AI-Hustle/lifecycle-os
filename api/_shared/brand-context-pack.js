@@ -2093,6 +2093,12 @@ async function contextFor(store, workspaceId, { brandKey } = {}) {
   // The pack is a report about ONE site. If the brand has since moved or been
   // renamed, say so rather than presenting a stale report as current.
   const stale = key && key.ok && key.brand_key !== pack.brand_key;
+  // A pack about another site or name is REPORTED, never used (2026-10-11):
+  // its design, knowledge, catalogue and sources described an earlier brand,
+  // and a caller that read `design_md` without checking `current` handed that
+  // brand's design to this one. The row is kept; only its metadata and the
+  // sentence come back.
+  const hide = !!stale;
 
   return {
     ok: true,
@@ -2109,14 +2115,15 @@ async function contextFor(store, workspaceId, { brandKey } = {}) {
         + `${brand.website} / "${brand.name}", so this pack is a report about a different site or name. `
         + 'Build again to produce a pack for the current one; this one is kept, not overwritten.'
       : '',
-    design_md: pack.design_md || null,
-    design: pack.design || {},
-    knowledge: pack.knowledge || {},
-    catalog: pack.catalog || {},
-    repositories: pack.repos || {},
-    sources: pack.sources || [],
-    limits: pack.limits || [],
-    markers: pack.markers || [],
+    hidden: hide,
+    design_md: hide ? null : (pack.design_md || null),
+    design: hide ? {} : (pack.design || {}),
+    knowledge: hide ? {} : (pack.knowledge || {}),
+    catalog: hide ? {} : (pack.catalog || {}),
+    repositories: hide ? {} : (pack.repos || {}),
+    sources: hide ? [] : (pack.sources || []),
+    limits: hide ? [] : (pack.limits || []),
+    markers: hide ? [MARKER('brand context pack for ' + (brand && brand.website ? brand.website : 'the current website'))] : (pack.markers || []),
     precedence: [...origins.values()].map((r) => ({
       field: r.field, origin: r.origin, source_url: r.source_url || '', signal: r.signal || '', set_at: r.set_at,
     })),
@@ -2134,6 +2141,8 @@ async function contextFor(store, workspaceId, { brandKey } = {}) {
  */
 function contextBlock(context) {
   if (!context || !context.pack) return '';
+  // A stale pack lends this brand nothing but the sentence (2026-10-11).
+  if (context.current === false) return `=== BRAND CONTEXT PACK: NOT CURRENT ===\n${context.stale_note}\n${(context.markers || []).join('\n')}\n=== END BRAND CONTEXT PACK ===`;
   const L = [];
   L.push('=== BRAND CONTEXT PACK (read from this brand\'s OWN site; nothing here is invented) ===');
   L.push(`Brand: ${context.brand ? context.brand.name : context.pack.brand_name}`);
@@ -2166,6 +2175,18 @@ function contextBlock(context) {
  */
 async function applyPack(store, workspaceId, fields, sources, { brandKey } = {}) {
   const src = Object.assign({}, sources || {});
+  // Only the pack about the brand's CURRENT site and name may write to it
+  // (2026-10-11): applying a pack read from an earlier website put that
+  // site's values on this brand. Refused with the sentence; the pack is kept.
+  {
+    const brand = await brandRow(store, workspaceId).catch(() => null);
+    const key = brand && brand.website ? packKey(brand.website, brand.name) : null;
+    const pack = await getPackRow(store, workspaceId, brandKey || '').catch(() => null);
+    if (pack && (!key || !key.ok || key.brand_key !== pack.brand_key)) {
+      return { ok: false, error: 'brand_changed', code: 'brand_changed',
+        message: `This context pack describes ${pack.site_url} as "${pack.brand_name}"; the brand is now ${brand && brand.website ? brand.website : 'without a website'} / "${brand ? brand.name : ''}". Nothing from it was applied. Build a pack for the current site.` };
+    }
+  }
   // Record whether the operator took the option the pack ranked first, or
   // reached past it. "The extraction was wrong" and "a human picked the wrong
   // one of several" are different failures with different fixes, and after the

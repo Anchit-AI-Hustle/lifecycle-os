@@ -544,6 +544,9 @@ function normalizeRegions(input) {
       // them (2026-10-10). Nothing reads a pattern that is not there.
       pdp_pattern: str(r.pdp_pattern, 200),
       collection_pattern: str(r.collection_pattern, 200),
+      // Where a market came from when the site read it (2026-10-11): e.g.
+      // "site read: the site's hreflang=\"en-us\"". Empty for a typed row.
+      source: str(r.source, 160),
       home,
     });
   }
@@ -1180,7 +1183,7 @@ async function assertPublicUrl(rawUrl) {
  * The SSRF guard runs on EVERY request the importer makes (each redirect hop
  * included), with the answer for a host cached for the run.
  */
-async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope } = {}) {
+async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope, single, queue } = {}) {
   const candidate = httpUrl(startUrl) || (scope && scope.website) || '';
   if (!candidate) { const e = new Error('A store URL is required.'); e.status = 400; throw e; }
   const base = await assertPublicUrl(candidate);
@@ -1202,7 +1205,12 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
     await assertPublicUrl(u);
     cleared.add(h);
   };
-  const out = await require('./catalog-import.js').step({ url: base, region, brand, cursor, guard, budgetMs });
+  // EVERY regional store the brand publishes (2026-10-11): stepAll discovers
+  // the markets and reads each, filing every row under the market whose store
+  // it came from. `single` keeps the one-market read (a caller that asked for
+  // exactly one store).
+  const ci = require('./catalog-import.js');
+  const out = single ? await ci.step({ url: base, region, brand, cursor, guard, budgetMs, queue }) : await ci.stepAll({ url: base, region, brand, cursor, guard, budgetMs, queue });
   return {
     // `base` is the store ACTUALLY read (2026-10-10). It was the URL asked for,
     // so a read the importer moved to a region's store recorded the brand's
@@ -1213,6 +1221,8 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
       ? { detected: true, platform: { id: out.coverage.platform.id, name: out.coverage.platform.name, why: out.coverage.platform.why, confidence: out.coverage.platform.confidence, source_url: out.coverage.platform.source_url }, catalog_route: { kind: out.coverage.platform.route, note: out.coverage.platform.route_note } }
       : { detected: false },
     coverage: out.coverage, cursor: out.cursor, complete: out.complete, run: out.run, progressed: out.progressed !== false,
+    completed_regions: out.completed_regions || (out.complete ? [String(region || '').toLowerCase()] : []),
+    markets: out.markets || null,
   };
 }
 
@@ -1464,6 +1474,16 @@ function buildRow(input, existing) {
     onboarding_step: Number.isFinite(+b.onboarding_step) ? Math.max(1, Math.min(6, +b.onboarding_step)) : (prev.onboarding_step || 1),
   };
 
+  // ONE SITE PER BRAND, where the record is WRITTEN (2026-10-11). A store URL
+  // this save TYPES on another site than the website's is refused with a
+  // sentence; every value already on the record that was read from another
+  // site (a website change re-judges them all) is set aside in
+  // brand_data.coherence.set_aside, kept and never applied. The coherence
+  // rule's own verdict decides both (brand-coherence.js).
+  const refusal = (existing && coherence.identityChangeRefusal(b, prev)) || coherence.typedUrlRefusal(b, prev);
+  if (refusal) { const e = new Error(refusal.message); e.status = refusal.status; e.code = refusal.code; e.details = [refusal]; throw e; }
+  Object.assign(row, coherence.setAsideForeign(row, new Date().toISOString(), prev).record);
+
   // Colour schema is validated on save, so a broken palette can never reach the
   // shell. A DRAFT may still be saved with an incomplete palette (the wizard
   // saves as it goes); anything ACTIVE must pass — including an EMPTY palette,
@@ -1695,6 +1715,7 @@ async function saveExisting(auth, id, input) {
     }
     // The design rules are checked HERE, on what will be stored.
     const row = buildRow(keepRow.length ? withRowValues(input, existing, keepRow) : input, existing);
+    if (attempt === 0) await refuseDuplicate(auth, row, id);
     const out = await restAs(auth.token, 'rpc/brand_workspace_save', {
       method: 'POST',
       body: { p_workspace: id, p_expected: existing.updated_at || null, p_seen: seen, p_row: row, p_typed: typed, p_origins: applied },
@@ -1715,10 +1736,22 @@ async function saveExisting(auth, id, input) {
   throw e;
 }
 
+/* One record per brand (2026-10-11): a brand whose website is already
+   another record's site in this account is not created twice - the person is
+   offered the existing one. sameBrand decides (brand-coherence.js). */
+async function refuseDuplicate(auth, row, id) {
+  if (!coherence.siteOf(row)) return;
+  let others = [];
+  try { others = await restAs(auth.token, 'brand_workspaces?select=id,name,website'); } catch (_) { others = []; }
+  const dup = coherence.duplicateBrand(Object.assign({}, row, { id: id || '' }), Array.isArray(others) ? others : []);
+  if (dup) { const e = new Error(dup.message); e.status = dup.status; e.code = dup.code; e.details = [dup]; throw e; }
+}
+
 async function saveWorkspace(auth, input) {
   const id = str(input && input.id);
   if (id) return saveExisting(auth, id, input);
   const row = buildRow(input, null);
+  await refuseDuplicate(auth, row, '');
   row.owner_id = auth.user_id;
   const created = await restAs(auth.token, `brand_workspaces?select=${SELECT_COLS}`, {
     method: 'POST', body: [row], prefer: 'return=representation',
@@ -1872,7 +1905,7 @@ async function assertCanWrite(auth, workspaceId, what) {
  *
  * `cursor` resumes a store read a previous invocation could not finish.
  */
-async function readCatalogSource({ region, kind, text, url, scope, cursor, budgetMs }) {
+async function readCatalogSource({ region, kind, text, url, scope, cursor, budgetMs, queue }) {
   // Rows are filed under the region asked for, else the brand's HOME market
   // (its record's flag) - never a literal 'us' (2026-10-05). The wizard
   // already refuses without a home market; this is the same rule one layer
@@ -1901,7 +1934,7 @@ async function readCatalogSource({ region, kind, text, url, scope, cursor, budge
 
   let parsed;
   if (k === 'storefront' || k === 'shopify_public' || k === 'site' || k === 'site_crawl') {
-    parsed = await rowsFromStore(url, reg, scope, { cursor, budgetMs, strictScope: k === 'site' || k === 'site_crawl' });
+    parsed = await rowsFromStore(url, reg, scope, { cursor, budgetMs, strictScope: k === 'site' || k === 'site_crawl', queue });
   } else if (k === 'json') parsed = fileCoverage(rowsFromJson(text, reg), 'JSON export', reg);
   else if (k === 'csv') parsed = fileCoverage(rowsFromCsv(text, reg), 'CSV', reg);
   else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
@@ -1954,7 +1987,8 @@ function coverageSummary(c) {
     found: c.found, by_source: c.by_source, skipped: c.skipped, missing: c.missing,
     missing_examples: (c.missing_examples || []).slice(0, 5),
     complete: !!c.complete, empty: !!c.empty, resume_available: !!c.resume_available, stopped: c.stopped || null, not_before: c.not_before || null,
-    sentences: (c.sentences || []).slice(0, 20),
+    markets: Array.isArray(c.markets) ? c.markets : null,
+    sentences: (c.sentences || []).slice(0, 60),
   };
 }
 
@@ -1985,6 +2019,9 @@ function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
     coverage: cov,
     sitemap: cov && parsed.coverage && parsed.coverage.sitemap ? { found: !!parsed.coverage.sitemap.found, sources: (parsed.coverage.sitemap.sources || []).length } : null,
     coverage_note: cov ? cov.sentences.join(' ') : '',
+    // Every regional store read, with its market, currency and where it was
+    // found (2026-10-11): what the brand's own regions are offered from.
+    markets: parsed && Array.isArray(parsed.markets) ? parsed.markets.map((m) => ({ code: m.code, currency: m.currency, store_url: m.store_url, source: m.source, found: m.found, declared: m.declared, complete: m.complete })) : null,
   };
 }
 
@@ -2075,12 +2112,16 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
     products: kept,
     run: batch,
     complete: !!parsed.complete,
-    resume_available: !parsed.complete,
+    resume_available: !parsed.complete && !!parsed.cursor,
     progressed: parsed.progressed !== false,
     // Keep going from the page while this is true; `wait_ms` first when the store asked.
     drive: !!(devChain && !devChain.stopped),
     chain: devChain,
     alias_regions: require('./catalog-import.js').regionAliases(reg),
+    // Every market read in this step files under its own region; these are
+    // the ones that finished (stale marking is per market).
+    completed_regions: parsed.completed_regions || (parsed.complete ? [reg] : []),
+    markets: parsed.markets || null,
     cursor: parsed.cursor || null,
     family: require('./catalog-import.js').familyOf(k),
     coverage: coverageSummary(parsed.coverage),
@@ -2099,7 +2140,10 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
  * finish the step - for an editor as for the owner (the table's update policy
  * is owner-only, which silently dropped an editor's catalog_source PATCH).
  */
-async function mergeIntoWorkspace(token, { workspace_id, reg, rows, run, complete, family, state, source }) {
+async function mergeIntoWorkspace(token, { workspace_id, reg, rows, run, complete, family, state, source, completed }) {
+  if (completed) {
+    return require('./catalog-import.js').mergeByMarket((p, body) => restAs(token, p, { method: 'POST', body }), { workspace: workspace_id, home: reg, rows, run, completed, family, state, source });
+  }
   const CHUNK = 400;
   const out = { inserted: 0, updated: 0, staled: 0, live: null };
   const chunks = [];
@@ -2170,7 +2214,9 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
       prior = null;
     } else url = priorStart || url;
   }
-  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws, cursor: prior ? prior.cursor : null, budgetMs });
+  // The product URL queue lives in its own table for an account brand (no
+  // per-market cap); the workspace is named on every query against it.
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws, cursor: prior ? prior.cursor : null, budgetMs, queue: { workspace: workspace_id } });
   if (restarted && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.unshift(restarted);
   const rows = uniqueRows(parsed.rows);
   const run = parsed.run || require('crypto').randomUUID();
@@ -2196,7 +2242,8 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
 
   let merged;
   try {
-    merged = await mergeIntoWorkspace(auth.token, { workspace_id, reg, rows, run, complete: complete && replace !== false, family, state, source });
+    merged = await mergeIntoWorkspace(auth.token, { workspace_id, reg, rows, run, complete: complete && replace !== false, family, state, source,
+      completed: replace === false ? [] : (parsed.completed_regions || (complete ? [reg] : [])) });
   } catch (e) {
     // A database that has not been migrated (20261010002000) has no merge. A
     // complete one-call import can still land the old way, and says so; a
@@ -2216,7 +2263,6 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
   }
   // Rows an older import filed under another spelling of this market ("ind")
   // are staled by a complete run of the same source family, never deleted.
-  if (complete && replace !== false) await ci.staleAliasRegions((p, body) => restAs(auth.token, p, { method: 'POST', body }), { workspace: workspace_id, reg, run, family });
   let fired = null;
   if (chain && chain.fire) fired = await ci.fireNext({ workspace_id, token: chain.token, depth: chain.depth, budget_ms: budgetMs });
   // catalog_source lives on the workspace row the generators read, and the
@@ -2233,12 +2279,14 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     region: reg,
     run,
     complete,
-    resume_available: !complete,
+    resume_available: !complete && !!state.cursor,
     progressed: parsed.progressed !== false,
     // The server continues it (`continuing`), or the page should (`drive`).
     continuing: !!(chain && chain.active && fired && fired.fired),
     drive: !!(chain && !chain.active && chain.browser && !chain.done),
     chain: state.chain,
+    markets: parsed.markets || null,
+    live_by_market: merged.by_market || null,
     inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: merged.live,
     // Of the live rows, how many are this brand's and how many another site's.
     own: tally ? tally.own : null, excluded: tally ? tally.excluded : null, excluded_domains: tally ? tally.excluded_domains : [],
@@ -2332,25 +2380,33 @@ function catalogIdentitySummary(brand) {
 
 function shellPayload(brand, extra) {
   if (!brand) return null;
+  // What the shell PAINTS is the record as generation sees it (2026-10-11): a
+  // logo, an icon, a tagline, a colour or a type family read from another
+  // site than the website's is withheld (brand-coherence forGeneration), so
+  // the pages wear only this brand's own site. `identity` is the fingerprint
+  // every stored artefact is judged by (brand-identity.js).
+  const g = coherence.forGeneration(brand) || brand;
   return Object.assign({
     id: brand.id || null,
     slug: brand.slug || '',
     name: brand.name || '',
-    tagline: brand.tagline || '',
-    logo_url: brand.logo_url || '',
-    favicon_url: brand.favicon_url || '',
+    tagline: g.tagline || '',
+    logo_url: g.logo_url || '',
+    favicon_url: g.favicon_url || '',
     website: brand.website || '',
     status: brand.status || 'draft',
     onboarding_step: brand.onboarding_step || 1,
-    palette: brand.palette || {},
-    typography: brand.typography || {},
+    palette: g.palette || {},
+    typography: g.typography || {},
     voice: brand.voice || {},
-    regions: brand.regions || [],
-    tokens: tokens(brand),
-    fonts_href: fontsHref(brand),
+    regions: g.regions || [],
+    tokens: tokens(g),
+    fonts_href: fontsHref(g),
     files: filesSummary(brand),
     coherence: coherenceSummary(brand),
     catalog_identity: catalogIdentitySummary(brand),
+    withheld: (g.coherence_withheld || []).map((x) => ({ field: x.field, domain: x.domain })),
+    identity: require('./brand-identity.js').brandIdentity(brand),
     // The preset this record was created from (brand_data.template), slug
     // only: the browser takes a preset's offerings only for that template on
     // that host (brand-catalog.js presetMatches, 2026-10-11).
@@ -3005,6 +3061,7 @@ async function handle(req, res) {
         await assertCanWrite(auth, wsId, 'apply a context pack to it');
         const store = pack.userStore(auth.token);
         const out = await pack.applyPack(store, wsId, body.fields || {}, body.sources || {});
+        if (out && out.error === 'brand_changed') return res.status(409).json(out);
         invalidateBrandCaches({ userId: auth.user_id, workspaceId: wsId });
         return res.status(200).json(Object.assign({ ok: true }, out, {
           note: 'Fields listed under skipped_user_owned were left alone because a person supplied them. '
@@ -3056,6 +3113,9 @@ async function handle(req, res) {
     const status = err && err.status ? err.status : 500;
     if (err && err.code === 'coherence_blocked') {
       return res.status(status).json({ ok: false, error: err.code, code: err.code, message: err.message, coherence: err.details });
+    }
+    if (err && ['url_off_site', 'brand_changed', 'brand_change_refused', 'brand_exists'].includes(err.code)) {
+      return res.status(status).json({ ok: false, error: err.code, code: err.code, message: err.message, details: err.details || undefined });
     }
     return res.status(status).json({ ok: false, error: err.message || 'brand_operation_failed', details: err.details || undefined });
   }

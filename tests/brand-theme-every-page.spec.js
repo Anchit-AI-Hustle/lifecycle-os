@@ -323,7 +323,9 @@ const STUDIO_STATES = {
         fullPrompt: 'Autumn restock for returning customers ' + i, markets: [mk], type,
         products: ['Sample product ' + i], fullMailers: {}, feedbackHistory: [],
       });
-      try { localStorage.setItem('vhd_logs', JSON.stringify([row(1, 'US', 'Promotional'), row(2, 'UK', 'Lifecycle')])); } catch (_) {}
+      // The history is kept per brand VERSION since 2026-10-11 (_logsKey(): the
+      // LCStore key carries the record's fingerprint), so the rows are this one's.
+      try { localStorage.setItem(_logsKey(), JSON.stringify([row(1, 'US', 'Promotional'), row(2, 'UK', 'Lifecycle')])); } catch (_) {}
       switchMainTab('dashboard');
     });
     await page.waitForSelector('#dashboardView', { state: 'visible', timeout: 8000 });

@@ -117,6 +117,18 @@ const SCOPED_TABLES = new Set([
   // the dispatch tables get, because a comment, a metric or a flag read across
   // brands would put one brand's customers in another brand's inbox.
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
+  // 20261011054000 — the catalogue import's product URL queue. catalog-import.js
+  // (dbQueue) names the workspace on every query and the run id beside it; this
+  // is the backstop, because the queue is written by the service role from a
+  // self-chained step with no request to resolve a workspace from, and one
+  // brand's URL list read into another's import files its products under the
+  // wrong brand.
+  'brand_catalog_import_queue',
+  // 20261011045000 — the exchange rates a brand's editors entered for revenue by
+  // region. region-revenue-server reads and writes them as the caller (RLS) with
+  // the workspace named; a rate read across brands would convert one brand's
+  // revenue at another brand's entered rate.
+  'brand_fx_rates',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

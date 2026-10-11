@@ -79,6 +79,7 @@ const UNIQUE = {
   social_gateway_settings: [['workspace_id']],
   contact_touch_ledger: [['workspace_id', 'source', 'source_ref', 'subject_key']],  // contact_touch_dedupe_idx
   contact_fatigue_rules: [['workspace_id']],                                       // primary key
+  brand_catalog_import_queue: [['workspace_id', 'run_id', 'market', 'url']],       // 20261011054000 brand_catalog_import_queue_key
 };
 
 /**
@@ -87,7 +88,7 @@ const UNIQUE = {
  * user's insert with 42501. Modelled because the contact ledger's "a member
  * cannot hand-edit what reached a customer" is exactly that grant.
  */
-const SERVICE_WRITE_ONLY = new Set(['contact_touch_ledger']);
+const SERVICE_WRITE_ONLY = new Set(['contact_touch_ledger', 'brand_catalog_import_queue']);
 
 /**
  * CHECK constraints, from 20261004093700_contact_ledger_fatigue.sql, with the
@@ -124,10 +125,19 @@ const WORKSPACE_SCOPED = new Set([
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
   'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
-  'brand_catalog_products',
+  'brand_catalog_products', 'brand_catalog_import_queue',
   // is_brand_member policies (20260813120000 / 20260810120000)
   'brand_competitors', 'kb_knowledge',
+  // 20260810160000_scope_all_brand_content.sql (_ws_read) + 20261011045000
+  'smart_orders', 'shopify_orders', 'brand_fx_rates',
 ]);
+
+/**
+ * Tables whose writes need an EDITOR (is_brand_editor: the owner, or a member
+ * whose role is owner/editor), as their migrations declare. A viewer's insert
+ * or delete is refused 42501 by the policy, whatever the module checked.
+ */
+const EDITOR_WRITE = new Set(['brand_fx_rates']);
 
 function uuid() { return crypto.randomUUID(); }
 function nowIso() { return new Date().toISOString(); }
@@ -292,6 +302,13 @@ class FakeSupabase {
     if (ws.owner_id === user.id) return true;
     return this.members.some((m) => m.workspace_id === wsId && m.user_id === user.id);
   }
+  mayWrite(user, wsId) {
+    if (!user || !wsId) return false;
+    const ws = this.workspaces[wsId];
+    if (!ws) return false;
+    if (ws.owner_id === user.id) return true;
+    return this.members.some((m) => m.workspace_id === wsId && m.user_id === user.id && (m.role === 'owner' || m.role === 'editor'));
+  }
   visible(table, row, user) {
     if (user === 'service') return true;
     if (!user) return false;
@@ -389,6 +406,13 @@ class FakeSupabase {
       return response(403, { code: '42501', message: `permission denied for table ${table}` });
     }
 
+    if (method === 'POST' && EDITOR_WRITE.has(table) && who !== 'service') {
+      const list0 = Array.isArray(body) ? body : [body];
+      if (list0.some((r) => !this.mayWrite(who, r && r.workspace_id) || (r && r.entered_by != null && r.entered_by !== who.id))) {
+        return response(403, { code: '42501', message: `new row violates row-level security policy for table "${table}"` });
+      }
+    }
+
     if (method === 'POST') {
       const list = Array.isArray(body) ? body : [body];
       // A CHECK violation aborts the statement: nothing from the batch lands.
@@ -427,7 +451,7 @@ class FakeSupabase {
     }
 
     if (method === 'DELETE') {
-      const gone = rows.filter((r) => seen(r) && matches(r, q.filters));
+      const gone = rows.filter((r) => seen(r) && matches(r, q.filters) && (!EDITOR_WRITE.has(table) || who === 'service' || this.mayWrite(who, r.workspace_id)));
       this.tables[table] = rows.filter((r) => gone.indexOf(r) < 0);
       // The secrets row goes with its connection through the foreign key.
       if (table === 'workspace_connections') {

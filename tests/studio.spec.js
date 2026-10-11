@@ -125,7 +125,13 @@ test.describe('Mailer Studio — responsive smoke', () => {
     // is a decision, and these tests make it the way an operator would, by
     // picking a chip. The seven chips with US pre-selected that used to sit in
     // the markup were a typed list, and the tests relied on that default.
-    await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
+    // The pick must hold: assert the chip is on and the Studio holds US, and
+    // pick again if a late redraw replaced the chips (WebKit, 2026-10-11).
+    await expect(async () => {
+      const on = await page.locator('#mktChips .mkt-chip.on[data-mkt="US"]').count();
+      if (!on) await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
+      expect(await page.evaluate(() => (window.S && window.S.markets) || [])).toContain('US');
+    }).toPass({ timeout: 10_000 });
   });
 
   test('Step 1 — fields present and visible', async ({ page }, testInfo) => {

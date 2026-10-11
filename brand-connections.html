@@ -490,7 +490,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     el.hidden = false;
     el.className = 'banner info';
     var y = cov.declared && (cov.declared.count || cov.declared.urls);
-    var prog = (cov.found || 0) + (y ? ' of ' + y + (cov.declared.partial ? ' so far' : '') : '') + ' products read';
+    var prog = Array.isArray(cov.markets) && cov.markets.length
+      ? cov.markets.map(function (m) { return m.code + ' ' + (m.found || 0) + (m.declared ? ' of ' + m.declared : ''); }).join(' · ') + ' products read'
+      : (cov.found || 0) + (y ? ' of ' + y + (cov.declared.partial ? ' so far' : '') : '') + ' products read';
     el.innerHTML = '<b>' + (cov.complete ? 'Product catalogue: read completely' : (continuing ? 'Product catalogue: ' + esc(prog) + ', continuing by itself' : 'Product catalogue: read in part')) + '</b>' +
       '<ul style="margin:6px 0 4px;padding-left:18px">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
       (note ? '<p class="note">' + esc(note) + '</p>' : '') +
@@ -537,7 +539,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (r.complete !== false) break;
         if (r.continuing) { await loadCatalog(); break; }
         var stop = r.coverage && r.coverage.stopped;
-        var wait = stop && stop.reason === 'rate_limited' ? (stop.wait_ms || 0) : 0;
+        var wait = stop && (stop.reason === 'rate_limited' || stop.reason === 'throttled') ? (stop.wait_ms || 0) : 0;
         if (!r.drive || r.progressed === false || wait > 120000) break;
         if (wait) await new Promise(function (res) { setTimeout(res, wait); });
         r = await brandApi('catalog-import', { workspace_id: b.id, continue: true });

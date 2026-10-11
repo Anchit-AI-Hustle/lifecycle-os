@@ -309,6 +309,10 @@
       "destination": "/credits.html"
     },
     {
+      "source": "/revenue-by-region",
+      "destination": "/revenue-by-region.html"
+    },
+    {
       "source": "/wallet",
       "destination": "/credits.html"
     },

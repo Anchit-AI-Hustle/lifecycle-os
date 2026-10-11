@@ -229,6 +229,152 @@
     return out;
   }
 
+  /* ── MULTIPLE MARKETS AT ONCE (2026-10-11) ─────────────────────────────
+     The operator: "As a founder, I would look at revenue and sales of each
+     region ... Multiple region selection must be allowed too." A VIEW that
+     reads (revenue, a plan table, a report) may show several of the brand's
+     markets together; a GENERATOR builds for one, and keeps `region` above.
+     The two are separate on purpose: a multi-selection never changes
+     `region`, so nothing that builds an asset can be fed a list.
+
+     Persisted per brand (LCStore scopes the key by brand id) and per viewer
+     (the signed-in account's id is part of the key), defaulting to the
+     brand's HOME market; "All markets" is every region on the record.
+     Event: 'regioncontext:selection' on window. */
+  var SEL_KEY = 'lc-region-selection';
+  var selection = [];
+  var selListeners = [];
+  function viewerId() {
+    try { var s = window.LifecycleAuth && window.LifecycleAuth.session; var u = s && s.user && s.user.id; return u ? String(u) : ''; } catch (e) { return ''; }
+  }
+  function selKey() { var v = viewerId(); return SEL_KEY + (v ? '.' + v : ''); }
+  function cleanSelection(list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (v) {
+      if (/^all$/i.test(String(v || ''))) { state.regions.forEach(function (r) { if (out.indexOf(r.code) < 0) out.push(r.code); }); return; }
+      var c = resolveCode(v);
+      if (c && out.indexOf(c) < 0) out.push(c);
+    });
+    // The brand's own order, so a table reads the same way however it was picked.
+    var order = state.regions.map(function (r) { return r.code; });
+    return out.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+  }
+  function loadSelection() {
+    var saved = [];
+    try { saved = JSON.parse(store().get(selKey()) || '[]'); } catch (e) { saved = []; }
+    var clean = cleanSelection(saved);
+    selection = clean.length ? clean : (state.home ? [state.home] : []);
+    selExplicit = clean.length > 0;
+  }
+  var selExplicit = false;   // the viewer chose (or a saved choice was read), not our home default
+  function selPayload() { return { selection: selection.slice(), regions: state.regions, all: selection.length > 0 && selection.length === state.regions.length }; }
+  function emitSelection() {
+    var payload = selPayload();
+    selListeners.forEach(function (fn) { try { fn(payload); } catch (e) {} });
+    try { window.dispatchEvent(new CustomEvent('regioncontext:selection', { detail: payload })); } catch (e) {}
+  }
+  /** Set the markets a view shows. Only the brand's own; refuses an empty set. */
+  function setSelection(list) {
+    if (!state.regions.length) return false;
+    var clean = cleanSelection(Array.isArray(list) ? list : [list]);
+    if (!clean.length) return false;
+    var same = clean.length === selection.length && clean.every(function (c, i) { return c === selection[i]; });
+    selection = clean;
+    selExplicit = true;
+    store().set(selKey(), JSON.stringify(clean));
+    if (!same) emitSelection();
+    return true;
+  }
+  function onSelection(fn) {
+    if (typeof fn !== 'function') return;
+    selListeners.push(fn);
+    if (state.loaded) { try { fn(selPayload()); } catch (e) {} }
+  }
+
+  /**
+   * The shared multi-market control. `opts.single` (or data-region-multi=
+   * "single") renders the GENERATOR form instead: one market, said in words,
+   * driving `region` - never a list. Native checkboxes / radios inside
+   * labels, so it is keyboard operable and every option is a 44px target;
+   * colours are the brand's tokens (theme.css .rgn-multi).
+   */
+  var multiSeq = 0;
+  function optionHtml(type, nameAttr, r, on) {
+    var n = name(r.code);
+    return '<label class="rgn-opt"' + (on ? ' data-on="1"' : '') + '><input type="' + type + '"' + (nameAttr ? ' name="' + nameAttr + '"' : '')
+      + ' value="' + escapeHtml(r.code) + '"' + (on ? ' checked' : '') + '> <span>' + escapeHtml(n) + '</span>'
+      + (r.code !== n ? ' <small>' + escapeHtml(r.code) + '</small>' : '') + (r.code === state.home ? ' <small>home</small>' : '') + '</label>';
+  }
+  function mountMulti(el, opts) {
+    var host = (typeof el === 'string') ? document.querySelector(el) : el;
+    if (!host) return null;
+    if (host.getAttribute('data-rgn-multi-mounted') === '1') return host;
+    host.setAttribute('data-rgn-multi-mounted', '1');
+    var o = opts || {};
+    var single = !!o.single || /^single$/i.test(host.getAttribute('data-region-multi') || '');
+    var id = 'rgnm' + (++multiSeq);
+    host.classList.add('rgn-multi');
+    host.setAttribute('data-rgn-mode', single ? 'single' : 'multi');
+    function paint() {
+      if (!state.loaded) return;
+      if (!state.regions.length) {
+        host.innerHTML = '<p class="rgn-none" role="status">' + escapeHtml(marker('home market')) + ' No market is on this brand\'s record yet, so there is nothing to choose.</p>';
+        return;
+      }
+      var legend = escapeHtml(o.label || host.getAttribute('data-region-label') || (single ? 'Market' : 'Markets'));
+      var html = '<fieldset class="rgn-multi-set"><legend class="rgn-label">' + legend + '</legend>';
+      if (single) {
+        html += '<p class="rgn-multi-note">This builds for one market at a time, so it takes one market, not a selection.</p><div class="rgn-multi-opts">';
+        state.regions.forEach(function (r) { html += optionHtml('radio', id, r, r.code === state.region); });
+      } else {
+        var all = selection.length === state.regions.length;
+        html += '<div class="rgn-multi-opts">';
+        if (state.regions.length > 1) {
+          html += '<label class="rgn-opt rgn-opt-all"' + (all ? ' data-on="1"' : '') + '><input type="checkbox" data-rgn-all="1"' + (all ? ' checked' : '') + '> <span>All markets</span></label>';
+        }
+        state.regions.forEach(function (r) { html += optionHtml('checkbox', '', r, selection.indexOf(r.code) >= 0); });
+      }
+      html += '</div><p class="rgn-multi-msg" role="status" aria-live="polite"></p></fieldset>';
+      // Keep keyboard focus on the option that was used across a repaint.
+      var act = document.activeElement;
+      var focused = act && host.contains(act) && act.tagName === 'INPUT' ? (act.getAttribute('data-rgn-all') ? '__all' : act.value) : null;
+      host.innerHTML = html;
+      if (focused) {
+        var inputs = host.querySelectorAll('input');
+        for (var i = 0; i < inputs.length; i++) {
+          if ((focused === '__all' && inputs[i].getAttribute('data-rgn-all')) || inputs[i].value === focused) { try { inputs[i].focus(); } catch (e) {} break; }
+        }
+      }
+    }
+    host.addEventListener('change', function (ev) {
+      var t = ev.target;
+      if (!t || t.tagName !== 'INPUT') return;
+      ev.stopPropagation();
+      if (single) { setActive(t.value); paint(); return; }
+      if (t.getAttribute('data-rgn-all')) {
+        if (t.checked) setSelection(['ALL']);
+        else if (state.home) setSelection([state.home]);
+        paint();
+        return;
+      }
+      var next = [];
+      var boxes = host.querySelectorAll('input[type=checkbox][value]');
+      for (var i = 0; i < boxes.length; i++) if (boxes[i].checked) next.push(boxes[i].value);
+      if (!next.length) {
+        t.checked = true;
+        var msg = host.querySelector('.rgn-multi-msg');
+        if (msg) msg.textContent = 'Keep at least one market selected.';
+        return;
+      }
+      setSelection(next);
+      paint();
+    });
+    paint();
+    onSelection(paint);
+    if (single) onChange(paint);
+    return host;
+  }
+
   /* Every <select data-brand-markets> on the page holds the ACTIVE brand's
      own markets, opening on its home (or keeping a choice it still serves);
      data-brand-markets="all" adds an All row where the brand has more than
@@ -310,7 +456,9 @@
     state.explicit = valid;
     state.loaded = true;
     if (state.region && !valid) store().set(KEY, state.region);
+    loadSelection();
     emit();
+    emitSelection();
     readyResolve(state.region);
   }
 
@@ -387,6 +535,9 @@
     var found = scope.querySelectorAll ? scope.querySelectorAll('[data-region-picker]') : [];
     for (var i = 0; i < found.length; i++) mount(found[i]);
     if (scope !== document && scope.matches && scope.matches('[data-region-picker]')) mount(scope);
+    var multis = scope.querySelectorAll ? scope.querySelectorAll('[data-region-multi]') : [];
+    for (var m = 0; m < multis.length; m++) mountMulti(multis[m]);
+    if (scope !== document && scope.matches && scope.matches('[data-region-multi]')) mountMulti(scope);
   }
 
   var pending = 0;
@@ -454,7 +605,7 @@
   }
 
   var CLICKABLE = 'button,a,[role="button"],[role="tab"],[data-market],[data-mkt],[data-region]';
-  function ours(el) { return !!(el.closest && el.closest('[data-region-picker],.rgn-bar,#lifecycle-nav')); }
+  function ours(el) { return !!(el.closest && el.closest('[data-region-picker],[data-region-multi],.rgn-bar,.rgn-multi,#lifecycle-nav')); }
 
   /** A chip is a picker only if a SIBLING offers a different market. */
   function isLegacyChip(el) {
@@ -659,6 +810,14 @@
     num: num,
     marker: marker,
     countryOf: countryOf,
+    /* Several markets at once, for a VIEW (2026-10-11). Never feeds `region`. */
+    get selection() { return selection.slice(); },
+    /* Whether `selection` is the viewer's choice rather than the home default,
+       so a view whose own default is "every market" keeps it until asked. */
+    get selectionExplicit() { return selExplicit; },
+    setSelection: setSelection,
+    onSelection: onSelection,
+    mountMulti: mountMulti,
     /* The country table, for the parity test against brand-locale.js. */
     _COUNTRY: COUNTRY,
     _SYMBOL: SYMBOL,

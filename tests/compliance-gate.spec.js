@@ -94,7 +94,17 @@ async function built(brand, market) {
   const key = `${brand.slug}:${market}`;
   if (!BUILT[key]) {
     const entry = slot(brand, market);
-    BUILT[key] = { campaign: await sbPlan.buildCampaign(entry, smartConfig({}), { noLLM: true, withCreatives: false }), entry };
+    // Built with NO database: stampBrand() resolves the current record whenever
+    // one is reachable, and a spec that ran earlier in the same worker can leave
+    // SUPABASE_* set, which swapped this brand for that fake project's default.
+    const DB_ENV = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
+    const saved = DB_ENV.map((k) => [k, process.env[k]]);
+    for (const k of DB_ENV) delete process.env[k];
+    try {
+      BUILT[key] = { campaign: await sbPlan.buildCampaign(entry, smartConfig({}), { noLLM: true, withCreatives: false }), entry };
+    } finally {
+      for (const [k, v] of saved) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    }
   }
   return { campaign: structuredClone(BUILT[key].campaign), entry: slot(brand, market) };
 }

@@ -844,38 +844,9 @@ function effectiveEntry(entry) {
 // campaign whose fingerprint is not the current record's is never shown,
 // reused or approved, and Daily Sync re-plans it. A row with no fingerprint
 // predates this and is treated the same way.
-function brandIdentity(brand) {
-  if (!brand || typeof brand !== 'object') return null;
-  const fold = (v) => String(v == null ? '' : v).normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
-  const bd = (brand.brand_data && typeof brand.brand_data === 'object') ? brand.brand_data : {};
-  const host = (u) => { try { return new URL(String(u)).hostname.replace(/^www\./, '').toLowerCase(); } catch (_) { return fold(u); } };
-  const legal = brand.legal_entity || bd.legal_entity || brand.legal_name || bd.legal_name || '';
-  let cat = '';
-  try { const v = catalogServer.catalogVerdict(brand); if (v) cat = `${v.source_domain || ''}|${v.excluded ? 'x' : ''}|${(v.kept || []).join(',')}`; } catch (_) { /* no verdict */ }
-  // What a slot's assets were WRITTEN from, beyond who the brand is
-  // (2026-10-11): its colours, its type families, its voice (tone and banned
-  // words), its claims and its markets with their currencies. A slot planned
-  // or built before any of these changed carried the old palette, the old
-  // claims or another currency, and replayed them as current.
-  const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
-  const palette = obj(brand.palette);
-  const pal = Object.keys(palette).sort().map((k) => `${k}=${fold(palette[k])}`).join(',');
-  const typo = obj(brand.typography);
-  const fam = (t) => fold(t && typeof t === 'object' ? (t.family || t.stack || '') : t);
-  const type = Object.keys(typo).sort().map((k) => `${k}=${fam(typo[k])}`).join(',');
-  const voice = obj(brand.voice);
-  const list = (v) => (Array.isArray(v) ? v : []).map((x) => fold(x && typeof x === 'object' ? (x.text || x.name || '') : x)).filter(Boolean).sort().join('|');
-  const claims = list(brand.claims || bd.claims) + '#' + list(brand.approved_claims || bd.approved_claims);
-  const regions = (Array.isArray(brand.regions) ? brand.regions : []).filter((r) => r && r.code)
-    .map((r) => `${fold(r.code)}:${fold(r.currency)}${r.home === true ? ':home' : ''}`).sort().join(',');
-  const parts = [
-    brand.id || '', fold(brand.name || bd.name), host(brand.website || bd.website || ''),
-    fold(typeof legal === 'object' ? (legal.name || JSON.stringify(legal)) : legal),
-    cat, brand.owns_shipped === true ? 'zero' : '',
-    pal, type, fold(voice.tone), list(voice.banned), claims, regions,
-  ];
-  return 'bi2:' + crypto.createHash('sha256').update(parts.join('\u0001')).digest('hex').slice(0, 24);
-}
+// The fingerprint itself lives in brand-identity.js now (2026-10-11), the ONE
+// rule every surface that stores brand-derived artefacts uses.
+const brandIdentity = require('./brand-identity.js').brandIdentity;
 const IDENTITY_KEY = '__brand_identity';
 function identityMatches(stamp, current) { return !!current && stamp === current; }
 // A stored row speaks for its slot; an inline entry with no row is judged only
@@ -2894,21 +2865,31 @@ async function buildCampaign(entry, config, opts = {}) {
     workspaceId: (entry && entry.workspace_id) || (config && config.workspace_id) || null,
   };
   const built = await catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
-  if (built && typeof built === 'object') built.brand_identity = brandIdentity(entry && entry.brand);
+  if (built && typeof built === 'object') {
+    built.brand_identity = brandIdentity(entry && entry.brand);
+    built.brand_name = (entry && entry.brand && entry.brand.name) || null;
+  }
   return built;
 }
 
 /** The identity of the brand this request plans for now (null: none resolvable). */
 async function currentIdentity(config, db) {
+  return (await currentBrandInfo(config, db)).ident;
+}
+/** The current record's fingerprint and name ({ ident: null } when none resolves). */
+async function currentBrandInfo(config, db) {
   try {
     const pb = await planningBrand(config, db);
     // Tenant zero is fingerprinted from its shipped record whichever door it
     // is reached by (the scheduler has no workspace row in hand, a person has
     // one), so the two never re-plan each other's slots every day.
-    if (pb.isZero) return brandIdentity(Object.assign({}, require('./brand-runtime.js').defaultBrand(), { owns_shipped: true }));
-    if (pb.brand) return brandIdentity(pb.brand);
+    if (pb.isZero) {
+      const zero = Object.assign({}, require('./brand-runtime.js').defaultBrand(), { owns_shipped: true });
+      return { ident: brandIdentity(zero), name: zero.name || '' };
+    }
+    if (pb.brand) return { ident: brandIdentity(pb.brand), name: pb.brand.name || '' };
   } catch (_) { /* unresolved */ }
-  return null;
+  return { ident: null, name: '' };
 }
 
 /** A stored slot or campaign made for another brand record than the current one. */
@@ -3517,6 +3498,18 @@ async function landingPageResolve(id, cfg = {}, variant = null) {
     camp = await one(config.tableNames.generatedCampaigns, { 'payload->>campaign_id': `eq.${id}` });
     if (camp && camp[0]) diag.source = 'generated_campaigns.campaign_id';
   }
+  // A page made for ANOTHER version of the owner's brand record (renamed,
+  // re-pointed at a new website, another sender, catalogue, palette...) is
+  // not served as that brand's page (2026-10-11): the route answers with the
+  // sentence instead, and the stored page is kept.
+  const stale = async (stamp, madeFor) => {
+    if (!diag.workspace_id) return false;
+    const now = await currentBrandInfo({ ...config, workspace_id: diag.workspace_id }, db);
+    if (!now.ident || require('./brand-identity.js').identityMatches(stamp, now.ident)) return false;
+    diag.brand_changed = true;
+    diag.message = require('./brand-identity.js').staleSentence('landing page', madeFor || '', now.name || '');
+    return true;
+  };
   if (camp && camp[0]) {
     diag.campaignFound = true;
     owned(camp[0], 'generated_campaigns');
@@ -3524,12 +3517,14 @@ async function landingPageResolve(id, cfg = {}, variant = null) {
     // ?v=b serves the story-led B variant; default serves A (first LP). If B is
     // requested but only one LP was built, fall back rather than 404 a valid page.
     const want = /^b$/i.test(String(variant || '')) ? (lps.find((l) => l.variant === 'B') || lps[1] || lps[0]) : (lps.find((l) => l.variant === 'A') || lps[0]);
+    if (want?.html && await stale(camp[0]?.payload?.brand_identity, camp[0]?.payload?.brand_name)) return { html: null, diag };
     if (want?.html) { diag.hasLpHtml = true; return { html: want.html, diag }; }
   }
   // 3) landing_pages_generated mirror (numeric id or campaign_id in payload).
   const filters = /^\d+$/.test(String(id)) ? { id: `eq.${id}` } : { 'payload->>campaign_id': `eq.${id}` };
   const lp = await one(config.tableNames.landingPagesGenerated, filters);
   if (lp?.[0]) owned(lp[0], 'landing_pages_generated');
+  if (lp?.[0]?.payload?.html && await stale(lp[0]?.payload?.brand_identity, lp[0]?.payload?.brand_name)) return { html: null, diag };
   if (lp?.[0]?.payload?.html) { diag.fallbackFound = true; diag.source = 'landing_pages_generated'; return { html: lp[0].payload.html, diag }; }
   // 4) no page anywhere: the calendar slot that advertises this id still says
   //    whose campaign it is, so the fallback can be built for that brand.
@@ -3671,11 +3666,14 @@ async function persistCampaignAssets(db, config, campaign, { status, origin, rev
       sub_copy: email.preheader || null,
       variant_a_html: email.html || (variants[0] && variants[0].html) || null,
       variant_b_html: (variants[1] && variants[1].html) || null,
+      // WHICH brand version this mirror row was made for (brand-identity.js):
+      // /assets lists it only under that version (2026-10-11).
+      reasoning: { brand_identity: campaign.brand_identity || null },
     }]).catch(() => null);   // never let a mailer-mirror failure block ads/LP/approval
   }
   const adRows = (campaign.assets.ads || []).map((ad) => ({
     channel: ad.platform, name: campaign.name, market: campaign.market, objective: campaign.objective,
-    audience: campaign.audience?.name, copy: ad, creative_prompt: ad.creative_brief || ad.script || '', origin,
+    audience: campaign.audience?.name, copy: { ...ad, brand_identity: campaign.brand_identity || null }, creative_prompt: ad.creative_brief || ad.script || '', origin,
     user_email: reviewer || null,
   }));
   if (adRows.length) out.ads = await db.insert(config.tableNames.adsGenerated, adRows);
@@ -3683,7 +3681,7 @@ async function persistCampaignAssets(db, config, campaign, { status, origin, rev
   if (lp) out.landing = await db.insert(config.tableNames.landingPagesGenerated, [{
     paired_with: campaign.assets.email ? 'mailer' : (campaign.assets.ads?.[0]?.platform || 'meta'),
     name: lp.title || campaign.name, market: campaign.market,
-    hero: lp.title || '', payload: { campaign_id: campaign.campaign_id, path: lp.path, html: lp.html, sections: lp.sections, master_prompt: lp.master_prompt },
+    hero: lp.title || '', payload: { campaign_id: campaign.campaign_id, brand_identity: campaign.brand_identity || null, brand_name: campaign.brand_name || null, path: lp.path, html: lp.html, sections: lp.sections, master_prompt: lp.master_prompt },
     origin, user_email: reviewer || null,
   }]);
   return out;
@@ -3788,6 +3786,7 @@ module.exports = {
   // brand a slot is stamped with, and whether the plan is tenant zero's.
   __test_stampBrand: stampBrand,
   __test_brandIdentity: brandIdentity,
+  currentBrandInfo,
   __test_slotForOtherRecord: slotForOtherRecord,
   // tests/review-leak-fixes.spec.js: which preset offerings a brand may take.
   __test_resolveBrandOfferings: _resolveBrandOfferings,
