@@ -1474,6 +1474,16 @@ function buildRow(input, existing) {
     onboarding_step: Number.isFinite(+b.onboarding_step) ? Math.max(1, Math.min(6, +b.onboarding_step)) : (prev.onboarding_step || 1),
   };
 
+  // ONE SITE PER BRAND, where the record is WRITTEN (2026-10-11). A store URL
+  // this save TYPES on another site than the website's is refused with a
+  // sentence; every value already on the record that was read from another
+  // site (a website change re-judges them all) is set aside in
+  // brand_data.coherence.set_aside, kept and never applied. The coherence
+  // rule's own verdict decides both (brand-coherence.js).
+  const refusal = (existing && coherence.identityChangeRefusal(b, prev)) || coherence.typedUrlRefusal(b, prev);
+  if (refusal) { const e = new Error(refusal.message); e.status = refusal.status; e.code = refusal.code; e.details = [refusal]; throw e; }
+  Object.assign(row, coherence.setAsideForeign(row, new Date().toISOString(), prev).record);
+
   // Colour schema is validated on save, so a broken palette can never reach the
   // shell. A DRAFT may still be saved with an incomplete palette (the wizard
   // saves as it goes); anything ACTIVE must pass — including an EMPTY palette,
@@ -1705,6 +1715,7 @@ async function saveExisting(auth, id, input) {
     }
     // The design rules are checked HERE, on what will be stored.
     const row = buildRow(keepRow.length ? withRowValues(input, existing, keepRow) : input, existing);
+    if (attempt === 0) await refuseDuplicate(auth, row, id);
     const out = await restAs(auth.token, 'rpc/brand_workspace_save', {
       method: 'POST',
       body: { p_workspace: id, p_expected: existing.updated_at || null, p_seen: seen, p_row: row, p_typed: typed, p_origins: applied },
@@ -1725,10 +1736,22 @@ async function saveExisting(auth, id, input) {
   throw e;
 }
 
+/* One record per brand (2026-10-11): a brand whose website is already
+   another record's site in this account is not created twice - the person is
+   offered the existing one. sameBrand decides (brand-coherence.js). */
+async function refuseDuplicate(auth, row, id) {
+  if (!coherence.siteOf(row)) return;
+  let others = [];
+  try { others = await restAs(auth.token, 'brand_workspaces?select=id,name,website'); } catch (_) { others = []; }
+  const dup = coherence.duplicateBrand(Object.assign({}, row, { id: id || '' }), Array.isArray(others) ? others : []);
+  if (dup) { const e = new Error(dup.message); e.status = dup.status; e.code = dup.code; e.details = [dup]; throw e; }
+}
+
 async function saveWorkspace(auth, input) {
   const id = str(input && input.id);
   if (id) return saveExisting(auth, id, input);
   const row = buildRow(input, null);
+  await refuseDuplicate(auth, row, '');
   row.owner_id = auth.user_id;
   const created = await restAs(auth.token, `brand_workspaces?select=${SELECT_COLS}`, {
     method: 'POST', body: [row], prefer: 'return=representation',
@@ -2355,25 +2378,33 @@ function catalogIdentitySummary(brand) {
 
 function shellPayload(brand, extra) {
   if (!brand) return null;
+  // What the shell PAINTS is the record as generation sees it (2026-10-11): a
+  // logo, an icon, a tagline, a colour or a type family read from another
+  // site than the website's is withheld (brand-coherence forGeneration), so
+  // the pages wear only this brand's own site. `identity` is the fingerprint
+  // every stored artefact is judged by (brand-identity.js).
+  const g = coherence.forGeneration(brand) || brand;
   return Object.assign({
     id: brand.id || null,
     slug: brand.slug || '',
     name: brand.name || '',
-    tagline: brand.tagline || '',
-    logo_url: brand.logo_url || '',
-    favicon_url: brand.favicon_url || '',
+    tagline: g.tagline || '',
+    logo_url: g.logo_url || '',
+    favicon_url: g.favicon_url || '',
     website: brand.website || '',
     status: brand.status || 'draft',
     onboarding_step: brand.onboarding_step || 1,
-    palette: brand.palette || {},
-    typography: brand.typography || {},
+    palette: g.palette || {},
+    typography: g.typography || {},
     voice: brand.voice || {},
-    regions: brand.regions || [],
-    tokens: tokens(brand),
-    fonts_href: fontsHref(brand),
+    regions: g.regions || [],
+    tokens: tokens(g),
+    fonts_href: fontsHref(g),
     files: filesSummary(brand),
     coherence: coherenceSummary(brand),
     catalog_identity: catalogIdentitySummary(brand),
+    withheld: (g.coherence_withheld || []).map((x) => ({ field: x.field, domain: x.domain })),
+    identity: require('./brand-identity.js').brandIdentity(brand),
     // The preset this record was created from (brand_data.template), slug
     // only: the browser takes a preset's offerings only for that template on
     // that host (brand-catalog.js presetMatches, 2026-10-11).
@@ -3028,6 +3059,7 @@ async function handle(req, res) {
         await assertCanWrite(auth, wsId, 'apply a context pack to it');
         const store = pack.userStore(auth.token);
         const out = await pack.applyPack(store, wsId, body.fields || {}, body.sources || {});
+        if (out && out.error === 'brand_changed') return res.status(409).json(out);
         invalidateBrandCaches({ userId: auth.user_id, workspaceId: wsId });
         return res.status(200).json(Object.assign({ ok: true }, out, {
           note: 'Fields listed under skipped_user_owned were left alone because a person supplied them. '
@@ -3079,6 +3111,9 @@ async function handle(req, res) {
     const status = err && err.status ? err.status : 500;
     if (err && err.code === 'coherence_blocked') {
       return res.status(status).json({ ok: false, error: err.code, code: err.code, message: err.message, coherence: err.details });
+    }
+    if (err && ['url_off_site', 'brand_changed', 'brand_change_refused', 'brand_exists'].includes(err.code)) {
+      return res.status(status).json({ ok: false, error: err.code, code: err.code, message: err.message, details: err.details || undefined });
     }
     return res.status(status).json({ ok: false, error: err.message || 'brand_operation_failed', details: err.details || undefined });
   }

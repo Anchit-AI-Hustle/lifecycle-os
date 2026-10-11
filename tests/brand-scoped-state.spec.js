@@ -19,10 +19,11 @@ const MIME = {
   '.json': 'application/json', '.png': 'image/png', '.webmanifest': 'application/manifest+json',
 };
 
-function brandPayload(id, name) {
+function brandPayload(id, name, extra) {
   return {
     ok: true,
     brand: {
+      ...(extra || {}),
       id, slug: name.toLowerCase(), name,
       palette: { primary: '#1F4E79', accent: '#C8102E', ink: '#1A1A1A', surface: '#FFFFFF' },
       typography: { heading: { family: 'Inter' }, body: { family: 'Inter' } },
@@ -56,9 +57,9 @@ test.beforeAll(async () => {
 test.afterAll(async () => { if (server) await new Promise((r) => server.close(r)); });
 
 /** Load any page that pulls in brand-context.js, with a brand already painted. */
-async function open(page, brandId, brandName) {
+async function open(page, brandId, brandName, extra) {
   await page.route('**/api/public-config**', (route) => route.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify(brandPayload(brandId, brandName)),
+    status: 200, contentType: 'application/json', body: JSON.stringify(brandPayload(brandId, brandName, extra)),
   }));
   await page.goto(base + '/about.html', { waitUntil: 'load' });
   // LCStore exists as soon as the IIFE ends, but the brand arrives from an
@@ -120,8 +121,11 @@ test('two brands do not see each other\'s stored state', async ({ page }) => {
   expect(backToA).toBe('ALPHA-NUMBERS');
 });
 
+// Since 2026-10-11 only TENANT ZERO inherits it: state saved before brands
+// existed was tenant zero's, and every other brand inheriting it was another
+// brand's ad set and calendar under its own name (tests/brand-change-current-context.spec.js).
 test('state saved before scoping existed is inherited once, then left alone', async ({ page }) => {
-  await open(page, 'ws_a', 'Alpha');
+  await open(page, 'ws_a', 'Alpha', { owns_shipped: true });
 
   const result = await page.evaluate(() => {
     // A value written by the old, unscoped code path.
@@ -140,4 +144,13 @@ test('state saved before scoping existed is inherited once, then left alone', as
   expect(result.inherited).toBe('LEGACY');   // upgrade does not throw the user's work away
   expect(result.scoped).toBe('NEW');         // the scoped key wins once written
   expect(result.legacyUntouched).toBe('LEGACY');
+});
+
+test('state saved before scoping is NOT inherited by any brand but tenant zero', async ({ page }) => {
+  await open(page, 'ws_b', 'Beta', { owns_shipped: false });
+  const got = await page.evaluate(() => {
+    localStorage.setItem('knickgasm-cal-approved', 'LEGACY');
+    return window.LCStore.get('knickgasm-cal-approved');
+  });
+  expect(got, 'another brand inherited the pre-scoping (tenant zero) state').toBeNull();
 });

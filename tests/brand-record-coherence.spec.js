@@ -390,7 +390,16 @@ test.describe('the server', () => {
     const saved = await callHandle(db, { query: { action: 'brand', op: 'save' }, body: { brand: Object.assign(row, { status: 'draft' }) } });
     expect(saved.status, JSON.stringify(saved.json)).toBe(200);
     expect(saved.json.brand.coherence.blocking).toBe(true);
-    expect(saved.json.brand.coherence.conflicts.length).toBeGreaterThan(8);
+    // Since 2026-10-11 a save SETS ASIDE every value read from another site
+    // (brand-coherence setAsideForeign): the catalogue, tagline, icon, legal
+    // entity, design system, social profiles and imagery are kept in
+    // brand_data.coherence.set_aside, never applied. The name (how the record
+    // is addressed) stays, and still blocks activation.
+    const stored0 = db.table('brand_workspaces').find((w) => w.id === saved.json.brand.id);
+    const aside = stored0.brand_data.coherence.set_aside.map((e) => e.field + ':' + e.domain);
+    for (const f of ['catalog_source:delichic.co.in', 'tagline:mamaearth.in', 'favicon_url:mamaearth.in', 'brand_data.legal_entity:mamaearth.in', 'brand_data.design_system:mamaearth.in', 'brand_data.social:mamaearth.in', 'brand_data.imagery:mamaearth.in']) expect(aside, f).toContain(f);
+    expect(stored0.catalog_source || {}).toEqual({});
+    expect(stored0.tagline || '').toBe('');
     const id = saved.json.brand.id;
     const list = await callHandle(db, { query: { action: 'brand', op: 'list' } });
     expect(list.json.workspaces.find((w) => w.id === id).coherence).toEqual(expect.objectContaining({ ok: false, blocking: true }));
@@ -399,7 +408,7 @@ test.describe('the server', () => {
     expect(refused.status).toBe(409);
     expect(refused.json.code).toBe('coherence_blocked');
     expect(refused.json.message).toMatch(/Brand name was read from mamaearth\.in; this brand's website is nike\.in\./);
-    expect(refused.json.message).toMatch(/Catalogue was imported from delichic\.co\.in/);
+    expect(refused.json.message, 'a set-aside value still blocked as if it were on the record').not.toMatch(/Catalogue was imported from delichic\.co\.in/);
     expect((db.table('brand_user_prefs').find((p) => p.user_id === OWNER) || {}).active_workspace_id, 'a refused activation still activated').not.toBe(id);
 
     const ok = await callHandle(db, { query: { action: 'brand', op: 'activate' }, body: { id, coherence_override: { reason: 'Demo account: the operator is rebuilding this brand.' } } });
@@ -475,24 +484,19 @@ for (const mode of ['device', 'account']) {
       expect(rec.name).toBe('Nike');
       expect(JSON.stringify(rec)).not.toMatch(/mamaearth/);
 
-      // The person says mamaearth.in IS this brand's website: the read runs,
-      // and what nike.in gave the record is listed, never kept silently.
-      await page.click('[data-dswitch="website"]');
-      await page.waitForFunction(() => document.querySelectorAll('[data-coherence] [data-conflict]').length > 0, null, { timeout: 15000 });
-      expect(log.extracts).toEqual(['https://www.nike.in', 'https://mamaearth.in/collections/b1g1-offer']);
-      const ids = await conflictIds(page);
-      expect(ids, 'the nike.in logo stayed on a mamaearth.in brand without a word').toContain('cross_domain:logo_url:nike.in');
-      // One click clears everything nike.in gave this record.
-      await page.click('[data-coh-clear-domain="nike.in"]');
-      await page.waitForTimeout(400);
-      expect(await conflictIds(page)).not.toContain('cross_domain:logo_url:nike.in');
-      await page.waitForTimeout(300);
+      // Nike is ESTABLISHED at nike.in (its name, logo and colours were read
+      // from it), so mamaearth.in is another brand: since 2026-10-11 the panel
+      // offers only "start a new brand", says why, and the save would refuse
+      // the switch (brand-coherence identityChangeRefusal; the operator: "a
+      // website change to another brand = offer start a new brand, keep the
+      // old record intact"). The "make it the website" repair stays for a
+      // record nothing was read into from its website (the next tests).
+      expect(await page.locator('[data-dswitch="website"]').count(), 'an established brand was offered to become another brand').toBe(0);
+      await expect(page.locator('[data-dswitch-refused]')).toContainText(/start a new brand from mamaearth\.in/);
+      expect(log.extracts).toEqual(['https://www.nike.in']);
       rec = await savedRecord(page, log);
-      expect(rec.website).toMatch(/mamaearth\.in/);
-      expect(rec.logo_url || '', 'the cleared logo was saved').not.toMatch(/nike/);
-      expect(rec.brand_data.brand_extraction.source, 'the record of reads still names the first read').toMatch(/mamaearth\.in/);
-      const c = COH.brandCoherence(rec);
-      expect(c.conflicts.filter((x) => x.domain === 'nike.in'), JSON.stringify(c.conflicts)).toEqual([]);
+      expect(rec.website).toMatch(/nike\.in/);
+      expect(rec.name).toBe('Nike');
       expect(log.dialogs).toEqual([]);
       expect(log.errors).toEqual([]);
     });
@@ -512,7 +516,11 @@ for (const mode of ['device', 'account']) {
       expect(log.errors).toEqual([]);
     });
 
-    test('a gallery preset on an EXISTING brand changes its design only, never its name, website, slug or regions', async ({ page }) => {
+    // Since 2026-10-11 a starter template's colours, fonts and voice are not
+    // copied onto a brand with its own website either (the operator: "do not
+    // customise or mix any brands ever"): the preset is refused with a
+    // sentence and the brand is set up from its own site.
+    test('a gallery preset on a brand with its OWN website copies nothing: not its name, website, slug, regions or design', async ({ page }) => {
       const log = await openWizard(page, { account: db });
       await page.fill('[data-path="name"]', 'Harbourlight Goods');
       await page.fill('[data-path="website"]', 'https://harbourlight.example');
@@ -521,7 +529,7 @@ for (const mode of ['device', 'account']) {
       await page.click('[data-go="back"]');
       await page.waitForSelector('[data-preset="knickgasm"]', { timeout: 15000 });
       await page.click('[data-preset="knickgasm"]');
-      await page.waitForFunction(() => /template's colours/.test(document.getElementById('toast').textContent || ''), null, { timeout: 15000 });
+      await page.waitForFunction(() => /starter template: another brand's identity/.test(document.getElementById('toast').textContent || ''), null, { timeout: 15000 });
       expect(await page.inputValue('[data-path="name"]')).toBe('Harbourlight Goods');
       expect(await page.inputValue('[data-path="website"]')).toBe('https://harbourlight.example');
       await page.click('[data-go="next"]');
@@ -529,7 +537,8 @@ for (const mode of ['device', 'account']) {
       let rec = await savedRecord(page, log);
       expect(rec.slug).toBe('harbourlight-goods');
       expect(rec.website).toBe('https://harbourlight.example');
-      expect((rec.palette.primary || '').toUpperCase(), 'the template\'s design was not applied').toBe('#D0473E');
+      expect((rec.palette.primary || '').toUpperCase(), 'the template\'s design was copied onto a brand with its own website').not.toBe('#D0473E');
+      expect((rec.brand_data || {}).template, 'the record says it came from a template').toBeFalsy();
       expect(JSON.stringify(rec.regions)).not.toMatch(/knickgasm/);
 
       expect(log.errors).toEqual([]);
@@ -598,7 +607,14 @@ for (const mode of ['device', 'account']) {
       expect(await page.getAttribute(`#wsList [data-ws="${id}"] [data-coherence-badge]`, 'data-coherence-badge')).toBe('block');
       expect(await page.getAttribute('[data-coherence]', 'data-blocking')).toBe('true');
       const ids = await conflictIds(page);
-      expect(ids).toEqual(expect.arrayContaining(['cross_domain:name:mamaearth.in', 'cross_domain:catalog_source:delichic.co.in']));
+      // An account row was SAVED, and a save sets aside every value read from
+      // another site (2026-10-11): the catalogue is in set_aside, not on the
+      // record. The device row was seeded as the live record, never saved.
+      if (mode === 'device') expect(ids).toEqual(expect.arrayContaining(['cross_domain:name:mamaearth.in', 'cross_domain:catalog_source:delichic.co.in']));
+      else {
+        expect(ids).toEqual(expect.arrayContaining(['cross_domain:name:mamaearth.in']));
+        expect(ids).not.toContain('cross_domain:catalog_source:delichic.co.in');
+      }
       // A device row keeps the slug it was saved with; an account row is
       // created with the slug its NAME makes (the server ignores the body's).
       if (mode === 'device') expect(ids).toContain('slug_name:slug:');
@@ -615,7 +631,8 @@ for (const mode of ['device', 'account']) {
       await page.waitForTimeout(250);
       await page.click('[data-coh-clear-domain="nike.in"]');
       await page.waitForTimeout(250);
-      await page.click('[data-coh-clear-domain="delichic.co.in"]');
+      // (On the account path the save already set delichic.co.in's catalogue aside.)
+      if (await page.locator('[data-coh-clear-domain="delichic.co.in"]').count()) await page.click('[data-coh-clear-domain="delichic.co.in"]');
       await page.waitForTimeout(250);
       if (mode === 'device') { await page.click('[data-coh-slug="mamaearth"]'); await page.waitForTimeout(250); }
       // The asset host list still names nike hosts: kept on purpose, recorded.
