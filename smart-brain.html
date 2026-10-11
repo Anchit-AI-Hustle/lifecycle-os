@@ -55,6 +55,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 </script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
+<script src="/brand-catalogue-panel.js?v=20261011"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -93,6 +94,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pkind{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800;
          letter-spacing:.04em;text-transform:uppercase;background:var(--vh-panel);color:var(--vh-ink);vertical-align:middle}
   .pknote{margin:0 0 10px;font-size:11px}
+  .akbar .btn{max-width:100%;white-space:normal;text-align:left}
   .akstatus{font-size:12px;font-weight:700}
   .akstatus.approved{color:var(--vh-ok-text)} .akstatus.rejected{color:var(--vh-err-text)}
   .btn.ok{background:var(--vh-panel);color:var(--vh-ok-text);border:1px solid var(--vh-ok)}.btn.ok:hover{background:var(--vh-panel-2)}.btn.no{background:var(--vh-panel);color:var(--vh-err-text);border:1px solid var(--vh-err)}.btn.no:hover{background:var(--vh-panel-2)}
@@ -107,7 +109,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* Calendar table: keep readable on narrow screens by scrolling horizontally
      (the .tblscroll wrapper is overflow-x:auto) instead of crushing columns to
      one character per line. */
-  .tblscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tblscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;container-type:inline-size}
   /* table-layout:auto, deliberately: theme.css defaults every table to
      table-layout:fixed, which splits the width equally and leaves a
      white-space:nowrap cell nowhere to put a value wider than its share -
@@ -118,6 +120,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   #plantable td.cohort{white-space:normal;max-width:150px}
   #plantable td.obj,#plantable th.obj{white-space:normal;max-width:190px}
   #plantable td.why,#plantable th.why{white-space:normal;max-width:280px}
+  /* THE EXPANDED ROW IS NOT A TABLE CELL'S CONTENT (2026-10-11). The generated-
+     asset preview opens inside a <td colspan> of this table, so it inherited
+     the cells' white-space:nowrap: every paragraph of the preview became one
+     unbreakable line, the auto-layout table grew to the longest one (1912px in
+     a 1242px scroller at 1600 wide), and the reviewer saw a slice of a preview
+     wider than the screen - a blank mailer frame on the left, its copy cut off,
+     prompt chips and buttons clipped at the scroller's edge. The row wraps
+     normally, contributes no width of its own to the table (inline-size
+     containment), is exactly as wide as the scroller's visible area (cqw of
+     .tblscroll) and stays pinned to its left edge when the plan columns are
+     scrolled sideways on a narrow screen. */
+  #plantable tr.exprow > td{white-space:normal;max-width:none}
+  .expbody{contain:inline-size;width:100%;width:100cqw;position:sticky;left:0;min-width:0;padding:16px 18px}
+  @media(max-width:600px){.expbody{padding:8px 0}.expbody .pvroot{padding:12px 10px}}
+  .expbody .pvroot{min-width:0;overflow-wrap:break-word}
   #plantable td.chan,#plantable th.chan{white-space:normal;max-width:150px}
   /* Clamp long copy to 2 lines — the full text lives in View / the decision panel. */
   .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -164,7 +181,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pvsec:first-of-type{border-top:0;padding-top:4px}
   .pvsech{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:var(--vh-ink-dim)}
-  .pvframe{width:100%;height:560px;border:1px solid var(--vh-line);border-radius:12px;background:var(--vh-panel)}
+  /* A frame is fitted to its document once it loads (fitFrame): no inner
+     scroll that hides a mailer's button, no tall empty ground under a short
+     one. 560px is only the height before the document has loaded. An email is
+     shown at its own design width, not stretched across the row, so its hero
+     is not a small picture in a wide empty box. */
+  .pvframe{display:block;width:100%;height:560px;border:1px solid var(--vh-line);border-radius:12px;background:var(--vh-panel)}
+  .pvframe.is-mail{max-width:720px;margin:0 auto}
+  /* A static ad is previewed at a size a feed shows it, never the full row:
+     a 9:16 creative at 1200px wide was a 2,100px tall box. */
+  .adframe{max-width:min(100%,520px)}
+  .adframe[data-aspect="9:16"],.adframe[data-aspect="4:5"]{max-width:min(100%,360px)}
   .pvexport{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
   .pvnote{color:var(--vh-ink-dim);font-size:12px;margin:0 0 10px}
   .pvnote.is-error{color:var(--vh-err-text);background:var(--vh-panel-2);border-left:3px solid var(--vh-err)}
@@ -218,7 +245,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .planempty b{color:var(--vh-ink)}
   .planerr{color:var(--vh-err-text);line-height:1.55}
   @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two{grid-column:span 1}h1{font-size:30px}.pvframe{height:460px}}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two{grid-column:span 1}h1{font-size:30px}}
   /* Inline colours the script used to write, as roles. */
   .tdim{color:var(--vh-ink-dim)} .tink{color:var(--vh-ink)} .tok{color:var(--vh-ok-text)} .terr{color:var(--vh-err-text)}
   .tprim{color:var(--vh-primary-text)}
@@ -228,24 +255,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .feas.is-none{color:var(--vh-ink-dim)}
   .pill[data-qa]{background:var(--vh-panel-2)} .pill[data-qa="ok"]{color:var(--vh-ok-text);border-color:var(--vh-ok)} .pill[data-qa="warn"]{color:var(--vh-warn-text);border-color:var(--vh-warn)}
   .pvroot{border:1px solid var(--vh-line-hot);border-radius:14px;padding:18px 20px;background:var(--vh-panel-2)}
-  /* ── Brand catalogue (2026-10-10) ─────────────────────────────────────────
-     What generation reads for the ACTIVE brand, shown where plans are made.
-     Roles only: grounds are the panel tokens, the marker its own token pair,
-     an excluded count the warn edge (an ordinary state, not a failure). */
-  .catsum{margin:.2em 0 .6em;font-size:13px;line-height:1.55;color:var(--vh-ink)}
-  .catcov{margin:8px 0 10px;padding:8px 12px;border-left:3px solid var(--vh-accent);background:var(--vh-panel-2);border-radius:0 10px 10px 0;font-size:12.5px;line-height:1.5;color:var(--vh-ink)}
-  .catcov ul{margin:4px 0 0;padding-left:18px}.catcov li{margin:2px 0}
-  .catexcl{margin:8px 0 10px;padding:9px 12px;border:1px solid var(--vh-line);border-left:4px solid var(--vh-warn);border-radius:10px;background:var(--vh-panel-2);color:var(--vh-ink);font-size:12.5px;line-height:1.5}
-  .catmkts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
-  .catmkts .mkchip:disabled{opacity:1;cursor:default}
-  .catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(168px,100%),1fr));gap:10px;max-height:440px;overflow:auto;-webkit-overflow-scrolling:touch;padding:2px}
-  .catitem{display:flex;flex-direction:column;gap:6px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:12px;padding:8px;min-width:0}
-  .catimg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:var(--vh-panel);border:1px solid var(--vh-line);display:block}
-  .catgap{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;border-radius:8px;border:1px dashed var(--vh-marker-edge);background:var(--vh-marker-ground);color:var(--vh-ink);font-size:12px;line-height:1.35;overflow-wrap:anywhere}
-  .catname{font-size:13px;font-weight:700;color:var(--vh-ink);line-height:1.3;overflow-wrap:anywhere}
-  .catprice{font-size:13px;color:var(--vh-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-  .catmeta{font-size:12px;color:var(--vh-ink-dim)}
-  .catmore{margin:8px 0 0;font-size:12px}
+  /* Brand catalogue panel: its stylesheet ships with brand-catalogue-panel.js
+     (shared with /catalog), scoped to [data-bcp]. */
   .sb-dialog-scrim{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;isolation:isolate}
   .sb-dialog-scrim::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--vh-ink);opacity:.45}
 </style>
@@ -920,7 +931,7 @@ function renderPlan(){
       <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
     </td>
   </tr>
-  <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}" style="padding:16px 18px"></div></td></tr>`;}).join('');
+  <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}"></div></td></tr>`;}).join('');
 }
 
 // ── Funnel preview (generate-on-demand, before approval) ────────────────────
@@ -1021,7 +1032,7 @@ function renderAd(ad){
   return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}">
     <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
     ${gap}
-    <div class="adframe">
+    <div class="adframe" data-aspect="${esc(ad.aspect||'1:1')}">
       ${frame}
       <span class="adratio">${esc(ad.aspect||'1:1')}</span>
       <div class="adover">
@@ -1213,6 +1224,16 @@ function renderPreview(payload, e, i, opts){
   // (master-prompt.promptsFor): an ASSET row names the field holding its text,
   // an ELEMENT row carries its own wrapped text.
   window.__SB_PROMPTS = [];
+  // A frame's document is NOT inlined as an escaped srcdoc attribute: six
+  // mailer/landing documents parsed inside the click that opened the row
+  // blocked the page for a third of a second before anything painted (INP).
+  // The markup carries an index; loadPreviewFrames() hands each document over
+  // after the row has painted, one per task, and fits the frame to it.
+  window.__SB_FRAMES = [];
+  const docFrame = (html, kind, title) => {
+    const idx = window.__SB_FRAMES.push(String(html || '')) - 1;
+    return `<iframe class="pvframe${kind === 'mail' ? ' is-mail' : ''}" sandbox="allow-same-origin" data-frame-idx="${idx}" title="${esc(title || 'Asset preview')}"></iframe>`;
+  };
   const promptBar = (asset) => {
     const rows = (asset && Array.isArray(asset.prompts)) ? asset.prompts : [];
     if(!rows.length) return '';
@@ -1240,10 +1261,10 @@ function renderPreview(payload, e, i, opts){
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ '+esc(v.label || ('Mailer '+(vi+1))), first);
-      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}${docFrame(html, 'mail', v.label || 'Mailer')}`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}${docFrame(html, 'mail', 'Mailer')}`, first); first=false; }
   // EVERY landing page, not just the first. The builder ships an A/B pair and
   // only landing_pages[0] was ever rendered, so the B variant existed in the
   // payload, was downloaded by "Download all", and could not be looked at.
@@ -1257,7 +1278,7 @@ function renderPreview(payload, e, i, opts){
     const id = 'pv-lp' + (li ? '-' + li : '');
     const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
     tab(id, label, first);
-    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}${docFrame(html, 'page', lp.title || 'Landing page')}`, first);
     first = false;
   });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
@@ -1310,8 +1331,63 @@ function renderPreview(payload, e, i, opts){
   // Video ads carry a real animated creative; point each iframe at the exact
   // bytes of it (Blob URL) now that the panes are in the DOM.
   hydrateMotionAds(host);
+  loadPreviewFrames(host);
   host.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
+
+// Fit a preview frame to the document inside it. A fixed 560px frame hid the
+// lower half of a long mailer behind an inner scroll (its button cut off) and
+// left a tall empty ground under a short one. Capped so a very long landing
+// page still scrolls inside its frame rather than making the row endless.
+const FRAME_MIN = 200, FRAME_MAX = 2400;
+// An email is a fixed-width document (600px or so). On a phone the frame is
+// narrower than that, and a mail app shrinks such an email to the screen; the
+// preview does the same (CSS zoom on the PREVIEW's document only - the bytes
+// Download and Copy hand over are the registry's, untouched), instead of
+// cutting off its right half.
+function fitFrame(f){
+  try{
+    const d = f.contentDocument; if(!d || !d.documentElement) return;
+    const de = d.documentElement;
+    de.style.zoom = '';
+    const cw = de.clientWidth, sw = de.scrollWidth;
+    let z = 1;
+    if(cw > 0 && sw > cw + 1){ z = cw / sw; de.style.zoom = String(z); }
+    // The document's height in the frame's own pixels: its scroll height, or,
+    // once zoomed, its rendered box (which already carries the zoom).
+    const h = z === 1
+      ? Math.max(de.scrollHeight, d.body ? d.body.scrollHeight : 0)
+      : de.getBoundingClientRect().height;
+    if(!h) return;
+    f.style.height = Math.min(FRAME_MAX, Math.max(FRAME_MIN, Math.ceil(h) + 2)) + 'px';
+    f.dataset.fitted = '1';
+    if(z !== 1) f.dataset.scaled = z.toFixed(3); else delete f.dataset.scaled;
+  }catch(_){}
+}
+function loadPreviewFrames(root){
+  const store = window.__SB_FRAMES || [];
+  const frames = [...(root || document).querySelectorAll('iframe.pvframe[data-frame-idx]')].filter(f => !f.dataset.loaded);
+  if(!frames.length) return;
+  let k = 0;
+  const step = () => {
+    const f = frames[k++]; if(!f) return;
+    if(f.isConnected){
+      f.addEventListener('load', () => fitFrame(f));
+      f.dataset.loaded = '1';
+      f.srcdoc = store[Number(f.dataset.frameIdx)] || '';
+    }
+    setTimeout(step, 0);
+  };
+  // After the row has painted: the click is answered first, the documents follow.
+  requestAnimationFrame(() => setTimeout(step, 0));
+}
+// A frame's height depends on its width (a responsive mailer is taller on a
+// phone), so the fitted frames are measured again when the window changes.
+let __sbFitTimer = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(__sbFitTimer);
+  __sbFitTimer = setTimeout(() => document.querySelectorAll('iframe.pvframe[data-loaded]').forEach(fitFrame), 150);
+});
 window.closeExp = function(i){ const r=$('exprow-'+i); if(r) r.style.display='none'; };
 
 // ── Per-row decision detail ────────────────────────────────────────────────
@@ -1594,7 +1670,12 @@ async function viewEntry(i, forceRegen){
   row.style.display='';
   const previewScope = planScope();
   if(forceRegen) delete PREVIEW_CACHE[e.id];
-  if(PREVIEW_CACHE[e.id]){ renderPreview(PREVIEW_CACHE[e.id], e, i, { target: body, persisted: (e.status==='approved'||e.status==='final') }); body.setAttribute('data-loaded','1'); return; }
+  if(PREVIEW_CACHE[e.id]){
+    // Answer the click first: the row opens and paints, then the bundle renders.
+    body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Opening the funnel…</p>`;
+    await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    if(row.style.display === 'none') return;
+    renderPreview(PREVIEW_CACHE[e.id], e, i, { target: body, persisted: (e.status==='approved'||e.status==='final') }); body.setAttribute('data-loaded','1'); return; }
   body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Generating the full funnel (mailer, ads & landing page) — usually 10–30s…</p>`;
   row.scrollIntoView({ behavior:'smooth', block:'nearest' });
   try{
@@ -2106,211 +2187,11 @@ function onPlanBrandChange(){
 }
 /* ── THE BRAND CATALOGUE, AS GENERATION SEES IT (2026-10-10) ───────────────
    The operator, on /brain with an account brand active: "must be able to see
-   brand catalog too here". Every slot on this page is planned and written
-   from the active brand's catalogue, and nothing on the page showed it. This
-   panel READS through the paths generation already uses, and decides nothing
-   of its own:
-     - a brand on this device: BrandContext.catalogForGeneration(id), the rows
-       a generator here may use (the coherence rule has already judged them),
-       with the kept record's source and coverage beside it;
-     - an account brand: its own rows (op=catalog, its workspace id, the
-       session's token) and its import record (op=catalog-status), each row
-       judged by the SAME rule (coherenceLib.catalogRowForeign over the
-       server's catalog_identity verdict) - never a second domain comparison;
-     - tenant zero (the server's owns_shipped answer, never a slug): its
-       shipped catalogue through BrandCatalog, the only reader of /data/catalog/.
-   Any other brand never asks for the shipped files. No rows is a marker with
-   the step that fixes it. */
-const CAT_VIEW = { mkt: '', data: null, seq: 0 };
-const CAT_MAX_SHOWN = 240;
-function catBrandName(b){ return (b && b.name) || 'this brand'; }
-function catMarker(field, b, region){ return '[DATA REQUIRED BEFORE LAUNCH: ' + field + ', ' + catBrandName(b) + (region ? ', ' + region : '') + ']'; }
-function catHost(u){ try { return new URL(String(u)).hostname.replace(/^www\./, ''); } catch(_) { return ''; } }
-function catRegion(r){ return String(r || '').trim().toUpperCase(); }
-function catPrice(row, region){
-  if (!row || row.price == null || row.price === '') return '';
-  const v = Number(row.price);
-  if (!isFinite(v)) return '';
-  const RC = window.RegionContext;
-  const own = String(row.currency || '').toUpperCase();
-  try {
-    const mk = RC && RC.localeOf ? RC.localeOf(region || undefined) : null;
-    // The market's own currency: RegionContext formats it. A row whose store
-    // STATED another currency is printed in that one, never re-labelled.
-    if (RC && RC.money && (!own || !mk || !mk.currency || mk.currency === own)) return RC.money(v, region || undefined, { maximumFractionDigits: 2 });
-    if (own) return new Intl.NumberFormat((mk && mk.locale) || 'en', { style: 'currency', currency: own, maximumFractionDigits: 2 }).format(v);
-  } catch(_) {}
-  return String(row.price);
-}
-function catImg(row){
-  const ok = (u) => (typeof u === 'string' && /^https:\/\//i.test(u)) ? u : '';
-  if (ok(row.image_url)) return row.image_url;
-  if (ok(row.img)) return row.img;
-  if (ok(row.i)) return row.i;
-  const list = Array.isArray(row.image_urls) ? row.image_urls : (Array.isArray(row.imgs) ? row.imgs : []);
-  for (const x of list) { const u = ok(typeof x === 'string' ? x : (x && (x.src || x.url))); if (u) return u; }
-  return '';
-}
-function catTitle(row){ return String((row && (row.title || row.n || row.name || row.handle || row.h)) || ''); }
-function catVerdict(B, b){
-  if (!b) return null;
-  if (b.catalog_identity && typeof b.catalog_identity === 'object') return b.catalog_identity;
-  try { return B.coherenceLib ? B.coherenceLib.catalogIdentity(b) : null; } catch(_) { return null; }
-}
-function catForeign(B, row, v){
-  if (!v) return false;
-  try { return B.coherenceLib ? !!B.coherenceLib.catalogRowForeign(row, v) : !!v.excluded; } catch(_) { return !!v.excluded; }
-}
-async function catRead(B, b){
-  const isDevice = !!(B.device && B.device.isDeviceId && B.device.isDeviceId(b.id));
-  if (isDevice) {
-    const full = B.deviceCatalog ? B.deviceCatalog(b.id) : null;
-    const gen = B.catalogForGeneration ? B.catalogForGeneration(b.id) : null;
-    const rows = (gen && Array.isArray(gen.products)) ? gen.products : [];
-    const stale = (full && Array.isArray(full.products)) ? full.products.filter(p => p && p.stale_at).length : 0;
-    return { kind: 'device', rows, excluded: (gen && gen.dropped) || 0, verdict: (gen && gen.excluded) || null,
-      source: (full && full.source) || ((b.catalog_source && b.catalog_source.kind) ? b.catalog_source : null),
-      coverage: (full && full.coverage) || null, resumable: !!(full && full.cursor), stale, total: rows.length };
-  }
-  if (B.isTenantZero && B.isTenantZero(b)) {
-    const BC = window.BrandCatalog;
-    const opts = (window.RegionContext && window.RegionContext.options) ? window.RegionContext.options() : [];
-    const mkts = opts.length ? opts.map(o => o.code) : [''];
-    const rows = [];
-    for (const m of mkts) {
-      const r = BC ? await BC.load(String(m).toLowerCase()) : null;
-      ((r && r.products) || []).forEach(p => rows.push(Object.assign({}, p, { region: m })));
-    }
-    return { kind: 'shipped', rows, excluded: 0, verdict: null, source: { kind: 'shipped' }, coverage: null, resumable: false, stale: 0, total: rows.length, perMarket: true };
-  }
-  const q = '&workspace_id=' + encodeURIComponent(b.id || '');
-  const got = await B.api('catalog', { query: q + '&limit=500' });
-  let status = null;
-  try { status = await B.api('catalog-status', { query: q }); } catch(_) { status = null; }
-  const all = ((got && got.products) || []).filter(p => p && !p.stale_at);
-  const v = catVerdict(B, b);
-  const mine = all.filter(p => !catForeign(B, p, v));
-  const live = (status && typeof status.live === 'number') ? status.live : all.length;
-  return { kind: 'account', rows: mine, excluded: all.length - mine.length, verdict: (v && (v.excluded || all.length > mine.length)) ? v : null,
-    source: (status && status.source && status.source.kind) ? status.source : ((b.catalog_source && b.catalog_source.kind) ? b.catalog_source : null),
-    coverage: (status && status.coverage) || null, resumable: !!(status && status.resume_available), stale: (status && status.stale) || 0,
-    total: live, readCap: all.length < live ? all.length : 0 };
-}
-function catSourceLine(src){
-  if (!src) return '';
-  const k = src.kind;
-  const how = k === 'shopify' ? 'its store feed' : k === 'site_crawl' ? 'its own website' : k === 'csv' ? 'a CSV import' : k === 'json' ? 'a JSON import'
-    : k === 'shipped' ? 'the catalogue shipped with this platform for this brand' : (k ? String(k) : 'an import');
-  const host = catHost(src.url);
-  let when = '';
-  if (src.imported_at) { const d = new Date(src.imported_at); if (!isNaN(d)) when = ' on ' + d.toISOString().slice(0, 10); }
-  return 'Read from ' + how + (host ? ' (' + host + ')' : '') + when + '.';
-}
-function renderCatalogPanel(){
-  const body = $('catBody');
-  const d = CAT_VIEW.data;
-  if (!body || !d || d.error) return;
-  const b = d.brand;
-  const rows = d.rows;
-  const parts = [];
-  // Markets are the rows' own; the panel never invents one.
-  const byMkt = {};
-  rows.forEach(r => { const m = catRegion(r.region); byMkt[m] = (byMkt[m] || 0) + 1; });
-  const mkts = Object.keys(byMkt).sort((x, y) => (x === '' ? 1 : y === '' ? -1 : x.localeCompare(y)));
-  const keyOf = (m) => m || '-';
-  if (CAT_VIEW.mkt && CAT_VIEW.mkt !== '*' && !mkts.some(m => keyOf(m) === CAT_VIEW.mkt)) CAT_VIEW.mkt = '';
-  if (!CAT_VIEW.mkt) {
-    const home = catRegion(window.RegionContext && window.RegionContext.home);
-    CAT_VIEW.mkt = d.perMarket ? keyOf((home && byMkt[home]) ? home : (mkts[0] || '')) : '*';
-  }
-  const mktLabel = (m) => m ? m : 'No market stated';
-  const count = d.perMarket
-    ? 'Products per market: ' + mkts.map(m => esc(mktLabel(m)) + ' <b>' + byMkt[m] + '</b>').join(' · ')
-    : '<b>' + rows.length + '</b> product' + (rows.length === 1 ? '' : 's') + ' generation can use' +
-      (mkts.length ? ' (' + mkts.map(m => esc(mktLabel(m)) + ' ' + byMkt[m]).join(', ') + ')' : '');
-  parts.push('<p class="catsum" data-cat-count="' + rows.length + '">' + count +
-    (d.readCap ? '. Showing the first ' + d.readCap + ' of ' + d.total + ' in the catalogue' : '') +
-    (d.stale ? '. ' + d.stale + ' the store no longer lists are kept but not used' : '') + '. ' + esc(catSourceLine(d.source)) + '</p>');
-  if (d.coverage && Array.isArray(d.coverage.sentences) && d.coverage.sentences.length) {
-    parts.push('<div class="catcov"><b>' + (d.coverage.complete ? 'Catalogue read completely' : 'Catalogue read in part') + '</b>' +
-      '<ul>' + d.coverage.sentences.slice(0, 12).map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
-      (d.resumable ? '<p class="catmeta" style="margin:4px 0 0">Continue the import on the <a href="/onboarding?step=5">brand setup\'s catalogue step</a>.</p>' : '') + '</div>');
-  }
-  if (d.excluded || (d.verdict && d.verdict.excluded)) {
-    const v = d.verdict || {};
-    const n = d.excluded || 0;
-    parts.push('<div class="catexcl" data-cat-excluded="' + n + '"><b>' + n + ' excluded</b>: ' +
-      (n === 1 ? 'one product was' : n + ' products were') + ' read from another brand\'s site' + (v.domain ? ' (' + esc(v.domain) + ')' : '') +
-      ', so ' + (n === 1 ? 'it is' : 'they are') + ' never used for ' + esc(catBrandName(b)) + '.' + (v.sentence ? ' ' + esc(v.sentence) : '') + '</div>');
-  }
-  if (!rows.length) {
-    parts.push('<p class="vh-status" data-cat-empty>' + esc(catMarker('product catalogue', b)) + ' None of ' + esc(catBrandName(b)) +
-      '\'s own products are available to generation, so assets carry this marker where a product would be. <a href="/onboarding?step=5">Import the catalogue on the brand setup\'s catalogue step</a>.</p>');
-    body.innerHTML = parts.join('');
-    return;
-  }
-  if (mkts.length > 1 || d.perMarket) {
-    const chip = (code, label) => {
-      const on = CAT_VIEW.mkt === code;
-      return '<button type="button" class="mkchip' + (on ? ' on' : '') + '" data-catmkt="' + esc(code) + '" aria-pressed="' + on + '"' +
-        (on ? ' disabled title="These products are shown now"' : '') + '>' + esc(label) + '</button>';
-    };
-    parts.push('<div class="catmkts"><span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Market</span>' +
-      (d.perMarket ? '' : chip('*', 'All (' + rows.length + ')')) + mkts.map(m => chip(keyOf(m), mktLabel(m) + ' (' + byMkt[m] + ')')).join('') + '</div>');
-  }
-  const shown = rows.filter(r => CAT_VIEW.mkt === '*' || keyOf(catRegion(r.region)) === CAT_VIEW.mkt);
-  const items = shown.slice(0, CAT_MAX_SHOWN).map(r => {
-    const reg = catRegion(r.region);
-    const t = catTitle(r);
-    const img = catImg(r);
-    const price = catPrice(r, reg);
-    const where = t + (reg ? ', ' + reg : '');
-    return '<div class="catitem" role="listitem" data-cat-row>' +
-      (img ? '<img class="catimg" loading="lazy" decoding="async" alt="' + esc(t) + '" src="' + esc(img) + '">'
-           : '<div class="catgap">' + esc(catMarker('product image', b, where)) + '</div>') +
-      '<div class="catname">' + esc(t || catMarker('product title', b)) + '</div>' +
-      '<div class="catprice">' + esc(price || catMarker('price', b, where)) + '</div>' +
-      (reg ? '<div class="catmeta">' + esc(reg) + '</div>' : '') + '</div>';
-  });
-  parts.push('<div class="catgrid" role="list" aria-label="' + esc(catBrandName(b)) + ' catalogue">' + items.join('') + '</div>');
-  if (shown.length > CAT_MAX_SHOWN) parts.push('<p class="catmore tdim">Showing ' + CAT_MAX_SHOWN + ' of ' + shown.length + ' in this market.</p>');
-  body.innerHTML = parts.join('');
-}
-async function loadCatalogPanel(){
-  const body = $('catBody');
-  if (!body) return;
-  const seq = ++CAT_VIEW.seq;
-  const B = window.BrandContext;
-  if (!B) { body.innerHTML = '<p class="vh-status">' + esc(catMarker('active brand', null)) + ' No brand layer is loaded on this page.</p>'; return; }
-  let b = null;
-  try { const first = await B.ready(); b = B.brand || first || null; } catch(_) { b = B.brand || null; }
-  if (seq !== CAT_VIEW.seq) return;
-  if (!b) {
-    body.innerHTML = '<p class="vh-status" data-cat-empty>No brand is active, so there is no catalogue to show. <a href="/onboarding">Set up or choose a brand</a>.</p>';
-    return;
-  }
-  const h = $('catTitle'); if (h) h.textContent = catBrandName(b) + ' catalogue';
-  try {
-    const r = await catRead(B, b);
-    if (seq !== CAT_VIEW.seq) return;
-    CAT_VIEW.data = Object.assign({ brand: b }, r);
-    renderCatalogPanel();
-  } catch (e) {
-    if (seq !== CAT_VIEW.seq) return;
-    CAT_VIEW.data = { brand: b, error: true };
-    body.innerHTML = '';
-    if (window.LifecycleFailure && window.LifecycleFailure.show) window.LifecycleFailure.show(body, e, { title: 'The catalogue could not be read' });
-    else body.innerHTML = '<p class="vh-status">The catalogue could not be read: ' + esc((e && e.message) || e) + '</p>';
-  }
-}
-document.addEventListener('click', (ev) => {
-  const c = ev.target && ev.target.closest ? ev.target.closest('[data-catmkt]') : null;
-  if (!c || c.disabled) return;
-  CAT_VIEW.mkt = c.getAttribute('data-catmkt');
-  renderCatalogPanel();
-});
-window.addEventListener('brandcontext:change', () => { CAT_VIEW.mkt = ''; loadCatalogPanel(); });
-loadCatalogPanel();
+   brand catalog too here". The panel is brand-catalogue-panel.js (2026-10-11),
+   the SAME module the full page at /catalog mounts, so the two can never read
+   the catalogue two ways. It reloads itself on a brand change. */
+const CAT_PANEL = window.BrandCataloguePanel ? window.BrandCataloguePanel.mount($('catBody'), { titleEl: $('catTitle') }) : null;
+if (!CAT_PANEL && $('catBody')) $('catBody').innerHTML = '<p class="vh-status">The catalogue reader did not load on this page.</p>';
 window.addEventListener('brandcontext:change', onPlanBrandChange);
 (async function bootPlan(){
   await deviceSessionReady();

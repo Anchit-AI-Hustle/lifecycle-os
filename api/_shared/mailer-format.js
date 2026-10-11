@@ -75,12 +75,24 @@ function assetPromptComment({ kind = 'image', slot = 'hero', displayW, displayH,
 // A full fillable asset slot: prompt comment + <img> carrying the paste
 // placeholder (or a real URL when one is already known). Works for image,
 // video (poster frame) and gif — all render as <img> in email clients.
-function assetSlot({ kind = 'image', slot = 'hero', displayW, displayH, prompt, negative_prompt, alt = '', existingUrl = '' } = {}) {
+// `ground` is the BRAND's section ground the slot sits on (the caller's
+// sectionGround()); with none the slot carries no background. It used to be
+// tenant zero's red for every brand's mailer (2026-10-11).
+function slotGround(ground) {
+  const h = String(ground || '').trim();
+  if (!/^#[0-9a-f]{6}$/i.test(h) && !/^#[0-9a-f]{3}$/i.test(h)) return '';
+  try {
+    const core = require('./brand-workspace-core.js');
+    if (core.sectionGround && core.sectionGround(h) !== h) return '';
+  } catch (_) { /* no rule available: a stated hex is the caller's */ }
+  return `background:${h};`;
+}
+function assetSlot({ kind = 'image', slot = 'hero', displayW, displayH, prompt, negative_prompt, alt = '', existingUrl = '', ground = '' } = {}) {
   const k = String(kind).toLowerCase();
   const src = existingUrl || PLACEHOLDER[k] || PLACEHOLDER.image;
   const comment = assetPromptComment({ kind: k, slot, displayW, displayH, prompt, negative_prompt });
   const img = `<img src="${esc(src)}" width="${displayW}" height="${displayH}" alt="${esc(alt || slot)}" ` +
-    `style="display:block;width:100%;max-width:${displayW}px;height:auto;border:0;background:#D0473E;" />`;
+    `style="display:block;width:100%;max-width:${displayW}px;height:auto;border:0;${slotGround(ground)}" />`;
   return `${comment}\n${img}`;
 }
 

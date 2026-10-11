@@ -89,6 +89,13 @@ async function _fetchJson(url, { method = 'GET', headers = {}, body = null, time
 
 function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// A submit never waits longer than the call has left (opts.deadline, set by
+// generateVideo from its budget), so one hanging provider cannot spend it all.
+function _submitMs(opts) {
+  const left = (opts && opts.deadline) ? opts.deadline - Date.now() : Infinity;
+  return Math.max(1, Math.min(20000, left));
+}
+
 // ── Rung request builders (also used for the { would_request } stub) ─────────
 
 function veoRequest({ prompt, aspect }) {
@@ -150,13 +157,13 @@ async function runVeo(opts) {
   const k = keys();
   const reqSpec = veoRequest(opts);
   const r = await _fetchJson(reqSpec.url + '?key=' + encodeURIComponent(k.gemini), {
-    method: 'POST', body: reqSpec.body,
+    method: 'POST', body: reqSpec.body, timeoutMs: _submitMs(opts),
   });
   if (!r.ok) return { ok: false, provider: 'veo', error: 'HTTP ' + r.status + ': ' + r.errText };
   const opName = r.data && r.data.name;
   if (!opName) return { ok: false, provider: 'veo', error: 'no operation name in response' };
   // Time-boxed sync wait: poll a couple of times, then hand back the job id.
-  const deadline = Date.now() + SYNC_WAIT_MS - POLL_EVERY_MS;
+  const deadline = Math.min(Date.now() + SYNC_WAIT_MS - POLL_EVERY_MS, (opts.deadline || Infinity) - POLL_EVERY_MS);
   while (Date.now() < deadline) {
     await _sleep(POLL_EVERY_MS);
     const st = await statusVeo(opName);
@@ -186,12 +193,12 @@ async function runSora(opts) {
   const r = await _fetchJson(reqSpec.url, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + k.openai },
-    body: reqSpec.body,
+    body: reqSpec.body, timeoutMs: _submitMs(opts),
   });
   if (!r.ok) return { ok: false, provider: 'sora', error: 'HTTP ' + r.status + ': ' + r.errText };
   const id = r.data && r.data.id;
   if (!id) return { ok: false, provider: 'sora', error: 'no job id in response' };
-  const deadline = Date.now() + SYNC_WAIT_MS - POLL_EVERY_MS;
+  const deadline = Math.min(Date.now() + SYNC_WAIT_MS - POLL_EVERY_MS, (opts.deadline || Infinity) - POLL_EVERY_MS);
   while (Date.now() < deadline) {
     await _sleep(POLL_EVERY_MS);
     const st = await statusSora(id);
@@ -227,7 +234,7 @@ function _higgsfieldHeaders(k) {
 async function runHiggsfield(opts) {
   const k = keys();
   const reqSpec = higgsfieldRequest(opts);
-  const r = await _fetchJson(reqSpec.url, { method: 'POST', headers: _higgsfieldHeaders(k), body: reqSpec.body });
+  const r = await _fetchJson(reqSpec.url, { method: 'POST', headers: _higgsfieldHeaders(k), body: reqSpec.body, timeoutMs: _submitMs(opts) });
   if (!r.ok) return { ok: false, provider: 'higgsfield', error: 'HTTP ' + r.status + ': ' + r.errText };
   const id = r.data && (r.data.id || r.data.job_id || (r.data.job_set && r.data.job_set.id));
   if (!id) return { ok: false, provider: 'higgsfield', error: 'no job id in response' };
@@ -254,7 +261,7 @@ async function runOpenMontage(opts) {
   const k = keys();
   const reqSpec = openMontageRequest(opts);
   const r = await _fetchJson(reqSpec.url, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + k.openmontage }, body: reqSpec.body,
+    method: 'POST', headers: { Authorization: 'Bearer ' + k.openmontage }, body: reqSpec.body, timeoutMs: _submitMs(opts),
   });
   if (!r.ok) return { ok: false, provider: 'openmontage', error: 'HTTP ' + r.status + ': ' + r.errText };
   const id = r.data && (r.data.id || r.data.job_id || r.data.task_id);
@@ -283,7 +290,7 @@ async function runRunway(opts) {
   const r = await _fetchJson(reqSpec.url, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + k.runway, 'X-Runway-Version': RUNWAY_VERSION },
-    body: reqSpec.body,
+    body: reqSpec.body, timeoutMs: _submitMs(opts),
   });
   if (!r.ok) return { ok: false, provider: 'runway', error: 'HTTP ' + r.status + ': ' + r.errText };
   const id = r.data && r.data.id;
@@ -382,10 +389,12 @@ function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
   };
 }
 
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null } = {}) {
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0 } = {}) {
   const p = String(prompt || '').trim();
   if (!p) return { ok: false, error: 'prompt required' };
-  const opts = { prompt: p, duration_s, aspect };
+  // One budget for the whole cascade (default 90s, inside a 120s function).
+  const budget = Number(budget_ms) > 0 ? Number(budget_ms) : (Number(process.env.VIDEO_TOTAL_BUDGET_MS) > 0 ? Number(process.env.VIDEO_TOTAL_BUDGET_MS) : 90000);
+  const opts = { prompt: p, duration_s, aspect, deadline: Date.now() + budget };
   const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
 
@@ -414,9 +423,17 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const attempts = [];
   for (const rung of rungs) {
     if (!rung.hasKey) { attempts.push({ provider: rung.name, skipped: 'no key' }); continue; }
+    if (opts.deadline - Date.now() < 2000) { attempts.push({ provider: rung.name, skipped: 'call budget exhausted' }); continue; }
     console.log('[video] Trying ' + rung.name + ' (tier=' + tier + ')');
     try {
       const out = await rung.run(opts);
+      // A job that says "completed" with no video is not a video: it used to
+      // be returned as the success, and the cascade stopped on an empty result.
+      if (out && out.ok && out.status === 'completed' && !out.video_url) {
+        attempts.push({ provider: rung.name, error: 'completed without a video url' });
+        console.warn('[video] ' + rung.name + ' completed with no video url — demoting');
+        continue;
+      }
       if (out && out.ok) return { ...out, tier, attempts };
       attempts.push({ provider: rung.name, error: (out && out.error) || 'unknown failure' });
       console.warn('[video] ' + rung.name + ' failed: ' + ((out && out.error) || 'unknown') + ' — demoting');
@@ -425,7 +442,8 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
       console.warn('[video] ' + rung.name + ' exception — demoting: ' + String(e.message || e).substring(0, 200));
     }
   }
-  return { ok: false, error: 'All video providers failed', attempts, tier };
+  const why = attempts.map((a) => a.provider + ': ' + (a.skipped || a.error)).join('; ');
+  return { ok: false, error: 'All video providers failed: ' + why, attempts, tier };
 }
 
 /**

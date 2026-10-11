@@ -716,7 +716,7 @@ function _renderVariantBody(o) {
         <img src="${esc(hero_image_url)}" width="536" alt="${heroLabel}" style="display:block;width:100%;height:auto;border-radius:6px;" />
       </td></tr>` : (hero_prompt ? `
       <tr><td style="padding:20px 32px 0;">
-        ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero' })}
+        ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green })}
       </td></tr>` : '');
     return `<!doctype html>
 <html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">

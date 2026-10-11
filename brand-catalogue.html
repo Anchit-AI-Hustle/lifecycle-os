@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand Catalogue - Lifecycle OS</title>
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<meta name="description" content="The active brand's own catalogue, exactly as every plan, mailer, ad and landing page reads it.">
+<link rel="stylesheet" href="/theme.css">
+<!-- The brand layer first, so the panel can read the active brand the moment
+     it mounts; auth.js finds it already loaded and does not add a second. -->
+<script src="/brand-context.js?early=1"></script>
+<script src="/brand-catalogue-panel.js?v=20261011"></script>
+<style>
+  /* Roles only (design/lifecycle-os/CONTRACT.md): no colour literal here. */
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;background:var(--vh-bg);color:var(--vh-ink);font-family:var(--vh-font-body);padding:clamp(14px,4vw,28px) clamp(12px,4vw,28px)}
+  button,input,select,textarea{font-family:inherit}
+  .wrap{max-width:1280px;margin:0 auto}
+  .eyebrow{color:var(--vh-accent-text);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+  h1{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:clamp(26px,5vw,38px);line-height:1.1;margin:8px 0 10px;overflow-wrap:anywhere}
+  .lede{color:var(--vh-ink-dim);font-size:15px;line-height:1.6;margin:0 0 16px;max-width:780px}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+  .bar .search{flex:1 1 240px;min-width:0}
+  .search input{width:100%;min-height:44px;padding:10px 14px;border:1px solid var(--vh-line-hot);border-radius:10px;background:var(--vh-panel);color:var(--vh-ink);font-size:16px}
+  .search input:focus{outline:2px solid var(--brand-focus,var(--vh-primary));outline-offset:1px}
+  .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .acts a{min-height:44px}
+  .acts [hidden]{display:none}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="eyebrow">Lifecycle OS · Brand &amp; Credits</div>
+  <h1 id="catTitle">Brand catalogue</h1>
+  <p class="lede">The products every plan, mailer, ad and landing page is built from, exactly as generation reads them for the active brand. Products read from another brand's site are counted on their own and never used.</p>
+  <div class="bar">
+    <div class="search"><input type="search" id="catSearch" placeholder="Search products by title" aria-label="Search products by title" autocomplete="off"></div>
+    <div class="acts" id="catActs">
+      <a class="vh-btn vh-btn-primary" id="catImport" href="/onboarding?step=5">Import or update catalogue</a>
+      <a class="vh-btn vh-btn-secondary" id="catContinue" href="/onboarding?step=5" hidden>Continue import</a>
+      <a class="vh-btn vh-btn-ghost" href="/brand-context">Brand context</a>
+    </div>
+  </div>
+  <section class="vh-card">
+    <div id="catBody" role="status" aria-live="polite"><p class="vh-status">Reading the active brand's catalogue…</p></div>
+  </section>
+</main>
+<script>
+(function () {
+  var body = document.getElementById('catBody');
+  var search = document.getElementById('catSearch');
+  var imp = document.getElementById('catImport');
+  var cont = document.getElementById('catContinue');
+  function step(d) { return '/onboarding?step=5' + (d && d.brand && d.brand.id ? '&id=' + encodeURIComponent(d.brand.id) : ''); }
+  if (!window.BrandCataloguePanel) { body.innerHTML = '<p class="vh-status">The catalogue reader did not load on this page.</p>'; return; }
+  var panel = window.BrandCataloguePanel.mount(body, {
+    titleEl: document.getElementById('catTitle'),
+    full: true,
+    maxShown: 5000,
+    onData: function (d) {
+      var href = step(d);
+      imp.setAttribute('href', href);
+      cont.setAttribute('href', href);
+      cont.hidden = !(d && d.resumable);
+      if (d && !d.error && search.value) panel.setQuery(search.value);
+    },
+  });
+  search.addEventListener('input', function () { panel.setQuery(search.value); });
+})();
+</script>
+<script defer src="/auth.js"></script>
+</body>
+</html>
