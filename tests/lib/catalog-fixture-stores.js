@@ -45,6 +45,37 @@
  *   ratelimit.example   Shopify, 600 products; every page of /products.json
  *                       first answers 429 with Retry-After: 1.
  *
+ * Added 2026-10-11, modelled on the two live records (this container cannot
+ * reach either site, so these are the DOCUMENTED shapes - sitemaps.org index
+ * -> per-section product sitemaps, gzipped children, nested indexes - and the
+ * shapes the live coverage implies):
+ *
+ *   bigmarket.example   Nykaa-like. No platform declared anywhere; its
+ *                       /products.json ALWAYS answers 429 with no Retry-After
+ *                       (the live "feed page 1, 4 waits, 7 s"). robots.txt
+ *                       names a sitemap index on the site, one on its own sibling
+ *                       domain bigmarket.in, and one on ANOTHER site. Index -> a
+ *                       category sitemap, a product_cat-sitemap.xml (category
+ *                       pages, not products), and a PRODUCT index -> two
+ *                       further indexes (a/, b/) -> 70 urlsets whose own names
+ *                       ("p/a/7.xml.gz", "p/b/3.xml") do not say "product": 1,050
+ *                       products, 15 each. b/3.xml answers 429 Retry-After: 1
+ *                       the first time. bigmarket.in's products-featured.xml
+ *                       lists 21 products that are listed elsewhere too. 10
+ *                       product pages are application shells (no JSON-LD until
+ *                       JavaScript runs) and 5 are Next.js pages whose
+ *                       __NEXT_DATA__ states title, price, currency and image.
+ *                       Prices in INR. `smDelayMs` slows every sitemap.
+ *   lensshop.example    Lenskart-like. robots.txt names /sitemap.xml, a
+ *                       <urlset> (NOT a <sitemapindex>) whose 21 <loc>s are
+ *                       CHILD SITEMAPS (sitemap-NN.xml, every third gzipped):
+ *                       the live "21 URLs, 21 pages that declare no product".
+ *                       2,430 products behind them, JSON-LD on every page,
+ *                       each answering after `delayMs`.
+ *   emptyshop.example   No robots Sitemap line; /sitemap.xml answers 200 with
+ *                       an HTML bot-challenge page; the home page links five
+ *                       pages that declare no product.
+ *
  * NOT a test. Required by tests/catalog-import-complete.spec.js.
  */
 const http = require('http');
@@ -290,6 +321,108 @@ function buildStores() {
       },
     };
   }
+  // bigmarket: Nykaa-like (see the header).
+  {
+    const host = 'bigmarket.example';
+    const sub = 'bigmarket.in';   // the same brand under another suffix (brand-coherence sameBrand)
+    const prods = [];
+    for (let i = 1; i <= 1050; i++) prods.push({ path: `/p/item-${pad(i)}`, title: `Lipstick ${pad(i)}`, sku: `NY${pad(i)}`, price: (299 + (i % 50)).toFixed(2), currency: 'INR', images: [`https://${host}/media/item-${i}.jpg`], description: `Item ${i}.`, shell: i % 105 === 1, next: i % 210 === 50 });
+    const gz = (x) => zlib.gzipSync(Buffer.from(x));
+    const child = (side, n) => { const base = (side === 'a' ? 0 : 35) + (n - 1); return prods.slice(base * 15, base * 15 + 15); };
+    const tried = new Set();
+    S[host] = {
+      truth: { products: 1050, shells: prods.filter((p) => p.shell).length, next: prods.filter((p) => p.next).length, currency: 'INR' },
+      smDelayMs: 0,
+      longRetry: 0,
+      tried,
+      handler(req, url) {
+        const sm = (o) => Object.assign(o, this.smDelayMs ? { delay: this.smDelayMs } : {});
+        if (url.pathname === '/products.json') return { status: 429, type: 'text/plain', body: 'Too Many Requests' };
+        if (url.pathname === '/robots.txt') return { status: 200, type: 'text/plain', body: `User-agent: *
+Disallow: /cart
+Sitemap: https://${host}/sitemap-index.xml
+Sitemap: https://${sub}/extra/products-featured.xml
+Sitemap: https://othermarket.example/sitemap-products.xml
+` };
+        if (url.pathname === '/sitemap-index.xml') return sm({ status: 200, type: 'application/xml', body: sitemapIndex([`https://${host}/sitemaps/categories.xml`, `https://${host}/sitemaps/product_cat-sitemap.xml`, `https://${host}/sitemaps/products/index.xml`]) });
+        if (url.pathname === '/sitemaps/categories.xml') return sm({ status: 200, type: 'application/xml', body: urlset(Array.from({ length: 30 }, (_, k) => `https://${host}/c/cat-${k}`)) });
+        if (url.pathname === '/sitemaps/product_cat-sitemap.xml') return sm({ status: 200, type: 'application/xml', body: urlset(Array.from({ length: 20 }, (_, k) => `https://${host}/c/lips-${k}`)) });
+        if (url.pathname === '/sitemaps/products/index.xml') return sm({ status: 200, type: 'application/xml', body: sitemapIndex([`https://${host}/sitemaps/p/a/index.xml`, `https://${host}/sitemaps/p/b/index.xml`]) });
+        if (url.pathname === '/sitemaps/p/a/index.xml') return sm({ status: 200, type: 'application/xml', body: sitemapIndex(Array.from({ length: 35 }, (_, k) => `https://${host}/sitemaps/p/a/${k + 1}.xml.gz`)) });
+        if (url.pathname === '/sitemaps/p/b/index.xml') return sm({ status: 200, type: 'application/xml', body: sitemapIndex(Array.from({ length: 35 }, (_, k) => `https://${host}/sitemaps/p/b/${k + 1}.xml`)) });
+        let m = /^\/sitemaps\/p\/a\/(\d+)\.xml\.gz$/.exec(url.pathname);
+        if (m) return sm({ status: 200, type: 'application/x-gzip', raw: gz(urlset(child('a', Number(m[1])).map((p) => `https://${host}${p.path}`))) });
+        m = /^\/sitemaps\/p\/b\/(\d+)\.xml$/.exec(url.pathname);
+        if (m) {
+          if (m[1] === '3' && !tried.has('b3')) { tried.add('b3'); return { status: 429, type: 'text/plain', body: 'slow down', headers: { 'retry-after': '1' } }; }
+          if (m[1] === '7' && this.longRetry && !tried.has('b7')) { tried.add('b7'); return { status: 429, type: 'text/plain', body: 'slow down', headers: { 'retry-after': String(this.longRetry) } }; }
+          return sm({ status: 200, type: 'application/xml', body: urlset(child('b', Number(m[1])).map((p) => `https://${host}${p.path}`)) });
+        }
+        if (url.pathname === '/') return { status: 200, type: 'text/html', body: '<!doctype html><html><head><title>Big Market</title></head><body><a href="/p/item-0002">x</a></body></html>' };
+        const p = prods.find((x) => x.path === url.pathname);
+        if (p && p.shell) return { status: 200, type: 'text/html', body: `<!doctype html><html><head><title>Big Market</title><script src="/static/app.js" defer></script></head><body><div id="root"></div></body></html>` };
+        if (p && p.next) {
+          const data = { props: { pageProps: { recs: [{ name: 'Other Product', price: 1, currency: 'INR', imageUrl: `https://${host}/media/other.jpg` }], product: { productName: p.title, sellingPrice: Number(p.price), currencyCode: 'INR', imageUrl: p.images[0], sku: p.sku } } } };
+          return { status: 200, type: 'text/html', body: `<!doctype html><html><head><title>${p.title} | Big Market</title></head><body><div id="__next"></div><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(data)}</script></body></html>` };
+        }
+        if (p) return { status: 200, type: 'text/html', body: jsonLdPdp(host, p, 'plain') };
+        return null;
+      },
+    };
+    S['othermarket.example'] = { handler() { return { status: 200, type: 'application/xml', body: urlset([`https://othermarket.example/p/x`]) }; } };
+    S[sub] = {
+      handler(req, url) {
+        if (url.pathname === '/extra/products-featured.xml') return { status: 200, type: 'application/xml', body: urlset(prods.slice(100, 121).map((p) => `https://${host}${p.path}`)) };
+        return null;
+      },
+    };
+  }
+
+  // lensshop: Lenskart-like - a <urlset> whose 21 entries are child sitemaps.
+  {
+    const host = 'lensshop.example';
+    const prods = [];
+    for (let i = 1; i <= 2430; i++) prods.push({ path: `/frames/frame-${pad(i)}.html`, title: `Frame ${pad(i)}`, sku: `LK${pad(i)}`, price: (999 + (i % 30) * 100).toFixed(2), currency: 'INR', images: [`https://${host}/img/frame-${i}.jpg`], description: `Frame ${i}.` });
+    const kids = Array.from({ length: 21 }, (_, k) => `https://${host}/sitemap/sitemap-${pad(k + 1, 2)}.xml${k % 3 === 2 ? '.gz' : ''}`);
+    const gz = (x) => zlib.gzipSync(Buffer.from(x));
+    S[host] = {
+      truth: { products: 2430, children: 21 },
+      delayMs: 0,
+      handler(req, url) {
+        if (url.pathname === '/products.json') return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>Page not found</p>' };
+        if (url.pathname === '/robots.txt') return { status: 200, type: 'text/plain', body: `User-agent: *
+Disallow: /checkout
+Sitemap: https://${host}/sitemap.xml
+` };
+        if (url.pathname === '/sitemap.xml') return { status: 200, type: 'application/xml', body: urlset(kids) };
+        const m = /^\/sitemap\/sitemap-(\d+)\.xml(\.gz)?$/.exec(url.pathname);
+        if (m) {
+          const k = Number(m[1]) - 1;
+          const body = urlset(prods.slice(k * 116, k === 20 ? 2430 : k * 116 + 116).map((p) => `https://${host}${p.path}`));
+          return m[2] ? { status: 200, type: 'application/octet-stream', raw: gz(body) } : { status: 200, type: 'text/xml', body };
+        }
+        if (url.pathname === '/') return { status: 200, type: 'text/html', body: '<!doctype html><html><head><title>Lens Shop</title></head><body><a href="/frames/frame-0001.html">Frame</a></body></html>' };
+        const p = prods.find((x) => x.path === url.pathname);
+        if (p) return { status: 200, type: 'text/html', body: jsonLdPdp(host, p, 'plain'), delay: this.delayMs };
+        return null;
+      },
+    };
+  }
+
+  // emptyshop: a 200 HTML challenge at /sitemap.xml and pages with no product.
+  {
+    const host = 'emptyshop.example';
+    S[host] = {
+      handler(req, url) {
+        if (url.pathname === '/robots.txt') return { status: 200, type: 'text/plain', body: 'User-agent: *\nDisallow: /admin\n' };
+        if (url.pathname === '/sitemap.xml') return { status: 200, type: 'text/html', body: '<!doctype html><html><head><title>Just a moment...</title></head><body><p>Checking your browser before accessing the site.</p></body></html>' };
+        if (url.pathname === '/products.json') return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>nope</p>' };
+        if (url.pathname === '/') return { status: 200, type: 'text/html', body: `<!doctype html><html><head><title>Empty</title></head><body>${[1, 2, 3, 4, 5].map((i) => `<a href="/info/${i}">Info ${i}</a>`).join('')}</body></html>` };
+        if (/^\/info\/\d$/.test(url.pathname)) return { status: 200, type: 'text/html', body: '<!doctype html><html><head><title>Info</title></head><body><main><h1>About our frames</h1><p>We make frames in a workshop and ship them to you, carefully packed, from our own warehouse.</p></main></body></html>' };
+        return null;
+      },
+    };
+  }
   return S;
 }
 
@@ -334,7 +467,8 @@ async function startStores() {
     Object.defineProperty(out, 'url', { value: asked });
     return out;
   }
-  const isFixture = (url) => { try { return /\.example$/i.test(new URL(String(url && url.url ? url.url : url)).hostname); } catch (_) { return false; } };
+  const FIXTURE_HOST = /\.example$|^bigmarket\.in$/i;
+  const isFixture = (url) => { try { return FIXTURE_HOST.test(new URL(String(url && url.url ? url.url : url)).hostname); } catch (_) { return false; } };
 
   let realFetch = null, realLookup = null;
   return {
@@ -353,7 +487,7 @@ async function startStores() {
     installDns() {
       if (realLookup) return;
       realLookup = dns.promises.lookup;
-      dns.promises.lookup = async (host, opts) => (/\.example$/i.test(String(host)) ? ((opts && opts.all) ? [{ address: PUBLIC_ADDR, family: 4 }] : { address: PUBLIC_ADDR, family: 4 }) : realLookup(host, opts));
+      dns.promises.lookup = async (host, opts) => (/\.example$|^bigmarket\.in$/i.test(String(host)) ? ((opts && opts.all) ? [{ address: PUBLIC_ADDR, family: 4 }] : { address: PUBLIC_ADDR, family: 4 }) : realLookup(host, opts));
     },
     restore() {
       if (realFetch) global.fetch = realFetch;
@@ -366,6 +500,10 @@ async function startStores() {
       stores['ratelimit.example'].retryAfter = '1';
       stores['robots.example'].robotsStatus = 200;
       stores['bigshop.example'].undrop();
+      stores['bigmarket.example'].tried.clear();
+      stores['bigmarket.example'].smDelayMs = 0;
+      stores['bigmarket.example'].longRetry = 0;
+      stores['lensshop.example'].delayMs = 0;
     },
     close() { return new Promise((r) => server.close(() => r())); },
   };

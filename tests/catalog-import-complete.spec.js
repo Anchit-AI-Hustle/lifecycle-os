@@ -603,10 +603,14 @@ async function realSteps() {
   } finally { w.restore(); }
 }
 
-test('onboarding: a partial import shows its coverage and Continue import, which resumes (not restarts) and then says complete', async ({ page }) => {
+test('onboarding: a partial import keeps going BY ITSELF - the page drives the next step (no press) with live progress, resumes (not restarts) and then says complete', async ({ page }) => {
   test.setTimeout(150_000);
   const { first, last } = await realSteps();
   expect(first.complete).toBe(false);
+  // No CRON_SECRET / self URL here, so the server says the page continues it.
+  expect(first.drive).toBe(true);
+  expect(first.continuing).toBe(false);
+  expect(said(first.coverage)).toContain('It continues from this page');
   const BRAND = { id: WS, slug: 'slow', name: 'Slow Shop', website: 'https://slowshop.example', palette: { primary: '#1F4E79', accent: '#C8102E', ink: '#1A1A1A', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' }, typography: { heading: { family: 'Inter' }, body: { family: 'Inter' } }, voice: {}, brand_data: {}, regions: [{ code: 'US', home: true, store_url: 'https://slowshop.example', currency: 'USD' }] };
   const srv = appServer();
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
@@ -632,15 +636,8 @@ test('onboarding: a partial import shows its coverage and Continue import, which
     await page.fill('#impUrl', 'https://slowshop.example');
     await page.locator('#doImport').click();
     const box = page.locator('#impCoverage');
-    await expect(box).toBeVisible({ timeout: 10000 });
-    await expect(box).toContainText('Catalogue read in part');
-    await expect(box).toContainText('PARTIAL: this run\'s time ran out');
-    await expect(page.locator('#impStatus')).toContainText(first.imported + ' products imported in this step');
-    // An ordinary state, in the accent rule: not a failure frame.
-    await expect(page.locator('#impStatus .vh-failure, #impCoverage .vh-failure')).toHaveCount(0);
-
-    await page.locator('#impContinue').click();
-    await expect(box).toContainText('Catalogue read completely', { timeout: 10000 });
+    // Nothing is pressed after Import: the page continues from the cursor.
+    await expect(box).toContainText('Catalogue read completely', { timeout: 15000 });
     await expect(box).toContainText('Complete: every product the source lists was read.');
     await expect(page.locator('#impContinue')).toHaveCount(0);
     const imports = calls.filter((c) => c.op === 'catalog-import');
@@ -654,7 +651,7 @@ test('onboarding: a partial import shows its coverage and Continue import, which
   } finally { await new Promise((r) => srv.close(r)); }
 });
 
-test('/connections shows the active brand\'s catalogue coverage and offers Continue import when it is partial', async ({ page }) => {
+test('/connections shows the active brand\'s catalogue coverage and, pressed once, Continue import keeps going until complete', async ({ page }) => {
   test.setTimeout(150_000);
   const { first, last } = await realSteps();
   const partialStatus = { ok: true, workspace_id: WS, coverage: first.coverage, resume_available: true, live: first.imported, stale: 0 };
