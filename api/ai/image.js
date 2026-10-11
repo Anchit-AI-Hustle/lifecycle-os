@@ -10,7 +10,9 @@
 //   standard/budget:  FREE-FIRST to protect paid quotas —
 //                     gemini-2.5-flash-image (free ~500/day) → Pollinations →
 //                     OpenAI (last paid resort)
-// Never 502s: on total failure returns 200 + on-brand placeholder data URI.
+// Never 502s: on total failure returns 200 with ok:false, placeholder:true,
+// image_data_url:null, the on-brand panel as placeholder_data_url, and every
+// attempt with why it failed. A placeholder is never reported as an image.
 //
 // POST body:
 //   { prompt: string, size?: '1024x1024'|'1536x1024'|'1024x1536',
@@ -140,170 +142,199 @@ module.exports = async function handler(req, res) {
   // cut off and the model drew whatever the scene text suggested.
   const finalPrompt = (subjectLine + preamble + userPrompt).substring(0, 4000 - QUALITY_SUFFIX.length) + QUALITY_SUFFIX;
 
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openaiKeys = [
+  // Keys cleaned and de-duplicated: the same OpenAI key set twice used to be
+  // sent twice after it had already been refused.
+  const _clean = (s) => String(s || '').replace(/[﻿​ ]/g, '').trim();
+  const geminiKey = _clean(process.env.GEMINI_API_KEY);
+  const openaiKeys = [...new Set([
     process.env.OPENAI_API_KEY,
     process.env.OPENAI_API_KEY_2,
     process.env.OPENAI_API_KEY_3
-  ].filter(Boolean);
+  ].map(_clean).filter(Boolean))];
 
   let anyQuotaHit = false; // set when a paid provider fails on quota/billing
+  // Every attempt, in order, with why it failed. The placeholder response and
+  // the log both carry it, so "all providers failed" always says which and why.
+  const attempts = [];
+  // A key that was rejected or is out of quota is dead for the rest of this
+  // request: Gemini native and Imagen share GEMINI_API_KEY, so a dead key used
+  // to be sent once per model of both rungs.
+  let geminiKeyDead = false;
+  const openaiDead = new Set();
+
+  // The whole request has ONE budget (default 100s of the function's 120s;
+  // an in-process caller with its own deadline passes `budget_ms`). Every
+  // attempt gets at most what is left, so one hanging provider cannot spend it all.
+  const startedAt = Date.now();
+  const budgetMs = Math.min(110000, Math.max(5000, Number(body.budget_ms) > 0 ? Number(body.budget_ms)
+    : (Number(process.env.IMAGE_TOTAL_BUDGET_MS) > 0 ? Number(process.env.IMAGE_TOTAL_BUDGET_MS) : 100000)));
+  const left = () => budgetMs - (Date.now() - startedAt);
+  let budgetOut = false;
+  const BAD_KEY = /api[ _-]?key[ _-]?(?:not[ _-]?valid|invalid|expired)|invalid[ _-]api[ _-]?key|incorrect api key|API_KEY_INVALID|unauthori[sz]ed|permission_denied/i;
+  const BILLING = /insufficient_quota|quota|billing|credit|balance|payment required/i;
+  function kindOf(status, errText) {
+    const t = String(errText || '');
+    if (status === 0) return 'timeout';
+    if (status === 401 || (status === 400 && BAD_KEY.test(t))) return 'auth';
+    if (status === 402 || ((status === 400 || status === 403 || status === 429) && BILLING.test(t))) return 'billing';
+    if (status === 403) return 'auth';
+    if (status === 429) return 'rate_limit';
+    if (status === 404 || ((status === 400 || status === 422) && /model_not_found|does not exist|not supported|not found|unknown model|invalid model/i.test(t))) return 'model';
+    if (status === 200) return 'empty';
+    if (status >= 500) return 'transient';
+    return 'bad_request';
+  }
+  function note(provider, model, status, kind, detail) {
+    attempts.push({ provider, model, status, reason: kind, detail: String(detail || '').substring(0, 160) });
+    if (kind === 'billing') anyQuotaHit = true;
+    return kind;
+  }
+
+  /** One bounded request: the timer covers the body as well as the headers. */
+  async function bounded(url, init, capMs, read) {
+    const ms = Math.min(capMs, left());
+    if (ms < 1000) { budgetOut = true; return { status: -1, err: 'budget exhausted' }; }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ms);
+    try {
+      const r = await fetch(url, Object.assign({ cache: 'no-store', signal: controller.signal }, init));
+      if (!r.ok) return { status: r.status, err: await r.text().catch(() => '') };
+      return await read(r);
+    } catch (e) {
+      return { status: 0, err: controller.signal.aborted ? ('timeout after ' + ms + 'ms') : String((e && e.message) || e) };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  const readJson = async (r) => {
+    try { return { status: 200, data: JSON.parse(await r.text()) }; }
+    catch (_) { return { status: 200, err: 'invalid_json_body' }; }
+  };
 
   // ── Rung: Gemini native image generation via generateContent ───────────────
   async function tryGeminiNative(models) {
-    if (!geminiKey) return null;
+    if (!geminiKey || geminiKeyDead) return null;
     for (const model of models) {
-      const endpoint = GEMINI_BASE + '/' + model + ':generateContent?key=' + geminiKey;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90000);
       console.log('[image] Trying Gemini native model=' + model);
-      try {
-        const fetchRes = await fetch(endpoint, {
-          method: 'POST',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Generate an image based on this description:\n\n' + finalPrompt }] }],
-            generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeout);
-        if (!fetchRes.ok) {
-          const errText = await fetchRes.text().catch(() => '');
-          console.warn('[image] Gemini ' + model + ' → HTTP ' + fetchRes.status, errText.substring(0, 300));
-          if (fetchRes.status === 429 || /quota|billing/i.test(errText)) anyQuotaHit = true;
-          continue;
+      const out = await bounded(GEMINI_BASE + '/' + model + ':generateContent?key=' + geminiKey, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Generate an image based on this description:\n\n' + finalPrompt }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+        })
+      }, 90000, readJson);
+      if (out.status === -1) return null;
+      if (out.data) {
+        const parts = out.data.candidates && out.data.candidates[0] && out.data.candidates[0].content && out.data.candidates[0].content.parts;
+        const imgPart = Array.isArray(parts) && parts.find(p => p.inlineData && p.inlineData.data);
+        if (imgPart) {
+          const mimeType = imgPart.inlineData.mimeType || 'image/png';
+          console.log('[image] Success · Gemini native ' + model);
+          return { provider: 'gemini', model, image_data_url: 'data:' + mimeType + ';base64,' + imgPart.inlineData.data };
         }
-        const data = await fetchRes.json();
-        const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-        if (!parts) { console.warn('[image] Gemini ' + model + ' — no parts in response'); continue; }
-        const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
-        if (!imgPart) { console.warn('[image] Gemini ' + model + ' — no image part returned'); continue; }
-        const mimeType = imgPart.inlineData.mimeType || 'image/png';
-        console.log('[image] Success · Gemini native ' + model);
-        return { provider: 'gemini', model, image_data_url: 'data:' + mimeType + ';base64,' + imgPart.inlineData.data };
-      } catch (e) {
-        clearTimeout(timeout);
-        console.error('[image] Gemini ' + model + ' exception:', String(e.message || e).substring(0, 200));
-        continue;
+        out.err = 'no image part returned';
       }
+      const kind = note('gemini', model, out.status, kindOf(out.status, out.err), out.err);
+      console.warn('[image] Gemini ' + model + ' → ' + out.status + ' (' + kind + ')', String(out.err || '').substring(0, 200));
+      if (kind === 'auth' || kind === 'billing') { geminiKeyDead = true; return null; }
+      if (kind === 'timeout') return null;
     }
     return null;
   }
 
   // ── Rung: Imagen predict API (paid plans only — free tier 400s) ────────────
   async function tryImagen(models) {
-    if (!geminiKey) return null;
+    if (!geminiKey || geminiKeyDead) return null;
     const aspectRatio = GEMINI_ASPECT_MAP[size] || '3:4';
     for (const model of models) {
-      const endpoint = GEMINI_BASE + '/' + model + ':predict';
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90000);
       console.log('[image] Trying Gemini Imagen model=' + model + ' aspect=' + aspectRatio);
-      try {
-        const fetchRes = await fetch(endpoint, {
-          method: 'POST',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
-          body: JSON.stringify({
-            instances: [{ prompt: finalPrompt }],
-            parameters: { sampleCount: 1, aspectRatio: aspectRatio, personGeneration: 'allow_adult' }
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeout);
-        if (!fetchRes.ok) {
-          const errText = await fetchRes.text().catch(() => '');
-          console.warn('[image] Gemini Imagen ' + model + ' → HTTP ' + fetchRes.status, errText.substring(0, 300));
-          continue;
+      const out = await bounded(GEMINI_BASE + '/' + model + ':predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+        body: JSON.stringify({
+          instances: [{ prompt: finalPrompt }],
+          parameters: { sampleCount: 1, aspectRatio: aspectRatio, personGeneration: 'allow_adult' }
+        })
+      }, 90000, readJson);
+      if (out.status === -1) return null;
+      if (out.data) {
+        const prediction = out.data.predictions && out.data.predictions[0];
+        if (prediction && prediction.bytesBase64Encoded) {
+          const mimeType = prediction.mimeType || 'image/png';
+          console.log('[image] Success · Gemini Imagen ' + model);
+          return { provider: 'gemini', model, image_data_url: 'data:' + mimeType + ';base64,' + prediction.bytesBase64Encoded };
         }
-        const data = await fetchRes.json();
-        const prediction = data.predictions && data.predictions[0];
-        if (!prediction || !prediction.bytesBase64Encoded) { continue; }
-        const mimeType = prediction.mimeType || 'image/png';
-        console.log('[image] Success · Gemini Imagen ' + model);
-        return { provider: 'gemini', model, image_data_url: 'data:' + mimeType + ';base64,' + prediction.bytesBase64Encoded };
-      } catch (e) {
-        clearTimeout(timeout);
-        console.error('[image] Gemini Imagen ' + model + ' exception:', String(e.message || e).substring(0, 200));
-        continue;
+        out.err = 'no image in prediction';
       }
+      const kind = note('imagen', model, out.status, kindOf(out.status, out.err), out.err);
+      console.warn('[image] Gemini Imagen ' + model + ' → ' + out.status + ' (' + kind + ')', String(out.err || '').substring(0, 200));
+      if (kind === 'auth' || kind === 'billing') { geminiKeyDead = true; return null; }
+      if (kind === 'timeout') return null;
     }
     return null;
   }
 
   // ── Rung: OpenAI images/generations with within-provider model demotion ────
   // gpt-image-2 (default; best instruction-following) auto-demotes to
-  // gpt-image-1 on model-not-found (404, or 400 mentioning the model).
+  // gpt-image-1 on model-not-found (404, or 400 mentioning the model). Keys
+  // rotate on a key-specific failure; a dead key is never sent again.
   async function tryOpenai() {
     if (!openaiKeys.length) return null;
     const models = [...new Set([
-      process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2',
+      _clean(process.env.OPENAI_IMAGE_MODEL) || 'gpt-image-2',
       'gpt-image-1'
     ])];
     for (let mi = 0; mi < models.length; mi++) {
       const imageModel = models[mi];
       let demoteModel = false;
       for (let ki = 0; ki < openaiKeys.length; ki++) {
+        if (openaiDead.has(ki)) continue;
         const key = openaiKeys[ki];
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000);
         console.log('[image] Trying OpenAI model=' + imageModel + ' key #' + (ki + 1) + ' (...' + key.slice(-4) + ') size=' + size);
-        try {
-          const fetchRes = await fetch(OPENAI_BASE + '/images/generations', {
-            method: 'POST',
-            cache: 'no-store',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-            body: JSON.stringify({ model: imageModel, prompt: finalPrompt, n: 1, size: (OPENAI_SIZE_MAP[size] || '1024x1024'), quality, output_format: 'png' }),
-            signal: controller.signal
-          });
-          clearTimeout(timeout);
-
-          if (!fetchRes.ok) {
-            const errText = await fetchRes.text().catch(() => '');
-            console.warn('[image] OpenAI ' + imageModel + ' key #' + (ki + 1) + ' → HTTP ' + fetchRes.status, errText.substring(0, 200));
-
-            const isQuota = (fetchRes.status === 429 || fetchRes.status === 402 || fetchRes.status === 400) &&
-              /insufficient_quota|quota|billing|credit|balance/i.test(errText);
-            if (isQuota) { anyQuotaHit = true; continue; } // rotate to next key
-
-            const isModelError = fetchRes.status === 404 ||
-              errText.includes('model_not_found') || errText.includes('does not exist') || errText.includes('not supported') ||
-              (fetchRes.status === 400 && errText.includes(imageModel));
-            if (isModelError) { demoteModel = true; break; } // demote within-provider
-
-            continue; // other error → try next key
-          }
-
-          const data = await fetchRes.json();
-          const imgEntry = data.data && data.data[0];
-          if (!imgEntry) { continue; }
-
+        const out = await bounded(OPENAI_BASE + '/images/generations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+          body: JSON.stringify({ model: imageModel, prompt: finalPrompt, n: 1, size: (OPENAI_SIZE_MAP[size] || '1024x1024'), quality, output_format: 'png' })
+        }, 90000, readJson);
+        if (out.status === -1) return null;
+        if (out.data) {
+          const imgEntry = out.data.data && out.data.data[0];
           let dataUrl = '';
-          if (imgEntry.b64_json) {
+          if (imgEntry && imgEntry.b64_json) {
             dataUrl = 'data:image/png;base64,' + imgEntry.b64_json;
-          } else if (imgEntry.url) {
-            try {
-              const imgFetch = await fetch(imgEntry.url);
-              const buf = await imgFetch.arrayBuffer();
-              dataUrl = 'data:image/png;base64,' + Buffer.from(buf).toString('base64');
-            } catch (e) { continue; }
-          } else { continue; }
-
-          console.log('[image] Success · OpenAI ' + imageModel + ' key #' + (ki + 1) + ' size=' + size);
-          return { provider: 'openai', model: imageModel, image_data_url: dataUrl, key_index: ki + 1 };
-        } catch (e) {
-          clearTimeout(timeout);
-          console.error('[image] OpenAI ' + imageModel + ' key #' + (ki + 1) + ' exception:', String(e.message || e).substring(0, 200));
-          continue;
+          } else if (imgEntry && imgEntry.url) {
+            // The hosted copy is fetched under the same budget, and only an
+            // image answer counts: an error page is not a picture.
+            const got = await bounded(imgEntry.url, { method: 'GET' }, 30000, async (r) => {
+              const ct = (r.headers.get('content-type') || '').toLowerCase();
+              const buf = await r.arrayBuffer();
+              return (ct.startsWith('image/') && buf.byteLength > 0)
+                ? { status: 200, dataUrl: 'data:' + ct.split(';')[0] + ';base64,' + Buffer.from(buf).toString('base64') }
+                : { status: 200, err: 'image url returned ' + (ct || 'no content type') };
+            });
+            if (got.dataUrl) dataUrl = got.dataUrl; else out.err = 'image url unreadable: ' + (got.err || got.status);
+          } else {
+            out.err = 'no image in response';
+          }
+          if (dataUrl) {
+            console.log('[image] Success · OpenAI ' + imageModel + ' key #' + (ki + 1) + ' size=' + size);
+            return { provider: 'openai', model: imageModel, image_data_url: dataUrl, key_index: ki + 1 };
+          }
         }
+        const kind = note('openai', imageModel, out.status, kindOf(out.status, out.err), out.err);
+        console.warn('[image] OpenAI ' + imageModel + ' key #' + (ki + 1) + ' → ' + out.status + ' (' + kind + ')', String(out.err || '').substring(0, 200));
+        if (kind === 'auth' || kind === 'billing') { openaiDead.add(ki); continue; } // rotate to next key
+        if (kind === 'model' || (out.status === 400 && String(out.err || '').includes(imageModel))) { demoteModel = true; break; } // demote within-provider
+        if (kind === 'timeout') return null;
+        // rate limit / 5xx / other → next key
       }
+      if (openaiDead.size >= openaiKeys.length) return null;
       if (demoteModel && mi < models.length - 1) {
         console.warn('[image] OpenAI ' + imageModel + ' unavailable — demoting to ' + models[mi + 1]);
         continue;
       }
-      if (!demoteModel) break; // all keys failed for a valid model — no point retrying siblings
+      break; // every live key failed on a valid model — no point retrying siblings
     }
     return null;
   }
@@ -318,33 +349,24 @@ module.exports = async function handler(req, res) {
         encodeURIComponent(finalPrompt.substring(0, 1500)) +
         '?width=' + dim.w + '&height=' + dim.h +
         '&seed=' + seed + '&nologo=true&model=' + pollinationsModel + '&enhance=true&quality=hd';
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90000);
       console.log('[image] Trying Pollinations model=' + pollinationsModel + ' size=' + dim.w + 'x' + dim.h);
-      try {
-        const imgFetch = await fetch(pollUrl, { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!imgFetch.ok) {
-          console.warn('[image] Pollinations ' + pollinationsModel + ' → HTTP ' + imgFetch.status);
-          continue;
-        }
-        const buf = await imgFetch.arrayBuffer();
-        // Validate we got actual image data (not an error page)
-        if (buf.byteLength < 5000) {
-          console.warn('[image] Pollinations ' + pollinationsModel + ' — response too small (' + buf.byteLength + ' bytes), skipping');
-          continue;
-        }
-        const contentType = imgFetch.headers.get('content-type') || 'image/jpeg';
-        console.log('[image] Success · Pollinations ' + pollinationsModel + ' (' + Math.round(buf.byteLength / 1024) + ' KB)');
-        return {
-          provider: 'pollinations', model: pollinationsModel,
-          image_data_url: 'data:' + contentType + ';base64,' + Buffer.from(buf).toString('base64')
-        };
-      } catch (e) {
-        clearTimeout(timeout);
-        console.error('[image] Pollinations ' + pollinationsModel + ' exception:', String(e.message || e).substring(0, 200));
-        continue;
+      const out = await bounded(pollUrl, { method: 'GET' }, 90000, async (r) => {
+        const ct = (r.headers.get('content-type') || '').toLowerCase();
+        const buf = await r.arrayBuffer();
+        // An image, and a real one: an HTML error page or a tiny stub answered
+        // 200 used to be returned as the picture.
+        if (!ct.startsWith('image/')) return { status: 200, err: 'not an image (' + (ct || 'no content type') + ')' };
+        if (buf.byteLength < 5000) return { status: 200, err: 'response too small (' + buf.byteLength + ' bytes)' };
+        return { status: 200, dataUrl: 'data:' + ct.split(';')[0] + ';base64,' + Buffer.from(buf).toString('base64'), kb: Math.round(buf.byteLength / 1024) };
+      });
+      if (out.status === -1) return null;
+      if (out.dataUrl) {
+        console.log('[image] Success · Pollinations ' + pollinationsModel + ' (' + out.kb + ' KB)');
+        return { provider: 'pollinations', model: pollinationsModel, image_data_url: out.dataUrl };
       }
+      const kind = note('pollinations', pollinationsModel, out.status, kindOf(out.status, out.err), out.err);
+      console.warn('[image] Pollinations ' + pollinationsModel + ' → ' + out.status + ' (' + kind + ')');
+      if (kind === 'timeout') return null;
     }
     return null;
   }
@@ -357,29 +379,21 @@ module.exports = async function handler(req, res) {
   async function tryCloudflare() {
     if (!CF_ACCOUNT || !CF_TOKEN) return null;
     const model = process.env.CLOUDFLARE_IMAGE_MODEL || '@cf/black-violet-labs/flux-1-schnell';
-    const url = 'https://api.cloudflare.com/client/v4/accounts/' + CF_ACCOUNT + '/ai/run/' + model;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
     console.log('[image] Trying Cloudflare model=' + model);
-    try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + CF_TOKEN, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: finalPrompt.substring(0, 2000), steps: 6 }),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-      if (!r.ok) { console.warn('[image] Cloudflare → HTTP ' + r.status); return null; }
-      const data = await r.json().catch(() => null);
-      const b64 = data && data.result && data.result.image;
-      if (!b64 || b64.length < 5000) { console.warn('[image] Cloudflare — no image in response'); return null; }
+    const out = await bounded('https://api.cloudflare.com/client/v4/accounts/' + CF_ACCOUNT + '/ai/run/' + model, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + CF_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: finalPrompt.substring(0, 2000), steps: 6 })
+    }, 60000, readJson);
+    if (out.status === -1) return null;
+    const b64 = out.data && out.data.result && out.data.result.image;
+    if (b64 && b64.length >= 5000) {
       console.log('[image] Success · Cloudflare ' + model);
       return { provider: 'cloudflare', model, image_data_url: 'data:image/jpeg;base64,' + b64 };
-    } catch (e) {
-      clearTimeout(timeout);
-      console.error('[image] Cloudflare exception:', String(e.message || e).substring(0, 200));
-      return null;
     }
+    if (out.data) out.err = 'no image in response';
+    note('cloudflare', model, out.status, kindOf(out.status, out.err), out.err);
+    return null;
   }
 
   // ── Tier-ordered cascade ────────────────────────────────────────────────────
@@ -400,6 +414,7 @@ module.exports = async function handler(req, res) {
 
   const hadKeys = !!(geminiKey || openaiKeys.length > 0);
   for (const rung of rungs) {
+    if (left() < 1000) { budgetOut = true; break; }
     const hit = await rung();
     if (hit) {
       const usedFreeFallback = hit.provider === 'pollinations' && hadKeys;
@@ -407,27 +422,38 @@ module.exports = async function handler(req, res) {
         ok: true, provider: hit.provider, model: hit.model, size, quality,
         image_data_url: hit.image_data_url,
         ...(hit.key_index ? { key_index: hit.key_index } : {}),
+        ...(attempts.length ? { attempts, fell_back: true } : {}),
         ...(usedFreeFallback ? {
           quota_warning: true,
           quota_note: 'Paid image providers unavailable this call. Using Pollinations ' + hit.model + ' (free). Check Gemini/OpenAI API credits.'
         } : {})
       });
     }
+    if (budgetOut) break;
   }
 
-  // Every provider failed. Do NOT 502 — a non-200 leaves the caller with a
-  // broken/empty <img>. Instead return 200 with an on-brand placeholder data
-  // URI so the mailer / ad / landing page always renders an intentional brand
-  // panel (never a broken tile). `placeholder:true` lets callers flag it.
+  // Every provider failed. Do NOT 502: the response carries the on-brand panel
+  // so a page has something intentional to show. But it is NOT an image of
+  // anything and is never reported as one (2026-10-11): `ok:false`,
+  // `image_data_url:null`, the panel under `placeholder_data_url`. It used to be
+  // `ok:true` with the panel AS image_data_url, so the Mailer Studio put it in
+  // the email as the "generated hero photo" and the in-process creative
+  // generators shipped it as the creative instead of falling back to the
+  // brand's real catalogue photograph. The credit hold is released (metering's
+  // successIf below), and the reason names every provider tried.
   const noKeys = !hadKeys;
-  console.warn('[image] All providers failed — returning on-brand placeholder');
+  const tried = attempts.map((a) => a.provider + ' ' + a.model + ': ' + a.reason + (a.status > 0 ? ' (HTTP ' + a.status + ')' : '')).join('; ');
+  console.warn('[image] All providers failed — returning labelled placeholder. ' + tried);
   return res.status(200).json({
-    ok: true, provider: 'placeholder', placeholder: true, size, quality,
-    image_data_url: brandPlaceholderDataUri(size),
+    ok: false, provider: 'placeholder', placeholder: true, size, quality,
+    image_data_url: null,
+    placeholder_data_url: brandPlaceholderDataUri(size),
     quota_warning: hadKeys && anyQuotaHit,
-    detail: noKeys
-      ? 'No image provider key configured. Add OPENAI_API_KEY (verified org + image credits) and/or GEMINI_API_KEY in Vercel. Showing brand placeholder.'
-      : 'All image providers failed (OpenAI gpt-image-2/1, Gemini, Pollinations). Usually the OpenAI org is not verified for image generation or has no credits — verify at platform.openai.com → Settings → Organization. Showing brand placeholder.'
+    attempts,
+    ...(budgetOut ? { budget_exhausted: true } : {}),
+    detail: (noKeys
+      ? 'No image provider key configured. Add OPENAI_API_KEY (verified org + image credits) and/or GEMINI_API_KEY in Vercel. No image was generated and nothing was charged.'
+      : 'No image was generated and nothing was charged. Every image provider failed' + (budgetOut ? ' or the time budget ran out' : '') + ': ' + (tried || 'none answered') + '.')
   });
 };
 
