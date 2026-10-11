@@ -93,6 +93,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pkind{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800;
          letter-spacing:.04em;text-transform:uppercase;background:var(--vh-panel);color:var(--vh-ink);vertical-align:middle}
   .pknote{margin:0 0 10px;font-size:11px}
+  .akbar .btn{max-width:100%;white-space:normal;text-align:left}
   .akstatus{font-size:12px;font-weight:700}
   .akstatus.approved{color:var(--vh-ok-text)} .akstatus.rejected{color:var(--vh-err-text)}
   .btn.ok{background:var(--vh-panel);color:var(--vh-ok-text);border:1px solid var(--vh-ok)}.btn.ok:hover{background:var(--vh-panel-2)}.btn.no{background:var(--vh-panel);color:var(--vh-err-text);border:1px solid var(--vh-err)}.btn.no:hover{background:var(--vh-panel-2)}
@@ -107,7 +108,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* Calendar table: keep readable on narrow screens by scrolling horizontally
      (the .tblscroll wrapper is overflow-x:auto) instead of crushing columns to
      one character per line. */
-  .tblscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tblscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;container-type:inline-size}
   /* table-layout:auto, deliberately: theme.css defaults every table to
      table-layout:fixed, which splits the width equally and leaves a
      white-space:nowrap cell nowhere to put a value wider than its share -
@@ -118,6 +119,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   #plantable td.cohort{white-space:normal;max-width:150px}
   #plantable td.obj,#plantable th.obj{white-space:normal;max-width:190px}
   #plantable td.why,#plantable th.why{white-space:normal;max-width:280px}
+  /* THE EXPANDED ROW IS NOT A TABLE CELL'S CONTENT (2026-10-11). The generated-
+     asset preview opens inside a <td colspan> of this table, so it inherited
+     the cells' white-space:nowrap: every paragraph of the preview became one
+     unbreakable line, the auto-layout table grew to the longest one (1912px in
+     a 1242px scroller at 1600 wide), and the reviewer saw a slice of a preview
+     wider than the screen - a blank mailer frame on the left, its copy cut off,
+     prompt chips and buttons clipped at the scroller's edge. The row wraps
+     normally, contributes no width of its own to the table (inline-size
+     containment), is exactly as wide as the scroller's visible area (cqw of
+     .tblscroll) and stays pinned to its left edge when the plan columns are
+     scrolled sideways on a narrow screen. */
+  #plantable tr.exprow > td{white-space:normal;max-width:none}
+  .expbody{contain:inline-size;width:100%;width:100cqw;position:sticky;left:0;min-width:0;padding:16px 18px}
+  @media(max-width:600px){.expbody{padding:8px 0}.expbody .pvroot{padding:12px 10px}}
+  .expbody .pvroot{min-width:0;overflow-wrap:break-word}
   #plantable td.chan,#plantable th.chan{white-space:normal;max-width:150px}
   /* Clamp long copy to 2 lines — the full text lives in View / the decision panel. */
   .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -164,7 +180,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pvsec:first-of-type{border-top:0;padding-top:4px}
   .pvsech{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:var(--vh-ink-dim)}
-  .pvframe{width:100%;height:560px;border:1px solid var(--vh-line);border-radius:12px;background:var(--vh-panel)}
+  /* A frame is fitted to its document once it loads (fitFrame): no inner
+     scroll that hides a mailer's button, no tall empty ground under a short
+     one. 560px is only the height before the document has loaded. An email is
+     shown at its own design width, not stretched across the row, so its hero
+     is not a small picture in a wide empty box. */
+  .pvframe{display:block;width:100%;height:560px;border:1px solid var(--vh-line);border-radius:12px;background:var(--vh-panel)}
+  .pvframe.is-mail{max-width:720px;margin:0 auto}
+  /* A static ad is previewed at a size a feed shows it, never the full row:
+     a 9:16 creative at 1200px wide was a 2,100px tall box. */
+  .adframe{max-width:min(100%,520px)}
+  .adframe[data-aspect="9:16"],.adframe[data-aspect="4:5"]{max-width:min(100%,360px)}
   .pvexport{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
   .pvnote{color:var(--vh-ink-dim);font-size:12px;margin:0 0 10px}
   .pvnote.is-error{color:var(--vh-err-text);background:var(--vh-panel-2);border-left:3px solid var(--vh-err)}
@@ -218,7 +244,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .planempty b{color:var(--vh-ink)}
   .planerr{color:var(--vh-err-text);line-height:1.55}
   @keyframes spin{to{transform:rotate(360deg)}}
-  @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two{grid-column:span 1}h1{font-size:30px}.pvframe{height:460px}}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}.wide,.two{grid-column:span 1}h1{font-size:30px}}
   /* Inline colours the script used to write, as roles. */
   .tdim{color:var(--vh-ink-dim)} .tink{color:var(--vh-ink)} .tok{color:var(--vh-ok-text)} .terr{color:var(--vh-err-text)}
   .tprim{color:var(--vh-primary-text)}
@@ -920,7 +946,7 @@ function renderPlan(){
       <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
     </td>
   </tr>
-  <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}" style="padding:16px 18px"></div></td></tr>`;}).join('');
+  <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}"></div></td></tr>`;}).join('');
 }
 
 // ── Funnel preview (generate-on-demand, before approval) ────────────────────
@@ -1021,7 +1047,7 @@ function renderAd(ad){
   return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}">
     <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
     ${gap}
-    <div class="adframe">
+    <div class="adframe" data-aspect="${esc(ad.aspect||'1:1')}">
       ${frame}
       <span class="adratio">${esc(ad.aspect||'1:1')}</span>
       <div class="adover">
@@ -1213,6 +1239,16 @@ function renderPreview(payload, e, i, opts){
   // (master-prompt.promptsFor): an ASSET row names the field holding its text,
   // an ELEMENT row carries its own wrapped text.
   window.__SB_PROMPTS = [];
+  // A frame's document is NOT inlined as an escaped srcdoc attribute: six
+  // mailer/landing documents parsed inside the click that opened the row
+  // blocked the page for a third of a second before anything painted (INP).
+  // The markup carries an index; loadPreviewFrames() hands each document over
+  // after the row has painted, one per task, and fits the frame to it.
+  window.__SB_FRAMES = [];
+  const docFrame = (html, kind, title) => {
+    const idx = window.__SB_FRAMES.push(String(html || '')) - 1;
+    return `<iframe class="pvframe${kind === 'mail' ? ' is-mail' : ''}" sandbox="allow-same-origin" data-frame-idx="${idx}" title="${esc(title || 'Asset preview')}"></iframe>`;
+  };
   const promptBar = (asset) => {
     const rows = (asset && Array.isArray(asset.prompts)) ? asset.prompts : [];
     if(!rows.length) return '';
@@ -1240,10 +1276,10 @@ function renderPreview(payload, e, i, opts){
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ '+esc(v.label || ('Mailer '+(vi+1))), first);
-      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}${docFrame(html, 'mail', v.label || 'Mailer')}`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}${docFrame(html, 'mail', 'Mailer')}`, first); first=false; }
   // EVERY landing page, not just the first. The builder ships an A/B pair and
   // only landing_pages[0] was ever rendered, so the B variant existed in the
   // payload, was downloaded by "Download all", and could not be looked at.
@@ -1257,7 +1293,7 @@ function renderPreview(payload, e, i, opts){
     const id = 'pv-lp' + (li ? '-' + li : '');
     const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
     tab(id, label, first);
-    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}<iframe class="pvframe" sandbox="allow-same-origin" srcdoc="${esc(html)}"></iframe>`, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}${docFrame(html, 'page', lp.title || 'Landing page')}`, first);
     first = false;
   });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
@@ -1310,8 +1346,63 @@ function renderPreview(payload, e, i, opts){
   // Video ads carry a real animated creative; point each iframe at the exact
   // bytes of it (Blob URL) now that the panes are in the DOM.
   hydrateMotionAds(host);
+  loadPreviewFrames(host);
   host.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
+
+// Fit a preview frame to the document inside it. A fixed 560px frame hid the
+// lower half of a long mailer behind an inner scroll (its button cut off) and
+// left a tall empty ground under a short one. Capped so a very long landing
+// page still scrolls inside its frame rather than making the row endless.
+const FRAME_MIN = 200, FRAME_MAX = 2400;
+// An email is a fixed-width document (600px or so). On a phone the frame is
+// narrower than that, and a mail app shrinks such an email to the screen; the
+// preview does the same (CSS zoom on the PREVIEW's document only - the bytes
+// Download and Copy hand over are the registry's, untouched), instead of
+// cutting off its right half.
+function fitFrame(f){
+  try{
+    const d = f.contentDocument; if(!d || !d.documentElement) return;
+    const de = d.documentElement;
+    de.style.zoom = '';
+    const cw = de.clientWidth, sw = de.scrollWidth;
+    let z = 1;
+    if(cw > 0 && sw > cw + 1){ z = cw / sw; de.style.zoom = String(z); }
+    // The document's height in the frame's own pixels: its scroll height, or,
+    // once zoomed, its rendered box (which already carries the zoom).
+    const h = z === 1
+      ? Math.max(de.scrollHeight, d.body ? d.body.scrollHeight : 0)
+      : de.getBoundingClientRect().height;
+    if(!h) return;
+    f.style.height = Math.min(FRAME_MAX, Math.max(FRAME_MIN, Math.ceil(h) + 2)) + 'px';
+    f.dataset.fitted = '1';
+    if(z !== 1) f.dataset.scaled = z.toFixed(3); else delete f.dataset.scaled;
+  }catch(_){}
+}
+function loadPreviewFrames(root){
+  const store = window.__SB_FRAMES || [];
+  const frames = [...(root || document).querySelectorAll('iframe.pvframe[data-frame-idx]')].filter(f => !f.dataset.loaded);
+  if(!frames.length) return;
+  let k = 0;
+  const step = () => {
+    const f = frames[k++]; if(!f) return;
+    if(f.isConnected){
+      f.addEventListener('load', () => fitFrame(f));
+      f.dataset.loaded = '1';
+      f.srcdoc = store[Number(f.dataset.frameIdx)] || '';
+    }
+    setTimeout(step, 0);
+  };
+  // After the row has painted: the click is answered first, the documents follow.
+  requestAnimationFrame(() => setTimeout(step, 0));
+}
+// A frame's height depends on its width (a responsive mailer is taller on a
+// phone), so the fitted frames are measured again when the window changes.
+let __sbFitTimer = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(__sbFitTimer);
+  __sbFitTimer = setTimeout(() => document.querySelectorAll('iframe.pvframe[data-loaded]').forEach(fitFrame), 150);
+});
 window.closeExp = function(i){ const r=$('exprow-'+i); if(r) r.style.display='none'; };
 
 // ── Per-row decision detail ────────────────────────────────────────────────
@@ -1594,7 +1685,12 @@ async function viewEntry(i, forceRegen){
   row.style.display='';
   const previewScope = planScope();
   if(forceRegen) delete PREVIEW_CACHE[e.id];
-  if(PREVIEW_CACHE[e.id]){ renderPreview(PREVIEW_CACHE[e.id], e, i, { target: body, persisted: (e.status==='approved'||e.status==='final') }); body.setAttribute('data-loaded','1'); return; }
+  if(PREVIEW_CACHE[e.id]){
+    // Answer the click first: the row opens and paints, then the bundle renders.
+    body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Opening the funnel…</p>`;
+    await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    if(row.style.display === 'none') return;
+    renderPreview(PREVIEW_CACHE[e.id], e, i, { target: body, persisted: (e.status==='approved'||e.status==='final') }); body.setAttribute('data-loaded','1'); return; }
   body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Generating the full funnel (mailer, ads & landing page) — usually 10–30s…</p>`;
   row.scrollIntoView({ behavior:'smooth', block:'nearest' });
   try{
