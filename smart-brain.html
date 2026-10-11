@@ -305,6 +305,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <button type="button" id="runAgentic" class="btn" onclick="runAgentic()">🤖 Run Agentic Flow</button>
       </div>
       <p id="agenticWhy" class="vh-status" role="status" hidden></p>
+      <p id="agenticMarket" class="tdim" style="margin:0 0 10px" hidden></p>
       <div id="agenticOut" class="feed"><p class="tdim">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
     </div>
 
@@ -603,11 +604,15 @@ function gateAgentic(){
   const RC = window.RegionContext;
   if(!RC || !RC.loaded) return;
   const pick = agenticMarket();
+  const one = $('agenticMarket');
   if(pick.market){
     btn.disabled = false; btn.removeAttribute('aria-disabled'); btn.removeAttribute('title');
     if(why){ why.hidden = true; why.textContent = ''; }
+    // A generator takes ONE market, whatever the Region filter shows: said here.
+    if(one){ one.hidden = false; one.textContent = 'Builds for one market at a time: ' + (RC.label ? RC.label(pick.market) : pick.market) + '. With several markets selected in the Region filter, the first one is used.'; }
     return;
   }
+  if(one){ one.hidden = true; one.textContent = ''; }
   const reason = pick.marker + ' This brand has no market on its record, so there is no market to plan for. Add its regions in Brand setup.';
   btn.disabled = true; btn.setAttribute('aria-disabled', 'true'); btn.title = reason;
   if(why){ why.hidden = false; why.textContent = reason; }
@@ -692,14 +697,23 @@ function mktKey(m){
 }
 function mktName(k){ const RC = window.RegionContext; return (RC && RC.name) ? RC.name(k) : k; }
 function mktVisible(e){ return SELECTED_MKT.size===0 || SELECTED_MKT.has(mktKey(e.market)); }
-window.toggleMkt = function(mkt){
-  if(mkt==='all'){ SELECTED_MKT.clear(); }
-  else { if(SELECTED_MKT.has(mkt)) SELECTED_MKT.delete(mkt); else SELECTED_MKT.add(mkt); }
+function paintMktChips(){
   document.querySelectorAll('#mktfilter .mkchip').forEach(b=>{
     const m=b.dataset.mkt;
     b.classList.toggle('on', m==='all' ? SELECTED_MKT.size===0 : SELECTED_MKT.has(m));
   });
+}
+window.toggleMkt = function(mkt){
+  if(mkt==='all'){ SELECTED_MKT.clear(); }
+  else { if(SELECTED_MKT.has(mkt)) SELECTED_MKT.delete(mkt); else SELECTED_MKT.add(mkt); }
+  paintMktChips();
+  // The plan filter IS the shared multi-market selection (2026-10-11): the
+  // markets picked here open on Revenue by region too, and come back here.
+  // It is a VIEW filter; the agentic run below still takes ONE market.
+  const RC = window.RegionContext;
+  if(RC && RC.setSelection) RC.setSelection(SELECTED_MKT.size ? Array.from(SELECTED_MKT) : ['ALL']);
   renderPlan();
+  gateAgentic();
 };
 // Region chips are DERIVED from the plan's own markets, so a brand that sells
 // only in India never sees a US/UK/Global toggle. Default: every market this
@@ -721,6 +735,14 @@ function buildMktChips(){
   };
   if(ALL_MKTS.length > 1) add('all', 'All');
   ALL_MKTS.forEach(m => add(m, mktName(m)));
+  // A selection the viewer made (here or on another view) opens here too;
+  // with none, every market the plan carries, as before.
+  const RC = window.RegionContext;
+  if(RC && RC.selectionExplicit){
+    const shared = RC.selection.map(mktKey).filter(m => ALL_MKTS.includes(m));
+    if(shared.length && shared.length < ALL_MKTS.length) SELECTED_MKT = new Set(shared);
+    paintMktChips();
+  }
   // A single-region brand needs no region filter at all.
   host.style.display = ALL_MKTS.length > 1 ? '' : 'none';
 }

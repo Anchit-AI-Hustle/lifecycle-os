@@ -2104,6 +2104,9 @@
         // The contact rules a device brand keeps (2026-10-04, publishing.html,
         // under LCStore's per-brand key) go with it too.
         try { localStorage.removeItem(CONTACT_RULES_KEY + '::' + id); } catch (_) {}
+        // So do the order export and exchange rates Revenue by region keeps
+        // for it on this device (revenue-by-region.html, 2026-10-11).
+        try { ['lc-region-revenue-orders', 'lc-region-revenue-fx'].forEach(function (k) { localStorage.removeItem(k + '::' + id); }); } catch (_) {}
         return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
       case 'readiness':
         id = str(q.get('id') || body.id);
