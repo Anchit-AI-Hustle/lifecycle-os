@@ -4,6 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Onboarding sets a brand up in ONE run, shown step by step; the steps are for view and edit (2026-10-11)
+The operator, on the six step buttons: *"no point in allowing the user to choose step by step as such - that should be
+for view and edit; keep a step by step transient animation for user to be able to see transparently step by step what is
+happening and he should directly get the most correct way to end"*. `onboarding.html` `setUpFromWebsite()`: "Set up from
+my website" is the primary control; it runs the read, then reveals Brand -> Colour schema -> Typography -> Voice in the
+wizard's order (one row each in `#setupRun` `[data-setup-run]`, states running/done/needs-you/partial/skipped/failed,
+lit on the step row as `.step-pip.run`, no animation under reduced motion), then the catalogue import (every regional
+store), the context pack, a draft save, and LANDS ON REVIEW (`go(6)`). Each row says what it found and where, and offers
+"View and edit" for its step; the step row is labelled "View and edit any step". Nothing new is decided: a rendered read
+applies as before (the person's values kept), a parsed read only proposes and its row says "needs you", and a brand's own
+existing colours / type are reported as KEPT, never as read from the site. "Read my site" stays as the read-only control.
+Gated by `tests/brand-change-current-context.spec.js` ("Set up from my website", both paths): rows in order, each shown
+running one by one, landing on step 6, View and edit opening its step; mutation-checked (no landing on Review, no staged
+reveal).
 ## ⭐ Revenue by region, several markets at once, from the brand's OWN orders (2026-10-11)
 The operator: *"As a founder, I would look at revenue and sales of each region. This app must support that. Multiple
 region selection must be allowed too."* `/revenue-by-region` (rail: Data Analysis -> Revenue by Region, `da-revenue`),

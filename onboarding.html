@@ -91,6 +91,30 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:.15s}
   .step-pip.on{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
   .step-pip.done{border-color:var(--vh-primary-text);color:var(--vh-primary-text)}
+  .step-pip.run{border-color:var(--primary);color:var(--vh-primary-text);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent)}
+  .steps-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 7px}
+
+  /* The automatic set-up, shown as it runs (2026-10-11). Each stage is a row:
+     waiting, working, done, needs you, skipped, failed. Layout and tokens only. */
+  .srun{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:18px 20px;margin-bottom:18px}
+  .srun h3{font-family:var(--head);font-size:16px;font-weight:600;margin-bottom:4px}
+  .srun .srun-sub{color:var(--muted);font-size:12.5px;line-height:1.55;margin-bottom:12px}
+  .srun ol{list-style:none;margin:0;padding:0}
+  .srun li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.55}
+  .srun li:first-child{border-top:0}
+  .srun li .dot{width:14px;height:14px;margin-top:3px;border-radius:50%;border:2px solid var(--line);background:var(--card)}
+  .srun li[data-state="running"] .dot{border-color:var(--primary);animation:srunPulse 1s ease-in-out infinite}
+  .srun li[data-state="done"] .dot{border-color:var(--primary);background:var(--primary)}
+  .srun li[data-state="partial"] .dot,.srun li[data-state="needs-you"] .dot{border-color:var(--vh-accent-text);background:var(--card);box-shadow:inset 0 0 0 3px var(--vh-accent-text)}
+  .srun li[data-state="failed"] .dot{border-color:var(--warn);background:var(--warn)}
+  .srun li[data-state="waiting"]{color:var(--muted)}
+  .srun li b{display:block;font-weight:600}
+  .srun li .sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--line);vertical-align:-1px;margin:0 4px 0 2px}
+  .srun li .srun-edit{font-size:12px;margin-left:6px;background:none;border:0;padding:0;color:var(--vh-primary-text);text-decoration:underline;cursor:pointer;font-weight:600}
+  .srun li.srun-in{animation:srunIn .35s ease-out both}
+  @keyframes srunPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--primary) 40%,transparent)}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--primary) 0%,transparent)}}
+  @keyframes srunIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.srun li[data-state="running"] .dot,.srun li.srun-in{animation:none}}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:26px}
   .card h2{font-family:var(--head);font-size:21px;font-weight:600;margin-bottom:6px}
@@ -383,6 +407,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       after this, and the app itself takes on your brand for your account.
     </p>
 
+    <div id="setupRun"></div>
+    <p class="steps-label" id="stepsLabel">View and edit any step</p>
     <div class="steps" id="steps"></div>
     <div class="card" id="stepCard"></div>
   </div>
@@ -692,6 +718,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var cls = 'step-pip' + (n === step ? ' on' : (n < step ? ' done' : ''));
       if (b.className !== cls) b.className = cls;
     });
+    // The automatic set-up lights the step it is working on (renderSetupRun).
+    if (setupLog.length) renderSetupRun();
   }
 
   function bindInputs(root) {
@@ -1682,16 +1710,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function extractBlock() {
     var off = extractOff();
     return '<div class="xtract"><h3>Read my brand from my website</h3>' +
-      '<p class="xmeta">Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. It opens your site in a real browser at desktop and phone width, measures what it renders - colours, type, buttons, header, cards, footer - and applies all of it to this brand, keeping anything you typed yourself. You can revert in one click. If the browser cannot read your site, what its HTML and CSS publish is offered instead, and then nothing is applied until you press Use.</p>' +
+      '<p class="xmeta"><b>Set up from my website</b> runs every step by itself, in order, shows what each one found and where, and opens Review when it is done. The steps stay above to view and edit afterwards. <b>Read my site</b> only reads it into this step. Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. It opens your site in a real browser at desktop and phone width, measures what it renders - colours, type, buttons, header, cards, footer - and applies all of it to this brand, keeping anything you typed yourself. You can revert in one click. If the browser cannot read your site, what its HTML and CSS publish is offered instead, and then nothing is applied until you press Use.</p>' +
       '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
         '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
           ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
-          : '<button type="button" class="btn primary" id="xRun" data-credit-feature="brand.extract">' +
-            (extractBusy ? 'Reading your site...' : 'Read my site') + '</button>' +
-            '<button type="button" class="btn" id="xSetup" data-credit-feature="brand.extract">' + (setupBusy ? 'Setting up...' : 'Set up from my website') + '</button>') +
+          : '<button type="button" class="btn primary" id="xSetup" data-credit-feature="brand.extract"' + (setupBusy || extractBusy ? ' disabled aria-disabled="true"' : '') + '>' + (setupBusy ? 'Setting up...' : 'Set up from my website') + '</button>' +
+            '<button type="button" class="btn" id="xRun" data-credit-feature="brand.extract"' + (setupBusy ? ' disabled aria-disabled="true"' : '') + '>' +
+            (extractBusy && !setupBusy ? 'Reading your site...' : 'Read my site') + '</button>') +
       '</div>' +
-      (setupLog.length ? '<ol class="xmeta" data-setup-log style="margin:10px 0 0 18px">' + setupLog.map(function (l) { return '<li data-setup-step="' + esc(l.step) + '" data-state="' + esc(l.state) + '">' + esc(l.text) + '</li>'; }).join('') + '</ol>' : '') +
       (off ? '<div style="margin-top:10px">' + extractNote(storageInfo()) + '</div>' : '') +
       (domainSwitch ? '<div class="coh" data-domain-switch="' + esc(domainSwitch.to) + '"><h3>' + esc(domainSwitch.to) + ' is not this brand\'s website</h3>' +
         '<p>' + esc(brand.name || 'This brand') + '\'s website is ' + esc(domainSwitch.from) + '. Reading ' + esc(domainSwitch.to) + ' into it would put another site\'s name, logo, profiles and colours into this record. Which is it?</p>' +
@@ -1730,43 +1757,160 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      sitemaps), then the catalogue import from the same site, then the context
      pack. Each value keeps the page it was read from; what the site does not
      publish stays the DATA REQUIRED marker. Each step says what it did. */
-  var setupBusy = false, setupLog = [];
-  function setupNote(step, state, text) {
+  var setupBusy = false, setupLog = [], setupFor = '';
+  /* ONE RUN, STEP BY STEP, ON SCREEN (2026-10-11). The operator: "no point in
+     allowing the user to choose step by step as such - that should be for view
+     and edit; keep a step by step transient animation for user to be able to
+     see transparently step by step what is happening and he should directly
+     get the most correct way to end". So the website runs every step by
+     itself, in the order the wizard has them, each row saying what it found
+     and where; it lands on Review. The step buttons stay, labelled "View and
+     edit", for going back to any step. Nothing new is decided here: the values
+     are what the readers already apply (a rendered read applies, keeping what
+     the person typed; a parsed read only proposes, and its row says so). */
+  var SETUP_STAGES = [
+    { key: 'brand',   n: 1, label: 'Brand' },
+    { key: 'colour',  n: 2, label: 'Colour schema' },
+    { key: 'type',    n: 3, label: 'Typography' },
+    { key: 'voice',   n: 4, label: 'Voice' },
+    { key: 'catalog', n: 5, label: 'Data & catalog' },
+    { key: 'pack',    n: 5, label: 'Context pack' },
+    { key: 'review',  n: 6, label: 'Review' }
+  ];
+  function reducedMotion() { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } }
+  function setupPause(ms) { return reducedMotion() ? Promise.resolve() : new Promise(function (r) { setTimeout(r, ms); }); }
+  function setupNote(step, state, text, html) {
     var i = setupLog.findIndex(function (l) { return l.step === step; });
-    var row = { step: step, state: state, text: text };
+    var row = { step: step, state: state, text: text, html: html || '' };
     if (i >= 0) setupLog[i] = row; else setupLog.push(row);
-    render();
+    renderSetupRun();
+  }
+  function renderSetupRun() {
+    var host = $('setupRun');
+    if (!host) return;
+    if (!setupLog.length) { host.innerHTML = ''; return; }
+    var by = {};
+    setupLog.forEach(function (l) { by[l.step] = l; });
+    var running = setupLog.filter(function (l) { return l.state === 'running'; })[0];
+    var prev = {};
+    Array.prototype.forEach.call(host.querySelectorAll('li[data-setup-step]'), function (li) { prev[li.getAttribute('data-setup-step')] = li.getAttribute('data-state'); });
+    host.innerHTML = '<div class="srun" data-setup-run' + (setupBusy ? ' aria-busy="true"' : '') + '>' +
+      '<h3>' + esc(setupBusy ? 'Setting up ' + (brand.name || setupFor || 'your brand') + ' from ' + setupFor : 'Set up from ' + setupFor) + '</h3>' +
+      '<p class="srun-sub">' + esc(setupBusy ? 'Each step runs in turn and says what it found and where. You land on Review when it is done.' : 'What each step did. Use "View and edit" on a step to change anything it set.') + '</p>' +
+      '<ol data-setup-log role="list" aria-live="polite">' + SETUP_STAGES.filter(function (st) { return by[st.key]; }).map(function (st) {
+        var l = by[st.key];
+        var isNew = prev[st.key] !== l.state;
+        return '<li data-setup-step="' + esc(st.key) + '" data-state="' + esc(l.state) + '"' + (isNew ? ' class="srun-in"' : '') + '><span class="dot" aria-hidden="true"></span><div><b>' + esc(st.label) +
+          (!setupBusy && st.key !== 'pack' ? ' <button type="button" class="srun-edit" data-setup-edit="' + st.n + '">View and edit</button>' : '') + '</b>' +
+          '<span class="srun-text">' + esc(l.text) + '</span>' + (l.html || '') + '</div></li>';
+      }).join('') + '</ol></div>';
+    // The step being worked on is lit in the step row too.
+    var runN = running ? (SETUP_STAGES.filter(function (st) { return st.key === running.step; })[0] || {}).n : 0;
+    Array.prototype.forEach.call(document.querySelectorAll('#steps .step-pip'), function (b) { b.classList.toggle('run', !!runN && +b.dataset.step === runN); });
+  }
+  /* A value already on the brand that is not the wizard's own placeholder. */
+  function setupHasOwn(f) { var o = originOf(f); return !!o && o !== 'default' && filled(getField(f)); }
+  function setupSwatch(hex) { return /^#[0-9a-f]{6}$/i.test(hex || '') ? '<span class="sw" style="background:' + hex + '"></span>' : ''; }
+  /* What the read did to one group of fields, from the read's own record. */
+  function setupOutcome(fields) {
+    var r = rendered && !rendered.reverted ? rendered : null;
+    var applied = r ? fields.filter(function (f) { return r.applied.indexOf(f) >= 0; }) : [];
+    var kept = r ? r.kept.filter(function (k) { return fields.indexOf(k.field) >= 0; }) : [];
+    return { applied: applied, kept: kept, rendered: !!r };
+  }
+  function setupReadStages() {
+    var f = (extraction && extraction.fields) || {};
+    var src = extraction && (extraction.start || brand.website) || brand.website || '';
+    // 1 Brand
+    var sf = f.storefront || extraction.storefront || null;
+    var plat = sf && sf.platform && sf.platform.name ? sf.platform.name : '';
+    var bits = [];
+    bits.push(brand.name ? 'Name: ' + brand.name : marker('brand name'));
+    if (brand.tagline) bits.push('tagline: "' + brand.tagline + '"');
+    bits.push(brand.logo_url ? 'logo found' : 'no logo published');
+    bits.push(plat ? 'store platform: ' + plat : 'no commerce platform declared');
+    var markets = (brand.regions || []).map(function (r) { return r.code + (r.home ? ' (home)' : ''); });
+    if (markets.length) bits.push('markets: ' + markets.join(', '));
+    var stages = [['brand', brand.name ? 'done' : 'needs-you', 'Read ' + (extraction.pages_visited || 0) + ' page(s) of ' + src + '. ' + bits.join('; ') + '.', '']];
+    // 2 Colour
+    var pal = brand.palette || {};
+    var co = setupOutcome(['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface']);
+    var proposed = (f.palette && f.palette.proposed) || {};
+    var nProposed = Object.keys(proposed).filter(function (k) { return proposed[k]; }).length;
+    if (co.applied.length) stages.push(['colour', 'done', 'Applied the colours the site renders: primary ' + pal.primary + ', accent ' + pal.accent + ', text ' + pal.ink + ', page ' + pal.surface + '.' + (co.kept.length ? ' Kept ' + co.kept.length + ' colour(s) you set yourself.' : ''), '<div>' + setupSwatch(pal.primary) + setupSwatch(pal.accent) + setupSwatch(pal.ink) + setupSwatch(pal.surface) + '</div>']);
+    else if (nProposed) stages.push(['colour', 'needs-you', 'The site\'s stylesheets propose ' + nProposed + ' colour role(s). The page could not be rendered, so nothing was applied: choose them on Colour schema.', '']);
+    else if (co.kept.length) stages.push(['colour', 'done', 'Kept the colours you set yourself; the site rendered others, listed on Colour schema.', '']);
+    else if (setupHasOwn('palette.primary')) stages.push(['colour', 'done', 'The site published no brand colour to apply, so the colours already on this brand stay: primary ' + pal.primary + ', accent ' + pal.accent + ', text ' + pal.ink + ', page ' + pal.surface + '.', '<div>' + setupSwatch(pal.primary) + setupSwatch(pal.accent) + setupSwatch(pal.ink) + setupSwatch(pal.surface) + '</div>']);
+    else stages.push(['colour', 'needs-you', 'The site published no colour this platform can use as a brand colour. Set them on Colour schema.', '']);
+    // 3 Type
+    var t = brand.typography || {};
+    var to = setupOutcome(['typography.heading', 'typography.body']);
+    var fam = function (x) { return x && x.family ? x.family : ''; };
+    if (to.applied.length) stages.push(['type', 'done', 'Applied the type the site renders: headings in ' + (fam(t.heading) || 'the site\'s heading face') + ', body in ' + (fam(t.body) || 'the site\'s body face') + '.' + (to.kept.length ? ' Kept what you set yourself.' : ''), '']);
+    else if (((f.typography && f.typography.heading) || []).length || ((f.typography && f.typography.body) || []).length) stages.push(['type', 'needs-you', 'The site\'s stylesheets name type families; the page could not be rendered, so nothing was applied: choose them on Typography.', '']);
+    else if (to.kept.length) stages.push(['type', 'done', 'Kept the type you set yourself.', '']);
+    else if (setupHasOwn('typography.heading') && fam(t.heading)) stages.push(['type', 'done', 'The site published no type family to apply, so the type already on this brand stays: headings in ' + fam(t.heading) + (fam(t.body) ? ', body in ' + fam(t.body) : '') + '.', '']);
+    else stages.push(['type', 'needs-you', 'The site published no type family that could be read. Set it on Typography.', '']);
+    // 4 Voice
+    var claims = ((f.claims && f.claims.candidates) || []).length;
+    var vo = setupOutcome(['voice.tone']);
+    if (brand.voice && brand.voice.tone) stages.push(['voice', 'done', (vo.applied.length ? 'Tone observed from the site\'s own copy: ' : 'Tone: ') + brand.voice.tone + '.' + (claims ? ' ' + claims + ' sentence(s) the site states as fact are offered on Voice; none is approved by itself.' : ''), '']);
+    else stages.push(['voice', 'needs-you', 'The tone of the site\'s copy was not read.' + (claims ? ' ' + claims + ' sentence(s) the site states as fact are offered on Voice.' : '') + ' Describe it on Voice.', '']);
+    return stages;
   }
   async function setUpFromWebsite() {
     if (setupBusy || extractBusy) return;
     var input = $('xUrl');
     var url = input ? input.value.trim() : '';
     if (!url) { toast('Enter your website address first.'); return; }
-    setupBusy = true; setupLog = [];
+    setupBusy = true; setupLog = []; setupFor = url;
     try {
-      setupNote('read', 'running', 'Reading ' + url + ': identity, colours, type, logo, social profiles, legal entity, markets, platform, robots.txt and sitemaps.');
+      setupNote('brand', 'running', 'Opening ' + url + ' in a browser and reading what it publishes about itself: name, logo, colours, type, the tone of its copy, social profiles, legal entity, markets, platform, robots.txt and sitemaps.');
+      render();
       await runExtract();
-      if (domainSwitch) { setupNote('read', 'waiting', domainSwitch.to + ' is not this brand\'s website: choose above, then set up again.'); return; }
-      if (!extraction) { setupNote('read', 'failed', 'The site could not be read, so nothing else was run.'); return; }
-      var sf = (extraction.fields && extraction.fields.storefront) || extraction.storefront || null;
-      var plat = sf && sf.platform && sf.platform.name ? ' The site declares its platform: ' + sf.platform.name + ' (' + (sf.platform.source_url || extraction.start || url) + ').' : ' The site declares no commerce platform.';
-      setupNote('read', 'done', 'Read ' + (extraction.pages_visited || 0) + ' page(s) of ' + (extraction.start || url) + '.' + plat);
-      if (actionsOff() || !brand.id) { setupNote('catalog', 'skipped', 'The catalogue import and the context pack need the brand saved where a server can read it; they were not run.'); return; }
-      var region = importRegion();
-      if (!region) setupNote('catalog', 'skipped', marker('home market') + ' The site declared no home market, so there is nowhere to file the catalogue.');
-      else {
-        setupNote('catalog', 'running', 'Importing the catalogue from ' + brand.website + ' for ' + region + '.');
-        try {
-          await saveBeforeImport();
-          var r = await api('catalog-import', { workspace_id: brand.id, region: region.toLowerCase(), kind: 'storefront', url: brand.website });
-          afterImport(r);
-          setupNote('catalog', r.complete === false ? 'partial' : 'done', 'Imported ' + r.imported + ' products from ' + brand.website + (r.complete === false ? '; the store was not read to the end yet, and Continue import resumes it.' : '.'));
-        } catch (e) { setupNote('catalog', 'failed', window.LifecycleFailure.sentence(e)); }
+      if (domainSwitch) { setupNote('brand', 'needs-you', domainSwitch.to + ' is not this brand\'s website: choose below, then set up again.'); return; }
+      if (!extraction) { setupNote('brand', 'failed', (extractError ? window.LifecycleFailure.sentence(extractError) + ' ' : '') + 'The site could not be read, so nothing else was run.'); return; }
+      // The four steps one read fills, revealed in the wizard's order.
+      var stages = setupReadStages();
+      for (var i = 0; i < stages.length; i++) {
+        if (i > 0) { setupNote(stages[i][0], 'running', 'Checking what the read found for this step.'); await setupPause(380); }
+        setupNote(stages[i][0], stages[i][1], stages[i][2], stages[i][3]);
+        await setupPause(220);
       }
-      setupNote('pack', 'running', 'Building the context pack from ' + brand.website + '.');
-      await buildPack();
-      setupNote('pack', packState ? 'done' : 'failed', packState ? 'Context pack built from ' + (packState.site_url || brand.website) + '.' : 'The context pack could not be built.');
-    } finally { setupBusy = false; render(); }
+      // 5 Data & catalog, then the context pack: both read on the server.
+      var serverOff = actionsOff();
+      if (!serverOff) {
+        try { await saveBeforeImport(); } catch (e) { setupNote('catalog', 'failed', window.LifecycleFailure.sentence(e)); }
+      }
+      if (serverOff || !brand.id) {
+        setupNote('catalog', 'skipped', 'The catalogue import and the context pack are read on the server, and no server can act for this brand right now, so they were not run. Import the catalogue on Data & catalog when it can.');
+      } else {
+        var region = importRegion();
+        if (!region) setupNote('catalog', 'needs-you', marker('home market') + ' The site declared no home market, so there is nowhere to file the catalogue. Choose it on Data & catalog.');
+        else {
+          setupNote('catalog', 'running', 'Importing the catalogue from ' + brand.website + ' for ' + region + ', and every regional store the site publishes.');
+          try {
+            var r = await api('catalog-import', { workspace_id: brand.id, region: region.toLowerCase(), kind: 'storefront', url: brand.website });
+            afterImport(r, true);
+            var cov = r.coverage && r.coverage.markets ? ' ' + progressLine(r.coverage) + '.' : '';
+            setupNote('catalog', r.complete === false ? 'partial' : 'done', 'Imported ' + r.imported + ' products from ' + brand.website + '.' + cov + (r.complete === false ? ' The store was not read to the end yet; the import carries on and Data & catalog shows where it is.' : ''));
+            if (r.complete === false && (r.drive || r.continuing)) keepGoing(r);
+          } catch (e) { setupNote('catalog', 'failed', window.LifecycleFailure.sentence(e)); }
+        }
+        setupNote('pack', 'running', 'Building the context pack from ' + brand.website + ': its design system, its own page descriptions and its repositories.');
+        await buildPack();
+        setupNote('pack', packState ? 'done' : 'failed', packState ? 'Context pack built from ' + (packState.site_url || brand.website) + '.' : 'The context pack could not be built.');
+      }
+      // 6 Review: saved as a draft, then the review step opens.
+      setupNote('review', 'running', 'Saving the brand as a draft and checking what is still missing before launch.');
+      try { await save(true); } catch (_) { /* Review says what is missing */ }
+      var rd = readiness();
+      setupNote('review', rd.ready ? 'done' : 'needs-you', rd.ready
+        ? 'Saved as a draft. Nothing blocks activation: check it on Review and activate.'
+        : 'Saved as a draft. ' + (rd.blocking.length === 1 ? '1 thing still blocks' : rd.blocking.length + ' things still block') + ' activation' + (rd.missing.length > rd.blocking.length ? ', and ' + (rd.missing.length - rd.blocking.length) + ' more ' + (rd.missing.length - rd.blocking.length === 1 ? 'is' : 'are') + ' missing' : '') + '. Review lists each with the step that sets it.');
+      await setupPause(300);
+      go(6);
+    } finally { setupBusy = false; render(); renderSetupRun(); }
   }
 
   async function runExtract(opts) {
@@ -2262,6 +2406,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (run) runExtract();
     var su = e.target && e.target.closest ? e.target.closest('#xSetup') : null;
     if (su) setUpFromWebsite();
+    var ed = e.target && e.target.closest ? e.target.closest('[data-setup-edit]') : null;
+    if (ed) go(+ed.getAttribute('data-setup-edit'));
   });
 
   document.addEventListener('input', function (e) {
