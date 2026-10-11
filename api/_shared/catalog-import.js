@@ -350,8 +350,10 @@ async function paced(ctx, st) {
   const gap = st.rate_ms || 0;
   if (!gap) return;
   const now = Date.now();
-  const at = Math.max(now, ctx.nextAt || 0);
+  // The gap holds ACROSS steps too: the last request's time rides on the cursor.
+  const at = Math.max(now, ctx.nextAt || 0, (st.last_req_at || 0) + gap);
   ctx.nextAt = at + gap;
+  st.last_req_at = at;
   if (at > now) await sleep(at - now);
 }
 

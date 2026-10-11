@@ -331,7 +331,9 @@ test('the chain op: only the scheduler\'s secret, POST only; a token is claimed 
     expect(outs.filter((o) => o && /^(claimed_elsewhere|superseded)$/.test(o.skipped || ''))).toHaveLength(1);
     const ran = outs.find((o) => o && !o.skipped);
     expect(ran.progressed).toBe(true);
-    expect(w.rows().length).toBeGreaterThan(before);
+    // (It moved the import on - sitemaps or pages; with the queue table a
+    // short step may still be listing URLs rather than filing rows.)
+    expect(w.rows().length).toBeGreaterThanOrEqual(before);
     // The old token after the step moved on: nothing runs.
     const again = await post(srv.port, Q, { workspace_id: WS, token, budget_ms: 2500 }, { authorization: `Bearer ${SECRET}` });
     expect(again.out.skipped).toBe('superseded');
@@ -753,7 +755,9 @@ test('the per-market limit is a stated LIMIT with the numbers (never "mores"), a
     const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://beautymart.example', brand: { website: 'https://beautymart.example' } });
     expect(r.products).toHaveLength(300);
     expect(said(r.coverage)).toContain('of the 700 products the site declares');
-    expect(said(r.coverage)).toContain('LIMIT: this importer reads at most 300 product URLs per market per import');
+    // A DEVICE brand has no queue table: its limit is stated, with the numbers.
+    expect(said(r.coverage)).toContain('LIMIT: without the import queue table (a device, or a deployment with no service role) this importer keeps at most 300 product URLs per market per import');
+    expect(said(r.coverage)).toContain('An account brand\'s import keeps its URLs in a table and has no such limit.');
     expect(said(r.coverage)).toContain('the first 300 the sitemaps list were read and 400 more were not');
     expect(said(r.coverage)).not.toMatch(/mores\b/);
     expect(r.products.map((p) => p.title).slice(0, 2)).toEqual(['Serum 0001', 'Serum 0002']);
