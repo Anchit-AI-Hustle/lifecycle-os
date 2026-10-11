@@ -479,7 +479,7 @@ Sitemap: https://${host}/sitemap.xml
           if (P === pre || P === pre + '/') return { status: 200, type: 'text/html', body: `<!doctype html><html><head><title>Lens World ${pre}</title></head><body></body></html>` };
         }
         if (P === '/') return { status: 200, type: 'text/html', body: `<!doctype html><html lang="en-IN"><head><title>Lens World</title>
-<link rel="alternate" hreflang="en-in" href="https://${host}/">${this.rootHreflangUs ? `\n<link rel="alternate" hreflang="en-us" href="https://${host}/">` : ''}
+${this.rootHreflangUs ? `<link rel="alternate" hreflang="en-us" href="https://${host}/">` : `<link rel="alternate" hreflang="en-in" href="https://${host}/">`}
 <link rel="alternate" hreflang="en-us" href="https://${host}/en-us">
 <link rel="alternate" hreflang="en-ae" href="https://${host}/en-ae/"></head><body><a href="${IN[0].path}">x</a></body></html>` };
         if (stale.has(P)) return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>gone</p>' };

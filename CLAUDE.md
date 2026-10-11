@@ -92,6 +92,23 @@ This container cannot reach either site, so fixtures model the documented shapes
   `LIMITS.geoRedirectsToStop` (5) the asked market is given up for the run, said once with where this server reads
   from (`VERCEL_REGION`, else "outside IN as far as this server can tell") and that 404s there may be
   location-dependent. No cookie, header or proxy ever pretends a location.
+- **The re-run on the real stores (runs 38115336341, 38115338157), fixed**: (A) Lenskart's India store at the root was
+  MISSING from the market list (a root hreflang naming another country took the root) - the root is always a market:
+  the one asked for (else the brand's home), unless the site gives that market a store of its own (/en-gb/), and a root
+  hreflang naming another country is said, not obeyed; a geo-redirected market stays in the line ("IN: 0 of 5,995
+  (sent to the US store from here)"). (B) STORE CHOICE THE SITE OFFERS: when a geo-redirect lands on a page whose OWN
+  hreflang names this market's address for the same product (`?country=in`, a locale path), that address is used -
+  only when robots.txt allows it and it answers with this market's page and currency - learned once
+  (`learnSelector`/`withSelector`) and said; no cookie, Accept-Language, X-Forwarded-For or proxy, ever. If the site
+  offers none, the honest sentence and the CSV route stand. (C) NO CAP: the product URL queue is a table,
+  `brand_catalog_import_queue` (migration `20261011054000`; unique (workspace, run, market, url); service-role writes,
+  members read; the workspace on every query - `dbQueue`), so the cursor is a pointer; untyped sitemaps' URLs wait under
+  `<market>~other` until the walk knows; a finished run's rows are deleted. A device (no table) keeps the stated
+  20,000 limit. (D) THROTTLING as a polite steady rate: a robots.txt `Crawl-delay` is the rate from the first request
+  (one at a time); else after throttling at one-at-a-time a learned gap (1 s doubling to `LIMITS.maxRateMs` 4 s) that
+  is kept across steps; a page is written off only when the store answers others at that rate; the step stops as
+  `throttled` only when even the slowest rate is refused; every partial import says how long the rest takes at the
+  measured rate ("about N pages a minute ... take about N days") and is never called complete early.
 - **Probe**: `.github/workflows/catalog-probe.yml` (workflow_dispatch only, `contents: read`, inputs via env) runs
   `scripts/catalog-probe.js` - the shipped `rowsFromStore`, no database - and uploads coverage, sample rows and the
   sitemap tree. Dispatch it for lenskart.com / nykaa.com to confirm the modelled shapes.
