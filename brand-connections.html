@@ -484,15 +484,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function brandApi(op, body, query) {
     return window.BrandContext.api(op, { body: body || null, query: query || '' });
   }
-  function renderCatalog(cov, resumable, note) {
+  function renderCatalog(cov, resumable, note, continuing) {
     var el = $('catalogCard');
     if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
     el.className = 'banner info';
-    el.innerHTML = '<b>' + (cov.complete ? 'Product catalogue: read completely' : 'Product catalogue: read in part') + '</b>' +
+    var y = cov.declared && (cov.declared.count || cov.declared.urls);
+    var prog = (cov.found || 0) + (y ? ' of ' + y + (cov.declared.partial ? ' so far' : '') : '') + ' products read';
+    el.innerHTML = '<b>' + (cov.complete ? 'Product catalogue: read completely' : (continuing ? 'Product catalogue: ' + esc(prog) + ', continuing by itself' : 'Product catalogue: read in part')) + '</b>' +
       '<ul style="margin:6px 0 4px;padding-left:18px">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
       (note ? '<p class="note">' + esc(note) + '</p>' : '') +
-      (resumable ? '<button type="button" class="btn" id="catalogContinue">Continue import</button>' : '') +
+      (resumable && !continuing ? '<button type="button" class="btn" id="catalogContinue">Continue import</button>' : '') +
       '<p class="note" id="catalogStatus"></p>';
     var b = $('catalogContinue');
     if (b) b.addEventListener('click', continueCatalog);
@@ -508,8 +510,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         return;
       }
       if (window.LifecycleStatus && window.LifecycleStatus.refusal && window.LifecycleStatus.refusal('Reading your catalogue import')) return;
-      var st = await brandApi('catalog-status', null, '&workspace_id=' + encodeURIComponent(b.id));
-      if (st && st.coverage) renderCatalog(st.coverage, !!st.resume_available, (typeof st.live === 'number' ? st.live + ' products in the catalogue now' + (st.stale ? ', ' + st.stale + ' the store no longer lists (kept, not used)' : '') + '.' : ''));
+      // An import continuing by itself on the server is FOLLOWED here until
+      // it finishes or stops (2026-10-11): "X of Y, continuing".
+      for (var n = 0; n < 2000; n++) {
+        var st = await brandApi('catalog-status', null, '&workspace_id=' + encodeURIComponent(b.id));
+        if (st && st.coverage) renderCatalog(st.coverage, !!st.resume_available, (typeof st.live === 'number' ? st.live + ' products in the catalogue now' + (st.stale ? ', ' + st.stale + ' the store no longer lists (kept, not used)' : '') + '.' : ''), !!st.continuing);
+        if (!st || !st.continuing) break;
+        await new Promise(function (r) { setTimeout(r, n < 3 ? 1500 : 4000); });
+      }
     } catch (_) { /* a convenience: the page stands without it */ }
   }
   async function continueCatalog() {
@@ -520,8 +528,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (btn) btn.disabled = true;
     if (line) line.textContent = 'Continuing the import…';
     try {
+      // Pressed once, it keeps going: the server continues it by itself (then
+      // this page follows it), or this page drives the next step (a device
+      // brand), until complete, a step that reads nothing new, or a long wait.
       var r = await brandApi('catalog-import', { workspace_id: b.id, continue: true });
-      renderCatalog(r.coverage, !!r.resume_available, r.imported + ' products read in this step' + (typeof r.live === 'number' ? ', ' + r.live + ' in the catalogue now' : '') + '.');
+      for (var n = 0; n < 2000; n++) {
+        renderCatalog(r.coverage, !!r.resume_available, r.imported + ' products read in this step' + (typeof r.live === 'number' ? ', ' + r.live + ' in the catalogue now' : '') + '.', !!(r.continuing || (r.drive && r.progressed !== false && r.complete === false)));
+        if (r.complete !== false) break;
+        if (r.continuing) { await loadCatalog(); break; }
+        var stop = r.coverage && r.coverage.stopped;
+        var wait = stop && stop.reason === 'rate_limited' ? (stop.wait_ms || 0) : 0;
+        if (!r.drive || r.progressed === false || wait > 120000) break;
+        if (wait) await new Promise(function (res) { setTimeout(res, wait); });
+        r = await brandApi('catalog-import', { workspace_id: b.id, continue: true });
+      }
       toast(r.complete ? 'The catalogue import finished.' : 'Read ' + r.imported + ' more products; the store was not read to the end yet.');
     } catch (e) {
       if (btn) btn.disabled = false;
