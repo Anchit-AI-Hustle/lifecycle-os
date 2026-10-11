@@ -280,3 +280,26 @@ test('/brand-context shows every section with values, origins, markers for what 
   expect(log.dialogs).toEqual([]);
   expect(log.errors).toEqual([]);
 });
+
+/* Every regional store is imported (2026-10-11, tests/catalog-import-always-complete.spec.js):
+   the page shows each market's count and filters by market, on the rows' own markets. */
+test('/catalog shows each market a multi-market import filed, with its count, and filters by market', async ({ page }) => {
+  test.setTimeout(90_000);
+  const rows = [
+    OWN[0], OWN[1],
+    { region: 'us', handle: 'chicken-momos-us', title: 'Chicken Momos (US)', price: '9', currency: 'USD', image_url: `https://${PHOTO_HOST}/us.png`, product_url: 'https://delichic.example/en-us/menu/chicken-momos', source: 'site_crawl' },
+    { region: 'ae', handle: 'chicken-momos-ae', title: 'Chicken Momos (AE)', price: '29', currency: 'AED', image_url: `https://${PHOTO_HOST}/ae.png`, product_url: 'https://delichic.example/en-ae/menu/chicken-momos', source: 'site_crawl' },
+  ];
+  await harness(page, { brand: BRAND, catalog: { products: rows, source: BRAND.catalog_source, owned: true, region: 'in', coverage: { complete: true, sentences: ['Every regional store the brand publishes: 3 markets. IN: 2 of 2 · US: 1 of 1 · AE: 1 of 1.'] } } });
+  await page.goto(HOST + '/catalog', { waitUntil: 'domcontentloaded' });
+  await brandSettled(page);
+  await page.waitForSelector('#catBody [data-cat-count]', { timeout: 20000 });
+  await expect(page.locator('#catBody')).toContainText('IN: 2 of 2 · US: 1 of 1 · AE: 1 of 1');
+  const chips = await page.locator('#catBody [data-catmkt]').allTextContents();
+  expect(chips.map((c) => c.trim())).toEqual(expect.arrayContaining(['IN (2)', 'US (1)', 'AE (1)']));
+  await page.locator('#catBody [data-catmkt="US"]').click();
+  await expect(page.locator('#catBody [data-cat-row]')).toHaveCount(1);
+  await expect(page.locator('#catBody [data-cat-row] .catname')).toHaveText('Chicken Momos (US)');
+  await page.locator('#catBody [data-catmkt="AE"]').click();
+  await expect(page.locator('#catBody [data-cat-row] .catname')).toHaveText('Chicken Momos (AE)');
+});

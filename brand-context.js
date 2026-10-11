@@ -558,6 +558,7 @@
         store_url: httpUrl(r.store_url),
         pdp_pattern: str(r.pdp_pattern, 200),
         collection_pattern: str(r.collection_pattern, 200),
+        source: str(r.source, 160),
         home: home,
       });
     });
@@ -2345,7 +2346,17 @@
       // MERGED into what this device already keeps (upsert by identity, a
       // product the source no longer lists marked stale once the run is
       // complete) - the twin of the server's brand_catalog_merge().
-      var merged = mergeDeviceCatalog(held ? held.products : [], r.products, { run: r.run, complete: !!r.complete && body.replace !== false, family: r.family || [] });
+      // Market by market (2026-10-11): every row carries the market of the
+      // store it was read from; a market that finished in this step marks
+      // ITS own unseen rows stale, never another market's.
+      var groups = {};
+      (r.products || []).forEach(function (p) { var g = String(p.region || r.region || '').toLowerCase(); (groups[g] = groups[g] || []).push(p); });
+      var doneSet = Array.isArray(r.completed_regions) ? r.completed_regions : (r.complete ? [String(r.region || '').toLowerCase()] : []);
+      var merged = { rows: held ? held.products : [], inserted: 0, updated: 0, staled: 0 };
+      Object.keys(groups).forEach(function (g) {
+        var m = mergeDeviceCatalog(merged.rows, groups[g], { run: r.run, complete: body.replace !== false && doneSet.indexOf(g) >= 0, family: r.family || [] });
+        merged = { rows: m.rows, inserted: merged.inserted + m.inserted, updated: merged.updated + m.updated, staled: merged.staled + m.staled };
+      });
       // Rows an older import filed under another spelling of this market
       // ("ind" for "in", 2026-10-11) are staled by a complete run of the same
       // source family - kept, never deleted, exactly as the server does.

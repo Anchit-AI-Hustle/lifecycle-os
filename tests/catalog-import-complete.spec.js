@@ -271,7 +271,11 @@ test('a UK import reads the UK store - from the brand\'s record, else the site\'
   try {
     const regions = [{ code: 'US', home: true, store_url: 'https://regional.example' }, { code: 'UK', store_url: 'https://regional.example/en-gb' }];
     const uk = await core.importCatalog(PHONE, { region: 'uk', kind: 'storefront', url: 'https://regional.example', brand: { website: 'https://regional.example', regions } });
-    expect(uk.products).toHaveLength(40);
+    // Every regional store is read (2026-10-11), each under its OWN market:
+    // the UK store's 40 rows under UK in GBP, the US store's under US in USD.
+    expect(uk.products.filter((p) => p.region === 'uk')).toHaveLength(40);
+    expect(uk.products.filter((p) => p.region === 'uk').every((p) => p.currency === 'GBP' && /\/en-gb\//.test(p.product_url))).toBe(true);
+    expect(uk.products.filter((p) => p.region === 'us').every((p) => p.currency === 'USD' && !/\/en-gb\//.test(p.product_url))).toBe(true);
     expect(uk.products[0]).toMatchObject({ region: 'uk', price: 41, currency: 'GBP', product_url: 'https://regional.example/en-gb/products/kick-0001' });
     expect(said(uk.coverage)).toContain('Market UK: read from https://regional.example/en-gb (the UK store URL on the brand\'s own record), priced in GBP');
 
