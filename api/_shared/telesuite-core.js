@@ -484,10 +484,21 @@ async function groundingFor(ctx, { product, kbIds }) {
 }
 
 /** One JSON-returning model call through the 6-provider waterfall. */
-async function ask(ctx, { system, user, maxTokens = 2600, temperature = 0.6, stage, json = true }) {
+// Every TeleSuite request ends with the OUTPUT REQUIREMENT (output-contract.js)
+// built from the op's own `returns` and `shape`: the shape used to sit in the
+// SYSTEM prompt as "Return JSON: {...}", above the context, and nothing at the
+// end of the request said what to return.
+const OC = require('./output-contract.js');
+function askSpec(ctx, stage, returns, shape) {
+  return { id: 'telesuite.' + String(stage || 'telesuite').replace(/^telesuite-/, ''), kind: 'data', format: 'json',
+    brand: (ctx && ctx.brand && ctx.brand.name) || 'this brand', returns, shape };
+}
+
+async function ask(ctx, { system, user, maxTokens = 2600, temperature = 0.6, stage, json = true, returns, shape }) {
+  if (!returns || !shape) throw new Error(`telesuite ${stage}: an op states what it returns (returns + shape)`);
   const r = await callLLM({
     systemPrompt: `${brandRules(ctx.brand)}\n\n${system}`,
-    userMessage: user,
+    userMessage: OC.append(user, askSpec(ctx, stage, returns, shape)),
     responseFormat: json ? { type: 'json_object' } : null,
     maxTokens, temperature, timeoutMs: 60000, stage: stage || 'telesuite',
   });
@@ -524,9 +535,10 @@ OPS.product_description = async (ctx, input) => {
     stage: 'telesuite-product',
     system: [
       'You write product descriptions for a telesales team to use as grounding context.',
-      'Return JSON: {"description":"2-4 sentences","key_points":["..."],"ideal_for":"who it suits","talk_track":"one line an agent can say","missing":["facts you needed but were not given"]}',
       'Do not invent specifications, prices, materials or claims. Anything you were not told goes in "missing".',
     ].join('\n'),
+    returns: 'ONE JSON object: the grounding description of this product for the telesales team.',
+    shape: '{"description":"string, 2-4 sentences","key_points":["string"],"ideal_for":"string: who it suits","talk_track":"string: one line an agent can say","missing":["string: a fact you needed but were not given"]}',
     user: `Product name: ${name}\nCategory: ${str(input.category) || '(not given)'}\nWhat the operator told us:\n${str(input.content, 4000) || '(nothing beyond the name)'}\nKnown attributes: ${JSON.stringify(input.attributes || {})}`,
   });
   return { result: out.data, provider: out.provider };
@@ -539,9 +551,10 @@ OPS.kb_ingest = async (ctx, input) => {
     stage: 'telesuite-kb',
     system: [
       'You are indexing a document into a telesales knowledge base.',
-      'Return JSON: {"title":"","category":"one of: product, pricing, objection handling, compliance, process, competitor, customer proof, other","summary":"3-5 sentences","key_facts":["verbatim facts an agent can quote"],"usable_for":["pitch","rebuttal","scoring"],"cautions":["anything an agent must NOT claim from this"]}',
       'key_facts must be quoted or closely paraphrased from the document. Never add a fact the document does not contain.',
     ].join('\n'),
+    returns: 'ONE JSON object: the knowledge-base index entry for this document.',
+    shape: '{"title":"string","category":"one of: product | pricing | objection handling | compliance | process | competitor | customer proof | other","summary":"string, 3-5 sentences","key_facts":["string: a verbatim fact an agent can quote"],"usable_for":["one of: pitch | rebuttal | scoring"],"cautions":["string: something an agent must NOT claim from this"]}',
     user: `Suggested title: ${str(input.name) || '(none)'}\n\nDOCUMENT:\n${content}`,
   });
   return { result: out.data, provider: out.provider };
@@ -556,13 +569,10 @@ OPS.pitch = async (ctx, input) => {
     maxTokens: 3200,
     system: [
       'You are a world-class sales agent writing a pitch another agent will deliver live.',
-      'Return JSON with exactly these keys:',
-      '{"opening":"","permission_question":"","discovery_questions":["3-5"],"value_proposition":"",',
-      ' "proof":["only proof present in the context"],"objection_preempt":[{"objection":"","response":""}],',
-      ' "close":"","fallback_close":"","do_not_say":["phrases that would breach the brand rules or overclaim"],',
-      ' "missing_context":["facts you needed and did not have"]}',
       'Every claim must trace to the supplied context. Write for the ear, not the page: short sentences an agent can say out loud.',
     ].join('\n'),
+    returns: 'ONE JSON object: the live-call pitch, section by section.',
+    shape: '{"opening":"string","permission_question":"string","discovery_questions":["string, 3-5 items"],"value_proposition":"string","proof":["string: only proof present in the context"],"objection_preempt":[{"objection":"string","response":"string"}],"close":"string","fallback_close":"string","do_not_say":["string: a phrase that would breach the brand rules or overclaim"],"missing_context":["string: a fact you needed and did not have"]}',
     user: `CONTEXT\n${grounding}\n\nAUDIENCE: ${str(input.audience) || '(not specified)'}\nCHANNEL: ${str(input.channel) || 'Phone call'}\nCALL GOAL: ${str(input.goal) || '(not specified)'}`,
   });
   return { result: out.data, provider: out.provider, title: `Pitch: ${str(input.product) || 'general'}` };
@@ -593,10 +603,10 @@ OPS.rebuttal = async (ctx, input) => {
       temperature: 0.5,
       system: [
         'You handle live sales objections using the Acknowledge, Bridge, Benefit, Clarify model.',
-        'Return JSON: {"acknowledge":"","bridge":"","benefit":"","clarify":"","full_response":"the four joined into something natural to say",',
-        ' "if_they_push_back":"","escalate_if":"when the agent should stop selling","evidence_used":["which context lines you relied on"],"missing_context":[]}',
         'The benefit must come from the supplied context. If the context does not support one, put the DATA REQUIRED marker there.',
       ].join('\n'),
+      returns: 'ONE JSON object: the rebuttal to this objection in the Acknowledge, Bridge, Benefit, Clarify model.',
+      shape: '{"acknowledge":"string","bridge":"string","benefit":"string","clarify":"string","full_response":"string: the four joined into something natural to say","if_they_push_back":"string","escalate_if":"string: when the agent should stop selling","evidence_used":["string: a context line you relied on"],"missing_context":["string"]}',
       user: `CONTEXT\n${grounding}\n\nOBJECTION: "${objection}"\nTONE: ${str(input.tone) || 'Consultative'}`,
     });
     return { result: Object.assign({ generated_by: out.provider }, out.data), provider: out.provider, title: objection.slice(0, 80) };
@@ -611,7 +621,10 @@ OPS.rebuttal = async (ctx, input) => {
 async function geminiTranscribe(base64, mime, language) {
   const key = String(process.env.GEMINI_API_KEY || '').replace(/[﻿​]/g, '').trim();
   if (!key) return null;
-  const prompt = `Transcribe this call recording verbatim in ${language || 'English'}. Label each turn as "Agent:" or "Customer:" based on who is speaking. Include a [mm:ss] timestamp at the start of each turn. Do not summarise, correct grammar, or add anything that was not said. If a passage is inaudible write [inaudible].`;
+  const prompt = OC.append(`Transcribe this call recording verbatim in ${language || 'English'}. Do not summarise, correct grammar, or add anything that was not said.`, {
+    id: 'telesuite.transcribe', kind: 'data', format: 'text', missing: 'A passage you cannot hear is written [inaudible]; nothing is guessed.',
+    returns: 'ONE verbatim transcript of the recording, one turn per line, each line "[mm:ss] Agent: ..." or "[mm:ss] Customer: ...".',
+    forbid: ['a summary', 'corrected grammar'] });
   let lastErr = '';
   for (const model of GEMINI_MODELS) {
     try {
@@ -680,15 +693,11 @@ OPS.call_scoring = async (ctx, input) => {
     system: [
       'You are a quality analyst scoring one sales or support call. Be exacting and evidence-bound.',
       `Score every one of these dimensions from 0 to 10: ${SCORING_DIMENSIONS.join('; ')}.`,
-      'Return JSON: {"overall_score":0-100,"outcome":"won|lost|follow_up|unresolved|unclear",',
-      ' "dimensions":[{"name":"","score":0,"weight":1,"evidence":"a VERBATIM quote from the transcript","comment":""}],',
-      ' "strengths":["with quotes"],"improvements":[{"issue":"","quote":"","instead_say":""}],',
-      ' "compliance_flags":["anything said that was inaccurate, overclaimed or non-compliant, with the quote"],',
-      ' "factual_errors":["claims the agent made that contradict the product context, with quotes"],',
-      ' "coaching_summary":"3-4 sentences to the agent","missing_context":[]}',
       'Every score MUST carry a verbatim quote as evidence. If the transcript does not evidence a dimension, score it and say "not observed" in the evidence.',
       'Never invent transcript content. Never soften a compliance issue.',
     ].join('\n'),
+    returns: 'ONE JSON object: the scored call, every dimension with its verbatim evidence.',
+    shape: '{"overall_score":"integer 0-100","outcome":"one of: won | lost | follow_up | unresolved | unclear","dimensions":[{"name":"string, one per dimension listed","score":"integer 0-10","weight":"number","evidence":"string: a VERBATIM quote from the transcript, or not observed","comment":"string"}],"strengths":["string, with its quote"],"improvements":[{"issue":"string","quote":"string","instead_say":"string"}],"compliance_flags":["string: anything inaccurate, overclaimed or non-compliant, with the quote"],"factual_errors":["string: a claim that contradicts the product context, with the quote"],"coaching_summary":"string, 3-4 sentences to the agent","missing_context":["string"]}',
     user: `PRODUCT CONTEXT\n${grounding}\n\nAGENT: ${str(input.agent_name) || '(not given)'}\nEXTRA FOCUS: ${str(input.rubric_focus) || '(none)'}\n\nTRANSCRIPT\n${transcript}`,
   });
   const score = Number(out.data && out.data.overall_score);
@@ -725,15 +734,10 @@ OPS.combined_analysis = async (ctx, input) => {
     temperature: 0.3,
     system: [
       'You synthesise a batch of already-scored calls into what the team should change.',
-      'Return JSON: {"calls_analysed":0,"average_score":0,"score_range":{"min":0,"max":0},',
-      ' "what_consistently_works":[{"pattern":"","seen_in":0,"evidence":""}],',
-      ' "what_consistently_fails":[{"pattern":"","seen_in":0,"cost":"what it costs the team","evidence":""}],',
-      ' "weakest_dimensions":[{"name":"","average":0}],"outcome_split":{},',
-      ' "coaching_priorities":[{"priority":1,"focus":"","drill":"a concrete exercise"}],',
-      ' "script_changes":[{"where":"","from":"","to":"","why":""}],',
-      ' "caveats":["what this batch cannot tell you, including sample size limits"]}',
       'Counts must be actual counts across the supplied reports. Never generalise beyond this batch, and always state the sample size in caveats.',
     ].join('\n'),
+    returns: 'ONE JSON object: what this batch of scored calls says the team should change.',
+    shape: '{"calls_analysed":"integer, the batch size","average_score":"number","score_range":{"min":"number","max":"number"},"what_consistently_works":[{"pattern":"string","seen_in":"integer count","evidence":"string"}],"what_consistently_fails":[{"pattern":"string","seen_in":"integer count","cost":"string: what it costs the team","evidence":"string"}],"weakest_dimensions":[{"name":"string","average":"number"}],"outcome_split":{"<outcome>":"integer count"},"coaching_priorities":[{"priority":"integer from 1","focus":"string","drill":"string: a concrete exercise"}],"script_changes":[{"where":"string","from":"string","to":"string","why":"string"}],"caveats":["string: what this batch cannot tell you, incl. the sample size"]}',
     user: `QUESTION: ${str(input.question) || 'What should we change to win more of these calls?'}\nPRODUCT: ${str(input.product) || '(mixed)'}\nBATCH SIZE: ${reports.length}\n\n${digest}`,
   });
   return { result: Object.assign({ source_run_ids: ids }, out.data), provider: out.provider, title: `Batch of ${reports.length} calls` };
@@ -753,10 +757,10 @@ OPS.optimized_pitches = async (ctx, input) => {
     maxTokens: 3200,
     system: [
       'You rewrite the sales script using ONLY what a batch analysis proved.',
-      'Return JSON: {"pitches":[{"name":"","when_to_use":"","opening":"","value":"","proof":[],"objection_preempt":[{"objection":"","response":""}],"close":"","grounded_in":"which analysis finding this comes from"}],',
-      ' "removed":[{"line":"","why_removed":"which finding says it fails"}],"test_plan":"how to A/B these against the current script"}',
       'Every pitch element must cite the finding it came from in "grounded_in". Do not add product claims that are not in the product context.',
     ].join('\n'),
+    returns: 'ONE JSON object: the optimised pitches, the lines removed, and the test plan.',
+    shape: '{"pitches":[{"name":"string","when_to_use":"string","opening":"string","value":"string","proof":["string: only proof in the product context"],"objection_preempt":[{"objection":"string","response":"string"}],"close":"string","grounded_in":"string: the analysis finding this comes from"}],"removed":[{"line":"string","why_removed":"string: the finding that says it fails"}],"test_plan":"string: how to A/B these against the current script"}',
     user: `PRODUCT CONTEXT\n${grounding}\n\nBATCH ANALYSIS\n${JSON.stringify(analysis).slice(0, 12000)}`,
   });
   return { result: out.data, provider: out.provider, title: 'Optimised pitches' };
@@ -773,13 +777,10 @@ OPS.training_deck = async (ctx, input) => {
     maxTokens: 4000,
     system: [
       'You build training material for a telesales or support team.',
-      'Return JSON: {"title":"","audience":"","duration":"","learning_objectives":["3-6, each measurable"],',
-      ' "modules":[{"number":1,"title":"","minutes":0,"teaching_points":[""],"talk_track":"what the trainer says","exercise":{"name":"","instructions":"","success_looks_like":""}}],',
-      ' "role_play":{"scenario":"","customer_brief":"","agent_brief":"","observer_checklist":[""]},',
-      ' "knowledge_check":[{"question":"","answer":"","why_it_matters":""}],',
-      ' "handout_summary":"","missing_context":[]}',
       'Ground every product claim in the supplied context. Use the requested framework if one is named; otherwise synthesise from the context.',
     ].join('\n'),
+    returns: 'ONE JSON object: the complete training deck, module by module.',
+    shape: '{"title":"string","audience":"string","duration":"string","learning_objectives":["string, 3-6 items, each measurable"],"modules":[{"number":"integer from 1","title":"string","minutes":"integer","teaching_points":["string"],"talk_track":"string: what the trainer says","exercise":{"name":"string","instructions":"string","success_looks_like":"string"}}],"role_play":{"scenario":"string","customer_brief":"string","agent_brief":"string","observer_checklist":["string"]},"knowledge_check":[{"question":"string","answer":"string","why_it_matters":"string"}],"handout_summary":"string","missing_context":["string"]}',
     user: `TOPIC: ${topic}\nAUDIENCE: ${str(input.audience) || '(not specified)'}\nFRAMEWORK: ${str(input.framework) || 'Auto'}\nSESSION LENGTH: ${str(input.duration) || '(not specified)'}\n\nCONTEXT\n${grounding}`,
   });
   return { result: out.data, provider: out.provider, title: (out.data && out.data.title) || topic };
@@ -795,14 +796,10 @@ OPS.data_analysis = async (ctx, input) => {
     temperature: 0.3,
     system: [
       'You are a data analyst. You have two possible inputs: actual rows, and the user\'s description of their data.',
-      'Return JSON: {"basis":"rows|description|both","row_count":0,"columns":[""],',
-      ' "findings":[{"finding":"","computed_from":"rows|description","numbers":"the actual figures, or null if not computable","confidence":"high|medium|low"}],',
-      ' "segments":[{"cut":"","observation":""}],"anomalies":[""],',
-      ' "recommended_actions":[{"action":"","expected_effect":"","how_to_measure":""}],',
-      ' "cannot_answer":["questions the supplied data cannot answer, and what data would be needed"],',
-      ' "disclaimer":""}',
       'CRITICAL: if rows were supplied, compute from them and mark those findings computed_from="rows". If only a description was supplied, every finding is inference and must be marked computed_from="description" with confidence set honestly, and the disclaimer must say plainly that no data was actually processed. Never present an inferred number as a measured one.',
     ].join('\n'),
+    returns: 'ONE JSON object: the findings from the rows (or, with none, inferences from the description, marked as such), the actions, and what the data cannot answer.',
+    shape: '{"basis":"one of: rows | description | both","row_count":"integer, 0 when no rows","columns":["string"],"findings":[{"finding":"string","computed_from":"one of: rows | description","numbers":"string: the actual figures, or null if not computable","confidence":"one of: high | medium | low"}],"segments":[{"cut":"string","observation":"string"}],"anomalies":["string"],"recommended_actions":[{"action":"string","expected_effect":"string","how_to_measure":"string"}],"cannot_answer":["string: a question the data cannot answer and the data that would be needed"],"disclaimer":"string"}',
     user: `WHAT THE USER SAYS ABOUT THE DATA\n${description}\n\nSPECIFIC QUESTIONS\n${str(input.questions) || '(none)'}\n\nDATA ROWS\n${data || '(none supplied — analyse from the description only, and say so)'}`,
   });
   return { result: out.data, provider: out.provider, title: description.slice(0, 80) };
@@ -932,11 +929,11 @@ OPS.voice_turn = async (ctx, input, req) => {
     system: [
       persona,
       'This is SPOKEN. Reply in at most 45 words, in plain conversational language, with no lists, no markdown and no stage directions.',
-      'Return JSON: {"say":"what you say out loud","intent":"greeting|discovery|answer|objection|value|close|resolve|escalate|closing",',
-      ' "asked_question":true|false,"should_end":false,"end_reason":"","internal_note":"one line for the QA log","needs_fact":""}',
       'If you need a fact you were not given, do not invent it: set needs_fact and say something honest such as that you will confirm it and come back.',
       'Always end your turn with either a question or a clear next step, so the customer knows it is their turn.',
     ].join('\n'),
+    returns: 'ONE JSON object: your next spoken turn on the call (at most 45 words in "say") and its bookkeeping.',
+    shape: '{"say":"string: what you say out loud, at most 45 words","intent":"one of: greeting | discovery | answer | objection | value | close | resolve | escalate | closing","asked_question":"boolean","should_end":"boolean","end_reason":"string, empty unless should_end","internal_note":"string: one line for the QA log","needs_fact":"string: a fact you needed and were not given, else empty"}',
     user: `CONTEXT\n${grounding}\n\nCONVERSATION SO FAR\n${history.map((h) => `${h.role === 'agent' ? 'You' : 'Customer'}: ${str(h.text, 800)}`).join('\n') || '(the call just connected)'}\n\nCUSTOMER JUST SAID: ${heard || '(nothing yet — open the call)'}`,
   });
   return {

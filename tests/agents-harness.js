@@ -155,7 +155,7 @@ function scriptedLlm() {
   // `ctl.down`: every provider fails, the way llm.js throws when the whole
   // cascade is exhausted, so a spec can drive the TEMPLATE paths a generator
   // takes with no model (tests/brand-content-invariant.spec.js).
-  const ctl = { down: false };
+  const ctl = { down: false, respond: null };
   const fn = async function callLLMStub(o) {
     const opts = o || {};
     // Which catalogue the generation was pinned to when it reached the model
@@ -174,6 +174,14 @@ function scriptedLlm() {
     }
     const stage = String(opts.stage || '');
     let text;
+    // `ctl.respond(opts)`: a spec answers instead (tests/prompt-output-
+    // contracts.spec.js answers every prompt with exactly the shape its OUTPUT
+    // REQUIREMENT asked for). Returning null/undefined falls through.
+    const answered = ctl.respond ? ctl.respond(opts) : null;
+    // The shape llm.js really answers with: { text, provider, model } and NO
+    // `ok` (a caller that tested `out.ok` read every real answer as a failure,
+    // and a stub that carried `ok: true` hid it - kb.js, ingest-guardrail.js).
+    if (answered !== null && answered !== undefined) return { text: String(answered), provider: 'scripted', model: 'scripted' };
     if (stage === 'kicksgpt') text = JSON.stringify({ action: 'final', reply: 'Scripted reply for this turn, with no figure invented.' });
     else if (opts.responseFormat && opts.responseFormat.type === 'json_object') text = JSON.stringify({ objective: 'scripted objective', score: 8, pass: true, ideas: [], insights: [], action_items: [], summary: 'scripted', cohorts: [], heroAngles: [] });
     else text = 'Scripted reply for this turn, with no figure invented.';
@@ -183,6 +191,8 @@ function scriptedLlm() {
     fn, calls,
     get down() { return ctl.down; },
     set down(v) { ctl.down = !!v; },
+    get respond() { return ctl.respond; },
+    set respond(fn) { ctl.respond = typeof fn === 'function' ? fn : null; },
   };
 }
 

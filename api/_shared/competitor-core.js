@@ -932,13 +932,20 @@ async function discoverBrands(opts) {
     `Categories to cover: ${categories.join(', ')}.`,
     `Geographies: ${geographies.join(', ')}.`,
     excludeDomains.length ? `EXCLUDE these domains already in our database (do not return them): ${excludeDomains.slice(0, 200).join(', ')}.` : '',
-    'Return STRICT JSON of the shape: {"brands":[{"brandName":"","websiteUrl":"https://...","category":"","country":"","positioning":"Premium|Mass|Luxury","newsletterSignupUrl":"","popupSignup":true,"smsSignup":false,"blogUrl":"","bestsellerUrl":"","newArrivalsUrl":""}]}',
     'Prefer well-known, real DTC brands. websiteUrl must be the real homepage. If unsure of a sub-URL, leave it as an empty string rather than guessing.',
   ].filter(Boolean).join('\n');
+  const url = { type: 'string', note: 'a real URL on the brand\'s own site, or an empty string when unsure' };
+  const outputSpec = { id: 'competitor.discover', kind: 'data', format: 'json', brand: 'KNICKGASM',
+    missing: 'A brand you are not sure exists is left out; a sub-URL you are not sure of is an empty string. Never invent a brand or a domain.',
+    returns: `ONE JSON object whose "brands" key holds up to ${limit} real, currently-operating competitor brands.`,
+    schema: { brands: { type: 'array', count: [0, limit], items: { type: 'object', of: {
+      brandName: 'string', websiteUrl: { type: 'string', note: 'the real homepage, https://' }, category: { type: 'string', enum: categories },
+      country: 'string', positioning: { type: 'string', enum: ['Premium', 'Mass', 'Luxury'] }, newsletterSignupUrl: url, popupSignup: 'boolean', smsSignup: 'boolean',
+      blogUrl: url, bestsellerUrl: url, newArrivalsUrl: url } } } } };
 
   const res = await callLLM({
     systemPrompt: system,
-    userMessage: user,
+    userMessage: require('./output-contract.js').append(user, outputSpec),
     responseFormat: { type: 'json_object' },
     maxTokens: 3500,
     temperature: 0.5,

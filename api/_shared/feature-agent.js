@@ -27,6 +27,38 @@
 
 const callLLM = require('./llm.js');
 const { parseJSON } = require('./llm.js');
+// What each profile returns: the OUTPUT REQUIREMENT its prompt ends with and
+// the spec the answer is checked by (output-contract.js).
+const OC = require('./output-contract.js');
+function analystSpec(maxInsights) {
+  return { id: 'feature-agent.analyst', kind: 'data', format: 'json', brand: brandLabel(),
+    missing: 'A figure that is not in METRICS is not quoted: name it as not in the data in "evidence". Never estimate one.',
+    returns: `ONE JSON object: at most ${maxInsights} insights ranked by impact over effort, and a 2-3 sentence summary.`,
+    schema: {
+      insights: { type: 'array', count: [0, maxInsights], items: { type: 'object', of: {
+        observation: 'string', hypothesis: { type: 'string', note: '"if X then Y because Z"' }, evidence: { type: 'string', note: 'the figure(s) quoted from METRICS' },
+        target_metric: 'string', expected_impact: 'string', confidence: { type: 'string', enum: ['low', 'med', 'high'] } } } },
+      summary: { type: 'string', note: '2-3 sentences' },
+    } };
+}
+function criticSpec(feature, rubric) {
+  const score = { type: 'number', min: 0, max: 10 };
+  const scores = {};
+  for (const d of rubric.dimensions) scores[d.key] = Object.assign({ note: d.label }, score);
+  return { id: 'feature-agent.critic', kind: 'data', format: 'json', brand: brandLabel(), missing: false,
+    returns: `ONE JSON object: a 0-10 score on every dimension of the ${feature}, the overall score, and the critique.`,
+    schema: { scores: { type: 'object', of: scores }, overall: score,
+      critique: { type: 'string', note: 'the specific weakest fields and exactly what to change, quoting the offending copy' } } };
+}
+function reviseSpec(feature, content) {
+  const isJson = typeof content !== 'string' && Object.keys(content || {}).length > 0;
+  return isJson
+    ? { id: 'feature-agent.revise', kind: 'data', format: 'json', brand: brandLabel(), extraKeys: false,
+      returns: `ONE JSON object: the COMPLETE revised ${feature}, in exactly the shape and keys of the CURRENT ${feature}.`,
+      schema: OC.schemaOf(content) }
+    : { id: 'feature-agent.revise', kind: 'element', format: 'text', brand: brandLabel(),
+      returns: `The COMPLETE revised ${feature} as text, in the same form as the CURRENT ${feature}.` };
+}
 
 const DEFAULT_TIME_BOX_MS = 25000;
 
@@ -87,16 +119,14 @@ async function runAnalyst({ feature = 'analytics', question = '', inputs = {}, c
       'You are a senior growth analyst for ' + brandLabel() + '. You read ALREADY-COMPUTED ' +
       'metrics and produce decisions, not restated numbers. ' + evidenceContract() + '\n' +
       'If a caveat says a figure is inaccurate or out-of-scope, DO NOT build a recommendation on it; ' +
-      'flag it instead. Output STRICT JSON only:\n' +
-      '{"insights":[{"observation":"","hypothesis":"if X then Y because Z","evidence":"quoted figure(s)",' +
-      '"target_metric":"","expected_impact":"","confidence":"low|med|high"}],"summary":"2-3 sentences"}\n' +
+      'flag it instead.\n' +
       'Rank insights by (impact / effort). Max ' + maxInsights + ' insights.';
-    const user =
+    const user = OC.append(
       'FEATURE: ' + feature + '\n' +
       (question ? 'QUESTION: ' + question + '\n' : '') +
       'METRICS (JSON):\n' + JSON.stringify(inputs).slice(0, 14000) + '\n' +
-      (caveats && caveats.length ? '\nDATA CAVEATS (do not lean on these):\n' + JSON.stringify(caveats).slice(0, 3000) : '') +
-      '\n\nReturn the JSON now.';
+      (caveats && caveats.length ? '\nDATA CAVEATS (do not lean on these):\n' + JSON.stringify(caveats).slice(0, 3000) : ''),
+      analystSpec(maxInsights));
     const out = await withDeadline(callLLM({
       systemPrompt: sys, userMessage: user, responseFormat: { type: 'json_object' },
       maxTokens: 1400, temperature: 0.3, timeoutMs: Math.max(1, remaining()),
@@ -130,14 +160,12 @@ async function runCritic({ feature = 'content', content, context = '', rubric,
     const dimList = rubric.dimensions.map(d => '  ' + d.key + ' (' + d.label + '): ' + d.guide).join('\n');
     const scoreSys =
       'You are a senior quality auditor for ' + brandLabel() + '. Score the ' + feature + ' on each dimension 0-10. ' +
-      evidenceContract() + ' Output STRICT JSON only:\n' +
-      '{"scores":{' + rubric.dimensions.map(d => '"' + d.key + '":0').join(',') + '},"overall":0,' +
-      '"critique":"name the specific weakest fields and exactly what to change; quote offending copy"}\n\n' +
+      evidenceContract() + '\n\n' +
       'DIMENSIONS:\n' + dimList;
     const scoreOut = await withDeadline(callLLM({
       systemPrompt: scoreSys,
-      userMessage: (context ? 'CONTEXT:\n' + String(context).slice(0, 1500) + '\n\n' : '') +
-        (feature.toUpperCase()) + ' TO SCORE:\n' + contentStr.slice(0, 14000) + '\n\nScore now. Return JSON.',
+      userMessage: OC.append((context ? 'CONTEXT:\n' + String(context).slice(0, 1500) + '\n\n' : '') +
+        (feature.toUpperCase()) + ' TO SCORE:\n' + contentStr.slice(0, 14000), criticSpec(feature, rubric)),
       responseFormat: { type: 'json_object' }, maxTokens: 600, temperature: 0.15,
       timeoutMs: Math.min(20000, Math.max(1, remaining())), stage: 'feature-agent-score',
       tier, userGeminiKey,
@@ -161,14 +189,14 @@ async function runCritic({ feature = 'content', content, context = '', rubric,
        'Revise it to fix EVERY point in the critique while preserving what works. ' + evidenceContract() +
        ' Return the COMPLETE revised ' + feature + ' in EXACTLY the same shape/keys as the input. ' +
        'No markdown, no commentary.');
-    const isJson = typeof content !== 'string';
+    const rSpec = reviseSpec(feature, content);
+    const isJson = rSpec.format === 'json';
     const reviseOut = await withDeadline(callLLM({
       systemPrompt: reviseSys,
-      userMessage: 'AUDITOR SCORES: ' + JSON.stringify(scored.scores) + ' (overall ' + quality.score + '/10, pass ' + threshold + ')\n' +
+      userMessage: OC.append('AUDITOR SCORES: ' + JSON.stringify(scored.scores) + ' (overall ' + quality.score + '/10, pass ' + threshold + ')\n' +
         'CRITIQUE: ' + (quality.critique || 'Raise every dimension above threshold.') + '\n\n' +
         (context ? 'CONTEXT:\n' + String(context).slice(0, 1200) + '\n\n' : '') +
-        'CURRENT ' + feature.toUpperCase() + ':\n' + contentStr.slice(0, 26000) +
-        '\n\nReturn the complete revised ' + feature + ' now.',
+        'CURRENT ' + feature.toUpperCase() + ':\n' + contentStr.slice(0, 26000), rSpec),
       responseFormat: isJson ? { type: 'json_object' } : null, maxTokens: 6000, temperature: 0.55,
       timeoutMs: Math.max(1, remaining()), stage: 'feature-agent-revise',
       tier: 'premium', userGeminiKey,

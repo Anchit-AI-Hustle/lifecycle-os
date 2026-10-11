@@ -149,8 +149,20 @@ const SYSTEM = [
   '2. Tone and vocabulary are preferences, so those you may propose freely. Facts you may not.',
   '3. Never use an em dash or an en dash. Use commas, colons or plain hyphens.',
   '4. If the record is thin, write options that stay general rather than inventing specifics to fill them out.',
-  'Answer as JSON only: {"options":[{"value":"...","why":"one short line on when this fits"}]}',
+
 ].join('\n');
+
+// What the model returns: the OUTPUT REQUIREMENT the request ends with
+// (output-contract.js); the parser below reads exactly "options".
+const OC = require('./output-contract.js');
+function suggestSpec(spec, n, brand) {
+  return { id: 'brand-suggest.' + String(spec.label || 'field').toLowerCase().replace(/[^a-z0-9]+/g, '-'), kind: 'data', format: 'json',
+    brand: (brand && brand.name) || 'this brand',
+    missing: 'Where the record is thin, an option stays general; it never invents a specific to fill itself out.',
+    returns: `ONE JSON object whose "options" key holds ${n} options for the field ${spec.label}.`,
+    schema: { options: { type: 'array', count: [1, n], items: { type: 'object', of: {
+      value: { type: 'string', max: spec.kind === 'terms' ? 60 : 400 }, why: { type: 'string', max: 200, note: 'one short line on when this fits' } } } } } };
+}
 
 /**
  * @returns {Promise<{ok:boolean, field?:string, options?:Array, dropped?:Array,
@@ -179,14 +191,14 @@ async function suggest(field, brand, { count } = {}) {
   try {
     raw = await callLLM({
       systemPrompt: SYSTEM,
-      userMessage: [
+      userMessage: OC.append([
         `FIELD: ${spec.label}`,
         `WHAT TO WRITE: ${spec.asks}`,
         `HOW MANY: ${n}`,
         '',
         'THE BRAND, in full:',
         brief.map((l) => '  ' + l).join('\n'),
-      ].join('\n'),
+      ].join('\n'), suggestSpec(spec, n, b)),
       responseFormat: { type: 'json_object' },
       maxTokens: 1200,
       temperature: 0.85,

@@ -389,12 +389,16 @@ function discoveryPrompt(brand, opts) {
     brief.kinds.length ? `What it offers: ${brief.kinds.join(', ')}.` : '',
     brief.regions.length ? `Markets it operates in: ${brief.regions.join(', ')}.` : '',
     exclude.length ? `EXCLUDE these domains, they are already known or belong to the company itself: ${exclude.slice(0, 200).join(', ')}.` : '',
-    'Return STRICT JSON: {"brands":[{"name":"","websiteUrl":"https://..."}]}',
     'Return the homepage only. Do not add positioning, pricing, ratings or any other commentary: those are claims we cannot verify and they will be discarded.',
-    'If you cannot name any real competitor with confidence, return {"brands":[]}.',
   ].filter(Boolean);
 
-  return { ok: true, system, user: lines.join('\n'), limit, exclude };
+  const user = require('./output-contract.js').append(lines.join('\n'), {
+    id: 'competitor-universe.discover', kind: 'data', format: 'json', brand: brief.name || 'this company',
+    missing: 'A company you are not sure exists, or whose website you are not sure of, is left out. With none known for certain the answer is {"brands":[]}.',
+    returns: `ONE JSON object whose "brands" key holds up to ${limit} real competitors, name and homepage only.`,
+    schema: { brands: { type: 'array', count: [0, limit], items: { type: 'object', of: {
+      name: 'string', websiteUrl: { type: 'string', note: 'the real homepage, https://' } } } } } });
+  return { ok: true, system, user, limit, exclude };
 }
 
 // Domains a model reaches for when it is filling a shape rather than reporting
