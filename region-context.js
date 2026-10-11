@@ -213,7 +213,8 @@
   /**
    * The list a page builds its own market control from: the brand's regions,
    * each as { code, name, label, home }, optionally with an aggregate row
-   * first (`{ all: 'ALL' }` gives { code:'ALL', name:'All', all:true }). A
+   * first (`{ all: 'ALL' }` gives { code:'ALL', name:'All', all:true }) - only
+   * when the brand has more than one market. A
    * brand with no regions returns [] and the page renders its marker state -
    * never a shipped list, never another brand's.
    */
@@ -222,11 +223,43 @@
     var out = state.regions.map(function (r) {
       return { code: r.code, name: name(r.code), label: label(r.code), home: r.code === state.home, all: false };
     });
-    if (o.all && out.length) out.unshift({ code: String(o.all === true ? 'ALL' : o.all), name: o.allLabel || 'All', label: o.allLabel || 'All markets', home: false, all: true });
+    // An aggregate exists only where there is something to aggregate: a brand
+    // with ONE market is offered that market, never "All" of one (2026-10-10).
+    if (o.all && out.length > 1) out.unshift({ code: String(o.all === true ? 'ALL' : o.all), name: o.allLabel || 'All', label: o.allLabel || 'All markets', home: false, all: true });
     return out;
   }
 
+  /* Every <select data-brand-markets> on the page holds the ACTIVE brand's
+     own markets, opening on its home (or keeping a choice it still serves);
+     data-brand-markets="all" adds an All row where the brand has more than
+     one market. A form's market field used to be typed - seven markets, US
+     first - so an India-only brand was offered six it does not sell in
+     (2026-10-10). A brand with no regions gets one empty option carrying the
+     marker, never a shipped list. Pages that build a select later call
+     RegionContext.fillSelects(root). */
+  function escAttr(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function fillSelects(root) {
+    var sels;
+    try { sels = (root || document).querySelectorAll('select[data-brand-markets]'); } catch (e) { return; }
+    for (var i = 0; i < sels.length; i++) {
+      var sel = sels[i];
+      var opts = options({ all: /^all$/i.test(sel.getAttribute('data-brand-markets') || '') ? 'ALL' : false });
+      var keep = sel.value;
+      var key = opts.map(function (o) { return o.code; }).join('|') || '-';
+      if (sel.getAttribute('data-brand-markets-built') !== key) {
+        sel.innerHTML = opts.length
+          ? opts.map(function (o) { return '<option value="' + escAttr(o.code) + '">' + escAttr(o.all ? 'All markets' : o.code) + '</option>'; }).join('')
+          : '<option value="">' + escAttr(marker('home market')) + '</option>';
+        sel.setAttribute('data-brand-markets-built', key);
+      }
+      var codes = opts.map(function (o) { return o.code; });
+      var want = codes.indexOf(keep) >= 0 ? keep : (codes.indexOf(state.region) >= 0 ? state.region : (state.home || codes[0] || ''));
+      if (sel.value !== want) sel.value = want;
+    }
+  }
+
   function emit() {
+    try { fillSelects(); } catch (e) {}
     var payload = { region: state.region, regions: state.regions };
     listeners.forEach(function (fn) { try { fn(payload); } catch (e) {} });
     try { window.dispatchEvent(new CustomEvent('regioncontext:change', { detail: payload })); } catch (e) {}
@@ -618,6 +651,7 @@
     label: label,
     name: name,
     options: options,
+    fillSelects: fillSelects,
     resolve: resolveCode,
     family: family,
     localeOf: localeOf,

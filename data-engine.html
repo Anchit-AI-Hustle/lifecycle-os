@@ -73,9 +73,10 @@
 
     <div class="flex flex-wrap items-center gap-2 mt-5" id="mktTabs">
       <span class="text-[11px] uppercase tracking-widest font-bold" style="color:var(--vh-accent-text);margin-right:4px">Market</span>
-      <button type="button" class="rtab on" data-mkt="US">US</button>
-      <button type="button" class="rtab" data-mkt="UK">UK</button>
-      <span class="text-[12px]" style="color:var(--vh-ink-dim);margin-left:6px">Showing <b style="color:var(--vh-ink)" id="mktLabel">US</b></span>
+      <!-- One tab per market the ACTIVE brand declares (region-context.js),
+           opening on its home; these were a typed US / UK pair (2026-10-10). -->
+      <span id="mktTabBtns" style="display:contents"></span>
+      <span class="text-[12px]" style="color:var(--vh-ink-dim);margin-left:6px">Showing <b style="color:var(--vh-ink)" id="mktLabel"></b></span>
     </div>
 
     <!-- Pipeline -->
@@ -150,7 +151,28 @@
     "use strict";
     var A = window.LIFECYCLE_ANALYTICS;
     if(!A){ document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:var(--vh-err-text)">Analytics module not loaded.</div>'; return; }
-    var market = 'US';
+    // The brand's own market, set from its home once region-context.js knows it.
+    var market = '';
+    function brandMarkets(){
+      var RC=window.RegionContext, B=window.BrandContext;
+      var codes=(RC && typeof RC.options==='function') ? RC.options().map(function(o){ return o.code; }) : [];
+      // No active brand at all (the shipped preview of the shipped export): the export's own markets.
+      if(!codes.length && !(B&&B.brand) && A && A.markets) codes=Object.keys(A.markets);
+      return codes;
+    }
+    function buildTabs(){
+      var host=document.getElementById('mktTabBtns'), RC=window.RegionContext; if(!host) return;
+      var codes=brandMarkets();
+      // Home first when the export carries it, else the first of the brand's
+      // markets that it does carry, else home (and render() says what is missing).
+      if(codes.indexOf(market)<0){
+        var home=(RC&&RC.home)||'', has=function(c){ return !!(A&&A.markets&&A.markets[c]); };
+        market = has(home) ? home : (codes.filter(has)[0] || home || codes[0] || '');
+      }
+      host.innerHTML = codes.length
+        ? codes.map(function(c){ return '<button type="button" class="rtab'+(c===market?' on':'')+'" data-mkt="'+c.replace(/[^A-Za-z0-9_-]/g,'')+'">'+c.replace(/[^A-Za-z0-9_-]/g,'')+'</button>'; }).join('')
+        : '<span class="text-[12px]" style="color:var(--vh-ink-dim)">'+String((RC&&RC.marker)?RC.marker('home market'):'[DATA REQUIRED BEFORE LAUNCH: home market]').replace(/[<>&]/g,'')+'</span>';
+    }
     // The dataset's OWN declared currency for its market (its US and UK tabs
     // are the export's markets, not a default for any brand), written in that
     // market's number format. No currency declared: no symbol (2026-10-05).
@@ -166,7 +188,17 @@
     }
 
     function render(){
-      var m = A.markets[market]; if(!m){ return; }
+      var m = A.markets[market];
+      if(!m){
+        // No export for this market: say so, never leave another market's figures up.
+        document.getElementById('mktLabel').textContent = market;
+        var RCm=window.RegionContext;
+        document.getElementById('kpis').innerHTML = '<div class="card p-5" style="color:var(--vh-ink-dim)">'+String((RCm&&RCm.marker)?RCm.marker('order export', market||''):'[DATA REQUIRED BEFORE LAUNCH: order export]').replace(/[<>&]/g,'')+'</div>';
+        var c0=document.getElementById('chart'); if(c0) c0.innerHTML='';
+        var l0=document.getElementById('chartLabels'); if(l0) l0.innerHTML='';
+        var r0=document.getElementById('monthlyRows'); if(r0) r0.innerHTML='';
+        return;
+      }
       var s = m.summary;
       document.getElementById('mktLabel').textContent = market;
       document.getElementById('kpis').innerHTML =
@@ -206,19 +238,22 @@
       var b = e.target.closest ? e.target.closest('.rtab') : null; if(!b) return;
       // Resolve to a fixed, code-defined value (never route the raw DOM attribute
       // into the render/innerHTML path) so only known markets are ever used.
-      market = (b.getAttribute('data-mkt') === 'UK') ? 'UK' : 'US';
+      var want = b.getAttribute('data-mkt'); var codes = brandMarkets();
+      market = codes.indexOf(want) >= 0 ? codes[codes.indexOf(want)] : market;
       [].forEach.call(document.querySelectorAll('#mktTabs .rtab'), function(t){ t.classList.toggle('on', t === b); });
       render();
     });
+    (function watchRegions(w){
+      if(!window.RegionContext){ if(w<6000) setTimeout(function(){ watchRegions(w+100); },100); return; }
+      window.RegionContext.onChange(function(){ buildTabs(); render(); });
+    })(0);
+    buildTabs();
     render();
     // Re-read the swapped global and re-render once the active brand decides
     // which dataset this page may show.
     window.__deRefresh = function () {
       A = window.LIFECYCLE_ANALYTICS || A;
-      if (A.markets && !A.markets[market]) {
-        var ks = Object.keys(A.markets);
-        if (ks.length) market = ks[0];
-      }
+      buildTabs();
       var lbl = document.getElementById('mktLabel');
       if (lbl) lbl.textContent = market;
       render();

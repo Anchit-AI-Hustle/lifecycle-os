@@ -446,16 +446,25 @@ test('/calendar: the market chips are the brand\'s and the plan is asked for its
 
 test('the aggregating pages offer All plus the brand\'s regions, never a typed list', async ({ page }) => {
   // dashboard.html and knowledge-base.html aggregate across markets, so All
-  // stays their default; the regions beside it are the brand's own.
+  // is their default - for a brand with MORE THAN ONE market. A one-market
+  // brand (TOI: IN) is offered that market alone; "All" of one is not a
+  // choice (2026-10-10, tests/regions-and-names-every-page.spec.js).
   await open(page, TOI, 'dashboard.html');
-  await expect(page.locator('#regionChips .filter-chip')).toHaveCount(2);      // All + IN
+  await expect(page.locator('#regionChips .filter-chip')).toHaveCount(1);      // IN, no All
+  await expect(page.locator('#regionChips .filter-chip.active[data-region="IN"]')).toHaveCount(1);
   await expect(page.locator('#regionChips .filter-chip[data-region="IN"]')).toHaveCount(1);
   expect(await page.locator('#regionChips').textContent()).not.toMatch(/\bUS\b/);
 
   await open(page, TOI, 'knowledge-base.html');
-  await expect(page.locator('#kbRegions .region-chip[data-region]')).toHaveCount(2);   // All + IN
+  await expect(page.locator('#kbRegions .region-chip[data-region]')).toHaveCount(1);   // IN, no All
+  await expect(page.locator('#kbRegions .region-chip.active[data-region="IN"]')).toHaveCount(1);
   await expect(page.locator('#kbRegions .region-chip[data-region="IN"]')).toHaveCount(1);
   expect(await page.locator('#kbRegions').textContent()).not.toMatch(/\bUS\b/);
+
+  // A brand with several markets keeps All, first and selected.
+  await open(page, ZERO, 'dashboard.html');
+  await expect(page.locator('#regionChips .filter-chip')).toHaveCount(codesOf(ZERO).length + 1);
+  await expect(page.locator('#regionChips .filter-chip.active[data-region="ALL"]')).toHaveCount(1);
 
   await open(page, ZERO, 'landing-pages.html');
   const groups = page.locator('.regions[data-regions]');
