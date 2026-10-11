@@ -52,6 +52,7 @@
     '[data-bcp] .catprice{font-size:13px;color:var(--vh-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}',
     '[data-bcp] .catmeta{font-size:12px;color:var(--vh-ink-dim)}',
     '[data-bcp] .catmore{margin:8px 0 0;font-size:12px;color:var(--vh-ink-dim)}',
+    '[data-bcp] a{color:var(--vh-link);text-decoration:underline;text-underline-offset:2px}',
   ].join('\n');
 
   function injectStyle() {
