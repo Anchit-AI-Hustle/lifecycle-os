@@ -166,7 +166,11 @@ function compareToken(kind, site, ours) {
 function pixelRatio(aBuf, bBuf, groundHex, opts) {
   const o = opts || {};
   const { PNG } = require('pngjs');
-  const pixelmatch = require('pixelmatch');
+  // pixelmatch 8 ships as an ES module: require() hands back the namespace,
+  // with the function on `.default` (7 returned the function itself). #209's
+  // bump made every rendered read report "pixelmatch is not a function".
+  const pm = require('pixelmatch');
+  const pixelmatch = typeof pm === 'function' ? pm : pm.default;
   const A = PNG.sync.read(aBuf), B = PNG.sync.read(bBuf);
   const w = Math.max(A.width, B.width), h = Math.max(A.height, B.height);
   const g = hexRgb(groundHex) || [255, 255, 255];
