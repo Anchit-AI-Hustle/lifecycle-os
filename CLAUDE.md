@@ -4,6 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Revenue by region, several markets at once, from the brand's OWN orders (2026-10-11)
+The operator: *"As a founder, I would look at revenue and sales of each region. This app must support that. Multiple
+region selection must be allowed too."* `/revenue-by-region` (rail: Data Analysis -> Revenue by Region, `da-revenue`),
+`api/_shared/region-revenue.js` (pure UMD aggregation; the browser loads the byte-identical root `/region-revenue.js`),
+`api/_shared/region-revenue-server.js` on `brain.js ?action=region-revenue&op=read|fx-save|fx-delete` (still 12/12),
+migration `20261011045000_brand_fx_rates.sql`. Gated by `tests/region-revenue-executed.spec.js` (over the fake
+PostgREST, which now models `smart_orders`/`shopify_orders`/`brand_fx_rates` RLS and the editor-only write policy) and
+`tests/region-revenue-page.spec.js` (Chromium); 10 mutations, each restoring one defect, all caught.
+- **Sources, per region, never two in one region**: `shopify_orders` (store orders; region = the shipping country when it
+  is one of the brand's markets), else `smart_orders` (each states its market), else tenant zero's bundled export through
+  `ownsBundledExport(workspace)` only. Read AS THE CALLER (`restAs`, RLS), workspace named on every query, paged to an
+  EMPTY page (max_rows), newest first with a stated window when the 200k ceiling is hit. A device brand computes the same
+  figures in the browser from an order export imported on the page (LCStore, deleted with the brand). No source = the
+  marker for THAT region (`[DATA REQUIRED BEFORE LAUNCH: order history, <brand>, <REGION>]`), never 0, never another
+  region's number; an order no market claims is counted as unattributed and said; a table that fails to read is said.
+- **Every figure carries `source`, `window`, `basis`.** Gross = order totals as stated; net/refunds/discounts/units only
+  when EVERY order in the window states them (else null with "stated on n of m"); customers only when named; new vs
+  returning from that market's own orders; previous period only when the orders read reach its start; a trend bucket
+  before the first order read is unknown (null), not zero. The export keeps each figure's own window (monthly series
+  sliced to whole months; summary/top products = the export's whole window).
+- **Currency honesty**: each region in its own currency; a region whose orders are in two currencies shows each, never a
+  sum. `totals()` gives per-currency subtotals; ONE combined total only when every currency has an ENTERED rate to the
+  base (`brand_fx_rates`: dated, `entered_by`, editors write, members read; device: LCStore) - no inverse, no chain, no
+  fetched or assumed rate. Otherwise `combined_reason` names the missing pairs.
+- **Multi-select is a VIEW concept** (`RegionContext.selection` / `setSelection` / `onSelection` / `mountMulti`,
+  `[data-region-multi]`, persisted per brand per viewer, default = home, "All markets" = every region on the record,
+  refuses an empty set). It NEVER changes `RegionContext.region`, so a generator is never fed a list; the shared control
+  in `single` mode says "builds for one market at a time". Smart Brain's plan filter now reads/writes the shared selection
+  (only when the viewer chose one; its own default stays "all") and its agentic run states the ONE market it takes.
+- Left as found, with the reason: `dashboard.html` (RFM Draft 1) converts uploaded USD to INR at a typed ₹83 - an
+  assumed rate; changing its default breaks the India-brand locale sweep, so it is a separate task. Pages owned by other
+  branches (brand catalogue, onboarding, connections) take the control by adding `<div data-region-multi>`; not wired here.
+
 ## ⭐ Competitor discovery works for every brand, from what the brand ITSELF publishes (2026-10-11)
 Production, /competitor-benchmarking#discover, "Deli Chic" (IN): "Find & add new brands" answered "Nothing added.
 [DATA REQUIRED BEFORE LAUNCH: brand industry or offerings, ...]" and Seed added nothing: `discoveryBrief()` refused

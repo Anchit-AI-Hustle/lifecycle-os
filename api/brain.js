@@ -1491,6 +1491,34 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         }));
       }
 
+      case 'region-revenue': {
+        // Revenue and sales PER REGION from the brand's OWN orders (2026-10-11),
+        // read as the caller (RLS) for the caller's workspace; ops read |
+        // fx-save | fx-delete (exchange rates the operator enters). A device
+        // brand computes the same figures in the browser (region-revenue.js).
+        const auth = __auth && __auth.ok ? __auth : await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (!__wsId) {
+          return res.status(409).json({
+            ok: false, error: 'no_workspace',
+            message: 'There is no brand on your account to report revenue for. A brand kept on this device reports from an order export imported on this device; an account brand reports from the orders stored in its workspace.',
+          });
+        }
+        const op = String(req.query.op || b.op || 'read').toLowerCase();
+        if ((op === 'fx-save' || op === 'fx-delete') && req.method !== 'POST') {
+          return res.status(405).json({ ok: false, error: 'method_not_allowed', message: `op=${op} changes the brand's exchange rates, so it is a POST.` });
+        }
+        const out = await require('./_shared/region-revenue-server.js').handle(op, {
+          auth, workspaceId: __wsId, brand: __activeBrand(), body: b,
+          query: {
+            regions: req.query.regions || b.regions, days: req.query.days || b.days,
+            from: req.query.from || b.from, to: req.query.to || b.to,
+            granularity: req.query.granularity || b.granularity, base: req.query.base || b.base,
+          },
+        });
+        return res.status(out.status).json(out.body);
+      }
+
       case 'agent-builder': {
         // OpenAPI 3.0 spec + execution bridge for Google Vertex AI Agent Builder.
         // Auth is its OWN key (x-agent-key), not a Supabase session: the caller
