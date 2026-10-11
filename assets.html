@@ -211,14 +211,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     US:{store:'knickgasm.com',cur:'$'}, UK:{store:'knickgasm.com',cur:'£'}, IN:{store:'knickgasm.com',cur:'₹'},
     EU:{store:'knickgasm.com',cur:'€'}, AU:{store:'knickgasm.com',cur:'A$'}, Global:{store:'knickgasm.com',cur:'$'}
   };
+  // The brand block is the ACTIVE brand's own record (2026-10-11). It was six
+  // literals of tenant zero's palette, fonts, voice, banned list and claims,
+  // pasted into every prompt this page copied, for every brand.
+  function activeBrand() { try { return (window.BrandContext && window.BrandContext.brand) || null; } catch (_) { return null; } }
+  function brandName() { const b = activeBrand(); return (b && b.name) || '[DATA REQUIRED BEFORE LAUNCH: brand name]'; }
   function brandBlock() {
+    const b = activeBrand() || {};
+    const p = b.palette || {}, t = b.typography || {}, v = b.voice || {};
+    const name = brandName();
+    const need = (what) => '[DATA REQUIRED BEFORE LAUNCH: ' + what + ', ' + name + ']';
+    const roles = ['primary', 'accent', 'ink', 'surface'].filter((k) => p[k]).map((k) => k + ' ' + p[k]);
+    const claims = (b.claims || (b.brand_data && b.brand_data.claims) || []).map((c) => (c && typeof c === 'object' ? c.text : c)).filter(Boolean);
+    const stack = (slot) => (t[slot] && (t[slot].stack || t[slot].family)) || '';
     return [
       'BRAND RULES (strict — obey exactly):',
-      '- Palette, ONLY these four: deep purple #D0473E, lava #6A33D8, near-black #111111, chalk #FFFFFF.',
-      "- Headings: 'Montserrat','Raleway',Georgia,serif. Body: 'Instrument Sans','Helvetica Neue',Arial,sans-serif.",
-      '- Voice: warm, sensory, story-driven, premium. Prefer: ritual, restore, balance, origin, one-of-one, hand-painted, lace-up, heritage, crafted.',
-      "- NEVER use: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (all caps), hurry, don't miss out, last chance, while supplies last.",
-      '- KNICKGASM: premium Indian heritage sneaker · B-Corp · one-of-one · studio-fresh within 72 hours of drop.'
+      '- Palette, ONLY these: ' + (roles.length ? roles.join(', ') : need('palette')) + '.',
+      '- Headings: ' + (stack('heading') || need('heading typeface')) + '. Body: ' + (stack('body') || need('body typeface')) + '.',
+      '- Voice: ' + (v.tone || need('voice')) + (Array.isArray(v.preferred) && v.preferred.length ? ' Prefer: ' + v.preferred.join(', ') + '.' : ''),
+      (Array.isArray(v.banned) && v.banned.length ? '- NEVER use: ' + v.banned.join(', ') + '.' : '- NEVER use a phrase the brand record bans.'),
+      '- ' + name + ': ' + (claims.length ? claims.join(' · ') : need('verifiable claims') + ' — state no proof, guarantee or credential.')
     ].join('\n');
   }
   function head(role, market) {
@@ -230,7 +242,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ? (((window.BrandCatalog && window.BrandCatalog.storeBase(market)) || B.website || '').replace(/^https?:\/\//, '') ||
          ('[DATA REQUIRED BEFORE LAUNCH: store URL, ' + (B.name || 'brand name') + ', ' + market + ']'))
       : f.store;
-    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + store + ', currency ' + f.cur + ' — all prices/copy in ' + f.cur + ').\n\n' + brandBlock() + '\n\n';
+    // The market's currency from the brand's own regions, never a literal.
+    const reg = B ? (B.regions || []).find((x) => x && String(x.code || '').toUpperCase() === String(market || '').toUpperCase()) : null;
+    const cur = B ? ((reg && reg.currency) || ('[DATA REQUIRED BEFORE LAUNCH: currency, ' + (B.name || 'brand name') + ', ' + market + ']')) : f.cur;
+    return 'ROLE: ' + role + '\nMARKET: ' + market + ' (store ' + store + ', currency ' + cur + ' — all prices/copy in ' + cur + ').\n\n' + brandBlock() + '\n\n';
   }
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft (off-palette colours, banned phrases, wrong fonts, wrong currency), fix them, and return ONLY the corrected final output.';
 
@@ -238,7 +253,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const r = item.raw || {}, market = item.market || r.region || ((window.RegionContext && window.RegionContext.home) || '');
     if (item.kind === 'landing') {
       const channel = r.channel || 'landing';
-      return head('You are a senior D2C conversion copywriter + front-end developer for KNICKGASM.', market) + [
+      return head('You are a senior D2C conversion copywriter + front-end developer for ' + brandName() + '.', market) + [
         'Build a COMPLETE, production-ready, single-file responsive HTML landing page that converts ' + channel + ' traffic.',
         '',
         'PAGE BRIEF:',
@@ -256,7 +271,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     if (item.kind === 'ad') {
       const platform = (r.channel || 'meta').toUpperCase();
-      return head('You are a senior paid-social creative director + performance copywriter for KNICKGASM.', market) + [
+      return head('You are a senior paid-social creative director + performance copywriter for ' + brandName() + '.', market) + [
         'Produce a scroll-stopping ' + platform + ' ad creative package.',
         '',
         'AD BRIEF:',
@@ -277,7 +292,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         ] });
     }
     // mailer
-    return head('You are a senior lifecycle-email creative director + front-end email developer for KNICKGASM.', market) + [
+    return head('You are a senior lifecycle-email creative director + front-end email developer for ' + brandName() + '.', market) + [
       'Build a COMPLETE, production-ready, responsive HTML marketing email (compact, ~1200–1500px tall, two scrolls max).',
       '',
       'EMAIL BRIEF:',
@@ -304,8 +319,30 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   // ─── localStorage sources (carry the fuller objects needed to clone/prompt) ──
+  /* WHICH brand, and which version of it, an asset was made for (2026-10-11).
+     The libraries this page lists from used to be one flat list per browser
+     (the Studio's 'vhd_logs', the landing builder's 'lp-<channel>') and one
+     unfiltered read per shared table, so a brand saw every brand's mailers,
+     ads and pages, and a renamed brand saw the earlier one's as its own. The
+     local lists are now kept per brand version (LCStore's key carries the
+     record's fingerprint, brand-identity.js); a shared row is listed only when
+     it is THIS workspace's and carries this version's fingerprint. Anything
+     else is kept where it is, not listed, and counted in a sentence. */
+  function scopedKey(k) { try { return (window.LCStore && window.LCStore.key) ? window.LCStore.key(k) : k; } catch (_) { return k; } }
+  const LOGS_KEY = () => scopedKey('vhd_logs_v2');
+  const LP_KEY = (ch) => scopedKey('lp-lib-' + ch);
+  let HIDDEN = 0;
+  function currentOnly(rows) {
+    const b = activeBrand();
+    const ident = b && b.identity, ws = b && b.id;
+    return (rows || []).filter((r) => {
+      const mine = !!ident && r.stamp === ident && (!r.ws || r.ws === ws);
+      if (!mine) HIDDEN++;
+      return mine;
+    });
+  }
   function localMailers() {
-    try { return (JSON.parse(localStorage.getItem('vhd_logs') || '[]')).map((e) => ({
+    try { return (JSON.parse(localStorage.getItem(LOGS_KEY()) || '[]')).map((e) => ({
       kind: 'mailer', name: (e._full && e._full.campaign_title) || e.prompt || '(mailer)',
       market: (e.markets && e.markets[0]) || (e._full && e._full.primary_market) || '', tag: e.type || '',
       created_at: e.date || new Date(e.id || Date.now()).toISOString(), email: e.userEmail || '',
@@ -326,7 +363,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function localLanding() {
     const out = [];
     ['mailers','meta','google','tiktok'].forEach((ch) => { try {
-      (JSON.parse(localStorage.getItem('lp-' + ch) || '[]')).forEach((p) => out.push({
+      (JSON.parse(localStorage.getItem(LP_KEY(ch)) || '[]')).forEach((p) => out.push({
         kind: 'landing', name: p.hero || '(landing page)', market: p.region || '', tag: ch === 'mailers' ? 'mailer' : ch,
         offer: p.offer || '', created_at: p.created_at || now(), email: '',
         raw: { hero: p.hero || '', sub: p.sub || '', offer: p.offer || '', notes: p.notes || '', region: p.region || '', channel: ch === 'mailers' ? 'mailer' : ch }
@@ -357,6 +394,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     let mRemote = haveClient ? await sbFetch('mailers_generated', (d) => ({
       kind: 'mailer', name: d.campaign_title || d.prompt_short || '(mailer)', market: d.primary_market || '', tag: d.campaign_type || '',
       created_at: d.created_at, email: d.user_email || '',
+      stamp: (d.reasoning && d.reasoning.brand_identity) || '', ws: d.workspace_id || '',
       html: d.variant_a_html || (d.market_mailers && (() => { try { const mm = typeof d.market_mailers === 'string' ? JSON.parse(d.market_mailers) : d.market_mailers; const m = mm && (mm[d.primary_market] || mm[Object.keys(mm)[0]]); return (m && (m.A || m.a)) || ''; } catch { return ''; } })()) || '',
       image: d.thumbnail_url || d.canvas_image_url || d.hero_image_url || d.hero_product_image || '',
       raw: { campaign_title: d.campaign_title || '', type: d.campaign_type || '', market: d.primary_market || '', brief: d.prompt || d.prompt_short || d.brief || '' }
@@ -366,6 +404,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     let aRemote = haveClient ? await sbFetch('ads_generated', (d) => ({
       kind: 'ad', name: d.name || '(ad)', market: d.market || '', tag: d.channel || '', channel: d.channel || '', image: d.creative_url || '',
       created_at: d.created_at, email: d.user_email || '',
+      stamp: (d.copy && d.copy.brand_identity) || '', ws: d.workspace_id || '',
       raw: { channel: d.channel || 'meta', market: d.market || '', headline: d.overlay_headline || d.headline || '', offer: d.offer || '', hook: d.hook || '', primary: d.primary || '' }
     })) : null;
     if (aRemote === null) { usingLocal = true; aRemote = []; }
@@ -373,14 +412,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     let lRemote = haveClient ? await sbFetch('landing_pages_generated', (d) => ({
       kind: 'landing', name: d.hero || d.name || '(landing page)', market: d.market || '', tag: d.paired_with || '', offer: d.offer || '',
       created_at: d.created_at, email: d.user_email || '',
+      stamp: (d.payload && d.payload.brand_identity) || '', ws: d.workspace_id || '',
       raw: { hero: d.hero || '', sub: d.sub || '', offer: d.offer || '', notes: d.notes || '', region: d.market || '', channel: (d.paired_with === 'mailer' ? 'mailer' : d.paired_with) || 'mailer' }
     })) : null;
     if (lRemote === null) { usingLocal = true; lRemote = []; }
 
+    // Local lists are this brand version's own (their key says so); shared
+    // rows are judged one by one.
+    HIDDEN = 0;
+    const localStamp = (rows) => rows.map((r) => Object.assign(r, { stamp: (activeBrand() || {}).identity || '', ws: '' }));
     ITEMS = [].concat(
-      mergeDedup(mRemote, localMailers()),
-      mergeDedup(aRemote, localAds()),
-      mergeDedup(lRemote, localLanding())
+      mergeDedup(currentOnly(mRemote), localStamp(localMailers())),
+      mergeDedup(currentOnly(aRemote), localStamp(localAds())),
+      mergeDedup(currentOnly(lRemote), localStamp(localLanding()))
     ).map((it, i) => { it._id = it.kind + '_' + i; byId[it._id] = it; return it; });
 
     ITEMS = applyScope(ITEMS);
@@ -406,6 +450,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const rows = ITEMS.filter((it) => (TYPE === 'all' || it.kind === TYPE))
       .filter((it) => !q || [it.name, it.market, it.tag].join(' ').toLowerCase().includes(q));
     const grid = $('#grid');
+    // What was not listed, and why, in one sentence in the accent rule.
+    let note = document.getElementById('hiddenNote');
+    if (!note && grid && grid.parentNode) {
+      note = document.createElement('p');
+      note.id = 'hiddenNote'; note.setAttribute('data-hidden-assets', '');
+      note.style.cssText = 'margin:0 0 12px;padding:8px 12px;border-left:3px solid var(--vh-accent, currentColor);color:var(--vh-ink, inherit)';
+      grid.parentNode.insertBefore(note, grid);
+    }
+    if (note) {
+      note.hidden = !HIDDEN;
+      note.textContent = HIDDEN ? HIDDEN + ' asset(s) in the shared library were made for another brand, or for an earlier version of ' + brandName() +
+        ' (another name, website, sender, catalogue, palette, type, voice, claims or market), so they are not listed as ' + brandName() + '\'s. They are kept, not deleted.' : '';
+    }
     if (!rows.length) {
       // Three different reasons produce an empty grid, and conflating them
       // makes an unreachable database look like a brand that has generated
@@ -455,7 +512,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const r = it.raw || {};
     if (it.kind === 'landing') {
       const ch = r.channel === 'mailer' ? 'mailers' : (r.channel || 'mailers');
-      const k = 'lp-' + ch, list = JSON.parse(localStorage.getItem(k) || '[]');
+      const k = LP_KEY(ch), list = JSON.parse(localStorage.getItem(k) || '[]');
       list.unshift({ ...r, channel: ch, hero: (r.hero || it.name || 'Untitled') + ' (Copy)', created_at: now() });
       localStorage.setItem(k, JSON.stringify(list.slice(0, 50)));
     } else if (it.kind === 'ad') {
@@ -464,10 +521,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       s[ch].unshift({ ...r, name: (it.name || 'Ad') + ' (Copy)', image: it.image || '', id: Date.now().toString(36), market: r.market || it.market || '' });
       LCStore.set('knickgasm-ads-v1', JSON.stringify(s));
     } else {
-      const logs = JSON.parse(localStorage.getItem('vhd_logs') || '[]');
+      const logs = JSON.parse(localStorage.getItem(LOGS_KEY()) || '[]');
       logs.unshift({ id: Date.now(), date: now(), prompt: r.brief || it.name || '', type: r.type || '', markets: [r.market || it.market || ''],
         _full: { campaign_title: (r.campaign_title || it.name || 'Mailer') + ' (Copy)', primary_market: r.market || it.market || '' } });
-      localStorage.setItem('vhd_logs', JSON.stringify(logs.slice(0, 100)));
+      localStorage.setItem(LOGS_KEY(), JSON.stringify(logs.slice(0, 100)));
     }
   }
 

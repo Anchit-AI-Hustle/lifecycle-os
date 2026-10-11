@@ -671,6 +671,26 @@ html.vh-reduce .vh-reveal { opacity: 1 !important; transform: none !important; }
 /* A single-region brand gets a statement, not a control that cannot act. */
 .rgn-solo,.rgn-none{font-size:12px; color:var(--brand-ink-muted,#5a6169)}
 .rgn-solo b{color:var(--brand-ink,#111)}
+/* The shared MULTI-market control (region-context.js mountMulti, 2026-10-11).
+   Native checkboxes / radios inside labels; every option a 44px target;
+   colours are role tokens only (the selected option is the primary fill with
+   its on-primary text, which is contrast-derived per brand). */
+.rgn-multi{margin:10px 0}
+.rgn-multi-set{border:0;margin:0;padding:0;min-width:0}
+.rgn-multi-set > legend{padding:0;margin-bottom:6px;font-size:12px}
+.rgn-multi-opts{display:flex;flex-wrap:wrap;gap:8px}
+.rgn-opt{
+  display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;
+  border:1px solid var(--vh-line);border-radius:var(--vh-r-pill);
+  background:var(--vh-panel);color:var(--vh-ink);font-size:14px;font-weight:600;cursor:pointer;
+}
+.rgn-opt small{font-size:12px;font-weight:600;color:var(--vh-ink-dim)}
+.rgn-opt[data-on="1"]{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary)}
+.rgn-opt[data-on="1"] small{color:var(--vh-on-primary)}
+.rgn-opt input{width:18px;height:18px;margin:0;accent-color:var(--vh-primary-text)}
+.rgn-opt:focus-within{outline:2px solid var(--vh-focus);outline-offset:2px}
+.rgn-multi-note,.rgn-multi-msg{font-size:13px;color:var(--vh-ink-dim);margin:0 0 6px}
+.rgn-multi-msg:empty{display:none}
 
 /* ============================================================================
    FUTURISTIC LAYER (2026-08-25) — "tech-savvy & futuristic", app-wide.

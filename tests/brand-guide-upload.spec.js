@@ -436,7 +436,11 @@ test('an automatic value laid over a document value is held back and shown side 
   await page.waitForSelector('#docRevert');
   // A template laid over the brand (the gallery's own handler, which writes
   // every value the template carries): automatic, so below the document.
-  await page.route(/op=presets&slug=greenco/, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, preset: { slug: 'greenco', name: 'Greenco', palette: { primary: '#00a651' } } }) }));
+  // Since 2026-10-11 a starter template copies nothing onto a brand with its
+  // own website unless it IS that site's (brand-change-current-context.spec.js),
+  // so the automatic value here is a template of this brand's own site.
+  const site = await page.evaluate(() => (window.__brandForTest ? (window.__brandForTest() || {}).website : '') || (document.querySelector('[data-path="website"]') || {}).value || '');
+  await page.route(/op=presets&slug=greenco/, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, preset: { slug: 'greenco', name: 'Greenco', website: site, palette: { primary: '#00a651' } } }) }));
   await page.evaluate(() => {
     const b = document.createElement('button');
     b.setAttribute('data-preset', 'greenco');

@@ -436,9 +436,14 @@ test.describe('lp: the fallback page wears the brand of the RECORD, never tenant
   });
 
   test('another tenant\'s PERSISTED page is served from the bare link (the adapter\'s default-workspace filter used to hide it)', async () => {
-    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_lp', H.WS, { payload: { campaign_id: 'camp_lp', assets: { landing_pages: [{ variant: 'A', html: '<!doctype html><title>their page</title>' }] } } })]);
     fakeTable('smart_calendar_entries', []);
     fakeTable('landing_pages_generated', []);
+    // Since 2026-10-11 a stored page is served only for the brand version it
+    // was made for (brand-identity.js): the row carries the CURRENT record's
+    // fingerprint, as one the builder made today does.
+    const now = await require(H.ROOT + '/' + PLAN).currentBrandInfo({ workspace_id: H.WS }, null);
+    expect(now.ident).toMatch(/^bi2:/);
+    fakeTable('smart_generated_campaigns', [CAMPAIGN('camp_lp', H.WS, { payload: { campaign_id: 'camp_lp', brand_identity: now.ident, assets: { landing_pages: [{ variant: 'A', html: '<!doctype html><title>their page</title>' }] } } })]);
     const r = await call('lp', { method: 'GET', query: { id: 'camp_lp' }, auth: 'none', origin: false });
     noHarnessError(r);
     expect(r.status).toBe(200);

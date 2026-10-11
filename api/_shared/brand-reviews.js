@@ -455,6 +455,12 @@ async function recordScan({ workspaceId, market, found, note }) {
   } catch (_) { return false; }
 }
 
+/** The site a scan row read (its note starts `site:<domain>`; '' for a scan from before 2026-10-11). */
+function scanSite(row) {
+  const m = /^site:(\S*)/.exec(String((row && row.last_note) || ''));
+  return m ? m[1] : '';
+}
+
 function scannedRecently(row) {
   if (!row || !row.last_run_at) return false;
   const age = Date.now() - new Date(row.last_run_at).getTime();
@@ -464,26 +470,38 @@ function scannedRecently(row) {
 async function reviewsForBrand({ brand, workspaceId, market, limit = 2, fetchImpl = null, allowCrawl = true, productKey = null } = {}) {
   const empty = (limits) => ({ reviews: [], marker: MARKER(brand, market), limits: limits || [] });
   if (!brand) return empty(['No brand is stamped on this slot, so no site could be read.']);
-  let stored = [];
-  if (workspaceId) stored = await loadReviews({ workspaceId, market, productKey, limit });
-  if (stored.length) return { reviews: stored.slice(0, limit), marker: '', limits: [], source: 'library' };
-  if (!allowCrawl) return empty(['The review library is empty for this brand and region, and this pass did not crawl.']);
-  // A recent scan that found nothing is an ANSWER, not a reason to ask again.
+  // ONE SITE PER BRAND (2026-10-11): a review read off another site than the
+  // brand's website (the workspace was re-pointed, or renamed into another
+  // brand) is not this brand's proof. It stays in the library, unused, and
+  // the limits say how many were passed over and why.
+  const C = require('./brand-coherence.js');
+  const site = C.siteOf(brand);
+  let stored = [], passed = 0;
+  if (workspaceId) {
+    const got = await loadReviews({ workspaceId, market, productKey, limit: Math.max(limit * 10, 20) });
+    stored = got.filter((r) => { const ok = C.urlOnSite(brand, r.source_url).ok; if (!ok) passed++; return ok; });
+  }
+  const passedNote = passed ? [`${passed} stored review(s) were read from another site than ${site}, this brand's website, so they are not used.`] : [];
+  if (stored.length) return { reviews: stored.slice(0, limit), marker: '', limits: passedNote, source: 'library' };
+  if (!allowCrawl) return empty(passedNote.concat(['The review library is empty for this brand and region, and this pass did not crawl.']));
+  // A recent scan that found nothing is an ANSWER, not a reason to ask again,
+  // but only about the site it read: a scan of an earlier website says
+  // nothing about this one.
   if (workspaceId) {
     const prev = await lastScan({ workspaceId, market });
-    if (scannedRecently(prev)) {
+    if (scannedRecently(prev) && scanSite(prev) === site) {
       return empty([`The brand site was read on ${String(prev.last_run_at).slice(0, 10)} and published no testimonials${prev.last_note ? ` (${prev.last_note})` : ''}. It is re-read every ${RESCAN_DAYS} days.`]);
     }
   }
   const got = await collectReviews({ brand, market, fetchImpl });
   if (!got.ok || !got.reviews.length) {
-    if (workspaceId) await recordScan({ workspaceId, market, found: 0, note: got.reason || (got.limits || [])[0] || 'no testimonials published' });
-    return empty(got.limits || []);
+    if (workspaceId) await recordScan({ workspaceId, market, found: 0, note: `site:${site} ` + (got.reason || (got.limits || [])[0] || 'no testimonials published') });
+    return empty(passedNote.concat(got.limits || []));
   }
   const withMedia = await hostReviewImages(got.reviews.slice(0, limit), { brand, workspaceId, market, fetchImpl });
   if (workspaceId) {
     await saveReviews({ workspaceId, brand, market, reviews: withMedia });
-    await recordScan({ workspaceId, market, found: got.reviews.length, note: `${got.pages} page(s) read` });
+    await recordScan({ workspaceId, market, found: got.reviews.length, note: `site:${site} ${got.pages} page(s) read` });
   }
   return { reviews: withMedia.slice(0, limit), marker: '', limits: got.limits || [], source: 'site' };
 }

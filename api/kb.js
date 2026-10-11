@@ -605,7 +605,12 @@ Rules:
   // open if no LLM). Junk is dropped BEFORE we spend tokens summarising it or let
   // it pollute the KB. Errors fail open so a guardrail bug never blocks real data.
   const guard = require('./_shared/ingest-guardrail.js');
-  const verdict = await guard.gatekeep({ title, text: rawText, url: canonical }, { llm: true }).catch(() => ({ keep: true, phase: 0, reason: 'guardrail error — kept' }));
+  // The guardrail judges relevance by THIS workspace's own brand record
+  // (2026-10-11); its built-in lists are tenant zero's and apply only to it.
+  let guardBrand = null;
+  try { guardBrand = req.__workspaceId ? await wsScope.brandForWorkspace(env, req.__workspaceId) : null; } catch (_) { guardBrand = null; }
+  if (req.__workspaceId && !guardBrand) guardBrand = { name: 'this brand', owns_shipped: false };
+  const verdict = await guard.gatekeep({ title, text: rawText, url: canonical }, { llm: true, brand: guardBrand }).catch(() => ({ keep: true, phase: 0, reason: 'guardrail error — kept' }));
   if (!verdict.keep) {
     await fetch(`${env.url}/rest/v1/kb_knowledge?id=eq.${rowId}${queuedWs}`, {
       method: 'PATCH', headers,

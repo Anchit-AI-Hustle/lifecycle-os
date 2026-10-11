@@ -4,6 +4,83 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Revenue by region, several markets at once, from the brand's OWN orders (2026-10-11)
+The operator: *"As a founder, I would look at revenue and sales of each region. This app must support that. Multiple
+region selection must be allowed too."* `/revenue-by-region` (rail: Data Analysis -> Revenue by Region, `da-revenue`),
+`api/_shared/region-revenue.js` (pure UMD aggregation; the browser loads the byte-identical root `/region-revenue.js`),
+`api/_shared/region-revenue-server.js` on `brain.js ?action=region-revenue&op=read|fx-save|fx-delete` (still 12/12),
+migration `20261011045000_brand_fx_rates.sql`. Gated by `tests/region-revenue-executed.spec.js` (over the fake
+PostgREST, which now models `smart_orders`/`shopify_orders`/`brand_fx_rates` RLS and the editor-only write policy) and
+`tests/region-revenue-page.spec.js` (Chromium); 10 mutations, each restoring one defect, all caught.
+- **Sources, per region, never two in one region**: `shopify_orders` (store orders; region = the shipping country when it
+  is one of the brand's markets), else `smart_orders` (each states its market), else tenant zero's bundled export through
+  `ownsBundledExport(workspace)` only. Read AS THE CALLER (`restAs`, RLS), workspace named on every query, paged to an
+  EMPTY page (max_rows), newest first with a stated window when the 200k ceiling is hit. A device brand computes the same
+  figures in the browser from an order export imported on the page (LCStore, deleted with the brand). No source = the
+  marker for THAT region (`[DATA REQUIRED BEFORE LAUNCH: order history, <brand>, <REGION>]`), never 0, never another
+  region's number; an order no market claims is counted as unattributed and said; a table that fails to read is said.
+- **Every figure carries `source`, `window`, `basis`.** Gross = order totals as stated; net/refunds/discounts/units only
+  when EVERY order in the window states them (else null with "stated on n of m"); customers only when named; new vs
+  returning from that market's own orders; previous period only when the orders read reach its start; a trend bucket
+  before the first order read is unknown (null), not zero. The export keeps each figure's own window (monthly series
+  sliced to whole months; summary/top products = the export's whole window).
+- **Currency honesty**: each region in its own currency; a region whose orders are in two currencies shows each, never a
+  sum. `totals()` gives per-currency subtotals; ONE combined total only when every currency has an ENTERED rate to the
+  base (`brand_fx_rates`: dated, `entered_by`, editors write, members read; device: LCStore) - no inverse, no chain, no
+  fetched or assumed rate. Otherwise `combined_reason` names the missing pairs.
+- **Multi-select is a VIEW concept** (`RegionContext.selection` / `setSelection` / `onSelection` / `mountMulti`,
+  `[data-region-multi]`, persisted per brand per viewer, default = home, "All markets" = every region on the record,
+  refuses an empty set). It NEVER changes `RegionContext.region`, so a generator is never fed a list; the shared control
+  in `single` mode says "builds for one market at a time". Smart Brain's plan filter now reads/writes the shared selection
+  (only when the viewer chose one; its own default stays "all") and its agentic run states the ONE market it takes.
+- Left as found, with the reason: `dashboard.html` (RFM Draft 1) converts uploaded USD to INR at a typed ₹83 - an
+  assumed rate; changing its default breaks the India-brand locale sweep, so it is a separate task. Pages owned by other
+  branches (brand catalogue, onboarding, connections) take the control by adding `<div data-region-multi>`; not wired here.
+## ⭐ A brand set up or changed uses ONLY its current context: one site, one record, one fingerprint (2026-10-11)
+The operator: *"ensure if any brand is set up or changed, then it only uses the updated context and correct brand
+specific ... schema and assets"*, *"if anywhere one url is being referenced in the brand, the same url only must be
+referenced"*, *"each brand must have its own unique and real brand identity"*. Live: the only workspace was renamed
+Mamaearth -> DelhiChic -> Deli Chic -> Lenskart (lenskart.com) keeping a delichic.co.in catalogue read off nike.in.
+Gated by `tests/brand-change-current-context.spec.js` (13, executed: the brand router over `brand-save-fake`, the /lp
+resolver + route, the review library, the context pack, the KB router, /assets, two tabs and the wizard in Chromium;
+25 mutations, each restoring one defect, all caught).
+- **ONE fingerprint**: `brandIdentity()` moved to `api/_shared/brand-identity.js` (Smart Brain imports it; the
+  BRAND-IDENTITY block is byte for byte in `brand-context.js`, its SHA-256 written out and checked against Node's).
+  Shells carry `identity`. `/lp/:id` serves a stored page only for the version it was made for, else **410** with
+  `staleSentence()` (row kept; unstamped = made before, same answer). Mirror rows (`ads_generated.copy`,
+  `landing_pages_generated.payload`, `mailers_generated.reasoning`) and the Studio / landing / ad libraries carry it;
+  `LCStore` keys are `key::<id>::<fingerprint>` (an earlier version's state is kept, never listed) and pre-scoping
+  state is inherited by TENANT ZERO only; /assets lists only this workspace's rows of this version, says how many it
+  did not, and its copied prompt is the active brand's record (it was tenant zero's six literals).
+- **ONE site rule where values are WRITTEN** (BRAND-COHERENCE block, both copies): a store URL TYPED on another site
+  is `409 url_off_site` (the sentence offers "make <domain> the website" / "start a new brand"); a logo or icon is a
+  FILE and stays judged by the page it was found on. Every value READ from another site (catalogue, tagline, logo,
+  icon, legal entity, social, imagery, assets, claims, design system, region stores, asset hosts) is
+  `setAsideForeign()`-ed into `brand_data.coherence.set_aside` (kept, never applied, history carried across saves a
+  form never saw); a set-aside catalogue still excludes its rows. A record ESTABLISHED at its site (its name read
+  from it, or fitting its host) is never re-pointed or renamed into another brand (`409 brand_change_refused`; the
+  wizard offers only "start a new brand"); a second record of the same site is `409 brand_exists` (server and
+  device). "Make <domain> the website" stays for a record whose name was never that site's (a mixed record's repair).
+- **Where values are USED**: `brand-runtime.coherentForGeneration` is `COHERENCE.forGeneration` now (the device shell
+  uses it too) and also withholds colours, type families and a measured design system read from another site; the
+  shell paints the withheld record (`withheld` lists what). Reviews read from another site are passed over, and a
+  review scan of an earlier website is not an answer about this one (`site:<domain>` in the scan note). A context pack
+  about another site or name is reported (`hidden`, the sentence) and never applied (`409 brand_changed`). The KB
+  guardrail's Phase 1 and 2 read the workspace's OWN vocabulary (tenant zero keeps its lists; none = skipped, said).
+- **Presets** are labelled demos (`brand_data.template.demo`); one applied to a brand with its own website copies
+  nothing, and preset-origin values under another website BLOCK (`template:*`). **"Set up from my website"** runs the
+  rendered read (platform, robots, sitemaps), the catalogue import from the same site and the context pack, in order,
+  each step said; on a device it says the server steps were not run. Another tab switching the brand repaints and
+  reloads every open page (brand setup exempt).
+- Tests changed on purpose: `brand-record-coherence` (a save sets the live mix aside; an established Nike is not
+  offered "make mamaearth.in the website"; a preset copies nothing onto a brand with a website), `brand-scoped-state`
+  (inheritance is tenant zero's), `router-calendar` (a served page carries the fingerprint), `brand-guide-upload` and
+  `brand-theme-every-page` (the template / history they seed is this brand's), `prompt-output-contracts` (the KB page
+  for a news brand is news, not a sneaker studio: the guardrail now drops the latter).
+- Known limits: the Studio's history before this lived under the unscoped `vhd_logs` and is no longer listed; device
+  side keys (`.catalog.`/`.pack.`) are judged by the coherence verdict, not the fingerprint; agent, TeleSuite and
+  social rows were not re-judged here.
+
 ## ⭐ Competitor discovery works for every brand, from what the brand ITSELF publishes (2026-10-11)
 Production, /competitor-benchmarking#discover, "Deli Chic" (IN): "Find & add new brands" answered "Nothing added.
 [DATA REQUIRED BEFORE LAUNCH: brand industry or offerings, ...]" and Seed added nothing: `discoveryBrief()` refused
@@ -60,6 +137,55 @@ This container cannot reach either site, so fixtures model the documented shapes
   import_continuing`. No self URL/secret, or a device brand: `drive:true`, and the page runs the steps
   (onboarding `keepGoing`, /connections). Pages show "X of Y products read, continuing"; an earlier import's coverage
   is shown only as labelled history; a failure is said once (no toast over the panel). Still 12/12, still two crons.
+- **What the probe found on the REAL stores, same day (runs 38111611525 Lenskart, 38111613094 Nykaa), fixed and
+  modelled (`lensworld.example`, `beautymart.example`)**: (1) an IN import read EVERY locale's product sitemap and
+  filed `/en-us/` pages in USD under IN ("412 of 13,566") - a market now reads only its own subtree: hreflang
+  alternates (`localePrefixes`) and locale-shaped first segments (`/en-us/`, `/ar-sa/`) belong to their own country
+  (`foreignLocale`); another market's product sitemaps are read only to COUNT them ("/en-us/ is the US store: N
+  products ..., not read for IN"); a row priced in another currency than the market's (`marketCurrency`, the one
+  country table) is not filed. (2) Blog sitemaps typed "product" by a SUBSTRING ("product-reviews"): typing is by the
+  WORDS of the path (`sitemapClass`: blog/reviews/category/pages... make it non-product, never read; product/products
+  types it; children inherit), and product sitemaps are read FIRST. (3) 1,297 "unreachable" pages were throttling: a
+  no-answer/403/5xx is retried, parallelism halves (ceiling = one below the level that failed), the read backs off; a
+  page is unreachable only after three tries one at a time; a store refusing even one at a time stops the step as
+  `throttled` (60 s wait, the chain waits it); 404/410 are stale sitemap entries, counted apart. (4) "300,639 mores":
+  the cap is a stated LIMIT of 20,000 product URLs per market per import (the cursor carries the URL list on the
+  row: measured ~4.3 MB at 20,000 URLs; 340,639 would be ~73 MB per step, so it was not raised). A sitemap that is XML
+  but not `<urlset>`/`<sitemapindex>` is named by its root element; the urlset test reads the whole body.
+- **EVERY regional store, each under its own market (operator, same day: "All locations of that brand must be shown.
+  All different websites for different regions must be scraped and considered")**: `rowsFromStore` now runs
+  `stepAll()`: `discoverMarkets()` reads what the site publishes - hreflang alternates (same host or a `sameBrand`
+  regional domain: brand.co.uk beside brand.com), locale-shaped sitemap paths (robots + the root sitemap), the
+  record's own `regions[].store_url` - one store per market (/en-sa/ and /ar-sa/ are one market, read once, the other
+  named), unknown countries named not read; then each market is a `step()` under ONE run id (a multi cursor walks
+  them; a market that must wait does not hold up the others). Every row is filed under the market of the store it
+  came from, in that store's currency; merges go market by market (`mergeByMarket`, device twin in brand-context.js),
+  and a market's completion stales only ITS unseen rows. Coverage opens "IN: x of y · US: ... · AE: ..." then each
+  market's own sentences; `catalog_source.markets`, `coverage.markets`, `live_by_market`. The wizard ADDS markets the
+  record lacks to `regions` (code, currency, store_url, `source: "site read: ..."`, new `source` field in
+  `normalizeRegions` server + device) through the ordinary save, never touching an existing row; /catalog's market
+  chips filter. **Geo-redirect** (the Lenskart re-run: a US runner's requests for IN pages were 302'd to /en-us/ in
+  USD): what comes back is filed under the market whose store it is (US), never the asked one; after
+  `LIMITS.geoRedirectsToStop` (5) the asked market is given up for the run, said once with where this server reads
+  from (`VERCEL_REGION`, else "outside IN as far as this server can tell") and that 404s there may be
+  location-dependent. No cookie, header or proxy ever pretends a location.
+- **The re-run on the real stores (runs 38115336341, 38115338157), fixed**: (A) Lenskart's India store at the root was
+  MISSING from the market list (a root hreflang naming another country took the root) - the root is always a market:
+  the one asked for (else the brand's home), unless the site gives that market a store of its own (/en-gb/), and a root
+  hreflang naming another country is said, not obeyed; a geo-redirected market stays in the line ("IN: 0 of 5,995
+  (sent to the US store from here)"). (B) STORE CHOICE THE SITE OFFERS: when a geo-redirect lands on a page whose OWN
+  hreflang names this market's address for the same product (`?country=in`, a locale path), that address is used -
+  only when robots.txt allows it and it answers with this market's page and currency - learned once
+  (`learnSelector`/`withSelector`) and said; no cookie, Accept-Language, X-Forwarded-For or proxy, ever. If the site
+  offers none, the honest sentence and the CSV route stand. (C) NO CAP: the product URL queue is a table,
+  `brand_catalog_import_queue` (migration `20261011054000`; unique (workspace, run, market, url); service-role writes,
+  members read; the workspace on every query - `dbQueue`), so the cursor is a pointer; untyped sitemaps' URLs wait under
+  `<market>~other` until the walk knows; a finished run's rows are deleted. A device (no table) keeps the stated
+  20,000 limit. (D) THROTTLING as a polite steady rate: a robots.txt `Crawl-delay` is the rate from the first request
+  (one at a time); else after throttling at one-at-a-time a learned gap (1 s doubling to `LIMITS.maxRateMs` 4 s) that
+  is kept across steps; a page is written off only when the store answers others at that rate; the step stops as
+  `throttled` only when even the slowest rate is refused; every partial import says how long the rest takes at the
+  measured rate ("about N pages a minute ... take about N days") and is never called complete early.
 - **Probe**: `.github/workflows/catalog-probe.yml` (workflow_dispatch only, `contents: read`, inputs via env) runs
   `scripts/catalog-probe.js` - the shipped `rowsFromStore`, no database - and uploads coverage, sample rows and the
   sitemap tree. Dispatch it for lenskart.com / nykaa.com to confirm the modelled shapes.

@@ -75,7 +75,7 @@ const M = {
   health: 'api/_shared/connectors-health.js', assetAgent: 'api/_shared/asset-agent.js', mailerBuild: 'api/_shared/lifecycle-mailer-build.js',
   gif: 'api/_shared/gif-core.js', engine: 'api/_shared/ads-insight-engine.js', catalogServer: 'api/_shared/brand-catalog-server.js',
   sbplan: 'api/_shared/smart-brain-plan.js', universe: 'api/_shared/competitor-universe.js', domainIntel: 'api/_shared/domain-intel.js',
-  logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js',
+  logo: 'api/_shared/logo-brief.js', dailyCal: 'api/_shared/daily-calendar-core.js', revenue: 'api/_shared/revenue-analysis-core.js', regionRevenue: 'api/_shared/region-revenue-server.js',
   agentBuilder: 'api/_shared/agent-builder-core.js', platformAgents: 'api/_shared/platform-agents-core.js', revenueOs: 'api/_shared/revenue-os-core.js', journey: 'api/_shared/journey-core.js',
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
   ledger: 'api/_shared/contact-ledger.js',
@@ -781,6 +781,23 @@ add('revenue-analysis', { gate: 'user', browser: 'demo', run: { method: 'GET', q
   stubs: () => S.on(M.revenue, 'revenue', async () => ({ ok: true, cuts: [] })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, cuts: [] }); expect(last(M.revenue, 'revenue')[0]).toEqual({ market: 'UK', days: 7, since: undefined, until: undefined }); },
 });
+add('region-revenue', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { regions: 'UK,US', days: '7' } },
+  stubs: () => S.on(M.regionRevenue, 'handle', async () => ({ status: 200, body: { ok: true, results: {} } })),
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, results: {} });
+    const a = last(M.regionRevenue, 'handle');
+    expect(a[0]).toBe('read');
+    expect(a[1].workspaceId, 'the caller\'s own workspace').toBe(H.WS);
+    expect(a[1].auth.ok).toBe(true);
+    expect(a[1].brand).toMatchObject({ regions: BRAND.regions });
+    expect(a[1].query).toEqual({ regions: 'UK,US', days: '7', from: undefined, to: undefined, granularity: undefined, base: undefined });
+  },
+  cases: [
+    { name: 'op=fx-save over GET is refused 405 and reaches nothing', run: { method: 'GET', query: { op: 'fx-save' } }, expect: (r) => { expect(r.status).toBe(405); expect(S.hits(M.regionRevenue)).toEqual([]); } },
+    { name: 'op=fx-save POST reaches the core with the body', run: { json: { op: 'fx-save', from: 'GBP', to: 'INR', rate: 105, as_of: '2026-10-01' }, query: {} }, expect: (r) => { expect(r.status).toBe(200); const a = last(M.regionRevenue, 'handle'); expect(a[0]).toBe('fx-save'); expect(a[1].body).toMatchObject({ from: 'GBP', to: 'INR', rate: 105 }); } },
+    { name: 'the core\'s status is the answer\'s status', run: { method: 'GET' }, stubs: () => S.on(M.regionRevenue, 'handle', async () => ({ status: 403, body: { ok: false, error: 'forbidden' } })), expect: (r) => { expect(r.status).toBe(403); } },
+  ],
+});
 add('agent-builder', { gate: 'agent-key', browser: 'public', run: { method: 'GET', query: { op: 'spec' } },
   stubs: () => { S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); S.on(M.agentBuilder, 'openApiSpec', () => ({ ok: true, openapi: '3.0.0' })); S.on(M.agentBuilder, 'status', () => ({ ok: true, tools: 3 })); S.on(M.agentBuilder, 'runTool', async () => ({ ok: true, ran: true })); },
   expect: (r) => { expect(r.out).toEqual({ ok: true, openapi: '3.0.0' }); const a = last(M.agentBuilder, 'openApiSpec')[0]; expect(a.brand).toBe(BRAND); expect(a.origin).toBe(hostOrigin()); },
@@ -1168,6 +1185,15 @@ test.describe('workspace scoping', () => {
     const r = await call('telesuite', { json: {}, auth: 'session', origin: true });
     expect(r.out).toEqual({ ws: null });
     expect(guard.rest(/order=created_at\.asc/)).toEqual([]);
+  });
+  test('region-revenue for a signed-in user with NO workspace is 409 no_workspace, and reads no orders', async () => {
+    guard.restore();
+    guard = H.netGuard({ activeWorkspace: null });
+    S.on(M.regionRevenue, 'handle', async () => ({ status: 200, body: { ok: true } }));
+    const r = await call('region-revenue', { method: 'GET', auth: 'session', origin: true });
+    expect(r.status).toBe(409);
+    expect(r.out.error).toBe('no_workspace');
+    expect(S.hits(M.regionRevenue)).toEqual([]);
   });
   test('a userless server-to-server call falls to the default workspace, which is the documented cron behaviour', async () => {
     S.on(M.telesuite, 'handle', async (req, res) => res.json({ ws: req.__workspaceId }));

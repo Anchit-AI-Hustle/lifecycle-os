@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove (see credits.html:
+   auth.js loads deferred and overwrites this the moment it runs). Built with
+   textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    return d.outerHTML;
+  }
+  return {
+    sentence: sentence, code: function () { return ''; }, unreachable: function () { return false; }, html: html,
+    rowHtml: function (e, o) { return '<tr class="vh-failure-tr"><td colspan="99">' + html(e, o) + '</td></tr>'; },
+    show: function (el, e, o) { if (el) el.innerHTML = html(e, o); },
+  };
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revenue by region</title>
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<script src="/auth.js?v=20260809" defer></script>
+<script src="/region-revenue.js?v=20261011" defer></script>
+<style>
+  /* Role tokens only (design/lifecycle-os/CONTRACT.md): no colour literal. */
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--vh-font-body,system-ui,sans-serif);background:var(--vh-bg);color:var(--vh-ink);padding:56px 20px 64px;min-height:100vh;min-height:100svh}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--vh-accent-text);font-weight:700;margin:0 0 8px}
+  h1{font-family:var(--vh-font-head,inherit);font-size:32px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
+  h2{font-family:var(--vh-font-head,inherit);font-size:20px;margin:32px 0 12px}
+  h3{font-size:16px;margin:0 0 6px}
+  .lede{color:var(--vh-ink-dim);font-size:15px;line-height:1.6;max-width:720px;margin:0 0 18px}
+  .muted{color:var(--vh-ink-dim);font-size:13px;line-height:1.55}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:var(--vh-r-lg,14px);padding:18px;min-width:0}
+  .controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-end;margin:6px 0 4px}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--vh-ink-dim)}
+  .field select,.field input{font-family:inherit;font-size:16px;min-height:44px;padding:8px 10px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink)}
+  .btn{font-family:inherit;font-size:15px;font-weight:700;min-height:44px;min-width:44px;padding:0 16px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-primary);background:var(--vh-primary);color:var(--vh-on-primary);cursor:pointer}
+  .btn.ghost{background:var(--vh-panel);color:var(--vh-primary-text);border-color:var(--vh-line)}
+  .btn:focus-visible,.field select:focus-visible,.field input:focus-visible{outline:2px solid var(--vh-focus);outline-offset:2px}
+  #status:empty{display:none}
+  #status{margin:12px 0}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:14px}
+  .kpi-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .kpi-cur{font-size:12px;font-weight:700;color:var(--vh-ink-dim)}
+  .big{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums;color:var(--vh-primary-text);overflow-wrap:anywhere}
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 14px;margin-top:12px}
+  .stat b{display:block;font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .stat span{font-size:12px;color:var(--vh-ink-dim)}
+  .src{margin-top:12px;font-size:12px;line-height:1.5;color:var(--vh-ink-dim);overflow-wrap:anywhere}
+  .marker{font-size:13px;line-height:1.55;overflow-wrap:anywhere;color:var(--vh-ink);border-left:3px solid var(--vh-accent);padding:4px 0 4px 10px;margin:8px 0}
+  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:14px;table-layout:auto}
+  th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--vh-ink-dim);padding:8px 10px;border-bottom:1px solid var(--vh-line);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid var(--vh-line);vertical-align:top}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .trends{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:14px}
+  .trend svg{display:block;width:100%;height:auto}
+  .trend .bar{fill:var(--vh-chart-1,var(--vh-primary))}
+  .trend .unknown{fill:none;stroke:var(--vh-line);stroke-dasharray:3 3}
+  .trend .axis{fill:var(--vh-ink-dim);font-size:11px}
+  .totals-row{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:6px}
+  .fx-list{margin:8px 0 0;padding:0;list-style:none}
+  .fx-list li{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--vh-line);font-size:14px}
+  .fx-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:12px}
+  .fx-form .field input{width:110px}
+  @media (max-width:640px){
+    body{padding:52px 16px 56px}
+    h1{font-size:26px}
+    .grid2{grid-template-columns:minmax(0,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow" id="brandLabel">Data Analysis</p>
+  <h1>Revenue by region</h1>
+  <p class="lede">Revenue and sales for each of the brand's markets, from the brand's own orders only. Each market is shown in its own currency, and every figure names its source and the dates it covers. A market with no orders shows what is missing instead of a zero.</p>
+
+  <div data-region-multi data-region-label="Markets" id="markets"></div>
+  <div class="controls">
+    <label class="field">Period
+      <select id="period">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 12 months</option>
+      </select>
+    </label>
+    <label class="field">Trend by
+      <select id="gran">
+        <option value="">Automatic</option>
+        <option value="day">Day</option>
+        <option value="week">Week</option>
+        <option value="month">Month</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="status"></div>
+
+  <h2>Totals across the selected markets</h2>
+  <div class="card" id="totals"><p class="muted">Loading…</p></div>
+
+  <h2>Each market</h2>
+  <div class="kpis" id="kpis"></div>
+
+  <h2>Comparison</h2>
+  <div class="card tbl-scroll"><table id="cmp"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+
+  <h2>Trend</h2>
+  <p class="muted">One chart per market, because two currencies do not share an axis. A period before the first order read is drawn as an outline: it is unknown, not zero.</p>
+  <div class="trends" id="trends"></div>
+
+  <h2>Top products</h2>
+  <div class="kpis" id="top"></div>
+
+  <h2>Exchange rates</h2>
+  <div class="card" id="fx">
+    <p class="muted">A combined total across currencies uses only rates entered here for this brand, each with its date and who entered it. No rate is fetched or assumed.</p>
+    <div id="fxBody"></div>
+  </div>
+
+  <div id="deviceWrap" hidden>
+    <h2>Orders kept on this device</h2>
+    <div class="card" id="device">
+      <p class="muted">This brand is kept on this device, so its revenue is computed here from an order export you import (CSV with at least an order id, a date and a total; a market or country, a currency, a customer id, a SKU or product, a quantity, a discount and a refund are read when present). It stays in this browser and is deleted with the brand.</p>
+      <div class="fx-form">
+        <label class="btn ghost" for="csvFile" style="display:inline-flex;align-items:center">Import an order export (CSV)</label>
+        <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+        <button type="button" class="btn ghost" id="csvClear">Remove the imported orders</button>
+      </div>
+      <p class="muted" id="deviceNote" role="status"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  var ORDERS_KEY = 'lc-region-revenue-orders';
+  var FX_KEY = 'lc-region-revenue-fx';
+  var DEVICE_MAX_BYTES = 4 * 1024 * 1024;
+  var last = null;          // the last result rendered
+  var seq = 0;
+
+  function RC() { return window.RegionContext; }
+  function BC() { return window.BrandContext; }
+  function RR() { return window.RegionRevenue; }
+  function brandName() { var b = BC() && BC().brand; return (b && b.name) || 'this brand'; }
+  function isDevice() { var b = BC() && BC().brand; return !!(b && b.id && BC().device && BC().device.isDeviceId(b.id)); }
+  function store() { return window.LCStore || { get: function () { return null; }, set: function () { return false; }, remove: function () {} }; }
+
+  /* Money in the currency the FIGURE states, in that market's number format. */
+  function money(v, currency, code) {
+    if (v == null) return '';
+    var c = String(currency || '').toUpperCase();
+    var l = RC() && RC().localeOf ? RC().localeOf(code) : { locale: 'en' };
+    if (!c) return Number(v).toLocaleString(l.locale || 'en', { maximumFractionDigits: 0 }) + ' ' + RR().marker('currency', brandName(), code);
+    var sym = (RC() && RC()._SYMBOL && RC()._SYMBOL[c]) || '';
+    try {
+      return new Intl.NumberFormat(l.locale || 'en', { style: 'currency', currency: c, maximumFractionDigits: 0 }).formatToParts(Number(v))
+        .map(function (p) { return p.type === 'currency' ? (sym || p.value) : p.value; }).join('');
+    } catch (e) { return (sym || c + ' ') + Math.round(Number(v)); }
+  }
+  function count(v, code) { if (v == null) return ''; return RC() && RC().num ? RC().num(v, code) : String(v); }
+  function pct(v) { return v == null ? '' : (v > 0 ? '+' : '') + v + '%'; }
+  function regionName(code) { return RC() && RC().label ? RC().label(code) : code; }
+  function windowText(w) { return w && w.from ? w.from + ' to ' + w.to : 'no window'; }
+  function unknown(f) { return '<span class="muted">not stated</span>'; }
+
+  function regionsForDevice() {
+    var rc = RC();
+    return (rc.regions || []).map(function (r) {
+      var l = rc.localeOf(r.code);
+      return { code: r.code, currency: l.currency || '', timezone: l.timeZone || '', home: r.code === rc.home };
+    });
+  }
+  function selection() { var s = RC() && RC().selection; return (s && s.length) ? s : []; }
+
+  /* ── the two paths ────────────────────────────────────────────────────── */
+  function computeDevice() {
+    var regions = regionsForDevice();
+    var text = store().get(ORDERS_KEY) || '';
+    var parsed = text ? RR().fromCsv(text, regions) : { orders: [], dropped: {} };
+    var id = BC().brand.id;
+    var cat = (BC().catalogForGeneration && BC().catalogForGeneration(id)) || null;
+    var agg = RR().aggregate(parsed.orders, {
+      regions: regions, selected: selection(), days: Number($('period').value) || 30, granularity: $('gran').value,
+      brand: brandName(), catalogue: cat ? cat.products : [],
+      source: { kind: 'device_export', label: 'the order export imported on this device' },
+    });
+    if (!text) {
+      Object.keys(agg.regions).forEach(function (c) {
+        agg.regions[c].reason = 'No order export has been imported on this device for ' + brandName() + ', so there is no figure for ' + c + '. Import one below; nothing is borrowed from another market.';
+      });
+    }
+    var fx = readDeviceFx();
+    var base = currentBase(regions);
+    var un = parsed.orders.filter(function (o) { return !o.region; });
+    return {
+      ok: true, brand: { name: brandName() }, regions: regions, selected: agg.selected, window: agg.window, granularity: agg.granularity,
+      results: agg.regions, totals: RR().totals(agg.regions, { base: base, rates: fx }, brandName()), fx: { base: base, rates: fx },
+      sources: [{ kind: 'device_export', label: 'the order export imported on this device', read: !!text, rows: parsed.orders.length, unattributed: un.length,
+        unattributed_markets: un.map(function (o) { return o.market_raw || '(none stated)'; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).slice(0, 8),
+        dropped: parsed.dropped, missing: parsed.missing || null }],
+      device: true,
+    };
+  }
+  function currentBase(regions) {
+    var asked = $('fxBase') && $('fxBase').value;
+    if (asked) return asked;
+    var home = (regions || []).filter(function (r) { return r.home; })[0];
+    return (home && home.currency) || '';
+  }
+  async function computeServer() {
+    var regions = selection().join(',');
+    var q = 'action=region-revenue&regions=' + encodeURIComponent(regions) + '&days=' + encodeURIComponent($('period').value || '30')
+      + ($('gran').value ? '&granularity=' + encodeURIComponent($('gran').value) : '')
+      + ($('fxBase') && $('fxBase').value ? '&base=' + encodeURIComponent($('fxBase').value) : '');
+    var r = await fetch('/api/brain?' + q, { headers: { Accept: 'application/json' } });
+    var j = null; try { j = await r.json(); } catch (_) { j = null; }
+    if (!r.ok || !j || j.ok === false) {
+      var e = new Error((j && (j.message || j.error)) || ('The revenue read answered ' + r.status + '.'));
+      e.payload = j || {}; e.code = j && j.error; e.status = r.status;
+      throw e;
+    }
+    return j;
+  }
+
+  /* ── rendering ────────────────────────────────────────────────────────── */
+  function renderStatus(html) { $('status').innerHTML = html || ''; }
+  function sourceLine(r) {
+    return '<div class="src">Source: ' + esc((r.source && r.source.label) || 'orders') + ' · ' + esc(windowText(r.window)) + (r.currency_basis ? ' · currency: ' + esc(r.currency_basis) : '') + '</div>';
+  }
+  function statHtml(label, f, code, kind) {
+    if (!f) return '';
+    var v = f.value;
+    var shown = v == null ? unknown(f) : (kind === 'money' ? esc(money(v, f.currency, code)) : esc(count(v, code)));
+    return '<div class="stat" title="' + esc((f.basis || '') + (f.window ? ' · ' + windowText(f.window) : '')) + '"><b>' + shown + '</b><span>' + esc(label) + '</span></div>';
+  }
+  function renderKpis(res) {
+    var host = $('kpis');
+    var codes = res.selected || [];
+    if (!codes.length) { host.innerHTML = '<p class="marker">' + esc(RR().marker('home market', brandName())) + ' This brand has no market on its record, so there is no region to report on.</p>'; return; }
+    host.innerHTML = codes.map(function (code) {
+      var r = res.results[code];
+      if (!r || !r.available) {
+        return '<section class="card" data-region-card="' + esc(code) + '" data-available="0"><h3>' + esc(regionName(code)) + '</h3>'
+          + '<p class="marker" data-marker="1">' + esc(r ? r.marker : RR().marker('order history', brandName(), code)) + '</p>'
+          + '<p class="muted">' + esc(r ? r.reason : '') + '</p></section>';
+      }
+      var f = r.figures;
+      var prev = r.previous && r.previous.available
+        ? '<div class="muted">vs ' + esc(windowText(r.previous.window)) + ': revenue ' + esc(pct(r.previous.revenue_change_pct) || 'no change to compare') + ', orders ' + esc(pct(r.previous.orders_change_pct) || 'no change to compare') + '</div>'
+        : '<div class="muted">' + esc((r.previous && r.previous.reason) || '') + '</div>';
+      var mixed = r.by_currency ? '<div class="muted">' + r.by_currency.map(function (b) { return esc(money(b.revenue, b.currency, code) + ' (' + b.orders + ' orders)'); }).join(' · ') + '</div>' : '';
+      return '<section class="card" data-region-card="' + esc(code) + '" data-available="1">'
+        + '<div class="kpi-head"><h3>' + esc(regionName(code)) + '</h3><span class="kpi-cur">' + esc(r.currency || (r.by_currency ? 'several currencies' : '')) + '</span></div>'
+        + '<div class="big" data-fig="revenue" title="' + esc(f.revenue.basis) + '">' + (f.revenue.value == null ? unknown() : esc(money(f.revenue.value, f.revenue.currency, code))) + '</div>'
+        + '<div class="muted">Revenue (' + esc(f.revenue.basis) + ')</div>' + mixed
+        + '<div class="grid2">'
+        + statHtml('Orders', f.orders, code) + statHtml('Average order value', f.aov, code, 'money')
+        + statHtml('Units', f.units, code) + statHtml('Net revenue', f.net, code, 'money')
+        + statHtml('Customers', f.customers, code) + statHtml('New customers', f.new_customers, code)
+        + statHtml('Returning customers', f.returning_customers, code) + statHtml('Discounts', f.discounts, code, 'money')
+        + '</div>' + prev + sourceLine(r)
+        + (r.notes && r.notes.length ? '<div class="src">' + r.notes.map(esc).join('<br>') + '</div>' : '')
+        + '</section>';
+    }).join('');
+  }
+  function cell(f, code, kind) { if (!f || f.value == null) return '<td class="num muted">not stated</td>'; return '<td class="num">' + esc(kind === 'money' ? money(f.value, f.currency, code) : count(f.value, code)) + '</td>'; }
+  function renderTable(res) {
+    var codes = res.selected || [];
+    var head = '<thead><tr><th scope="col">Market</th><th scope="col" class="num">Revenue</th><th scope="col">Currency</th><th scope="col" class="num">Orders</th><th scope="col" class="num">AOV</th><th scope="col" class="num">Units</th><th scope="col" class="num">Net</th><th scope="col" class="num">Customers</th><th scope="col" class="num">New</th><th scope="col" class="num">Returning</th><th scope="col" class="num">Revenue vs previous</th></tr></thead>';
+    var rows = codes.map(function (code) {
+      var r = res.results[code];
+      if (!r || !r.available) return '<tr data-region-row="' + esc(code) + '"><th scope="row">' + esc(code) + '</th><td colspan="10" class="marker">' + esc(r ? r.marker : '') + '</td></tr>';
+      var f = r.figures;
+      return '<tr data-region-row="' + esc(code) + '"><th scope="row">' + esc(code) + '</th>' + cell(f.revenue, code, 'money') + '<td>' + esc(r.currency || 'several') + '</td>'
+        + cell(f.orders, code) + cell(f.aov, code, 'money') + cell(f.units, code) + cell(f.net, code, 'money')
+        + cell(f.customers, code) + cell(f.new_customers, code) + cell(f.returning_customers, code)
+        + '<td class="num">' + esc(r.previous && r.previous.available ? (pct(r.previous.revenue_change_pct) || 'n/a') : 'n/a') + '</td></tr>';
+    }).join('');
+    $('cmp').innerHTML = head + '<tbody>' + rows + '</tbody>';
+  }
+  function renderTrends(res) {
+    $('trends').innerHTML = (res.selected || []).map(function (code) {
+      var r = res.results[code];
+      if (!r || !r.available || !r.trend) return '';
+      var pts = r.trend.points || [];
+      var W = 320, H = 140, pad = 22;
+      var max = 0; pts.forEach(function (p) { if (p.revenue != null && p.revenue > max) max = p.revenue; });
+      var bw = pts.length ? (W - pad) / pts.length : 0;
+      var bars = pts.map(function (p, i) {
+        var x = pad + i * bw + 1;
+        if (p.revenue == null) return '<rect class="unknown" x="' + x + '" y="' + 10 + '" width="' + Math.max(1, bw - 2) + '" height="' + (H - 30) + '"><title>' + esc(p.key + ': unknown') + '</title></rect>';
+        var h = max ? Math.max(1, (p.revenue / max) * (H - 30)) : 1;
+        return '<rect class="bar" x="' + x + '" y="' + (H - 20 - h) + '" width="' + Math.max(1, bw - 2) + '" height="' + h + '"><title>' + esc(p.key + ': ' + money(p.revenue, r.currency, code) + ', ' + p.orders + ' orders') + '</title></rect>';
+      }).join('');
+      var axis = '<text class="axis" x="' + pad + '" y="' + (H - 4) + '">' + esc(pts.length ? pts[0].key : '') + '</text>'
+        + '<text class="axis" x="' + (W - 2) + '" y="' + (H - 4) + '" text-anchor="end">' + esc(pts.length ? pts[pts.length - 1].key : '') + '</text>'
+        + '<text class="axis" x="2" y="12">' + esc(max ? money(max, r.currency, code) : '') + '</text>';
+      return '<figure class="card trend" style="margin:0" data-trend="' + esc(code) + '"><h3>' + esc(regionName(code)) + '</h3>'
+        + '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc('Revenue per ' + r.trend.granularity + ' in ' + code + ', ' + windowText(r.trend.window)) + '">' + bars + axis + '</svg>'
+        + '<figcaption class="src">' + esc(r.trend.basis) + '</figcaption></figure>';
+    }).join('');
+  }
+  function renderTop(res) {
+    $('top').innerHTML = (res.selected || []).map(function (code) {
+      var r = res.results[code];
+      if (!r || !r.available || !r.top_products) return '';
+      var rows = r.top_products.rows || [];
+      var body = rows.length ? rows.map(function (p) {
+        return '<tr><td>' + esc(p.title || p.sku || '') + (p.in_catalogue === false ? ' <span class="muted">(not in ' + esc(code) + '\'s catalogue)</span>' : '') + '</td>'
+          + '<td class="num">' + (p.revenue == null ? '<span class="muted">not stated</span>' : esc(money(p.revenue, r.currency, code))) + '</td>'
+          + '<td class="num">' + (p.units == null ? '<span class="muted">not stated</span>' : esc(count(p.units, code))) + '</td></tr>';
+      }).join('') : '<tr><td colspan="3" class="muted">No product is named on these orders.</td></tr>';
+      return '<section class="card"><h3>' + esc(regionName(code)) + '</h3><div class="tbl-scroll"><table><thead><tr><th scope="col">Product</th><th scope="col" class="num">Revenue</th><th scope="col" class="num">Units</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        + '<div class="src">' + esc(r.top_products.basis) + ' · ' + esc(windowText(r.top_products.window)) + '</div></section>';
+    }).join('');
+  }
+  function renderTotals(res) {
+    var t = res.totals || { by_currency: [] };
+    var parts = (t.by_currency || []).map(function (b) {
+      return '<div class="stat" data-subtotal="' + esc(b.currency) + '"><b>' + esc(money(b.revenue, b.currency, b.regions[0])) + '</b><span>' + esc(b.currency) + ' · ' + esc(b.regions.join(', ')) + ' · ' + esc(String(b.orders)) + ' orders</span></div>';
+    }).join('');
+    var combined = t.combined
+      ? '<div class="stat" data-combined="1"><b>' + esc(money(t.combined.revenue, t.combined.currency, (res.selected || [])[0])) + '</b><span>All selected markets in ' + esc(t.combined.currency) + ': ' + esc(t.combined.basis) + '</span></div>'
+        + (t.combined.rates_used && t.combined.rates_used.length ? '<p class="src">Rates used: ' + t.combined.rates_used.map(function (r) { return esc('1 ' + r.from + ' = ' + r.rate + ' ' + r.to + ' on ' + r.as_of + (r.entered_by ? ', entered by ' + r.entered_by : '')); }).join('; ') + '</p>' : '')
+      : '<p class="muted" data-no-combined="1">' + esc(t.combined_reason || '') + '</p>';
+    var without = (t.regions_without_data || []).length ? '<p class="src">No figures for ' + esc(t.regions_without_data.join(', ')) + ' (see each market below); they are not counted as zero.</p>' : '';
+    $('totals').innerHTML = '<div class="totals-row">' + (parts || '<p class="muted">No selected market has revenue in this period.</p>') + '</div>' + combined + without;
+  }
+  function renderFx(res) {
+    var rates = (res.fx && res.fx.rates) || [];
+    var curs = [];
+    (res.regions || []).forEach(function (r) { if (r.currency && curs.indexOf(r.currency) < 0) curs.push(r.currency); });
+    var base = (res.fx && res.fx.base) || '';
+    var opts = curs.map(function (c) { return '<option value="' + esc(c) + '"' + (c === base ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+    var list = rates.length ? '<ul class="fx-list">' + rates.map(function (r) {
+      return '<li><span>' + esc('1 ' + r.from + ' = ' + r.rate + ' ' + r.to) + '</span><span class="muted">' + esc('for ' + r.as_of + (r.entered_by ? ' · entered by ' + r.entered_by : '') + (r.entered_at ? ' · ' + String(r.entered_at).slice(0, 10) : '')) + '</span>'
+        + '<button type="button" class="btn ghost" data-fx-delete="' + esc(r.id || '') + '">Remove</button></li>';
+    }).join('') + '</ul>' : '<p class="muted">No rate has been entered for this brand.</p>';
+    $('fxBody').innerHTML = (curs.length > 1 ? '<div class="fx-form"><label class="field">Combine into<select id="fxBase">' + opts + '</select></label></div>' : '')
+      + list
+      + (curs.length > 1 ? '<form class="fx-form" id="fxForm"><label class="field">From<input id="fxFrom" maxlength="3" autocomplete="off" placeholder="GBP"></label>'
+        + '<label class="field">To<input id="fxTo" maxlength="3" autocomplete="off" value="' + esc(base) + '"></label>'
+        + '<label class="field">Rate<input id="fxRate" inputmode="decimal" autocomplete="off"></label>'
+        + '<label class="field">For date<input id="fxDate" type="date"></label>'
+        + '<button type="submit" class="btn">Enter rate</button></form><p class="muted" id="fxMsg" role="status"></p>' : '');
+  }
+  function renderSources(res) {
+    var bits = [];
+    (res.sources || []).forEach(function (s) {
+      if (s.error) bits.push(s.error);
+      if (s.missing && s.missing.length) bits.push('The imported file has no ' + s.missing.join(', ') + ' column, so no order could be read from it.');
+      if (s.unattributed) bits.push(s.unattributed + ' order' + (s.unattributed === 1 ? '' : 's') + ' in ' + s.label + ' name a market that is not one of ' + brandName() + '\'s (' + s.unattributed_markets.join(', ') + '); they are not counted in any market.');
+      if (s.truncated) bits.push(s.truncated);
+    });
+    if (res.refused_message) bits.push(res.refused_message);
+    if (res.fx && res.fx.error) bits.push(res.fx.error);
+    return bits.length ? '<div class="vh-status" role="status">' + bits.map(esc).join(' ') + '</div>' : '';
+  }
+  function render(res) {
+    last = res;
+    renderStatus(renderSources(res));
+    renderTotals(res); renderKpis(res); renderTable(res); renderTrends(res); renderTop(res); renderFx(res);
+  }
+  function renderRefusal(e) {
+    var LS = window.LifecycleStatus;
+    if (LS && (e.ordinary || LS.ordinary(e.payload || e))) {
+      LS.show($('status'), e, { title: 'Revenue by region could not be loaded' });
+    } else {
+      window.LifecycleFailure.show($('status'), e, { title: 'Revenue by region could not be loaded' });
+    }
+    ['totals'].forEach(function (id) { $(id).innerHTML = '<p class="muted">No figures: see the line above.</p>'; });
+    $('kpis').innerHTML = ''; $('cmp').innerHTML = ''; $('trends').innerHTML = ''; $('top').innerHTML = '';
+  }
+
+  async function load() {
+    var mine = ++seq;
+    if (!RR() || !RC() || !BC()) return;
+    var b = BC().brand;
+    $('brandLabel').textContent = (b && b.name ? b.name + ' · ' : '') + 'Data Analysis';
+    $('deviceWrap').hidden = !isDevice();
+    if (!b) { renderStatus('<div class="vh-status" role="status">No brand is active, so there is no revenue to show. Set up or pick a brand first.</div>'); return; }
+    try {
+      var res;
+      if (isDevice()) res = computeDevice();
+      else {
+        var refused = window.LifecycleStatus ? await window.LifecycleStatus.decide('Reading revenue by region') : null;
+        if (refused) throw refused;
+        res = await computeServer();
+      }
+      if (mine !== seq) return;
+      render(res);
+    } catch (e) {
+      if (mine !== seq) return;
+      renderRefusal(e);
+    }
+  }
+
+  /* ── exchange rates ─────────────────────────────────────────────────── */
+  function readDeviceFx() { try { var v = JSON.parse(store().get(FX_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } }
+  function who() { try { var s = window.LifecycleAuth && window.LifecycleAuth.session; return (s && s.user && s.user.email) || 'this device'; } catch (_) { return 'this device'; } }
+  async function saveRate(input) {
+    var today = new Date().toISOString().slice(0, 10);
+    var v = RR().validRate(input, today);
+    if (!v.ok) throw new Error(v.message);
+    if (isDevice()) {
+      var list = readDeviceFx();
+      list.unshift(Object.assign({ id: 'dev-' + Date.now().toString(36), entered_by: who(), entered_at: new Date().toISOString() }, v.rate));
+      store().set(FX_KEY, JSON.stringify(list.slice(0, 200)));
+      return;
+    }
+    var refused = window.LifecycleStatus ? await window.LifecycleStatus.decide('Entering an exchange rate') : null;
+    if (refused) throw refused;
+    var r = await fetch('/api/brain?action=region-revenue&op=fx-save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v.rate) });
+    var j = await r.json().catch(function () { return null; });
+    if (!r.ok || !j || j.ok === false) { var e = new Error((j && j.message) || ('The rate was not saved (' + r.status + ').')); e.payload = j; throw e; }
+  }
+  async function deleteRate(id) {
+    if (isDevice()) { store().set(FX_KEY, JSON.stringify(readDeviceFx().filter(function (r) { return r.id !== id; }))); return; }
+    var r = await fetch('/api/brain?action=region-revenue&op=fx-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+    var j = await r.json().catch(function () { return null; });
+    if (!r.ok || !j || j.ok === false) throw new Error((j && j.message) || ('The rate was not removed (' + r.status + ').'));
+  }
+  document.addEventListener('submit', function (ev) {
+    if (!ev.target || ev.target.id !== 'fxForm') return;
+    ev.preventDefault();
+    var msg = $('fxMsg');
+    saveRate({ from: $('fxFrom').value, to: $('fxTo').value, rate: $('fxRate').value, as_of: $('fxDate').value })
+      .then(function () { load(); })
+      .catch(function (e) { if (msg) msg.textContent = e.message || 'The rate was not saved.'; });
+  });
+  document.addEventListener('click', function (ev) {
+    var t = ev.target && ev.target.closest ? ev.target.closest('[data-fx-delete]') : null;
+    if (!t) return;
+    deleteRate(t.getAttribute('data-fx-delete')).then(load).catch(function (e) { var m = $('fxMsg'); if (m) m.textContent = e.message; else renderStatus('<div class="vh-status" role="status">' + esc(e.message) + '</div>'); });
+  });
+  document.addEventListener('change', function (ev) { if (ev.target && ev.target.id === 'fxBase') load(); });
+
+  /* ── device import ──────────────────────────────────────────────────── */
+  $('csvFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    var note = $('deviceNote');
+    if (!f) return;
+    if (f.size > DEVICE_MAX_BYTES) { note.textContent = 'That file is ' + Math.round(f.size / 1048576) + ' MB; a browser keeps at most 4 MB of orders for a brand. Export a shorter period.'; return; }
+    var rd = new FileReader();
+    rd.onload = function () {
+      var text = String(rd.result || '');
+      var probe = RR().fromCsv(text, regionsForDevice());
+      if (!probe.orders.length) { note.textContent = probe.missing ? 'No order was read: the file has no ' + probe.missing.join(', ') + ' column.' : 'No order with a total and a date was read from that file.'; return; }
+      if (!store().set(ORDERS_KEY, text)) { note.textContent = 'This browser would not keep the file (storage full or blocked); nothing was imported.'; return; }
+      note.textContent = probe.orders.length + ' orders imported for ' + brandName() + ' on this device.';
+      load();
+    };
+    rd.onerror = function () { note.textContent = 'The file could not be read.'; };
+    rd.readAsText(f);
+    this.value = '';
+  });
+  $('csvClear').addEventListener('click', function () {
+    store().remove(ORDERS_KEY);
+    $('deviceNote').textContent = 'The imported orders were removed from this device.';
+    load();
+  });
+
+  $('period').addEventListener('change', load);
+  $('gran').addEventListener('change', load);
+
+  function boot() {
+    if (!RR() || !RC() || !BC()) { setTimeout(boot, 60); return; }
+    RC().ready().then(function () {
+      RC().onSelection(function () { load(); });
+      window.addEventListener('brandcontext:change', function () { load(); });
+    });
+  }
+  window.__revenueByRegion = { load: load, last: function () { return last; } };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+</body>
+</html>
