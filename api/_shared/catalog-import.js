@@ -222,13 +222,25 @@ const hdr = (r, name) => { try { return r && r.headers && typeof r.headers.get =
  * and an in-scope path that 301s to another company's site is not this
  * brand's page. A gzipped body (by magic bytes) is inflated, bounded.
  */
-async function getText(url, ctx, { accept, timeoutMs, scope } = {}) {
+async function getText(url, ctx, opts = {}) {
+  // With a learned rate, the gap is ALSO kept from the end of the previous
+  // answer: the next request is not sent until the delay has passed since the
+  // last one finished, so however long a connection takes to open, the store
+  // never sees two requests closer together than it asked for.
+  try { return await getTextOnce(url, ctx, opts); }
+  finally { if (opts.pace) ctx.lastDoneAt = Date.now(); }
+}
+async function getTextOnce(url, ctx, { accept, timeoutMs, scope, pace } = {}) {
   const guard = ctx.guard;
   const ok = scope || ctx.inScope || ((u) => crawl.inScope(u, ctx.hosts));
   let at = url;
   for (let hop = 0; hop <= LIMITS.maxRedirects; hop++) {
     if (!ok(at)) return { ok: false, status: 0, url: at, reason: 'off_scope' };
     try { await guard(at); } catch (e) { return { ok: false, status: 0, url: at, reason: 'private_address', error: e.message }; }
+    // A learned rate (a robots.txt Crawl-delay, or throttling) is kept
+    // between the requests as SENT: pacing waits here, after the address
+    // check, so a slow lookup on one request cannot shorten the gap to the next.
+    if (pace) await pace();
     const ctrl = new AbortController();
     const ms = Math.max(1000, Math.min(timeoutMs || LIMITS.perRequestMs, ctx.deadline - Date.now()));
     const timer = setTimeout(() => ctrl.abort(), ms);
@@ -351,10 +363,16 @@ async function paced(ctx, st) {
   if (!gap) return;
   const now = Date.now();
   // The gap holds ACROSS steps too: the last request's time rides on the cursor.
-  const at = Math.max(now, ctx.nextAt || 0, (st.last_req_at || 0) + gap);
+  const at = Math.max(now, ctx.nextAt || 0, (st.last_req_at || 0) + gap, (ctx.lastDoneAt || 0) + gap);
   ctx.nextAt = at + gap;
   st.last_req_at = at;
   if (at > now) await sleep(at - now);
+  while (Date.now() < at) await sleep(at - Date.now());   // a timer may fire a millisecond early
+  // A timer can fire late, never usefully early: what is recorded is when the
+  // request actually goes, so the NEXT one is spaced from that.
+  const sent = Date.now();
+  st.last_req_at = Math.max(at, sent);
+  ctx.nextAt = Math.max(ctx.nextAt, sent + gap);
 }
 
 /**
@@ -1403,8 +1421,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       // its pages offer for this market, asked for directly.
       const ask = withSelector(u, st.selector);
       if (!(await allowed(ask, ctx))) return { it, skip: 'robots' };
-      await paced(ctx, st);
-      const r = await getPolite(ask, ctx, { accept: 'text/html' });
+      const r = await getPolite(ask, ctx, { accept: 'text/html', pace: () => paced(ctx, st) });
       if (r.reason === 'rate_limited') return { it, stop: { reason: 'rate_limited', retry_after: r.retry_after, wait_ms: r.wait_ms } };
       if (r.reason === 'timeout') return { it, stop: { reason: 'timeout' } };
       // A CROSS-MARKET redirect (2026-10-11, the live Lenskart probe): this
@@ -1426,8 +1443,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
           // market's currency).
           const alt = r.ok ? ownAlternate(r.body, r.url, regionCountry(reg)) : '';
           if (alt && alt !== ask && ctx.inScope(alt) && !foreignLocale(alt, st) && await allowed(alt, ctx)) {
-            await paced(ctx, st);
-            const r2 = await getPolite(alt, ctx, { accept: 'text/html' });
+            const r2 = await getPolite(alt, ctx, { accept: 'text/html', pace: () => paced(ctx, st) });
             if (r2.ok && !foreignLocale(r2.url, st)) {
               const got = rowFromPage(r2.body, r2.url, { region: reg, source: 'sitemap_jsonld' });
               const cur = got.row && got.row.currency ? String(got.row.currency).toUpperCase() : '';
