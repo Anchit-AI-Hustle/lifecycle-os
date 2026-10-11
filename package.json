@@ -76,7 +76,7 @@
   "dependencies": {
     "@capacitor/android": "^8.5.2",
     "@capacitor/core": "^8.5.2",
-    "@capacitor/ios": "^8.5.2",
+    "@capacitor/ios": "^8.5.3",
     "@neondatabase/serverless": "^1.1.0",
     "@sparticuz/chromium": "153.0.0",
     "@vercel/speed-insights": "^2.0.0",
