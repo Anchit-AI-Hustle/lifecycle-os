@@ -1352,7 +1352,7 @@ function brandSystem(brand) {
     );
   } catch (_) { /* the copywriter still works without the briefs */ }
 
-  lines.push('Return STRICT JSON only, no markdown fences.');
+  lines.push('Return exactly what the OUTPUT REQUIREMENT at the end of the request states.');
   return lines.join('\n');
 }
 
@@ -1368,7 +1368,7 @@ function strategySystem(brand) {
 You turn cohort + offering + competitor data into a sharp, differentiated campaign strategy for THIS brand only.
 Be specific and quantitative where the data allows; never borrow another brand's facts.
 ${D2C_KNOWLEDGE}
-Return STRICT JSON only, no markdown fences.`;
+Return exactly what the OUTPUT REQUIREMENT at the end of the request states.`;
 }
 
 
@@ -1394,7 +1394,8 @@ function offeringBrief(entry) {
   return `- Hero product: ${p.title} (${p.category || 'product'})\n- This is a PRODUCT. Standard merchandising applies.`;
 }
 
-function strategyPrompt(entry) {
+function strategyPrompt(entry) { return OC.append(strategyTask(entry), strategyOutputSpec(entry)); }
+function strategyTask(entry) {
   const d = entry.decision || {};
   return `Devise the strategy for ONE lifecycle send. Data:
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
@@ -1406,9 +1407,7 @@ ${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: 
 
 ${creativeEvidence.briefFor(entry)}
 
-Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework". Make this send DIFFERENT from a generic promo and true to its cohort + theme.
-Return JSON exactly:
-{ "angle": "the single sharp campaign angle", "framework": "Hook-Story-Offer | PAS | Identity-Driven", "hook_thesis": "why this lands for THIS cohort now", "target_emotion": "the one feeling to evoke", "proof_points": ["","",""], "differentiator": "what makes this send distinct from the others this week", "dos": ["",""], "donts": ["",""] }`;
+Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework". Make this send DIFFERENT from a generic promo and true to its cohort + theme.`;
 }
 
 async function strategyBrief(entry) {
@@ -1590,7 +1589,68 @@ function complianceBrief(entry) {
   try { return require('./compliance-lint.js').brief(complianceContext(null, entry)); } catch (_) { return ''; }
 }
 
-function copyPrompt(entry, fw = null, brief = null) {
+/*
+ * WHAT THE STRATEGIST AND THE COPYWRITER RETURN (2026-10-11).
+ * The prompts end with the OUTPUT REQUIREMENT rendered from these specs
+ * (output-contract.js), and the answers are checked against the same specs.
+ * The copy shape used to be a JSON skeleton of empty strings with no limit on
+ * any field, while the asset contracts it is validated against afterwards hold
+ * Google headlines to 30 characters and Meta primary text to 125: the writer
+ * learnt the limits from the brand-system prose, if at all. The limits below
+ * are READ from asset-contracts.js.
+ */
+const OC = require('./output-contract.js');
+function strategyOutputSpec(entry) {
+  const b = (entry && entry.brand) || {};
+  return {
+    id: 'smart-brain.strategy', kind: 'data', format: 'json', brand: b.name || 'this brand', region: entry && entry.market,
+    returns: 'ONE JSON object: the strategy brief for this ONE send (angle, framework, hook, emotion, proof, differentiator, dos and donts).',
+    schema: {
+      angle: { type: 'string', note: 'the single sharp campaign angle' },
+      framework: { type: 'string', enum: ['Hook-Story-Offer', 'PAS', 'Identity-Driven'] },
+      hook_thesis: { type: 'string', note: 'why this lands for THIS cohort now' },
+      target_emotion: { type: 'string', note: 'the one feeling to evoke' },
+      proof_points: { type: 'array', count: [1, 3], items: { type: 'string', note: 'from the data above or the evidence block only' } },
+      differentiator: { type: 'string', note: 'what makes this send distinct from the others this week' },
+      dos: { type: 'array', count: [1, 3], items: 'string' },
+      donts: { type: 'array', count: [1, 3], items: 'string' },
+    },
+  };
+}
+function copyOutputSpec(entry) {
+  const ac = require('./asset-contracts.js');
+  const L = (id, slot) => ac.slotLimit(id, slot);
+  const b = (entry && entry.brand) || {};
+  const faq = { type: 'array', count: 2, items: { type: 'object', of: { q: 'string', a: 'string' } } };
+  const img = { type: 'string', note: 'a TEXT-FREE photograph brief: scene, subject, light, mood; no words in the frame' };
+  const proof = (what) => ({ required: false, note: `copied verbatim from the APPROVED PROOF LIBRARY, else ${what}` });
+  return {
+    id: 'smart-brain.copy', kind: 'data', format: 'json', brand: b.name || 'this brand', region: entry && entry.market,
+    returns: 'ONE JSON object holding the copy for every asset of this slot: the email, the landing page and the Meta, Google and TikTok ads, each with its image brief.',
+    lines: ['"rating": null, "reviews": [] and "badges": [] are the answer whenever the APPROVED PROOF LIBRARY is empty; "guarantee", "proof_quote" and "proof_author" are then empty strings.'],
+    schema: {
+      email: { type: 'object', of: {
+        subject: { type: 'string', max: L('email.mailer', 'subject') }, subject_alt1: { type: 'string', max: L('email.mailer', 'subject') }, subject_alt2: { type: 'string', max: L('email.mailer', 'subject') },
+        preheader: { type: 'string', max: L('email.mailer', 'preheader'), note: 'extends the subject, never repeats it' },
+        hook: { type: 'string', note: 'the first-scroll pattern-interrupt line' }, hero_headline: 'string', intro_paragraph: 'string', body_paragraph: 'string',
+        benefits: { type: 'array', count: 3, items: 'string' },
+        rating: Object.assign({ type: 'any' }, proof('null')), reviews: Object.assign({ type: 'array', items: 'any' }, proof('[]')),
+        badges: Object.assign({ type: 'array', items: 'any' }, proof('[]')), guarantee: Object.assign({ type: 'string' }, proof('an empty string')),
+        faq, cta: 'string', image_brief: img } },
+      landing: { type: 'object', of: {
+        hero_headline: 'string', hero_sub: 'string', why_title: 'string', why_bullets: { type: 'array', count: 3, items: 'string' },
+        proof_quote: Object.assign({ type: 'string' }, proof('an empty string')), proof_author: Object.assign({ type: 'string' }, proof('an empty string')),
+        faq, cta: 'string', image_brief: img } },
+      ads: { type: 'object', of: {
+        meta: { type: 'object', of: { primary_text: { type: 'string', max: L('ad.meta.static', 'primary_text') }, headline: { type: 'string', max: L('ad.meta.static', 'headline') }, description: { type: 'string', max: L('ad.meta.static', 'description') }, image_brief: img } },
+        google: { type: 'object', of: { headlines: { type: 'array', count: [3, 15], items: { type: 'string', max: L('ad.google.rsa', 'headlines') } }, descriptions: { type: 'array', count: [2, 4], items: { type: 'string', max: L('ad.google.rsa', 'descriptions') } }, image_brief: img } },
+        tiktok: { type: 'object', of: { script: { type: 'string', note: 'the spoken and shown beats, hook in the first second' }, caption: { type: 'string', max: L('ad.tiktok.video', 'caption') }, image_brief: img } } } },
+    },
+  };
+}
+
+function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
+function copyTask(entry, fw = null, brief = null) {
   const fwLine = fw
     ? `\nCOPY FRAMEWORK: structure the copy with the ${fw.name} framework (${fw.full || fw.name}); the opening beat lands in the subject + hero_headline, the middle beats across intro_paragraph and body_paragraph in order, and the final beat on the cta. Do NOT name the framework in the copy, let the structure do the work.`
     : '';
@@ -1618,18 +1678,7 @@ Every asset must ship with a CREATIVE as well as copy. For each asset write an "
 - email / LP heroes: just scene, props, light, mood; aspirational hero.
 - AD creatives (meta / google / tiktok): a scroll-stopping TEXT-FREE photograph that sells the END STATE this cohort is buying - what is different for them once they have it - rather than a component, ingredient or spec shot; open on a 1-second scroll-stop. Art-direct it from the audience block above; if that block carries a [DATA REQUIRED BEFORE LAUNCH] marker, direct the frame at the OFFERING and the brand's own world and put no person of an assumed age, gender or life stage in it. Compose for the placement: meta = square, google = clean landscape, tiktok = vertical native hand-held. State only the scene, subject, light and mood - no words in the frame.
 
-Return JSON with exactly this shape:
-{
- "email": { "subject": "", "subject_alt1": "", "subject_alt2": "", "preheader": "", "hook": "the first-scroll pattern-interrupt line", "hero_headline": "", "intro_paragraph": "", "body_paragraph": "", "benefits": ["sensory benefit 1","benefit 2","benefit 3"], "rating": null, "reviews": [], "badges": [], "guarantee": "", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
- "landing": { "hero_headline": "", "hero_sub": "", "why_title": "", "why_bullets": ["","",""], "proof_quote": "", "proof_author": "", "faq": [{"q":"","a":""},{"q":"","a":""}], "cta": "", "image_brief": "" },
- "ads": {
-   "meta": { "primary_text": "", "headline": "", "description": "", "image_brief": "" },
-   "google": { "headlines": ["","",""], "descriptions": ["",""], "image_brief": "" },
-   "tiktok": { "script": "", "caption": "", "image_brief": "" }
- }
-}
-
-"rating", "reviews", "badges", "guarantee", "proof_quote" and "proof_author" are shown above at their EMPTY values on purpose. Fill them ONLY by copying an entry out of the APPROVED PROOF LIBRARY block above, verbatim. If that block says the library is empty, leave them exactly as shown. Do not treat the empty values as placeholders to be filled in.`;
+"rating", "reviews", "badges", "guarantee", "proof_quote" and "proof_author" are filled ONLY by copying an entry out of the APPROVED PROOF LIBRARY block above, verbatim. If that block says the library is empty, the answer is "rating": null, "reviews": [], "badges": [] and empty strings for the other three. Do not treat the empty values as placeholders to be filled in.`;
 }
 
 // A generic system stack, never a brand's: these were tenant zero's two
@@ -2225,7 +2274,7 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
     let json = null;
     try { json = parseJSON(res.text); } catch (_) { json = null; }
     if (json && json.email && json.landing && json.ads) {
-      return { copy: json, provider: res.provider, model: res.model };
+      return { copy: json, provider: res.provider, model: res.model, output_check: OC.validate(json, copyOutputSpec(entry)) };
     }
     // Non-empty but incomplete/unparseable (usually a reasoning model truncating
     // the big JSON). Retry with more room / a fresh roll of the waterfall.

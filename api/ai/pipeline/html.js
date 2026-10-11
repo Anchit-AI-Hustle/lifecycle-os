@@ -126,10 +126,29 @@ FOOTER: cell on ${t.primary}, ${t.onPrimary} text at full opacity: "${esc(b.name
 - No leftover [BRACKET PLACEHOLDERS] except DATA REQUIRED markers. No invented figure anywhere.
 
 ━━ OUTPUT ━━
-Return ONLY the complete HTML document. Start with <!DOCTYPE html>, end with </html>. No markdown fences, no commentary.`;
+The OUTPUT REQUIREMENT at the end of this prompt pins the container. Return the HTML document and nothing else.`;
+}
+
+/** What this stage returns: the OUTPUT REQUIREMENT and the spec the answer is read by. */
+function outputSpec(ctx, o) {
+  const text = ctx.mailerType === 'text';
+  return {
+    id: 'pipeline.html', kind: 'asset', format: 'html', brand: ctx.brand.name, region: ctx.market,
+    returns: `ONE complete, paste-ready HTML email for Variant ${o.variant} (${text ? 'TEXT' : 'TEXT + GRAPHICS'}) that implements the creative plan exactly.`,
+    forbid: ['a screenshot, picture or mock-up of the email', 'a plan or a list of sections', 'markdown'],
+    lines: [
+      `Table-based layout at a ${W}px content column, inline CSS on every element, no <script>, no flexbox or grid.`,
+      text ? 'No <img> element anywhere.' : 'Photograph slots use the exact src strings IMAGE_HERO_URL, IMAGE_PRODUCT_URL, IMAGE_LIFESTYLE_URL; never a data: URL, never an invented URL.',
+      'Every DATA REQUIRED marker in the plan appears verbatim where its section stands.',
+    ],
+  };
 }
 
 function userMessage(ctx, o) {
+  return P.OC.append(task(ctx, o), outputSpec(ctx, o));
+}
+
+function task(ctx, o) {
   const plan = o.plan;
   const strategy = o.strategy;
   const t = ctx.tokens;
@@ -475,7 +494,9 @@ async function handler(req, res) {
       userGeminiKey: ctx.userGeminiKey,
     });
 
-    let html = String(text || '').trim();
+    // Read by the same spec it was briefed with: fences removed, the document
+    // cut from <!doctype html> to </html>.
+    let html = P.OC.parse(text, outputSpec(ctx, o));
     html = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
 
     // The store placeholder resolves to THIS brand's store for THIS market; a

@@ -38,13 +38,13 @@ function auditFacts(brand) {
   try { b = rt.scopedBrand(brand, { allowTenantZero: true }); } catch (_) { b = brand || {}; }
   const f = rt.promptFacts(b);
   return {
-    who: `${f.name} (${f.descriptor})`,
+    who: `${f.name} (${f.descriptor})`, name: f.name,
     banned: f.banned.length ? f.banned.join(', ') : 'none on file',
     preferred: f.preferred.length ? f.preferred.join(', ') : "the brand's own vocabulary",
     palette: f.palette, typography: f.typography,
   };
 }
-const SCORE_SYSTEM_FOR = (A) => `You are a senior email marketing quality auditor for ${A.who}. You are scoring a mailer SPEC (strategy + two variant plans + copy + image prompts, as JSON) BEFORE it is built into HTML. Output STRICT JSON only — no commentary, no markdown.
+const SCORE_SYSTEM_FOR = (A) => `You are a senior email marketing quality auditor for ${A.who}. You are scoring a mailer SPEC (strategy + two variant plans + copy + image prompts, as JSON) BEFORE it is built into HTML.
 
 ━━ SCORING CRITERIA (0-10 each) ━━
 
@@ -70,12 +70,7 @@ variant_divergence:
   5  = Some differences but same general feel
   0  = B is a reskin of A
 
-━━ OUTPUT SCHEMA ━━
-{
-  "scores": { "strategy_alignment": 0-10, "content_density": 0-10, "copy_quality": 0-10, "variant_divergence": 0-10 },
-  "overall": 0-10,
-  "critique": "2-4 sentences naming the SPECIFIC weakest fields/sections and exactly what to change (quote the offending copy where useful)"
-}`;
+The answer is the JSON object the OUTPUT REQUIREMENT at the end of the request describes.`;
 
 const REVISE_SYSTEM_FOR = (A) => `You are the Creative Director + Director of Growth at ${A.who}. A quality auditor scored the mailer spec below under the pass threshold. Revise it to fix EVERY point in the critique while preserving everything that already works.
 
@@ -86,7 +81,24 @@ HARD RULES:
 - BANNED: ${A.banned}.
 - PREFERRED: ${A.preferred}.
 - Variant B must stay structurally opposite to Variant A (narrative-led, no product grids, understated CTA).
-First char { · last char }. No markdown, no commentary.`;
+The answer is the object the OUTPUT REQUIREMENT at the end of the request describes.`;
+
+// What the auditor and the reviser return (output-contract.js): the OUTPUT
+// REQUIREMENT each request ends with. The reviser's shape is the input spec's
+// own, read off it, so "the same keys as the input" is a list, not a hope.
+const OC = require('./output-contract.js');
+function scoreSpec(A) {
+  const s = { type: 'number', min: 0, max: 10 };
+  return { id: 'quality-loop.score', kind: 'data', format: 'json', brand: A.name, missing: false,
+    returns: 'ONE JSON object: the 0-10 score on each of the four criteria, the overall score, and the critique.',
+    schema: { scores: { type: 'object', of: { strategy_alignment: s, content_density: s, copy_quality: s, variant_divergence: s } }, overall: s,
+      critique: { type: 'string', note: '2-4 sentences naming the specific weakest fields or sections and exactly what to change, quoting the offending copy' } } };
+}
+function reviseSpec(A, spec) {
+  return { id: 'quality-loop.revise', kind: 'data', format: 'json', brand: A.name, extraKeys: true,
+    returns: 'ONE JSON object: the COMPLETE revised mailer spec, with exactly the top-level keys of the CURRENT SPEC JSON.',
+    schema: OC.schemaOf(spec, 1) };
+}
 
 function _num(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
 
@@ -131,10 +143,9 @@ async function runQualityLoop({ spec, brief = '', userGeminiKey = '', timeBoxMs 
     const specJson = JSON.stringify(spec);
     const scoreOut = await withDeadline(callLLM({
       systemPrompt: SCORE_SYSTEM,
-      userMessage:
+      userMessage: OC.append(
         (brief ? 'CAMPAIGN CONTEXT:\n' + String(brief).slice(0, 1500) + '\n\n' : '') +
-        'MAILER SPEC JSON:\n' + specJson.slice(0, 14000) +
-        '\n\nScore the spec on all 4 criteria now. Return the JSON.',
+        'MAILER SPEC JSON:\n' + specJson.slice(0, 14000), scoreSpec(A)),
       responseFormat: { type: 'json_object' },
       maxTokens: 600,
       temperature: 0.15,           // near-deterministic, same as score.js
@@ -158,12 +169,11 @@ async function runQualityLoop({ spec, brief = '', userGeminiKey = '', timeBoxMs 
     const dims = JSON.stringify((scored && scored.scores) || {});
     const reviseOut = await withDeadline(callLLM({
       systemPrompt: REVISE_SYSTEM,
-      userMessage:
+      userMessage: OC.append(
         'AUDITOR SCORES: ' + dims + ' (overall ' + quality.score + '/10, pass threshold ' + PASS_THRESHOLD + ')\n' +
         'AUDITOR CRITIQUE: ' + critique + '\n\n' +
         (brief ? 'CAMPAIGN CONTEXT:\n' + String(brief).slice(0, 1200) + '\n\n' : '') +
-        'CURRENT SPEC JSON:\n' + specJson.slice(0, 30000) +
-        '\n\nReturn the complete revised spec JSON now.',
+        'CURRENT SPEC JSON:\n' + specJson.slice(0, 30000), reviseSpec(A, spec)),
       responseFormat: { type: 'json_object' },
       maxTokens: 7000,
       temperature: 0.6,

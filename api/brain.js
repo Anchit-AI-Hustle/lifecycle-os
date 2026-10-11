@@ -56,6 +56,9 @@ try { snowflake = require('./_shared/snowflake-sync-core.js'); } catch (_) { sno
 
 let callLLM = null;
 try { callLLM = require('./_shared/llm.js'); } catch (_) { callLLM = null; }
+// Every prompt this router builds directly ends with the OUTPUT REQUIREMENT
+// block (api/_shared/output-contract.js): what to return and in what format.
+const OC = require('./_shared/output-contract.js');
 
 function body(req) {
   if (!req.body) return {};
@@ -1232,7 +1235,8 @@ Next 60 calendar slots: ${JSON.stringify(status)}
 Weekly recalibration: ${JSON.stringify(recal)}`;
         let reply = '';
         try {
-          const out = await callLLM({ systemPrompt: sys, userMessage: String(b.message || ''), maxTokens: 700, temperature: 0.4, timeoutMs: 35000, stage: 'console' });
+          const out = await callLLM({ systemPrompt: sys, userMessage: OC.append(String(b.message || ''), { id: 'brain.console-chat', kind: 'reply', format: 'text', brand: (_cb && _cb.name) || 'this brand', missing: 'say',
+            returns: 'ONE reply to the operator: the answer with the exact numbers from LIVE CONTEXT first; when an action is asked for, the button or endpoint that performs it. A few short sentences or a tight list.', formatRule: 'Plain text only. A list may use "- " at the start of a line.' }), maxTokens: 700, temperature: 0.4, timeoutMs: 35000, stage: 'console' });
           reply = (typeof out === 'string' ? out : out.text || '').trim();
         } catch (e) { reply = `Provider error: ${e.message}. Data endpoints remain available.`; }
         return res.json({ ok: true, reply });
@@ -1287,7 +1291,8 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         const sys = policy + '\n\nWrite a concise executive summary (200-350 words): headline risk posture, the most material access findings, the most material app/cost findings, the estimated avoidable annual run-rate, and the top 5 prioritised recommendations. Use plain hyphens, no em dashes.';
         let narrative = '';
         try {
-          const out = await callLLM({ systemPrompt: sys, userMessage: 'AUDIT REPORT JSON:\n' + JSON.stringify(report).slice(0, 12000), maxTokens: 800, temperature: 0.3, timeoutMs: 35000, stage: 'access-audit' });
+          const out = await callLLM({ systemPrompt: sys, userMessage: OC.append('AUDIT REPORT JSON:\n' + JSON.stringify(report).slice(0, 12000), { id: 'brain.access-narrative', kind: 'reply', format: 'markdown', missing: 'Where the report lacks a fact, write "not in the report" and name the missing evidence; never infer team, agency, purpose, cost or justification.',
+            returns: 'ONE executive summary of 200-350 words: headline risk posture, the most material access findings, the most material app and cost findings, the estimated avoidable annual run-rate as the report states it, and the top 5 prioritised recommendations, with observed fact, inferred finding, missing evidence and recommended action kept apart.', forbid: ['an instruction to perform a mutation, an install or an uninstall', 'em or en dashes'] }), maxTokens: 800, temperature: 0.3, timeoutMs: 35000, stage: 'access-audit' });
           narrative = (typeof out === 'string' ? out : out.text || '').trim();
         } catch (e) { return res.json({ ok: false, error: 'Provider error: ' + e.message }); }
         return res.json({ ok: true, narrative });

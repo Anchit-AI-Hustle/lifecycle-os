@@ -113,7 +113,7 @@ function mailerContract(variant, cf) {
     return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
 A finished email that stands on its own with zero images: type, rules, colour and space do all the work. Not a copy deck, and not a description of an email — the email.
 It must CONTAIN, in this order:
-1. Subject lines and preheader (give 3 subject options ≤50 chars and 1 preheader ≤90 chars above the HTML).
+1. Subject lines and preheader (3 subject options and 1 preheader, in their own sections before the HTML, inside the limits the OUTPUT REQUIREMENT states).
 2. An editorial hero headline and an opening line that earns the scroll.
 3. Body: 2–3 short story-driven paragraphs (origin, everyday use, why-now).
 4. A benefit triplet, 3 crisp lines.
@@ -124,7 +124,7 @@ Compact, around two scrolls. Because there are no images, every structural cue h
   return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
 The same persuasion as V1, laid out with imagery. A finished email, not a layout plan and not a set of section notes.
 It must CONTAIN, in this order:
-1. Subject lines and preheader (3 options and 1 preheader, above the HTML).
+1. Subject lines and preheader (3 options and 1 preheader, in their own sections before the HTML).
 2. A hero: headline, opening line, and a hero image as an <img> pointing at a hosted URL I supplied. Where I supplied no image for a slot, leave the slot out and put the shot description in an HTML comment beside it — never a placeholder service, never an invented URL.
 3. Body sections carrying the argument, each with its own copy and, where an image was supplied, its own visual.
 4. A motion slot — an animated GIF or a short product video — placed where it earns attention, with its brief in an HTML comment. If it is a video, score it to ${cf.audio}. Never a licensed or trending sound.
@@ -143,8 +143,8 @@ function adContract(platform, cf) {
   // sourced from asset-specs.js (single source of truth) so every placement size
   // stays canonical and complete across the whole app.
   const copyGuide = {
-    google: 'Google (Responsive Search + Performance Max): 15 headlines (≤30 chars), 4 descriptions (≤90 chars), long headline (≤90), business name.',
-    meta: 'Meta (Facebook/Instagram Feed + Reels + Stories): primary text (≤125 chars before truncation), headline (≤40), description.',
+    google: `Google (Responsive Search + Performance Max): ${copyLimits('google')}; business name.`,
+    meta: `Meta (Facebook/Instagram Feed + Reels + Stories): ${copyLimits('meta')}.`,
     instagram: 'Instagram (Feed + Reels + Stories): caption with hook in first line + hashtags.',
     tiktok: `TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, caption, and 3 hashtag options. AUDIO: score it to ${cf.audio}. Give the exact beat-sync moments (which cut lands on which downbeat). NEVER specify a trending/licensed sound for a paid ad. Always burn in captions — most feed views start muted. The produced creative is a cover keyframe (the script is a brief for a separate shoot/edit).`,
   };
@@ -239,10 +239,10 @@ function buildMasterPrompt(o = {}) {
     ``,
     contract,
     ``,
-    `QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims. If you must assume a detail, choose the most on-brand option and proceed — do not ask questions.`,
+    `QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims. Do not ask questions: where a fact is missing, write the DATA REQUIRED marker the OUTPUT REQUIREMENT names and carry on.`,
     extra ? `\nADDITIONAL CONSTRAINTS:\n${String(extra).trim()}` : '',
     ``,
-    outputFormat(assetType, platform),
+    outputFormat(assetType, platform, brandName, market),
   ].filter((l) => l !== '').join('\n').trim();
 }
 
@@ -284,39 +284,61 @@ function deliverable(assetType, platform, variant) {
  * one. Naming the artefact, the container and what must NOT come back removes
  * the ambiguity.
  */
-function outputFormat(assetType, platform) {
+/*
+ * Since 2026-10-11 the closing block IS the shared OUTPUT REQUIREMENT
+ * (output-contract.js), so a pasted asset prompt ends exactly like every
+ * prompt the app sends: the deliverable, how to mark missing data, what not to
+ * return, and the container LAST. The mailer used to say "ONE email HTML
+ * document" and, two lines later, "Before the HTML, give: 3 subject lines...":
+ * a format that cannot be both. It is four labelled sections now, the last of
+ * which is the HTML document. Character limits are READ from asset-contracts.
+ */
+const OC = require('./output-contract.js');
+function copyLimits(platform) {
+  const L = require('./asset-contracts.js').slotLimit;
+  const p = String(platform || 'meta').toLowerCase();
+  if (p === 'google') return `headlines 3-15, each at most ${L('ad.google.rsa', 'headlines')} characters; descriptions 2-4, each at most ${L('ad.google.rsa', 'descriptions')}; path1 and path2 at most ${L('ad.google.rsa', 'path1')} each`;
+  if (p === 'tiktok') return `script (the hook in the first second); caption at most ${L('ad.tiktok.video', 'caption')} characters; 3 hashtag options`;
+  return `primary text at most ${L('ad.meta.static', 'primary_text')} characters; headline at most ${L('ad.meta.static', 'headline')}; description at most ${L('ad.meta.static', 'description')}`;
+}
+function outputSpec(assetType, platform, brandName, market) {
   const t = String(assetType || 'mailer').toLowerCase();
-  const common = 'Return the artefact itself and nothing else: no preamble, no explanation of what you did, no markdown fence around the whole answer, no follow-up questions.';
-
+  const base = { kind: 'asset', brand: brandName, region: market,
+    forbid: ['a preamble or an explanation of what you did', 'base64 or data: URIs (Never base64: every image is a hosted URL supplied in this prompt)', 'a placeholder image service or an invented image URL'] };
   if (t === 'ad') {
-    return [
-      'OUTPUT FORMAT — return ALL of these, in this order, with these exact headings:',
-      '1. COPY — every field this platform requires, each on its own line, each within its character limit.',
-      '2. CREATIVE — a complete, self-contained HTML block that renders the ad unit at the correct aspect ratio, using ONLY hosted image URLs I have supplied (never base64, never a placeholder service).',
-      '3. IMAGE BRIEF — the shot description, only if a photograph still needs to be produced.',
-      '4. WHY — two lines on the angle and who it is for.',
-      common,
-    ].join('\n');
+    return Object.assign(base, { id: 'master-prompt.ad.' + String(platform || 'meta').toLowerCase(), format: 'sections',
+      returns: `ONE complete ${String(platform || 'meta').toUpperCase()} ad unit, ready to upload: its copy, its creative and the reasoning.`,
+      formatRule: 'OUTPUT FORMAT: return ALL of these, in this order, each starting with its exact heading on its own line:',
+      lines: [
+        `1. COPY: every field this platform requires, each on its own line (${copyLimits(platform)}).`,
+        '2. CREATIVE: a complete, self-contained HTML block that renders the ad unit at the correct aspect ratio, using ONLY hosted image URLs I have supplied (never base64, never a placeholder service).',
+        '3. IMAGE BRIEF: the shot description, only if a photograph still needs to be produced.',
+        '4. WHY: two lines on the angle and who it is for.',
+      ] });
   }
-
   if (t === 'landing_page' || t === 'lp') {
-    return [
-      'OUTPUT FORMAT: ONE HTML document, complete and self-contained.',
-      'It must start with <!doctype html> and end with </html>. All CSS inline in a <style> block. No external stylesheet, no framework, no build step.',
-      'Every image is an <img> pointing at a hosted URL I supplied. Never base64. Never a placeholder image service. If I supplied no image for a slot, leave the slot out rather than inventing a source.',
-      'The page must render correctly with JavaScript disabled.',
-      common,
-    ].join('\n');
+    return Object.assign(base, { id: 'master-prompt.landing', format: 'html',
+      returns: 'ONE complete, self-contained landing page as a single HTML document I can save and open.',
+      formatRule: 'OUTPUT FORMAT: ONE HTML document, complete and self-contained.',
+      lines: [
+        'It must start with <!doctype html> and end with </html>. All CSS inline in a <style> block. No external stylesheet, no framework, no build step.',
+        'Every image is an <img> pointing at a hosted URL I supplied. Never base64. Never a placeholder image service. If I supplied no image for a slot, leave the slot out rather than inventing a source.',
+        'The page must render correctly with JavaScript disabled.',
+      ] });
   }
-
-  return [
-    'OUTPUT FORMAT: ONE email HTML document, complete and paste-ready.',
-    'Table-based layout (Outlook renders with the Word engine), max 600px content column, all CSS inline on the elements. No <style> in the head that the layout depends on, no flexbox or grid, no JavaScript.',
-    'Every image is an <img> with a hosted URL I supplied plus real alt text. Never base64: Gmail clips a message past roughly 102KB and the mailer would be cut mid-layout.',
-    'The email must read completely with images disabled.',
-    'Before the HTML, give: 3 subject lines, 1 preheader, and the plain-text version.',
-    common,
-  ].join('\n');
+  const L = require('./asset-contracts.js').slotLimit;
+  return Object.assign(base, { id: 'master-prompt.mailer', format: 'sections',
+    returns: 'ONE complete email mailer, ready to paste into an ESP: its subject lines, preheader, plain-text version and HTML.',
+    formatRule: 'OUTPUT FORMAT: ONE email HTML document, complete and paste-ready, returned as the LAST of four labelled sections: SUBJECT LINES, PREHEADER, PLAIN TEXT, HTML.',
+    lines: [
+      `SUBJECT LINES: 3, one per line, each at most ${L('email.mailer', 'subject')} characters. PREHEADER: 1, at most ${L('email.mailer', 'preheader')} characters. PLAIN TEXT: the whole email as text.`,
+      'HTML: Table-based layout (Outlook renders with the Word engine), max 600px content column, all CSS inline on the elements. No <style> in the head that the layout depends on, no flexbox or grid, no JavaScript.',
+      'Every image is an <img> with a hosted URL I supplied plus real alt text. Never base64: Gmail clips a message past roughly 102KB and the mailer would be cut mid-layout.',
+      'The email must read completely with images disabled.',
+    ] });
+}
+function outputFormat(assetType, platform, brandName, market) {
+  return OC.block(outputSpec(assetType, platform, brandName || 'this brand', market));
 }
 
 /* ═══ Element prompts ═════════════════════════════════════════════════════
@@ -355,8 +377,10 @@ function buildElementPrompt(brief, o = {}) {
   const partOf = String(o.partOf || 'the finished asset').trim();
   const head = `DELIVERABLE: ${produces} — ONE ELEMENT of ${partOf}, not the asset itself. Do not return an email, an ad unit or a page. Return only this element.`;
   const foot = (produces === ELEMENT_LABEL.copy)
-    ? 'Return the copy only. No commentary.'
-    : 'Return the image only. No text baked into the image, no watermark, no logo, no border, no collage of options. One frame.';
+    ? 'OUTPUT: the copy only, as plain text. No commentary, no JSON, no HTML.'
+    : (produces === ELEMENT_LABEL.video
+      ? 'OUTPUT: the clip only. One clip. No text baked into the frames unless the brief asks for it, no watermark, no logo.'
+      : 'OUTPUT: the image only. No text baked into the image, no watermark, no logo, no border, no collage of options. One frame.');
   return [head, '', text, '', foot].join('\n');
 }
 

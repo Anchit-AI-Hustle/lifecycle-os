@@ -2165,12 +2165,20 @@ async function observeVoice(samples, opts) {
     '3. "preferred_vocabulary" may contain ONLY words or phrases that appear verbatim in the excerpts.',
     '4. If the excerpts are too thin or too generic to observe a tone, return {"tone": null} and say why in "why_not". Returning null is a correct answer; a plausible guess is not.',
     '5. Never output em dashes or en dashes.',
-    'Return ONLY JSON: {"tone": string|null, "preferred_vocabulary": string[], "notes": string, "evidence": [{"quote": string, "supports": string}], "why_not": string}',
   ].join('\n');
+  const voiceSpec = { id: 'brand-extract.voice', kind: 'data', format: 'json', missing: 'If the excerpts are too thin or too generic to observe a tone, "tone" is null and "why_not" says why. Null is a correct answer; a plausible guess is not.',
+    returns: 'ONE JSON object: the tone of voice observed in the excerpts, with the verbatim quotes that show it.',
+    schema: {
+      tone: { type: 'string', required: false, note: 'the observed tone, or null' },
+      preferred_vocabulary: { type: 'array', items: { type: 'string', note: 'a word or phrase that appears verbatim in the excerpts' } },
+      notes: 'string',
+      evidence: { type: 'array', items: { type: 'object', of: { quote: { type: 'string', note: 'VERBATIM from the excerpts' }, supports: 'string' } } },
+      why_not: { type: 'string', note: 'why no tone could be observed; an empty string when one was' },
+    } };
   try {
     const r = await callLLM({
       systemPrompt: system,
-      userMessage: `Excerpts from the brand's own website:\n\n${corpus.slice(0, 12000)}`,
+      userMessage: require('./output-contract.js').append(`Excerpts from the brand's own website:\n\n${corpus.slice(0, 12000)}`, voiceSpec),
       responseFormat: { type: 'json_object' },
       maxTokens: 900, temperature: 0.2, stage: 'brand-extract:voice',
       timeoutMs: o.voiceMs || DEFAULTS.voiceMs,

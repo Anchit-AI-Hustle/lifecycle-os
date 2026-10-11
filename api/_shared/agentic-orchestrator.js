@@ -20,6 +20,8 @@ const plan = require('./smart-brain-plan.js');
 const { buildScenarios } = require('./calendar-scenarios.js');
 const { ideate } = require('./agentic-ideation.js');
 let callLLM; try { callLLM = require('./llm.js'); } catch (_) { callLLM = null; }
+// Every prompt here ends with its OUTPUT REQUIREMENT (output-contract.js).
+const OC = require('./output-contract.js');
 
 function trim(obj, n = 1400) {
   try { const s = JSON.stringify(obj); return s.length > n ? (s.slice(0, n) + '…') : obj; }
@@ -50,8 +52,16 @@ function cohortLabel(c) {
 async function planningStage(analysis, market, tier) {
   if (!callLLM) return { provider: 'fallback', objective: 'Re-engage proven cohorts with bestsellers; protect margin.', cohorts: [], heroAngles: [], northStarMetric: 'revenue' };
   try {
-    const sys = "You are " + brandNameForPrompt() + "'s growth strategist. Given the analysis, set the 30-day STRATEGIC LOCK. Return STRICT JSON {\"objective\",\"cohorts\":[\"..\"],\"heroAngles\":[\"..\"],\"northStarMetric\"}. No banned phrases.";
-    const user = `MARKET ${market}\nANALYSIS ${JSON.stringify({ cohorts: (analysis.cohorts || []).slice(0, 8), winners: (analysis.winningCampaigns || analysis.winning_campaigns || []).slice(0, 5) })}\nReturn JSON.`;
+    const sys = "You are " + brandNameForPrompt() + "'s growth strategist. Given the analysis, set the 30-day STRATEGIC LOCK. No banned phrases.";
+    const user = OC.append(`MARKET ${market}\nANALYSIS ${JSON.stringify({ cohorts: (analysis.cohorts || []).slice(0, 8), winners: (analysis.winningCampaigns || analysis.winning_campaigns || []).slice(0, 5) })}`, {
+      id: 'agentic.planning', kind: 'data', format: 'json', brand: brandNameForPrompt(), region: market,
+      returns: 'ONE JSON object: the 30-day strategic lock for this market.',
+      schema: {
+        objective: { type: 'string', note: 'one sentence, measurable' },
+        cohorts: { type: 'array', count: [1, 8], items: { type: 'string', note: 'a cohort NAME from ANALYSIS' } },
+        heroAngles: { type: 'array', count: [1, 5], items: 'string' },
+        northStarMetric: 'string',
+      } });
     const out = await callLLM({ systemPrompt: sys, userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 700, tier, stage: 'agentic-planning' });
     return Object.assign({ provider: out.provider || 'llm' }, callLLM.parseJSON(typeof out === 'string' ? out : out.text));
   } catch (_) { return { provider: 'fallback', objective: 'fallback strategy', cohorts: [], heroAngles: [] }; }
@@ -60,8 +70,13 @@ async function planningStage(analysis, market, tier) {
 async function reviewStage(campaign, tier) {
   if (!callLLM) return { provider: 'fallback', score: 7, pass: true, weak_points: [], retry_reason: '' };
   try {
-    const sys = "You are a strict brand-QA reviewer for " + brandNameForPrompt() + ". Score the generated campaign 0-10 on brand-voice fit, clarity, conversion strength, and absence of banned phrases. Return STRICT JSON {\"score\":0-10,\"pass\":boolean,\"weak_points\":[\"..\"],\"retry_reason\":\"\"}. pass=true only if score>=7.";
-    const out = await callLLM({ systemPrompt: sys, userMessage: `CAMPAIGN ${JSON.stringify(campaign).slice(0, 3000)}\nReturn JSON.`, responseFormat: { type: 'json_object' }, maxTokens: 500, tier, stage: 'agentic-review' });
+    const sys = "You are a strict brand-QA reviewer for " + brandNameForPrompt() + ". Score the generated campaign 0-10 on brand-voice fit, clarity, conversion strength, and absence of banned phrases. pass=true only if score>=7.";
+    const userMessage = OC.append(`CAMPAIGN ${JSON.stringify(campaign).slice(0, 3000)}`, {
+      id: 'agentic.review', kind: 'data', format: 'json', brand: brandNameForPrompt(), missing: false,
+      returns: 'ONE JSON object: the review score, the pass verdict, the weak points and the retry reason.',
+      schema: { score: { type: 'number', min: 0, max: 10 }, pass: { type: 'boolean', note: 'true only if score >= 7' },
+        weak_points: { type: 'array', items: 'string' }, retry_reason: { type: 'string', note: 'an empty string when pass' } } });
+    const out = await callLLM({ systemPrompt: sys, userMessage, responseFormat: { type: 'json_object' }, maxTokens: 500, tier, stage: 'agentic-review' });
     const p = callLLM.parseJSON(typeof out === 'string' ? out : out.text);
     p.provider = out.provider || 'llm';
     if (typeof p.pass !== 'boolean') p.pass = Number(p.score) >= 7;

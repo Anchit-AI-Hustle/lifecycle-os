@@ -227,12 +227,9 @@ async function fetchPageBrief(url) {
 
 // ── Media references (image / video) ───────────────────────────────────────
 
-const VISION_INSTRUCTION = `You are a paid-media creative analyst. Describe the attached reference EXACTLY as it is, so a copywriter who cannot see it can build a same-shaped creative for a different brand.
-
-Report ONLY what is genuinely observable. If something is unclear, say "not legible" or "not visible". Never guess a brand, price, discount, rating, review count or claim that you cannot actually read in the asset — an invented figure would be copied into a live campaign as fact.
-
-Return plain text under these headings:
-FORMAT: still image or video; aspect ratio; where it would run (feed, story/reel, search, display) if evident.
+// The nine sections the description is returned in. They close the prompt as
+// its OUTPUT REQUIREMENT (output-contract.js) rather than sitting above it.
+const VISION_SECTIONS = `FORMAT: still image or video; aspect ratio; where it would run (feed, story/reel, search, display) if evident.
 SUBJECT: what is physically shown — product, people, setting, packaging.
 COMPOSITION: layout, focal point, negative space, where text sits, crop.
 COLOUR & TREATMENT: palette, lighting, grade, texture.
@@ -240,7 +237,19 @@ ON-ASSET TEXT: every word baked into the asset, transcribed VERBATIM, in reading
 OFFER & CLAIMS: any price, discount, guarantee, rating or claim, transcribed verbatim. Write "none stated" if absent.
 CTA: the call-to-action wording, verbatim.
 MOTION (video only): shot-by-shot beats with rough timings, pacing, transitions, on-screen text timing, and any spoken words you can hear, transcribed verbatim.
-WHY IT WORKS: the persuasion mechanic — the hook in the first beat, the promise, the proof, the ask.`;
+WHY IT WORKS: the persuasion mechanic — the hook in the first beat, the promise, the proof, the ask.`.split('\n');
+
+const VISION_INSTRUCTION = `You are a paid-media creative analyst. Describe the attached reference EXACTLY as it is, so a copywriter who cannot see it can build a same-shaped creative for a different brand.
+
+Report ONLY what is genuinely observable. If something is unclear, say "not legible" or "not visible". Never guess a brand, price, discount, rating, review count or claim that you cannot actually read in the asset — an invented figure would be copied into a live campaign as fact.
+
+` + require('./output-contract.js').block({
+  id: 'reference-intel.vision', kind: 'element', format: 'sections',
+  missing: 'Write "not legible", "not visible" or "none stated"; never guess a brand, price, discount, rating, review count or claim.',
+  returns: 'ONE plain-text description of the attached reference under the nine labelled sections below, so a copywriter who cannot see it can build a same-shaped creative.',
+  forbid: ['an image', 'a rewritten or improved version of the creative'],
+  lines: VISION_SECTIONS,
+});
 
 async function visionGemini(item) {
   const key = envKey('GEMINI_API_KEY');
@@ -476,4 +485,5 @@ module.exports = {
   parseDataUri,
   MAX_IMAGE_BYTES,
   MAX_VIDEO_BYTES,
+  VISION_INSTRUCTION,
 };
