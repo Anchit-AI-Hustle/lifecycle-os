@@ -79,6 +79,7 @@ const UNIQUE = {
   social_gateway_settings: [['workspace_id']],
   contact_touch_ledger: [['workspace_id', 'source', 'source_ref', 'subject_key']],  // contact_touch_dedupe_idx
   contact_fatigue_rules: [['workspace_id']],                                       // primary key
+  brand_catalog_import_queue: [['workspace_id', 'run_id', 'market', 'url']],       // 20261011054000 brand_catalog_import_queue_key
 };
 
 /**
@@ -87,7 +88,7 @@ const UNIQUE = {
  * user's insert with 42501. Modelled because the contact ledger's "a member
  * cannot hand-edit what reached a customer" is exactly that grant.
  */
-const SERVICE_WRITE_ONLY = new Set(['contact_touch_ledger']);
+const SERVICE_WRITE_ONLY = new Set(['contact_touch_ledger', 'brand_catalog_import_queue']);
 
 /**
  * CHECK constraints, from 20261004093700_contact_ledger_fatigue.sql, with the
@@ -124,7 +125,7 @@ const WORKSPACE_SCOPED = new Set([
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
   'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
-  'brand_catalog_products',
+  'brand_catalog_products', 'brand_catalog_import_queue',
   // is_brand_member policies (20260813120000 / 20260810120000)
   'brand_competitors', 'kb_knowledge',
 ]);

@@ -1183,7 +1183,7 @@ async function assertPublicUrl(rawUrl) {
  * The SSRF guard runs on EVERY request the importer makes (each redirect hop
  * included), with the answer for a host cached for the run.
  */
-async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope, single } = {}) {
+async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope, single, queue } = {}) {
   const candidate = httpUrl(startUrl) || (scope && scope.website) || '';
   if (!candidate) { const e = new Error('A store URL is required.'); e.status = 400; throw e; }
   const base = await assertPublicUrl(candidate);
@@ -1210,7 +1210,7 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
   // it came from. `single` keeps the one-market read (a caller that asked for
   // exactly one store).
   const ci = require('./catalog-import.js');
-  const out = single ? await ci.step({ url: base, region, brand, cursor, guard, budgetMs }) : await ci.stepAll({ url: base, region, brand, cursor, guard, budgetMs });
+  const out = single ? await ci.step({ url: base, region, brand, cursor, guard, budgetMs, queue }) : await ci.stepAll({ url: base, region, brand, cursor, guard, budgetMs, queue });
   return {
     // `base` is the store ACTUALLY read (2026-10-10). It was the URL asked for,
     // so a read the importer moved to a region's store recorded the brand's
@@ -1882,7 +1882,7 @@ async function assertCanWrite(auth, workspaceId, what) {
  *
  * `cursor` resumes a store read a previous invocation could not finish.
  */
-async function readCatalogSource({ region, kind, text, url, scope, cursor, budgetMs }) {
+async function readCatalogSource({ region, kind, text, url, scope, cursor, budgetMs, queue }) {
   // Rows are filed under the region asked for, else the brand's HOME market
   // (its record's flag) - never a literal 'us' (2026-10-05). The wizard
   // already refuses without a home market; this is the same rule one layer
@@ -1911,7 +1911,7 @@ async function readCatalogSource({ region, kind, text, url, scope, cursor, budge
 
   let parsed;
   if (k === 'storefront' || k === 'shopify_public' || k === 'site' || k === 'site_crawl') {
-    parsed = await rowsFromStore(url, reg, scope, { cursor, budgetMs, strictScope: k === 'site' || k === 'site_crawl' });
+    parsed = await rowsFromStore(url, reg, scope, { cursor, budgetMs, strictScope: k === 'site' || k === 'site_crawl', queue });
   } else if (k === 'json') parsed = fileCoverage(rowsFromJson(text, reg), 'JSON export', reg);
   else if (k === 'csv') parsed = fileCoverage(rowsFromCsv(text, reg), 'CSV', reg);
   else { const e = new Error('kind must be one of: csv, json, storefront, site.'); e.status = 400; throw e; }
@@ -2191,7 +2191,9 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
       prior = null;
     } else url = priorStart || url;
   }
-  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws, cursor: prior ? prior.cursor : null, budgetMs });
+  // The product URL queue lives in its own table for an account brand (no
+  // per-market cap); the workspace is named on every query against it.
+  const { parsed, reg, k } = await readCatalogSource({ region, kind, text, url, scope: ws, cursor: prior ? prior.cursor : null, budgetMs, queue: { workspace: workspace_id } });
   if (restarted && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.unshift(restarted);
   const rows = uniqueRows(parsed.rows);
   const run = parsed.run || require('crypto').randomUUID();
