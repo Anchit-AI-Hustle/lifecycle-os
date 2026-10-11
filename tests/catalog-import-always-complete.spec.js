@@ -198,7 +198,8 @@ test('a sitemap whose Retry-After is longer than a step may wait is kept at the 
   st.stores['bigmarket.example'].longRetry = 25;
   try {
     const brand = { website: 'https://bigmarket.example', regions: [{ code: 'IN', home: true }] };
-    const first = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://bigmarket.example', brand, budgetMs: 40000 });
+    // A call too short to wait 25 s stops at the sitemap, keeping it.
+    const first = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://bigmarket.example', brand, budgetMs: 20000 });
     expect(first.complete).toBe(false);
     expect(first.coverage.stopped).toMatchObject({ reason: 'rate_limited', retry_after: '25' });
     expect(first.coverage.not_before).toBeTruthy();
@@ -495,39 +496,186 @@ test('/connections follows an import continuing by itself until it is complete, 
        Nykaa's blog "product-reviews" sitemaps, product index and throttling
    ═══════════════════════════════════════════════════════════════════════════ */
 
-test('an IN import reads ONLY the IN store: /en-us/, /en-ae/, /ar-sa/ sitemaps are another market\'s, named with their counts, never read for IN; a row in another currency is not filed under IN', async () => {
-  test.setTimeout(120_000);
+test('EVERY regional store the brand publishes is read, each product filed under the market of the store it came from, in that store\'s currency: IN, US, AE and SA from one import', async () => {
+  test.setTimeout(150_000);
+  const w = world({ website: 'https://lensworld.example', regions: [{ code: 'IN', home: true }] });
+  try {
+    const T = st.stores['lensworld.example'].truth;
+    const out = await core.importCatalog(w.owner, { workspace_id: WS, region: 'in', kind: 'storefront', url: 'https://lensworld.example' });
+    expect(out.complete).toBe(true);
+    const live = w.rows().filter((r) => !r.stale_at);
+    const by = (reg) => live.filter((r) => r.region === reg);
+    expect(by('in')).toHaveLength(T.inProducts - T.inStale - T.inWrongCurrency);
+    expect(by('us')).toHaveLength(T.us);
+    expect(by('ae')).toHaveLength(T.ae);
+    expect(by('sa')).toHaveLength(T.sa);
+    for (const [reg, cur, rx] of [['in', 'INR', /^https:\/\/lensworld\.example\/frame-/], ['us', 'USD', /\/en-us\//], ['ae', 'AED', /\/en-ae\//], ['sa', 'SAR', /\/ar-sa\//]]) {
+      expect(new Set(by(reg).map((r) => r.currency)), reg).toEqual(new Set([cur]));
+      expect(by(reg).every((r) => rx.test(r.product_url)), reg).toBe(true);
+    }
+    // One line per market, then each market's own account.
+    expect(out.coverage.sentences[0]).toContain(`IN: ${T.inProducts - T.inStale - T.inWrongCurrency} of ${T.inDeclared} · US: ${T.us} of ${T.us} · AE: ${T.ae} of ${T.ae} · SA: ${T.sa} of ${T.sa}`);
+    expect(said(out.coverage)).toContain('SA store https://lensworld.example/ar-sa (found from the site\'s sitemap /ar-sa/sitemap.xml, prices in SAR)');
+    expect(said(out.coverage)).toContain('US store https://lensworld.example/en-us (found from the site\'s hreflang="en-us", prices in USD)');
+    // Every market recorded beside the brand, with where it came from.
+    expect(w.wsRow().catalog_source.markets.map((m) => m.code)).toEqual(['IN', 'US', 'AE', 'SA']);
+    expect(out.markets.map((m) => [m.code, m.currency, m.complete])).toEqual([['IN', 'INR', true], ['US', 'USD', true], ['AE', 'AED', true], ['SA', 'SAR', true]]);
+    expect(out.live_by_market).toMatchObject({ us: T.us, ae: T.ae, sa: T.sa });
+    // What the IN store's own read says.
+    expect(said(out.coverage)).toContain(`${T.inWrongCurrency} products priced in another currency than IN's INR were not filed under IN`);
+    expect(said(out.coverage)).toContain(`${T.inStale} URLs the sitemaps list answered 404 or 410`);
+    expect(said(out.coverage)).toContain('feeds/catalogue.xml is an XML document whose root element is <rss>');
+    expect(said(out.coverage)).not.toContain('extra-sitemap.xml');
+    expect(hitsOf('lensworld.example', /categories\.xml|pages\.xml/)).toHaveLength(0);
+  } finally { w.restore(); }
+});
+
+test('a brand with two regional DOMAINS (twinbrand.example, twinbrand.co.uk tied by hreflang) is read on both: US rows in USD from one, UK rows in GBP from the other', async () => {
+  test.setTimeout(90_000);
   const d = deviceWorld();
+  try {
+    const r = await core.importCatalog(PHONE, { region: 'us', kind: 'storefront', url: 'https://twinbrand.example', brand: { website: 'https://twinbrand.example', regions: [{ code: 'US', home: true }] } });
+    expect(r.complete).toBe(true);
+    const us = r.products.filter((p) => p.region === 'us');
+    const uk = r.products.filter((p) => p.region === 'uk');
+    expect(us).toHaveLength(20);
+    expect(uk).toHaveLength(15);
+    expect(us.every((p) => p.currency === 'USD' && /^https:\/\/twinbrand\.example\//.test(p.product_url))).toBe(true);
+    expect(uk.every((p) => p.currency === 'GBP' && /^https:\/\/twinbrand\.co\.uk\//.test(p.product_url))).toBe(true);
+    expect(r.markets.map((m) => [m.code, m.store_url])).toEqual([['US', 'https://twinbrand.example'], ['UK', 'https://twinbrand.co.uk']]);
+    // The completed markets are said, so the device stales each market alone.
+    expect(r.completed_regions.sort()).toEqual(['uk', 'us']);
+  } finally { d.restore(); }
+});
+
+test('a store that GEO-REDIRECTS one market\'s pages into another market\'s store: what comes back is filed under THAT market (its store, its currency), said per market, never under the asked one, with no disguise', async () => {
+  test.setTimeout(150_000);
+  const d = deviceWorld();
+  st.stores['lensworld.example'].geo = 'US';
+  const was = process.env.VERCEL_REGION;
+  process.env.VERCEL_REGION = 'iad1';
   try {
     const T = st.stores['lensworld.example'].truth;
     const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
-    expect(r.complete).toBe(true);
-    expect(new Set(r.products.map((p) => p.currency))).toEqual(new Set(['INR']));
-    expect(r.products.every((p) => !/\/(en-us|en-ae|ar-sa)\//.test(p.product_url))).toBe(true);
-    expect(r.products).toHaveLength(T.inProducts - T.inStale - T.inWrongCurrency);
-    // The denominator is the IN store's own product sitemap, not every locale's.
-    expect(said(r.coverage)).toContain(`of the ${T.inDeclared} products the site declares in the site's product sitemaps`);
-    expect(said(r.coverage)).toContain(`/en-us/ is the US store: ${T.us} products in its product sitemaps, not read for IN.`);
-    expect(said(r.coverage)).toContain(`/en-ae/ is the AE store: ${T.ae} products in its product sitemaps, not read for IN.`);
-    expect(said(r.coverage)).toContain(`/ar-sa/ is the SA store: ${T.sa} products in its product sitemaps, not read for IN.`);
-    // No product page of another market was even requested.
-    expect(hitsOf('lensworld.example', /^\/(en-us|en-ae|ar-sa)\/frame-/)).toHaveLength(0);
-    expect(said(r.coverage)).toContain(`${T.inWrongCurrency} products priced in another currency than IN's INR were not filed under IN`);
-    expect(said(r.coverage)).toContain(`${T.inStale} URLs the sitemaps list answered 404 or 410`);
-    // What is not a sitemap is named for what it is; a urlset behind a long
-    // header is a sitemap; categories/pages sitemaps are not read for products.
-    expect(said(r.coverage)).toContain('feeds/catalogue.xml is an XML document whose root element is <rss>');
-    expect(said(r.coverage)).not.toContain('extra-sitemap.xml');
-    expect(hitsOf('lensworld.example', /^\/extra-sitemap\.xml$/)).toHaveLength(1);
-    expect(hitsOf('lensworld.example', /categories\.xml|pages\.xml/)).toHaveLength(0);
+    expect(r.products.filter((p) => p.region === 'in')).toHaveLength(0);
+    const redirected = r.products.filter((p) => p.region === 'us' && /\/en-us\/frame-0\d{3}\.html$/.test(p.product_url));
+    expect(redirected.length).toBeGreaterThan(0);
+    expect(redirected.every((p) => p.currency === 'USD')).toBe(true);
+    // The US store's own products are read as its own market too.
+    expect(r.products.filter((p) => p.region === 'us').length).toBeGreaterThanOrEqual(T.us);
+    expect(r.products.filter((p) => p.region === 'ae')).toHaveLength(T.ae);
+    expect(said(r.coverage)).toContain('lensworld.example sent requests for its IN pages to its US store (/en-us/)');
+    expect(said(r.coverage)).toContain('the store chooses its store by the visitor\'s location, and this server reads from iad1 (Washington, D.C., US)');
+    expect(said(r.coverage)).toContain('filed under US, the market whose store and prices they carry, never under IN');
+    expect(r.coverage.sentences[0]).toContain('IN: 0 of 600 (not readable from here)');
+    expect(r.markets.find((m) => m.code === 'IN')).toMatchObject({ blocked: true, complete: false });
+    expect(r.complete).toBe(false);
+    expect(r.resume_available).toBe(false);
+    // It gave the IN store up after a few: never 600 pages read to file nothing under IN.
+    expect(hitsOf('lensworld.example', /^\/frame-\d+\.html$/).length).toBeLessThanOrEqual(imp.LIMITS.geoRedirectsToStop + imp.LIMITS.pdpConcurrency);
+    // No disguise: no cookie, no forwarded address, no Accept-Language but
+    // Node's own "*", the platform's own user agent.
+    const all = st.hits['lensworld.example'] || [];
+    expect([...new Set(all.map((h) => h.lang))].filter((x) => x && x !== '*')).toEqual([]);
+    expect(all.every((h) => !h.cookie && !h.forwarded && h.ua === imp.USER_AGENT)).toBe(true);
+    delete process.env.VERCEL_REGION;
+    st.reset(); st.stores['lensworld.example'].geo = 'US';
+    const r2 = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
+    expect(said(r2.coverage)).toContain('this server reads from outside IN as far as this server can tell');
+  } finally { if (was === undefined) delete process.env.VERCEL_REGION; else process.env.VERCEL_REGION = was; d.restore(); }
+});
 
-    // The US import of the same site reads the US store and only it, in USD.
-    st.reset();
-    const us = await core.importCatalog(PHONE, { region: 'us', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
-    expect(us.products).toHaveLength(T.us);
-    expect(new Set(us.products.map((p) => p.currency))).toEqual(new Set(['USD']));
-    expect(us.products.every((p) => /\/en-us\//.test(p.product_url))).toBe(true);
-    expect(said(us.coverage)).toContain('/en-ae/ is the AE store');
+test('a self-chaining import walks EVERY market until each is complete, then marks only each market\'s own unseen rows stale', async () => {
+  test.setTimeout(180_000);
+  const srv = await serve('api/public-config.js');
+  const w = world({ website: 'https://lensworld.example', regions: [{ code: 'IN', home: true }] }, {
+    chain: (u, init) => {
+      const q = new URL(u);
+      const headers = {};
+      for (const [k, v] of Object.entries(init.headers || {})) headers[k.toLowerCase()] = v;
+      post(srv.port, q.pathname + q.search, JSON.parse(init.body), { authorization: headers.authorization }).catch(() => {});
+      return { ok: true };
+    },
+  });
+  st.stores['lensworld.example'].delayMs = 3;
+  try {
+    // Last week's read left a US product the store no longer lists.
+    w.db.insert('brand_catalog_products', { workspace_id: WS, region: 'us', handle: 'retired-frame', sku: null, title: 'Retired', source: 'sitemap_jsonld', stale_at: null, last_seen_run: 'old' });
+    w.db.insert('brand_catalog_products', { workspace_id: WS, region: 'uk', handle: 'kept-uk', sku: null, title: 'Other market', source: 'sitemap_jsonld', stale_at: null, last_seen_run: 'old' });
+    const first = await core.importCatalog(w.owner, { workspace_id: WS, region: 'in', kind: 'storefront', url: 'https://lensworld.example', budgetMs: 2500 });
+    expect(first.complete).toBe(false);
+    expect(first.continuing).toBe(true);
+    const t0 = Date.now();
+    while (Date.now() - t0 < 150_000) {
+      const i0 = w.wsRow().catalog_import;
+      if (i0 && !i0.cursor && i0.chain && (i0.chain.done || i0.chain.stopped)) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    const fin = w.wsRow().catalog_import;
+    expect(fin.chain.done).toBe(true);
+    const live = w.rows().filter((r) => !r.stale_at);
+    const T = st.stores['lensworld.example'].truth;
+    expect(live.filter((r) => r.region === 'us' && r.handle !== 'retired-frame')).toHaveLength(T.us);
+    expect(live.filter((r) => r.region === 'sa')).toHaveLength(T.sa);
+    expect(w.rows().find((r) => r.handle === 'retired-frame').stale_at).toBeTruthy();   // US read whole: its unseen row is stale
+    expect(w.rows().find((r) => r.handle === 'kept-uk').stale_at).toBeFalsy();          // a market not read is never touched
+    expect(fin.coverage.sentences[0]).toContain(`US: ${T.us} of ${T.us}`);
+  } finally { w.restore(); await srv.close(); }
+});
+
+test('onboarding: the markets an import finds are ADDED to the brand\'s regions (with where they came from) through the ordinary save; the typed home row is untouched; the progress line counts every market', async ({ page }) => {
+  test.setTimeout(90_000);
+  const markets = [
+    { code: 'IN', currency: 'INR', store_url: 'https://lensworld.example', source: 'the site\'s hreflang="en-in"', found: 567, declared: 600, complete: true },
+    { code: 'US', currency: 'USD', store_url: 'https://lensworld.example/en-us', source: 'the site\'s hreflang="en-us"', found: 40, declared: 130, complete: false },
+    { code: 'AE', currency: 'AED', store_url: 'https://lensworld.example/en-ae', source: 'the site\'s hreflang="en-ae"', found: 0, declared: null, complete: false },
+  ];
+  const typedHome = { code: 'IN', home: true, store_url: 'https://lensworld.example', currency: 'INR' };
+  const B = Object.assign({}, BRAND, { regions: [typedHome] });
+  const srv = appServer();
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const saves = [];
+  try {
+    await page.route('**/api/public-config**', async (route) => {
+      const op = new URL(route.request().url()).searchParams.get('op') || '';
+      let sent = null; try { sent = JSON.parse(route.request().postData() || 'null'); } catch (_) { sent = null; }
+      let payload;
+      if (op === 'catalog-import') payload = { ok: true, imported: 607, complete: false, resume_available: true, continuing: false, drive: false, progressed: true, markets, coverage: { found: 607, complete: false, markets, sentences: ['Every regional store the brand publishes: 3 markets. IN: 567 of 600 · US: 40 of 130 · AE: 0 (not read yet).'] }, live: 567 };
+      else if (op === 'catalog-status') payload = { ok: true, coverage: null, resume_available: false };
+      else if (op === 'save') { saves.push(sent); payload = { ok: true, brand: Object.assign({}, B, (sent && (sent.brand || sent)) || {}) }; }
+      else payload = { ok: true, brand: B, workspaces: [], active_id: B.id, pack: null, presets: [] };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
+    });
+    await page.goto('http://127.0.0.1:' + srv.address().port + '/onboarding.html', { waitUntil: 'load' });
+    await expect(page.locator('#title')).toContainText('Edit Lens Shop', { timeout: 15000 });
+    const pip = page.locator('.step-pip[data-step="5"]');
+    await pip.waitFor({ state: 'visible', timeout: 15000 });
+    await pip.click({ force: true });
+    await page.fill('#impUrl', 'https://lensworld.example');
+    await page.locator('#doImport').click();
+    await expect(page.locator('#impStatus')).toContainText('Markets this store publishes were added to the brand\'s regions: US, AE', { timeout: 10000 });
+    const last = saves[saves.length - 1];
+    const regs = (last.brand || last).regions;
+    expect(regs[0]).toMatchObject({ code: 'IN', home: true, store_url: 'https://lensworld.example' });
+    expect(regs.slice(1).map((r) => [r.code, r.currency, r.store_url, r.home])).toEqual([['US', 'USD', 'https://lensworld.example/en-us', false], ['AE', 'AED', 'https://lensworld.example/en-ae', false]]);
+    expect(regs[1].source).toContain('site read: the site\'s hreflang="en-us"');
+    await expect(page.locator('#impCoverage')).toContainText('IN: 567 of 600 · US: 40 of 130');
+  } finally { await new Promise((r) => srv.close(r)); }
+});
+
+test('a resumed read re-reads robots.txt first: one that still cannot be read stops it again, never a crawl of a site that has not said what may be read', async () => {
+  test.setTimeout(60_000);
+  const d = deviceWorld();
+  st.stores['robots.example'].robotsStatus = 503;
+  try {
+    const brand = { website: 'https://robots.example', regions: [{ code: 'UK', home: true }] };
+    const first = await core.importCatalog(PHONE, { region: 'uk', kind: 'storefront', url: 'https://robots.example', brand });
+    expect(first.complete).toBe(false);
+    expect(first.cursor).toBeTruthy();
+    const again = await core.importCatalog(PHONE, { region: 'uk', kind: 'storefront', url: 'https://robots.example', brand, cursor: first.cursor });
+    expect(again.complete).toBe(false);
+    expect(said(again.coverage)).toContain('RFC 9309 says to treat that as "disallow everything", so nothing was read');
+    expect(hitsOf('robots.example', /^\/(?!robots\.txt)/)).toHaveLength(0);
   } finally { d.restore(); }
 });
 
@@ -554,8 +702,10 @@ test('product sitemaps are typed by the WORDS of their path: blog "product-revie
     expect(hitsOf('beautymart.example', /^\/beauty-blog\//)).toHaveLength(0);
     expect(hitsOf('beautymart.example', /sitemap-(reviews|categories)-index/)).toHaveLength(0);
     const sm = hitsOf('beautymart.example', /\.xml$/).map((h) => h.path);
-    expect(sm[0]).toBe('/sitemap-v2/sitemap-index.xml');
-    expect(sm[1]).toBe('/sitemap-v2/sitemap-products-index.xml');
+    // (The first read of the root index is the market discovery's.) The
+    // import's own walk reads the product index right after the root index.
+    const rootAt = sm.lastIndexOf('/sitemap-v2/sitemap-index.xml');
+    expect(sm[rootAt + 1]).toBe('/sitemap-v2/sitemap-products-index.xml');
     expect(said(r.coverage)).toContain('of the 700 products the site declares');
     expect(said(r.coverage)).toMatch(/3 sitemaps of pages that are not products/);
     expect(said(r.coverage)).toContain('was tried once; it answered 429');

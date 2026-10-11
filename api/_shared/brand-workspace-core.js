@@ -544,6 +544,9 @@ function normalizeRegions(input) {
       // them (2026-10-10). Nothing reads a pattern that is not there.
       pdp_pattern: str(r.pdp_pattern, 200),
       collection_pattern: str(r.collection_pattern, 200),
+      // Where a market came from when the site read it (2026-10-11): e.g.
+      // "site read: the site's hreflang=\"en-us\"". Empty for a typed row.
+      source: str(r.source, 160),
       home,
     });
   }
@@ -1180,7 +1183,7 @@ async function assertPublicUrl(rawUrl) {
  * The SSRF guard runs on EVERY request the importer makes (each redirect hop
  * included), with the answer for a host cached for the run.
  */
-async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope } = {}) {
+async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strictScope, single } = {}) {
   const candidate = httpUrl(startUrl) || (scope && scope.website) || '';
   if (!candidate) { const e = new Error('A store URL is required.'); e.status = 400; throw e; }
   const base = await assertPublicUrl(candidate);
@@ -1202,7 +1205,12 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
     await assertPublicUrl(u);
     cleared.add(h);
   };
-  const out = await require('./catalog-import.js').step({ url: base, region, brand, cursor, guard, budgetMs });
+  // EVERY regional store the brand publishes (2026-10-11): stepAll discovers
+  // the markets and reads each, filing every row under the market whose store
+  // it came from. `single` keeps the one-market read (a caller that asked for
+  // exactly one store).
+  const ci = require('./catalog-import.js');
+  const out = single ? await ci.step({ url: base, region, brand, cursor, guard, budgetMs }) : await ci.stepAll({ url: base, region, brand, cursor, guard, budgetMs });
   return {
     // `base` is the store ACTUALLY read (2026-10-10). It was the URL asked for,
     // so a read the importer moved to a region's store recorded the brand's
@@ -1213,6 +1221,8 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
       ? { detected: true, platform: { id: out.coverage.platform.id, name: out.coverage.platform.name, why: out.coverage.platform.why, confidence: out.coverage.platform.confidence, source_url: out.coverage.platform.source_url }, catalog_route: { kind: out.coverage.platform.route, note: out.coverage.platform.route_note } }
       : { detected: false },
     coverage: out.coverage, cursor: out.cursor, complete: out.complete, run: out.run, progressed: out.progressed !== false,
+    completed_regions: out.completed_regions || (out.complete ? [String(region || '').toLowerCase()] : []),
+    markets: out.markets || null,
   };
 }
 
@@ -1954,7 +1964,8 @@ function coverageSummary(c) {
     found: c.found, by_source: c.by_source, skipped: c.skipped, missing: c.missing,
     missing_examples: (c.missing_examples || []).slice(0, 5),
     complete: !!c.complete, empty: !!c.empty, resume_available: !!c.resume_available, stopped: c.stopped || null, not_before: c.not_before || null,
-    sentences: (c.sentences || []).slice(0, 20),
+    markets: Array.isArray(c.markets) ? c.markets : null,
+    sentences: (c.sentences || []).slice(0, 60),
   };
 }
 
@@ -1985,6 +1996,9 @@ function catalogSourceRecord(parsed, k, url, rowCount, batch, reg) {
     coverage: cov,
     sitemap: cov && parsed.coverage && parsed.coverage.sitemap ? { found: !!parsed.coverage.sitemap.found, sources: (parsed.coverage.sitemap.sources || []).length } : null,
     coverage_note: cov ? cov.sentences.join(' ') : '',
+    // Every regional store read, with its market, currency and where it was
+    // found (2026-10-11): what the brand's own regions are offered from.
+    markets: parsed && Array.isArray(parsed.markets) ? parsed.markets.map((m) => ({ code: m.code, currency: m.currency, store_url: m.store_url, source: m.source, found: m.found, declared: m.declared, complete: m.complete })) : null,
   };
 }
 
@@ -2075,12 +2089,16 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
     products: kept,
     run: batch,
     complete: !!parsed.complete,
-    resume_available: !parsed.complete,
+    resume_available: !parsed.complete && !!parsed.cursor,
     progressed: parsed.progressed !== false,
     // Keep going from the page while this is true; `wait_ms` first when the store asked.
     drive: !!(devChain && !devChain.stopped),
     chain: devChain,
     alias_regions: require('./catalog-import.js').regionAliases(reg),
+    // Every market read in this step files under its own region; these are
+    // the ones that finished (stale marking is per market).
+    completed_regions: parsed.completed_regions || (parsed.complete ? [reg] : []),
+    markets: parsed.markets || null,
     cursor: parsed.cursor || null,
     family: require('./catalog-import.js').familyOf(k),
     coverage: coverageSummary(parsed.coverage),
@@ -2099,7 +2117,10 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
  * finish the step - for an editor as for the owner (the table's update policy
  * is owner-only, which silently dropped an editor's catalog_source PATCH).
  */
-async function mergeIntoWorkspace(token, { workspace_id, reg, rows, run, complete, family, state, source }) {
+async function mergeIntoWorkspace(token, { workspace_id, reg, rows, run, complete, family, state, source, completed }) {
+  if (completed) {
+    return require('./catalog-import.js').mergeByMarket((p, body) => restAs(token, p, { method: 'POST', body }), { workspace: workspace_id, home: reg, rows, run, completed, family, state, source });
+  }
   const CHUNK = 400;
   const out = { inserted: 0, updated: 0, staled: 0, live: null };
   const chunks = [];
@@ -2196,7 +2217,8 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
 
   let merged;
   try {
-    merged = await mergeIntoWorkspace(auth.token, { workspace_id, reg, rows, run, complete: complete && replace !== false, family, state, source });
+    merged = await mergeIntoWorkspace(auth.token, { workspace_id, reg, rows, run, complete: complete && replace !== false, family, state, source,
+      completed: replace === false ? [] : (parsed.completed_regions || (complete ? [reg] : [])) });
   } catch (e) {
     // A database that has not been migrated (20261010002000) has no merge. A
     // complete one-call import can still land the old way, and says so; a
@@ -2216,7 +2238,6 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
   }
   // Rows an older import filed under another spelling of this market ("ind")
   // are staled by a complete run of the same source family, never deleted.
-  if (complete && replace !== false) await ci.staleAliasRegions((p, body) => restAs(auth.token, p, { method: 'POST', body }), { workspace: workspace_id, reg, run, family });
   let fired = null;
   if (chain && chain.fire) fired = await ci.fireNext({ workspace_id, token: chain.token, depth: chain.depth, budget_ms: budgetMs });
   // catalog_source lives on the workspace row the generators read, and the
@@ -2233,12 +2254,14 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     region: reg,
     run,
     complete,
-    resume_available: !complete,
+    resume_available: !complete && !!state.cursor,
     progressed: parsed.progressed !== false,
     // The server continues it (`continuing`), or the page should (`drive`).
     continuing: !!(chain && chain.active && fired && fired.fired),
     drive: !!(chain && !chain.active && chain.browser && !chain.done),
     chain: state.chain,
+    markets: parsed.markets || null,
+    live_by_market: merged.by_market || null,
     inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: merged.live,
     // Of the live rows, how many are this brand's and how many another site's.
     own: tally ? tally.own : null, excluded: tally ? tally.excluded : null, excluded_domains: tally ? tally.excluded_domains : [],
