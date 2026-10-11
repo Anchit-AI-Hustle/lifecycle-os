@@ -1,0 +1,119 @@
+# Which of each brand's regional stores can be read from a GitHub runner, and
+# which send the request to another market's store.
+#
+# WHY (2026-10-11). The live Lenskart import read IN/AE/SA/TH as 0: the store
+# sent a US server to its US store. The operator: "not only for lenskart, for
+# each and every respective brand in the list shown", and chose readers in each
+# country. This measures, before any reader is created, which markets of which
+# starter brands are affected.
+#
+# WHAT IT RUNS. scripts/market-probe.js: catalog-import.discoverMarkets() (the
+# shipped market discovery), one GET of each market's store with redirects
+# followed by hand, then a few steps of the shipped importer. The importer's
+# own honest user agent, robots.txt, SSRF guard; no cookie, Accept-Language,
+# X-Forwarded-For or proxy names a location. No database, no secret, no write.
+#
+# DISPATCH ONLY: it reads third-party sites, so it runs only when a person asks.
+name: Regional store probe (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Preset slugs to probe, comma separated (empty = every starter brand)
+        required: false
+        default: ''
+        type: string
+      steps:
+        description: Importer steps per brand (each up to ~45 s)
+        required: false
+        default: '3'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      slugs: ${{ steps.pick.outputs.slugs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: pick
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          node -e '
+            const i = require("./data/brands/presets/index.json");
+            const all = (Array.isArray(i) ? i : (i.presets || i.brands || [])).map((p) => p.slug || p.id);
+            const only = (process.env.ONLY || "").split(",").map((s) => s.trim()).filter(Boolean);
+            const pick = only.length ? all.filter((s) => only.includes(s)) : all;
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, "slugs=" + JSON.stringify(pick) + "\n");
+          '
+
+  probe:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        slug: ${{ fromJSON(needs.list.outputs.slugs) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Read the brand's regional stores
+        env:
+          SLUG: ${{ matrix.slug }}
+          STEPS: ${{ inputs.steps }}
+        run: node scripts/market-probe.js --presets --only "$SLUG" --steps "$STEPS" --out "market-probe-out/$SLUG"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: market-probe-${{ matrix.slug }}
+          path: market-probe-out
+          if-no-files-found: warn
+
+  report:
+    needs: probe
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: market-probe-*
+          path: parts
+          merge-multiple: true
+      - name: One table for every brand
+        run: |
+          node -e '
+            const fs = require("fs"), path = require("path");
+            const { summary } = require("./scripts/market-probe.js");
+            const results = [];
+            const walk = (d) => { for (const f of fs.existsSync(d) ? fs.readdirSync(d) : []) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) walk(p); else if (f === "markets.json") results.push(...JSON.parse(fs.readFileSync(p, "utf8")).results); } };
+            walk("parts");
+            fs.mkdirSync("market-probe-all", { recursive: true });
+            fs.writeFileSync("market-probe-all/markets.json", JSON.stringify(results, null, 2));
+            const md = summary(results, "GitHub-hosted runners (United States)");
+            fs.writeFileSync("market-probe-all/summary.md", md);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + "\n");
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-probe-all
+          path: market-probe-all
