@@ -75,6 +75,23 @@ This container cannot reach either site, so fixtures model the documented shapes
   the cap is a stated LIMIT of 20,000 product URLs per market per import (the cursor carries the URL list on the
   row: measured ~4.3 MB at 20,000 URLs; 340,639 would be ~73 MB per step, so it was not raised). A sitemap that is XML
   but not `<urlset>`/`<sitemapindex>` is named by its root element; the urlset test reads the whole body.
+- **EVERY regional store, each under its own market (operator, same day: "All locations of that brand must be shown.
+  All different websites for different regions must be scraped and considered")**: `rowsFromStore` now runs
+  `stepAll()`: `discoverMarkets()` reads what the site publishes - hreflang alternates (same host or a `sameBrand`
+  regional domain: brand.co.uk beside brand.com), locale-shaped sitemap paths (robots + the root sitemap), the
+  record's own `regions[].store_url` - one store per market (/en-sa/ and /ar-sa/ are one market, read once, the other
+  named), unknown countries named not read; then each market is a `step()` under ONE run id (a multi cursor walks
+  them; a market that must wait does not hold up the others). Every row is filed under the market of the store it
+  came from, in that store's currency; merges go market by market (`mergeByMarket`, device twin in brand-context.js),
+  and a market's completion stales only ITS unseen rows. Coverage opens "IN: x of y · US: ... · AE: ..." then each
+  market's own sentences; `catalog_source.markets`, `coverage.markets`, `live_by_market`. The wizard ADDS markets the
+  record lacks to `regions` (code, currency, store_url, `source: "site read: ..."`, new `source` field in
+  `normalizeRegions` server + device) through the ordinary save, never touching an existing row; /catalog's market
+  chips filter. **Geo-redirect** (the Lenskart re-run: a US runner's requests for IN pages were 302'd to /en-us/ in
+  USD): what comes back is filed under the market whose store it is (US), never the asked one; after
+  `LIMITS.geoRedirectsToStop` (5) the asked market is given up for the run, said once with where this server reads
+  from (`VERCEL_REGION`, else "outside IN as far as this server can tell") and that 404s there may be
+  location-dependent. No cookie, header or proxy ever pretends a location.
 - **Probe**: `.github/workflows/catalog-probe.yml` (workflow_dispatch only, `contents: read`, inputs via env) runs
   `scripts/catalog-probe.js` - the shipped `rowsFromStore`, no database - and uploads coverage, sample rows and the
   sitemap tree. Dispatch it for lenskart.com / nykaa.com to confirm the modelled shapes.
