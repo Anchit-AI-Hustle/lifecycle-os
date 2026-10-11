@@ -85,7 +85,9 @@
   .nav-group > summary{list-style:none;cursor:pointer;}
   .nav-group > summary::-webkit-details-marker{display:none;}
   .nav-group[open] > summary .chev{transform:rotate(90deg);}
-  .nav-link{transition:background .12s,color .12s,border-color .12s,box-shadow .12s;}
+  /* No colour/background transition: when the brand repaints, an animated colour
+     passes through the previous palette's ink on the new band (black on red, 3.6:1). */
+  .nav-link{transition:border-color .12s,box-shadow .12s;}
   .nav-link:hover{box-shadow:inset 3px 0 0 var(--vh-on-band);}
   /* The band's own pair, inverted: the same two colours, so the same ratio. */
   .nav-link.active{background:var(--vh-on-band);color:var(--vh-band);font-weight:700;}
