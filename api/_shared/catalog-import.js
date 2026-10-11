@@ -83,6 +83,38 @@
  * new cron: the same convergent shape as smart-brain-plan.prebuildAssets and
  * the context-pack queue.
  *
+ * ── AND IT KEEPS GOING BY ITSELF (2026-10-11) ────────────────────────────────
+ * Measured on two live records the day after: Nykaa (not Shopify, platform
+ * undetected, region stored as "IND") read 0 products, stuck at "feed page 1"
+ * behind a 429 on /products.json, with a denominator of "21 products"; Lenskart
+ * read 450 of 2,430 and waited for someone to press Continue import, five more
+ * times. Now:
+ *   - the Shopify feed is PROBED once, without retries, when no platform
+ *     declared itself; anything but a page of products sends the read to the
+ *     site's own sitemaps (a 429 on a feed that may not exist is not a reason
+ *     to stop reading a store);
+ *   - the sitemaps are enumerated as a resumable queue on the cursor: nested
+ *     indexes to LIMITS.maxSitemapDepth, a child of a product index is a
+ *     product sitemap whatever its own name, a category sitemap
+ *     (product_cat-*, product-category-*) is not, a sitemap that answers 429
+ *     waits its Retry-After and is read on the next step instead of being
+ *     dropped, a sitemap on the brand's own registrable domain (a subdomain, a
+ *     sitemap host) is read, and the total is called "declared" only once
+ *     every sitemap has been read ("so far" until then);
+ *   - a market code is the canonical one (brand-locale family(): IND -> in,
+ *     GB -> uk), or the import is refused: rows filed under "ind" were never
+ *     found by a generator, which looks up "in";
+ *   - a step reports `progressed`, and the account path CHAINS: after a step
+ *     that stopped part-way and moved, it fires the next step at the
+ *     deployment's own URL (CRON_SECRET-guarded op=catalog-chain, the
+ *     prebuild queue's pattern), which claims the step on the row so two
+ *     chains never run one cursor, and fires the next, until the store is
+ *     read. A step that read nothing new stops the chain and says why; a
+ *     Retry-After a step can wait is waited at the start of the next step;
+ *     a longer one ends the chain and the daily refresh resumes it after the
+ *     time the store asked for. A device brand has no row to chain on: its
+ *     browser drives the same steps until complete.
+ *
  * NOT a function file (api/_shared/ -> outside the Hobby 12-function cap).
  */
 
@@ -90,6 +122,7 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 const crawl = require('./site-crawl.js');
 const COH = require('./brand-coherence.js');
+const LOC = require('./brand-locale.js');
 
 const USER_AGENT = crawl.DEFAULTS.userAgent;
 const ROBOTS_TOKEN = 'lifecycleos-brandcrawler';
@@ -103,8 +136,9 @@ const LIMITS = {
   pdpConcurrency: 6,
   maxRetries: 3,
   maxRetryAfterMs: 20000,
-  maxSitemaps: 60,
-  maxSitemapDepth: 3,         // index -> index -> urlset
+  maxSitemaps: 3000,          // per import run, across every step: a stated ceiling
+  maxSitemapDepth: 6,         // index -> index -> ... -> urlset
+  maxSitemapTries: 3,         // a sitemap that times out is retried on the next step, then reported
   maxSitemapBytes: 52428800,  // 50 MiB uncompressed, the sitemaps.org per-file limit
   maxRedirects: 5,
   cursorVersion: 1,
@@ -143,8 +177,31 @@ function handleFromUrl(u) {
   } catch (_) { return ''; }
 }
 
+/**
+ * The canonical market code rows are filed under, lower case, from the ONE
+ * region table (brand-locale.js FAMILY + COUNTRY): "IND" and "India" -> "in",
+ * "GB" -> "uk", "usa" -> "us". '' when the code names no market the table
+ * knows, and the import refuses rather than file rows under a code no
+ * generator looks up (2026-10-11: the live Nykaa record's "IND" filed nothing
+ * a reader could find, brand-catalog-server.regionKey asks for "in").
+ */
+const ZONES = new Set(Object.values(LOC.FAMILY));
+function canonRegion(code) {
+  const f = LOC.family(code);
+  if (!f) return '';
+  return (ZONES.has(f) || LOC.COUNTRY[f]) ? f.toLowerCase() : '';
+}
+/** The other spellings of one market (for "ind" rows left by an older import of "in"). */
+function regionAliases(reg) {
+  const want = canonRegion(reg);
+  if (!want) return [];
+  return Object.keys(LOC.FAMILY).filter((k) => LOC.FAMILY[k].toLowerCase() === want).map((k) => k.toLowerCase()).filter((k) => k !== want);
+}
+
 /** Market codes as a person writes them -> ISO country + the hreflang regions that name it. */
 function regionCountry(region) {
+  const c = LOC.countryOf(region);
+  if (c) return c;
   const r = String(region || '').toUpperCase();
   if (r === 'UK') return 'GB';
   return r;
@@ -161,11 +218,12 @@ const hdr = (r, name) => { try { return r && r.headers && typeof r.headers.get =
  * and an in-scope path that 301s to another company's site is not this
  * brand's page. A gzipped body (by magic bytes) is inflated, bounded.
  */
-async function getText(url, ctx, { accept, timeoutMs } = {}) {
+async function getText(url, ctx, { accept, timeoutMs, scope } = {}) {
   const guard = ctx.guard;
+  const ok = scope || ctx.inScope || ((u) => crawl.inScope(u, ctx.hosts));
   let at = url;
   for (let hop = 0; hop <= LIMITS.maxRedirects; hop++) {
-    if (!crawl.inScope(at, ctx.hosts)) return { ok: false, status: 0, url: at, reason: 'off_scope' };
+    if (!ok(at)) return { ok: false, status: 0, url: at, reason: 'off_scope' };
     try { await guard(at); } catch (e) { return { ok: false, status: 0, url: at, reason: 'private_address', error: e.message }; }
     const ctrl = new AbortController();
     const ms = Math.max(1000, Math.min(timeoutMs || LIMITS.perRequestMs, ctx.deadline - Date.now()));
@@ -220,6 +278,7 @@ function retryAfterMs(v, now) {
  * here later, instead of hammering the store or calling the catalogue empty.
  */
 async function getPolite(url, ctx, opts) {
+  const retries = opts && Number.isFinite(opts.retries) ? opts.retries : LIMITS.maxRetries;
   for (let attempt = 0; ; attempt++) {
     const r = await getText(url, ctx, opts);
     if (r.status !== 429 && r.status !== 503) return r;
@@ -227,7 +286,7 @@ async function getPolite(url, ctx, opts) {
     const asked = retryAfterMs(r.retryAfter);
     const wait = asked != null ? asked : 1000 * Math.pow(2, attempt);
     const left = ctx.deadline - Date.now();
-    if (attempt >= LIMITS.maxRetries || wait > LIMITS.maxRetryAfterMs || wait > left - 1000) {
+    if (attempt >= retries || wait > LIMITS.maxRetryAfterMs || wait > left - 1000) {
       return Object.assign({}, r, { ok: false, reason: 'rate_limited', wait_ms: wait, retry_after: r.retryAfter || null });
     }
     ctx.stats.waited_ms += wait;
@@ -242,7 +301,9 @@ const { parseRobots, robotsAllows } = crawl;
 /** robots.txt for one origin, cached on the context. */
 async function robotsFor(origin, ctx) {
   if (ctx.robots[origin]) return ctx.robots[origin];
-  const r = await getText(origin + '/robots.txt', ctx, { accept: 'text/plain' });
+  // robots.txt of any origin this read may touch (a sitemap on the brand's
+  // sibling domain included): the wider of the two scopes.
+  const r = await getText(origin + '/robots.txt', ctx, { accept: 'text/plain', scope: ctx.sitemapScope });
   let out;
   if (r.ok) {
     const sitemaps = [];
@@ -450,6 +511,25 @@ function rowFromPage(html, pageUrl, { region, source }) {
     if (typeIs(n, 'productgroup')) { node = n; break; }
     if (typeIs(n, 'product') && !node) node = n;
   }
+  let declaredBy = 'json-ld';
+  if (!node) {
+    // The page's own server-delivered application data (Next.js __NEXT_DATA__,
+    // a type="application/json" block): a schema.org Product inside it is the
+    // same declaration as JSON-LD, read as such.
+    const app = embeddedJson(html);
+    for (const j of app) { const n = findNode(j, (o) => typeIs(o, 'productgroup') || typeIs(o, 'product')); if (n) { node = n; declaredBy = 'embedded schema.org'; break; } }
+    if (!node) {
+      const plain = embeddedProduct(app, html, pageUrl);
+      if (plain) {
+        return { row: {
+          region, title: plain.title, handle: handleFromUrl(pageUrl) || null, sku: plain.sku, description: null, product_type: null, collections: [],
+          price: plain.price, compare_at: null, currency: plain.currency, image_url: plain.images[0] || null, image_urls: plain.images, variants: [],
+          product_url: pageUrl, in_stock: null, tags: [], source, source_url: pageUrl,
+          raw: { declared: 'embedded-json', keys: plain.keys },
+        } };
+      }
+    }
+  }
   if (node) {
     const title = str(node.name, 300);
     if (!title) return { skip: 'no_title' };
@@ -492,7 +572,7 @@ function rowFromPage(html, pageUrl, { region, source }) {
         tags: [],
         source,
         source_url: pageUrl,
-        raw: { declared: 'json-ld', type: typeIs(node, 'productgroup') ? 'ProductGroup' : 'Product' },
+        raw: { declared: declaredBy, type: typeIs(node, 'productgroup') ? 'ProductGroup' : 'Product' },
       },
     };
   }
@@ -513,50 +593,230 @@ function rowFromPage(html, pageUrl, { region, source }) {
       },
     };
   }
-  return { skip: 'no_product_declared' };
+  return { skip: scriptRendered(html) ? 'script_rendered' : 'no_product_declared' };
+}
+
+/** The JSON a page delivers in its own <script type="application/json"> blocks (Next.js __NEXT_DATA__ among them). */
+function embeddedJson(html) {
+  const out = [];
+  for (const m of String(html || '').matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (!/type=["']application\/json["']/i.test(m[1]) && !/id=["']__NEXT_DATA__["']/i.test(m[1])) continue;
+    if (m[2].length > 3000000) continue;
+    try { out.push(JSON.parse(m[2])); } catch (_) { /* not JSON: nothing declared */ }
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+/** Depth-first search for the first object a predicate accepts (bounded). */
+function findNode(v, pred, depth = 0, budget = { n: 0 }) {
+  if (!v || typeof v !== 'object' || depth > 14 || ++budget.n > 60000) return null;
+  if (!Array.isArray(v) && pred(v)) return v;
+  for (const k of Object.keys(v)) { const x = findNode(v[k], pred, depth + 1, budget); if (x) return x; }
+  return null;
+}
+/**
+ * A product the page's application data STATES verbatim: one object carrying
+ * a title, a price, an ISO currency and an http image under the plain names a
+ * store uses for them - and whose title is the page's own title (so a
+ * "you may also like" product elsewhere in the data is never taken for this
+ * page's). Anything less is not a declaration, and nothing is taken.
+ */
+const EMB = { title: ['name', 'title', 'productName'], price: ['price', 'sellingPrice', 'salePrice', 'finalPrice', 'offerPrice'], currency: ['currency', 'priceCurrency', 'currencyCode'], image: ['image', 'imageUrl', 'image_url', 'imageURL', 'thumbnail', 'images'] };
+function embeddedProduct(app, html, pageUrl) {
+  if (!app.length) return null;
+  const meta = crawl.metaTags(html);
+  const pageTitle = String(meta['og:title'] || ((/<title[^>]*>([\s\S]*?)<\/title>/i.exec(String(html)) || [])[1]) || '').toLowerCase();
+  if (!pageTitle) return null;
+  const pick = (o, keys) => { for (const k of keys) if (o[k] != null && o[k] !== '') return [k, o[k]]; return null; };
+  for (const j of app) {
+    const hit = findNode(j, (o) => {
+      const t = pick(o, EMB.title), p = pick(o, EMB.price), c = pick(o, EMB.currency), i = pick(o, EMB.image);
+      if (!t || !p || !c || !i) return false;
+      if (typeof t[1] !== 'string' || !t[1].trim() || !pageTitle.includes(t[1].trim().toLowerCase())) return false;
+      if (typeof p[1] === 'object' || num(p[1]) == null) return false;
+      if (!/^[A-Z]{3}$/.test(String(c[1]))) return false;
+      return imagesOf(i[1], pageUrl).length > 0;
+    });
+    if (hit) {
+      const t = pick(hit, EMB.title), p = pick(hit, EMB.price), c = pick(hit, EMB.currency), i = pick(hit, EMB.image);
+      return { title: str(t[1], 300), price: num(p[1]), currency: String(c[1]), images: imagesOf(i[1], pageUrl), sku: str(hit.sku, 120) || null, keys: [t[0], p[0], c[0], i[0]] };
+    }
+  }
+  return null;
+}
+
+/**
+ * A page that, as served, is an application shell: next to no text, and a
+ * script bundle (or a mount point a framework renders into). Its product, if
+ * it has one, appears only after JavaScript runs. This importer reads pages as
+ * served and does not run a browser per product (one headless page per product
+ * is seconds each; a store of thousands does not fit a function's time), so
+ * the coverage SAYS how many pages are like this rather than calling them
+ * pages with no product.
+ */
+function scriptRendered(html) {
+  const h = String(html || '');
+  if (!/<script\b/i.test(h)) return false;
+  const text = h.replace(/<script\b[\s\S]*?<\/script>/gi, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const mount = /<(?:div|main)\b[^>]*\bid=["'](?:root|app|__next|__nuxt|svelte|main-app)["']/i.test(h);
+  return text.length < 160 || (mount && text.length < 400);
 }
 
 /* ── sitemaps ───────────────────────────────────────────────────────────── */
 
+/* A sitemap whose own name says it lists products, and NOT a sitemap of the
+   product CATEGORIES, tags or brands (WooCommerce's product_cat-sitemap.xml,
+   product_tag-sitemap.xml, product-category-sitemap.xml): counting those as
+   products put category pages into the denominator and the read queue. */
 const PRODUCT_SITEMAP = /product/i;
+const NOT_PRODUCT_SITEMAP = /product[_-]?(?:cat\b|cat[_-]|categor|tag|brand|type|collection|attribute)/i;
+const isProductSitemap = (u) => PRODUCT_SITEMAP.test(u) && !NOT_PRODUCT_SITEMAP.test(u);
 
 /**
- * Every URL the site's own sitemaps declare, split into product URLs (from a
- * sitemap whose own name says it lists products) and the rest.
+ * Every sitemap the site declares, as a queue on the cursor: index -> index ->
+ * urlset to LIMITS.maxSitemapDepth, gzipped included, read until this step's
+ * time is spent and RESUMED by the next step (a marketplace declares hundreds
+ * of sitemaps of up to 50,000 URLs each; one invocation used to read 60 and
+ * call what it had found "the products the site declares").
+ *
+ *   - a child of a product sitemap index is a product sitemap whatever its own
+ *     name (/sitemaps/products/index.xml -> /sitemaps/products/a/1.xml.gz);
+ *   - a sitemap that answers 429 / 503 waits its Retry-After (getPolite); one
+ *     the step cannot afford stays at the head of the queue and the step stops
+ *     there with the wait recorded - it is never dropped;
+ *   - a sitemap on the brand's own registrable domain (a sitemap host, a
+ *     subdomain) is read; one on another site is not, and is named;
+ *   - product URLs are de-duplicated (a "featured" sitemap repeating products
+ *     listed elsewhere does not inflate the total).
+ *
+ * Product URLs (from product sitemaps) go to `st.pending`; the rest are kept in
+ * `st.other` only while no product sitemap has been seen (a site that does not
+ * say which URLs are products is read whole).
  */
-async function readSitemaps(origin, declared, ctx) {
-  const queue = (declared && declared.length ? declared : [origin + '/sitemap.xml']).map((u) => ({ url: httpAbs(u, origin), depth: 0, typed: PRODUCT_SITEMAP.test(u) }));
-  const seen = new Set();
-  const products = [], other = [], sources = [], notes = [];
-  let fetched = 0;
-  while (queue.length && fetched < LIMITS.maxSitemaps && Date.now() < ctx.deadline) {
-    const sm = queue.shift();
-    if (!sm.url || seen.has(sm.url)) continue;
-    seen.add(sm.url);
-    if (!crawl.inScope(sm.url, ctx.hosts)) { notes.push(`A sitemap on another host was not read: ${sm.url}`); continue; }
-    if (!(await allowed(sm.url, ctx))) { notes.push(`robots.txt disallows the sitemap ${sm.url}, so it was not read.`); continue; }
-    fetched += 1;
-    const r = await getPolite(sm.url, ctx, { accept: 'application/xml,text/xml,*/*' });
-    if (!r.ok) {
-      if (declared && declared.length) notes.push(`The sitemap ${sm.url} did not answer (${r.status || r.reason}).`);
+async function enumerateSitemaps(st, ctx) {
+  const sm = st.sm;
+  const seen = new Set(sm.seen || []);
+  const typed = new Set(st.pending || []);
+  const other = new Set(st.other || []);
+  const cap = LIMITS.maxProducts * 2;
+  const inBase = (u) => { try { return !st.prefix || new URL(u).pathname.startsWith(st.prefix + '/'); } catch (_) { return false; } };
+  const note = (t) => { if (sm.notes.length < 40) sm.notes.push(t); };
+  let stop = null;
+  while (sm.queue.length && Date.now() < ctx.deadline - 2000) {
+    const item = sm.queue[0];
+    if (!item || !item.url || seen.has(item.url)) { sm.queue.shift(); continue; }
+    if (sm.read >= LIMITS.maxSitemaps) {
+      sm.unread += sm.queue.length; sm.queue = [];
+      note(`This importer reads at most ${LIMITS.maxSitemaps.toLocaleString('en-US')} sitemaps per import; ${sm.unread.toLocaleString('en-US')} more were declared and not read.`);
+      break;
+    }
+    if (!ctx.sitemapScope(item.url)) { sm.queue.shift(); seen.add(item.url); note(`A sitemap on another site was not read: ${item.url}`); continue; }
+    if (!(await allowed(item.url, ctx))) { sm.queue.shift(); seen.add(item.url); note(`robots.txt disallows the sitemap ${item.url}, so it was not read.`); continue; }
+    const r = await getPolite(item.url, ctx, { accept: 'application/xml,text/xml,*/*', scope: ctx.sitemapScope });
+    if (r.reason === 'rate_limited') { stop = { reason: 'rate_limited', at: `sitemap ${item.url}`, retry_after: r.retry_after, wait_ms: r.wait_ms }; break; }
+    if (r.reason === 'timeout') {
+      item.tries = (item.tries || 0) + 1;
+      if (item.tries < LIMITS.maxSitemapTries) { stop = { reason: 'timeout', at: `sitemap ${item.url}` }; break; }
+    }
+    sm.queue.shift();
+    seen.add(item.url);
+    sm.read += 1;
+    st.progress = (st.progress || 0) + 1;
+    if (!r.ok) { note(`The sitemap ${item.url} did not answer (${r.status || r.reason}).`); continue; }
+    const kind = sitemapKind(r.body);
+    if (kind === 'html' || kind === 'unknown') {
+      // A bot challenge, a login wall or a "not found" page answered 200: it
+      // is not a sitemap, and nothing in it is a list of this store's URLs.
+      sm.not_sitemaps += 1;
+      note(`${item.url} answered ${kind === 'html' ? 'an HTML page' : 'something that is not a sitemap'} (${r.contentType || 'no content type'}), not a sitemap, so nothing was taken from it.`);
       continue;
     }
-    const locs = crawl.locsFrom(r.body);
-    if (crawl.isSitemapIndex(r.body)) {
-      sources.push({ url: sm.url, kind: 'index', declared: locs.length });
-      if (sm.depth + 1 >= LIMITS.maxSitemapDepth) { notes.push(`The sitemap index ${sm.url} nests deeper than ${LIMITS.maxSitemapDepth} levels; its children were not read.`); continue; }
-      for (const c of locs) queue.push({ url: httpAbs(c, sm.url), depth: sm.depth + 1, typed: PRODUCT_SITEMAP.test(c) });
+    sm.found = true;
+    const locs = kind === 'text' ? textSitemapLocs(r.body) : crawl.locsFrom(r.body);
+    if (kind === 'urlset') {
+      // A <urlset> that lists SITEMAPS rather than pages (the 2026-10-11 live
+      // shape: 21 child sitemaps read as 21 "pages" that declare no product,
+      // on two stores of thousands): each such entry is a child sitemap.
+      const kids = locs.filter((l) => looksLikeSitemap(httpAbs(l, item.url)));
+      if (kids.length) {
+        sm.nested_in_urlset += kids.length;
+        for (const c of kids) {
+          const u = httpAbs(c, item.url);
+          if (!u || seen.has(u) || item.depth + 1 >= LIMITS.maxSitemapDepth) continue;
+          sm.queue.push({ url: u, depth: item.depth + 1, typed: (item.typed && !NOT_PRODUCT_SITEMAP.test(u)) || isProductSitemap(u) });
+        }
+        if (kids.length === locs.length) { sm.indexes += 1; if (sm.sources.length < 200) sm.sources.push({ url: item.url, kind: 'index (a urlset listing sitemaps)', declared: locs.length }); continue; }
+        const set = new Set(kids);
+        locs.splice(0, locs.length, ...locs.filter((l) => !set.has(l)));
+      }
+    }
+    if (kind === 'index') {
+      sm.indexes += 1;
+      if (sm.sources.length < 200) sm.sources.push({ url: item.url, kind: 'index', declared: locs.length });
+      if (item.depth + 1 >= LIMITS.maxSitemapDepth) { note(`The sitemap index ${item.url} nests deeper than ${LIMITS.maxSitemapDepth} levels; its children were not read.`); continue; }
+      for (const c of locs) {
+        const u = httpAbs(c, item.url);
+        if (!u || seen.has(u)) continue;
+        sm.queue.push({ url: u, depth: item.depth + 1, typed: (item.typed && !NOT_PRODUCT_SITEMAP.test(u)) || isProductSitemap(u) });
+      }
       continue;
     }
-    sources.push({ url: sm.url, kind: 'urlset', declared: locs.length, products: sm.typed });
-    for (const loc of locs) {
-      const u = httpAbs(loc, sm.url);
-      if (!u) continue;
-      (sm.typed ? products : other).push(u);
+    if (sm.sources.length < 200) sm.sources.push({ url: item.url, kind: 'urlset', declared: locs.length, products: !!item.typed });
+    sm.urlsets += 1;
+    if (item.typed) {
+      if (!sm.typed_any) { sm.typed_any = true; other.clear(); }
+      for (const loc of locs) {
+        const u = httpAbs(loc, item.url);
+        if (!u || !inBase(u) || typed.has(u)) continue;
+        typed.add(u);
+        sm.typed_total += 1;
+        if (st.pending.length < cap) st.pending.push(u); else sm.overflow += 1;
+      }
+    } else if (!sm.typed_any) {
+      for (const loc of locs) {
+        const u = httpAbs(loc, item.url);
+        if (!u || !inBase(u) || other.has(u) || u.replace(/\/$/, '') === st.base) continue;
+        if (other.size >= cap) { sm.overflow += 1; continue; }
+        other.add(u);
+      }
     }
   }
-  if (queue.length) notes.push(`${queue.length} more sitemap(s) were declared and not read (limit ${LIMITS.maxSitemaps} per run).`);
-  return { found: sources.length > 0, sources, products: [...new Set(products)], other: [...new Set(other)], notes };
+  st.other = sm.typed_any ? [] : [...other];
+  sm.seen = [...seen].slice(-6000);
+  if (!sm.queue.length) sm.done = true;
+  return stop;
+}
+
+/** What a sitemap response IS: an index, a urlset, a text sitemap (one URL per line), an HTML page, or unknown. */
+function sitemapKind(body) {
+  const b = String(body || '').slice(0, 4000).replace(/^\uFEFF/, '').trim();
+  if (crawl.isSitemapIndex(body)) return 'index';
+  if (/<(?:[a-z0-9]+:)?urlset\b/i.test(b) || /<url>\s*<loc>/i.test(b)) return 'urlset';
+  if (/<html\b|<!doctype html|<body\b/i.test(b)) return 'html';
+  const lines = b.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  if (lines.length && lines.every((x) => /^https?:\/\/\S+$/i.test(x))) return 'text';
+  return 'unknown';
+}
+/** A text sitemap (sitemaps.org): one absolute URL per line, UTF-8. */
+function textSitemapLocs(body) {
+  return String(body || '').split(/\r?\n/).map((x) => x.trim()).filter((x) => /^https?:\/\/\S+$/i.test(x));
+}
+/** A URL that names a sitemap, not a page: *.xml / *.xml.gz / *.txt(.gz), or "sitemap" in its path. */
+function looksLikeSitemap(u) {
+  try { const p = new URL(u).pathname.toLowerCase(); return /\.(?:xml|txt)(?:\.gz)?$/.test(p) || /\.gz$/.test(p) || /sitemap/.test(p); } catch (_) { return false; }
+}
+
+/** Once every sitemap is read: the read queue and the denominator. */
+function finishSitemaps(st, stats) {
+  const sm = st.sm;
+  if (!sm.typed_any) st.pending = (st.other || []).slice(0, LIMITS.maxProducts * 2);
+  st.other = [];
+  if (sm.overflow) stats.skipped.cap += sm.overflow;
+  st.declared = sm.found
+    ? { count: sm.typed_any ? sm.typed_total : null, urls: st.pending.length + (sm.typed_any ? 0 : sm.overflow), by: sm.typed_any ? 'the site\'s product sitemaps' : 'the site\'s sitemaps (they do not say which URLs are products)', complete: !sm.unread }
+    : null;
+  st.sitemap = { found: sm.found, sources: sm.sources.slice(0, 200), notes: sm.notes.slice(0, 20), typed: !!sm.typed_any, read: sm.read, indexes: sm.indexes, urlsets: sm.urlsets };
+  if (st.route === 'pages') st.route = sm.found ? 'sitemap' : 'crawl';
 }
 
 /* ── the cursor and the run ─────────────────────────────────────────────── */
@@ -564,11 +824,12 @@ async function readSitemaps(origin, declared, ctx) {
 function freshStats() {
   return {
     found: 0, by_source: { feed: 0, sitemap_jsonld: 0, crawl: 0 },
-    skipped: { robots: 0, off_scope: 0, no_product_declared: 0, no_title: 0, unreachable: 0, timed_out: 0, duplicate: 0, cap: 0 },
+    skipped: { robots: 0, off_scope: 0, no_product_declared: 0, script_rendered: 0, no_title: 0, unreachable: 0, timed_out: 0, duplicate: 0, cap: 0 },
     missing: { price: 0, image: 0, currency: 0 },
     missing_examples: [],
     robots_examples: [],
     unreachable_examples: [],
+    script_examples: [],
     requests: 0, rate_limited: 0, waited_ms: 0, feed_pages: 0, steps: 0,
   };
 }
@@ -582,12 +843,15 @@ function readCursor(c, opts) {
  * is a place in ONE source: resuming it for another URL, another market, or a
  * store on another brand's site would keep reading the wrong store (the live
  * record: a store_url corrected to the brand's own site still resumed nike.in
- * at "URL 439 of 2430").
+ * at "URL 439 of 2430"). Markets are compared canonically: a cursor written
+ * for "ind" is a place in the IN store.
  */
 function cursorProblem(c, { region, url, identity } = {}) {
   if (!c || typeof c !== 'object' || c.v !== LIMITS.cursorVersion) return 'it was written by another version of this importer';
-  if (String(c.region || '') !== String(region || '')) return `it reads market ${String(c.region || '').toUpperCase() || 'unset'}, not ${String(region || '').toUpperCase() || 'unset'}`;
-  if (!['feed', 'sitemap', 'crawl'].includes(c.route)) return 'it holds no place to resume from';
+  const a = canonRegion(c.region) || String(c.region || '').toLowerCase();
+  const b = canonRegion(region) || String(region || '').toLowerCase();
+  if (a !== b) return `it reads market ${a.toUpperCase() || 'unset'}, not ${b.toUpperCase() || 'unset'}`;
+  if (!['feed', 'sitemap', 'crawl', 'pages'].includes(c.route)) return 'it holds no place to resume from';
   if (url && c.start && hostOf(c.start) !== hostOf(url)) return `it was reading ${c.start}, and this import asks for ${String(url).replace(/\/$/, '')}`;
   if (identity && c.base && !COH.sameBrand(COH.registrableDomain(COH.hostOf(c.base)), identity)) return `it was reading ${c.base}, which is on another site (${COH.registrableDomain(COH.hostOf(c.base))}), not this brand's website (${identity})`;
   return '';
@@ -607,17 +871,19 @@ function noteMissing(row, stats) {
  * Advance one import run by one invocation.
  *
  *   url        the store URL the operator gave (or the brand's website)
- *   region     the market these rows are filed under (lower case)
+ *   region     the market these rows are filed under (canonicalised here)
  *   brand      { website, regions[], asset_hosts[] } - the scope, as the row gives it
  *   cursor     a previous step's cursor, to resume; null to start a run
  *   guard      async (url) => void, throwing for a private/internal address
  *   budgetMs   this step's share of the invocation
  *
- * Returns { rows, cursor, complete, coverage, storefront, base, run }.
+ * Returns { rows, cursor, complete, progressed, coverage, storefront, base, run }.
+ * `progressed` is false when the step moved nothing forward (no sitemap read,
+ * no page or feed page advanced): a chain stops on it instead of looping.
  */
 async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   const started = now || Date.now();
-  const reg = String(region || '').toLowerCase();
+  const reg = canonRegion(region) || String(region || '').toLowerCase();
   // Another brand's site never joins the scope (2026-10-10): a region store or
   // asset host on another registrable domain is dropped here and named in the
   // coverage. A record with no website keeps its scope as given.
@@ -629,9 +895,23 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   const prev = readCursor(cursor, { region: reg, url, identity: own.identity });
   const run = (prev && prev.run) || crypto.randomUUID();
   const stats = prev && prev.stats ? JSON.parse(JSON.stringify(prev.stats)) : freshStats();
+  for (const [k, v] of Object.entries(freshStats().skipped)) if (stats.skipped[k] == null) stats.skipped[k] = v;
+  if (!Array.isArray(stats.script_examples)) stats.script_examples = [];
   stats.steps += 1;
   stats.requests = 0;
-  const ctx = { hosts, robots: {}, deadline: started + (budgetMs || LIMITS.stepBudgetMs), stats, guard: guard || (async () => {}) };
+  // The brand's own registrable domain: the website's, else the URL given's.
+  const identity = own.identity || COH.registrableDomain(COH.hostOf(url));
+  const sameDomain = (u) => { try { return !!identity && COH.registrableDomain(COH.hostOf(u)) === identity; } catch (_) { return false; } };
+  const ctx = {
+    hosts, robots: {}, deadline: started + (budgetMs || LIMITS.stepBudgetMs), stats, guard: guard || (async () => {}),
+    // A page is the brand's when it is on the brand's hosts or under its own
+    // registrable domain (m.brand.com, shop.brand.com).
+    inScope: (u) => crawl.inScope(u, hosts) || sameDomain(u),
+    // A SITEMAP may also sit on a sibling the coherence rule calls the same
+    // brand (brand.in beside brand.com): that rule's ownership function,
+    // never a second domain comparison.
+    sitemapScope: (u) => crawl.inScope(u, hosts) || sameDomain(u) || (!!identity && COH.sameBrand(COH.registrableDomain(COH.hostOf(u)), identity)),
+  };
   const rows = [];
   const seen = new Set((prev && prev.seen_keys) || []);
   const keep = (row) => {
@@ -647,17 +927,20 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
     return true;
   };
 
-  let st = prev ? Object.assign({}, prev) : null;
+  let st = prev ? JSON.parse(JSON.stringify(prev)) : null;
+  if (st) st.region = reg;
   let storefront = (prev && prev.storefront) || null;
   let stopped = null;
+  const progressBefore = st ? (st.progress || 0) : 0;
 
   if (!st) {
-    // ── a fresh run: decide the store, the platform and the route.
+    // ── a fresh run: decide the store and the platform; the sitemaps are
+    // enumerated below, as a queue this step and the next ones work through.
     const start = url.replace(/\/$/, '');
     const robotsHome = await robotsFor(new URL(start).origin, ctx);
     if (robotsHome.rules === 'all') {
       stopped = { reason: 'robots_unreachable', at: `${new URL(start).origin}/robots.txt answered ${robotsHome.status || robotsHome.reason}` };
-      st = { v: LIMITS.cursorVersion, run, region: reg, start, base: start, base_from: 'the URL given', route: 'feed', page: 1, declared: null, currency: '', storefront: null };
+      st = { v: LIMITS.cursorVersion, run, region: reg, start, base: start, base_from: 'the URL given', route: 'feed', page: 1, declared: null, currency: '', storefront: null, progress: 0 };
     } else {
       let homeHtml = '';
       if (await allowed(start, ctx)) {
@@ -678,54 +961,94 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
       // The site's own declaration of its product URLs: the denominator.
       const origin = new URL(rb.base).origin;
       const rbase = await robotsFor(origin, ctx);
-      const sm = await readSitemaps(origin, rbase.sitemaps, ctx);
-      const prefix = new URL(rb.base).pathname.replace(/\/$/, '');
-      const inBase = (u) => { try { return !prefix || new URL(u).pathname.startsWith(prefix + '/'); } catch (_) { return false; } };
-      const typed = sm.products.filter(inBase);
-      const candidates = typed.length ? typed : sm.other.filter((u) => inBase(u) && u.replace(/\/$/, '') !== rb.base);
+      const declaredSm = (rbase.sitemaps || []).map((u) => httpAbs(u, origin)).filter(Boolean);
+      const firstSm = declaredSm.length ? declaredSm : [origin + '/sitemap.xml'];
       st = {
         v: LIMITS.cursorVersion, run, region: reg, start, base: rb.base, base_from: rb.from,
         identity: own.identity || '',
         foreign_stores: foreignStores.filter((f) => regionCountry(f.code) === regionCountry(reg)).slice(0, 5),
         currency: declaredCurrency(baseHtml),
         storefront,
-        sitemap: { found: sm.found, sources: sm.sources.slice(0, 40), notes: sm.notes.slice(0, 20), typed: typed.length > 0 },
-        declared: sm.found ? { count: typed.length || null, urls: candidates.length, by: typed.length ? 'the site\'s product sitemaps' : 'the site\'s sitemaps (they do not say which URLs are products)' } : null,
-        route: storefront && storefront.id && storefront.id !== 'shopify' ? (sm.found ? 'sitemap' : 'crawl') : 'feed',
+        prefix: new URL(rb.base).pathname.replace(/\/$/, ''),
+        sm: { queue: firstSm.map((u) => ({ url: u, depth: 0, typed: isProductSitemap(u) })), seen: [], sources: [], notes: [], read: 0, indexes: 0, urlsets: 0, found: false, done: false, typed_any: false, typed_total: 0, overflow: 0, unread: 0, not_sitemaps: 0, nested_in_urlset: 0, from_robots: declaredSm.length > 0 },
+        sitemap: null,
+        declared: null,
+        // The feed only for a store that IS Shopify or does not say what it is
+        // (then it is PROBED once: see the feed below). A store that declares
+        // another platform is read from its own sitemaps (or its pages).
+        route: storefront && storefront.id && storefront.id !== 'shopify' ? 'pages' : 'feed',
         page: 1,
-        pending: candidates.slice(0, LIMITS.maxProducts * 2),
+        pending: [],
+        other: [],
         pos: 0,
+        progress: 1,
       };
-      if (candidates.length > LIMITS.maxProducts * 2) stats.skipped.cap += candidates.length - LIMITS.maxProducts * 2;
     }
+  }
+
+  // ── the store asked to wait (Retry-After) at the end of the last step: wait
+  // it out here when this step can afford it, else stop before any request.
+  if (!stopped && st.not_before) {
+    const wait = st.not_before - Date.now();
+    if (wait > 0) {
+      if (wait <= ctx.deadline - Date.now() - 5000) { stats.waited_ms += wait; await sleep(wait); }
+      else stopped = { reason: 'rate_limited', at: st.waited_at || 'the last place read', retry_after: st.retry_after || null, wait_ms: wait, waiting: true };
+    }
+    if (!stopped) { delete st.not_before; delete st.retry_after; delete st.waited_at; }
+  }
+
+  // ── the site's sitemaps, resumable.
+  if (!stopped && st.sm && !st.sm.done) {
+    const halt = await enumerateSitemaps(st, ctx);
+    if (halt) stopped = halt;
+    else if (!st.sm.done) stopped = { reason: 'time', at: `sitemap ${st.sm.read + 1} of at least ${st.sm.read + st.sm.queue.length} (enumerating the site's sitemaps)` };
+    if (st.sm.done) finishSitemaps(st, stats);
   }
 
   // ── the feed.
   if (!stopped && st.route === 'feed') {
     const feedPath = `${st.base}/products.json`;
+    // Shopify, declared by the store itself: the feed is the route and a
+    // rate limit is waited out. Undeclared: the feed is PROBED - one request,
+    // no retries - and anything but a page of products moves the read to the
+    // site's own sitemaps (2026-10-11: Nykaa, not Shopify, stuck at "feed
+    // page 1" behind a 429 on a feed it does not have).
+    const declaredShopify = !!(st.storefront && st.storefront.id === 'shopify');
+    const pagesRoute = () => (st.sm && st.sm.found ? 'sitemap' : 'crawl');
     if (!(await allowed(feedPath, ctx))) {
       st.feed_refused = 'robots';
-      st.route = st.sitemap && st.sitemap.found ? 'sitemap' : 'crawl';
+      st.route = pagesRoute();
     } else {
       while (Date.now() < ctx.deadline - 2000) {
         if (st.page > LIMITS.maxFeedPages) { stats.skipped.cap += 1; st.route = 'done'; st.feed_cap = true; break; }
         const feedUrl = `${feedPath}?limit=${LIMITS.feedPageSize}&page=${st.page}`;
-        const r = await getPolite(feedUrl, ctx, { accept: 'application/json' });
-        if (r.reason === 'rate_limited') { stopped = { reason: 'rate_limited', at: `feed page ${st.page}`, retry_after: r.retry_after, wait_ms: r.wait_ms }; break; }
-        if (r.reason === 'timeout') { stopped = { reason: 'timeout', at: `feed page ${st.page}` }; break; }
+        const probing = !declaredShopify && st.page === 1 && !st.feed_confirmed;
+        const r = await getPolite(feedUrl, ctx, probing ? { accept: 'application/json', retries: 0 } : { accept: 'application/json' });
         let list = null;
         if (r.ok) { try { const j = JSON.parse(r.body); list = Array.isArray(j && j.products) ? j.products : null; } catch (_) { list = null; } }
+        if (probing && !(list && list.length)) {
+          st.feed_refused = r.reason === 'rate_limited' ? 'answered 429, asked to slow down'
+            : (r.ok ? (list ? 'answered an empty list' : 'not_a_feed') : `answered ${r.status || r.reason}`);
+          st.feed_probe = true;
+          st.route = pagesRoute();
+          st.progress = (st.progress || 0) + 1;
+          break;
+        }
+        if (r.reason === 'rate_limited') { stopped = { reason: 'rate_limited', at: `feed page ${st.page}`, retry_after: r.retry_after, wait_ms: r.wait_ms }; break; }
+        if (r.reason === 'timeout') { stopped = { reason: 'timeout', at: `feed page ${st.page}` }; break; }
         if (!list) {
           if (st.page === 1) {
             // No feed here: the store has it off, or it is not a Shopify store.
             st.feed_refused = r.ok ? 'not_a_feed' : `answered ${r.status || r.reason}`;
-            st.route = st.sitemap && st.sitemap.found ? 'sitemap' : 'crawl';
+            st.route = pagesRoute();
+            st.progress = (st.progress || 0) + 1;
             break;
           }
           stopped = { reason: 'unreachable', at: `feed page ${st.page} (${r.status || r.reason})` };
           break;
         }
-        if (!list.length) { st.route = 'done'; break; }   // an EMPTY page is the end; a short one is not
+        if (!list.length) { st.route = 'done'; st.progress = (st.progress || 0) + 1; break; }   // an EMPTY page is the end; a short one is not
+        st.feed_confirmed = true;
         stats.feed_pages += 1;
         if (st.page === 1) st.pending = [];               // the feed answers: the sitemap list is only the denominator now
         for (const p of list) {
@@ -734,6 +1057,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
           if (keep(row)) stats.by_source.feed += 1;
         }
         st.page += 1;
+        st.progress = (st.progress || 0) + 1;
       }
       if (!stopped && st.route === 'feed') stopped = { reason: 'time', at: `feed page ${st.page}` };
     }
@@ -745,13 +1069,13 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
     while (st.pos < pending.length && Date.now() < ctx.deadline - 1500) {
       const batch = pending.slice(st.pos, st.pos + LIMITS.pdpConcurrency);
       const results = await Promise.all(batch.map(async (u) => {
-        if (!crawl.inScope(u, hosts)) return { u, skip: 'off_scope' };
+        if (!ctx.inScope(u)) return { u, skip: 'off_scope' };
         if (!(await allowed(u, ctx))) return { u, skip: 'robots' };
         const r = await getPolite(u, ctx, { accept: 'text/html' });
         if (r.reason === 'rate_limited') return { u, stop: { reason: 'rate_limited', retry_after: r.retry_after, wait_ms: r.wait_ms } };
         if (r.reason === 'timeout') return { u, stop: { reason: 'timeout' } };
         if (!r.ok) return { u, skip: 'unreachable', status: r.status || r.reason };
-        if (r.url !== u && !crawl.inScope(r.url, hosts)) return { u, skip: 'off_scope' };
+        if (r.url !== u && !ctx.inScope(r.url)) return { u, skip: 'off_scope' };
         return Object.assign({ u }, rowFromPage(r.body, r.url, { region: reg, source: 'sitemap_jsonld' }));
       }));
       let halt = null, advanced = 0;
@@ -762,11 +1086,13 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
           stats.skipped[x.skip] = (stats.skipped[x.skip] || 0) + 1;
           if (x.skip === 'robots' && stats.robots_examples.length < 10) stats.robots_examples.push(x.u);
           if (x.skip === 'unreachable' && stats.unreachable_examples.length < 10) stats.unreachable_examples.push(`${x.u} (${x.status})`);
+          if (x.skip === 'script_rendered' && stats.script_examples.length < 10) stats.script_examples.push(x.u);
           continue;
         }
         if (x.row && keep(x.row)) stats.by_source.sitemap_jsonld += 1;
       }
       st.pos += advanced;
+      st.progress = (st.progress || 0) + advanced;
       if (halt) { stopped = halt; break; }
     }
     if (!stopped) {
@@ -778,6 +1104,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
   // ── no sitemap: the interlinked pages, resumable.
   if (!stopped && st.route === 'crawl') {
     const visited = new Set(st.visited || []);
+    const before = visited.size;
     const left = Math.max(2000, ctx.deadline - Date.now() - 1000);
     const out = await crawl.crawlSite(st.base, {
       brand: Object.assign({}, scope, { website: st.base }),
@@ -795,21 +1122,31 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now }) {
         visited.add(pageUrl);
         const got = rowFromPage(html, pageUrl, { region: reg, source: 'site_crawl' });
         if (got.row && keep(got.row)) stats.by_source.crawl += 1;
+        else if (got.skip === 'script_rendered') { stats.skipped.script_rendered += 1; if (stats.script_examples.length < 10) stats.script_examples.push(pageUrl); }
       },
     });
     st.visited = [...visited].slice(-3000);
     st.frontier = (out.frontier_remaining || []).slice(0, 400);
+    st.progress = (st.progress || 0) + (visited.size - before);
     if (out.stopped === 'exhausted' || !st.frontier.length) st.route = 'done';
     else stopped = { reason: 'time', at: `${visited.size} pages read, ${st.frontier.length} queued` };
   }
 
+  // A wait the store asked for, kept for the next step to honour.
+  if (stopped && stopped.reason === 'rate_limited' && stopped.wait_ms && !stopped.waiting) {
+    st.not_before = Date.now() + stopped.wait_ms;
+    st.retry_after = stopped.retry_after || null;
+    st.waited_at = stopped.at;
+  }
   const complete = st.route === 'done';
   st.seen_keys = [...seen].slice(-(LIMITS.maxProducts * 2));
   st.stats = stats;
+  const progressed = (st.progress || 0) > progressBefore || rows.length > 0;
   const coverage = coverageOf(st, stats, { complete, stopped, region: reg });
+  coverage.progressed = progressed;
   return {
     rows, run, base: st.base, storefront,
-    complete,
+    complete, progressed,
     cursor: complete ? null : st,
     coverage,
   };
@@ -824,7 +1161,11 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   const R = String(region || '').toUpperCase();
   const declared = st.declared && st.declared.count;
   const found = stats.found;
-  if (declared) s.push(`Found ${found.toLocaleString('en-US')} of the ${plural(declared, 'product')} the site declares in ${st.declared.by}.`);
+  const sm = st.sm || null;
+  if (sm && !sm.done) {
+    // Still enumerating: what the sitemaps read so far list, never a total.
+    s.push(`Found ${plural(found, 'product')} so far. The site's sitemaps are still being read (${plural(sm.read, 'sitemap')} read, at least ${plural(sm.queue.length, 'more')} to go)${sm.typed_any ? `; its product sitemaps list ${plural(sm.typed_total, 'product')} so far` : ''}, so the total it declares is not known yet.`);
+  } else if (declared) s.push(`Found ${found.toLocaleString('en-US')} of the ${plural(declared, 'product')} the site declares in ${st.declared.by}.`);
   else if (st.declared && st.declared.urls) s.push(`Found ${plural(found, 'product')}. ${st.declared.by.charAt(0).toUpperCase() + st.declared.by.slice(1)} list ${plural(st.declared.urls, 'URL')}, so no product total is declared to compare against.`);
   else s.push(`Found ${plural(found, 'product')}. The site publishes no sitemap this importer could read, so it declares no total to compare against.`);
   const src = [];
@@ -836,10 +1177,14 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   for (const f of (Array.isArray(st.foreign_stores) ? st.foreign_stores : [])) s.push(foreignStoreSentence(f, st.identity));
   if (st.feed_refused === 'robots') s.push('robots.txt disallows the product feed, so it was not read.');
   else if (st.feed_refused && st.storefront && st.storefront.id === 'shopify') s.push(`The store's product feed was not available (${st.feed_refused}), so its sitemap and product pages were read instead.`);
+  else if (st.feed_probe) s.push(`No commerce platform declared itself on the pages read, so Shopify's product feed (/products.json) was tried once; it ${st.feed_refused === 'not_a_feed' ? 'is not a product feed' : st.feed_refused}, so ${st.route === 'crawl' || (st.sm && !st.sm.found) ? 'the site\'s linked pages were' : 'the site\'s own sitemaps and product pages were'} read instead.`);
+  if (st.declared && st.declared.complete === false) s.push(`The total above is what the sitemaps read list: this importer reads at most ${LIMITS.maxSitemaps.toLocaleString('en-US')} sitemaps per import and the site declares more.`);
+  if (sm && sm.done && sm.notes && sm.notes.length) for (const n of sm.notes.slice(0, 3)) s.push(n);
   const k = stats.skipped;
   if (k.robots) s.push(`${plural(k.robots, 'page')} skipped because robots.txt disallows ${k.robots === 1 ? 'it' : 'them'}${stats.robots_examples.length ? ` (e.g. ${stats.robots_examples.slice(0, 2).join(', ')})` : ''}.`);
   if (k.off_scope) s.push(`${plural(k.off_scope, 'URL')} skipped because ${k.off_scope === 1 ? 'it is' : 'they are'} not on the brand's own hosts.`);
   if (k.no_product_declared) s.push(`${plural(k.no_product_declared, 'page')} in the sitemap declare no product (no JSON-LD Product and no OpenGraph product tags), so nothing was taken from ${k.no_product_declared === 1 ? 'it' : 'them'}.`);
+  if (k.script_rendered) s.push(`${plural(k.script_rendered, 'page')} declare${k.script_rendered === 1 ? 's' : ''} ${k.script_rendered === 1 ? 'its' : 'their'} product only after JavaScript runs (the page as served is an application shell with no JSON-LD or OpenGraph product${stats.script_examples && stats.script_examples.length ? `, e.g. ${stats.script_examples[0]}` : ''}); this importer reads pages as served, so nothing was taken from ${k.script_rendered === 1 ? 'it' : 'them'}. A CSV or JSON export of the catalogue covers them.`);
   if (k.no_title) s.push(`${plural(k.no_title, 'product')} skipped because ${k.no_title === 1 ? 'it states' : 'they state'} no title.`);
   if (k.unreachable) s.push(`${plural(k.unreachable, 'page')} did not answer${stats.unreachable_examples.length ? ` (e.g. ${stats.unreachable_examples[0]})` : ''}.`);
   if (stats.rate_limited) s.push(`The store asked to slow down ${plural(stats.rate_limited, 'time')}; every Retry-After was obeyed (${Math.round(stats.waited_ms / 1000)} s waited in all).`);
@@ -858,6 +1203,18 @@ function coverageOf(st, stats, { complete, stopped, region }) {
           : stopped.reason === 'unreachable' ? `the store stopped answering at ${stopped.at}`
             : `this run's time ran out at ${stopped.at}`;
     s.push(`PARTIAL: ${why}. Continue import resumes exactly there; the daily refresh also continues it.`);
+  } else if (complete && found === 0) {
+    // A read that found NOTHING is never called complete (2026-10-11: "Complete:
+    // every product the source lists was read" beside 0 products, on a store
+    // of thousands). Say what it reached and what it could not.
+    const reached = [];
+    if (st.sm) reached.push(`${plural(st.sm.read || 0, 'sitemap')} read${st.sm.not_sitemaps ? ` (${st.sm.not_sitemaps} answered something that is not a sitemap)` : ''}`);
+    if (st.declared && (st.declared.count || st.declared.urls)) reached.push(`${plural(st.declared.count || st.declared.urls, 'URL')} they list visited`);
+    if (stats.feed_pages) reached.push(`${plural(stats.feed_pages, 'feed page')} read`);
+    if (Array.isArray(st.visited) && st.visited.length) reached.push(`${plural(st.visited.length, 'linked page')} crawled`);
+    s.push(`NOT COMPLETE: no product was read. The importer reached the end of what it could see (${reached.join('; ') || 'nothing it could read'}) and none of it declared a product a page carries as served. This is not the store's catalogue; import a CSV or JSON export, or add structured product data to the product pages.`);
+  } else if (complete && declared && found < declared) {
+    s.push(`Complete: every URL the source lists was visited; ${plural(declared - found, 'of them', 'of them')} did not yield a product, for the reasons above.`);
   } else if (complete) {
     s.push('Complete: every product the source lists was read.');
   }
@@ -865,11 +1222,12 @@ function coverageOf(st, stats, { complete, stopped, region }) {
     route: st.route === 'done' ? (stats.by_source.feed ? 'feed' : stats.by_source.sitemap_jsonld ? 'sitemap' : 'crawl') : st.route,
     region: R, base: st.base, base_from: st.base_from, start: st.start || st.base, currency: st.currency || null,
     foreign_stores: Array.isArray(st.foreign_stores) ? st.foreign_stores : [],
-    declared: st.declared || null, found,
+    declared: st.declared || (sm && !sm.done && sm.typed_any ? { count: sm.typed_total, urls: null, by: 'the site\'s product sitemaps read so far', partial: true } : null), found,
     by_source: stats.by_source, skipped: stats.skipped, missing: stats.missing,
     missing_examples: stats.missing_examples.slice(0, 10),
     robots_examples: stats.robots_examples.slice(0, 10),
-    complete, stopped: stopped || null, resume_available: !complete,
+    complete: complete && found > 0, empty: complete && found === 0, stopped: stopped || null, resume_available: !complete,
+    not_before: st.not_before ? new Date(st.not_before).toISOString() : null,
     requests: stats.requests, rate_limited: stats.rate_limited, waited_ms: stats.waited_ms, steps: stats.steps,
     sitemap: st.sitemap || null,
     platform: st.storefront || null,
@@ -929,10 +1287,11 @@ function serviceEnv() {
   return url && key ? { url, key } : null;
 }
 
-async function serviceCall(env, pathAndQuery, { method = 'GET', body } = {}) {
+async function serviceCall(env, pathAndQuery, { method = 'GET', body, prefer } = {}) {
+  const headers = { apikey: env.key, Authorization: `Bearer ${env.key}`, 'Content-Type': 'application/json' };
+  if (prefer) headers.Prefer = prefer;
   const r = await fetch(`${env.url}/rest/v1/${pathAndQuery}`, {
-    method, cache: 'no-store',
-    headers: { apikey: env.key, Authorization: `Bearer ${env.key}`, 'Content-Type': 'application/json' },
+    method, cache: 'no-store', headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await r.text();
@@ -944,12 +1303,196 @@ async function serviceCall(env, pathAndQuery, { method = 'GET', body } = {}) {
 const STORE_KINDS = ['shopify_public', 'site_crawl', 'storefront', 'site'];
 const REFRESH_AFTER_MS = 20 * 3600 * 1000;
 
+/* ── the import CONTINUES BY ITSELF (2026-10-11) ─────────────────────────────
+   The live Lenskart record read 450 of 2,430 products in one call and then
+   waited for a person to press Continue import (or for the next day's cron).
+   A store read is a convergent queue on the brand's row, the same shape as
+   smart-brain-plan.prebuildAssets(): each step persists its cursor, then fires
+   the NEXT step as an independent invocation of this deployment's own URL
+   (fire-and-forget, a 3 s handoff - the child keeps running after the parent's
+   connection drops), until the store is read.
+
+     - the next step is POST /api/public-config?action=brand&op=catalog-chain,
+       accepted only with the scheduler's CRON_SECRET (constant-time), so the
+       chain needs no person's token (which would expire mid-catalogue);
+     - the row carries `catalog_import.chain = { token, depth, active, ... }`;
+       a step runs only for the token it was fired with and CLAIMS it with a
+       conditional PATCH on that token, so a duplicate fire, a stale fire after
+       a person restarted the import, or two chains never read one cursor;
+     - a step that moved nothing forward (no sitemap, page or feed page) ends
+       the chain and says why - never a hot loop; so does LIMITS-sized depth;
+     - a Retry-After the next step can wait is waited at its start; a longer
+       one ends the chain and records when the store may be asked again (the
+       daily refresh honours it);
+     - a deployment that cannot address itself (no SELF_BASE_URL / VERCEL_URL)
+       or has no CRON_SECRET says so, and the browser drives the steps instead.
+   The daily cron stays as the backstop. */
+const CHAIN = {
+  maxSteps: 400,
+  stepMs: 90000,          // a chained step's budget: public-config.js allows 120 s
+  maxWaitMs: 80000,       // the longest Retry-After a next step waits at its start
+  handoffMs: 3000,
+  liveMs: 150000,         // a chain whose last move is younger than this is running
+};
+
+function selfBaseUrl() {
+  if (process.env.SELF_BASE_URL) return String(process.env.SELF_BASE_URL).replace(/\/$/, '');
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return '';
+}
+function chainUnavailable() {
+  if (!selfBaseUrl()) return 'this deployment cannot address itself (no SELF_BASE_URL or VERCEL_URL)';
+  if (!process.env.CRON_SECRET) return 'this deployment has no CRON_SECRET to authorise its own next step';
+  if (typeof fetch !== 'function') return 'this runtime has no fetch';
+  return '';
+}
+
+/**
+ * What happens after a step: keep going (fire the next), or stop and why.
+ * `parsed` is rowsFromStore's answer, `depth` the step about to be fired.
+ */
+function chainAfter(parsed, depth, { server = true } = {}) {
+  const at = new Date().toISOString();
+  if (parsed.complete) return { active: false, done: true, depth, updated_at: at };
+  const stop = parsed.coverage && parsed.coverage.stopped;
+  if (stop && stop.reason === 'robots_unreachable') return { active: false, depth, updated_at: at, stopped: 'robots.txt could not be read, so nothing may be read until it answers' };
+  if (stop && stop.reason === 'rate_limited' && stop.wait_ms > CHAIN.maxWaitMs) {
+    const until = new Date(Date.now() + stop.wait_ms).toISOString();
+    return { active: false, depth, updated_at: at, resume_after: until, stopped: `the store asked to wait ${Math.round(stop.wait_ms / 1000)} s (Retry-After), longer than a step may wait; it is read again after ${until}, by the daily refresh or Continue import` };
+  }
+  if (!parsed.progressed && !(stop && stop.reason === 'rate_limited')) {
+    return { active: false, depth, updated_at: at, stopped: `the last step read nothing new${stop ? ` (${stop.reason === 'timeout' ? 'a request timed out' : stop.reason === 'unreachable' ? 'the store stopped answering' : 'its time ran out'} at ${stop.at})` : ''}, so it was not started again automatically` };
+  }
+  if (depth > CHAIN.maxSteps) return { active: false, depth, updated_at: at, stopped: `it has run ${CHAIN.maxSteps} steps in a row` };
+  if (!server) return { active: false, depth, updated_at: at, browser: true };
+  const why = chainUnavailable();
+  if (why) return { active: false, depth, updated_at: at, browser: true, why };
+  return { active: true, fire: true, token: crypto.randomUUID(), depth, updated_at: at };
+}
+
+/** The sentence the coverage carries about who continues the import. */
+function chainSentence(chain) {
+  if (!chain || chain.done) return '';
+  if (chain.active) return `It is continuing by itself: step ${chain.depth + 1} was started automatically and resumes exactly there, so nothing needs pressing.`;
+  if (chain.browser && !chain.stopped) return `It continues from this page: the next step is started automatically while the page is open${chain.why ? ` (the server does not start it itself: ${chain.why})` : ''}, and Continue import or the daily refresh resumes it later.`;
+  if (chain.stopped) return `It is not continuing by itself: ${chain.stopped}.`;
+  return '';
+}
+
+/** A chain that moved recently is running; Continue import and the cron leave it alone. */
+function chainBusy(imp, now) {
+  const c = imp && imp.chain;
+  if (!c || !c.active) return false;
+  const t = Date.parse(c.claimed_at || c.updated_at || 0) || 0;
+  return (now || Date.now()) - t < CHAIN.liveMs;
+}
+
+/** Fire the next step and return once it has started (or after the handoff window). */
+async function fireNext({ workspace_id, token, depth, budget_ms }) {
+  const why = chainUnavailable();
+  if (why) return { fired: false, reason: why };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CHAIN.handoffMs);
+  try {
+    await fetch(`${selfBaseUrl()}/api/public-config?action=brand&op=catalog-chain`, {
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      body: JSON.stringify({ workspace_id, token, depth, budget_ms: budget_ms || undefined }),
+    });
+  } catch (_) { /* expected: the child runs longer than the handoff window */ }
+  finally { clearTimeout(timer); }
+  return { fired: true };
+}
+
+/** Rows a previous import filed under another spelling of this market ("ind" for "in"), staled by a complete run. */
+async function staleAliasRegions(call, { workspace, reg, run, family }) {
+  for (const alias of regionAliases(reg)) {
+    try { await call('rpc/brand_catalog_merge', { p_workspace: workspace, p_region: alias, p_rows: [], p_run: run, p_complete: true, p_family: family, p_state: null, p_source: null }); }
+    catch (_) { /* an older database without the merge: nothing to stale */ }
+  }
+}
+
+/**
+ * One step of a workspace's store import, as the service role: resume the
+ * cursor on its row (or read the store again from the start), merge what was
+ * read, record the state + chain in the same transaction, and fire the next
+ * step when there is one to fire. Shared by the daily refresh and the chain.
+ */
+async function continueWorkspace(env, w, { budgetMs, by, depth = 0 } = {}) {
+  const imp = w.catalog_import || {};
+  const src = w.catalog_source || {};
+  const resume = imp.cursor ? imp : null;
+  const region = canonRegion((resume && resume.region) || src.region || imp.region || '') || String((resume && resume.region) || src.region || imp.region || '').toLowerCase();
+  // The URL the import was asked for (the cursor's start), never the store
+  // another brand's site supplied: a recorded source on another domain than
+  // the website refreshes from the website, and its cursor is not resumed.
+  let url = (resume && ((resume.cursor && resume.cursor.start) || resume.url)) || src.url || imp.url;
+  const ident = identityOf(w);
+  if (ident && url && !COH.sameBrand(COH.registrableDomain(COH.hostOf(url)), ident) && w.website) url = w.website;
+  const cursorIn = resume && !cursorProblem(resume.cursor, { region, url, identity: ident }) ? resume.cursor : null;
+  if (!region) throw new Error('no market recorded for this catalogue');
+  const core = require('./brand-workspace-core.js');
+  const parsed = await core.rowsFromStore(url, region, w, { cursor: cursorIn, budgetMs });
+  const run = parsed.run;
+  const complete = !!parsed.complete;
+  const kind = src.kind && /site/.test(src.kind) ? 'site_crawl' : 'shopify_public';
+  const chain = chainAfter(parsed, depth + 1);
+  const sentence = chainSentence(chain);
+  if (sentence && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.push(sentence);
+  const source = core.catalogSourceRecord(parsed, kind === 'site_crawl' ? 'site' : 'storefront', url, parsed.rows.length, run, region);
+  source.refreshed_by = by || 'daily refresh';
+  const state = { run, kind: kind === 'site_crawl' ? 'site' : 'storefront', url: parsed.start || url, base: parsed.base || '', region, cursor: complete ? null : parsed.cursor, coverage: core.coverageSummary(parsed.coverage), updated_at: new Date().toISOString(), refreshed_by: by || 'daily refresh', chain: Object.assign({}, chain, { fire: undefined }) };
+  const merged = { inserted: 0, updated: 0, staled: 0 };
+  const rowsIn = parsed.rows;
+  const chunks = [];
+  for (let j = 0; j < rowsIn.length; j += 400) chunks.push(rowsIn.slice(j, j + 400));
+  if (!chunks.length) chunks.push([]);
+  for (let j = 0; j < chunks.length; j++) {
+    const last = j === chunks.length - 1;
+    const r = await serviceCall(env, 'rpc/brand_catalog_merge', { method: 'POST', body: {
+      p_workspace: w.id, p_region: region, p_rows: chunks[j], p_run: run, p_complete: last && complete,
+      p_family: familyOf(kind), p_state: last ? state : null, p_source: last ? source : null,
+    } });
+    merged.inserted += (r && r.inserted) || 0; merged.updated += (r && r.updated) || 0; merged.staled += (r && r.staled) || 0;
+  }
+  if (complete) await staleAliasRegions((p, body) => serviceCall(env, p, { method: 'POST', body }), { workspace: w.id, reg: region, run, family: familyOf(kind) });
+  try { require('./brand-catalog-server.js').invalidate(w.id); } catch (_) { /* cache only */ }
+  let fired = null;
+  if (chain.fire) fired = await fireNext({ workspace_id: w.id, token: chain.token, depth: chain.depth, budget_ms: budgetMs });
+  return { workspace_id: w.id, continued: !!cursorIn, found: parsed.coverage.found, complete, progressed: !!parsed.progressed, inserted: merged.inserted, updated: merged.updated, staled: merged.staled, chain: state.chain, fired: !!(fired && fired.fired) };
+}
+
+/**
+ * One link of the chain (op=catalog-chain, CRON_SECRET only). Runs only when
+ * the row still names `token`, claims it first, then continues the import.
+ */
+async function chainStep({ workspace_id, token, budget_ms } = {}) {
+  const env = serviceEnv();
+  if (!env) return { ok: false, skipped: 'no_service_role', note: 'No Supabase service role on this deployment, so there is no workspace catalogue to continue.' };
+  const id = String(workspace_id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !token) return { ok: false, skipped: 'bad_request' };
+  const rows = await serviceCall(env, `brand_workspaces?select=id,website,regions,asset_hosts,catalog_source,catalog_import&id=eq.${encodeURIComponent(id)}&limit=1`);
+  const w = Array.isArray(rows) && rows[0];
+  const imp = (w && w.catalog_import) || {};
+  if (!w || !imp.cursor || !imp.chain || !imp.chain.active || imp.chain.token !== token) return { ok: true, skipped: 'superseded' };
+  // The claim: only one invocation moves this token on.
+  const claimed = Object.assign({}, imp, { chain: Object.assign({}, imp.chain, { token: crypto.randomUUID(), claimed_at: new Date().toISOString() }) });
+  const got = await serviceCall(env, `brand_workspaces?id=eq.${encodeURIComponent(id)}&catalog_import->chain->>token=eq.${encodeURIComponent(token)}&select=id`, { method: 'PATCH', body: { catalog_import: claimed }, prefer: 'return=representation' });
+  if (!Array.isArray(got) || !got.length) return { ok: true, skipped: 'claimed_elsewhere' };
+  w.catalog_import = claimed;
+  const budget = Math.max(1000, Math.min(Number(budget_ms) || CHAIN.stepMs, CHAIN.stepMs));
+  const out = await continueWorkspace(env, w, { budgetMs: budget, by: 'continuing by itself', depth: imp.chain.depth || 0 });
+  return Object.assign({ ok: true }, out);
+}
+
 /**
  * Keep every brand's store catalogue current, a few brands per run: an import
  * that stopped part-way CONTINUES from its cursor first; then the brand whose
  * last read is oldest is read again from the start (a complete re-read is what
  * marks a product the store dropped as stale). A catalogue a person uploaded
- * (CSV / JSON) has no store to re-read and is never touched.
+ * (CSV / JSON) has no store to re-read and is never touched. An import that is
+ * continuing by itself is left to its chain; one whose store asked to wait is
+ * left until that time.
  *
  * Service role, with the workspace named explicitly on every write; the merge
  * function accepts a call with no user only from the service role.
@@ -961,54 +1504,21 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
   const rows = await serviceCall(env, `brand_workspaces?select=id,website,regions,asset_hosts,catalog_source,catalog_import&catalog_source->>kind=in.(${STORE_KINDS.join(',')})&order=updated_at.asc&limit=200`);
   const list = (Array.isArray(rows) ? rows : []).filter((w) => w && w.catalog_source && (w.catalog_source.url || (w.catalog_import && w.catalog_import.url)));
   const at = (w) => Date.parse((w.catalog_import && w.catalog_import.updated_at) || w.catalog_source.imported_at || 0) || 0;
-  const partial = list.filter((w) => w.catalog_import && w.catalog_import.cursor).sort((a, b) => at(a) - at(b));
+  const waiting = (w) => { const c = w.catalog_import && w.catalog_import.chain; const t = c && c.resume_after ? Date.parse(c.resume_after) : 0; return t && t > started; };
+  const partial = list.filter((w) => w.catalog_import && w.catalog_import.cursor && !chainBusy(w.catalog_import, started) && !waiting(w)).sort((a, b) => at(a) - at(b));
   const stale = list.filter((w) => !(w.catalog_import && w.catalog_import.cursor) && started - at(w) > REFRESH_AFTER_MS).sort((a, b) => at(a) - at(b));
   const due = partial.concat(stale);
   const picked = due.slice(0, maxWorkspaces);
-  const core = require('./brand-workspace-core.js');
   const refreshed = [];
   for (let i = 0; i < picked.length; i++) {
     const w = picked[i];
     const left = budgetMs - (Date.now() - started);
     if (left < 4000) break;
     const share = Math.floor(left / (picked.length - i));
-    const imp = w.catalog_import || {};
-    const src = w.catalog_source || {};
-    const resume = imp.cursor ? imp : null;
-    const region = String((resume && resume.region) || src.region || imp.region || '').toLowerCase();
-    // The URL the import was asked for (the cursor's start), never the store
-    // another brand's site supplied: a recorded source on another domain than
-    // the website refreshes from the website, and its cursor is not resumed.
-    let url = (resume && ((resume.cursor && resume.cursor.start) || resume.url)) || src.url || imp.url;
-    const ident = identityOf(w);
-    if (ident && url && !COH.sameBrand(COH.registrableDomain(COH.hostOf(url)), ident) && w.website) url = w.website;
-    const cursorIn = resume && !cursorProblem(resume.cursor, { region, url, identity: ident }) ? resume.cursor : null;
     try {
-      if (!region) throw new Error('no market recorded for this catalogue');
-      const parsed = await core.rowsFromStore(url, region, w, { cursor: cursorIn, budgetMs: share });
-      const run = parsed.run;
-      const complete = !!parsed.complete;
-      const kind = src.kind && /site/.test(src.kind) ? 'site_crawl' : 'shopify_public';
-      const source = core.catalogSourceRecord(parsed, kind === 'site_crawl' ? 'site' : 'storefront', url, parsed.rows.length, run, region);
-      source.refreshed_by = 'daily refresh';
-      const state = { run, kind: kind === 'site_crawl' ? 'site' : 'storefront', url: parsed.start || url, base: parsed.base || '', region, cursor: complete ? null : parsed.cursor, coverage: core.coverageSummary(parsed.coverage), updated_at: new Date().toISOString(), refreshed_by: 'daily refresh' };
-      const merged = { inserted: 0, updated: 0, staled: 0 };
-      const rowsIn = parsed.rows;
-      const chunks = [];
-      for (let j = 0; j < rowsIn.length; j += 400) chunks.push(rowsIn.slice(j, j + 400));
-      if (!chunks.length) chunks.push([]);
-      for (let j = 0; j < chunks.length; j++) {
-        const last = j === chunks.length - 1;
-        const r = await serviceCall(env, 'rpc/brand_catalog_merge', { method: 'POST', body: {
-          p_workspace: w.id, p_region: region, p_rows: chunks[j], p_run: run, p_complete: last && complete,
-          p_family: familyOf(kind), p_state: last ? state : null, p_source: last ? source : null,
-        } });
-        merged.inserted += (r && r.inserted) || 0; merged.updated += (r && r.updated) || 0; merged.staled += (r && r.staled) || 0;
-      }
-      try { require('./brand-catalog-server.js').invalidate(w.id); } catch (_) { /* cache only */ }
-      refreshed.push({ workspace_id: w.id, continued: !!resume, found: parsed.coverage.found, complete, inserted: merged.inserted, updated: merged.updated, staled: merged.staled });
+      refreshed.push(await continueWorkspace(env, w, { budgetMs: share, by: 'daily refresh', depth: 0 }));
     } catch (e) {
-      refreshed.push({ workspace_id: w.id, continued: !!resume, error: String((e && e.message) || e).slice(0, 300) });
+      refreshed.push({ workspace_id: w.id, continued: !!(w.catalog_import && w.catalog_import.cursor), error: String((e && e.message) || e).slice(0, 300) });
     }
   }
   return {
@@ -1018,8 +1528,8 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
 }
 
 module.exports = {
-  refreshDue,
+  refreshDue, chainStep, continueWorkspace, chainAfter, chainSentence, chainBusy, fireNext, staleAliasRegions, selfBaseUrl, CHAIN,
   step, mergeRows, familyOf, rowKey, coverageOf,
-  rowFromFeed, rowFromPage, readSitemaps, parseRobots, robotsAllows, retryAfterMs,
-  regionalBase, ownScope, identityOf, cursorProblem, foreignStoreSentence, declaredCurrency, handleFromUrl, LIMITS, USER_AGENT, MARKER,
+  rowFromFeed, rowFromPage, enumerateSitemaps, isProductSitemap, scriptRendered, parseRobots, robotsAllows, retryAfterMs,
+  regionalBase, ownScope, identityOf, cursorProblem, foreignStoreSentence, declaredCurrency, handleFromUrl, canonRegion, regionAliases, LIMITS, USER_AGENT, MARKER,
 };

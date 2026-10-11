@@ -4,6 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A catalogue import finishes BY ITSELF, and never calls nothing "complete" (2026-10-11)
+The operator: *"ensure that import catalog always imports the complete catalog correctly"*. Live records: Nykaa (not
+Shopify, region stored "IND") read 0, stuck at "feed page 1" behind a 429, "21 products declared"; Lenskart read "21
+URLs, 21 pages that declare no product ... Complete" (and on another run 450 of 2,430, waiting for Continue import).
+This container cannot reach either site, so fixtures model the documented shapes (`bigmarket.example`,
+`lensshop.example`, `emptyshop.example` in `tests/lib/catalog-fixture-stores.js`); gated by
+`tests/catalog-import-always-complete.spec.js` (executed; 27 mutations, each restoring one defect).
+- **Root causes, each fixed in `catalog-import.js`**: (1) with NO platform declared the Shopify feed was the route and
+  its 429 stopped the run - now it is PROBED once, no retries, and anything but a page of products moves to the
+  sitemaps; (2) a `<urlset>` whose `<loc>`s are child SITEMAPS (`*.xml`, `*.xml.gz`, `*.txt`, "sitemap" in the path)
+  was read as pages - the "21" on both stores; it is an index now (`sitemapKind`, `looksLikeSitemap`, text sitemaps
+  read, a 200 HTML page at a sitemap URL is said to be "not a sitemap"); (3) sitemaps were one pass (60 per run, depth
+  3, a 429 child dropped, a child of a product index untyped, `product_cat-*` counted as products) - now a resumable
+  queue on the cursor (`enumerateSitemaps`), depth 6, 3,000 per import, Retry-After waited or the child kept at the
+  head, children inherit "product", the total is "so far" until every sitemap is read; a sitemap on the brand's own
+  registrable domain or a `sameBrand` sibling is read (no second domain comparison); (4) a read of 0 products said
+  "Complete" - it says NOT COMPLETE and what it reached (`coverage.empty`); (5) region "IND" filed rows under "ind",
+  which no generator looks up: `canonRegion()` (brand-locale's FAMILY/COUNTRY) or `400 region_unknown`, and a complete
+  run stales rows under the old spelling (`staleAliasRegions`, device twin in brand-context.js).
+- **Client-rendered pages**: a schema.org Product inside the page's own `__NEXT_DATA__` / `type="application/json"`
+  is read as JSON-LD; a plain object is taken only when it states title, price, ISO currency and an http image AND
+  its title is the page's title (`embeddedProduct`); an application shell is counted and said (`script_rendered`).
+  render-browser is NOT used per product (a fresh browser per read; thousands of products do not fit a function).
+- **It continues by itself** (`chainAfter` / `fireNext` / `chainStep` / `continueWorkspace`): after a step that moved,
+  the account path fires `POST /api/public-config?action=brand&op=catalog-chain` (CRON_SECRET only, constant time) at
+  `SELF_BASE_URL`/`VERCEL_URL`, the prebuild queue's 3 s handoff; the row's `catalog_import.chain.token` is CLAIMED
+  by a conditional PATCH so a duplicate fire runs nothing; no progress, a Retry-After > 80 s (`resume_after`, honoured
+  by the daily refresh) or 400 steps ends it with a sentence; Continue import during a live chain is `409
+  import_continuing`. No self URL/secret, or a device brand: `drive:true`, and the page runs the steps
+  (onboarding `keepGoing`, /connections). Pages show "X of Y products read, continuing"; an earlier import's coverage
+  is shown only as labelled history; a failure is said once (no toast over the panel). Still 12/12, still two crons.
+- **Probe**: `.github/workflows/catalog-probe.yml` (workflow_dispatch only, `contents: read`, inputs via env) runs
+  `scripts/catalog-probe.js` - the shipped `rowsFromStore`, no database - and uploads coverage, sample rows and the
+  sitemap tree. Dispatch it for lenskart.com / nykaa.com to confirm the modelled shapes.
+
 ## ⭐ A catalogue import reads THIS brand's store, and records where it read (2026-10-10)
 Production's only workspace, "DelhiChic" (website delichic.co.in), had one region IN with `store_url`
 https://www.nike.in and Nike's hosts in `asset_hosts`. The import took "the IN store URL on the brand's own record",
