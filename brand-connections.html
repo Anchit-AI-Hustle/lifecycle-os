@@ -537,7 +537,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (r.complete !== false) break;
         if (r.continuing) { await loadCatalog(); break; }
         var stop = r.coverage && r.coverage.stopped;
-        var wait = stop && stop.reason === 'rate_limited' ? (stop.wait_ms || 0) : 0;
+        var wait = stop && (stop.reason === 'rate_limited' || stop.reason === 'throttled') ? (stop.wait_ms || 0) : 0;
         if (!r.drive || r.progressed === false || wait > 120000) break;
         if (wait) await new Promise(function (res) { setTimeout(res, wait); });
         r = await brandApi('catalog-import', { workspace_id: b.id, continue: true });

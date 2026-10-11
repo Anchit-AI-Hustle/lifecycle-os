@@ -60,6 +60,21 @@ This container cannot reach either site, so fixtures model the documented shapes
   import_continuing`. No self URL/secret, or a device brand: `drive:true`, and the page runs the steps
   (onboarding `keepGoing`, /connections). Pages show "X of Y products read, continuing"; an earlier import's coverage
   is shown only as labelled history; a failure is said once (no toast over the panel). Still 12/12, still two crons.
+- **What the probe found on the REAL stores, same day (runs 38111611525 Lenskart, 38111613094 Nykaa), fixed and
+  modelled (`lensworld.example`, `beautymart.example`)**: (1) an IN import read EVERY locale's product sitemap and
+  filed `/en-us/` pages in USD under IN ("412 of 13,566") - a market now reads only its own subtree: hreflang
+  alternates (`localePrefixes`) and locale-shaped first segments (`/en-us/`, `/ar-sa/`) belong to their own country
+  (`foreignLocale`); another market's product sitemaps are read only to COUNT them ("/en-us/ is the US store: N
+  products ..., not read for IN"); a row priced in another currency than the market's (`marketCurrency`, the one
+  country table) is not filed. (2) Blog sitemaps typed "product" by a SUBSTRING ("product-reviews"): typing is by the
+  WORDS of the path (`sitemapClass`: blog/reviews/category/pages... make it non-product, never read; product/products
+  types it; children inherit), and product sitemaps are read FIRST. (3) 1,297 "unreachable" pages were throttling: a
+  no-answer/403/5xx is retried, parallelism halves (ceiling = one below the level that failed), the read backs off; a
+  page is unreachable only after three tries one at a time; a store refusing even one at a time stops the step as
+  `throttled` (60 s wait, the chain waits it); 404/410 are stale sitemap entries, counted apart. (4) "300,639 mores":
+  the cap is a stated LIMIT of 20,000 product URLs per market per import (the cursor carries the URL list on the
+  row: measured ~4.3 MB at 20,000 URLs; 340,639 would be ~73 MB per step, so it was not raised). A sitemap that is XML
+  but not `<urlset>`/`<sitemapindex>` is named by its root element; the urlset test reads the whole body.
 - **Probe**: `.github/workflows/catalog-probe.yml` (workflow_dispatch only, `contents: read`, inputs via env) runs
   `scripts/catalog-probe.js` - the shipped `rowsFromStore`, no database - and uploads coverage, sample rows and the
   sitemap tree. Dispatch it for lenskart.com / nykaa.com to confirm the modelled shapes.

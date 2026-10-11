@@ -2494,7 +2494,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         if (!r.drive || r.progressed === false) break;
         var stop = r.coverage && r.coverage.stopped;
-        var wait = stop && stop.reason === 'rate_limited' ? (stop.wait_ms || 0) : 0;
+        var wait = stop && (stop.reason === 'rate_limited' || stop.reason === 'throttled') ? (stop.wait_ms || 0) : 0;
         if (wait > 120000) break;
         if (wait) { if (status) status.textContent = progressLine(r.coverage) + '; the store asked to wait ' + Math.round(wait / 1000) + ' s, then this continues.'; await pause(wait); }
         if (status) status.textContent = progressLine(r.coverage) + ', continuing…';
