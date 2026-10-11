@@ -81,7 +81,7 @@
     "@sparticuz/chromium": "153.0.0",
     "@vercel/speed-insights": "^2.0.0",
     "google-auth-library": "^11.1.0",
-    "googleapis": "^182.0.0",
+    "googleapis": "^184.0.0",
     "imapflow": "^2.1.2",
     "mailparser": "^3.9.32",
     "pixelmatch": "^5.3.0",
