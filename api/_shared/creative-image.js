@@ -28,7 +28,10 @@ async function generateCreativeImage(prompt, { size = '1024x1024', mode = '' } =
       setHeader() {}, status() { return res; }, end() { done(null); return res; },
       json(obj) { done(obj && obj.image_data_url ? { image: obj.image_data_url, provider: obj.provider, model: obj.model } : null); return res; },
     };
-    const req = { method: 'POST', body: { prompt: String(prompt).slice(0, 1800), size, quality: 'high', mode } };
+    // budget_ms keeps the cascade inside this function's own 60s wait, so a
+    // slow provider is cut off by the cascade (which then tries the next one)
+    // rather than by the timer below (which gives up on all of them).
+    const req = { method: 'POST', body: { prompt: String(prompt).slice(0, 1800), size, quality: 'high', mode, budget_ms: 55000 } };
     Promise.resolve().then(() => handler(req, res)).catch(() => done(null));
     setTimeout(() => done(null), 60000);
   });

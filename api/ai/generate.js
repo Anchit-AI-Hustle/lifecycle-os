@@ -866,7 +866,7 @@ Target market for this autofill: ${targetMarket}.`;
       });
       result = { ok: true, text: out.text, provider: out.provider, model: out.model };
     } catch (llmErr) {
-      // All providers failed (or a plain-400 bad request aborted the cascade).
+      // All providers failed (llm.js tries every provider; a plain 400 no longer aborts it).
       // Reconstruct the legacy failure result from the last provider error.
       const perr = Array.isArray(llmErr && llmErr._providerErrors) ? llmErr._providerErrors : [];
       const last = perr[perr.length - 1] || null;
