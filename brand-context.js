@@ -2346,6 +2346,15 @@
       // product the source no longer lists marked stale once the run is
       // complete) - the twin of the server's brand_catalog_merge().
       var merged = mergeDeviceCatalog(held ? held.products : [], r.products, { run: r.run, complete: !!r.complete && body.replace !== false, family: r.family || [] });
+      // Rows an older import filed under another spelling of this market
+      // ("ind" for "in", 2026-10-11) are staled by a complete run of the same
+      // source family - kept, never deleted, exactly as the server does.
+      if (r.complete && body.replace !== false && Array.isArray(r.alias_regions) && r.alias_regions.length) {
+        var fam = r.family || [], when = new Date().toISOString();
+        merged.rows.forEach(function (x) {
+          if (!x.stale_at && r.alias_regions.indexOf(String(x.region || '').toLowerCase()) >= 0 && (!fam.length || fam.indexOf(x.source) >= 0)) { x.stale_at = when; merged.staled += 1; }
+        });
+      }
       var live = merged.rows.filter(function (x) { return !x.stale_at; }).length;
       // Imported by hand: the operator owns it, and a context pack run leaves
       // it alone (catalog_owned) exactly as a `user` provenance row would.

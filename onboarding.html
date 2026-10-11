@@ -2427,17 +2427,86 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      which source, what was skipped and why, what the store did not state. A
      partial import says PARTIAL and offers Continue import, which resumes from
      the cursor the server (or this device) kept - never a re-read from zero. */
-  function renderCoverage(cov, resumable) {
+  /* `opts.continuing`: the import is moving by itself (the server's chain, or
+     this page driving a device brand's steps) - no button to press.
+     `opts.history`: an EARLIER import, kept on screen only as labelled history
+     while a new one runs or after it failed (2026-10-11: "Catalogue read
+     completely - Found 54 of 66" from another source stayed beside a new
+     failure and contradicted it). */
+  function renderCoverage(cov, resumable, opts) {
     var box = $('impCoverage');
     if (!box) return;
-    if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { box.hidden = true; box.innerHTML = ''; return; }
+    opts = opts || {};
+    if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { box.hidden = true; box.innerHTML = ''; box.removeAttribute('data-history'); return; }
     box.hidden = false;
+    if (opts.history) box.setAttribute('data-history', '1'); else box.removeAttribute('data-history');
+    var head = opts.history
+      ? 'Earlier import' + (cov.base ? ' of ' + cov.base : '') + ' (history, not this import)'
+      : (cov.complete ? 'Catalogue read completely' : (cov.empty ? 'Catalogue not read: no product found' : (opts.continuing ? 'Catalogue being read: continuing by itself' : 'Catalogue read in part')));
     box.innerHTML =
-      '<p class="imp-cov-head"><b>' + (cov.complete ? 'Catalogue read completely' : 'Catalogue read in part') + '</b></p>' +
+      '<p class="imp-cov-head"><b>' + esc(head) + '</b></p>' +
       '<ul class="imp-cov-list">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
-      (resumable ? '<button type="button" class="btn" id="impContinue">Continue import</button>' : '');
+      (resumable && !opts.continuing && !opts.history ? '<button type="button" class="btn" id="impContinue">Continue import</button>' : '');
     var c = $('impContinue');
     if (c) c.addEventListener('click', continueImport);
+  }
+  /* The coverage on screen becomes HISTORY the moment another import starts. */
+  function coverageToHistory() {
+    var box = $('impCoverage');
+    if (!box || box.hidden || box.getAttribute('data-history')) return;
+    var head = box.querySelector('.imp-cov-head b');
+    if (head) head.textContent = 'Earlier import (history, not this import)';
+    box.setAttribute('data-history', '1');
+    var c = $('impContinue'); if (c) c.remove();
+  }
+  /* "X of Y, continuing": the import's own count against what the site declares. */
+  function progressLine(cov) {
+    if (!cov) return '';
+    var y = cov.declared && (cov.declared.count || cov.declared.urls);
+    return (cov.found || 0) + (y ? ' of ' + y + (cov.declared.partial ? ' so far' : '') : '') + ' products read';
+  }
+  var following = false;
+  function pause(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  /* KEEP GOING until the store is read (2026-10-11). An account import whose
+     server continues it by itself is FOLLOWED (catalog-status every few
+     seconds); a device brand, or a deployment that cannot start its own next
+     step, is DRIVEN from here (Continue import, step after step). It stops on
+     complete, on a step that read nothing new, or on a wait longer than two
+     minutes the store asked for - and says which. */
+  async function keepGoing(r) {
+    if (following || !r || r.complete !== false) return;
+    following = true;
+    var status = $('impStatus');
+    try {
+      for (var n = 0; n < 2000 && r && r.complete === false; n++) {
+        if (r.continuing) {
+          if (status) status.textContent = progressLine(r.coverage) + ', continuing by itself…';
+          await pause(n < 3 ? 1500 : 4000);
+          var st = await api('catalog-status', null, '&workspace_id=' + encodeURIComponent(brand.id));
+          if (!st) break;
+          var done = !st.resume_available;
+          r = { complete: done ? true : false, continuing: !!st.continuing, coverage: st.coverage, drive: !st.continuing && !done && !!(st.chain && st.chain.browser), progressed: true };
+          if (typeof st.live === 'number') catalogCount = st.live;
+          renderCoverage(st.coverage, !done, { continuing: !!st.continuing });
+          if (done) { if (status) status.textContent = progressLine(st.coverage) + '. ' + (st.coverage && st.coverage.complete ? 'The catalogue import finished.' : ''); break; }
+          if (!st.continuing && !r.drive) break;
+          continue;
+        }
+        if (!r.drive || r.progressed === false) break;
+        var stop = r.coverage && r.coverage.stopped;
+        var wait = stop && stop.reason === 'rate_limited' ? (stop.wait_ms || 0) : 0;
+        if (wait > 120000) break;
+        if (wait) { if (status) status.textContent = progressLine(r.coverage) + '; the store asked to wait ' + Math.round(wait / 1000) + ' s, then this continues.'; await pause(wait); }
+        if (status) status.textContent = progressLine(r.coverage) + ', continuing…';
+        var nxt = { workspace_id: brand.id, region: importRegion().toLowerCase(), continue: true };
+        var ib = $('impUrl');
+        if (ib && ib.value.trim()) nxt.url = ib.value.trim();
+        r = await api('catalog-import', nxt);
+        afterImport(r, true);
+      }
+    } catch (e) {
+      if (status) window.LifecycleFailure.show(status, e, { title: 'The import stopped continuing' });
+    } finally { following = false; }
   }
   /* "612 products in this workspace" counted another site's rows as this
      brand's (2026-10-10, the live record: Nike's products under DelhiChic).
@@ -2454,7 +2523,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (typeof b.products === 'number') catalogCount = b.products;
     catalogExcluded = typeof b.products_excluded === 'number' ? { count: b.products_excluded, domains: b.products_excluded_domains || [] } : null;
   }
-  function afterImport(r) {
+  function afterImport(r, auto) {
     var status = $('impStatus');
     catalogCount = typeof r.own === 'number' ? r.own : (typeof r.live === 'number' ? r.live : r.imported);
     catalogExcluded = typeof r.excluded === 'number' ? { count: r.excluded, domains: r.excluded_domains || [] } : null;
@@ -2462,9 +2531,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (typeof r.own === 'number') counts += ', ' + r.own + ' in ' + (brand.name || 'this brand') + '\'s catalogue now';
     else if (typeof r.live === 'number') counts += ', ' + r.live + ' in the catalogue now';
     if (r.staled) counts += ', ' + r.staled + ' the store no longer lists marked stale (kept, not used)';
-    if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.' + excludedLine();
-    renderCoverage(r.coverage, !!r.resume_available);
-    toast(r.complete === false ? 'Read ' + r.imported + ' products; the store was not read to the end yet. Continue import resumes it.' : 'Imported ' + r.imported + ' products.', 4200);
+    var moving = r.complete === false && (r.continuing || (r.drive && r.progressed !== false));
+    if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.' + excludedLine() + (moving ? ' ' + progressLine(r.coverage) + ', continuing' + (r.continuing ? ' by itself' : '') + '…' : '');
+    renderCoverage(r.coverage, !!r.resume_available, { continuing: moving });
+    if (!auto && r.complete !== false) toast('Imported ' + r.imported + ' products.', 4200);
+    if (moving && !auto) keepGoing(r);
   }
   async function saveBeforeImport() {
     var saved = await save(true);
@@ -2490,10 +2561,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var box = $('impUrl');
       if (box && box.value.trim()) cont.url = box.value.trim();
       var r = await api('catalog-import', cont);
-      afterImport(r);
+      afterImport(r, true);
+      busy = false;
+      keepGoing(r);
     } catch (e) {
+      // The failure frame says it, once, where it happened: no toast laid
+      // over the panel and the Review button repeating it (2026-10-11).
       window.LifecycleFailure.show(status, e, { title: 'The import did not continue' });
-      toast(window.LifecycleFailure.sentence(e), 4200);
     } finally { busy = false; }
   }
   /* The coverage of the import this brand already has: the device keeps it
@@ -2508,7 +2582,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       }
       if (actionsOff()) return;
       var st = await api('catalog-status', null, '&workspace_id=' + encodeURIComponent(brand.id));
-      if (st && st.coverage) renderCoverage(st.coverage, !!st.resume_available);
+      if (st && st.coverage) renderCoverage(st.coverage, !!st.resume_available, { continuing: !!st.continuing });
+      // An import that is continuing by itself is followed from here.
+      if (st && st.continuing) keepGoing({ complete: false, continuing: true, coverage: st.coverage });
     } catch (_) { /* the coverage is a convenience; the import controls stand without it */ }
   }
   /* IMPORT YOUR STORE FEED, said where it is needed (2026-10-05). A template
@@ -2612,6 +2688,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           payload.kind = /\.json$/i.test(f.name) || payload.text.trim()[0] === '[' || payload.text.trim()[0] === '{' ? 'json' : 'csv';
         }
         busy = true; status.textContent = 'Importing…';
+        coverageToHistory();
         var r = await api('catalog-import', payload);
         afterImport(r);
         var sf = $('storeFeed'); if (sf && r.imported) sf.hidden = true;
@@ -2619,8 +2696,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // This span otherwise reads "N products in this workspace." - a count.
         // An error string dropped into it is read as a count too, so it gets
         // the failure frame instead.
+        // Once, in the failure frame where the import is: no toast over the
+        // panel and the Review button repeating it. An earlier import's
+        // coverage stays only as labelled history.
         window.LifecycleFailure.show(status, e, { title: 'Nothing was imported' });
-        toast(window.LifecycleFailure.sentence(e), 4200);
+        coverageToHistory();
       } finally { busy = false; }
     });
   }

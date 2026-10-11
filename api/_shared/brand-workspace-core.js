@@ -1212,7 +1212,7 @@ async function rowsFromStore(startUrl, region, scope, { cursor, budgetMs, strict
     storefront: out.coverage.platform
       ? { detected: true, platform: { id: out.coverage.platform.id, name: out.coverage.platform.name, why: out.coverage.platform.why, confidence: out.coverage.platform.confidence, source_url: out.coverage.platform.source_url }, catalog_route: { kind: out.coverage.platform.route, note: out.coverage.platform.route_note } }
       : { detected: false },
-    coverage: out.coverage, cursor: out.cursor, complete: out.complete, run: out.run,
+    coverage: out.coverage, cursor: out.cursor, complete: out.complete, run: out.run, progressed: out.progressed !== false,
   };
 }
 
@@ -1877,7 +1877,16 @@ async function readCatalogSource({ region, kind, text, url, scope, cursor, budge
   // (its record's flag) - never a literal 'us' (2026-10-05). The wizard
   // already refuses without a home market; this is the same rule one layer
   // down, for every other caller.
-  const reg = str(region, 12).toLowerCase() || require('./brand-locale.js').homeMarket(scope).toLowerCase();
+  const asked = str(region, 24) || require('./brand-locale.js').homeMarket(scope);
+  // The CANONICAL market code (2026-10-11): the live Nykaa record stored its
+  // region as "IND", rows were filed under "ind", and every generator looks
+  // up "in" (brand-catalog-server.regionKey). One table decides
+  // (brand-locale.js); a code it does not know is refused, never filed.
+  const reg = asked ? require('./catalog-import.js').canonRegion(asked) : '';
+  if (asked && !reg) {
+    const e = new Error(`"${asked}" is not a market code this platform knows, so there is nowhere to file these products where anything would find them. Use the market's country code (for example IN, US, GB) or GLOBAL in Brand setup, then import.`);
+    e.status = 400; e.code = 'region_unknown'; throw e;
+  }
   if (!reg) {
     const marker = require('./brand-locale.js').marker('home market', scope && scope.name ? scope : 'this brand');
     const e = new Error(`${marker} No region was named and the brand's record lists no market, so there is nowhere to file these products. Add its regions in Brand setup, then import.`);
@@ -1907,7 +1916,7 @@ async function readCatalogSource({ region, kind, text, url, scope, cursor, budge
     if (sf && sf.detected) {
       tried += ` This site is ${sf.platform.name} (${sf.platform.why}). ${sf.catalog_route.note}`
         + ' Nothing here is a fault in your store: it means the pages that were read declare no structured product data, so add it, or import a CSV.';
-    } else if (k !== 'csv' && k !== 'json') {
+    } else if (k !== 'csv' && k !== 'json' && !(parsed.coverage && parsed.coverage.platform === null && parsed.coverage.sentences && parsed.coverage.sentences.some((x) => /No commerce platform declared itself/.test(x)))) {
       tried += ' No commerce platform declared itself on the pages that were read, so there was no feed to prefer.';
     }
     const e = new Error('No usable product rows were found in that source.' + tried);
@@ -1944,7 +1953,7 @@ function coverageSummary(c) {
     declared: c.declared ? { count: c.declared.count || null, urls: c.declared.urls || null, by: c.declared.by } : null,
     found: c.found, by_source: c.by_source, skipped: c.skipped, missing: c.missing,
     missing_examples: (c.missing_examples || []).slice(0, 5),
-    complete: !!c.complete, resume_available: !!c.resume_available, stopped: c.stopped || null,
+    complete: !!c.complete, empty: !!c.empty, resume_available: !!c.resume_available, stopped: c.stopped || null, not_before: c.not_before || null,
     sentences: (c.sentences || []).slice(0, 20),
   };
 }
@@ -2043,6 +2052,11 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
   }
   const { parsed, reg, k } = await readCatalogSource({ region, kind: resume ? 'storefront' : kind, text, url: (resume && resume.start) || url, scope, cursor: resume, budgetMs });
   if (restarted && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.unshift(restarted);
+  // A device brand has no row to chain on: its browser drives the next step.
+  const ciDev = require('./catalog-import.js');
+  const devChain = parsed.complete === false ? ciDev.chainAfter(parsed, 1, { server: false }) : null;
+  const devSentence = devChain ? ciDev.chainSentence(devChain) : '';
+  if (devSentence && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.push(devSentence);
   const products = [];
   for (const r of uniqueRows(parsed.rows)) {
     const row = {};
@@ -2062,6 +2076,11 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
     run: batch,
     complete: !!parsed.complete,
     resume_available: !parsed.complete,
+    progressed: parsed.progressed !== false,
+    // Keep going from the page while this is true; `wait_ms` first when the store asked.
+    drive: !!(devChain && !devChain.stopped),
+    chain: devChain,
+    alias_regions: require('./catalog-import.js').regionAliases(reg),
     cursor: parsed.cursor || null,
     family: require('./catalog-import.js').familyOf(k),
     coverage: coverageSummary(parsed.coverage),
@@ -2131,6 +2150,10 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
       const e = new Error('There is no unfinished catalogue import on this brand to continue. Import it again to read it from the start.');
       e.status = 409; e.code = 'nothing_to_continue'; throw e;
     }
+    if (require('./catalog-import.js').chainBusy(prior)) {
+      const e = new Error(`This catalogue import is already continuing by itself (step ${((prior.chain && prior.chain.depth) || 0) + 1}); its progress shows here as it goes, so there is nothing to press.`);
+      e.status = 409; e.code = 'import_continuing'; throw e;
+    }
     region = prior.region || region;
     kind = prior.kind || 'storefront';
     // A cursor is a place in ONE source (2026-10-10). Continue import on the
@@ -2153,6 +2176,13 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
   const run = parsed.run || require('crypto').randomUUID();
   const family = require('./catalog-import.js').familyOf(k);
   const complete = !!parsed.complete;
+  // A store read that stopped part-way CONTINUES BY ITSELF (2026-10-11): the
+  // next step is fired at this deployment's own URL once this one is merged.
+  const ci = require('./catalog-import.js');
+  const isStore = !!parsed.cursor || parsed.complete === false;
+  const chain = isStore ? ci.chainAfter(parsed, 1) : null;
+  const chainLine = chain ? ci.chainSentence(chain) : '';
+  if (chainLine && parsed.coverage && Array.isArray(parsed.coverage.sentences)) parsed.coverage.sentences.push(chainLine);
   const source = catalogSourceRecord(parsed, k, url, rows.length, run, reg);
   const state = {
     // `url` is the URL asked for (what Continue import resumes), `base` the
@@ -2161,6 +2191,7 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     cursor: complete ? null : (parsed.cursor || null),
     coverage: coverageSummary(parsed.coverage),
     updated_at: new Date().toISOString(),
+    chain: chain ? Object.assign({}, chain, { fire: undefined }) : null,
   };
 
   let merged;
@@ -2183,6 +2214,11 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     });
     merged = { inserted: (out && out.inserted) || rows.length, updated: 0, staled: 0, live: null, note: 'Replaced, not merged: migration 20261010002000 is not applied here, so products the store no longer lists were deleted rather than marked stale.' };
   }
+  // Rows an older import filed under another spelling of this market ("ind")
+  // are staled by a complete run of the same source family, never deleted.
+  if (complete && replace !== false) await ci.staleAliasRegions((p, body) => restAs(auth.token, p, { method: 'POST', body }), { workspace: workspace_id, reg, run, family });
+  let fired = null;
+  if (chain && chain.fire) fired = await ci.fireNext({ workspace_id, token: chain.token, depth: chain.depth, budget_ms: budgetMs });
   // catalog_source lives on the workspace row the generators read, and the
   // rows feed brand-catalog-server's cache: both are dropped here.
   invalidateBrandCaches({ userId: auth.user_id, workspaceId: workspace_id });
@@ -2198,6 +2234,11 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     run,
     complete,
     resume_available: !complete,
+    progressed: parsed.progressed !== false,
+    // The server continues it (`continuing`), or the page should (`drive`).
+    continuing: !!(chain && chain.active && fired && fired.fired),
+    drive: !!(chain && !chain.active && chain.browser && !chain.done),
+    chain: state.chain,
     inserted: merged.inserted, updated: merged.updated, staled: merged.staled, live: merged.live,
     // Of the live rows, how many are this brand's and how many another site's.
     own: tally ? tally.own : null, excluded: tally ? tally.excluded : null, excluded_domains: tally ? tally.excluded_domains : [],
@@ -2241,6 +2282,8 @@ async function catalogStatus(auth, workspaceId) {
     source: ws.catalog_source || {},
     coverage: imp.coverage || (ws.catalog_source && ws.catalog_source.coverage) || null,
     resume_available: !!imp.cursor,
+    continuing: !!imp.cursor && require('./catalog-import.js').chainBusy(imp),
+    chain: imp.chain || null,
     region: imp.region || (ws.catalog_source && ws.catalog_source.region) || null,
     updated_at: imp.updated_at || null,
     live: counts.live,
@@ -2564,6 +2607,23 @@ async function handle(req, res) {
     } catch (e) {
       return res.status(200).json({ ok: true, count: 0, presets: [], error: e.message });
     }
+  }
+
+  // `catalog-chain`: the next step of a store import that is continuing by
+  // itself (catalog-import.js chainStep). The scheduler's CRON_SECRET only,
+  // compared in constant time; there is no person on this request and no
+  // person's token - the step runs as the service role for the one workspace
+  // whose row still names the token it was fired with.
+  if (op === 'catalog-chain') {
+    const secret = process.env.CRON_SECRET || '';
+    const given = String((req.headers && (req.headers.authorization || req.headers.Authorization)) || '').replace(/^Bearer\s+/i, '');
+    const a = Buffer.from(given), b = Buffer.from(secret);
+    const okSecret = !!secret && a.length === b.length && require('crypto').timingSafeEqual(a, b);
+    if (!okSecret) return res.status(401).json({ ok: false, error: 'scheduler_only', message: 'This step is started only by this deployment itself.' });
+    if (String(req.method || 'POST').toUpperCase() !== 'POST') return res.status(405).json({ ok: false, error: 'post_only', message: 'Send a POST.' });
+    try {
+      return res.status(200).json(await require('./catalog-import.js').chainStep({ workspace_id: str(body.workspace_id), token: str(body.token, 80), budget_ms: Number(body.budget_ms) || 0 }));
+    } catch (e) { return res.status(500).json({ ok: false, error: 'catalog_chain_failed', message: String((e && e.message) || e).slice(0, 300) }); }
   }
 
   if (op === 'validate-palette') {

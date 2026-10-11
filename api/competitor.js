@@ -317,8 +317,11 @@ module.exports = async function handler(req, res) {
     if (action === 'universe-export') {
       const ctx = universeContext(req, url);
       if (ctx.error) { res.status(401).json({ ok: false, error: ctx.error, note: ctx.note }); return; }
-      const rows = await ctx.store.list(ctx.workspaceId);
-      res.status(200).json(await universe.exportToSheet(rows));
+      // Only the rows found for the brand this workspace IS now: a row found
+      // for an earlier identity of the workspace is hidden everywhere else too.
+      const ownBrand = await universe.brandForWorkspace(ctx.store, ctx.workspaceId).catch(() => null);
+      const split = universe.splitByIdentity(ctx.store, await ctx.store.list(ctx.workspaceId), universe.competitorIdentity(ownBrand));
+      res.status(200).json(await universe.exportToSheet(split.current));
       return;
     }
 
