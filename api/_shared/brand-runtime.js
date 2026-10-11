@@ -171,6 +171,95 @@ function normalizeBrand(brand) {
     if (out === brand) out = { ...brand };
     out.pending_hosting = pend;
   }
+  return coherentForGeneration(out);
+}
+
+/* ── ANOTHER BRAND'S IDENTITY NEVER REACHES GENERATION (2026-10-11) ───────
+   The coherence rule (brand-coherence.js) BLOCKED a record whose identity
+   values were read from another company's site - but only at activation. A
+   record activated before the rule, or with an override, kept handing every
+   generator that other company's legal entity (a CAN-SPAM sender line), logo,
+   social profiles, imagery and claims, exactly as the catalogue did before
+   catalogIdentity(). The rule's OWN verdict decides here too, never a second
+   domain comparison: each BLOCKING conflict the person has neither kept
+   (brand_data.coherence.accepted) nor overridden with a recorded reason
+   (brand_data.coherence.overrides[].conflicts) takes its value out of the
+   brand handed to generation - a marker where a generator prints the field,
+   the item dropped where it is a list. The stored record is untouched; the
+   person repairs it in brand setup. The name and website are not removed:
+   they are how the workspace is addressed, and the rule already warns on
+   them. The catalogue keeps its own gate (brand-catalog-server). */
+const SCRUBBED = new Set(['tagline', 'logo_url', 'favicon_url', 'brand_data.legal_entity', 'brand_data.social',
+  'brand_data.imagery', 'brand_data.brand_assets', 'brand_data.claims', 'regions']);
+function coherentForGeneration(brand) {
+  if (!brand || typeof brand !== 'object' || !brand.brand_data || typeof brand.brand_data !== 'object') return brand;
+  let C, verdict;
+  try { C = require('./brand-coherence.js'); verdict = C.brandCoherence(brand); } catch (_) { return brand; }
+  if (!verdict || !verdict.blocking) return brand;
+  const coh = brand.brand_data.coherence && typeof brand.brand_data.coherence === 'object' ? brand.brand_data.coherence : {};
+  const overridden = new Set();
+  (Array.isArray(coh.overrides) ? coh.overrides : []).forEach((o) => {
+    (o && Array.isArray(o.conflicts) ? o.conflicts : []).forEach((id) => { if (typeof id === 'string') overridden.add(id); });
+  });
+  const hits = verdict.conflicts.filter((x) => x.severity === 'block' && !overridden.has(x.id) && SCRUBBED.has(x.field));
+  if (!hits.length) return brand;
+  const name = String(brand.name || '').trim() || 'this brand';
+  const mark = (what) => `[DATA REQUIRED BEFORE LAUNCH: ${what}, ${name}]`;
+  const blocked = (field) => hits.filter((x) => x.field === field).map((x) => String(x.domain || ''));
+  // A value is dropped when the page it was read from is on a blocked domain
+  // for that field; a template conflict (domain "template:<slug>") drops the
+  // template's items whatever their host.
+  const onBlocked = (field, url) => {
+    const ds = blocked(field);
+    if (ds.some((d) => d.indexOf(':') >= 0)) return true;
+    const d = C.registrableDomain(C.hostOf(url));
+    return !!d && ds.some((b) => C.sameBrand(b, d));
+  };
+  const has = (field) => hits.some((x) => x.field === field);
+  const out = { ...brand };
+  const bd = { ...brand.brand_data };
+  if (has('tagline')) out.tagline = '';
+  if (has('logo_url')) out.logo_url = '';
+  if (has('favicon_url')) out.favicon_url = '';
+  if (has('brand_data.legal_entity')) {
+    out.legal_entity = mark('legal entity');
+    out.legal_name = '';
+    bd.legal_entity = out.legal_entity;
+  }
+  const keep = (list, field, urlOf) => (Array.isArray(list) ? list.filter((x) => !(x && typeof x === 'object' && onBlocked(field, urlOf(x)))) : list);
+  if (has('brand_data.social')) {
+    bd.social = keep(bd.social, 'brand_data.social', (x) => x.source_url || '');
+    out.social = keep(out.social, 'brand_data.social', (x) => x.source_url || '');
+    // A profile is the brand's identity: one with no page of its own beside
+    // dropped ones cannot be told apart, so a social conflict drops them all
+    // from generation when every remaining one is unsourced.
+    if (Array.isArray(out.social) && out.social.every((x) => !(x && x.source_url))) out.social = [];
+  }
+  if (has('brand_data.imagery')) {
+    bd.imagery = keep(bd.imagery, 'brand_data.imagery', (x) => x.page || x.url || '');
+    if (Array.isArray(out.imagery)) out.imagery = keep(out.imagery, 'brand_data.imagery', (x) => x.page || x.url || '');
+  }
+  if (has('brand_data.brand_assets')) {
+    bd.brand_assets = keep(bd.brand_assets, 'brand_data.brand_assets', (x) => x.found_on || x.url || '');
+    if (Array.isArray(out.brand_assets)) out.brand_assets = keep(out.brand_assets, 'brand_data.brand_assets', (x) => x.found_on || x.url || '');
+  }
+  if (has('brand_data.claims')) {
+    const applied = (bd.brand_extraction && bd.brand_extraction.applied && typeof bd.brand_extraction.applied === 'object') ? bd.brand_extraction.applied : {};
+    const foreign = new Set();
+    Object.keys(applied).forEach((k) => {
+      const a = applied[k];
+      if (/^claims\[\d+\]$/.test(k) && a && typeof a === 'object' && onBlocked('brand_data.claims', a.source_url || '')) foreign.add(String(a.value == null ? '' : a.value).trim());
+    });
+    const textOf = (c) => String(c && typeof c === 'object' ? c.text : c || '').trim();
+    const clean = (list) => (Array.isArray(list) ? list.filter((c) => !foreign.has(textOf(c))) : list);
+    out.claims = clean(out.claims); bd.claims = clean(bd.claims);
+    if (Array.isArray(out.approved_claims)) out.approved_claims = clean(out.approved_claims);
+  }
+  if (has('regions') && Array.isArray(out.regions)) {
+    out.regions = out.regions.map((r) => (r && typeof r === 'object' && r.store_url && onBlocked('regions', r.store_url) ? { ...r, store_url: '' } : r));
+  }
+  out.brand_data = bd;
+  out.coherence_withheld = hits.map((x) => ({ id: x.id, field: x.field, domain: x.domain }));
   return out;
 }
 
@@ -349,7 +438,27 @@ async function resolve(req, opts) {
     const explicit = String(o.workspace_id || body.workspace_id || q.workspace_id || '');
 
     const auth = o.auth || await brandCore.requireUser(req);
-    if (!auth || !auth.ok) return defaultBrand();
+    if (!auth || !auth.ok) {
+      // NO VERIFIED PERSON, BUT A NAMED WORKSPACE (2026-10-11). An
+      // anonymous server-to-server call that names workspace X is scoped to X
+      // by the router (the posture recorded in CLAUDE.md), and was then handed
+      // TENANT ZERO's record here - so X's rows were written in another
+      // company's name. The named workspace's OWN record (service role, the
+      // same door cron and prebuild use), else the unresolved placeholder.
+      // Only a call that names no workspace (the scheduler) keeps the shipped
+      // default. `named_workspace` is what the REQUEST named, before a router
+      // filled in its default workspace.
+      const named = String(o.named_workspace !== undefined ? (o.named_workspace || '') : (body.workspace_id || q.workspace_id || ''));
+      if (!named) return defaultBrand();
+      person = true;
+      const env = {
+        url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+        key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+      };
+      let own = null;
+      try { own = await require('./workspace-scope.js').brandForWorkspace(env, named); } catch (_) { own = null; }
+      return own || unresolvedBrand('the brand workspace this request named could not be read');
+    }
     person = true;
 
     // A MOBILE+PIN ACCOUNT HAS NO WORKSPACE ROW (2026-09-29). Its brands live
@@ -754,6 +863,7 @@ function promptFacts(brand) {
 }
 
 module.exports = {
+  coherentForGeneration,
   NEUTRAL_FONTS, NEUTRAL_PALETTE, fontStacks, paletteOf, promptFacts, namesBrand,
   scopedBrand, unresolvedBrand, isUnresolved, carriedBrand,
   resolve, brandBlock, regionFacts, homeRegion, scrubForBrand, scrubHtmlForBrand,

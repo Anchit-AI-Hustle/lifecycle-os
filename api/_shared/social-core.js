@@ -762,7 +762,11 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
   // The market this run is FOR: the Social OS programme's own UK market for
   // tenant zero (its shipped product facts are priced in GBP), the brand's
   // HOME market for every other brand - never another company's UK.
-  const __zero = require('./brand-catalog-server.js').isTenantZeroBrand(__brand) !== false;
+  // Whose programme this is follows the SAME gate that decided whose product
+  // facts were read (2026-10-11): an undecided record (a workspace that only
+  // carries tenant zero's slug) used to count as tenant zero here and was
+  // planned for tenant zero's UK market.
+  const __zero = __gate.source === 'shipped';
   const runMarket = __zero ? MARKET : (require('./brand-locale.js').homeMarket(__brand) || '');
   const ctx = {
     date: iso, dry_run: dry_run === true,

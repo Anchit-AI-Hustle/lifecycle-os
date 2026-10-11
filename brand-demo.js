@@ -52,21 +52,20 @@
   }
 
   /* ── offerings: brand record first, then its matching preset ──────────── */
+  /* Only the template the record says it was made from, on the same host
+     (2026-10-11) - the same rule as brand-catalog.js presetMatches and the
+     server's _resolveBrandOfferings. Host-only, slug-prefix, name-containment
+     and shared-word matches gave "Puma Pets" Puma's and "Zara Home Decor"
+     Zara's offerings. */
   function presetMatches(brand, preset) {
     if (!brand || !preset) return false;
     var host = function (u) { try { return String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase(); } catch (_) { return ''; } };
-    if (host(brand.website) && host(brand.website) === host(preset.website)) return true;
-    var bs = String(brand.slug || '').toLowerCase(), ps = String(preset.slug || '').toLowerCase();
-    if (bs && ps && (bs.indexOf(ps) === 0 || ps.indexOf(bs) === 0)) return true;
-    var bn = String(brand.name || '').toLowerCase(), pn = String(preset.name || '').toLowerCase();
-    if (bn && pn && (bn.indexOf(pn) >= 0 || pn.indexOf(bn) >= 0)) return true;
-    // token overlap, stopword-free: "The Times of India" and "The Economic
-    // Times" share {the, times} and are NOT the same brand.
-    var STOP = { the: 1, and: 1, for: 1 };
-    var toks = function (s) { return String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(function (t) { return t.length > 2 && !STOP[t]; }); };
-    var a = toks(bn), b = toks(pn), hits = 0;
-    for (var i = 0; i < a.length; i++) if (b.indexOf(a[i]) >= 0) hits++;
-    return hits >= 2;
+    var t = brand.template || (brand.brand_data && brand.brand_data.template);
+    t = t ? String(typeof t === 'object' ? (t.slug || '') : t).trim().toLowerCase() : '';
+    var ps = String(preset.slug || '').trim().toLowerCase();
+    if (!t || !ps || t !== ps) return false;
+    var bh = host(brand.website);
+    return !!(bh && bh === host(preset.website));
   }
 
   function fetchOfferings(brand) {

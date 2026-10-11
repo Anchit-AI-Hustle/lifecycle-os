@@ -367,45 +367,56 @@ function scopedProducts(agent, products) {
   return out.length ? out : products;
 }
 
-/** Scrape official KNICKGASM product pages (catalog URLs only — official site). */
-async function syncKnowledge(agentId) {
+/**
+ * Fill an agent's knowledge from the ACTIVE brand's own website (2026-10-11).
+ *
+ * It used to scrape only tenant zero's store URLs (a literal host pattern),
+ * under a user agent naming tenant zero, and when that read nothing it seeded
+ * rows "<product>: <category> from KNICKGASM" out of the unjudged
+ * smart_products table - for every brand. Now: the brand in scope, its own
+ * website, through site-crawl (its robots.txt rules, its scope, the
+ * platform's honest user agent) after assertPublicUrl; no website, a refused
+ * address or nothing readable is a sentence and nothing is written. No row is
+ * ever seeded from a product table.
+ */
+async function syncKnowledge(agentId, opts = {}) {
   const agent = await getAgent(agentId);
-  const products = scopedProducts(agent, await db().select('smart_products', { limit: 500, filters: { active: 'eq.true' } }));
-  const targets = products.filter((p) => p.url && /knickgasm\.com|knickgasmindia\.com/.test(p.url)).slice(0, 12);
-  const rows = [];
-  for (const p of targets) {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 9000);
-      const r = await fetch(p.url, { headers: { 'User-Agent': 'Mozilla/5.0 KnickgasmAgentKB/1.0' }, signal: ctrl.signal });
-      clearTimeout(t);
-      if (!r.ok) continue;
-      const html = await r.text();
-      const text = html
-        .replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
-        .replace(/<[^>]+>/g, ' ').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000);
-      rows.push({
-        id: idFor('ak', { agent: agentId, url: p.url }),
-        agent_id: agentId, source_url: p.url, title: p.title,
-        content: text, facts: { sku: p.sku, price: p.price, category: p.category, tags: p.tags },
-        fetched_at: new Date().toISOString(),
-      });
-    } catch (_) { /* skip unreachable */ }
-  }
-  // even if scraping fails (network rules), seed knowledge from catalog facts
-  if (!rows.length) {
-    for (const p of products.slice(0, 20)) {
-      rows.push({
-        id: idFor('ak', { agent: agentId, sku: p.sku }),
-        agent_id: agentId, source_url: p.url || null, title: p.title,
-        content: `${p.title}: ${p.category} from KNICKGASM. Price ${p.price}. Tags: ${(p.tags || []).join(', ')}.`,
-        facts: { sku: p.sku, price: p.price, category: p.category, tags: p.tags },
-        fetched_at: new Date().toISOString(),
-      });
-    }
-  }
-  if (rows.length) await db().upsert('smart_agent_knowledge', rows, 'id');
-  return { agent: agentId, knowledge_items: rows.length, scraped: targets.length };
+  const rt = require('./brand-runtime.js');
+  const brand = opts.brand || activeBrand();
+  const name = (brand && !rt.isUnresolved(brand) && brand.name) || 'this brand';
+  const site = (brand && !rt.isUnresolved(brand)) ? String(brand.website || '').trim() : '';
+  const nothing = (note) => ({ agent: agent.id || agentId, knowledge_items: 0, scraped: 0, note });
+  if (!site) return nothing(`${name} has no website on its record, so there is no site of its own to read. Nothing was added to the agent's knowledge.`);
+  let start;
+  try { start = await (opts.assertUrl || require('./brand-workspace-core.js').assertPublicUrl)(site); }
+  catch (e) { return nothing(`${site} cannot be read: ${(e && e.message) || 'refused'} Nothing was added to the agent's knowledge.`); }
+  const crawl = require('./site-crawl.js');
+  const pages = [];
+  let res;
+  try {
+    res = await crawl.crawlSite(start || site, {
+      brand, maxPages: 12, maxDepth: 2, totalMs: 40000,
+      fetchImpl: opts.fetchImpl || undefined,
+      onPage: (html, url) => { pages.push({ html: String(html || ''), url }); },
+    });
+  } catch (e) { res = { ok: false, error: String((e && e.message) || e) }; }
+  if (!res || res.ok === false) return nothing(`${site} could not be read (${(res && res.error) || 'unreachable'}). Nothing was added to the agent's knowledge.`);
+  const host = (() => { try { return new URL(start || site).hostname.replace(/^www\./, ''); } catch (_) { return ''; } })();
+  const rows = pages.map((pg) => {
+    const title = ((/<title[^>]*>([\s\S]*?)<\/title>/i.exec(pg.html) || [])[1] || '').replace(/\s+/g, ' ').trim().slice(0, 200) || pg.url;
+    const text = pg.html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 6000);
+    return {
+      id: idFor('ak', { agent: agentId, url: pg.url }),
+      agent_id: agentId, source_url: pg.url, title,
+      content: text, facts: { source: 'brand_site', host },
+      fetched_at: new Date().toISOString(),
+    };
+  }).filter((r) => r.content);
+  if (!rows.length) return Object.assign(nothing(`Nothing readable was found on ${host || site} (${(res.notes || []).slice(0, 3).join('; ') || 'no pages answered'}). Nothing was added to the agent's knowledge.`), { scraped: pages.length });
+  await db().upsert('smart_agent_knowledge', rows, 'id');
+  return { agent: agent.id || agentId, knowledge_items: rows.length, scraped: pages.length, source: start || site, coverage_note: res.coverage_note || '' };
 }
 
 // Craft/product-education facts used in the agent system prompt.
@@ -470,7 +481,10 @@ async function chat({ agentId, sessionId, message, context = {}, history = [], s
   }
   const catalogLines = _zero
     ? scoped.map((p) => `- ${p.title} | ${p.category} | $${p.price} | ${(p.tags || []).join(',')} | ${p.url || ''}`).join('\n')
-    : (ownLines.length ? ownLines.join('\n') : scoped.map((p) => `- ${p.title} | ${p.category || 'uncategorised'} | ${p.price != null && p.price !== '' ? 'price ' + p.price : 'price not published'} | ${p.url || ''}`).join('\n'));
+    // No catalogue of its own (or one the coherence rule excluded): NO
+    // products. smart_products is not judged by the brand's catalogue rule and
+    // is not this brand's catalogue (2026-10-11).
+    : ownLines.join('\n');
   const kbLines = knowledge.slice(0, 10).map((k) => `• ${k.title}: ${String(k.content || '').slice(0, 400)}`).join('\n');
 
   const system = !_zero ? [
@@ -480,7 +494,7 @@ async function chat({ agentId, sessionId, message, context = {}, history = [], s
     require('./brand-runtime.js').brandBlock(_ab),
     `TONE: ${persona.tone || (_ab.voice && _ab.voice.tone) || 'warm, knowledgeable, never pushy'}.`,
     `GOALS: ${(persona.goals || ['educate', 'guide', 'justify value honestly']).join('; ')}.`,
-    catalogLines ? `CATALOG YOU CAN RECOMMEND (only these; include the link when recommending):\n${catalogLines}` : 'NO CATALOGUE is available for this brand. Recommend no specific product, price or link.',
+    catalogLines ? `CATALOG YOU CAN RECOMMEND (only these; include the link when recommending):\n${catalogLines}` : `NO CATALOGUE is available for this brand: [DATA REQUIRED BEFORE LAUNCH: product catalogue, ${_ab.name || 'this brand'}]. Recommend no specific product, price or link.`,
     `KNOWLEDGE (this brand's own sources):\n${kbLines || '(catalog facts only)'}`,
     'RULES: lead with the direct answer in your first sentence, then at most 2 to 4 short supporting sentences. Never invent a product, price, link, review, rating, delivery promise or claim. Recommend this brand\'s products only, never a competitor\'s, and never quote another brand\'s prices. Reply in the user\'s language. Write the way you speak: complete sentences, no markdown, lists or emoji.',
   ].join('\n\n') + evidenceRules(_ab || null) + brandGuardrails(_ab) : `You are "${agent.name}", KNICKGASM's ${persona.role || 'sneaker & streetwear expert'} — a voice-first conversational advisor embedded on the store. You are the brand's telecalling substitute: customers talk to you the way they would to a knowledgeable human caller.
@@ -603,9 +617,22 @@ async function teamChat({ sessionId, message, context = {}, history = [] }) {
     } catch (_) { /* fall through */ }
   }
 
-  let catalog = [];
-  try { catalog = await db().select('smart_products', { limit: 500 }); } catch (_) { catalog = []; }
-  const catalogLines = (catalog || []).slice(0, 40).map((p) => `- ${p.title} | ${p.category} | $${p.price}`).join('\n');
+  // Tenant zero reads its smart_products table; any other brand its OWN
+  // catalogue judged by the coherence rule, or none (2026-10-11).
+  const _cb = activeBrand();
+  let catalogLines = '';
+  if (isZeroBrand(_cb)) {
+    let catalog = [];
+    try { catalog = await db().select('smart_products', { limit: 500 }); } catch (_) { catalog = []; }
+    catalogLines = (catalog || []).slice(0, 40).map((p) => `- ${p.title} | ${p.category} | $${p.price}`).join('\n');
+  } else {
+    try {
+      const got = await require('./brand-catalog-server.js').resolve({ brand: _cb });
+      catalogLines = (got && Array.isArray(got.products) ? got.products : []).slice(0, 40)
+        .map((p) => `- ${p.n} | ${p.type || 'uncategorised'} | ${p.price != null && p.price !== '' ? 'price ' + p.price + (p.currency ? ' ' + p.currency : '') : 'price not published'}`).join('\n');
+    } catch (_) { catalogLines = ''; }
+    if (!catalogLines) catalogLines = `[DATA REQUIRED BEFORE LAUNCH: product catalogue, ${(_cb && _cb.name) || 'this brand'}]`;
+  }
 
   // Ground every strategy/flow answer in REAL own-data. Best-effort: the
   // deterministic analytical path (analyze) handles pure number lookups; this
