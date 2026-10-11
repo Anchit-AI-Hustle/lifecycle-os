@@ -331,7 +331,9 @@ test('the chain op: only the scheduler\'s secret, POST only; a token is claimed 
     expect(outs.filter((o) => o && /^(claimed_elsewhere|superseded)$/.test(o.skipped || ''))).toHaveLength(1);
     const ran = outs.find((o) => o && !o.skipped);
     expect(ran.progressed).toBe(true);
-    expect(w.rows().length).toBeGreaterThan(before);
+    // (It moved the import on - sitemaps or pages; with the queue table a
+    // short step may still be listing URLs rather than filing rows.)
+    expect(w.rows().length).toBeGreaterThanOrEqual(before);
     // The old token after the step moved on: nothing runs.
     const again = await post(srv.port, Q, { workspace_id: WS, token, budget_ms: 2500 }, { authorization: `Bearer ${SECRET}` });
     expect(again.out.skipped).toBe('superseded');
@@ -567,7 +569,7 @@ test('a store that GEO-REDIRECTS one market\'s pages into another market\'s stor
     expect(said(r.coverage)).toContain('lensworld.example sent requests for its IN pages to its US store (/en-us/)');
     expect(said(r.coverage)).toContain('the store chooses its store by the visitor\'s location, and this server reads from iad1 (Washington, D.C., US)');
     expect(said(r.coverage)).toContain('filed under US, the market whose store and prices they carry, never under IN');
-    expect(r.coverage.sentences[0]).toContain('IN: 0 of 600 (not readable from here)');
+    expect(r.coverage.sentences[0]).toContain('IN: 0 of 600 (sent to the US store from here)');
     expect(r.markets.find((m) => m.code === 'IN')).toMatchObject({ blocked: true, complete: false });
     expect(r.complete).toBe(false);
     expect(r.resume_available).toBe(false);
@@ -753,11 +755,163 @@ test('the per-market limit is a stated LIMIT with the numbers (never "mores"), a
     const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://beautymart.example', brand: { website: 'https://beautymart.example' } });
     expect(r.products).toHaveLength(300);
     expect(said(r.coverage)).toContain('of the 700 products the site declares');
-    expect(said(r.coverage)).toContain('LIMIT: this importer reads at most 300 product URLs per market per import');
+    // A DEVICE brand has no queue table: its limit is stated, with the numbers.
+    expect(said(r.coverage)).toContain('LIMIT: without the import queue table (a device, or a deployment with no service role) this importer keeps at most 300 product URLs per market per import');
+    expect(said(r.coverage)).toContain('An account brand\'s import keeps its URLs in a table and has no such limit.');
     expect(said(r.coverage)).toContain('the first 300 the sitemaps list were read and 400 more were not');
     expect(said(r.coverage)).not.toMatch(/mores\b/);
     expect(r.products.map((p) => p.title).slice(0, 2)).toEqual(['Serum 0001', 'Serum 0002']);
   } finally { imp.LIMITS.maxProducts = was; d.restore(); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4c. The re-run on the real stores (runs 38115336341 Lenskart, 38115338157
+       Nykaa): the root store missing, store choice, the 20,000 cap, throttling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+test('the ROOT store is always a market - the one asked for - even when the root\'s hreflang names another country: IN at "/" is read and listed first', async () => {
+  test.setTimeout(90_000);
+  const d = deviceWorld();
+  st.stores['lensworld.example'].rootHreflangUs = true;
+  try {
+    const T = st.stores['lensworld.example'].truth;
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
+    expect(r.markets[0]).toMatchObject({ code: 'IN', store_url: 'https://lensworld.example', currency: 'INR' });
+    expect(r.products.filter((p) => p.region === 'in')).toHaveLength(T.inProducts - T.inStale - T.inWrongCurrency);
+    expect(r.products.filter((p) => p.region === 'us').every((p) => /\/en-us\//.test(p.product_url))).toBe(true);
+    expect(said(r.coverage)).toContain('points US\'s store at the site\'s root, which is IN\'s store here');
+    // No market asked: the brand's HOME market is the root's.
+    st.reset(); st.stores['lensworld.example'].rootHreflangUs = true;
+    const home = await core.importCatalog(PHONE, { kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example', regions: [{ code: 'IN', home: true }] } });
+    expect(home.markets[0]).toMatchObject({ code: 'IN', store_url: 'https://lensworld.example' });
+  } finally { d.restore(); }
+});
+
+test('a market whose pages are geo-redirected is still in the per-market line, saying where they were sent', async () => {
+  test.setTimeout(120_000);
+  const d = deviceWorld();
+  st.stores['lensworld.example'].geo = 'US';
+  try {
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
+    expect(r.coverage.sentences[0]).toContain('IN: 0 of 600 (sent to the US store from here)');
+  } finally { d.restore(); }
+});
+
+test('STORE CHOICE THE SITE OFFERS: the page a geo-redirect lands on names this market\'s address in its own hreflang (?country=in); that is used, said, and the market is read whole - with no cookie, header or address invented', async () => {
+  test.setTimeout(120_000);
+  const d = deviceWorld();
+  const L = st.stores['lensworld.example'];
+  L.geo = 'US'; L.geoSelector = true;
+  try {
+    const T = L.truth;
+    const r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } });
+    const inRows = r.products.filter((p) => p.region === 'in');
+    expect(inRows).toHaveLength(T.inProducts - T.inStale - T.inWrongCurrency);
+    expect(new Set(inRows.map((p) => p.currency))).toEqual(new Set(['INR']));
+    expect(r.markets.find((m) => m.code === 'IN')).toMatchObject({ complete: true, blocked: false });
+    expect(said(r.coverage)).toContain('offers IN\'s store itself: the page it sends to names IN\'s address for the same product in its own hreflang');
+    expect(said(r.coverage)).toContain('the ?country=in parameter');
+    expect(said(r.coverage)).toContain('no cookie, header or address was invented');
+    // Learned once: after the first redirect the IN address is asked for directly.
+    const plain = hitsOf('lensworld.example', /^\/frame-\d+\.html$/);
+    expect(plain.length).toBeLessThanOrEqual(imp.LIMITS.pdpConcurrency);
+    const all = st.hits['lensworld.example'] || [];
+    expect([...new Set(all.map((h) => h.lang))].filter((x) => x && x !== '*')).toEqual([]);
+    expect(all.every((h) => !h.cookie && !h.forwarded && h.ua === imp.USER_AGENT)).toBe(true);
+  } finally { d.restore(); }
+});
+
+test('NO CAP for an account brand: the product URL queue is a table (service role, workspace on every query), the cursor stays a small pointer, every URL is read, and a finished run leaves no rows', async () => {
+  test.setTimeout(180_000);
+  const w = world({ website: 'https://lensshop.example', regions: [{ code: 'IN', home: true }] });
+  const was = imp.LIMITS.maxProducts;
+  imp.LIMITS.maxProducts = 300;                     // the old cursor cap, far below the store's 2,430
+  st.stores['lensshop.example'].delayMs = 4;
+  try {
+    let r = await core.importCatalog(w.owner, { workspace_id: WS, region: 'in', kind: 'storefront', url: 'https://lensshop.example', budgetMs: 2500 });
+    expect(r.complete).toBe(false);
+    const queued = w.db.table('brand_catalog_import_queue');
+    expect(queued.length).toBeGreaterThan(imp.LIMITS.maxProducts);   // already past the old cap, in the table
+    expect(queued.every((x) => x.workspace_id === WS)).toBe(true);
+    // The cursor is a pointer: no URL list on the brand's row.
+    expect(JSON.stringify(w.wsRow().catalog_import).length).toBeLessThan(60000);
+    // Every queue call named the workspace, as the service role.
+    const qCalls = w.db.calls.filter((c) => /brand_catalog_import_queue/.test(c.url));
+    expect(qCalls.length).toBeGreaterThan(0);
+    expect(qCalls.every((c) => c.token === SERVICE_KEY && c.url.includes(`workspace_id=eq.${WS}`) || (c.method === 'POST' && Array.isArray(c.body) && c.body.every((x) => x.workspace_id === WS)))).toBe(true);
+    // A member's own token cannot write it.
+    const own = await fetch(`${BASE}/rest/v1/brand_catalog_import_queue`, { method: 'POST', headers: { apikey: ANON_KEY, Authorization: 'Bearer tok-owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace_id: WS, run_id: 'x', market: 'in', url: 'https://lensshop.example/x' }) });
+    expect(own.status).toBe(403);
+    for (let i = 0; i < 40 && !r.complete; i++) r = await core.importCatalog(w.owner, { workspace_id: WS, continue: true, budgetMs: 2500 });
+    expect(r.complete).toBe(true);
+    expect(w.rows().filter((x) => !x.stale_at && x.region === 'in')).toHaveLength(2430);
+    expect(said(r.coverage)).not.toContain('LIMIT:');
+    expect(w.db.table('brand_catalog_import_queue').filter((x) => x.workspace_id === WS)).toHaveLength(0);
+    const perPage = {};
+    for (const h of hitsOf('lensshop.example', /^\/frames\//)) perPage[h.path] = (perPage[h.path] || 0) + 1;
+    expect(Object.keys(perPage)).toHaveLength(2430);
+    expect(Math.max(...Object.values(perPage))).toBe(1);
+  } finally { imp.LIMITS.maxProducts = was; w.restore(); }
+});
+
+test('SQL: brand_catalog_import_queue - one row per (workspace, run, market, url), a state CHECK, members read it, a member cannot write it', async () => {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const db = new PGlite();
+  const MIG = path.join(ROOT, 'supabase', 'migrations');
+  await db.exec(`create role authenticated; create role anon; create role service_role; create schema auth;
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;`);
+  await db.exec(fs.readFileSync(path.join(MIG, '20260809120000_brand_workspaces.sql'), 'utf8'));
+  await db.exec(fs.readFileSync(path.join(MIG, '20261011054000_catalog_import_queue.sql'), 'utf8'));
+  const OTHER = '99999999-9999-4999-8999-999999999999';
+  await db.query(`insert into public.brand_workspaces (id, owner_id, slug, name) values ($1, $2, 'q', 'Q')`, [WS, OWNER]);
+  const ins = (u) => db.query(`insert into public.brand_catalog_import_queue (workspace_id, run_id, market, url, seq) values ($1, 'r1', 'in', $2, 1) on conflict (workspace_id, run_id, market, url) do nothing returning id`, [WS, u]);
+  expect((await ins('https://q.example/a')).rows).toHaveLength(1);
+  expect((await ins('https://q.example/a')).rows).toHaveLength(0);          // listed twice, queued once
+  await expect(db.query(`insert into public.brand_catalog_import_queue (workspace_id, run_id, market, url, state) values ($1, 'r1', 'in', 'https://q.example/b', 'maybe')`, [WS])).rejects.toThrow(/brand_catalog_import_queue_state_chk/);
+  await db.exec(`grant usage on schema public to authenticated; grant select on public.brand_workspaces, public.brand_workspace_members to authenticated;`);
+  await db.exec(`set test.uid = '${OWNER}'; set role authenticated;`);
+  expect((await db.query('select url from public.brand_catalog_import_queue')).rows.map((x) => x.url)).toEqual(['https://q.example/a']);
+  await expect(db.query(`insert into public.brand_catalog_import_queue (workspace_id, run_id, market, url) values ($1, 'r1', 'in', 'https://q.example/c')`, [WS])).rejects.toThrow(/permission denied/);
+  await db.exec(`set test.uid = '${OTHER}';`);
+  expect((await db.query('select url from public.brand_catalog_import_queue')).rows).toHaveLength(0);   // not a member: nothing
+});
+
+test('robots.txt Crawl-delay is the rate from the first request: one page at a time, that far apart, and the rest is estimated honestly - never called complete early', async () => {
+  test.setTimeout(120_000);
+  const d = deviceWorld();
+  try {
+    const brand = { website: 'https://crawlshop.example' };
+    let r = await core.importCatalog(PHONE, { region: 'uk', kind: 'storefront', url: 'https://crawlshop.example', brand, budgetMs: 6000 });
+    expect(r.complete).toBe(false);
+    expect(said(r.coverage)).toContain('robots.txt asks for 1 s between requests (Crawl-delay)');
+    expect(said(r.coverage)).toMatch(/At the rate this store answers \(about \d+ pages a minute, one request every 1 s\), the \d+ product pages still to read take about \d+ minutes?\. The import keeps going until then and is not complete before\./);
+    for (let i = 0; i < 10 && !r.complete; i++) r = await core.importCatalog(PHONE, { region: 'uk', kind: 'storefront', url: 'https://crawlshop.example', brand, cursor: r.cursor, budgetMs: 6000 });
+    expect(r.complete).toBe(true);
+    const at = hitsOf('crawlshop.example', /^\/item\//).map((h) => h.at).sort((a, b) => a - b);
+    expect(at).toHaveLength(12);
+    for (let i = 1; i < at.length; i++) expect(at[i] - at[i - 1], `request ${i}`).toBeGreaterThanOrEqual(950);
+  } finally { d.restore(); }
+});
+
+test('sustained THROTTLING is met with a steady polite rate that keeps going across steps until every page is read - not a stop at the 17th URL', async () => {
+  test.setTimeout(180_000);
+  const d = deviceWorld();
+  const S = st.stores['slowmarket.example'];
+  S.minGapMs = 600;
+  try {
+    const brand = { website: 'https://slowmarket.example' };
+    let r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://slowmarket.example', brand, budgetMs: 15000 });
+    let steps = 1;
+    for (; steps < 12 && !r.complete; steps++) {
+      expect(r.coverage.stopped && r.coverage.stopped.reason).not.toBe('throttled');
+      r = await core.importCatalog(PHONE, { region: 'in', kind: 'storefront', url: 'https://slowmarket.example', brand, cursor: r.cursor, budgetMs: 15000 });
+    }
+    expect(S.dropped).toBeGreaterThan(0);                                      // the store did throttle
+    expect(r.complete).toBe(true);
+    expect(r.products.length + 0).toBeGreaterThan(0);
+    expect(said(r.coverage)).toMatch(/then to one request every \d+(\.\d)? s/);
+    expect(said(r.coverage)).not.toMatch(/did not answer even when read one at a time/);
+  } finally { d.restore(); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════

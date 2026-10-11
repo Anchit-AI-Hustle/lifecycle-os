@@ -445,10 +445,24 @@ Sitemap: https://${host}/sitemap.xml
       // /en-us/, priced in USD - what a store that picks its store by the
       // visitor's location does to a server outside India.
       geo: '',
+      // The root's own hreflang naming ANOTHER country (the shape that hid
+      // Lenskart's India store): en-us pointed at "/".
+      rootHreflangUs: false,
+      // The store selection the site offers: every /en-us/ page names, in its
+      // hreflang, the IN address of the same product (?country=in), and that
+      // address answers with the IN page, no redirect.
+      geoSelector: false,
       handler(req, url) {
         const P = url.pathname;
+        if (this.geo === 'US' && this.geoSelector && /^\/frame-\d+\.html$/.test(P) && url.searchParams.get('country') === 'in') {
+          const p = all.get(P);
+          if (stale.has(P)) return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>gone</p>' };
+          if (p) return { status: 200, type: 'text/html', body: pdp(p) };
+        }
         if (this.geo === 'US' && /^\/frame-\d+\.html$/.test(P)) return { status: 302, type: 'text/html', body: '', headers: { location: `https://${host}/en-us${P}` } };
-        if (this.geo === 'US' && /^\/en-us\/frame-\d+\.html$/.test(P) && !all.has(P)) { const n = P.replace(/\D/g, ''); return { status: 200, type: 'text/html', body: pdp({ path: P, title: `Frame us ${n}`, sku: `G${n}`, price: '99.00', currency: 'USD', images: [`https://${host}/img/us-${n}.jpg`], description: 'Frame.' }) }; }
+        const sel = (html, p2) => (this.geoSelector ? html.replace('</head>', `<link rel="alternate" hreflang="en-in" href="https://${host}${p2.replace(/^\/en-us/, '')}?country=in"></head>`) : html);
+        if (this.geo === 'US' && /^\/en-us\/frame-\d+\.html$/.test(P) && !all.has(P)) { const n = P.replace(/\D/g, ''); return { status: 200, type: 'text/html', body: sel(pdp({ path: P, title: `Frame us ${n}`, sku: `G${n}`, price: '99.00', currency: 'USD', images: [`https://${host}/img/us-${n}.jpg`], description: 'Frame.' }), P) }; }
+        if (this.geo === 'US' && /^\/en-us\/frame-\d+\.html$/.test(P) && all.has(P)) return { status: 200, type: 'text/html', body: sel(pdp(all.get(P)), P) };
         if (P === '/products.json') return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>no</p>' };
         if (P === '/robots.txt') return { status: 200, type: 'text/plain', body: `User-agent: *\nDisallow: /checkout\nSitemap: https://${host}/sitemap.xml\nSitemap: https://${host}/en-us/sitemap.xml\nSitemap: https://${host}/en-ae/sitemap.xml\nSitemap: https://${host}/ar-sa/sitemap.xml\nSitemap: https://${host}/feeds/catalogue.xml\n` };
         if (P === '/sitemap.xml') return { status: 200, type: 'text/xml', body: urlset([`https://${host}/products.xml`, `https://${host}/categories.xml`, `https://${host}/pages.xml`, `https://${host}/extra-sitemap.xml`]) };
@@ -465,7 +479,7 @@ Sitemap: https://${host}/sitemap.xml
           if (P === pre || P === pre + '/') return { status: 200, type: 'text/html', body: `<!doctype html><html><head><title>Lens World ${pre}</title></head><body></body></html>` };
         }
         if (P === '/') return { status: 200, type: 'text/html', body: `<!doctype html><html lang="en-IN"><head><title>Lens World</title>
-<link rel="alternate" hreflang="en-in" href="https://${host}/">
+${this.rootHreflangUs ? `<link rel="alternate" hreflang="en-us" href="https://${host}/">` : `<link rel="alternate" hreflang="en-in" href="https://${host}/">`}
 <link rel="alternate" hreflang="en-us" href="https://${host}/en-us">
 <link rel="alternate" hreflang="en-ae" href="https://${host}/en-ae/"></head><body><a href="${IN[0].path}">x</a></body></html>` };
         if (stale.has(P)) return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>gone</p>' };
@@ -499,6 +513,57 @@ Sitemap: https://${host}/sitemap.xml
     });
     S['twinbrand.example'] = Object.assign(site('twinbrand.example', us, 'en-US'), { truth: { us: 20, uk: 15 } });
     S['twinbrand.co.uk'] = site('twinbrand.co.uk', uk, 'en-GB');
+  }
+
+  // crawlshop: robots.txt asks for a Crawl-delay of 1 s.
+  {
+    const host = 'crawlshop.example';
+    const prods = Array.from({ length: 12 }, (_, k) => ({ path: `/item/${k + 1}`, title: `Lamp ${k + 1}`, sku: `CS${k + 1}`, price: '45.00', currency: 'GBP', images: [`https://${host}/img/${k + 1}.jpg`], description: 'Lamp.' }));
+    S[host] = {
+      truth: { products: 12 },
+      handler(req, url) {
+        const P = url.pathname;
+        if (P === '/products.json') return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>no</p>' };
+        if (P === '/robots.txt') return { status: 200, type: 'text/plain', body: `User-agent: *\nCrawl-delay: 1\nDisallow: /cart\nSitemap: https://${host}/product-sitemap.xml\n` };
+        if (P === '/product-sitemap.xml') return { status: 200, type: 'application/xml', body: urlset(prods.map((p) => `https://${host}${p.path}`)) };
+        if (P === '/') return { status: 200, type: 'text/html', body: '<!doctype html><html><head><title>Crawl Shop</title></head><body></body></html>' };
+        const p = prods.find((x) => x.path === P);
+        if (p) return { status: 200, type: 'text/html', body: jsonLdPdp(host, p, 'plain') };
+        return null;
+      },
+    };
+  }
+
+  // slowmarket: a store that drops any product request arriving sooner than
+  // `minGapMs` after the previous one - throttling that only a steady rate
+  // gets through (the live Nykaa probe stopped at URL 17 of 20,000).
+  {
+    const host = 'slowmarket.example';
+    const prods = Array.from({ length: 24 }, (_, k) => ({ path: `/p/${k + 1}`, title: `Balm ${k + 1}`, sku: `SM${k + 1}`, price: '150.00', currency: 'INR', images: [`https://${host}/img/${k + 1}.jpg`], description: 'Balm.' }));
+    S[host] = {
+      truth: { products: 24 },
+      minGapMs: 0,
+      last: 0,
+      dropped: 0,
+      dropIf(url) {
+        if (!this.minGapMs || !/^\/p\/\d+$/.test(url.pathname)) return false;
+        const now = Date.now();
+        const tooSoon = now - this.last < this.minGapMs;
+        if (!tooSoon) this.last = now;
+        if (tooSoon) this.dropped += 1;
+        return tooSoon;
+      },
+      handler(req, url) {
+        const P = url.pathname;
+        if (P === '/products.json') return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>no</p>' };
+        if (P === '/robots.txt') return { status: 200, type: 'text/plain', body: `User-agent: *\nDisallow: /cart\nSitemap: https://${host}/sitemap-products.xml\n` };
+        if (P === '/sitemap-products.xml') return { status: 200, type: 'application/xml', body: urlset(prods.map((p) => `https://${host}${p.path}`)) };
+        if (P === '/') return { status: 200, type: 'text/html', body: '<!doctype html><html><head><title>Slow Market</title></head><body></body></html>' };
+        const p = prods.find((x) => x.path === P);
+        if (p) return { status: 200, type: 'text/html', body: jsonLdPdp(host, p, 'plain') };
+        return null;
+      },
+    };
   }
 
   // beautymart: Nykaa as the live probe saw it (run 38111613094) - a product
@@ -558,6 +623,7 @@ async function startStores() {
       res.on('finish', release); res.on('close', release);
       if (store.inflight > store.maxInflight) { store.dropped = (store.dropped || 0) + 1; release(); req.socket.destroy(); return; }
     }
+    if (store && typeof store.dropIf === 'function' && store.dropIf(url)) { req.socket.destroy(); return; }
     const out = store && store.handler.call(store, req, url);
     const send = () => {
       if (!out) { res.writeHead(404, { 'content-type': 'text/html' }); res.end('<!doctype html><title>Not found</title>'); return; }
@@ -629,6 +695,11 @@ async function startStores() {
       stores['beautymart.example'].maxInflight = 0;
       stores['lensworld.example'].geo = '';
       stores['lensworld.example'].delayMs = 0;
+      stores['lensworld.example'].rootHreflangUs = false;
+      stores['lensworld.example'].geoSelector = false;
+      stores['slowmarket.example'].minGapMs = 0;
+      stores['slowmarket.example'].last = 0;
+      stores['slowmarket.example'].dropped = 0;
       stores['beautymart.example'].pdpDelayMs = 0;
       stores['beautymart.example'].dropped = 0;
       stores['beautymart.example'].inflight = 0;
