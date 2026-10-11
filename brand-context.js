@@ -781,25 +781,30 @@
   /** Mirrors shellPayload() on the server, plus the storage stamp. */
   function shellPayloadFor(brand, extra) {
     if (!brand) return null;
+    // As the server: the shell paints the record as generation sees it, and
+    // carries the fingerprint stored artefacts are judged by (2026-10-11).
+    var g = COHERENCE.forGeneration(brand) || brand;
     return Object.assign({
       id: brand.id || null,
       slug: brand.slug || '',
       name: brand.name || '',
-      tagline: brand.tagline || '',
-      logo_url: brand.logo_url || '',
-      favicon_url: brand.favicon_url || '',
+      tagline: g.tagline || '',
+      logo_url: g.logo_url || '',
+      favicon_url: g.favicon_url || '',
       website: brand.website || '',
       status: brand.status || 'draft',
       onboarding_step: brand.onboarding_step || 1,
-      palette: brand.palette || {},
-      typography: brand.typography || {},
+      palette: g.palette || {},
+      typography: g.typography || {},
       voice: brand.voice || {},
-      regions: brand.regions || [],
-      tokens: tokensFor(brand),
-      fonts_href: fontsHrefFor(brand),
+      regions: g.regions || [],
+      tokens: tokensFor(g),
+      fonts_href: fontsHrefFor(g),
       files: filesSummaryFor(brand),
       coherence: coherenceSummaryFor(brand),
       catalog_identity: catalogIdentityFor(brand),
+      withheld: (g.coherence_withheld || []).map(function (x) { return { field: x.field, domain: x.domain }; }),
+      identity: identityFor(brand),
       template: templateSlugFor(brand),
       storage: 'device',
     }, extra || {});
@@ -1114,7 +1119,11 @@
       var groups = {};
       function conflict(c) {
         var id = c.kind + ':' + c.field + ':' + (c.domain || '');
-        if (groups[id]) { groups[id].count += 1; return; }
+        if (groups[id]) {
+          groups[id].count += 1;
+          if (c.severity === 'block' && groups[id].severity !== 'block') { groups[id].severity = 'block'; groups[id].message = c.message; }
+          return;
+        }
         c.id = id;
         c.label = LABEL[c.field] || c.field;
         c.count = 1;
@@ -1199,6 +1208,24 @@
             message: (LABEL[f] || f) + ' came from the ' + str(tpl.name) + ' template; this brand is "' + name + '".' });
         });
       }
+      // A starter template is ANOTHER brand's identity (2026-10-11): on a brand
+      // whose website is another site than the template's, nothing the
+      // template filled - name, tagline, logo, colours, fonts, voice, store,
+      // assets - is this brand's. Every such value BLOCKS.
+      var tplHost = tpl ? hostOf(tpl.website) : '';
+      if (tpl && tplHost && identity && !sameBrand(registrableDomain(tplHost), identity.domain)) {
+        var plainT = isObj(bd.field_origin) ? bd.field_origin : {};
+        var fosT = isObj(bd.field_origins) ? bd.field_origins : {};
+        ['name', 'tagline', 'logo_url', 'regions', 'brand_data.brand_assets', 'asset_hosts', 'palette.primary', 'palette.accent', 'palette.ink',
+          'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body', 'voice.tone'].forEach(function (f) {
+          var o = str((isObj(fosT[f]) && fosT[f].origin) || plainT[f]);
+          var v = f === 'brand_data.brand_assets' ? bd.brand_assets : valueOf(rec, f);
+          if (o !== 'preset' || !filled(v)) return;
+          conflict({ kind: 'template', field: f, severity: 'block', domain: 'template:' + slugify(tpl.slug || tpl.name), expected: identity.domain,
+            value: preview(v), source_url: str(tpl.website),
+            message: (LABEL[f] || f) + ' came from the ' + str(tpl.name) + ' starter template (' + registrableDomain(tplHost) + '); this brand\'s website is ' + identity.domain + ', so it is not this brand\'s. Read ' + identity.domain + ' instead.' });
+        });
+      }
       // A brand document that describes another brand.
       var doc = isObj(bd.brand_document) && isObj(bd.brand_document.describes) ? bd.brand_document.describes : null;
       if (doc) {
@@ -1255,6 +1282,17 @@
       var cat = isObj(rec.catalog_source) ? rec.catalog_source : {};
       var hit = null;
       c.conflicts.forEach(function (x) { if (!hit && x.field === 'catalog_source' && x.severity === 'block') hit = x; });
+      // A catalogue SET ASIDE when the record was written (another site's,
+      // setAsideForeign) leaves its rows in the table: they are still another
+      // brand's, rows with no page of their own included (2026-10-11).
+      var bdc = isObj(rec.brand_data) && isObj(rec.brand_data.coherence) ? rec.brand_data.coherence : {};
+      if (!hit && !str(cat.url) && Array.isArray(bdc.set_aside)) {
+        bdc.set_aside.forEach(function (e) {
+          if (isObj(e) && e.field === 'catalog_source' && str(e.domain) && !(c.identity && sameBrand(str(e.domain), c.identity.domain))) {
+            hit = { domain: str(e.domain), id: 'set_aside:catalog_source:' + str(e.domain) };
+          }
+        });
+      }
       var kept = [];
       c.accepted.forEach(function (id) {
         var m = /^(?:cross_domain|mixed_sources):catalog_source:(.+)$/.exec(id);
@@ -1288,9 +1326,458 @@
       return !verdict.allowed.some(function (a) { return sameBrand(a, d); });
     }
 
-    return { brandCoherence: brandCoherence, catalogIdentity: catalogIdentity, catalogRowForeign: catalogRowForeign, registrableDomain: registrableDomain, hostOf: hostOf, sameBrand: sameBrand, nameFitsHost: nameFitsHost, sourceOf: sourceOf, slugify: slugify, LABEL: LABEL, MULTI_LABEL_SUFFIXES: MULTI_LABEL_SUFFIXES };
+    /* ── ONE SITE PER BRAND, where values are WRITTEN and USED (2026-10-11) ──
+       The operator: "if anywhere one url is being referenced in the brand, the
+       same url only must be referenced ... throughout that brand for all
+       context". The live workspace "Lenskart" (lenskart.com) still held a
+       catalogue from delichic.co.in read off nike.in, because the rule above
+       only warned or blocked ACTIVATION; a save was never refused and nothing
+       took another site's values out of the record. The answers below are this
+       rule's own verdict (brandCoherence's conflicts and sameBrand), never a
+       second domain comparison. */
+
+    /** The site this brand IS: its website's registrable domain ('' with no website). */
+    function siteOf(record) {
+      var h = hostOf(isObj(record) ? record.website : '');
+      return h ? registrableDomain(h) : '';
+    }
+    /** Is `url` on this brand's site? A host with no identity (a CDN, a platform) and a brand with no website are not judged. */
+    function urlOnSite(record, url) {
+      var site = siteOf(record);
+      var h = hostOf(url);
+      if (!h || neutral(h) || !site) return { ok: true, judged: false, domain: h ? registrableDomain(h) : '', site: site };
+      var d = registrableDomain(h);
+      return { ok: sameBrand(d, site), judged: true, domain: d, site: site };
+    }
+    /** The fields a value read from another site is set aside from when the record is written. */
+    var SET_ASIDE = ['tagline', 'logo_url', 'favicon_url', 'brand_data.legal_entity', 'brand_data.social', 'brand_data.imagery',
+      'brand_data.brand_assets', 'brand_data.claims', 'brand_data.design_system', 'catalog_source', 'regions', 'asset_hosts'];
+    /**
+     * A store URL the person TYPED on another site is refused, with a sentence
+     * naming both sites and the two ways forward. "Typed" means this save
+     * introduces it: a store URL the record already held is judged by
+     * setAsideForeign instead (a website change re-judges it). Null when fine.
+     */
+    function typedUrlRefusal(input, existing) {
+      var b = isObj(input) ? input : {};
+      var prev = isObj(existing) ? existing : {};
+      var rec = { website: b.website !== undefined ? b.website : prev.website };
+      var site = siteOf(rec);
+      if (!site) return null;
+      // Only a TYPED value is refused: one a read, a document or a template put
+      // there carries its origin and is set aside by setAsideForeign instead.
+      var bdo = isObj(b.brand_data) ? b.brand_data : (isObj(prev.brand_data) ? prev.brand_data : {});
+      function machine(f) {
+        var fos = isObj(bdo.field_origins) && isObj(bdo.field_origins[f]) ? bdo.field_origins[f] : null;
+        var o = str((fos && fos.origin) || (isObj(bdo.field_origin) ? bdo.field_origin[f] : ''));
+        return o !== '' && o !== 'user' && o !== 'default';
+      }
+      // A logo or icon is a FILE: it may be hosted anywhere (a CDN, an agency's
+      // host) and is judged by the page it was found on, as the rule above
+      // judges it. A store URL is a PAGE of a site: a catalogue import reads it.
+      if (!Array.isArray(b.regions) || machine('regions')) return null;
+      var had = (Array.isArray(prev.regions) ? prev.regions : []).map(function (r) { return isObj(r) ? str(r.store_url) : ''; });
+      // A value this record already set aside, sent back by a form that still
+      // holds it, is not typed now: it is set aside again, not refused.
+      var pc = isObj(prev.brand_data) && isObj(prev.brand_data.coherence) ? prev.brand_data.coherence : {};
+      (Array.isArray(pc.set_aside) ? pc.set_aside : []).forEach(function (e) {
+        if (isObj(e) && e.field === 'regions' && isObj(e.value)) had.push(str(e.value.store_url));
+      });
+      for (var i = 0; i < b.regions.length; i++) {
+        var r = b.regions[i];
+        var u = isObj(r) ? str(r.store_url) : '';
+        if (!u || had.indexOf(u) >= 0) continue;
+        var v = urlOnSite(rec, u);
+        if (v.ok) continue;
+        var code = str(r.code).toUpperCase() || 'region';
+        return {
+          code: 'url_off_site', status: 409, field: 'regions', url: u, domain: v.domain, site: site,
+          message: 'The ' + code + ' store URL ' + u + ' is on ' + v.domain + '; this brand\'s website is ' + site +
+            ', and every URL a brand carries is on its own site. Make ' + v.domain + ' the website, start a new brand from it, or enter a store URL on ' + site + '.'
+        };
+      }
+      return null;
+    }
+    function copyJson(v) { try { return JSON.parse(JSON.stringify(v)); } catch (_) { return null; } }
+    /**
+     * The record as it may be STORED: every value read from another site than
+     * the website's is taken out and kept aside in brand_data.coherence.set_aside
+     * (field, value, the site it came from, the reason), never applied, never
+     * deleted. A conflict the person kept ("Keep this") is not set aside. Name,
+     * website and design values (colours, fonts) stay, the latter withheld from
+     * generation by forGeneration instead. `previous` is the stored record: its
+     * history is carried, so a form that never saw it cannot erase it.
+     * Returns { record, set_aside: [new] }.
+     */
+    function setAsideForeign(record, at, previous) {
+      var rec = isObj(record) ? copyJson(record) : {};
+      var pbd = isObj(previous) && isObj(previous.brand_data) && isObj(previous.brand_data.coherence) ? previous.brand_data.coherence : {};
+      var history = Array.isArray(pbd.set_aside) ? pbd.set_aside : [];
+      function finish(out) {
+        var bd0 = isObj(rec.brand_data) ? rec.brand_data : {};
+        var coh = isObj(bd0.coherence) ? bd0.coherence : {};
+        var own = Array.isArray(coh.set_aside) ? coh.set_aside : [];
+        var sig = function (e) { return str(e && e.field) + '|' + JSON.stringify(e && e.value); };
+        var seen = [], all = [];
+        history.concat(own, out).forEach(function (e) { var k = sig(e); if (seen.indexOf(k) >= 0) return; seen.push(k); all.push(e); });
+        if (all.length) { coh.set_aside = all.slice(-40); bd0.coherence = coh; rec.brand_data = bd0; }
+        return { record: rec, set_aside: out };
+      }
+      var c = brandCoherence(rec);
+      if (!c.identity) return finish([]);
+      var hits = c.conflicts.filter(function (x) {
+        if (SET_ASIDE.indexOf(x.field) < 0) return false;
+        if (x.kind === 'template') return x.severity === 'block';
+        if (x.kind !== 'cross_domain') return false;
+        return x.field === 'brand_data.design_system' || x.field === 'regions' || x.field === 'catalog_source' || x.severity === 'block';
+      });
+      if (!hits.length) return finish([]);
+      var bd = isObj(rec.brand_data) ? rec.brand_data : {};
+      rec.brand_data = bd;
+      var when = str(at);
+      var out = [];
+      function keep(field, value, x) {
+        out.push({ field: field, label: LABEL[field] || field, value: value, domain: x.domain, site: c.identity.domain, reason: x.message, at: when });
+      }
+      function doms(field) { return hits.filter(function (x) { return x.field === field; }); }
+      function foreignPage(field, url) {
+        // A template's values are the template's whatever their host.
+        if (doms(field).some(function (x) { return str(x.domain).indexOf(':') >= 0; })) return true;
+        var d = registrableDomain(hostOf(url));
+        return !!d && doms(field).some(function (x) { return sameBrand(x.domain, d); });
+      }
+      hits.forEach(function (x) {
+        var f = x.field;
+        if (f === 'tagline' || f === 'logo_url' || f === 'favicon_url') { if (str(rec[f])) { keep(f, rec[f], x); rec[f] = ''; } return; }
+        if (f === 'brand_data.legal_entity') { if (bd.legal_entity != null) { keep(f, bd.legal_entity, x); delete bd.legal_entity; } return; }
+        if (f === 'brand_data.design_system') { if (bd.design_system != null) { keep(f, bd.design_system, x); delete bd.design_system; } return; }
+        if (f === 'catalog_source') { if (isObj(rec.catalog_source) && str(rec.catalog_source.url)) { keep(f, rec.catalog_source, x); rec.catalog_source = {}; } }
+      });
+      function sift(field, arr, urlOf) {
+        if (!Array.isArray(arr) || !doms(field).length) return arr;
+        var x = doms(field)[0];
+        return arr.filter(function (it) {
+          if (isObj(it) && foreignPage(field, urlOf(it))) { keep(field, it, x); return false; }
+          return true;
+        });
+      }
+      bd.social = sift('brand_data.social', bd.social, function (it) { return it.source_url || ''; });
+      bd.imagery = sift('brand_data.imagery', bd.imagery, function (it) { return it.page || it.url || ''; });
+      bd.brand_assets = sift('brand_data.brand_assets', bd.brand_assets, function (it) { return it.found_on || it.url || ''; });
+      if (doms('brand_data.claims').length && Array.isArray(bd.claims)) {
+        var ex = isObj(bd.brand_extraction) && isObj(bd.brand_extraction.applied) ? bd.brand_extraction.applied : {};
+        var foreign = [];
+        Object.keys(ex).forEach(function (k) {
+          if (/^claims\[\d+\]$/.test(k) && isObj(ex[k]) && foreignPage('brand_data.claims', ex[k].source_url)) foreign.push(scalar(ex[k].value));
+        });
+        var cx = doms('brand_data.claims')[0];
+        bd.claims = bd.claims.filter(function (cl) {
+          if (foreign.indexOf(scalar(isObj(cl) ? cl.text : cl)) >= 0) { keep('brand_data.claims', cl, cx); return false; }
+          return true;
+        });
+      }
+      if (doms('regions').length && Array.isArray(rec.regions)) {
+        var rx = doms('regions')[0];
+        rec.regions = rec.regions.map(function (r) {
+          if (isObj(r) && str(r.store_url) && foreignPage('regions', r.store_url)) {
+            keep('regions', { code: str(r.code), store_url: str(r.store_url) }, rx);
+            var nr = copyJson(r); nr.store_url = ''; return nr;
+          }
+          return r;
+        });
+      }
+      if (doms('asset_hosts').length && Array.isArray(rec.asset_hosts)) {
+        var ax = doms('asset_hosts')[0];
+        rec.asset_hosts = rec.asset_hosts.filter(function (h) {
+          if (foreignPage('asset_hosts', 'https://' + str(h).replace(/^https?:\/\//, ''))) { keep('asset_hosts', str(h), ax); return false; }
+          return true;
+        });
+      }
+      return finish(out);
+    }
+    /**
+     * ONE brand per record, and one record per brand (2026-10-11). A record
+     * whose website is on one site may not be re-pointed at ANOTHER brand's site,
+     * nor renamed into another brand: the answer is "start a new brand", and the
+     * record is kept as it is. Null when the change is this brand's own.
+     */
+    function identityChangeRefusal(input, existing) {
+      var b = isObj(input) ? input : {};
+      var prev = isObj(existing) ? existing : {};
+      var prevSite = siteOf(prev);
+      if (!prevSite) return null;
+      // A record is the brand AT its site when its name and its site agree:
+      // the name was read from that site, or it reads as the brand that owns
+      // the host. Such a record is not re-pointed at another brand's site. A
+      // record whose name came from elsewhere (the outlier of a mixed record, a
+      // typo'd website) may be corrected: that is the "make <domain> the
+      // website" repair, and the coherence rule then lists what disagrees.
+      var nsrc = sourceOf(prev, 'name');
+      var nsrcHost = nsrc && nsrc.url ? hostOf(nsrc.url) : '';
+      var established = nsrcHost ? sameBrand(registrableDomain(nsrcHost), prevSite)
+        : (!!str(prev.name) && nameFitsHost(prev.name, hostOf(prev.website)));
+      if (!established) return null;
+      var nextSite = siteOf({ website: b.website !== undefined ? b.website : prev.website });
+      var name = str(prev.name) || 'this brand';
+      if (nextSite && !sameBrand(nextSite, prevSite)) {
+        return {
+          code: 'brand_change_refused', status: 409, field: 'website', domain: nextSite, site: prevSite,
+          message: '"' + name + '" is the brand at ' + prevSite + '. A website on ' + nextSite + ' is another brand, so this record is not changed into it: start a new brand from ' + nextSite + ', and "' + name + '" is kept as it is.'
+        };
+      }
+      var nn = str(b.name);
+      if (nn && fold(nn) !== fold(prev.name) && str(prev.name)) {
+        var host = hostOf(prev.website);
+        var shared = nameTokens(nn).some(function (w) { return nameTokens(prev.name).indexOf(w) >= 0; });
+        if (nameFitsHost(prev.name, host) && !nameFitsHost(nn, host) && !shared) {
+          return {
+            code: 'brand_change_refused', status: 409, field: 'name', domain: '', site: prevSite,
+            message: '"' + nn + '" is not a name of the brand at ' + prevSite + ' ("' + name + '"). A record is one brand: start a new brand for "' + nn + '" from its own website, and "' + name + '" is kept as it is.'
+          };
+        }
+      }
+      return null;
+    }
+    /** Another record of the same account that is already this brand (same site by sameBrand), or null. */
+    function duplicateBrand(record, others) {
+      var site = siteOf(record);
+      if (!site) return null;
+      var id = str(isObj(record) ? record.id : '');
+      var list = Array.isArray(others) ? others : [];
+      for (var i = 0; i < list.length; i++) {
+        var o = list[i];
+        if (!isObj(o) || (id && str(o.id) === id)) continue;
+        var os = siteOf(o);
+        if (os && sameBrand(os, site)) {
+          return {
+            code: 'brand_exists', status: 409, field: 'website', existing_id: str(o.id), existing_name: str(o.name), site: site,
+            message: '"' + (str(o.name) || os) + '" is already the brand at ' + os + ' in this account. Open the existing brand instead of creating a second one; one brand has one record.'
+          };
+        }
+      }
+      return null;
+    }
+
+    /** Fields a value from another site is withheld from GENERATION (and the shell's theme) on. */
+    var WITHHELD = ['tagline', 'logo_url', 'favicon_url', 'brand_data.legal_entity', 'brand_data.social', 'brand_data.imagery',
+      'brand_data.brand_assets', 'brand_data.claims', 'regions'];
+    var DESIGN_FIELDS = ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
+      'typography.heading', 'typography.body', 'brand_data.design_system'];
+    /**
+     * The brand handed to GENERATION and to the shell's theme (moved here from
+     * brand-runtime.coherentForGeneration so the device path answers the same).
+     * Each BLOCKING identity conflict the person has neither kept nor overridden
+     * with a recorded reason takes its value out (a marker where a generator
+     * prints it, the item dropped from a list), and since 2026-10-11 a colour, a
+     * type family or a measured design system READ FROM ANOTHER SITE is withheld
+     * too: the brand's own typed values stand, else the neutral placeholder.
+     * The stored record is untouched; `coherence_withheld` says what was held.
+     */
+    function forGeneration(brand) {
+      if (!isObj(brand) || !isObj(brand.brand_data)) return brand;
+      var verdict;
+      try { verdict = brandCoherence(brand); } catch (_) { return brand; }
+      if (!verdict || !verdict.conflicts.length) return brand;
+      var coh = isObj(brand.brand_data.coherence) ? brand.brand_data.coherence : {};
+      var overridden = [];
+      (Array.isArray(coh.overrides) ? coh.overrides : []).forEach(function (o) {
+        (isObj(o) && Array.isArray(o.conflicts) ? o.conflicts : []).forEach(function (id) { if (typeof id === 'string') overridden.push(id); });
+      });
+      var hits = verdict.conflicts.filter(function (x) {
+        if (overridden.indexOf(x.id) >= 0) return false;
+        if (x.severity === 'block' && WITHHELD.indexOf(x.field) >= 0) return true;
+        return (x.kind === 'cross_domain' || (x.kind === 'template' && x.severity === 'block')) && DESIGN_FIELDS.indexOf(x.field) >= 0;
+      });
+      if (!hits.length) return brand;
+      var name = str(brand.name) || 'this brand';
+      function mark(what) { return '[DATA REQUIRED BEFORE LAUNCH: ' + what + ', ' + name + ']'; }
+      function blocked(field) { return hits.filter(function (x) { return x.field === field; }).map(function (x) { return str(x.domain); }); }
+      function onBlocked(field, url) {
+        var ds = blocked(field);
+        if (ds.some(function (d) { return d.indexOf(':') >= 0; })) return true;
+        var d = registrableDomain(hostOf(url));
+        return !!d && ds.some(function (b) { return sameBrand(b, d); });
+      }
+      function has(field) { return hits.some(function (x) { return x.field === field; }); }
+      function shallow(o) { var c = {}; Object.keys(isObj(o) ? o : {}).forEach(function (k) { c[k] = o[k]; }); return c; }
+      var out = shallow(brand);
+      var bd = shallow(brand.brand_data);
+      if (has('tagline')) out.tagline = '';
+      if (has('logo_url')) out.logo_url = '';
+      if (has('favicon_url')) out.favicon_url = '';
+      if (has('brand_data.legal_entity')) {
+        out.legal_entity = mark('legal entity');
+        out.legal_name = '';
+        bd.legal_entity = out.legal_entity;
+      }
+      function keepList(list, field, urlOf) {
+        return Array.isArray(list) ? list.filter(function (x) { return !(isObj(x) && onBlocked(field, urlOf(x))); }) : list;
+      }
+      if (has('brand_data.social')) {
+        var su = function (x) { return x.source_url || ''; };
+        bd.social = keepList(bd.social, 'brand_data.social', su);
+        out.social = keepList(out.social, 'brand_data.social', su);
+        if (Array.isArray(out.social) && out.social.every(function (x) { return !(x && x.source_url); })) out.social = [];
+      }
+      if (has('brand_data.imagery')) {
+        var iu = function (x) { return x.page || x.url || ''; };
+        bd.imagery = keepList(bd.imagery, 'brand_data.imagery', iu);
+        if (Array.isArray(out.imagery)) out.imagery = keepList(out.imagery, 'brand_data.imagery', iu);
+      }
+      if (has('brand_data.brand_assets')) {
+        var au = function (x) { return x.found_on || x.url || ''; };
+        bd.brand_assets = keepList(bd.brand_assets, 'brand_data.brand_assets', au);
+        if (Array.isArray(out.brand_assets)) out.brand_assets = keepList(out.brand_assets, 'brand_data.brand_assets', au);
+      }
+      if (has('brand_data.claims')) {
+        var applied = isObj(bd.brand_extraction) && isObj(bd.brand_extraction.applied) ? bd.brand_extraction.applied : {};
+        var foreign = [];
+        Object.keys(applied).forEach(function (k) {
+          var a = applied[k];
+          if (/^claims\[\d+\]$/.test(k) && isObj(a) && onBlocked('brand_data.claims', a.source_url || '')) foreign.push(String(a.value == null ? '' : a.value).trim());
+        });
+        var textOf = function (c) { return String(isObj(c) ? c.text : c || '').trim(); };
+        var clean = function (list) { return Array.isArray(list) ? list.filter(function (c) { return foreign.indexOf(textOf(c)) < 0; }) : list; };
+        out.claims = clean(out.claims); bd.claims = clean(bd.claims);
+        if (Array.isArray(out.approved_claims)) out.approved_claims = clean(out.approved_claims);
+      }
+      if (has('regions') && Array.isArray(out.regions)) {
+        out.regions = out.regions.map(function (r) {
+          if (isObj(r) && r.store_url && onBlocked('regions', r.store_url)) { var nr = shallow(r); nr.store_url = ''; return nr; }
+          return r;
+        });
+      }
+      var pal = null, typ = null;
+      DESIGN_FIELDS.forEach(function (f) {
+        if (!has(f)) return;
+        var leaf = f.split('.')[1];
+        if (f.indexOf('palette.') === 0) { pal = pal || shallow(out.palette); delete pal[leaf]; }
+        else if (f.indexOf('typography.') === 0) { typ = typ || shallow(out.typography); delete typ[leaf]; }
+        else { delete bd.design_system; delete out.design_system; }
+      });
+      if (pal) out.palette = pal;
+      if (typ) out.typography = typ;
+      out.brand_data = bd;
+      out.coherence_withheld = hits.map(function (x) { return { id: x.id, field: x.field, domain: x.domain }; });
+      return out;
+    }
+
+    return { brandCoherence: brandCoherence, catalogIdentity: catalogIdentity, catalogRowForeign: catalogRowForeign, registrableDomain: registrableDomain, hostOf: hostOf, sameBrand: sameBrand, nameFitsHost: nameFitsHost, sourceOf: sourceOf, slugify: slugify, LABEL: LABEL, MULTI_LABEL_SUFFIXES: MULTI_LABEL_SUFFIXES,
+      siteOf: siteOf, urlOnSite: urlOnSite, typedUrlRefusal: typedUrlRefusal, setAsideForeign: setAsideForeign, forGeneration: forGeneration,
+      identityChangeRefusal: identityChangeRefusal, duplicateBrand: duplicateBrand };
   })();
   /* BRAND-COHERENCE:END */
+
+  /* BRAND-IDENTITY:BEGIN */
+  var BRAND_IDENTITY = (function () {
+    var K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+      0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+      0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70,
+      0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+      0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    function utf8(s) {
+      var out = [];
+      for (var i = 0; i < s.length; i++) {
+        var c = s.charCodeAt(i);
+        if (c >= 0xd800 && c <= 0xdbff && i + 1 < s.length) {
+          var d = s.charCodeAt(i + 1);
+          if (d >= 0xdc00 && d <= 0xdfff) { c = 0x10000 + ((c - 0xd800) << 10) + (d - 0xdc00); i++; } else c = 0xfffd;
+        } else if (c >= 0xd800 && c <= 0xdfff) c = 0xfffd;
+        if (c < 0x80) out.push(c);
+        else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+        else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+        else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      }
+      return out;
+    }
+    /** SHA-256 of a string's UTF-8 bytes, as lowercase hex (Node's createHash('sha256').update(s)). */
+    function sha256(s) {
+      var b = utf8(String(s));
+      var bitLen = b.length * 8;
+      b.push(0x80);
+      while (b.length % 64 !== 56) b.push(0);
+      var hi = Math.floor(bitLen / 0x100000000), lo = bitLen >>> 0;
+      b.push((hi >>> 24) & 255, (hi >>> 16) & 255, (hi >>> 8) & 255, hi & 255, (lo >>> 24) & 255, (lo >>> 16) & 255, (lo >>> 8) & 255, lo & 255);
+      var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+      var w = new Array(64);
+      for (var off = 0; off < b.length; off += 64) {
+        for (var t = 0; t < 16; t++) w[t] = ((b[off + 4 * t] << 24) | (b[off + 4 * t + 1] << 16) | (b[off + 4 * t + 2] << 8) | b[off + 4 * t + 3]) | 0;
+        for (t = 16; t < 64; t++) {
+          var x = w[t - 15], y = w[t - 2];
+          var s0 = ((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3);
+          var s1 = ((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10);
+          w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+        }
+        var a = H[0], bb = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+        for (t = 0; t < 64; t++) {
+          var S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+          var ch = (e & f) ^ (~e & g);
+          var t1 = (h + S1 + ch + K[t] + w[t]) | 0;
+          var S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+          var mj = (a & bb) ^ (a & c) ^ (bb & c);
+          var t2 = (S0 + mj) | 0;
+          h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+        }
+        H[0] = (H[0] + a) | 0; H[1] = (H[1] + bb) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+        H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+      }
+      var hex = '';
+      for (var i = 0; i < 8; i++) hex += ('00000000' + (H[i] >>> 0).toString(16)).slice(-8);
+      return hex;
+    }
+    function fold(v) {
+      var s = String(v == null ? '' : v);
+      try { s = s.normalize('NFKC'); } catch (_) { /* old engine */ }
+      return s.toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+    function obj(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
+    function host(u) {
+      try { return new URL(String(u)).hostname.replace(/^www\./, '').toLowerCase(); } catch (_) { return fold(u); }
+    }
+    function list(v) {
+      return (Array.isArray(v) ? v : []).map(function (x) { return fold(x && typeof x === 'object' ? (x.text || x.name || '') : x); })
+        .filter(Boolean).sort().join('|');
+    }
+    /**
+     * The fingerprint of `brand` ("bi2:" + 24 hex), or null for no record.
+     * `verdict` is the catalogue verdict the caller judged the record by
+     * (brand-coherence's catalogIdentity, or null for tenant zero).
+     */
+    function identityOf(brand, verdict) {
+      if (!brand || typeof brand !== 'object') return null;
+      var bd = obj(brand.brand_data);
+      var legal = brand.legal_entity || bd.legal_entity || brand.legal_name || bd.legal_name || '';
+      var cat = verdict ? (verdict.source_domain || '') + '|' + (verdict.excluded ? 'x' : '') + '|' + (verdict.kept || []).join(',') : '';
+      var palette = obj(brand.palette);
+      var pal = Object.keys(palette).sort().map(function (k) { return k + '=' + fold(palette[k]); }).join(',');
+      var typo = obj(brand.typography);
+      var fam = function (t) { return fold(t && typeof t === 'object' ? (t.family || t.stack || '') : t); };
+      var type = Object.keys(typo).sort().map(function (k) { return k + '=' + fam(typo[k]); }).join(',');
+      var voice = obj(brand.voice);
+      var claims = list(brand.claims || bd.claims) + '#' + list(brand.approved_claims || bd.approved_claims);
+      var regions = (Array.isArray(brand.regions) ? brand.regions : []).filter(function (r) { return r && r.code; })
+        .map(function (r) { return fold(r.code) + ':' + fold(r.currency) + (r.home === true ? ':home' : ''); }).sort().join(',');
+      var parts = [
+        brand.id || '', fold(brand.name || bd.name), host(brand.website || bd.website || ''),
+        fold(typeof legal === 'object' ? (legal.name || JSON.stringify(legal)) : legal),
+        cat, brand.owns_shipped === true ? 'zero' : '',
+        pal, type, fold(voice.tone), list(voice.banned), claims, regions
+      ];
+      return 'bi2:' + sha256(parts.join('\u0001')).slice(0, 24);
+    }
+    /** Does a stored stamp speak for the current record? A missing stamp never does. */
+    function matches(stamp, current) { return !!current && !!stamp && stamp === current; }
+    /** The sentence a hidden or refused artefact carries: what it was made for, and what the brand is now. */
+    function staleSentence(what, madeFor, now) {
+      var a = String(madeFor || '').trim(), b = String(now || '').trim() || 'this brand';
+      return 'This ' + what + ' was made for ' + (a ? '"' + a + '"' : 'an earlier version of this brand\'s record') +
+        (a && fold(a) === fold(b) ? ' as it was then (another website, sender, catalogue, palette, type, voice, claims or market)' : '') +
+        ', and the brand is now "' + b + '", so it is not shown, reused or published as "' + b + '"\'s. It is kept, not deleted; make it again for the brand as it is now.';
+    }
+    return { identityOf: identityOf, matches: matches, staleSentence: staleSentence, sha256: sha256 };
+  })();
+  /* BRAND-IDENTITY:END */
 
   /* ── the device store ─────────────────────────────────────────────────── */
 
@@ -1474,6 +1961,12 @@
       ('Every product kept for ' + (rec.name || 'this brand') + ' was read from another brand\'s site, so none is used.') } : null;
     return out;
   }
+  /** The fingerprint of a record (brand-identity.js, byte for byte), judged by the catalogue verdict the server would give. */
+  function identityFor(brand) {
+    if (!brand || typeof brand !== 'object') return null;
+    var zero = brand.is_default === true || brand.owns_shipped === true;
+    return BRAND_IDENTITY.identityOf(brand, zero ? null : COHERENCE.catalogIdentity(brand));
+  }
   function coherenceSummaryFor(brand) {
     if (!brand || !brand.brand_data) return null;
     var c = COHERENCE.brandCoherence(brand);
@@ -1511,6 +2004,15 @@
       updated_at: now,
       storage: 'device',
     };
+    // One site per brand, as the server's buildRow (2026-10-11): a store URL
+    // typed on another site is refused; values read from another site are
+    // set aside in brand_data.coherence.set_aside, never applied.
+    var refusal = (existing && COHERENCE.identityChangeRefusal(b, prev)) || COHERENCE.typedUrlRefusal(b, prev);
+    if (refusal) throw deviceFail(refusal.status, refusal.code, refusal.message, [refusal]);
+    var dup = COHERENCE.duplicateBrand(row, (readDevice().workspaces || []));
+    if (dup) throw deviceFail(dup.status, dup.code, dup.message, [dup]);
+    var aside = COHERENCE.setAsideForeign(row, now, prev).record;
+    Object.keys(aside).forEach(function (k) { row[k] = aside[k]; });
     // The same gate the server applies in buildRow(): a DRAFT may carry an
     // incomplete palette, anything ACTIVE must pass the design rules.
     if (row.status === 'active') {
@@ -2760,6 +3262,32 @@
     }
   });
 
+  // 4. ANOTHER TAB CHANGED THE BRAND (2026-10-11). A brand activated, renamed
+  //    or re-pointed at a new website in one tab left every other open page
+  //    on the earlier brand: its tokens, its name in the rail, and every value
+  //    a page computed once at load (a prompt block, a market list, a draft).
+  //    The stored brand (the account's cache, or this device's store) is what
+  //    the other tab wrote; when its id or fingerprint differs from what this
+  //    page painted, the page repaints at once and then reloads, the one way
+  //    every value it cached follows the brand as it is now. Brand setup is
+  //    exempt: it is where the brand is being changed.
+  window.addEventListener('storage', function (ev) {
+    if (!ev || !ev.key || !state.loaded) return;
+    var dev = knownMode() === 'device';
+    if (ev.key !== (dev ? deviceKey() : CACHE_KEY)) return;
+    var next = null;
+    try { next = dev ? (deviceActiveRow() ? shellPayloadFor(deviceActiveRow()) : null) : readCache(); } catch (_) { next = null; }
+    var was = state.brand;
+    var sig = function (b) { return b ? String(b.id || '') + '|' + String(b.identity || '') : ''; };
+    if (sig(next) === sig(was)) return;
+    state.brand = next;
+    if (next) paint(next);
+    emit();
+    if (gateExempt() || window.BrandContext && window.BrandContext.liveSwitch === true) return;
+    try { sessionStorage.setItem('lc-brand-switched', String((next && next.name) || '')); } catch (_) {}
+    try { location.reload(); } catch (_) {}
+  });
+
   // ── Workspace-scope every API call ─────────────────────────────────────
   // The server scopes reads/writes by workspace_id, falling back to the OLDEST
   // workspace when none is supplied. Feature pages built before multi-tenancy
@@ -2925,9 +3453,23 @@
   function activeId() {
     try { return (state.brand && (state.brand.id || state.brand.slug)) || ''; } catch (_) { return ''; }
   }
-  function scoped(key) {
+  /* WHICH VERSION of the brand the state was saved under (2026-10-11): the
+     record's fingerprint (brand-identity.js) rides in the key, so a rename, a
+     new website, sender, catalogue, palette, type, voice, claims or market
+     leaves the earlier version's working state (an ad set, an approved slot,
+     a Studio brief) where it was - kept, never deleted - and never shows it
+     under the brand as it is now. A shell with no fingerprint (a cache from
+     before this) keeps the id-only key. */
+  function activeScope() {
     var id = activeId();
-    return id ? String(key) + '::' + id : String(key);
+    if (!id) return '';
+    var ident = '';
+    try { ident = String((state.brand && state.brand.identity) || '').replace(/^bi2:/, ''); } catch (_) { ident = ''; }
+    return /^[0-9a-f]{8,64}$/.test(ident) ? id + '::' + ident : id;
+  }
+  function scoped(key) {
+    var sc = activeScope();
+    return sc ? String(key) + '::' + sc : String(key);
   }
   var store = {
     key: scoped,
@@ -2935,8 +3477,12 @@
       try {
         var v = localStorage.getItem(scoped(key));
         if (v !== null) return v;
-        // One-time inheritance of pre-scoping state.
-        return activeId() ? localStorage.getItem(String(key)) : null;
+        // One-time inheritance of pre-scoping state, for TENANT ZERO only
+        // (2026-10-11): state saved before brands existed was tenant zero's,
+        // and every other brand inheriting it was another brand's ad set and
+        // calendar shown under its own name.
+        var zero = !!(state.brand && (state.brand.owns_shipped === true || state.brand.is_default === true));
+        return activeId() && zero ? localStorage.getItem(String(key)) : null;
       } catch (_) { return null; }
     },
     set: function (key, value) {
@@ -2950,7 +3496,7 @@
       var id = activeId();
       if (!id) return;
       try {
-        var suffix = '::' + id;
+        var suffix = '::' + activeScope();
         Object.keys(localStorage)
           .filter(function (k) { return k.slice(-suffix.length) === suffix; })
           .forEach(function (k) { localStorage.removeItem(k); });
@@ -3043,6 +3589,7 @@
     fontsHrefFor: fontsHrefFor,
     // Is this record ONE brand (2026-10-10)? The server's rule, ported.
     coherence: COHERENCE.brandCoherence,
+    identityOf: identityFor,
     coherenceLib: COHERENCE,
     validatePalette: validatePalette,
     readinessFor: readinessFor,
