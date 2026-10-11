@@ -816,13 +816,16 @@
       { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
     ]},
     { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
-    { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard'], children: [
+    { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard', '/revenue-by-region', '/revenue-by-region.html'], children: [
       // Labels and tab ids track analysis-registry.js, which is what the
       // workbench builds its own tab bar from. A rail that names a tab
       // differently from the tab is how a reader concludes there are two of
       // them. Retired tab ids still resolve, so an old bookmark keeps working
       // even though the rail now carries the current one.
       { id: 'da-control',  label: 'Control Room',                  href: '/data-analysis?tab=control',              icon: 'analysis' },
+      // A page of its own, not a workbench tab: per-region revenue from the
+      // brand's OWN orders, several markets at once (2026-10-11).
+      { id: 'da-revenue',  label: 'Revenue by Region',             href: '/revenue-by-region',                      icon: 'analysis', ver: 'v2', match: ['/revenue-by-region', '/revenue-by-region.html'] },
       { id: 'da-acq',      label: 'Acquisition',                   href: '/data-analysis?tab=acq',                  icon: 'insights' },
       { id: 'da-ret',      label: 'Retention',                     href: '/data-analysis?tab=ret',                  icon: 'insights' },
       { id: 'da-cohort',   label: 'Cohort Retention',              href: '/data-analysis?tab=cohort',               icon: 'cohort' },
@@ -1158,6 +1161,23 @@
         ['Design + layout + structure', 'Scores render as a ring + per-feature axis bars, colour-coded by threshold.'],
         ['Compilation + presentation', 'An overall rating, the blocker board, the scorecard and the roadmap, plus a downloadable Markdown audit.', '/audit']
       ]
+    },
+    'da-revenue': {
+      title: "Revenue by Region",
+      what: "Revenue and sales for each of the active brand's markets, side by side: revenue, orders, units, average order value, net revenue where refunds are stated, customers (new and returning), top products and the trend, against the previous period. Several markets can be selected at once. Each market is shown in its own currency, and a combined total across currencies appears only when it can be converted at exchange rates entered for this brand.",
+      who: "The founder and the growth team of the active brand, reading how each market is selling.",
+      how: "Reads the brand's OWN orders only: for an account brand, the orders stored in its workspace (store orders synced from Shopify, else its synced orders), read as you so the database decides what you may see; for a brand kept on this device, an order export imported on this device. An order counts in the market it states, or ships to; an order no market claims is counted as unattributed and said. A market with no orders shows the missing-data marker, never a zero and never another market's number. Every figure names its source and the dates it covers.",
+      input: "Pick one or more markets, a period and how the trend is grouped. Optionally enter dated exchange rates to see one combined total. A brand kept on this device imports its order export (CSV) on this page.",
+      pipeline: true,
+      steps: [
+        ['Ideology', 'Report what the brand\'s own orders say for each market, and name what is missing rather than filling it in.'],
+        ['Data analysis + review + hypothesis', 'Orders are read for the workspace, paged to the end, grouped by market, and aggregated per market and period.', '/api/brain?action=region-revenue'],
+        ['Business & strategy decisions', 'Net revenue, units and discounts appear only where every order states them; a combined total uses only entered, dated rates.'],
+        ['Content', 'Per-market cards, a comparison table, a chart per market and top products matched to that market\'s own catalogue.'],
+        ['Design + layout + structure', 'Brand tokens only; one chart per market because two currencies do not share an axis.'],
+        ['Coding', 'A page of its own over one ?action= op on the brain router (no new serverless function) and one aggregation module the browser runs too.', '/revenue-by-region'],
+        ['Final compilation + presentation', 'The selection is kept for this brand in this browser, so the same markets open next time.'],
+      ],
     },
     // The Paid Media tab of Data Analysis.
     //
