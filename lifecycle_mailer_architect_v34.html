@@ -8294,6 +8294,12 @@ function logout(){
   // ── end of disabled toggleAuthMode()
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
+// The mailer history is kept per BRAND VERSION (2026-10-11): LCStore's key
+// carries the workspace and the record's fingerprint (brand-identity.js), so
+// a mailer made for another brand, or for this one before a rename or a new
+// website, is never listed or reopened as the current brand's. The earlier
+// unscoped 'vhd_logs' list is left where it was, unread.
+function _logsKey(){try{return (window.LCStore&&window.LCStore.key)?window.LCStore.key('vhd_logs_v2'):'vhd_logs_v2';}catch(_){return 'vhd_logs_v2';}}
 function saveMailerToDashboard(){
   refreshStrategy();
   var st=S.strategy||{};
@@ -8359,7 +8365,9 @@ function saveMailerToDashboard(){
     last_feedback:S.lastFeedback||'',
     feedback_history:(S.feedbackHistory||[]).slice(),
     // ── AUDIT TRAIL ──
-    reasoning:st.reasoning||{},
+    // WHICH version of the brand this mailer was made for (brand-identity.js,
+    // 2026-10-11): /assets lists a mailer only under the brand as it was.
+    reasoning:Object.assign({},st.reasoning||{},{brand_identity:(window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.identity)||null,brand_name:(window.BrandContext&&window.BrandContext.brand&&window.BrandContext.brand.name)||null}),
     strategy_full:st,
     // ── STRATEGIC DEPTH (materialised columns — defensive save retries without these if schema lacks them) ──
     target_segment:    (st.depth&&st.depth.segment&&st.depth.segment.primary)||null,
@@ -8423,7 +8431,7 @@ function saveMailerToDashboard(){
   try{
     if(typeof localStorage==='undefined'){console.warn('[Dashboard] localStorage unavailable — file:// origin?');return;}
     var existing=[];
-    try{existing=JSON.parse(localStorage.getItem('vhd_logs')||'[]');}catch(_){existing=[];}
+    try{existing=JSON.parse(localStorage.getItem(_logsKey())||'[]');}catch(_){existing=[];}
     // Keep BOTH old field names (for backward compat) and new ones
     var legacyEntry={
       id:Date.now(),date:new Date().toISOString(),
@@ -8441,11 +8449,11 @@ function saveMailerToDashboard(){
     }
     if(existing.length>200)existing=existing.slice(0,200);
     try{
-      localStorage.setItem('vhd_logs',JSON.stringify(existing));
+      localStorage.setItem(_logsKey(),JSON.stringify(existing));
       console.log('%c[Dashboard] Saved (localStorage):','color:#D0473E','#'+legacyEntry.id,'| total:',existing.length);
     }catch(qe){
       var compacted=existing.map(function(e,i){return i<10?e:Object.assign({},e,{fullMailers:{},_full:undefined});});
-      localStorage.setItem('vhd_logs',JSON.stringify(compacted));
+      localStorage.setItem(_logsKey(),JSON.stringify(compacted));
       console.log('[Dashboard] Saved (compacted)');
     }
   }catch(e){console.warn('[Dashboard] localStorage save failed:',e&&e.message);}
@@ -8540,7 +8548,7 @@ async function renderDashboard(page){
     }
   }
   if(!logs.length){
-    try{logs=JSON.parse(localStorage.getItem('vhd_logs')||'[]');}catch(e){}
+    try{logs=JSON.parse(localStorage.getItem(_logsKey())||'[]');}catch(e){}
   }
   logs.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
   var allLogs=logs.slice(); // unfiltered universe — used for filter chip facets
@@ -8723,7 +8731,7 @@ function _getDashEntry(logIdx){
   var logs=window._dashLogs||[];
   if(logs.length&&logs[logIdx])return logs[logIdx];
   // Fallback: read from localStorage
-  try{var ll=JSON.parse(localStorage.getItem('vhd_logs')||'[]');return ll[logIdx]||null;}catch(_){return null;}
+  try{var ll=JSON.parse(localStorage.getItem(_logsKey())||'[]');return ll[logIdx]||null;}catch(_){return null;}
 }
 function viewDashRecord(logIdx){
   try{

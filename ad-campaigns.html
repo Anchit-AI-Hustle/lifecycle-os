@@ -605,7 +605,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         url: c.url || '', audience: c.aud || '',
         // c (stored in the `copy` JSONB) carries the full creative_assets array,
         // so the multi-asset payload survives without needing a new column.
-        copy: c, creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
+        copy: Object.assign({}, c, { brand_identity: (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.identity) || null }), creative_url: creativeUrl || '', creative_prompt: c.imagePrompt || '',
         origin: location.origin || '', workspace_id: workspaceId
       };
       const { data, error } = await sb.from('ads_generated').insert([row]).select('id').single();

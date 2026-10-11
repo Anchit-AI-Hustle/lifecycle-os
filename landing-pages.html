@@ -465,7 +465,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         paired_with: channel === 'mailers' ? 'mailer' : channel,
         name: form.hero || '', market: form.region || '',
         hero: form.hero || '', sub: form.sub || '', offer: form.offer || '', notes: form.notes || '',
-        payload: form, origin: location.origin || '', workspace_id: workspaceId
+        payload: Object.assign({}, form, { brand_identity: (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.identity) || null }), origin: location.origin || '', workspace_id: workspaceId
       };
       const { error } = await sb.from('landing_pages_generated').insert([row]);
       if (error) { console.warn('[landing] supabase insert failed:', error.message); return { ok: false, reason: error.message }; }
@@ -764,6 +764,14 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
   // Every generated page also ships a complete, self-contained external prompt
   // so the user can reproduce a perfect page in any chatbot. (The app itself
   // builds the page on free tiers; this is the "bring your own model" output.)
+  // The page library is kept per BRAND VERSION (2026-10-11): LCStore's key
+  // carries the workspace and the record's fingerprint (brand-identity.js), so
+  // a page made for another brand, or for this one before a rename or a new
+  // website, is never listed as the current brand's. The earlier unscoped
+  // 'lp-<channel>' lists are left where they were, unread.
+  function lpKey(channel) {
+    try { return (window.LCStore && window.LCStore.key) ? window.LCStore.key('lp-lib-' + channel) : 'lp-lib-' + channel; } catch (_) { return 'lp-lib-' + channel; }
+  }
   function buildLandingPrompt(f) {
     f = f || {};
     var region = f.region || f.market || homeRegion();
@@ -819,7 +827,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
         //    the button ALWAYS produces output. Store the HTML on the entry so
         //    preview + download + library re-open the exact page.
         form._html = await generateLandingHTML(form);
-        const key = 'lp-' + channel;
+        const key = lpKey(channel);
         const list = JSON.parse(localStorage.getItem(key) || '[]');
         list.unshift({ ...form, created_at: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
@@ -857,7 +865,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       try {
         const src = JSON.parse(decodeURIComponent(cl.dataset.lpClone));
         const channel = cl.dataset.lpChannel;
-        const key = 'lp-' + channel;
+        const key = lpKey(channel);
         const list = JSON.parse(localStorage.getItem(key) || '[]');
         const copy = { ...src, channel, hero: (src.hero || 'Untitled') + ' (Copy)', created_at: new Date().toISOString() };
         list.unshift(copy);
@@ -873,7 +881,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
     const smp = e.target.closest('[data-lp-sample]');
     if (smp) {
       const channel = smp.dataset.lpSample;
-      const key = 'lp-' + channel;
+      const key = lpKey(channel);
       const list = JSON.parse(localStorage.getItem(key) || '[]');
       list.unshift({
         hero: 'Sample: the hero offering', sub: 'A sample sub-line; replace it with the brand\'s own.',
@@ -915,7 +923,7 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       </div>`; }).join('');
   }
   async function loadLibrary(channel) {
-    const local = JSON.parse(localStorage.getItem('lp-' + channel) || '[]');
+    const local = JSON.parse(localStorage.getItem(lpKey(channel)) || '[]');
     // Render local immediately so the UI is never blank while Supabase loads.
     renderLibrary(channel, local);
     const sb = sbClient(); if (!sb) return;
