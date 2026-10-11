@@ -355,15 +355,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="toolbar">
       <div class="filters">
         <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--vh-ink-dim);font-weight:600">Region</span>
-        <select id="adRegion">
-          <option value="US">United States</option>
-          <option value="GB">United Kingdom</option>
-          <option value="IN">India</option>
-          <option value="AU">Australia</option>
-          <option value="AE">Middle East (UAE)</option>
-          <option value="DE">Europe (DE)</option>
-          <option value="ALL">All countries</option>
-        </select>
+        <!-- The brand's own markets (All only when it has more than one), filled
+             by region-context.js; each is read as the ad library's country code. -->
+        <select id="adRegion" data-brand-markets="all"></select>
       </div>
       <div class="filters">
         <a class="btn-ghost" href="#discover" style="text-decoration:none">＋ Manage brands in Discover →</a>
@@ -503,15 +497,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="mb">
       <div class="form-grp">
         <label>Region</label>
-        <select id="fcm-region">
-          <option value="US">United States</option>
-          <option value="GB">United Kingdom</option>
-          <option value="IN">India</option>
-          <option value="AU">Australia</option>
-          <option value="AE">Middle East (UAE)</option>
-          <option value="DE">Europe (DE)</option>
-          <option value="ALL">Worldwide</option>
-        </select>
+        <select id="fcm-region" data-brand-markets></select>
       </div>
       <div class="form-grp">
         <label>Type of Product(s)</label>
@@ -954,7 +940,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           : 'Google &amp; TikTok don\'t expose a free structured ad feed, so each tile deep-links into the official free library pre-filtered for the brand.');
     $('adBrands').innerHTML = '<div class="empty">Loading brands…</div>';
     await fetchBrandUniverse();
-    const region = $('adRegion').value;
+    // The brand's market code (UK, IN, GLOBAL...) as the libraries' country
+    // code (GB, IN, all); a market with no single country reads as all.
+    const picked = $('adRegion').value;
+    const rcx = window.RegionContext;
+    const region = (!picked || picked === 'ALL') ? 'ALL' : ((rcx && rcx.countryOf && rcx.countryOf(picked)) || 'ALL');
     const all = trackedBrandObjs();
     const brands = all.slice(0, MAX_TILES);
 

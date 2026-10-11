@@ -276,7 +276,9 @@ test.describe('ad creatives use the active brand\'s own catalogue', () => {
       expect(said.images.length, tab + ': creatives were composed').toBeGreaterThan(0);
       expect(said.images.every((s) => s.startsWith('data:image/png')), tab + ': composed on a canvas').toBe(true);
       expect(said.sources.every((s) => s === 'none'), tab + ': no photo was used, got ' + said.sources).toBe(true);
-      expect(said.note, tab).toContain('[DATA REQUIRED BEFORE LAUNCH: product image, Deli Chic, US]');
+      // The form opens on the brand's HOME market (IN); until 2026-10-10 it
+      // opened on a typed US this brand does not sell in.
+      expect(said.note, tab).toContain('[DATA REQUIRED BEFORE LAUNCH: product image, Deli Chic, IN]');
       expect(said.note, tab).not.toMatch(/Shopify catalog photos|real packaging/i);
       expect(said.gaps.length, tab + ': the marker rides each asset').toBe(said.images.length);
       expect(said.gaps.every((g) => /DATA REQUIRED BEFORE LAUNCH: product image, Deli Chic/.test(g))).toBe(true);
@@ -308,7 +310,11 @@ test.describe('ad creatives use the active brand\'s own catalogue', () => {
   });
 
   test('(b) an IN catalogue answers the US market too, said as filed under IN - never another brand\'s rows', async ({ page }) => {
-    const seen = await install(page, { kind: 'device', origin: 'http://app.example.test', brand: DELI, catalog: DELI_ROWS });
+    // A brand that serves US as well as its home IN, with a catalogue filed
+    // under IN only. (An IN-only brand is not offered US at all: the market
+    // selects hold the brand's own markets, tests/regions-and-names-every-page.)
+    const DELI_US = Object.assign({}, DELI, { regions: DELI.regions.concat([{ code: 'US', currency: 'USD', symbol: '$', home: false }]) });
+    const seen = await install(page, { kind: 'device', origin: 'http://app.example.test', brand: DELI_US, catalog: DELI_ROWS });
     await page.goto('http://app.example.test/ad-campaigns.html#google', { waitUntil: 'domcontentloaded' });
     await settle(page, 'deli-chic');
     const r = await driveAds(page, 'http://app.example.test', 'US');
