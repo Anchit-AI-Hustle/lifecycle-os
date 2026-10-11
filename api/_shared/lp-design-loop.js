@@ -43,7 +43,7 @@ const DIMENSIONS = [
 ];
 
 function scoreSystem(brand) {
-  return `You are a senior landing-page DESIGN auditor for ${(brand && brand.name) || 'this brand'}. You are given the FULL HTML of one generated landing page. Judge only what the code actually renders. Output STRICT JSON, no markdown, no commentary.
+  return `You are a senior landing-page DESIGN auditor for ${(brand && brand.name) || 'this brand'}. You are given the FULL HTML of one generated landing page. Judge only what the code actually renders.
 
 THE BRAND YOU ARE AUDITING AGAINST (authoritative, from its own record):
 ${brandRuntime.brandBlock(brand)}
@@ -56,8 +56,26 @@ Score each dimension 0-10:
 - hero_impact: an above-the-fold that stops the scroll. A real stage, a promise-led headline, an immediate call to action, no wall of text.
 - mobile_responsiveness: works at 360px with no horizontal overflow, tap targets at least 44px, readable clamped type.
 
-Return JSON exactly:
-{"scores":{"visual_hierarchy":n,"brand_compliance":n,"layout_polish":n,"conversion_structure":n,"hero_impact":n,"mobile_responsiveness":n},"overall":n,"critique":"1-2 sentences on the biggest design weaknesses","fixes":["specific, actionable design fix","..."]}`;
+The answer is the JSON object the OUTPUT REQUIREMENT at the end of the request describes.`;
+}
+
+// What the auditor and the reviser return (output-contract.js).
+const OC = require('./output-contract.js');
+function scoreSpec(brand) {
+  const n = { type: 'number', min: 0, max: 10 };
+  const scores = {};
+  for (const d of DIMENSIONS) scores[d] = n;
+  return { id: 'lp-design-loop.score', kind: 'data', format: 'json', brand: (brand && brand.name) || 'this brand', missing: false,
+    returns: 'ONE JSON object: the 0-10 score on each of the six design dimensions, the overall score, the critique and the fixes.',
+    schema: { scores: { type: 'object', of: scores }, overall: n,
+      critique: { type: 'string', note: '1-2 sentences on the biggest design weaknesses' },
+      fixes: { type: 'array', count: [1, 8], items: { type: 'string', note: 'one specific, actionable design fix' } } } };
+}
+function reviseSpec(brand) {
+  return { id: 'lp-design-loop.revise', kind: 'asset', format: 'html', brand: (brand && brand.name) || 'this brand',
+    returns: 'ONE complete, production-ready landing page as an HTML document: the CURRENT HTML with the fixes applied and every fact, offer, price and link kept exactly.',
+    lines: ['Inline CSS and at most one small inline <script>. No external library, CDN, remote font or framework: it works when the file is opened directly.',
+      'Not shorter than the CURRENT HTML by more than a third: no section is removed.'] };
 }
 
 function reviseSystem(brand) {
@@ -125,9 +143,8 @@ async function runDesignLoop(opts) {
     // ── 1. Score (fast tier, cheap) ─────────────────────────────────────────
     const scoreOut = await withDeadline(callLLM({
       systemPrompt: scoreSystem(brand),
-      userMessage: (brief ? 'BRIEF:\n' + String(brief).slice(0, 1200) + '\n\n' : '')
-        + 'LANDING PAGE HTML:\n' + String(html).slice(0, 40000)
-        + '\n\nScore all 6 dimensions now. Return the JSON.',
+      userMessage: OC.append((brief ? 'BRIEF:\n' + String(brief).slice(0, 1200) + '\n\n' : '')
+        + 'LANDING PAGE HTML:\n' + String(html).slice(0, 40000), scoreSpec(brand)),
       responseFormat: { type: 'json_object' },
       maxTokens: 700, temperature: 0.15,
       timeoutMs: Math.min(20000, Math.max(1, remaining())),
@@ -151,20 +168,19 @@ async function runDesignLoop(opts) {
 
     const reviseOut = await withDeadline(callLLM({
       systemPrompt: reviseSystem(brand),
-      userMessage: 'AUDITOR SCORES: ' + JSON.stringify(scored.scores || {})
+      userMessage: OC.append('AUDITOR SCORES: ' + JSON.stringify(scored.scores || {})
         + ' (overall ' + quality.score + '/10, pass ' + PASS_THRESHOLD + ')\n'
         + 'AUDITOR CRITIQUE: ' + String(scored.critique || '').slice(0, 600) + '\n'
         + (fixes ? 'FIXES TO APPLY:\n' + fixes + '\n' : '')
         + 'MARKET: ' + market + (store ? ' · store base ' + store : '') + ' · channel ' + channel + '\n\n'
-        + 'CURRENT HTML:\n' + String(html).slice(0, 60000)
-        + '\n\nReturn the complete improved HTML now.',
+        + 'CURRENT HTML:\n' + String(html).slice(0, 60000), reviseSpec(brand)),
       temperature: 0.5, maxTokens: 8000,
       timeoutMs: Math.max(1, remaining() - 1500),
       stage: 'lp-design-revise', tier: 'premium', userGeminiKey,
     }), remaining());
 
     let revised = clean(reviseOut && reviseOut.text);
-    revised = String(revised).replace(/^\s*```(?:html)?\s*/i, '').replace(/```\s*$/, '').trim();
+    revised = OC.parse(revised, reviseSpec(brand));
 
     // Guard against truncation and garbage: a revision must be a full document
     // AND not drastically shorter than what it replaces. A model that runs out

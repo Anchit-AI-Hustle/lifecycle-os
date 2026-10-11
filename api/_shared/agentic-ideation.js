@@ -8,6 +8,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 let callLLM; try { callLLM = require('./llm.js'); } catch (_) { callLLM = null; }
+// Every prompt here ends with its OUTPUT REQUIREMENT (output-contract.js).
+const OC = require('./output-contract.js');
 
 async function ideate({ analysis = {}, calendar = {}, review = {}, market = require('./brand-locale.js').defaultMarket(), tier = 'budget' } = {}) {
   const ctx = {
@@ -20,8 +22,13 @@ async function ideate({ analysis = {}, calendar = {}, review = {}, market = requ
   if (callLLM) {
     try {
       const _bn = (() => { try { return require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }).name; } catch (_) { return ''; } })() || 'this brand';
-      const sys = "You are " + _bn + "'s Head of Growth. Given the current analysis, plan, and a freshly generated campaign, propose the 3-5 highest-leverage NEXT actions the team should take that are NOT already on the calendar — new segments to test, untapped channels, creative experiments, retention plays, or data gaps to close. Return STRICT JSON {\"ideas\":[{\"title\",\"why\",\"action\",\"impact\":\"high|medium|low\",\"effort\":\"low|medium|high\"}]}. Be specific to the data provided; no platitudes, no banned phrases (no 'wellness journey', 'transform', 'game-changer').";
-      const user = `MARKET: ${market}\nCONTEXT JSON:\n${JSON.stringify(ctx)}\n\nReturn the JSON now.`;
+      const sys = "You are " + _bn + "'s Head of Growth. Given the current analysis, plan, and a freshly generated campaign, propose the 3-5 highest-leverage NEXT actions the team should take that are NOT already on the calendar — new segments to test, untapped channels, creative experiments, retention plays, or data gaps to close. Be specific to the data provided; no platitudes, no banned phrases (no 'wellness journey', 'transform', 'game-changer').";
+      const user = OC.append(`MARKET: ${market}\nCONTEXT JSON:\n${JSON.stringify(ctx)}`, {
+        id: 'agentic.ideation', kind: 'data', format: 'json', brand: _bn, region: market,
+        returns: 'ONE JSON object whose "ideas" key holds the 3-5 highest-leverage next actions not already on the calendar.',
+        schema: { ideas: { type: 'array', count: [3, 5], items: { type: 'object', of: {
+          title: 'string', why: { type: 'string', note: 'grounded in CONTEXT JSON' }, action: 'string',
+          impact: { type: 'string', enum: ['high', 'medium', 'low'] }, effort: { type: 'string', enum: ['low', 'medium', 'high'] } } } } } });
       const out = await callLLM({ systemPrompt: sys, userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 900, tier, stage: 'agentic-ideation' });
       const parsed = callLLM.parseJSON(typeof out === 'string' ? out : out.text);
       if (parsed && Array.isArray(parsed.ideas) && parsed.ideas.length) {

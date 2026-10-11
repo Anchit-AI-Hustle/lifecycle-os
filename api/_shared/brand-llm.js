@@ -46,6 +46,30 @@ const adInsights = require('./ad-insights-core.js');
 let callLLM = null;
 try { callLLM = require('./llm.js'); } catch (_) { callLLM = null; }
 
+// Every turn of the tool loop ends with the OUTPUT REQUIREMENT for ONE action
+// object (output-contract.js). The protocol in the system prompt names the two
+// shapes; the block pins which keys exist, so a turn that answers in prose (or
+// in a fence) is the model's departure from a stated contract, not a guess.
+const OC = require('./output-contract.js');
+function turnSpec(brand, market, force) {
+  return {
+    id: 'kicksgpt.turn', kind: 'data', format: 'json', brand: (brand && brand.name) || 'this brand', region: market || '',
+    missing: 'say',
+    returns: force
+      ? 'ONE JSON object with "action": "final" and the reply. No more tool calls.'
+      : 'ONE JSON object: either a tool action ("action": "tool" with "tool" and "args", or "tools" for up to 3 independent lookups) or the final answer ("action": "final" with "reply").',
+    lines: ['The "reply" is clean markdown inside the JSON string; every figure in it names the tool it came from.'],
+    schema: {
+      action: { type: 'string', enum: force ? ['final'] : ['tool', 'final'] },
+      tool: { type: 'string', required: false, note: 'a tool name from YOU CAN CALL THESE TOOLS (action "tool", one call)' },
+      args: { type: 'object', required: false, note: 'that tool\'s arguments' },
+      tools: { type: 'array', required: false, count: [1, 3], items: { type: 'object', of: { tool: 'string', args: 'object' } }, note: 'up to 3 independent calls run in parallel' },
+      thought: { type: 'string', required: false, note: 'why, one line' },
+      reply: { type: 'string', required: false, note: 'required when action is "final"' },
+    },
+  };
+}
+
 const catalogServer = require('./brand-catalog-server.js');
 
 // ── Real product catalog (source of truth for names + links) ─────────────────
@@ -611,8 +635,8 @@ async function _chat({ message, history = [], market: marketIn = '', maxSteps = 
   for (let step = 0; step < maxSteps; step++) {
     const nearDeadline = (Date.now() - t0) > (TURN_BUDGET_MS - RESERVE_FINAL_MS);
     const force = step === maxSteps - 1 || nearDeadline;
-    const userMessage = renderTranscript(history, message, working) +
-      (force ? '\n\nYou have gathered enough. Respond with {"action":"final",...} now — do not call more tools.' : '');
+    const userMessage = OC.append(renderTranscript(history, message, working) +
+      (force ? '\n\nYou have gathered enough. Respond with {"action":"final",...} now — do not call more tools.' : ''), turnSpec(brand, market, force));
     // maxTokens is a cap, not a target: tool actions stay tiny, but detailed
     // evidence-backed finals get room. A tighter 9s per-provider timeout means a
     // dead/quota'd key is skipped fast instead of stalling the whole turn; the

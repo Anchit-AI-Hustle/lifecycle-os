@@ -46,9 +46,15 @@ function buildPrompt(assetType, row) {
   } else {
     material = `URL: ${row.url}\nPARSED:\n${JSON.stringify(row.parsed || {}, null, 0).slice(0, 3500)}`;
   }
+  // The keys are SCHEMA's own list, so the facet fan-out below reads exactly
+  // what the model was told to return (output-contract.js).
+  const schema = {};
+  for (const f of fields) schema[f] = { type: 'any', note: 'a concise string, or a short array of strings for a list-like field; "not stated" when the material does not show it' };
   return {
-    systemPrompt: `You are a senior DTC growth strategist analyzing a competitor ${assetType}. Return ONLY JSON with exactly these keys: ${fields.join(', ')}. Values are concise strings; for list-like fields use a short comma-free array of strings. Be specific and analytical, not generic.`,
-    userMessage: material
+    systemPrompt: `You are a senior DTC growth strategist analyzing a competitor ${assetType}. Be specific and analytical, not generic, and read only what the material shows.`,
+    userMessage: require('./output-contract.js').append(material, {
+      id: 'ci-enrich.' + assetType, kind: 'data', format: 'json', missing: 'A field the material does not show is "not stated"; never infer a number, a discount or a persona the material does not state.',
+      returns: `ONE JSON object analysing this competitor ${assetType}, one key per field listed.`, schema }),
   };
 }
 
@@ -59,7 +65,7 @@ async function enrichOne(assetType, row, { force = false } = {}) {
     systemPrompt, userMessage, responseFormat: { type: 'json_object' },
     maxTokens: 900, temperature: 0.4, stage: `ci-enrich-${assetType}`
   });
-  let data; try { data = JSON.parse(out.text); } catch { data = { _raw: out.text }; }
+  let data = require('./output-contract.js').parseJsonLoose(out.text); if (!data || typeof data !== 'object') data = { _raw: out.text };
 
   await supa.update(TABLE[assetType],
     { enrichment: data, enriched_at: new Date().toISOString() },
@@ -95,4 +101,4 @@ async function enrichBatch(assetType, { limit = 10, force = false } = {}) {
   return { assetType, processed: results.length, results };
 }
 
-module.exports = { SCHEMA, enrichOne, enrichBatch };
+module.exports = { SCHEMA, enrichOne, enrichBatch, buildPrompt };

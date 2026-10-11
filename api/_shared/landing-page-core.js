@@ -1,4 +1,8 @@
 const callLLM = require('./llm.js');
+// The page's container is the OUTPUT REQUIREMENT the request ends with
+// (output-contract.js); it used to open the system prompt, above eight
+// sections of design rules, and the request itself ended on the brief.
+const OC = require('./output-contract.js');
 const SM = require('./scenario-model.js');
 const brandRuntime = require('./brand-runtime.js');
 const offeringKinds = require('./offering-kinds.js');
@@ -166,9 +170,6 @@ module.exports = async function handler(req, res) {
   const brandName = (brand && brand.name) || 'this brand';
   const systemPrompt = `You are a senior conversion copywriter, interaction designer, and front-end developer for ${brandName}.
 
-OUTPUT CONTRACT
-Return ONLY one complete production-ready HTML document from <!doctype html> to </html>. No markdown fences or commentary. Use inline CSS and a small inline JavaScript block. No external libraries, CDNs, Google Fonts, remote JS, React, Three.js, Framer runtime, or Motion runtime. The page must work by opening the downloaded HTML file directly.
-
 BRAND CONSTRAINTS (authoritative, derived from this brand's own record)
 ${brandRuntime.brandBlock(brand)}
 
@@ -204,7 +205,7 @@ Requested profile: ${motionProfile}.
 - editorial-cinematic: larger sticky scroll sequence and stronger depth, while preserving readability and mobile performance.
 
 CONVERSION ARCHITECTURE
-Mobile-first at 360px. No horizontal overflow. Tap targets at least 44px. Required order: announcement bar when offer exists, header, hero with one dominant CTA and spatial product stage, trust strip, benefits, sticky 4D origin or product story, product or offer block with only supplied commercial facts, interactive 5D sensory section, social proof framed as representative themes unless exact quotes are supplied, FAQ, final CTA, footer, sticky mobile CTA.
+Mobile-first at 360px. No horizontal overflow. Tap targets at least 44px. Required order: announcement bar when offer exists, header, hero with one dominant CTA and spatial product stage, trust strip, benefits, sticky 4D origin or product story, product or offer block with only supplied commercial facts, interactive 5D sensory section, social proof ONLY from quotes supplied in the input (verbatim, author only if supplied; with none, the section carries [DATA REQUIRED BEFORE LAUNCH: approved reviews, ${brandName}] instead), FAQ, final CTA, footer, sticky mobile CTA.
 
 TECHNICAL QUALITY
 - Semantic HTML, accessible labels, visible focus states, responsive clamp typography.
@@ -217,12 +218,17 @@ TECHNICAL QUALITY
 
   const userMessage = `Create the final page from this exact input. Preserve every supplied factual detail and offer, but do not invent missing facts.\n\n${brief}`
     + (designDirective ? `\n\n${designDirective}` : '');
+  const outputSpec = { id: 'landing-page.spatial', kind: 'asset', format: 'html', brand: brandName, region: market,
+    returns: 'ONE complete, production-ready landing page as a single HTML document that works when the downloaded file is opened directly.',
+    lines: ['Inline CSS and ONE small inline <script> (under roughly 8KB). No external library, CDN, Google Fonts, remote JS, React, Three.js, Framer runtime or Motion runtime.',
+      'Every image is a hosted URL the input supplied, or a labelled empty slot; never an invented URL.'] };
+  const userMessageOut = OC.append(userMessage, outputSpec);
 
   try {
     const out = await callLLM({
       tier: 'premium',
       systemPrompt,
-      userMessage,
+      userMessage: userMessageOut,
       temperature: 0.65,
       // 15000 exceeds the free-tier per-minute token budgets (Groq ~6K TPM,
       // Cerebras ~8K output), which forced an instant 429 and left no working
@@ -237,7 +243,7 @@ TECHNICAL QUALITY
     // brand's own list is applied on top so a custom brand's forbidden phrases
     // are stripped too.
     html = brandRuntime.scrubHtmlForBrand(html, brand);
-    html = String(html).replace(/^\s*```(?:html)?\s*/i, '').replace(/```\s*$/, '').trim();
+    html = OC.parse(html, outputSpec);
     if (!/<!doctype/i.test(html) || !/<body/i.test(html) || !/<\/html>/i.test(html)) {
       return res.status(502).json({ error: 'invalid_html_generation' });
     }

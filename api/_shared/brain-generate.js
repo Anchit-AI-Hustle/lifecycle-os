@@ -172,8 +172,58 @@ async function llmJson(system, user, maxTokens = 1800) {
   try {
     const out = await callLLM({ systemPrompt: system, userMessage: user, responseFormat: { type: 'json_object' }, maxTokens, temperature: 0.7, timeoutMs: 40000, stage: 'brain-generate', tier: 'premium' });
     const text = typeof out === 'string' ? out : (out.text || '');
-    return JSON.parse(text.replace(/^[\s\S]*?({[\s\S]*})[\s\S]*$/, '$1'));
+    return OC.parseJsonLoose(text);
   } catch (_) { return null; }
+}
+
+// ── what the copy chief returns (output-contract.js) ───────────────────────
+// The JSON shape this prompt used to carry seeded what nothing supplied:
+// a testimonial "name" templated as "first name + city", three customer
+// stories, "Free shipping over $35" and "about 40c a pair" as worked values,
+// in the same prompt that said to invent no claims. Proof fields are filled
+// only from what the request supplies, else the DATA REQUIRED marker; limits
+// are the asset contracts' own.
+const OC = require('./output-contract.js');
+function slotCopySpec(slot, brand) {
+  const L = require('./asset-contracts.js').slotLimit;
+  const S = (n, note) => Object.assign({ type: 'string' }, n ? { max: n } : {}, note ? { note } : {});
+  const pair = (a, b) => ({ type: 'object', of: { title: a || 'string', desc: b || { type: 'string', note: '1 sentence' } } });
+  const proofNote = 'ONLY a review supplied in this request, verbatim; otherwise the DATA REQUIRED marker for approved reviews';
+  return {
+    id: 'brain-generate.copy', kind: 'data', format: 'json', brand: brandLabel(brand), region: slot && slot.market,
+    returns: 'ONE JSON object holding the copy for this slot: the email, the Google, Meta and TikTok ads, and the landing page.',
+    schema: {
+      subject: S(L('email.mailer', 'subject')), preheader: S(L('email.mailer', 'preheader')), headline: 'string', subheadline: 'string',
+      body_intro: S(null, '2-3 sentence sensory opening'), story: S(null, '4-5 sentence narrative for the angle'),
+      cta_primary: 'string', cta_secondary: 'string',
+      testimonial: { type: 'object', required: false, note: proofNote, of: { quote: 'string', name: 'string' } },
+      google: { type: 'object', of: {
+        headlines: { type: 'array', count: [3, 15], items: S(L('ad.google.rsa', 'headlines')) },
+        descriptions: { type: 'array', count: [2, 4], items: S(L('ad.google.rsa', 'descriptions')) },
+        callouts: { type: 'array', count: 4, items: S(25, 'a fact from the products or the brand record only') },
+        sitelinks: { type: 'array', count: 4, items: { type: 'object', of: { text: S(25), desc: S(35) } } } } },
+      meta: { type: 'object', of: {
+        primary_text: S(L('ad.meta.static', 'primary_text')), primary_text_variants: { type: 'array', count: 3, items: S(L('ad.meta.static', 'primary_text')) },
+        headline: S(L('ad.meta.static', 'headline')), headlines: { type: 'array', count: 3, items: S(L('ad.meta.static', 'headline')) },
+        description: S(L('ad.meta.static', 'description')), creative_concept: S(null, 'one-line art direction for the hero image, no text in the image') } },
+      tiktok: { type: 'object', of: { hook_line: S(null, 'the first 2 seconds, spoken'), script: S(null, '15 seconds, conversational'),
+        shot_list: { type: 'array', count: 4, items: 'string' }, captions: { type: 'array', count: 3, items: 'string' } } },
+      landing: { type: 'object', of: {
+        hero_eyebrow: S(null, '3-5 words'), hero_headline: 'string', hero_sub: 'string',
+        offer_bar: S(null, 'ONLY an offer this request supplies; an empty string when none'),
+        trust_badges: { type: 'array', count: 4, items: S(null, 'a verifiable claim from the brand record') },
+        problem: { type: 'object', of: { headline: 'string', body: 'string' } },
+        mechanism: { type: 'object', of: { headline: 'string', steps: { type: 'array', count: 3, items: pair() } } },
+        benefits: { type: 'array', count: 4, items: pair() },
+        comparison: { type: 'object', of: { us_label: 'string', them_label: 'string' } },
+        rows: { type: 'array', count: 4, items: { type: 'object', of: { feature: 'string', us: 'string', them: 'string' } } } } },
+      testimonials: { type: 'array', required: false, items: { type: 'object', of: { quote: 'string', name: 'string', location: 'string' } }, note: proofNote + '; an empty array when none' },
+      offer_stack: { type: 'object', of: { headline: 'string', items: { type: 'array', count: [3, 5], items: 'string' },
+        price_note: S(null, 'ONLY a price this request supplies, else an empty string'), cta: 'string' } },
+      faq: { type: 'array', count: 4, items: { type: 'object', of: { q: 'string', a: 'string' } } },
+      guarantee: { type: 'object', required: false, note: 'ONLY a guarantee the brand record states', of: { headline: 'string', body: 'string' } },
+    },
+  };
 }
 
 // ── copy generation (LLM with deterministic fallback) ───────────────────────
@@ -184,7 +234,7 @@ async function generateCopy(slot, products, brand, library) {
 Voice: ${brand.voice}. Use this lexicon where natural: ${(brand.preferred_lexicon || []).join(', ')}.
 NEVER use: ${(brand.banned_phrases || []).join(', ')}.
 QUALITY BAR — before you return, silently score every field 1-10 on: Clarity, Conversion pull, Brand-voice fit, Concrete proof (a specific detail/number, never a vague claim), and Format/character-limits. If any field scores below 8, rewrite it. Prefer a specific, sensory, benefit-led line over a generic category claim: a reason tied to THIS cohort/angle beats "origin-fresh sneaker" every time. Each headline/description must read better than the obvious generic version.
-Return STRICT JSON only.`;
+Return exactly what the OUTPUT REQUIREMENT at the end of the request states.`;
   const strat = designStrategy.strategyFor(slot);
   const user = `Create campaign copy for:
 Channel: ${slot.channel} · Market: ${slot.market} · Cohort: ${slot.cohort_id || 'general'}
@@ -197,12 +247,10 @@ Featured products:\n${productLines}
 AD-COPY RULES (apply to google, meta and tiktok blocks):
 - Make every headline and DESCRIPTION specific to this cohort (${slot.cohort_id || 'general'}) and angle (${slot.angle}). No generic "origin-fresh sneaker" filler that could belong to any send.
 - Lead each ad description with the angle's benefit, then a concrete proof or offer, then a light CTA. It must read as a finished ad, never a label or the schema hint.
-- Respect platform limits EXACTLY (count characters): Google headlines <=30, Google descriptions <=90, Meta headline <=40, Meta description <=30. If it does not fit, rewrite shorter — do not exceed.
+- Respect the character limits in the OUTPUT REQUIREMENT EXACTLY (count characters). If it does not fit, rewrite shorter — do not exceed.
 - Use ONLY the product names/prices given above. Invent no discounts, promo codes, ratings, review counts, claims, or URLs. If an offer is not supplied, do not state one.
-
-JSON shape:
-{"subject":"","preheader":"","headline":"","subheadline":"","body_intro":"2-3 sentence sensory opening","story":"4-5 sentence narrative for the angle","cta_primary":"","cta_secondary":"","testimonial":{"quote":"tiny personal story, 2 sentences","name":"first name + city"},"google":{"headlines":["12 short headlines ≤30 chars"],"descriptions":["4 descriptions ≤90 chars"],"callouts":["4 callouts ≤25 chars e.g. Free shipping over $35"],"sitelinks":[{"text":"≤25 chars","desc":"≤35 chars"},{"text":"","desc":""},{"text":"","desc":""},{"text":"","desc":""}]},"meta":{"primary_text":"best single primary text","primary_text_variants":["unaware-stage hook","problem-aware angle","solution-aware/offer angle"],"headline":"≤40 chars","headlines":["3 headline options ≤40 chars"],"description":"≤30 chars","creative_concept":"one-line art direction for the hero image"},"tiktok":{"hook_line":"first 2s spoken hook","script":"15s spoken script, conversational","shot_list":["4 beats: 0-2s hook / 3-6s problem / 7-11s product+proof / 12-15s CTA"],"captions":["3 on-screen caption lines"]},"landing":{"hero_eyebrow":"3-5 word kicker","hero_headline":"big emotional promise","hero_sub":"1-2 sentence support","offer_bar":"short sticky offer line e.g. Free sampler + free shipping over $35","trust_badges":["4 very short proof points"],"problem":{"headline":"name the pain","body":"3-4 sentences on what they settle for today"},"mechanism":{"headline":"why origin-fresh changes it","steps":[{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"}]},"benefits":[{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"},{"title":"","desc":"1 sentence"}],"comparison":{"us_label":"${brandLabel(brand)}","them_label":"the alternative"},"rows":[{"feature":"","us":"","them":""},{"feature":"","us":"","them":""},{"feature":"","us":"","them":""},{"feature":"","us":"","them":""}]},"testimonials":[{"quote":"2 sentence story","name":"first name","location":"city"},{"quote":"2 sentence story","name":"first name","location":"city"},{"quote":"2 sentence story","name":"first name","location":"city"}],"offer_stack":{"headline":"what you get","items":["3-5 included lines, each with a small value note"],"price_note":"value framing e.g. about 40c a pair","cta":"buy CTA"},"faq":[{"q":"","a":""},{"q":"","a":""},{"q":"","a":""},{"q":"","a":""}],"guarantee":{"headline":"risk reversal","body":"1-2 sentences"}}}`;
-  let copy = await llmJson(sys, user, 3400);
+`;
+  let copy = await llmJson(sys, OC.append(user, slotCopySpec(slot, brand)), 3400);
   if (!copy || !copy.headline) copy = fallbackCopy(slot, products, brand);
   // brand-compliance scrub on every string: banned phrases + no em/en dashes
   // (same no-dash rule the lifecycle builder enforces, for consistency).

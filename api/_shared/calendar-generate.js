@@ -462,8 +462,16 @@ async function attachStrategistNarratives(scenarios, brand) {
   // The brand the plan is FOR (2026-10-10): this named tenant zero and its
   // banned list for every brand's calendar.
   const F = require('./brand-runtime.js').promptFacts(brand || require('./brand-runtime.js').scopedBrand(null, { allowTenantZero: true }));
-  const sys = `You are ${F.name}'s senior growth strategist. Voice: ${F.tone}.${F.banned.length ? ` NEVER use: ${F.banned.map((x) => `"${x}"`).join(', ')}.` : ''} No false urgency. Return STRICT JSON only, no markdown fences.`;
-  const user = `For each calendar scenario, write a 2-3 sentence strategist_narrative: why these levers fit, what must be true for the projection to hold, and — for best, why it is a stretch ceiling not a committed target; for emergency, why it is the right floor. Scenarios:\n${JSON.stringify(summary)}\n\nReturn JSON: { "narratives": { "best": "", "medium": "", "conservative": "", "emergency": "", "instant": "" } }`;
+  const sys = `You are ${F.name}'s senior growth strategist. Voice: ${F.tone}.${F.banned.length ? ` NEVER use: ${F.banned.map((x) => `"${x}"`).join(', ')}.` : ''} No false urgency.`;
+  // The keys are the scenarios' OWN labels, read off them, so the answer the
+  // loop below looks up is the answer the model was asked for.
+  const narrativeKeys = {};
+  for (const s of scenarios) narrativeKeys[s.label] = { type: 'string', note: '2-3 sentences' };
+  const user = require('./output-contract.js').append(`For each calendar scenario, write a 2-3 sentence strategist_narrative: why these levers fit, what must be true for the projection to hold, and — for best, why it is a stretch ceiling not a committed target; for emergency, why it is the right floor. Use only the figures given. Scenarios:\n${JSON.stringify(summary)}`, {
+    id: 'calendar.scenario-narratives', kind: 'data', format: 'json', brand: F.name,
+    missing: 'Name an assumption that is not in the scenario as an assumption; never add a figure.',
+    returns: 'ONE JSON object whose "narratives" key holds one strategist narrative per scenario label.',
+    schema: { narratives: { type: 'object', of: narrativeKeys } } });
 
   let timer;
   const llmCall = Promise.resolve().then(() => callLLM({

@@ -55,6 +55,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 </script>
 <!-- brand-context FIRST: installs the workspace-scoping fetch wrapper before any page script issues an /api/ call -->
 <script src="/brand-context.js?early=1"></script>
+<script src="/output-contract.js"></script>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -247,9 +248,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         r.notes ? '- Extra notes / story: ' + r.notes : '',
         '- Channel intent: ' + channel + ' — mobile-first, one clear primary CTA.',
         '',
-        'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof / testimonials; FAQ; final CTA; footer; sticky mobile CTA.',
-        'OUTPUT: return ONLY the full HTML document (from <!doctype html> to </html>), inline CSS, no external dependencies, no commentary.'
-      ].filter(Boolean).join('\n') + SELF_CHECK;
+        'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof (only quotes this brief supplies, else the DATA REQUIRED marker); FAQ; final CTA; footer; sticky mobile CTA.'
+      ].filter(Boolean).join('\n') + SELF_CHECK + '\n\n' + outputBlock('landing', market, {
+        returns: 'ONE complete, production-ready, single-file responsive landing page as an HTML document.',
+        formatRule: 'ONE HTML document, from <!doctype html> to </html>.',
+        lines: ['Inline CSS, no external dependencies (no CDN, no web-font link, no framework).'] });
     }
     if (item.kind === 'ad') {
       const platform = (r.channel || 'meta').toUpperCase();
@@ -262,13 +265,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         r.offer ? '- Offer: ' + r.offer : '',
         r.hook ? '- Hook direction: ' + r.hook : '',
         '',
-        'DELIVER, clearly labelled:',
-        '1) 3 headline options (≤6 words) leading with the emotional end-state, never an ingredient list.',
-        '2) Primary text (≤125 chars) + a 1-line description + a strong CTA.',
-        '3) An IMAGE-GENERATION PROMPT for a photoreal lifestyle scene: brand palette, gallery-print/8K sharpness, soft natural light, shallow depth of field; KNICKGASM box shows a lava botanical illustration only with NO readable lettering; NO logos, NO watermarks, NO garbled text.',
-        '4) Which cohort/audience this is aimed at and why.',
-        'OUTPUT: clean sections, ready to paste into the ' + platform + ' ad builder. No preamble.'
-      ].filter(Boolean).join('\n') + SELF_CHECK;
+      ].filter(Boolean).join('\n') + SELF_CHECK + '\n\n' + outputBlock('ad', market, {
+        format: 'sections',
+        returns: 'ONE complete ' + platform + ' ad creative package, ready to paste into the ' + platform + ' ad builder.',
+        formatRule: 'These four labelled sections, in this order:',
+        lines: [
+          '1) HEADLINES: 3 options (6 words at most) leading with the emotional end-state, never an ingredient list.',
+          '2) PRIMARY TEXT: at most 125 characters, then a 1-line description and a strong CTA.',
+          '3) IMAGE PROMPT: a photoreal lifestyle scene in the brand palette, soft natural light, shallow depth of field; NO readable lettering, NO logos, NO watermarks.',
+          '4) AUDIENCE: which cohort this is aimed at and why (only one the brief or the brand record names, else the DATA REQUIRED marker).'
+        ] });
     }
     // mailer
     return head('You are a senior lifecycle-email creative director + front-end email developer for KNICKGASM.', market) + [
@@ -279,9 +285,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       r.type ? '- Type / moment: ' + r.type : '',
       r.brief ? '- Brief / story: ' + r.brief : '- Brief: write a warm, sensory, story-driven campaign around origin + ritual.',
       '',
-      'REQUIRED STRUCTURE: preheader; branded header; hero (headline + sub + CTA + product image placeholder); story/benefit block; product block with price + CTA; a tiny personal-story testimonial; secondary CTA; footer with unsubscribe.',
-      'Use table-based, inbox-safe HTML with inline CSS. OUTPUT: return ONLY the full HTML document, no commentary.'
-    ].filter(Boolean).join('\n') + SELF_CHECK;
+      'REQUIRED STRUCTURE: preheader; branded header; hero (headline + sub + CTA + product image placeholder); story/benefit block; product block with price + CTA; a testimonial ONLY if this brief supplies one (else leave it out); secondary CTA; footer with unsubscribe.'
+    ].filter(Boolean).join('\n') + SELF_CHECK + '\n\n' + outputBlock('mailer', market, {
+      returns: 'ONE complete, production-ready, responsive HTML marketing email.',
+      formatRule: 'ONE HTML email document, from <!DOCTYPE html> to </html>.',
+      lines: ['Table-based, inbox-safe layout with every style inline; a 600px content column; it reads completely with images turned off.'] });
+  }
+  // The OUTPUT REQUIREMENT every prompt here ends with (/output-contract.js,
+  // shared with the server's prompts). The SELF-CHECK sits above it, so the
+  // last thing the model reads is what to return and in what container.
+  function outputBlock(kind, market, o) {
+    const B = window.BrandContext && window.BrandContext.brand;
+    return window.OutputContract.block(Object.assign({
+      id: 'assets.' + kind, kind: 'asset', format: 'html', region: market,
+      brand: (B && B.name) || 'this brand',
+      forbid: ['base64 or data: URIs (images are hosted URLs)', 'a plan or a description of the asset in place of the asset']
+    }, o));
   }
 
   // ─── localStorage sources (carry the fuller objects needed to clone/prompt) ──
@@ -522,6 +541,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       : 'Reading from the <b>shared database</b> (+ this browser).' + (myEmail() ? '' : ' Sign in to filter to just your assets.');
     loadSync();
   }
+  // The prompt builder, reachable for a test of what the "AI prompt" button copies.
+  window.AssetLibrary = { buildPrompt };
   load();
 })();
 </script>

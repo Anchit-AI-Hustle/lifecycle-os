@@ -518,4 +518,11 @@ function brief(id) {
   ].join('\n');
 }
 
-module.exports = { CONTRACTS, contractFor, check, list, brief, VERIFIED_SOURCES };
+/** A slot's character limit as the contract holds it (null when it records none), for a prompt's OUTPUT REQUIREMENT: read, never re-typed. */
+function slotLimit(id, slot) {
+  const c = CONTRACTS[id];
+  const s = c && c.structure.find((x) => x.slot === slot);
+  return s ? s.max : null;
+}
+
+module.exports = { CONTRACTS, contractFor, check, list, brief, slotLimit, VERIFIED_SOURCES };
