@@ -521,25 +521,51 @@ for (const mode of ['account', 'device']) {
       await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded && window.BrandContext.brand && /bwl/.test(window.BrandContext.brand.id || ''), null, { timeout: 20000 });
       await page.waitForFunction(() => document.querySelector('[data-path="name"]') && document.querySelector('[data-path="name"]').value === 'Brambleweld Larder', null, { timeout: 20000 });
       await page.fill('#xUrl', SITE);
+      // ONE run, every step in the wizard's order, shown as it goes, ending on
+      // Review (2026-10-11): the step buttons are for viewing and editing.
+      const seen = [];
+      await page.exposeFunction('__seenStep', (k) => { if (!seen.includes(k)) seen.push(k); });
+      await page.evaluate(() => {
+        new MutationObserver(() => {
+          const r = document.querySelector('[data-setup-log] li[data-state="running"]');
+          if (r) window.__seenStep(r.getAttribute('data-setup-step'));
+        }).observe(document.getElementById('setupRun'), { childList: true, subtree: true, attributes: true });
+      });
       await page.click('#xSetup');
       await page.waitForFunction(() => {
-        const rows = Array.from(document.querySelectorAll('[data-setup-log] li'));
-        const last = rows[rows.length - 1];
-        return rows.length && last.getAttribute('data-state') !== 'running' && !document.querySelector('#xSetup[disabled]') && /Set up from my website/.test((document.getElementById('xSetup') || {}).textContent || '');
+        const run = document.querySelector('[data-setup-run]');
+        const review = document.querySelector('[data-setup-log] li[data-setup-step="review"]');
+        return run && !run.hasAttribute('aria-busy') && review && review.getAttribute('data-state') !== 'running';
       }, null, { timeout: 30000 });
-      const steps = await page.$$eval('[data-setup-log] li', (els) => els.map((e) => [e.getAttribute('data-setup-step'), e.getAttribute('data-state'), e.textContent]));
+      await page.waitForFunction(() => /[?&]step=6\b/.test(location.search), null, { timeout: 10000 });
+      const steps = await page.$$eval('[data-setup-log] li', (els) => els.map((e) => [e.getAttribute('data-setup-step'), e.getAttribute('data-state'), e.querySelector('.srun-text').textContent]));
       expect(calls[0]).toBe('extract:' + SITE);
-      expect(steps[0][2]).toMatch(/Read 3 page\(s\) of https:\/\/brambleweld-larder\.example.*declares its platform: Shopify \(https:\/\/brambleweld-larder\.example\/\)/);
+      expect(steps[0][2]).toMatch(/Read 3 page\(s\) of https:\/\/brambleweld-larder\.example.*store platform: Shopify/);
+      // A parsed read proposed no colours or type: the brand's own values stay,
+      // and the rows say so (never "applied from the site").
+      expect(steps.slice(1, 4).map((s) => s[0] + ':' + s[1])).toEqual(['colour:done', 'type:done', 'voice:done']);
+      expect(steps[1][2]).toMatch(/published no brand colour to apply, so the colours already on this brand stay: primary #/);
+      expect(steps.slice(1, 4).map((s) => s[2]).join(' ')).not.toMatch(/Applied|observed from the site/);
       if (mode === 'device') {
         // On this device no server can read the brand: the action says so instead of pretending.
-        expect(steps.map((s) => s[0] + ':' + s[1])).toEqual(['read:done', 'catalog:skipped']);
+        expect(steps.map((s) => s[0])).toEqual(['brand', 'colour', 'type', 'voice', 'catalog', 'review']);
+        expect(steps[4][1]).toBe('skipped');
         expect(calls).toEqual(['extract:' + SITE]);
       } else {
         expect(calls.filter((c) => c !== 'save'), JSON.stringify(steps)).toEqual(['extract:' + SITE, 'catalog-import:' + SITE + ':uk', 'context-build']);
         expect(calls.indexOf('save'), 'the brand was not saved before the import read it').toBeLessThan(calls.indexOf('catalog-import:' + SITE + ':uk'));
-        expect(steps.map((s) => s[0] + ':' + s[1])).toEqual(['read:done', 'catalog:done', 'pack:done']);
-        expect(steps[1][2]).toMatch(/Imported 12 products from https:\/\/brambleweld-larder\.example/);
+        expect(steps.map((s) => s[0] + ':' + s[1]).slice(4)).toEqual(['catalog:done', 'pack:done', steps[6][0] + ':' + steps[6][1]]);
+        expect(steps[6][0]).toBe('review');
+        expect(steps[4][2]).toMatch(/Imported 12 products from https:\/\/brambleweld-larder\.example/);
       }
+      // Each step was shown working, in order, before the next.
+      const order = ['brand', 'colour', 'type', 'voice', 'catalog', 'pack', 'review'];
+      const shown = seen.filter((k) => order.includes(k));
+      expect(shown, 'steps were not shown running in the wizard\'s order').toEqual(order.filter((k) => shown.includes(k)));
+      expect(shown.length, 'the run did not show its steps one by one').toBeGreaterThanOrEqual(mode === 'device' ? 4 : 6);
+      // Each finished step offers View and edit, and it opens that step.
+      await page.click('[data-setup-edit="2"]');
+      await page.waitForFunction(() => /[?&]step=2\b/.test(location.search), null, { timeout: 5000 });
       expect(errors).toEqual([]);
     } finally {
       await context.close();
