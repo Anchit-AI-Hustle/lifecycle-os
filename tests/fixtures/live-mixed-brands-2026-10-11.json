@@ -2,7 +2,7 @@
  {
   "id": "8298f5f2-045f-4f30-89cc-4e5362f2a8d2",
   "name": "Nykaa",
-  "slug": "vahdam-teas",
+  "slug": "othertea-teas",
   "voice": {
    "tone": "bold, edgy, unapologetic",
    "notes": "Frame every piece with an exclusive, trend-forward perspective that highlights top beauty choices right at the start. Testimonials should highlight feeling confident and radiant without sounding overly scripted or modest.",
@@ -1318,7 +1318,7 @@
       "value": "20px",
       "signal": "css declaration",
       "confidence": "computed",
-      "source_url": "https://www.vahdam.com/"
+      "source_url": "https://www.othertea.com/"
      },
      "brand_data.legal_entity": {
       "value": "NYKAA E-RETAIL LIMITED",
@@ -1338,7 +1338,7 @@
       "value": "18px",
       "signal": "css declaration",
       "confidence": "computed",
-      "source_url": "https://www.vahdam.com/"
+      "source_url": "https://www.othertea.com/"
      }
     },
     "extracted_at": "2026-10-11T02:59:59.052Z"

@@ -78,7 +78,7 @@ test('the live rows are mixed before the repair (the fixture is what the repair 
   expect(L.slug).toBe('mamaearth');
   expect(L.palette.primary).toBe('#ffa517');
   expect(foreignApplied(L, 'lenskart.com').length, 'values read from another site sit on the record').toBeGreaterThan(0);
-  expect((await row('Nykaa')).slug).toBe('vahdam-teas');
+  expect((await row('Nykaa')).slug).toBe('othertea-teas');
 });
 
 test('after the repair each record describes its own brand, and what came from another site is kept, not deleted', async () => {
