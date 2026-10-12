@@ -1682,6 +1682,26 @@ function withRowValues(input, existing, fields) {
     b[col] = b[col] && typeof b[col] === 'object' ? Object.assign({}, b[col]) : {};
     if (was !== undefined && was !== null) b[col][leaf] = JSON.parse(JSON.stringify(was)); else delete b[col][leaf];
   }
+  // A kept value keeps its OWN provenance (2026-10-11). The live Lenskart
+  // record held Deli Chic's orange #ffa517 labelled "site-render, measured on
+  // lenskart.com": the row's value outranked a rendered read and was kept, but
+  // the read's provenance maps rode in with brand_data and were stored beside
+  // it, so the coherence rule attributed another brand's colour to this site
+  // and could never see the mix. What the record says about a field is what
+  // the record says about the VALUE it stores.
+  const pd = prev.brand_data && typeof prev.brand_data === 'object' ? prev.brand_data : {};
+  if (fields.length && b.brand_data && typeof b.brand_data === 'object') {
+    b.brand_data = Object.assign({}, b.brand_data);
+    for (const map of ['field_origin', 'field_origins']) {
+      const inMap = b.brand_data[map] && typeof b.brand_data[map] === 'object' && !Array.isArray(b.brand_data[map]) ? Object.assign({}, b.brand_data[map]) : null;
+      if (!inMap) continue;
+      const was = pd[map] && typeof pd[map] === 'object' ? pd[map] : {};
+      for (const f of fields) {
+        if (was[f] !== undefined && was[f] !== null) inMap[f] = JSON.parse(JSON.stringify(was[f])); else delete inMap[f];
+      }
+      b.brand_data[map] = inMap;
+    }
+  }
   return b;
 }
 
