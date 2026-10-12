@@ -123,6 +123,7 @@ const crypto = require('crypto');
 const crawl = require('./site-crawl.js');
 const COH = require('./brand-coherence.js');
 const LOC = require('./brand-locale.js');
+const READERS = require('./catalog-reader-client.js');
 
 const USER_AGENT = crawl.DEFAULTS.userAgent;
 const ROBOTS_TOKEN = 'lifecycleos-brandcrawler';
@@ -234,6 +235,51 @@ async function getTextOnce(url, ctx, { accept, timeoutMs, scope, pace } = {}) {
   const guard = ctx.guard;
   const ok = scope || ctx.inScope || ((u) => crawl.inScope(u, ctx.hosts));
   let at = url;
+  // A READER IN THE MARKET'S COUNTRY (2026-10-12): the same request, made by a
+  // server that runs there. Everything the importer decides stays here: the
+  // scope and SSRF guard on the URL asked and on every hop the reader reports,
+  // the pacing, and whatever the answer turns out to be (a redirect into
+  // another market's store is still that, and is detected by the caller). A
+  // reader that does not do its job is said once and the market is read
+  // directly for the rest of this step.
+  if (ctx.reader && ctx.reader.usable && !ctx.reader.down) {
+    if (!ok(at)) return { ok: false, status: 0, url: at, reason: 'off_scope' };
+    try { await guard(at); } catch (e) { return { ok: false, status: 0, url: at, reason: 'private_address', error: e.message }; }
+    if (pace) await pace();
+    const ms = Math.max(1000, Math.min((timeoutMs || LIMITS.perRequestMs) + 5000, ctx.deadline - Date.now()));
+    const rr = await READERS.read(ctx.reader, at, { accept: accept || '*/*', timeoutMs: ms });
+    if (rr.failed) {
+      ctx.reader.down = rr.failed;
+      ctx.reader.down_at = at;
+    } else {
+      ctx.reader.used = (ctx.reader.used || 0) + 1;
+      if (rr.reader && rr.reader.country) ctx.reader.country = rr.reader.country;
+      const hops = Array.isArray(rr.hops) ? rr.hops : [];
+      ctx.stats.requests += Math.max(1, hops.length);
+      // Every hop the reader followed is judged as if this server had followed
+      // it: a store that bounced off the brand's scope is not the brand's page.
+      for (const h of hops.slice(1)) {
+        if (!ok(h.url)) return { ok: false, status: 0, url: h.url, reason: 'off_scope' };
+        try { await guard(h.url); } catch (e) { return { ok: false, status: 0, url: h.url, reason: 'private_address', error: e.message }; }
+      }
+      if (rr.refused) return { ok: false, status: 0, url: (hops[hops.length - 1] || {}).url || at, reason: 'private_address', error: rr.message };
+      if (rr.ok !== true) {
+        const reason = rr.error === 'upstream_timeout' ? 'timeout' : rr.error === 'too_many_redirects' ? 'too_many_redirects' : rr.error === 'bad_redirect' ? 'bad_redirect' : 'unreachable';
+        return { ok: false, status: rr.status || 0, url: rr.final_url || at, reason };
+      }
+      const fin = rr.final_url || at;
+      if (fin !== at && !ok(fin)) return { ok: false, status: 0, url: fin, reason: 'off_scope' };
+      let buf = rr.body;
+      if (buf.length > 1 && buf[0] === 0x1f && buf[1] === 0x8b) {
+        try { buf = zlib.gunzipSync(buf, { maxOutputLength: LIMITS.maxSitemapBytes }); }
+        catch (_) { return { ok: false, status: rr.status, url: fin, reason: 'bad_gzip' }; }
+      }
+      return {
+        ok: rr.status >= 200 && rr.status < 300, status: rr.status, url: fin, body: buf.toString('utf8'),
+        contentType: rr.content_type || '', retryAfter: rr.retry_after, via_reader: true, truncated: !!rr.truncated,
+      };
+    }
+  }
   for (let hop = 0; hop <= LIMITS.maxRedirects; hop++) {
     if (!ok(at)) return { ok: false, status: 0, url: at, reason: 'off_scope' };
     try { await guard(at); } catch (e) { return { ok: false, status: 0, url: at, reason: 'private_address', error: e.message }; }
@@ -1203,6 +1249,10 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
     // never a second domain comparison.
     sitemapScope: (u) => crawl.inScope(u, hosts) || sameDomain(u) || (!!identity && COH.sameBrand(COH.registrableDomain(COH.hostOf(u)), identity)),
   };
+  // A reader in this market's country, when the deployment names one
+  // (CATALOG_READERS): every request of this market's step goes through it.
+  const rdr = READERS.readerFor(reg);
+  if (rdr) ctx.reader = Object.assign({}, rdr, { used: 0, down: '', country: null });
   // The queue table, when this import has a workspace and the service role.
   const qEnv = queue && queue.workspace ? serviceEnv() : null;
   ctx.queue = qEnv ? dbQueue(qEnv, { workspace: queue.workspace, run, market: reg }) : null;
@@ -1653,6 +1703,16 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
   if ((complete || blocked) && st.queued && ctx.queue) { try { await ctx.queue.clear(false); } catch (_) { /* rows of a finished run: best effort */ } }
   st.seen_keys = [...seen].slice(-(LIMITS.maxProducts * 2));
   st.stats = stats;
+  if (ctx.reader) {
+    const p = st.reader && typeof st.reader === 'object' ? st.reader : {};
+    st.reader = {
+      code: ctx.reader.code, host: ctx.reader.host, usable: !!ctx.reader.usable, problem: ctx.reader.problem || '',
+      used: (p.used || 0) + (ctx.reader.used || 0), country: ctx.reader.country || p.country || null,
+      // The latest step's verdict: a reader that answered again is not "down".
+      down: ctx.reader.down || '', down_at: ctx.reader.down ? ctx.reader.down_at : '',
+      was_down: ctx.reader.down ? (p.was_down || 0) + 1 : (p.was_down || 0),
+    };
+  } else if (st.reader) delete st.reader;
   const progressed = (st.progress || 0) > progressBefore || rows.length > 0;
   const coverage = coverageOf(st, stats, { complete, stopped, region: reg });
   coverage.progressed = progressed;
@@ -1888,13 +1948,14 @@ function marketsSummary(mc) {
     declared: m.coverage && m.coverage.declared ? (m.coverage.declared.count || m.coverage.declared.urls || null) : null,
     complete: !!(m.done && !m.blocked), blocked: !!m.blocked, stopped: m.coverage ? m.coverage.stopped : null,
     sent_to: m.coverage && m.coverage.geo && m.coverage.geo.hits ? (m.coverage.geo.country || m.coverage.geo.prefix || 'another') : null,
+    read_from: m.coverage && m.coverage.reader && m.coverage.reader.used && !m.coverage.reader.down ? `a server in ${m.coverage.reader.country || 'an unstated country'}` : null,
   }));
 }
 
 /** One coverage for the whole import: a line per market, then each market's own sentences. */
 function multiCoverage(mc, { complete, allDone, lastStop }) {
   const ms = marketsSummary(mc);
-  const line = ms.map((m) => `${m.code}: ${m.found.toLocaleString('en-US')}${m.declared ? ` of ${m.declared.toLocaleString('en-US')}` : ''}${m.complete ? '' : m.blocked ? (m.sent_to ? ` (sent to the ${m.sent_to} store from here)` : ' (not readable from here)') : m.found || m.declared ? ' (continuing)' : ' (not read yet)'}`).join(' · ');
+  const line = ms.map((m) => `${m.code}: ${m.found.toLocaleString('en-US')}${m.declared ? ` of ${m.declared.toLocaleString('en-US')}` : ''}${m.read_from ? ` (read from ${m.read_from})` : ''}${m.complete ? '' : m.blocked ? (m.sent_to ? ` (sent to the ${m.sent_to} store ${m.read_from ? 'even from there' : 'from here'})` : ' (not readable from here)') : m.found || m.declared ? ' (continuing)' : ' (not read yet)'}`).join(' · ');
   const s = [`Every regional store the brand publishes: ${ms.length} market${ms.length === 1 ? '' : 's'}. ${line}.`];
   for (const m of mc.markets) {
     const head = `${m.code.toUpperCase()} store ${m.store_url} (found from ${m.source}${m.currency ? `, prices in ${m.currency}` : ''})${m.also && m.also.length ? `; the same market's other locale ${m.also.join(', ')} was not read twice` : ''}:`;
@@ -1932,6 +1993,22 @@ function sumKeys(list) {
 
 function plural(n, one, many) { return `${n.toLocaleString('en-US')} ${n === 1 ? one : (many || one + 's')}`; }
 
+/**
+ * Where this market was read from, when a reader in its country is configured
+ * (2026-10-12): through it, or directly because it could not be used, and why.
+ */
+function readerSentences(st, R) {
+  const r = st.reader;
+  if (!r) return [];
+  if (!r.usable) return [`A reader is configured for ${R} (${r.host}), but ${r.problem || 'it cannot be used'}, so ${R} was read directly from this server, which reads from ${serverRegion(R)}.`];
+  const out = [];
+  if (r.used) {
+    out.push(`${R}: read from a server in ${r.country || `a country the reader does not state (the reader configured for ${R})`} (reader ${r.host}): ${plural(r.used, 'request')} for this market went through it, with this importer's own user agent, robots.txt and pacing, and no cookie, Accept-Language or forwarded address.`);
+  }
+  if (r.down) out.push(`${R}'s reader (${r.host}) could not be used: ${r.down} (at ${r.down_at || 'its first request'}), so ${r.used ? 'the rest of ' : ''}${R} was read directly from this server, which reads from ${serverRegion(R)}.`);
+  return out;
+}
+
 function coverageOf(st, stats, { complete, stopped, region }) {
   const s = [];
   const R = String(region || '').toUpperCase();
@@ -1951,6 +2028,7 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   if (src.length) s.push(`Source: ${src.join('; ')}.`);
   s.push(`Market ${R || 'unset'}: read from ${st.base} (${st.base_from})${st.currency ? `, priced in ${st.currency} as that storefront declares` : ''}.`);
   for (const f of (Array.isArray(st.foreign_stores) ? st.foreign_stores : [])) s.push(foreignStoreSentence(f, st.identity));
+  for (const x of readerSentences(st, R)) s.push(x);
   if (st.feed_refused === 'robots') s.push('robots.txt disallows the product feed, so it was not read.');
   else if (st.feed_refused && st.storefront && st.storefront.id === 'shopify') s.push(`The store's product feed was not available (${st.feed_refused}), so its sitemap and product pages were read instead.`);
   else if (st.feed_probe) s.push(`No commerce platform declared itself on the pages read, so Shopify's product feed (/products.json) was tried once; it ${st.feed_refused === 'not_a_feed' ? 'is not a product feed' : st.feed_refused}, so ${st.route === 'crawl' || (st.sm && !st.sm.found) ? 'the site\'s linked pages were' : 'the site\'s own sitemaps and product pages were'} read instead.`);
@@ -1970,7 +2048,14 @@ function coverageOf(st, stats, { complete, stopped, region }) {
     const host = hostOf(st.base) || st.base;
     const where = st.geo.prefix ? `its ${st.geo.country || 'other'} store (${st.geo.prefix}/)` : `prices in ${st.geo.currency || 'another currency'}`;
     const filed = st.geo.filed ? ` ${plural(st.geo.filed, 'page')} that came back ${st.geo.filed === 1 ? 'was' : 'were'} filed under ${String(st.geo.filed_as || '').toUpperCase()}, the market whose store and prices ${st.geo.filed === 1 ? 'it carries' : 'they carry'}, never under ${R}.` : ` Nothing that came back was filed under ${R}.`;
-    s.push(`${host} sent requests for its ${R} pages to ${where} (e.g. ${st.geo.example}): the store chooses its store by the visitor's location, and this server reads from ${serverRegion(R)}.${filed} ${st.route === 'geo_blocked' ? `The rest of ${R} was not read in this run: every page went the same way. ` : ''}${R}'s own catalogue needs the import run from a server in ${R}, or a CSV of it.`);
+    const viaReader = !!(st.reader && st.reader.used && !st.reader.down);
+    const from = viaReader
+      ? `and these requests were made by the reader configured for ${R} (${st.reader.host}), which says it runs in ${st.reader.country || 'a country it does not state'}`
+      : `and this server reads from ${serverRegion(R)}`;
+    const remedy = viaReader
+      ? `The store did not treat the reader's requests as coming from ${R}: check where that reader runs (GET ${st.reader.host}/api/health), or import a CSV of ${R}'s catalogue.`
+      : `${R}'s own catalogue needs the import run from a server in ${R}, or a CSV of it.`;
+    s.push(`${host} sent requests for its ${R} pages to ${where} (e.g. ${st.geo.example}): the store chooses its store by the visitor's location, ${from}.${filed} ${st.route === 'geo_blocked' ? `The rest of ${R} was not read in this run: every page went the same way. ` : ''}${remedy}`);
   }
   if (k.not_found) s.push(st.geo && st.geo.hits
     ? `${plural(k.not_found, 'URL')} the sitemaps list answered 404 or 410 to this server. Because the store routes visitors by location, these may be ${R} products the store shows only to visitors in ${R}, not pages it no longer has.`
@@ -2040,6 +2125,7 @@ function coverageOf(st, stats, { complete, stopped, region }) {
     not_before: st.not_before ? new Date(st.not_before).toISOString() : null,
     geo: st.geo ? { prefix: st.geo.prefix || '', country: st.geo.country || '', hits: st.geo.hits || 0, filed: st.geo.filed || 0 } : null,
     selector: st.selector || null,
+    reader: st.reader ? { host: st.reader.host, country: st.reader.country || null, used: st.reader.used || 0, usable: !!st.reader.usable, down: st.reader.down || '', problem: st.reader.problem || '' } : null,
     requests: stats.requests, rate_limited: stats.rate_limited, waited_ms: stats.waited_ms, steps: stats.steps,
     sitemap: st.sitemap || null,
     platform: st.storefront || null,

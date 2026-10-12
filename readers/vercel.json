@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "functions": {
+    "api/read.js": { "maxDuration": 30 },
+    "api/health.js": { "maxDuration": 5 }
+  }
+}
