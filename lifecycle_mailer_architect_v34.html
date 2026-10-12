@@ -2477,6 +2477,9 @@ function renderStandaloneMarketChips(){
   if(!window.RegionContext){
     var fileOnly=(location.protocol==='file:');
     if(!fileOnly && Date.now()-started<6000){ setTimeout(function(){watchRegionsForStudio(started);},100); return; }
+    // Paint once the page has finished loading, never mid-parse: chips drawn
+    // while WebKit was still building the page took no tap on iphone-12/se.
+    if(document.readyState!=='complete'){ window.addEventListener('load',function(){watchRegionsForStudio(started);},{once:true}); return; }
     renderStandaloneMarketChips();
     var late=setInterval(function(){ if(window.RegionContext){ clearInterval(late); window.RegionContext.onChange(function(){ try{renderMarketChips();}catch(_){} }); } },500);
     setTimeout(function(){ clearInterval(late); },60000);
