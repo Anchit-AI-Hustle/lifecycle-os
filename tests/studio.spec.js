@@ -104,6 +104,26 @@ async function seedCatalog(page) {
   await page.waitForFunction(() => (window.CAT || []).length > 0, null, { timeout: 5000 });
 }
 
+/** Pick a market chip as a person does, until the Studio holds it. WebKit
+ *  runs (iphone-12/se, 2026-10-12) failed this with nothing in the log but a
+ *  toPass timeout and the artifact cannot be read from where it is debugged,
+ *  so each try records why it did not hold and a failure prints the last three. */
+async function pickMarket(page, code) {
+  const tries = [];
+  let held = false;
+  for (const t0 = Date.now(); !held && Date.now() - t0 < 10_000;) {
+    let clickError = '';
+    if (!(await page.locator('#mktChips .mkt-chip.on[data-mkt="' + code + '"]').count())) {
+      try { await page.locator('#mktChips .mkt-chip[data-mkt="' + code + '"]').click({ timeout: 2_000 }); } catch (e) { clickError = String(e.message || e).split('\n').slice(0, 4).join(' | '); }
+    }
+    const seen = await page.evaluate(() => ({ markets: window.S && window.S.markets, manual: !!(window.S && window.S._mktManualSet), chips: (document.getElementById('mktChips') || {}).innerHTML ? document.getElementById('mktChips').innerHTML.replace(/\s+/g, ' ').slice(0, 240) : '', ready: document.readyState, at: Math.round(performance.now()) }));
+    held = Array.isArray(seen.markets) && seen.markets.indexOf(code) >= 0;
+    tries.push(Object.assign({ clickError }, seen));
+    if (!held) await page.waitForTimeout(250);
+  }
+  expect(held, JSON.stringify(tries.slice(-3))).toBe(true);
+}
+
 test.describe('Mailer Studio — responsive smoke', () => {
   test.beforeEach(async ({ page }) => {
     await bypassAuth(page);
@@ -127,11 +147,7 @@ test.describe('Mailer Studio — responsive smoke', () => {
     // the markup were a typed list, and the tests relied on that default.
     // The pick must hold: assert the chip is on and the Studio holds US, and
     // pick again if a late redraw replaced the chips (WebKit, 2026-10-11).
-    await expect(async () => {
-      const on = await page.locator('#mktChips .mkt-chip.on[data-mkt="US"]').count();
-      if (!on) await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
-      expect(await page.evaluate(() => (window.S && window.S.markets) || [])).toContain('US');
-    }).toPass({ timeout: 10_000 });
+    await pickMarket(page, 'US');
   });
 
   test('Step 1 — fields present and visible', async ({ page }, testInfo) => {
@@ -365,12 +381,5 @@ test('market chips fall back to the page\'s own markets when the region helper n
   await page.goto(URL);
   await expect(page.locator('#mktChips .mkt-chip[data-mkt="US"]')).toBeVisible({ timeout: 12_000 });
   await expect(page.locator('#mktChips')).not.toContainText('Loading this brand');
-  // The chips now paint while the page is still laying out (no six-second
-  // wait), so on a 320px phone a tap can land where the chip WAS a moment
-  // before (iphone-se, 2026-10-12). Tap until the pick holds, as a person would.
-  await expect(async () => {
-    if (!(await page.locator('#mktChips .mkt-chip.on[data-mkt="US"]').count())) await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
-    const seen = await page.evaluate(() => ({ markets: window.S.markets, chips: document.getElementById('mktChips').innerHTML.slice(0, 300), ready: document.readyState }));
-    expect(seen.markets, JSON.stringify(seen)).toContain('US');
-  }).toPass({ timeout: 10_000 });
+  await pickMarket(page, 'US');
 });
