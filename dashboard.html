@@ -372,9 +372,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="flex flex-wrap items-center gap-3">
         <button type="button" class="sb-mobile-toggle" id="sbMobileToggle" aria-label="Open menu" title="Menu"><span></span><span></span><span></span></button>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Region</div>
-        <!-- All + one chip per region the ACTIVE brand declares (region-context.js);
-             this page aggregates, so All stays the default. Built by buildRegionChips. -->
-        <div class="flex gap-1.5" id="regionChips"><button type="button" class="filter-chip active" data-region="ALL">All</button></div>
+        <!-- The shared market selection (region-context.js mountMulti): the ACTIVE
+             brand's own regions, several at once. This page aggregates, so every
+             market is the default until the viewer ticks fewer (2026-10-12). -->
+        <div id="regionChips" data-region-multi data-region-default="all" data-region-label="Markets"></div>
         <div class="h-5 w-px bg-line"></div>
         <div class="text-[10px] uppercase tracking-widest text-ink-mute font-semibold">Trend</div>
         <div class="flex gap-1.5" id="granChips" title="Time granularity for the whole dashboard — day-on-day, week-on-week, month-on-month or year-on-year">
@@ -1176,9 +1177,13 @@ function inWindow(iso) {
   return d.getTime() >= cutoff;
 }
 function matchRegion(r) {
-  // Compared case-insensitively: a chip carries the brand record's code (GLOBAL)
-  // while a data row may spell it as the export did (Global).
-  return STATE.region === 'ALL' || String(r || '').toUpperCase() === String(STATE.region || '').toUpperCase();
+  // The markets ticked in the shared control; compared by market FAMILY: a
+  // control carries the brand record's code (GLOBAL) while a data row may
+  // spell it as the export did (Global).
+  if (STATE.region === 'ALL') return true;
+  const rc = window.RegionContext;
+  const fam = (v) => (rc && rc.family) ? rc.family(v) : String(v || '').toUpperCase();
+  return (STATE.regions || []).some((m) => fam(m) === fam(r));
 }
 function filteredCampaigns() {
   return DATA.campaigns.filter((c) => inWindow(c.sent_at) && matchRegion(c.region));
@@ -2259,34 +2264,23 @@ $$('.nav-item').forEach((n) => n.addEventListener('click', () => {
   window.addEventListener('resize', () => { if (!isMobileNav()) closeMobileDrawer(); });
 })();
 
-$('regionChips').addEventListener('click', (e) => {
-  if (!e.target.dataset.region) return;
-  STATE.region = e.target.dataset.region;
-  $$('#regionChips .filter-chip').forEach((c) => c.classList.toggle('active', c === e.target));
-  destroyCharts(); rerender();
-});
-// Region chips are the ACTIVE brand's own regions, never a typed list: a
-// brand selling only in India is not offered a US filter over data it lacks.
-let _regionChipsBuilt = null;
+// Markets: the shared selection. Every market on the record is 'ALL' (the
+// aggregate); a narrower tick is that set of markets.
 function buildRegionChips() {
-  const rc = window.RegionContext; if (!rc) return;
-  const opts = rc.options({ all: 'ALL' });
-  const key = opts.map((o) => o.code).join('|');
-  if (key === _regionChipsBuilt) return; _regionChipsBuilt = key;
-  const host = $('regionChips');
-  // All exists only for a brand with more than one market (options() adds it
-  // then); a one-market brand's view IS that market, chosen.
-  const want = opts.some((o) => o.code === STATE.region) ? STATE.region
-    : (opts.some((o) => o.all) ? 'ALL' : ((opts[0] && opts[0].code) || 'ALL'));
-  host.innerHTML = opts.length
-    ? opts.map((o) => '<button type="button" class="filter-chip' + (o.code === want ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
-    : '<span class="text-[11px] text-ink-mute" style="align-self:center">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
-  if (STATE.region !== want) { STATE.region = want; try { destroyCharts(); rerender(); } catch (_) {} }
+  const rc = window.RegionContext; if (!rc || !rc.loaded) return;
+  const list = rc.marketsFor ? rc.marketsFor({ defaultAll: true }) : [];
+  const want = (!list.length || list.length === rc.regions.length) ? 'ALL' : 'SET';
+  const key = want + ':' + list.join('|');
+  if (key === STATE._regionKey) return;
+  STATE._regionKey = key;
+  STATE.region = want; STATE.regions = list;
+  try { destroyCharts(); rerender(); } catch (_) {}
 }
 (function watchRegions(w) {
   const waited = w || 0;
   if (!window.RegionContext) { if (waited < 6000) setTimeout(() => watchRegions(waited + 100), 100); return; }
   window.RegionContext.onChange(buildRegionChips);
+  if (window.RegionContext.onSelection) window.RegionContext.onSelection(buildRegionChips);
 })(0);
 $('granChips').addEventListener('click', (e) => {
   const g = e.target.dataset.gran;

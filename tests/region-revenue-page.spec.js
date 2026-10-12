@@ -14,8 +14,8 @@
 //   - a selected market with no orders shows its marker, never 0;
 //   - every text run AA against its rendered ground; the page fits a phone,
 //     every option a 44px target;
-//   - a GENERATOR still takes one market: a multi-selection never changes
-//     RegionContext.region, and Smart Brain's agentic run says it builds for one.
+//   - a GENERATOR takes one market per run: a multi-selection never changes
+//     RegionContext.region, and Smart Brain's agentic run runs once per market.
 //
 // Run: npx playwright test tests/region-revenue-page.spec.js --project=desktop-1280
 const { test, expect } = require('@playwright/test');
@@ -166,14 +166,17 @@ test('every text run is AA on its ground, and the page fits a phone with 44px op
   expect(fit.inputs, 'no input under 16px (iOS zooms the page)').toBe(0);
 });
 
-test('a generator keeps ONE market: Smart Brain\'s agentic run says so and takes the first', async ({ page }) => {
+test('a generator takes ONE market per run: Smart Brain\'s agentic run runs once for each selected market', async ({ page }) => {
+  // Changed on purpose (2026-10-12, tests/region-selection-every-feature.spec.js):
+  // the operator asked that every feature run for the markets selected, so a
+  // multi-selection is several runs, each with ONE market - never a list, and
+  // never a change to the rail's one market.
   await H.install(page, NAME);
   await H.open(page, 'smart-brain.html', NAME);
   await page.waitForFunction(() => window.RegionContext && window.RegionContext.loaded);
   await page.evaluate(() => window.RegionContext.setSelection(['US', 'UK']));
-  const pick = await page.evaluate(() => { gateAgentic(); return [agenticMarket().market, window.RegionContext.region, document.getElementById('agenticMarket').textContent]; });
-  expect(typeof pick[0]).toBe('string');
-  expect(pick[0], 'one market, the rail\'s, never the list').toBe('IN');
-  expect(pick[1]).toBe('IN');
-  expect(pick[2]).toContain('Builds for one market at a time: India (IN)');
+  const pick = await page.evaluate(() => { gateAgentic(); return [agenticMarkets().markets, window.RegionContext.region, document.getElementById('agenticMarket').textContent]; });
+  expect(pick[0], 'each market its own run, in the brand\'s order').toEqual(['US', 'UK']);
+  expect(pick[1], 'the rail keeps its one market').toBe('IN');
+  expect(pick[2]).toContain('Runs once for each selected market, one market per run: United States (US), United Kingdom (UK)');
 });
