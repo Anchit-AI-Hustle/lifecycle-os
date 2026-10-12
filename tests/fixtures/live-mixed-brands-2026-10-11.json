@@ -1,0 +1,2632 @@
+[
+ {
+  "id": "8298f5f2-045f-4f30-89cc-4e5362f2a8d2",
+  "name": "Nykaa",
+  "slug": "vahdam-teas",
+  "voice": {
+   "tone": "bold, edgy, unapologetic",
+   "notes": "Frame every piece with an exclusive, trend-forward perspective that highlights top beauty choices right at the start. Testimonials should highlight feeling confident and radiant without sounding overly scripted or modest.",
+   "banned": [
+    "Miracle cure",
+    "Buy before it is gone forever"
+   ],
+   "preferred": [
+    "glamour, trend, radiance, confidence, beauty, vibrant, flawl",
+    "exclusive, premium, curated, limited, launch, bestseller, mu"
+   ],
+   "no_em_dashes": true
+  },
+  "status": "active",
+  "palette": {
+   "ink": "#100102",
+   "muted": "#3a4047",
+   "accent": "#e80071",
+   "primary": "#fc2779",
+   "surface": "#f3f3f3",
+   "surface_alt": "#ffffff"
+  },
+  "regions": [
+   {
+    "code": "IND",
+    "home": true,
+    "symbol": "",
+    "currency": "INR",
+    "store_url": "https://www.nykaa.com",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   }
+  ],
+  "tagline": "Buy cosmetics & beauty products online from Nykaa, the online shopping beauty store. Browse makeup, health products & more from top beauty brands. ✔ free shipping* ✔ Cash on Delivery",
+  "website": "https://www.nykaa.com",
+  "industry": "",
+  "logo_url": "",
+  "owner_id": "11111111-1111-4111-8111-111111111111",
+  "brand_data": {
+   "social": [
+    {
+     "url": "https://www.instagram.com/mynykaa/",
+     "signal": "json-ld:sameAs",
+     "platform": "instagram",
+     "source_url": "https://www.nykaa.com/"
+    },
+    {
+     "url": "https://www.facebook.com/p/Nykaa-100044142710696/",
+     "signal": "json-ld:sameAs",
+     "platform": "facebook",
+     "source_url": "https://www.nykaa.com/"
+    },
+    {
+     "url": "https://www.youtube.com/channel/UCoaH2UtB1PsV7av17woV1BA",
+     "signal": "json-ld:sameAs",
+     "platform": "youtube",
+     "source_url": "https://www.nykaa.com/"
+    },
+    {
+     "url": "https://twitter.com/MyNykaa",
+     "signal": "json-ld:sameAs",
+     "platform": "x",
+     "source_url": "https://www.nykaa.com/"
+    },
+    {
+     "url": "https://www.pinterest.com/mynykaa/",
+     "signal": "json-ld:sameAs",
+     "platform": "pinterest",
+     "source_url": "https://www.nykaa.com/"
+    },
+    {
+     "url": "https://x.com/mynykaa",
+     "signal": "json-ld:sameAs",
+     "platform": "x",
+     "source_url": "https://stores.nykaa.com/?utm_source=Desktop_web_footer"
+    },
+    {
+     "url": "https://www.instagram.com/mynykaa/?ref=badge",
+     "signal": "html:footer link",
+     "platform": "instagram",
+     "source_url": "https://www.nykaa.com/best-of-beauty/c/21447"
+    }
+   ],
+   "imagery": [
+    {
+     "url": "https://images-static.nykaa.com/uploads/01a2c86e-8b0a-41a0-997d-ca970ccd0fb6.jpg?tr=cm-pad_resize,w-1200",
+     "page": "https://www.nykaa.com/",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 66,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/658f0b2e-b5fa-469e-b876-84be6c99e5b1.jpg?tr=cm-pad_resize,w-1200",
+     "page": "https://www.nykaa.com/",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 112,
+      "w": 1344
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/235ba388-bbfc-4125-a2ae-030c63499c87.jpg?tr=cm-pad_resize,w-1200",
+     "page": "https://www.nykaa.com/",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 112,
+      "w": 1344
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/7d8972df-a0a9-4bce-a3e9-75db22b4ddb4.jpg?tr=cm-pad_resize,w-1200",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 120,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/9e9b0336-1a48-4e60-86bd-b29f3bfe3edb.jpg?tr=cm-pad_resize,w-300",
+     "page": "https://www.nykaa.com/",
+     "role": "product",
+     "signal": "computed",
+     "rendered": {
+      "h": 269,
+      "w": 269
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/11b62f17-e9d2-4ef9-bd1a-98a76288d82d.jpg?tr=cm-pad_resize,w-300",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 269,
+      "w": 269
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/c54358e7-f54d-41bb-bad2-79c9cd62a8c8.jpg?tr=cm-pad_resize,w-300",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 269,
+      "w": 269
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/c92c6054-5f5f-49c5-a9ed-9ccde4da59de.jpg?tr=cm-pad_resize,w-300",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 269,
+      "w": 269
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/b10a6738-8f80-48bc-8aaa-feb1724b4509.jpg?tr=cm-pad_resize,w-300",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 269,
+      "w": 269
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/a6ec3181-4b2c-486b-969d-44287a5551ac.jpg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 66,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://images-static.nykaa.com/uploads/a48e1205-02b9-44b6-a2bb-9af58bec2aa8.png",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 141,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://adn-static2.nykaa.com/media/wysiwyg/2021/Free-shipping.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 47,
+      "w": 47
+     }
+    },
+    {
+     "url": "https://adn-static2.nykaa.com/media/wysiwyg/2021/return_accepted.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 47,
+      "w": 47
+     }
+    },
+    {
+     "url": "https://adn-static2.nykaa.com/media/wysiwyg/2021/Authenticity.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 47,
+      "w": 47
+     }
+    },
+    {
+     "url": "https://adn-static2.nykaa.com/media/wysiwyg/2021/Brands.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 47,
+      "w": 47
+     }
+    },
+    {
+     "url": "https://images-static.naikaa.com/media/wysiwyg/2021/icons/ic_social-instagram-filled.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 24,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://images-static.naikaa.com/media/wysiwyg/2021/icons/ic_social-facebook-filled.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 24,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://images-static.naikaa.com/media/wysiwyg/2021/icons/ic_social-youtube-filled.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 24,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://images-static.naikaa.com/media/wysiwyg/2021/icons/ic_social-twitter-filled.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 24,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://images-static.naikaa.com/media/wysiwyg/2021/icons/ic_social-pinterest-filled.svg",
+     "page": "https://www.nykaa.com/",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 24,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://adn-static1.nykaa.com/media/listing/no-result.jpg",
+     "page": "https://www.nykaa.com/beauty-partners/about-face/c/3793?ptype=lst&id=3793&root=brand_menu,brand_list,About%20Face",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 198,
+      "w": 264
+     }
+    }
+   ],
+   "brand_files": {},
+   "field_origin": {
+    "name": "user",
+    "tagline": "site-parse",
+    "website": "user",
+    "logo_url": "user",
+    "voice.tone": "site-parse",
+    "favicon_url": "site-render",
+    "palette.ink": "site-parse",
+    "voice.notes": "site-parse",
+    "legal_entity": "site-parse",
+    "regions.home": "default",
+    "voice.banned": "site-parse",
+    "palette.muted": "site-parse",
+    "palette.accent": "site-parse",
+    "palette.primary": "site-parse",
+    "palette.surface": "site-parse",
+    "typography.body": "site-render",
+    "voice.preferred": "site-parse",
+    "brand_data.social": "site-parse",
+    "brand_data.imagery": "site-render",
+    "typography.heading": "site-render",
+    "palette.surface_alt": "site-parse",
+    "regions.IN.currency": "default",
+    "regions.#0.store_url": "default",
+    "regions.I N.currency": "default",
+    "regions.IND.currency": "default",
+    "typography.body.scale": "site-parse",
+    "brand_data.legal_entity": "site-parse",
+    "brand_data.design_system": "site-render",
+    "typography.heading.scale": "site-parse"
+   },
+   "legal_entity": "NYKAA E-RETAIL LIMITED",
+   "design_system": {
+    "logo": {
+     "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 250\" role=\"img\"><title>Nykaa Logo</title><path xmlns=\"http://www.w3.org/2000/svg\" d=\"M157.9 57.2c5-9.6-11.2-6.9-11.2-6.9-5.8 0-8.4 7-9.6 9l-17.5 34.5c-3.3 5.7-14.2 30.1-17.8 35.5-.3-5.5.1-16.5.2-19.1.7-10.4 1.4-18.3 2.5-27.8.8-7.4 2.4-15.7.9-23.1-1-4.6-2.5-4.9-9.1-5.6-6.9-.7-11.6 9.3-13.9 14-8.4 17.4-17.8 34.4-25.3 52.2-2.2 5.2-4.9 10.4-7.2 15.5-2.7 6.2-5.2 12.3-8.1 18.4-3.1 6.4-12.8 27.4-15.5 34-3 7.2-3.6 13 8.4 12.7 1.9 0 6.1.4 11.3-5.2 4.1-4.4 4.9-8.5 7.3-14.6 8.6-21.6 14.7-35.9 24.1-57.3.9-2.1 3-8.2 5.1-12.9-.1 6.7-1.2 14.7-1.7 20-1.6 19.4-2.7 38.1-4.4 57.3-.2 2.6-.9 5.7.3 8.1 1.2 2.4 4.2 3 6.6 3.3 9.6 1.2 10.6-3.6 13.6-10.2 2.7-5.9 4.3-10.7 6.7-16.7 7.4-18.5 15.2-36.8 23.8-54.8 2.2-4.6 4.4-9.1 6.8-13.6 4.4-8.3 8-16.1 12.8-25.3 3.6-6.6 7.1-14.1 10.9-21.4zm329.5 52.1c-1.1-11.1-16.3-5.5-25.4-3.8-3.4.6-13.9 2.6-26 4.9-.5-12.5-.3-10-.4-17.6-.3-11-.9-19.6-1.5-29.3-.4-6.1-1.3-14.6-12.3-13-12.8 1.8-14.9 8.2-18.3 15.9-8.9 20.1-8.6 20.2-18.7 42.6-.8 1.7-4.5 10.7-5.1 12.5-.4.1-1.2.3-2.2.6-4.1.9-9.1 2-14.6 3.2l.1-.5c1.3-10.2 2.9-20.4 4.3-30.6 1.3-9.3 2.7-24.5 3.8-33.8 1.2-10-10.4-9.8-10.4-9.8-7.1-.4-9.8 1.7-14.3 7.5-7.7 10-17 20.8-25.2 31.8-14.9 19.9-25.8 34.9-39.3 54.9-3.9 5.8-9.9 14.6-15.1 21.5-3.5-6.9-6.5-14.5-9.4-21.5-4.2-10-7.3-16.2-9.3-22.8-1.8-5.8.4-6.6 4.7-9.9 12.4-9.4 26.4-15.9 39.1-24.9 9-6.4 19.8-13.5 28.6-20.1 0 0 5.1-3 7.9-6.8 3.5-4.8-6.4-9.8-6.4-9.8-5.6-.9-8.7.4-12.6 2.2-4 1.8-9.2 5.9-12.6 8.6-7.5 5.8-17 12.7-24.4 18.5-9.1 7.1-15.3 11.5-25.3 17.4l25.4-38c8.3-10.7-13.7-13.7-22.1-2.4-7.8 10.1-13.1 19-19.2 28.2-14.7 21.9-26.8 44.9-38.9 69-4.6 9.2-9.1 18.8-13.3 28.3-2 4.6-7.9 15.2.2 16.3 17.3 2.2 20.1-6 24-15.9 6.4-16.3 8.5-19.3 12.6-29.4 4-9.8 6.9-15.4 11.4-23.8.1-.1 1.4-2.2 1.4-2.2.8 1.7 6.1 19.3 6.8 21.3 3.6 9.5 9.9 31.7 13.5 41.8 2.6 8.4 3.3 10.8 14.6 10.5 5.6-.1 8-2.3 11.7-9.3s19.7-36.8 19.7-36.8c4.8-.8 11.7-2 16.2-2.8.8-.1 2.6-.5 5.1-1 1.7-.2 3.1-.5 4.2-.8.1 0 .1 0 .2-.1 4.4-.9 10-2 16.1-3.2-1.1 5.5-4.5 17.6-5.2 20.7 0 0-7.4 28.8 2.2 30.3 6 .9 9.1-.1 9.1-.1 11.2-1.3 11.4-16.4 11.4-16.4l6.1-39.1c4.4-.9 8.8-1.8 13.1-2.6l-13.2 44.6c-1.9 6.3-3.3 14.4 8 14.4 9.2.5 9.8-5.3 9.8-5.3.2-.9 7.5-24.4 9.3-32.8 1.2-5.4 5.5-19.3 7.2-24.9 4.8-.9 8.4-1.6 10.1-1.9 2-.3 5.9-1 11-1.8-.1 5.2 0 12.4.1 13.4 1.1 15.8-.1 32.2 3.2 47.7.5 2.5 1.5 5.7 4.7 5.7 3.8 0 5-.4 9-.7 11.6-1 9.5-12.7 8.8-20.1-.8-8.2-1.6-15.1-2.7-23.3-.9-6.7-1.5-15.5-1.6-26.1v-.2c19-3.2 39.5-6.7 42.5-7.2 4.8-1.3 8.8-.9 7.8-11.9zm-148.5 21c0 .1-.1.1-.1.2-13.3 2.9-25.8 5.7-32.8 7.3 7-11.7 37.8-54.3 42.5-59.3-2.6 13.2-6.8 37.7-9.6 51.8zm76.8-16.8v.7c-6.4 1.2-12.4 2.4-17.2 3.3 6.1-15.8 12.5-35.2 16.3-45-.3 7.3 1.2 33.8.9 41zM229.2 66.4c2-3.7 6.5-11 .9-13.8-3.3-1.6-7.7-2.6-11.1-.9-2.8 1.5-4.9 4.4-6.3 7.1l-21.4 33.7c-3.5 4.8-6.8 10.8-13.9 11.6-4.7.5-8.1-1.5-8-5.7.1-4.3 2.6-10 4.5-13.7 5.6-10.6 6.3-14.2 11.7-24.7 5.2-10.1-11.8-12.4-16-5.1-3 5.2-8.8 15-10.1 18.3-2.4 6-20.4 34.6-12.6 45.9 10 12.8 36.6-7.4 23 15.9-11 18.7-17.9 29.4-27.5 46.7-2.1 3.7-4.7 7.4-5.4 11.8-1 6.2 7.5 6.1 11.2 5.9 6.5-.5 9.6-3.5 12.2-9.4 1.4-3.1 3.3-6.9 4.7-10 12.6-27.5 26-51.4 42.6-78 7.9-12.6 14.9-23.4 21.5-35.6z\" fill=\"#fc2779\"></path></svg>",
+     "url": "",
+     "kind": "svg",
+     "text": "",
+     "type": null,
+     "natural": null,
+     "rendered": {
+      "h": 46,
+      "w": 94
+     }
+    },
+    "type": {
+     "mobile": {
+      "h1": {
+       "size": 20,
+       "align": "start",
+       "color": "#001325",
+       "stack": "Inter, Roboto, Arial, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 600,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 24,
+       "letter_spacing": -0.1
+      },
+      "nav": {
+       "size": 14,
+       "align": "center",
+       "color": "#686776",
+       "stack": "Inter, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "capitalize",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": -0.1
+      },
+      "body": {
+       "size": 20,
+       "align": "left",
+       "color": "#001325",
+       "stack": "Inter, Inter",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": "normal",
+       "letter_spacing": 0
+      },
+      "price": {
+       "size": 20,
+       "align": "left",
+       "color": "#001325",
+       "stack": "Inter, Inter",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": "normal",
+       "letter_spacing": 0
+      },
+      "small": {
+       "size": 14,
+       "align": "left",
+       "color": "#3a4047",
+       "stack": "Inter, Roboto, Arial, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "uppercase",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": -0.1
+      },
+      "button": {
+       "size": 14,
+       "align": "center",
+       "color": "#ffffff",
+       "stack": "Inter, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 600,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": 0.1
+      },
+      "display": {
+       "size": 16,
+       "align": "start",
+       "color": "#000000",
+       "stack": "\"Source Sans Pro\", sans-serif",
+       "style": "normal",
+       "family": "Source Sans Pro",
+       "weight": 400,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": 0
+      }
+     },
+     "desktop": {
+      "h1": {
+       "size": 20,
+       "align": "start",
+       "color": "#001325",
+       "stack": "Inter, Roboto, Arial, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 600,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 24,
+       "letter_spacing": -0.1
+      },
+      "nav": {
+       "size": 14,
+       "align": "center",
+       "color": "#686776",
+       "stack": "Inter, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "capitalize",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": -0.1
+      },
+      "body": {
+       "size": 20,
+       "align": "left",
+       "color": "#001325",
+       "stack": "Inter, Inter",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": "normal",
+       "letter_spacing": 0
+      },
+      "price": {
+       "size": 20,
+       "align": "left",
+       "color": "#001325",
+       "stack": "Inter, Inter",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": "normal",
+       "letter_spacing": 0
+      },
+      "small": {
+       "size": 14,
+       "align": "left",
+       "color": "#3a4047",
+       "stack": "Inter, Roboto, Arial, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 500,
+       "transform": "uppercase",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": -0.1
+      },
+      "button": {
+       "size": 14,
+       "align": "center",
+       "color": "#ffffff",
+       "stack": "Inter, sans-serif",
+       "style": "normal",
+       "family": "Inter",
+       "weight": 600,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": 0.1
+      },
+      "display": {
+       "size": 16,
+       "align": "start",
+       "color": "#000000",
+       "stack": "\"Source Sans Pro\", sans-serif",
+       "style": "normal",
+       "family": "Source Sans Pro",
+       "weight": 400,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 20,
+       "letter_spacing": 0
+      }
+     }
+    },
+    "fonts": {
+     "body": {
+      "kind": "webfont",
+      "note": "Loaded web font, rendering this role.",
+      "files": [],
+      "stack": "'Inter','Inter'",
+      "family": "Inter",
+      "google": true,
+      "source": {
+       "page": "https://www.nykaa.com/",
+       "role": "body copy",
+       "signal": "computed",
+       "property": "font-family",
+       "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text",
+       "viewport": "desktop"
+      },
+      "licence": "open (Google Fonts)",
+      "weights": [
+       "400",
+       "500",
+       "600"
+      ],
+      "display_name": "Inter",
+      "declared_stack": "Inter, Inter",
+      "fallback_stack": "'Inter'",
+      "files_by_reference": true,
+      "google_self_hosted": true
+     },
+     "heading": {
+      "kind": "webfont",
+      "note": "Loaded web font, rendering this role.",
+      "files": [],
+      "stack": "'Inter','Roboto','Arial',sans-serif",
+      "family": "Inter",
+      "google": true,
+      "source": {
+       "page": "https://www.nykaa.com/",
+       "role": "h1",
+       "signal": "computed",
+       "property": "font-family",
+       "selector": "div#app > div.css-e82s8r:nth-of-type(1) > h1.css-1q278js",
+       "viewport": "desktop"
+      },
+      "licence": "open (Google Fonts)",
+      "weights": [
+       "400",
+       "500",
+       "600"
+      ],
+      "display_name": "Inter",
+      "declared_stack": "Inter, Roboto, Arial, sans-serif",
+      "fallback_stack": "'Roboto','Arial',sans-serif",
+      "files_by_reference": true,
+      "google_self_hosted": true
+     }
+    },
+    "colors": {
+     "ink": "#001325",
+     "muted": "#3a4047",
+     "accent": "#e80071",
+     "primary": "#fc2779",
+     "surface": "#f3f3f3",
+     "surface_alt": "#ffffff"
+    },
+    "origin": "site-render",
+    "source": {
+     "url": "https://www.nykaa.com/",
+     "pages": [
+      {
+       "url": "https://www.nykaa.com/",
+       "role": "home"
+      },
+      {
+       "url": "https://www.nykaa.com/beauty-partners/about-face/c/3793?ptype=lst&id=3793&root=brand_menu,brand_list,About%20Face",
+       "role": "about"
+      }
+     ],
+     "method": "rendered in Chromium",
+     "read_at": "2026-10-11T02:59:45.684Z",
+     "renderer": "sparticuz 153.0.8010.0"
+    },
+    "version": 1,
+    "viewports": {
+     "mobile": 390,
+     "desktop": 1440
+    },
+    "components": {
+     "card": {
+      "mobile": {
+       "box": {
+        "width": 69.83,
+        "ground": "#ffffff",
+        "height": 156.83,
+        "radius": 0,
+        "shadow": "",
+        "outline": "",
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "background": "",
+        "radius_all": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "border_color": "",
+        "border_style": "none",
+        "border_width": 0,
+        "background_image": ""
+       },
+       "badge": null,
+       "image": {
+        "fit": "fill",
+        "aspect": 1,
+        "radius": 0
+       },
+       "price": {
+        "size": 20,
+        "align": "left",
+        "color": "#001325",
+        "stack": "Inter, Inter",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": "normal",
+        "letter_spacing": 0
+       },
+       "title": null,
+       "grid_gap": null,
+       "from_page": ""
+      },
+      "desktop": {
+       "box": {
+        "width": 268.8,
+        "ground": "#ffffff",
+        "height": 307.8,
+        "radius": 0,
+        "shadow": "",
+        "outline": "",
+        "padding": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "background": "",
+        "radius_all": [
+         0,
+         0,
+         0,
+         0
+        ],
+        "border_color": "",
+        "border_style": "none",
+        "border_width": 0,
+        "background_image": ""
+       },
+       "badge": null,
+       "image": {
+        "fit": "fill",
+        "aspect": 1,
+        "radius": 0
+       },
+       "price": {
+        "size": 20,
+        "align": "left",
+        "color": "#001325",
+        "stack": "Inter, Inter",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": "normal",
+        "letter_spacing": 0
+       },
+       "title": null,
+       "grid_gap": null,
+       "from_page": ""
+      }
+     },
+     "hero": {
+      "mobile": {
+       "body": {
+        "size": 20,
+        "align": "left",
+        "color": "#001325",
+        "stack": "Inter, Inter",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": "normal",
+        "letter_spacing": 0
+       },
+       "align": "start",
+       "ground": "#ffffff",
+       "heading": {
+        "size": 16,
+        "align": "start",
+        "color": "#000000",
+        "stack": "\"Source Sans Pro\", sans-serif",
+        "style": "normal",
+        "family": "Source Sans Pro",
+        "weight": 400,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 20,
+        "letter_spacing": 0
+       },
+       "over_media": "div.image-container:nth-of-type(1) > div.image-with-logo:nth-of-type(2) > div.image-wrapper.css-ugtohg > a.css-13o7eu2.etj7ng30 > img"
+      },
+      "desktop": {
+       "body": {
+        "size": 20,
+        "align": "left",
+        "color": "#001325",
+        "stack": "Inter, Inter",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": "normal",
+        "letter_spacing": 0
+       },
+       "align": "start",
+       "ground": "#ffffff",
+       "heading": {
+        "size": 16,
+        "align": "start",
+        "color": "#000000",
+        "stack": "\"Source Sans Pro\", sans-serif",
+        "style": "normal",
+        "family": "Source Sans Pro",
+        "weight": 400,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 20,
+        "letter_spacing": 0
+       },
+       "over_media": "div.image-container:nth-of-type(1) > div.image-with-logo:nth-of-type(2) > div.image-wrapper.css-ugtohg > a.css-13o7eu2.etj7ng30 > img"
+      }
+     },
+     "input": {
+      "desktop": {
+       "type": {
+        "size": 14,
+        "align": "start",
+        "color": "#595e63",
+        "stack": "Inter, sans-serif",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 20,
+        "letter_spacing": -0.1
+       },
+       "width": 182.75,
+       "ground": "#f4f4f4",
+       "height": 20,
+       "radius": 0,
+       "shadow": "",
+       "outline": "",
+       "padding": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "background": "#f4f4f4",
+       "radius_all": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "placeholder": "#595e63",
+       "border_color": "",
+       "border_style": "none",
+       "border_width": 0,
+       "background_image": ""
+      }
+     },
+     "button": {
+      "primary": {
+       "focus": {
+        "color": "#ffffff",
+        "shadow": "",
+        "opacity": 1,
+        "outline": "",
+        "transform": "",
+        "background": "#e80071",
+        "decoration": "none",
+        "border_color": ""
+       },
+       "hover": {
+        "color": "#ffffff",
+        "shadow": "",
+        "opacity": 1,
+        "outline": "",
+        "transform": "",
+        "background": "#e80071",
+        "decoration": "none",
+        "border_color": ""
+       },
+       "mobile": {
+        "size": 14,
+        "color": "#ffffff",
+        "label": "Sign in",
+        "stack": "Inter, sans-serif",
+        "width": 78.39,
+        "family": "Inter",
+        "filled": true,
+        "ground": "#ffffff",
+        "height": 40,
+        "radius": 8,
+        "shadow": "",
+        "weight": 600,
+        "outline": "",
+        "padding": [
+         10,
+         16,
+         10,
+         16
+        ],
+        "outlined": false,
+        "transform": "none",
+        "background": "#e80071",
+        "radius_all": [
+         8,
+         8,
+         8,
+         8
+        ],
+        "line_height": 20,
+        "border_color": "",
+        "border_style": "none",
+        "border_width": 0,
+        "letter_spacing": 0.1,
+        "background_image": ""
+       },
+       "desktop": {
+        "size": 14,
+        "color": "#ffffff",
+        "label": "Sign in",
+        "stack": "Inter, sans-serif",
+        "width": 78.39,
+        "family": "Inter",
+        "filled": true,
+        "ground": "#ffffff",
+        "height": 40,
+        "radius": 8,
+        "shadow": "",
+        "weight": 600,
+        "outline": "",
+        "padding": [
+         10,
+         16,
+         10,
+         16
+        ],
+        "outlined": false,
+        "transform": "none",
+        "background": "#e80071",
+        "radius_all": [
+         8,
+         8,
+         8,
+         8
+        ],
+        "line_height": 20,
+        "border_color": "",
+        "border_style": "none",
+        "border_width": 0,
+        "letter_spacing": 0.1,
+        "background_image": ""
+       }
+      },
+      "secondary": {
+       "focus": null,
+       "hover": null,
+       "mobile": null,
+       "desktop": null
+      }
+     },
+     "footer": {
+      "mobile": null,
+      "desktop": null
+     },
+     "header": {
+      "mobile": {
+       "link": {
+        "size": 14,
+        "align": "center",
+        "color": "#686776",
+        "stack": "Inter, sans-serif",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "capitalize",
+        "decoration": "none",
+        "line_height": 20,
+        "letter_spacing": -0.1
+       },
+       "logo": {
+        "kind": "svg",
+        "width": 31,
+        "height": 15,
+        "placement": "left"
+       },
+       "ground": "#f3f3f3",
+       "height": 157,
+       "shadow": "",
+       "sticky": false,
+       "background": "#f3f3f3",
+       "border_bottom": ""
+      },
+      "desktop": {
+       "link": {
+        "size": 14,
+        "align": "center",
+        "color": "#686776",
+        "stack": "Inter, sans-serif",
+        "style": "normal",
+        "family": "Inter",
+        "weight": 500,
+        "transform": "capitalize",
+        "decoration": "none",
+        "line_height": 20,
+        "letter_spacing": -0.1
+       },
+       "logo": {
+        "kind": "svg",
+        "width": 94,
+        "height": 46,
+        "placement": "left"
+       },
+       "ground": "#f3f3f3",
+       "height": 157,
+       "shadow": "",
+       "sticky": false,
+       "background": "#f3f3f3",
+       "border_bottom": ""
+      }
+     },
+     "imagery": {
+      "hero": {
+       "fit": "fill",
+       "aspect": 12,
+       "full_bleed": false
+      },
+      "product": {
+       "fit": "fill",
+       "aspect": 1,
+       "radius": 0
+      }
+     },
+     "section": {
+      "mobile": {
+       "pad_top": null,
+       "sections": 1,
+       "container": 294,
+       "pad_bottom": null
+      },
+      "desktop": {
+       "pad_top": null,
+       "sections": 1,
+       "container": 1344,
+       "pad_bottom": null
+      }
+     }
+    },
+    "hard_rules": [],
+    "provenance": {
+     "logo_url": {
+      "page": "https://www.nykaa.com/",
+      "role": "logo",
+      "signal": "computed",
+      "property": "outerHTML",
+      "selector": "div#headerMenu > a.logo.css-kus7g9 > svg",
+      "viewport": "desktop"
+     },
+     "palette.ink": {
+      "page": "https://www.nykaa.com/",
+      "role": "body copy",
+      "signal": "computed",
+      "property": "color",
+      "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text",
+      "viewport": "desktop"
+     },
+     "palette.muted": {
+      "page": "https://www.nykaa.com/",
+      "role": "secondary text",
+      "signal": "computed",
+      "property": "color",
+      "selector": "div.css-1axfht6 > div.css-15u830z:nth-of-type(1) > div.css-fd2g8d:nth-of-type(1) > div > div.css-z7ry7e:nth-of-type(1)",
+      "viewport": "desktop"
+     },
+     "palette.accent": {
+      "page": "https://www.nykaa.com/",
+      "role": "primary call to action",
+      "signal": "computed",
+      "property": "background-color",
+      "selector": "div.css-2o3va.e1e0j9zy2 > div.css-1tny7j1.e1ewpqpu0:nth-of-type(2) > div.css-vtwhmt.euw1lbv0:nth-of-type(1) > div.css-jgrj0x.euw1lbv2 > button.css-1gzc5zn",
+      "viewport": "desktop"
+     },
+     "palette.primary": {
+      "page": "https://www.nykaa.com/",
+      "role": "logo",
+      "signal": "computed",
+      "property": "fill",
+      "selector": "div#headerMenu > a.logo.css-kus7g9 > svg",
+      "viewport": "desktop"
+     },
+     "palette.surface": {
+      "page": "https://www.nykaa.com/",
+      "role": "page ground",
+      "signal": "computed",
+      "property": "background-color",
+      "selector": "body",
+      "viewport": "desktop"
+     },
+     "typography.body": {
+      "page": "https://www.nykaa.com/",
+      "role": "body copy",
+      "signal": "computed",
+      "property": "font-family",
+      "selector": "div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text",
+      "viewport": "desktop"
+     },
+     "typography.heading": {
+      "page": "https://www.nykaa.com/",
+      "role": "h1",
+      "signal": "computed",
+      "property": "font-family",
+      "selector": "div#app > div.css-e82s8r:nth-of-type(1) > h1.css-1q278js",
+      "viewport": "desktop"
+     },
+     "palette.surface_alt": {
+      "page": "https://www.nykaa.com/",
+      "role": "product card",
+      "signal": "computed",
+      "property": "background-color",
+      "selector": "div.6a3cfd874456d54bf68ee5a1.css-1p3foes:nth-of-type(1) > div > div > div.banner-container.css-mbqpkx > div.css-4y0npi",
+      "viewport": "desktop"
+     }
+    }
+   },
+   "field_origins": {
+    "name": {
+     "at": "2026-10-11T03:00:25.022Z",
+     "origin": "user"
+    },
+    "tagline": {
+     "at": "2026-10-11T03:00:02.010Z",
+     "url": "https://www.nykaa.com/",
+     "origin": "site-parse",
+     "signal": "opengraph:og:description"
+    },
+    "website": {
+     "at": "2026-10-11T02:58:46.594Z",
+     "origin": "user"
+    },
+    "voice.tone": {
+     "at": "2026-10-11T03:01:48.926Z",
+     "origin": "user"
+    },
+    "favicon_url": {
+     "at": "2026-10-11T03:00:02.010Z",
+     "url": "https://www.nykaa.com/",
+     "origin": "site-render",
+     "signal": "computed: icon (link[rel=icon])"
+    },
+    "palette.ink": {
+     "at": "2026-10-11T03:01:14.726Z",
+     "url": "https://www.nykaa.com/",
+     "origin": "site-parse",
+     "signal": "computed: body copy"
+    },
+    "voice.notes": {
+     "at": "2026-10-11T03:02:21.025Z",
+     "origin": "site-parse"
+    },
+    "legal_entity": {
+     "at": "2026-10-11T03:02:34.193Z",
+     "origin": "site-parse"
+    },
+    "regions.home": {
+     "at": "2026-10-11T03:03:34.477Z",
+     "origin": "default",
+     "derived_from": "the only region"
+    },
+    "voice.banned": {
+     "at": "2026-10-11T03:01:59.777Z",
+     "origin": "user"
+    },
+    "palette.muted": {
+     "at": "2026-10-11T03:01:14.726Z",
+     "origin": "site-parse"
+    },
+    "palette.accent": {
+     "at": "2026-10-11T03:01:14.726Z",
+     "origin": "site-parse"
+    },
+    "palette.primary": {
+     "at": "2026-10-11T03:01:14.726Z",
+     "origin": "site-parse"
+    },
+    "palette.surface": {
+     "at": "2026-10-11T03:01:14.726Z",
+     "origin": "site-parse"
+    },
+    "typography.body": {
+     "at": "2026-10-11T03:00:02.010Z",
+     "url": "https://www.nykaa.com/",
+     "origin": "site-render",
+     "signal": "computed: body copy (div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text) @ desktop"
+    },
+    "voice.preferred": {
+     "at": "2026-10-11T03:01:53.392Z",
+     "origin": "user"
+    },
+    "brand_data.social": {
+     "at": "2026-10-11T02:59:59.052Z",
+     "origin": "site-parse"
+    },
+    "brand_data.imagery": {
+     "at": "2026-10-11T00:38:35.002Z",
+     "origin": "site-render"
+    },
+    "typography.heading": {
+     "at": "2026-10-11T03:00:02.010Z",
+     "url": "https://www.nykaa.com/",
+     "origin": "site-render",
+     "signal": "computed: h1 (div#app > div.css-e82s8r:nth-of-type(1) > h1.css-1q278js) @ desktop"
+    },
+    "palette.surface_alt": {
+     "at": "2026-10-11T03:01:14.726Z",
+     "origin": "site-parse"
+    },
+    "regions.IND.currency": {
+     "at": "2026-10-11T03:03:48.869Z",
+     "origin": "default",
+     "derived_from": "region code IND"
+    },
+    "regions.IND.store_url": {
+     "at": "2026-10-11T03:03:34.477Z",
+     "origin": "default",
+     "derived_from": "website"
+    },
+    "typography.body.scale": {
+     "at": "2026-10-11T00:42:00.306Z",
+     "origin": "site-parse"
+    },
+    "brand_data.legal_entity": {
+     "at": "2026-10-11T03:00:02.010Z",
+     "url": "https://www.nykaa.com/best-of-beauty/c/21447",
+     "origin": "site-parse",
+     "signal": "html:footer copyright line"
+    },
+    "brand_data.design_system": {
+     "at": "2026-10-11T00:38:35.002Z",
+     "origin": "site-render"
+    },
+    "typography.heading.scale": {
+     "at": "2026-10-11T00:42:00.306Z",
+     "origin": "site-parse"
+    }
+   },
+   "brand_extraction": {
+    "source": "https://www.nykaa.com/",
+    "applied": {
+     "tagline": {
+      "value": "Buy cosmetics & beauty products online from Nykaa, the online shopping beauty store. Browse makeup, health products & more from top beauty brands. ✔ free shipping* ✔ Cash on Delivery",
+      "origin": "site-parse",
+      "signal": "opengraph:og:description",
+      "confidence": "strong",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "voice.tone": {
+      "value": "bold, edgy, unapologetic",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "favicon_url": {
+      "value": "https://images-static.naikaa.com/media/wysiwyg/uiTools/2024-3/beauty.png",
+      "origin": "site-render",
+      "signal": "computed: icon (link[rel=icon])",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "palette.ink": {
+      "value": "#001325",
+      "signal": "computed: body copy",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "voice.notes": {
+      "value": "Frame every piece with an exclusive, trend-forward perspective that highlights top beauty choices right at the start. Testimonials should highlight feeling confident and radiant without sounding overly scripted or modest.",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "legal_entity": {
+      "value": "NYKAA E-RETAIL LIMITED",
+      "signal": "html:footer copyright line",
+      "confidence": "weak",
+      "source_url": "https://www.nykaa.com/best-of-beauty/c/21447"
+     },
+     "voice.banned": {
+      "value": "Buy before it is gone forever",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "palette.muted": {
+      "value": "#3a4047",
+      "signal": "computed: secondary text",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "palette.accent": {
+      "value": "#e80071",
+      "signal": "computed: primary call to action",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "palette.primary": {
+      "value": "#fc2779",
+      "signal": "logo mark paint as rendered (100% of its coloured area)",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "palette.surface": {
+      "value": "#f3f3f3",
+      "signal": "computed: page ground",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "typography.body": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: body copy (div.css-vwrx3n:nth-of-type(2) > div.css-1vzyoiw > ul.titles-description > li.titles-wrap > span.title-text) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "voice.preferred": {
+      "value": "exclusive, premium, curated, limited, launch, bestseller, mu",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "brand_data.imagery": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: imagery",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "typography.heading": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: h1 (div#app > div.css-e82s8r:nth-of-type(1) > h1.css-1q278js) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "palette.surface_alt": {
+      "value": "#ffffff",
+      "signal": "computed: product card",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "typography.body.scale": {
+      "value": "20px",
+      "signal": "css declaration",
+      "confidence": "computed",
+      "source_url": "https://www.vahdam.com/"
+     },
+     "brand_data.legal_entity": {
+      "value": "NYKAA E-RETAIL LIMITED",
+      "origin": "site-parse",
+      "signal": "html:footer copyright line",
+      "confidence": "weak",
+      "source_url": "https://www.nykaa.com/best-of-beauty/c/21447"
+     },
+     "brand_data.design_system": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: design system @ desktop+mobile",
+      "confidence": "computed",
+      "source_url": "https://www.nykaa.com/"
+     },
+     "typography.heading.scale": {
+      "value": "18px",
+      "signal": "css declaration",
+      "confidence": "computed",
+      "source_url": "https://www.vahdam.com/"
+     }
+    },
+    "extracted_at": "2026-10-11T02:59:59.052Z"
+   }
+  },
+  "created_at": "2026-10-11T00:38:36.610384+00:00",
+  "legal_name": null,
+  "typography": {
+   "body": {
+    "stack": "'Inter','Inter'",
+    "family": "Inter",
+    "google": true,
+    "weights": "400;500;600"
+   },
+   "heading": {
+    "stack": "'Inter','Roboto','Arial',sans-serif",
+    "family": "Inter",
+    "google": true,
+    "weights": "400;500;600"
+   }
+  },
+  "updated_at": "2026-10-11T03:07:25.634791+00:00",
+  "asset_hosts": [
+   "www.nykaa.com"
+  ],
+  "favicon_url": "https://images-static.naikaa.com/media/wysiwyg/uiTools/2024-3/beauty.png",
+  "catalog_source": {
+   "url": "https://www.nykaa.com",
+   "kind": "shopify_public",
+   "batch": "1ab59e67-d10f-438b-98a2-305441555229",
+   "found": 0,
+   "region": "ind",
+   "columns": {},
+   "sitemap": {
+    "found": true,
+    "sources": 40
+   },
+   "complete": false,
+   "coverage": {
+    "base": "https://www.nykaa.com",
+    "found": 0,
+    "route": "feed",
+    "region": "IND",
+    "missing": {
+     "image": 0,
+     "price": 0,
+     "currency": 0
+    },
+    "skipped": {
+     "cap": 0,
+     "robots": 0,
+     "no_title": 0,
+     "duplicate": 0,
+     "off_scope": 0,
+     "timed_out": 0,
+     "unreachable": 0,
+     "no_product_declared": 0
+    },
+    "stopped": {
+     "at": "feed page 1",
+     "reason": "rate_limited",
+     "wait_ms": 8000,
+     "retry_after": null
+    },
+    "complete": false,
+    "currency": null,
+    "declared": {
+     "by": "the site's product sitemaps",
+     "urls": 21,
+     "count": 21
+    },
+    "base_from": "the IND store URL on the brand's own record",
+    "by_source": {
+     "feed": 0,
+     "crawl": 0,
+     "sitemap_jsonld": 0
+    },
+    "sentences": [
+     "Found 0 of the 21 products the site declares in the site's product sitemaps.",
+     "Market IND: read from https://www.nykaa.com (the IND store URL on the brand's own record).",
+     "The store asked to slow down 4 times; every Retry-After was obeyed (7 s waited in all).",
+     "PARTIAL: the store asked to slow down (429) at feed page 1. Continue import resumes exactly there; the daily refresh also continues it."
+    ],
+    "missing_examples": [],
+    "resume_available": true
+   },
+   "declared": 21,
+   "platform": null,
+   "row_count": 0,
+   "imported_at": "2026-10-11T03:07:25.046Z",
+   "coverage_note": "Found 0 of the 21 products the site declares in the site's product sitemaps. Market IND: read from https://www.nykaa.com (the IND store URL on the brand's own record). The store asked to slow down 4 times; every Retry-After was obeyed (7 s waited in all). PARTIAL: the store asked to slow down (429) at feed page 1. Continue import resumes exactly there; the daily refresh also continues it."
+  },
+  "onboarding_step": 5
+ },
+ {
+  "id": "f2711b60-9e06-403c-84aa-66db0cf82b78",
+  "name": "Lenskart",
+  "slug": "mamaearth",
+  "voice": {
+   "tone": "",
+   "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Lenskart] Nothing is inferred: a voice written from memory reads as approved guidance and is not.",
+   "banned": [],
+   "preferred": [],
+   "no_em_dashes": true
+  },
+  "status": "active",
+  "palette": {
+   "ok": "#1a7f37",
+   "err": "#c0392b",
+   "ink": "#1d1b1b",
+   "warn": "#c9a227",
+   "muted": "#0e0901",
+   "primary": "#ffa517",
+   "surface": "#ffffff",
+   "surface_alt": "#ffffff"
+  },
+  "regions": [
+   {
+    "code": "IN",
+    "home": true,
+    "source": "",
+    "symbol": "",
+    "currency": "INR",
+    "store_url": "https://www.lenskart.com",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   },
+   {
+    "code": "SA",
+    "home": false,
+    "source": "site read: the site's hreflang=\"en-sa\"",
+    "symbol": "",
+    "currency": "SAR",
+    "store_url": "https://www.lenskart.com/en-sa",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   },
+   {
+    "code": "AE",
+    "home": false,
+    "source": "site read: the site's hreflang=\"en-ae\"",
+    "symbol": "",
+    "currency": "AED",
+    "store_url": "https://www.lenskart.com/en-ae",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   },
+   {
+    "code": "US",
+    "home": false,
+    "source": "site read: the site's hreflang=\"en-us\"",
+    "symbol": "",
+    "currency": "USD",
+    "store_url": "https://www.lenskart.com/en-us",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   },
+   {
+    "code": "TH",
+    "home": false,
+    "source": "site read: the site's hreflang=\"en-th\"",
+    "symbol": "",
+    "currency": "THB",
+    "store_url": "https://www.lenskart.com/en-th",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   },
+   {
+    "code": "SG",
+    "home": false,
+    "source": "site read: the site's hreflang=\"en-sg\"",
+    "symbol": "",
+    "currency": "SGD",
+    "store_url": "https://www.lenskart.sg",
+    "pdp_pattern": "",
+    "collection_pattern": ""
+   }
+  ],
+  "tagline": "",
+  "website": "https://www.lenskart.com",
+  "industry": "",
+  "logo_url": "",
+  "owner_id": "11111111-1111-4111-8111-111111111111",
+  "brand_data": {
+   "social": [],
+   "imagery": [
+    {
+     "url": "https://assets.lenskart.com/images/2026/01/14/Vector-3.svg",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "header",
+     "signal": "computed",
+     "rendered": {
+      "h": 40,
+      "w": 49
+     }
+    },
+    {
+     "url": "https://assets.lenskart.com/images/2026/01/15/Heart.svg",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "header",
+     "signal": "computed",
+     "rendered": {
+      "h": 27,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://assets.lenskart.com/images/2026/01/15/local_mall-1.svg",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "header",
+     "signal": "computed",
+     "rendered": {
+      "h": 27,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://assets.lenskart.com/images/2026/01/15/Account-Icon.svg",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "header",
+     "signal": "computed",
+     "rendered": {
+      "h": 27,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Desktop-topbanner-Bold27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 480,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Desktop-topbanner-Amore27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 480,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Desktop-topbanner-hustlr27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 480,
+      "w": 1440
+     }
+    },
+    {
+     "url": "https://assets.lenskart.com/images/2026/01/05/IconChevronBackward.svg",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 24,
+      "w": 24
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Rectangledesktop-18-12.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 252,
+      "w": 210
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Cateyedesktop-18-12.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 252,
+      "w": 210
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Aviatordesktop-18-12.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 252,
+      "w": 210
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Geometricdesktop-18-12.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 252,
+      "w": 210
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Rounddesktop-18-12.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 252,
+      "w": 210
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/square-desk-12may.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "hero",
+     "signal": "computed",
+     "rendered": {
+      "h": 252,
+      "w": 210
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/New_Coastline27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 262,
+      "w": 379
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/New_Floatpop27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 262,
+      "w": 379
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/New_Colourpop27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 262,
+      "w": 379
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/New_switch27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 262,
+      "w": 379
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/New_JJ27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 262,
+      "w": 379
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/New_Flex27aug2026ps.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 262,
+      "w": 379
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Aviator-IN-desktop-060126.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 230,
+      "w": 192
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Round-IN-desktop-060126.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 230,
+      "w": 192
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/Rectangle-IN-desktop-060126.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 230,
+      "w": 192
+     }
+    },
+    {
+     "url": "https://static5.lenskart.com/media/uploads/cat-eye-IN-desktop-060126.png",
+     "page": "https://www.lenskart.com/en-us",
+     "role": "content",
+     "signal": "computed",
+     "rendered": {
+      "h": 230,
+      "w": 192
+     }
+    }
+   ],
+   "coherence": {
+    "accepted": [
+     {
+      "at": "2026-10-10T22:05:38.528Z",
+      "id": "cross_domain:palette.surface_alt:mamaearth.in",
+      "origin": "user"
+     },
+     {
+      "at": "2026-10-10T22:05:39.493Z",
+      "id": "cross_domain:voice.tone:mamaearth.in",
+      "origin": "user"
+     },
+     {
+      "at": "2026-10-10T22:05:40.761Z",
+      "id": "cross_domain:regions:nike.in",
+      "origin": "user"
+     },
+     {
+      "at": "2026-10-10T22:05:41.646Z",
+      "id": "cross_domain:asset_hosts:nike.com",
+      "origin": "user"
+     },
+     {
+      "at": "2026-10-10T22:05:42.876Z",
+      "id": "cross_domain:asset_hosts:nike.in",
+      "origin": "user"
+     },
+     {
+      "at": "2026-10-10T22:05:48.443Z",
+      "id": "name_domain:name:delichic.co.in",
+      "origin": "user"
+     },
+     {
+      "at": "2026-10-10T22:05:50.060Z",
+      "id": "slug_name:slug:",
+      "origin": "user"
+     }
+    ],
+    "overrides": [
+     {
+      "at": "2026-10-10T21:29:38.959Z",
+      "by": "98e4d8d5-8356-4aee-b09e-1c32eaaffdb8",
+      "reason": "https://delichic.co.in/",
+      "conflicts": [
+       "cross_domain:name:mamaearth.in",
+       "cross_domain:tagline:mamaearth.in",
+       "cross_domain:favicon_url:mamaearth.in",
+       "cross_domain:brand_data.legal_entity:mamaearth.in",
+       "cross_domain:brand_data.social:mamaearth.in",
+       "cross_domain:brand_data.imagery:mamaearth.in",
+       "cross_domain:catalog_source:mamaearth.in"
+      ]
+     }
+    ]
+   },
+   "brand_files": {},
+   "field_origin": {
+    "name": "user",
+    "tagline": "user",
+    "website": "user",
+    "logo_url": "user",
+    "palette.ok": "preset",
+    "voice.tone": "site-parse",
+    "favicon_url": "user",
+    "palette.err": "preset",
+    "palette.ink": "preset",
+    "voice.notes": "site-parse",
+    "legal_entity": "site-parse",
+    "palette.line": "preset",
+    "palette.warn": "preset",
+    "regions.home": "default",
+    "voice.banned": "site-parse",
+    "palette.muted": "user",
+    "palette.accent": "default",
+    "palette.primary": "site-render",
+    "palette.surface": "site-render",
+    "typography.body": "preset",
+    "voice.preferred": "site-parse",
+    "brand_data.imagery": "site-render",
+    "typography.heading": "site-render",
+    "palette.surface_alt": "preset",
+    "regions.IN.store_url": "default",
+    "typography.body.scale": "site-parse",
+    "brand_data.design_system": "site-render",
+    "typography.heading.scale": "site-parse"
+   },
+   "design_system": {
+    "logo": {
+     "svg": "",
+     "url": "https://assets.lenskart.com/images/2026/01/14/Vector-3.svg",
+     "kind": "img",
+     "text": "",
+     "type": null,
+     "natural": {
+      "h": 20,
+      "w": 49
+     },
+     "rendered": {
+      "h": 40,
+      "w": 49
+     }
+    },
+    "type": {
+     "mobile": {
+      "h1": {
+       "size": 24,
+       "align": "start",
+       "color": "#000042",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 800,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 30,
+       "letter_spacing": 0
+      },
+      "h2": {
+       "size": 24,
+       "align": "start",
+       "color": "#000042",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 800,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 30,
+       "letter_spacing": 0
+      },
+      "nav": {
+       "size": 9,
+       "align": "start",
+       "color": "#ffffff",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 700,
+       "transform": "uppercase",
+       "decoration": "none",
+       "line_height": 60,
+       "letter_spacing": 0.09
+      },
+      "display": {
+       "size": 24,
+       "align": "start",
+       "color": "#000042",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 800,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 30,
+       "letter_spacing": 0
+      }
+     },
+     "desktop": {
+      "h1": {
+       "size": 24,
+       "align": "start",
+       "color": "#000042",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 800,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 30,
+       "letter_spacing": 0
+      },
+      "h2": {
+       "size": 24,
+       "align": "start",
+       "color": "#000042",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 800,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 30,
+       "letter_spacing": 0
+      },
+      "nav": {
+       "size": 12,
+       "align": "start",
+       "color": "#ffffff",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 700,
+       "transform": "uppercase",
+       "decoration": "none",
+       "line_height": 60,
+       "letter_spacing": 0.12
+      },
+      "display": {
+       "size": 24,
+       "align": "start",
+       "color": "#000042",
+       "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+       "style": "normal",
+       "family": "__Plus_Jakarta_Sans_7aabe8",
+       "weight": 800,
+       "transform": "none",
+       "decoration": "none",
+       "line_height": 30,
+       "letter_spacing": 0
+      }
+     }
+    },
+    "fonts": {
+     "heading": {
+      "kind": "webfont",
+      "note": "Loaded web font, rendering this role.",
+      "files": [
+       {
+        "url": "https://static-web-prod.lenskart.com/EN-US/desktop/20260909110643-1164170/_next/static/media/c49dcee81b580683-s.p.woff2",
+        "style": "italic",
+        "format": "woff2",
+        "weight": "500"
+       },
+       {
+        "url": "https://static-web-prod.lenskart.com/EN-US/desktop/20260909110643-1164170/_next/static/media/c49dcee81b580683-s.p.woff2",
+        "style": "italic",
+        "format": "woff2",
+        "weight": "700"
+       },
+       {
+        "url": "https://static-web-prod.lenskart.com/EN-US/desktop/20260909110643-1164170/_next/static/media/c49dcee81b580683-s.p.woff2",
+        "style": "italic",
+        "format": "woff2",
+        "weight": "800"
+       },
+       {
+        "url": "https://static-web-prod.lenskart.com/EN-US/desktop/20260909110643-1164170/_next/static/media/636a5ac981f94f8b-s.p.woff2",
+        "style": "normal",
+        "format": "woff2",
+        "weight": "500"
+       },
+       {
+        "url": "https://static-web-prod.lenskart.com/EN-US/desktop/20260909110643-1164170/_next/static/media/636a5ac981f94f8b-s.p.woff2",
+        "style": "normal",
+        "format": "woff2",
+        "weight": "700"
+       },
+       {
+        "url": "https://static-web-prod.lenskart.com/EN-US/desktop/20260909110643-1164170/_next/static/media/636a5ac981f94f8b-s.p.woff2",
+        "style": "normal",
+        "format": "woff2",
+        "weight": "800"
+       }
+      ],
+      "stack": "'__Plus_Jakarta_Sans_7aabe8','__Plus_Jakarta_Sans_Fallback_7aabe8'",
+      "family": "__Plus_Jakarta_Sans_7aabe8",
+      "google": false,
+      "source": {
+       "page": "https://www.lenskart.com/en-us",
+       "role": "display heading (largest text near the top)",
+       "signal": "computed",
+       "property": "font-family",
+       "selector": "div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq",
+       "viewport": "desktop"
+      },
+      "licence": "brand font",
+      "weights": [
+       "500",
+       "700",
+       "800"
+      ],
+      "display_name": "__Plus_Jakarta_Sans_7aabe8 (brand font)",
+      "declared_stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+      "fallback_stack": "'__Plus_Jakarta_Sans_Fallback_7aabe8'",
+      "files_by_reference": true,
+      "google_self_hosted": false
+     }
+    },
+    "colors": {
+     "primary": "#000042",
+     "surface": "#ffffff"
+    },
+    "origin": "site-render",
+    "source": {
+     "url": "https://www.lenskart.com/en-us",
+     "pages": [
+      {
+       "url": "https://www.lenskart.com/en-us",
+       "role": "home"
+      },
+      {
+       "url": "https://www.lenskart.com/en-us/eyeglasses/collection/all-eyeglasses.html",
+       "role": "collection"
+      }
+     ],
+     "method": "rendered in Chromium",
+     "read_at": "2026-10-11T03:28:13.637Z",
+     "renderer": "sparticuz 153.0.8010.0"
+    },
+    "version": 1,
+    "viewports": {
+     "mobile": 390,
+     "desktop": 1440
+    },
+    "components": {
+     "card": {
+      "mobile": null,
+      "desktop": null
+     },
+     "hero": {
+      "mobile": {
+       "body": null,
+       "align": "start",
+       "ground": "#ffffff",
+       "heading": {
+        "size": 24,
+        "align": "start",
+        "color": "#000042",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 800,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 30,
+        "letter_spacing": 0
+       },
+       "over_media": null
+      },
+      "desktop": {
+       "body": null,
+       "align": "start",
+       "ground": "#ffffff",
+       "heading": {
+        "size": 24,
+        "align": "start",
+        "color": "#000042",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 800,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 30,
+        "letter_spacing": 0
+       },
+       "over_media": null
+      }
+     },
+     "input": {
+      "desktop": {
+       "type": {
+        "size": 12,
+        "align": "start",
+        "color": "#c5c5c5",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 400,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": "normal",
+        "letter_spacing": 0
+       },
+       "width": 198.39,
+       "ground": "#6e6e6f",
+       "height": 44,
+       "radius": 5,
+       "shadow": "",
+       "outline": "",
+       "padding": [
+        0,
+        0,
+        0,
+        44
+       ],
+       "background": "",
+       "radius_all": [
+        5,
+        5,
+        5,
+        5
+       ],
+       "placeholder": "#000000",
+       "border_color": "",
+       "border_style": "none",
+       "border_width": 0,
+       "background_image": ""
+      }
+     },
+     "button": {
+      "primary": {
+       "focus": null,
+       "hover": null,
+       "mobile": null,
+       "desktop": null
+      },
+      "secondary": {
+       "focus": null,
+       "hover": null,
+       "mobile": null,
+       "desktop": null
+      }
+     },
+     "footer": {
+      "mobile": {
+       "text": {
+        "size": 20,
+        "align": "start",
+        "color": "#ffffff",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 300,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 25,
+        "letter_spacing": 0
+       },
+       "color": "#ffffff",
+       "ground": "#000042",
+       "padding": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "background": "#000042"
+      },
+      "desktop": {
+       "text": {
+        "size": 20,
+        "align": "start",
+        "color": "#ffffff",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 300,
+        "transform": "none",
+        "decoration": "none",
+        "line_height": 25,
+        "letter_spacing": 0
+       },
+       "color": "#ffffff",
+       "ground": "#000042",
+       "padding": [
+        0,
+        0,
+        0,
+        0
+       ],
+       "background": "#000042"
+      }
+     },
+     "header": {
+      "mobile": {
+       "link": {
+        "size": 9,
+        "align": "start",
+        "color": "#ffffff",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 700,
+        "transform": "uppercase",
+        "decoration": "none",
+        "line_height": 60,
+        "letter_spacing": 0.09
+       },
+       "logo": {
+        "kind": "img",
+        "width": 49,
+        "height": 40,
+        "placement": "left"
+       },
+       "ground": "#4d4d4d",
+       "height": 60,
+       "shadow": "",
+       "sticky": false,
+       "background": "#4d4d4d",
+       "border_bottom": ""
+      },
+      "desktop": {
+       "link": {
+        "size": 12,
+        "align": "start",
+        "color": "#ffffff",
+        "stack": "__Plus_Jakarta_Sans_7aabe8, __Plus_Jakarta_Sans_Fallback_7aabe8",
+        "style": "normal",
+        "family": "__Plus_Jakarta_Sans_7aabe8",
+        "weight": 700,
+        "transform": "uppercase",
+        "decoration": "none",
+        "line_height": 60,
+        "letter_spacing": 0.12
+       },
+       "logo": {
+        "kind": "img",
+        "width": 49,
+        "height": 40,
+        "placement": "left"
+       },
+       "ground": "#4d4d4d",
+       "height": 60,
+       "shadow": "",
+       "sticky": false,
+       "background": "#4d4d4d",
+       "border_bottom": ""
+      }
+     },
+     "imagery": {
+      "hero": {
+       "fit": "fill",
+       "aspect": 3,
+       "full_bleed": true
+      },
+      "product": null
+     },
+     "section": {
+      "mobile": {
+       "pad_top": null,
+       "sections": 1,
+       "container": null,
+       "pad_bottom": null
+      },
+      "desktop": {
+       "pad_top": null,
+       "sections": 1,
+       "container": null,
+       "pad_bottom": null
+      }
+     }
+    },
+    "hard_rules": [
+     {
+      "kind": "dark-section",
+      "rule": "Your site paints the header #4d4d4d, a dark neutral. Generated assets never paint a dark-neutral section, so this value is recorded exactly and our renderers use your brand primary or surface there instead (sectionGround).",
+      "value": "#4d4d4d",
+      "component": "header",
+      "components": [
+       "header"
+      ]
+     }
+    ],
+    "provenance": {
+     "logo_url": {
+      "page": "https://www.lenskart.com/en-us",
+      "role": "logo",
+      "signal": "computed",
+      "property": "currentSrc",
+      "selector": "nav.sc-d63abe48-1.lfbqwn > div.sc-53a42e28-6.dVEcKX:nth-of-type(1) > span.sc-e7280ca8-1.gSONMG > a > img.sc-e7280ca8-5.kxMBpo",
+      "viewport": "desktop"
+     },
+     "palette.primary": {
+      "page": "https://www.lenskart.com/en-us",
+      "role": "display heading",
+      "signal": "computed",
+      "property": "color",
+      "selector": "div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq",
+      "viewport": "desktop"
+     },
+     "palette.surface": {
+      "page": "https://www.lenskart.com/en-us",
+      "role": "page ground",
+      "signal": "computed",
+      "property": "background-color",
+      "selector": "body",
+      "viewport": "desktop"
+     },
+     "typography.heading": {
+      "page": "https://www.lenskart.com/en-us",
+      "role": "display heading (largest text near the top)",
+      "signal": "computed",
+      "property": "font-family",
+      "selector": "div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq",
+      "viewport": "desktop"
+     }
+    }
+   },
+   "field_origins": {
+    "name": {
+     "at": "2026-10-11T03:19:32.534Z",
+     "origin": "user"
+    },
+    "tagline": {
+     "at": "2026-10-11T03:19:33.918Z",
+     "origin": "user"
+    },
+    "website": {
+     "at": "2026-10-11T03:20:00.377Z",
+     "origin": "user"
+    },
+    "logo_url": {
+     "at": "2026-10-11T03:20:08.165Z",
+     "origin": "user"
+    },
+    "palette.ok": {
+     "at": "2026-10-11T03:18:14.869Z",
+     "origin": "preset"
+    },
+    "voice.tone": {
+     "at": "2026-10-11T03:18:14.870Z",
+     "url": "https://mamaearth.in/collections/b1g1-offer?utm_source=google&utm_medium=cpc&utm_term=24278676874&gad_source=1&gad_campaignid=24278676874&gbraid=0AAAAADPLvZraHc0TwwiwAaB-axRRQGIQ4&gclid=CjwKCAjwoaLWBhAWEiwAnyitu50peqh_S2JV6YLXUfO29pZtGKW6ZVBBHbqPw6bItvwrJuca4TEfuBoC0z0QAvD_BwE https://mamaearth.in/ https://mamaearth.in/pages/our-story https://mamaearth.in/blogs/baby-care-hair-care-skin-care",
+     "origin": "site-parse",
+     "signal": "observed from public copy"
+    },
+    "favicon_url": {
+     "at": "2026-10-11T03:20:04.868Z",
+     "origin": "user"
+    },
+    "palette.err": {
+     "at": "2026-10-11T03:18:14.869Z",
+     "origin": "preset"
+    },
+    "palette.ink": {
+     "at": "2026-10-11T03:19:23.032Z",
+     "origin": "preset",
+     "source": "preset lenskart"
+    },
+    "voice.notes": {
+     "at": "2026-10-05T10:23:56.529Z",
+     "origin": "site-parse"
+    },
+    "legal_entity": {
+     "at": "2026-10-10T22:10:40.162Z",
+     "origin": "site-parse"
+    },
+    "palette.line": {
+     "at": "2026-10-11T03:18:14.869Z",
+     "origin": "preset"
+    },
+    "palette.warn": {
+     "at": "2026-10-11T03:18:14.869Z",
+     "origin": "preset"
+    },
+    "regions.home": {
+     "at": "2026-10-11T03:24:40.424Z",
+     "origin": "default",
+     "derived_from": "the only region"
+    },
+    "voice.banned": {
+     "at": "2026-10-06T13:08:33.198Z",
+     "origin": "user"
+    },
+    "palette.muted": {
+     "at": "2026-10-11T03:35:28.239Z",
+     "origin": "user"
+    },
+    "palette.accent": {
+     "origin": "default"
+    },
+    "palette.primary": {
+     "at": "2026-10-11T03:28:30.847Z",
+     "url": "https://www.lenskart.com/en-us",
+     "origin": "site-render",
+     "signal": "computed: display heading (div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq) @ desktop"
+    },
+    "palette.surface": {
+     "at": "2026-10-11T03:28:28.081Z",
+     "origin": "site-render"
+    },
+    "typography.body": {
+     "at": "2026-10-11T03:19:23.032Z",
+     "origin": "preset",
+     "source": "preset lenskart"
+    },
+    "voice.preferred": {
+     "at": "2026-10-05T10:23:44.228Z",
+     "origin": "user"
+    },
+    "brand_data.imagery": {
+     "at": "2026-10-05T10:21:07.965Z",
+     "origin": "site-render"
+    },
+    "typography.heading": {
+     "at": "2026-10-11T03:28:28.081Z",
+     "origin": "site-render"
+    },
+    "palette.surface_alt": {
+     "at": "2026-10-11T03:19:23.032Z",
+     "origin": "preset",
+     "source": "preset lenskart"
+    },
+    "regions.IN.store_url": {
+     "at": "2026-10-11T03:22:00.260Z",
+     "origin": "default",
+     "derived_from": "website"
+    },
+    "typography.body.scale": {
+     "at": "2026-10-10T21:33:15.311Z",
+     "origin": "site-parse"
+    },
+    "brand_data.design_system": {
+     "at": "2026-10-05T10:21:07.965Z",
+     "origin": "site-render"
+    },
+    "typography.heading.scale": {
+     "at": "2026-10-10T21:33:15.311Z",
+     "origin": "site-parse"
+    }
+   },
+   "brand_extraction": {
+    "source": "https://www.lenskart.com/",
+    "applied": {
+     "name": {
+      "value": "Mamaearth",
+      "origin": "site-parse",
+      "signal": "opengraph:og:site_name",
+      "confidence": "declared",
+      "source_url": "https://mamaearth.in/collections/b1g1-offer?utm_source=google&utm_medium=cpc&utm_term=24278676874&gad_source=1&gad_campaignid=24278676874&gbraid=0AAAAADPLvZraHc0TwwiwAaB-axRRQGIQ4&gclid=CjwKCAjwoaLWBhAWEiwAnyitu50peqh_S2JV6YLXUfO29pZtGKW6ZVBBHbqPw6bItvwrJuca4TEfuBoC0z0QAvD_BwE"
+     },
+     "tagline": {
+      "value": "Buy 1 Get 1 free",
+      "origin": "site-parse",
+      "signal": "opengraph:og:description",
+      "confidence": "strong",
+      "source_url": "https://mamaearth.in/collections/b1g1-offer?utm_source=google&utm_medium=cpc&utm_term=24278676874&gad_source=1&gad_campaignid=24278676874&gbraid=0AAAAADPLvZraHc0TwwiwAaB-axRRQGIQ4&gclid=CjwKCAjwoaLWBhAWEiwAnyitu50peqh_S2JV6YLXUfO29pZtGKW6ZVBBHbqPw6bItvwrJuca4TEfuBoC0z0QAvD_BwE"
+     },
+     "logo_url": {
+      "value": "https://delichic.co.in/wp-content/uploads/2020/09/logo.png",
+      "origin": "site-render",
+      "signal": "computed: logo (div.elementor-element.elementor-element-3c0672d:nth-of-type(1) > div.elementor-widget-container > div.elementor-image > a > img.attachment-full.size-full) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://delichic.co.in/category/chicken/"
+     },
+     "voice.tone": {
+      "value": "The tone is primarily informative and promotional, with a secondary tone that is friendly, empathetic, and reassuring, particularly when addressing parents. It uses direct calls to action for sales and app downloads, while also employing a conversational and relatable style in its 'Our Story' section. There's an emphasis on safety and transparency, communicated with a confident and slightly inform",
+      "origin": "site-parse",
+      "signal": "observed from public copy",
+      "confidence": "weak",
+      "source_url": "https://mamaearth.in/collections/b1g1-offer?utm_source=google&utm_medium=cpc&utm_term=24278676874&gad_source=1&gad_campaignid=24278676874&gbraid=0AAAAADPLvZraHc0TwwiwAaB-axRRQGIQ4&gclid=CjwKCAjwoaLWBhAWEiwAnyitu50peqh_S2JV6YLXUfO29pZtGKW6ZVBBHbqPw6bItvwrJuca4TEfuBoC0z0QAvD_BwE https://mamaearth.in/ https://mamaearth.in/pages/our-story https://mamaearth.in/blogs/baby-care-hair-care-skin-care"
+     },
+     "favicon_url": {
+      "value": "https://delichic.co.in/wp-content/uploads/2020/08/logo.png",
+      "origin": "site-render",
+      "signal": "computed: icon (link[rel=apple-touch-icon])",
+      "confidence": "computed",
+      "source_url": "https://delichic.co.in/category/chicken/"
+     },
+     "palette.ink": {
+      "value": "#603e07",
+      "signal": "computed: body copy",
+      "confidence": "computed",
+      "source_url": "https://delichic.co.in/category/chicken/"
+     },
+     "voice.notes": {
+      "value": "Lead with a direct, challenging statement that immediately engages the reader's intellect.",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "voice.banned": {
+      "value": "Act now before it's too late",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "palette.muted": {
+      "value": "#ffa517",
+      "origin": "site-render",
+      "signal": "computed: secondary text (div.elementor-posts-container.elementor-posts > article.elementor-post.elementor-grid-item:nth-of-type(1) > div.elementor-post__card > div.elementor-post__meta-data:nth-of-type(2) > span.elementor-post-date) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://delichic.co.in/"
+     },
+     "palette.primary": {
+      "value": "#000042",
+      "origin": "site-render",
+      "signal": "computed: display heading (div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://www.lenskart.com/en-us"
+     },
+     "palette.surface": {
+      "value": "#ffffff",
+      "origin": "site-render",
+      "signal": "computed: page ground (body) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://www.lenskart.com/en-us"
+     },
+     "typography.body": {
+      "value": "Poppins",
+      "signal": "computed: body copy (div.footer-widgets.column-three:nth-of-type(2) > div.widget.widget_text > div.widget-content > div.textwidget > p:nth-of-type(1)) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://delichic.co.in/category/chicken/"
+     },
+     "voice.preferred": {
+      "value": "Uncompromising",
+      "signal": "chosen by the operator from suggested options",
+      "confidence": "user",
+      "source_url": ""
+     },
+     "brand_data.imagery": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: imagery",
+      "confidence": "computed",
+      "source_url": "https://www.lenskart.com/en-us"
+     },
+     "typography.heading": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: display heading (largest text near the top) (div#grid-scroll > div.sc-6b076d66-1.jWGrKR > div.sc-6b076d66-2.kjMPSN > h2.sc-c720f004-0.kqgzVq) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://www.lenskart.com/en-us"
+     },
+     "palette.surface_alt": {
+      "value": "#ffffff",
+      "origin": "site-render",
+      "signal": "computed: product card (div.hdt-row-flex.hdt-flex-cols-1:nth-of-type(2) > div.hdt-shop-content.hdt-col > hdt-reval-items.hdt-collection-products.hdt-collection-has-pr11 > hdt-card-product.hdt-card-product.hdt-pr-style1:nth-of-type(1) > div.hdt-card-product__wrapper) @ desktop",
+      "confidence": "computed",
+      "source_url": "https://mamaearth.in/collections/b1g1-offer?utm_source=google&utm_medium=cpc&utm_term=24278676874&gad_source=1&gad_campaignid=24278676874&gbraid=0AAAAADPLvZraHc0TwwiwAaB-axRRQGIQ4&gclid=CjwKCAjwoaLWBhAWEiwAnyitu50peqh_S2JV6YLXUfO29pZtGKW6ZVBBHbqPw6bItvwrJuca4TEfuBoC0z0QAvD_BwE"
+     },
+     "typography.body.scale": {
+      "value": "18px",
+      "signal": "css declaration",
+      "confidence": "computed",
+      "source_url": "https://delichic.co.in/category/chicken/"
+     },
+     "brand_data.design_system": {
+      "value": "",
+      "origin": "site-render",
+      "signal": "computed: design system @ desktop+mobile",
+      "confidence": "computed",
+      "source_url": "https://www.lenskart.com/en-us"
+     },
+     "typography.heading.scale": {
+      "value": "24px",
+      "signal": "css declaration",
+      "confidence": "computed",
+      "source_url": "https://www.lenskart.com/en-us"
+     }
+    },
+    "extracted_at": "2026-10-11T03:28:28.080Z"
+   }
+  },
+  "created_at": "2026-10-05T10:21:09.536685+00:00",
+  "legal_name": null,
+  "typography": {
+   "body": {
+    "stack": "'Poppins'",
+    "family": "Poppins",
+    "google": true,
+    "weights": "400;500;600;700"
+   },
+   "heading": {
+    "stack": "'__Plus_Jakarta_Sans_7aabe8','__Plus_Jakarta_Sans_Fallback_7aabe8'",
+    "family": "__Plus_Jakarta_Sans_7aabe8",
+    "google": false,
+    "weights": "500;700;800"
+   }
+  },
+  "updated_at": "2026-10-11T19:21:19.907355+00:00",
+  "asset_hosts": [
+   "nike.com",
+   "about.nike.com",
+   "nmp.about.nike.com",
+   "www.nike.in",
+   "www.lenskart.com",
+   "www.lenskart.sg"
+  ],
+  "favicon_url": "",
+  "catalog_source": {},
+  "onboarding_step": 5
+ }
+]
