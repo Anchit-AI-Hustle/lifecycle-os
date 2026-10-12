@@ -454,12 +454,19 @@ Sitemap: https://${host}/sitemap.xml
       geoSelector: false,
       handler(req, url) {
         const P = url.pathname;
+        // For the readers spec (2026-10-12): a body over the reader's 8 MB
+        // cap, a redirect onto the cloud metadata address, and a redirect loop.
+        if (P === '/__big') return { status: 200, type: 'application/octet-stream', raw: Buffer.alloc(9 * 1024 * 1024, 0x61) };
+        if (P === '/__go-metadata') return { status: 302, type: 'text/html', body: '', headers: { location: 'http://169.254.169.254/latest/meta-data/' } };
+        if (P === '/__go-private-name') return { status: 302, type: 'text/html', body: '', headers: { location: 'https://internal-rebind.example/admin' } };
+        const loop = /^\/__loop\/(\d+)$/.exec(P);
+        if (loop) return { status: 302, type: 'text/html', body: '', headers: { location: `/__loop/${Number(loop[1]) + 1}` } };
         if (this.geo === 'US' && this.geoSelector && /^\/frame-\d+\.html$/.test(P) && url.searchParams.get('country') === 'in') {
           const p = all.get(P);
           if (stale.has(P)) return { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title><p>gone</p>' };
           if (p) return { status: 200, type: 'text/html', body: pdp(p) };
         }
-        if (this.geo === 'US' && /^\/frame-\d+\.html$/.test(P)) return { status: 302, type: 'text/html', body: '', headers: { location: `https://${host}/en-us${P}` } };
+        if (this.geo === 'US' && req.fixtureCountry !== 'IN' && /^\/frame-\d+\.html$/.test(P)) return { status: 302, type: 'text/html', body: '', headers: { location: `https://${host}/en-us${P}` } };
         const sel = (html, p2) => (this.geoSelector ? html.replace('</head>', `<link rel="alternate" hreflang="en-in" href="https://${host}${p2.replace(/^\/en-us/, '')}?country=in"></head>`) : html);
         if (this.geo === 'US' && /^\/en-us\/frame-\d+\.html$/.test(P) && !all.has(P)) { const n = P.replace(/\D/g, ''); return { status: 200, type: 'text/html', body: sel(pdp({ path: P, title: `Frame us ${n}`, sku: `G${n}`, price: '99.00', currency: 'USD', images: [`https://${host}/img/us-${n}.jpg`], description: 'Frame.' }), P) }; }
         if (this.geo === 'US' && /^\/en-us\/frame-\d+\.html$/.test(P) && all.has(P)) return { status: 200, type: 'text/html', body: sel(pdp(all.get(P)), P) };
@@ -608,10 +615,19 @@ ${this.rootHreflangUs ? `<link rel="alternate" hreflang="en-us" href="https://${
 async function startStores() {
   const stores = buildStores();
   const hits = {};   // host -> [path+search]
-  const server = http.createServer((req, res) => {
-    const host = String(req.headers['x-fixture-host'] || '').toLowerCase();
+  // WHERE A REQUEST COMES FROM is modelled by the CONNECTION, never by a
+  // header (2026-10-12, the readers in each country): the stores listen on a
+  // second socket, the "IN entrance", and a request that arrives on it is a
+  // request from India - as a real store's geo-IP lookup reads the source
+  // address of the connection. Nothing a reader sends can choose it; the
+  // test's reader is DIALLED to that socket by a code-level hook.
+  let inPort = 0;
+  const onRequest = (req, res) => {
+    // The host: the routeFetch plumbing header, else the Host header a reader sends.
+    const host = String(req.headers['x-fixture-host'] || String(req.headers.host || '').replace(/:\d+$/, '')).toLowerCase();
+    req.fixtureCountry = req.socket && req.socket.localPort === inPort ? 'IN' : '';
     const url = new URL(req.url, `https://${host}`);
-    (hits[host] = hits[host] || []).push({ path: url.pathname + url.search, ua: String(req.headers['user-agent'] || ''), at: Date.now(), cookie: req.headers.cookie || null, lang: req.headers['accept-language'] || null, forwarded: req.headers['x-forwarded-for'] || null });
+    (hits[host] = hits[host] || []).push({ path: url.pathname + url.search, ua: String(req.headers['user-agent'] || ''), at: Date.now(), cookie: req.headers.cookie || null, lang: req.headers['accept-language'] || null, forwarded: req.headers['x-forwarded-for'] || null, from: req.fixtureCountry || '', headers: Object.keys(req.headers).sort() });
     const store = stores[host];
     // A store that sheds parallel connections: past `maxInflight` requests in
     // flight on a path it throttles, the connection is dropped unanswered,
@@ -631,10 +647,15 @@ async function startStores() {
       res.end(out.raw || out.body || '');
     };
     if (out && out.delay) setTimeout(send, out.delay); else send();
-  });
+  };
+  const server = http.createServer(onRequest);
   server.keepAliveTimeout = 1;
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
+  const inServer = http.createServer(onRequest);
+  inServer.keepAliveTimeout = 1;
+  await new Promise((r) => inServer.listen(0, '127.0.0.1', r));
+  inPort = inServer.address().port;
 
   /** A fetch for the fixture hosts, over the real socket. */
   async function routeFetch(input, init) {
@@ -660,7 +681,7 @@ async function startStores() {
 
   let realFetch = null, realLookup = null;
   return {
-    port, stores, hits, routeFetch, isFixture,
+    port, inPort, stores, hits, routeFetch, isFixture,
     /** Patch global.fetch (fixture hosts only; anything else throws) and dns. */
     install({ passthrough } = {}) {
       realFetch = global.fetch;
@@ -704,7 +725,7 @@ async function startStores() {
       stores['beautymart.example'].dropped = 0;
       stores['beautymart.example'].inflight = 0;
     },
-    close() { return new Promise((r) => server.close(() => r())); },
+    close() { return Promise.all([server, inServer].map((x) => new Promise((r) => x.close(() => r())))); },
   };
 }
 
