@@ -34,3 +34,7 @@ input/
 uploaded_by_*/
 *_customers.csv
 *-Ads-*.csv
+
+# In-country catalogue readers: their own Vercel projects (root directory readers/),
+# never part of this deployment.
+readers
