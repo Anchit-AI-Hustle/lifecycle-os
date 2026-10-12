@@ -2333,6 +2333,7 @@ function _doAutoUpdateChips(text){
       });
       S.markets=mktKeys.slice();
       S.market=mktKeys[0];
+      try{_studioShareSelection();}catch(_){}
     }
   }
 }
@@ -2430,8 +2431,10 @@ function renderMarketChips(){
     return;
   }
   // Keep a choice the user already made on this brand; otherwise the home market.
+  // Else the SHARED market selection (region-context.js, 2026-10-12): the
+  // markets ticked on any page open here, and a pick here travels back.
   var keep=S._mktManualSet?S.markets.map(function(m){return rc.resolve(m);}).filter(Boolean):[];
-  var on=keep.length?keep:[rc.home];
+  var on=keep.length?keep:((rc.marketsFor&&rc.marketsFor().length)?rc.marketsFor():[rc.home]);
   host.innerHTML=opts.map(function(o){
     return '<button type="button" class="mkt-chip'+(on.indexOf(o.code)>=0?' on':'')+'" data-mkt="'+escStudio(o.code)+'"'+(o.home?' data-home="1" title="Home market"':'')+' onclick="toggleMarket(\''+escStudio(o.code)+'\',this)">'+mktChipLabel(o.code)+'</button>';
   }).join('');
@@ -2465,7 +2468,25 @@ function renderStandaloneMarketChips(){
   }
   if(!window.RegionContext){ if(waited<6000) setTimeout(function(){watchRegionsForStudio(waited+100);},100); return; }
   window.RegionContext.onChange(function(){ try{renderMarketChips();}catch(_){} });
+  // The chips ARE the shared selection: one changed elsewhere (another page,
+  // another control) is shown here, and S.markets follows it.
+  if(window.RegionContext.onSelection) window.RegionContext.onSelection(function(){ try{_studioFollowSelection();}catch(_){} });
 })(0);
+function _studioSameList(a,b){ return a.length===b.length && a.every(function(x,i){return x===b[i];}); }
+function _studioFollowSelection(){
+  var rc=window.RegionContext; if(!rc||!rc.loaded||!rc.regions.length||!rc.selectionExplicit) return;
+  var host=document.getElementById('mktChips'); if(!host||!host.querySelector('.mkt-chip')) return;
+  var sel=rc.selection;
+  if(_studioSameList(sel,(S.markets||[]).map(function(m){return rc.resolve(m)||m;}))) return;
+  S.markets=sel.slice(); S.market=sel[0]; S.activeMarket=sel[0]; S._mktManualSet=true;
+  host.querySelectorAll('.mkt-chip').forEach(function(c){ c.classList.toggle('on', sel.indexOf(c.getAttribute('data-mkt'))>=0); });
+}
+/* A pick made on the Studio's own chips is the shared selection too. */
+function _studioShareSelection(){
+  var rc=window.RegionContext; if(!rc||!rc.setSelection||!window.BrandContext||!rc.regions.length) return;
+  var mk=(S.markets||[]).map(function(m){return rc.resolve(m);}).filter(Boolean);
+  if(mk.length) rc.setSelection(mk);
+}
 // ── Market chip toggle ──────────────────────────────────────────────────────
 function toggleMarket(m,el){
   var idx=S.markets.indexOf(m);
@@ -2477,6 +2498,7 @@ function toggleMarket(m,el){
   }
   S.market=S.markets[0]||_homeMkt();
   S._mktManualSet=true; // user took control — stop auto-detection from overriding
+  _studioShareSelection();
   var ct=S.markets.length;
   showCopyToast(ct===1?'1 market selected':ct+' markets selected — one mailer per market will be generated');
 }
@@ -2811,7 +2833,9 @@ async function createPromptWithAI(){
       body:JSON.stringify({
         mode:'create_brief',
         market:primaryMkt,
-        markets:(window.S&&S.markets)||[primaryMkt],
+        // ONE market per call (2026-10-12): the brief is written for the
+        // primary market; every market's mailer is then built on its own.
+        markets:[primaryMkt],
         theme:type,
         campaign_brief:seed,
         selected_products:prods,
@@ -9137,7 +9161,7 @@ function applyCalendarHandoff(){
     var rc = window.RegionContext;
     var mkt = (rc && rc.resolve(e.market)) || _homeMkt() || e.market;
     document.querySelectorAll('.mkt-chip').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mkt')===mkt); });
-    if(typeof S==='object'){ S.markets=[mkt]; S.market=mkt; S.activeMarket=mkt; S._mktManualSet=true; }
+    if(typeof S==='object'){ S.markets=[mkt]; S.market=mkt; S.activeMarket=mkt; S._mktManualSet=true; try{_studioShareSelection();}catch(_){} }
   }catch(_){}
 
   // 4. Campaign type — map content_type / festival → a studio type chip.
