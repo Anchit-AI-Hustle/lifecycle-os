@@ -365,6 +365,11 @@ test('market chips fall back to the page\'s own markets when the region helper n
   await page.goto(URL);
   await expect(page.locator('#mktChips .mkt-chip[data-mkt="US"]')).toBeVisible({ timeout: 12_000 });
   await expect(page.locator('#mktChips')).not.toContainText('Loading this brand');
-  await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
-  expect(await page.evaluate(() => window.S.markets)).toContain('US');
+  // The chips now paint while the page is still laying out (no six-second
+  // wait), so on a 320px phone a tap can land where the chip WAS a moment
+  // before (iphone-se, 2026-10-12). Tap until the pick holds, as a person would.
+  await expect(async () => {
+    if (!(await page.locator('#mktChips .mkt-chip.on[data-mkt="US"]').count())) await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
+    expect(await page.evaluate(() => window.S.markets)).toContain('US');
+  }).toPass({ timeout: 10_000 });
 });
