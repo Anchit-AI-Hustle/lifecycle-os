@@ -415,6 +415,23 @@ test('two tabs: a stale tab saving a guideline document never overwrites a value
   } finally { w.restore(); }
 });
 
+test('a value the row keeps keeps its own provenance: the incoming source is never recorded beside a value it did not set (the live Lenskart record)', async () => {
+  const w = await saveWorld();
+  try {
+    await w.core.saveWorkspace(w.auth, typedSave('Typed in tab B'));
+    // A stale save carrying the document's provenance for a field the row keeps.
+    await w.core.saveWorkspace(w.auth, staleDocumentSave());
+    const row = await w.row();
+    expect(row.tagline).toBe('Typed in tab B');
+    const fo = (row.brand_data && row.brand_data.field_origins) || {};
+    const plain = (row.brand_data && row.brand_data.field_origin) || {};
+    expect(fo.tagline && fo.tagline.origin, 'the stored record says a document set a tagline it did not set').not.toBe('document');
+    expect(plain.tagline, 'the plain origin map says a document set a tagline it did not set').not.toBe('document');
+    // The field the document DID set carries the document's provenance.
+    expect(fo['palette.primary'] && fo['palette.primary'].origin).toBe('document');
+  } finally { w.restore(); }
+});
+
 test('two tabs, interleaved, placeholders: a colour typed in another tab between this tab\'s read and write is not replaced by the value this tab read', async () => {
   const w = await saveWorld();
   try {

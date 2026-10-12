@@ -1287,7 +1287,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (!existing && p.asset_hosts) markOrigin('asset_hosts', 'preset');
         if (!existing && (p.brand_assets || []).length) markOrigin('brand_data.brand_assets', 'preset');
         presetPicked = slug;
-        markOrigins((existing ? [] : ['name', 'tagline', 'website', 'logo_url']).concat(['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body', 'voice.tone', 'voice.preferred', 'voice.banned']), 'preset', { source: 'preset ' + slug });
+        // Only what the template actually CARRIED is recorded as the template's
+        // (2026-10-11): stamping every filled field labelled values the
+        // template never set - the live Lenskart record's Poppins, typed for
+        // another brand, read "preset lenskart" - and a label that does not
+        // describe its value hides a mix from the coherence check.
+        var carried = (existing ? [] : ['name', 'tagline', 'website', 'logo_url'].filter(function (k) { return !!p[k]; }))
+          .concat(p.palette ? ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].filter(function (k) { return !!p.palette[k]; }).map(function (k) { return 'palette.' + k; }) : [])
+          .concat(p.typography ? ['heading', 'body'].filter(function (k) { return !!p.typography[k]; }).map(function (k) { return 'typography.' + k; }) : [])
+          .concat(p.voice ? ['tone', 'preferred', 'banned'].filter(function (k) { var v = p.voice[k]; return Array.isArray(v) ? v.length > 0 : !!v; }).map(function (k) { return 'voice.' + k; }) : []);
+        markOrigins(carried, 'preset', { source: 'preset ' + slug });
         if (existing) toast('Applied the ' + p.name + ' template\'s colours, fonts and voice to ' + (brand.name || 'this brand') + '. Its name, website, logo, regions and assets are ' + p.name + '\'s, so ' + (brand.name || 'this brand') + ' keeps its own.', 6200);
         // The preset's website replaces whatever was being typed.
         xUrlDraft = null;
