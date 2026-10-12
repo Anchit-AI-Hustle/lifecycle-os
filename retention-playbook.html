@@ -148,7 +148,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <span id="engstatus" class="note">idle</span>
         </div>
         <div id="engbar" class="eng-bar" style="display:none"><i></i></div>
-        <div id="engmsg" class="note" style="margin-top:6px">Plan a fresh calendar and write its content for the region selected below, without leaving this screen. Heavy generation runs in the background, so the filters stay responsive.</div>
+        <div id="engprogress"></div>
+        <div id="engmsg" class="note" style="margin-top:6px">Plan a fresh calendar and write its content for each market selected below (one run per market), without leaving this screen. Heavy generation runs in the background, so the filters stay responsive.</div>
       </div>
       <button type="button" id="syncbtn" class="chip btn-run" onclick="runAgenticSync()">Run Agentic Sync</button>
     </div>
@@ -164,7 +165,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
            with its HOME market pre-selected; see buildMktChips. They used to be a typed
            All/US/UK/Global/India row with US on, so an India-only brand opened on a US filter
            over a plan that has no US rows. -->
-      <div class="frow" id="mktrow"><span class="lbl">Region</span><span id="mktchips" style="display:contents"></span></div>
+      <!-- 2026-10-12: the shared market selection (region-context.js), several at
+           once; the table shows those markets and Run Agentic Sync runs once
+           per selected market. -->
+      <div class="frow" id="mktrow"><div id="mktchips" data-region-multi data-region-label="Markets"></div></div>
       <div class="frow"><span class="lbl">Duration</span>
         <button type="button" class="chip" data-dur="7" onclick="setDur(7)">Next 7 days</button>
         <button type="button" class="chip" data-dur="30" onclick="setDur(30)">30 days</button>
@@ -208,7 +212,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Global/WORLDWIDE, UK/GB), through the shared layer, so a brand's own EU or
   // AU market is no longer folded into "Global" by a regex written for one tenant.
   function mktKey(m){return window.RegionContext?window.RegionContext.family(m):String(m||'').toUpperCase().replace(/[^A-Z]/g,'');}
-  function mktVisible(e){return SELECTED_MKT.size===0||SELECTED_MKT.has(mktKey(e.market));}
+  function mktVisible(e){return SELECTED_MKT.has(mktKey(e.market));}
   function durVisible(e){if(SELECTED_DAYS==='all')return true;var t=new Date().toISOString().slice(0,10);var end=new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10);return !e.date||(e.date>=t&&e.date<=end);}
   // The bucket a slot belongs to is whatever the ACTIVE BRAND'S OWN plan says it
   // is: the hero product's category or type, as the calendar recorded it. There
@@ -242,31 +246,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function slotVisible(e){return mktVisible(e)&&durVisible(e)&&catVisible(e);}
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  window.toggleMkt=function(m){if(m==='all')SELECTED_MKT.clear();else{var k0=mktKey(m);if(SELECTED_MKT.has(k0))SELECTED_MKT.delete(k0);else SELECTED_MKT.add(k0);}paintMktChips();render();};
-  function paintMktChips(){document.querySelectorAll('[data-mkt]').forEach(function(b){var k=b.dataset.mkt;b.classList.toggle('on',k==='all'?SELECTED_MKT.size===0:SELECTED_MKT.has(mktKey(k)));});}
-  // One chip per region THIS brand declares, plus All where there is more than
-  // one; the HOME market starts selected. A brand with no regions gets the
-  // marker, never a shipped list.
-  var _mktBuilt=null;
+
+  // Markets: the shared selection (region-context.js), the brand's HOME
+  // market until the viewer ticks others (2026-10-12).
   function buildMktChips(){
-    var host=$('mktchips'), rc=window.RegionContext; if(!host||!rc) return;
-    // "All" only where there is a choice to widen: a one-market brand gets
-    // its one market, not a two-way toggle between the same thing twice.
-    var opts=rc.options({all:rc.regions.length>1});
-    var key=opts.map(function(o){return o.code;}).join('|');
-    if(key===_mktBuilt) return; _mktBuilt=key;
-    if(!opts.length){ host.innerHTML='<span class="note">'+String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g,'')+'</span>'; SELECTED_MKT=new Set(); render(); return; }
-    host.innerHTML=opts.map(function(o){
-      var v=o.all?'all':o.code;
-      return '<button type="button" class="chip" data-mkt="'+esc(v)+'"'+(o.home?' data-home="1" title="Home market"':'')+' onclick="toggleMkt(\''+esc(v)+'\')">'+esc(o.name)+'</button>';
-    }).join('');
-    SELECTED_MKT=new Set(rc.home?[mktKey(rc.home)]:[]);
-    paintMktChips(); render();
+    var rc=window.RegionContext; if(!rc||!rc.loaded) return;
+    var list=rc.marketsFor?rc.marketsFor():(rc.home?[rc.home]:[]);
+    SELECTED_MKT=new Set(list.map(mktKey));
+    render();
   }
   (function watchRegions(w){
     var waited=w||0;
     if(!window.RegionContext){ if(waited<6000) setTimeout(function(){watchRegions(waited+100);},100); return; }
     window.RegionContext.onChange(buildMktChips);
+    if(window.RegionContext.onSelection) window.RegionContext.onSelection(buildMktChips);
   })(0);
   window.setDur=function(d){SELECTED_DAYS=(d==='all')?'all':Number(d);document.querySelectorAll('[data-dur]').forEach(function(b){b.classList.toggle('on',String(b.dataset.dur)===String(d));});render();};
   window.toggleCat=function(c){if(SELECTED_CAT.has(c)){if(SELECTED_CAT.size===1)return;SELECTED_CAT.delete(c);}else SELECTED_CAT.add(c);document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.toggle('on',SELECTED_CAT.has(b.dataset.cat));});render();};
@@ -305,7 +298,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(!shown.length){ $('rows').innerHTML='<tr><td colspan="6" class="note">No sends for the selected region + duration + catalog. Widen a filter.</td></tr>'; return; }
     $('rows').innerHTML=shown.map(function(e){
       var reach=e.reach&&e.reach.planned_recipients?Number(e.reach.planned_recipients).toLocaleString():'—';
-      return '<tr>'+
+      return '<tr data-rp-market="'+esc(mktKey(e.market))+'">'+
         '<td>'+esc(e.date)+(e.mailer_total>1?'<br><span class="slotbadge">MAILER '+e.mailer_index+'/'+e.mailer_total+'</span>':'')+'</td>'+
         '<td><b>'+esc(e.market)+'</b></td>'+
         '<td>'+esc(e.cohort&&e.cohort.name||'')+'<div class="sub">'+((e.cohort&&e.cohort.size)!=null?esc(e.cohort.size)+' profiles':'')+'</div></td>'+
@@ -322,7 +315,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   // Region for the agentic run comes from the region chips (single source of truth).
   // The selected chip, else the brand's HOME market; the brand's own code, never a literal.
-  function agenticMarket(){ var rc=window.RegionContext; var m=Array.from(SELECTED_MKT)[0]||(rc&&rc.home)||''; return (rc&&rc.resolve(m))||m; }
+  function agenticMarket(){ return agenticMarkets()[0]||''; }
+  // One run per selected market (2026-10-12), each with ONE market.
+  function agenticMarkets(){ var rc=window.RegionContext; if(!rc) return []; return rc.marketsFor?rc.marketsFor():(rc.home?[rc.home]:[]); }
   // Command-and-control: trigger the full agentic flow (plan the calendar + write
   // content) right from the Playbook. The heavy run is async on /api/brain; when it
   // returns we re-pull the plan table (the static-page equivalent of router.refresh).
@@ -330,18 +325,30 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var btn=$('syncbtn'), st=$('engstatus'), dot=$('engdot'), bar=$('engbar'), msg=$('engmsg');
     if(btn){ btn.disabled=true; btn.textContent='Running…'; }
     if(dot) dot.style.background='var(--vh-warn-text)';
-    if(st) st.textContent='running · '+agenticMarket();
+    var rc=window.RegionContext, markets=agenticMarkets();
+    if(!markets.length){
+      if(btn){ btn.disabled=false; btn.textContent='Run Agentic Sync'; }
+      if(msg) msg.textContent=((rc&&rc.marker)?rc.marker('home market'):'[DATA REQUIRED BEFORE LAUNCH: home market, this brand]')+' This brand has no market on its record, so there is no market to plan for.';
+      return;
+    }
+    if(st) st.textContent='running · '+markets.join(', ');
     if(bar) bar.style.display='';
-    if(msg) msg.textContent='Inspecting data, calculating funnel math, planning the calendar and writing content…';
+    if(msg) msg.textContent='Inspecting data, calculating funnel math, planning the calendar and writing content, one market at a time…';
     // Scope the run to the period the operator selected, not to the default.
     var runDays=(SELECTED_DAYS==='all')?90:(Number(SELECTED_DAYS)||90);
-    fetch('/api/brain?action=agentic-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({market:agenticMarket(),tier:'maxpower',days:runDays,withCreatives:false})})
-      .then(function(r){return r.json();})
-      .then(function(d){
-        if(!d.ok) throw new Error(d.error||'agentic flow failed');
-        var stages=(d.stages||[]).filter(function(s){return s.ok;}).length;
+    function one(market){
+      return fetch('/api/brain?action=agentic-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({market:market,tier:'maxpower',days:runDays,withCreatives:false})})
+        .then(function(r){return r.json();})
+        .then(function(d){ if(!d.ok) throw new Error(d.message||d.error||'agentic flow failed'); return d; });
+    }
+    var run=(rc&&rc.fanOut)?rc.fanOut(one,{markets:markets,progress:$('engprogress'),label:'Running Agentic Sync'})
+      :one(markets[0]).then(function(d){return [{market:markets[0],ok:true,value:d}];},function(e){return [{market:markets[0],ok:false,error:e}];});
+    run.then(function(runs){
+        var good=runs.filter(function(r){return r.ok;});
+        if(!good.length) throw (runs[0]&&runs[0].error)||new Error('agentic flow failed');
+        var stages=good.reduce(function(n,r){return n+((r.value.stages||[]).filter(function(s){return s.ok;}).length);},0);
         if(st) st.textContent='synced'; if(dot) dot.style.background='var(--vh-ok-text)';
-        if(msg) msg.textContent='Flow complete — '+stages+' stages ran. Creative assets (mailers, ads, landing pages) prebuild in the background; refreshing the plan…';
+        if(msg) msg.textContent='Flow complete for '+good.map(function(r){return r.market;}).join(', ')+(good.length<runs.length?' ('+(runs.length-good.length)+' market(s) failed, said above)':'')+' — '+stages+' stages ran. Creative assets (mailers, ads, landing pages) prebuild in the background; refreshing the plan…';
         load();
       })
       .catch(function(e){ if(st) st.textContent='error'; if(dot) dot.style.background='var(--vh-err-text)'; if(msg) window.LifecycleFailure.show(msg, e, { title: 'Agentic sync failed' }); })

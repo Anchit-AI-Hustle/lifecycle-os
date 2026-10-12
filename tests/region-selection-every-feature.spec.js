@@ -179,3 +179,37 @@ test('/ad-campaigns: the plan shows the ticked markets; copy and Save run once p
   expect(google.map((c) => c.market).sort()).toEqual(['IN', 'US']);
   expect(google.find((c) => c.market === 'US').headlines).toEqual(['For US']);
 });
+
+/* ═══════════════════════════════ VIEWS ═══════════════════════════════ */
+
+test('/rfm dashboard: an aggregate of every market by default, then exactly the ticked ones', async ({ page }) => {
+  await H.install(page, NAME);
+  expect(await H.open(page, 'dashboard.html', NAME)).toBe(true);
+  await page.waitForFunction(() => window.RegionContext && window.RegionContext.loaded && document.querySelector('#regionChips[data-region-multi] input[value="US"]'));
+  // Its own default is every market (it aggregates), shown as such.
+  await expect(page.locator('#regionChips input[data-rgn-all]')).toBeChecked();
+  expect(await page.evaluate(() => ['IN', 'US', 'UK', 'Global'].filter(matchRegion))).toEqual(['IN', 'US', 'UK', 'Global']);
+  await page.locator('#regionChips input[value="UK"]').uncheck();
+  await expect.poll(() => page.evaluate(() => window.RegionContext.selection)).toEqual(PICKED);
+  // Rows spelt as the export spells them (India, usa) count under their market.
+  expect(await page.evaluate(() => ['IN', 'India', 'US', 'usa', 'UK', 'GB', 'Global'].filter(matchRegion))).toEqual(['IN', 'India', 'US', 'usa']);
+});
+
+test('/knowledge-base: one library tile per ticked market, the third never', async ({ page }) => {
+  await openAndPick(page, 'knowledge-base.html', { control: '#kbRegions' });
+  await page.locator('.subtab[data-chan="meta"]').click();
+  await expect.poll(() => page.locator('#panel [data-kb-market]').evaluateAll((els) => els.map((e) => e.getAttribute('data-kb-market')))).toEqual(PICKED);
+});
+
+test('/retention-playbook: the plan shows the ticked markets; Agentic Sync runs once per market', async ({ page }) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const entries = ['IN', 'US', 'UK'].map((m, i) => ({ id: 'r' + i, date: today, market: m, cohort: { name: 'Loyal' }, objective: 'retention', channels: ['email'] }));
+  const rec = recorder(/\/api\/(calendar|brain)\?action=(smart-brain-plan|agentic-run)/, (b, url) => (/smart-brain-plan/.test(url) ? { ok: true, entries } : { ok: true, market: b.market, stages: [{ stage: 'data', ok: true }] }));
+  await openAndPick(page, 'retention-playbook.html', { route: rec.route, control: '#mktchips' });
+  await page.locator('[data-dur="all"]').click().catch(() => {});
+  await expect.poll(() => page.locator('[data-rp-market]').evaluateAll((els) => els.map((e) => e.getAttribute('data-rp-market')))).toEqual(PICKED);
+  rec.seen.length = 0;
+  await page.locator('#syncbtn').click();
+  await expect.poll(() => progressStates(page, '#engprogress')).toEqual([['IN', 'done'], ['US', 'done']]);
+  expect(rec.seen.filter((r) => /agentic-run/.test(r.url)).map((r) => r.body.market)).toEqual(PICKED);
+});
