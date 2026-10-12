@@ -20,6 +20,10 @@ const MIG = path.join(__dirname, '..', 'supabase', 'migrations');
 const REPAIR = '20261012180000_repair_mixed_brand_records.sql';
 const ROWS = require('./fixtures/live-mixed-brands-2026-10-11.json');
 const C = require('../api/_shared/brand-coherence.js');
+// The live project's own column types (read-only, information_schema). The
+// first version of this spec declared asset_hosts as text[]; the live column is
+// jsonb, so the migration passed here and failed in the project (2026-10-12).
+const LIVE_COLUMNS = require('./fixtures/live-brand-columns-2026-10-12.json');
 
 const PLATFORM = `
   create role authenticated; create role anon;
@@ -34,8 +38,9 @@ const PLATFORM = `
     website text, logo_url text, favicon_url text, onboarding_step int,
     palette jsonb not null default '{}'::jsonb, typography jsonb not null default '{}'::jsonb,
     voice jsonb not null default '{}'::jsonb, regions jsonb not null default '[]'::jsonb,
-    brand_data jsonb not null default '{}'::jsonb, catalog_source jsonb, asset_hosts text[],
-    created_at timestamptz, updated_at timestamptz);
+    brand_data jsonb not null default '{}'::jsonb, catalog_source jsonb not null default '{}'::jsonb,
+    asset_hosts jsonb not null default '[]'::jsonb, created_at timestamptz, updated_at timestamptz,
+    unique (owner_id, slug));
   create function public.is_brand_member(ws uuid, uid uuid) returns boolean language sql stable as $$ select true $$;
   create function public.is_brand_editor(ws uuid, uid uuid) returns boolean language sql stable as $$ select true $$;
   create table public.brand_catalog_products (id bigserial primary key, workspace_id uuid, title text, source_url text, product_url text, stale_at timestamptz);
@@ -54,7 +59,7 @@ async function database(withRows) {
         onboarding_step, palette, typography, voice, regions, brand_data, catalog_source, asset_hosts, created_at, updated_at)
         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
       [r.id, r.owner_id, r.name, r.slug, r.status, r.tagline, r.legal_name, r.industry, r.website, r.logo_url, r.favicon_url,
-        r.onboarding_step, r.palette, r.typography, r.voice, r.regions, r.brand_data, r.catalog_source, r.asset_hosts, r.created_at, r.updated_at]);
+        r.onboarding_step, r.palette, r.typography, r.voice, r.regions, r.brand_data, r.catalog_source || {}, JSON.stringify(r.asset_hosts || []), r.created_at, r.updated_at]);
     }
     const L = ROWS.find((x) => x.name === 'Lenskart');
     await db.query(`insert into public.brand_catalog_products (workspace_id, title, source_url) values ($1, 'Chicken Salami', 'https://delichic.co.in/products/salami'), ($1, 'Round Frames', 'https://www.lenskart.com/round.html')`, [L.id]);
@@ -70,6 +75,15 @@ async function database(withRows) {
 const foreignApplied = (rec, own) => Object.entries(((rec.brand_data || {}).brand_extraction || {}).applied || {})
   .filter(([, v]) => { try { return !C.sameBrand(C.registrableDomain(new URL(v.source_url).host), own); } catch (_) { return false; } })
   .map(([k]) => k);
+test('the tables here have the live project\'s column types', async () => {
+  const { db } = await database(false);
+  for (const table of ['brand_workspaces', 'brand_catalog_products']) {
+    const rows = (await db.query(`select column_name, data_type from information_schema.columns where table_schema = 'public' and table_name = $1`, [table])).rows;
+    const here = Object.fromEntries(rows.map((r) => [r.column_name, r.data_type]));
+    for (const [col, type] of Object.entries(LIVE_COLUMNS[table])) expect(here[col], table + '.' + col).toBe(type);
+  }
+});
+
 const blocking = (rec) => (C.brandCoherence(rec).conflicts || []).filter((c) => c.severity === 'block');
 
 test('the live rows are mixed before the repair (the fixture is what the repair is for)', async () => {
@@ -87,6 +101,7 @@ test('after the repair each record describes its own brand, and what came from a
   const L = await row('Lenskart');
   expect(L.slug).toBe('lenskart');
   expect(L.palette.primary).toBe('#000042');
+  expect(Array.isArray(L.asset_hosts)).toBe(true);
   expect(L.asset_hosts.every((h) => C.sameBrand(C.registrableDomain(h), 'lenskart.com'))).toBe(true);
   expect(blocking(L), JSON.stringify(blocking(L))).toEqual([]);
   expect(foreignApplied(L, 'lenskart.com')).toEqual([]);
