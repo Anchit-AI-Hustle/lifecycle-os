@@ -370,6 +370,7 @@ test('market chips fall back to the page\'s own markets when the region helper n
   // before (iphone-se, 2026-10-12). Tap until the pick holds, as a person would.
   await expect(async () => {
     if (!(await page.locator('#mktChips .mkt-chip.on[data-mkt="US"]').count())) await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
-    expect(await page.evaluate(() => window.S.markets)).toContain('US');
+    const seen = await page.evaluate(() => ({ markets: window.S.markets, chips: document.getElementById('mktChips').innerHTML.slice(0, 300), ready: document.readyState }));
+    expect(seen.markets, JSON.stringify(seen)).toContain('US');
   }).toPass({ timeout: 10_000 });
 });
