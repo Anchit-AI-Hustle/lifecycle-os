@@ -332,3 +332,24 @@ test.describe('Mailer Studio — responsive smoke', () => {
     expect(result.archA).not.toEqual(result.archB);  // structural divergence
   });
 });
+
+// The market chips never stay on "Loading" (2026-10-12): on WebKit the region
+// helper the shell injects can fail to arrive for a page opened as a file, and
+// the chips sat on "Loading this brand's markets..." with nothing to pick, so
+// iphone-12 could never choose a market. After the wait the page offers the
+// markets its own catalogue carries, and a pick holds.
+test('market chips fall back to the page\'s own markets when the region helper never arrives', async ({ page }) => {
+  await bypassAuth(page);
+  await page.addInitScript(() => {
+    // A brand layer is present (so the page waits for the region helper)...
+    const bc = { loaded: false, brand: null, onChange() {}, api() { return Promise.reject(new Error('offline')); } };
+    Object.defineProperty(window, 'BrandContext', { configurable: true, get: () => bc, set: () => {} });
+    // ...and the region helper never arrives.
+    Object.defineProperty(window, 'RegionContext', { configurable: true, get: () => undefined, set: () => {} });
+  });
+  await page.goto(URL);
+  await expect(page.locator('#mktChips .mkt-chip[data-mkt="US"]')).toBeVisible({ timeout: 12_000 });
+  await expect(page.locator('#mktChips')).not.toContainText('Loading this brand');
+  await page.locator('#mktChips .mkt-chip[data-mkt="US"]').click();
+  expect(await page.evaluate(() => window.S.markets)).toContain('US');
+});
