@@ -169,10 +169,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="flex flex-wrap items-center gap-3">
       <div>
         <div class="label">Markets</div>
-        <!-- Built from the active brand's own regions with its HOME market
-             pre-selected (see buildMarketChips). The typed US/UK/Global/India
-             row with US on planned a US calendar for brands with no US store. -->
-        <div class="flex gap-1.5 mt-2" id="marketChips"></div>
+        <!-- The shared market selection (region-context.js mountMulti), the
+             active brand's own regions, its HOME market on by default. The plan
+             is generated ONCE PER TICKED MARKET (RegionContext.fanOut), each
+             request carrying exactly one market (2026-10-12). -->
+        <div id="marketChips" data-region-multi="each" data-region-label="Markets this plan runs for"></div>
       </div>
       <div>
         <div class="label">Plan window</div>
@@ -192,6 +193,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <button type="button" id="btnGenerate" class="text-[11px] uppercase tracking-wider font-semibold px-4 py-2 rounded bg-lava text-bg hover:opacity-90">⚡ Generate plan</button>
       <button type="button" id="btnExport" class="text-[11px] uppercase tracking-wider font-semibold px-3 py-2 rounded border border-lava/30 text-ink-dim hover:border-lava hover:text-ink">↓ Export CSV</button>
     </div>
+    <div id="planProgress"></div>
     <div id="planMeta" class="mt-3 text-[12px] text-ink-dim"></div>
     <!-- What Export has to say is said HERE, beside the button, never in a
          native alert() (which blocks the page and titles itself with the host). -->
@@ -361,7 +363,7 @@ function seedAnalytics() {
 // The raw plan data (STATE.plan / STATE.meta) is untouched; these only turn
 // machine-speak into sentences a human can read at a glance.
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function marketName(m) { return m === 'IN' ? 'India' : m; }
+function marketName(m) { const RC = window.RegionContext; return (RC && RC.name) ? RC.name(m) : (m === 'IN' ? 'India' : m); }
 function humanDate(ds) {
   const d = new Date(ds + 'T00:00:00Z');
   if (isNaN(d)) return ds;
@@ -444,26 +446,62 @@ async function generatePlan() {
   $('btnGenerate').textContent = 'Generating…';
 
   try {
-    const res = await fetch('/api/calendar?action=generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        days: STATE.days,
-        markets: STATE.markets,
-        capacity_per_market_per_week: STATE.capacity,
-        analytics,
-      }),
+    // ONE request per ticked market (2026-10-12): each carries exactly one
+    // market, so every plan row is built from that market's own store,
+    // currency and calendar, and is labelled with it. A market that fails is
+    // said beside it; the others still plan.
+    const RC = window.RegionContext;
+    const one = async (market) => {
+      const res = await fetch('/api/calendar?action=generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          days: STATE.days,
+          markets: market ? [market] : [],
+          capacity_per_market_per_week: STATE.capacity,
+          analytics,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      // A 200 can still be a refusal: the router answers a request it cannot
+      // attribute to a workspace with ok:true and an error code rather than
+      // serving another brand's rows. Reading only `plan` turned that into an
+      // undefined assignment and a stale screen.
+      if (data && data.ok === false) throw new Error(data.error || 'generation failed');
+      if (data && data.error) throw new Error(data.note || data.error);
+      (data.plan || []).forEach((p) => { if (p && !p.market) p.market = market; });
+      return data;
+    };
+    let runs;
+    if (RC && RC.loaded && !RC.regions.length) {
+      // No market on the record: the marker, in the accent rule, nothing sent.
+      STATE.plan = []; renderCalendar(); renderTable();
+      const why = RC.marker('home market') + ' This brand has no market on its record, so there is no market to plan for. Add its regions in Brand setup.';
+      if (window.LifecycleStatus) window.LifecycleStatus.show($('planMeta'), why); else $('planMeta').textContent = why;
+      return;
+    }
+    if (RC && RC.fanOut && RC.loaded) {
+      runs = await RC.fanOut(one, { markets: STATE.markets.length ? STATE.markets : undefined, progress: $('planProgress'), label: 'Generating the plan' });
+    } else {
+      // No region layer on the page: the server resolves the brand's home market.
+      runs = [{ market: '', ok: true, value: await one('') }];
+    }
+    const good = runs.filter((r) => r.ok);
+    if (!good.length) throw (runs[0] && runs[0].error) || new Error('generation failed');
+    const data = {
+      plan: [].concat(...good.map((r) => r.value.plan || [])),
+      markets: good.map((r) => r.market).filter(Boolean),
+      total_sends_planned: good.reduce((n, r) => n + (Number(r.value.total_sends_planned) || (r.value.plan || []).length), 0),
+      meta: { archetype_distribution: {} },
+    };
+    good.forEach((r) => {
+      const d = (r.value.meta && r.value.meta.archetype_distribution) || {};
+      Object.keys(d).forEach((k) => { data.meta.archetype_distribution[k] = (data.meta.archetype_distribution[k] || 0) + (Number(d[k]) || 0); });
     });
-    if (!res.ok) throw new Error(await res.text());
-    const data = await res.json();
-    // A 200 can still be a refusal: the router answers a request it cannot
-    // attribute to a workspace with ok:true and an error code rather than
-    // serving another brand's rows. Reading only `plan` turned that into an
-    // undefined assignment and a stale screen.
-    if (data && data.ok === false) throw new Error(data.error || 'generation failed');
-    if (data && data.error) throw new Error(data.note || data.error);
-    STATE.plan = Array.isArray(data.plan) ? data.plan : [];
-    STATE.meta = data.meta || {};
+    data.meta.by_market = good.map((r) => ({ market: r.market, meta: r.value.meta || {} }));
+    STATE.plan = data.plan;
+    STATE.meta = data.meta;
     // An empty result is stated as empty, in place, so the previous plan is
     // never left on screen looking like the one that was just requested.
     $('planMeta').textContent = STATE.plan.length
@@ -773,28 +811,12 @@ function renderVariantPanel(v, strategy, ctaUrl) {
 
 function closeMailer() { $('mailerModal').classList.remove('open'); }
 
-// Wire filters
-$('marketChips').addEventListener('click', (e) => {
-  if (!e.target.dataset.market) return;
-  e.target.classList.toggle('active');
-  STATE.markets = $$('#marketChips .filter-chip.active').map((c) => c.dataset.market);
-});
-// One chip per region THIS brand declares, its HOME market on. A brand with no
-// regions gets the marker and an empty selection, never a shipped list.
-let _marketChipsBuilt = null;
+// Markets: the shared selection (region-context.js), the brand's own regions,
+// its HOME market on until the viewer ticks others. A brand with no regions
+// gets the control's marker and an empty selection, never a shipped list.
 function buildMarketChips() {
   const rc = window.RegionContext; if (!rc) return;
-  const opts = rc.options();
-  const key = opts.map((o) => o.code).join('|');
-  if (key === _marketChipsBuilt) return; _marketChipsBuilt = key;
-  const host = $('marketChips');
-  if (!opts.length) {
-    const none = document.createElement('span'); none.className = 'text-[11px] text-ink-mute'; none.textContent = (window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]');
-    host.innerHTML = ''; host.appendChild(none);
-    STATE.markets = []; return;
-  }
-  host.innerHTML = opts.map((o) => '<button type="button" class="filter-chip' + (o.home ? ' active' : '') + '" data-market="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('');
-  STATE.markets = $$('#marketChips .filter-chip.active').map((c) => c.dataset.market);
+  STATE.markets = rc.marketsFor ? rc.marketsFor() : (rc.home ? [rc.home] : []);
 }
 // The first plan is generated once the brand's markets are known, so it is
 // planned for the brand's HOME market rather than for whatever a typed default
@@ -806,6 +828,7 @@ function autoPlanOnce() { if (_autoPlanned) return; _autoPlanned = true; generat
   const waited = w || 0;
   if (!window.RegionContext) { if (waited < 6000) return setTimeout(() => watchRegions(waited + 100), 100); return autoPlanOnce(); }
   window.RegionContext.onChange(() => { buildMarketChips(); autoPlanOnce(); });
+  if (window.RegionContext.onSelection) window.RegionContext.onSelection(buildMarketChips);
 })(0);
 $('daysChips').addEventListener('click', (e) => {
   if (!e.target.dataset.days) return;

@@ -320,6 +320,17 @@ async function open(page, brand, file) {
   await page.waitForFunction(() => window.RegionContext && window.RegionContext.loaded === true, null, { timeout: 20000 });
 }
 
+/* The shared market control (region-context.js mountMulti, 2026-10-12):
+   one checkbox per region on the record, "All markets" only with more than
+   one. Returns [codes offered, codes ticked, has All]. */
+async function sharedControl(page, sel) {
+  await page.waitForFunction((s) => { const h = document.querySelector(s); return h && (h.querySelector('input') || h.querySelector('.rgn-none')); }, sel, { timeout: 15000 });
+  return page.locator(sel).evaluate((h) => [
+    Array.from(h.querySelectorAll('input[value]')).map((i) => i.value),
+    Array.from(h.querySelectorAll('input[value]')).filter((i) => i.checked).map((i) => i.value),
+    !!h.querySelector('input[data-rgn-all]'),
+  ]);
+}
 const codesOf = (b) => b.regions.map((r) => String(r.code).toUpperCase());
 const homeOf = (b) => { const h = b.regions.find((r) => r.home); return h ? String(h.code).toUpperCase() : (b.regions[0] ? String(b.regions[0].code).toUpperCase() : ''); };
 
@@ -380,24 +391,22 @@ test('/research: both tab rows are the brand\'s regions and open on its home stu
   expect(shown).toBe(0);
 });
 
-test('/retention-playbook: region chips are the brand\'s, home selected, All only when there is a choice', async ({ page }) => {
+test('/retention-playbook: the market control is the brand\'s, home selected, All only when there is a choice', async ({ page }) => {
+  // The shared control since 2026-10-12 (tests/region-selection-every-feature.spec.js).
   await open(page, TOI, 'retention-playbook.html');
-  const toi = page.locator('#mktchips [data-mkt]');
-  await expect(toi).toHaveCount(1);                       // one market: no "All"
-  await expect(toi.first()).toHaveAttribute('data-mkt', 'IN');
-  await expect(toi.first()).toHaveClass(/\bon\b/);
+  expect(await sharedControl(page, '#mktchips')).toEqual([['IN'], ['IN'], false]);   // one market: no "All"
   expect(await page.locator('#mktchips').textContent()).not.toMatch(/\bUS\b/);
 
   await open(page, ZERO, 'retention-playbook.html');
-  const zero = page.locator('#mktchips [data-mkt]');
-  await expect(zero).toHaveCount(codesOf(ZERO).length + 1);   // All + each region
-  const on = await zero.evaluateAll((els) => els.filter((e) => e.classList.contains('on')).map((e) => e.getAttribute('data-mkt')));
-  expect(on).toEqual(['IN']);
-  await expect(page.locator('#mktchips [data-mkt="IN"]')).toHaveAttribute('data-home', '1');
+  const z = await sharedControl(page, '#mktchips');
+  expect(z[0]).toEqual(codesOf(ZERO));
+  expect(z[1]).toEqual(['IN']);
+  expect(z[2]).toBe(true);
+  await expect(page.locator('#mktchips input[value="IN"]').locator('xpath=..')).toContainText('home');
 
   await open(page, NONE, 'retention-playbook.html');
-  await expect(page.locator('#mktchips [data-mkt]')).toHaveCount(0);
-  await expect(page.locator('#mktchips')).toContainText('[DATA REQUIRED BEFORE LAUNCH: regions');
+  expect((await sharedControl(page, '#mktchips'))[0]).toEqual([]);
+  await expect(page.locator('#mktchips')).toContainText('[DATA REQUIRED BEFORE LAUNCH: home market');
 });
 
 test('the Studio\'s target-market chips are the brand\'s, home on, and its state follows', async ({ page }) => {
@@ -429,51 +438,46 @@ test('/calendar: the market chips are the brand\'s and the plan is asked for its
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, plan: [], meta: {}, markets: [] }) });
   });
   await open(page, TOI, 'calendar.html');
-  await expect(page.locator('#marketChips .filter-chip')).toHaveCount(1);
-  await expect(page.locator('#marketChips .filter-chip[data-market="IN"]')).toHaveClass(/\bactive\b/);
+  expect(await sharedControl(page, '#marketChips')).toEqual([['IN'], ['IN'], false]);
   await expect.poll(() => asked.length, { timeout: 10000 }).toBeGreaterThan(0);
   expect(asked[0]).toEqual(['IN']);     // never ['US']
 
   await open(page, ZERO, 'calendar.html');
-  await expect(page.locator('#marketChips .filter-chip')).toHaveCount(codesOf(ZERO).length);
-  const active = await page.locator('#marketChips .filter-chip').evaluateAll((els) => els.filter((e) => e.classList.contains('active')).map((e) => e.getAttribute('data-market')));
-  expect(active).toEqual(['IN']);
+  const z = await sharedControl(page, '#marketChips');
+  expect(z[0]).toEqual(codesOf(ZERO));
+  expect(z[1]).toEqual(['IN']);
 
   await open(page, NONE, 'calendar.html');
-  await expect(page.locator('#marketChips .filter-chip')).toHaveCount(0);
-  await expect(page.locator('#marketChips')).toContainText('[DATA REQUIRED BEFORE LAUNCH: regions');
+  expect((await sharedControl(page, '#marketChips'))[0]).toEqual([]);
+  await expect(page.locator('#marketChips')).toContainText('[DATA REQUIRED BEFORE LAUNCH: home market');
 });
 
 test('the aggregating pages offer All plus the brand\'s regions, never a typed list', async ({ page }) => {
-  // dashboard.html and knowledge-base.html aggregate across markets, so All
-  // is their default - for a brand with MORE THAN ONE market. A one-market
-  // brand (TOI: IN) is offered that market alone; "All" of one is not a
-  // choice (2026-10-10, tests/regions-and-names-every-page.spec.js).
+  // dashboard.html and knowledge-base.html aggregate across markets, so every
+  // market is their default - "All markets" for a brand with MORE THAN ONE. A
+  // one-market brand (TOI: IN) is offered that market alone; "All" of one is
+  // not a choice (2026-10-10). The shared control since 2026-10-12.
   await open(page, TOI, 'dashboard.html');
-  await expect(page.locator('#regionChips .filter-chip')).toHaveCount(1);      // IN, no All
-  await expect(page.locator('#regionChips .filter-chip.active[data-region="IN"]')).toHaveCount(1);
-  await expect(page.locator('#regionChips .filter-chip[data-region="IN"]')).toHaveCount(1);
+  expect(await sharedControl(page, '#regionChips')).toEqual([['IN'], ['IN'], false]);
   expect(await page.locator('#regionChips').textContent()).not.toMatch(/\bUS\b/);
 
   await open(page, TOI, 'knowledge-base.html');
-  await expect(page.locator('#kbRegions .region-chip[data-region]')).toHaveCount(1);   // IN, no All
-  await expect(page.locator('#kbRegions .region-chip.active[data-region="IN"]')).toHaveCount(1);
-  await expect(page.locator('#kbRegions .region-chip[data-region="IN"]')).toHaveCount(1);
+  expect(await sharedControl(page, '#kbRegions')).toEqual([['IN'], ['IN'], false]);
   expect(await page.locator('#kbRegions').textContent()).not.toMatch(/\bUS\b/);
 
-  // A brand with several markets keeps All, first and selected.
+  // A brand with several markets: All, and every market ticked.
   await open(page, ZERO, 'dashboard.html');
-  await expect(page.locator('#regionChips .filter-chip')).toHaveCount(codesOf(ZERO).length + 1);
-  await expect(page.locator('#regionChips .filter-chip.active[data-region="ALL"]')).toHaveCount(1);
+  expect(await sharedControl(page, '#regionChips')).toEqual([codesOf(ZERO), codesOf(ZERO), true]);
+  await expect(page.locator('#regionChips input[data-rgn-all]')).toBeChecked();
 
+  // A generator's control opens on the home market (one page per ticked market).
   await open(page, ZERO, 'landing-pages.html');
-  const groups = page.locator('.regions[data-regions]');
+  const groups = page.locator('[data-regions][data-region-multi]');
   await expect(groups).toHaveCount(4);
-  for (let i = 0; i < 4; i++) {
-    const chips = groups.nth(i).locator('.region-chip[data-region]');
-    await expect(chips).toHaveCount(codesOf(ZERO).length);
-    const on = await chips.evaluateAll((els) => els.filter((e) => e.classList.contains('active')).map((e) => e.getAttribute('data-region')));
-    expect(on).toEqual(['IN']);
+  for (const ch of ['mailers', 'meta', 'google', 'tiktok']) {
+    const c = await sharedControl(page, '[data-regions="' + ch + '"]');
+    expect(c[0]).toEqual(codesOf(ZERO));
+    expect(c[1]).toEqual(['IN']);
   }
 });
 

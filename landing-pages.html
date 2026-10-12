@@ -184,8 +184,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="mailers" name="linked_asset"><option value=""> - pick a mailer or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
-          <div class="regions" data-regions="mailers"></div>
+          <!-- The shared market selection (region-context.js): one page is built
+               PER TICKED MARKET, each in that market's store and currency. -->
+          <div data-regions="mailers" data-region-multi="each" data-region-label="Markets to build this page for"></div>
         </div>
         <div class="field"><label>Hero headline</label>
           <input type="text" data-form="mailers" name="hero" placeholder="The exact promise the email made — repeat it">
@@ -200,6 +201,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <textarea data-form="mailers" name="notes" placeholder="Who this lands for · what they should do · why now"></textarea>
         </div>
         <button type="button" class="btn btn-solid" data-create="mailers">✨ Generate landing page</button>
+        <div data-progress="mailers"></div>
         <div class="status" data-status="mailers"></div>
       </div>
       <div class="card">
@@ -223,8 +225,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="meta" name="linked_asset"><option value=""> - pick a Meta campaign or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
-          <div class="regions" data-regions="meta"></div>
+          <!-- The shared market selection (region-context.js): one page is built
+               PER TICKED MARKET, each in that market's store and currency. -->
+          <div data-regions="meta" data-region-multi="each" data-region-label="Markets to build this page for"></div>
         </div>
         <div class="field"><label>Hero headline (≤40 chars, matches ad)</label>
           <input type="text" data-form="meta" name="hero" maxlength="40">
@@ -239,6 +242,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <textarea data-form="meta" name="notes" placeholder="Audience · placements · objective · why this offer for them"></textarea>
         </div>
         <button type="button" class="btn btn-solid" data-create="meta">✨ Generate landing page</button>
+        <div data-progress="meta"></div>
         <div class="status" data-status="meta"></div>
       </div>
       <div class="card">
@@ -262,8 +266,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="google" name="linked_asset"><option value=""> - pick a Google campaign or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
-          <div class="regions" data-regions="google"></div>
+          <!-- The shared market selection (region-context.js): one page is built
+               PER TICKED MARKET, each in that market's store and currency. -->
+          <div data-regions="google" data-region-multi="each" data-region-label="Markets to build this page for"></div>
         </div>
         <div class="field"><label>Target keyword(s)</label>
           <input type="text" data-form="google" name="hero" placeholder="the hero offering, the new arrival">
@@ -278,6 +283,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <textarea data-form="google" name="notes" placeholder="Match type · search intent · expected CVR"></textarea>
         </div>
         <button type="button" class="btn btn-solid" data-create="google">✨ Generate landing page</button>
+        <div data-progress="google"></div>
         <div class="status" data-status="google"></div>
       </div>
       <div class="card">
@@ -301,8 +307,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <select data-form="tiktok" name="linked_asset"><option value=""> - pick a TikTok creative or leave blank - </option></select>
         </div>
         <div class="field"><label>Region</label>
-          <!-- One chip per region the ACTIVE brand declares, home market on (region-context.js). -->
-          <div class="regions" data-regions="tiktok"></div>
+          <!-- The shared market selection (region-context.js): one page is built
+               PER TICKED MARKET, each in that market's store and currency. -->
+          <div data-regions="tiktok" data-region-multi="each" data-region-label="Markets to build this page for"></div>
         </div>
         <div class="field"><label>Hook (matches video opener)</label>
           <input type="text" data-form="tiktok" name="hero" placeholder="POV: you finally found a pair nobody else on earth has">
@@ -317,6 +324,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <textarea data-form="tiktok" name="notes" placeholder="Creator handle · hashtag · audience"></textarea>
         </div>
         <button type="button" class="btn btn-solid" data-create="tiktok">✨ Generate landing page</button>
+        <div data-progress="tiktok"></div>
         <div class="status" data-status="tiktok"></div>
       </div>
       <div class="card">
@@ -526,40 +534,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   tabs.forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
   window.addEventListener('hashchange', () => showTab((location.hash||'#mailers').replace('#','')));
 
-  // ─── Region chip selection (per-channel) ───────────────────────
-  // Per channel, the brand's HOME market until the operator picks another;
-  // the chips themselves are the brand's own regions. Nothing here is US by
-  // default any more, because nothing here is a typed list any more.
-  const selectedRegion = { mailers: '', meta: '', google: '', tiktok: '' };
+  // ─── Markets (2026-10-12) ───────────────────────────────────────
+  // The shared selection (region-context.js), the brand's own regions, its
+  // HOME market until the operator ticks others. Generate builds ONE page per
+  // ticked market; the autofill writes the form once, for the first of them.
   const homeRegion = () => (window.RegionContext && window.RegionContext.home) || '';
-  let _lpRegionsBuilt = null;
-  function buildRegionChips() {
-    const rc = window.RegionContext; if (!rc) return;
-    const opts = rc.options();
-    const key = opts.map((o) => o.code).join('|');
-    if (key === _lpRegionsBuilt) return; _lpRegionsBuilt = key;
-    $$('.regions').forEach((grp) => {
-      const channel = grp.dataset.regions;
-      if (!opts.some((o) => o.code === selectedRegion[channel])) selectedRegion[channel] = rc.home;
-      grp.innerHTML = opts.length
-        ? opts.map((o) => '<button type="button" class="region-chip' + (o.code === selectedRegion[channel] ? ' active' : '') + '" data-region="' + o.code + '"' + (o.home ? ' data-home="1" title="Home market"' : '') + '>' + o.name.replace(/</g, '&lt;') + '</button>').join('')
-        : '<span class="region-chip" style="cursor:default">' + String((window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]')).replace(/[<>&]/g, '') + '</span>';
-    });
-  }
-  $$('.regions').forEach((grp) => {
-    const channel = grp.dataset.regions;
-    grp.addEventListener('click', (e) => {
-      const c = e.target.closest ? e.target.closest('.region-chip[data-region]') : null; if (!c) return;
-      selectedRegion[channel] = c.dataset.region;
-      $$('.region-chip', grp).forEach((x) => x.classList.toggle('active', x === c));
-    });
-  });
-  (function watchRegions(w) {
-    const waited = w || 0;
-    if (!window.RegionContext) { if (waited < 6000) setTimeout(() => watchRegions(waited + 100), 100); return; }
-    window.RegionContext.onChange(buildRegionChips);
-  })(0);
+  const selectedMarkets = () => { const rc = window.RegionContext; return (rc && rc.marketsFor) ? rc.marketsFor() : (homeRegion() ? [homeRegion()] : []); };
 
+  const escAttrLp = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   // ─── Real landing-page generator (deterministic, on-brand HTML) ───────
   // Builds a complete, self-contained landing page from the brief fields.
 
@@ -816,34 +798,54 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       const channel = btn.dataset.create;
       const form = $$('[data-form="' + channel + '"]').reduce((acc, el) => { acc[el.name] = el.value; return acc; }, {});
       form.channel = channel;
-      form.region = selectedRegion[channel];
       const status = $('[data-status="' + channel + '"]');
       if (!form.hero) { status.textContent = 'Add a hero headline first.'; return; }
+      const rc = window.RegionContext;
+      const markets = selectedMarkets();
+      if (!markets.length) {
+        status.textContent = ((rc && rc.marker) ? rc.marker('home market') : '[DATA REQUIRED BEFORE LAUNCH: home market, this brand]') + ' This brand has no market on its record, so there is no market to build a page for.';
+        return;
+      }
       btn.disabled = true;
       status.textContent = 'Writing your landing page with AI…';
-      try {
+      // ONE page per ticked market (2026-10-12): each request carries exactly
+      // one market, each page is saved and listed under its own market.
+      const buildOne = async (market) => {
+        const f = { ...form, region: market };
         // 1) Ask the server for a full, mobile-first, brand-gated AI page.
         //    2) Fall back to the deterministic brand template on any failure, so
         //    the button ALWAYS produces output. Store the HTML on the entry so
         //    preview + download + library re-open the exact page.
-        form._html = await generateLandingHTML(form);
+        f._html = await generateLandingHTML(f);
         const key = lpKey(channel);
         const list = JSON.parse(localStorage.getItem(key) || '[]');
-        list.unshift({ ...form, created_at: new Date().toISOString() });
+        list.unshift({ ...f, created_at: new Date().toISOString() });
         localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
         // Await the shared write BEFORE re-reading the library, so the new row is
         // present in the very list this generation is about to render. The local
         // row is already saved above, so the list is correct either way.
-        const saved = await persistLanding(channel, form);
-        openLandingPreview(form);
+        f._saved = await persistLanding(channel, f);
+        return f;
+      };
+      try {
+        const runs = (rc && rc.fanOut)
+          ? await rc.fanOut(buildOne, { markets, progress: $('[data-progress="' + channel + '"]'), label: 'Building the landing page' })
+          : [{ market: markets[0], ok: true, value: await buildOne(markets[0]) }];
+        const good = runs.filter((r) => r.ok);
+        if (!good.length) throw (runs[0] && runs[0].error) || new Error('No landing page was generated');
         await loadLibrary(channel);
-        var encForm = encodeURIComponent(JSON.stringify(form));
-        var howMade = form._ai ? 'AI-written, mobile-first' : 'brand template (AI unavailable, used the built-in template)';
-        var where = (saved && saved.ok)
-          ? 'saved to your library and to the shared database'
-          : 'saved to your library in this browser only (shared database write skipped: ' + ((saved && saved.reason) || 'unknown') + ')';
-        status.innerHTML = 'Landing page generated (' + howMade + ') — preview opened below (download or open in a new tab from there), ' + where + '. ' +
-          '<button type="button" class="lp-btn" data-lp-prompt="' + encForm + '">📋 Copy AI prompt</button> to recreate it in ChatGPT / Gemini / Claude.';
+        openLandingPreview(good[0].value);
+        status.innerHTML = good.map((r) => {
+          const f = r.value;
+          const encForm = encodeURIComponent(JSON.stringify(f));
+          const howMade = f._ai ? 'AI-written, mobile-first' : 'brand template (AI unavailable, used the built-in template)';
+          const where = (f._saved && f._saved.ok)
+            ? 'saved to your library and to the shared database'
+            : 'saved to your library in this browser only (shared database write skipped: ' + ((f._saved && f._saved.reason) || 'unknown') + ')';
+          return '<p data-lp-market="' + escAttrLp(r.market) + '"><b>' + escAttrLp((rc && rc.label) ? rc.label(r.market) : r.market) + ':</b> landing page generated (' + howMade + '), ' + where + '. '
+            + '<button type="button" class="lp-btn" data-lp-preview="' + encForm + '">Preview</button> '
+            + '<button type="button" class="lp-btn" data-lp-prompt="' + encForm + '">📋 Copy AI prompt</button></p>';
+        }).join('') + (runs.length > good.length ? '<p>' + (runs.length - good.length) + ' market(s) failed; each is said in the list above.</p>' : '');
       } catch (err) {
         window.LifecycleFailure.show(status, err, { title: 'No landing page was generated' });
       }
@@ -967,7 +969,8 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
       const prompt = (promptEl.value || '').trim();
       const reference_url = (refEl?.value || '').trim();
       if (!prompt) { status.textContent = 'Type what you want first.'; return; }
-      const region = selectedRegion[channel] || ((window.RegionContext && window.RegionContext.home) || '');
+      // The form is written once, for the first selected market.
+      const region = selectedMarkets()[0] || homeRegion();
       const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
       status.textContent = '';
       try {
