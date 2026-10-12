@@ -2460,8 +2460,8 @@ function renderStandaloneMarketChips(){
   }).join('')+'<span class="mkt-chip-none" style="font-size:11px;color:var(--vh-ink-dim);align-self:center">No brand is active on this page: pick the target market.</span>';
   S.markets=kept.slice(); S.market=kept[0]||''; S.activeMarket=kept[0]||'';
 }
-(function watchRegionsForStudio(w){
-  var waited=w||0;
+(function watchRegionsForStudio(since){
+  var started=since||Date.now();
   if(!window.BrandContext){
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderStandaloneMarketChips); else renderStandaloneMarketChips();
     return;
@@ -2470,8 +2470,13 @@ function renderStandaloneMarketChips(){
   // helper does not arrive (it is injected by the shell; a page opened as a
   // file in WebKit can miss it), offer the markets this page itself carries,
   // as with no brand layer at all, and switch to the brand's own once it lands.
+  // The wait is measured on the CLOCK, not by counting 100 ms ticks: a busy
+  // WebKit stretches each tick, and sixty of them ran past the person's (and
+  // the test's) patience. A page opened as a file cannot get the helper at
+  // all - the shell injects it by an absolute path - so it does not wait.
   if(!window.RegionContext){
-    if(waited<6000){ setTimeout(function(){watchRegionsForStudio(waited+100);},100); return; }
+    var fileOnly=(location.protocol==='file:');
+    if(!fileOnly && Date.now()-started<6000){ setTimeout(function(){watchRegionsForStudio(started);},100); return; }
     renderStandaloneMarketChips();
     var late=setInterval(function(){ if(window.RegionContext){ clearInterval(late); window.RegionContext.onChange(function(){ try{renderMarketChips();}catch(_){} }); } },500);
     setTimeout(function(){ clearInterval(late); },60000);
@@ -2481,7 +2486,7 @@ function renderStandaloneMarketChips(){
   // The chips ARE the shared selection: one changed elsewhere (another page,
   // another control) is shown here, and S.markets follows it.
   if(window.RegionContext.onSelection) window.RegionContext.onSelection(function(){ try{_studioFollowSelection();}catch(_){} });
-})(0);
+})();
 function _studioSameList(a,b){ return a.length===b.length && a.every(function(x,i){return x===b[i];}); }
 function _studioFollowSelection(){
   var rc=window.RegionContext; if(!rc||!rc.loaded||!rc.regions.length||!rc.selectionExplicit) return;

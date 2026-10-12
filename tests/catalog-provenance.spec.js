@@ -247,7 +247,16 @@ async function driveAds(page, origin, market) {
   const out = {};
   for (const [tab, ch] of AD_TABS) {
     await page.click('.tab[data-tab="' + tab + '"]');
-    if (market) await page.selectOption('#' + ch + '-market', market);
+    // The market control is the shared multi-market selection (2026-10-12):
+    // tick the market as a person does, then untick every other one.
+    if (market) {
+      const host = '#' + ch + '-market';
+      await page.waitForSelector(host + ' input[type=checkbox][value="' + market + '"]');
+      await page.check(host + ' input[type=checkbox][value="' + market + '"]');
+      for (const other of await page.$$eval(host + ' input[type=checkbox][value]', (bs) => bs.filter((b) => b.checked).map((b) => b.value))) {
+        if (other !== market) await page.uncheck(host + ' input[type=checkbox][value="' + other + '"]');
+      }
+    }
     await page.fill('#' + ch + '-name', 'Lunch special');
     await page.click('#' + ch + '-cre');
     await page.waitForFunction((c) => {
