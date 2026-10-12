@@ -4,6 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Readers in each country: a market a store geo-redirects is read FROM that country (2026-10-12) — read `readers/README.md`
+Lenskart's IN / AE / SA / TH stores send a US server to `/en-us/`, so those markets read 0. The operator chose
+"readers in each country": a small server that RUNS there fetches that market's pages. Not pretending a location
+(the request really comes from there); the standing rule holds - no cookie, Accept-Language, X-Forwarded-For or proxy.
+- **`readers/`** (no dependencies, Node >= 20): `lib/handler.js` `createReader()`, as a Vercel project with Root
+  Directory `readers` (`api/read.js`, `api/health.js`; `vercel.json` has NO region - `vercel deploy --regions bom1`)
+  or `server.js` on a VM (systemd + GCE commands in the README; Saudi `me-central2` and the Thailand region name are
+  marked "confirm"). `POST /api/read {url, accept, ts}` + `X-Reader-Signature: hex(HMAC-SHA256(READER_SECRET, ts+"\n"+url))`;
+  401 for no/short secret, bad signature (constant time), |skew| > 120 s; 400 for a non-public target on ANY hop
+  (`lib/ssrf.js` = a copy of `assertPublicUrl`, parity-tested, socket pinned to the checked address); redirects by
+  hand (5), body cut at 8 MB (3 MB on Vercel: 4.5 MB response cap), 25 s; sends only Host / User-Agent (the
+  importer's, asserted equal) / Accept. `GET /api/health` fetches nothing.
+- **Importer**: `CATALOG_READERS` (JSON market -> reader base URL) + `CATALOG_READER_SECRET` (the HMAC key, never sent
+  or logged); `api/_shared/catalog-reader-client.js`. In `catalog-import.getTextOnce` every request of that market's
+  `step()` goes through its reader; scope + SSRF guard re-checked on every hop it reports; robots, pacing, geo-redirect
+  detection, currency and "filed under the store it came from" unchanged. Coverage: "IN: read from a server in IN
+  (reader <host>)", the line "IN: 567 of 600 (read from a server in IN)"; a reader down / refusing / unconfigured is a
+  sentence and the market falls back to the direct read (with the old geo sentence); a reader the store STILL
+  redirects is named ("did not treat the reader's requests as coming from IN"). `scripts/market-probe.js` asks the
+  reader too (`read_from`). Gated by `tests/catalog-readers.spec.js` (executed; location modelled by the CONNECTION -
+  the fixture stores' second "IN entrance" socket, reached only via createReader's code-level `hooks.dial`).
+- **Not done**: nothing deployed, no cloud resource created, no env var set; the Thailand GCP region is unconfirmed.
+
 ## ⭐ Every feature runs for the markets the operator ticks; a generator runs ONCE PER MARKET (2026-10-12)
 The operator: *"ensure user has option to select which all regions he is running which feature for as it must be based on
 the respective selected region or regions."* One selection, the shared one (`RegionContext.selection`, per brand per
