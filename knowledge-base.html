@@ -208,12 +208,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   </div>
 
   <!-- Region filter — applies to the brand's own and its competitors' channels. -->
-  <div id="kbRegions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:12px">
-    <span style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--vh-ink-dim); font-weight:600; align-self:center; margin-right:8px">Region</span>
-    <!-- All + one chip per region the ACTIVE brand declares (region-context.js). This
-         library aggregates across markets, so All stays the default. -->
-    <button type="button" class="region-chip active" data-region="">All</button>
-  </div>
+  <!-- The shared market selection (region-context.js mountMulti): the ACTIVE
+       brand's own regions, several at once. This library aggregates, so every
+       market is the default until the viewer ticks fewer (2026-10-12). -->
+  <div id="kbRegions" data-region-multi data-region-default="all" data-region-label="Markets" style="margin-top:12px"></div>
 
   <!-- Unified "Add to knowledge base" bar — shown for BOTH KNICKGASM and
        Competitors. Uploads/ingests are tagged with the active source
@@ -505,9 +503,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(state.src==='competitor' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading captured competitor mailers…</div>';
       const emails=await fetchEmails();
-      const filtered = state.region ? emails.filter(e => regionOfBrand(e.brand) === state.region) : emails;
-      if(!filtered.length){p.innerHTML=emptyState('No mailers captured yet'+(state.region?(' for '+state.region):''),'Competitor emails captured into the monitored inbox will appear here as a visual design library.','Open Competitor Benchmarking','/competitor-benchmarking.html');return;}
-      p.innerHTML=`<p class="count">${filtered.length} competitor mailers archived${state.region?(' · '+state.region):''} · click any to preview</p><div class="grid" id="grid"></div>`;
+      const filtered = narrowed() ? emails.filter(e => inSel(regionOfBrand(e.brand))) : emails;
+      if(!filtered.length){p.innerHTML=emptyState('No mailers captured yet'+(narrowed()?(' for '+selText()):''),'Competitor emails captured into the monitored inbox will appear here as a visual design library.','Open Competitor Benchmarking','/competitor-benchmarking.html');return;}
+      p.innerHTML=`<p class="count">${filtered.length} competitor mailers archived${narrowed()?(' · '+esc(selText())):''} · click any to preview</p><div class="grid" id="grid"></div>`;
       $('grid').innerHTML=filtered.map(e=>`
         <div class="card" data-id="${esc(e.id)}">
           <div class="frame" data-frame="${esc(e.id)}"></div>
@@ -524,7 +522,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(state.src==='knickgasm' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading top mailers…</div>';
       const items = await fetchTopEmails();
-      const filtered = state.region ? items.filter(x => x.market === state.region) : items;
+      const filtered = narrowed() ? items.filter(x => inSel(x.market)) : items;
       renderTopEmails(p, filtered);
       return;
     }
@@ -535,13 +533,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // ad library. One tile per region (or just the selected region).
     if(state.src==='knickgasm' && AD_TABS.includes(state.chan)){
       const idx = AD_TABS.indexOf(state.chan);
-      const regions = state.region ? [state.region] : ((window.RegionContext && window.RegionContext.regions.map(r => r.code)) || []);
+      // One tile per SELECTED market, each labelled with it (2026-10-12).
+      const regions = (state.regions && state.regions.length) ? state.regions.slice() : ((window.RegionContext && window.RegionContext.regions.map(r => r.code)) || []);
       const tiles = regions.map(rg=>{
         const s = activeAdSources(rg)[idx];
         const label = `${meta.icon} ${esc(activeName())} ${esc(meta.name)} · ${esc(REGION_LABELS[rg]||rg)}`;
         // No domain on record for this region: the gap, stated, not a link to nothing.
-        if (!s.url) return `<div class="bkb">${label}<span>${esc(s.hint)}</span></div>`;
-        return `<a class="bkb" href="${s.url}" target="_blank" rel="noopener">${label} ↗<span>${esc(s.hint)}</span></a>`;
+        if (!s.url) return `<div class="bkb" data-kb-market="${esc(rg)}">${label}<span>${esc(s.hint)}</span></div>`;
+        return `<a class="bkb" data-kb-market="${esc(rg)}" href="${s.url}" target="_blank" rel="noopener">${label} ↗<span>${esc(s.hint)}</span></a>`;
       }).join('');
       p.innerHTML = `<p class="count">${KNICKGASM_AD_NOTE[state.chan](activeName())}</p>`
         + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px">${tiles}</div>`
@@ -553,7 +552,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // ── Everything else: scaffolded empty state per channel ─────
     const who = state.src==='knickgasm' ? activeName() : 'Competitor';
     p.innerHTML = emptyState(
-      `${meta.icon} ${who} ${meta.name}${state.region?(' · '+state.region):''}`,
+      `${meta.icon} ${who} ${meta.name}${narrowed()?(' · '+selText()):''}`,
       state.src==='knickgasm'
         ? `Your ${meta.name.toLowerCase()} will live here as a brand-locked reference for future generation. The creation flow is one click away — build them there, archive them here.`
         : `Captured competitor ${meta.name.toLowerCase()} will be archived here once per-channel capture lands (mirroring the mailer pipeline). For now, browse live in Competitor Benchmarking.`,
@@ -766,44 +765,28 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
 
   document.querySelectorAll('#chanTabs .subtab').forEach(b=>b.addEventListener('click',()=>{state.chan=b.dataset.chan;render();}));
-  $('kbRegions').addEventListener('click',(e)=>{
-    const b = e.target.closest ? e.target.closest('.region-chip[data-region]') : null; if(!b) return;
-    state.region = b.dataset.region;
-    document.querySelectorAll('#kbRegions .region-chip').forEach(x=>x.classList.toggle('active', x===b));
-    render();
-  });
-  // Region chips are the ACTIVE brand's own regions plus All, rebuilt when
-  // the brand changes; never a typed list.
-  let _kbRegionsBuilt = null;
+  // Markets: the shared selection (2026-10-12). `state.regions` is what the
+  // library shows; `state.region` is ONE market only when exactly one is
+  // ticked (what an upload is tagged with and the deep link carries), else ''.
+  const fam = (c) => { const r = window.RegionContext; return r && r.family ? r.family(c) : String(c || '').toUpperCase(); };
+  function narrowed(){ const rc = window.RegionContext; return !!(rc && state.regions && state.regions.length && state.regions.length < rc.regions.length); }
+  function inSel(code){ return !narrowed() || state.regions.some(m => fam(m) === fam(code)); }
+  function selText(){ return (state.regions || []).join(', '); }
   function buildRegionChips(){
-    const rc = window.RegionContext; if(!rc) return;
-    const opts = rc.options();
-    const key = opts.map(o=>o.code).join('|');
-    if(key === _kbRegionsBuilt) return; _kbRegionsBuilt = key;
-    const host = $('kbRegions');
-    host.querySelectorAll('.region-chip').forEach(x => { if (x.dataset.region !== '') x.remove(); });
-    opts.forEach(o => {
-      const b = document.createElement('button'); b.type='button'; b.className='region-chip'; b.dataset.region=o.code; b.textContent=o.name;
-      if(o.home){ b.dataset.home='1'; b.title='Home market'; }
-      host.appendChild(b);
-    });
-    if(!opts.length){ const m=document.createElement('span'); m.className='region-chip'; m.style.cursor='default'; m.textContent=(window.RegionContext && window.RegionContext.marker ? window.RegionContext.marker('regions') : '[DATA REQUIRED BEFORE LAUNCH: regions, this brand]'); host.appendChild(m); }
-    // All aggregates over the brand's OWN markets, so it exists only when there
-    // is more than one; a one-market brand's library is that market (2026-10-10).
-    let allChip = host.querySelector('.region-chip[data-region=""]');
-    if (opts.length < 2) { if (allChip) allChip.remove(); }
-    else if (!allChip) {
-      allChip = document.createElement('button'); allChip.type='button'; allChip.className='region-chip'; allChip.dataset.region=''; allChip.textContent='All';
-      const firstChip = host.querySelector('.region-chip'); host.insertBefore(allChip, firstChip || null);
-    }
-    if (opts.length === 1) { if (state.region !== opts[0].code) { state.region = opts[0].code; render(); } }
-    else if(state.region && !opts.some(o=>o.code===state.region)){ state.region=''; render(); }
-    host.querySelectorAll('.region-chip[data-region]').forEach(x=>x.classList.toggle('active', x.dataset.region===(state.region||'')));
+    const rc = window.RegionContext; if(!rc || !rc.loaded) return;
+    const list = rc.marketsFor ? rc.marketsFor({ defaultAll: true }) : [];
+    const key = list.join('|');
+    if (key === state._regionsKey) return;
+    state._regionsKey = key;
+    state.regions = list;
+    state.region = list.length === 1 ? list[0] : '';
+    render();
   }
   (function watchRegions(w){
     const waited=w||0;
     if(!window.RegionContext){ if(waited<6000) setTimeout(()=>watchRegions(waited+100),100); return; }
     window.RegionContext.onChange(buildRegionChips);
+    if (window.RegionContext.onSelection) window.RegionContext.onSelection(buildRegionChips);
   })(0);
 
   // Deep-link parser. New schema: #<chan>[/<region>]. Back-compat: legacy
@@ -824,7 +807,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // (buildRegionChips validates it); until then it is taken as typed.
     if (region) {
       state.region = region;
-      document.querySelectorAll('#kbRegions .region-chip').forEach(x => x.classList.toggle('active', x.dataset.region === region));
+      // Honoured as the shared selection once the brand's own list is known.
+      const rc = window.RegionContext;
+      if (rc && rc.ready) rc.ready().then(() => { if (rc.resolve(region)) rc.setSelection([region]); });
     }
   })();
   render();

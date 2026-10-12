@@ -228,7 +228,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div class="cal-head" style="justify-content:space-between;align-items:center">
         <h3 style="font-family:var(--vh-font-head);font-size:18px;font-weight:600;margin:0">Ad calendar, the Smart Brain plan</h3>
         <div style="display:flex;gap:8px;align-items:center">
-          <div id="ad-mkt" style="display:flex;gap:4px"></div>
+          <div id="ad-mkt" data-region-multi data-region-label="Markets shown"></div>
           <button type="button" class="btn btn-ghost" id="ad-refresh" title="Reload the plan">↻</button>
         </div>
       </div>
@@ -259,7 +259,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div><label class="label">Daily budget</label><input id="g-budget" type="number" placeholder="50"></div>
         </div>
         <div class="row">
-          <div><label class="label">Market</label><select id="g-market" data-brand-markets></select></div>
+          <div><div id="g-market" data-region-multi="each" data-region-label="Markets (one campaign per market)"></div></div>
           <div><label class="label">Final URL</label><input id="g-url" placeholder="/landing"></div>
         </div>
         <label class="label">Keywords (comma-separated)</label>
@@ -311,7 +311,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div><label class="label">Daily budget</label><input id="m-budget" type="number" placeholder="40"></div>
         </div>
         <div class="row">
-          <div><label class="label">Market</label><select id="m-market" data-brand-markets></select></div>
+          <div><div id="m-market" data-region-multi="each" data-region-label="Markets (one campaign per market)"></div></div>
           <div><label class="label">Placements</label><select id="m-place"><option>Advantage+ (all)</option><option>Feed</option><option>Stories/Reels</option><option>Manual</option></select></div>
         </div>
         <label class="label">Audience</label>
@@ -364,7 +364,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           <div><label class="label">Daily budget</label><input id="t-budget" type="number" placeholder="40"></div>
         </div>
         <div class="row">
-          <div><label class="label">Market</label><select id="t-market" data-brand-markets></select></div>
+          <div><div id="t-market" data-region-multi="each" data-region-label="Markets (one campaign per market)"></div></div>
           <div><label class="label">Placement</label><select id="t-place"><option>TikTok In-Feed</option><option>Spark Ads</option><option>TopView</option><option>Pangle Network</option></select></div>
         </div>
         <label class="label">Audience</label>
@@ -645,7 +645,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         { format: 'TikTok · Vertical 9:16', size: '1080x1920', ar: '9:16' },
       ] },
   };
-  const v = (id) => (document.getElementById(id)?.value || '').trim();
+  // A market control is the shared selection (region-context.js): a value
+  // read off it for ONE creative / copy pass is the first selected market;
+  // Save makes one campaign per selected market (2026-10-12).
+  const v = (id) => { const el = document.getElementById(id); if (el && el.hasAttribute('data-region-multi')) return firstMarket(); return (el?.value || '').trim(); };
   // Pull the headline / offer / sub copy + market for a channel.
   function getCopy(ch) {
     const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
@@ -1114,7 +1117,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      the brand has more than one. They were typed ("US UK ALL", and seven
      markets in each form), so an India-only brand was offered two markets it
      does not sell in and an aggregate over one (2026-10-10). */
-  let AD_PLAN = [], AD_MKT = '';
+  let AD_PLAN = [];
+  function selectedMarkets() { const rc = window.RegionContext; return (rc && rc.marketsFor) ? rc.marketsFor() : ((rc && rc.home) ? [rc.home] : []); }
+  function firstMarket() { return selectedMarkets()[0] || ((window.RegionContext && window.RegionContext.home) || ''); }
+  const mlabel = (m) => { const rc = window.RegionContext; return (rc && rc.label) ? rc.label(m) : m; };
   function brandMarkets() {
     const rc = window.RegionContext;
     return (rc && typeof rc.options === 'function') ? rc.options({ all: 'ALL' }) : [];
@@ -1130,16 +1136,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const rc = window.RegionContext;
     return rc && rc.family ? rc.family(a) === rc.family(b) : String(a || '').toUpperCase() === String(b || '').toUpperCase();
   };
-  const adVisible = (e) => AD_MKT === 'ALL' || sameMarket(e.market, AD_MKT);
-  function renderAdMkt() {
-    const host = $('#ad-mkt'); if (!host) return;
-    const opts = brandMarkets();
-    const rc = window.RegionContext;
-    if (!opts.some((o) => o.code === AD_MKT)) AD_MKT = (rc && rc.home) || (opts[0] && opts[0].code) || '';
-    if (!opts.length) { host.innerHTML = '<span class="note">' + esc(rc && rc.marker ? rc.marker('home market') : '[DATA REQUIRED BEFORE LAUNCH: home market]') + '</span>'; return; }
-    host.innerHTML = opts.map((o) => `<button type="button" class="tab${AD_MKT === o.code ? ' active' : ''}" data-admkt="${esc(o.code)}"${o.home ? ' title="Home market"' : ''} style="padding:5px 12px;font-size:12px">${esc(o.all ? 'All' : o.code)}</button>`).join('');
-    host.querySelectorAll('[data-admkt]').forEach((b) => { b.onclick = () => { AD_MKT = b.dataset.admkt; renderAdMkt(); if (!AD_PLAN_LOADING) renderAdPlan(); }; });
-  }
+  // The plan shows the markets ticked in the shared control (2026-10-12).
+  const adVisible = (e) => selectedMarkets().some((m) => sameMarket(e.market, m));
+  // The market row is the shared control (data-region-multi); the plan
+  // repaints when the selection changes (onSelection below).
+  function renderAdMkt() {}
   // AD_PLAN_ERROR separates "the plan is empty" from "the plan could not be
   // read". Both used to collapse into the same "No plan yet" line, so an
   // unreachable API looked like a brand with nothing scheduled.
@@ -1181,18 +1182,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           return;
         }
         empty.textContent = AD_PLAN.length
-            ? ('No slots for ' + AD_MKT + ' — switch market.')
+            ? ('No slots for ' + selectedMarkets().join(', ') + ' — tick another market.')
             : 'No plan yet. Open Smart Brain, run the plan, and the same slots appear here with their ad sets.';
       }
       return;
     }
     if (empty) empty.style.display = 'none';
-    const head = '<tr style="text-align:left;color:#556059;font-size:11px;text-transform:uppercase;letter-spacing:.06em"><th style="padding:8px 10px">Date</th><th style="padding:8px 10px">Cohort</th><th style="padding:8px 10px">Objective / Hero</th><th style="padding:8px 10px">Channels</th><th style="padding:8px 10px">Conf.</th><th style="padding:8px 10px">Status</th><th style="padding:8px 10px">Actions</th></tr>';
+    const head = '<tr style="text-align:left;color:#556059;font-size:11px;text-transform:uppercase;letter-spacing:.06em"><th style="padding:8px 10px">Date</th><th style="padding:8px 10px">Market</th><th style="padding:8px 10px">Cohort</th><th style="padding:8px 10px">Objective / Hero</th><th style="padding:8px 10px">Channels</th><th style="padding:8px 10px">Conf.</th><th style="padding:8px 10px">Status</th><th style="padding:8px 10px">Actions</th></tr>';
     const body = rows.map((e) => {
       const i = e.__i;
       const chans = (e.channels || []).filter((c) => c !== 'email' && c !== 'landing_page').map((c) => `<span class="chan ${CHAN_COL[c] || 'chan-other'}">${esc(c)}</span>`).join(' ') || '<span class="chan chan-other">meta · google · tiktok</span>';
-      return `<tr style="border-top:1px solid rgba(171,135,67,0.12)">`
+      return `<tr data-ad-row-market="${esc((window.RegionContext && window.RegionContext.resolve(e.market)) || e.market || '')}" style="border-top:1px solid rgba(171,135,67,0.12)">`
         + `<td style="padding:10px">${esc(e.date)}</td>`
+        + `<td style="padding:10px">${esc(e.market || '')}</td>`
         + `<td style="padding:10px">${esc((e.cohort && e.cohort.name) || '')}<br><span class="note">${(e.cohort && e.cohort.size != null) ? intf(e.cohort.size) + ' profiles' : ''}</span></td>`
         + `<td style="padding:10px"><b>${esc(e.objective || '')}</b><br><span class="note">${esc((e.heroProduct && e.heroProduct.title) || '')}</span></td>`
         + `<td style="padding:10px">${chans}</td>`
@@ -1283,18 +1285,42 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   { const mb = $('#ad-manual'); if (mb) mb.onclick = () => { const t = new Date(); openDay(dkey(t.getFullYear(), t.getMonth(), t.getDate())); }; }
 
   // ── AI copy (reuses /api/ai/generate create_brief) ───────────────────
-  async function aiBrief(noteEl, market, type, prompt) {
+  async function aiBriefOne(market, type, prompt) {
+    const geminiKey = (() => { try { return localStorage.getItem('knickgasm-gemini-key') || ''; } catch { return ''; } })();
+    const r = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
+      body: JSON.stringify({ mode: 'create_brief', market, type, prompt }),
+    });
+    const d = await r.json();
+    return d.text || d.brief || d.content || '';
+  }
+  /* ONE copy request per selected market (2026-10-12), each carrying that
+     market alone; each market's draft is listed under its market, and the
+     form is filled from the first. Returns the first market's text. */
+  const AI_DRAFTS = { g: {}, m: {}, t: {} };
+  async function aiBrief(noteEl, type, prompt, ch) {
+    const rc = window.RegionContext;
+    const markets = selectedMarkets();
+    if (!markets.length) { noteEl.textContent = ((rc && rc.marker) ? rc.marker('home market') : '[DATA REQUIRED BEFORE LAUNCH: home market]') + ' No market is on this brand\'s record.'; return ''; }
     noteEl.textContent = 'Generating…';
     try {
-      const geminiKey = (() => { try { return localStorage.getItem('knickgasm-gemini-key') || ''; } catch { return ''; } })();
-      const r = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: Object.assign({ 'Content-Type': 'application/json' }, geminiKey ? { 'x-user-gemini-key': geminiKey } : {}),
-        body: JSON.stringify({ mode: 'create_brief', market, type, prompt }),
+      const runs = (rc && rc.fanOut)
+        ? await rc.fanOut((m) => aiBriefOne(m, type, prompt), { markets, progress: noteEl, label: 'Writing the copy' })
+        : [{ market: markets[0], ok: true, value: await aiBriefOne(markets[0], type, prompt) }];
+      AI_DRAFTS[ch] = {};
+      const list = document.createElement('div');
+      runs.forEach((r) => {
+        if (r.ok && r.value) AI_DRAFTS[ch][r.market] = r.value;
+        const p = document.createElement('p');
+        p.className = 'note';
+        p.setAttribute('data-ai-market', r.market);
+        p.textContent = mlabel(r.market) + ': ' + (r.ok && r.value ? 'copy drafted' + (r.market === markets[0] ? ' (in the form below)' : ' (kept for this market; Save uses it)') : 'AI unavailable, fill copy manually');
+        list.appendChild(p);
       });
-      const d = await r.json();
-      noteEl.textContent = '';
-      return d.text || d.brief || d.content || '';
+      noteEl.appendChild(list);
+      const first = runs.find((r) => r.ok && r.value);
+      return first ? first.value : '';
     } catch (e) { noteEl.textContent = 'AI unavailable — fill copy manually.'; return ''; }
   }
   // Pull a few "Headline:" style lines out of a prose brief for convenience.
@@ -1305,7 +1331,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   $('#g-ai').onclick = async () => {
     const name = $('#g-name').value.trim() || 'Google Search campaign';
-    const text = await aiBrief($('#g-ai-note'), $('#g-market').value, 'Sale', name + ' — write Google Ads headlines and descriptions for ' + brandName() + '.');
+    const text = await aiBrief($('#g-ai-note'), 'Sale', name + ' — write Google Ads headlines and descriptions for ' + brandName() + '.', 'g');
     if (!text) return;
     const heads = extractLines(text, 'HERO HEADLINE').concat(extractLines(text, 'SUBJECT'));
     if (heads.length) $('#g-headlines').value = heads.slice(0, 5).join('\n');
@@ -1315,7 +1341,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   };
   $('#m-ai').onclick = async () => {
     const name = $('#m-name').value.trim() || 'Meta campaign';
-    const text = await aiBrief($('#m-ai-note'), $('#m-market').value, 'Launch', name + ' — write a Meta primary text and headline for ' + brandName() + '.');
+    const text = await aiBrief($('#m-ai-note'), 'Launch', name + ' — write a Meta primary text and headline for ' + brandName() + '.', 'm');
     if (!text) return;
     const subs = extractLines(text, 'SUB-COPY'); if (subs.length) $('#m-primary').value = subs[0];
     const heads = extractLines(text, 'HERO HEADLINE'); if (heads.length) $('#m-headline').value = heads[0].slice(0, 40);
@@ -1334,6 +1360,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return c.image ? '<div class="item-cre"><img src="' + esc(c.image) + '" alt="creative"></div>' : '';
   }
 
+  /* One campaign per selected market (2026-10-12), each its own record with
+     ONE market. The first market takes the form as typed; another market
+     takes the AI draft written for it, when one was, else the form. */
+  function perMarket(ch, build) {
+    const markets = selectedMarkets();
+    if (!markets.length) { toast('No market is on this brand\'s record. Add its regions in Brand setup.'); return null; }
+    return markets.map((m, i) => build(m, i === 0 ? null : (AI_DRAFTS[ch] || {})[m] || null));
+  }
   // ── Google list ──────────────────────────────────────────────────────
   function renderGoogle() {
     $('#g-count').textContent = store.google.length;
@@ -1350,11 +1384,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   $('#g-save').onclick = () => {
     const name = $('#g-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
-    const rec = { id: uid(), name, type: $('#g-type').value, budget: $('#g-budget').value, market: $('#g-market').value,
-      url: $('#g-url').value.trim(), keywords: lines($('#g-keywords').value.split(',').join('\n')),
-      headlines: lines($('#g-headlines').value).map((h) => clampLen(h, 30)), descriptions: lines($('#g-desc').value).map((d) => clampLen(d, 90)) };
-    attachCreative('g', rec); store.google.unshift(rec);
-    save(); renderGoogle(); persistAd('google', rec); ['g-name', 'g-budget', 'g-url', 'g-keywords', 'g-headlines', 'g-desc'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+    const recs = perMarket('g', (market, draft) => {
+      const heads = draft ? extractLines(draft, 'HERO HEADLINE').concat(extractLines(draft, 'SUBJECT')) : [];
+      const subs = draft ? extractLines(draft, 'SUB-COPY').concat(extractLines(draft, 'OFFER SUB')) : [];
+      return { id: uid(), name, type: $('#g-type').value, budget: $('#g-budget').value, market,
+        url: $('#g-url').value.trim(), keywords: lines($('#g-keywords').value.split(',').join('\n')),
+        headlines: (heads.length ? heads.slice(0, 5) : lines($('#g-headlines').value)).map((h) => clampLen(h, 30)), descriptions: (subs.length ? subs.slice(0, 4) : lines($('#g-desc').value)).map((d) => clampLen(d, 90)) };
+    });
+    if (!recs) return;
+    recs.forEach((rec) => { attachCreative('g', rec); store.google.unshift(rec); });
+    save(); renderGoogle(); recs.forEach((rec) => persistAd('google', rec)); ['g-name', 'g-budget', 'g-url', 'g-keywords', 'g-headlines', 'g-desc'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
 
   // ── Meta list ──────────────────────────────────────────────────────
@@ -1374,10 +1413,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   $('#m-save').onclick = () => {
     const name = $('#m-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
-    const rec = { id: uid(), name, obj: $('#m-obj').value, budget: $('#m-budget').value, market: $('#m-market').value,
-      place: $('#m-place').value, aud: $('#m-aud').value.trim(), primary: clampLen($('#m-primary').value.trim(), 125), headline: clampLen($('#m-headline').value.trim(), 40) };
-    attachCreative('m', rec); store.meta.unshift(rec);
-    save(); renderMeta(); persistAd('meta', rec); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+    const recs = perMarket('m', (market, draft) => {
+      const subs = draft ? extractLines(draft, 'SUB-COPY') : [];
+      const heads = draft ? extractLines(draft, 'HERO HEADLINE') : [];
+      return { id: uid(), name, obj: $('#m-obj').value, budget: $('#m-budget').value, market,
+        place: $('#m-place').value, aud: $('#m-aud').value.trim(), primary: clampLen(subs[0] || $('#m-primary').value.trim(), 125), headline: clampLen(heads[0] || $('#m-headline').value.trim(), 40) };
+    });
+    if (!recs) return;
+    recs.forEach((rec) => { attachCreative('m', rec); store.meta.unshift(rec); });
+    save(); renderMeta(); recs.forEach((rec) => persistAd('meta', rec)); ['m-name', 'm-budget', 'm-aud', 'm-primary', 'm-headline'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
 
   // ── TikTok Ads ─────────────────────────────────────────────────────
@@ -1396,15 +1440,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   $('#t-save').onclick = () => {
     const name = $('#t-name').value.trim(); if (!name) { toast('Enter a campaign name'); return; }
-    const rec = { id: uid(), name, obj: $('#t-obj').value, budget: $('#t-budget').value, market: $('#t-market').value,
-      place: $('#t-place').value, aud: $('#t-aud').value.trim(), hook: clampLen($('#t-hook').value.trim(), 100), caption: clampLen($('#t-caption').value.trim(), 100),
-      creator: $('#t-creator').value.trim(), hashtags: $('#t-hash').value.trim() };
-    attachCreative('t', rec); store.tiktok.unshift(rec);
-    save(); renderTikTok(); persistAd('tiktok', rec); ['t-name','t-budget','t-aud','t-hook','t-caption','t-creator','t-hash'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
+    const recs = perMarket('t', (market, draft) => {
+      const dl = draft ? draft.split('\n').map((x) => x.trim()).filter(Boolean) : [];
+      return { id: uid(), name, obj: $('#t-obj').value, budget: $('#t-budget').value, market,
+        place: $('#t-place').value, aud: $('#t-aud').value.trim(), hook: clampLen((dl[0] || $('#t-hook').value.trim()).replace(/^["'`]|["'`]$/g, ''), 100), caption: clampLen(dl.length > 1 ? dl.slice(1).join(' ') : $('#t-caption').value.trim(), 100),
+        creator: $('#t-creator').value.trim(), hashtags: $('#t-hash').value.trim() };
+    });
+    if (!recs) return;
+    recs.forEach((rec) => { attachCreative('t', rec); store.tiktok.unshift(rec); });
+    save(); renderTikTok(); recs.forEach((rec) => persistAd('tiktok', rec)); ['t-name','t-budget','t-aud','t-hook','t-caption','t-creator','t-hash'].forEach((id) => $('#' + id).value = ''); toast('Campaign saved');
   };
   $('#t-ai').onclick = async () => {
     const name = $('#t-name').value.trim() || 'TikTok campaign';
-    const text = await aiBrief($('#t-ai-note'), $('#t-market').value, 'Launch', name + ' — write a TikTok hook (≤80 chars, native, conversational) + caption (≤120 chars, no marketing-speak) for ' + brandName() + '.');
+    const text = await aiBrief($('#t-ai-note'), 'Launch', name + ' — write a TikTok hook (≤80 chars, native, conversational) + caption (≤120 chars, no marketing-speak) for ' + brandName() + '.', 't');
     if (!text) return;
     // Naive split: first line → hook, rest → caption
     const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -1420,6 +1468,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // While the plan is still being read the loading line stays: an empty
     // render here would say "No plan yet" about a plan nobody has read.
     window.RegionContext.onChange(() => { fillMarketSelects(); renderAdMkt(); if (!AD_PLAN_LOADING) renderAdPlan(); });
+    if (window.RegionContext.onSelection) window.RegionContext.onSelection(() => { if (!AD_PLAN_LOADING) renderAdPlan(); });
   })(0);
 
   // ── Single-prompt autofill ───────────────────────────────────────────
@@ -1437,6 +1486,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function setField(id, value) {
     const el = document.getElementById(id);
     if (!el || value === undefined || value === null) return;
+    // The market is the operator's selection, never a model's suggestion.
+    if (el.hasAttribute('data-region-multi')) return;
     const v = String(value);
     if (el.tagName === 'SELECT') {
       // Try exact match first, then case-insensitive contains
@@ -1466,7 +1517,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         const r = await fetch('/api/ai/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: document.getElementById(fieldMap.market)?.value || ((window.RegionContext && window.RegionContext.home) || '') }),
+          body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: firstMarket() }),
         });
         const d = await r.json();
         if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
