@@ -1,0 +1,12 @@
+{
+ "_source": "information_schema.columns of the live project, read-only, 2026-10-12 (the columns the repair migration and its test touch)",
+ "brand_workspaces": {
+  "asset_hosts": "jsonb", "brand_data": "jsonb", "catalog_source": "jsonb", "created_at": "timestamp with time zone",
+  "favicon_url": "text", "id": "uuid", "industry": "text", "legal_name": "text", "logo_url": "text", "name": "text",
+  "onboarding_step": "integer", "owner_id": "uuid", "palette": "jsonb", "regions": "jsonb", "slug": "text", "status": "text",
+  "tagline": "text", "typography": "jsonb", "updated_at": "timestamp with time zone", "voice": "jsonb", "website": "text"
+ },
+ "brand_catalog_products": {
+  "product_url": "text", "source_url": "text", "stale_at": "timestamp with time zone", "title": "text", "workspace_id": "uuid"
+ }
+}
