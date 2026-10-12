@@ -290,6 +290,91 @@
     selListeners.push(fn);
     if (state.loaded) { try { fn(selPayload()); } catch (e) {} }
   }
+  /** Every market on the record, in the record's order. */
+  function allCodes() { return state.regions.map(function (r) { return r.code; }); }
+  /**
+   * The markets a feature runs for (2026-10-12). The shared selection; a view
+   * whose own default is every market (`{ defaultAll: true }`: a dashboard
+   * that aggregates) shows them all until the viewer chooses. Never a market
+   * the brand does not have; [] only for a brand with none.
+   */
+  function marketsFor(opts) {
+    var o = opts || {};
+    if (!state.regions.length) return [];
+    if (o.defaultAll && !selExplicit) return allCodes();
+    return selection.length ? selection.slice() : (state.home ? [state.home] : []);
+  }
+
+  /* ── GENERATORS FAN OUT, ONE MARKET PER RUN (2026-10-12) ───────────────
+     The operator: "ensure user has option to select which all regions he is
+     running which feature for as it must be based on the respective
+     selected region or regions." A generator still builds for ONE market
+     per call (its store, currency, locale, catalogue are one market's), so
+     several selected markets are several runs, one after the other, each
+     handed exactly one code and that market's locale. Never a list in one
+     call; never a market the record does not hold.
+
+     fanOut(fn, { markets, progress, label }) -> [{ market, ok, value, error }]
+       fn(code, locale, index) runs once per market; a throw marks that market
+       failed and the next one still runs. `progress` (an element or a
+       selector) gets one row per market: waiting / running / done / failed. */
+  function fanOutProgress(host, markets, what) {
+    if (!host) return function () {};
+    var list = document.createElement('ol');
+    list.className = 'rgn-progress';
+    list.setAttribute('data-region-progress', '1');
+    list.setAttribute('aria-live', 'polite');
+    var rows = {};
+    markets.forEach(function (c) {
+      var li = document.createElement('li');
+      li.setAttribute('data-market-progress', c);
+      li.setAttribute('data-state', 'waiting');
+      li.textContent = label(c) + ': waiting';
+      list.appendChild(li);
+      rows[c] = li;
+    });
+    var head = document.createElement('p');
+    head.className = 'rgn-progress-head';
+    head.textContent = (what || 'Running') + ' for ' + markets.length + ' market' + (markets.length === 1 ? '' : 's') + ', one at a time:';
+    host.innerHTML = '';
+    host.appendChild(head);
+    host.appendChild(list);
+    return function (code, st, note) {
+      var li = rows[code];
+      if (!li) return;
+      li.setAttribute('data-state', st);
+      li.textContent = label(code) + ': ' + ({ waiting: 'waiting', running: 'running', done: 'done', failed: 'failed' }[st] || st) + (note ? ' - ' + note : '');
+    };
+  }
+  function fanOut(fn, opts) {
+    var o = opts || {};
+    var markets = cleanSelection(o.markets || marketsFor(o));
+    if (!markets.length) {
+      var err = new Error(marker('home market') + ' No market is on this brand\'s record, so there is nothing to run for.');
+      err.code = 'market_required';
+      return Promise.reject(err);
+    }
+    var host = typeof o.progress === 'string' ? document.querySelector(o.progress) : o.progress;
+    var mark = fanOutProgress(host, markets, o.label);
+    var out = [];
+    var i = 0;
+    function next() {
+      if (i >= markets.length) return Promise.resolve(out);
+      var code = markets[i];
+      var idx = i++;
+      mark(code, 'running');
+      var run;
+      try { run = Promise.resolve(fn(code, localeOf(code), idx)); } catch (e) { run = Promise.reject(e); }
+      return run.then(function (value) {
+        out.push({ market: code, ok: true, value: value });
+        mark(code, 'done');
+      }, function (e) {
+        out.push({ market: code, ok: false, error: e });
+        mark(code, 'failed', (e && e.message) ? String(e.message).slice(0, 160) : '');
+      }).then(next);
+    }
+    return next();
+  }
 
   /**
    * The shared multi-market control. `opts.single` (or data-region-multi=
@@ -311,10 +396,15 @@
     if (host.getAttribute('data-rgn-multi-mounted') === '1') return host;
     host.setAttribute('data-rgn-multi-mounted', '1');
     var o = opts || {};
-    var single = !!o.single || /^single$/i.test(host.getAttribute('data-region-multi') || '');
+    var mode = String(host.getAttribute('data-region-multi') || '').toLowerCase();
+    var single = !!o.single || mode === 'single';
+    // "each": a GENERATOR that runs once per ticked market (fanOut above).
+    var each = !!o.each || mode === 'each';
+    // A view whose own default is every market until the viewer chooses.
+    var defaultAll = !!o.defaultAll || /^all$/i.test(host.getAttribute('data-region-default') || '');
     var id = 'rgnm' + (++multiSeq);
     host.classList.add('rgn-multi');
-    host.setAttribute('data-rgn-mode', single ? 'single' : 'multi');
+    host.setAttribute('data-rgn-mode', single ? 'single' : (each ? 'each' : 'multi'));
     function paint() {
       if (!state.loaded) return;
       if (!state.regions.length) {
@@ -327,12 +417,14 @@
         html += '<p class="rgn-multi-note">This builds for one market at a time, so it takes one market, not a selection.</p><div class="rgn-multi-opts">';
         state.regions.forEach(function (r) { html += optionHtml('radio', id, r, r.code === state.region); });
       } else {
-        var all = selection.length === state.regions.length;
+        var shown = marketsFor({ defaultAll: defaultAll });
+        var all = shown.length === state.regions.length;
+        if (each) html += '<p class="rgn-multi-note">Runs once for each market you tick: every run builds for one market, in its own currency and store.</p>';
         html += '<div class="rgn-multi-opts">';
         if (state.regions.length > 1) {
           html += '<label class="rgn-opt rgn-opt-all"' + (all ? ' data-on="1"' : '') + '><input type="checkbox" data-rgn-all="1"' + (all ? ' checked' : '') + '> <span>All markets</span></label>';
         }
-        state.regions.forEach(function (r) { html += optionHtml('checkbox', '', r, selection.indexOf(r.code) >= 0); });
+        state.regions.forEach(function (r) { html += optionHtml('checkbox', '', r, shown.indexOf(r.code) >= 0); });
       }
       html += '</div><p class="rgn-multi-msg" role="status" aria-live="polite"></p></fieldset>';
       // Keep keyboard focus on the option that was used across a repaint.
@@ -818,6 +910,9 @@
     setSelection: setSelection,
     onSelection: onSelection,
     mountMulti: mountMulti,
+    /* The markets a feature runs for, and the per-market runner (2026-10-12). */
+    marketsFor: marketsFor,
+    fanOut: fanOut,
     /* The country table, for the parity test against brand-locale.js. */
     _COUNTRY: COUNTRY,
     _SYMBOL: SYMBOL,
