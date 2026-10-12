@@ -2463,7 +2463,17 @@ function renderStandaloneMarketChips(){
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',renderStandaloneMarketChips); else renderStandaloneMarketChips();
     return;
   }
-  if(!window.RegionContext){ if(waited<6000) setTimeout(function(){watchRegionsForStudio(waited+100);},100); return; }
+  // The market list must never stay on "Loading" for good: if the region
+  // helper does not arrive (it is injected by the shell; a page opened as a
+  // file in WebKit can miss it), offer the markets this page itself carries,
+  // as with no brand layer at all, and switch to the brand's own once it lands.
+  if(!window.RegionContext){
+    if(waited<6000){ setTimeout(function(){watchRegionsForStudio(waited+100);},100); return; }
+    renderStandaloneMarketChips();
+    var late=setInterval(function(){ if(window.RegionContext){ clearInterval(late); window.RegionContext.onChange(function(){ try{renderMarketChips();}catch(_){} }); } },500);
+    setTimeout(function(){ clearInterval(late); },60000);
+    return;
+  }
   window.RegionContext.onChange(function(){ try{renderMarketChips();}catch(_){} });
 })(0);
 // ── Market chip toggle ──────────────────────────────────────────────────────
