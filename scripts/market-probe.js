@@ -80,6 +80,20 @@ async function land(url, { fetchImpl, assertUrl, ua, deadline }) {
   return { status: 0, error: 'too many redirects', hops, final: at };
 }
 
+const READERS = require('../api/_shared/catalog-reader-client.js');
+function where(opts) { return (opts && opts.where) || process.env.PROBE_WHERE || (process.env.GITHUB_ACTIONS ? 'a GitHub-hosted runner' : 'this machine'); }
+
+/** The same landing, asked of a reader in the market's country (it follows and re-checks the hops). */
+async function viaReader(reader, url, opts = {}) {
+  const r = await READERS.read(reader, url, { accept: 'text/html,application/xhtml+xml', fetchImpl: opts.readerFetch });
+  if (r.failed) return { reader_failed: r.failed, hops: [] };
+  if (r.refused) return { status: 0, error: 'refused by the reader: ' + (r.message || r.refused), hops: r.hops || [], final: url };
+  if (r.ok !== true) return { status: r.status || 0, error: r.error, hops: r.hops || [], final: r.final_url || url, reader_country: r.reader && r.reader.country };
+  const text = r.body.toString('utf8').slice(0, 200000);
+  const challenge = /cf-chl|challenge-platform|captcha|access denied|attention required|request unsuccessful|kpsdk|px-captcha/i.test(text.slice(0, 20000));
+  return { status: r.status, hops: r.hops || [], final: r.final_url || url, challenge, title: ((/<title[^>]*>([^<]{0,140})/i.exec(text) || [])[1] || '').trim(), reader_country: r.reader && r.reader.country };
+}
+
 function classify(m, l) {
   if (l.robots) return { verdict: 'robots', why: 'robots.txt disallows ' + m.store_url };
   if (!l.status) return { verdict: 'unreachable', why: l.error || 'no answer' };
@@ -133,10 +147,23 @@ async function probeBrand({ name, url, region }, opts = {}) {
   }
   for (const m of found.markets) {
     let l;
+    let via = 'this machine';
     if (!(await robotsOk(m.store_url))) l = { robots: true, hops: [] };
-    else l = await land(m.store_url, { fetchImpl, assertUrl, ua: CI.USER_AGENT, deadline });
+    else {
+      // A reader in the market's country (CATALOG_READERS + CATALOG_READER_SECRET),
+      // when one is configured: the probe asks it, so a run confirms that the
+      // market is reachable THROUGH its reader. A reader that cannot be used
+      // is said and the market is probed directly.
+      const reader = READERS.readerFor(m.code);
+      if (reader && reader.usable) {
+        l = await viaReader(reader, m.store_url, opts);
+        if (l.reader_failed) { out.notes.push(`${String(m.code).toUpperCase()}: the reader ${reader.host} could not be used (${l.reader_failed}); probed directly from ${where(opts)} instead.`); l = null; }
+        else via = `the reader ${reader.host} (a server in ${l.reader_country || 'an unstated country'})`;
+      } else if (reader) out.notes.push(`${String(m.code).toUpperCase()}: a reader is configured (${reader.host}) but ${reader.problem}; probed directly.`);
+      if (!l) l = await land(m.store_url, { fetchImpl, assertUrl, ua: CI.USER_AGENT, deadline });
+    }
     const c = classify(m, l);
-    out.markets.push({ code: m.code, country: m.country, store_url: m.store_url, source: m.source, verdict: c.verdict, why: c.why, landing: c.verdict, hops: (l.hops || []).map((h) => h.status + ' ' + h.url) });
+    out.markets.push({ code: m.code, country: m.country, store_url: m.store_url, source: m.source, verdict: c.verdict, why: c.why, landing: c.verdict, read_from: via, hops: (l.hops || []).map((h) => h.status + ' ' + h.url) });
   }
   // Then the shipped importer itself, a few steps: a store can answer its home
   // page and still send every PRODUCT page to another market's store (the
@@ -183,7 +210,7 @@ function summary(results, where) {
     if (b.error) lines.push('', b.error);
     if (!b.markets.length && !b.error) lines.push('', 'The site publishes no regional store this importer can find.' + (b.home ? ` Its home page from here: ${b.home.verdict} (${b.home.why}).` : ''));
     lines.push('', '| Market | Store | Verdict | Detail |', '|---|---|---|---|');
-    b.markets.forEach((m) => lines.push(`| ${m.code.toUpperCase()} | ${m.store_url} | ${m.verdict} | ${String(m.why).replace(/\|/g, '/')} |`));
+    b.markets.forEach((m) => lines.push(`| ${m.code.toUpperCase()} | ${m.store_url} | ${m.verdict} | ${String(m.why).replace(/\|/g, '/')}${m.read_from && m.read_from !== 'this machine' ? ` (read through ${m.read_from})` : ''} |`));
     if (b.notes.length) lines.push('', ...b.notes.map((n) => '- ' + n));
     lines.push('');
   }
@@ -230,4 +257,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e.stack || e); process.exit(1); });
-module.exports = { probeBrand, classify, land, summary, countryOfPath };
+module.exports = { probeBrand, classify, land, viaReader, summary, countryOfPath };
