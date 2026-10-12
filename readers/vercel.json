@@ -1,8 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
   "functions": {
-    "api/read.js": { "maxDuration": 30 },
-    "api/health.js": { "maxDuration": 5 }
+    "api/read.js": {
+      "maxDuration": 30
+    },
+    "api/health.js": {
+      "maxDuration": 5
+    }
   }
 }
