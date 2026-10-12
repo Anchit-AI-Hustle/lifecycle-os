@@ -73,3 +73,18 @@ test('the regional store probe workflow is dispatch-only and read-only, and runs
   }
   expect(wf.jobs.probe.steps.some((s) => s.run && /node scripts\/market-probe\.js --presets/.test(s.run))).toBe(true);
 });
+
+test('a store whose robots.txt disallows something else is not reported as disallowed (the probe passes robots.txt the full URL)', async () => {
+  // lensworld.example publishes a robots.txt; its store pages are allowed.
+  const r = await probe().probeBrand({ name: 'Lensworld', url: 'https://lensworld.example', region: 'IN' }, { steps: 0 });
+  expect(r.markets.length).toBeGreaterThan(0);
+  expect(r.markets.filter((m) => m.verdict === 'robots'), JSON.stringify(r.markets)).toEqual([]);
+});
+
+test('a site with no regional store still says what its home page answered from here', async () => {
+  const r = await probe().probeBrand({ name: 'Emptyshop', url: 'https://emptyshop.example', region: 'IN' }, { steps: 0 });
+  if (!r.markets.length) {
+    expect(r.home && r.home.verdict, JSON.stringify(r)).toBeTruthy();
+    expect(probe().summary([r], 'the fixture')).toMatch(/Its home page from here: /);
+  }
+});

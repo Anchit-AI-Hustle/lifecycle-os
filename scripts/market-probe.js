@@ -122,8 +122,15 @@ async function probeBrand({ name, url, region }, opts = {}) {
       } catch (_) { robotsCache[o] = null; }
     }
     const rules = robotsCache[o];
-    return !rules || CI.robotsAllows(rules, new URL(u).pathname + new URL(u).search);
+    return !rules || CI.robotsAllows(rules, u);   // the full URL: robotsAllows reads its path itself
   };
+  // A site whose own pages name no regional store is ONE store: probe its
+  // home page too, so "blocked here" is never reported as "no regional stores".
+  if (!found.markets.length) {
+    const l = (await robotsOk(url)) ? await land(url, { fetchImpl, assertUrl, ua: CI.USER_AGENT, deadline }) : { robots: true, hops: [] };
+    const c = classify({ code: region || '', country: region || '', store_url: url, prefix: '' }, l);
+    out.home = { verdict: c.verdict, why: c.why };
+  }
   for (const m of found.markets) {
     let l;
     if (!(await robotsOk(m.store_url))) l = { robots: true, hops: [] };
@@ -174,7 +181,7 @@ function summary(results, where) {
   for (const b of results) {
     lines.push(`### ${b.name} (${b.url})`);
     if (b.error) lines.push('', b.error);
-    if (!b.markets.length && !b.error) lines.push('', 'The site publishes no regional store this importer can find.');
+    if (!b.markets.length && !b.error) lines.push('', 'The site publishes no regional store this importer can find.' + (b.home ? ` Its home page from here: ${b.home.verdict} (${b.home.why}).` : ''));
     lines.push('', '| Market | Store | Verdict | Detail |', '|---|---|---|---|');
     b.markets.forEach((m) => lines.push(`| ${m.code.toUpperCase()} | ${m.store_url} | ${m.verdict} | ${String(m.why).replace(/\|/g, '/')} |`));
     if (b.notes.length) lines.push('', ...b.notes.map((n) => '- ' + n));
@@ -212,7 +219,7 @@ async function main() {
       const t = targets[i++];
       const r = await probeBrand(t, { steps: a.steps == null ? 3 : +a.steps }).catch((e) => ({ name: t.name, url: t.url, markets: [], notes: [], error: String(e.message || e) }));
       results.push(r);
-      process.stdout.write(`${t.name}: ${r.markets.map((m) => m.code + '=' + m.verdict).join(' ') || r.error || 'no regional stores'}\n`);
+      process.stdout.write(`${t.name}: ${r.markets.map((m) => m.code + '=' + m.verdict).join(' ') || r.error || ('no regional stores' + (r.home ? '; home=' + r.home.verdict + ' (' + r.home.why + ')' : ''))}\n`);
     }
   }));
   results.sort((x, y) => targets.findIndex((t) => t.name === x.name) - targets.findIndex((t) => t.name === y.name));
