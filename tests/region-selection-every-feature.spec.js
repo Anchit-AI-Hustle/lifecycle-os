@@ -21,6 +21,13 @@
 // sent (LifecycleStatus.decide, by design); the spec answers decide() as a
 // verified session would, which is the state in which the request leaves.
 //
+// Mutations, each restoring one defect, all caught (2026-10-12): calendar sends
+// the whole list in one call; marketsFor() ignores the selection; the ad plan
+// shows an unselected market; fanOut hands every run the first code; the
+// Studio's chips do not write the shared selection; the Studio brief sends the
+// list; the KB tiles every market; the agentic run takes only the first
+// market; the dashboard matches every region; ad Save makes one record only.
+//
 // Run: npx playwright test tests/region-selection-every-feature.spec.js --project=desktop-1280
 const { test, expect } = require('@playwright/test');
 const H = require('./lib/brand-theme-harness.js');

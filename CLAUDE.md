@@ -10,7 +10,9 @@ the respective selected region or regions."* One selection, the shared one (`Reg
 viewer, default = the HOME market), drives every wired page; markets come only from the brand's record
 (`RegionContext.options()`), none = `[DATA REQUIRED BEFORE LAUNCH: home market, <brand>]`. Gated by
 `tests/region-selection-every-feature.spec.js` (executed in Chromium: a device brand with IN home / US / UK, the
-operator ticks IN + US on each page; requests recorded with `page.route`).
+operator ticks IN + US on each page; requests recorded with `page.route`; 10 mutations, each restoring one defect, all
+caught: a list in one call, the selection ignored, an unselected market shown, every run given the first code, the
+Studio's chips not shared, a single record/run where there should be one per market).
 - **`region-context.js`**: `marketsFor({defaultAll})` = the markets a feature runs for (a view that aggregates passes
   `defaultAll`: every market until the viewer chooses; `data-region-default="all"` on the control paints that).
   `fanOut(fn, {markets, progress, label})` runs `fn(code, localeOf(code), i)` ONCE PER MARKET, one after another, never
