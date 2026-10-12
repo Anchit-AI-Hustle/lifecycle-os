@@ -345,6 +345,17 @@ test('the 30-day planner renders its generated rows with no reload', async ({ pa
 });
 
 test('the 30-day planner states an empty generation rather than showing the old plan', async ({ page }) => {
+  // The planner refuses a brand with no market on its record before it sends
+  // anything (2026-10-12): this case is about an EMPTY generation, so the
+  // brand on this device has a market, and both clicks go through the same
+  // once-per-market path rather than whichever one the region layer's load
+  // happened to reach first.
+  const brand = { id: 'ws-planner', name: 'Planner Test', slug: 'planner-test', status: 'active', onboarding_step: 6,
+    regions: [{ code: 'US', currency: 'USD', symbol: '$', home: true }] };
+  await page.route('**/api/public-config**', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, brand, active_id: brand.id, workspaces: [brand], needs_onboarding: false }),
+  }));
   const errors = await openCalendar(page, (route) => {
     const body = route.request().postData() || '';
     // First click returns rows, second returns none, so the test proves the
@@ -359,6 +370,7 @@ test('the 30-day planner states an empty generation rather than showing the old 
     });
   });
 
+  await page.waitForFunction(() => window.RegionContext && window.RegionContext.loaded && window.RegionContext.regions.length > 0);
   await page.locator('#btnGenerate').click();
   await expect(page.locator('#planTable tr[data-id]')).toHaveCount(1);
 
