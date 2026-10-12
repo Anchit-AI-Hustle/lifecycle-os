@@ -4,6 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Every feature runs for the markets the operator ticks; a generator runs ONCE PER MARKET (2026-10-12)
+The operator: *"ensure user has option to select which all regions he is running which feature for as it must be based on
+the respective selected region or regions."* One selection, the shared one (`RegionContext.selection`, per brand per
+viewer, default = the HOME market), drives every wired page; markets come only from the brand's record
+(`RegionContext.options()`), none = `[DATA REQUIRED BEFORE LAUNCH: home market, <brand>]`. Gated by
+`tests/region-selection-every-feature.spec.js` (executed in Chromium: a device brand with IN home / US / UK, the
+operator ticks IN + US on each page; requests recorded with `page.route`).
+- **`region-context.js`**: `marketsFor({defaultAll})` = the markets a feature runs for (a view that aggregates passes
+  `defaultAll`: every market until the viewer chooses; `data-region-default="all"` on the control paints that).
+  `fanOut(fn, {markets, progress, label})` runs `fn(code, localeOf(code), i)` ONCE PER MARKET, one after another, never
+  a list in one call; a throw marks that market failed and the next still runs; `progress` gets one row per market
+  (`[data-market-progress]`, `data-state` waiting/running/done/failed, `.rgn-progress` in theme.css, tokens only).
+  `data-region-multi="each"` is the GENERATOR form of the shared control ("Runs once for each market you tick"). The
+  `single` form and `RegionContext.region` (the rail's one market) are unchanged: a selection never changes `region`.
+- **Generators, one request per ticked market, each output labelled with its market**: `/calendar` (Generate plan:
+  `markets:[one]` per POST, plans merged, summary names each), `/brain` Agentic Generation (a control in the card,
+  `agenticMarkets()`, one `agentic-run` per market, one report section `[data-agentic-market]` each; the Region filter
+  and the card control are the same selection), `/landing-pages` (one page per market, each saved and listed under it;
+  autofill writes the form once, for the first market), `/ad-campaigns` (Google/Meta/TikTok "Generate copy" = one
+  `create_brief` per market, drafts listed `[data-ai-market]`; Save = one campaign record per market, a non-first
+  market taking its own AI draft; a model's autofill never sets the market), `/retention-playbook` (Run Agentic Sync,
+  one run per market). The Studio keeps its own chips, which ARE the shared selection both ways (`_studioShareSelection`
+  / `_studioFollowSelection`); it already built one mailer and one prompt pair per market, and its brief call now
+  carries `markets:[primary]`, never the list. Server routes are unchanged: each still takes one market
+  (`409 market_not_served` stands).
+- **Views, exactly the ticked markets**: `/ad-campaigns` plan (a Market column, `[data-ad-row-market]`), `/rfm`
+  dashboard and `/knowledge-base` (aggregate: every market until narrowed; KB tiles one per market, an upload is tagged
+  with a market only when exactly one is ticked), `/retention-playbook` plan, Smart Brain's plan filter and
+  `/revenue-by-region` (both from 2026-10-11).
+- Tests changed on purpose: `brand-regions` (calendar / retention / dashboard / KB / landing-pages controls are the
+  shared control now; a brand with no regions shows the `home market` marker), `region-revenue-page` (the agentic run
+  runs once per selected market instead of taking the first).
+- **Left unwired, with the reason**: `data-analysis.html` and `data-engine.html` (every widget is computed for ONE
+  market's dataset - the shipped export or a labelled demo - and stays a one-market tab; the multi-market comparison is
+  `/revenue-by-region`); `research.html` (a reader: one full study per market, tabbed; its benchmark table follows the
+  study tab); `kicksgpt.html`, `landing-page-agent.html` (one conversation / one page, a one-market select); the ad
+  page's manual one-off modal (`#dm-market`, one dated entry); onboarding / connections / brand catalogue (setup, owned
+  by other branches); `dashboard.html`'s assumed ₹83 USD rate (as recorded on 2026-10-11) now sums whichever markets
+  are ticked, exactly as it summed "All" before.
 ## ⭐ Onboarding sets a brand up in ONE run, shown step by step; the steps are for view and edit (2026-10-11)
 The operator, on the six step buttons: *"no point in allowing the user to choose step by step as such - that should be
 for view and edit; keep a step by step transient animation for user to be able to see transparently step by step what is
