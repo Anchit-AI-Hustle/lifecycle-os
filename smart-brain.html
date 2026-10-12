@@ -304,6 +304,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <span class="btn sm" style="cursor:default;pointer-events:none" title="One mode: an agentic pipeline powered by the premium model cascade">🤖 Agentic</span>
         <button type="button" id="runAgentic" class="btn" onclick="runAgentic()">🤖 Run Agentic Flow</button>
       </div>
+      <!-- The markets this run builds for: the shared selection (2026-10-12).
+           The run is made ONCE PER TICKED MARKET, each request one market. -->
+      <div id="agenticMarkets" data-region-multi="each" data-region-label="Markets this run builds for"></div>
       <p id="agenticWhy" class="vh-status" role="status" hidden></p>
       <p id="agenticMarket" class="tdim" style="margin:0 0 10px" hidden></p>
       <div id="agenticOut" class="feed"><p class="tdim">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
@@ -585,17 +588,20 @@ async function regionReady(){
   return window.RegionContext || null;
 }
 function agenticMarket(){
+  const all = agenticMarkets();
+  return { market: all.markets[0] || '', marker: all.marker };
+}
+/* The markets the agentic run builds for: the shared selection (the Region
+   filter and the control in this card are the same selection), else the
+   brand's HOME market. Each is ONE run with ONE market (2026-10-12). */
+function agenticMarkets(){
   const RC = window.RegionContext;
-  const chip = document.querySelector('#mktfilter .mkchip.on:not([data-mkt="all"])');
-  const picked = chip ? chip.getAttribute('data-mkt') : '';
   if(RC){
-    const c = picked ? RC.resolve(picked) : '';
-    if(c) return { market: c, marker: '' };
-    const m = RC.region || RC.home;
-    if(m) return { market: m, marker: '' };
-    return { market: '', marker: RC.marker('home market') };
+    const list = (RC.marketsFor ? RC.marketsFor() : [RC.region || RC.home]).filter(Boolean);
+    if(list.length) return { markets: list, marker: '' };
+    return { markets: [], marker: RC.marker('home market') };
   }
-  return { market: '', marker: '[DATA REQUIRED BEFORE LAUNCH: home market, this brand]' };
+  return { markets: [], marker: '[DATA REQUIRED BEFORE LAUNCH: home market, this brand]' };
 }
 /* The button is OFF, with its reason beside it, while the brand has no market. */
 function gateAgentic(){
@@ -603,13 +609,16 @@ function gateAgentic(){
   if(!btn) return;
   const RC = window.RegionContext;
   if(!RC || !RC.loaded) return;
-  const pick = agenticMarket();
+  const pick = agenticMarkets();
   const one = $('agenticMarket');
-  if(pick.market){
+  if(pick.markets.length){
     btn.disabled = false; btn.removeAttribute('aria-disabled'); btn.removeAttribute('title');
     if(why){ why.hidden = true; why.textContent = ''; }
-    // A generator takes ONE market, whatever the Region filter shows: said here.
-    if(one){ one.hidden = false; one.textContent = 'Builds for one market at a time: ' + (RC.label ? RC.label(pick.market) : pick.market) + '. With several markets selected in the Region filter, the first one is used.'; }
+    // Each run builds for ONE market; several ticked = several runs, said here.
+    const names = pick.markets.map(m => RC.label ? RC.label(m) : m);
+    if(one){ one.hidden = false; one.textContent = pick.markets.length === 1
+      ? 'Builds for one market: ' + names[0] + '.'
+      : 'Runs once for each selected market, one market per run: ' + names.join(', ') + '.'; }
     return;
   }
   if(one){ one.hidden = true; one.textContent = ''; }
@@ -620,14 +629,13 @@ function gateAgentic(){
 async function runAgentic(){
   const out = $('agenticOut');
   await regionReady();
-  const pick = agenticMarket();
-  if(!pick.market){
+  const pick = agenticMarkets();
+  if(!pick.markets.length){
     // The marker, in the accent rule, and nothing leaves the page.
     gateAgentic();
     out.innerHTML = `<p class="vh-status" role="status">${esc(pick.marker)} This brand has no market on its record, so the agentic run has no market to plan for. Add its regions in Brand setup.</p>`;
     return;
   }
-  const market = pick.market;
   // Decided BEFORE anything is sent (2026-09-29): a sign-in kept only in this
   // browser cannot be verified by the server, and the run writes for a brand
   // the server has no row for, so the sentence is shown and nothing leaves.
@@ -635,24 +643,42 @@ async function runAgentic(){
     const stop = await window.LifecycleStatus.decide('The agentic run', { metered: true });
     if (stop) { window.LifecycleStatus.show(out, stop); return; }
   }
-  out.innerHTML = `<p>🤖 Running agentic flow — Premium, ${esc(market)} — 8 stages, please wait…</p>`;
-  try{
-    // Return the plan fast; creatives (images/mailers/ads/LPs) prebuild in the
-    // background via the convergent smart-brain-prebuild queue. Building creatives
-    // inline used to blow past the serverless time limit (the "server took too
-    // long" timeout). The plan itself is quick; assets converge after.
-    // The duration chips used to filter the TABLE only: the run itself never
-    // received the selected period, so it planned the default window and then
-    // built assets for a single day of it. The selection is the run's scope.
-    const runDays = (SELECTED_DAYS === 'all') ? 90 : Number(SELECTED_DAYS) || 7;
-    const r = await fetch('/api/brain?action=agentic-run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ market, tier: TIER, days: runDays, withCreatives: false })});
-    const d = await safeJson(r);
-    if(!d.ok){
-      // The server's own refusal for a market the brand does not list is a
-      // statement about the brand's record, not a fault: the accent rule.
-      if(d.error === 'market_required' || d.error === 'market_not_served'){ out.innerHTML = `<p class="vh-status" role="status">${esc(d.message || d.marker || '')}</p>`; return; }
-      window.LifecycleFailure.show(out, d, { title: 'The agentic run did not complete' }); return;
-    }
+  const RC = window.RegionContext;
+  // One section per market, each with its own run and its own report.
+  out.innerHTML = '<div id="agenticProgress"></div>' + pick.markets.map(m =>
+    `<section data-agentic-market="${esc(m)}" style="margin-top:10px"><h3 style="font-size:16px;margin:0 0 6px">${esc(RC && RC.label ? RC.label(m) : m)}</h3><div class="agentic-body"><p class="tdim">Waiting for its turn: each market is its own run.</p></div></section>`).join('');
+  // The duration chips used to filter the TABLE only: the run itself never
+  // received the selected period, so it planned the default window and then
+  // built assets for a single day of it. The selection is the run's scope.
+  const runDays = (SELECTED_DAYS === 'all') ? 90 : Number(SELECTED_DAYS) || 7;
+  const runOne = async (market) => {
+    const body = out.querySelector(`[data-agentic-market="${market}"] .agentic-body`);
+    if(body) body.innerHTML = `<p>🤖 Running agentic flow — Premium, ${esc(market)} — 8 stages, please wait…</p>`;
+    try{
+      // Return the plan fast; creatives (images/mailers/ads/LPs) prebuild in the
+      // background via the convergent smart-brain-prebuild queue. Building creatives
+      // inline used to blow past the serverless time limit (the "server took too
+      // long" timeout). The plan itself is quick; assets converge after.
+      const r = await fetch('/api/brain?action=agentic-run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ market, tier: TIER, days: runDays, withCreatives: false })});
+      const d = await safeJson(r);
+      if(!d.ok){
+        // The server's own refusal for a market the brand does not list is a
+        // statement about the brand's record, not a fault: the accent rule.
+        if(d.error === 'market_required' || d.error === 'market_not_served'){ if(body) body.innerHTML = `<p class="vh-status" role="status">${esc(d.message || d.marker || '')}</p>`; return d; }
+        if(body) window.LifecycleFailure.show(body, d, { title: 'The agentic run did not complete' });
+        throw Object.assign(new Error((d && (d.message || d.error)) || 'did not complete'), { shown: true });
+      }
+      if(body) body.innerHTML = agenticReportHtml(d);
+      return d;
+    }catch(e){ if(!e.shown && body) window.LifecycleFailure.show(body, e, { title: 'The report could not be built' }); throw e; }
+  };
+  if(RC && RC.fanOut){
+    await RC.fanOut(runOne, { markets: pick.markets, progress: $('agenticProgress'), label: 'Running the agentic flow' });
+  } else {
+    try { await runOne(pick.markets[0]); } catch(_) {}
+  }
+}
+function agenticReportHtml(d){
     const stages = (d.stages||[]).map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--vh-panel-tan)"><b>${s.ok?'✓':'✗'} ${esc(s.stage)}</b> — ${esc(s.summary||'')}</div>`).join('');
     const ideas = (d.ideation&&d.ideation.ideas||[]).map(i=>`<li><b>${esc(i.title)}</b> — ${esc(i.action||i.why||'')} <span class="tdim">(${esc(i.impact||'')}/${esc(i.effort||'')})</span></li>`).join('');
     // One row per DAY the run actually produced assets for. This is the thing
@@ -671,7 +697,7 @@ async function runAgentic(){
         + `</p>`
       : '';
 
-    out.innerHTML = `<div class="label">Flow · ${esc(d.mode)} · tier ${esc(d.tier)}</div>
+    return `<div class="label">Flow · ${esc(d.mode)} · tier ${esc(d.tier)}</div>
       <div style="margin:8px 0">${stages}</div>
       ${coverage}
       ${dayRows ? `<h2 style="font-size:18px;margin-top:14px">Assets by day</h2>
@@ -681,7 +707,6 @@ async function runAgentic(){
           <th style="padding:5px 8px">Cohort</th><th style="padding:5px 8px">Subject</th>
           <th style="padding:5px 8px">Score</th></tr></thead><tbody>${dayRows}</tbody></table>` : ''}
       <h2 style="font-size:18px;margin-top:14px">Ideation — what to do next</h2><ul>${ideas||'<li>—</li>'}</ul>`;
-  }catch(e){ window.LifecycleFailure.show(out, e, { title: 'The report could not be built' }); }
 }
 
 // Region filter — multi-select. Empty set OR 'all' = every market.
@@ -709,7 +734,7 @@ window.toggleMkt = function(mkt){
   paintMktChips();
   // The plan filter IS the shared multi-market selection (2026-10-11): the
   // markets picked here open on Revenue by region too, and come back here.
-  // It is a VIEW filter; the agentic run below still takes ONE market.
+  // The agentic run below runs once per market in this same selection.
   const RC = window.RegionContext;
   if(RC && RC.setSelection) RC.setSelection(SELECTED_MKT.size ? Array.from(SELECTED_MKT) : ['ALL']);
   renderPlan();
@@ -745,6 +770,20 @@ function buildMktChips(){
   }
   // A single-region brand needs no region filter at all.
   host.style.display = ALL_MKTS.length > 1 ? '' : 'none';
+}
+
+// The control in the Agentic card drives the same selection; the plan filter
+// follows it (only a choice the viewer made; the filter's own default is all).
+function syncMktFromSelection(){
+  const RC = window.RegionContext;
+  if(!RC || !RC.selectionExplicit || !ALL_MKTS.length) return;
+  const shared = RC.selection.map(mktKey).filter(m => ALL_MKTS.includes(m));
+  const next = (shared.length && shared.length < ALL_MKTS.length) ? new Set(shared) : new Set();
+  const same = next.size === SELECTED_MKT.size && Array.from(next).every(m => SELECTED_MKT.has(m));
+  if(same) return;
+  SELECTED_MKT = next;
+  paintMktChips();
+  try { renderPlan(); } catch(_) {}
 }
 
 // Duration horizon: limit the calendar to sends within the next N days (from
@@ -1751,6 +1790,8 @@ function paintCronTime(){
 }
 if(window.RegionContext) window.RegionContext.onChange(function(){ gateAgentic(); paintCronTime(); });
 else window.addEventListener('regioncontext:change', function(){ gateAgentic(); paintCronTime(); });
+// The selection (the Region filter, or the control in the Agentic card).
+window.addEventListener('regioncontext:selection', function(){ syncMktFromSelection(); gateAgentic(); });
 // Signed out is a state, not a fault. Said before the request, in the accent
 // rule, so the calendar never opens on "Could not load the plan: sign_in_required".
 // This read starts from the page script, and auth.js is deferred, so
