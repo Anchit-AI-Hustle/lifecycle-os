@@ -338,6 +338,21 @@ test.describe('Mailer Studio — responsive smoke', () => {
 // the chips sat on "Loading this brand's markets..." with nothing to pick, so
 // iphone-12 could never choose a market. After the wait the page offers the
 // markets its own catalogue carries, and a pick holds.
+test('a Studio opened as a file offers its markets at once, since the shell cannot inject the region helper there', async ({ page }) => {
+  // The shell injects region-context.js by an absolute path, which a file://
+  // page cannot load; waiting six seconds for it (counted in 100 ms ticks a
+  // busy WebKit stretches) ran past the beforeEach's own budget on iphone-12.
+  test.skip(!URL.startsWith('file://'), 'only a page opened as a file');
+  await bypassAuth(page);
+  await page.addInitScript(() => {
+    const bc = { loaded: false, brand: null, onChange() {}, api() { return Promise.reject(new Error('offline')); } };
+    Object.defineProperty(window, 'BrandContext', { configurable: true, get: () => bc, set: () => {} });
+    Object.defineProperty(window, 'RegionContext', { configurable: true, get: () => undefined, set: () => {} });
+  });
+  await page.goto(URL);
+  await expect(page.locator('#mktChips .mkt-chip[data-mkt="US"]')).toBeVisible({ timeout: 2_500 });
+});
+
 test('market chips fall back to the page\'s own markets when the region helper never arrives', async ({ page }) => {
   await bypassAuth(page);
   await page.addInitScript(() => {
