@@ -136,6 +136,7 @@ const MODEL_FEATURE = {
   'video-generate': ['POST', 'video.generate'],
   'mailer-assets': ['POST', 'image.generate'],
   tts: ['POST', 'audio.tts'],
+  'music-compose': ['POST', 'audio.music'],
   'social-run-daily': ['POST', 'social.daily_run'],
   'platform-agents': [null, 'analytics.report'],
   'revenue-os': ['GET', 'analytics.report'],
@@ -285,7 +286,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -1210,6 +1211,36 @@ module.exports = async function handler(req, res) {
         if (!r.ok) return res.status(502).json({ ok: false, error: `ElevenLabs ${r.status}: ${(await r.text()).slice(0, 200)}` });
         const buf = Buffer.from(await r.arrayBuffer());
         res.setHeader('Content-Type', 'audio/mpeg');
+        return res.status(200).send(buf);
+      }
+
+      // ── MUSIC (ElevenLabs Music: POST https://api.elevenlabs.io/v1/music,
+      //    documented at elevenlabs.io/docs/api-reference/music/compose). The
+      //    page writes the prompt from the active brand's own record and the
+      //    operator edits it; this route only sends it. Suno has no public API
+      //    (invite-only partner programme), so the page hands a Suno brief off
+      //    by clipboard instead of calling anything here. ─────────────────────
+      case 'music-compose': {
+        if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) return res.status(501).json({ ok: false, error: 'music_unconfigured', message: 'Generating a track here needs ELEVENLABS_API_KEY set on this deployment. Until then, use Open in Suno: the brief is copied for you.' });
+        const prompt = String(b.prompt || '').trim().slice(0, 4100);
+        if (!prompt) return res.status(400).json({ ok: false, error: 'prompt_required', message: 'Describe the track first.' });
+        const secs = Math.round(Number(b.seconds) || 30);
+        const lengthMs = Math.min(120000, Math.max(3000, secs * 1000));
+        const r = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
+          method: 'POST',
+          headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
+          body: JSON.stringify({ prompt, music_length_ms: lengthMs, model_id: 'music_v1', force_instrumental: b.instrumental !== false }),
+        });
+        if (!r.ok) {
+          const detail = (await r.text()).slice(0, 300);
+          return res.status(502).json({ ok: false, error: 'music_provider_refused', message: `The music service answered ${r.status} and composed nothing. ${detail}`.trim() });
+        }
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.setHeader('Content-Type', 'audio/mpeg');
+        const songId = r.headers.get && r.headers.get('song-id');
+        if (songId) res.setHeader('X-Song-Id', String(songId).slice(0, 120));
         return res.status(200).send(buf);
       }
 

@@ -130,6 +130,7 @@ const GENERATORS = [
 
 /** A generator the routers declare that is not driven here, and why. Adding to this list is a decision with a reason. */
 const EXEMPT = {
+  'music-compose': 'sends the operator-edited brief to a music model; no language-model prompt is built',
   tts: 'speaks the text it is handed through a voice provider; no language-model prompt is built',
   'video-generate': 'sends the caller\'s own prompt to a video provider; no language-model prompt is built',
   'daily-calendar': 'not a generator (and 500s on main: smart-brain-plan.horizonCoverage never existed)',
