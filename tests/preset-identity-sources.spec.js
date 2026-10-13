@@ -550,9 +550,11 @@ test.describe.serial('a home page that refuses is not forced: the brand\'s own m
     // logo file (127.0.0.2, linked from the guidelines page) and the
     // guidelines page (127.0.0.1) - never the refused home page alone.
     await expect(card.locator('.pmeta')).toContainText(new RegExp(`Read from (127\\.0\\.0\\.2, 127\\.0\\.0\\.1|127\\.0\\.0\\.1, 127\\.0\\.0\\.2) on ${DAY}`));
-    const bg = await card.locator('.psw[data-role="primary"] i').evaluate((e) => getComputedStyle(e).backgroundColor);
-    expect(bg).toBe('rgb(235, 10, 30)');
-    expect(await card.locator('.psw').evaluateAll((els) => els.map((e) => e.getAttribute('data-role')))).toEqual(['primary', 'surface', 'ink']);
+    // The wizard repaints the gallery on every render(), so a one-shot read can
+    // land on a node that was just replaced (CI read '' from a detached <i>):
+    // these are retried until the painted card settles.
+    await expect.poll(() => card.locator('.psw[data-role="primary"] i').evaluate((e) => getComputedStyle(e).backgroundColor), { timeout: 10000 }).toBe('rgb(235, 10, 30)');
+    await expect.poll(() => card.locator('.psw').evaluateAll((els) => els.map((e) => e.getAttribute('data-role'))), { timeout: 10000 }).toEqual(['primary', 'surface', 'ink']);
     // The card says the home page refused and where the values came from.
     await expect(card.locator('.pwhy')).toHaveText(/127\.0\.0\.1 refused an automated read \(blocked\); these values come from the brand's own 127\.0\.0\.[12], 127\.0\.0\.[12]\./);
   });
