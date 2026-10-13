@@ -4,6 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".",
   "framework": null,
+  "regions": ["bom1"],
   "cleanUrls": false,
   "trailingSlash": false,
   "git": {
