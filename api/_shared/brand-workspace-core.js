@@ -530,7 +530,9 @@ function normalizeRegions(input) {
   // never silently promoted to the first row.
   let homeSeen = false;
   for (const r of input.slice(0, 24)) {
-    const code = str(r && r.code, 12).toUpperCase();
+    // One spelling per market (2026-10-13): the live Nykaa record saved "IND",
+    // which no generator or catalogue lookup reads as India.
+    const code = require('./brand-locale.js').family(str(r && r.code, 12));
     if (!code) continue;
     const home = r.home === true && !homeSeen;
     if (home) homeSeen = true;
