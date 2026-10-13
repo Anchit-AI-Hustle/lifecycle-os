@@ -103,6 +103,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .srun li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.55}
   .srun li:first-child{border-top:0}
   .srun li .dot{width:14px;height:14px;margin-top:3px;border-radius:50%;border:2px solid var(--line);background:var(--card)}
+  .srun .srun-live{display:block;margin-top:2px;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
   .srun li[data-state="running"] .dot{border-color:var(--primary);animation:srunPulse 1s ease-in-out infinite}
   .srun li[data-state="done"] .dot{border-color:var(--primary);background:var(--primary)}
   .srun li[data-state="partial"] .dot,.srun li[data-state="needs-you"] .dot{border-color:var(--vh-accent-text);background:var(--card);box-shadow:inset 0 0 0 3px var(--vh-accent-text)}
@@ -1801,11 +1802,37 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   ];
   function reducedMotion() { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } }
   function setupPause(ms) { return reducedMotion() ? Promise.resolve() : new Promise(function (r) { setTimeout(r, ms); }); }
-  function setupNote(step, state, text, html) {
+  /* LIVE, IN PLAIN WORDS (2026-10-13). The operator: "test each step ... with
+     live simulation of ongoing step for user transparency - ensure appropriate
+     humanly engaging content". A running row says what it is doing right now
+     (`live`, from the step's own progress where the server reports one: the
+     catalogue's counts, the context pack's stage) and how long it has been
+     going, counted every second. Nothing is invented: a step with no progress
+     of its own says what it is looking for and the time, never a percentage.
+     The words are a person's: no raw marker, no "page(s)", no code. */
+  var setupTicker = null;
+  function siteName(u) { try { return new URL(/^https?:/.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); } catch (_) { return String(u || 'your site'); } }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function listWords(xs) { return xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]; }
+  function setupNote(step, state, text, html, live) {
     var i = setupLog.findIndex(function (l) { return l.step === step; });
-    var row = { step: step, state: state, text: text, html: html || '' };
+    var was = i >= 0 ? setupLog[i] : null;
+    var row = { step: step, state: state, text: text, html: html || '', live: live || '', t0: was && was.state === 'running' && state === 'running' ? was.t0 : Date.now() };
     if (i >= 0) setupLog[i] = row; else setupLog.push(row);
     renderSetupRun();
+    setupTick();
+  }
+  function setupElapsed(l) { var s = Math.max(0, Math.floor((Date.now() - l.t0) / 1000)); return s < 1 ? 'just started' : s + ' s'; }
+  function setupTick() {
+    var any = setupLog.some(function (l) { return l.state === 'running'; });
+    if (any && !setupTicker) setupTicker = setInterval(function () {
+      setupLog.forEach(function (l) {
+        if (l.state !== 'running') return;
+        var el = document.querySelector('[data-setup-step="' + l.step + '"] [data-setup-clock]');
+        if (el) el.textContent = setupElapsed(l);
+      });
+      if (!setupLog.some(function (l) { return l.state === 'running'; })) { clearInterval(setupTicker); setupTicker = null; }
+    }, 1000);
   }
   function renderSetupRun() {
     var host = $('setupRun');
@@ -1816,15 +1843,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var running = setupLog.filter(function (l) { return l.state === 'running'; })[0];
     var prev = {};
     Array.prototype.forEach.call(host.querySelectorAll('li[data-setup-step]'), function (li) { prev[li.getAttribute('data-setup-step')] = li.getAttribute('data-state'); });
+    var who = brand.name || siteName(setupFor);
     host.innerHTML = '<div class="srun" data-setup-run' + (setupBusy ? ' aria-busy="true"' : '') + '>' +
-      '<h3>' + esc(setupBusy ? 'Setting up ' + (brand.name || setupFor || 'your brand') + ' from ' + setupFor : 'Set up from ' + setupFor) + '</h3>' +
-      '<p class="srun-sub">' + esc(setupBusy ? 'Each step runs in turn and says what it found and where. You land on Review when it is done.' : 'What each step did. Use "View and edit" on a step to change anything it set.') + '</p>' +
+      '<h3>' + esc(setupBusy ? 'Setting up ' + who : who + ' is set up') + '</h3>' +
+      '<p class="srun-sub">' + esc(setupBusy ? 'Watch each step as it happens. You will land on Review when it is done.' : 'Here is what each step did. Use "View and edit" to change anything.') + '</p>' +
       '<ol data-setup-log role="list" aria-live="polite">' + SETUP_STAGES.filter(function (st) { return by[st.key]; }).map(function (st) {
         var l = by[st.key];
         var isNew = prev[st.key] !== l.state;
+        var live = l.state === 'running'
+          ? '<span class="srun-live" data-setup-live>' + (l.live ? esc(l.live) + ' · ' : '') + '<span data-setup-clock>' + esc(setupElapsed(l)) + '</span></span>'
+          : '';
         return '<li data-setup-step="' + esc(st.key) + '" data-state="' + esc(l.state) + '"' + (isNew ? ' class="srun-in"' : '') + '><span class="dot" aria-hidden="true"></span><div><b>' + esc(st.label) +
           (!setupBusy && st.key !== 'pack' ? ' <button type="button" class="srun-edit" data-setup-edit="' + st.n + '">View and edit</button>' : '') + '</b>' +
-          '<span class="srun-text">' + esc(l.text) + '</span>' + (l.html || '') + '</div></li>';
+          '<span class="srun-text">' + esc(l.text) + '</span>' + live + (l.html || '') + '</div></li>';
       }).join('') + '</ol></div>';
     // The step being worked on is lit in the step row too.
     var runN = running ? (SETUP_STAGES.filter(function (st) { return st.key === running.step; })[0] || {}).n : 0;
@@ -1833,6 +1864,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* A value already on the brand that is not the wizard's own placeholder. */
   function setupHasOwn(f) { var o = originOf(f); return !!o && o !== 'default' && filled(getField(f)); }
   function setupSwatch(hex) { return /^#[0-9a-f]{6}$/i.test(hex || '') ? '<span class="sw" style="background:' + hex + '"></span>' : ''; }
+  function setupSwatches(pal) { return '<div>' + setupSwatch(pal.primary) + setupSwatch(pal.accent) + setupSwatch(pal.ink) + setupSwatch(pal.surface) + '</div>'; }
   /* What the read did to one group of fields, from the read's own record. */
   function setupOutcome(fields) {
     var r = rendered && !rendered.reverted ? rendered : null;
@@ -1840,101 +1872,143 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var kept = r ? r.kept.filter(function (k) { return fields.indexOf(k.field) >= 0; }) : [];
     return { applied: applied, kept: kept, rendered: !!r };
   }
+  /* "Set up" ends on a finished brand (2026-10-13). When the site would not
+     let the browser view it in full, the read still PROPOSES colours (from an
+     identity signal only) and the families its stylesheets declare. The
+     manual "Read my site" keeps those as proposals; the one-run setup takes
+     them, but only for a field still on the wizard's own placeholder, never
+     over a value someone chose, and never when the site's colours disagree
+     (that stays for the person to decide). Each is recorded with its source,
+     like a Use. */
+  var setupAdopted = [];
+  function adoptParsedRead() {
+    setupAdopted = [];
+    if (!extraction || (extraction.read && extraction.read.method === 'rendered')) return;
+    var f = extraction.fields || {};
+    var p = f.palette || {};
+    if (p.proposed && p.proposed.primary && !((p.conflicts || []).length) && !setupHasOwn('palette.primary')) { applyExtract('palette-all'); setupAdopted.push('colours'); }
+    ['heading', 'body'].forEach(function (slot) {
+      var c = ((f.typography && f.typography[slot]) || [])[0];
+      if (c && /^(declared|strong)$/.test(c.confidence || '') && !setupHasOwn('typography.' + slot)) { applyExtract('font-' + slot, 0); setupAdopted.push(slot); }
+    });
+    // Markets: only into an EMPTY list, and only when the site itself
+    // proposed a home market (a strong signal, no conflict). Without one the
+    // catalogue has no market to file products under, so this is what lets
+    // the run go on to bring the products in.
+    var rg = f.regions || {};
+    if (!(brand.regions || []).length && rg.home && rg.home.proposed && (rg.candidates || []).length) { applyRegionsFrom(f); setupAdopted.push('regions'); }
+  }
   function setupReadStages() {
     var f = (extraction && extraction.fields) || {};
-    var src = extraction && (extraction.start || brand.website) || brand.website || '';
+    var site = siteName(extraction && (extraction.start || brand.website) || brand.website || setupFor);
+    var parsed = !(extraction && extraction.read && extraction.read.method === 'rendered');
     // 1 Brand
     var sf = f.storefront || extraction.storefront || null;
     var plat = sf && sf.platform && sf.platform.name ? sf.platform.name : '';
-    var bits = [];
-    bits.push(brand.name ? 'Name: ' + brand.name : marker('brand name'));
-    if (brand.tagline) bits.push('tagline: "' + brand.tagline + '"');
-    bits.push(brand.logo_url ? 'logo found' : 'no logo published');
-    bits.push(plat ? 'store platform: ' + plat : 'no commerce platform declared');
-    var markets = (brand.regions || []).map(function (r) { return r.code + (r.home ? ' (home)' : ''); });
-    if (markets.length) bits.push('markets: ' + markets.join(', '));
-    var stages = [['brand', brand.name ? 'done' : 'needs-you', 'Read ' + (extraction.pages_visited || 0) + ' page(s) of ' + src + '. ' + bits.join('; ') + '.', '']];
+    var have = [], missing = [];
+    if (brand.logo_url) have.push('your logo'); else missing.push('a logo');
+    if (plat) have.push('that you sell on ' + plat);
+    var markets = (brand.regions || []).map(function (r) { var L = window.RegionContext && window.RegionContext.localeOf ? window.RegionContext.localeOf(r.code) : null; return ((L && L.name) || r.code) + (r.home ? ' (home)' : ''); });
+    if (markets.length) have.push('where you sell: ' + listWords(markets)); else missing.push('which country you mainly sell in');
+    var brandText = brand.name
+      ? 'Found ' + brand.name + ' on ' + site + (brand.tagline ? ': "' + brand.tagline + '"' : '') + '.' + (have.length ? ' We have ' + listWords(have) + '.' : '') + (missing.length ? ' Not on your site yet: ' + listWords(missing) + '.' : '')
+      : 'We could not find your brand\'s name on ' + site + '. Type it on the Brand step.';
+    var stages = [['brand', brand.name ? 'done' : 'needs-you', brandText, '']];
     // 2 Colour
     var pal = brand.palette || {};
     var co = setupOutcome(['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface']);
-    var proposed = (f.palette && f.palette.proposed) || {};
-    var nProposed = Object.keys(proposed).filter(function (k) { return proposed[k]; }).length;
-    if (co.applied.length) stages.push(['colour', 'done', 'Applied the colours the site renders: primary ' + pal.primary + ', accent ' + pal.accent + ', text ' + pal.ink + ', page ' + pal.surface + '.' + (co.kept.length ? ' Kept ' + co.kept.length + ' colour(s) you set yourself.' : ''), '<div>' + setupSwatch(pal.primary) + setupSwatch(pal.accent) + setupSwatch(pal.ink) + setupSwatch(pal.surface) + '</div>']);
-    else if (nProposed) stages.push(['colour', 'needs-you', 'The site\'s stylesheets propose ' + nProposed + ' colour role(s). The page could not be rendered, so nothing was applied: choose them on Colour schema.', '']);
-    else if (co.kept.length) stages.push(['colour', 'done', 'Kept the colours you set yourself; the site rendered others, listed on Colour schema.', '']);
-    else if (setupHasOwn('palette.primary')) stages.push(['colour', 'done', 'The site published no brand colour to apply, so the colours already on this brand stay: primary ' + pal.primary + ', accent ' + pal.accent + ', text ' + pal.ink + ', page ' + pal.surface + '.', '<div>' + setupSwatch(pal.primary) + setupSwatch(pal.accent) + setupSwatch(pal.ink) + setupSwatch(pal.surface) + '</div>']);
-    else stages.push(['colour', 'needs-you', 'The site published no colour this platform can use as a brand colour. Set them on Colour schema.', '']);
+    var conflicts = (f.palette && f.palette.conflicts) || [];
+    if (co.applied.length) stages.push(['colour', 'done', 'Your colours, exactly as ' + site + ' shows them.' + (co.kept.length ? ' We kept the ' + plural(co.kept.length, 'colour') + ' you chose yourself.' : ''), setupSwatches(pal)]);
+    else if (setupAdopted.indexOf('colours') >= 0) stages.push(['colour', 'done', 'Your colours, as ' + site + '\'s stylesheet declares them. The site would not let us view it in full, so give them a quick look.', setupSwatches(pal)]);
+    else if (conflicts.length) stages.push(['colour', 'needs-you', site + ' uses two different main colours (one in its logo, another on its buttons). Pick the one that is your brand on Colour schema.', '']);
+    else if (co.kept.length || setupHasOwn('palette.primary')) stages.push(['colour', 'done', 'Kept the colours already on this brand.', setupSwatches(pal)]);
+    else stages.push(['colour', 'needs-you', site + ' did not show a brand colour we could use. Pick yours on Colour schema; it takes a minute.', '']);
     // 3 Type
     var t = brand.typography || {};
     var to = setupOutcome(['typography.heading', 'typography.body']);
     var fam = function (x) { return x && x.family ? x.family : ''; };
-    if (to.applied.length) stages.push(['type', 'done', 'Applied the type the site renders: headings in ' + (fam(t.heading) || 'the site\'s heading face') + ', body in ' + (fam(t.body) || 'the site\'s body face') + '.' + (to.kept.length ? ' Kept what you set yourself.' : ''), '']);
-    else if (((f.typography && f.typography.heading) || []).length || ((f.typography && f.typography.body) || []).length) stages.push(['type', 'needs-you', 'The site\'s stylesheets name type families; the page could not be rendered, so nothing was applied: choose them on Typography.', '']);
-    else if (to.kept.length) stages.push(['type', 'done', 'Kept the type you set yourself.', '']);
-    else if (setupHasOwn('typography.heading') && fam(t.heading)) stages.push(['type', 'done', 'The site published no type family to apply, so the type already on this brand stays: headings in ' + fam(t.heading) + (fam(t.body) ? ', body in ' + fam(t.body) : '') + '.', '']);
-    else stages.push(['type', 'needs-you', 'The site published no type family that could be read. Set it on Typography.', '']);
+    var typeLine = 'headings in ' + (fam(t.heading) || 'your heading font') + ', text in ' + (fam(t.body) || 'your text font');
+    if (to.applied.length) stages.push(['type', 'done', 'Your fonts, as ' + site + ' uses them: ' + typeLine + '.' + (to.kept.length ? ' We kept what you chose yourself.' : ''), '']);
+    else if (setupAdopted.indexOf('heading') >= 0 || setupAdopted.indexOf('body') >= 0) stages.push(['type', 'done', 'Your fonts, as ' + site + '\'s stylesheet names them: ' + typeLine + '.', '']);
+    else if (to.kept.length || (setupHasOwn('typography.heading') && fam(t.heading))) stages.push(['type', 'done', 'Kept the fonts already on this brand: ' + typeLine + '.', '']);
+    else stages.push(['type', 'needs-you', 'We could not tell which fonts ' + site + ' uses. Choose yours on Typography.', '']);
     // 4 Voice
     var claims = ((f.claims && f.claims.candidates) || []).length;
-    var vo = setupOutcome(['voice.tone']);
-    if (brand.voice && brand.voice.tone) stages.push(['voice', 'done', (vo.applied.length ? 'Tone observed from the site\'s own copy: ' : 'Tone: ') + brand.voice.tone + '.' + (claims ? ' ' + claims + ' sentence(s) the site states as fact are offered on Voice; none is approved by itself.' : ''), '']);
-    else stages.push(['voice', 'needs-you', 'The tone of the site\'s copy was not read.' + (claims ? ' ' + claims + ' sentence(s) the site states as fact are offered on Voice.' : '') + ' Describe it on Voice.', '']);
+    var claimLine = claims ? ' We also found ' + plural(claims, 'thing') + ' your site states as fact; approve the ones you want us to use on Voice.' : '';
+    if (brand.voice && brand.voice.tone) stages.push(['voice', 'done', 'How you sound: ' + String(brand.voice.tone).replace(/\.$/, '') + '.' + claimLine, '']);
+    else stages.push(['voice', 'needs-you', 'We could not get a feel for your voice from the site. Describe it in a sentence on Voice.' + claimLine, '']);
+    void parsed;
     return stages;
   }
+  var PACK_STAGE_WORDS = {
+    catalog: 'Checking your catalogue',
+    extract: 'Writing your design notes (DESIGN.md)',
+    knowledge: 'Collecting what your own pages say about you',
+    repos: 'Looking for your public code repositories',
+    done: 'Finishing up'
+  };
   async function setUpFromWebsite() {
     if (setupBusy || extractBusy) return;
     var input = $('xUrl');
     var url = input ? input.value.trim() : '';
     if (!url) { toast('Enter your website address first.'); return; }
     setupBusy = true; setupLog = []; setupFor = url;
+    var site = siteName(url);
     try {
-      setupNote('brand', 'running', 'Opening ' + url + ' in a browser and reading what it publishes about itself: name, logo, colours, type, the tone of its copy, social profiles, legal entity, markets, platform, robots.txt and sitemaps.');
+      setupNote('brand', 'running', 'Visiting ' + site + ' and reading it the way a designer would.', '', 'Looking for your name, logo, colours, fonts, the way you write, where you sell and your store');
       render();
       await runExtract();
-      if (domainSwitch) { setupNote('brand', 'needs-you', domainSwitch.to + ' is not this brand\'s website: choose below, then set up again.'); return; }
-      if (!extraction) { setupNote('brand', 'failed', (extractError ? window.LifecycleFailure.sentence(extractError) + ' ' : '') + 'The site could not be read, so nothing else was run.'); return; }
+      if (domainSwitch) { setupNote('brand', 'needs-you', domainSwitch.to + ' is a different website from this brand\'s. Choose below, then set up again.'); return; }
+      if (!extraction) { setupNote('brand', 'failed', 'We could not read ' + site + '. ' + (extractError ? window.LifecycleFailure.sentence(extractError) : 'Check the address and try again.')); return; }
       // A brand with no name cannot be saved, and every step after this one saves.
       var namedFromRead = fillEmptyName();
+      adoptParsedRead();
       // The four steps one read fills, revealed in the wizard's order.
       var stages = setupReadStages();
+      var checking = { colour: 'Picking out your colours', type: 'Matching your fonts', voice: 'Listening to how you write' };
       for (var i = 0; i < stages.length; i++) {
-        if (i > 0) { setupNote(stages[i][0], 'running', 'Checking what the read found for this step.'); await setupPause(380); }
+        if (i > 0) { setupNote(stages[i][0], 'running', 'Going through what we found.', '', checking[stages[i][0]] || ''); await setupPause(380); }
         setupNote(stages[i][0], stages[i][1], stages[i][2], stages[i][3]);
         await setupPause(220);
       }
-      if (namedFromRead) setupNote('brand', 'done', 'Named ' + brand.name + ', as ' + (brand.website || 'the site') + ' names itself (the name was empty). Change it on the Brand step if it is not right.');
+      if (namedFromRead) setupNote('brand', 'done', stages[0][2] + ' We named the brand ' + brand.name + ', as your site does; change it on Brand if you like.');
       // 5 Data & catalog, then the context pack: both read on the server.
       var serverOff = actionsOff();
       if (!serverOff) {
-        try { await saveBeforeImport(); } catch (e) { setupNote('catalog', 'failed', window.LifecycleFailure.sentence(e)); }
+        try { await saveBeforeImport(); } catch (e) { setupNote('catalog', 'failed', 'We could not bring in your products. ' + window.LifecycleFailure.sentence(e)); }
       }
       if (serverOff || !brand.id) {
-        setupNote('catalog', 'skipped', 'The catalogue import and the context pack are read on the server, and no server can act for this brand right now, so they were not run. Import the catalogue on Data & catalog when it can.');
+        if (serverOff) setupNote('catalog', 'skipped', 'Your products and design notes are read on our server, which is not available for this brand right now. You can bring them in later on Data & catalog.');
       } else {
         var region = importRegion();
-        if (!region) setupNote('catalog', 'needs-you', marker('home market') + ' The site declared no home market, so there is nowhere to file the catalogue. Choose it on Data & catalog.');
+        if (!region) setupNote('catalog', 'needs-you', 'Tell us which country you mainly sell in (on Data & catalog) and we will bring your products in.');
         else {
-          setupNote('catalog', 'running', 'Importing the catalogue from ' + brand.website + ' for ' + region + ', and every regional store the site publishes.');
+          setupNote('catalog', 'running', 'Bringing in your products from ' + site + '.', '', 'Reading your store');
           try {
             var r = await api('catalog-import', { workspace_id: brand.id, region: region.toLowerCase(), kind: 'storefront', url: brand.website });
             afterImport(r, true);
-            var cov = r.coverage && r.coverage.markets ? ' ' + progressLine(r.coverage) + '.' : '';
-            setupNote('catalog', r.complete === false ? 'partial' : 'done', 'Imported ' + r.imported + ' products from ' + brand.website + '.' + cov + (r.complete === false ? ' The store was not read to the end yet; the import carries on and Data & catalog shows where it is.' : ''));
+            var n = typeof r.own === 'number' ? r.own : r.imported;
+            setupNote('catalog', r.complete === false ? 'partial' : 'done', r.complete === false
+              ? 'Brought in ' + plural(n, 'product') + ' so far; the rest keep coming in the background. Data & catalog shows where it is up to.'
+              : (n ? 'Brought in ' + plural(n, 'product') + ' from ' + site + '.' : 'Your store at ' + site + ' did not list any products we could read. You can upload a file on Data & catalog.'));
             if (r.complete === false && (r.drive || r.continuing)) keepGoing(r);
-          } catch (e) { setupNote('catalog', 'failed', window.LifecycleFailure.sentence(e)); }
+          } catch (e) { setupNote('catalog', 'failed', 'We could not bring in your products. ' + window.LifecycleFailure.sentence(e)); }
         }
-        setupNote('pack', 'running', 'Building the context pack from ' + brand.website + ': its design system, its own page descriptions and its repositories.');
-        await buildPack();
-        setupNote('pack', packState ? 'done' : 'failed', packState ? 'Context pack built from ' + (packState.site_url || brand.website) + '.' : 'The context pack could not be built.');
+        setupNote('pack', 'running', 'Writing your brand\'s design notes from ' + site + '.', '', 'Starting');
+        await buildPack(function (pk) {
+          if (pk && pk.stage) setupNote('pack', 'running', 'Writing your brand\'s design notes from ' + site + '.', '', PACK_STAGE_WORDS[pk.stage] || 'Working');
+        });
+        setupNote('pack', packState ? 'done' : 'failed', packState ? 'Design notes ready, written from ' + siteName(packState.site_url || brand.website) + '.' : 'We could not write the design notes this time. You can try again on Review.');
       }
       // 6 Review: saved as a draft, then the review step opens.
-      setupNote('review', 'running', 'Saving the brand as a draft and checking what is still missing before launch.');
+      setupNote('review', 'running', 'Saving ' + (brand.name || 'your brand') + ' and checking what is left to do.', '', 'Saving');
       var draftSaved = null, draftError = null;
       try { draftSaved = await save(true, true); } catch (e) { draftError = e; }
       var rd = readiness();
-      if (!draftSaved) setupNote('review', 'failed', 'The brand was not saved' + (draftError ? ': ' + window.LifecycleFailure.sentence(draftError) : '.') + ' Review lists what is missing; save again from there.');
+      if (!draftSaved) setupNote('review', 'failed', (brand.name || 'Your brand') + ' was not saved' + (draftError ? ': ' + window.LifecycleFailure.sentence(draftError) : '.') + ' Review shows what is missing; save again from there.');
       else setupNote('review', rd.ready ? 'done' : 'needs-you', rd.ready
-        ? 'Saved as a draft. Nothing blocks activation: check it on Review and activate.'
-        : 'Saved as a draft. ' + (rd.blocking.length === 1 ? '1 thing still blocks' : rd.blocking.length + ' things still block') + ' activation' + (rd.missing.length > rd.blocking.length ? ', and ' + (rd.missing.length - rd.blocking.length) + ' more ' + (rd.missing.length - rd.blocking.length === 1 ? 'is' : 'are') + ' missing' : '') + '. Review lists each with the step that sets it.');
+        ? 'Saved. Everything is in place: give it a once-over on Review and activate.'
+        : 'Saved as a draft. ' + plural(rd.blocking.length, 'thing') + ' to finish before you can activate' + (rd.missing.length > rd.blocking.length ? ', and ' + plural(rd.missing.length - rd.blocking.length, 'more', 'more') + ' worth adding' : '') + '. Review lists each one with the step that sets it.');
       await setupPause(300);
       go(6);
     } finally { setupBusy = false; render(); renderSetupRun(); }
@@ -2819,6 +2893,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var moving = r.complete === false && (r.continuing || (r.drive && r.progressed !== false));
     if (status) status.textContent = counts + (r.skipped ? ' (' + r.skipped + ' rows skipped)' : '') + '.' + excludedLine() + (moving ? ' ' + progressLine(r.coverage) + ', continuing' + (r.continuing ? ' by itself' : '') + '…' : '');
     renderCoverage(r.coverage, !!r.resume_available, { continuing: moving });
+    // A setup run's catalogue row follows an import that carries on after it.
+    var srow = auto && !setupBusy && setupLog.filter(function (l) { return l.step === 'catalog'; })[0];
+    if (srow && srow.state === 'partial') {
+      var have = typeof r.own === 'number' ? r.own : (typeof r.live === 'number' ? r.live : r.imported);
+      setupNote('catalog', r.complete === false ? 'partial' : 'done', r.complete === false
+        ? 'Brought in ' + plural(have, 'product') + ' so far; still going. ' + progressLine(r.coverage) + '.'
+        : 'All done: brought in ' + plural(have, 'product') + ' from ' + siteName(brand.website) + '.');
+    }
     if (!auto && r.complete !== false) toast('Imported ' + r.imported + ' products.', 4200);
     if (moving && !auto) keepGoing(r);
   }
@@ -3261,12 +3343,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { if (!quiet) console.warn('[onboarding] pack read failed:', e.message); }
   }
 
-  async function buildPack() {
+  async function buildPack(onStep) {
     if (packBusy || !brand.id) return;
     packBusy = true; render();
+    var step = typeof onStep === 'function' ? onStep : function () {};
     try {
       var r = await api('context-build', { workspace_id: brand.id, refresh: true });
       packState = r.pack || null;
+      step(packState);
       // Without a service-role key there is no background chain, so the client
       // IS the queue: keep stepping until it reports done. Said out loud in the
       // response rather than inferred, so this loop can never spin forever
@@ -3275,6 +3359,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       while (r && r.next_step_required && guard++ < 40) {
         r = await api('context-build', { workspace_id: brand.id });
         packState = r.pack || packState;
+        step(packState);
         render();
       }
       toast(r && r.done ? 'Context pack built.' : 'Context pack building in the background.');

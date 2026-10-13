@@ -540,11 +540,11 @@ for (const mode of ['account', 'device']) {
       await page.waitForFunction(() => /[?&]step=6\b/.test(location.search), null, { timeout: 10000 });
       const steps = await page.$$eval('[data-setup-log] li', (els) => els.map((e) => [e.getAttribute('data-setup-step'), e.getAttribute('data-state'), e.querySelector('.srun-text').textContent]));
       expect(calls[0]).toBe('extract:' + SITE);
-      expect(steps[0][2]).toMatch(/Read 3 page\(s\) of https:\/\/brambleweld-larder\.example.*store platform: Shopify/);
+      expect(steps[0][2]).toMatch(/Found Brambleweld Larder on brambleweld-larder\.example.*sell on Shopify/);
       // A parsed read proposed no colours or type: the brand's own values stay,
       // and the rows say so (never "applied from the site").
       expect(steps.slice(1, 4).map((s) => s[0] + ':' + s[1])).toEqual(['colour:done', 'type:done', 'voice:done']);
-      expect(steps[1][2]).toMatch(/published no brand colour to apply, so the colours already on this brand stay: primary #/);
+      expect(steps[1][2]).toMatch(/Kept the colours already on this brand/);
       expect(steps.slice(1, 4).map((s) => s[2]).join(' ')).not.toMatch(/Applied|observed from the site/);
       if (mode === 'device') {
         // On this device no server can read the brand: the action says so instead of pretending.
@@ -556,7 +556,7 @@ for (const mode of ['account', 'device']) {
         expect(calls.indexOf('save'), 'the brand was not saved before the import read it').toBeLessThan(calls.indexOf('catalog-import:' + SITE + ':uk'));
         expect(steps.map((s) => s[0] + ':' + s[1]).slice(4)).toEqual(['catalog:done', 'pack:done', steps[6][0] + ':' + steps[6][1]]);
         expect(steps[6][0]).toBe('review');
-        expect(steps[4][2]).toMatch(/Imported 12 products from https:\/\/brambleweld-larder\.example/);
+        expect(steps[4][2]).toMatch(/Brought in 12 products from brambleweld-larder\.example/);
       }
       // Each step was shown working, in order, before the next.
       const order = ['brand', 'colour', 'type', 'voice', 'catalog', 'pack', 'review'];
