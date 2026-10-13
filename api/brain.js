@@ -1332,6 +1332,9 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         // regeneration) uses the data for the day. runDailyJob runs the Klaviyo
         // read-only sync adapter (and future Shopify/WebEngage adapters).
         try { steps.os_daily = await osb.runDailyJob('cron'); } catch (e) { steps.os_daily = { error: e.message }; }
+        // Holds left by a function the platform ended (timeout at 120 s) never
+        // settled; give them back so a killed run is not money held forever.
+        try { steps.credit_holds = await require('./_shared/credits-core.js').releaseStaleHolds(); } catch (e) { steps.credit_holds = { error: e.message }; }
         try { steps.festivals = { detected: (await calendar.extractFestivals({ persist: true })).length }; } catch (e) { steps.festivals = { error: e.message }; }
         try { const r = await calendar.dailyReview({ persist: true }); steps.daily_review = { changes: r.review.changes.length, pass_rate: r.daily_summary.pass_rate }; } catch (e) { steps.daily_review = { error: e.message }; }
         try { steps.benchmarks = { ok: true, markets: Object.keys(await competitor.benchmarks({ persist: true })).filter((k) => k !== '_advisory') }; } catch (e) { steps.benchmarks = { error: e.message }; }
