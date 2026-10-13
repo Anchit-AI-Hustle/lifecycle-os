@@ -75,6 +75,26 @@ function sheetsConfigured() {
   return !!(process.env.GOOGLE_SHEET_ID && (wif || jwt));
 }
 
+/**
+ * Is mail capture connected, and if not, which env vars would connect it?
+ * The archive needs the sheet (GOOGLE_SHEET_ID + Google credentials); the poll
+ * also needs the inbox (GMAIL_IMAP_USER + GMAIL_IMAP_PASSWORD). Names only,
+ * never values. Callers answer a "not connected" state with this instead of
+ * letting a credentials error out of the poll (2026-10-13).
+ */
+function captureStatus() {
+  const env = process.env;
+  const sheet = sheetsConfigured();
+  const inbox = !!(env.GMAIL_IMAP_USER && env.GMAIL_IMAP_PASSWORD);
+  const missing = [];
+  if (!env.GOOGLE_SHEET_ID) missing.push('GOOGLE_SHEET_ID');
+  if (!sheet) {
+    missing.push('GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY (key-based), or GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT_EMAIL with Vercel OIDC Tokens enabled (keyless)');
+  }
+  if (!inbox) { if (!env.GMAIL_IMAP_USER) missing.push('GMAIL_IMAP_USER'); if (!env.GMAIL_IMAP_PASSWORD) missing.push('GMAIL_IMAP_PASSWORD'); }
+  return { connected: sheet && inbox, sheet, inbox, missing };
+}
+
 let _sheets = null;
 function sheetsClient() {
   if (_sheets) return _sheets;
@@ -969,6 +989,6 @@ module.exports = {
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
   sortEmailsByReceivedDesc, ingestEmail, fetchMetaAds,
   getBrands, appendBrands, seedBrands, discoverBrands, markBrandSubscribed,
-  DISCOVERY_CATEGORIES, DISCOVERY_GEOS, sheetsConfigured,
+  DISCOVERY_CATEGORIES, DISCOVERY_GEOS, sheetsConfigured, captureStatus,
   NONE, NO_SCREENSHOT,
 };
