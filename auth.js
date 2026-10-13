@@ -515,7 +515,9 @@
       document.addEventListener('click', function (e) {
         var el = e.target && e.target.closest ? e.target.closest(CTRL) : null;
         if (!el) return;
-        if (el.hasAttribute('data-lc-busy')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+        // Shown, never intercepted: a press always reaches the page's own
+        // handler (a page that must not run twice disables its own control).
+        // Swallowing presses here broke tab rows and quick re-presses.
         A.last = { el: el, t: Date.now() };
       }, true);
       document.addEventListener('submit', function (e) {

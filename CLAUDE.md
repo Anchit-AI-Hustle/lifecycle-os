@@ -20,8 +20,9 @@ the Lenskart import again reading "IN: 0 of 5,995 (sent to the US store) ... thi
   never replaced.
 - **`auth.js` activity layer** (`showCtaActivity`): a press (click/submit) that sends a request to our own `/api/`
   marks that control `aria-busy` at once, puts a live "Working · N s" line beside it (re-found by id, or floated, when
-  the page re-renders the control), draws a bar along the top, ignores a second press while it works, and clears
-  when the answer arrives. Requests no press started (polls, boot reads) show nothing. Tokens only, reduced motion.
+  the page re-renders the control), draws a bar along the top, and clears when the answer arrives. It SHOWS work and never intercepts a press:
+  swallowing a second press broke tab rows and quick re-presses in CI (a page that must not run twice disables
+  its own control). Requests no press started (polls, boot reads) show nothing. Tokens only, reduced motion.
 - Gated by `tests/brand-setup-end-to-end.spec.js` (the shipped brand router + rendered reader over a fixture site, the
   wizard in Chromium, both the rendered and the parsed path, ends on a saved, ACTIVE brand with its products under its
   home market) and `tests/cta-activity.spec.js` (the server's answer HELD, so the in-between state is observed).

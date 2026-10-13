@@ -100,10 +100,11 @@ test('a plain button that calls the API: working at once, a live elapsed line, o
   expect(geo.t - geo.b).toBeLessThan(20);
   // The line counts up while it works.
   await expect.poll(async () => (await state(page, '#demoCta')).line, { timeout: 4000 }).toMatch(/Working · [1-9] s/);
-  // A second press while it works does not send a second request.
+  // A press while it works still reaches the page (the layer shows work, it
+  // never intercepts): the page's own handler decides, here it sends again.
   await page.click('#demoCta', { force: true });
-  await page.waitForTimeout(300);
-  expect(log.sent).toEqual(['demo:']);
+  await expect.poll(() => log.sent.length, { timeout: 2000 }).toBe(2);
+  expect((await state(page, '#demoCta')).busy).toBe('true');
   const answered = page.waitForResponse((r) => /action=demo/.test(r.url()));
   held.release();
   // The answer is in: the very next press runs, even inside the short grace
@@ -112,7 +113,7 @@ test('a plain button that calls the API: working at once, a live elapsed line, o
   await answered;
   await page.waitForTimeout(50);
   await page.click('#demoCta');
-  await expect.poll(() => log.sent.length, { timeout: 2000 }).toBe(2);
+  await expect.poll(() => log.sent.length, { timeout: 2000 }).toBe(3);
   await expect.poll(() => state(page, '#demoCta'), { timeout: 3000 }).toMatchObject({ busy: null, line: '', bar: false });
   expect(log.errors).toEqual([]);
 });
