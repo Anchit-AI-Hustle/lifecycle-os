@@ -1086,6 +1086,23 @@ function localePrefixes(html, start) {
  * sent to pretend otherwise: no cookie, no Accept-Language, no proxy.
  */
 const VERCEL_REGIONS = { iad1: 'Washington, D.C., US', sfo1: 'San Francisco, US', pdx1: 'Portland, US', cle1: 'Cleveland, US', bom1: 'Mumbai, IN', sin1: 'Singapore, SG', hnd1: 'Tokyo, JP', icn1: 'Seoul, KR', syd1: 'Sydney, AU', fra1: 'Frankfurt, DE', lhr1: 'London, GB', cdg1: 'Paris, FR', arn1: 'Stockholm, SE', dub1: 'Dublin, IE', gru1: 'Sao Paulo, BR', hkg1: 'Hong Kong, HK', kix1: 'Osaka, JP', cpt1: 'Cape Town, ZA', dxb1: 'Dubai, AE', yul1: 'Montreal, CA' };
+/**
+ * Can this run be continued from HERE: a market not yet done, or one given up
+ * from another place (a run from before the place was recorded counts as
+ * another place). A single-market cursor is resumable as long as it exists.
+ */
+function resumable(cursor) {
+  if (!cursor) return false;
+  if (!cursor.multi) return true;
+  return (cursor.markets || []).some((m) => !m.done || (m.blocked && m.blocked_from !== readFromFor(m.code)));
+}
+/** Where a market's pages are read from: its reader's host, else this server's region. */
+function readFromFor(code) {
+  const r = READERS.readerFor(canonRegion(code) || String(code || '').toLowerCase());
+  if (r && r.host) return `a reader at ${r.host}`;
+  const v = String(process.env.VERCEL_REGION || '').toLowerCase();
+  return v ? `${v}${VERCEL_REGIONS[v] ? ` (${VERCEL_REGIONS[v]})` : ''}` : 'this server';
+}
 function serverRegion(R) {
   const v = String(process.env.VERCEL_REGION || '').toLowerCase();
   if (v) return `${v}${VERCEL_REGIONS[v] ? ` (${VERCEL_REGIONS[v]})` : ''}`;
@@ -1895,6 +1912,20 @@ async function stepAll({ url, region, brand, cursor, guard, budgetMs, now, queue
     for (const m of d.markets) if (!mc.markets.some((x) => x.code === m.code)) mc.markets.push(Object.assign({ cursor: null, done: false }, m));
     if (!mc.markets.length && reg) mc.markets.push({ code: reg, store_url: url.replace(/\/$/, ''), prefix: '', host: hostOf(url), source: 'the URL given', also: [], cursor: null, done: false });
   }
+  // A market the store geo-redirected was given up FOR THAT PLACE (2026-10-13:
+  // Lenskart IN was given up from Washington, then the functions moved to
+  // Mumbai and every later step of the same run still skipped IN). It is read
+  // again when this step reads it from somewhere else - another server region
+  // or a reader in its country - and the coverage says so.
+  for (const m of mc.markets) {
+    if (!m.blocked) continue;
+    const here = readFromFor(m.code);
+    if (m.blocked_from === here) continue;
+    const was = m.blocked_from || 'where an earlier step read';
+    m.blocked = false; m.done = false; m.cursor = null; m.coverage = null; m.lastStop = '';
+    mc.notes = (mc.notes || []).concat([`${m.code.toUpperCase()} is read again: an earlier step of this import was sent to another market's store when reading from ${was}, and this step reads from ${here}.`]);
+    delete m.blocked_from;
+  }
   const rows = [];
   const completedNow = [];
   let lastStop = null;
@@ -1920,6 +1951,7 @@ async function stepAll({ url, region, brand, cursor, guard, budgetMs, now, queue
       m.coverage = out.coverage;
       const stop = out.coverage && out.coverage.stopped;
       m.blocked = !out.complete && !out.cursor;
+      if (m.blocked) m.blocked_from = readFromFor(m.code);
       if (out.complete || m.blocked) { m.done = true; completedNow.push(m.code); continue; }
       lastStop = stop || lastStop;
       m.lastStop = stop ? stop.reason : '';
@@ -1933,7 +1965,9 @@ async function stepAll({ url, region, brand, cursor, guard, budgetMs, now, queue
     rows, run: mc.run, storefront,
     complete, progressed,
     completed_regions: completedNow.filter((c) => { const m = mc.markets.find((x) => x.code === c); return m && !m.blocked; }),
-    cursor: allDone ? null : mc,
+    // A run with a market given up from one place keeps its cursor, so a step
+    // from another place (server region or reader) can read that market.
+    cursor: allDone && !mc.markets.some((m) => m.blocked) ? null : mc,
     base: (mc.markets[0] && mc.markets[0].store_url) || url,
     markets: marketsSummary(mc),
     coverage: multiCoverage(mc, { complete, allDone, lastStop }),
@@ -1974,7 +2008,7 @@ function multiCoverage(mc, { complete, allDone, lastStop }) {
     skipped: sumKeys(mc.markets.map((m) => m.coverage && m.coverage.skipped)),
     missing: sumKeys(mc.markets.map((m) => m.coverage && m.coverage.missing)),
     missing_examples: [].concat(...mc.markets.map((m) => (m.coverage && m.coverage.missing_examples) || [])).slice(0, 10),
-    complete: complete && found > 0, empty: allDone && found === 0, stopped: allDone ? null : (lastStop || { reason: 'time', at: 'between markets' }), resume_available: !allDone,
+    complete: complete && found > 0, empty: allDone && found === 0, stopped: allDone ? null : (lastStop || { reason: 'time', at: 'between markets' }), resume_available: resumable(mc),
     not_before: (() => { const t = mc.markets.map((m) => m.cursor && m.cursor.not_before).filter(Boolean); return t.length ? new Date(Math.min(...t)).toISOString() : null; })(),
     progressed: true,
     platform: first ? first.platform : null,
@@ -2233,11 +2267,9 @@ const CHAIN = {
   liveMs: 150000,         // a chain whose last move is younger than this is running
 };
 
-function selfBaseUrl() {
-  if (process.env.SELF_BASE_URL) return String(process.env.SELF_BASE_URL).replace(/\/$/, '');
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return '';
-}
+// The address this deployment calls itself on (never the protected
+// generated VERCEL_URL when a reachable domain is known): self-url.js.
+const { selfBaseUrl, selfHeaders } = require('./self-url.js');
 function chainUnavailable() {
   if (!selfBaseUrl()) return 'this deployment cannot address itself (no SELF_BASE_URL or VERCEL_URL)';
   if (!process.env.CRON_SECRET) return 'this deployment has no CRON_SECRET to authorise its own next step';
@@ -2298,7 +2330,7 @@ async function fireNext({ workspace_id, token, depth, budget_ms }) {
   try {
     await fetch(`${selfBaseUrl()}/api/public-config?action=brand&op=catalog-chain`, {
       method: 'POST', signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      headers: selfHeaders({ 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CRON_SECRET}` }),
       body: JSON.stringify({ workspace_id, token, depth, budget_ms: budget_ms || undefined }),
     });
   } catch (_) { /* expected: the child runs longer than the handoff window */ }
@@ -2443,8 +2475,8 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
   const list = (Array.isArray(rows) ? rows : []).filter((w) => w && w.catalog_source && (w.catalog_source.url || (w.catalog_import && w.catalog_import.url)));
   const at = (w) => Date.parse((w.catalog_import && w.catalog_import.updated_at) || w.catalog_source.imported_at || 0) || 0;
   const waiting = (w) => { const c = w.catalog_import && w.catalog_import.chain; const t = c && c.resume_after ? Date.parse(c.resume_after) : 0; return t && t > started; };
-  const partial = list.filter((w) => w.catalog_import && w.catalog_import.cursor && !chainBusy(w.catalog_import, started) && !waiting(w)).sort((a, b) => at(a) - at(b));
-  const stale = list.filter((w) => !(w.catalog_import && w.catalog_import.cursor) && started - at(w) > REFRESH_AFTER_MS).sort((a, b) => at(a) - at(b));
+  const partial = list.filter((w) => w.catalog_import && resumable(w.catalog_import.cursor) && !chainBusy(w.catalog_import, started) && !waiting(w)).sort((a, b) => at(a) - at(b));
+  const stale = list.filter((w) => !(w.catalog_import && resumable(w.catalog_import.cursor)) && started - at(w) > REFRESH_AFTER_MS).sort((a, b) => at(a) - at(b));
   const due = partial.concat(stale);
   const picked = due.slice(0, maxWorkspaces);
   const refreshed = [];
@@ -2466,7 +2498,7 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
 }
 
 module.exports = {
-  refreshDue, chainStep, continueWorkspace, mergeByMarket, chainAfter, chainSentence, chainBusy, fireNext, staleAliasRegions, selfBaseUrl, CHAIN,
+  refreshDue, chainStep, continueWorkspace, resumable, mergeByMarket, chainAfter, chainSentence, chainBusy, fireNext, staleAliasRegions, selfBaseUrl, CHAIN,
   step, stepAll, discoverMarkets, mergeRows, familyOf, rowKey, coverageOf,
   rowFromFeed, rowFromPage, enumerateSitemaps, isProductSitemap, sitemapClass, foreignLocale, marketCurrency, scriptRendered, parseRobots, robotsAllows, retryAfterMs,
   regionalBase, ownScope, identityOf, cursorProblem, foreignStoreSentence, declaredCurrency, handleFromUrl, canonRegion, regionAliases, LIMITS, USER_AGENT, MARKER,

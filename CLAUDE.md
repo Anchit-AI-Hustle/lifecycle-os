@@ -4,6 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A self-call goes to an address that answers; a market given up from one place is read again from another (2026-10-13)
+Production, after the move to bom1: Lenskart's import said "It is continuing by itself" while nothing moved, IN stayed
+"STOPPED ... sent to the US store", and Continue import looked dead. Two causes, both fixed at source:
+- **Every background chain called `https://${VERCEL_URL}`** (catalogue import, context pack, prebuild queue, the cron's
+  kick). The project has Vercel Standard Protection (`ssoProtection: all_except_custom_domains`) and Vercel's docs say
+  VERCEL_URL "cannot be used in conjunction with Standard Deployment Protection": the self-call met the protection page
+  and the next step never ran. `api/_shared/self-url.js` `selfBaseUrl()` = SELF_BASE_URL, else the host the CURRENT
+  request arrived on (not a generated *.vercel.app), else `VERCEL_PROJECT_PRODUCTION_URL` on production, else
+  VERCEL_URL; `selfHeaders()` adds `x-vercel-protection-bypass` when `VERCEL_AUTOMATION_BYPASS_SECRET` exists. A chained
+  step inherits its parent's address, so a chain stays on the custom domain (and on the current deployment). Gated by
+  `tests/self-url.spec.js` (executed: the helper in a real request scope, the catalogue chain's own `fireNext()`).
+- **A geo-redirected market was given up for the whole RUN** (`m.blocked`, `done`), so a run started from Washington never
+  re-read IN after the functions moved to Mumbai. `m.blocked_from` records where (a reader's host, else the server
+  region); a step from anywhere else re-reads it and says so ("IN is read again: ... when reading from iad1 ..., and this
+  step reads from bom1 ..."). A run with a blocked market keeps its cursor; ONE rule says whether it can continue from
+  here (`catalog-import.resumable(cursor)`), used by the device import, the account import, catalog-status and the
+  daily refresh. Gated in `tests/catalog-import-always-complete.spec.js` (IN blocked from iad1, re-read in full from bom1).
+- **The page**: a "continuing by itself" import that stops moving is taken over and driven from the page while it is
+  open (`keepGoing`), and Continue import answered `409 import_continuing` follows the import instead of a failure frame.
+- **/brain**: the catalogue opens in a pop-up (`#catDialog`, "View catalogue") and is read only when opened
+  (`tests/brain-catalogue-and-wizard-step.spec.js`); the rolling calendar wraps every cell in its own column, shows the
+  objective and reason in full and stacks the actions (`tests/brain-plan-table-readable.spec.js`, measured at
+  1280/1440/1600, mutation-checked); the CTA "Working" line floats at the foot for a control inside a table.
+
 ## ⭐ Brand setup is shown live in plain words, every CTA shows it is working, functions run in Mumbai (2026-10-13)
 The operator: *"test each step ... live simulation of ongoing step for user transparency ... humanly engaging content"*,
 *"ensure all cta's start running the processes instantly ... buffering or live simulation ... for every function"*, and

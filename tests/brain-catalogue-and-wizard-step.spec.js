@@ -121,6 +121,14 @@ test('/brain shows the active brand\'s own catalogue as generation reads it, and
   const log = await harness(page, { brand: BRAND, catalog: { products: OWN.concat([FOREIGN]), source: BRAND.catalog_source, owned: true, region: 'in', imported_at: BRAND.catalog_source.imported_at, coverage: COVERAGE } });
   await page.goto(HOST + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
   await brandSettled(page);
+  // The catalogue lives in a pop-up and is read only when it is opened
+  // (2026-10-13): the card names the brand and offers the button.
+  await expect(page.locator('#catCardTitle')).toHaveText('DelhiChic catalogue');
+  await page.waitForTimeout(800);
+  expect(await page.locator('#catBody [data-cat-count], #catBody [data-cat-row]').count(), 'the catalogue was read before it was asked for').toBe(0);
+  expect(await page.evaluate(() => document.getElementById('catDialog').open)).toBe(false);
+  await page.click('#catOpen');
+  await expect(page.locator('#catDialog')).toBeVisible();
   await page.waitForSelector('#catBody [data-cat-count]', { timeout: 20000 });
 
   const seen = await page.evaluate(() => {
@@ -158,6 +166,9 @@ test('/brain shows the active brand\'s own catalogue as generation reads it, and
 
   // Tenant zero's shipped catalogue is never asked for, for this brand.
   expect(log.requests.filter((u) => /\/data\/catalog\//.test(u)), 'the shipped catalogue was requested for another brand').toEqual([]);
+  // Close returns to the page.
+  await page.click('#catClose');
+  await expect(page.locator('#catDialog')).toBeHidden();
   expect(log.dialogs).toEqual([]);
 });
 
@@ -166,6 +177,7 @@ test('/brain with no catalogue of the brand\'s own says so with the marker and t
   const log = await harness(page, { brand: BRAND, catalog: { products: [FOREIGN], source: BRAND.catalog_source, owned: true, region: 'in' } });
   await page.goto(HOST + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
   await brandSettled(page);
+  await page.click('#catOpen');
   await page.waitForSelector('#catBody [data-cat-empty]', { timeout: 20000 });
   const empty = page.locator('#catBody [data-cat-empty]');
   await expect(empty).toContainText('[DATA REQUIRED BEFORE LAUNCH: product catalogue, DelhiChic]');

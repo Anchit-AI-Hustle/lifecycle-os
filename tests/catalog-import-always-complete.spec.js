@@ -587,6 +587,41 @@ test('a store that GEO-REDIRECTS one market\'s pages into another market\'s stor
   } finally { if (was === undefined) delete process.env.VERCEL_REGION; else process.env.VERCEL_REGION = was; d.restore(); }
 });
 
+test('a market given up from one place is READ AGAIN when the same run continues from another (2026-10-13: Lenskart IN given up from Washington stayed given up after the move to Mumbai)', async () => {
+  test.setTimeout(240_000);
+  const d = deviceWorld();
+  st.stores['lensworld.example'].geo = 'US';
+  const was = process.env.VERCEL_REGION;
+  process.env.VERCEL_REGION = 'iad1';
+  try {
+    const T = st.stores['lensworld.example'].truth;
+    const opts = { region: 'in', kind: 'storefront', url: 'https://lensworld.example', brand: { website: 'https://lensworld.example' } };
+    let r = await core.importCatalog(PHONE, opts);
+    expect(r.markets.find((m) => m.code === 'IN')).toMatchObject({ blocked: true });
+    expect(r.cursor, 'a run with a blocked market keeps its place, so another place can read that market').toBeTruthy();
+    // The same place again: nothing is retried, nothing is said.
+    let again = await core.importCatalog(PHONE, Object.assign({ cursor: r.cursor }, opts));
+    expect(said(again.coverage)).not.toContain('IN is read again');
+    expect(again.products.filter((p) => p.region === 'in')).toHaveLength(0);
+    // Now the functions run in Mumbai, where the store serves its IN pages.
+    process.env.VERCEL_REGION = 'bom1';
+    st.stores['lensworld.example'].geo = '';
+    let cursor = again.cursor || r.cursor;
+    const inRows = new Map();
+    let sentence = '';
+    for (let i = 0; i < 12 && cursor; i++) {
+      const step = await core.importCatalog(PHONE, Object.assign({ cursor }, opts));
+      for (const p of step.products.filter((x) => x.region === 'in')) inRows.set(p.product_url, p);
+      if (!sentence && said(step.coverage).includes('IN is read again')) sentence = said(step.coverage);
+      cursor = step.cursor;
+      if (step.markets && step.markets.find((m) => m.code === 'IN' && m.complete)) break;
+    }
+    expect(sentence, 'the re-read was not said').toContain('IN is read again: an earlier step of this import was sent to another market\'s store when reading from iad1 (Washington, D.C., US), and this step reads from bom1 (Mumbai, IN).');
+    expect(inRows.size, 'IN was not read from Mumbai').toBe(T.inProducts - T.inStale - T.inWrongCurrency);
+    expect([...inRows.values()].every((p) => p.currency === 'INR')).toBe(true);
+  } finally { if (was === undefined) delete process.env.VERCEL_REGION; else process.env.VERCEL_REGION = was; d.restore(); }
+});
+
 test('a self-chaining import walks EVERY market until each is complete, then marks only each market\'s own unseen rows stale', async () => {
   test.setTimeout(180_000);
   const srv = await serve('api/public-config.js');
