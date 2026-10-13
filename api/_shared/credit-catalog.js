@@ -87,6 +87,7 @@ const FEATURES = [
   { key: 'image.generate',        label: 'Generate image',              group: 'Media', cost: 25,  unit: 'per image',   why: 'One image through the generation cascade.' },
   { key: 'image.reels',           label: 'Reels-grade still',           group: 'Media', cost: 35,  unit: 'per image',   why: 'Cinematic 9:16 still built with depth layers for animation.' },
   { key: 'video.generate',        label: 'Generate video',              group: 'Media', cost: 200, unit: 'per clip',     why: 'Image-to-video through the video model cascade — the most expensive call in the app.' },
+  { key: 'audio.music',           label: 'Compose a music track',       group: 'Media', cost: 40,  unit: 'per track',    why: 'One original track composed by the music model (ElevenLabs Music), up to two minutes.' },
   { key: 'audio.tts',             label: 'Text to speech',              group: 'Media', cost: 2,   unit: 'per 1,000 characters', metered: true, estimate: 1, why: 'Charged on the characters actually synthesised.' },
 
   /* ── Intelligence ────────────────────────────────────────────────────── */
