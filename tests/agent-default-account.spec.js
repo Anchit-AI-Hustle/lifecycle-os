@@ -127,3 +127,32 @@ test('Create an agent works for an account brand, and two brands\' agents of the
   expect(nameless.status).toBe(400);
   expect(nameless.out.error).toBe('name_required');
 });
+
+/* ── 2026-10-13: production still logged agent_not_found for agent_brand ─────
+   The chat path answered the built-in agent; "Sync knowledge" (agent-sync) went
+   through getAgent() and answered 404. And an id no workspace keeps answered a
+   sentence that did not say what to do. Both paths, executed. */
+
+test('agent-sync on the built-in agent reads the brand\'s own site instead of answering agent_not_found', async () => {
+  w.reset();
+  const r = await as('deli', { action: 'agent-sync' }, { agent_id: 'agent_brand' });
+  expect(r.status, r.text).toBe(200);
+  expect(r.out.ok).toBe(true);
+  expect(r.out.agent).toBe('agent_brand');
+  expect(r.text).not.toMatch(/agent_not_found/);
+  expect(r.text).not.toMatch(STRANGERS);
+});
+
+test('an agent id this workspace does not keep: 404 with a sentence naming what to create and the agent that needs no setup', async () => {
+  w.reset();
+  for (const action of ['agent-chat', 'agent-sync']) {
+    const r = await as('deli', { action }, { message: 'hi', agent_id: 'agent_gone' });
+    expect(r.status, action + ' ' + r.text).toBe(404);
+    expect(r.out.error).toBe('agent_not_found');
+    const msg = String(r.out.message || '');
+    expect(msg).toContain('agent_gone');
+    expect(msg, 'tells the operator what to create').toMatch(/Agents page.*Save agent/);
+    expect(msg, 'and what works without creating anything').toMatch(/Deli Chic Agent/);
+    expect(w.llm.calls.length).toBe(0);
+  }
+});
