@@ -622,37 +622,37 @@
       "label": "New Balance",
       "sector": "Sportswear",
       "blurb": "Footwear. Template for a width and fit driven catalogue with long-running silhouettes.",
-      "verified_at": null,
+      "verified_at": "2026-10-05",
       "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.newbalance.com.",
-      "palette_source": "default",
+      "palette_source": "identity",
       "typography_source": "default",
       "needs_extraction": true,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
+        "#cf0a2c",
+        "#cf0a2c",
         "#111111",
         "#FFFFFF"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#cf0a2c",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
-          "derived": false
+          "value": "",
+          "unread": true
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "",
+          "unread": true
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "",
+          "unread": true
         }
       ],
       "read_from": [],
@@ -684,8 +684,8 @@
         "host": "www.newbalance.com",
         "reason": "www.newbalance.com answered HTTP 403 to the browser's request. That is the site refusing an automated reader, not a problem with the address."
       },
-      "read_note": "www.newbalance.com blocked an automated read on 2026-10-05. Its own other material was tried too: jobs.newbalance.com (not the brand's consumer site).",
-      "palette_note": "",
+      "read_note": "",
+      "palette_note": "Primary #cf0a2c is the colour of New Balance's own logo as rendered on jobs.newbalance.com on 2026-10-05. The other roles and the type were not read. www.newbalance.com blocked an automated read on 2026-10-05.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2121,37 +2121,37 @@
       "label": "BMW",
       "sector": "Automotive",
       "blurb": "Automotive. Template for a dealer-assisted funnel and a servicing lifecycle.",
-      "verified_at": null,
+      "verified_at": "2026-10-05",
       "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.bmw.com.",
-      "palette_source": "default",
+      "palette_source": "identity",
       "typography_source": "default",
       "needs_extraction": true,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
+        "#0066b1",
+        "#0066b1",
         "#111111",
         "#FFFFFF"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#0066b1",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
-          "derived": false
+          "value": "",
+          "unread": true
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "",
+          "unread": true
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "",
+          "unread": true
         }
       ],
       "read_from": [],
@@ -2183,8 +2183,8 @@
         "host": "www.bmw.com",
         "reason": "The site could not be opened: timed out."
       },
-      "read_note": "www.bmw.com did not answer an automated read within its time limit on 2026-10-05. Its own other material was tried too: www.bmwgroup.com (not the brand's consumer site).",
-      "palette_note": "",
+      "read_note": "",
+      "palette_note": "Primary #0066b1 is the colour of BMW's own logo as rendered on www.bmwgroup.com on 2026-10-05. The other roles and the type were not read. www.bmw.com did not answer an automated read within its time limit on 2026-10-05.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,
@@ -2631,37 +2631,37 @@
       "label": "Netflix",
       "sector": "Streaming",
       "blurb": "Streaming. Template for a renewal, win-back and churn-risk lifecycle.",
-      "verified_at": null,
+      "verified_at": "2026-10-05",
       "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.netflix.com.",
-      "palette_source": "default",
+      "palette_source": "identity",
       "typography_source": "default",
       "needs_extraction": true,
       "swatch": [
-        "#2B2B2B",
-        "#5A5A5A",
+        "#b1060f",
+        "#b1060f",
         "#111111",
         "#FFFFFF"
       ],
       "swatches": [
         {
           "role": "primary",
-          "value": "#2B2B2B",
+          "value": "#b1060f",
           "derived": false
         },
         {
           "role": "accent",
-          "value": "#5A5A5A",
-          "derived": false
+          "value": "",
+          "unread": true
         },
         {
           "role": "surface",
-          "value": "#FFFFFF",
-          "derived": false
+          "value": "",
+          "unread": true
         },
         {
           "role": "ink",
-          "value": "#111111",
-          "derived": false
+          "value": "",
+          "unread": true
         }
       ],
       "read_from": [],
@@ -2693,8 +2693,8 @@
         "host": "www.netflix.com",
         "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
       },
-      "read_note": "www.netflix.com blocked an automated read on 2026-10-05. Its own other material was tried too: jobs.netflix.com (not the brand's consumer site), brand.netflix.com (rendered).",
-      "palette_note": "",
+      "read_note": "",
+      "palette_note": "Primary #b1060f is the colour of Netflix's own logo as rendered on jobs.netflix.com on 2026-10-05. The other roles and the type were not read. www.netflix.com blocked an automated read on 2026-10-05.",
       "renderer": null,
       "regression": null,
       "has_catalog": false,

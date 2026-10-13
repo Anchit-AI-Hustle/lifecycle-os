@@ -460,6 +460,23 @@ function dropForeignAccent(rec) {
  * the reason, and a palette, typeface, logo or photograph that came from one is
  * not applied: the preset stays on the default and says why.
  */
+/**
+ * The brand's own mark, as rendered: a logo or site-icon colour measured on a
+ * site the brand owns. Production, 2026-10-13: Netflix, BMW and New Balance
+ * refused an automated read of their consumer sites, their own logo colour was
+ * measured on jobs.netflix.com / bmwgroup.com / jobs.newbalance.com, and the
+ * card still painted this app's neutral grey as their "primary". A logo is
+ * the same on every site a brand owns; a page's surface, text and type are not.
+ */
+const IDENTITY_KINDS = new Set(['logo-image', 'logo', 'logo-fill', 'icon']);
+function identityOnly(obs) {
+  const ev = obs && obs.palette_evidence && obs.palette_evidence.primary;
+  if (!ev || ev.derived || !/^#[0-9a-f]{6}$/i.test(String(ev.value || ''))) return null;
+  if (!IDENTITY_KINDS.has(String(ev.kind || ''))) return null;
+  if (!ev.owned || !ev.owned.ok) return null;
+  return { value: String(ev.value).toLowerCase(), evidence: ev };
+}
+
 function guardStoredObservation(obs, website) {
   if (!obs || obs.format !== 'preset-observation/3') return obs;
   const out = JSON.parse(JSON.stringify(obs));
@@ -493,6 +510,11 @@ function guardStoredObservation(obs, website) {
   const homeRead = home && home.ok;
   const trusted = out.palette_ok && v3PaletteTrusted(out);
   if (!trusted || designBad) {
+    // The LOGO is the one thing a careers, press or group page shares with the
+    // consumer site (2026-10-13): its colour, as rendered on a site the brand
+    // owns, is kept as an identity colour. Nothing else of that page is.
+    const idv = identityOnly(obs);
+    if (idv) out.identity_only = idv;
     out.palette_ok = false;
     out.palette = null;
     if (!homeRead) out.ok = !designBad && (out.reads || []).some((r) => r.ok);
@@ -527,6 +549,18 @@ function absorbObservation(rec) {
       host: obs.read_attempt.host || '', reason: String(obs.read_attempt.reason || '').slice(0, 400),
     }, obs.read_attempt.code === 'not_consumer_site' ? { code: 'not_consumer_site' } : {});
     if (v3 && (obs.reads || []).some((r) => r.role === 'identity source')) rec.preset.read_sources_note = sourcesSentence(obs.reads);
+  }
+  if (obs.identity_only && !HAND_VERIFIED.has(rec.slug) && !(obs.ok && obs.palette_ok)) {
+    const idv = obs.identity_only;
+    rec.palette = Object.assign({}, rec.palette, { primary: idv.value });
+    delete rec.palette.accent;
+    rec.preset.palette_source = 'identity';
+    rec.preset.palette_evidence = { primary: idv.evidence };
+    rec.preset.verified_at = obs.observed_at || null;
+    // Where the LOGO was seen - kept apart from read_from, which names pages a
+    // whole palette was read from (never a careers or corporate page).
+    rec.preset.identity_from = [idv.evidence.read_url || (idv.evidence.source && idv.evidence.source.page) || ''].filter(Boolean);
+    rec.preset.needs_extraction = true;
   }
   if (!obs.ok) return;
 
@@ -614,6 +648,13 @@ function absorbObservation(rec) {
 /** One or two sentences for a read card (see `palette_note`). */
 function paletteNote(p) {
   const out = [];
+  if (p.preset.palette_source === 'identity') {
+    const ev = (p.preset.palette_evidence || {}).primary || {};
+    let at = '';
+    try { at = new URL(ev.read_url || (ev.source && ev.source.page) || '').hostname; } catch (_) { at = ''; }
+    const why = readSentence(p.preset.read_attempt);
+    return [`Primary ${p.palette.primary} is the colour of ${p.name}'s own ${ev.kind === 'icon' ? 'site icon' : 'logo'} as rendered on ${at || 'a site it owns'}${p.preset.verified_at ? ' on ' + p.preset.verified_at : ''}. The other roles and the type were not read.`, why].filter(Boolean).join(' ');
+  }
   const ev = (p.preset.palette_evidence || {}).primary || {};
   let host = '';
   try { host = new URL(p.website).hostname; } catch (_) { host = p.website; }
@@ -663,8 +704,10 @@ const index = PRESETS.map((p) => ({
   // one the site renders or DERIVED from it (kept exact in palette_evidence).
   // A role the brand does not render (no second colour: no accent) is not
   // painted at all rather than painted with another role's colour.
-  swatches: ['primary', 'accent', 'surface', 'ink'].filter((role) => p.palette[role]).map((role) => {
+  swatches: ['primary', 'accent', 'surface', 'ink'].filter((role) => p.palette[role] || p.preset.palette_source === 'identity').map((role) => {
     const ev = (p.preset.palette_evidence || {})[role] || {};
+    // On a logo-colour-only card nothing but the primary was read.
+    if (p.preset.palette_source === 'identity' && role !== 'primary') return { role, value: '', unread: true };
     return { role, value: p.palette[role], derived: !!ev.derived, exact: ev.derived ? (ev.exact || '') : undefined };
   }),
   // Where the values were read: the home page's host, or the brand's other

@@ -8,10 +8,10 @@
     "label": "Netflix",
     "sector": "Streaming",
     "blurb": "Streaming. Template for a renewal, win-back and churn-risk lifecycle.",
-    "verified_at": null,
+    "verified_at": "2026-10-05",
     "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.netflix.com.",
     "needs_extraction": true,
-    "palette_source": "default",
+    "palette_source": "identity",
     "typography_source": "default",
     "read_attempt": {
       "renderer": "blocked",
@@ -19,11 +19,72 @@
       "host": "www.netflix.com",
       "reason": "www.netflix.com disallows this page in its robots.txt, and this platform honours it."
     },
-    "read_sources_note": "Its own other material was tried too: jobs.netflix.com (not the brand's consumer site), brand.netflix.com (rendered)."
+    "read_sources_note": "Its own other material was tried too: jobs.netflix.com (not the brand's consumer site), brand.netflix.com (rendered).",
+    "palette_evidence": {
+      "primary": {
+        "value": "#b1060f",
+        "exact": "#b1060f",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 128,
+        "from_role": "identity",
+        "signal": "the brand's logo shown on its own page (\"netflix N logo /_next/image?url=%2Fimages%2Flogomark.png&w=256&q=75 ht\")",
+        "source": {
+          "page": "https://jobs.netflix.com/",
+          "role": "content logo",
+          "selector": "body > div:nth-of-type(6) > div:nth-of-type(1) > div > img",
+          "viewport": "desktop",
+          "property": "pixels",
+          "signal": "computed"
+        },
+        "read_url": "https://jobs.netflix.com/",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "same-registrable-domain",
+          "host": "jobs.netflix.com",
+          "registrable": "netflix.com",
+          "website_host": "www.netflix.com"
+        },
+        "corroborated_by": [
+          {
+            "kind": "icon",
+            "value": "#b1060f",
+            "signal": "site icon pixels (icon)",
+            "page": "https://jobs.netflix.com/favicon.ico?favicon.0zj3sr.~gbejd.ico"
+          }
+        ],
+        "outranked": [
+          {
+            "value": "#e50914",
+            "kind": "action",
+            "signal": "the primary call to action, as rendered",
+            "score": 55,
+            "page": "https://jobs.netflix.com/"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#000000",
+            "from": "meta theme-color",
+            "why": "1.02:1 against the page, a tint of the page that cannot carry buttons or bands"
+          },
+          {
+            "value": "#ffffff",
+            "from": "web app manifest background_color",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      }
+    },
+    "identity_from": [
+      "https://jobs.netflix.com/"
+    ]
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
+    "primary": "#b1060f",
     "ink": "#111111",
     "surface": "#FFFFFF",
     "surface_alt": "#F5F5F5",
