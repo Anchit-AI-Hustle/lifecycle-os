@@ -223,7 +223,7 @@ test.describe.serial('the rendered harvest of fixture sites', () => {
       expect(type).toContain('Headings: Harbour Display (brand font, shown in fallback)');
       // The name is set in the brand's stack, so the fallback the card shows is
       // the site's own fallback, not this app's.
-      expect(await card.locator('.pname').evaluate((e) => getComputedStyle(e).fontFamily)).toMatch(/^"?Harbour Display"?/);
+      await expect.poll(() => card.locator('.pname').evaluate((e) => getComputedStyle(e).fontFamily), { timeout: 10000 }).toMatch(/^"?Harbour Display"?/);
     }
     const walled = page.locator('[data-preset="adidas"]');
     await expect(walled.locator('.pchip')).toHaveText('Colours not read yet');
