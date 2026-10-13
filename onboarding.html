@@ -2817,7 +2817,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           if (typeof st.live === 'number') catalogCount = st.live;
           renderCoverage(st.coverage, !done, { continuing: !!st.continuing });
           if (done) { if (status) status.textContent = progressLine(st.coverage) + '. ' + (st.coverage && st.coverage.complete ? 'The catalogue import finished.' : ''); break; }
-          if (!st.continuing && !r.drive) break;
+          // The server's own chain stopped moving before the store was read
+          // (2026-10-13: its self-call never ran): this page takes over and
+          // drives the remaining steps while it is open.
+          if (!st.continuing && !r.drive) r.drive = true;
           continue;
         }
         if (!r.drive || r.progressed === false) break;
@@ -2961,6 +2964,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       busy = false;
       keepGoing(r);
     } catch (e) {
+      // Already reading by itself on the server: not a failure. Say so and
+      // follow it here (the page takes over if it stops moving).
+      if (e && e.code === 'import_continuing') {
+        busy = false;
+        if (status) status.textContent = 'Already reading by itself; the count below updates as it goes.';
+        var cbtn = $('impContinue'); if (cbtn) cbtn.remove();
+        keepGoing({ complete: false, continuing: true, coverage: null });
+        return;
+      }
       // The failure frame says it, once, where it happened: no toast laid
       // over the panel and the Review button repeating it (2026-10-11).
       window.LifecycleFailure.show(status, e, { title: 'The import did not continue' });

@@ -80,11 +80,9 @@ function carriedContact(body) {
 
 // Base URL for self-triggering the background prebuild chain. On Vercel this is
 // VERCEL_URL (the current deployment); SELF_BASE_URL is an optional override.
-function selfBaseUrl() {
-  if (process.env.SELF_BASE_URL) return String(process.env.SELF_BASE_URL).replace(/\/$/, '');
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return '';
-}
+// self-url.js: never the protected generated VERCEL_URL when a reachable
+// domain is known (Standard Protection answered every self-call, 2026-10-13).
+const { selfBaseUrl, selfHeaders } = require('./_shared/self-url.js');
 
 // Fire the NEXT prebuild batch as an independent invocation and return once it
 // has started (or after a short cutoff). We do NOT await the whole batch — the
@@ -96,7 +94,7 @@ async function firePrebuild(depth = 0) {
   if (!base || typeof fetch !== 'function') return { fired: false, reason: 'no self base url / no fetch' };
   const secret = process.env.CRON_SECRET || '';
   const url = `${base}/api/calendar?action=smart-brain-prebuild`;
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = selfHeaders({ 'Content-Type': 'application/json' });
   if (secret) headers.Authorization = `Bearer ${secret}`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 3000);

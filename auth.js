@@ -572,7 +572,10 @@
         if (!b.line.isConnected && document.body) document.body.appendChild(b.line);
         var r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
         var vh = window.innerHeight || 0, vw = window.innerWidth || 0;
-        if (r && (r.width || r.height) && r.bottom > 0 && r.bottom + 30 < vh && r.right > 0 && r.left < vw) {
+        // Inside a table the line would sit over the next row or column
+        // (Smart Brain's plan, 2026-10-13): it floats at the foot there.
+        var dense = !!(el && el.closest && el.closest('table, [role="grid"]'));
+        if (!dense && r && (r.width || r.height) && r.bottom > 0 && r.bottom + 30 < vh && r.right > 0 && r.left < vw) {
           b.line.classList.remove('lc-busy-float');
           b.line.style.left = Math.max(8, Math.min(r.left, vw - 200)) + 'px';
           b.line.style.top = (r.bottom + 6) + 'px';
