@@ -662,6 +662,15 @@ module.exports = async function handler(req, res) {
         const out = await agents.chat({ agentId: chatId, sessionId: b.session_id, message: b.message, context: b.context || {}, history: b.history || [] });
         return res.json(out);
       }
+      // ── The brand's agent on the brand's OWN website (agent-widget.js).
+      //    A visitor has no session: the brand's wallet pays, under a daily
+      //    cap, and only a page of the brand's own website is answered
+      //    (_shared/agent-embed.js). ────────────────────────────────────────
+      case 'agent-public':
+        return await require('./_shared/agent-embed.js').publicChat(req, res, b, { agents, credits: _credits });
+      case 'agent-embed':
+        if (String((req.query || {}).op || 'settings') !== 'settings') return res.status(400).json({ ok: false, error: 'unknown_op', message: 'Use op=settings.' });
+        return await require('./_shared/agent-embed.js').settings(req, res, b);
       case 'agent-analyze': {
         // Natural-language analytical question → EXACT figures from own-data.
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
