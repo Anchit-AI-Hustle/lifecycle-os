@@ -181,12 +181,18 @@ test('the builder refuses the palette New Balance shipped with, read off its car
   const out = tmpDir('out');
   execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'build-brand-presets.js'), '--observed', dir, '--out', out], { stdio: 'pipe' });
   const rec = JSON.parse(fs.readFileSync(path.join(out, 'new-balance.json'), 'utf8'));
-  expect(rec.preset.palette_source).toBe('default');
-  expect(rec.palette.primary).not.toBe(careers.palette.primary);
+  // Its logo is the one thing the careers site shares with the consumer site
+  // (2026-10-13): that colour is kept as the primary, labelled; the careers
+  // page's accent, surface, text and type are not.
+  expect(rec.preset.palette_source).toBe('identity');
+  expect(rec.palette.primary).toBe(String(careers.palette_evidence.primary.value).toLowerCase());
+  expect(careers.palette_evidence.primary.kind).toBe('logo-image');
+  expect(rec.palette.accent).toBeUndefined();
   expect(rec.preset.typography_source).toBe('default');
   expect(String(rec.logo_url || '')).not.toMatch(/jobs\.newbalance\.com/);
   const row = JSON.parse(fs.readFileSync(path.join(out, 'index.json'), 'utf8')).presets.find((p) => p.slug === 'new-balance');
-  expect(row.read_note).toContain('jobs.newbalance.com (not the brand\'s consumer site)');
+  expect(row.palette_note).toContain('own logo as rendered on jobs.newbalance.com');
+  expect(row.swatches.filter((x) => !x.unread).map((x) => x.role)).toEqual(['primary']);
 });
 
 test('no shipped preset is harvested from a careers, press, investor, report or corporate-group site', () => {
@@ -204,6 +210,13 @@ test('no shipped preset is harvested from a careers, press, investor, report or 
     }
     // And no palette it ships was read off one.
     for (const u of rec.preset.read_from || []) expect(own.consumerSite(/^https?:/.test(u) ? u : `https://${u}/`, rec.website).ok, `${rec.slug} read from ${u}`).toBe(true);
+    // A logo colour may have been seen on one (palette_source 'identity'), and
+    // then the logo is the only thing taken: the primary, nothing else.
+    if (rec.preset.palette_source === 'identity') {
+      expect((rec.preset.identity_from || []).length, rec.slug).toBe(1);
+      expect(Object.keys(rec.preset.palette_evidence), rec.slug).toEqual(['primary']);
+      expect(rec.palette.accent, rec.slug).toBeUndefined();
+    }
   }
   expect(urls).toBeGreaterThan(files.length);
 });

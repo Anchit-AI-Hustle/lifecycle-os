@@ -4,6 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A new brand set up from its site is SAVED; a starter card never paints unread colours (2026-10-13)
+Production, a Google account with no brand: "Set up from my website" then Import catalog for delichic.co.in answered
+"Nothing was imported ... could not be saved" and no row was ever written. The router refused the save ("Brand name is
+required": a parsed read only PROPOSES the name) and `save(true)` swallowed the sentence; Review still said "Saved as a
+draft". Now `fillEmptyName()` fills an EMPTY name from the read of the brand's own site (source recorded, a typed name
+never replaced), `saveBeforeImport()` shows the server's own sentence (or "no name yet" before sending), a busy save is
+waited for instead of read as a refusal, and Review says when nothing was saved. Gated by
+`tests/onboarding-import-save.spec.js` (shipped router over the fake project, the wizard in Chromium; fails on the old
+wizard). Starter gallery: 14 cards painted this app's neutral `#2B2B2B` placeholder as four "brand" swatches (Nike,
+Netflix, McDonald's...). A role nobody read is drawn EMPTY (`data-unread`, chip "Colours not read yet"); and a logo or
+icon colour measured on a site the brand owns that is not its consumer site (jobs.netflix.com, bmwgroup.com,
+jobs.newbalance.com) is kept as the primary ONLY (`palette_source: 'identity'`, chip "Logo colour only",
+`preset.identity_from`), never that page's surface, text, accent or type. `brand-presets`, `preset-consumer-sites`,
+`preset-harvest` changed on purpose.
+
 ## ⭐ Readers in each country: a market a store geo-redirects is read FROM that country (2026-10-12) — read `readers/README.md`
 Lenskart's IN / AE / SA / TH stores send a US server to `/en-us/`, so those markets read 0. The operator chose
 "readers in each country": a small server that RUNS there fetches that market's pages. Not pretending a location

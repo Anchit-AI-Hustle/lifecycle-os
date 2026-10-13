@@ -226,7 +226,8 @@ test.describe.serial('the rendered harvest of fixture sites', () => {
       expect(await card.locator('.pname').evaluate((e) => getComputedStyle(e).fontFamily)).toMatch(/^"?Harbour Display"?/);
     }
     const walled = page.locator('[data-preset="adidas"]');
-    await expect(walled.locator('.pchip')).toHaveText(/Default palette, not this brand/);
+    await expect(walled.locator('.pchip')).toHaveText('Colours not read yet');
+    expect(await walled.locator('.psw[data-unread="1"]').count(), 'a card nobody read paints a colour').toBe(4);
     await expect(walled.locator('.pwhy')).toHaveText(`127.0.0.1 blocked an automated read on ${DAY}.`);
     await assertCardsReadable(page);
     expect(h.dialogs).toEqual([]);
@@ -415,7 +416,7 @@ test('the shipped gallery paints every card from its index, and says why each de
   await expect(page.locator('#presetGallery [data-preset]').first()).toBeVisible({ timeout: 15000 });
   const cards = await page.locator('#presetGallery [data-preset]').evaluateAll((els) => els.map((e) => ({
     slug: e.getAttribute('data-preset'),
-    swatches: Array.from(e.querySelectorAll('.psw')).map((s) => ({ role: s.getAttribute('data-role'), bg: getComputedStyle(s.querySelector('i')).backgroundColor })),
+    swatches: Array.from(e.querySelectorAll('.psw')).map((s) => ({ role: s.getAttribute('data-role'), unread: s.getAttribute('data-unread') === '1', bg: getComputedStyle(s.querySelector('i')).backgroundColor })),
     chip: (e.querySelector('.pchip') || {}).textContent || '',
     why: (e.querySelector('.pwhy') || {}).textContent || '',
     type: (e.querySelector('.ptype') || {}).textContent || '',
@@ -428,13 +429,27 @@ test('the shipped gallery paints every card from its index, and says why each de
     // shows no accent swatch rather than its primary twice.
     expect(c.swatches.map((s) => s.role)).toEqual(['primary', 'accent', 'surface', 'ink'].filter((r) => row.swatches.some((x) => x.role === r)));
     expect(c.swatches.map((s) => s.role)).toEqual(expect.arrayContaining(['primary', 'surface', 'ink']));
+    // A role nobody read is drawn EMPTY, never in this app's placeholder grey
+    // (2026-10-13: Nike, Netflix and McDonald's read as black brands).
     for (const s of c.swatches) {
-      expect(rgbHex(s.bg), `${c.slug} ${s.role}`).toBe(String(row.swatches.find((x) => x.role === s.role).value).toLowerCase());
+      const want = row.palette_source === 'default' ? null : row.swatches.find((x) => x.role === s.role);
+      if (!want || want.unread || !want.value) {
+        expect(s.unread, `${c.slug} ${s.role} is painted though it was not read`).toBe(true);
+        expect(s.bg, `${c.slug} ${s.role}`).toBe('rgba(0, 0, 0, 0)');
+      } else {
+        expect(s.unread, `${c.slug} ${s.role}`).toBe(false);
+        expect(rgbHex(s.bg), `${c.slug} ${s.role}`).toBe(String(want.value).toLowerCase());
+      }
     }
     if (row.palette_source === 'default') {
-      expect(c.chip, c.slug).toMatch(/Default palette, not this brand/);
+      expect(c.chip, c.slug).toBe('Colours not read yet');
       expect(c.type, `${c.slug} shows a type line for a default`).toBe('');
       if (row.read_note) expect(c.why).toBe(row.read_note);
+    } else if (row.palette_source === 'identity') {
+      expect(c.chip, c.slug).toBe('Logo colour only');
+      expect(c.type, `${c.slug} shows a type line that was not read`).toBe('');
+      expect(c.why).toBe(row.palette_note);
+      expect(c.swatches.filter((s) => !s.unread).map((s) => s.role)).toEqual(['primary']);
     } else {
       expect(c.type, c.slug).toContain(`Headings: ${row.heading_line}`);
       expect(c.type, c.slug).toContain(`Body: ${row.body_line}`);
