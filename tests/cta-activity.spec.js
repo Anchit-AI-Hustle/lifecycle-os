@@ -104,7 +104,15 @@ test('a plain button that calls the API: working at once, a live elapsed line, o
   await page.click('#demoCta', { force: true });
   await page.waitForTimeout(300);
   expect(log.sent).toEqual(['demo:']);
+  const answered = page.waitForResponse((r) => /action=demo/.test(r.url()));
   held.release();
+  // The answer is in: the very next press runs, even inside the short grace
+  // the line stays for (it was swallowed there, and two pages' second
+  // "Generate" did nothing).
+  await answered;
+  await page.waitForTimeout(50);
+  await page.click('#demoCta');
+  await expect.poll(() => log.sent.length, { timeout: 2000 }).toBe(2);
   await expect.poll(() => state(page, '#demoCta'), { timeout: 3000 }).toMatchObject({ busy: null, line: '', bar: false });
   expect(log.errors).toEqual([]);
 });
