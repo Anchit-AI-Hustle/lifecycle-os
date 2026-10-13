@@ -4,6 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Brand setup is shown live in plain words, every CTA shows it is working, functions run in Mumbai (2026-10-13)
+The operator: *"test each step ... live simulation of ongoing step for user transparency ... humanly engaging content"*,
+*"ensure all cta's start running the processes instantly ... buffering or live simulation ... for every function"*, and
+the Lenskart import again reading "IN: 0 of 5,995 (sent to the US store) ... this server reads from iad1".
+- **`vercel.json` `"regions": ["bom1"]`**: every function ran in iad1 (Washington), so an Indian store geo-redirected
+  every IN page to /en-us/. Mumbai is beside the brands' markets and nearer the database (ap-northeast-2). Not a
+  location pretence: the request really leaves from there. Non-Indian geo-locked markets still need `readers/`.
+- **Setup run** (`onboarding.html`): each row has a live line (`[data-setup-live]`, elapsed via `[data-setup-clock]`,
+  pack stages in words: `PACK_STAGE_WORDS`, import counts while it continues) and copy written for a person (no
+  `(s)`, no markers, no codes: "Found X on site ... Not on your site yet: a logo and ..."). A PARSED read (the site
+  refused the browser) now fills EMPTY fields from what the stylesheet declares (`adoptParsedRead()`: colours only
+  with no conflict, declared/strong type, and the proposed home market into an empty market list, each recorded as
+  `site-parse`), so the catalogue has a market and the run still brings the products in. A value someone chose is
+  never replaced.
+- **`auth.js` activity layer** (`showCtaActivity`): a press (click/submit) that sends a request to our own `/api/`
+  marks that control `aria-busy` at once, puts a live "Working · N s" line beside it (re-found by id, or floated, when
+  the page re-renders the control), draws a bar along the top, ignores a second press while it works, and clears
+  when the answer arrives. Requests no press started (polls, boot reads) show nothing. Tokens only, reduced motion.
+- Gated by `tests/brand-setup-end-to-end.spec.js` (the shipped brand router + rendered reader over a fixture site, the
+  wizard in Chromium, both the rendered and the parsed path, ends on a saved, ACTIVE brand with its products under its
+  home market) and `tests/cta-activity.spec.js` (the server's answer HELD, so the in-between state is observed).
+  Tests whose copy changed on purpose: `brand-change-current-context`, `onboarding-import-save`.
+
 ## ⭐ A new brand set up from its site is SAVED; a starter card never paints unread colours (2026-10-13)
 Production, a Google account with no brand: "Set up from my website" then Import catalog for delichic.co.in answered
 "Nothing was imported ... could not be saved" and no row was ever written. The router refused the save ("Brand name is
