@@ -619,7 +619,11 @@ test('every shipped preset read by machine names, per value, an owned page, a si
     expect(['preset-observation/2', 'preset-observation/3'], row.slug).toContain(obs.format);
     const ev = rec.preset.palette_evidence;
     const v3 = obs.format === 'preset-observation/3';
-    for (const role of ['primary', 'surface', 'ink']) {
+    // A logo-colour-only preset (2026-10-13) read its primary and nothing else:
+    // no other role carries evidence, and no other role may claim to.
+    const identity = row.palette_source === 'identity';
+    if (identity) expect(Object.keys(ev), row.slug).toEqual(['primary']);
+    for (const role of identity ? ['primary'] : ['primary', 'surface', 'ink']) {
       const e = ev[role];
       const page = e.read_url || (e.source && e.source.page);
       // A v2 home-page read dates the observation; a v3 value dates itself.

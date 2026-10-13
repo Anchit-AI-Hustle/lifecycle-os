@@ -8,10 +8,10 @@
     "label": "BMW",
     "sector": "Automotive",
     "blurb": "Automotive. Template for a dealer-assisted funnel and a servicing lifecycle.",
-    "verified_at": null,
+    "verified_at": "2026-10-05",
     "source": "Not read from the brand's own site. Palette and typography below are this repo's neutral default, not this brand's design. Press Read my site on step 1 to extract the real values from https://www.bmw.com.",
     "needs_extraction": true,
-    "palette_source": "default",
+    "palette_source": "identity",
     "typography_source": "default",
     "read_attempt": {
       "renderer": "timeout",
@@ -19,11 +19,60 @@
       "host": "www.bmw.com",
       "reason": "The site could not be opened: timed out."
     },
-    "read_sources_note": "Its own other material was tried too: www.bmwgroup.com (not the brand's consumer site)."
+    "read_sources_note": "Its own other material was tried too: www.bmwgroup.com (not the brand's consumer site).",
+    "palette_evidence": {
+      "primary": {
+        "value": "#0066b1",
+        "exact": "#0066b1",
+        "derived": false,
+        "kind": "logo-image",
+        "strength": 116,
+        "score": 116,
+        "from_role": "identity",
+        "signal": "the brand's own logo file, its pixels (100% of its coloured pixels)",
+        "source": {
+          "page": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+          "role": "logo file",
+          "selector": "",
+          "viewport": "",
+          "property": "pixels",
+          "signal": "rendered"
+        },
+        "read_url": "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg",
+        "read_role": "identity source",
+        "observed_at": "2026-10-05",
+        "owned": {
+          "ok": true,
+          "how": "corporate-sibling",
+          "host": "www.bmwgroup.com",
+          "registrable": "bmwgroup.com",
+          "website_host": "www.bmw.com",
+          "label": "bmwgroup"
+        },
+        "outranked": [
+          {
+            "value": "#035970",
+            "kind": "icon",
+            "signal": "site icon pixels (icon)",
+            "score": 56,
+            "page": "https://www.bmwgroup.com/content/dam/grpw/websites/common/grpw-favicon.ico"
+          }
+        ],
+        "passed_over": [
+          {
+            "value": "#ffffff",
+            "from": "the reader's accent",
+            "why": "1:1 against the page, a tint of the page that cannot carry buttons or bands"
+          }
+        ]
+      }
+    },
+    "identity_from": [
+      "https://www.bmwgroup.com/etc.clientlibs/grpw-web/clientlibs/grpw-base/resources/images/logo/BMW_dark.svg"
+    ]
   },
   "palette": {
-    "primary": "#2B2B2B",
-    "accent": "#5A5A5A",
+    "primary": "#0066b1",
     "ink": "#111111",
     "surface": "#FFFFFF",
     "surface_alt": "#F5F5F5",

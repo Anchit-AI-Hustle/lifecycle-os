@@ -26,7 +26,7 @@ const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'
 
 const load = (slug) => JSON.parse(fs.readFileSync(path.join(DIR, `${slug}.json`), 'utf8'));
 const defaults = () => index.presets.filter((p) => p.palette_source === 'default');
-const verified = () => index.presets.filter((p) => p.palette_source !== 'default');
+const verified = () => index.presets.filter((p) => p.palette_source === 'verified');
 
 /* ═══ the library is there and split ══════════════════════════════════════ */
 
@@ -37,7 +37,9 @@ test('the gallery ships both kinds, and the index says which is which', () => {
   // When every site answered, there is nothing left to be a default, and that
   // is the point of the observation rather than a missing card.
   for (const p of index.presets) {
-    expect(['verified', 'default']).toContain(p.palette_source);
+    // 'identity' (2026-10-13): only the brand's own logo colour was read, on a
+    // site it owns that is not its consumer site; nothing else of that page.
+    expect(['verified', 'identity', 'default']).toContain(p.palette_source);
     expect(p.slug, 'a preset with no file').toBeTruthy();
     expect(fs.existsSync(path.join(DIR, `${p.slug}.json`))).toBe(true);
   }
@@ -204,7 +206,19 @@ test('an observed template carries that observation and nothing else', () => {
     const { consumerSite } = require(path.join(ROOT, 'scripts', 'lib', 'brand-ownership.js'));
     const readFrom = [obs.landed, obs.design_read && obs.design_read.url].filter(Boolean);
     if (obs.format === 'preset-observation/3' && readFrom.some((u) => !consumerSite(u, preset.website || '').ok)) {
-      expect(row.palette_source, `${row.slug} took a palette from a page that is not its consumer site`).toBe('default');
+      // Only the logo's own colour may come from such a page, as the primary;
+      // its accent, surface, text and type never do.
+      const ev = (obs.palette_evidence || {}).primary || {};
+      if (row.palette_source === 'identity') {
+        expect(['logo-image', 'logo', 'logo-fill', 'icon']).toContain(ev.kind);
+        expect(ev.owned && ev.owned.ok, row.slug).toBe(true);
+        expect(preset.palette.primary.toLowerCase()).toBe(String(ev.value).toLowerCase());
+        expect(preset.palette.accent, `${row.slug} took an accent from a page that is not its consumer site`).toBeUndefined();
+        expect(preset.preset.typography_source, row.slug).toBe('default');
+        expect(row.swatches.filter((s) => !s.unread).map((s) => s.role)).toEqual(['primary']);
+      } else {
+        expect(row.palette_source, `${row.slug} took a palette from a page that is not its consumer site`).toBe('default');
+      }
       continue;
     }
     if (!obs.ok || obs.palette_ok === false) {
