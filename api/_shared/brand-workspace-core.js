@@ -2134,7 +2134,7 @@ async function deviceCatalogImport(auth, { region = '', kind, text, url, brand, 
     products: kept,
     run: batch,
     complete: !!parsed.complete,
-    resume_available: !parsed.complete && !!parsed.cursor,
+    resume_available: !parsed.complete && require('./catalog-import.js').resumable(parsed.cursor),
     progressed: parsed.progressed !== false,
     // Keep going from the page while this is true; `wait_ms` first when the store asked.
     drive: !!(devChain && !devChain.stopped),
@@ -2301,7 +2301,7 @@ async function importCatalog(auth, { workspace_id, region = '', kind, text, url,
     region: reg,
     run,
     complete,
-    resume_available: !complete && !!state.cursor,
+    resume_available: !complete && require('./catalog-import.js').resumable(state.cursor),
     progressed: parsed.progressed !== false,
     // The server continues it (`continuing`), or the page should (`drive`).
     continuing: !!(chain && chain.active && fired && fired.fired),
@@ -2351,7 +2351,7 @@ async function catalogStatus(auth, workspaceId) {
     workspace_id: workspaceId,
     source: ws.catalog_source || {},
     coverage: imp.coverage || (ws.catalog_source && ws.catalog_source.coverage) || null,
-    resume_available: !!imp.cursor,
+    resume_available: require('./catalog-import.js').resumable(imp.cursor),
     continuing: !!imp.cursor && require('./catalog-import.js').chainBusy(imp),
     chain: imp.chain || null,
     region: imp.region || (ws.catalog_source && ws.catalog_source.region) || null,
@@ -2474,11 +2474,7 @@ function filesSummary(brand) {
    is never held for 30-60s waiting on a crawl. A no-op when there is no base
    URL to call (local dev), which is exactly when the client-driven fallback in
    `context-build` takes over. */
-function selfBaseUrl() {
-  if (process.env.SELF_BASE_URL) return String(process.env.SELF_BASE_URL).replace(/\/$/, '');
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return '';
-}
+const { selfBaseUrl, selfHeaders } = require('./self-url.js');
 
 async function fireContextChain(workspaceId, depth) {
   const base = selfBaseUrl();
@@ -2489,7 +2485,7 @@ async function fireContextChain(workspaceId, depth) {
     return { fired: false, reason: 'no service-role key; the client drives the queue instead' };
   }
   const secret = process.env.CRON_SECRET || '';
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = selfHeaders({ 'Content-Type': 'application/json' });
   if (secret) headers.Authorization = `Bearer ${secret}`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 3000);

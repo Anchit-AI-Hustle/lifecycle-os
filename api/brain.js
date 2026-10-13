@@ -1382,11 +1382,11 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
           const sbplan = require('./_shared/smart-brain-plan.js');
           const sync = await sbplan.syncDaily({ persist: true });
           let prebuildKicked = false;
-          const base = process.env.SELF_BASE_URL ? String(process.env.SELF_BASE_URL).replace(/\/$/, '')
-            : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+          const selfUrl = require('./_shared/self-url.js');
+          const base = selfUrl.selfBaseUrl();
           if (base && typeof fetch === 'function') {
             const secret = process.env.CRON_SECRET || '';
-            const headers = { 'Content-Type': 'application/json' };
+            const headers = selfUrl.selfHeaders({ 'Content-Type': 'application/json' });
             if (secret) headers.Authorization = `Bearer ${secret}`;
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 3000);
