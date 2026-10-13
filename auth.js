@@ -493,6 +493,165 @@
   //
   // Cross-origin requests are never touched — attaching the token to a third
   // party would leak the user's session.
+  /* ─── Every CTA shows it is working, the moment it starts (2026-10-13) ────
+     The operator: "ensure all cta's start running the processes instantly -
+     ensure proper buffering or live simulation showcase to the user for every
+     function and feature". A press that starts a request to our own /api/
+     marks THAT control as working at once (aria-busy, a live "Working · 4 s"
+     line beside it, "Still working" past 10 s) and runs a thin bar along the
+     top of the page until every request it started has answered. A second
+     press on a control that is still working is ignored, so nothing runs
+     twice. One layer here instead of sixty pages: auth.js is on every page,
+     and brand-context.js wraps fetch AFTER this, so its calls pass through.
+     Nothing is invented: the line says only that the request is running and
+     for how long. A request no press started (a poll, a boot read) shows
+     nothing. Colours are tokens only. */
+  (function showCtaActivity() {
+    try {
+      if (IS_FROZEN_DIFF || window.__lcActivity || typeof window.fetch !== 'function') return;
+      var A = window.__lcActivity = { inflight: 0, busy: [], last: null };
+      var CTRL = 'button, [role="button"], input[type="submit"], input[type="button"], a.btn, a.vh-btn, a[data-credit-feature]';
+      var ATTRIBUTE_MS = 1500;
+      document.addEventListener('click', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest(CTRL) : null;
+        if (!el) return;
+        // Shown, never intercepted: a press always reaches the page's own
+        // handler (a page that must not run twice disables its own control).
+        // Swallowing presses here broke tab rows and quick re-presses.
+        A.last = { el: el, t: Date.now() };
+      }, true);
+      document.addEventListener('submit', function (e) {
+        var b = e.submitter || (e.target && e.target.querySelector && e.target.querySelector('[type="submit"]'));
+        if (b) A.last = { el: b, t: Date.now() };
+      }, true);
+      function own(url) {
+        try { var u = new URL(url, location.href); return u.origin === location.origin && /^\/api\//.test(u.pathname); } catch (_) { return false; }
+      }
+      function css() {
+        if (document.getElementById('lc-activity-css')) return;
+        var s = document.createElement('style');
+        s.id = 'lc-activity-css';
+        s.textContent =
+          '[data-lc-busy]{cursor:progress}' +
+          '.lc-busy-line{position:fixed;z-index:201;display:inline-flex;align-items:center;gap:6px;margin:0;padding:4px 10px;border-radius:var(--vh-r-pill,999px);background:var(--vh-panel,Canvas);color:var(--vh-ink,CanvasText);border:1px solid var(--vh-line,currentColor);box-shadow:var(--vh-lift-1,none);font:500 12px/1.4 var(--vh-font-body,system-ui,sans-serif);pointer-events:none;max-width:calc(100vw - 32px)}' +
+          '.lc-busy-line::before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid var(--vh-line-hot,currentColor);border-top-color:var(--vh-primary,currentColor);animation:lcSpin .8s linear infinite}' +
+          '.lc-busy-line.lc-busy-float{left:16px;bottom:16px;padding:8px 12px}' +
+          '#lc-activity-bar{position:fixed;left:0;right:0;top:0;height:3px;z-index:200;pointer-events:none;overflow:hidden}' +
+          '#lc-activity-bar::before{content:"";position:absolute;top:0;bottom:0;width:40%;background:var(--vh-primary,currentColor);animation:lcSlide 1.1s ease-in-out infinite}' +
+          '@keyframes lcSpin{to{transform:rotate(360deg)}}@keyframes lcSlide{from{left:-40%}to{left:100%}}' +
+          '@media (prefers-reduced-motion: reduce){.lc-busy-line::before{animation:none}#lc-activity-bar::before{animation:none;left:0;width:100%;opacity:.6}}';
+        (document.head || document.documentElement).appendChild(s);
+      }
+      function words(ms) {
+        var s = Math.floor(ms / 1000);
+        if (s < 1) return 'Working…';
+        if (s < 10) return 'Working · ' + s + ' s';
+        return 'Still working · ' + s + ' s. Longer jobs keep going until they finish.';
+      }
+      var tick = null;
+      /* Pages re-render: the pressed control may be replaced by its twin
+         (same id) a moment later. The working state follows it there. The
+         line itself is NEVER put inside the page's own markup (a sibling of
+         the control changed a container's child count, and the onboarding
+         step row rebuilt itself under the cursor): it lives in <body>, fixed
+         just under the control while that is on screen, else at the foot of
+         the screen. */
+      function twin(el) {
+        if (el && el.isConnected) return el;
+        var id = el && el.id;
+        return id ? document.getElementById(id) : null;
+      }
+      function place(b) {
+        var el = twin(b.el);
+        if (el && el !== b.el) { b.el = el; }
+        if (el && b.n > 0) {
+          el.setAttribute('data-lc-busy', '');
+          el.setAttribute('aria-busy', 'true');
+        }
+        if (!b.line) return;
+        if (!b.line.isConnected && document.body) document.body.appendChild(b.line);
+        var r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+        var vh = window.innerHeight || 0, vw = window.innerWidth || 0;
+        if (r && (r.width || r.height) && r.bottom > 0 && r.bottom + 30 < vh && r.right > 0 && r.left < vw) {
+          b.line.classList.remove('lc-busy-float');
+          b.line.style.left = Math.max(8, Math.min(r.left, vw - 200)) + 'px';
+          b.line.style.top = (r.bottom + 6) + 'px';
+        } else {
+          b.line.classList.add('lc-busy-float');
+          b.line.style.left = ''; b.line.style.top = '';
+        }
+      }
+      window.addEventListener('scroll', function () { if (A.busy.length) A.busy.forEach(place); }, { passive: true, capture: true });
+      window.addEventListener('resize', function () { if (A.busy.length) A.busy.forEach(place); }, { passive: true });
+      function paint() {
+        var now = Date.now();
+        A.busy.forEach(function (b) { place(b); if (b.line) b.line.textContent = words(now - b.t0); });
+      }
+      function bar(on) {
+        var el = document.getElementById('lc-activity-bar');
+        if (on && !el) {
+          el = document.createElement('div');
+          el.id = 'lc-activity-bar';
+          el.setAttribute('role', 'progressbar');
+          el.setAttribute('aria-label', 'Working');
+          document.body && document.body.appendChild(el);
+        } else if (!on && el) el.remove();
+      }
+      function start(ctl) {
+        var b = A.busy.filter(function (x) { return x.el === ctl; })[0];
+        if (b) { if (b.timer) { clearTimeout(b.timer); b.timer = null; } b.n += 1; place(b); return b; }
+        css();
+        b = { el: ctl, n: 1, t0: Date.now(), line: null };
+        var line = document.createElement('span');
+        line.className = 'lc-busy-line';
+        line.setAttribute('data-lc-busy-line', '');
+        line.setAttribute('role', 'status');
+        line.setAttribute('aria-live', 'polite');
+        line.textContent = words(0);
+        b.line = line;
+        place(b);
+        A.busy.push(b);
+        bar(true);
+        if (!tick) tick = setInterval(paint, 1000);
+        return b;
+      }
+      function finish(b) {
+        b.n -= 1;
+        // A flow that chains requests (read, then save, then import) keeps the
+        // same control working: the next request it sends attaches again.
+        if (A.last && A.last.el === b.el) A.last.t = Date.now();
+        if (b.n > 0) return;
+        // The answer is in: the control takes a press again at once (only a
+        // request still in flight blocks a second press). The line and the
+        // bar stay a short grace, so two chained requests do not flicker.
+        var live = twin(b.el) || b.el;
+        live.removeAttribute('data-lc-busy');
+        if (live !== b.el) b.el.removeAttribute('data-lc-busy');
+        b.timer = setTimeout(function () {
+          var el = twin(b.el) || b.el;
+          el.removeAttribute('data-lc-busy');
+          el.removeAttribute('aria-busy');
+          b.el.removeAttribute('data-lc-busy');
+          b.el.removeAttribute('aria-busy');
+          if (b.line) b.line.remove();
+          A.busy = A.busy.filter(function (x) { return x !== b; });
+          if (!A.busy.length) { bar(false); clearInterval(tick); tick = null; }
+        }, 400);
+      }
+      var inner = window.fetch;
+      window.fetch = function (input, init) {
+        var url = (typeof input === 'string') ? input : (input && input.url) || '';
+        var last = A.last;
+        if (!own(url) || !last || Date.now() - last.t > ATTRIBUTE_MS) return inner.apply(this, arguments);
+        var b = start(last.el);
+        var p;
+        try { p = inner.apply(this, arguments); } catch (err) { finish(b); throw err; }
+        Promise.resolve(p).then(function () { finish(b); }, function () { finish(b); });
+        return p;
+      };
+    } catch (_) {}
+  })();
+
   (function attachSessionToApiCalls() {
     try {
       if (window.__lcFetchPatched || typeof window.fetch !== 'function') return;

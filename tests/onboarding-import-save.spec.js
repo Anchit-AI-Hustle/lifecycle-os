@@ -121,7 +121,7 @@ test('a NEW brand set up from its website with no name typed is named as its sit
     const rows = db.table('brand_workspaces').filter((w) => w.owner_id === OWNER);
     expect(rows.map((w) => w.name), JSON.stringify(steps)).toEqual(['Brambleweld Larder']);
     expect(rows[0].brand_data.brand_extraction.applied.name.source_url).toBe(SITE + '/');
-    expect(row('brand')[2]).toMatch(/Named Brambleweld Larder, as https:\/\/brambleweld-larder\.example names itself/);
+    expect(row('brand')[2]).toMatch(/We named the brand Brambleweld Larder, as your site does/);
     expect(row('review')[1]).not.toBe('failed');
     expect(row('catalog')[2]).not.toMatch(/could not be saved/);
     expect(errors).toEqual([]);
