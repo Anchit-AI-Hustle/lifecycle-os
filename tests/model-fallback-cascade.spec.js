@@ -131,10 +131,14 @@ let net = null;
 test.beforeEach(() => {
   savedEnv = {};
   for (const k of PROVIDER_ENV) { savedEnv[k] = process.env[k]; delete process.env[k]; }
+  // A billing / auth answer cools that key down for later requests in this
+  // process; each case here starts from a cascade that has seen nothing.
+  require(LLM_PATH).resetProviderCooldowns();
 });
 test.afterEach(() => {
   if (net) { net.restore(); net = null; }
   for (const k of PROVIDER_ENV) { if (savedEnv[k] === undefined) delete process.env[k]; else process.env[k] = savedEnv[k]; }
+  require(LLM_PATH).resetProviderCooldowns();
 });
 
 function keys(map) { for (const [k, v] of Object.entries(map)) process.env[k] = v; }

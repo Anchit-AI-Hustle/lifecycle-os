@@ -114,13 +114,7 @@ const PROVIDERS = [
     blurb: 'One key that routes to Claude, GPT, Gemini and open models.',
     fields: [{ key: 'api_key', label: 'API key', secret: true, required: true }],
   },
-  {
-    id: 'github', label: 'GitHub Models', category: 'ai', llm_provider: 'github',
-    auth_kind: 'api_key', env_default: 'GITHUB_MODELS_TOKEN',
-    key_url: 'https://github.com/settings/tokens',
-    blurb: 'GPT-4o family and open models through a GitHub token.',
-    fields: [{ key: 'api_key', label: 'Personal access token', secret: true, required: true }],
-  },
+  // GitHub Models was retired 2026-07-30 (docs.github.com/en/github-models): not offered.
   {
     id: 'cloudflare', label: 'Cloudflare Workers AI', category: 'ai', llm_provider: 'cloudflare',
     auth_kind: 'api_key', env_default: 'CLOUDFLARE_API_TOKEN',
@@ -925,7 +919,6 @@ function platformDefault(reg) {
   switch (reg.llm_provider) {
     case 'openai': return !!(process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY_3);
     case 'openrouter': return !!(process.env.OPENROUTER_API_KEY || process.env.OpenRouter_API_KEY);
-    case 'github': return !!(process.env.GITHUB_MODELS_TOKEN || process.env.GITHUB_TOKEN);
     case 'cloudflare': return !!(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID);
     case 'ollama': return !!process.env.OLLAMA_BASE_URL;
     default: return !!(reg.env_default && process.env[reg.env_default]);

@@ -179,9 +179,11 @@ anthropic → openai → gemini → grok → groq → cerebras → ollama → sa
 
 - **Tiers** per call: `premium` / `standard` / `fast` (legacy `maxpower`→premium,
   `budget`→standard). July-2026 default models (all env-overridable): premium =
-  `claude-opus-4-8 / gpt-5.5 / gemini-3.1-pro / grok-4.3`; standard =
-  `claude-sonnet-5 / gpt-5-mini / gemini-3.5-flash / grok-4.1-fast`; fast =
-  `claude-haiku-4-5 / gpt-5-nano / gemini-2.5-flash`.
+  `claude-opus-5-5 / gpt-5.5 / gemini-3.8-flash / grok-4.3`; standard =
+  `claude-sonnet-5-5 / gpt-5-mini / gemini-3.8-flash / grok-4.3`; fast =
+  `claude-haiku-5-5 / gpt-5-nano / gemini-3.8-flash`. A key that answers billing/auth is
+  not re-sent for 10 minutes, and a model at its daily cap until the time it gave
+  (`llm.providerCooldowns()`).
 - **Demotion logic (`classifyFailure`):** 429/402/billing-400 = quota → demote;
   404/model-error = within-provider demote; **plain 400 = request bug → abort the
   whole cascade** (don't waste every provider on a malformed call); 401/403 = auth →

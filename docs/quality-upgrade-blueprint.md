@@ -12,7 +12,7 @@ The audit (2026-07-03) found the AI engines running on stale/dead rungs and no l
 - `GROQ_API_KEY`/`CEREBRAS_API_KEY` used in code, missing from `.env.example`.
 
 ## Model research (verified 2026-07-03; official docs where reachable)
-- **Text**: OpenAI `gpt-5.5` / `gpt-5-mini` / `gpt-5-nano`; Anthropic `claude-opus-4-8` / `claude-sonnet-5` / `claude-haiku-4-5`; Gemini `gemini-3.1-pro` / `gemini-3.5-flash` / free floor `gemini-2.5-flash`; xAI `grok-4.3` / `grok-4.1-fast`; Groq+Cerebras free floor `openai/gpt-oss-120b`, `llama-3.3-70b`.
+- **Text**: OpenAI `gpt-5.5` / `gpt-5-mini` / `gpt-5-nano`; Anthropic `claude-opus-5-5` / `claude-sonnet-5-5` / `claude-haiku-5-5`; Gemini `gemini-3.1-pro` / `gemini-3.8-flash` / free floor `gemini-2.5-flash`; xAI `grok-4.3` / `grok-4.3`; Groq+Cerebras free floor `openai/gpt-oss-120b`, `openai/gpt-oss-20b` (Groq).
 - **Image**: `gpt-image-2` (best instruction-following; auto-demote to `gpt-image-1` if the account 404s it) → `gemini-3-pro-image-preview` (Nano Banana Pro) → `imagen-4.0-*` → `gemini-2.5-flash-image` (free ~500/day) → Pollinations flux (free floor). Ideogram 3 optional for text-in-image banners (`IDEOGRAM_API_KEY`).
 - **Video** (new capability): Veo 3.1 `veo-3.1-generate-preview` via Gemini API (reuses `GEMINI_API_KEY`, paid tier) → Sora 2 `sora-2` (OpenAI; note API sunset 2026-09-24) → Higgsfield Cloud REST ($0.10/s, `HIGGSFIELD_API_KEY`, paid plans) → Runway Gen-4 Turbo ($0.05/s floor, `RUNWAY_API_KEY`). **OpenArt has no public API — excluded.** All video rungs stub gracefully (`{connected:false, would_request}` — Klaviyo pattern) until keys exist.
 - **Demotion rules** (all cascades): HTTP 429/402/5xx, timeout, or 400 whose body matches `insufficient_quota|quota|billing|credit|balance` (plain 400 = request bug, do NOT demote). Model-not-found (404/400 model error) demotes within-provider first.
@@ -20,9 +20,9 @@ The audit (2026-07-03) found the AI engines running on stale/dead rungs and no l
 ## Task tiers (replace budget/maxpower semantics, back-compat preserved)
 | Tier | Use | Text entry chain |
 |---|---|---|
-| `premium` (legacy `maxpower`) | hero copy, mailer_full, KicksGPT, smart-brain copy, strategist narratives | claude-opus-4-8 → gpt-5.5 → claude-sonnet-5 → gemini-3.1-pro → grok-4.3 → fast chain |
-| `standard` (legacy `budget`/default) | variants, briefs, calendars, autofill | claude-sonnet-5 → gpt-5-mini → gemini-3.5-flash → grok-4.1-fast → fast chain |
-| `fast` (new) | classification, tagging, scoring | claude-haiku-4-5 → gpt-5-nano → gemini-2.5-flash (free) → groq gpt-oss-120b → cerebras gpt-oss-120b |
+| `premium` (legacy `maxpower`) | hero copy, mailer_full, KicksGPT, smart-brain copy, strategist narratives | claude-opus-5-5 → gpt-5.5 → claude-sonnet-5-5 → gemini-3.1-pro → grok-4.3 → fast chain |
+| `standard` (legacy `budget`/default) | variants, briefs, calendars, autofill | claude-sonnet-5-5 → gpt-5-mini → gemini-3.8-flash → grok-4.3 → fast chain |
+| `fast` (new) | classification, tagging, scoring | claude-haiku-5-5 → gpt-5-nano → gemini-2.5-flash (free) → groq gpt-oss-120b → cerebras gpt-oss-120b |
 All IDs env-overridable via existing `*_TEXT_MODEL(_MAX)` vars + new `*_TEXT_MODEL_FAST`.
 
 ## Phases
