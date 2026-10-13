@@ -133,6 +133,16 @@ module.exports = async function handler(req, res) {
     req.__workspaceId = wsId;
   } catch (_) { /* never hard-fail the router on scoping */ }
 
+  // A sync that fails mid-run (sheet down, inbox refused) is a state the poll
+  // reports and survives, not a 500.
+  async function safeSync() {
+    try { return await core.runSync(25); }
+    catch (e) {
+      return { ok: false, connected: true, state: 'sync_failed',
+        message: 'Competitor mail capture is connected but this sync did not complete: ' + String((e && e.message) || e).slice(0, 300) + '. The next poll tries again.' };
+    }
+  }
+
   try {
     // The captured-mail archive still lives in the Google Sheet. Say so plainly
     // when Google is not configured, rather than throwing a credentials error
@@ -161,6 +171,23 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // Mail capture (the archive sheet + the inbox it is filled from) is
+    // optional. Unconnected, every capture action answers ONE "not connected"
+    // state naming the env vars that would connect it, never a credentials
+    // error, and the poll keeps polling (2026-10-13: production answered
+    // "Google auth not configured" as a failure on every poll).
+    const CAPTURE = { html: 'sheet', raw: 'sheet', sort: 'sheet', poll: 'both', sync: 'both' };
+    if (CAPTURE[action] && !(action === 'sync' && !authorized(req))) {
+      const st = core.captureStatus();
+      const need = CAPTURE[action] === 'both' ? st.connected : st.sheet;
+      if (!need) {
+        const missing = CAPTURE[action] === 'both' ? st.missing : st.missing.filter((m) => !/^GMAIL_/.test(m));
+        res.status(200).json({ ok: true, connected: false, state: 'not_connected', action, missing,
+          message: 'Competitor mail capture is not connected on this deployment, so nothing was read or archived. To connect it, set on Vercel: ' + missing.join('; ') + '. The competitor universe and benchmarks do not depend on it.' });
+        return;
+      }
+    }
+
     if (action === 'html') {
       const id = Number(url.searchParams.get('id'));
       if (!Number.isInteger(id) || id < 2) { res.status(400).json({ ok: false, html: '' }); return; }
@@ -186,14 +213,14 @@ module.exports = async function handler(req, res) {
         return;
       }
       lastPoll = now;
-      lastResult = await core.runSync(25);
+      lastResult = await safeSync();
       res.status(200).json({ ok: true, throttled: false, ...lastResult });
       return;
     }
 
     if (action === 'sync') {
       if (!authorized(req)) { res.status(401).json({ ok: false, error: 'Unauthorized' }); return; }
-      const result = await core.runSync(25);
+      const result = await safeSync();
       lastResult = result;
       res.status(200).json(result);
       return;
