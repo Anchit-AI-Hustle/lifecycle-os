@@ -155,7 +155,9 @@ function scriptedLlm() {
   // `ctl.down`: every provider fails, the way llm.js throws when the whole
   // cascade is exhausted, so a spec can drive the TEMPLATE paths a generator
   // takes with no model (tests/brand-content-invariant.spec.js).
-  const ctl = { down: false, respond: null };
+  // `ctl.delayMs`: a SLOW model - every answer arrives that much later (the
+  // /api/brain time-budget spec, tests/brain-time-budget.spec.js).
+  const ctl = { down: false, respond: null, delayMs: 0 };
   const fn = async function callLLMStub(o) {
     const opts = o || {};
     // Which catalogue the generation was pinned to when it reached the model
@@ -167,6 +169,7 @@ function scriptedLlm() {
     // it): what a generation briefed the model with is part of its output.
     calls.push({ stage: opts.stage || '', tier: opts.tier || '', json: !!(opts.responseFormat && opts.responseFormat.type === 'json_object'), catalog,
       prompt: String(opts.systemPrompt || '') + '\n---\n' + String(opts.userMessage || '') });
+    if (ctl.delayMs) await new Promise((r) => setTimeout(r, ctl.delayMs));
     if (ctl.down) {
       const e = new Error('All providers failed (scripted outage)');
       e._providerErrors = [{ provider: 'scripted', status: 503, err: 'scripted outage' }];
@@ -191,6 +194,8 @@ function scriptedLlm() {
     fn, calls,
     get down() { return ctl.down; },
     set down(v) { ctl.down = !!v; },
+    get delayMs() { return ctl.delayMs; },
+    set delayMs(v) { ctl.delayMs = Number(v) || 0; },
     get respond() { return ctl.respond; },
     set respond(fn) { ctl.respond = typeof fn === 'function' ? fn : null; },
   };
@@ -305,7 +310,7 @@ async function world(opts) {
     srv, port: srv.port, db, store, llm, tokens, built, session, ORIGIN, ROUTERS, PHONE, OTHER_PHONE, DATABASE_URL,
     /** Forget every per-request cache a spec can leave behind. */
     reset() {
-      db.clearCalls(); llm.calls.length = 0;
+      db.clearCalls(); llm.calls.length = 0; llm.delayMs = 0; llm.down = false;
       try { require(path.join(ROOT, 'api/_shared/workspace-scope.js')).invalidate(); } catch (_) {}
       try { require(path.join(ROOT, 'api/_shared/brand-runtime.js')).invalidate(); } catch (_) {}
       try { require(path.join(ROOT, 'api/_shared/require-caller.js'))._resetRateWindow(); } catch (_) {}

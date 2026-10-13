@@ -740,7 +740,9 @@ const _CAL_FEATURE = {
   'trigger-mailer': 'mailer.generate',
   triggermailer: 'mailer.generate',
 };
-module.exports = _credits.metered(module.exports, (req) => {
+// Answers before maxDuration with what finished (api/_shared/time-budget.js).
+const _timeBudget = require('./_shared/time-budget.js');
+module.exports = _credits.metered(_timeBudget.guard(module.exports, { budgetMs: () => _timeBudget.budgetFor('api/calendar.js'), label: 'run' }), (req) => {
   const auth = String((req.headers && req.headers.authorization) || '');
   const secret = String(process.env.CRON_SECRET || '');
   if (secret && auth === `Bearer ${secret}`) return null;      // scheduled run
