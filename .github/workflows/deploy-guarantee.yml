@@ -49,7 +49,7 @@
 # set but the hook refusing (deleted or rotated in Vercel), it DOES fail, so
 # a stale secret is visible in the Actions tab rather than silently useless.
 #
-# It needs no permission on the GitHub token at all and uses no third-party
+# Its token only READS (a CI run, a PR's head) and it uses no third-party
 # action: one curl, to a URL that is itself the credential (GitHub masks it
 # in the log because it is a secret).
 name: Deploy guarantee (Vercel production)
@@ -68,7 +68,7 @@ on:
         required: false
         default: 'manual run from the Actions tab'
 
-# Nothing here touches the GitHub API.
+# Nothing at the workflow level; the job reads CI state only.
 permissions: {}
 
 # Firings queue rather than race; a queued duplicate that GitHub drops loses
@@ -92,7 +92,16 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_branch == 'main')
+    # The dispatch paths are checked against CI before anything fires
+    # (2026-10-13): reading a CI run needs actions:read, and a PR's head needs
+    # pull-requests:read. Nothing is written.
+    permissions:
+      actions: read
+      pull-requests: read
     env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.client_payload.pr }}
       VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
       TRIGGER: ${{ github.event_name }}
       HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.event.client_payload.sha || github.sha }}
@@ -107,6 +116,30 @@ jobs:
             echo "::notice title=Deploy guarantee is not armed::Repository secret VERCEL_DEPLOY_HOOK_URL is not set, so no deploy hook was fired and production still relies on the Vercel Git integration alone. To arm it: Vercel -> the lifecycle-os project -> Settings -> Git -> Deploy Hooks -> create a hook for branch main and copy its URL; then GitHub -> Settings -> Secrets and variables -> Actions -> new repository secret VERCEL_DEPLOY_HOOK_URL."
             echo "SKIPPED: VERCEL_DEPLOY_HOOK_URL is not set. Create the hook under Vercel project Settings -> Git -> Deploy Hooks (branch main) and store its URL as that secret."
             exit 0
+          fi
+          # NEVER DEPLOY WHAT CI DID NOT PASS (2026-10-13). The workflow_run path
+          # is gated in the job's \`if\` (success only). The two dispatch paths
+          # were not: run #628 on main was CANCELLED and production deployed
+          # anyway. A dispatch from auto-merge is checked against the CI of the
+          # PR's head; a hand dispatch against the CI of main's HEAD. Anything
+          # but completed/success - failed, cancelled, still running, or no run
+          # at all - refuses, says why, and fires nothing.
+          if [ "$TRIGGER" != workflow_run ]; then
+            if [ "$TRIGGER" = repository_dispatch ] && [ -n "${PR:-}" ]; then
+              sha="$(gh api "repos/$REPO/pulls/$PR" | jq -r '.head.sha // empty')"; what="PR #$PR (head ${sha:0:7})"
+            else
+              sha="$(gh api "repos/$REPO/commits/main" | jq -r '.sha // empty')"; what="main (${sha:0:7})"
+            fi
+            if [ -z "$sha" ]; then echo "::error title=Deploy refused::Could not read the commit to check CI for, so nothing was deployed."; exit 1; fi
+            runs="$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$sha&per_page=20")" \
+              || { echo "::error title=Deploy refused::Could not read CI runs for $what, so nothing was deployed."; exit 1; }
+            ci="$(jq -r '[.workflow_runs[]?] | sort_by(.created_at) | last | if . == null then "no CI run" else (.status + "/" + (.conclusion // "pending")) end' <<<"$runs")"
+            if [ "$ci" != "completed/success" ]; then
+              echo "::error title=Deploy refused::CI for $what is $ci, so the deploy hook was not fired. Fix CI (or re-run it) and deploy again."
+              echo "REFUSED: CI for $what is $ci."
+              exit 1
+            fi
+            echo "CI for $what is green: deploying."
           fi
           # The hook deploys the branch's current HEAD (see header), so a retry
           # after a lost response can at worst build the same commit twice.
