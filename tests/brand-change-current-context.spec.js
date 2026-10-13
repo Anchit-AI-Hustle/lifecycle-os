@@ -435,6 +435,49 @@ test('/assets lists only THIS brand version\'s assets and copies a prompt built 
   await context.close();
 });
 
+test('/assets keeps an earlier version\'s shared assets reachable: listed on request, labelled, while another brand\'s stay out', async ({ browser }) => {
+  // Production, 2026-10-14, Lenskart: "51 asset(s) ... not listed" beside tabs
+  // that all read 0, and no way to reach any of them ("saying 51 but showing 0").
+  const context = await browser.newContext();
+  const errors = [];
+  await wire(context, { api: [] });
+  const B = deviceRow('local-bwl', F.BRAMBLE, PAL_B);
+  await context.addInitScript((wsId) => {
+    const rows = {
+      landing_pages_generated: [
+        { hero: 'Old Brambleweld page', market: 'UK', paired_with: 'mailer', created_at: '2026-09-01T00:00:00Z', workspace_id: wsId, payload: { brand_identity: 'bi2:0123456789abcdef01234567' } },
+        { hero: 'Pre-stamp Brambleweld page', market: 'UK', paired_with: 'mailer', created_at: '2026-08-01T00:00:00Z', payload: {} },
+        { hero: 'Quillforth front page', market: 'IN', paired_with: 'mailer', created_at: '2026-09-02T00:00:00Z', workspace_id: 'local-other', payload: { brand_identity: 'bi2:ffffffffffffffffffffffff' } },
+      ],
+      mailers_generated: [], ads_generated: [],
+    };
+    const chain = (t) => ({ select: () => ({ order: () => ({ limit: async () => ({ data: rows[t] || [], error: null }) }), eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) });
+    window.supabase = { createClient: () => ({ auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }), signOut: async () => ({}) }, from: chain }) };
+  }, B.id);
+  const page = await context.newPage();
+  page.on('pageerror', (e) => errors.push(String(e.message || e)));
+  await seed(page, [B], B.id);
+  await page.goto(HOST + '/assets.html', { waitUntil: 'domcontentloaded' });
+  await brandReady(page, 'Brambleweld Larder');
+  const note = page.locator('[data-hidden-assets]');
+  await expect(note).toContainText('2 assets were made for an earlier version of Brambleweld Larder', { timeout: 20000 });
+  await expect(note).toContainText('1 asset belongs to another brand');
+  await expect(page.locator('#grid')).toContainText('Show the 2 from earlier versions');
+  expect(await page.locator('#grid .asset').count()).toBe(0);
+  await page.click('[data-toggle-earlier]');
+  await expect(page.locator('#grid .asset')).toHaveCount(2);
+  const names = await page.$$eval('#grid .asset', (els) => els.map((e) => e.textContent || '').join(' | '));
+  expect(names).toContain('Old Brambleweld page');
+  expect(names).toContain('Pre-stamp Brambleweld page');
+  expect(names, 'another brand\'s asset was listed under this one').not.toContain('Quillforth front page');
+  await expect(page.locator('#grid [data-earlier-version]')).toHaveCount(2);
+  await expect(page.locator('[data-tabn="all"]')).toHaveText('2');
+  await page.click('[data-toggle-earlier]');
+  await expect(page.locator('#grid .asset')).toHaveCount(0);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
 test('another tab switching the active brand repaints every open page as the new brand, with nothing of the old one cached', async ({ browser }) => {
   const context = await browser.newContext();
   await wire(context, { api: [] });

@@ -187,6 +187,8 @@ test('/brain\'s catalogue panel is the shared module and still reads the same', 
   const log = await harness(page, { brand: BRAND, catalog: { products: OWN.concat([FOREIGN]), source: BRAND.catalog_source, owned: true, region: 'in' } });
   await page.goto(HOST + '/smart-brain.html', { waitUntil: 'domcontentloaded' });
   await brandSettled(page);
+  // The catalogue is read when its pop-up opens (2026-10-13), not on load.
+  await page.click('#catOpen');
   await page.waitForSelector('#catBody [data-cat-count]', { timeout: 20000 });
   expect(await page.locator('#catBody').getAttribute('data-bcp')).toBe('');
   await expect(page.locator('#catBody [data-cat-count]')).toHaveAttribute('data-cat-count', '2');

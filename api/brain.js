@@ -136,6 +136,7 @@ const MODEL_FEATURE = {
   'video-generate': ['POST', 'video.generate'],
   'mailer-assets': ['POST', 'image.generate'],
   tts: ['POST', 'audio.tts'],
+  'music-compose': ['POST', 'audio.music'],
   'social-run-daily': ['POST', 'social.daily_run'],
   'platform-agents': [null, 'analytics.report'],
   'revenue-os': ['GET', 'analytics.report'],
@@ -285,7 +286,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -661,6 +662,15 @@ module.exports = async function handler(req, res) {
         const out = await agents.chat({ agentId: chatId, sessionId: b.session_id, message: b.message, context: b.context || {}, history: b.history || [] });
         return res.json(out);
       }
+      // ── The brand's agent on the brand's OWN website (agent-widget.js).
+      //    A visitor has no session: the brand's wallet pays, under a daily
+      //    cap, and only a page of the brand's own website is answered
+      //    (_shared/agent-embed.js). ────────────────────────────────────────
+      case 'agent-public':
+        return await require('./_shared/agent-embed.js').publicChat(req, res, b, { agents, credits: _credits });
+      case 'agent-embed':
+        if (String((req.query || {}).op || 'settings') !== 'settings') return res.status(400).json({ ok: false, error: 'unknown_op', message: 'Use op=settings.' });
+        return await require('./_shared/agent-embed.js').settings(req, res, b);
       case 'agent-analyze': {
         // Natural-language analytical question → EXACT figures from own-data.
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
@@ -1213,6 +1223,36 @@ module.exports = async function handler(req, res) {
         return res.status(200).send(buf);
       }
 
+      // ── MUSIC (ElevenLabs Music: POST https://api.elevenlabs.io/v1/music,
+      //    documented at elevenlabs.io/docs/api-reference/music/compose). The
+      //    page writes the prompt from the active brand's own record and the
+      //    operator edits it; this route only sends it. Suno has no public API
+      //    (invite-only partner programme), so the page hands a Suno brief off
+      //    by clipboard instead of calling anything here. ─────────────────────
+      case 'music-compose': {
+        if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+        if (!apiKey) return res.status(501).json({ ok: false, error: 'music_unconfigured', message: 'Generating a track here needs ELEVENLABS_API_KEY set on this deployment. Until then, use Open in Suno: the brief is copied for you.' });
+        const prompt = String(b.prompt || '').trim().slice(0, 4100);
+        if (!prompt) return res.status(400).json({ ok: false, error: 'prompt_required', message: 'Describe the track first.' });
+        const secs = Math.round(Number(b.seconds) || 30);
+        const lengthMs = Math.min(120000, Math.max(3000, secs * 1000));
+        const r = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
+          method: 'POST',
+          headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
+          body: JSON.stringify({ prompt, music_length_ms: lengthMs, model_id: 'music_v1', force_instrumental: b.instrumental !== false }),
+        });
+        if (!r.ok) {
+          const detail = (await r.text()).slice(0, 300);
+          return res.status(502).json({ ok: false, error: 'music_provider_refused', message: `The music service answered ${r.status} and composed nothing. ${detail}`.trim() });
+        }
+        const buf = Buffer.from(await r.arrayBuffer());
+        res.setHeader('Content-Type', 'audio/mpeg');
+        const songId = r.headers.get && r.headers.get('song-id');
+        if (songId) res.setHeader('X-Song-Id', String(songId).slice(0, 120));
+        return res.status(200).send(buf);
+      }
+
       // ── CONSOLE (chat-style brain interface) ─────────────────────────────
       case 'console-chat': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
@@ -1718,8 +1758,17 @@ function failureStatus(err) {
   if (s >= 400 && s < 500) return s;
   return storeDown(err) ? 503 : 500;
 }
+// A 400/404 from PostgREST is the database ANSWERING: a column or table this
+// code asks for is not in that database (production, 2026-10-14:
+// "column smart_products.active does not exist" read as "the database is
+// paused" on /agent while credits loaded fine). It is said as what it is.
+function storeRefusedSchema(err) {
+  const msg = String((err && err.message) || err || '');
+  return /linked-db (select|insert|upsert|update|delete) [^:]+: 40[04]\b|supabase (get|post|patch|delete) .* -> 40[04]\b/i.test(msg);
+}
 function storeDown(err) {
   const msg = String((err && err.message) || err || '');
+  if (storeRefusedSchema(err)) return false;
   return /linked-db (select|insert|upsert|update|delete)|supabase (get|post|patch|delete) .* -> \d{3}|fetch failed|econnrefused|enotfound|getaddrinfo|network call escaped/i.test(msg);
 }
 function failurePayload(action, err) {
@@ -1727,6 +1776,14 @@ function failurePayload(action, err) {
   const s = Number(err && err.status) || 0;
   if (s >= 400 && s < 500) {
     return { ok: false, action, error: (err && err.code) || 'request_refused', message: msg };
+  }
+  if (storeRefusedSchema(err)) {
+    const m = msg.match(/"message":"([^"]{1,200})"/);
+    return {
+      ok: false, action, error: 'store_schema_mismatch',
+      message: `The workspace database answered, but "${action}" asked it for something it does not have${m ? ` (${m[1]})` : ''}. Nothing was saved. This is a defect in this deployment, not your data.`,
+      detail: msg.slice(0, 300),
+    };
   }
   if (storeDown(err)) {
     let host = '';

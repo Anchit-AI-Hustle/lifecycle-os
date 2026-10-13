@@ -870,7 +870,7 @@ async function generateForSlot(slotId, { persist = true } = {}) {
   const cohort = cohortRows[0] || null;
 
   // product selection: match cohort categories then top sellers
-  const products = await d.select('smart_products', { filters: { market: `eq.${slot.market}`, active: 'eq.true' }, limit: 200 });
+  const products = await d.select('smart_products', { filters: { market: `eq.${slot.market}` }, limit: 200 });
   const wantTags = cohort ? JSON.stringify(cohort.definition).toLowerCase() : '';
   const picked = products
     .map((p) => ({ p, rel: (p.tags || []).reduce((s, t) => s + (wantTags.includes(t) ? 1 : 0), 0) + ((slot.festival && (p.tags || []).includes('gift')) ? 2 : 0) }))

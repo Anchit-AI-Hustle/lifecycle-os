@@ -45,6 +45,12 @@
   .music-link{color:var(--vh-link);text-decoration:underline;text-underline-offset:2px;}
   video{width:100%;border-radius:12px;background:var(--vh-panel-2);display:block;}
   textarea.code-out{width:100%;min-height:96px;background:var(--vh-panel-2);color:var(--vh-ink);border:1px solid var(--vh-line-hot);border-radius:10px;padding:12px;font-family:var(--vh-font-mono);font-size:11.5px;line-height:1.5;}
+  .mk-field{width:100%;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line-hot);border-radius:10px;padding:10px 12px;font-family:inherit;font-size:14px;}
+  textarea.mk-field{min-height:120px;line-height:1.5;}
+  .mk-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:12px;}
+  .mk-label{display:block;font-size:12px;font-weight:700;color:var(--vh-ink-dim);margin-bottom:4px;}
+  .mk-note{font-size:12.5px;color:var(--vh-ink-dim);line-height:1.5;}
+  .mk-made{border-top:1px solid var(--vh-line);padding-top:12px;margin-top:12px;}
 </style>
 </head>
 <body>
@@ -52,6 +58,51 @@
     <div class="kicker">Lifecycle OS &middot; Music</div>
     <h1 class="text-[34px] font-bold leading-tight mt-1" style="color:var(--vh-heading)">Official Songs</h1>
     <p class="max-w-3xl mt-2 text-[15px] leading-relaxed" style="color:var(--vh-ink-dim)">The brand's own music beds, synthesized in-house (scripts/gen-brand-audio.py) so they are original and royalty-free for paid ads. Play a track here, or drop it straight into an ad creative, a Social Media OS video or a landing page. Everything is served natively from this site, no external player.</p>
+
+    <!-- Create a track for the ACTIVE brand (every brand, not only tenant
+         zero). The brief is written from the brand's own record and is
+         editable. Two ways to make it: here, through ElevenLabs Music
+         (?action=music-compose, needs ELEVENLABS_API_KEY), or in Suno, which
+         has no public API: the brief is copied and suno.com/create opens. -->
+    <section class="mt-8" id="makeTrack" data-make-track>
+      <div class="kicker mb-2">Create a track</div>
+      <hr class="divider mb-5">
+      <div class="card p-5">
+        <h2 class="text-[22px] font-bold" style="color:var(--vh-heading)">Make a new track for <span data-mk-brand>your brand</span></h2>
+        <p class="mk-note mt-1">The brief below is written from your brand's own record. Change anything, then generate it here or take it to Suno.</p>
+        <div class="mk-row mt-4">
+          <label><span class="mk-label">What it is for</span>
+            <select class="mk-field" id="mkUse">
+              <option value="ad" data-secs="15">Ad bed (15 seconds)</option>
+              <option value="reel" data-secs="30" selected>Reels or Shorts loop (30 seconds)</option>
+              <option value="jingle" data-secs="30">Brand jingle with vocals (30 seconds)</option>
+              <option value="film" data-secs="90">Brand film underscore (90 seconds)</option>
+            </select></label>
+          <label><span class="mk-label">Mood</span>
+            <select class="mk-field" id="mkMood">
+              <option value="">From your brand voice</option>
+              <option>upbeat and confident</option>
+              <option>warm and calm</option>
+              <option>premium and minimal</option>
+              <option>playful and bright</option>
+              <option>cinematic and rising</option>
+            </select></label>
+          <label><span class="mk-label">Length in seconds</span>
+            <input class="mk-field" id="mkSecs" type="number" min="3" max="120" value="30"></label>
+        </div>
+        <label class="flex items-center gap-2 mt-3 text-[13px]"><input type="checkbox" id="mkInstr" checked> Instrumental only (no vocals)</label>
+        <label class="block mt-3"><span class="mk-label">Brief</span>
+          <textarea class="mk-field" id="mkPrompt" spellcheck="true"></textarea></label>
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button type="button" class="btn-primary" id="mkGenerate" data-credit-feature="audio.music">Generate here</button>
+          <button type="button" class="btn-lava" id="mkSuno">Open in Suno <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></button>
+          <button type="button" class="btn-outline" id="mkCopy">Copy brief</button>
+        </div>
+        <div class="mt-3 text-[13px]" id="mkStatus" role="status" aria-live="polite"></div>
+        <p class="mk-note mt-2">Generate here uses ElevenLabs Music and costs credits. Suno has no public API yet, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
+        <div id="mkMade"></div>
+      </div>
+    </section>
 
     <!-- The tracks are tenant zero's own beds. For any other active brand the
          shell replaces this section with the DATA REQUIRED marker
@@ -204,6 +255,115 @@
         });
       }
     });
+  })();
+  </script>
+  <script>
+  (function(){
+    "use strict";
+    var $ = function(id){ return document.getElementById(id); };
+    var brand = null, full = null, edited = false;
+    var USE = {
+      ad: "a short instrumental music bed for a paid social ad: a strong hook in the first second, a clean ending",
+      reel: "a seamless loop for vertical short-form video (Reels, Shorts), steady groove, loops without a gap",
+      jingle: "a short brand jingle with a sung hook",
+      film: "an underscore for a brand film that builds gently and resolves"
+    };
+    function home(){
+      try { var RC = window.RegionContext; var h = RC && RC.home; return (typeof h === "function" ? h() : h) || ""; } catch(_){ return ""; }
+    }
+    function brief(){
+      var b = full || brand || {};
+      var v = b.voice || {};
+      var d = b.brand_data || {};
+      var industry = b.industry || d.industry || "";
+      var mood = $("mkMood").value || (v.tone ? "matching this brand voice: " + v.tone : "");
+      var parts = [];
+      parts.push("Original " + (USE[$("mkUse").value] || USE.reel) + ".");
+      if (b.name) parts.push("For the brand " + b.name + (industry ? " (" + industry + ")" : "") + ".");
+      if (b.tagline) parts.push("The brand describes itself as: " + b.tagline + ".");
+      if (mood) parts.push("Mood: " + mood + ".");
+      var mkt = home(); if (mkt) parts.push("Home market: " + mkt + ".");
+      parts.push($("mkInstr").checked ? "Instrumental only, no vocals." : "Vocals allowed; keep any lyrics short and family-friendly.");
+      parts.push("Do not imitate any named artist or existing song.");
+      return parts.join(" ").replace(/[\u2013\u2014]/g, "-");
+    }
+    function refresh(){ if (!edited) $("mkPrompt").value = brief(); }
+    function say(text){ var el = $("mkStatus"); el.textContent = text; }
+    function copyText(t){
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(function(){ return true; }, function(){ return false; });
+      return Promise.resolve(false);
+    }
+    $("mkPrompt").addEventListener("input", function(){ edited = true; });
+    ["mkUse","mkMood","mkInstr"].forEach(function(id){ $(id).addEventListener("change", function(){
+      if (id === "mkUse") { var o = $("mkUse").selectedOptions[0]; $("mkSecs").value = o.getAttribute("data-secs"); if ($("mkUse").value === "jingle") $("mkInstr").checked = false; }
+      edited = false; refresh();
+    }); });
+    $("mkCopy").addEventListener("click", function(){
+      copyText($("mkPrompt").value).then(function(ok){ say(ok ? "Brief copied." : "Select the brief and copy it with Cmd/Ctrl+C."); });
+    });
+    $("mkSuno").addEventListener("click", function(){
+      var w = window.open("https://suno.com/create", "_blank", "noopener");
+      copyText($("mkPrompt").value).then(function(ok){
+        say((ok ? "Brief copied. " : "Copy the brief above, then ") + "In Suno, paste it into the Style box and press Create. Download the track and use it like any track on this page." + (w ? "" : " (Your browser blocked the new tab: open suno.com/create yourself.)"));
+      });
+    });
+    function addMade(url, label){
+      var box = $("mkMade");
+      var row = document.createElement("div"); row.className = "mk-made"; row.setAttribute("data-made-track", "");
+      var t = document.createElement("div"); t.className = "text-[13px] font-bold"; t.textContent = label; row.appendChild(t);
+      var a = document.createElement("audio"); a.controls = true; a.src = url; a.style.width = "100%"; a.className = "mt-2"; row.appendChild(a);
+      var dl = document.createElement("a"); dl.className = "btn-lava mt-2"; dl.href = url; var nm = (brand && brand.name) || (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name) || "brand"; dl.download = nm.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-track.mp3"; dl.textContent = "Download";
+      row.appendChild(dl);
+      var n = document.createElement("p"); n.className = "mk-note mt-2"; n.textContent = "Kept in this tab only: download it to keep it."; row.appendChild(n);
+      box.insertBefore(row, box.firstChild);
+    }
+    $("mkGenerate").addEventListener("click", async function(){
+      var btn = this, prompt = $("mkPrompt").value.trim();
+      if (!prompt) { say("Write a brief first."); return; }
+      if (window.LifecycleStatus) {
+        var stop = await window.LifecycleStatus.decide("Generating a track", { metered: true });
+        if (stop) { window.LifecycleStatus.show($("mkStatus"), stop); return; }
+      }
+      btn.disabled = true; say("Composing your track. This usually takes under a minute.");
+      try {
+        var r = await fetch("/api/brain?action=music-compose", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt, seconds: Number($("mkSecs").value) || 30, instrumental: $("mkInstr").checked }) });
+        var type = r.headers.get("content-type") || "";
+        if (r.ok && /audio/.test(type)) {
+          var url = URL.createObjectURL(await r.blob());
+          addMade(url, "New track · " + $("mkUse").selectedOptions[0].textContent);
+          say("Done. Play it below.");
+        } else {
+          var j = null; try { j = await r.json(); } catch(_){}
+          var err = new Error((j && (j.message || j.error)) || ("The server answered " + r.status + "."));
+          if (j && j.error) err.code = j.error;
+          err.status = r.status;
+          if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show($("mkStatus"), err);
+          else say(err.message);
+        }
+      } catch (e) {
+        say("Could not reach the server: " + (e && e.message || e));
+      } finally { btn.disabled = false; }
+    });
+    function onBrand(b){
+      brand = b || null; full = null;
+      document.querySelectorAll("[data-mk-brand]").forEach(function(el){ el.textContent = (brand && brand.name) || "your brand"; });
+      edited = false; refresh();
+      if (brand && brand.id && window.BrandContext && typeof window.BrandContext.api === "function") {
+        window.BrandContext.api("get", { query: "id=" + encodeURIComponent(brand.id) }).then(function(r){
+          var f = r && r.brand; if (f && brand && f.id === brand.id) { full = f; refresh(); }
+        }).catch(function(){});
+      }
+    }
+    refresh();
+    function wire(){
+      var BC = window.BrandContext;
+      if (!BC) return false;
+      if (BC.onChange) BC.onChange(function(ev){ onBrand(ev && ev.brand); });
+      else if (BC.ready) BC.ready().then(onBrand).catch(function(){});
+      return true;
+    }
+    if (!wire()) { var tries = 0; var t = setInterval(function(){ if (wire() || ++tries > 40) clearInterval(t); }, 150); }
   })();
   </script>
 </body>
