@@ -96,10 +96,10 @@ test('parity: the SQL brand label is brand-coherence.js\'s for every host shape'
   const hosts = ['www.nike.in', 'nike.com', 'shop.nike.co.in', 'www.lenskart.sg', 'store.myshopify.com', 'a.b.store.myshopify.com',
     'timesofindia.indiatimes.com', 'delichic.co.in', 'www.mamaearth.in', 'news.bbc.co.uk', 'localhost', 'www.example.com.au', 'x.co.th'];
   for (const h of hosts) {
-    const sql = (await db.query('select public.lc_brand_label($1) as l', [h])).rows[0].l;
+    const fromSql = (await db.query('select public.lc_brand_label($1) as l', [h])).rows[0].l;
     const reg = C.registrableDomain(h);
     const js = reg.indexOf('.') >= 0 ? reg.split('.')[0] : reg;
-    expect(sql, h).toBe(js);
+    expect(fromSql, h).toBe(js);
   }
 });
 
