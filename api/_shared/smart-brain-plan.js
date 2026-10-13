@@ -1903,7 +1903,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
 .why li{list-style:none;margin:12px 0;padding-left:6px}
 .tick{color:var(--moss);font-weight:800;margin-right:10px}
 .why ul{padding:0;margin:0}
-.reveal{background:#fff;border:1px solid #e7ddc6;border-radius:14px;padding:30px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+.reveal{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:14px;padding:30px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
 .reveal .price{font-family:var(--head);font-size:30px;color:var(--moss)}
 .proof{background:var(--moss-near);color:var(--on-moss);text-align:center}
 .proof blockquote{font-family:var(--head);font-size:26px;max-width:680px;margin:0 auto;line-height:1.35}
@@ -1918,7 +1918,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
 .faq summary{font-weight:700;cursor:pointer;font-size:17px}
 .faq p{color:var(--ink-dim);margin:10px 0 0}
 .guarantee{background:var(--chalk-warm);text-align:center;border-radius:14px;padding:34px;margin:30px 0}
-.sticky{position:sticky;bottom:0;background:#fff;border-top:1px solid #e7ddc6;display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 22px;box-shadow:0 -6px 24px rgba(0,0,0,.08)}
+.sticky{position:sticky;bottom:0;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 22px;box-shadow:0 -6px 24px rgba(0,0,0,.08)}
 .sticky .info{font-size:14px}.sticky .info b{display:block;font-family:var(--head);font-size:16px}
 /* The footer was a near-black band (var(--ink) is #111111 for tenant zero),
    which the design rules forbid for any section. It is the brand primary now,
@@ -1935,16 +1935,18 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
        visitor announced the RFM bucket the business had put them in:
        "Hibernating edit", "At Risk edit", "Lost edit". The market is a place and
        is fine to say; the segment is an internal classification and is not. -->
-  <p class="eyebrow">${esc(entry.market ? entry.market + ' edit' : 'Featured')}</p>
+  <!-- The market code ("IN edit") read as an internal label too (2026-10-14):
+       the eyebrow is what the product IS, else the brand's name. -->
+  <p class="eyebrow">${esc((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.category) || bName)}</p>
   <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
-  <p data-ds="hero-body">${esc(L.hero_sub || entry.rationale || '')}</p>
+  ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
   <a class="btn" data-ds="button-primary" href="${esc(shopUrl)}">${cta}</a>
 </section>
 ${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:520px;object-fit:cover"/>` : ''}
 <div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
 <div class="wrap" data-ds="wrap">
   <section class="sec why">
-    <h2>${esc(L.why_title || 'Why this edit')}</h2>
+    <h2>${esc(L.why_title || ('Why ' + ((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title) || bName)))}</h2>
     <ul data-ds="body">${bullets || `<li><span class="tick">✓</span>Selected from ${esc(bName)}'s own catalogue.</li>`}</ul>
   </section>
   <section class="sec">
@@ -1970,7 +1972,7 @@ ${proofSection}
   <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
   <a class="btn" href="${esc(shopUrl)}">${cta}</a>
 </div>
-<footer data-ds="footer">© ${esc(bName)} · ${esc(entry.market)} · ${esc(campaignId)}</footer>
+<footer data-ds="footer" data-campaign="${esc(campaignId)}">© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}</footer>
 </body></html>`;
 }
 
@@ -2357,14 +2359,28 @@ function attachMotionCreative(ad, entry, pool) {
       brand = (sb && (sb.id || sb.carried === true || sb.unresolved === true)) ? sb : null;
     } catch (_) { brand = null; }
     const images = (Array.isArray(pool) ? pool : []).filter(Boolean);
-    const beats = (Array.isArray(ad.storyboard) && ad.storyboard.length ? ad.storyboard : [])
-      .slice(0, 4)
-      .map((s, i) => ({
-        image: images.length ? images[i % images.length] : '',
-        headline: String((s && (s.scene || s.shot)) || '').slice(0, 90),
-        sub: String(s && s.t ? s.t : ''),
-        seconds: 2.6,
-      }));
+    // ON-SCREEN TEXT IS CUSTOMER COPY (2026-10-14). The beats used to print
+    // the storyboard's production directions ("HOOK: extreme close-up of ...,
+    // sound-on stinger") with the timecode ("0-2s") under them, so every video
+    // ad, on every platform, showed a viewer its own shot list. The storyboard
+    // stays the brief for whoever films it (motion_brief, ad.storyboard); what
+    // the viewer reads is the ad's hook, then its own copy sentence by sentence,
+    // then the product, and the CTA card closes it.
+    const words = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+    const sentences = words(ad.primary_text || ad.caption).split(/(?<=[.!?])\s+/).map(words)
+      .filter((x) => x.length >= 8 && x.length <= 90);
+    const product = words(entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title);
+    const lines = [];
+    const push = (t) => { const v = words(t).slice(0, 90); if (v && !lines.some((x) => x.toLowerCase() === v.toLowerCase())) lines.push(v); };
+    push(ad.hook || ad.headline);
+    sentences.forEach(push);
+    if (product) push(product);
+    const nBeats = Math.max(1, Math.min(3, (Array.isArray(ad.storyboard) ? ad.storyboard.length : 3) - 1));
+    const beats = lines.slice(0, nBeats).map((line, i) => ({
+      image: images.length ? images[i % images.length] : '',
+      headline: line,
+      seconds: 2.6,
+    }));
     const scenes = beats.length ? beats : [{
       image: images[0] || '',
       headline: String(ad.hook || ad.headline || (entry.heroProduct && entry.heroProduct.title) || '').slice(0, 90),

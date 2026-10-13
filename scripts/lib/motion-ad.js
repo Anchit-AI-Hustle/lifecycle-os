@@ -257,13 +257,15 @@ function renderMotionAd(spec) {
   </section>`);
   });
   const ctaStart = ((total - 2.2) / total) * 100;
+  let onLava = PAL.chalk;
+  try { onLava = require('../../api/_shared/brand-workspace-core.js').textOn(PAL.lava, PAL.chalk, PAL.ink) || PAL.chalk; } catch (_) { onLava = PAL.chalk; }
   const track = audioTrack(Object.assign({ __totalSeconds: total }, spec));
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(spec.product || BRAND_NAME)} — motion ad</title>
 <style>
-  :root { --green:${PAL.green}; --lava:${PAL.lava}; --ink:${PAL.ink}; --chalk:${PAL.chalk}; --head:${FONT.head}; --body:${FONT.body}; }
+  :root { --green:${PAL.green}; --lava:${PAL.lava}; --ink:${PAL.ink}; --chalk:${PAL.chalk}; --on-lava:${onLava}; --head:${FONT.head}; --body:${FONT.body}; }
   * { margin:0; padding:0; box-sizing:border-box; }
   /* The letterbox around the 9:16 frame. It was var(--ink), i.e. #111111 for
      tenant zero — a black ground, which this repo does not ship. The surface
@@ -310,7 +312,9 @@ function renderMotionAd(spec) {
      1.07:1 at the radial centre - two brand colours of similar weight reading
      as a smudge, on the single most important line of the card. */
   .cta .offer { color:var(--chalk); font-weight:700; font-size:clamp(15px, 4vmin, 24px); letter-spacing:.04em; }
-  .cta .btn { display:inline-block; background:var(--lava); color:var(--chalk); font-weight:700;
+  /* The button label is DERIVED for its fill (2026-10-14): chalk on an amber
+     accent measured 2.16:1 on the one control the ad exists for. */
+  .cta .btn { display:inline-block; background:var(--lava); color:var(--on-lava); font-weight:700;
               padding:14px 34px; border-radius:999px; font-size:clamp(14px, 3.8vmin, 20px); }
   /* The disclaimer, at 70% opacity, was 2.97:1 at 10-13px. Fine print is the
      text that most needs to be legible, so it is not faded. */
