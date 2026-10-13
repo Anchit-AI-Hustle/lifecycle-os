@@ -1620,6 +1620,47 @@ function copyOutputSpec(entry) {
   };
 }
 
+/**
+ * PRODUCT FACTS for the copywriter (2026-10-14). The writer used to get the
+ * hero's title and nothing else, so "sensory, specific benefits" became filler
+ * or invention. These are the facts THIS brand's own catalogue states for the
+ * product (the row generation already matches), and the writer is told to use
+ * only them; anything the row does not state is said to be absent, never
+ * filled. The offer line says plainly when there is no offer on record.
+ */
+function productFactsBrief(entry) {
+  const lines = [];
+  let row = null;
+  try { row = catalogImage.match(entry, entry.market, { brand: entry.brand }); } catch (_) { row = null; }
+  const hp = entry.heroProduct || {};
+  if (row && !hp.placeholder) {
+    const name = String(row.n || hp.title || '').trim();
+    const cur = String(row.currency || '').trim();
+    const fmt = (v) => {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n <= 0) return '';
+      try { return require('./brand-locale.js').money(n, entry.brand, entry.market); } catch (_) { return cur ? `${n} ${cur}` : String(n); }
+    };
+    const price = fmt(row.price);
+    const compare = Number(row.compare_at) > Number(row.price) ? fmt(row.compare_at) : '';
+    lines.push(`PRODUCT FACTS (from the brand's own catalogue; use ONLY these, never add a fact they do not state):`);
+    if (name) lines.push(`- Name: ${name}`);
+    lines.push(price ? `- Price: ${price}${compare ? ` (was ${compare}, as the store states)` : ''}` : '- Price: not stated in the catalogue, so do not state a price.');
+    if (row.type) lines.push(`- Product type: ${row.type}`);
+    const desc = String(row.subtitle || row.description || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (desc) lines.push(`- How the store describes it: "${desc}"`);
+    lines.push(`- Name the product in the subject line, the hero headline and every ad headline.`);
+  } else {
+    lines.push('PRODUCT FACTS: none on record for this slot beyond its name; state no price, size, material or feature.');
+  }
+  const o = entry.offer || {};
+  const hasOffer = !!(o.code || (o.pct && Number(o.pct) > 0) || (o.depth && o.depth !== 'none'));
+  lines.push(hasOffer
+    ? `- OFFER on record: ${[o.depth, o.pct ? `${o.pct}%` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`
+    : '- OFFER: none on record. The reason to buy is the product itself; invent no discount, code, deadline or stock line.');
+  return lines.join('\n');
+}
+
 function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
 function copyTask(entry, fw = null, brief = null) {
   const fwLine = fw
@@ -1631,6 +1672,7 @@ function copyTask(entry, fw = null, brief = null) {
   return `Write campaign copy for this planned slot. Context:
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} | Objective: ${entry.objective}
 - Hero product: ${entry.heroProduct?.title} (${entry.heroProduct?.category || (entry.offering && entry.offering.kind) || 'catalogue item'})
+${productFactsBrief(entry)}
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Rationale: ${entry.rationale || ''}
 ${creativeEvidence.briefFor(entry)}
@@ -1647,7 +1689,7 @@ ${MAILER_COMPONENTS}
 
 Every asset must ship with a CREATIVE as well as copy. For each asset write an "image_brief": a vivid 1-2 sentence art-direction prompt for a photoreal product/lifestyle scene of the hero product. Channel rules (ALL creatives are TEXT-FREE photographs — never describe overlaid words, headlines, prices, logos or UI in the image_brief; diffusion models cannot spell and render garbled fake letterforms, and the real ad copy is rendered natively by the platform, not painted into the pixels):
 - email / LP heroes: just scene, props, light, mood; aspirational hero.
-- AD creatives (meta / google / tiktok): a scroll-stopping TEXT-FREE photograph that sells the END STATE this cohort is buying - what is different for them once they have it - rather than a component, ingredient or spec shot; open on a 1-second scroll-stop. Art-direct it from the audience block above; if that block carries a [DATA REQUIRED BEFORE LAUNCH] marker, direct the frame at the OFFERING and the brand's own world and put no person of an assumed age, gender or life stage in it. Compose for the placement: meta = square, google = clean landscape, tiktok = vertical native hand-held. State only the scene, subject, light and mood - no words in the frame.
+- AD creatives (meta / google / tiktok): a scroll-stopping TEXT-FREE photograph that shows the HERO PRODUCT itself, clearly, from the first second, in the moment or use it is bought for (the END STATE this cohort is buying); open on a 1-second scroll-stop. Art-direct it from the audience block above; if that block carries a [DATA REQUIRED BEFORE LAUNCH] marker, direct the frame at the OFFERING and the brand's own world and put no person of an assumed age, gender or life stage in it. Compose for the placement: meta = square, google = clean landscape, tiktok = vertical native hand-held. State only the scene, subject, light and mood - no words in the frame.
 
 "rating", "reviews", "badges", "guarantee", "proof_quote" and "proof_author" are filled ONLY by copying an entry out of the APPROVED PROOF LIBRARY block above, verbatim. If that block says the library is empty, the answer is "rating": null, "reviews": [], "badges": [] and empty strings for the other three. Do not treat the empty values as placeholders to be filled in.`;
 }
@@ -3042,6 +3084,29 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       for (const ad of needsMotion) attachMotionCreative(ad, entry, pool);
     }
   } catch (_) { /* a motion build must never take a campaign down */ }
+  // EVERY STATIC AD SHOWS THE PRODUCT, ON EVERY PATH (2026-10-14). The sales
+  // audit found the template path gave no static ad a photo (the console said
+  // "No approved photograph for this slot" beside a catalogue that had one),
+  // and the model path fell back to an image-free brief whenever generation
+  // missed. A static ad with no picture of what it sells does not sell it. Each
+  // image-free static takes a DISTINCT real photo from this brand's own
+  // catalogue (hero first, then supporting products); with none, it stays
+  // image-free and the gap is already on campaign.data_gaps.
+  try {
+    const statics = (campaign.assets && campaign.assets.ads || [])
+      .filter((ad) => ad.creative_type !== 'video' && !(ad.creative && ad.creative.image));
+    if (statics.length) {
+      const pool = realImagePool(entry, 1200);
+      const used = new Set((campaign.assets.ads || []).map((a) => a.creative && a.creative.image).filter(Boolean));
+      const fresh = pool.filter((u) => !used.has(u));
+      const order = fresh.length ? fresh : pool;
+      statics.forEach((ad, i) => {
+        if (!order.length) return;
+        const image = order[i % order.length];
+        ad.creative = Object.assign({ brief: ad.creative_brief || '' }, ad.creative || {}, { image, provider: 'catalog' });
+      });
+    }
+  } catch (_) { /* a photo assignment must never take a campaign down */ }
   // Ads QA Critic — deterministic review of the paid-social creatives; runs in BOTH
   // the LLM and noLLM paths. Attaches a verdict + stamps each ad for the studio badge.
   // Advisory (never blocks generation); surfaces type/brand/offer/limit violations.

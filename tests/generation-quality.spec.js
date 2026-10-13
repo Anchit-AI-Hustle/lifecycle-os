@@ -317,3 +317,50 @@ test('every video ad\'s on-screen text is the ad\'s own copy, and its end-card b
     expect(core.contrast(v('on-lava'), v('lava')), `${ad.id} end-card button label`).toBeGreaterThanOrEqual(4.5);
   }
 });
+
+/* ═══ the product sells itself: its real photo on every static, its facts in the brief ═ */
+
+// The sales audit (2026-10-14): the template path gave no static ad a photo
+// while the catalogue had one, and the copywriter was told the product's name
+// and nothing else - no price, no type, no description, no word on the offer.
+test('every static ad carries the product\'s real catalogue photo, and the copy brief carries its catalogue facts', async () => {
+  const catalog = require(path.join(ROOT, 'data', 'catalog', 'products_us.json'));
+  const rows = Array.isArray(catalog) ? catalog : (catalog.products || []);
+  const real = rows.find((r) => r.h && r.i && Number(r.price) > 0);
+  test.skip(!real, 'the built catalogue has no priced product with a photo (npm run build first)');
+  const KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
+  const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+  for (const k of KEYS) delete process.env[k];
+  require(path.join(ROOT, 'api', '_shared', 'workspace-scope.js')).invalidate();
+  let built;
+  const slot = Object.assign({}, SLOT, { id: 'quality-photo', heroProduct: { sku: 'R', title: real.n, handle: real.h } });
+  try { built = await sbPlan.buildCampaign(slot, smartConfig({}), { noLLM: true, withCreatives: false }); }
+  finally { for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; } }
+  const statics = (built.assets.ads || []).filter((a) => a.creative_type !== 'video');
+  expect(statics.length).toBeGreaterThan(0);
+  for (const ad of statics) {
+    expect(ad.creative && ad.creative.image, `${ad.id} ships without a photo of the product`).toBeTruthy();
+    expect(ad.creative.provider).toBe('catalog');
+  }
+  const prompt = sbPlan.__test_copyPrompt(Object.assign({}, slot, { offer: { depth: 'none' } }));
+  expect(prompt).toContain('PRODUCT FACTS');
+  expect(prompt).toContain(`- Name: ${real.n}`);
+  expect(prompt).toMatch(/- Price: \S*\d/);
+  expect(prompt).toMatch(/OFFER: none on record/);
+});
+
+// A link is a fact. The shared mailer added a second "Explore the collection"
+// button pointing at `<store>/collections/bestsellers` whenever no collection
+// was given - a path no brand record names (2026-10-14).
+test('no mailer links to a collection path nobody gave it', () => {
+  const ct = require(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
+  const base = { subject: 's', hero_headline: 'H', body_blocks: [{ heading: '', body: 'b' }], cta_text: 'Shop it', cta_url: 'https://shop.example/products/p', market: 'US' };
+  for (const style of ['pure', 'visual', 'editorial']) {
+    const mail = ct.helpers.renderTextVariant(Object.assign({ style }, base));
+    expect(mail, `${style} mailer`).not.toContain('/collections/bestsellers');
+    expect(mail, `${style} mailer offers a second button with nowhere real to go`).not.toContain('Explore the collection');
+    if (style === 'pure') continue; // the typographic mailer carries no secondary button
+    const given = ct.helpers.renderTextVariant(Object.assign({ style, collection_url: 'https://shop.example/collections/frames' }, base));
+    expect(given, `${style} mailer dropped a collection it was given`).toContain('https://shop.example/collections/frames');
+  }
+});

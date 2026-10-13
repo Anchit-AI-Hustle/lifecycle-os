@@ -693,12 +693,16 @@ function _renderVariantBody(o) {
   }).join('')}
         </tr></table>
       </td></tr>` : '';
-  // Secondary outline CTA → collection page (derived, or provided).
-  const collectionHref = collection_url || `${store}/collections/bestsellers`;
-  const secondaryCta = `
+  // Secondary outline CTA -> a collection page, ONLY when one was provided
+  // (2026-10-14). It used to fall back to `${store}/collections/bestsellers`,
+  // a path no brand record names (an invented URL), and stacked a second
+  // button under the primary one; with no real collection the mail has one
+  // action, which is the one it exists for.
+  const collectionHref = collection_url || '';
+  const secondaryCta = collectionHref ? `
       <tr><td align="center" style="padding:6px 24px 6px;">
         <a href="${collectionHref}" target="_blank" style="display:inline-block;font-family:${BODY};font-size:13px;font-weight:700;color:${palette.green};border:1.5px solid ${palette.lava};border-radius:8px;padding:11px 24px;text-decoration:none;">Explore the collection</a>
-      </td></tr>`;
+      </td></tr>` : '';
   // CAN-SPAM footer — nothing clickable except the brand mark (in the header).
   // Brand HARD rule: NEVER a black / near-black section background — which this
   // honours, the footer sitting on the brand primary. The comment here used to
