@@ -14,9 +14,16 @@
 //   fast     (new)                        — classification, tagging, scoring
 //
 // PROVIDER ORDER per tier (first available/configured rung wins):
-//   premium  : anthropic(opus)   → openai(gpt-5.5)  → gemini(3.1-pro)   → grok(4.3)      → groq → cerebras → ollama → sakana
-//   standard : anthropic(sonnet) → openai(5-mini)   → gemini(3.5-flash) → grok(4.1-fast) → groq → cerebras → ollama → sakana
-//   fast     : anthropic(haiku)  → openai(5-nano)   → gemini(2.5-flash, free) → groq → cerebras → ollama → sakana
+//   premium  : anthropic(opus 5.5)   -> openai(gpt-5.5) -> gemini(3.8-flash) -> grok(4.3) -> groq -> cerebras -> cloudflare -> openrouter -> ollama -> sakana
+//   standard : anthropic(sonnet 5.5) -> openai(5-mini)  -> gemini(3.8-flash) -> grok(4.3) -> groq -> cerebras -> cloudflare -> openrouter -> ollama -> sakana
+//   fast     : anthropic(haiku 5.5)  -> openai(5-nano)  -> gemini(3.8-flash) -> groq -> cerebras -> cloudflare -> openrouter -> ollama -> sakana
+//
+// COOL-DOWNS (2026-10-13): a key that answered "no money" (billing) or "bad key"
+// (auth) is not sent again for COOL_KEY_MS; a model that hit a DAILY cap (Groq
+// TPD/RPD, a per-day quota) is not asked again until the time the provider gave,
+// else COOL_DAILY_MS. Per-minute rate limits are never cooled. State is per
+// process, keyed by provider + a one-way fingerprint of the key, so a workspace
+// key and the platform key never share one, and no key is ever held.
 //
 // DEMOTION RULES (see classifyFailure below for the full table):
 //   • A key that is rejected or out of quota is dead for the rest of the call:
@@ -63,21 +70,56 @@ const CEREBRAS_BASE  = 'https://api.cerebras.ai/v1';
 // tiers) so a funded OpenRouter key catches burst-overflow instead of dropping to
 // the template. Unfunded (free-tier) it simply 402/404s and the cascade continues.
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
-// GitHub Models — FREE OpenAI-compatible access to GPT-4o / o-series / Llama /
-// Mistral via a GitHub PAT (GITHUB_MODELS_TOKEN, or a plain GITHUB_TOKEN). Generous
-// per-model daily limits, an independent rate-limit bucket. Added as a free rung.
-const GITHUB_MODELS_BASE = 'https://models.inference.ai.azure.com';
+// GitHub Models was retired 2026-07-30 (docs.github.com/en/github-models) and
+// timed out on every call in production: it is no longer a rung.
 // Cloudflare Workers AI — FREE daily neuron allowance, OpenAI-compatible endpoint at
 // /accounts/{id}/ai/v1. Needs CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN; skipped
 // cleanly when either is absent. Same account also serves free Flux images.
-const CF_ACCOUNT_ID  = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
-const CLOUDFLARE_BASE = CF_ACCOUNT_ID
-  ? 'https://api.cloudflare.com/client/v4/accounts/' + CF_ACCOUNT_ID + '/ai/v1'
-  : '';
+// Read per call, so an account id set after this module loaded is honoured.
+function cloudflareBase() {
+  const id = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
+  return id ? 'https://api.cloudflare.com/client/v4/accounts/' + id + '/ai/v1' : '';
+}
 // Optional tail rungs — only active when their env config is present.
 // Ollama exposes an OpenAI-compatible API at ${OLLAMA_BASE_URL}/v1.
 const OLLAMA_BASE    = (process.env.OLLAMA_BASE_URL || '').replace(/\/+$/, '') + (process.env.OLLAMA_BASE_URL ? '/v1' : '');
 const SAKANA_BASE    = (process.env.SAKANA_BASE_URL || '').replace(/\/+$/, '') + (process.env.SAKANA_BASE_URL ? '/v1' : '');
+
+// ── Cool-downs ───────────────────────────────────────────────────────────────
+const crypto = require('crypto');
+const COOL_KEY_MS = 10 * 60 * 1000;
+const COOL_DAILY_MS = 30 * 60 * 1000;
+const COOL = new Map();
+const DAILY_RE = /per day|\bTPD\b|\bRPD\b|\bdaily\b|PerDay/i;
+function keyPrint(provider, key) {
+  return crypto.createHash('sha256').update(provider + '\u0000' + String(key || '')).digest('hex').slice(0, 16);
+}
+function coolKey(provider, key, model) { return provider + '|' + keyPrint(provider, key) + '|' + (model || '*'); }
+function coolingFor(provider, key, model) {
+  const now = Date.now();
+  for (const k of [coolKey(provider, key, null), model ? coolKey(provider, key, model) : null]) {
+    if (!k) continue;
+    const e = COOL.get(k);
+    if (e && e.until > now) return e;
+    if (e) COOL.delete(k);
+  }
+  return null;
+}
+function setCool(provider, key, model, kind, ms) {
+  const e = { provider, fingerprint: keyPrint(provider, key), model: model || null, kind, until: Date.now() + ms };
+  COOL.set(coolKey(provider, key, model), e);
+  return e;
+}
+// "Please try again in 6m28.8s" (Groq) when no Retry-After header came.
+function waitInBody(body) {
+  const m = String(body || '').match(/try again in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:([\d.]+)s)?/i);
+  if (!m || (!m[1] && !m[2] && !m[3])) return null;
+  return Math.round((Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0)));
+}
+function openrouterCap() {
+  const n = Number(process.env.OPENROUTER_MAX_TOKENS);
+  return n > 0 ? Math.floor(n) : 2048;
+}
 
 function genSeed() {
   return Date.now().toString(36) + '-' + Math.floor(Math.random() * 0xffff).toString(16);
@@ -120,20 +162,24 @@ function modelsFor(provider, tier) {
       if (tier === 'fast')    return _dedupe([env.OPENAI_TEXT_MODEL_FAST || 'gpt-5-nano']);
       return _dedupe([env.OPENAI_TEXT_MODEL || 'gpt-5-mini', 'gpt-5-nano']);
     case 'anthropic':
-      if (tier === 'premium') return _dedupe([env.ANTHROPIC_TEXT_MODEL_MAX || 'claude-opus-4-8', 'claude-sonnet-5']);
-      if (tier === 'fast')    return _dedupe([env.ANTHROPIC_TEXT_MODEL_FAST || 'claude-haiku-4-5']);
-      return _dedupe([env.ANTHROPIC_TEXT_MODEL || 'claude-sonnet-5', 'claude-haiku-4-5']);
+      if (tier === 'premium') return _dedupe([env.ANTHROPIC_TEXT_MODEL_MAX || 'claude-opus-5-5', 'claude-sonnet-5-5']);
+      if (tier === 'fast')    return _dedupe([env.ANTHROPIC_TEXT_MODEL_FAST || 'claude-haiku-5-5']);
+      return _dedupe([env.ANTHROPIC_TEXT_MODEL || 'claude-sonnet-5-5', 'claude-haiku-5-5']);
     case 'gemini':
-      if (tier === 'premium') return _dedupe([env.GEMINI_TEXT_MODEL_MAX || 'gemini-2.5-flash', 'gemini-3.5-flash']);
-      if (tier === 'fast')    return _dedupe([env.GEMINI_TEXT_MODEL_FAST || 'gemini-2.5-flash']);
-      return _dedupe([env.GEMINI_TEXT_MODEL || 'gemini-3.5-flash', 'gemini-2.5-flash']);
+      // gemini-3.5-flash is deprecated (ai.google.dev, 2026); 3.8-flash is the stable one.
+      if (tier === 'premium') return _dedupe([env.GEMINI_TEXT_MODEL_MAX || 'gemini-3.8-flash', 'gemini-2.5-flash']);
+      if (tier === 'fast')    return _dedupe([env.GEMINI_TEXT_MODEL_FAST || 'gemini-3.8-flash', 'gemini-2.5-flash']);
+      return _dedupe([env.GEMINI_TEXT_MODEL || 'gemini-3.8-flash', 'gemini-2.5-flash']);
     case 'grok':
-      if (tier === 'premium') return _dedupe([env.GROK_TEXT_MODEL_MAX || 'grok-4.3', 'grok-4.1-fast']);
-      return _dedupe([env.GROK_TEXT_MODEL || 'grok-4.1-fast']);
+      // 'grok-4.1-fast' is not an xAI slug; grok-4.3 is (docs.x.ai).
+      if (tier === 'premium') return _dedupe([env.GROK_TEXT_MODEL_MAX || 'grok-4.3']);
+      return _dedupe([env.GROK_TEXT_MODEL || 'grok-4.3']);
     case 'groq':
-      return _dedupe([env.GROQ_TEXT_MODEL || 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile']);
+      // llama-3.3-70b-versatile was shut down 2026-08-16 (console.groq.com/docs/deprecations).
+      return _dedupe([env.GROQ_TEXT_MODEL || 'openai/gpt-oss-120b', 'openai/gpt-oss-20b']);
     case 'cerebras':
-      return _dedupe([env.CEREBRAS_TEXT_MODEL || 'gpt-oss-120b', 'llama-3.3-70b']);
+      // llama-3.3-70b is deprecated on Cerebras (inference-docs.cerebras.ai/support/deprecation).
+      return _dedupe([env.CEREBRAS_TEXT_MODEL || 'gpt-oss-120b']);
     case 'openrouter':
       // Defaults are slugs verified to answer on the currently-provisioned key
       // (GPT-4o / GPT-4o-mini / Gemini-2.5-flash / Llama-3.3-70b). All env-overridable
@@ -142,16 +188,13 @@ function modelsFor(provider, tier) {
       if (tier === 'premium') return _dedupe([env.OPENROUTER_TEXT_MODEL_MAX || 'openai/gpt-4o', 'google/gemini-2.5-flash', 'meta-llama/llama-3.3-70b-instruct']);
       if (tier === 'fast')    return _dedupe([env.OPENROUTER_TEXT_MODEL_FAST || 'openai/gpt-4o-mini', 'google/gemini-2.5-flash']);
       return _dedupe([env.OPENROUTER_TEXT_MODEL || 'openai/gpt-4o-mini', 'google/gemini-2.5-flash', 'meta-llama/llama-3.3-70b-instruct']);
-    case 'github':
-      // GitHub Models slugs. Env-overridable. Free GPT-4o family + open models.
-      if (tier === 'premium') return _dedupe([env.GITHUB_TEXT_MODEL_MAX || 'gpt-4o', 'gpt-4o-mini']);
-      if (tier === 'fast')    return _dedupe([env.GITHUB_TEXT_MODEL_FAST || 'gpt-4o-mini']);
-      return _dedupe([env.GITHUB_TEXT_MODEL || 'gpt-4o-mini']);
     case 'cloudflare':
       // Cloudflare Workers AI model ids (the @cf/... slugs). Env-overridable.
-      if (tier === 'premium') return _dedupe([env.CLOUDFLARE_TEXT_MODEL_MAX || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct']);
-      if (tier === 'fast')    return _dedupe([env.CLOUDFLARE_TEXT_MODEL_FAST || '@cf/meta/llama-3.1-8b-instruct']);
-      return _dedupe([env.CLOUDFLARE_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct']);
+      // @cf/meta/llama-3.1-8b-instruct was deprecated 2026-05-30 (it answered 410);
+      // the -fast variants stay active (developers.cloudflare.com changelog).
+      if (tier === 'premium') return _dedupe([env.CLOUDFLARE_TEXT_MODEL_MAX || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fast']);
+      if (tier === 'fast')    return _dedupe([env.CLOUDFLARE_TEXT_MODEL_FAST || '@cf/meta/llama-3.1-8b-instruct-fast']);
+      return _dedupe([env.CLOUDFLARE_TEXT_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/meta/llama-3.1-8b-instruct-fast']);
     case 'ollama':
       if (tier === 'premium') return _dedupe([env.OLLAMA_TEXT_MODEL_MAX || env.OLLAMA_TEXT_MODEL || 'llama3.3']);
       if (tier === 'fast')    return _dedupe([env.OLLAMA_TEXT_MODEL_FAST || env.OLLAMA_TEXT_MODEL || 'llama3.2']);
@@ -166,8 +209,8 @@ function modelsFor(provider, tier) {
 // Provider ORDER per tier (blueprint). Fast skips Grok (no cheap rung there).
 function providerOrder(tier) {
   return tier === 'fast'
-    ? ['anthropic', 'openai', 'gemini', 'groq', 'cerebras', 'github', 'cloudflare', 'openrouter', 'ollama', 'sakana']
-    : ['anthropic', 'openai', 'gemini', 'grok', 'groq', 'cerebras', 'github', 'cloudflare', 'openrouter', 'ollama', 'sakana'];
+    ? ['anthropic', 'openai', 'gemini', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana']
+    : ['anthropic', 'openai', 'gemini', 'grok', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana'];
 }
 
 // ── Failure classification (drives demotion) ─────────────────────────────────
@@ -319,8 +362,6 @@ module.exports = async function callLLM(opts) {
   // OpenRouter — accept the canonical name OR the existing mixed-case env var name
   // (`OpenRouter_API_KEY`) already provisioned in this project.
   const openrouterKey = _clean(ovKeys.openrouter) || _clean(process.env.OPENROUTER_API_KEY) || _clean(process.env.OpenRouter_API_KEY);
-  // GitHub Models — dedicated token or a plain GitHub PAT.
-  const githubKey    = _clean(ovKeys.github) || _clean(process.env.GITHUB_MODELS_TOKEN) || _clean(process.env.GITHUB_TOKEN);
 
   // Base URLs. Cloudflare and Ollama are reached at an address that belongs to
   // the account rather than to the vendor, so for those the base is part of the
@@ -328,8 +369,8 @@ module.exports = async function callLLM(opts) {
   const bases = {
     openai: OPENAI_BASE, anthropic: ANTHROPIC_BASE, gemini: GEMINI_BASE,
     grok: GROK_BASE, groq: GROQ_BASE, cerebras: CEREBRAS_BASE,
-    openrouter: OPENROUTER_BASE, github: GITHUB_MODELS_BASE,
-    cloudflare: CLOUDFLARE_BASE, ollama: OLLAMA_BASE, sakana: SAKANA_BASE,
+    openrouter: OPENROUTER_BASE,
+    cloudflare: cloudflareBase(), ollama: OLLAMA_BASE, sakana: SAKANA_BASE,
   };
   if (ov && ov.bases) for (const k of Object.keys(ov.bases)) if (ov.bases[k]) bases[k] = ov.bases[k];
 
@@ -349,14 +390,13 @@ module.exports = async function callLLM(opts) {
     groq:      !!groqKey,
     cerebras:  !!cerebrasKey,
     openrouter: !!openrouterKey,
-    github:    !!githubKey,
     cloudflare: cloudflareOn,  // gated on CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
     ollama:    ollamaOn,       // gated on OLLAMA_BASE_URL (auth optional)
     sakana:    sakanaOn        // gated on SAKANA_BASE_URL + SAKANA_API_KEY
   };
 
   if (!Object.keys(hasKey).some((p) => p !== 'sakana' && hasKey[p])) {
-    const e = new Error('No AI provider configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, GITHUB_MODELS_TOKEN, CLOUDFLARE_API_TOKEN(+CLOUDFLARE_ACCOUNT_ID)');
+    const e = new Error('No AI provider configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, CLOUDFLARE_API_TOKEN(+CLOUDFLARE_ACCOUNT_ID)');
     e._providerErrors = [];
     e._skipped = Object.keys(hasKey).map((p) => ({ provider: p, reason: 'no key configured' }));
     e._noProvider = true;
@@ -495,8 +535,10 @@ module.exports = async function callLLM(opts) {
     groq: _openaiCompatible('groq', bases.groq, groqKey, _std),
     // Cerebras: free tier caps output at 8K; no response_format support yet.
     cerebras: _openaiCompatible('cerebras', bases.cerebras, cerebrasKey, () => ({ max_tokens: Math.min(maxTokens, 8192) })),
-    openrouter: _openaiCompatible('openrouter', bases.openrouter, openrouterKey, _std),
-    github: _openaiCompatible('github', bases.github, githubKey, _std),
+    // OpenRouter reserves credit for max_tokens up front and answers 402 when the
+    // balance cannot cover it, so it is asked for less (OPENROUTER_MAX_TOKENS,
+    // default 2048): a low balance then answers instead of failing.
+    openrouter: _openaiCompatible('openrouter', bases.openrouter, openrouterKey, () => Object.assign(_std(), { max_tokens: Math.min(maxTokens, openrouterCap()) })),
     cloudflare: _openaiCompatible('cloudflare', bases.cloudflare, cloudflareKey, _std),
     ollama: _openaiCompatible('ollama', bases.ollama, ollamaKey, _std),
     sakana: _openaiCompatible('sakana', bases.sakana, sakanaKey, _std),
@@ -506,6 +548,12 @@ module.exports = async function callLLM(opts) {
   let openaiKeysExhausted = 0;
   const _providerErrors = []; // one row per failed ATTEMPT, in the order made
   const _skipped = [];        // providers never tried, and why
+  const keyFor = {
+    anthropic: anthropicKey, gemini: geminiKey, grok: grokKey, groq: groqKey, cerebras: cerebrasKey,
+    openrouter: openrouterKey, cloudflare: cloudflareKey + '@' + bases.cloudflare, ollama: ollamaKey + '@' + bases.ollama,
+    sakana: sakanaKey + '@' + bases.sakana,
+  };
+  const coolWords = (e) => 'cooling down after ' + (KIND_WORDS[e.kind] || e.kind) + (e.model ? ' on ' + e.model : '') + ' until ' + new Date(e.until).toISOString();
   let budgetOut = false;
 
   function record(provider, model, result, keyIndex) {
@@ -517,6 +565,16 @@ module.exports = async function callLLM(opts) {
     if (keyIndex) row.key_index = keyIndex;
     if (result.retry_after_s != null) row.retry_after_s = result.retry_after_s;
     _providerErrors.push(row);
+    // A key with no money or a rejected key, and a model out of its DAILY cap,
+    // are not asked again on the next request (each cost one wasted call per
+    // request in production). A per-minute rate limit is left alone.
+    const key = provider === 'openai' ? openaiKeys[(keyIndex || 1) - 1] : keyFor[provider];
+    const waitS = result.retry_after_s != null ? result.retry_after_s : waitInBody(result.err);
+    if (kind === 'auth' || kind === 'billing') {
+      row.cooled_until = new Date(setCool(provider, key, null, kind, Math.max(COOL_KEY_MS, (waitS || 0) * 1000)).until).toISOString();
+    } else if (kind === 'rate_limit' && DAILY_RE.test(String(result.err || ''))) {
+      row.cooled_until = new Date(setCool(provider, key, model, kind, waitS ? waitS * 1000 : COOL_DAILY_MS).until).toISOString();
+    }
     return kind;
   }
 
@@ -541,6 +599,7 @@ module.exports = async function callLLM(opts) {
   // Returns the success result, or null when the chain is exhausted.
   async function runChain(providerName, callFn, models) {
     for (const model of models) {
+      if (coolingFor(providerName, keyFor[providerName], model)) continue;
       if (!budgetLeft()) return null;
       const result = await callFn(model);
       if (result.ok) return result;
@@ -569,6 +628,7 @@ module.exports = async function callLLM(opts) {
       let nextModel = false;
       for (let ki = 0; ki < openaiKeys.length; ki++) {
         if (dead.has(ki)) continue;
+        if (coolingFor('openai', openaiKeys[ki], model)) { if (coolingFor('openai', openaiKeys[ki], null)) dead.add(ki); continue; }
         if (!budgetLeft()) return null;
         const result = await _openai(model, openaiKeys[ki]);
         if (result.ok) return result;
@@ -586,7 +646,7 @@ module.exports = async function callLLM(opts) {
         return null;
       }
       if (dead.size >= openaiKeys.length) return null; // every key is dead
-      if (!nextModel) return null;                       // every live key rate limited on this model
+      if (!nextModel && openaiKeys.some((k, i) => !dead.has(i) && !coolingFor('openai', k, model))) return null; // every live key rate limited on this model
     }
     return null;
   }
@@ -640,13 +700,20 @@ module.exports = async function callLLM(opts) {
       for (const p of order.slice(i)) if (hasKey[p]) _skipped.push({ provider: p, reason: 'call budget exhausted (' + budgetMs + 'ms)' });
       break;
     }
-    console.warn('[llm][' + stage + '] Trying ' + providerName + ' (tier=' + tierNorm + ')');
     // A workspace's model chain replaces the tier chain for that provider. It
     // may name a model this platform does not ship, which is deliberate: the
     // account paying for the call knows what it can reach, and a model-not-found
     // demotes within the provider.
     const chosen = ovModels[providerName];
     const models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(providerName, tierNorm)).map((m) => String(m || '').trim()));
+    const keys = providerName === 'openai' ? openaiKeys : [keyFor[providerName]];
+    const cooling = keys.map((k) => models.map((m) => coolingFor(providerName, k, m)));
+    if (cooling.every((row) => row.every(Boolean))) {
+      const e = cooling[0][0];
+      _skipped.push({ provider: providerName, reason: coolWords(e), until: new Date(e.until).toISOString(), kind: e.kind });
+      continue;
+    }
+    console.warn('[llm][' + stage + '] Trying ' + providerName + ' (tier=' + tierNorm + ')');
     const result = providerName === 'openai'
       ? await runOpenai(models)
       : await runChain(providerName, CALL[providerName], models);
@@ -681,6 +748,14 @@ module.exports = async function callLLM(opts) {
  * parseJSON(text) — multi-strategy JSON extractor.
  * Handles: clean JSON, markdown fences, prose prefix/suffix, nested fences.
  */
+/** Forget every cool-down (tests; and an operator who has just topped up a key). */
+module.exports.resetProviderCooldowns = function resetProviderCooldowns() { COOL.clear(); };
+/** The active cool-downs: provider, key fingerprint, model, kind, until. Never a key. */
+module.exports.providerCooldowns = function providerCooldowns() {
+  const now = Date.now();
+  return [...COOL.values()].filter((e) => e.until > now).map((e) => Object.assign({}, e, { until: new Date(e.until).toISOString() }));
+};
+
 module.exports.parseJSON = function parseJSON(text) {
   if (!text || typeof text !== 'string') throw new SyntaxError('Empty or non-string LLM response');
   try { return JSON.parse(text); } catch (_) {}
