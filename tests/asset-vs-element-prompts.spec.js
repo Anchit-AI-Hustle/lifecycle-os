@@ -347,7 +347,8 @@ async function openWithCampaign(page, campaign) {
  * bare `.pkbar` anywhere in the row passes on markup the operator cannot see,
  * which is the same class of mistake as the bug under test. */
 async function openAssetTab(page, label) {
-  const view = page.locator('button:has-text("View")').first();
+  // A plan row's View, not "View catalogue" above the plan (2026-10-13).
+  const view = page.locator('#plantable button:has-text("View")').first();
   await expect(view).toBeVisible({ timeout: 20_000 });
   await view.click();
   const section = page.locator('.pvsec', { has: page.locator('.pvsech', { hasText: label }) }).first();
