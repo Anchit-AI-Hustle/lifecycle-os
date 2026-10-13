@@ -136,8 +136,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   @media(max-width:600px){.expbody{padding:8px 0}.expbody .pvroot{padding:12px 10px}}
   .expbody .pvroot{min-width:0;overflow-wrap:break-word}
   #plantable td.chan,#plantable th.chan{white-space:normal;max-width:150px}
+  /* READABLE, NOT CLIPPED (2026-10-13): the cohort's eligibility chip was a
+     nowrap pill wider than its 150px column and painted over the objective;
+     the objective and the reason were cut at two lines ("Drive the reader
+     t..."); the three action buttons ran past the card's edge. Every cell
+     wraps inside its own column, columns have room, actions stack. */
+  #plantable td.cohort{min-width:150px;max-width:190px}
+  #plantable td.cohort .pill,#plantable td.chan .pill{white-space:normal;display:inline-block;max-width:100%;overflow-wrap:anywhere;line-height:1.35}
+  #plantable td.obj,#plantable th.obj{min-width:190px;max-width:260px}
+  #plantable td.why,#plantable th.why{min-width:200px;max-width:320px}
+  #plantable td.obj .clamp2,#plantable td.why .clamp2{display:block;-webkit-line-clamp:unset;overflow:visible}
+  #plantable td.acts{white-space:normal;min-width:140px}
+  #plantable td.acts .acts-col{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+  #plantable td .rev{flex-direction:column;align-items:stretch}
   /* Clamp long copy to 2 lines — the full text lives in View / the decision panel. */
   .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* The catalogue pop-up: tokens only, scrolls inside itself. */
+  #catDialog{border:1px solid var(--vh-line);border-radius:12px;padding:18px 20px;width:min(1100px,94vw);max-height:88vh;max-height:88dvh;overflow:auto;background:var(--vh-panel);color:var(--vh-ink);box-shadow:var(--vh-lift-2,none)}
+  #catDialog::backdrop{background:rgba(0,0,0,.45)}
+  .catdlg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:-18px;background:var(--vh-panel);padding:6px 0;z-index:1}
   .pill{display:inline-block;border:1px solid var(--vh-line-hot);border-radius:999px;padding:2px 8px;margin:1px;font-size:11px;color:var(--vh-ink);white-space:nowrap}
   /* Why / Analysis panel — clear focus hierarchy */
   .an-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--vh-accent-text);margin:0 0 6px}
@@ -290,11 +307,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="card"><div class="label">Last sync</div><div id="lastsync" class="metric" style="font-size:16px"> - </div></div>
     <div class="card" title="Total sends scheduled in the next 30 days across all regions. Target: 3-4 cohorts/day/market to support >=70-80k USD/month (~1000-1500 USD/day)."><div class="label">Sends / 30d</div><div id="sends30" class="metric"> - </div></div>
 
+    <!-- The catalogue opens in a pop-up, and is read only when it is opened
+         (2026-10-13: "show the catalog with a view catalog cta option in popup
+         only on click of cta"); the card is one line and the button. -->
     <div class="card wide" id="catpanel">
-      <h2 id="catTitle">Brand catalogue</h2>
-      <p class="tdim" style="margin:.2em 0 .6em;font-size:13px">The products every plan, mailer, ad and landing page here is built from, exactly as generation reads them for the active brand. Products read from another brand's site are counted on their own and never used.</p>
-      <div id="catBody" role="status" aria-live="polite"><p class="tdim">Reading the active brand's catalogue…</p></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:0;flex:1 1 280px">
+          <h2 id="catCardTitle" style="margin:0 0 .2em">Brand catalogue</h2>
+          <p class="tdim" style="margin:0;font-size:13px">The products every plan, mailer, ad and landing page here is built from.</p>
+        </div>
+        <button type="button" class="btn" id="catOpen" aria-haspopup="dialog" aria-controls="catDialog">View catalogue</button>
+      </div>
     </div>
+    <dialog id="catDialog" aria-labelledby="catTitle">
+      <div class="catdlg-head">
+        <h2 id="catTitle" style="margin:0">Brand catalogue</h2>
+        <button type="button" class="btn sm secondary" id="catClose">Close</button>
+      </div>
+      <p class="tdim" style="margin:.2em 0 .8em;font-size:13px">Exactly as generation reads them for the active brand. Products read from another brand's site are counted on their own and never used.</p>
+      <div id="catBody" role="status" aria-live="polite"><p class="tdim">Reading the active brand's catalogue…</p></div>
+    </dialog>
 
     <div class="card wide" id="dualmode">
       <h2>Agentic Generation</h2>
@@ -986,11 +1018,11 @@ function renderPlan(){
     <td class="chan">${(e.channels||[]).map(c=>`<span class="pill">${esc(c)}</span>`).join('')}</td>
     <td class="conf" title="${esc(confTip)}">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}${confLabel?`<br><span class="tdim" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em">${esc(confLabel)}</span>`:''}</td>
     <td>${status}</td>
-    <td style="white-space:nowrap">
+    <td class="acts"><div class="acts-col">
       <button type="button" class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
       <button type="button" class="btn sm ok" id="dlbtn-${i}" onclick="downloadEntry(${i})" title="Generate (if needed) and download every asset for this send as one HTML file">⬇ Download</button>
       <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
-    </td>
+    </div></td>
   </tr>
   <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}"></div></td></tr>`;}).join('');
 }
@@ -2253,8 +2285,27 @@ function onPlanBrandChange(){
    brand catalog too here". The panel is brand-catalogue-panel.js (2026-10-11),
    the SAME module the full page at /catalog mounts, so the two can never read
    the catalogue two ways. It reloads itself on a brand change. */
-const CAT_PANEL = window.BrandCataloguePanel ? window.BrandCataloguePanel.mount($('catBody'), { titleEl: $('catTitle') }) : null;
-if (!CAT_PANEL && $('catBody')) $('catBody').innerHTML = '<p class="vh-status">The catalogue reader did not load on this page.</p>';
+/* The catalogue is read the first time its pop-up opens, not on page load. */
+let CAT_PANEL = null;
+function openCatalogue(){
+  const dlg = $('catDialog');
+  if (!dlg) return;
+  if (!CAT_PANEL) {
+    CAT_PANEL = window.BrandCataloguePanel ? window.BrandCataloguePanel.mount($('catBody'), { titleEl: $('catTitle') }) : null;
+    if (!CAT_PANEL && $('catBody')) $('catBody').innerHTML = '<p class="vh-status">The catalogue reader did not load on this page.</p>';
+  }
+  if (typeof dlg.showModal === 'function') { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
+}
+function closeCatalogue(){ const dlg = $('catDialog'); if (!dlg) return; if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); }
+if ($('catOpen')) $('catOpen').addEventListener('click', openCatalogue);
+if ($('catClose')) $('catClose').addEventListener('click', closeCatalogue);
+if ($('catDialog')) $('catDialog').addEventListener('click', (ev) => { if (ev.target === $('catDialog')) closeCatalogue(); });
+// The card's title names the active brand without reading its catalogue.
+(function nameCard(){
+  const set = () => { const b = window.BrandContext && window.BrandContext.brand; if (b && b.name && $('catCardTitle')) $('catCardTitle').textContent = b.name + ' catalogue'; };
+  set(); window.addEventListener('brandcontext:change', set);
+  if (window.BrandContext && window.BrandContext.ready) window.BrandContext.ready().then(set, () => {});
+})();
 window.addEventListener('brandcontext:change', onPlanBrandChange);
 (async function bootPlan(){
   await deviceSessionReady();
