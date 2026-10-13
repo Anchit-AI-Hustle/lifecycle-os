@@ -348,3 +348,19 @@ test('every static ad carries the product\'s real catalogue photo, and the copy 
   expect(prompt).toMatch(/- Price: \S*\d/);
   expect(prompt).toMatch(/OFFER: none on record/);
 });
+
+// A link is a fact. The shared mailer added a second "Explore the collection"
+// button pointing at `<store>/collections/bestsellers` whenever no collection
+// was given - a path no brand record names (2026-10-14).
+test('no mailer links to a collection path nobody gave it', () => {
+  const ct = require(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
+  const base = { subject: 's', hero_headline: 'H', body_blocks: [{ heading: '', body: 'b' }], cta_text: 'Shop it', cta_url: 'https://shop.example/products/p', market: 'US' };
+  for (const style of ['pure', 'visual', 'editorial']) {
+    const mail = ct.helpers.renderTextVariant(Object.assign({ style }, base));
+    expect(mail, `${style} mailer`).not.toContain('/collections/bestsellers');
+    expect(mail, `${style} mailer offers a second button with nowhere real to go`).not.toContain('Explore the collection');
+    if (style === 'pure') continue; // the typographic mailer carries no secondary button
+    const given = ct.helpers.renderTextVariant(Object.assign({ style, collection_url: 'https://shop.example/collections/frames' }, base));
+    expect(given, `${style} mailer dropped a collection it was given`).toContain('https://shop.example/collections/frames');
+  }
+});
