@@ -121,6 +121,11 @@ function openrouterCap() {
   return n > 0 ? Math.floor(n) : 2048;
 }
 
+// Tell the request scope (when there is one) whether this call got an answer.
+function noteOutcome(kind) {
+  try { require('./request-scope.js').noteLlm(kind); } catch (_) { /* no scope */ }
+}
+
 function genSeed() {
   return Date.now().toString(36) + '-' + Math.floor(Math.random() * 0xffff).toString(16);
 }
@@ -400,6 +405,7 @@ module.exports = async function callLLM(opts) {
     e._providerErrors = [];
     e._skipped = Object.keys(hasKey).map((p) => ({ provider: p, reason: 'no key configured' }));
     e._noProvider = true;
+    noteOutcome('failed');
     throw e;
   }
 
@@ -579,6 +585,7 @@ module.exports = async function callLLM(opts) {
   }
 
   function _success(result) {
+    noteOutcome('ok');
     return { text: result.text, provider: result.provider, model: result.model, seed,
              quota_warning: openaiKeysExhausted > 0, exhausted_keys: openaiKeysExhausted,
              // Which routing decided this call, and whether the key that paid
@@ -741,6 +748,7 @@ module.exports = async function callLLM(opts) {
   err._providerErrors = _providerErrors;
   err._skipped = _skipped;
   if (budgetOut) err._budgetExhausted = true;
+  noteOutcome('failed');
   throw err;
 };
 
