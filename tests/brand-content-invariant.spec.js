@@ -200,6 +200,7 @@ const GENERATORS = [
  * Adding to this list is a decision with a reason, never a way to pass.
  */
 const EXEMPT = {
+  'music-compose': 'composes audio from the brief the operator edits on the page (written from the active brand record there); no brand content is composed server-side',
   tts: 'speaks the text it is handed through the voice provider; it composes no brand content of its own',
   'video-generate': 'sends the caller\'s own prompt to a video provider verbatim; it composes no brand content of its own',
   'daily-calendar': 'not a generator, and answers 500 on main (daily-calendar-core calls smart-brain-plan.horizonCoverage, which this repo never had); recorded in the PR, not changed here',

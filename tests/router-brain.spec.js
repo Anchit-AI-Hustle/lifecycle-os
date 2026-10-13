@@ -63,7 +63,7 @@ const BWC = 'api/_shared/brand-workspace-core.js';
 const M = {
   kb: 'api/_shared/brain-kb.js', analysis: 'api/_shared/brain-analysis.js', competitor: 'api/_shared/brain-competitor.js',
   calendar: 'api/_shared/brain-calendar.js', generate: 'api/_shared/brain-generate.js', review: 'api/_shared/brain-review.js',
-  agents: 'api/_shared/brain-agent.js', jarvis: 'api/_shared/jarvis.js', agentic: 'api/_shared/agentic-orchestrator.js',
+  agents: 'api/_shared/brain-agent.js', embed: 'api/_shared/agent-embed.js', jarvis: 'api/_shared/jarvis.js', agentic: 'api/_shared/agentic-orchestrator.js',
   scenarios: 'api/_shared/calendar-scenarios.js', services: 'lib/smart-brain/services.js', brandLlm: 'api/_shared/brand-llm.js',
   klaviyo: 'api/_shared/klaviyo-core.js', adInsights: 'api/_shared/ad-insights-core.js', adsSnowflake: 'api/_shared/ads-snowflake-core.js',
   adsLive: 'api/_shared/ads-live-core.js', adsSop: 'api/_shared/ads-sop-core.js', adMetrics: 'api/_shared/ad-metrics-catalog.js',
@@ -330,6 +330,19 @@ add('agent-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', r
   stubs: () => S.on(M.agents, 'chat', async () => ({ ok: true, reply: 'r' })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, reply: 'r' }); expect(last(M.agents, 'chat')[0]).toEqual({ agentId: 'agent_x', sessionId: 's1', message: 'hi', context: {}, history: [] }); },
   cases: [{ name: 'no message is a 400 before the agent runs', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.agents, 'chat')).toEqual([]); } }],
+});
+// The brand's agent on its own website: no caller (a visitor), its own gates
+// (the brand's website, its agent, the daily limit, the brand's wallet), all
+// executed in agent-embed-executed.spec.js. Here: the router hands it the body
+// with the named workspace and the two dependencies it needs.
+add('agent-public', { gate: 'website', browser: 'public', run: { json: { workspace_id: H.WS, agent_id: 'agent_brand', message: 'hi' }, auth: 'none', origin: true },
+  stubs: () => S.on(M.embed, 'publicChat', async (req, res, b, deps) => res.json({ ok: true, ws: b.workspace_id, agents: typeof deps.agents.chat, credits: typeof deps.credits.meter })),
+  expect: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, ws: H.WS, agents: 'function', credits: 'function' }); },
+});
+add('agent-embed', { gate: 'website', browser: 'demo', run: { method: 'GET', query: { op: 'settings', workspace_id: H.WS } },
+  stubs: () => S.on(M.embed, 'settings', async (req, res) => res.json({ ok: true, settings: true })),
+  expect: (r) => { expect(r.out).toEqual({ ok: true, settings: true }); },
+  cases: [{ name: 'an unknown op is refused before the settings run', run: { method: 'GET', query: { op: 'bogus', workspace_id: H.WS } }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.embed, 'settings')).toEqual([]); } }],
 });
 add('agent-analyze', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'how many orders' } },
   stubs: () => S.on(M.agents, 'analyze', async () => ({ ok: true, figures: [] })),
@@ -675,6 +688,29 @@ add('social-approve', { gate: 'none', browser: 'refuse', run: { json: { id: 'p1'
 add('social-skip', { gate: 'none', browser: 'refuse', run: { json: { id: 'p2' } },
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: false, error: 'not found' })),
   expect: (r) => { expect(r.status).toBe(400); expect(last(M.social, 'setStatus')).toEqual(['p2', 'skipped']); },
+});
+add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15, instrumental: true } },
+  env: { ELEVENLABS_API_KEY: 'eleven-harness' },
+  // The documented compose endpoint is the core: the recorded call is the dispatch.
+  stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3fakemusic'), { 'content-type': 'audio/mpeg', 'song-id': 'song_1' })),
+  expect: (r) => {
+    expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/mpeg'); expect(r.bytes.toString()).toBe('ID3fakemusic');
+    const c = guard.calls.find((x) => /elevenlabs/.test(x.url));
+    expect(c.url).toBe('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128'); expect(c.headers['xi-api-key']).toBe('eleven-harness');
+    expect(JSON.parse(c.body)).toEqual({ prompt: 'Original upbeat ad bed for the brand', music_length_ms: 15000, model_id: 'music_v1', force_instrumental: true });
+  },
+  cases: [
+    { name: 'with no key it says what to set and offers Suno, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined },
+      expect: (r) => { expect(r.status).toBe(501); expect(r.out.message).toMatch(/ELEVENLABS_API_KEY/); expect(r.out.message).toMatch(/Suno/); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } },
+    { name: 'an empty brief is refused before the provider', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: { json: { prompt: '   ' } },
+      expect: (r) => { expect(r.status).toBe(400); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } },
+    { name: 'the length is clamped to the documented 3 s floor and our 2 minute ceiling', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: { json: { prompt: 'x', seconds: 9999, instrumental: false } },
+      stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3'), { 'content-type': 'audio/mpeg' })),
+      expect: (r) => { const b = JSON.parse(guard.calls.find((x) => /elevenlabs/.test(x.url)).body); expect(b.music_length_ms).toBe(120000); expect(b.force_instrumental).toBe(false); } },
+    { name: 'a provider refusal is a sentence, not audio', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: {},
+      stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(422, JSON.stringify({ detail: 'bad prompt' }), { 'content-type': 'application/json' })),
+      expect: (r) => { expect(r.status).toBe(502); expect(r.out.message).toMatch(/422/); } },
+  ],
 });
 add('tts', { gate: 'model', model: 'audio.tts', browser: 'refuse', run: { json: { text: 'hello there', voice_id: 'voice_h' } },
   env: { ELEVENLABS_API_KEY: 'eleven-harness' },
@@ -1191,7 +1227,7 @@ test.describe('the router', () => {
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
       'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
-      'console-chat', 'generate', 'mailer-assets', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+      'console-chat', 'generate', 'mailer-assets', 'music-compose', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });

@@ -332,12 +332,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const LOGS_KEY = () => scopedKey('vhd_logs_v2');
   const LP_KEY = (ch) => scopedKey('lp-lib-' + ch);
   let HIDDEN = 0;
+  /* Earlier versions of THIS brand are viewable on request (2026-10-14). The
+     operator saw "51 asset(s) ... not listed" beside tabs that all read 0, with
+     no way to reach any of them. A row of this workspace (or one saved before
+     rows named a workspace) made for an earlier version of the record is kept
+     in EARLIER and listed, labelled, when "Show" is pressed. A row of another
+     workspace is another brand's and is never listed under this one. */
+  let EARLIER = [];
+  let OTHER_BRAND = 0;
+  let SHOW_EARLIER = false;
   function currentOnly(rows) {
     const b = activeBrand();
     const ident = b && b.identity, ws = b && b.id;
     return (rows || []).filter((r) => {
       const mine = !!ident && r.stamp === ident && (!r.ws || r.ws === ws);
-      if (!mine) HIDDEN++;
+      if (!mine) {
+        HIDDEN++;
+        if (r.ws && ws && r.ws !== ws) OTHER_BRAND++;
+        else EARLIER.push(Object.assign(r, { earlier: true }));
+      }
       return mine;
     });
   }
@@ -419,13 +432,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
     // Local lists are this brand version's own (their key says so); shared
     // rows are judged one by one.
-    HIDDEN = 0;
+    HIDDEN = 0; EARLIER = []; OTHER_BRAND = 0;
     const localStamp = (rows) => rows.map((r) => Object.assign(r, { stamp: (activeBrand() || {}).identity || '', ws: '' }));
     ITEMS = [].concat(
       mergeDedup(currentOnly(mRemote), localStamp(localMailers())),
       mergeDedup(currentOnly(aRemote), localStamp(localAds())),
       mergeDedup(currentOnly(lRemote), localStamp(localLanding()))
-    ).map((it, i) => { it._id = it.kind + '_' + i; byId[it._id] = it; return it; });
+    ).concat(SHOW_EARLIER ? EARLIER : []).map((it, i) => { it._id = it.kind + '_' + i; byId[it._id] = it; return it; });
 
     ITEMS = applyScope(ITEMS);
     ITEMS.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -460,8 +473,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     if (note) {
       note.hidden = !HIDDEN;
-      note.textContent = HIDDEN ? HIDDEN + ' asset(s) in the shared library were made for another brand, or for an earlier version of ' + brandName() +
-        ' (another name, website, sender, catalogue, palette, type, voice, claims or market), so they are not listed as ' + brandName() + '\'s. They are kept, not deleted.' : '';
+      note.textContent = '';
+      if (HIDDEN) {
+        const nE = EARLIER.length, nO = OTHER_BRAND, bn = brandName();
+        const parts = [];
+        if (nE) parts.push((nE === 1 ? '1 asset was' : nE + ' assets were') + ' made for an earlier version of ' + bn
+          + ' (its name, website, sender, catalogue, palette, type, voice, claims or market has changed since). '
+          + (SHOW_EARLIER ? 'They are listed below, marked "Earlier version": check them against ' + bn + '\'s current record before reusing one.' : 'They are kept, and not mixed in with the current ones.'));
+        if (nO) parts.push((nO === 1 ? '1 asset belongs' : nO + ' assets belong') + ' to another brand you have access to, so ' + (nO === 1 ? 'it is' : 'they are') + ' listed under that brand, not here.');
+        const t = document.createElement('span'); t.textContent = parts.join(' '); note.appendChild(t);
+        if (nE) {
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'abtn'; btn.id = 'toggleEarlier'; btn.setAttribute('data-toggle-earlier', '');
+          btn.style.marginLeft = '8px';
+          btn.textContent = SHOW_EARLIER ? 'Hide earlier versions' : 'Show the ' + nE + ' from earlier versions';
+          btn.addEventListener('click', async () => { SHOW_EARLIER = !SHOW_EARLIER; await buildAll(); render(); });
+          note.appendChild(btn);
+        }
+      }
     }
     if (!rows.length) {
       // Three different reasons produce an empty grid, and conflating them
@@ -471,6 +500,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         ? 'No assets match this search or type filter. Clear the filters to see everything.'
         : usingLocal
           ? 'No assets found. The shared database could not be read, so only this browser\'s assets are listed and there are none here.'
+          : (EARLIER.length && !SHOW_EARLIER)
+            ? 'Nothing has been made for the current version of ' + brandName() + ' yet. Press "Show the ' + EARLIER.length + ' from earlier versions" above to see what was made before.'
           : 'No assets here yet. Generate some in the Studio, Ad Campaigns or Landing Pages — they show up here to preview, clone and re-prompt.';
       grid.innerHTML = '<div class="empty">' + esc(why) + '</div>';
       return;
@@ -497,7 +528,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return '<div class="asset">' + thumb +
         '<div class="pad">' +
           '<div class="name">' + esc(it.name) + '</div>' +
-          '<div class="meta"><span class="tag ' + it.kind + '">' + (it.kind === 'landing' ? 'Landing' : it.kind === 'ad' ? esc(it.tag || 'Ad') : 'Mailer') + '</span>' + esc(meta) + '</div>' +
+          '<div class="meta">' + (it.earlier ? '<span class="tag" data-earlier-version>Earlier version</span>' : '') + '<span class="tag ' + it.kind + '">' + (it.kind === 'landing' ? 'Landing' : it.kind === 'ad' ? esc(it.tag || 'Ad') : 'Mailer') + '</span>' + esc(meta) + '</div>' +
           '<div class="acts">' +
             previewBtn +
             '<button type="button" class="abtn" data-act="clone" data-id="' + it._id + '">⧉ Clone</button>' +

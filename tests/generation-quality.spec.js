@@ -291,3 +291,29 @@ test('an RSA with no headlines BLOCKS rather than passing silently', () => {
   });
   expect(ok.filter((v) => v.level === 'block')).toEqual([]);
 });
+
+/* ═══ a video ad shows the viewer copy, never its own shot list ═══════════ */
+
+// The sales audit (2026-10-14) rendered every video ad at five timestamps:
+// on screen were "HOOK: extreme close-up of ..., on-screen hook text,
+// sound-on stinger / 0-2s", "the reactivation moment, in <brand>'s own world"
+// and "CTA end-card: ... to the landing page" - the storyboard's directions -
+// and the end-card button was chalk on the accent, under AA for an amber one.
+test('every video ad\'s on-screen text is the ad\'s own copy, and its end-card button label passes AA', () => {
+  const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'));
+  const videos = (campaign.assets.ads || []).filter((a) => a.creative_type === 'video');
+  expect(videos.length, 'no video ad was built').toBeGreaterThan(0);
+  for (const ad of videos) {
+    const motion = ad.creative && ad.creative.motion_html;
+    expect(motion, `${ad.id} has no motion artefact`).toBeTruthy();
+    const shown = [...motion.matchAll(/<(?:h2|p)[^>]*class="kin"[^>]*>([^<]*)</g)].map((m) => m[1]);
+    expect(shown.length, `${ad.id} shows no on-screen text`).toBeGreaterThan(0);
+    for (const t of shown) {
+      expect(t, `${ad.id} shows a production direction: ${t}`).not.toMatch(/HOOK:|close-up|on-screen|stinger|end-card|\b\d+-\d+s\b|own world and palette|proof: hero visual/i);
+    }
+    expect(shown.join(' ')).toContain(String(ad.hook || ad.headline).slice(0, 20).replace(/&/g, '&amp;'));
+    const v = (name) => (motion.match(new RegExp(`--${name}:(#[0-9a-fA-F]{6})`)) || [])[1];
+    expect(v('on-lava'), 'the end-card label has no derived colour').toBeTruthy();
+    expect(core.contrast(v('on-lava'), v('lava')), `${ad.id} end-card button label`).toBeGreaterThanOrEqual(4.5);
+  }
+});

@@ -200,6 +200,39 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </form>
   </div>
 
+  <!-- Put this agent on the brand's OWN website (2026-10-14). The line runs
+       /agent-widget.js there; replies come from ?action=agent-public, which
+       answers only on the brand's website and is paid from the brand's credits
+       under the daily limit below (_shared/agent-embed.js). -->
+  <details class="agent-admin embed-box" id="embedBox" data-agent-embed>
+    <summary class="agent-admin-toggle">Put this agent on your website</summary>
+    <div class="embed-body">
+      <p class="formnote" id="embedWhy"></p>
+      <label for="embedCode">Paste this line just before &lt;/body&gt; on every page of your website (Shopify: theme.liquid; WordPress: the footer; any other site: the page template).</label>
+      <textarea id="embedCode" readonly spellcheck="false"></textarea>
+      <div class="row-actions">
+        <button type="button" class="save" id="embedCopy">Copy the code</button>
+        <span class="formnote" id="embedCopied" role="status" aria-live="polite"></span>
+      </div>
+      <div class="embed-cap">
+        <label for="embedCap">Most answers a day on your website</label>
+        <input id="embedCap" type="number" min="0" max="20000" step="10">
+        <button type="button" class="save" id="embedCapSave">Save limit</button>
+        <span class="formnote" id="embedCapNote" role="status" aria-live="polite"></span>
+      </div>
+      <p class="formnote">Each answer on your website costs your brand <span data-credit-price="assistant.chat">2</span> credits, from this brand's balance. It answers only on your own website, and stops for the day at the limit above.</p>
+    </div>
+  </details>
+  <style>
+    .embed-box summary{list-style:none;display:inline-block}
+    .embed-box summary::-webkit-details-marker{display:none}
+    .embed-body{margin-top:12px;display:grid;gap:10px;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:14px;padding:16px}
+    .embed-body label{font-size:13px;font-weight:700;color:var(--vh-ink)}
+    #embedCode{width:100%;min-height:120px;font-family:var(--vh-font-mono,monospace);font-size:12px;line-height:1.5;border:1px solid var(--vh-line);border-radius:10px;padding:10px;background:var(--vh-panel-2);color:var(--vh-ink)}
+    .embed-cap{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .embed-cap input{width:120px;border:1px solid var(--vh-line);border-radius:10px;padding:9px 10px;background:var(--vh-panel);color:var(--vh-ink)}
+  </style>
+
   <div class="chat" id="chat"></div>
 </div>
 <div class="inputrow">
@@ -318,7 +351,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       b.onclick=function(){ current=a; sessionId=null; history=[]; chatEl.innerHTML=''; if(CH) CH.create(); renderAgents(); greet(); renderHist(); };
       bar.appendChild(b);
     });
+    try { document.dispatchEvent(new CustomEvent('agent:current', { detail: current })); } catch (_) {}
   }
+  window.__agentCurrent = function(){ return current; };
   function greet(){ if(current && current.greeting){ el('agent', current.greeting); maybeSpeak(current.greeting); } }
 
   // ── Conversation history (saved locally; new / switch / continue) ──────────
@@ -533,6 +568,65 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       else { if(!CH.current()) CH.create(); greet(); }
     } else { greet(); }
   });
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var HEX = /^#[0-9a-f]{6}$/i;
+  function brand(){ return (window.BrandContext && window.BrandContext.brand) || null; }
+  function token(name){ try { var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return HEX.test(v) ? v : ''; } catch(_) { return ''; } }
+  function attr(v){ return String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+  function accountBrand(b){ return !!(b && b.id && b.storage !== 'device' && !/^local-/.test(String(b.id))); }
+  function render(){
+    var b = brand(), a = window.__agentCurrent && window.__agentCurrent();
+    var why = $('embedWhy'), code = $('embedCode'), copy = $('embedCopy'), capRow = document.querySelector('.embed-cap');
+    var ok = accountBrand(b) && a && a.id && !/^device-/.test(String(a.id));
+    if (!b) { why.textContent = 'Choose a brand first.'; }
+    else if (!accountBrand(b)) { why.textContent = b.name + ' is kept on this device only. Sign in with Google and save the brand to your account, then its agent can go on your website.'; }
+    else if (!a || !a.id) { why.textContent = 'Create an agent above, then its website code appears here.'; }
+    else if (!b.website) { why.textContent = b.name + ' has no website on its record yet. Add it in Brand setup: the assistant answers only on that website.'; ok = false; }
+    else { why.textContent = 'This puts "' + (a.name || 'your agent') + '" on ' + String(b.website).replace(/^https?:\/\//, '').replace(/\/$/, '') + ' as a chat button in the corner of every page. It answers only there.'; }
+    code.hidden = !ok; copy.hidden = !ok; if (capRow) capRow.hidden = !ok;
+    if (!ok) { code.value = ''; return; }
+    var p = (b.palette || {});
+    var primary = HEX.test(p.primary || '') ? p.primary : (token('--brand-primary') || '');
+    var onP = token('--brand-on-primary') || '#ffffff';
+    var accent = HEX.test(p.accent || '') ? p.accent : primary;
+    code.value = '<script src="' + location.origin + '/agent-widget.js" defer\n'
+      + '  data-brand="' + attr(b.id) + '" data-agent="' + attr(a.id) + '"\n'
+      + '  data-name="' + attr(b.name) + '"'
+      + (primary ? ' data-primary="' + primary + '"' : '') + ' data-on-primary="' + onP + '"' + (accent ? ' data-accent="' + accent + '"' : '') + '\n'
+      + '  data-greeting="' + attr(a.greeting || ('Hi! Ask me anything about ' + b.name + '.')) + '"></' + 'script>';
+    loadCap(b.id);
+  }
+  var capFor = '';
+  function loadCap(id){
+    if (capFor === id) return; capFor = id;
+    fetch('/api/brain?action=agent-embed&op=settings&workspace_id=' + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.ok) { $('embedCap').value = j.daily_cap; $('embedCapNote').textContent = (j.used_today != null ? j.used_today + ' answered today.' : ''); }
+      else $('embedCapNote').textContent = (j && j.message) || '';
+    }).catch(function(){ capFor = ''; });
+  }
+  $('embedCopy').addEventListener('click', function(){
+    var t = $('embedCode').value;
+    var done = function(ok){ $('embedCopied').textContent = ok ? 'Copied. Paste it into your website.' : 'Select the code above and copy it with Cmd/Ctrl+C.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){ done(true); }, function(){ done(false); }); else done(false);
+  });
+  $('embedCapSave').addEventListener('click', function(){
+    var b = brand(); if (!accountBrand(b)) return;
+    var n = Number($('embedCap').value);
+    $('embedCapNote').textContent = 'Saving...';
+    fetch('/api/brain?action=agent-embed&op=settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace_id: b.id, daily_cap: n }) })
+      .then(function(r){ return r.json(); }).then(function(j){
+        $('embedCapNote').textContent = j && j.ok ? 'Saved: at most ' + j.daily_cap + ' answers a day.' : ((j && j.message) || 'Not saved.');
+      }).catch(function(){ $('embedCapNote').textContent = 'Not saved: the server could not be reached.'; });
+  });
+  $('embedBox').addEventListener('toggle', render);
+  document.addEventListener('agent:current', function(){ if ($('embedBox').open) render(); });
+  function wire(){ var BC = window.BrandContext; if (!BC || !BC.onChange) return false; BC.onChange(function(){ capFor = ''; if ($('embedBox').open) render(); }); return true; }
+  if (!wire()) { var n = 0, t = setInterval(function(){ if (wire() || ++n > 40) clearInterval(t); }, 150); }
 })();
 </script>
 </body>

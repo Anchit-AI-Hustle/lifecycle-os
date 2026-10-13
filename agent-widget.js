@@ -1,17 +1,21 @@
 /* eslint-env browser */
 /**
- * Knickgasm Agent — embeddable widget (Shopify-ready).
+ * A brand's agent on the brand's OWN website - embeddable widget.
  *
- * Drop ONE line into any Shopify theme (theme.liquid, product template, or a
- * collection template) to add a floating voice+chat concierge:
+ * The Agent page (/agent, "Put this agent on your website") writes the line
+ * for the active brand; paste it before </body> on the brand's site (any
+ * platform: Shopify theme.liquid, WordPress footer, a plain page):
  *
- *   <script src="https://lifecycle-os.anchit-tandon.com/agent-widget.js"
- *           data-agent="agent_knickgasm" defer></script>
+ *   <script src="https://<this deployment>/agent-widget.js" defer
+ *           data-brand="<workspace id>" data-agent="<agent id>"
+ *           data-name="<brand name>" data-primary="#rrggbb"
+ *           data-on-primary="#rrggbb" data-accent="#rrggbb"
+ *           data-greeting="..."></script>
  *
- * Per-collection / per-product agents: set data-agent to any agent id from
- * /api/brain?action=agents (e.g. agent_airbrush_coffee, agent_chai_collection),
- * or omit it and pass data-collection="Kicks" to auto-route.
- * Voice replies use ElevenLabs when configured server-side, else browser TTS.
+ * Messages go to /api/brain?action=agent-public (_shared/agent-embed.js),
+ * which answers only on the brand's own website and is paid from the brand's
+ * credits under its daily cap. Colours are the brand's (from the attributes);
+ * type is the host page's own. Voice replies use the browser's voice.
  *
  * UI model (matches the portfolio assistant):
  *   - A floating icon (FAB) sits on every page. Tapping it expands the chat.
@@ -23,59 +27,66 @@
  */
 (function () {
   'use strict';
-  if (window.__KnickgasmAgentWidget) return;
-  window.__KnickgasmAgentWidget = true;
+  if (window.__BrandAgentWidget) return;
+  window.__BrandAgentWidget = true;
 
   var script = document.currentScript || (function () { var s = document.getElementsByTagName('script'); return s[s.length - 1]; })();
   var ORIGIN = (script.src && script.src.indexOf('http') === 0) ? script.src.split('/').slice(0, 3).join('/') : '';
   var API = ORIGIN + '/api/brain';
   var AGENT = script.getAttribute('data-agent') || '';
   var COLLECTION = script.getAttribute('data-collection') || '';
+  var BRAND = script.getAttribute('data-brand') || '';
+  var NAME = script.getAttribute('data-name') || 'our team';
+  var GREETING = script.getAttribute('data-greeting') || ('Hi! Ask me anything about ' + NAME + '.');
+  var HEX = /^#[0-9a-f]{6}$/i;
+  function hexAttr(n, d) { var v = String(script.getAttribute(n) || '').trim(); return HEX.test(v) ? v : d; }
+  var C_P = hexAttr('data-primary', '#2f3a4a'), C_ON = hexAttr('data-on-primary', '#ffffff'), C_A = hexAttr('data-accent', C_P);
   var sessionId = null, history = [], agent = null, open = false;
   var replyMode = 'voice';   // 'text' | 'voice' | 'call' — how answers come back
 
-  var css = '#vah-agent-fab{position:fixed;right:22px;bottom:22px;z-index:99990;width:62px;height:62px;border-radius:50%;background:#D0473E;color:#FFFFFF;border:2px solid #6A33D8;box-shadow:0 12px 34px rgba(0,0,0,.3);cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .2s}' +
+  var css = '#vah-agent-fab,#vah-agent-panel{--vah-p:' + C_P + ';--vah-on:' + C_ON + ';--vah-a:' + C_A + '}' +
+    '#vah-agent-fab{position:fixed;right:22px;bottom:22px;z-index:99990;width:62px;height:62px;border-radius:50%;background:var(--vah-p);color:var(--vah-on);border:2px solid var(--vah-a);box-shadow:0 12px 34px rgba(0,0,0,.3);cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;transition:transform .2s}' +
     '#vah-agent-fab:hover{transform:scale(1.07)}' +
-    '#vah-agent-fab::after{content:"";position:absolute;top:10px;right:10px;width:11px;height:11px;border-radius:50%;background:#3ddc84;border:2px solid #D0473E}' +
+    '#vah-agent-fab::after{content:"";position:absolute;top:10px;right:10px;width:11px;height:11px;border-radius:50%;background:#3ddc84;border:2px solid var(--vah-p)}' +
     '#vah-agent-fab .vah-pulse{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 0 rgba(171,135,67,.5);animation:vahPulse 2.6s ease-out infinite;pointer-events:none}' +
     '@keyframes vahPulse{0%{box-shadow:0 0 0 0 rgba(171,135,67,.45)}70%{box-shadow:0 0 0 16px rgba(171,135,67,0)}100%{box-shadow:0 0 0 0 rgba(171,135,67,0)}}' +
-    '#vah-agent-panel{position:fixed;right:22px;bottom:96px;z-index:99991;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100vh - 130px));background:#FFFFFF;border:1px solid #6A33D8;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden;font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;transition:width .26s ease,height .26s ease}' +
+    '#vah-agent-panel{position:fixed;right:22px;bottom:96px;z-index:99991;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100vh - 130px));background:#ffffff;border:1px solid var(--vah-a);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden;font-family:inherit;transition:width .26s ease,height .26s ease}' +
     '#vah-agent-panel.open{display:flex}' +
     '#vah-agent-panel.max{width:min(560px,calc(100vw - 32px));height:min(760px,calc(100vh - 120px))}' +
-    '#vah-agent-head{background:#D0473E;color:#FFFFFF;padding:14px 16px;display:flex;align-items:center;gap:10px}' +
+    '#vah-agent-head{background:var(--vah-p);color:var(--vah-on);padding:14px 16px;display:flex;align-items:center;gap:10px}' +
     '#vah-agent-head .vah-id{flex:1;min-width:0}' +
-    '#vah-agent-head b{font-family:"Montserrat",Georgia,serif;font-size:15px;letter-spacing:.04em}' +
-    '#vah-agent-head small{display:block;color:#6A33D8;font-size:10.5px;letter-spacing:.08em}' +
-    '#vah-agent-head .vah-win{appearance:none;background:rgba(251,245,234,.1);border:1px solid rgba(251,245,234,.25);color:#FFFFFF;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;display:inline-flex;align-items:center;justify-content:center}' +
+    '#vah-agent-head b{font-family:inherit;font-size:15px;letter-spacing:.04em}' +
+    '#vah-agent-head small{display:block;color:var(--vah-on);opacity:.9;font-size:10.5px;letter-spacing:.08em}' +
+    '#vah-agent-head .vah-win{appearance:none;background:rgba(251,245,234,.1);border:1px solid rgba(251,245,234,.25);color:var(--vah-on);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;display:inline-flex;align-items:center;justify-content:center}' +
     '#vah-agent-head .vah-win:hover{background:rgba(251,245,234,.2)}' +
     '#vah-agent-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}' +
     '.vah-m{max-width:82%;padding:10px 13px;border-radius:13px;font-size:13.5px;line-height:1.55;white-space:pre-wrap}' +
-    '.vah-m.u{align-self:flex-end;background:#D0473E;color:#FFFFFF;border-bottom-right-radius:3px}' +
-    '.vah-m.a{align-self:flex-start;background:#fff;border:1px solid rgba(171,135,67,.35);color:#111111;border-bottom-left-radius:3px}' +
-    '.vah-m.a a{color:#D0473E;font-weight:600}' +
+    '.vah-m.u{align-self:flex-end;background:var(--vah-p);color:var(--vah-on);border-bottom-right-radius:3px}' +
+    '.vah-m.a{align-self:flex-start;background:#fff;border:1px solid rgba(171,135,67,.35);color:#1f2328;border-bottom-left-radius:3px}' +
+    '.vah-m.a a{color:var(--vah-p);font-weight:600}' +
     '#vah-agent-input{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:9px 10px;background:#fff;border-top:1px solid rgba(171,135,67,.3)}' +
     '#vah-agent-input input{flex:1;min-width:120px;border:1px solid rgba(171,135,67,.4);border-radius:10px;padding:10px 12px;font-size:13.5px;outline:none;font-family:inherit}' +
     '#vah-agent-input button{border:none;border-radius:10px;cursor:pointer;font-family:inherit}' +
     '.vah-mode{position:relative}' +
-    '.vah-mode-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(0,74,43,.08);border:1px solid rgba(0,74,43,.2)!important;color:#D0473E;font-weight:600;font-size:12px;border-radius:99px;padding:8px 11px}' +
+    '.vah-mode-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(0,74,43,.08);border:1px solid rgba(0,74,43,.2)!important;color:var(--vah-p);font-weight:600;font-size:12px;border-radius:99px;padding:8px 11px}' +
     '.vah-menu{position:absolute;bottom:calc(100% + 6px);left:0;width:210px;background:#fff;border:1px solid rgba(171,135,67,.5);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.25);padding:6px;display:none;z-index:5}' +
     '.vah-menu.open{display:block}' +
-    '.vah-menu button{display:flex;width:100%;text-align:left;gap:4px;flex-direction:column;background:transparent;border:0!important;border-radius:9px;padding:9px 10px;color:#111111}' +
-    '.vah-menu button:hover{background:#FFFFFF}' +
-    '.vah-menu b{font-size:13px;color:#D0473E}.vah-menu em{font-style:normal;font-size:11px;color:#7a7568}' +
-    '.vah-reply{display:inline-flex;gap:2px;background:#FFFFFF;border:1px solid rgba(171,135,67,.4);border-radius:99px;padding:3px}' +
+    '.vah-menu button{display:flex;width:100%;text-align:left;gap:4px;flex-direction:column;background:transparent;border:0!important;border-radius:9px;padding:9px 10px;color:#1f2328}' +
+    '.vah-menu button:hover{background:#ffffff}' +
+    '.vah-menu b{font-size:13px;color:var(--vah-p)}.vah-menu em{font-style:normal;font-size:11px;color:#7a7568}' +
+    '.vah-reply{display:inline-flex;gap:2px;background:#ffffff;border:1px solid rgba(171,135,67,.4);border-radius:99px;padding:3px}' +
     '.vah-reply button{width:30px;height:28px;border-radius:99px!important;background:transparent;color:#7a7568;font-size:13px;display:inline-flex;align-items:center;justify-content:center}' +
-    '.vah-reply button.on{background:rgba(0,74,43,.12);color:#D0473E;font-weight:700}' +
+    '.vah-reply button.on{background:rgba(0,74,43,.12);color:var(--vah-p);font-weight:700}' +
     '.vah-reply button.on[data-reply="call"]{background:rgba(61,220,132,.18);color:#1b7a44}' +
-    '#vah-mic{background:#FFFFFF;border:1px solid #6A33D8!important;color:#D0473E;padding:0 12px;height:38px}' +
+    '#vah-mic{background:#ffffff;border:1px solid var(--vah-a)!important;color:var(--vah-p);padding:0 12px;height:38px}' +
     '#vah-mic.on{background:#c0392b;color:#fff}' +
-    '#vah-send{background:#D0473E;color:#FFFFFF;padding:0 14px;height:38px;font-weight:700}';
+    '#vah-send{background:var(--vah-p);color:var(--vah-on);padding:0 14px;height:38px;font-weight:700}';
 
   var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
-  var fab = document.createElement('button'); fab.id = 'vah-agent-fab'; fab.title = 'Talk to a Knickgasm expert'; fab.innerHTML = '<span class="vah-pulse"></span>🎙';
+  var fab = document.createElement('button'); fab.id = 'vah-agent-fab'; fab.title = 'Talk to ' + NAME; fab.innerHTML = '<span class="vah-pulse"></span>🎙';
   var panel = document.createElement('div'); panel.id = 'vah-agent-panel';
-  panel.innerHTML = '<div id="vah-agent-head"><span style="font-size:20px">🍃</span><div class="vah-id"><b id="vah-agent-name">Knickgasm Expert</b><small>voice &amp; chat · honest answers</small></div>' +
+  panel.innerHTML = '<div id="vah-agent-head"><div class="vah-id"><b id="vah-agent-name"></b><small>voice &amp; chat · honest answers</small></div>' +
       '<button class="vah-win" id="vah-max" title="Maximise the chat" aria-label="Maximise">⤢</button>' +
       '<button class="vah-win" id="vah-min" title="Minimise to the floating button" aria-label="Minimise">—</button></div>' +
     '<div id="vah-agent-msgs"></div>' +
@@ -146,8 +157,10 @@
       .map(function (l) { return /[.!?:;,…]$/.test(l) ? l : (l + '.'); })
       .join(' ').replace(/\s+([.,!?;:])/g, '$1').replace(/\s+/g, ' ').trim();
     if (!clean) { if (onDone) onDone(); return; }
-    var spoken = clean.replace(/KNICKGASM/g, 'Knickgasm').replace(/KSM-?66/gi, 'K S M sixty-six');
-    fetch(API + '?action=tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: clean }) })
+    var spoken = clean;
+    // On a brand's website there is no signed-in caller for the server voice,
+    // so the browser's own voice speaks (no request that would be refused).
+    (BRAND ? Promise.reject(0) : fetch(API + '?action=tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: clean }) }))
       .then(function (r) { if (r.ok && (r.headers.get('content-type') || '').indexOf('audio') > -1) return r.blob(); throw 0; })
       .then(function (b) { var a = new Audio(URL.createObjectURL(b)); a.onended = function () { if (onDone) onDone(); }; a.onerror = function () { if (onDone) onDone(); }; a.play(); })
       .catch(function () {
@@ -220,9 +233,9 @@
   function ask(text) {
     if (!text) return;
     add('u', text); history.push({ role: 'user', content: text });
-    fetch(API + '?action=agent-chat', {
+    fetch(API + (BRAND ? '?action=agent-public' : '?action=agent-chat'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent_id: agent ? agent.id : (AGENT || 'agent_knickgasm'), session_id: sessionId, message: text, history: history.slice(-10), context: { page: location.href, shopify: true } }),
+      body: JSON.stringify({ workspace_id: BRAND || undefined, agent_id: agent ? agent.id : AGENT, session_id: sessionId, message: text, history: history.slice(-10), page_url: location.href, context: { page: location.href } }),
     }).then(function (r) { return r.json().catch(function () { return {}; }); }).then(function (j) {
       // The server's sentence, never its code and never a shrug (2026-09-29):
       // every refusal carries `message`. A 200 with no reply is said as such
@@ -300,14 +313,11 @@
   function openPanel() {
     open = true; panel.classList.add('open');
     if (!agent) {
-      fetch(API + '?action=agents').then(function (r) { return r.json(); }).then(function (j) {
-        var list = j.agents || [];
-        agent = list.find(function (a) { return a.id === AGENT; }) ||
-          (COLLECTION && list.find(function (a) { return (a.catalog_scope && (a.catalog_scope.categories || []).indexOf(COLLECTION) > -1); })) ||
-          list[0] || { id: 'agent_knickgasm', name: 'Knickgasm', greeting: 'Namaste! Ask me anything about our sneakers.' };
-        panel.querySelector('#vah-agent-name').textContent = agent.name;
-        add('a', agent.greeting || 'Namaste! How can I help?');
-      }).catch(function () { agent = { id: 'agent_knickgasm', name: 'Knickgasm' }; add('a', 'Namaste! Ask me anything about our sneakers.'); });
+      // The embed line carries the agent and the brand: nothing to look up,
+      // and no other brand's agent can be picked by accident.
+      agent = { id: AGENT, name: NAME };
+      panel.querySelector('#vah-agent-name').textContent = NAME;
+      add('a', GREETING);
     }
   }
   fab.onclick = function () { if (open) { open = false; panel.classList.remove('open'); } else { openPanel(); } };
@@ -321,7 +331,7 @@
       input.focus();
     });
   }
-  window.KnickgasmAgent = { open: openFromPage, ask: function (message) { openFromPage(); ask(String(message || '').trim()); } };
+  window.BrandAgent = window.KnickgasmAgent = { open: openFromPage, ask: function (message) { openFromPage(); ask(String(message || '').trim()); } };
   window.addEventListener('knickgasm-agent:open', function (event) {
     openFromPage(event.detail && event.detail.message);
   });

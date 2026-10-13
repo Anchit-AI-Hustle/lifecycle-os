@@ -4,6 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The agent goes on the brand's own website; /agent, /assets and /music fixed from production (2026-10-14)
+- **/agent answered "the database is unreachable"** while credits loaded from the same project. Vercel's log:
+  `column smart_products.active does not exist` - the buyer agent, the KB and the legacy slot engine filtered on a
+  column no migration made (live columns read from information_schema), and `brain.js storeDown()` read every
+  PostgREST refusal as a paused project. The filter is gone; a 400/404 is `store_schema_mismatch` ("the database
+  answered, but ... asked it for something it does not have"); `tests/lib/fake-supabase.js` now answers an unknown
+  column on a table in `LIVE_COLUMNS` with 400 42703, as PostgREST does (add a table there when a mismatch is
+  found, from the live schema, never invented). Gated by `tests/agents-review.spec.js` section 10.
+- **Website agent** (the operator: "export the agent and set it up on their official website"; chose "brand's
+  credits, daily cap"): `api/_shared/agent-embed.js` on `brain.js ?action=agent-public` (a visitor; no session)
+  and `?action=agent-embed&op=settings` (owner/editor). A reply answers only when the page's Origin is the
+  record's website by `brand-coherence.sameBrand()` (or this deployment's own pages), for an agent of THAT
+  workspace (or the built-in `agent_brand`), under `brand_data.agent_embed.daily_cap` (default 300, counted
+  from today's `website-agent` holds), 20/min per address per instance; it is metered as `assistant.chat` on
+  the workspace OWNER's wallet for that workspace (hold, settle, release on failure); an empty wallet is a polite
+  "resting" sentence. `/agent` "Put this agent on your website" writes the `<script src=".../agent-widget.js"
+  data-brand data-agent data-name data-primary data-on-primary data-accent data-greeting>` line and edits the
+  limit; `agent-widget.js` wears those colours and the host page's type (no tenant-zero hex left), and uses the
+  browser voice on a brand site. Gated by `tests/agent-embed-executed.spec.js` (router over the fake project,
+  mutation-checked) and `tests/agent-embed-page.spec.js` (Chromium: the panel, and the line on a brand page).
+- **/assets "51 not listed" with every tab at 0**: rows of THIS workspace made for an earlier version of the
+  record (or saved before rows named one) are counted apart and listed on "Show the N from earlier versions",
+  each marked Earlier version; another workspace's rows stay out with their own sentence. Gated in
+  `tests/brand-change-current-context.spec.js` (mutation-checked).
+- **/music could not create**: a Create a track panel writes an editable brief from the active brand's record;
+  Generate here = ElevenLabs Music `POST /v1/music` (documented: prompt <= 4100 chars, music_length_ms
+  3000-600000, model_id music_v1, force_instrumental) on `?action=music-compose`, metered `audio.music`
+  (40 credits/track, new catalog key), needs `ELEVENLABS_API_KEY`; Open in Suno copies the brief and opens
+  suno.com/create (Suno has no public API: invite-only partner programme). Gated by
+  `tests/music-create-track.spec.js` and router-brain's music-compose entry.
+- **Asset sales quality (first pass of the audit)**: a video ad's on-screen text was its own storyboard
+  ("HOOK: extreme close-up ..., 0-2s") - it is the ad's hook, its copy sentence by sentence and the product;
+  the end-card button label is derived for its fill (`--on-lava`, was 2.16:1); the landing page no longer prints
+  the planner's rationale, "IN edit" or the campaign id, and its card/sticky bar use tokens; template mail and
+  ads say the brand's own tagline/claims instead of "chosen for you" / "The <brand> edit" / "X is here".
+  Gated by `tests/generation-quality.spec.js` (video copy + label contrast, mutation-checked). Still open from
+  the audit: the real catalogue photo on every static ad and the template email/LP, CTA label vs link, product
+  facts (price) in the copy brief, per-placement copy, mobile email breakpoint.
+
 ## ⭐ A self-call goes to an address that answers; a market given up from one place is read again from another (2026-10-13)
 Production, after the move to bom1: Lenskart's import said "It is continuing by itself" while nothing moved, IN stayed
 "STOPPED ... sent to the US store", and Continue import looked dead. Two causes, both fixed at source:
