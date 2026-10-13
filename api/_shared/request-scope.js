@@ -62,6 +62,24 @@ function once(key, factory) {
   return p;
 }
 
+/**
+ * Model-call outcomes of THIS request: how many answered and how many ended
+ * with no answer at all (every provider failed, the call budget ran out, or no
+ * provider is configured). llm.js records them; the credit meter reads them, so
+ * a run that got no model answer is never charged, whatever status the handler
+ * chose to answer with. Outside a request nothing is recorded.
+ */
+function noteLlm(kind) {
+  const s = current();
+  if (!s) return;
+  if (!s.llm) s.llm = { ok: 0, failed: 0 };
+  if (kind === 'ok') s.llm.ok += 1; else s.llm.failed += 1;
+}
+function llmOutcome() {
+  const s = current();
+  return s && s.llm ? Object.assign({}, s.llm) : null;
+}
+
 /** Wrap a Vercel handler so everything it calls can see its request. */
 function wrap(handler) {
   return function scopedHandler(req, res) {
@@ -69,4 +87,4 @@ function wrap(handler) {
   };
 }
 
-module.exports = { run, current, currentRequest, once, wrap };
+module.exports = { run, current, currentRequest, once, wrap, noteLlm, llmOutcome };
