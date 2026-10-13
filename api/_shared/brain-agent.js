@@ -200,7 +200,7 @@ async function analyze({ message = '' }) {
 }
 
 async function listAgents() {
-  return db().select('smart_agents', { limit: 100, order: 'created_at.asc', filters: { active: 'eq.true' } });
+  return db().select('smart_agents', { limit: 100, order: 'created_at.asc' });
 }
 
 async function getAgent(agentId) {
@@ -482,7 +482,7 @@ async function chat({ agentId, sessionId, message, context = {}, history = [], s
   }
 
   const [products, knowledge] = await Promise.all([
-    db().select('smart_products', { limit: 500, filters: { active: 'eq.true' } }),
+    db().select('smart_products', { limit: 500 }),
     db().select('smart_agent_knowledge', { limit: 30, filters: { agent_id: `eq.${agentId}` } }),
   ]);
   const scoped = scopedProducts(agent, products).slice(0, 24);

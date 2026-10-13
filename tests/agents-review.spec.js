@@ -479,3 +479,46 @@ test.describe('9. calendar.js generation and persistence', () => {
     }
   });
 });
+
+/* ── 10. the buyer agent reads only columns the live database has ─────────── */
+
+test.describe('10. /agent for a signed-in Google account', () => {
+  // Production, 2026-10-14, /agent with Lenskart: "best selling product?"
+  // answered "The database is unreachable ... paused" while the credit pill
+  // loaded from the same database. The log: column smart_products.active does
+  // not exist - the agent filtered on a column no migration ever made, and the
+  // router read every PostgREST refusal as an outage. The fake now answers an
+  // unknown column on smart_products exactly as PostgREST does (42703).
+  test('a Google session talking to its own agent gets an answer, not "the database is unreachable"', async () => {
+    const rows = w.db.table('smart_agents');
+    rows.push({ id: 'agent_live', workspace_id: 'ws-oldest', level: 'brand', name: 'Live Agent', market: 'UK', persona: {}, catalog_scope: {}, greeting: 'Hi', voice: {}, active: true });
+    try {
+      const r = await H.request(w.port, { method: 'POST', path: '/api/brain?action=agent-chat', json: { message: 'best selling product?', agent_id: 'agent_live' }, headers: GOOGLE });
+      expect(r.status, r.text.slice(0, 400)).toBe(200);
+      expect(r.out.ok).not.toBe(false);
+      expect(r.out.error).toBeUndefined();
+      const read = w.db.calls.find((c) => /\/rest\/v1\/smart_products\?/.test(c.url));
+      expect(read, 'the agent never read its product table').toBeTruthy();
+      expect(decodeURIComponent(read.url)).not.toMatch(/[?&]active=/);
+    } finally { rows.splice(rows.findIndex((x) => x.id === 'agent_live'), 1); }
+  });
+
+  test('a column the database does not have is said as a defect, never as "the database is paused"', async () => {
+    const res = { headers: {} };
+    const brain = require(path.join(A.ROOT, 'api/brain.js'));
+    expect(typeof brain).toBe('function');
+    // Drive the classification through the router: a scheduler-bearer read
+    // of a table whose query names a missing column.
+    const undo = H.pinEnv({ CRON_SECRET: 'cron-secret-agents-review-0123456789' });
+    const realCols = w.db.columns.smart_cohorts;
+    w.db.columns.smart_cohorts = ['id', 'name'];
+    try {
+      const r = await H.request(w.port, { method: 'GET', path: '/api/brain?action=cohorts', headers: { authorization: 'Bearer cron-secret-agents-review-0123456789' } });
+      expect(r.status, r.text.slice(0, 300)).toBe(500);
+      expect(r.out).toMatchObject({ ok: false, error: 'store_schema_mismatch' });
+      expect(r.out.backend_unreachable).toBeUndefined();
+      expect(r.out.message).toMatch(/answered/);
+      expect(r.out.message).toMatch(/does not exist/);
+    } finally { undo(); if (realCols) w.db.columns.smart_cohorts = realCols; else delete w.db.columns.smart_cohorts; void res; }
+  });
+});
