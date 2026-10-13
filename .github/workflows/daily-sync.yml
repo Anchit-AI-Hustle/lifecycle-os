@@ -42,7 +42,22 @@ jobs:
             echo "CRON_SECRET repo secret is not set — add it under Settings -> Secrets and variables -> Actions." >&2
             exit 1
           fi
-          curl --fail-with-body -sS -X POST \
-            "$BASE/api/brain?action=cron" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -H "Content-Type: application/json"
+          # One call per phase (2026-10-13): runs #71-#73 sent every step in
+          # ONE request, which passed the function's 120 s limit and died with
+          # FUNCTION_INVOCATION_TIMEOUT. Each phase fits; a phase that ran out
+          # of time says which steps it skipped, and is called once more.
+          fail=0
+          for phase in data plan refresh; do
+            for attempt in 1 2; do
+              out="$(curl --fail-with-body -sS --max-time 130 -X POST \
+                "$BASE/api/brain?action=cron&phase=$phase" \
+                -H "Authorization: Bearer $CRON_SECRET" \
+                -H "Content-Type: application/json")" || { echo "::error::phase $phase: $out"; fail=1; break; }
+              echo "phase $phase (attempt $attempt): $(jq -c '{complete, skipped, ms, errors: [(.steps // {}) | to_entries[] | select(.value.error) | .key]}' <<<"$out" 2>/dev/null || echo "$out")"
+              # complete:false = steps skipped for time; partial:true = the run's
+              # time budget answered for it (time-budget.js). Either: call again.
+              if [ "$(jq -r 'if (.complete == false or .partial == true) then "again" else "done" end' <<<"$out" 2>/dev/null)" != "again" ]; then break; fi
+              [ "$attempt" = 2 ] && echo "::warning::phase $phase still skipped steps after a second call: $(jq -c '.skipped' <<<"$out")"
+            done
+          done
+          exit $fail

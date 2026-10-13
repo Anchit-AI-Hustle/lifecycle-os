@@ -114,7 +114,10 @@ test.beforeAll(async () => {
 test.afterAll(async () => { if (server) await new Promise((r) => server.close(r)); });
 
 test('with another brand active, the tenant zero card keeps its own name', async ({ page }) => {
-  await page.goto(base + '/onboarding.html');
+  // Only the fixture server answers: a font or CDN host that is slow on a busy
+  // runner held the load event past the test's 60 s (CI, 2026-10-13).
+  await page.route((url) => !url.href.startsWith(base), (route) => route.abort());
+  await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#presetGallery .preset', { timeout: 20000 });
 
   // FIRST prove the swap machinery actually ran on this page. Without this the

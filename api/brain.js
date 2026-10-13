@@ -1327,36 +1327,58 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         if (!cronAuthorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
         const started = Date.now();
         const steps = {};
+        // THE DAILY LOOP IN PHASES (2026-10-13). Daily Intelligence Sync runs
+        // #71, #72 and #73 failed with FUNCTION_INVOCATION_TIMEOUT: every step
+        // in one call exceeded the 120 s maxDuration, so the platform killed it
+        // and nothing said which steps had run. Now each step runs only while
+        // this request has time left (time-budget.js), a step it has no time for
+        // is reported as skipped with the call that finishes it, and
+        // ?phase=data|plan|refresh runs one phase (daily-sync.yml calls the
+        // three in turn). No phase = all of them, as the Vercel cron calls it.
+        const PHASES = { data: 1, plan: 1, refresh: 1 };
+        const phase = String((req.query && req.query.phase) || b.phase || 'all').toLowerCase();
+        if (phase !== 'all' && !PHASES[phase]) return res.status(400).json({ ok: false, error: 'unknown_phase', message: 'phase is one of data, plan, refresh (or omit it for all three).' });
+        const skipped = [];
+        const RESERVE_MS = 20000;
+        async function step(name, ph, fn) {
+          if (phase !== 'all' && phase !== ph) return;
+          if (_timeBudget.timeLeft() < RESERVE_MS) {
+            steps[name] = { skipped: `no time left in this run; POST ?action=cron&phase=${ph} completes it` };
+            skipped.push(name);
+            return;
+          }
+          try { steps[name] = await fn(); } catch (e) { steps[name] = { error: e.message }; }
+          _timeBudget.step(name);
+        }
         // STEP 0 — pull fresh READ-ONLY data from the source platforms into
         // Supabase FIRST, so every downstream step (analysis, planning, asset
         // regeneration) uses the data for the day. runDailyJob runs the Klaviyo
         // read-only sync adapter (and future Shopify/WebEngage adapters).
-        try { steps.os_daily = await osb.runDailyJob('cron'); } catch (e) { steps.os_daily = { error: e.message }; }
+        await step('os_daily', 'data', () => osb.runDailyJob('cron'));
         // Holds left by a function the platform ended (timeout at 120 s) never
         // settled; give them back so a killed run is not money held forever.
-        try { steps.credit_holds = await require('./_shared/credits-core.js').releaseStaleHolds(); } catch (e) { steps.credit_holds = { error: e.message }; }
-        try { steps.festivals = { detected: (await calendar.extractFestivals({ persist: true })).length }; } catch (e) { steps.festivals = { error: e.message }; }
-        try { const r = await calendar.dailyReview({ persist: true }); steps.daily_review = { changes: r.review.changes.length, pass_rate: r.daily_summary.pass_rate }; } catch (e) { steps.daily_review = { error: e.message }; }
-        try { steps.benchmarks = { ok: true, markets: Object.keys(await competitor.benchmarks({ persist: true })).filter((k) => k !== '_advisory') }; } catch (e) { steps.benchmarks = { error: e.message }; }
-        try { steps.auto_approve = await review.autoApproveSweep(); } catch (e) { steps.auto_approve = { error: e.message }; }
+        await step('credit_holds', 'data', () => require('./_shared/credits-core.js').releaseStaleHolds());
+        await step('festivals', 'data', async () => ({ detected: (await calendar.extractFestivals({ persist: true })).length }));
+        await step('daily_review', 'data', async () => { const r = await calendar.dailyReview({ persist: true }); return { changes: r.review.changes.length, pass_rate: r.daily_summary.pass_rate }; });
+        await step('benchmarks', 'data', async () => ({ ok: true, markets: Object.keys(await competitor.benchmarks({ persist: true })).filter((k) => k !== '_advisory') }));
+        await step('auto_approve', 'plan', () => review.autoApproveSweep());
         // auto-generate assets for approved slots within 3 days
-        try {
+        await step('generation', 'plan', async () => {
           const soon = core.addDays(core.todayIso(), 3);
           const slots = await core.db().select('smart_calendar', { limit: 20, filters: { status: 'eq.approved', slot_date: `lte.${soon}` } });
           let generated = 0;
           for (const s of slots.slice(0, 5)) { // cap per run for serverless time budget
+            if (_timeBudget.timeLeft() < RESERVE_MS) break;
             try { await generate.generateForSlot(s.id, { persist: true }); generated++; } catch (_) {}
           }
-          steps.generation = { approved_due: slots.length, generated };
-        } catch (e) { steps.generation = { error: e.message }; }
-        const recal = await review.recalibrationStatus().catch(() => null);
-        steps.weekly_recalibration_gate = recal;
-        // (os_daily read-only data pull now runs FIRST — see STEP 0 above.)
+          return { approved_due: slots.length, generated };
+        });
+        await step('weekly_recalibration_gate', 'plan', () => review.recalibrationStatus().catch(() => null));
         // Smart Brain rolling plan (smart_calendar_entries): refresh the 90-day
         // window, then kick the convergent background prebuild chain so every slot
         // keeps its FULL asset bundle (LLM copy + images) prebuilt ahead of need.
         // Runs off this existing daily cron to avoid adding a Hobby-limited 3rd cron.
-        try {
+        await step('smart_brain_plan', 'plan', async () => {
           const sbplan = require('./_shared/smart-brain-plan.js');
           const sync = await sbplan.syncDaily({ persist: true });
           let prebuildKicked = false;
@@ -1373,8 +1395,8 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
             finally { clearTimeout(timer); }
             prebuildKicked = true;
           }
-          steps.smart_brain_plan = { synced: true, mode: sync.mode, changes: (sync.changes || []).length, prebuild_kicked: prebuildKicked };
-        } catch (e) { steps.smart_brain_plan = { error: e.message }; }
+          return { synced: true, mode: sync.mode, changes: (sync.changes || []).length, prebuild_kicked: prebuildKicked };
+        });
         // Competitor universe: keep every active brand's competitor set current.
         // Seeds a brand that has none from its OWN record, then runs a discovery
         // pass and adds whatever is genuinely new, de-duplicated by domain.
@@ -1382,30 +1404,28 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         // both are taken. The budget is small per run and workspaces are taken
         // least-recently-refreshed first, so brands are covered in rotation
         // rather than one brand consuming the whole slot.
-        try {
+        await step('competitor_universe', 'refresh', async () => {
           const universe = require('./_shared/competitor-universe.js');
           const sweep = await universe.refreshDueWorkspaces({ maxWorkspaces: 3 });
-          steps.competitor_universe = { due: sweep.due, refreshed: sweep.refreshed, added: sweep.added, note: sweep.note };
-        } catch (e) { steps.competitor_universe = { error: e.message }; }
+          return { due: sweep.due, refreshed: sweep.refreshed, added: sweep.added, note: sweep.note };
+        });
         // Brand catalogues (2026-10-10): an import that stopped part-way
         // continues from its cursor, then the store read longest ago is read
         // again whole (which is what marks a product the store dropped as
         // stale). Rides this existing daily cron; no third cron.
-        try {
-          const cat = await require('./_shared/catalog-import.js').refreshDue({ maxWorkspaces: 2, budgetMs: 25000 });
-          steps.catalog_refresh = { due: cat.due, refreshed: cat.refreshed, note: cat.note || undefined, skipped: cat.skipped || undefined };
-        } catch (e) { steps.catalog_refresh = { error: e.message }; }
+        await step('catalog_refresh', 'refresh', async () => {
+          const cat = await require('./_shared/catalog-import.js').refreshDue({ maxWorkspaces: 2, budgetMs: Math.max(5000, Math.min(25000, _timeBudget.timeLeft() - RESERVE_MS)) });
+          return { due: cat.due, refreshed: cat.refreshed, note: cat.note || undefined, skipped: cat.skipped || undefined };
+        });
         // Social gateway tokens (2026-10-04): every OAuth connection whose
         // token expires within 7 days is refreshed through its platform's own
         // documented flow; a refusal marks it needs_reauth for the hub. Rides
         // this cron because both Hobby crons are taken.
-        try { steps.social_tokens = await require('./_shared/social-gateway-core.js').refreshDueTokens({ withinDays: 7 }); }
-        catch (e) { steps.social_tokens = { error: e.message }; }
+        await step('social_tokens', 'refresh', () => require('./_shared/social-gateway-core.js').refreshDueTokens({ withinDays: 7 }));
         // Snowflake → Supabase daily mirror (historical/deep metrics for the
         // Knickgasm3DConnectorEngine). No-op stub when SNOWFLAKE_* env is unset.
-        try { steps.snowflake_sync = snowflake ? await snowflake.runSync({ source: 'cron' }) : { skipped: true }; }
-        catch (e) { steps.snowflake_sync = { error: e.message }; }
-        const summary = { steps, ms: Date.now() - started };
+        await step('snowflake_sync', 'refresh', async () => (snowflake ? snowflake.runSync({ source: 'cron' }) : { skipped: true }));
+        const summary = { phase, steps, skipped, complete: skipped.length === 0, ms: Date.now() - started };
         await core.logRun('cron', summary, true);
         return res.json({ ok: true, ...summary });
       }
