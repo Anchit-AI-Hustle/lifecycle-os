@@ -134,7 +134,8 @@ test('a run where a model answered is charged the catalogue price, as before', a
 
 test('one failed call and one answered call in the same run is a real answer: charged', async () => {
   let n = 0;
-  db.route((url) => /api\.groq\.com|api\.cerebras\.ai/.test(url), () => (n++ < 2
+  // The first call fails on all three models (groq x2, cerebras); the second answers.
+  db.route((url) => /api\.groq\.com|api\.cerebras\.ai/.test(url), () => (n++ < 3
     ? response(503, { error: { message: 'down' } })
     : response(200, { choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }] })));
   await run(generator(2));
@@ -167,8 +168,11 @@ test('the daily sweep releases a hold older than any function can live, and leav
   for (const l of db.table('credit_ledger')) if (l.hold_id === stale.hold_id || l.hold_id === done.hold_id) l.created_at = new Date(Date.now() - 3600e3).toISOString();
   const recent = await credits.meter(makeReq({ token: 'tok-a' }), FEATURE);   // a run in flight right now
 
+  db.clearCalls();
   const out = await credits.releaseStaleHolds();
   expect(out).toMatchObject({ ok: true, released: 1 });
+  // Only the unsettled hold is released: a settled one is never sent to credit_release.
+  expect(db.calls.filter((c) => /\/rpc\/credit_release/.test(c.url)).map((c) => c.body.p_hold)).toEqual([stale.hold_id]);
   const fin = (h) => db.table('credit_ledger').filter((l) => l.hold_id === h).map((l) => l.kind);
   expect(fin(stale.hold_id)).toEqual(['hold', 'release']);
   expect(fin(done.hold_id)).toEqual(['hold', 'spend']);
