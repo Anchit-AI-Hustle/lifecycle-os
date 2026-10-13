@@ -293,16 +293,22 @@ function runMerge(scenario, eventOver = {}, { permissions } = {}) {
   };
 }
 
-function runDeploy(supplied, { curlExit = 0 } = {}) {
+function runDeploy(supplied, { curlExit = 0, scenario = {} } = {}) {
   const dir = sandbox();
-  const { job } = onlyJob(workflow('deploy-guarantee.yml'));
+  const wf = workflow('deploy-guarantee.yml');
+  const { job } = onlyJob(wf);
   const scriptPath = path.join(dir, 'deploy.sh');
   fs.writeFileSync(scriptPath, onlyRunStep(job).run);
   const logPath = path.join(dir, 'curl-calls.jsonl');
-  const env = envFromJob(job, { TRIGGER: 'workflow_run', HEAD_SHA: MERGE_SHA, REASON: 'spec', ...supplied });
-  Object.assign(env, { PATH: dir + path.delimiter + process.env.PATH, FAKE_CURL_LOG: logPath, FAKE_CURL_EXIT: String(curlExit) });
+  const ghLog = path.join(dir, 'gh-calls.jsonl');
+  const scenarioPath = path.join(dir, 'scenario.json');
+  fs.writeFileSync(scenarioPath, JSON.stringify(scenario));
+  const env = envFromJob(job, { TRIGGER: 'workflow_run', HEAD_SHA: MERGE_SHA, REASON: 'spec', GH_TOKEN: 'fake', REPO, ...supplied });
+  Object.assign(env, { PATH: dir + path.delimiter + process.env.PATH, FAKE_CURL_LOG: logPath, FAKE_CURL_EXIT: String(curlExit),
+    FAKE_GH_LOG: ghLog, FAKE_GH_SCENARIO: scenarioPath, FAKE_GH_PERMISSIONS: JSON.stringify(job.permissions || wf.permissions || {}),
+    FAKE_GH_WRITE_SCOPES: JSON.stringify(WRITE_SCOPES) });
   const r = spawnSync('bash', [scriptPath], { env, encoding: 'utf8', timeout: 60000 });
-  return { rc: r.status, out: (r.stdout || '') + (r.stderr || ''), calls: readCalls(logPath) };
+  return { rc: r.status, out: (r.stdout || '') + (r.stderr || ''), calls: readCalls(logPath), gh: readCalls(ghLog) };
 }
 
 const isPosix = process.platform !== 'win32';
@@ -506,7 +512,8 @@ test('permissions are least-privilege in all three files: the merge job adds exa
   // merge (contents + pull-requests), the repository_dispatch (contents), and
   // the workflow dispatch of ci.yml on main (actions) - and nothing else.
   expect(onlyJob(am).job.permissions).toEqual({ 'pull-requests': 'write', contents: 'write', actions: 'write' });
-  expect(onlyJob(dg).job.permissions).toBeUndefined();
+  // Since 2026-10-13 the deploy job READS CI state before a dispatch deploys (nothing written).
+  expect(onlyJob(dg).job.permissions).toEqual({ actions: 'read', 'pull-requests': 'read' });
   // CI's top-level token still only reads the checkout, and the build and
   // test jobs do not raise it. Only main-state does, and only by what it does.
   expect(ci.permissions).toEqual({ contents: 'read' });
@@ -793,7 +800,7 @@ test('deploy-guarantee chains on CI succeeding for a PUSH to main, can be fired 
       }
     }
   }
-  // The dispatch paths are not re-gated: they carry their own reason.
+  // The dispatch paths pass the job's `if`; the SCRIPT checks their CI (section 4).
   for (const name of ['repository_dispatch', 'workflow_dispatch']) {
     expect(model.ifPasses(job.if, { github: { event_name: name, event: { client_payload: { sha: MERGE_SHA } } } }), name).toBe(true);
   }
@@ -833,6 +840,36 @@ test('with the secret the deploy job POSTs the hook exactly once and reports the
   expect(argv).toContain('-fsS');
   expect(r.out).toContain('Deploy hook accepted');
   expect(r.out).toContain('job fake-job-id state PENDING');
+});
+
+test('a dispatch deploys only when CI passed for what it deploys: failed, cancelled, running or absent CI refuses and fires nothing', () => {
+  test.skip(!isPosix, 'executes bash');
+  const hook = 'https://api.vercel.com/v1/integrations/deploy/prj_fake/hookfake';
+  const runsKey = `GET repos/${REPO}/actions/workflows/ci.yml/runs`;
+  const pr = { [`GET repos/${REPO}/pulls/7`]: { head: { sha: HEAD } } };
+  const run = (status, conclusion, created) => ({ status, conclusion, created_at: created || '2026-10-13T00:00:00Z' });
+  for (const [label, runs] of [
+    ['failure', [run('completed', 'failure')]],
+    ['cancelled (run #628 on main)', [run('completed', 'cancelled')]],
+    ['still running', [run('in_progress', null)]],
+    ['no CI run at all', []],
+    ['an older green run superseded by a newer red one', [run('completed', 'success', '2026-10-13T00:00:00Z'), run('completed', 'failure', '2026-10-13T01:00:00Z')]],
+  ]) {
+    const r = runDeploy({ VERCEL_DEPLOY_HOOK_URL: hook, TRIGGER: 'repository_dispatch', PR: '7' }, { scenario: { ...pr, [runsKey]: { workflow_runs: runs } } });
+    expect(r.rc, label + ': ' + r.out).not.toBe(0);
+    expect(r.calls, label).toEqual([]);                 // the hook was never fired
+    expect(r.out, label).toContain('Deploy refused');
+    expect(r.gh.map((c) => c.key), label).toEqual([`GET repos/${REPO}/pulls/7`, runsKey]);
+  }
+  const ok = runDeploy({ VERCEL_DEPLOY_HOOK_URL: hook, TRIGGER: 'repository_dispatch', PR: '7' }, { scenario: { ...pr, [runsKey]: { workflow_runs: [run('completed', 'success')] } } });
+  expect(ok.rc, ok.out).toBe(0);
+  expect(ok.calls).toHaveLength(1);
+  // A deploy by hand is held to the CI of main's HEAD.
+  const byHand = runDeploy({ VERCEL_DEPLOY_HOOK_URL: hook, TRIGGER: 'workflow_dispatch' }, {
+    scenario: { [`GET repos/${REPO}/commits/main`]: { sha: MERGE_SHA }, [runsKey]: { workflow_runs: [run('completed', 'cancelled')] } } });
+  expect(byHand.rc).not.toBe(0);
+  expect(byHand.calls).toEqual([]);
+  expect(byHand.out).toMatch(/CI for main .* is completed\/cancelled/);
 });
 
 test('a secret that is set but refused by Vercel FAILS the job, so a stale hook is visible instead of silently useless', () => {

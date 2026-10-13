@@ -123,9 +123,46 @@ jobs:
       - name: Brand isolation (no cross-brand content in generated assets)
         run: npm run test:isolation
 
+  # WHY THIS IS SHARDED (2026-10-13). One job ran all 173 spec files on one
+  # runner: 61 minutes for the Playwright step alone (run 38306409071), so a
+  # PR waited an hour and main's run was routinely cancelled by the next merge
+  # before it finished. Now: `select` picks the specs (everything on main; on a
+  # PR, the specs its diff reaches, scripts/ci-select-specs.js), the suite is
+  # split across 6 runners, and the browsers are cached and limited to the two
+  # the projects use (Chromium; WebKit for the iPhone/iPad Studio projects).
+  select:
+    name: Pick the specs (all on main, the ones a PR reaches)
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.pick.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24 }
+      - id: pick
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          node scripts/ci-select-specs.js "origin/${BASE_REF:-main}" > specs.txt
+          mode="$(head -1 specs.txt)"
+          case "$mode" in ALL|NONE) ;; *) mode=LIST ;; esac
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Specs: $mode"; [ "$mode" = LIST ] && cat specs.txt || true
+      - uses: actions/upload-artifact@v7
+        with: { name: selected-specs, path: specs.txt, retention-days: 3 }
+
   e2e:
     name: Visual + invariant tests (Playwright)
+    needs: [select]
+    if: needs.select.outputs.mode != 'NONE'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -133,10 +170,27 @@ jobs:
       - run: npm ci
       - name: Build catalog
         run: npm run build
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright suite
-        run: npx playwright test --reporter=list
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browsers (Chromium + WebKit)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium webkit
+      - name: Install the browsers' system libraries (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium webkit
+      - uses: actions/download-artifact@v4
+        with: { name: selected-specs }
+      - name: Run Playwright suite (shard ${{ matrix.shard }} of 6)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          if [ "$(head -1 specs.txt)" = ALL ]; then files=(); else mapfile -t files < specs.txt; fi
+          npx playwright test --reporter=list --shard="$SHARD/6" --pass-with-no-tests "${files[@]}"
       # `--reporter=list` replaces the config's html reporter, so tests/report/
       # is never written and this step used to upload nothing ("No files were
       # found"). The trace, video and error context of each failed test are
@@ -145,7 +199,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             tests/report/
             test-results/
@@ -160,7 +214,7 @@ jobs:
     # `!cancelled()` replaces the default success(): the red case is the one
     # this job exists for. A cancelled run was superseded by a newer run on
     # main (see `concurrency`), which reports instead.
-    needs: [build, e2e]
+    needs: [build, select, e2e]
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&

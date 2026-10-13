@@ -758,7 +758,41 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
     // The prebuild chain is kicked at the deployment's own URL, with the scheduler secret.
     const kick = guard.calls.find((c) => c.url.startsWith(H.SELF_BASE_URL));
     expect(kick.url).toBe(H.SELF_BASE_URL + '/api/calendar?action=smart-brain-prebuild'); expect(kick.method).toBe('POST'); expect(kick.headers.authorization).toBe(`Bearer ${H.CRON}`);
+    expect(r.out).toMatchObject({ phase: 'all', complete: true, skipped: [] });
   },
+  // Daily Intelligence Sync #71-#73 died at the 120 s limit (2026-10-13): the
+  // loop now runs in phases, and a step it has no time for is said, not killed.
+  cases: [
+    { name: 'phase=data runs only the data steps', run: { method: 'GET', query: { phase: 'data' } },
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        expect(Object.keys(r.out.steps).sort()).toEqual(['benchmarks', 'credit_holds', 'daily_review', 'festivals', 'os_daily']);
+        expect(S.hits(M.generate)).toEqual([]); expect(S.hits(M.sbplan)).toEqual([]);
+        expect(r.out).toMatchObject({ phase: 'data', complete: true });
+      } },
+    { name: 'phase=plan and phase=refresh run theirs', run: { method: 'GET', query: { phase: 'refresh' } },
+      expect: (r) => {
+        expect(Object.keys(r.out.steps).sort()).toEqual(['catalog_refresh', 'competitor_universe', 'snowflake_sync', 'social_tokens']);
+        expect(S.hits(M.osb)).toEqual([]);
+      } },
+    { name: 'an unknown phase is a 400 that names the phases, and runs nothing', run: { method: 'GET', query: { phase: 'everything' } },
+      expect: (r) => { expect(r.status).toBe(400); expect(r.out.message).toMatch(/data, plan, refresh/); expect(S.hits(M.osb)).toEqual([]); } },
+    { name: 'out of time: the steps it cannot reach are skipped with the call that completes them, and it answers', env: { BRAIN_TIME_BUDGET_MS: '21000' },
+      run: { method: 'GET' },
+      stubs: () => {
+        S.on(M.osb, 'runDailyJob', async () => { await new Promise((res) => setTimeout(res, 1500)); return { pulled: 1 }; });
+        S.on(CORE, 'logRun', async () => 'run_cron');
+      },
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        expect(r.out.steps.os_daily).toEqual({ pulled: 1 });
+        expect(r.out.complete).toBe(false);
+        expect(r.out.skipped).toContain('festivals');
+        expect(r.out.skipped).toContain('snowflake_sync');
+        expect(r.out.steps.festivals.skipped).toMatch(/phase=data/);
+        expect(r.out.steps.snowflake_sync.skipped).toMatch(/phase=refresh/);
+      } },
+  ],
 });
 add('domain', { gate: 'user', browser: 'demo', run: { method: 'GET', query: { op: 'check', domains: 'a.example,b.example' } },
   stubs: () => { S.on(M.domainIntel, 'checkMany', async () => ({ ok: true, results: [] })); S.on(M.domainIntel, 'sendingReadiness', async () => ({ ok: true, ready: false })); S.on(M.domainIntel, 'suggest', () => ({ ok: true, suggestions: [] })); S.on(WS_SCOPE, 'brandForWorkspace', async () => BRAND); },
