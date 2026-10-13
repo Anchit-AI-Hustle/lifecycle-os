@@ -127,8 +127,8 @@ test('Generate here sends the edited brief once and plays the track that comes b
   await page.click('#mkGenerate');
   await expect(page.locator('[data-made-track] audio')).toHaveCount(1);
   expect(log.compose).toEqual([{ prompt: 'Short confident ad bed', seconds: 15, instrumental: true }]);
-  const src = await page.locator('[data-made-track] audio').getAttribute('src');
-  expect(src).toMatch(/^blob:/);
+  const audioSrc = await page.locator('[data-made-track] audio').getAttribute('src');
+  expect(audioSrc).toMatch(/^blob:/);
   await expect(page.locator('[data-made-track] a[download]')).toHaveAttribute('download', 'lensbrand-track.mp3');
   await expect(page.locator('#mkStatus')).toContainText('Done');
   expect(log.errors).toEqual([]);
