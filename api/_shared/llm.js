@@ -328,8 +328,13 @@ module.exports = async function callLLM(opts) {
 
   const tierNorm = normalizeTier(tier);
   const startedAt = Date.now();
-  const budgetMs = Number(opts.budgetMs) > 0 ? Number(opts.budgetMs)
+  const askedBudget = Number(opts.budgetMs) > 0 ? Number(opts.budgetMs)
     : (Number(process.env.LLM_TOTAL_BUDGET_MS) > 0 ? Number(process.env.LLM_TOTAL_BUDGET_MS) : Math.max(2 * timeoutMs, 50000));
+  // Never past the request's own deadline (time-budget.js): the router answers
+  // there, so a model call that ran beyond it would be work nobody receives.
+  let deadlineLeft = Infinity;
+  try { deadlineLeft = require('./time-budget.js').timeLeft() - 1000; } catch (_) { /* no scope */ }
+  const budgetMs = Math.max(0, Math.min(askedBudget, deadlineLeft));
   const remaining = () => budgetMs - (Date.now() - startedAt);
   // An attempt shorter than this cannot complete a generation; it is not started.
   const MIN_ATTEMPT_MS = 750;
