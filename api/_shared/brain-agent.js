@@ -242,9 +242,17 @@ function builtinAgent(brand) {
 /** The agent a turn speaks as: its row, else the built-in agent of this request's brand. */
 async function agentFor(agentId) {
   try { return await getAgent(agentId); } catch (e) {
-    if (!(e && e.code === 'agent_not_found' && String(agentId) === BUILTIN_AGENT_ID)) throw e;
+    if (!(e && e.code === 'agent_not_found')) throw e;
     const rt = require('./brand-runtime.js');
     const b = rt.scopedBrand(null);
+    if (String(agentId) !== BUILTIN_AGENT_ID) {
+      // Nothing is seeded (an id is unique across every workspace, see above),
+      // so say what to create, and name the agent that needs no setup.
+      const named = b && !rt.isUnresolved(b) && b.name ? `${String(b.name).trim().slice(0, 70)} Agent` : 'the Brand Agent';
+      e.message = `The agent "${agentId}" does not exist in this brand's workspace, so the conversation did not run. `
+        + `Create it on the Agents page (fill in the form and press Save agent), or talk to ${named}, which answers for your active brand with no setup.`;
+      throw e;
+    }
     if (!b || rt.isUnresolved(b) || !b.name) {
       const r = new Error('The Brand Agent answers for your active brand, and this request has none. Pick or create a brand on the Brand screen, then ask again.');
       r.status = 409; r.code = 'no_active_brand';
@@ -392,7 +400,9 @@ function scopedProducts(agent, products) {
  * ever seeded from a product table.
  */
 async function syncKnowledge(agentId, opts = {}) {
-  const agent = await getAgent(agentId);
+  // The built-in agent has no row (see agentFor); its knowledge is still this
+  // brand's own site, so it syncs like any other (2026-10-13: it answered 404).
+  const agent = await agentFor(agentId);
   const rt = require('./brand-runtime.js');
   const brand = opts.brand || activeBrand();
   const name = (brand && !rt.isUnresolved(brand) && brand.name) || 'this brand';
