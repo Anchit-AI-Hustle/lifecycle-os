@@ -86,13 +86,15 @@ test.describe('the captured-mail archive', () => {
     expect(r.out).toMatchObject({ ok: true, capture_configured: false });
   });
   test('html: a row id below 2 (the header) is a 400; a real id reads that mail', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
     S.on(CORE, 'getEmailHtml', async () => '<p>mail</p>');
     const bad = await call('html', { method: 'GET', query: { id: '1' } });
-    expect(bad.status).toBe(400); expect(S.hits(CORE)).toEqual([]);
+    expect(bad.status).toBe(400); expect(S.hits(CORE).filter((h) => h.fn !== 'captureStatus')).toEqual([]);
     const r = await call('html', { method: 'GET', query: { id: '7' } });
     expect(r.out).toEqual({ ok: true, html: '<p>mail</p>' }); expect(last(CORE, 'getEmailHtml')).toEqual([7]);
   });
   test('raw: serves one mail as a standalone html page, or a 404 page', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
     S.on(CORE, 'getRawHtml', async (o) => (o.id === '3' ? '<!doctype html><p>raw</p>' : null));
     const r = await call('raw', { method: 'GET', query: { key: 'k', id: '3' } });
     expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toMatch(/^text\/html/); expect(r.text).toBe('<!doctype html><p>raw</p>');
@@ -101,6 +103,7 @@ test.describe('the captured-mail archive', () => {
     expect(nf.status).toBe(404); expect(nf.text).toContain('Email not found');
   });
   test('poll: runs one sync, then throttles the next call for 30s without touching IMAP again', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
     S.on(CORE, 'runSync', async () => ({ ok: true, fetched: 2 }));
     const first = await call('poll', { method: 'GET' });
     noHarnessError(first);
@@ -112,6 +115,7 @@ test.describe('the captured-mail archive', () => {
     expect(S.hits(CORE, 'runSync').length).toBe(1);
   });
   test('sync: the scheduler forces a sync; anyone else is refused before IMAP', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
     S.on(CORE, 'runSync', async () => ({ ok: true, fetched: 0 }));
     for (const auth of ['none', 'forged', 'session']) {
       const r = await call('sync', { method: 'GET', auth, origin: false, query: { workspace_id: H.WS } });
@@ -123,9 +127,44 @@ test.describe('the captured-mail archive', () => {
     expect(viaQuery.status).toBe(200);
   });
   test('sort: re-sorts the sheet', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
     S.on(CORE, 'sortEmailsByReceivedDesc', async () => undefined);
     const r = await call('sort', { method: 'GET' });
     expect(r.out).toEqual({ ok: true, sorted: 'received_at desc' }); expect(S.hits(CORE, 'sortEmailsByReceivedDesc').length).toBe(1);
+  });
+  test('no Google credentials and no inbox (production, 2026-10-13): every capture action answers a "not connected" state naming the env vars, and never reaches the sheet or IMAP', async () => {
+    // captureStatus() is the SHIPPED one, reading the router env, which sets none of these.
+    // Everything that would open the sheet or IMAP is a recording stub, so reaching it shows.
+    for (const fn of ['runSync', 'getEmailHtml', 'getRawHtml', 'sortEmailsByReceivedDesc', 'getAllEmails']) S.on(CORE, fn, async () => { throw new Error('reached ' + fn); });
+    for (const action of ['poll', 'sync', 'html', 'raw', 'sort']) {
+      const r = await call(action, { method: 'GET', auth: action === 'sync' ? 'cron' : 'session', query: { id: '7' } });
+      noHarnessError(r);
+      expect(r.status, action + ' ' + r.text).toBe(200);
+      expect(r.out, action).toMatchObject({ ok: true, connected: false, state: 'not_connected' });
+      const names = r.out.missing.join(' ');
+      for (const v of ['GOOGLE_SHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY', 'GCP_WORKLOAD_IDENTITY_PROVIDER', 'GCP_SERVICE_ACCOUNT_EMAIL']) expect(names, action).toContain(v);
+      if (action === 'poll' || action === 'sync') for (const v of ['GMAIL_IMAP_USER', 'GMAIL_IMAP_PASSWORD']) expect(names, action).toContain(v);
+      expect(r.out.message, action).toMatch(/not connected/i);
+      expect(r.text, action).not.toMatch(/Google auth not configured|Missing GMAIL/);
+      expect(S.hits(CORE), action).toEqual([]);
+    }
+    // The sync is still the scheduler's: an anonymous caller is refused before any state is given.
+    const anon = await call('sync', { method: 'GET', auth: 'none', origin: false });
+    expect(anon.status).toBe(401);
+  });
+  test('the sheet configured but no inbox: poll says the inbox is not connected and never opens IMAP', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: false, sheet: true, inbox: false, missing: ['GMAIL_IMAP_USER', 'GMAIL_IMAP_PASSWORD'] }));
+    const r = await call('poll', { method: 'GET' });
+    expect(r.out).toMatchObject({ ok: true, connected: false, state: 'not_connected', missing: ['GMAIL_IMAP_USER', 'GMAIL_IMAP_PASSWORD'] });
+    expect(S.hits(CORE, 'runSync')).toEqual([]);
+  });
+  test('a sync that throws mid-run (sheet down, IMAP refused) answers a sentence, never a 500 that stops the poll', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
+    S.on(CORE, 'runSync', async () => { throw new Error('connect ECONNREFUSED imap.gmail.com:993'); });
+    const r = await call('sync', { method: 'GET', auth: 'cron', origin: false });
+    expect(r.status).toBe(200);
+    expect(r.out).toMatchObject({ ok: false, connected: true, state: 'sync_failed' });
+    expect(r.out.message).toMatch(/ECONNREFUSED/);
   });
   test('adlibrary / ads: the free ad-library lookup', async () => {
     S.on(CORE, 'fetchMetaAds', async () => ({ ok: true, ads: [] }));
@@ -416,6 +455,7 @@ test.describe('the router', () => {
     expect(r.out).toEqual({ ok: false, error: 'Unknown action: no-such-action' });
   });
   test('a core that throws is a 500 with the message', async () => {
+    S.on(CORE, 'captureStatus', () => ({ connected: true, sheet: true, inbox: true, missing: [] }));
     S.on(CORE, 'sortEmailsByReceivedDesc', async () => { throw new Error('sheet gone'); });
     const r = await call('sort', { method: 'GET' });
     expect(r.status).toBe(500);
