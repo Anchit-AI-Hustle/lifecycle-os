@@ -562,7 +562,7 @@
       function place(b) {
         var el = twin(b.el);
         if (el && el !== b.el) { b.el = el; }
-        if (el) {
+        if (el && b.n > 0) {
           el.setAttribute('data-lc-busy', '');
           el.setAttribute('aria-busy', 'true');
         }
@@ -597,7 +597,7 @@
       }
       function start(ctl) {
         var b = A.busy.filter(function (x) { return x.el === ctl; })[0];
-        if (b) { if (b.timer) { clearTimeout(b.timer); b.timer = null; } b.n += 1; return b; }
+        if (b) { if (b.timer) { clearTimeout(b.timer); b.timer = null; } b.n += 1; place(b); return b; }
         css();
         b = { el: ctl, n: 1, t0: Date.now(), line: null };
         var line = document.createElement('span');
@@ -619,7 +619,12 @@
         // same control working: the next request it sends attaches again.
         if (A.last && A.last.el === b.el) A.last.t = Date.now();
         if (b.n > 0) return;
-        // A short grace, so the gap between two chained requests does not flicker.
+        // The answer is in: the control takes a press again at once (only a
+        // request still in flight blocks a second press). The line and the
+        // bar stay a short grace, so two chained requests do not flicker.
+        var live = twin(b.el) || b.el;
+        live.removeAttribute('data-lc-busy');
+        if (live !== b.el) b.el.removeAttribute('data-lc-busy');
         b.timer = setTimeout(function () {
           var el = twin(b.el) || b.el;
           el.removeAttribute('data-lc-busy');
