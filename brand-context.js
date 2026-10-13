@@ -547,7 +547,9 @@
     // device row carries the flag exactly as an account row would.
     var homeSeen = false;
     input.slice(0, 24).forEach(function (r) {
-      var code = str(r && r.code, 12).toUpperCase();
+      // One spelling per market, the server's rule (brand-locale.family).
+      var raw = str(r && r.code, 12);
+      var code = (window.RegionContext && typeof RegionContext.family === 'function') ? RegionContext.family(raw) : raw.toUpperCase();
       if (!code) return;
       var home = r.home === true && !homeSeen;
       if (home) homeSeen = true;
@@ -1516,10 +1518,17 @@
       var nsrcHost = nsrc && nsrc.url ? hostOf(nsrc.url) : '';
       var established = nsrcHost ? sameBrand(registrableDomain(nsrcHost), prevSite)
         : (!!str(prev.name) && nameFitsHost(prev.name, hostOf(prev.website)));
-      if (!established) return null;
-      var nextSite = siteOf({ website: b.website !== undefined ? b.website : prev.website });
+      var nextUrl = b.website !== undefined ? b.website : prev.website;
+      var nextSite = siteOf({ website: nextUrl });
       var name = str(prev.name) || 'this brand';
-      if (nextSite && !sameBrand(nextSite, prevSite)) {
+      // 2026-10-13: an UNestablished record was re-pointed freely, and that is
+      // how one live row became Mamaearth, DelhiChic, Deli Chic and Lenskart in
+      // turn, keeping each brand's slug, palette and assets. Re-pointing is now
+      // only the repair of a mixed record: to the site its NAME was read from,
+      // or a site its name fits. Anything else is another brand.
+      var nameSite = nsrcHost ? registrableDomain(nsrcHost) : '';
+      var repair = !established && ((nameSite && sameBrand(nameSite, nextSite)) || (!!str(prev.name) && nameFitsHost(prev.name, hostOf(nextUrl))));
+      if (nextSite && !sameBrand(nextSite, prevSite) && !repair) {
         return {
           code: 'brand_change_refused', status: 409, field: 'website', domain: nextSite, site: prevSite,
           message: '"' + name + '" is the brand at ' + prevSite + '. A website on ' + nextSite + ' is another brand, so this record is not changed into it: start a new brand from ' + nextSite + ', and "' + name + '" is kept as it is.'
@@ -1527,9 +1536,12 @@
       }
       var nn = str(b.name);
       if (nn && fold(nn) !== fold(prev.name) && str(prev.name)) {
-        var host = hostOf(prev.website);
+        var host = hostOf(nextUrl);
         var shared = nameTokens(nn).some(function (w) { return nameTokens(prev.name).indexOf(w) >= 0; });
-        if (nameFitsHost(prev.name, host) && !nameFitsHost(nn, host) && !shared) {
+        // Any record with a website (2026-10-13, was: only one whose name fit
+        // it): a new name that neither fits the site nor shares a word with the
+        // old name is another brand.
+        if (!nameFitsHost(nn, host) && !shared) {
           return {
             code: 'brand_change_refused', status: 409, field: 'name', domain: '', site: prevSite,
             message: '"' + nn + '" is not a name of the brand at ' + prevSite + ' ("' + name + '"). A record is one brand: start a new brand for "' + nn + '" from its own website, and "' + name + '" is kept as it is.'
