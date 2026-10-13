@@ -27,6 +27,7 @@
 
 const catalog = require('./credit-catalog.js');
 const brandCore = require('./brand-workspace-core.js');
+const scope = require('./request-scope.js');
 
 function env() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -461,6 +462,8 @@ async function meter(req, featureKey, opts) {
     async release(note) {
       if (done) return { ok: true, already: true };
       done = true;
+      // The receipt a page shows must not say a released run was charged.
+      this.receipt = { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units: q.units, charged: 0, released: q.total, note: note || null };
       try { return await rpc('credit_release', { p_hold: holdId, p_note: note || null }); }
       catch (_) { return { ok: false }; }
     },
@@ -612,13 +615,27 @@ function metered(handler, featureFor, unitsFor, opts) {
       if (settled) return;
       settled = true;
       let ok = statusCode >= 200 && statusCode < 400;
+      let note = statusCode < 400 ? 'endpoint returned a fallback result' : `endpoint returned ${statusCode}`;
       // An endpoint may answer 200 with a degraded result. Ask it.
       if (ok && cfg.successIf) {
         try { ok = cfg.successIf(payload, statusCode) !== false; } catch (_) { /* keep ok */ }
       }
+      // A 200 that says it failed is a failure.
+      if (ok && payload && typeof payload === 'object' && payload.ok === false) {
+        ok = false; note = 'endpoint answered ok:false';
+      }
+      // Most generators catch the cascade's error and answer 200 with a template
+      // or a marker. If THIS request made model calls and none of them answered
+      // (all providers failed, the call budget ran out, no provider configured),
+      // nothing the user paid for was produced: give the reservation back.
+      const llmOut = scope.llmOutcome();
+      if (ok && llmOut && llmOut.failed > 0 && llmOut.ok === 0) {
+        ok = false;
+        note = `no model answered (${llmOut.failed} call${llmOut.failed === 1 ? '' : 's'} failed on every provider or ran out of time); reservation returned`;
+      }
       const work = ok
         ? gate.settle(unitsFor ? unitsFor(req, body) : undefined)
-        : gate.release(statusCode < 400 ? 'endpoint returned a fallback result' : `endpoint returned ${statusCode}`);
+        : gate.release(note);
       // Bounded: a hung ledger call must not hang the user's response. Either
       // way the reservation is already reflected in their balance, and an
       // unsettled hold shows in the wallet as `held`.
@@ -656,6 +673,45 @@ function metered(handler, featureFor, unitsFor, opts) {
     await settleNow(code, captured && captured.kind === 'json' ? captured.payload : null);
     return flush();
   };
+}
+
+/* ── holds a killed function left behind ─────────────────────────────────── */
+
+// Longer than any function here can live (the longest maxDuration in
+// vercel.json is 120 s). A hold older than this with no spend or release
+// belongs to an invocation the platform ended.
+const STALE_HOLD_MS = 15 * 60 * 1000;
+
+/**
+ * Release every hold that never settled because its function was killed
+ * (timeout, crash, frozen instance). Runs off the existing daily cron. Never
+ * throws: the cron reports what it did.
+ */
+async function releaseStaleHolds(opts) {
+  const o = opts || {};
+  if (!configured()) return { ok: false, released: 0, reason: 'credit ledger not configured (SUPABASE_SERVICE_ROLE_KEY missing)' };
+  try {
+    const cutoff = new Date(Date.now() - (o.olderThanMs || STALE_HOLD_MS)).toISOString();
+    const since = new Date(Date.now() - 30 * 24 * 3600e3).toISOString();
+    const holds = await serviceRest(`credit_ledger?select=hold_id&kind=eq.hold&created_at=lt.${encodeURIComponent(cutoff)}&created_at=gt.${encodeURIComponent(since)}&order=created_at.asc&limit=500`);
+    const ids = [...new Set((holds || []).map((h) => h.hold_id).filter(Boolean))];
+    if (!ids.length) return { ok: true, released: 0, checked: 0 };
+    const closed = new Set();
+    for (let i = 0; i < ids.length; i += 100) {
+      const part = ids.slice(i, i + 100);
+      const rows = await serviceRest(`credit_ledger?select=hold_id&kind=in.(spend,release)&hold_id=in.(${part.join(',')})`);
+      for (const r of rows || []) closed.add(r.hold_id);
+    }
+    let released = 0;
+    for (const id of ids) {
+      if (closed.has(id)) continue;
+      const r = await rpc('credit_release', { p_hold: id, p_note: 'the run never finished (its function ended before settling); reservation returned' });
+      if (r && r.ok && !r.already_settled) released += 1;
+    }
+    return { ok: true, released, checked: ids.length };
+  } catch (e) {
+    return { ok: false, released: 0, reason: String((e && e.message) || e).slice(0, 200) };
+  }
 }
 
 /* ── recharge ─────────────────────────────────────────────────────────────── */
@@ -1011,5 +1067,5 @@ module.exports = {
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
   isCompPhone, isCompAuth, compPhones, phoneHash, COMP_PHONE_HASHES, MOBILE_ACCOUNT_MESSAGE,
-  spenderRefusal, isDeviceAuth, standaloneMode, STANDALONE_MESSAGE,
+  spenderRefusal, isDeviceAuth, standaloneMode, STANDALONE_MESSAGE, releaseStaleHolds,
 };
