@@ -249,6 +249,13 @@ function project(row, select) {
   return out;
 }
 
+// Columns read from the live project's information_schema (2026-10-14), for
+// the tables whose wrong column has reached production. Add a table here when
+// a column mismatch is found; never invent a column.
+const LIVE_COLUMNS = {
+  smart_products: ['id', 'sku', 'title', 'handle', 'category', 'market', 'price', 'tags', 'metadata', 'updated_at', 'workspace_id'],
+};
+
 class FakeSupabase {
   constructor() {
     this.url = BASE;
@@ -262,6 +269,11 @@ class FakeSupabase {
     this.calls = [];          // every fetch, in order
     this.routes = [];         // [{ test, handler }]
     this.failures = {};       // table -> http status to answer with (a store outage)
+    // table -> its real column list. A table with a declared schema answers a
+    // filter, order or select on a column it does not have as PostgREST does
+    // (400, code 42703), so code asking for a column the database never had
+    // fails here as it fails in production (2026-10-14: smart_products.active).
+    this.columns = Object.assign({}, LIVE_COLUMNS);
     this.rpcFailures = {};    // rpc fn -> http status
     this.rpc = {};            // fn -> (args) => value | Response
     this.clock = Date.now();  // strictly increasing, so `order=created_at.desc` never ties
@@ -381,6 +393,15 @@ class FakeSupabase {
   rest(table, qs, method, body, headers, who) {
     if (this.failures[table]) return response(this.failures[table], { message: `fixture: ${table} is down` });
     const q = parseQuery(qs);
+    const known = this.columns[table];
+    if (known) {
+      const asked = [];
+      for (const f of q.filters) { if (f.or) f.or.forEach((x) => asked.push(x.col)); else asked.push(f.col); }
+      q.order.forEach((o) => asked.push(o.col));
+      (q.select || []).forEach((c) => asked.push(c));
+      const bad = asked.find((c) => c && !/[(:*]/.test(c) && known.indexOf(c) === -1);
+      if (bad) return response(400, { code: '42703', details: null, hint: null, message: `column ${table}.${bad} does not exist` });
+    }
     const prefer = String(headers.prefer || '');
     const rows = this.table(table);
     const seen = (r) => this.visible(table, r, who);

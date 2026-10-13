@@ -32,7 +32,7 @@ function kpisFor(channel, m) {
 async function snapshot() {
   const d = db();
   const [products, assets, campaigns, creatives, metrics] = await Promise.all([
-    d.select('smart_products', { limit: 2000, filters: { active: 'eq.true' } }),
+    d.select('smart_products', { limit: 2000 }),
     d.select('smart_assets', { limit: 200 }),
     d.select('smart_campaigns', { limit: 5000, order: 'started_at.desc' }),
     d.select('smart_campaign_assets', { limit: 20000 }),

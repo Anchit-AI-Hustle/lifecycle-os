@@ -1749,8 +1749,17 @@ function failureStatus(err) {
   if (s >= 400 && s < 500) return s;
   return storeDown(err) ? 503 : 500;
 }
+// A 400/404 from PostgREST is the database ANSWERING: a column or table this
+// code asks for is not in that database (production, 2026-10-14:
+// "column smart_products.active does not exist" read as "the database is
+// paused" on /agent while credits loaded fine). It is said as what it is.
+function storeRefusedSchema(err) {
+  const msg = String((err && err.message) || err || '');
+  return /linked-db (select|insert|upsert|update|delete) [^:]+: 40[04]\b|supabase (get|post|patch|delete) .* -> 40[04]\b/i.test(msg);
+}
 function storeDown(err) {
   const msg = String((err && err.message) || err || '');
+  if (storeRefusedSchema(err)) return false;
   return /linked-db (select|insert|upsert|update|delete)|supabase (get|post|patch|delete) .* -> \d{3}|fetch failed|econnrefused|enotfound|getaddrinfo|network call escaped/i.test(msg);
 }
 function failurePayload(action, err) {
@@ -1758,6 +1767,14 @@ function failurePayload(action, err) {
   const s = Number(err && err.status) || 0;
   if (s >= 400 && s < 500) {
     return { ok: false, action, error: (err && err.code) || 'request_refused', message: msg };
+  }
+  if (storeRefusedSchema(err)) {
+    const m = msg.match(/"message":"([^"]{1,200})"/);
+    return {
+      ok: false, action, error: 'store_schema_mismatch',
+      message: `The workspace database answered, but "${action}" asked it for something it does not have${m ? ` (${m[1]})` : ''}. Nothing was saved. This is a defect in this deployment, not your data.`,
+      detail: msg.slice(0, 300),
+    };
   }
   if (storeDown(err)) {
     let host = '';
