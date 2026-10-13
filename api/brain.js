@@ -1733,7 +1733,10 @@ function failurePayload(action, err) {
 // would replace the sentence that says what to do.
 const _credits = require('./_shared/credits-core.js');
 const _brainHandler = module.exports;
-const _meteredBrain = _credits.metered(_brainHandler, (req, b) => {
+// Answers before maxDuration with what finished (api/_shared/time-budget.js).
+const _timeBudget = require('./_shared/time-budget.js');
+const _guardedBrain = _timeBudget.guard(_brainHandler, { budgetMs: () => _timeBudget.budgetFor('api/brain.js'), label: 'run' });
+const _meteredBrain = _credits.metered(_guardedBrain, (req, b) => {
   const action = String((req.query || {}).action || '').toLowerCase();
   const key = modelFeature(action, req);
   if (!key) return null;
@@ -1768,7 +1771,7 @@ module.exports = function brainRouter(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     return _meteredBrain(req, res);
   }
-  return _brainHandler(req, res);
+  return _guardedBrain(req, res);
 };
 
 // Everything this handler calls runs inside the request scope, so llm.js can
