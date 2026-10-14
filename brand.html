@@ -234,6 +234,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
 
     <div class="card">
+      <h2>Business Model &amp; Asset Playbook</h2>
+      <p class="hint">Governs how mailers, ads, and landing pages are structured. Default is auto-detected from the brand's live catalog, offerings, and industry; or lock it to an explicit commercial playbook below.</p>
+      <div class="grid">
+        <div>
+          <label for="v-model">Commercial Playbook</label>
+          <select id="v-model" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--panel);color:var(--text)">
+            <option value="auto">⚡ Auto-detect from catalog, offerings &amp; industry</option>
+            <option value="commerce">🛍️ Physical Commerce / D2C (Cart, SKUs &amp; AOV)</option>
+            <option value="market_data">📈 Stock Market &amp; Financial Data (Intelligence, Non-Advice Disclaimers &amp; Subscriptions)</option>
+            <option value="news_media">📰 News &amp; Editorial Media (Smart Brevity, Briefings &amp; Publications)</option>
+            <option value="subscription">🔄 SaaS &amp; Recurring Subscriptions (Membership, Feature Onboarding &amp; Churn Defense)</option>
+            <option value="events">🎟️ Events &amp; Summits (Ticket Tiers &amp; Sponsorships)</option>
+            <option value="services">💼 B2B Services &amp; Agency (Discovery Calls, RFPs &amp; Case Studies)</option>
+          </select>
+        </div>
+        <div id="v-model-desc" style="font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Verify</h2>
       <p class="hint">Checks the saved record against the prompt-side brand block and the live store theme.</p>
       <div id="verify"><span class="chip">Run a save to refresh</span></div>
@@ -391,8 +411,31 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('f-facebook').value = soc('facebook');
     $('f-x').value = soc('x');
     $('f-guide').value = (kit && kit.guide_pdf_url) || '';
+    var modelVal = v.business_model || (ob && (ob.business_model || ob.businessModel)) || 'auto';
+    if ($('v-model')) {
+      $('v-model').value = modelVal;
+      updateModelDesc(modelVal);
+    }
     render();
     verify();
+  }
+
+  var MODEL_DESCRIPTIONS = {
+    auto: 'Automatically inspects catalog products, offerings, and industry keywords on each generation run to apply the ideal playbook.',
+    commerce: 'Optimized for physical commerce & D2C. Formats mailers with product imagery, cart conversion triggers, and AOV drivers.',
+    market_data: 'Tailored for stock intelligence & market research. Mandates regulatory compliance disclaimers, unreadable monitor mood photography, and strictly bans synthetic charts.',
+    news_media: 'Engineered for news & journalism. Uses Axios-style Smart Brevity, reading times, and editorial documentary stills.',
+    subscription: 'Optimized for SaaS & memberships. Focuses on feature onboarding, churn mitigation, and annual prepay upgrades.',
+    events: 'Tailored for summits & webinars. Highlights speaker rosters, ticket tiers, and early-bird deadlines.',
+    services: 'Tailored for agencies & consulting. Focuses on strategic teardowns, case studies, and discovery call bookings.'
+  };
+
+  function updateModelDesc(val) {
+    var el = $('v-model-desc');
+    if (el) el.textContent = MODEL_DESCRIPTIONS[val] || MODEL_DESCRIPTIONS.auto;
+  }
+  if ($('v-model')) {
+    $('v-model').addEventListener('change', function () { updateModelDesc(this.value); });
   }
 
   function collect() {
@@ -421,7 +464,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         tone: $('v-tone').value.trim(),
         tagline: $('v-tagline').value.trim(),
         dos: lines($('v-dos').value),
-        donts: lines($('v-donts').value)
+        donts: lines($('v-donts').value),
+        business_model: $('v-model') ? $('v-model').value : 'auto'
       },
       footer_blocks: {
         legal: $('f-legal').value.trim(),

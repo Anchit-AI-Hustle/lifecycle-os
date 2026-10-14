@@ -554,4 +554,5 @@ function brandBlockFor(brand) {
 module.exports = {
   buildMasterPrompt, BRAND_BLOCK, brandBlockFor, regionFacts, REGION,
   buildElementPrompt, promptsFor, deliverable, outputFormat, PROMPT_KIND,
+  auditAsset: require('./asset-auditor.js').auditAsset,
 };
