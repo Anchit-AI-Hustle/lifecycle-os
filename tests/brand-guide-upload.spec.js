@@ -257,9 +257,19 @@ const row = (page, field) => page.locator(`[data-doc-field="${field}"]`).first()
 async function upload(page, sel, name, mimeType, buffer) {
   await page.setInputFiles(sel, { name, mimeType, buffer });
 }
+async function waitDocPrimary(page, timeout) {
+  // Apply / parse re-renders step 1; ensure the optional details stay open so
+  // the report rows are visible (product also opens them when DOC.report lands).
+  await page.waitForFunction(() => {
+    const more = document.getElementById('setupMore');
+    if (more) more.open = true;
+    const row = document.querySelector('[data-doc-field="palette.primary"]');
+    return !!(row && row.offsetParent !== null);
+  }, null, { timeout: timeout || 30000 });
+}
 async function readBook(page) {
   await upload(page, '#docFile', 'harbourlight-brand-book.pdf', 'application/pdf', BOOK);
-  await page.waitForSelector('[data-doc-field="palette.primary"]', { timeout: 30000 });
+  await waitDocPrimary(page);
 }
 
 let world;
@@ -490,7 +500,7 @@ for (const fx of [
   test(`a ${fx.name} reads its colours and type with the line each is on`, async ({ page }) => {
     const log = await open(page, world);
     await upload(page, '#docFile', fx.name, fx.type, fx.body());
-    await page.waitForSelector('[data-doc-field="palette.primary"]');
+    await waitDocPrimary(page);
     const p = (await row(page, 'palette.primary').textContent()).replace(/\s+/g, ' ');
     expect(p).toContain('#1a6b3c');
     expect(p).toContain(fx.name + ' · ' + fx.primary);
@@ -504,7 +514,7 @@ for (const fx of [
 test('a DOCX reads its paragraphs, its shaded swatch cells and its embedded logo', async ({ page }) => {
   await open(page, world);
   await upload(page, '#docFile', 'style-guide.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', F.docx());
-  await page.waitForSelector('[data-doc-field="palette.primary"]');
+  await waitDocPrimary(page);
   expect(await row(page, 'name').textContent()).toContain('Harbourlight Goods');
   expect((await row(page, 'palette.primary').textContent()).replace(/\s+/g, ' ')).toContain('#1a6b3c');
   expect(await row(page, 'typography.heading').textContent()).toContain('Fraunces');
@@ -517,7 +527,7 @@ test('a linked document is read directly when its host allows a browser, and thr
   const log = await open(page, world);
   await page.fill('#docUrl', DOCS + '/DESIGN.md');
   await page.click('#docUrlRun');
-  await page.waitForSelector('[data-doc-field="palette.primary"]');
+  await waitDocPrimary(page);
   expect((await row(page, 'palette.primary').textContent())).toContain('DESIGN.md · l.5');
   expect(log.docFetch, 'a CORS host was proxied through the server').toEqual([]);
   // No CORS: the shipped op fetches it, behind the SSRF guard, and the bytes come back.
