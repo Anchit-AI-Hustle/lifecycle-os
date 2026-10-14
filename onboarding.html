@@ -2382,7 +2382,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     brand.regions = rows;
     if (proposedHome) {
-      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: existingHome && existingHome !== proposedHome ? existingHome : '' });
+      // What this proposal replaced: the home on the rows BEFORE this apply.
+      // Auto-apply on extract (2026-10-09) and a later Use press both call
+      // this; the second time the rows already carry proposedHome, so
+      // existingHome === proposedHome and would erase the earlier
+      // `replaced`. Keep the provenance from the first apply in that case.
+      var replaced = existingHome && existingHome !== proposedHome ? existingHome : '';
+      if (!replaced) {
+        var prevHome = brand.brand_data && brand.brand_data.brand_extraction && brand.brand_data.brand_extraction.applied && brand.brand_data.brand_extraction.applied['regions.home'];
+        if (prevHome && prevHome.value === proposedHome && prevHome.replaced) replaced = prevHome.replaced;
+      }
+      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: replaced });
     } else if (existingHome) {
       noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
     }

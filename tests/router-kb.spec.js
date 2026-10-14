@@ -518,6 +518,52 @@ test.describe('brand-kit / brandkit', () => {
   });
 });
 
+/* ── asset-playbook / playbook ──────────────────────────────────────────── */
+
+test.describe('asset-playbook / playbook', () => {
+  test('GET returns the active workspace brand\'s playbook, hooks and business model', async () => {
+    const r = await call('playbook', { method: 'GET', query: { assetType: 'mailer', market: 'IN' } });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(r.out).toMatchObject({ ok: true, assetType: 'mailer', market: 'IN' });
+    expect(r.out.businessModel).toMatch(/^(commerce|news_media|market_data|subscription|events|services)$/);
+    expect(r.out.playbook).toBeTruthy();
+    expect(Array.isArray(r.out.hooks)).toBe(true);
+    expect(r.out.hooks.length).toBeGreaterThan(0);
+  });
+  test('an unattributed browser request gets NOTHING before the playbook runs — never another brand\'s hooks', async () => {
+    const r = await call('asset-playbook', { method: 'GET', auth: 'none', origin: true });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(r.out).toMatchObject(Object.assign({ error: 'workspace_unresolved', brands: [], brand_kit: null }, NOTHING));
+    expect(r.out.playbook).toBeUndefined();
+    expect(r.out.hooks).toBeUndefined();
+  });
+});
+
+/* ── audit-asset / audit ────────────────────────────────────────────────── */
+
+test.describe('audit-asset / audit', () => {
+  test('POST scores the supplied content against the brand\'s revenue and compliance rules', async () => {
+    const r = await call('audit', {
+      json: { content: 'Shop the drop. LIMITED TIME. Hurry, last chance!', assetType: 'mailer', market: 'IN' },
+    });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(r.out).toMatchObject({ ok: true, assetType: 'mailer', market: 'IN' });
+    expect(typeof r.out.score).toBe('number');
+    expect(['A+', 'A', 'B', 'C', 'F']).toContain(r.out.grade);
+    expect(Array.isArray(r.out.issues)).toBe(true);
+  });
+  test('audit-asset is the same door over GET with query content', async () => {
+    const r = await call('audit-asset', { method: 'GET', query: { content: 'A calm product update.', assetType: 'mailer' } });
+    noHarnessError(r);
+    expect(r.status).toBe(200);
+    expect(r.out.ok).toBe(true);
+    expect(typeof r.out.score).toBe('number');
+  });
+});
+
 /* ── the router itself ──────────────────────────────────────────────────── */
 
 test.describe('the router', () => {
@@ -547,7 +593,7 @@ test.describe('the router', () => {
     const code = H.routerCode(KB);
     const enumerated = H.uniqSorted([...code.matchAll(/\baction === '([a-z-]+)'/g)].map((m) => m[1]));
     expect(enumerated.length).toBeGreaterThanOrEqual(12);
-    const tested = H.uniqSorted(['ingest', 'ingest-files', 'ingest-site', 'list', 'top-emails', 'topemails', 'brands', 'classify-emails', 'classify', 'digest', 'daily-digest', 'brand-kit', 'brandkit']);
+    const tested = H.uniqSorted(['ingest', 'ingest-files', 'ingest-site', 'list', 'top-emails', 'topemails', 'brands', 'classify-emails', 'classify', 'digest', 'daily-digest', 'brand-kit', 'brandkit', 'asset-playbook', 'playbook', 'audit-asset', 'audit']);
     expect(enumerated.filter((a) => !tested.includes(a)), 'actions the router dispatches with no test').toEqual([]);
     expect(tested.filter((a) => !enumerated.includes(a)), 'tests for actions the router no longer has').toEqual([]);
   });
