@@ -76,7 +76,7 @@ function subjectFor(brand) {
 
   if (model === 'market_data') {
     return {
-      scene: `a high-end financial intelligence editorial or conceptual still: an authentic trading environment, financial district architecture at dusk, or sleek abstract data geometry in the brand's palette.${ctx} No physical product, no packaging, no merchandise, and NO fake charts or tickers.`,
+      scene: `a high-end financial intelligence editorial or conceptual still: an authentic trading environment, financial district architecture at dusk, or sleek abstract data geometry in the brand's palette.${ctx} No product, no packaging, no merchandise, and NO fake charts or tickers.`,
       ambient: 'a sophisticated dark or slate terminal backdrop with subtle mathematical grid texture, generous negative space for live financial charts or headline overlays, and NO product.',
       caution: 'NEVER render fake candlestick charts, fabricated ticker symbols, synthetic percentage gains (+300%), or made-up prices. Any data visualization must come from real supplied numbers, never generated. All screens in frame must show abstract light texture with no readable numbers.',
     };
@@ -84,7 +84,7 @@ function subjectFor(brand) {
 
   if (model === 'news_media') {
     return {
-      scene: `an editorial documentary photograph or journalistic still appropriate to this publication's domain (e.g. city hall, port terminal, newsroom atmosphere, or reading moment).${ctx} No physical product, no packaging, no merchandise.`,
+      scene: `an editorial documentary photograph or journalistic still appropriate to this publication's domain (e.g. city hall, port terminal, newsroom atmosphere, or reading moment).${ctx} No product, no packaging, no merchandise.`,
       ambient: 'a clean, dignified editorial backdrop with generous white space for headline and lead copy, and no product of any kind.',
       caution: 'NEVER render fake breaking news banners, simulated headlines, or synthetic politicians/people. Any paper, document, or screen must have illegible texture, not readable words.',
     };
