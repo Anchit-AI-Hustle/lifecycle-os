@@ -27,13 +27,16 @@
  * cohorts from all looking identical.
  */
 
+const playbooks = require('./asset-playbooks.js');
+
 // Ordered, most-specific-first. `order` lists the mailer body sections in the
 // sequence this archetype renders them (header/footer are always fixed).
 const ARCHETYPES = {
+  // ── Commerce / Lifestyle Archetypes ──
   'founder-note': {
     label: 'Founder note',
     hero: 'founder',
-    influencerAngle: 'Write as a warm, first-person note from the KNICKGASM founder to one person. No hard sell. Creator-authenticity voice: honest, specific, a small behind-the-origin detail. The story field should read like a personal letter and end with a signature line (name, role).',
+    influencerAngle: 'Write as a warm, first-person note from the studio founder or lead director to one person. No hard sell. Creator-authenticity voice: honest, specific, a small behind-the-origin detail. The story field should read like a personal letter and end with a signature line (name, role).',
     order: ['founderNote', 'productGrid', 'testimonials'],
   },
   'ugc-testimonial': {
@@ -69,8 +72,40 @@ const ARCHETYPES = {
   'hero-spotlight': {
     label: 'Hero spotlight',
     hero: 'editorial',
-    influencerAngle: 'Single-product hero spotlight, a big close-up the way a creator features one favourite. All attention on one colorway: its origin, its taste, the moment it belongs to.',
+    influencerAngle: 'Single-offering hero spotlight, a big close-up the way a curator features one favourite. All attention on this piece: its origin, its purpose, the moment it belongs to.',
     order: ['heroEditorial', 'productGrid', 'testimonials'],
+  },
+
+  // ── Information & Financial Media Archetypes ──
+  'briefing-digest': {
+    label: 'Executive briefing digest',
+    hero: 'editorial',
+    influencerAngle: 'Authoritative, clear editorial briefing voice. Smart brevity: lead with the big story, why it matters, scannable data points, and curated radar items. Zero fluff.',
+    order: ['heroEditorial', 'bodyStory', 'bullets', 'proUpsell'],
+  },
+  'top-story-lead': {
+    label: 'Deep-dive lead story',
+    hero: 'editorial',
+    influencerAngle: 'Compelling investigative or analytical narrative. Hook the reader with one non-consensus development, walk through the causal drivers and second-order impacts.',
+    order: ['heroEditorial', 'bodyStory', 'dataCallout'],
+  },
+  'data-snapshot': {
+    label: 'Market data & catalyst radar',
+    hero: 'terminal',
+    influencerAngle: 'Sharp financial analyst intelligence voice. Lead with verified macro/micro catalysts, key market pulse indicators, and sector rotation takeaways. Crisp, objective, non-advice.',
+    order: ['marketPulse', 'catalystStory', 'sectorRadar', 'disclaimer'],
+  },
+  'explainer': {
+    label: 'Concept or market explainer',
+    hero: 'editorial',
+    influencerAngle: 'Educational clarity: take a complex economic, news or industry development and explain exactly how the mechanism works in plain, engaging English.',
+    order: ['heroEditorial', 'steps', 'bodyStory'],
+  },
+  'paywall-upsell': {
+    label: 'Premium tier / Pro unlock',
+    hero: 'green',
+    influencerAngle: 'High-value preview of member-exclusive research, model alerts or subscriber deep-dives. Make the value of joining the paid tier undeniable.',
+    order: ['heroGreen', 'featureGrid', 'testimonials'],
   },
 };
 
@@ -85,14 +120,36 @@ function stableIndex(str, n) {
 }
 
 // Pick the archetype key for a slot from its cohort / objective / product /
-// festival. Falls through cohort-intent rules; a couple of ties rotate on the
-// slot seed so back-to-back affinity sends do not all look identical.
-function archetypeKeyFor(slot = {}) {
+// festival and brand business model.
+function archetypeKeyFor(slot = {}, brand = null) {
+  const b = brand || slot.brand || null;
+  const model = playbooks.businessModel(b);
+
   const s = [slot.theme, slot.angle, slot.objective, slot.festival, slot.cohort_name,
     slot.cohort && (slot.cohort.name || slot.cohort.key), slot.cohort_id]
     .filter(Boolean).join(' ').toLowerCase();
   const seed = slot.id || slot.date || s;
 
+  if (model === 'market_data') {
+    if (/pro|vip|paid|premium|upgrade|tier|unlock/.test(s)) return 'paywall-upsell';
+    if (/explain|how|guide|mechanic|education|understand/.test(s)) return 'explainer';
+    if (/lead|deep|earnings|investigat|macro/.test(s)) return 'top-story-lead';
+    if (/brief|digest|summary|roundup|wrap/.test(s)) return 'briefing-digest';
+    // Market data default rotation
+    const rot = ['data-snapshot', 'top-story-lead', 'briefing-digest', 'explainer'];
+    return rot[stableIndex(seed, rot.length)];
+  }
+
+  if (model === 'news_media') {
+    if (/pro|vip|paid|premium|membership|member|upgrade/.test(s)) return 'paywall-upsell';
+    if (/explain|how|guide|background|analysis/.test(s)) return 'explainer';
+    if (/lead|investigat|exclusive|feature|deep/.test(s)) return 'top-story-lead';
+    // News media default rotation
+    const rot = ['briefing-digest', 'top-story-lead', 'explainer'];
+    return rot[stableIndex(seed, rot.length)];
+  }
+
+  // Commerce & generic
   if (/gift|gifting|high.?aov/.test(s)) return 'gift-guide';
   if (/winback|win.?back|lapsed|at.?risk|non.?engager|dormant|churn/.test(s)) return 'ugc-testimonial';
   if (/new sub|first.?purchase|activation|non.?buyer|welcome|onboard/.test(s)) return 'ritual-tutorial';
@@ -108,10 +165,15 @@ function archetypeKeyFor(slot = {}) {
   return DEFAULT_KEY;
 }
 
-function strategyFor(slot = {}) {
-  const key = archetypeKeyFor(slot);
+function strategyFor(slot = {}, brand = null) {
+  const b = brand || slot.brand || null;
+  const key = archetypeKeyFor(slot, b);
   const a = ARCHETYPES[key] || ARCHETYPES[DEFAULT_KEY];
-  return { key, ...a };
+  let angle = a.influencerAngle;
+  if (b && b.name && angle.includes('studio founder')) {
+    angle = angle.replace('studio founder', `${b.name} founder`);
+  }
+  return { key, ...a, influencerAngle: angle };
 }
 
 module.exports = { strategyFor, archetypeKeyFor, ARCHETYPES, DEFAULT_KEY };

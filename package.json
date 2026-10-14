@@ -60,7 +60,9 @@
     "db:push:dry": "supabase db push --linked --dry-run",
     "db:push": "supabase db push --linked",
     "db:new": "supabase migration new",
-    "verify": "npm run brand:check && npm run check:foreign:ci && npm run check:skills:ci && npm run check:designmd:ci && npm run audit:pages:ci && npm run audit:interactions:ci"
+    "kb:refresh": "node scripts/refresh-asset-kb.js",
+    "kb:check": "node scripts/refresh-asset-kb.js --check",
+    "verify": "npm run brand:check && npm run check:foreign:ci && npm run check:skills:ci && npm run check:designmd:ci && npm run kb:check && npm run audit:pages:ci && npm run audit:interactions:ci"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
