@@ -53,10 +53,14 @@ test('the delete reports what it could NOT remove', () => {
 /* ═══ the list offers edit and delete ══════════════════════════════════════ */
 
 test('every brand row offers switch, edit and delete', () => {
-  const list = ONBOARDING.slice(ONBOARDING.indexOf('async function loadWorkspaces'));
-  const block = list.slice(0, 4000);
-  for (const act of ['switch', 'edit', 'delete']) {
-    expect(block, `the brand list must offer "${act}"`).toMatch(new RegExp(`data-act="${act}"`));
+  // Compact multi-brand setup put the brand list on step 1 as well as Review;
+  // both must offer the same three actions (Delete was missing on step 1).
+  for (const fn of ['loadStep1Brands', 'loadWorkspaces']) {
+    const list = ONBOARDING.slice(ONBOARDING.indexOf('async function ' + fn));
+    const block = list.slice(0, 4500);
+    for (const act of ['switch', 'edit', 'delete']) {
+      expect(block, `${fn} must offer "${act}"`).toMatch(new RegExp(`data-act="${act}"`));
+    }
   }
 });
 
@@ -69,8 +73,9 @@ test('edit reuses the wizard\'s own ?id= path rather than a second seeding route
 });
 
 test('delete requires the brand name, not a single OK', () => {
-  const list = ONBOARDING.slice(ONBOARDING.indexOf('async function loadWorkspaces'));
-  const block = list.slice(0, 6000);
+  // One shared confirmDeleteBrand() serves step 1 and Review.
+  const fn = ONBOARDING.slice(ONBOARDING.indexOf('async function confirmDeleteBrand'));
+  const block = fn.slice(0, 2500);
   // A confirm() is too cheap for something that removes a catalogue, stored
   // credentials and a credit ledger.
   expect(block).toMatch(/window\.prompt/);
@@ -82,16 +87,18 @@ test('delete requires the brand name, not a single OK', () => {
 });
 
 test('deleting the ACTIVE brand warns that it is the active one', () => {
-  const list = ONBOARDING.slice(ONBOARDING.indexOf('async function loadWorkspaces'));
-  const block = list.slice(0, 6000);
+  const fn = ONBOARDING.slice(ONBOARDING.indexOf('async function confirmDeleteBrand'));
+  const block = fn.slice(0, 2500);
   expect(block).toMatch(/alsoActive/);
   expect(block).toMatch(/ACTIVE brand/);
 });
 
 test('a row action does not also trigger the row switch', () => {
-  const list = ONBOARDING.slice(ONBOARDING.indexOf('async function loadWorkspaces'));
-  const block = list.slice(0, 6000);
-  // Without this, pressing Delete would switch to the brand and then delete
-  // it, leaving the app pointed at a workspace that no longer exists.
-  expect(block).toMatch(/stopPropagation/);
+  for (const fn of ['loadStep1Brands', 'loadWorkspaces']) {
+    const list = ONBOARDING.slice(ONBOARDING.indexOf('async function ' + fn));
+    const block = list.slice(0, 6000);
+    // Without this, pressing Delete would switch to the brand and then delete
+    // it, leaving the app pointed at a workspace that no longer exists.
+    expect(block, `${fn} must stopPropagation on row actions`).toMatch(/stopPropagation/);
+  }
 });
