@@ -930,7 +930,9 @@
       { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
       { id: 'brand-catalogue', label: 'Brand Catalogue', href: '/catalog', icon: 'insights', ver: 'v2', match: ['/catalog', '/brand-catalogue', '/brand-catalogue.html'] },
       { id: 'brand-context',  label: 'Brand Context',    href: '/brand-context', icon: 'insights', ver: 'v2', match: ['/brand-context', '/brand-context-view.html'] },
-      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
+      // Opens a blank brand on the app setup palette (not the previous brand's
+      // colours). Existing brands switch from the rail picker or step 1 list.
+      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?new=1', icon: 'studio', match: [] },
       { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
       { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
       { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
