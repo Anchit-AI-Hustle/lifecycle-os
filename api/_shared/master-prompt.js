@@ -181,24 +181,27 @@ ${VISUAL_CASCADE}`;
 
   if (variant === 'V1') {
     return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
-A finished email that stands on its own with zero images: type, rules, colour and space do all the work. Not a copy deck, and not a description of an email — the email.
-It must CONTAIN, in this order:
-1. Subject lines and preheader (3 subject options and 1 preheader, in their own sections before the HTML, inside the limits the OUTPUT REQUIREMENT states).
-2. An editorial hero headline and an opening line that earns the scroll.
-3. Body: 2–3 short story-driven paragraphs (origin, everyday use, why-now).
-4. A benefit triplet, 3 crisp lines.
-5. One short personal testimonial — only if one was supplied. None supplied, omit the block rather than writing one.
-6. CTA copy linking to the destination store URL.
-Compact, around two scrolls. Because there are no images, every structural cue has to be typographic: weight, size, rules and generous space.`;
+A high-converting direct-response email that stands on its own with zero images: type, rules, colour, and editorial hierarchy do all the work. Not a copy deck, and not a description of an email — the finished, ready-to-send email.
+Follow the 7-Step High-Conversion Persuasion Architecture in this exact order:
+1. Subject lines and preheader: 3 high-converting subject options (curiosity gap, pattern-interrupt, or specific outcome) and 1 preheader (extends the curiosity loop, never repeats the subject), inside the character limits the OUTPUT REQUIREMENT states.
+2. Opening Pattern-Interrupt Hook: An editorial hero headline and opening line that stops apathy, exposes a common false assumption, or agitates an unspoken everyday friction.
+3. Problem Agitation & Hidden Cost of Inaction: 1–2 paragraphs exposing why standard category alternatives fail or how the status quo holds the reader back.
+4. The Unique Mechanism & Craft: Reveal the hero offering as the systematic answer—how its specific formulation, craft, or source solves the friction naturally.
+5. Sensory Transformation Triplet: 3 crisp, sensory-rich bullet lines painting the vivid "After-State" (how life, routine, or performance feels with it).
+6. Transparent Pricing Anchor & Social Proof: State the clear catalog price anchor and one personal testimonial ONLY if supplied in the approved library (none supplied = omit rather than fabricate).
+7. Single High-Contrast CTA & Skimmer P.S.: A clear primary call-to-action link to the store PDP, plus a punchy P.S. that restates the core hook or risk reversal for skimmers.
+Compact, around two to three scrolls. Because there are no images, every structural cue has to be typographic: weight, size, rules, and generous whitespace.`;
   }
   return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
-The same persuasion as V1, laid out with imagery. A finished email, not a layout plan and not a set of section notes.
-It must CONTAIN, in this order:
-1. Subject lines and preheader (3 options and 1 preheader, in their own sections before the HTML).
-2. A hero: headline, opening line, and a hero image as an <img> pointing at a hosted URL I supplied. Where I supplied no image for a slot, leave the slot out and put the shot description in an HTML comment beside it — never a placeholder service, never an invented URL.
-3. Body sections carrying the argument, each with its own copy and, where an image was supplied, its own visual.
-4. A motion slot — an animated GIF or a short product video — placed where it earns attention, with its brief in an HTML comment. If it is a video, score it to ${cf.audio}. Never a licensed or trending sound.
-5. A benefit strip, social proof (only from supplied proof), an offer bar (only if an offer was supplied), and one CTA.
+The same high-converting direct-response persuasion as V1, laid out with imagery and visual rhythm. A finished, ready-to-send email, not a layout plan.
+Follow the 7-Step High-Conversion Persuasion Architecture in this exact order:
+1. Subject lines and preheader: 3 options and 1 preheader in their own sections before the HTML.
+2. Visual Hero & Pattern Interrupt: Headline, opening hook, and a real hero product photograph as an <img> pointing at a hosted URL supplied in the prompt. Where no image is supplied, omit the slot and put the shot description in an HTML comment beside it—never a placeholder service, never an invented URL.
+3. Problem Agitation & Unique Mechanism: Body sections carrying the argument, breaking down why ordinary category alternatives fail and revealing the offering's craft/mechanism. Where images are supplied, pair each beat with its own visual.
+4. Sensory Transformation Triplet: 3 crisp outcome-driven benefit bullets highlighting the sensory "After-State".
+5. Motion Slot: An animated GIF or short product demo placed where it earns attention, with its brief in an HTML comment. If video, score to ${cf.audio}. Never a licensed or trending track.
+6. Product Grid, Pricing Anchor & Social Proof: Clear pricing and product cards from supplied facts, social proof (only from supplied proof), offer bar (only if an offer was supplied), and risk reversal guarantee (if stated).
+7. High-Contrast Primary CTA Button & Skimmer P.S.: Prominent action button driving to the PDP, followed by a punchy P.S. for readers scrolling to the bottom.
 Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
 ${VISUAL_CASCADE}`;
 }
@@ -233,12 +236,14 @@ function adContract(platform, cf, brand, market) {
   return `ASSET: Paid ad creative for ${platform.toUpperCase()} — a FULL ad, not just copy.
 The PRODUCED creative is a still, photoreal, on-palette image at each size below, with the on-creative text overlay BAKED INTO the image — exactly like a real ${platform} ad. The text is part of the rendered creative, NOT a separate caption: specify the exact overlay wording, font (${cf.fonts}), colour (use ONLY ${cf.paletteList}), size and pixel placement within the safe zones (on 9:16 keep all text clear of the bottom 20% platform-UI chrome), legible at a glance.
 ${complianceRule}
-━━ STRATEGY — SELL THE OUTCOME, NOT THE TECHNIQUE ━━
+━━ STRATEGY — 7-STEP HIGH-CONVERSION PERSUASION ARCHITECTURE ━━
 TARGET: the audience defined by THIS brand's own record and the campaign brief. Never borrow another brand's persona; if neither names an audience, write [DATA REQUIRED BEFORE LAUNCH: audience, campaign, market] instead of inventing one.
-SELL THE EMOTIONAL END-STATE, never the technique. Lead with what the buyer's life looks like after — belonging, status, relief, mastery — whatever THIS brand's proposition genuinely delivers. A spec or process detail may appear only as the *reason* the payoff is believable, never as the hook.
-THE 1-SECOND SCROLL-STOP: the visual must stop this brand's own audience in under one second, built from the brand's real offering imagery. Do NOT lead with heavy text or process call-outs. Scaling depends on scroll-stop + engagement, not just the click.
+1. THE 1-SECOND SCROLL-STOP HOOK: The visual + headline overlay must stop this brand's own audience in under one second. Built from the brand's real offering imagery. Scaling depends on scroll-stop + engagement, not just the click.
+2. AGITATE THE FRICTION: Agitate the core problem or status quo frustration this audience experiences.
+3. THE UNIQUE MECHANISM: Reveal why THIS offering succeeds where ordinary solutions fail, drawn from verifiable facts (${cf.claims}).
+4. SENSORY TRANSFORMATION: Sell the emotional "After-State"—what the buyer's life looks like after (belonging, relief, confidence, mastery). Process/spec details are only the reason to believe.
+5. TRANSPARENT OFFER & FRICTIONLESS CTA: Transition cleanly from the emotional hook into the brand's real proposition and clear CTA. Use only offers supplied in the brief; never invent a discount or fake deadline.
 CURATE, DON'T INVENT: structure the creative on proven, replicable formats native to ${cf.industry} (UGC, before/after, process time-lapse, day-in-the-life), not novel concepts.
-OFFER: transition cleanly from the emotional hook into the brand's real proposition, built ONLY from its verifiable claims (${cf.claims}) — a premium, frictionless CTA, never a cheap pop-up. Use only offers supplied in the brief; never invent a discount, a percentage, or a delivery promise.
 
 Platform spec: ${spec}
 Deliver: (a) every text field the platform requires; (b) for EACH static size above, a precise creative brief describing the still visual, the BAKED-IN overlay wording (headline + offer) + exact pixel placement + safe zones; (c) the destination URL.
@@ -267,9 +272,9 @@ Mobile-first, fast, self-contained HTML/CSS (inline), no external fonts/scripts.
 ${VISUAL_CASCADE}`;
   }
 
-  return `ASSET: Landing page in a direct-response presell style (reference: https://${facts.presell}/...).
-Build a conversion-focused, single-scroll-friendly page using the brand palette/typography.
-Sections, in order: sticky announcement bar · hero (headline + sub + primary CTA) · trust/credentials row · problem→solution narrative · offering reveal with price (${facts.currency}) · collection/offering grid · proof section built ONLY from the brand's verifiable claims (${cf.claims}) · testimonials as mini-stories (only supplied ones; none supplied = omit the section) · FAQ (accordion) · risk-reversal/guarantee (only if the brand states one) · sticky footer CTA.
+  return `ASSET: Landing page in a high-converting direct-response presell style (reference: https://${facts.presell}/...).
+Build a conversion-focused, single-scroll-friendly page using the brand palette/typography following the 7-Step Persuasion Architecture.
+Sections, in order: sticky announcement bar · hero (pattern-interrupt headline + outcome subline + primary CTA) · trust/credentials row · problem agitation vs unique mechanism narrative · sensory transformation triplet (3 outcome bullets) · offering reveal with transparent price (${facts.currency}) · collection/offering grid · proof section built ONLY from the brand's verifiable claims (${cf.claims}) · testimonials as mini-stories (only supplied ones; none supplied = omit the section) · FAQ (accordion) · risk-reversal/guarantee (only if the brand states one) · sticky footer CTA.
 Every CTA links to the regional store (https://${facts.store}/products/{handle}). Mobile-first, fast, self-contained HTML/CSS (inline), no external fonts/scripts.
 ${VISUAL_CASCADE}`;
 }

@@ -2121,9 +2121,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // The record of reads names the read that produced its values, not the first one ever made.
       if (brand.brand_data && brand.brand_data.brand_extraction) { brand.brand_data.brand_extraction.source = r.start || url; brand.brand_data.brand_extraction.extracted_at = new Date().toISOString(); }
       if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);
-      // Auto-apply all detected locations and markets where the brand covers
+      // Auto-apply all detected locations and markets where the brand covers (only if empty)
       if (r.fields && r.fields.regions && r.fields.regions.candidates && r.fields.regions.candidates.length) {
-        applyRegionsFrom(r.fields);
+        if (!brand.regions || !brand.regions.length) {
+          applyRegionsFrom(r.fields);
+        }
       }
       // Saved through the path this brand already uses (the device store or the
       // account), so a reload keeps it. A brand with no name yet stays in the form.

@@ -182,7 +182,7 @@ function fromRow(row) {
     sku: row.sku || '',
     price: row.price != null ? row.price : null,
     compare_at: row.compare_at != null ? row.compare_at : null,
-    currency: row.currency || '',
+    currency: row.currency || (row.region ? require('./catalog-import.js').marketCurrency(row.region) : '') || '',
     type: row.product_type || '',
     subtitle: '',
     product_url: typeof row.product_url === 'string' && /^https?:\/\//.test(row.product_url) ? row.product_url : '',

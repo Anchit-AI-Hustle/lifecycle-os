@@ -689,3 +689,25 @@ test('/connections shows the active brand\'s catalogue coverage and, pressed onc
     expect(cont[0].sent).toMatchObject({ workspace_id: WS, continue: true });
   } finally { await new Promise((r) => srv.close(r)); }
 });
+
+test('catalog import for each region imports correctly with regionwise currency (IN->INR, UK->GBP, US->USD, EU->EUR) across CSV and JSON', async () => {
+  const w = world({ website: 'https://multicurrency.example', regions: [{ code: 'IN', home: true }, { code: 'UK' }, { code: 'US' }, { code: 'EU' }] });
+  try {
+    // 1. CSV import with no currency column for India: receives INR
+    await core.importCatalog(w.owner, { workspace_id: WS, region: 'in', kind: 'csv', text: 'title,price\nChai Spiced Blend,499\n', replace: false });
+    expect(w.rows().find((p) => p.title === 'Chai Spiced Blend')).toMatchObject({ region: 'in', price: 499, currency: 'INR' });
+
+    // 2. CSV import for UK: receives GBP
+    await core.importCatalog(w.owner, { workspace_id: WS, region: 'uk', kind: 'csv', text: 'title,price\nEarl Grey Classic,15\n', replace: false });
+    expect(w.rows().find((p) => p.title === 'Earl Grey Classic')).toMatchObject({ region: 'uk', price: 15, currency: 'GBP' });
+
+    // 3. JSON import for EU: receives EUR
+    await core.importCatalog(w.owner, { workspace_id: WS, region: 'eu', kind: 'json', text: JSON.stringify([{ title: 'Herbal Infusion', price: 18 }]), replace: false });
+    expect(w.rows().find((p) => p.title === 'Herbal Infusion')).toMatchObject({ region: 'eu', price: 18, currency: 'EUR' });
+
+    // 4. JSON import with explicit currency: preserves stated currency
+    await core.importCatalog(w.owner, { workspace_id: WS, region: 'us', kind: 'json', text: JSON.stringify([{ title: 'Cold Brew Roast', price: 24, currency: 'USD' }]), replace: false });
+    expect(w.rows().find((p) => p.title === 'Cold Brew Roast')).toMatchObject({ region: 'us', price: 24, currency: 'USD' });
+  } finally { w.restore(); }
+});
+
