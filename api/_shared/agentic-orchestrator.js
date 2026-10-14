@@ -194,10 +194,17 @@ async function runAgentic(opts = {}) {
 
   const remaining = inWindow.length - campaigns.length;
   if (campaigns.length) {
+    // Honest remaining line (2026-10-14): this orchestrator never kicks
+    // smart-brain-prebuild and never writes the Rolling calendar. Saying
+    // "queued for the background prebuild" made operators look for assets on
+    // the dashboard that this run did not enqueue. Remaining days need Daily
+    // Sync (which does kick prebuild) or another agentic run with more budget.
     rec('content+asset', true,
       `built ${campaigns.length} of ${inWindow.length} campaign(s) across ${windowDays} day(s), creatives ${withCreatives ? 'on' : 'off'}`
-      + (remaining > 0 ? ` — ${remaining} still to build, queued for the background prebuild` : ''),
+      + (remaining > 0 ? ` — ${remaining} not built in this run (time box); they are not on the Rolling calendar until Daily Sync / prebuild covers those slots` : ''),
       { days: windowDays, built: campaigns.length, planned: inWindow.length, remaining, dates: campaigns.map((c) => c.date) });
+    // Stage ok=true means the review RAN. pass=false (score < 7) is a gate
+    // verdict on the campaign, not a failed stage — the summary carries both.
     rec('smart-review', true,
       `${reviews.filter((r) => r && r.pass).length} of ${reviews.length} passed the score gate`,
       { scores: reviews.map((r) => (r ? r.score : null)) });
