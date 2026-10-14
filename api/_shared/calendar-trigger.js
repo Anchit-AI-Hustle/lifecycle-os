@@ -721,14 +721,14 @@ function _renderVariantBody(o) {
 
   const blocks = (body_blocks || []).map((b) => `
     <tr><td style="padding:18px 32px 0;">
-      <p style="font-family:${HEAD};font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading || '')}</p>
-      <p style="font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '')}</p>
+      ${b.heading ? `<p style="font-family:${HEAD};font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading)}</p>` : ''}
+      <p style="font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '').replace(/\n\n+/g, '</p><p style="font-family:' + BODY + ';font-size:15px;line-height:1.65;color:' + palette.ink + ';margin:8px 0 0;">').replace(/\n/g, '<br>')}</p>
     </td></tr>`).join('');
 
   // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
   //    and a brand palette hero block. Visual elements stay light and on-brand.
   if (style === 'visual') {
-    const heroLabel = hero_product ? esc(hero_product) : 'Today on the detailing table';
+    const heroLabel = hero_product ? esc(hero_product) : `${esc(brandNameOf(o))} Studio Spotlight`;
     // Real hero photograph if we have one; otherwise, when a generation prompt
     // is supplied, emit the lava-standard IMAGE GENERATION PROMPT comment + a
     // PASTE_IMAGE_URL_HERE slot the asset agent fills. With neither, the
@@ -815,7 +815,7 @@ function _renderVariantBody(o) {
       <tr><td style="padding:24px 32px 0;">
         <p data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
-        <p style="font-family:${BODY};font-size:13px;color:#7a6e5a;margin:0;">A note from the detailing table</p>
+        <p style="font-family:${BODY};font-size:13px;color:#7a6e5a;margin:0;">A note from the ${esc(brandNameOf(o))} team</p>
       </td></tr>
       ${blocks}
       ${productGrid}

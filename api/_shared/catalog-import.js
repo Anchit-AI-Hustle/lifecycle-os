@@ -569,10 +569,15 @@ function foreignStoreSentence(f, identity) {
   return `The ${f.code || 'region'} store URL on this brand's record, ${f.url}, is on another site (${f.domain}), not this brand's website (${identity}), so it was not read; the brand's own site was read instead.`;
 }
 
-/** The currency a Shopify storefront page declares it is pricing this market in. */
+/** The currency a storefront page declares it is pricing this market in. */
 function declaredCurrency(html) {
-  const m = /Shopify\s*\.\s*currency\s*=\s*\{[^}]*["']active["']\s*:\s*["']([A-Za-z]{3})["']/.exec(String(html || ''));
-  return m ? m[1].toUpperCase() : '';
+  const text = String(html || '');
+  const m = /Shopify\s*\.\s*currency\s*=\s*\{[^}]*["']active["']\s*:\s*["']([A-Za-z]{3})["']/.exec(text);
+  if (m) return m[1].toUpperCase();
+  const mMeta = /<meta\s+property=["']og:price:currency["']\s+content=["']([A-Za-z]{3})["']/i.exec(text)
+    || /<meta\s+name=["']currency["']\s+content=["']([A-Za-z]{3})["']/i.exec(text)
+    || /["']priceCurrency["']\s*:\s*["']([A-Za-z]{3})["']/i.exec(text);
+  return mMeta ? mMeta[1].toUpperCase() : '';
 }
 
 /* ── rows ───────────────────────────────────────────────────────────────── */
@@ -601,7 +606,7 @@ function rowFromFeed(p, { region, base, currency, feedUrl }) {
     collections: [],
     price: first.price != null ? first.price : null,
     compare_at: first.compare_at != null ? first.compare_at : null,
-    currency: currency || null,
+    currency: currency || marketCurrency(region) || null,
     image_url: images[0] || null,
     image_urls: images,
     variants,
@@ -675,7 +680,7 @@ function rowFromPage(html, pageUrl, { region, source }) {
       if (plain) {
         return { row: {
           region, title: plain.title, handle: handleFromUrl(pageUrl) || null, sku: plain.sku, description: null, product_type: null, collections: [],
-          price: plain.price, compare_at: null, currency: plain.currency, image_url: plain.images[0] || null, image_urls: plain.images, variants: [],
+          price: plain.price, compare_at: null, currency: plain.currency || marketCurrency(region) || null, image_url: plain.images[0] || null, image_urls: plain.images, variants: [],
           product_url: pageUrl, in_stock: null, tags: [], source, source_url: pageUrl,
           raw: { declared: 'embedded-json', keys: plain.keys },
         } };
@@ -715,7 +720,7 @@ function rowFromPage(html, pageUrl, { region, source }) {
         collections: [],
         price: head.price != null ? head.price : null,
         compare_at: head.compare_at != null ? head.compare_at : null,
-        currency: head.currency || (variants[0] && variants[0].currency) || null,
+        currency: head.currency || (variants[0] && variants[0].currency) || marketCurrency(region) || null,
         image_url: images[0] || null,
         image_urls: [...new Set(images)].slice(0, 30),
         variants: variants.map((v) => ({ id: v.id, sku: v.sku, title: v.title, price: v.price, compare_at: v.compare_at, available: v.available })),
@@ -1142,10 +1147,15 @@ function withSelector(u, sel) {
   return u;
 }
 
-/** The currency a market prices in, from the one country table; '' for a zone (EU, GLOBAL). */
+/** The currency a market prices in, from the one country table or canonical zone defaults. */
 function marketCurrency(reg) {
+  const r = String(reg || '').toUpperCase();
+  if (r === 'EU' || r === 'EUROPE') return 'EUR';
+  if (r === 'GLOBAL' || r === 'WORLDWIDE' || r === 'INTL' || r === 'ROW') return 'USD';
+  if (r === 'UK' || r === 'GB') return 'GBP';
+  if (r === 'IND' || r === 'INDIA') return 'INR';
   const c = LOC.countryOf(reg);
-  return c && LOC.COUNTRY[c] ? LOC.COUNTRY[c][0] : '';
+  return (c && LOC.COUNTRY[c] ? LOC.COUNTRY[c][0] : '') || (LOC.COUNTRY[r] ? LOC.COUNTRY[r][0] : '');
 }
 
 /** Once every sitemap is read: the read queue and the denominator. */

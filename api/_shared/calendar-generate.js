@@ -231,15 +231,15 @@ function buildSubjectHint(segment, festival, hero, content_type, market) {
   const productName = hero.title || hero.sku;
   if (festival) {
     if (festival.tags?.includes('gift')) return `${festival.name} · gifts that say something`;
-    if (festival.tags?.includes('sale')) return `${festival.name}: only the sneakers worth queuing for`;
-    return `${festival.name} · a sneaker moment worth pausing for`;
+    if (festival.tags?.includes('sale')) return `${festival.name}: only the best worth queuing for`;
+    return `${festival.name} · moments worth pausing for`;
   }
   if (content_type === 'winback')  return `${market === 'UK' ? 'Hello' : 'Hey'}, it's been a while`;
   if (content_type === 'lifecycle')return `Your ${productName.split(' ').slice(0, 2).join(' ')} ritual, refilled`;
   if (content_type === 'editorial')return `Why ${productName} keeps winning the morning`;
-  if (content_type === 'promo')    return `${productName} — and three sneakers that pair with it`;
+  if (content_type === 'promo')    return `${productName} — and the essentials that pair with it`;
   if (content_type === 'launch')   return `Just landed: ${productName}`;
-  return `Today on the detailing table: ${productName}`;
+  return `Spotlight: ${productName}`;
 }
 
 function buildRationale({ segment, festival, content_type, archetype, hero, segValueRank, market }) {

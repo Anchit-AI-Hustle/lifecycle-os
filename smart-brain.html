@@ -338,7 +338,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
       <!-- The markets this run builds for: the shared selection (2026-10-12).
            The run is made ONCE PER TICKED MARKET, each request one market. -->
-      <div id="agenticMarkets" data-region-multi="each" data-region-label="Markets this run builds for"></div>
+      <div id="agenticMarkets" data-region-multi="each" data-region-label="Markets this run builds for" data-region-default="all"></div>
       <p id="agenticWhy" class="vh-status" role="status" hidden></p>
       <p id="agenticMarket" class="tdim" style="margin:0 0 10px" hidden></p>
       <div id="agenticOut" class="feed"><p class="tdim">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
@@ -624,12 +624,22 @@ function agenticMarket(){
   return { market: all.markets[0] || '', marker: all.marker };
 }
 /* The markets the agentic run builds for: the shared selection (the Region
-   filter and the control in this card are the same selection), else the
-   brand's HOME market. Each is ONE run with ONE market (2026-10-12). */
+   filter and the control in this card are the same selection), else every
+   market this brand plans for. Each is ONE run with ONE market. */
 function agenticMarkets(){
   const RC = window.RegionContext;
+  if(SELECTED_MKT && SELECTED_MKT.size > 0){
+    return { markets: Array.from(SELECTED_MKT), marker: '' };
+  }
+  if(RC && RC.marketsFor){
+    const list = RC.marketsFor().filter(Boolean);
+    if(list.length) return { markets: list, marker: '' };
+  }
+  if(ALL_MKTS && ALL_MKTS.length > 0){
+    return { markets: ALL_MKTS.slice(), marker: '' };
+  }
   if(RC){
-    const list = (RC.marketsFor ? RC.marketsFor() : [RC.region || RC.home]).filter(Boolean);
+    const list = [RC.region || RC.home].filter(Boolean);
     if(list.length) return { markets: list, marker: '' };
     return { markets: [], marker: RC.marker('home market') };
   }
@@ -707,37 +717,45 @@ async function runAgentic(){
   if(RC && RC.fanOut){
     await RC.fanOut(runOne, { markets: pick.markets, progress: $('agenticProgress'), label: 'Running the agentic flow' });
   } else {
-    try { await runOne(pick.markets[0]); } catch(_) {}
+    for(const m of pick.markets){
+      try { await runOne(m); } catch(_) {}
+    }
   }
+  // Once the agentic flow finishes, reload the rolling plan so any newly planned slots appear in the main calendar
+  try { await loadPlan(); } catch(_) {}
 }
 function agenticReportHtml(d){
     const stages = (d.stages||[]).map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--vh-panel-tan)"><b>${s.ok?'✓':'✗'} ${esc(s.stage)}</b> — ${esc(s.summary||'')}</div>`).join('');
     const ideas = (d.ideation&&d.ideation.ideas||[]).map(i=>`<li><b>${esc(i.title)}</b> — ${esc(i.action||i.why||'')} <span class="tdim">(${esc(i.impact||'')}/${esc(i.effort||'')})</span></li>`).join('');
-    // One row per DAY the run actually produced assets for. This is the thing
-    // the period selector was always supposed to drive.
+    // Display built campaigns or planned sends
     const built = (d.campaigns||[]);
+    const entries = (d.entries||[]);
     const dayRows = built.length
       ? built.map(c => `<tr><td style="padding:5px 8px">${esc(c.date||'—')}</td><td style="padding:5px 8px">${esc(c.market||'')}</td>`
           + `<td style="padding:5px 8px">${esc(c.cohort||'')}</td><td style="padding:5px 8px">${esc(c.subject||c.theme||'—')}</td>`
-          + `<td style="padding:5px 8px">${c.score==null?'—':esc(String(c.score))}${c.passed===false?' ⚠':''}</td></tr>`).join('')
-      : '';
+          + `<td style="padding:5px 8px">${c.score==null?'<span class="st tentative">planned</span>':esc(String(c.score))}${c.passed===false?' ⚠':''}</td></tr>`).join('')
+      : (entries.length
+          ? entries.slice(0, 30).map(e => `<tr><td style="padding:5px 8px">${esc(e.date||'—')}</td><td style="padding:5px 8px">${esc(e.market||'')}</td>`
+              + `<td style="padding:5px 8px">${esc((e.cohort&&e.cohort.name)||e.segment||'—')}</td><td style="padding:5px 8px">${esc(e.subject||e.theme||e.objective||'—')}</td>`
+              + `<td style="padding:5px 8px"><span class="st tentative">planned</span></td></tr>`).join('')
+          : '');
     const coverage = d.days_requested
       ? `<p class="tdim" style="margin-top:6px">Built <b>${d.days_built}</b> of <b>${d.days_planned}</b> planned send(s) across the next ${d.days_requested} day(s).`
         + (d.days_remaining > 0
-          ? ` The remaining ${d.days_remaining} were not built in this run (time box). Agentic assets appear in the table above — the Rolling calendar below is the Daily Sync plan; run Daily Sync to refresh those slots and kick prebuild.`
-          : ' Every planned send in the window has its assets in this report.')
+          ? ` The remaining ${d.days_remaining} were planned without inline creatives (time box). Planned sends appear below; run Daily Sync or Generate all to build remaining assets.`
+          : ' Every planned send in the window has its assets.')
         + `</p>`
       : '';
 
     return `<div class="label">Flow · ${esc(d.mode)} · tier ${esc(d.tier)}</div>
       <div style="margin:8px 0">${stages}</div>
       ${coverage}
-      ${dayRows ? `<h2 style="font-size:18px;margin-top:14px">Assets by day</h2>
+      ${dayRows ? `<h2 style="font-size:18px;margin-top:14px">Planned sends &amp; assets (${built.length || entries.length})</h2>
         <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px">
         <thead><tr class="tdim" style="text-align:left">
           <th style="padding:5px 8px">Date</th><th style="padding:5px 8px">Market</th>
-          <th style="padding:5px 8px">Cohort</th><th style="padding:5px 8px">Subject</th>
-          <th style="padding:5px 8px">Score</th></tr></thead><tbody>${dayRows}</tbody></table>` : ''}
+          <th style="padding:5px 8px">Cohort</th><th style="padding:5px 8px">Subject / Theme</th>
+          <th style="padding:5px 8px">Status</th></tr></thead><tbody>${dayRows}</tbody></table>` : ''}
       <h2 style="font-size:18px;margin-top:14px">Ideation — what to do next</h2><ul>${ideas||'<li>—</li>'}</ul>`;
 }
 
@@ -768,7 +786,7 @@ window.toggleMkt = function(mkt){
   // markets picked here open on Revenue by region too, and come back here.
   // The agentic run below runs once per market in this same selection.
   const RC = window.RegionContext;
-  if(RC && RC.setSelection) RC.setSelection(SELECTED_MKT.size ? Array.from(SELECTED_MKT) : ['ALL']);
+  if(RC && RC.setSelection) RC.setSelection(SELECTED_MKT.size ? Array.from(SELECTED_MKT) : (ALL_MKTS.length ? ALL_MKTS : ['ALL']));
   renderPlan();
   gateAgentic();
 };
@@ -777,6 +795,9 @@ window.toggleMkt = function(mkt){
 // brand actually plans for (empty set = all), rebuilt on each plan load.
 function buildMktChips(){
   ALL_MKTS = Array.from(new Set(PLAN.map(e => mktKey(e.market)))).filter(Boolean).sort();
+  if(!ALL_MKTS.length && window.RegionContext && window.RegionContext.allCodes){
+    ALL_MKTS = window.RegionContext.allCodes();
+  }
   SELECTED_MKT = new Set();          // empty = all of this brand's markets
   const host = document.getElementById('mktfilter');
   if(!host) return;
@@ -796,8 +817,12 @@ function buildMktChips(){
   // with none, every market the plan carries, as before.
   const RC = window.RegionContext;
   if(RC && RC.selectionExplicit){
-    const shared = RC.selection.map(mktKey).filter(m => ALL_MKTS.includes(m));
-    if(shared.length && shared.length < ALL_MKTS.length) SELECTED_MKT = new Set(shared);
+    const isAll = (RC.selection && RC.selection.length >= ALL_MKTS.length && ALL_MKTS.every(m => RC.selection.includes(m)))
+      || (RC.selection && RC.selection.some(s => /^all$/i.test(s)));
+    if(!isAll){
+      const shared = RC.selection.map(mktKey).filter(m => ALL_MKTS.includes(m));
+      if(shared.length && shared.length < ALL_MKTS.length) SELECTED_MKT = new Set(shared);
+    }
     paintMktChips();
   }
   // A single-region brand needs no region filter at all.
@@ -809,6 +834,15 @@ function buildMktChips(){
 function syncMktFromSelection(){
   const RC = window.RegionContext;
   if(!RC || !RC.selectionExplicit || !ALL_MKTS.length) return;
+  const isAll = (RC.selection && RC.selection.length >= ALL_MKTS.length && ALL_MKTS.every(m => RC.selection.includes(m)))
+    || (RC.selection && RC.selection.some(s => /^all$/i.test(s)));
+  if(isAll){
+    if(SELECTED_MKT.size === 0) return;
+    SELECTED_MKT = new Set();
+    paintMktChips();
+    try { renderPlan(); } catch(_) {}
+    return;
+  }
   const shared = RC.selection.map(mktKey).filter(m => ALL_MKTS.includes(m));
   const next = (shared.length && shared.length < ALL_MKTS.length) ? new Set(shared) : new Set();
   const same = next.size === SELECTED_MKT.size && Array.from(next).every(m => SELECTED_MKT.has(m));
@@ -822,7 +856,18 @@ function syncMktFromSelection(){
 // today, inclusive). 'all' shows the whole rolling window. Default 90.
 let SELECTED_DAYS = 7;   // default view: the actionable week
 function durCutoff(){ return SELECTED_DAYS==='all' ? null : new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10); }
-function durVisible(e){ if(SELECTED_DAYS==='all') return true; const today=new Date().toISOString().slice(0,10); const end=durCutoff(); return (!e.date) || (e.date>=today && e.date<=end); }
+function durVisible(e){
+  if(SELECTED_DAYS==='all') return true;
+  if(!e || !e.date) return true;
+  const d = String(e.date).slice(0, 10);
+  const now = new Date();
+  const utcToday = now.toISOString().slice(0, 10);
+  const localToday = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const minDate = yesterday < utcToday ? (yesterday < localToday ? yesterday : localToday) : (utcToday < localToday ? utcToday : localToday);
+  const end = durCutoff();
+  return d >= minDate && (!end || d <= end);
+}
 // Catalog buckets are DERIVED from the plan itself (the active brand's own
 // offering kinds / hero categories), never a hardcoded storefront taxonomy -
 // a publisher's plan buckets into sections and events, a D2C brand's into its
@@ -959,7 +1004,20 @@ function renderPlan(){
   const approvableVisible = PLAN.filter(e => slotVisible(e) && e.status!=='approved' && e.status!=='final' && e.status!=='rejected').length;
   const ab = $('approveAll');
   if(ab){ ab.style.display = approvableVisible ? '' : 'none'; ab.textContent = `✓ Approve all (${approvableVisible})`; }
-  if(!shown){ $('plan').innerHTML = `<tr><td colspan="9" class="tdim">No sends for the selected region + duration. Widen the duration or pick another region.</td></tr>`; return; }
+  if(!shown){
+    const mktLabel = SELECTED_MKT.size ? Array.from(SELECTED_MKT).map(mktName).join(', ') : 'all regions';
+    const totalInMkt = PLAN.filter(mktVisible).length;
+    let hint = '';
+    if(totalInMkt > 0 && SELECTED_DAYS !== 'all'){
+      hint = ` There are ${totalInMkt} send(s) scheduled for ${esc(mktLabel)} across the full 90-day plan. `
+        + `<button type="button" class="btn sm secondary" onclick="setDur('all')" style="margin-left:6px">Show all duration</button>`;
+    }
+    if(SELECTED_MKT.size > 0 && PLAN.length > totalInMkt){
+      hint += ` <button type="button" class="btn sm secondary" onclick="toggleMkt('all')" style="margin-left:6px">Show all regions</button>`;
+    }
+    $('plan').innerHTML = `<tr><td colspan="9" class="tdim">No sends for the selected region + duration.${hint}</td></tr>`;
+    return;
+  }
   // Iterate over ALL entries (keep index i aligned to PLAN for viewEntry/approve),
   // emitting nothing for rows filtered out by the region selector.
   const strategy = PLAN.find(e => e && e.strategy_only && e.strategy_note);
@@ -1946,6 +2004,11 @@ async function loadPlan(){
     buildCatChips();
     if(PLAN.length){
       PLAN_STATE = { kind: 'rows', message: '' };
+      // If the default 7-day duration filter yields 0 visible rows, auto-widen to show all available sends!
+      if(SELECTED_DAYS === 7 && PLAN.filter(slotVisible).length === 0){
+        SELECTED_DAYS = 'all';
+        document.querySelectorAll('#durfilter .mkchip').forEach(b => b.classList.toggle('on', b.dataset.dur === 'all'));
+      }
       sbState('ok', kept
         ? `Loaded ${PLAN.length} planned send(s) kept on this device from the Daily Sync of ${new Date(kept.at).toLocaleString()}.`
         : `Loaded ${PLAN.length} planned send(s).`);
