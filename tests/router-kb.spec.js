@@ -518,6 +518,46 @@ test.describe('brand-kit / brandkit', () => {
   });
 });
 
+/* ── asset-playbook ─────────────────────────────────────────────────────── */
+
+test.describe('asset-playbook', () => {
+  test('returns commercial playbook, business model, and competitor hooks under both aliases', async () => {
+    const r1 = await call('asset-playbook', { method: 'GET', query: { market: 'US', assetType: 'mailer' } });
+    expect(r1.status).toBe(200);
+    expect(r1.out.ok).toBe(true);
+    expect(r1.out.market).toBe('US');
+    expect(r1.out.assetType).toBe('mailer');
+    expect(r1.out.playbook).toBeDefined();
+    expect(Array.isArray(r1.out.hooks)).toBe(true);
+
+    const r2 = await call('playbook', { method: 'GET' });
+    expect(r2.status).toBe(200);
+    expect(r2.out.ok).toBe(true);
+    expect(r2.out.assetType).toBe('mailer');
+    expect(r2.out.playbook).toBeDefined();
+  });
+});
+
+/* ── audit-asset ────────────────────────────────────────────────────────── */
+
+test.describe('audit-asset', () => {
+  test('audits an asset for revenue levers and compliance under both aliases', async () => {
+    const sample = 'Special 20% off today only. Guaranteed results or money back.';
+    const r1 = await call('audit-asset', { json: { content: sample, assetType: 'mailer', market: 'US' } });
+    expect(r1.status).toBe(200);
+    expect(r1.out.ok).toBe(true);
+    expect(typeof r1.out.score).toBe('number');
+    expect(r1.out.grade).toBeDefined();
+    expect(r1.out.passed).toBeDefined();
+
+    const r2 = await call('audit', { method: 'GET', query: { content: sample } });
+    expect(r2.status).toBe(200);
+    expect(r2.out.ok).toBe(true);
+    expect(typeof r2.out.score).toBe('number');
+    expect(r2.out.grade).toBeDefined();
+  });
+});
+
 /* ── the router itself ──────────────────────────────────────────────────── */
 
 test.describe('the router', () => {
@@ -547,7 +587,7 @@ test.describe('the router', () => {
     const code = H.routerCode(KB);
     const enumerated = H.uniqSorted([...code.matchAll(/\baction === '([a-z-]+)'/g)].map((m) => m[1]));
     expect(enumerated.length).toBeGreaterThanOrEqual(12);
-    const tested = H.uniqSorted(['ingest', 'ingest-files', 'ingest-site', 'list', 'top-emails', 'topemails', 'brands', 'classify-emails', 'classify', 'digest', 'daily-digest', 'brand-kit', 'brandkit']);
+    const tested = H.uniqSorted(['ingest', 'ingest-files', 'ingest-site', 'list', 'top-emails', 'topemails', 'brands', 'classify-emails', 'classify', 'digest', 'daily-digest', 'brand-kit', 'brandkit', 'asset-playbook', 'playbook', 'audit-asset', 'audit']);
     expect(enumerated.filter((a) => !tested.includes(a)), 'actions the router dispatches with no test').toEqual([]);
     expect(tested.filter((a) => !enumerated.includes(a)), 'tests for actions the router no longer has').toEqual([]);
   });

@@ -1220,7 +1220,19 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
     if (rows.length) {
       return {
         ok: true, mode: 'db-linked', stored: true,
-        entries: rows.map((r) => ({ ...(r.payload || {}), id: r.id, status: r.status, confidence: r.confidence, change_log: r.change_log, generated_campaign_id: r.generated_campaign_id, approved_by: r.approved_by, approved_at: r.approved_at, updated_at: r.updated_at })),
+        entries: rows.map((r) => ({
+          date: r.date || (r.payload && r.payload.date),
+          market: r.market || (r.payload && r.payload.market),
+          ...(r.payload || {}),
+          id: r.id,
+          status: r.status,
+          confidence: r.confidence,
+          change_log: r.change_log,
+          generated_campaign_id: r.generated_campaign_id,
+          approved_by: r.approved_by,
+          approved_at: r.approved_at,
+          updated_at: r.updated_at,
+        })),
       };
     }
   }
@@ -1286,8 +1298,15 @@ function regionalNuance(market) {
   return 'Global/emerging market: lead with premium status, authenticity, and gifting value.';
 }
 
-// The four selling components every mailer must carry, for ANY brand.
-const MAILER_COMPONENTS = `Every mailer must contain, in order: (1) an immediate HOOK to sell in the first scroll (pattern-interrupt or a high-intent reason to act now); (2) core BENEFITS of the offering, sensory and specific to THIS brand; (3) SOCIAL PROOF and trust drawn ONLY from supplied data (never invent ratings, review counts or reviewers - omit the block if none supplied); (4) VALUE ADD-ONS: 2-3 badges drawn ONLY from the brand's verifiable claims, a risk-reversal line only if the brand states one, and a short FAQ.`;
+// The 7-step high-conversion selling architecture every marketing asset must carry.
+const MAILER_COMPONENTS = `Every marketing asset must follow the 7-Step High-Conversion Direct-Response Persuasion Architecture:
+(1) THE PATTERN-INTERRUPT HOOK: First-scroll stop (curiosity loop, bold contrast, or friction callout). The subject line + preheader work together: preheader extends curiosity, never repeats subject.
+(2) PROBLEM AGITATION & FRICTION: Agitate the real dilemma or hidden cost of inaction—why conventional alternatives fail or disappoint.
+(3) THE UNIQUE MECHANISM: Introduce the offering not as a generic commodity, but through its specific mechanism, craft, formulation, or data integrity (from the brand's own facts).
+(4) SENSORY TRANSFORMATION: 3 concrete, sensory-rich benefits focused on the "After-State" (what the buyer feels, achieves, or experiences once in their hands).
+(5) TRANSPARENT OFFER & PRICING ANCHOR: State the exact catalog price, what is included, and any shipping/bundle terms clearly without ambiguity.
+(6) VERIFIED PROOF & RISK REVERSAL: Authentic social proof (drawn STRICTLY from approved proof library) and explicit risk reversal (satisfaction guarantee, trial, or hassle-free returns if stated).
+(7) SINGLE HIGH-CONTRAST CALL TO ACTION & SKIMMER P.S.: Clear action-oriented CTA button driving to the PDP/destination, followed by a punchy P.S. that restates the core hook, deadline, or risk-reversal for bottom-scrollers.`;
 
 // Brand-derived system prompt: the copywriter persona, voice, preferred and
 // banned vocabulary all come from the ACTIVE brand's record - never a fixed
@@ -1607,6 +1626,7 @@ function copyOutputSpec(entry) {
         benefits: { type: 'array', count: 3, items: 'string' },
         rating: Object.assign({ type: 'any' }, proof('null')), reviews: Object.assign({ type: 'array', items: 'any' }, proof('[]')),
         badges: Object.assign({ type: 'array', items: 'any' }, proof('[]')), guarantee: Object.assign({ type: 'string' }, proof('an empty string')),
+        ps: { type: 'string', note: 'the skimmer P.S. restating the core hook, deadline, or risk reversal' },
         faq, cta: 'string', image_brief: img } },
       landing: { type: 'object', of: {
         hero_headline: 'string', hero_sub: 'string', why_title: 'string', why_bullets: { type: 'array', count: 3, items: 'string' },
@@ -1686,6 +1706,14 @@ ${approvedProofBrief(entry)}
 ${complianceBrief(entry)}
 
 ${MAILER_COMPONENTS}
+
+CONVERSION-DRIVEN DIRECT RESPONSE RULES:
+- Subject & Preheader: Subject line must feature a curiosity gap, pattern-interrupt, or specific outcome. Preheader must extend the curiosity loop, never repeating the subject line.
+- Opening Hook (intro_paragraph): Stop apathy immediately. Agitate the problem, hidden cost of inaction, or why ordinary category alternatives fail.
+- Unique Mechanism (body_paragraph): Introduce the offering as the systematic solution. Explain WHY it works through verified craft, formulation, or data integrity.
+- Benefits (benefits): Provide EXACTLY 3 sensory-rich, outcome-focused bullet points articulating the vivid "After-State" (what the buyer achieves or feels).
+- Action CTA (cta): Clear, high-contrast action verb driving to the destination PDP.
+- Skimmer P.S. (ps): A punchy 1-2 sentence post-script restating the core hook or risk reversal for readers who scroll to the bottom.
 
 Every asset must ship with a CREATIVE as well as copy. For each asset write an "image_brief": a vivid 1-2 sentence art-direction prompt for a photoreal product/lifestyle scene of the hero product. Channel rules (ALL creatives are TEXT-FREE photographs — never describe overlaid words, headlines, prices, logos or UI in the image_brief; diffusion models cannot spell and render garbled fake letterforms, and the real ad copy is rendered natively by the platform, not painted into the pixels):
 - email / LP heroes: just scene, props, light, mood; aspirational hero.
@@ -2162,6 +2190,16 @@ function renderVariant(entry, copy, style, img) {
         ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || undefined, note: row.subtitle || row.tasting_notes || '' }; }),
       ]
     : undefined;
+  const bodyBlocks = [
+    E.intro_paragraph ? { heading: '', body: E.intro_paragraph } : null,
+    E.body_paragraph ? { heading: '', body: E.body_paragraph } : null,
+    (Array.isArray(E.benefits) && E.benefits.length)
+      ? { heading: 'The Transformation', body: E.benefits.map((b) => `✦ ${b}`).join('\n\n') }
+      : null,
+    E.guarantee ? { heading: 'Our Guarantee', body: E.guarantee } : null,
+    E.ps ? { heading: 'P.S.', body: E.ps } : null,
+  ].filter(Boolean);
+
   // The shared renderer carries no proof slot, so the brand's REAL testimonials
   // (and, when there are none, the marker) are composed onto its output.
   return injectProofBlock(renderTextVariant({
@@ -2171,10 +2209,7 @@ function renderVariant(entry, copy, style, img) {
     style, subject: E.subject, preheader: E.preheader,
     hero_headline: E.hero_headline || E.subject || heroProduct,
     hero_subline: E.subheadline || E.preheader || '',
-    body_blocks: [
-      E.intro_paragraph ? { heading: '', body: E.intro_paragraph } : null,
-      E.body_paragraph ? { heading: '', body: E.body_paragraph } : null,
-    ].filter(Boolean),
+    body_blocks: bodyBlocks,
     // Real PDP/collection destinations (no merge-tag literal) so every CTA
     // redirects; matches the flagship mailer's link + grid logic.
     cta_text: E.cta || 'Shop the edit', cta_url: links.pdp,
@@ -2224,6 +2259,26 @@ function emailHtml(entry, copy, creativeUrl) {
   const heroImg = img
     ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
+
+  const benefitsHtml = (Array.isArray(E.benefits) && E.benefits.length)
+    ? `<div style="margin:24px 0;padding:20px 22px;background:${pal.surface_alt || '#f7f6f2'};border-radius:6px;border-left:3px solid ${ACC}">
+        <p style="font-family:${_ef.head};font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;color:${P}">Why this changes everything</p>
+        <ul style="margin:0;padding-left:18px;line-height:1.7;color:${INK}">
+          ${E.benefits.map((b) => `<li style="margin-bottom:6px">${esc(b)}</li>`).join('')}
+        </ul>
+      </div>`
+    : '';
+
+  const guaranteeHtml = E.guarantee
+    ? `<div style="margin:20px 0;padding:12px 16px;background:${pal.surface_alt || '#f7f6f2'};border-radius:4px;text-align:center;font-size:13px;line-height:1.5;color:${INK}">
+        <strong style="color:${P}">Our Promise:</strong> ${esc(E.guarantee)}
+      </div>`
+    : '';
+
+  const psHtml = E.ps
+    ? `<p style="font-size:13.5px;line-height:1.6;color:${INK};margin:24px 0 0;padding-top:16px;border-top:1px solid ${pal.line || '#e8e4dc'};"><strong>P.S.</strong> ${esc(E.ps)}</p>`
+    : '';
+
   return `<!doctype html><html><head><meta charset="utf-8"><title>${E.subject}</title></head>
 <body style="margin:0;background:${SURF};color:${INK};font-family:${_ef.body}">
 <main style="max-width:680px;margin:auto;background:${SURF}">
@@ -2235,7 +2290,10 @@ function emailHtml(entry, copy, creativeUrl) {
   <section style="padding:36px">
     <p style="line-height:1.7">${E.intro_paragraph}</p>
     <p style="line-height:1.7">${E.body_paragraph}</p>
+    ${benefitsHtml}
+    ${guaranteeHtml}
     <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:${ACC};color:${onACC};padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || entry.cta || 'See more'}</a></p>
+    ${psHtml}
   </section>
   ${proofBlockHtml(entry)}
   <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName} ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>

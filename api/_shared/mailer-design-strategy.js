@@ -158,7 +158,7 @@ function archetypeKeyFor(slot = {}, brand = null) {
   if (/browse|discovery|sampler|variety|undecided|cross.?sell|cross.?category/.test(s)) return 'comparison-discovery';
   // Affinity / general: rotate between spotlight, tutorial and lookbook so a run
   // of affinity sends still varies.
-  if (/affinity|black|green|kicks|streetwear|themed|iced|summer/.test(s)) {
+  if (/affinity|black|green|kicks|streetwear|themed|iced|summer|catalog|lifestyle|apparel|wellness|beauty|curated|craft|edition/.test(s)) {
     const rot = ['hero-spotlight', 'ritual-tutorial', 'editorial-lookbook'];
     return rot[stableIndex(seed, rot.length)];
   }

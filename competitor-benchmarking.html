@@ -873,7 +873,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if ($('pb-compliance')) {
         $('pb-compliance').innerHTML = data.disclaimer
           ? '<b>Mandatory Disclaimer:</b> <span style="font-size:12px;color:var(--vh-ink-dim)">"' + esc(data.disclaimer) + '"</span>'
-          : '<b>Compliance:</b> Standard verifiable brand claims. No unauthorized guarantees or unbacked claims.';
+          : '<b>Compliance:</b> Standard verifiable brand claims. No unsubstantiated guarantees or unbacked claims.';
       }
       if ($('pb-visual')) {
         $('pb-visual').textContent = data.businessModel === 'market_data'
