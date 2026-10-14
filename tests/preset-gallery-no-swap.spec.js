@@ -49,7 +49,7 @@ test('the swap is opt-out via data-no-brand-swap, and honours ancestors', () => 
 const REGIONS = [
   ['presetGallery', /id="presetGallery"[^>]*data-no-brand-swap/],
   ['workspace list', /id="wsList"[^>]*data-no-brand-swap/],
-  ['extraction panel', /class="xtract" data-no-brand-swap/],
+  ['extraction panel', /class="xtract(?: compact)?"[^>]*data-no-brand-swap/],
 ];
 
 for (const [what, rx] of REGIONS) {
@@ -118,7 +118,10 @@ test('with another brand active, the tenant zero card keeps its own name', async
   // runner held the load event past the test's 60 s (CI, 2026-10-13).
   await page.route((url) => !url.href.startsWith(base), (route) => route.abort());
   await page.goto(base + '/onboarding.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#presetGallery .preset', { timeout: 20000 });
+  // Samples live in a <details> strip; open it if a later change closes it.
+  await page.evaluate(() => { var d = document.getElementById('presetsWrap'); if (d) d.open = true; });
+  await page.waitForSelector('#presetGallery .preset', { state: 'attached', timeout: 20000 });
+  await expect(page.locator('#presetGallery .preset').first()).toBeVisible({ timeout: 20000 });
 
   // FIRST prove the swap machinery actually ran on this page. Without this the
   // assertion below would pass just as happily if brand-context had never
