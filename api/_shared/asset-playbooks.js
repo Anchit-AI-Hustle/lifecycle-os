@@ -62,9 +62,10 @@ const NEWS_MEDIA_REGEX = /\b(?:news|newsletter|journalism|journalist|media|edito
 function businessModel(brand) {
   if (!brand) return 'commerce';
 
-  // Check explicit declaration if present
-  if (brand.business_model && BUSINESS_MODELS.includes(brand.business_model)) {
-    return brand.business_model;
+  // Check explicit declaration if present (top-level or inside voice)
+  const explicit = brand.business_model || brand.businessModel || (brand.voice && (brand.voice.business_model || brand.voice.businessModel));
+  if (explicit && BUSINESS_MODELS.includes(explicit)) {
+    return explicit;
   }
 
   const industry = String(brand.industry || '').toLowerCase();
@@ -678,6 +679,163 @@ function structureChecklist(brand, assetType) {
   return list;
 }
 
+/**
+ * Returns curated high-converting competitor hook formulas and angles
+ * tailored to a brand's commercial model.
+ * @param {object} brand
+ * @param {string} [assetType]
+ * @returns {Array<{ id: string, name: string, category: string, formula: string, example: string, whyItConverts: string }>}
+ */
+function competitorHooksFor(brand, assetType = 'mailer') {
+  const model = businessModel(brand);
+  const brandName = (brand && brand.name) || 'the brand';
+
+  const HOOK_CATALOG = {
+    market_data: [
+      {
+        id: 'contrarian_shift',
+        name: 'The Contrarian Shift',
+        category: 'Market Catalyst',
+        formula: 'While retail was watching {event_A}, institutional capital quietly rotated into {sector_B}.',
+        example: `While retail was fixated on headline rate cuts, institutional desks quietly accumulated $4.2B in defensive domestic industrials.`,
+        whyItConverts: 'Subverts consensus expectations; triggers fear of missing the institutional move.',
+      },
+      {
+        id: 'blindspot_reveal',
+        name: 'The Blindspot Reveal',
+        category: 'Data Asymmetry',
+        formula: 'The 1 metric 95% of {market} investors miss before {key_event}.',
+        example: `The 1 liquidity divergence metric 95% of equity investors miss before quarterly earnings.`,
+        whyItConverts: 'Promises proprietary edge and information asymmetry without making illegal return promises.',
+      },
+      {
+        id: 'macro_domino',
+        name: 'The Macro Domino',
+        category: 'Causal Thesis',
+        formula: 'How the latest move in {macro_metric} triggers a second-order shock in {sector}.',
+        example: `How the 10-year yield curve steepening directly impacts private credit valuations this quarter.`,
+        whyItConverts: 'Establishes intellectual rigor and analytical authority for executive decision-makers.',
+      },
+      {
+        id: 'institutional_divergence',
+        name: 'The Institutional Divergence',
+        category: 'Proprietary Signal',
+        formula: 'Smart money vs retail sentiment: what {brandName} order-flow indicators show right now.',
+        example: `Smart money vs retail positioning: what ${brandName}'s proprietary radar reveals about the banking sector.`,
+        whyItConverts: 'Positions the brand as the essential terminal/data tool for serious traders.',
+      },
+    ],
+    news_media: [
+      {
+        id: 'smart_brevity_lead',
+        name: 'The Smart Brevity Lead',
+        category: 'Executive Briefing',
+        formula: 'Why it matters: {Core development in 1 crisp sentence}. Here is what happens next.',
+        example: `Why it matters: The merger fundamentally alters European cloud sovereignty. Here is what happens next.`,
+        whyItConverts: 'Respects executive time; guarantees instant scannability and maximum signal-to-noise ratio.',
+      },
+      {
+        id: 'inside_room',
+        name: 'The Inside Room',
+        category: 'Investigative Context',
+        formula: 'Behind closed doors: what {leaders} actually agreed on during {event}.',
+        example: `Behind closed doors: what trade ministers agreed on during yesterday's emergency session.`,
+        whyItConverts: 'Exclusive insider perspective drives high newsletter click-to-open rates (CTOR).',
+      },
+      {
+        id: 'counter_narrative',
+        name: 'The Counter-Narrative',
+        category: 'Intellectual Depth',
+        formula: 'The headline says {popular_claim}. The real data tells an entirely different story.',
+        example: `The headline claims EV demand collapsed. The supply-chain import data tells an entirely different story.`,
+        whyItConverts: 'Challenges superficial media coverage with verifiable data and rigorous reporting.',
+      },
+      {
+        id: 'three_minute_digest',
+        name: 'The 3-Minute Digest',
+        category: 'Utility & Habit',
+        formula: 'Everything you need to know about {trend} before your 9 AM meeting.',
+        example: `Everything you need to know about the AI semiconductor antitrust inquiry before your morning standup.`,
+        whyItConverts: 'Delivers daily utility and prepares the reader to sound smarter in their workplace.',
+      },
+    ],
+    commerce: [
+      {
+        id: 'emotional_end_state',
+        name: 'The Emotional End-State',
+        category: 'Aspirational Outcome',
+        formula: 'What everyday life feels like once you upgrade to {product_or_collection}.',
+        example: `What mornings feel like when your footwear is custom-engineered for 14-hour city pavement comfort.`,
+        whyItConverts: 'Sells the payoff and transformation rather than technical specifications.',
+      },
+      {
+        id: 'us_vs_them',
+        name: 'The Us vs Them Contrast',
+        category: 'Craftsmanship & Integrity',
+        formula: 'Most {category} cut corners with {cheap_practice}. Why {brandName} obsesses over {premium_craft}.',
+        example: `Most sneakers use printed vinyl that cracks in weeks. Why ${brandName} paints by hand with scratch-resistant acrylics.`,
+        whyItConverts: 'Differentiates the brand sharply against commoditized mass-market competitors.',
+      },
+      {
+        id: 'unboxing_sensory',
+        name: 'The Sensory Unboxing',
+        category: 'Tactile Proof',
+        formula: 'From the first unboxing: {sensory_details} that prove this isn\'t ordinary {category}.',
+        example: `From the magnetic weight of the box to the matte finish: the sensory details of the Grail Drop.`,
+        whyItConverts: 'Triggers anticipatory desire and builds tangible value before purchase.',
+      },
+      {
+        id: 'vault_drop',
+        name: 'The Vault Drop / Scarcity',
+        category: 'Exclusivity & Urgency',
+        formula: 'Limited studio run: only {quantity} pairs produced. When they are gone, this archive closes.',
+        example: `Limited studio run: only 150 pairs produced for this release. When claimed, the design is vaulted.`,
+        whyItConverts: 'Genuine scarcity drives immediate purchase action without resorting to cheap countdown timers.',
+      },
+    ],
+    subscription: [
+      {
+        id: 'compounding_advantage',
+        name: 'The Compounding Advantage',
+        category: 'Productivity & ROI',
+        formula: 'How the top 1% of {professionals} save {hours} every week using {feature}.',
+        example: `How the top 1% of ecommerce operators save 14 hours every week using automated lifecycle playbooks.`,
+        whyItConverts: 'Translates recurring cost into massive ROI and career leverage.',
+      },
+      {
+        id: 'cost_of_inaction',
+        name: 'The Cost of Inaction',
+        category: 'Loss Aversion',
+        formula: 'The silent revenue leakage happening in your {system} every month you delay.',
+        example: `The 22% subscriber churn silently eroding your bottom line every month without proactive winback flows.`,
+        whyItConverts: 'Loss aversion is psychologically 2x more potent than prospective gain.',
+      },
+    ],
+    events: [
+      {
+        id: 'closed_door_room',
+        name: 'The Closed-Door Room',
+        category: 'Access & Status',
+        formula: 'The room where the future of {industry} gets decided. Meet the {speakers/delegates}.',
+        example: `The room where the next decade of direct-to-consumer commerce gets decided. Meet the 500 keynote leaders.`,
+        whyItConverts: 'Leverages FOMO and professional status recognition.',
+      },
+    ],
+    services: [
+      {
+        id: 'strategic_teardown',
+        name: 'The Strategic Teardown',
+        category: 'Proven Track Record',
+        formula: 'How we diagnosed {client_challenge} and engineered a {measurable_payoff} in {timeframe}.',
+        example: `How we diagnosed Knickgasm's global retention bottlenecks and generated a 34% lift in repeat orders in 60 days.`,
+        whyItConverts: 'Tangible case study proof eliminates buyer skepticism before the discovery call.',
+      },
+    ],
+  };
+
+  return HOOK_CATALOG[model] || HOOK_CATALOG.commerce;
+}
+
 module.exports = {
   BUSINESS_MODELS,
   businessModel,
@@ -686,6 +844,8 @@ module.exports = {
   playbookFor,
   playbookBlock,
   structureChecklist,
+  competitorHooksFor,
   PLAYBOOKS,
   IMAGE_POLICIES,
 };
+

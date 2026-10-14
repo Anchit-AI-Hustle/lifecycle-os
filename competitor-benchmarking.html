@@ -282,6 +282,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <button type="button" class="snav" data-sec="tiktok">TikTok Ads</button>
         <button type="button" class="snav" data-sec="landing">▦ Landing Pages</button>
         <button type="button" class="snav" data-sec="insights">📊 Insights</button>
+        <button type="button" class="snav" data-sec="playbook">💡 Benchmark Playbook &amp; Hooks</button>
       </div>
     </div>
   </div>
@@ -496,6 +497,39 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
     </div>
   </div>
+</div>
+
+<!-- ════ BENCHMARK PLAYBOOK & HOOKS VIEW ════ -->
+<div id="playbook-view" style="display:none">
+  <div class="ads-note">
+    Competitive benchmarks, commercial revenue levers, and proven conversion hooks for <b class="cb-brandname">the active brand</b>. Grounded in top-tier industry exemplars (<span id="pb-exemplars">Axios, Morning Brew, Finshots, Bloomberg, Glossier, Gymshark</span>) and regulatory frameworks.
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:20px">
+    <div style="background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; padding:18px 20px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+        <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--vh-ink-dim); font-weight:700">Commercial Architecture</span>
+        <span id="pb-model-badge" class="code" style="padding:4px 10px; font-weight:700">Detecting...</span>
+      </div>
+      <div id="pb-job" style="font-size:14px; font-weight:600; color:var(--vh-ink); margin-bottom:8px">Loading commercial engine...</div>
+      <div id="pb-levers" style="font-size:12.5px; color:var(--vh-ink-dim); line-height:1.6"></div>
+    </div>
+
+    <div style="background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; padding:18px 20px">
+      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--vh-ink-dim); font-weight:700; margin-bottom:8px">Compliance &amp; Image Guardrails</div>
+      <div id="pb-compliance" style="font-size:13px; color:var(--vh-ink); line-height:1.5; margin-bottom:8px"></div>
+      <div id="pb-visual" style="font-size:12px; color:var(--vh-ink-dim); line-height:1.5"></div>
+    </div>
+  </div>
+
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
+    <div style="font-weight:700; color:var(--vh-ink); font-size:16px">🎯 "Steal This Hook" Cheat-Sheet</div>
+    <div style="font-size:12px; color:var(--vh-ink-dim)">Proven opening formulas tailored for this business model</div>
+  </div>
+  <div id="pb-hooks-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; margin-bottom:28px"></div>
+
+  <div style="font-weight:700; color:var(--vh-ink); font-size:16px; margin-bottom:12px">📐 Section Sequence Architecture</div>
+  <div id="pb-sequence-wrap" style="background:var(--vh-panel); border:1px solid var(--vh-line); border-radius:12px; padding:18px 20px"></div>
 </div>
 
 <!-- Find More Competitors Modal -->
@@ -776,8 +810,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // ── Section switcher ────────────────────────────────────────────────
   // discover = brand discovery + universe DB (merged former "Mailer Discovery"
   // + "Brands"). meta/google/tiktok = the ads view filtered to one platform.
-  // landing / insights = their own views.
-  const SECTIONS = ['discover', 'mailers', 'meta', 'google', 'tiktok', 'landing', 'insights'];
+  // landing / insights / playbook = their own views.
+  const SECTIONS = ['discover', 'mailers', 'meta', 'google', 'tiktok', 'landing', 'insights', 'playbook'];
   const AD_PLATFORMS = ['meta', 'google', 'tiktok'];
   // Back-compat: old hashes #ads → meta, #brands → discover.
   const normSec = (h) => h === 'ads' ? 'meta' : h === 'brands' ? 'discover' : h;
@@ -793,10 +827,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('brands-view').style.display = name === 'discover' ? 'block' : 'none';
     $('landing-view').style.display = name === 'landing' ? 'block' : 'none';
     $('insights-view').style.display = name === 'insights' ? 'block' : 'none';
+    $('playbook-view').style.display = name === 'playbook' ? 'block' : 'none';
     if (isAd) { state.adPlatform = name; renderAds(); }
     if (name === 'discover') renderBrands();
     if (name === 'landing') setLpMode(lpMode);
     if (name === 'insights') renderInsights();
+    if (name === 'playbook') renderPlaybook();
     if (window.triggerMotionAnimations) setTimeout(() => window.triggerMotionAnimations(), 10);
     const want = '#' + name;
     if (location.hash !== want && !new URLSearchParams(location.search).get('id')) history.replaceState(null, '', location.pathname + want);
@@ -804,6 +840,98 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   document.querySelectorAll('.snav').forEach((b) => b.addEventListener('click', () => showSection(b.dataset.sec)));
   window.addEventListener('hashchange', () => showSection(currentSection()));
   window.showSection = showSection; // expose for inline onclick (e.g. "Find more competitors")
+
+  async function renderPlaybook() {
+    const grid = $('pb-hooks-grid');
+    if (!grid) return;
+    grid.innerHTML = '<p class="muted">Loading benchmark playbooks &amp; hooks…</p>';
+    try {
+      const res = await fetch('/api/kb?action=playbook');
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error((data && data.error) || 'Failed to load playbook');
+      
+      const modelLabels = {
+        market_data: '📈 Stock Market & Financial Data',
+        news_media: '📰 News & Editorial Media',
+        commerce: '🛍️ Physical Commerce / D2C',
+        subscription: '🔄 SaaS & Recurring Subscription',
+        events: '🎟️ Events & Summits',
+        services: '💼 B2B Services & Agency'
+      };
+
+      if ($('pb-model-badge')) $('pb-model-badge').textContent = modelLabels[data.businessModel] || data.businessModel;
+      if ($('pb-exemplars') && data.playbook && data.playbook.exemplars) {
+        $('pb-exemplars').textContent = data.playbook.exemplars.join(', ');
+      }
+      if ($('pb-job') && data.playbook) {
+        $('pb-job').textContent = data.playbook.revenueJob || '';
+      }
+      if ($('pb-levers') && data.playbook && data.playbook.revenueLevers) {
+        $('pb-levers').innerHTML = '<b>Key Revenue Levers:</b><ul style="margin:6px 0 0 18px">' +
+          data.playbook.revenueLevers.map(l => '<li>' + esc(l) + '</li>').join('') + '</ul>';
+      }
+      if ($('pb-compliance')) {
+        $('pb-compliance').innerHTML = data.disclaimer
+          ? '<b>Mandatory Disclaimer:</b> <span style="font-size:12px;color:var(--vh-ink-dim)">"' + esc(data.disclaimer) + '"</span>'
+          : '<b>Compliance:</b> Standard verifiable brand claims. No unauthorized guarantees or unbacked claims.';
+      }
+      if ($('pb-visual')) {
+        $('pb-visual').textContent = data.businessModel === 'market_data'
+          ? 'Visual Rule: Authentic editorial stills & trading desk mood with strictly blurred/unreadable screens. NEVER generate synthetic candlestick charts or fake tickers.'
+          : (data.businessModel === 'news_media'
+            ? 'Visual Rule: Authentic documentary and editorial journalism photography. NEVER simulate breaking-news deepfakes.'
+            : 'Visual Rule: Photoreal, on-palette, high-contrast product/brand photography.');
+      }
+
+      // Hooks Grid
+      const hooks = data.hooks || [];
+      window.__PB_HOOKS = hooks;
+      grid.innerHTML = hooks.map((h, hi) => {
+        return `<div class="ad-card" style="display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span class="code" style="font-size:10px">${esc(h.category)}</span>
+              <span style="font-size:11px;color:var(--vh-ink-dim);font-weight:600">${esc(h.name)}</span>
+            </div>
+            <div style="font-size:13px;font-weight:700;color:var(--vh-ink);margin-bottom:8px;line-height:1.4">"${esc(h.formula)}"</div>
+            <div style="font-size:12px;color:var(--vh-ink-dim);line-height:1.5;margin-bottom:8px"><b>Real-world test:</b> <em>${esc(h.example)}</em></div>
+            <div style="font-size:11px;color:var(--vh-accent-text);line-height:1.4">💡 ${esc(h.whyItConverts)}</div>
+          </div>
+          <button type="button" class="cb-cta cb-cta-ghost" style="margin-top:14px;width:100%;font-size:11.5px;padding:6px 10px" onclick="copyHookFormula(${hi}, this)">📋 Copy Formula</button>
+        </div>`;
+      }).join('');
+
+      // Section sequence
+      if ($('pb-sequence-wrap') && data.playbook && data.playbook.sections) {
+        $('pb-sequence-wrap').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:10px">' +
+          data.playbook.sections.map((s, idx) => `
+            <div style="background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:8px;padding:10px 12px">
+              <div style="font-size:11px;color:var(--vh-ink-dim);text-transform:uppercase;font-weight:700">Beat ${idx+1}: ${esc(s.name)}</div>
+              <div style="font-size:12px;color:var(--vh-ink);margin-top:4px">${esc(s.purpose)}</div>
+            </div>
+          `).join('') + '</div>';
+      }
+    } catch (err) {
+      grid.innerHTML = '<p class="vh-failure">Could not load benchmark playbook: ' + esc(err.message) + '</p>';
+    }
+  }
+
+  window.copyHookFormula = async function(idx, btn) {
+    const h = (window.__PB_HOOKS || [])[idx];
+    if (!h) return;
+    const txt = h.formula + '\nExample: ' + h.example;
+    const orig = btn.textContent;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(txt);
+        btn.textContent = '✓ Copied Formula';
+      } else {
+        const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        btn.textContent = '✓ Copied Formula';
+      }
+    } catch (_) { btn.textContent = 'Copy failed'; }
+    setTimeout(() => { btn.textContent = orig; }, 1800);
+  };
 
   // ── Ads: free public ad libraries (Meta / Google / TikTok) ──────────
   const ADS_KEY = 'knickgasm-comp-ads-brands';

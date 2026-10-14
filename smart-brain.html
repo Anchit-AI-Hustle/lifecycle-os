@@ -1327,25 +1327,61 @@ function renderPreview(payload, e, i, opts){
     const idx = window.__SB_FRAMES.push(String(html || '')) - 1;
     return `<iframe class="pvframe${kind === 'mail' ? ' is-mail' : ''}" sandbox="allow-same-origin" data-frame-idx="${idx}" title="${esc(title || 'Asset preview')}"></iframe>`;
   };
+  const auditBadge = (htmlOrText, type) => {
+    const txt = String(htmlOrText || '');
+    if (!txt) return '';
+    const b = (window.BrandContext && window.BrandContext.brand) || {};
+    const isFinance = /\b(?:stock|trading|invest|equities|market\s*data|portfolio)\b/i.test((b.industry||'') + ' ' + (b.tagline||''));
+    let score = 96;
+    const notes = [];
+    if (isFinance) {
+      const hasDisclaimer = /\b(?:educational|not\s+financial\s+advice|past\s+performance|sebi|sec|fca)\b/i.test(txt);
+      if (!hasDisclaimer) { score -= 20; notes.push('Add regulatory non-advice disclaimer'); }
+      if (/\bguaranteed\s+(?:return|profit|10x)\b/i.test(txt)) { score -= 30; notes.push('Remove guaranteed returns claim'); }
+    }
+    const hasCTA = /\b(?:cta|button|href=|subscribe|join|start|claim|view|shop)\b/i.test(txt);
+    if (!hasCTA) { score -= 15; notes.push('Add primary CTA'); }
+    const grade = score >= 93 ? 'A+' : (score >= 85 ? 'A' : (score >= 75 ? 'B' : 'Needs Polish'));
+    const isOk = score >= 80;
+    const noteStr = notes.length ? ` · <span style="color:var(--kg-red)">(${notes.join(', ')})</span>` : ' · Benchmark verified';
+    return `<div class="pvnote" style="display:inline-flex;align-items:center;gap:8px;padding:3px 9px;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:6px;margin:0 0 8px;font-size:11px">
+      <span style="font-weight:700;color:${isOk?'var(--vh-ok-text)':'var(--kg-red)'}">🏆 Revenue &amp; Quality: ${score}/100 (${grade})</span>
+      <span style="color:var(--muted)">${noteStr}</span>
+    </div>`;
+  };
+
   const promptBar = (asset) => {
     const rows = (asset && Array.isArray(asset.prompts)) ? asset.prompts : [];
     if(!rows.length) return '';
     let hasElement = false;
+    let wholeAssetIdx = -1;
     const btns = rows.map(r => {
       const text = String((r.kind === 'asset' ? asset[r.from] : r.text) || '').trim();
       if(!text) return '';
       if(r.kind !== 'asset') hasElement = true;
       const isAsset = r.kind === 'asset';
       const idx = window.__SB_PROMPTS.push({ text, label: r.label }) - 1;
+      if (isAsset && wholeAssetIdx === -1) wholeAssetIdx = idx;
       return `<button type="button" class="btn sm ${isAsset?'ok':'secondary'}" data-prompt-kind="${esc(r.kind)}"
         title="Paste into ChatGPT, Claude or Gemini. Returns ${esc(r.produces||'')}."
         onclick="sbCopyPrompt(${idx}, this)">📋 ${esc(r.label)} <span class="pkind">${isAsset?'whole asset':'one part'}</span></button>`;
     }).filter(Boolean).join('');
     if(!btns) return '';
+
+    let aiLaunchers = '';
+    if (wholeAssetIdx !== -1) {
+      aiLaunchers = `<div class="ai-launch-group" style="display:inline-flex;gap:4px;align-items:center;margin-left:6px;flex-wrap:wrap">
+        <span style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em">Launch:</span>
+        <button type="button" class="btn sm secondary" title="Copy prompt and open ChatGPT" onclick="sbLaunchAI(${wholeAssetIdx}, 'chatgpt', this)">🚀 ChatGPT</button>
+        <button type="button" class="btn sm secondary" title="Copy prompt and open Claude (Recommended for HTML)" onclick="sbLaunchAI(${wholeAssetIdx}, 'claude', this)">⚡ Claude</button>
+        <button type="button" class="btn sm secondary" title="Copy prompt and open Gemini" onclick="sbLaunchAI(${wholeAssetIdx}, 'gemini', this)">✨ Gemini</button>
+      </div>`;
+    }
+
     const note = hasElement
       ? 'Green returns the <b>finished asset</b>. Grey returns <b>one element</b> of it — paste a grey one into an image model and you get a picture, not a mailer.'
       : 'Paste into ChatGPT, Claude or Gemini to get the <b>finished asset</b> back.';
-    return `<div class="akbar pkbar">${btns}</div><p class="pvnote pknote">${note}</p>`;
+    return `<div class="akbar pkbar">${btns}${aiLaunchers}</div><p class="pvnote pknote">${note}</p>`;
   };
   const emailAsset = campaign.assets?.email || null;
   if(Array.isArray(emailVars) && emailVars.length){
@@ -1354,10 +1390,10 @@ function renderPreview(payload, e, i, opts){
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ '+esc(v.label || ('Mailer '+(vi+1))), first);
-      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}${docFrame(html, 'mail', v.label || 'Mailer')}`, first);
+      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${auditBadge(html, 'mailer')}${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}${docFrame(html, 'mail', v.label || 'Mailer')}`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${promptBar(emailAsset)}${docFrame(html, 'mail', 'Mailer')}`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${auditBadge(html, 'mailer')}${expBar('mailer', html)}${promptBar(emailAsset)}${docFrame(html, 'mail', 'Mailer')}`, first); first=false; }
   // EVERY landing page, not just the first. The builder ships an A/B pair and
   // only landing_pages[0] was ever rendered, so the B variant existed in the
   // payload, was downloaded by "Download all", and could not be looked at.
@@ -1750,6 +1786,33 @@ function copyText(text, btn){
 window.sbCopyPrompt = function(idx, btn){
   const item = (window.__SB_PROMPTS||[])[idx]; if(!item) return;
   copyText(item.text, btn);
+};
+
+window.sbLaunchAI = function(idx, tool, btn){
+  const item = (window.__SB_PROMPTS||[])[idx]; if(!item) return;
+  const urls = {
+    chatgpt: 'https://chatgpt.com/',
+    claude: 'https://claude.ai/new',
+    gemini: 'https://gemini.google.com/app'
+  };
+  const targetUrl = urls[tool] || urls.chatgpt;
+  const mark = btn ? btn.innerHTML : null;
+  const done = (ok) => {
+    if (btn) {
+      btn.innerHTML = ok ? '✓ Opening…' : 'Opening…';
+      setTimeout(() => { btn.innerHTML = mark; }, 2000);
+    }
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(item.text).then(()=>done(true), ()=>done(false));
+      return;
+    }
+  }catch(_){}
+  try{
+    const ta=document.createElement('textarea'); ta.value=item.text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(true);
+  }catch(_){ done(false); }
 };
 
 async function viewEntry(i, forceRegen){
