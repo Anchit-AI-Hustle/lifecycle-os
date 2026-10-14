@@ -84,7 +84,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--vh-accent-text);font-weight:600;margin-bottom:10px}
   h1{font-family:var(--head);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1.15;margin-bottom:10px}
-  .lede{color:var(--muted);font-size:14.5px;line-height:1.65;max-width:640px;margin-bottom:26px}
+  .lede{color:var(--muted);font-size:14px;line-height:1.55;max-width:52ch;margin-bottom:18px}
 
   .steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
   .step-pip{flex:1;min-width:74px;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card);
@@ -231,31 +231,50 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   @media(max-width:620px){.region-row{grid-template-columns:1fr 1fr;grid-auto-rows:auto}.region-row.region-head{display:none}}
   .link{color:var(--vh-link);text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit;padding:0}
 
-  /* Starter brand profiles (step 1). Deliberately industry-varied so the
-     gallery reads as "this platform runs any brand", not one vertical. */
-  .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px;margin:14px 0 6px}
-  .preset{border:1px solid var(--line);border-radius:12px;padding:13px;cursor:pointer;
-    background:var(--card);text-align:left;transition:border-color .12s,transform .12s;font:inherit}
+  /* Starter brand profiles (step 1). Compact horizontal strip so samples do
+     not push the real setup form below the fold. Full provenance stays in the
+     DOM (tests + title tooltips) but the tall blurb/type blocks are clipped. */
+  .presets-wrap{margin:16px 0 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px 12px}
+  .presets-wrap > summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .presets-wrap > summary::-webkit-details-marker{display:none}
+  .presets-wrap > summary::after{content:'▾';font-size:12px;color:var(--muted)}
+  .presets-wrap[open] > summary::after{content:'▴'}
+  .presets-wrap .presets-lede{font-size:11.5px;color:var(--muted);margin:4px 0 10px;line-height:1.45}
+  .presets{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:0;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+  .preset{flex:0 0 168px;scroll-snap-align:start;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;
+    background:var(--surface);text-align:left;transition:border-color .12s,transform .12s;font:inherit;min-height:0;
+    position:relative;overflow:hidden}
   .preset:hover{border-color:var(--vh-line-hot);transform:translateY(-1px)}
   .preset[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
-  .preset .pname{font-weight:700;font-size:15px;margin-bottom:2px;color:var(--ink)}
-  .preset .psector{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:7px}
-  .preset .pblurb{font-size:12px;line-height:1.45;color:var(--ink);margin-bottom:9px}
+  .preset .pname{font-weight:700;font-size:13px;margin:0 0 1px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .preset .psector{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Visually hidden for the gallery card, kept in the DOM for harvest/a11y.
+     Pin left/top inside the relative .preset and clip there: without that,
+     nowrap absolute blurbs expanded document scrollWidth (~7k px) and dragged
+     the fixed credit pill off-viewport (mobile-space page-overflow / too-wide). */
+  .preset .pblurb,.preset .ptype{position:absolute;left:0;top:0;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;white-space:nowrap}
   /* The four roles a brand's own site renders, each NAMED. A row of anonymous
      chips cannot say which is the brand colour and which is the page. */
-  .preset .plogo{width:32px;height:32px;object-fit:contain;border-radius:7px;border:1px solid var(--line,#d8d8d8);background:var(--surface,#fff);margin:0 0 8px;display:block}
-  .preset .pswatch{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
-  .preset .psw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:38px}
-  .preset .psw i{width:24px;height:20px;border-radius:5px;border:1px solid var(--vh-line-hot);display:block}
-  .preset .psw b{font-size:9.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+  .preset .plogo{width:28px;height:28px;object-fit:contain;border-radius:7px;border:1px solid var(--line,#d8d8d8);background:var(--surface,#fff);margin:0 0 6px;display:block}
+  .preset .pswatch{display:flex;gap:4px;margin-bottom:6px;flex-wrap:nowrap}
+  .preset .psw{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:28px}
+  .preset .psw i{width:20px;height:16px;border-radius:4px;border:1px solid var(--vh-line-hot);display:block}
+  .preset .psw b{font-size:8.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
   /* A role nobody read is drawn EMPTY (2026-10-13): the neutral placeholder
      painted as four swatches read as that brand's colours - black for Nike,
      Netflix, McDonald's. An empty dashed box carries no colour to mistake. */
   .preset .psw i.unread{background:transparent;border-style:dashed;border-color:var(--muted)}
-  .preset .pmeta{font-size:10.5px;color:var(--muted);line-height:1.45}
-  .preset .ptype{font-size:11px;color:var(--ink);line-height:1.45;margin-bottom:2px}
-  .preset .pwhy{font-size:10.5px;color:var(--ink);line-height:1.45;margin:2px 0 3px}
-  .preset-note{font-size:11.5px;color:var(--muted);margin:2px 0 0;line-height:1.5}
+  .preset .pmeta,.preset .pwhy{font-size:10px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .preset .pwhy{color:var(--ink);margin:2px 0 0}
+  .preset-note{font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+  .xtract.compact{padding:12px 14px;margin-bottom:14px}
+  .xtract.compact h3{font-size:14px;margin-bottom:2px}
+  .xtract.compact .xmeta{margin:0 0 8px}
+  .setup-more{margin:10px 0 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px 12px}
+  .setup-more > summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink);list-style:none}
+  .setup-more > summary::-webkit-details-marker{display:none}
+  .setup-more[open]{padding-bottom:12px}
+  .ws-list.compact .ws{padding:8px 10px;margin-bottom:6px}
   .asset-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .asset-strip img{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
   /* Suggested options. Deliberately NOT styled like an extracted candidate:
@@ -292,6 +311,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xrow .xlabel{flex:0 0 108px;font-size:11.5px;font-weight:600;padding-top:3px}
   .xrow .xbody{flex:1;min-width:0}
   .xval{font-size:13px;font-weight:600;word-break:break-word}
+  /* Declared name/tagline must stay editable: a PWA title or long og:description
+     can be wrong for the brand, and Use-only rows left no way to correct them. */
+  .xedit{width:100%;box-sizing:border-box;font:600 13px/1.45 var(--body);color:var(--ink);
+    background:var(--card);border:1px solid var(--line);border-radius:7px;padding:6px 9px;resize:vertical}
+  .xedit:focus{outline:2px solid var(--primary);outline-offset:1px;border-color:var(--primary)}
+  textarea.xedit{font-weight:500;min-height:2.8em}
   .xsrc{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5;word-break:break-all}
   .xtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
     padding:2px 6px;border-radius:999px;border:1px solid var(--line);margin-right:5px;vertical-align:1px}
@@ -479,6 +504,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // Set by go(). Boot restores a saved step asynchronously, and must not do it
   // once the operator has moved somewhere themselves.
   var __navigated = false;
+  /* Whether the optional logo/guidelines <details> was open before the last
+     step-1 re-render. A document Apply re-renders the step; without this the
+     panel closed and hid the report. */
+  var __setupMoreOpen = false;
   /* The last "read my site" report. Held in memory only: it is a set of
      CANDIDATES, and a candidate becomes part of the brand exactly when the
      operator presses Use, never before. */
@@ -608,6 +637,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var onPrimary = readableOn(p.primary);
     var head = brand.typography.heading, body = brand.typography.body;
     var initials = (brand.name || 'Br').trim().slice(0, 2).toUpperCase();
+    // Only while drafting a NEW brand (startNewBrand / ?new=1). The initial
+    // blankBrand() before boot() loads the active record must NOT lock the
+    // setup shell, or Edit Nykaa would stay on the blue setup palette.
+    if (draftingNew) paintDraftChrome();
     $('preview').innerHTML =
       '<div class="pv-bar" style="background:' + esc(p.surface_alt || '#fff') + ';border-color:' + esc(shade(p.ink, .84)) + '">' +
         '<span class="pv-logo" data-brand-slot="logo" style="background:' + esc(p.primary) + ';color:' + esc(onPrimary) + '">' +
@@ -972,30 +1005,64 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (step === 1) {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
-        '<p class="hint">Start from your own website, from your brand guidelines, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
+        '<p class="hint">Paste your site, pick a sample, or type the basics. You can change anything later.</p>' +
+        // Existing brands first so adding another is one press away, not buried
+        // under extract / presets. data-no-brand-swap is LOAD-BEARING here too:
+        // brand-context.js rewrites the shipped brand name into the active
+        // brand's throughout the page, which is right for the shell and wrong
+        // for a list of DIFFERENT brands.
+        '<div id="step1Brands" class="ws-list compact" data-no-brand-swap style="margin:0 0 12px"></div>' +
         extractBlock() + xRenderedPanel() + '<div id="cohSlot">' + coherenceBlock(false) + '</div>' + xPanel('brand') +
-        docBlock() +
-        // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
-        // shipped brand name into the active brand's throughout the page, which
-        // is right for the shell and catastrophic here: every card describes a
-        // DIFFERENT brand, so the swap renamed tenant zero's card to the active
-        // brand and left its blurb, palette, fonts and catalogue count in place.
-        // Reported live as a card reading "<active brand> - hand-painted
-        // one-of-one custom sneakers, 436-product catalogue", which is another
-        // company's product claim under this operator's name.
-        '<div id="presetGallery" class="presets" data-no-brand-swap>Loading brand profiles...</div>' +
-        '<p class="hint" style="margin-top:18px">Or enter your own. Leave anything you are not sure of blank - the platform reports missing data rather than inventing it.</p>' +
         '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
         '<div class="row">' +
           '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="one line that says what you make"></div>' +
           '<div class="field"><label>Industry</label><input type="text" data-path="industry" value="' + esc(brand.industry) + '" placeholder="e.g. Specialty retail / D2C"></div>' +
         '</div>' +
         '<div class="field"><label>Website</label><input type="url" data-path="website" value="' + esc(brand.website) + '" placeholder="https://yourbrand.com"></div>' +
-        assetPair('logo') + assetPair('favicon') +
-        assetStrip() + assetPair('image') +
+        // Sample brands below the form so they do not own the first viewport.
+        // data-no-brand-swap is LOAD-BEARING (see preset-gallery-no-swap.spec.js).
+        // Open by default so a first-time visitor sees samples without an
+        // extra click; the strip is horizontal and short, so it no longer
+        // owns the first viewport the way the old tall grid did.
+        '<details class="presets-wrap" id="presetsWrap" data-no-brand-swap open>' +
+          '<summary>Or start from a sample brand</summary>' +
+          '<p class="presets-lede">Templates from each brand\'s own public site. Not licensed kits.</p>' +
+          '<div id="presetGallery" class="presets" data-no-brand-swap>Loading brand profiles...</div>' +
+        '</details>' +
+        // Keep optional details open when a guidelines read just landed, or
+        // when the operator already had them open - a re-render after Apply
+        // used to close #setupMore and hide the report (CI shard / guide tests).
+        '<details class="setup-more" id="setupMore"' + (DOC.report || DOC.results || DOC.status || __setupMoreOpen ? ' open' : '') + '>' +
+          '<summary>Logo, icon, guidelines (optional)</summary>' +
+          '<div style="margin-top:10px">' +
+            docBlock() +
+            assetPair('logo') + assetPair('favicon') +
+            assetStrip() + assetPair('image') +
+          '</div>' +
+        '</details>' +
         actions(null, 'Colour schema');
       loadPresets();
       paintPresets();
+      // When this account (or device) already has brands, show them here so
+      // starting another one does not require walking to Review first.
+      loadStep1Brands();
+      try {
+        if (presetPicked) {
+          var wrap = document.getElementById('presetsWrap');
+          if (wrap) wrap.open = true;
+        }
+        var more = document.getElementById('setupMore');
+        if (more) {
+          more.addEventListener('toggle', function () { __setupMoreOpen = !!more.open; });
+          // Latch open whenever a document report or applied result exists so a
+          // later re-render (Apply, conflict chip, asset preview) cannot hide
+          // Revert / provenance under a closed <details>.
+          if (DOC.report || DOC.results || DOC.status) {
+            __setupMoreOpen = true;
+            more.open = true;
+          }
+        }
+      } catch (_) {}
     }
 
     else if (step === 2) {
@@ -1203,14 +1270,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }).join('') + '</div>' +
         '<div class="pname"' + (isDefault || isIdentity || !p.heading_stack ? '' : ' style="font-family:' + esc(p.heading_stack) + '"') + '>' + esc(p.name) + '</div>' +
         '<div class="psector">' + esc(p.sector || '') + '</div>' +
-        '<div class="pblurb">' + esc(p.blurb || '') + '</div>' +
+        '<div class="pblurb" aria-hidden="true">' + esc(p.blurb || '') + '</div>' +
         (isDefault
           ? '<div class="pchip">Colours not read yet</div>' +
             (p.read_note ? '<div class="pwhy">' + esc(p.read_note) + '</div>' : '')
           : isIdentity
             ? '<div class="pchip">Logo colour only</div>' +
               (p.palette_note ? '<div class="pwhy">' + esc(p.palette_note) + '</div>' : '')
-          : '<div class="ptype">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>' +
+          : '<div class="ptype" aria-hidden="true">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>' +
             (p.palette_note ? '<div class="pwhy">' + esc(p.palette_note) + '</div>' : '')) +
         '<div class="pmeta" style="margin-top:4px">' +
           (isDefault || isIdentity
@@ -1223,7 +1290,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '</div>' +
       '</button>';
     }).join('') +
-    '<p class="preset-note">Profiles are starting points, not licensed brand kits. Replace with your approved guidelines before running a real programme. Cards marked <b>Colours not read yet</b> show empty swatches: the site refused an automated read, so nothing about its look is known yet, and Read my site fills it. Cards marked <b>Logo colour only</b> carry the colour of the brand\'s own logo, read from another site it owns; the empty roles were not read. A role marked * is derived from the colour the site renders so text stays readable; hover it for the exact value.</p>';
+    '<p class="preset-note">Starting points only. Empty swatches mean colours were not read yet; <b>Logo colour only</b> means just the logo colour. Hover a swatch for the exact value. * = derived for readable text.</p>';
   }
 
   function assetStrip() {
@@ -1357,7 +1424,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function xRow(label, field, act, extra) {
     if (!field) return '';
-    if (!field.value) {
+    // Name and tagline are always editable: the top candidate can be a PWA
+    // push title or a long description, and the operator must be able to
+    // correct it before Use (or type one when the site published nothing).
+    var editable = act === 'name' || act === 'tagline';
+    if (!field.value && !editable) {
       return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
         '<div class="marker">' + esc(field.marker || '') + '</div>' +
         '<div class="xsrc">Your site did not publish this. Type it in below.</div></div></div>';
@@ -1366,6 +1437,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return '<button type="button" class="xalt" data-xa="' + esc(act) + '" data-xi="' + (i + 1) + '">' +
         esc(String(c.value).slice(0, 60)) + (c.off_origin ? ' <span class="xtag flag">off site</span>' : '') + '</button>';
     }).join('');
+    if (editable) {
+      var cur = field.value ? String(field.value) : '';
+      var edit = act === 'tagline'
+        ? '<textarea class="xedit" data-xedit="' + esc(act) + '" rows="2" placeholder="Type or edit the ' + esc(label.toLowerCase()) + '">' + esc(cur) + '</textarea>'
+        : '<input type="text" class="xedit" data-xedit="' + esc(act) + '" value="' + esc(cur) + '" placeholder="Type or edit the ' + esc(label.toLowerCase()) + '">';
+      return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
+        edit +
+        (field.value ? xSrcLine(field) : '<div class="xsrc">Your site did not publish this. Type it here, then press Use.</div>') +
+        (extra || '') + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
+        '</div><button type="button" class="xbtn" data-xa="' + esc(act) + '" data-xi="0">Use</button></div>';
+    }
     return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
       '<div class="xval">' + esc(String(field.value).slice(0, 200)) + '</div>' + xSrcLine(field) +
       (extra || '') + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
@@ -1681,9 +1763,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // Also exempt: these are the values a SITE published, quoted verbatim with
     // their source URL. Swapping a name inside an extracted candidate would
     // rewrite the evidence the operator is being asked to approve.
+    var sheets = extraction.stylesheets || [];
     return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
-      '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
-        ' stylesheet(s) read. ' + esc(extraction.coverage_note) + xCoverageLine() +
+      '<div class="xmeta">' + (extraction.pages_visited || 0) + ' page(s) and ' + sheets.length +
+        ' stylesheet(s) read. ' + esc(extraction.coverage_note || '') + xCoverageLine() +
         (extraction.read && extraction.read.method === 'rendered'
           ? ' The rendered read above was applied; the candidates below are for changing any value.'
           : ' Nothing below is applied until you press Use.') +
@@ -1692,7 +1775,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       diag +
       '<div style="margin-top:10px">' + body + '</div>' +
       (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
-        extraction.limits.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +
+        (extraction.limits || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +
       '</div>';
   }
 
@@ -1732,9 +1815,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function extractBlock() {
     var off = extractOff();
-    return '<div class="xtract"><h3>Read my brand from my website</h3>' +
-      '<p class="xmeta"><b>Set up from my website</b> runs every step by itself, in order, shows what each one found and where, and opens Review when it is done. The steps stay above to view and edit afterwards. <b>Read my site</b> only reads it into this step. Paste your site and the platform reads what it publishes about itself: which store it runs on, its name, tagline, logo, colour schema, typography, the tone of its own copy, the sentences it states as facts, its social profiles, its legal entity and the regions it sells in. It follows your own sitemap where you publish one, so the pages it reads are the ones you declare rather than whatever your home page happens to link. It opens your site in a real browser at desktop and phone width, measures what it renders - colours, type, buttons, header, cards, footer - and applies all of it to this brand, keeping anything you typed yourself. You can revert in one click. If the browser cannot read your site, what its HTML and CSS publish is offered instead, and then nothing is applied until you press Use.</p>' +
-      '<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">' +
+    return '<div class="xtract compact" data-no-brand-swap><h3>Set up from my website</h3>' +
+      '<p class="xmeta"><b>Set up from my website</b> runs every step and opens Review. <b>Read my site</b> only fills this step. Own domain, robots.txt respected, revert in one click.</p>' +
+      '<div style="display:flex;gap:9px;margin-top:8px;flex-wrap:wrap">' +
         '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
           ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
@@ -1753,7 +1836,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<button type="button" class="btn" data-dswitch="new">Start a new brand from ' + esc(domainSwitch.to) + '</button>' +
         '<button type="button" class="btn" data-dswitch="cancel">Cancel</button></div>' +
         '<p class="coh-src">If you make it the website, every value read from ' + esc(domainSwitch.from) + ' is listed below for you to keep or clear.</p></div>' : '') +
-      '<p class="xmeta" style="margin-top:8px">Same rules as the catalog importer: your own domain only, robots.txt respected, read only, and no page is fetched from a private or internal address.</p>' +
       '</div>';
   }
 
@@ -2384,9 +2466,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     brand.regions = rows;
     if (proposedHome) {
-      var prevReplaced = (brand.brand_data && brand.brand_data.brand_extraction && brand.brand_data.brand_extraction.applied && brand.brand_data.brand_extraction.applied['regions.home'] && brand.brand_data.brand_extraction.applied['regions.home'].replaced) || '';
-      var rep = (existingHome && existingHome !== proposedHome ? existingHome : prevReplaced) || '';
-      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: rep });
+      // What this proposal replaced: the home on the rows BEFORE this apply.
+      // Auto-apply on extract (2026-10-09) and a later Use press both call
+      // this; the second time the rows already carry proposedHome, so
+      // existingHome === proposedHome and would erase the earlier
+      // `replaced`. Keep the provenance from the first apply in that case.
+      var replaced = existingHome && existingHome !== proposedHome ? existingHome : '';
+      if (!replaced) {
+        var prevHome = brand.brand_data && brand.brand_data.brand_extraction && brand.brand_data.brand_extraction.applied && brand.brand_data.brand_extraction.applied['regions.home'];
+        if (prevHome && prevHome.value === proposedHome && prevHome.replaced) replaced = prevHome.replaced;
+      }
+      noteSource('regions.home', { value: proposedHome, signal: (f.regions.home.signals || []).map(function (g) { return g.signal; }).join(' + '), source_url: (f.regions.home.signals[0] || {}).source_url || '', confidence: f.regions.home.confidence, replaced: replaced });
     } else if (existingHome) {
       noteSource('regions.home', { value: existingHome, signal: 'kept: the site proposed no home market', source_url: '', confidence: 'user', origin: 'user' });
     }
@@ -2395,11 +2485,48 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
   }
 
-  function applyExtract(act, i) {
+  function foldVal(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function readXEdit(act) {
+    var el = document.querySelector('[data-xedit="' + act + '"]');
+    return el ? String(el.value || '') : null;
+  }
+  function applyEditedText(act, edited) {
+    var f = extraction.fields;
+    var field = act === 'name' ? f.name : f.tagline;
+    var v = String(edited == null ? '' : edited).trim();
+    if (!v) { toast('Type a ' + act + ' first.'); return false; }
+    var match = ((field && field.candidates) || []).find(function (c) { return foldVal(c.value) === foldVal(v); });
+    var src = match || {
+      value: v,
+      signal: 'operator edited',
+      source_url: extraction.start || '',
+      confidence: 'declared',
+      origin: 'user',
+    };
+    if (act === 'name') {
+      brand.name = v;
+      if (!brand.id) brand.slug = slugify(v);
+      noteSource('name', src);
+    } else {
+      brand.tagline = v;
+      noteSource('tagline', src);
+    }
+    return true;
+  }
+  function applyExtract(act, i, editedValue) {
     if (!extraction || !extraction.ok) return;
     var f = extraction.fields, c;
-    if (act === 'name') { c = pick(f.name, i); if (!c) return; brand.name = c.value; if (!brand.id) brand.slug = slugify(c.value); noteSource('name', c); }
-    else if (act === 'tagline') { c = pick(f.tagline, i); if (!c) return; brand.tagline = c.value; noteSource('tagline', c); }
+    if (act === 'name' || act === 'tagline') {
+      var typed = editedValue != null ? editedValue : readXEdit(act);
+      if (typed != null) {
+        if (!applyEditedText(act, typed)) return;
+      } else {
+        c = pick(act === 'name' ? f.name : f.tagline, i);
+        if (!c) return;
+        if (act === 'name') { brand.name = c.value; if (!brand.id) brand.slug = slugify(c.value); noteSource('name', c); }
+        else { brand.tagline = c.value; noteSource('tagline', c); }
+      }
+    }
     else if (act === 'logo') { c = pick(f.logo, i); if (!c) return; brand.logo_url = c.value; noteSource('logo_url', c); }
     else if (act === 'legal') { c = f.legal.candidates[i]; if (!c) return; brand.brand_data = brand.brand_data || {}; brand.brand_data.legal_entity = c.value; noteSource('legal_entity', c); }
     else if (act === 'palette-all') {
@@ -2472,7 +2599,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   document.addEventListener('click', function (e) {
     var t = e.target && e.target.closest ? e.target.closest('[data-xa]') : null;
-    if (t) { applyExtract(t.getAttribute('data-xa'), +t.getAttribute('data-xi') || 0); return; }
+    if (t) {
+      var xa = t.getAttribute('data-xa');
+      var xi = +t.getAttribute('data-xi') || 0;
+      // Alt chips for name/tagline fill the editable field so the operator can
+      // tweak before Use; Use applies whatever is in the input (edited or not).
+      if ((xa === 'name' || xa === 'tagline') && t.classList.contains('xalt')) {
+        var cand = pick(extraction && extraction.fields && extraction.fields[xa], xi);
+        var box = document.querySelector('[data-xedit="' + xa + '"]');
+        if (cand && box) { box.value = String(cand.value || ''); box.focus(); }
+        return;
+      }
+      if ((xa === 'name' || xa === 'tagline') && t.classList.contains('xbtn')) {
+        applyExtract(xa, 0, readXEdit(xa));
+        return;
+      }
+      applyExtract(xa, xi);
+      return;
+    }
     // Resolving the brand-vs-CTA conflict is an explicit choice, and it is
     // recorded as one: which side the operator picked, and from which page.
     var cf = e.target && e.target.closest ? e.target.closest('[data-xconflict]') : null;
@@ -3124,6 +3268,96 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* Delete is irreversible and takes more than the brand with it, so it says
+     what goes and asks for the name. A single OK is too cheap for an action
+     that removes a catalogue, stored credentials and a credit ledger; typing
+     the name is the standard bar for that. Shared by step 1 and Review -
+     Switch Brand / compact setup put brand management on step 1, where Delete
+     used to be missing (found live after multi-brand setup). */
+  async function confirmDeleteBrand(id, row, activeId, after) {
+    var name = (row && row.name) || 'this brand';
+    var alsoActive = id === activeId;
+    var warn = 'Delete ' + name + ' permanently?\n\n'
+      + 'This also removes its catalogue, connected accounts and stored keys, competitor set, '
+      + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.\n\n'
+      + (alsoActive ? 'It is your ACTIVE brand - the app will fall back to another brand, or to onboarding if this is your last one.\n\n' : '')
+      + 'Type the brand name to confirm:';
+    var typed = window.prompt(warn, '');
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
+      toast('Name did not match. Nothing was deleted.', 4000); return;
+    }
+    try {
+      var r = await window.BrandContext.api('delete', { body: { id: id } });
+      toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
+      if (alsoActive) {
+        try { window.BrandContext.clearCache(); } catch (_) {}
+        // A blank setup draft must stay blank (setup shell), not paint a
+        // deleted brand's colours if refresh races the list redraw.
+        if (!draftingNew) {
+          try { if (window.BrandContext.endSetupShell) window.BrandContext.endSetupShell(); } catch (_) {}
+        }
+      }
+      await window.BrandContext.refresh();
+      if (typeof after === 'function') after();
+    } catch (e) {
+      // The server distinguishes "not yours" (403) from "not there"
+      // (404) from "nothing was removed" (409). Show what it said.
+      toast(window.LifecycleFailure.sentence(e), 5000);
+    }
+  }
+
+  /* Brands already on this account/device — step 1 entry so adding another
+     brand is one press away, not buried on Review. */
+  async function loadStep1Brands() {
+    var host = $('step1Brands');
+    if (!host || !window.BrandContext) return;
+    try {
+      var r = await window.BrandContext.list();
+      var rows = r.workspaces || [];
+      var active = r.active_id || (window.BrandContext.brand && window.BrandContext.brand.id);
+      if (!rows.length) { host.innerHTML = ''; return; }
+      host.innerHTML =
+        '<label style="display:block;margin:0 0 6px">Your brands <span class="note">' + rows.length + '</span></label>' +
+        rows.map(function (w) {
+          var p = w.palette || {};
+          var local = w.storage === 'device';
+          return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '"' + (local ? ' data-storage="device"' : '') + '>' +
+            '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
+            '<span><b>' + esc(w.name) + '</b>' + (local ? '<span class="ws-chip" data-storage-chip="device">on this device</span>' : '') +
+              '<small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
+            '<span class="ws-acts">' +
+              (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
+              '<button type="button" class="ws-act" data-act="edit">Edit</button>' +
+              '<button type="button" class="ws-act danger" data-act="delete">Delete</button>' +
+            '</span></div>';
+        }).join('') +
+        '<button type="button" class="btn" id="newBrandStep1" style="margin-top:8px;padding:8px 14px;font-size:12px">+ Onboard another brand</button>';
+      Array.prototype.forEach.call(host.querySelectorAll('[data-ws]'), function (el) {
+        var id = el.dataset.ws;
+        var row = rows.filter(function (w) { return w.id === id; })[0] || {};
+        el.addEventListener('click', function (ev) {
+          var btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
+          var act = btn && btn.dataset.act;
+          if (act) ev.stopPropagation();
+          if (act === 'edit') { location.href = '/onboarding?id=' + encodeURIComponent(id); return; }
+          if (act === 'delete') { confirmDeleteBrand(id, row, active, function () { loadStep1Brands(); }); return; }
+          if (act === 'switch' || !act) {
+            draftingNew = false;
+            window.BrandContext.setActive(id).then(function () {
+              toast('Switched brand. The app is now in that brand.');
+              loadStep1Brands();
+            }).catch(function (e) { toast(window.LifecycleFailure.sentence(e), 4000); });
+          }
+        });
+      });
+      var nb = $('newBrandStep1');
+      if (nb) nb.addEventListener('click', function () { startNewBrand(); go(1); try { history.replaceState(history.state, '', '/onboarding?new=1&step=1'); } catch (_) {} });
+    } catch (e) {
+      host.innerHTML = '';
+    }
+  }
+
   /* ── review ─────────────────────────────────────────────────────────── */
   async function loadWorkspaces() {
     try {
@@ -3170,42 +3404,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
            building a second seeding path beside the one that already exists. */
         function edit() { location.href = '/onboarding?id=' + encodeURIComponent(id); }
 
-        /* Delete is irreversible and takes more than the brand with it, so it
-           says what goes and asks for the name. A single OK is too cheap for
-           an action that removes a catalogue, stored credentials and a credit
-           ledger; typing the name is the standard bar for that. */
-        async function remove() {
-          var name = row.name || 'this brand';
-          var alsoActive = id === active;
-          var warn = 'Delete ' + name + ' permanently?\n\n'
-            + 'This also removes its catalogue, connected accounts and stored keys, competitor set, '
-            + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.\n\n'
-            + (alsoActive ? 'It is your ACTIVE brand - the app will fall back to another brand, or to onboarding if this is your last one.\n\n' : '')
-            + 'Type the brand name to confirm:';
-          var typed = window.prompt(warn, '');
-          if (typed === null) return;
-          if (typed.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
-            toast('Name did not match. Nothing was deleted.', 4000); return;
-          }
-          try {
-            var r = await window.BrandContext.api('delete', { body: { id: id } });
-            toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
-            if (alsoActive) { try { window.BrandContext.clearCache(); } catch (_) {} }
-            await window.BrandContext.refresh();
-            loadWorkspaces();
-          } catch (e) {
-            // The server distinguishes "not yours" (403) from "not there"
-            // (404) from "nothing was removed" (409). Show what it said.
-            toast(window.LifecycleFailure.sentence(e), 5000);
-          }
-        }
-
         el.addEventListener('click', function (ev) {
           var btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
           var act = btn && btn.dataset.act;
           if (act) ev.stopPropagation();
           if (act === 'edit') return edit();
-          if (act === 'delete') return remove();
+          if (act === 'delete') return confirmDeleteBrand(id, row, active, function () { loadWorkspaces(); });
           return switchTo();          // the row itself, and the Switch button
         });
       });
@@ -4051,9 +4255,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function docBlock() {
     var busy = DOC.busy;
-    var out = '<div class="xtract" id="docBlock" data-no-brand-swap><h3>Upload my brand guidelines</h3>' +
-      '<p class="xmeta">Your brand book or style guide states the brand in its own words: its colours and their roles, its typefaces, its logo and clear-space rules, its voice and the words it bans. Upload it as a file, or paste a link to it; either is enough. PDF, Word (.docx), DESIGN.md, JSON design tokens (W3C, Style Dictionary, Tokens Studio, a Figma variables export), CSS, SVG or an image of a style sheet. It is read in this browser, every value keeps the page and line it came from, and nothing is applied until you press Apply. Your website goes in Read my brand from my website, above; a link to the site itself is read there.</p>' +
-      '<div class="pair" style="margin-top:11px">' +
+    var out = '<div class="xtract compact" id="docBlock" data-no-brand-swap><h3>Brand guidelines</h3>' +
+      '<p class="xmeta">PDF, Word, DESIGN.md, or design tokens. Read in this browser; nothing applies until you press Apply. Site URLs go in Set up from my website above.</p>' +
+      '<div class="pair" style="margin-top:8px">' +
         '<label class="btn primary" id="docFileBtn">' + (busy ? 'Reading...' : 'Upload a file') + '<input type="file" id="docFile" accept=".pdf,.docx,.md,.markdown,.json,.css,.svg,.png,.jpg,.jpeg,.webp,.txt,application/pdf"></label>' +
         '<span class="pair-or">or paste a link</span>' +
         '<input type="url" id="docUrl" value="' + esc(DOC.urlDraft) + '" placeholder="https://... your brand book, or a DESIGN.md">' +
@@ -4597,8 +4801,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   /* A new brand is a blank record: nothing of the brand on screen is carried
-     into it (2026-10-10). */
+     into it (2026-10-10). The page chrome must also leave the previous brand's
+     palette - Switch Brand used to keep Nykaa pink on a blank form. */
+  var draftingNew = false;
+  function paintDraftChrome() {
+    try {
+      if (window.BrandContext && typeof window.BrandContext.paintSetupShell === 'function') {
+        window.BrandContext.paintSetupShell(brand || null);
+      }
+    } catch (_) {}
+  }
   function startNewBrand() {
+    draftingNew = true;
     brand = blankBrand();
     DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
     ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body']
@@ -4607,6 +4821,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     DOC.report = null; DOC.results = null; DOC.snapshot = null; DOC.added = []; DOC.conflicts = []; DOC.status = ''; DOC.identityAsk = null; DOC.identityOk = false;
     catalogCount = null; catalogExcluded = null;
     snapshotSeen();
+    paintDraftChrome();
     try { $('title').textContent = 'Onboard a brand'; $('lede').textContent = 'A new brand, from a blank record.'; } catch (_) {}
   }
 
@@ -4683,9 +4898,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!window.BrandContext) { setTimeout(boot, 250); return; }
     try {
       var existing = await window.BrandContext.ready();
-      var wanted = new URLSearchParams(location.search).get('id');
+      var params = new URLSearchParams(location.search);
+      // /onboarding?new=1 — blank record for another brand (rail picker, step 1).
+      // Must win over the active brand resume, or "Add another brand" would
+      // reopen the brand already on screen.
+      if (params.get('new') === '1' || params.get('new') === 'true') {
+        startNewBrand();
+        go(1);
+        paintDraftChrome();
+        return;
+      }
+      var wanted = params.get('id');
       var target = wanted || (existing && existing.id);
       if (target) {
+        draftingNew = false;
+        try { if (window.BrandContext && window.BrandContext.endSetupShell) window.BrandContext.endSetupShell(); } catch (_) {}
         var r = await api('get', null, '&id=' + encodeURIComponent(target));
         if (r.brand) {
           ['id','slug','name','tagline','industry','website','logo_url','favicon_url','status'].forEach(function (k) { brand[k] = r.brand[k] || ''; });

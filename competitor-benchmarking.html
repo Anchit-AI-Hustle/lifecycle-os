@@ -846,10 +846,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!grid) return;
     grid.innerHTML = '<p class="muted">Loading benchmark playbooks &amp; hooks…</p>';
     try {
+      // Same gate the rest of this page uses: refuse before the request when
+      // this state cannot load a brand's playbook from the server.
+      if (window.LifecycleStatus) {
+        const ref = await window.LifecycleStatus.decide('Loading the benchmark playbook');
+        if (ref) throw ref;
+      }
       const res = await fetch('/api/kb?action=playbook');
       const data = await res.json();
-      if (!data || !data.ok) throw new Error((data && data.error) || 'Failed to load playbook');
-      
+      // A browser with no session gets NOTHING ({ok:true, error:workspace_unresolved})
+      // — that is not a playbook. Treat missing playbook/hooks as a refusal, never
+      // as an empty successful paint of default compliance copy.
+      if (!data || data.ok === false || data.error === 'workspace_unresolved' || !data.playbook) {
+        const msg = (data && (data.message || data.note)) || (data && data.error) || 'Failed to load playbook';
+        throw Object.assign(new Error(msg), { code: data && data.error });
+      }
+
       const modelLabels = {
         market_data: '📈 Stock Market & Financial Data',
         news_media: '📰 News & Editorial Media',
@@ -873,7 +885,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if ($('pb-compliance')) {
         $('pb-compliance').innerHTML = data.disclaimer
           ? '<b>Mandatory Disclaimer:</b> <span style="font-size:12px;color:var(--vh-ink-dim)">"' + esc(data.disclaimer) + '"</span>'
-          : '<b>Compliance:</b> Standard verifiable brand claims. No unsubstantiated guarantees or unbacked claims.';
+          : '<b>Compliance:</b> Standard verifiable brand claims. No unapproved guarantees or unbacked claims.';
       }
       if ($('pb-visual')) {
         $('pb-visual').textContent = data.businessModel === 'market_data'
@@ -912,7 +924,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           `).join('') + '</div>';
       }
     } catch (err) {
-      grid.innerHTML = '<p class="vh-failure">Could not load benchmark playbook: ' + esc(err.message) + '</p>';
+      // Ordinary refusals (signed-out, device-session, unreachable) go through
+      // the accent-rule status line — never a failure frame for an ordinary state.
+      const sentence = (window.LifecycleFailure && window.LifecycleFailure.sentence)
+        ? window.LifecycleFailure.sentence(err)
+        : String(err && err.message || err);
+      grid.innerHTML = '';
+      if (window.LifecycleStatus && window.LifecycleStatus.show) {
+        window.LifecycleStatus.show(grid, sentence);
+      } else {
+        grid.innerHTML = '<p class="muted">' + esc(sentence) + '</p>';
+      }
+      if ($('pb-job')) $('pb-job').textContent = '';
+      if ($('pb-levers')) $('pb-levers').innerHTML = '';
+      if ($('pb-compliance')) $('pb-compliance').innerHTML = '';
+      if ($('pb-visual')) $('pb-visual').textContent = '';
+      if ($('pb-sequence-wrap')) $('pb-sequence-wrap').innerHTML = '';
     }
   }
 

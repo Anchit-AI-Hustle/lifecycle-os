@@ -245,6 +245,10 @@ async function open(page, world, opts) {
   });
   await page.goto(HOST + '/onboarding.html' + (o.query || ''), { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded && window.BrandContext.storage && window.BrandContext.storage().known && window.BrandDocument, null, { timeout: 20000 });
+  // Logo / guidelines live under the compact optional details; open it so
+  // #docBlock and the asset inputs are visible and actionable.
+  await page.waitForSelector('#setupMore');
+  await page.locator('#setupMore').evaluate((el) => { el.open = true; });
   await page.waitForSelector('#docBlock');
   await page.waitForTimeout(250);
   return log;
@@ -253,9 +257,29 @@ const row = (page, field) => page.locator(`[data-doc-field="${field}"]`).first()
 async function upload(page, sel, name, mimeType, buffer) {
   await page.setInputFiles(sel, { name, mimeType, buffer });
 }
+async function waitDocPrimary(page, timeout) {
+  // Apply / parse re-renders step 1; ensure the optional details stay open so
+  // the report rows are visible (product also opens them when DOC.report lands).
+  await page.waitForFunction(() => {
+    const more = document.getElementById('setupMore');
+    if (more) more.open = true;
+    const row = document.querySelector('[data-doc-field="palette.primary"]');
+    return !!(row && row.offsetParent !== null);
+  }, null, { timeout: timeout || 30000 });
+}
+async function waitDocRevert(page, timeout) {
+  // Same re-render can leave #docRevert in the DOM but inside a closed
+  // #setupMore; open it before asserting visibility.
+  await page.waitForFunction(() => {
+    const more = document.getElementById('setupMore');
+    if (more) more.open = true;
+    const btn = document.getElementById('docRevert');
+    return !!(btn && btn.offsetParent !== null);
+  }, null, { timeout: timeout || 30000 });
+}
 async function readBook(page) {
   await upload(page, '#docFile', 'harbourlight-brand-book.pdf', 'application/pdf', BOOK);
-  await page.waitForSelector('[data-doc-field="palette.primary"]', { timeout: 30000 });
+  await waitDocPrimary(page);
 }
 
 let world;
@@ -334,7 +358,7 @@ test('Apply fills every stated field except a typed one, says which, shows the h
   await page.fill('input[data-path="name"]', 'Harbour Typed');
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await expect(page.locator('input[data-path="name"]')).toHaveValue('Harbour Typed');
   await expect(row(page, 'name').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'kept');
   await expect(row(page, 'palette.primary').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'applied');
@@ -402,7 +426,7 @@ test('the applied document becomes the brand: saved with its origins, activated,
   const log = await open(page, world);
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await page.click('[data-go="next"]');                         // saves (device store)
   await page.waitForSelector('input[type=text][data-path="palette.primary"]');
   await expect(page.locator('input[type=text][data-path="palette.primary"]')).toHaveValue('#1a6b3c');
@@ -433,7 +457,7 @@ test('an automatic value laid over a document value is held back and shown side 
   await open(page, world);
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   // A template laid over the brand (the gallery's own handler, which writes
   // every value the template carries): automatic, so below the document.
   // Since 2026-10-11 a starter template copies nothing onto a brand with its
@@ -486,7 +510,7 @@ for (const fx of [
   test(`a ${fx.name} reads its colours and type with the line each is on`, async ({ page }) => {
     const log = await open(page, world);
     await upload(page, '#docFile', fx.name, fx.type, fx.body());
-    await page.waitForSelector('[data-doc-field="palette.primary"]');
+    await waitDocPrimary(page);
     const p = (await row(page, 'palette.primary').textContent()).replace(/\s+/g, ' ');
     expect(p).toContain('#1a6b3c');
     expect(p).toContain(fx.name + ' · ' + fx.primary);
@@ -500,7 +524,7 @@ for (const fx of [
 test('a DOCX reads its paragraphs, its shaded swatch cells and its embedded logo', async ({ page }) => {
   await open(page, world);
   await upload(page, '#docFile', 'style-guide.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', F.docx());
-  await page.waitForSelector('[data-doc-field="palette.primary"]');
+  await waitDocPrimary(page);
   expect(await row(page, 'name').textContent()).toContain('Harbourlight Goods');
   expect((await row(page, 'palette.primary').textContent()).replace(/\s+/g, ' ')).toContain('#1a6b3c');
   expect(await row(page, 'typography.heading').textContent()).toContain('Fraunces');
@@ -513,7 +537,7 @@ test('a linked document is read directly when its host allows a browser, and thr
   const log = await open(page, world);
   await page.fill('#docUrl', DOCS + '/DESIGN.md');
   await page.click('#docUrlRun');
-  await page.waitForSelector('[data-doc-field="palette.primary"]');
+  await waitDocPrimary(page);
   expect((await row(page, 'palette.primary').textContent())).toContain('DESIGN.md · l.5');
   expect(log.docFetch, 'a CORS host was proxied through the server').toEqual([]);
   // No CORS: the shipped op fetches it, behind the SSRF guard, and the bytes come back.
@@ -900,7 +924,7 @@ test('signed in to an account: Apply hosts the logo, and the private brand book 
     await page.locator('.step-pip[data-step="1"]').click();
     await readBook(page);
     await page.click('#docApply');
-    await page.waitForSelector('#docRevert');
+    await waitDocRevert(page);
     await expect(page.locator('[data-asset-note="logo"]')).toContainText('Hosted at live.supabase.co');
     await page.click('[data-go="next"]');
     await page.waitForSelector('input[type=text][data-path="palette.primary"]');
@@ -977,7 +1001,7 @@ test('a typed value the document repeats stays typed, so a later document cannot
   await page.fill('input[data-path="tagline"]', 'Light, made by hand');
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await expect(row(page, 'tagline').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'same');
   await page.fill('input[data-path="name"]', 'Harbourlight Goods');
   await page.click('[data-go="next"]');
@@ -994,7 +1018,7 @@ test('an unticked "never use em dashes" is the operator\'s, and a guideline that
   await page.locator('.step-pip[data-step="1"]').click();
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await expect(row(page, 'voice.no_em_dashes').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'kept');
   await page.locator('.step-pip[data-step="4"]').click();
   await expect(page.locator('input[data-path="voice.no_em_dashes"]')).not.toBeChecked();
