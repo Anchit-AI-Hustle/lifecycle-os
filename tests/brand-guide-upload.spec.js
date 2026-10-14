@@ -267,6 +267,16 @@ async function waitDocPrimary(page, timeout) {
     return !!(row && row.offsetParent !== null);
   }, null, { timeout: timeout || 30000 });
 }
+async function waitDocRevert(page, timeout) {
+  // Same re-render can leave #docRevert in the DOM but inside a closed
+  // #setupMore; open it before asserting visibility.
+  await page.waitForFunction(() => {
+    const more = document.getElementById('setupMore');
+    if (more) more.open = true;
+    const btn = document.getElementById('docRevert');
+    return !!(btn && btn.offsetParent !== null);
+  }, null, { timeout: timeout || 30000 });
+}
 async function readBook(page) {
   await upload(page, '#docFile', 'harbourlight-brand-book.pdf', 'application/pdf', BOOK);
   await waitDocPrimary(page);
@@ -348,7 +358,7 @@ test('Apply fills every stated field except a typed one, says which, shows the h
   await page.fill('input[data-path="name"]', 'Harbour Typed');
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await expect(page.locator('input[data-path="name"]')).toHaveValue('Harbour Typed');
   await expect(row(page, 'name').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'kept');
   await expect(row(page, 'palette.primary').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'applied');
@@ -416,7 +426,7 @@ test('the applied document becomes the brand: saved with its origins, activated,
   const log = await open(page, world);
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await page.click('[data-go="next"]');                         // saves (device store)
   await page.waitForSelector('input[type=text][data-path="palette.primary"]');
   await expect(page.locator('input[type=text][data-path="palette.primary"]')).toHaveValue('#1a6b3c');
@@ -447,7 +457,7 @@ test('an automatic value laid over a document value is held back and shown side 
   await open(page, world);
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   // A template laid over the brand (the gallery's own handler, which writes
   // every value the template carries): automatic, so below the document.
   // Since 2026-10-11 a starter template copies nothing onto a brand with its
@@ -914,7 +924,7 @@ test('signed in to an account: Apply hosts the logo, and the private brand book 
     await page.locator('.step-pip[data-step="1"]').click();
     await readBook(page);
     await page.click('#docApply');
-    await page.waitForSelector('#docRevert');
+    await waitDocRevert(page);
     await expect(page.locator('[data-asset-note="logo"]')).toContainText('Hosted at live.supabase.co');
     await page.click('[data-go="next"]');
     await page.waitForSelector('input[type=text][data-path="palette.primary"]');
@@ -991,7 +1001,7 @@ test('a typed value the document repeats stays typed, so a later document cannot
   await page.fill('input[data-path="tagline"]', 'Light, made by hand');
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await expect(row(page, 'tagline').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'same');
   await page.fill('input[data-path="name"]', 'Harbourlight Goods');
   await page.click('[data-go="next"]');
@@ -1008,7 +1018,7 @@ test('an unticked "never use em dashes" is the operator\'s, and a guideline that
   await page.locator('.step-pip[data-step="1"]').click();
   await readBook(page);
   await page.click('#docApply');
-  await page.waitForSelector('#docRevert');
+  await waitDocRevert(page);
   await expect(row(page, 'voice.no_em_dashes').locator('[data-doc-status]')).toHaveAttribute('data-doc-status', 'kept');
   await page.locator('.step-pip[data-step="4"]').click();
   await expect(page.locator('input[data-path="voice.no_em_dashes"]')).not.toBeChecked();
