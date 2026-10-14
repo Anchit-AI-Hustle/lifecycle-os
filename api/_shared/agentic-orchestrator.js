@@ -228,6 +228,7 @@ async function runAgentic(opts = {}) {
     tier, market, stages, strategy, scenarios: scenarioSet,
     // One entry per day the run actually produced assets for.
     campaigns,
+    entries: inWindow,
     days_requested: windowDays,
     days_planned: inWindow.length,
     days_built: campaigns.length,
