@@ -3266,6 +3266,45 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* Delete is irreversible and takes more than the brand with it, so it says
+     what goes and asks for the name. A single OK is too cheap for an action
+     that removes a catalogue, stored credentials and a credit ledger; typing
+     the name is the standard bar for that. Shared by step 1 and Review -
+     Switch Brand / compact setup put brand management on step 1, where Delete
+     used to be missing (found live after multi-brand setup). */
+  async function confirmDeleteBrand(id, row, activeId, after) {
+    var name = (row && row.name) || 'this brand';
+    var alsoActive = id === activeId;
+    var warn = 'Delete ' + name + ' permanently?\n\n'
+      + 'This also removes its catalogue, connected accounts and stored keys, competitor set, '
+      + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.\n\n'
+      + (alsoActive ? 'It is your ACTIVE brand - the app will fall back to another brand, or to onboarding if this is your last one.\n\n' : '')
+      + 'Type the brand name to confirm:';
+    var typed = window.prompt(warn, '');
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
+      toast('Name did not match. Nothing was deleted.', 4000); return;
+    }
+    try {
+      var r = await window.BrandContext.api('delete', { body: { id: id } });
+      toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
+      if (alsoActive) {
+        try { window.BrandContext.clearCache(); } catch (_) {}
+        // A blank setup draft must stay blank (setup shell), not paint a
+        // deleted brand's colours if refresh races the list redraw.
+        if (!draftingNew) {
+          try { if (window.BrandContext.endSetupShell) window.BrandContext.endSetupShell(); } catch (_) {}
+        }
+      }
+      await window.BrandContext.refresh();
+      if (typeof after === 'function') after();
+    } catch (e) {
+      // The server distinguishes "not yours" (403) from "not there"
+      // (404) from "nothing was removed" (409). Show what it said.
+      toast(window.LifecycleFailure.sentence(e), 5000);
+    }
+  }
+
   /* Brands already on this account/device — step 1 entry so adding another
      brand is one press away, not buried on Review. */
   async function loadStep1Brands() {
@@ -3288,16 +3327,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             '<span class="ws-acts">' +
               (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
               '<button type="button" class="ws-act" data-act="edit">Edit</button>' +
+              '<button type="button" class="ws-act danger" data-act="delete">Delete</button>' +
             '</span></div>';
         }).join('') +
         '<button type="button" class="btn" id="newBrandStep1" style="margin-top:8px;padding:8px 14px;font-size:12px">+ Onboard another brand</button>';
       Array.prototype.forEach.call(host.querySelectorAll('[data-ws]'), function (el) {
         var id = el.dataset.ws;
+        var row = rows.filter(function (w) { return w.id === id; })[0] || {};
         el.addEventListener('click', function (ev) {
           var btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
           var act = btn && btn.dataset.act;
           if (act) ev.stopPropagation();
           if (act === 'edit') { location.href = '/onboarding?id=' + encodeURIComponent(id); return; }
+          if (act === 'delete') { confirmDeleteBrand(id, row, active, function () { loadStep1Brands(); }); return; }
           if (act === 'switch' || !act) {
             draftingNew = false;
             window.BrandContext.setActive(id).then(function () {
@@ -3360,42 +3402,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
            building a second seeding path beside the one that already exists. */
         function edit() { location.href = '/onboarding?id=' + encodeURIComponent(id); }
 
-        /* Delete is irreversible and takes more than the brand with it, so it
-           says what goes and asks for the name. A single OK is too cheap for
-           an action that removes a catalogue, stored credentials and a credit
-           ledger; typing the name is the standard bar for that. */
-        async function remove() {
-          var name = row.name || 'this brand';
-          var alsoActive = id === active;
-          var warn = 'Delete ' + name + ' permanently?\n\n'
-            + 'This also removes its catalogue, connected accounts and stored keys, competitor set, '
-            + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.\n\n'
-            + (alsoActive ? 'It is your ACTIVE brand - the app will fall back to another brand, or to onboarding if this is your last one.\n\n' : '')
-            + 'Type the brand name to confirm:';
-          var typed = window.prompt(warn, '');
-          if (typed === null) return;
-          if (typed.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
-            toast('Name did not match. Nothing was deleted.', 4000); return;
-          }
-          try {
-            var r = await window.BrandContext.api('delete', { body: { id: id } });
-            toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
-            if (alsoActive) { try { window.BrandContext.clearCache(); } catch (_) {} }
-            await window.BrandContext.refresh();
-            loadWorkspaces();
-          } catch (e) {
-            // The server distinguishes "not yours" (403) from "not there"
-            // (404) from "nothing was removed" (409). Show what it said.
-            toast(window.LifecycleFailure.sentence(e), 5000);
-          }
-        }
-
         el.addEventListener('click', function (ev) {
           var btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
           var act = btn && btn.dataset.act;
           if (act) ev.stopPropagation();
           if (act === 'edit') return edit();
-          if (act === 'delete') return remove();
+          if (act === 'delete') return confirmDeleteBrand(id, row, active, function () { loadWorkspaces(); });
           return switchTo();          // the row itself, and the Switch button
         });
       });

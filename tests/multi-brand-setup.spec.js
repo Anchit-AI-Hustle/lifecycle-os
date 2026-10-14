@@ -97,4 +97,7 @@ test('/onboarding?new=1 starts a blank brand instead of reopening the active one
   await expect(page.locator('[data-path="name"]')).toHaveValue('');
   await expect(page.locator('#step1Brands .ws')).toHaveCount(2);
   await expect(page.locator('#newBrandStep1')).toBeVisible();
+  // Compact setup put brand management on step 1; Delete must be here too
+  // (it used to live only on Review).
+  await expect(page.locator('#step1Brands [data-act="delete"]')).toHaveCount(2);
 });
