@@ -242,12 +242,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .presets-wrap .presets-lede{font-size:11.5px;color:var(--muted);margin:4px 0 10px;line-height:1.45}
   .presets{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:0;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
   .preset{flex:0 0 168px;scroll-snap-align:start;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;
-    background:var(--surface);text-align:left;transition:border-color .12s,transform .12s;font:inherit;min-height:0}
+    background:var(--surface);text-align:left;transition:border-color .12s,transform .12s;font:inherit;min-height:0;
+    position:relative;overflow:hidden}
   .preset:hover{border-color:var(--vh-line-hot);transform:translateY(-1px)}
   .preset[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
   .preset .pname{font-weight:700;font-size:13px;margin:0 0 1px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .preset .psector{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .preset .pblurb,.preset .ptype{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;white-space:nowrap}
+  /* Visually hidden for the gallery card, kept in the DOM for harvest/a11y.
+     Pin left/top inside the relative .preset and clip there: without that,
+     nowrap absolute blurbs expanded document scrollWidth (~7k px) and dragged
+     the fixed credit pill off-viewport (mobile-space page-overflow / too-wide). */
+  .preset .pblurb,.preset .ptype{position:absolute;left:0;top:0;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;white-space:nowrap}
   /* The four roles a brand's own site renders, each NAMED. A row of anonymous
      chips cannot say which is the brand colour and which is the page. */
   .preset .plogo{width:28px;height:28px;object-fit:contain;border-radius:7px;border:1px solid var(--line,#d8d8d8);background:var(--surface,#fff);margin:0 0 6px;display:block}
@@ -1049,7 +1054,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var more = document.getElementById('setupMore');
         if (more) {
           more.addEventListener('toggle', function () { __setupMoreOpen = !!more.open; });
-          if (DOC.report || DOC.results || DOC.status) more.open = true;
+          // Latch open whenever a document report or applied result exists so a
+          // later re-render (Apply, conflict chip, asset preview) cannot hide
+          // Revert / provenance under a closed <details>.
+          if (DOC.report || DOC.results || DOC.status) {
+            __setupMoreOpen = true;
+            more.open = true;
+          }
         }
       } catch (_) {}
     }
@@ -1259,14 +1270,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }).join('') + '</div>' +
         '<div class="pname"' + (isDefault || isIdentity || !p.heading_stack ? '' : ' style="font-family:' + esc(p.heading_stack) + '"') + '>' + esc(p.name) + '</div>' +
         '<div class="psector">' + esc(p.sector || '') + '</div>' +
-        '<div class="pblurb">' + esc(p.blurb || '') + '</div>' +
+        '<div class="pblurb" aria-hidden="true">' + esc(p.blurb || '') + '</div>' +
         (isDefault
           ? '<div class="pchip">Colours not read yet</div>' +
             (p.read_note ? '<div class="pwhy">' + esc(p.read_note) + '</div>' : '')
           : isIdentity
             ? '<div class="pchip">Logo colour only</div>' +
               (p.palette_note ? '<div class="pwhy">' + esc(p.palette_note) + '</div>' : '')
-          : '<div class="ptype">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>' +
+          : '<div class="ptype" aria-hidden="true">Headings: ' + esc(p.heading_line || p.heading_font || '') + '<br>Body: ' + esc(p.body_line || p.body_font || '') + '</div>' +
             (p.palette_note ? '<div class="pwhy">' + esc(p.palette_note) + '</div>' : '')) +
         '<div class="pmeta" style="margin-top:4px">' +
           (isDefault || isIdentity
