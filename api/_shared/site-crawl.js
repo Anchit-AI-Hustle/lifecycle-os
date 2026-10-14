@@ -171,6 +171,16 @@ function extract(html, pageUrl, hosts) {
         description: String(node.description || '').slice(0, 600),
         found_on: pageUrl, source: 'json-ld:Product',
       });
+    } else if (/^(softwareapplication|webapplication|mobileapplication|service|financialproduct)$/.test(t)) {
+      const { price, currency } = priceOf(node);
+      offerings.push({
+        kind: 'service', name: String(node.name || node.alternateName || '').slice(0, 300),
+        url: absolute(node.url || pageUrl, pageUrl), image: absolute(img, pageUrl) || '',
+        sku: String(node.sku || node.applicationCategory || '').slice(0, 120),
+        price, currency,
+        description: String(node.description || '').slice(0, 600),
+        found_on: pageUrl, source: `json-ld:${node['@type'] || 'SoftwareApplication'}`,
+      });
     } else if (t === 'event') {
       offerings.push({
         kind: 'event', name: String(node.name || '').slice(0, 300),
@@ -204,6 +214,30 @@ function extract(html, pageUrl, hosts) {
         description: String(meta['og:description'] || '').slice(0, 600),
         found_on: pageUrl, source: 'opengraph',
       });
+    }
+  }
+  // Declared product/offering articles on range/care/services pages when no JSON-LD or OpenGraph product was present
+  if (!offerings.length && /care|product|range|service|shop|store/i.test(pageUrl)) {
+    for (const m of html.matchAll(/<article\b[^>]*class=["'][^"']*\b(?:worry|product|card|item|offering)\b[^"']*["'][^>]*>([\s\S]*?)<\/article>/gi)) {
+      const body = m[1];
+      const h3 = (body.match(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i) || [])[1];
+      const p = (body.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i) || [])[1];
+      if (h3) {
+        const cleanName = h3.replace(/<[^>]+>/g, '').trim();
+        const cleanDesc = (p || '').replace(/<[^>]+>/g, '').trim();
+        if (cleanName && cleanName.length <= 120) {
+          offerings.push({
+            kind: 'product',
+            name: cleanName,
+            url: pageUrl,
+            image: meta['og:image'] ? absolute(meta['og:image'], pageUrl) : '',
+            description: cleanDesc.slice(0, 600),
+            price: '', currency: '',
+            found_on: pageUrl,
+            source: 'html:article',
+          });
+        }
+      }
     }
   }
   if (meta['og:image']) pushImage(meta['og:image'], meta['og:title'] || '', 'opengraph');
