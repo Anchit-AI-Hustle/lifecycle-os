@@ -1984,6 +1984,7 @@
         #lifecycle-nav .lnav-brand {
           display: flex; align-items: center; gap: 10px; text-decoration: none;
           padding: 4px 8px 16px; color: var(--vh-ink, inherit);
+          min-height: 44px; box-sizing: border-box;
         }
         #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; transition: transform .2s; }
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
@@ -1998,7 +1999,8 @@
         #lifecycle-nav .lnav-brandblock { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; position: relative; }
         #lifecycle-nav .lnav-brandpick {
           display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%;
-          margin: 0 0 10px; padding: 5px 8px; border-radius: 8px;
+          margin: 0 0 10px; padding: 8px; border-radius: 8px;
+          min-height: 44px; box-sizing: border-box;
           border: 1px solid var(--vh-line, currentColor); background: var(--vh-panel-2, transparent);
           color: var(--vh-ink, inherit); cursor: pointer; text-align: left;
           font: inherit; transition: border-color .12s, background .12s;
@@ -2006,20 +2008,21 @@
         #lifecycle-nav .lnav-brandpick:hover,
         #lifecycle-nav .lnav-brandpick[aria-expanded="true"] { border-color: var(--vh-accent); }
         #lifecycle-nav .lnav-brandpick .lnav-brandname {
-          flex: 1; min-width: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+          flex: 1; min-width: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
           color: var(--vh-ink, inherit); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           text-transform: none;
         }
         #lifecycle-nav .lnav-brand-caret { flex-shrink: 0; font-size: 10px; color: var(--vh-ink-dim); line-height: 1; }
         #lifecycle-nav .lnav-brandmenu {
           position: absolute; left: 0; right: 0; top: calc(100% - 6px); z-index: 40;
-          background: var(--vh-panel, #fff); border: 1px solid var(--vh-line); border-radius: 10px;
-          box-shadow: 0 10px 28px rgba(0,0,0,.12); padding: 6px; max-height: min(55vh, 320px);
+          background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: 10px;
+          box-shadow: var(--vh-lift-2); padding: 6px; max-height: min(55vh, 320px);
           overflow: auto;
         }
         #lifecycle-nav .lnav-brandmenu[hidden] { display: none; }
         #lifecycle-nav .lnav-brandmenu-item {
-          display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 9px;
+          display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 9px;
+          min-height: 44px; box-sizing: border-box;
           border: 0; border-radius: 7px; background: transparent; color: var(--vh-ink);
           font: inherit; text-align: left; cursor: pointer;
         }
@@ -2027,9 +2030,10 @@
         #lifecycle-nav .lnav-brandmenu-item[aria-current="true"] { background: var(--vh-panel-2); box-shadow: inset 3px 0 0 var(--vh-accent); }
         #lifecycle-nav .lnav-brandmenu-item .ws-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
         #lifecycle-nav .lnav-brandmenu-item b { font-size: 12.5px; font-weight: 650; display: block; }
-        #lifecycle-nav .lnav-brandmenu-item small { font-size: 10.5px; color: var(--vh-ink-dim); display: block; }
+        #lifecycle-nav .lnav-brandmenu-item small { font-size: 12px; color: var(--vh-ink-dim); display: block; }
         #lifecycle-nav .lnav-brandmenu-add {
-          display: block; margin-top: 4px; padding: 8px 9px; border-radius: 7px;
+          display: block; margin-top: 4px; padding: 10px 9px; border-radius: 7px;
+          min-height: 44px; box-sizing: border-box; line-height: 24px;
           font-size: 12.5px; font-weight: 650; color: var(--vh-accent-text, var(--vh-accent));
           text-decoration: none;
         }
@@ -2052,7 +2056,7 @@
         /* min-width:0 so a long brand name ellipsises inside the rail instead of
            pushing the collapse button out past its edge (seen on /design-system
            with a 30-character brand name). */
-        #lifecycle-nav .lnav-head .lnav-brand { padding: 4px 8px 2px; min-width: 0; }
+        #lifecycle-nav .lnav-head .lnav-brand { padding: 4px 8px 2px; min-width: 0; min-height: 44px; }
         html.lnav-collapsed #lifecycle-nav .lnav-brandpick,
         html.lnav-collapsed #lifecycle-nav .lnav-brandmenu { display: none; }
         #lifecycle-nav .lnav-collapse {
