@@ -259,6 +259,28 @@ function isNeutral(hex) {
   const l = relLum(hex), s = satOf(hex);
   return s < 0.12 || l > 0.93 || l < 0.02;
 }
+/** Hue in degrees 0..360 from an #RRGGBB. */
+function hueOf(hex) {
+  const [r, g, b] = rgbOf(hex).map((v) => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  if (mx === mn) return 0;
+  let h;
+  if (mx === r) h = (g - b) / (mx - mn) + (g < b ? 6 : 0);
+  else if (mx === g) h = (b - r) / (mx - mn) + 2;
+  else h = (r - g) / (mx - mn) + 4;
+  return h * 60;
+}
+/**
+ * Amber/gold/bronze that reads as a WARN or decorative metal, not a brand
+ * primary. Found live on Times of India health-fitness: an identity signal
+ * proposed ~#c9a227 gold while the masthead/CTA red never became primary.
+ * Those hues stay available as support; they do not fill proposed.primary.
+ */
+function isWarnLikeGold(hex) {
+  if (!hex || isNeutral(hex)) return false;
+  const h = hueOf(hex), s = satOf(hex), l = relLum(hex);
+  return h >= 28 && h <= 58 && s >= 0.25 && l >= 0.22 && l <= 0.78;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    2. CSS PARSING
@@ -679,9 +701,14 @@ function nameCandidates(ctx) {
     }
   }
   if (meta['og:site_name']) out.push(cand(meta['og:site_name'], 'opengraph:og:site_name', url, CONF.declared, meta['og:site_name']));
-  if (meta['application-name']) out.push(cand(meta['application-name'], 'meta:application-name', url, CONF.strong, meta['application-name']));
-  if (manifest && manifest.name) out.push(cand(manifest.name, 'manifest:name', manifest.__url, CONF.declared, manifest.name));
-  if (manifest && manifest.short_name) out.push(cand(manifest.short_name, 'manifest:short_name', manifest.__url, CONF.strong, manifest.short_name));
+  // PWA / push titles ("TOI News Notification") are DECLARATIONS of the app
+  // chrome, not the brand. Keep them as candidates at weak confidence so they
+  // cannot outrank og:site_name or Organization.name (found live on TOI).
+  const appNameConf = (v) => (/notification|push alert|news alert|\bapp\b/i.test(String(v || '')) ? CONF.weak : CONF.strong);
+  const manifestConf = (v) => (/notification|push alert|news alert/i.test(String(v || '')) ? CONF.weak : CONF.strong);
+  if (meta['application-name']) out.push(cand(meta['application-name'], 'meta:application-name', url, appNameConf(meta['application-name']), meta['application-name']));
+  if (manifest && manifest.name) out.push(cand(manifest.name, 'manifest:name', manifest.__url, manifestConf(manifest.name), manifest.name));
+  if (manifest && manifest.short_name) out.push(cand(manifest.short_name, 'manifest:short_name', manifest.__url, manifestConf(manifest.short_name), manifest.short_name));
 
   // <title> is a last resort AND an ambiguous one. "Acme | Handmade boots" and
   // "Handmade boots | Acme" are both common, so BOTH halves are offered as
@@ -1071,10 +1098,14 @@ function rankColours(sightings) {
 const SURFACE_MIN_LUM = 0.6;
 
 function proposePalette(roles) {
-  const firstBrandy = (list) => (list || []).find((c) => !c.neutral) || null;
+  // Identity must not become a decorative gold/amber (Times of India health
+  // theme-color ~#c9a227). Action/support keep gold available for assignment;
+  // it just never fills proposed.primary on its own.
+  const firstBrandy = (list, { allowGold } = {}) =>
+    (list || []).find((c) => !c.neutral && (allowGold || !isWarnLikeGold(c.value))) || null;
   const identity = firstBrandy(roles.identity);
-  const action = firstBrandy(roles.action);
-  const support = firstBrandy(roles.support);
+  const action = firstBrandy(roles.action, { allowGold: true });
+  const support = firstBrandy(roles.support, { allowGold: true });
   const conflicts = [];
   const notes = [];
 
@@ -1105,7 +1136,10 @@ function proposePalette(roles) {
       action: { value: action.value, signal: action.signal, source_url: action.source_url },
     });
   }
-  if (!identity) {
+  const goldOnly = !identity && (roles.identity || []).find((c) => !c.neutral && isWarnLikeGold(c.value));
+  if (goldOnly) {
+    notes.push(`An identity-level colour looked like decorative gold/amber (${goldOnly.value}, ${goldOnly.signal}) and was not proposed as the brand primary. Pick a masthead or CTA colour below, or set primary yourself.`);
+  } else if (!identity) {
     notes.push('No identity-level colour signal was found (no theme-color, no manifest theme_color, no --brand-* custom property, no mask-icon colour). The primary is left empty on purpose: the most-used colour on a page is not the same fact as the brand colour.');
   }
 
@@ -2979,7 +3013,7 @@ async function runExtract(auth, { url, workspace_id, voice = true, max_pages } =
 module.exports = {
   extractBrand, runExtract, observeVoice, MARKER, DEFAULTS, pageRank,
   // colour
-  parseColor, isNeutral, relLum, satOf,
+  parseColor, isNeutral, isWarnLikeGold, hueOf, relLum, satOf,
   // css
   cssRulesets, customProperties, splitDecls, declsOf, selectorRole, tokenNameRole, propWeight,
   colourSightings, rankColours, proposePalette,
