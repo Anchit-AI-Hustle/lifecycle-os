@@ -1991,17 +1991,21 @@
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: var(--los-font-wordmark, system-ui, sans-serif); font-size: 14.5px; letter-spacing: -0.01em; color: var(--vh-ink, inherit); font-weight: 700; }
+        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* Tagline is a <small.lnav-tagline>. The generic .lnav-bt small rule
-           (accent-text + uppercase) is more specific and used to win, so under
+           above (accent-text + uppercase) used to win by specificity, so under
            a pale accent the line painted --brand-accent-text on the picker's
-           --vh-line border (#dadada) at 3.7:1. Beat that rule and use ink:
-           ink-dim also fails AA on the line colour if a sample grazes it. */
+           --vh-line border (#dadada) at 3.7:1. More-specific selector + ink:
+           ink-dim also fails AA on the line colour if a sample grazes it.
+           Do NOT set font-size here: an 8px declaration outranks the
+           (pointer: coarse) bump to 12px below, and mobile-space (hasTouch)
+           then fails tiny-text on every page that shows the rail. Size stays
+           on .lnav-bt small (9px) / the coarse rule (12px). */
         #lifecycle-nav .lnav-brand .lnav-bt small.lnav-tagline {
-          font-size: 8px; line-height: 1.25; letter-spacing: .04em; font-weight: 500;
+          line-height: 1.25; letter-spacing: .04em; font-weight: 500;
           text-transform: none; color: var(--vh-ink, inherit);
           white-space: normal; overflow: visible; text-overflow: unset; max-width: 178px;
         }
-        #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* Brand block: platform wordmark (→ home) above the active-brand
            picker. The picker is how a person switches brands or starts another
            without digging into onboarding step 6. */
@@ -2216,7 +2220,7 @@
           #lifecycle-nav .lnav-i.on { background: transparent; }
           #lifecycle-nav .lnav-i.on::before { background: var(--vh-panel-2); border-color: var(--vh-accent); }
           #lifecycle-nav .lnav-i:hover::before { border-color: var(--vh-accent); }
-          #lifecycle-nav .lnav-section, #lifecycle-nav .lnav-brand .lnav-tagline,
+          #lifecycle-nav .lnav-section, #lifecycle-nav .lnav-brand .lnav-bt small.lnav-tagline,
           #lifecycle-nav .lnav-brand .lnav-bt small, #lifecycle-nav .lnav-info-item { font-size: 12px; }
         }
         #lifecycle-nav .lnav-info.open { display: block; }
