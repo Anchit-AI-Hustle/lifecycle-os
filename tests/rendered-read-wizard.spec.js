@@ -250,10 +250,15 @@ for (const session of ['none']) {
     const world = serverWorld();
     try {
       const log = await openWizard(page, session, world);
+      // Compact setup keeps logo URL under a closed optional details panel.
+      // Open it before typing so the field is actionable (found live on CI
+      // shard 5 after logo moved into #setupMore).
+      await page.locator('#setupMore').evaluate((el) => { el.open = true; });
       // The operator types their own logo URL BEFORE the read.
       // A decision landing after boot re-paints the step; the typed value must
       // be in the MODEL (the input event), not only in an element replaced later.
       await expect(async () => {
+        await page.locator('#setupMore').evaluate((el) => { el.open = true; });
         await page.fill('[data-path="logo_url"]', TYPED_LOGO);
         await page.waitForTimeout(400);
         await expect(page.locator('[data-path="logo_url"]')).toHaveValue(TYPED_LOGO, { timeout: 500 });

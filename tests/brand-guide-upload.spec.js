@@ -245,6 +245,10 @@ async function open(page, world, opts) {
   });
   await page.goto(HOST + '/onboarding.html' + (o.query || ''), { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded && window.BrandContext.storage && window.BrandContext.storage().known && window.BrandDocument, null, { timeout: 20000 });
+  // Logo / guidelines live under the compact optional details; open it so
+  // #docBlock and the asset inputs are visible and actionable.
+  await page.waitForSelector('#setupMore');
+  await page.locator('#setupMore').evaluate((el) => { el.open = true; });
   await page.waitForSelector('#docBlock');
   await page.waitForTimeout(250);
   return log;

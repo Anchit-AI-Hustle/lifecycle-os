@@ -306,6 +306,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .xrow .xlabel{flex:0 0 108px;font-size:11.5px;font-weight:600;padding-top:3px}
   .xrow .xbody{flex:1;min-width:0}
   .xval{font-size:13px;font-weight:600;word-break:break-word}
+  /* Declared name/tagline must stay editable: a PWA title or long og:description
+     can be wrong for the brand, and Use-only rows left no way to correct them. */
+  .xedit{width:100%;box-sizing:border-box;font:600 13px/1.45 var(--body);color:var(--ink);
+    background:var(--card);border:1px solid var(--line);border-radius:7px;padding:6px 9px;resize:vertical}
+  .xedit:focus{outline:2px solid var(--primary);outline-offset:1px;border-color:var(--primary)}
+  textarea.xedit{font-weight:500;min-height:2.8em}
   .xsrc{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.5;word-break:break-all}
   .xtag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
     padding:2px 6px;border-radius:999px;border:1px solid var(--line);margin-right:5px;vertical-align:1px}
@@ -1395,7 +1401,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function xRow(label, field, act, extra) {
     if (!field) return '';
-    if (!field.value) {
+    // Name and tagline are always editable: the top candidate can be a PWA
+    // push title or a long description, and the operator must be able to
+    // correct it before Use (or type one when the site published nothing).
+    var editable = act === 'name' || act === 'tagline';
+    if (!field.value && !editable) {
       return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
         '<div class="marker">' + esc(field.marker || '') + '</div>' +
         '<div class="xsrc">Your site did not publish this. Type it in below.</div></div></div>';
@@ -1404,6 +1414,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return '<button type="button" class="xalt" data-xa="' + esc(act) + '" data-xi="' + (i + 1) + '">' +
         esc(String(c.value).slice(0, 60)) + (c.off_origin ? ' <span class="xtag flag">off site</span>' : '') + '</button>';
     }).join('');
+    if (editable) {
+      var cur = field.value ? String(field.value) : '';
+      var edit = act === 'tagline'
+        ? '<textarea class="xedit" data-xedit="' + esc(act) + '" rows="2" placeholder="Type or edit the ' + esc(label.toLowerCase()) + '">' + esc(cur) + '</textarea>'
+        : '<input type="text" class="xedit" data-xedit="' + esc(act) + '" value="' + esc(cur) + '" placeholder="Type or edit the ' + esc(label.toLowerCase()) + '">';
+      return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
+        edit +
+        (field.value ? xSrcLine(field) : '<div class="xsrc">Your site did not publish this. Type it here, then press Use.</div>') +
+        (extra || '') + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
+        '</div><button type="button" class="xbtn" data-xa="' + esc(act) + '" data-xi="0">Use</button></div>';
+    }
     return '<div class="xrow"><div class="xlabel">' + esc(label) + '</div><div class="xbody">' +
       '<div class="xval">' + esc(String(field.value).slice(0, 200)) + '</div>' + xSrcLine(field) +
       (extra || '') + (alts ? '<div class="xalts">' + alts + '</div>' : '') +
@@ -1719,9 +1740,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // Also exempt: these are the values a SITE published, quoted verbatim with
     // their source URL. Swapping a name inside an extracted candidate would
     // rewrite the evidence the operator is being asked to approve.
+    var sheets = extraction.stylesheets || [];
     return '<div class="xtract" data-no-brand-swap><div class="xhead"><h3>Read from ' + esc(extraction.start) + '</h3></div>' +
-      '<div class="xmeta">' + extraction.pages_visited + ' page(s) and ' + extraction.stylesheets.length +
-        ' stylesheet(s) read. ' + esc(extraction.coverage_note) + xCoverageLine() +
+      '<div class="xmeta">' + (extraction.pages_visited || 0) + ' page(s) and ' + sheets.length +
+        ' stylesheet(s) read. ' + esc(extraction.coverage_note || '') + xCoverageLine() +
         (extraction.read && extraction.read.method === 'rendered'
           ? ' The rendered read above was applied; the candidates below are for changing any value.'
           : ' Nothing below is applied until you press Use.') +
@@ -1730,7 +1752,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       diag +
       '<div style="margin-top:10px">' + body + '</div>' +
       (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
-        extraction.limits.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +
+        (extraction.limits || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +
       '</div>';
   }
 
@@ -2438,11 +2460,48 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         : (existingHome ? ', home market kept as ' + existingHome : ', no home market proposed - pick one below')) + '. Check each currency.');
   }
 
-  function applyExtract(act, i) {
+  function foldVal(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function readXEdit(act) {
+    var el = document.querySelector('[data-xedit="' + act + '"]');
+    return el ? String(el.value || '') : null;
+  }
+  function applyEditedText(act, edited) {
+    var f = extraction.fields;
+    var field = act === 'name' ? f.name : f.tagline;
+    var v = String(edited == null ? '' : edited).trim();
+    if (!v) { toast('Type a ' + act + ' first.'); return false; }
+    var match = ((field && field.candidates) || []).find(function (c) { return foldVal(c.value) === foldVal(v); });
+    var src = match || {
+      value: v,
+      signal: 'operator edited',
+      source_url: extraction.start || '',
+      confidence: 'declared',
+      origin: 'user',
+    };
+    if (act === 'name') {
+      brand.name = v;
+      if (!brand.id) brand.slug = slugify(v);
+      noteSource('name', src);
+    } else {
+      brand.tagline = v;
+      noteSource('tagline', src);
+    }
+    return true;
+  }
+  function applyExtract(act, i, editedValue) {
     if (!extraction || !extraction.ok) return;
     var f = extraction.fields, c;
-    if (act === 'name') { c = pick(f.name, i); if (!c) return; brand.name = c.value; if (!brand.id) brand.slug = slugify(c.value); noteSource('name', c); }
-    else if (act === 'tagline') { c = pick(f.tagline, i); if (!c) return; brand.tagline = c.value; noteSource('tagline', c); }
+    if (act === 'name' || act === 'tagline') {
+      var typed = editedValue != null ? editedValue : readXEdit(act);
+      if (typed != null) {
+        if (!applyEditedText(act, typed)) return;
+      } else {
+        c = pick(act === 'name' ? f.name : f.tagline, i);
+        if (!c) return;
+        if (act === 'name') { brand.name = c.value; if (!brand.id) brand.slug = slugify(c.value); noteSource('name', c); }
+        else { brand.tagline = c.value; noteSource('tagline', c); }
+      }
+    }
     else if (act === 'logo') { c = pick(f.logo, i); if (!c) return; brand.logo_url = c.value; noteSource('logo_url', c); }
     else if (act === 'legal') { c = f.legal.candidates[i]; if (!c) return; brand.brand_data = brand.brand_data || {}; brand.brand_data.legal_entity = c.value; noteSource('legal_entity', c); }
     else if (act === 'palette-all') {
@@ -2515,7 +2574,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   document.addEventListener('click', function (e) {
     var t = e.target && e.target.closest ? e.target.closest('[data-xa]') : null;
-    if (t) { applyExtract(t.getAttribute('data-xa'), +t.getAttribute('data-xi') || 0); return; }
+    if (t) {
+      var xa = t.getAttribute('data-xa');
+      var xi = +t.getAttribute('data-xi') || 0;
+      // Alt chips for name/tagline fill the editable field so the operator can
+      // tweak before Use; Use applies whatever is in the input (edited or not).
+      if ((xa === 'name' || xa === 'tagline') && t.classList.contains('xalt')) {
+        var cand = pick(extraction && extraction.fields && extraction.fields[xa], xi);
+        var box = document.querySelector('[data-xedit="' + xa + '"]');
+        if (cand && box) { box.value = String(cand.value || ''); box.focus(); }
+        return;
+      }
+      if ((xa === 'name' || xa === 'tagline') && t.classList.contains('xbtn')) {
+        applyExtract(xa, 0, readXEdit(xa));
+        return;
+      }
+      applyExtract(xa, xi);
+      return;
+    }
     // Resolving the brand-vs-CTA conflict is an explicit choice, and it is
     // recorded as one: which side the operator picked, and from which page.
     var cf = e.target && e.target.closest ? e.target.closest('[data-xconflict]') : null;
