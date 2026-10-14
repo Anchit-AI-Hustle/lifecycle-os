@@ -850,6 +850,8 @@ test('a field the site did not publish shows the marker, not a guess', async ({ 
   const markers = await page.locator('.xtract .marker').allTextContents();
   expect(markers.join(' ')).toContain('[DATA REQUIRED BEFORE LAUNCH: logo URL');
   await expect(page.locator('input[data-path="tagline"]')).toHaveValue('');
+  // Logo lives under the compact optional details; open it before reading.
+  await page.locator('#setupMore').evaluate((el) => { el.open = true; });
   await expect(page.locator('input[data-path="logo_url"]')).toHaveValue('');
 });
 

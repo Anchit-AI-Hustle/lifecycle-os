@@ -724,8 +724,8 @@ function agenticReportHtml(d){
     const coverage = d.days_requested
       ? `<p class="tdim" style="margin-top:6px">Built <b>${d.days_built}</b> of <b>${d.days_planned}</b> planned send(s) across the next ${d.days_requested} day(s).`
         + (d.days_remaining > 0
-          ? ` The remaining ${d.days_remaining} are queued for the background prebuild and appear on the dashboard as they finish.`
-          : ' Every planned send in the window has its assets.')
+          ? ` The remaining ${d.days_remaining} were not built in this run (time box). Agentic assets appear in the table above — the Rolling calendar below is the Daily Sync plan; run Daily Sync to refresh those slots and kick prebuild.`
+          : ' Every planned send in the window has its assets in this report.')
         + `</p>`
       : '';
 

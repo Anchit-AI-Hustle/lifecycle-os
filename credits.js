@@ -200,10 +200,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ' letter-spacing:.02em;text-transform:none;vertical-align:middle;',
       ' background:var(--surface-alt,#f4f4f4);color:var(--brand-accent-text,#6A33D8);',
       ' border:1px solid var(--line,#e3e3e3)}',
-      // On a phone the pill rides INSIDE the rail's 50px top bar (whose right
-      // side is empty) instead of hanging 4px below it over the page, and it
-      // is a 44px tap target with 12px labels (2026-10-10, mobile space sweep).
-      '@media (max-width:960px){.lc-credit-pill{top:calc(3px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));min-height:44px;padding:0 12px}',
+      // On a phone / tablet the pill sits BELOW the rail's phone bar (--ltb-h),
+      // not inside it: top:3px put it under the 50px bar (elementFromPoint hit
+      // the bar) and failed mobile-space under-bar at landscape 667x375. Keep a
+      // 44px tap target and 12px labels (2026-10-10 / 2026-10-14).
+      '@media (max-width:960px){.lc-credit-pill{top:calc(var(--ltb-h,50px) + 4px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));min-height:44px;padding:0 12px}',
       ' .lc-credit-pill .lc-add,.lc-free{font-size:12px}}',
       '.lc-credit-pill.is-pulse{animation:lcCreditPulse .6s ease}',
       '@keyframes lcCreditPulse{0%{transform:scale(1)}35%{transform:scale(1.13)}100%{transform:scale(1)}}',
@@ -249,7 +250,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '.lc-pack.lc-unpriced{cursor:default;border-style:dashed}',
       '.lc-pack.lc-unpriced:hover{border-color:var(--brand-line,#e6e6e6)}',
       '.lc-credit-card .lc-close{float:right;border:0;background:transparent;font-size:22px;cursor:pointer;line-height:1;color:var(--brand-ink-muted,#556)}',
-      '@media (max-width:640px){.lc-credit-pill{top:auto;bottom:14px;right:14px}}',
+      // Narrow phones: keep it off the content bottom-right instead of stacking
+      // under the phone bar + notice chrome at the top.
+      '@media (max-width:640px){.lc-credit-pill{top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:max(14px,env(safe-area-inset-right,0px))}}',
       '@media (prefers-reduced-motion:reduce){.lc-credit-pill.is-pulse{animation:none}}',
     ].join('');
     (document.head || document.documentElement).appendChild(s);
