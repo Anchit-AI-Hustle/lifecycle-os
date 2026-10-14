@@ -191,6 +191,11 @@ function gateOf(u) {
 
 const GENERIC_OK = { ok: true, brand: null, workspaces: [], emails: [], brands: [], items: [], rows: [], runs: [], jobs: [],
   entries: [], campaigns: [], library: [], plan: [], data: [], results: [], list: [], presets: [], features: [], packs: [], providers: [] };
+/** api/kb.js's NOTHING for a browser request with no session (workspace_unresolved). */
+const NOTHING_WS = {
+  ok: true, items: [], count: 0, workspace_id: null, error: 'workspace_unresolved',
+  note: 'No active brand workspace on this request, so nothing is returned. Another brand\'s knowledge is never substituted. Hard-refresh the page so the brand context loads, then try again.',
+};
 const REFUSALS = {
   'signed-out': { status: 401, body: { ok: false, error: 'sign_in_required', message: 'You are not signed in, so this could not be saved to your account.', hint: 'Send Authorization: Bearer <Supabase access token>.' } },
   unreachable: { status: 503, body: { ok: false, error: 'session_verification_unavailable', backend_unreachable: true, message: 'The database this deployment points at (deleted-project.supabase.co) is not answering, so sign-in cannot be checked.' } },
@@ -491,6 +496,26 @@ function setup(page, stateName, log) {
         // nothing from a generic {ok:true} is the harness's doing, not the page's.
         if (u.searchParams.get('action') === 'telesuite') {
           return json({ ok: true, subfeatures: TELESUITE.SUBFEATURES, groups: [...new Set(TELESUITE.SUBFEATURES.map((s) => s.group))], prices: [] });
+        }
+        // kb playbook/audit: the real router refuses a browser with no session
+        // (NOTHING + workspace_unresolved) before the handler; a session gets
+        // the playbook shape. A bare GENERIC_OK painted default compliance copy
+        // containing "unauthorized", which the sweep's RAW detector flagged.
+        const kbAction = u.searchParams.get('action') || '';
+        if (/\/api\/kb$/.test(u.pathname) && /^(playbook|asset-playbook)$/.test(kbAction)) {
+          if (stateName !== 'google-session') {
+            return json(Object.assign({}, NOTHING_WS, { brands: [], brand_kit: null }));
+          }
+          const pb = require('../api/_shared/asset-playbooks.js');
+          const brand = { name: 'Fixture Brand', industry: 'Footwear & Streetwear Apparel' };
+          return json({
+            ok: true, brand: brand.name, businessModel: pb.businessModel(brand),
+            assetType: u.searchParams.get('assetType') || 'mailer',
+            market: u.searchParams.get('market') || 'Global',
+            playbook: pb.playbookFor(brand, 'mailer'),
+            hooks: pb.competitorHooksFor(brand, 'mailer'),
+            disclaimer: null,
+          });
         }
         return json(GENERIC_OK);
       }
