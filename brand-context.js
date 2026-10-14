@@ -3555,6 +3555,114 @@
     return out;
   }
 
+  /* ── Brand picker in the rail (2026-10-14) ───────────────────────────────
+     The active brand used to be a label under the wordmark with no way to
+     switch or start another from the shell — "Onboard another brand" lived
+     only on onboarding step 6. The picker lists every brand on the account
+     (or this device), switches with one press, and offers "+ Add another
+     brand" → /onboarding?new=1. */
+  function escAttr(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+  function escText(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function closeBrandMenus() {
+    try {
+      document.querySelectorAll('[data-brand-menu]').forEach(function (m) { m.hidden = true; });
+      document.querySelectorAll('[data-brand-picker]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    } catch (_) {}
+  }
+  async function openBrandMenu(btn) {
+    var block = btn.closest('.lnav-brandblock') || btn.parentElement;
+    var menu = block && block.querySelector('[data-brand-menu]');
+    if (!menu) return;
+    var open = btn.getAttribute('aria-expanded') === 'true';
+    closeBrandMenus();
+    if (open) return;
+    btn.setAttribute('aria-expanded', 'true');
+    menu.hidden = false;
+    menu.innerHTML = '<p class="lnav-brandmenu-empty">Loading your brands…</p>';
+    try {
+      var r = await list();
+      var rows = (r && r.workspaces) || state.workspaces || [];
+      var activeId = state.brand && state.brand.id;
+      if (!rows.length) {
+        menu.innerHTML = '<p class="lnav-brandmenu-empty">No brands yet.</p>'
+          + '<a class="lnav-brandmenu-add" href="/onboarding?new=1">+ Add your first brand</a>';
+        return;
+      }
+      menu.innerHTML = rows.map(function (w) {
+        var p = (w && w.palette) || {};
+        var cur = w.id === activeId;
+        var chip = w.storage === 'device' ? ' · on this device' : '';
+        return '<button type="button" class="lnav-brandmenu-item" role="option" data-brand-id="' + escAttr(w.id) + '"'
+          + (cur ? ' aria-current="true"' : '') + '>'
+          + '<span class="ws-dot" style="background:' + escAttr(p.primary || '#ccc') + '"></span>'
+          + '<span><b>' + escText(w.name || 'Untitled') + '</b>'
+          + '<small>' + escText((w.status || 'draft') + chip) + (cur ? ' · Active' : '') + '</small></span>'
+          + '</button>';
+      }).join('') + '<a class="lnav-brandmenu-add" href="/onboarding?new=1">+ Add another brand</a>';
+      Array.prototype.forEach.call(menu.querySelectorAll('[data-brand-id]'), function (el) {
+        el.addEventListener('click', async function () {
+          var id = el.getAttribute('data-brand-id');
+          if (!id || id === activeId) { closeBrandMenus(); return; }
+          try {
+            await setActive(id);
+            closeBrandMenus();
+          } catch (e) {
+            try {
+              if (window.LifecycleStatus && window.LifecycleStatus.show) {
+                window.LifecycleStatus.show(menu, (window.LifecycleFailure && window.LifecycleFailure.sentence) ? window.LifecycleFailure.sentence(e) : String(e.message || e));
+              } else { menu.innerHTML = '<p class="lnav-brandmenu-empty">' + escText(e.message || e) + '</p>'; }
+            } catch (_) {}
+          }
+        });
+      });
+    } catch (e) {
+      menu.innerHTML = '<p class="lnav-brandmenu-empty">' + escText((e && e.message) || 'Your brands could not be loaded.') + '</p>'
+        + '<a class="lnav-brandmenu-add" href="/onboarding?new=1">+ Add a brand</a>';
+    }
+  }
+  function wireBrandPicker(btn) {
+    if (!btn || btn.getAttribute('data-brand-picker-wired') === '1') return;
+    btn.setAttribute('data-brand-picker-wired', '1');
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openBrandMenu(btn);
+    });
+  }
+  function mountBrandPickers(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var found = scope.querySelectorAll ? scope.querySelectorAll('[data-brand-picker]') : [];
+    for (var i = 0; i < found.length; i++) wireBrandPicker(found[i]);
+    if (scope !== document && scope.matches && scope.matches('[data-brand-picker]')) wireBrandPicker(scope);
+  }
+  (function watchBrandPickers() {
+    function scan() { try { mountBrandPickers(document); } catch (_) {} }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+    else scan();
+    try {
+      var mo = new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            if (added[j] && added[j].nodeType === 1) mountBrandPickers(added[j]);
+          }
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (_) {}
+    document.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.closest && ev.target.closest('[data-brand-picker],[data-brand-menu]')) return;
+      closeBrandMenus();
+    });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeBrandMenus(); });
+  })();
+
   window.BrandContext = {
     get brand() { return state.brand; },
     activeBrand: function () { return state.brand; },

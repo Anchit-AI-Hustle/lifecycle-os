@@ -973,6 +973,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">Start from your own website, from your brand guidelines, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
+        // Existing brands first so adding another is one press away, not buried
+        // under extract / presets. data-no-brand-swap is LOAD-BEARING here too:
+        // brand-context.js rewrites the shipped brand name into the active
+        // brand's throughout the page, which is right for the shell and wrong
+        // for a list of DIFFERENT brands.
+        '<div id="step1Brands" class="ws-list" data-no-brand-swap style="margin:0 0 18px"></div>' +
         extractBlock() + xRenderedPanel() + '<div id="cohSlot">' + coherenceBlock(false) + '</div>' + xPanel('brand') +
         docBlock() +
         // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
@@ -996,6 +1002,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         actions(null, 'Colour schema');
       loadPresets();
       paintPresets();
+      // When this account (or device) already has brands, show them here so
+      // starting another one does not require walking to Review first.
+      loadStep1Brands();
     }
 
     else if (step === 2) {
@@ -3130,6 +3139,53 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* Brands already on this account/device — step 1 entry so adding another
+     brand is one press away, not buried on Review. */
+  async function loadStep1Brands() {
+    var host = $('step1Brands');
+    if (!host || !window.BrandContext) return;
+    try {
+      var r = await window.BrandContext.list();
+      var rows = r.workspaces || [];
+      var active = r.active_id || (window.BrandContext.brand && window.BrandContext.brand.id);
+      if (!rows.length) { host.innerHTML = ''; return; }
+      host.innerHTML =
+        '<label style="display:block;margin:0 0 6px">Your brands <span class="note">' + rows.length + '</span></label>' +
+        rows.map(function (w) {
+          var p = w.palette || {};
+          var local = w.storage === 'device';
+          return '<div class="ws' + (w.id === active ? ' active' : '') + '" data-ws="' + esc(w.id) + '"' + (local ? ' data-storage="device"' : '') + '>' +
+            '<span class="ws-dot" style="background:' + esc(p.primary || '#ccc') + '"></span>' +
+            '<span><b>' + esc(w.name) + '</b>' + (local ? '<span class="ws-chip" data-storage-chip="device">on this device</span>' : '') +
+              '<small>' + esc(w.tagline || w.slug) + ' · ' + esc(w.status) + '</small></span>' +
+            '<span class="ws-acts">' +
+              (w.id === active ? '<span class="tag">Active</span>' : '<button type="button" class="ws-act" data-act="switch">Switch</button>') +
+              '<button type="button" class="ws-act" data-act="edit">Edit</button>' +
+            '</span></div>';
+        }).join('') +
+        '<button type="button" class="btn" id="newBrandStep1" style="margin-top:8px;padding:8px 14px;font-size:12px">+ Onboard another brand</button>';
+      Array.prototype.forEach.call(host.querySelectorAll('[data-ws]'), function (el) {
+        var id = el.dataset.ws;
+        el.addEventListener('click', function (ev) {
+          var btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
+          var act = btn && btn.dataset.act;
+          if (act) ev.stopPropagation();
+          if (act === 'edit') { location.href = '/onboarding?id=' + encodeURIComponent(id); return; }
+          if (act === 'switch' || !act) {
+            window.BrandContext.setActive(id).then(function () {
+              toast('Switched brand. The app is now in that brand.');
+              loadStep1Brands();
+            }).catch(function (e) { toast(window.LifecycleFailure.sentence(e), 4000); });
+          }
+        });
+      });
+      var nb = $('newBrandStep1');
+      if (nb) nb.addEventListener('click', function () { startNewBrand(); go(1); try { history.replaceState(history.state, '', '/onboarding?new=1&step=1'); } catch (_) {} });
+    } catch (e) {
+      host.innerHTML = '';
+    }
+  }
+
   /* ── review ─────────────────────────────────────────────────────────── */
   async function loadWorkspaces() {
     try {
@@ -4689,7 +4745,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!window.BrandContext) { setTimeout(boot, 250); return; }
     try {
       var existing = await window.BrandContext.ready();
-      var wanted = new URLSearchParams(location.search).get('id');
+      var params = new URLSearchParams(location.search);
+      // /onboarding?new=1 — blank record for another brand (rail picker, step 1).
+      // Must win over the active brand resume, or "Add another brand" would
+      // reopen the brand already on screen.
+      if (params.get('new') === '1' || params.get('new') === 'true') {
+        startNewBrand();
+        go(1);
+        return;
+      }
+      var wanted = params.get('id');
       var target = wanted || (existing && existing.id);
       if (target) {
         var r = await api('get', null, '&id=' + encodeURIComponent(target));
