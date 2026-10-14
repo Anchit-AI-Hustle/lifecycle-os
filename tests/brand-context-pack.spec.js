@@ -237,9 +237,13 @@ test('a site with no identity colour gets NO colors section, not a guessed one',
 
 test('text tokens are contrast-adjusted, and the adjustment is stated', async () => {
   // A brand whose colour is light: used raw as text it is unreadable.
-  const LIGHT_CSS = RICH_CSS.replace('--brand-primary:#1F5FD0', '--brand-primary:#F2E14C');
+  // Must NOT be warn-like gold/amber (#F2E14C): proposePalette skips those as
+  // primary, so colors stayed null and designMdTokens threw on body-ink
+  // (2026-10-14 CI). A light sky blue still fails AA on white and is kept.
+  const LIGHT = '#9EC9F5';
+  const LIGHT_CSS = RICH_CSS.replace('--brand-primary:#1F5FD0', `--brand-primary:${LIGHT}`);
   const site = Object.assign({}, RICH_SITE, {
-    'https://northwind.example/': html(RICH_HOME.replace('content="#1F5FD0"', 'content="#F2E14C"')),
+    'https://northwind.example/': html(RICH_HOME.replace('content="#1F5FD0"', `content="${LIGHT}"`)),
     'https://northwind.example/assets/site.css': css(LIGHT_CSS),
   });
   const report = await reportFor(site, BRAND_RICH);
@@ -247,12 +251,12 @@ test('text tokens are contrast-adjusted, and the adjustment is stated', async ()
   const core = require('../api/_shared/brand-workspace-core.js');
 
   // The FILL keeps the brand's own colour...
-  expect(t.colors.primary.toLowerCase()).toBe('#f2e14c');
+  expect(t.colors.primary.toLowerCase()).toBe(LIGHT.toLowerCase());
   // ...and the TEXT token is a readable version of it, not the raw value.
-  expect(t.colors['primary-text'].toLowerCase()).not.toBe('#f2e14c');
+  expect(t.colors['primary-text'].toLowerCase()).not.toBe(LIGHT.toLowerCase());
   expect(core.contrast(t.colors['primary-text'], t.colors.surface)).toBeGreaterThanOrEqual(4.5);
-  // Raw yellow on white would have failed, which is the point.
-  expect(core.contrast('#F2E14C', '#FFFFFF')).toBeLessThan(4.5);
+  // Raw light sky on white would have failed, which is the point.
+  expect(core.contrast(LIGHT, '#FFFFFF')).toBeLessThan(4.5);
 
   // And it is disclosed, with the before/after ratios.
   const adj = t.adjustments.find((a) => a.token === 'primary-text');

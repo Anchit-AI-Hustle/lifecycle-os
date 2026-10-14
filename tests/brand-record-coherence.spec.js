@@ -708,6 +708,10 @@ test.describe('the device store', () => {
     await page.click('[data-go="next"]');
     await page.waitForSelector('input[type="text"][data-path="palette.primary"]');
     await page.click('[data-go="back"]');
+    // Logo/guidelines live under closed #setupMore after the compact setup move;
+    // open it so the file input and Apply control are visible for the probe.
+    await page.waitForSelector('#setupMore');
+    await page.locator('#setupMore').evaluate((el) => { el.open = true; });
     const book = ['# Orbit Tea brand guidelines', '', 'Brand name: Orbit Tea', 'Website: https://orbittea.example', 'Tagline: Leaves with a long way to go', ''].join('\n');
     await page.setInputFiles('#docFile', { name: 'orbit-tea-brand-book.md', mimeType: 'text/markdown', buffer: Buffer.from(book) });
     await page.waitForSelector('#docApply', { timeout: 15000 });
