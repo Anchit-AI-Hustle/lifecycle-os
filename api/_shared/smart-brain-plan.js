@@ -234,7 +234,11 @@ const RETENTION_DAYS = 30;
 // Calendar statuses that a daily sync is allowed to overwrite. An entry that a
 // human flipped to approved/final between our read and our write is NOT in this
 // set, so the conditional UPDATE matches zero rows and the human decision wins.
-const SYNC_WRITABLE_STATUSES = 'in.(tentative,rejected)';
+// `needs_human_verification` is included because older planners and the
+// CalendarIntelligenceService stamp that on slots; excluding it left rebrand
+// re-plans reporting "updated" in Changes while the row stayed on another
+// brand's payload — getPlan then hid those near-term slots (2026-10-14).
+const SYNC_WRITABLE_STATUSES = 'in.(tentative,rejected,needs_human_verification)';
 
 // ── Analysis context (shared by sync + preview) ─────────────────────────────
 
@@ -1029,7 +1033,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
   if (!pb.isZero && pb.brand) {
     const verdict = catalogServer.catalogVerdict(pb.brand);
     for (const r of stored) {
-      if ((r.status === 'tentative' || r.status === 'rejected') && slotForeignProducts(r.payload || {}, verdict)) staleForeign.push({ row: r, verdict });
+      if ((r.status === 'tentative' || r.status === 'rejected' || r.status === 'needs_human_verification') && slotForeignProducts(r.payload || {}, verdict)) staleForeign.push({ row: r, verdict });
     }
   }
 
@@ -1072,8 +1076,11 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
           date: entry.date, market: entry.market, status: 'tentative',
           confidence: entry.confidence, payload: entry, change_log: log, updated_at: nowIso(),
         },
+        // Reported only after the conditional UPDATE lands (below). A skipped
+        // lock used to still print "updated" / "built for another brand record"
+        // while getPlan kept hiding the old payload (2026-10-14).
+        change: { id: entry.id, kind: wasRejected ? 'regenerated' : 'updated', detail: `${entry.date} ${entry.market}: ${diffs.join('; ') || 'regenerated after rejection'}.` },
       });
-      changes.push({ id: entry.id, kind: wasRejected ? 'regenerated' : 'updated', detail: `${entry.date} ${entry.market}: ${diffs.join('; ') || 'regenerated after rejection'}.` });
     } else if (entry.date <= refreshUntil && isPrebuilt(existing)) {
       // No material re-plan, but this near-term slot is inside the daily
       // freshness window: drop the prebuilt marker so the queue regenerates its
@@ -1086,8 +1093,8 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       updates.push({
         id: entry.id,
         patch: { status: 'tentative', payload, change_log: log, updated_at: nowIso() },
+        change: { id: entry.id, kind: 'refresh_queued', detail: `${entry.date} ${entry.market}: queued daily asset refresh.` },
       });
-      changes.push({ id: entry.id, kind: 'refresh_queued', detail: `${entry.date} ${entry.market}: queued daily asset refresh.` });
     } else if (contactStateChanged(existing.payload || {}, entry)) {
       // Nothing to re-plan or rebuild, but who may be contacted on this slot
       // moved (a send went out yesterday; a brand tightened its rules). The
@@ -1100,8 +1107,8 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       updates.push({
         id: entry.id,
         patch: { payload: withContactState({ ...(existing.payload || {}) }, entry), change_log: log, updated_at: nowIso() },
+        change: { id: entry.id, kind: 'contact_rules', detail: `${entry.date} ${entry.market}: ${detail}` },
       });
-      changes.push({ id: entry.id, kind: 'contact_rules', detail: `${entry.date} ${entry.market}: ${detail}` });
     }
   }
 
@@ -1119,7 +1126,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     if (ident) {
       const freshIds = new Set(fresh.map((e) => e.id));
       for (const r of stored) {
-        if (freshIds.has(r.id) || !(r.status === 'tentative' || r.status === 'rejected')) continue;
+        if (freshIds.has(r.id) || !(r.status === 'tentative' || r.status === 'rejected' || r.status === 'needs_human_verification')) continue;
         if (identityMatches((r.payload || {})[IDENTITY_KEY], ident)) continue;
         if (staleForeign.some((sf) => sf.row.id === r.id)) continue;
         const log = Array.isArray(r.change_log) ? r.change_log.slice(-30) : [];
@@ -1146,8 +1153,10 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
         u.patch,
       );
       if (upd.ok) {
-        if ((upd.rows || []).length) results.updated += 1;
-        else results.skipped_locked += 1; // human approved/finalized mid-sync
+        if ((upd.rows || []).length) {
+          results.updated += 1;
+          if (u.change) changes.push(u.change);
+        } else results.skipped_locked += 1; // human approved/finalized mid-sync
       } else { results.warnings.push(upd.warning); }
     }
     persistence = { ok: true, ...results };
@@ -1159,6 +1168,10 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
       created_at: nowIso(),
     }]).catch(() => {});
     persistence.pruned = await pruneOldRecords(config, db);
+  } else {
+    // No write this run: still list intended updates so a dry-run / device
+    // preview is not an empty Changes panel.
+    for (const u of updates) if (u.change) changes.push(u.change);
   }
 
   const plan = await getPlan({ config: cfg, _ctxFallback: { config, db, ctx, fresh }, contact });
@@ -1220,11 +1233,15 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
     if (rows.length) {
       return {
         ok: true, mode: 'db-linked', stored: true,
+        // Row date/market win over payload copies (2026-10-14): the region and
+        // duration filters in smart-brain.html read entry.market / entry.date.
+        // A payload that lost them (or kept another brand's spelling) made
+        // India + Next 7 days show 0 while Changes still named IN slots.
         entries: rows.map((r) => ({
-          date: r.date || (r.payload && r.payload.date),
-          market: r.market || (r.payload && r.payload.market),
           ...(r.payload || {}),
           id: r.id,
+          date: r.date || (r.payload && r.payload.date),
+          market: r.market || (r.payload && r.payload.market),
           status: r.status,
           confidence: r.confidence,
           change_log: r.change_log,

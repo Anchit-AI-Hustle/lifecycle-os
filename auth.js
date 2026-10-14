@@ -930,7 +930,9 @@
       { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
       { id: 'brand-catalogue', label: 'Brand Catalogue', href: '/catalog', icon: 'insights', ver: 'v2', match: ['/catalog', '/brand-catalogue', '/brand-catalogue.html'] },
       { id: 'brand-context',  label: 'Brand Context',    href: '/brand-context', icon: 'insights', ver: 'v2', match: ['/brand-context', '/brand-context-view.html'] },
-      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?step=6', icon: 'studio' },
+      // Opens a blank brand on the app setup palette (not the previous brand's
+      // colours). Existing brands switch from the rail picker or step 1 list.
+      { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?new=1', icon: 'studio', match: [] },
       { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
       { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
       { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
@@ -1982,15 +1984,74 @@
         #lifecycle-nav .lnav-brand {
           display: flex; align-items: center; gap: 10px; text-decoration: none;
           padding: 4px 8px 16px; color: var(--vh-ink, inherit);
+          min-height: 44px; box-sizing: border-box;
         }
         #lifecycle-nav .lnav-mark { width: 30px; height: 30px; flex-shrink: 0; display: block; transition: transform .2s; }
         #lifecycle-nav .lnav-brand:hover .lnav-mark,
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: var(--los-font-wordmark, system-ui, sans-serif); font-size: 14.5px; letter-spacing: -0.01em; color: var(--vh-ink, inherit); font-weight: 700; }
-        #lifecycle-nav .lnav-brand .lnav-tagline { font-size: 8px; line-height: 1.25; letter-spacing: .04em; color: var(--vh-ink-dim, inherit); white-space: normal; max-width: 178px; }
-        #lifecycle-nav .lnav-brand .lnav-brandrow { display: flex; align-items: center; gap: 5px; min-width: 0; }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Tagline is a <small.lnav-tagline>. The generic .lnav-bt small rule
+           above (accent-text + uppercase) used to win by specificity, so under
+           a pale accent the line painted --brand-accent-text on the picker's
+           --vh-line border (#dadada) at 3.7:1. More-specific selector + ink:
+           ink-dim also fails AA on the line colour if a sample grazes it.
+           Do NOT set font-size here: an 8px declaration outranks the
+           (pointer: coarse) bump to 12px below, and mobile-space (hasTouch)
+           then fails tiny-text on every page that shows the rail. Size stays
+           on .lnav-bt small (9px) / the coarse rule (12px). */
+        #lifecycle-nav .lnav-brand .lnav-bt small.lnav-tagline {
+          line-height: 1.25; letter-spacing: .04em; font-weight: 500;
+          text-transform: none; color: var(--vh-ink, inherit);
+          white-space: normal; overflow: visible; text-overflow: unset; max-width: 178px;
+        }
+        /* Brand block: platform wordmark (→ home) above the active-brand
+           picker. The picker is how a person switches brands or starts another
+           without digging into onboarding step 6. */
+        #lifecycle-nav .lnav-brandblock { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; position: relative; }
+        #lifecycle-nav .lnav-brandpick {
+          display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%;
+          margin: 0 0 10px; padding: 8px; border-radius: 8px;
+          min-height: 44px; box-sizing: border-box;
+          border: 1px solid var(--vh-line, currentColor); background: var(--vh-panel-2, transparent);
+          color: var(--vh-ink, inherit); cursor: pointer; text-align: left;
+          font: inherit; transition: border-color .12s, background .12s;
+        }
+        #lifecycle-nav .lnav-brandpick:hover,
+        #lifecycle-nav .lnav-brandpick[aria-expanded="true"] { border-color: var(--vh-accent); }
+        #lifecycle-nav .lnav-brandpick .lnav-brandname {
+          flex: 1; min-width: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+          color: var(--vh-ink, inherit); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          text-transform: none;
+        }
+        #lifecycle-nav .lnav-brand-caret { flex-shrink: 0; font-size: 10px; color: var(--vh-ink-dim); line-height: 1; }
+        #lifecycle-nav .lnav-brandmenu {
+          position: absolute; left: 0; right: 0; top: calc(100% - 6px); z-index: 40;
+          background: var(--vh-panel); border: 1px solid var(--vh-line); border-radius: 10px;
+          box-shadow: var(--vh-lift-2); padding: 6px; max-height: min(55vh, 320px);
+          overflow: auto;
+        }
+        #lifecycle-nav .lnav-brandmenu[hidden] { display: none; }
+        #lifecycle-nav .lnav-brandmenu-item {
+          display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 9px;
+          min-height: 44px; box-sizing: border-box;
+          border: 0; border-radius: 7px; background: transparent; color: var(--vh-ink);
+          font: inherit; text-align: left; cursor: pointer;
+        }
+        #lifecycle-nav .lnav-brandmenu-item:hover { background: var(--vh-panel-2); }
+        #lifecycle-nav .lnav-brandmenu-item[aria-current="true"] { background: var(--vh-panel-2); box-shadow: inset 3px 0 0 var(--vh-accent); }
+        #lifecycle-nav .lnav-brandmenu-item .ws-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        #lifecycle-nav .lnav-brandmenu-item b { font-size: 12.5px; font-weight: 650; display: block; }
+        #lifecycle-nav .lnav-brandmenu-item small { font-size: 12px; color: var(--vh-ink-dim); display: block; }
+        #lifecycle-nav .lnav-brandmenu-add {
+          display: block; margin-top: 4px; padding: 10px 9px; border-radius: 7px;
+          min-height: 44px; box-sizing: border-box; line-height: 24px;
+          font-size: 12.5px; font-weight: 650; color: var(--vh-accent-text, var(--vh-accent));
+          text-decoration: none;
+        }
+        #lifecycle-nav .lnav-brandmenu-add:hover { background: var(--vh-panel-2); }
+        #lifecycle-nav .lnav-brandmenu-empty { padding: 8px 9px; font-size: 12px; color: var(--vh-ink-dim); }
         /* The brand slot: the ACTIVE brand's own logo (brand.logo_url) or, with
            none on the record, a monogram of its name on a neutral chip. It is
            never any other tenant's file - brand-context.fillBrandSlot() is the
@@ -2008,8 +2069,12 @@
         /* min-width:0 so a long brand name ellipsises inside the rail instead of
            pushing the collapse button out past its edge (seen on /design-system
            with a 30-character brand name). */
-        #lifecycle-nav .lnav-head .lnav-brand { flex: 1; padding-right: 0; min-width: 0; }
-        #lifecycle-nav .lnav-brand .lnav-brandrow small { min-width: 0; }
+        /* Bottom padding clears the brand-picker's 1px --vh-line border so the
+           AA probe (and the eye) read the tagline on the rail surface, not on
+           the hairline. 2px left the last line of the tagline on that border. */
+        #lifecycle-nav .lnav-head .lnav-brand { padding: 4px 8px 8px; min-width: 0; min-height: 44px; }
+        html.lnav-collapsed #lifecycle-nav .lnav-brandpick,
+        html.lnav-collapsed #lifecycle-nav .lnav-brandmenu { display: none; }
         #lifecycle-nav .lnav-collapse {
           flex-shrink: 0; width: 26px; height: 26px; margin-bottom: 16px;
           background: transparent; border: 1px solid var(--vh-line); border-radius: 7px;
@@ -2155,7 +2220,7 @@
           #lifecycle-nav .lnav-i.on { background: transparent; }
           #lifecycle-nav .lnav-i.on::before { background: var(--vh-panel-2); border-color: var(--vh-accent); }
           #lifecycle-nav .lnav-i:hover::before { border-color: var(--vh-accent); }
-          #lifecycle-nav .lnav-section, #lifecycle-nav .lnav-brand .lnav-tagline,
+          #lifecycle-nav .lnav-section, #lifecycle-nav .lnav-brand .lnav-bt small.lnav-tagline,
           #lifecycle-nav .lnav-brand .lnav-bt small, #lifecycle-nav .lnav-info-item { font-size: 12px; }
         }
         #lifecycle-nav .lnav-info.open { display: block; }
@@ -2327,10 +2392,18 @@
       <div class="lnav-backdrop" id="lnav-backdrop"></div>
       <aside class="lnav-side" id="lnav-side" role="navigation" aria-label="Main navigation">
         <div class="lnav-head">
-          <a class="lnav-brand" href="/">
-            ${LOGO_SVG}
-            <span class="lnav-bt"><b>Lifecycle OS</b><small class="lnav-tagline">Every brand. Every lifecycle.</small><span class="lnav-brandrow"><span class="lnav-brandlogo" data-brand-slot="logo" hidden></span><small class="lnav-brandname"></small></span></span>
-          </a>
+          <div class="lnav-brandblock">
+            <a class="lnav-brand" href="/">
+              ${LOGO_SVG}
+              <span class="lnav-bt"><b>Lifecycle OS</b><small class="lnav-tagline">Every brand. Every lifecycle.</small></span>
+            </a>
+            <button type="button" class="lnav-brandpick" data-brand-picker aria-haspopup="listbox" aria-expanded="false" title="Switch or add a brand">
+              <span class="lnav-brandlogo" data-brand-slot="logo" hidden></span>
+              <small class="lnav-brandname">Choose a brand</small>
+              <span class="lnav-brand-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="lnav-brandmenu" data-brand-menu hidden role="listbox" aria-label="Your brands"></div>
+          </div>
           <button class="lnav-collapse" id="lnav-collapse" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">«</button>
         </div>
         <div class="lnav-region" data-region-picker></div>

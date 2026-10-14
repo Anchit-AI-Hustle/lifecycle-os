@@ -316,6 +316,63 @@ test('an ambiguous <title> offers BOTH halves rather than guessing one', () => {
   expect(vals).toContain('Handmade boots');
 });
 
+test('a PWA / push "News Notification" title cannot outrank og:site_name', () => {
+  // Found live on Times of India health-fitness: manifest.name and
+  // application-name were DECLARED as "TOI News Notification", which beat
+  // every real brand name and was auto-filled into the record.
+  const out = bx.nameCandidates({
+    html: '<html><head><title>Health &amp; Fitness</title></head><body></body></html>',
+    url: 'https://timesofindia.indiatimes.com/life-style/health-fitness',
+    meta: {
+      'og:site_name': 'The Times of India',
+      'application-name': 'TOI News Notification',
+    },
+    ld: [{ '@type': 'Organization', name: 'Times of India' }],
+    manifest: { name: 'TOI News Notification', short_name: 'TOI', __url: 'https://timesofindia.indiatimes.com/manifest.json' },
+    isHome: true,
+  });
+  const notif = out.find((c) => /Notification/i.test(c.value));
+  expect(notif, 'notification title still offered as a candidate').toBeTruthy();
+  expect(notif.confidence).toBe('weak');
+  const og = out.find((c) => c.value === 'The Times of India');
+  expect(og.confidence).toBe('declared');
+  // Highest confidence first wins; within a band, collection order. Declared
+  // og:site_name / Organization.name must land above the demoted PWA title.
+  const ranked = out.slice().sort((a, b) => {
+    const order = { declared: 0, strong: 1, weak: 2 };
+    return (order[a.confidence] ?? 3) - (order[b.confidence] ?? 3);
+  });
+  expect(ranked[0].value).not.toMatch(/Notification/i);
+  expect(['The Times of India', 'Times of India']).toContain(ranked[0].value);
+});
+
+test('warn-like gold is never proposed as the brand primary', () => {
+  // Found live: theme-color / identity ~#c9a227 (the platform warn hue) became
+  // proposed.primary while TOI's masthead red sat unused in action/support.
+  expect(bx.isWarnLikeGold('#c9a227')).toBe(true);
+  expect(bx.isWarnLikeGold('#E21B22')).toBe(false);
+  expect(bx.isWarnLikeGold('#EB1B24')).toBe(false);
+  const cand = (value, signal, role) => ({
+    value, signal, source_url: 'https://toi.example/', confidence: 'declared',
+    evidence: '', seen: [], neutral: bx.isNeutral(value),
+  });
+  const goldOnly = bx.proposePalette({
+    identity: [cand('#c9a227', 'meta:theme-color')],
+    action: [cand('#e21b22', 'css:background on .btn')],
+    support: [], ink: [cand('#111111', 'css:color on body')], surface: [cand('#ffffff', 'css:background on body')],
+  });
+  expect(goldOnly.proposed.primary).toBe('');
+  expect(goldOnly.proposed.accent).toBe('#e21b22');
+  expect(goldOnly.missing).toContain('primary');
+  expect(goldOnly.notes.join(' ')).toMatch(/gold|amber/i);
+
+  const redIdentity = bx.proposePalette({
+    identity: [cand('#c9a227', 'meta:theme-color'), cand('#e21b22', 'css:custom-property --brand-primary')],
+    action: [], support: [], ink: [], surface: [cand('#ffffff', 'css:background on body')],
+  });
+  expect(redIdentity.proposed.primary).toBe('#e21b22');
+});
+
 test('a logo on an undeclared CDN is kept but FLAGGED, never silently adopted', async () => {
   const r = await runStore();
   const cdn = r.fields.logo.candidates.find((c) => c.value.includes('cdn.shopify.com'));
@@ -739,8 +796,12 @@ test('step 1 offers to read the brand from its own website', async ({ page }) =>
   const errors = await openWizard(page, REPORT);
   await expect(page.locator('#xUrl')).toBeVisible();
   await expect(page.locator('#xRun')).toHaveText(/Read my site/);
-  // The promise the UI makes has to be the one the server keeps.
-  await expect(page.locator('.xtract').first()).toContainText('nothing is applied until you press Use');
+  // Compact setup chrome is first; the "nothing applied until Use" promise
+  // lives on the read result panel after the site answers.
+  await page.fill('#xUrl', 'https://northwind.example/');
+  await page.click('#xRun');
+  await page.waitForSelector('[data-xa="name"]');
+  await expect(page.locator('.xtract').filter({ hasText: 'Nothing below is applied until you press Use' })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -748,17 +809,18 @@ test('extracted values render with their source and are NOT applied automaticall
   await openWizard(page, REPORT);
   await page.fill('#xUrl', 'https://northwind.example/');
   await page.click('#xRun');
-  await page.waitForSelector('[data-xa="name"]');
+  await page.waitForSelector('[data-xedit="name"]');
 
-  // Shown, with provenance.
-  const panel = page.locator('.xtract').nth(1);
-  await expect(panel).toContainText('Northwind Books');
+  // Shown in an editable field, with provenance beside it (name/tagline are
+  // inputs so the value is not panel textContent).
+  const panel = page.locator('.xtract').filter({ has: page.locator('[data-xedit="name"]') });
+  await expect(page.locator('[data-xedit="name"]')).toHaveValue('Northwind Books');
   await expect(panel).toContainText('json-ld:Organization.name');
   await expect(panel).toContainText('https://northwind.example/');
 
   // Not applied: the form field is still empty until Use is pressed.
   await expect(page.locator('input[data-path="name"]')).toHaveValue('');
-  await page.locator('[data-xa="name"][data-xi="0"]').click();
+  await page.locator('.xbtn[data-xa="name"]').click();
   await expect(page.locator('input[data-path="name"]')).toHaveValue('Northwind Books');
 });
 
@@ -766,8 +828,12 @@ test('a lower-ranked candidate can be chosen instead of the top one', async ({ p
   await openWizard(page, REPORT);
   await page.fill('#xUrl', 'https://northwind.example/');
   await page.click('#xRun');
-  await page.waitForSelector('[data-xa="name"][data-xi="1"]');
-  await page.locator('[data-xa="name"][data-xi="1"]').click();
+  await page.waitForSelector('.xalt[data-xa="name"][data-xi="1"]');
+  // Alt chip fills the editable field; Use applies it (so the operator can
+  // still tweak a wrong PWA title before committing).
+  await page.locator('.xalt[data-xa="name"][data-xi="1"]').click();
+  await expect(page.locator('[data-xedit="name"]')).toHaveValue('Northwind');
+  await page.locator('.xbtn[data-xa="name"]').click();
   await expect(page.locator('input[data-path="name"]')).toHaveValue('Northwind');
 });
 
@@ -775,11 +841,17 @@ test('a field the site did not publish shows the marker, not a guess', async ({ 
   await openWizard(page, REPORT);
   await page.fill('#xUrl', 'https://northwind.example/');
   await page.click('#xRun');
+  // Name/tagline stay editable even when empty (type then Use). Logo and
+  // other non-text fields still show the launch marker.
+  const panel = page.locator('.xtract').filter({ has: page.locator('[data-xedit="tagline"]') });
+  await expect(page.locator('[data-xedit="tagline"]')).toHaveValue('');
+  await expect(panel).toContainText('Type it here, then press Use');
   await page.waitForSelector('.xtract .marker');
   const markers = await page.locator('.xtract .marker').allTextContents();
-  expect(markers.join(' ')).toContain('[DATA REQUIRED BEFORE LAUNCH: tagline');
   expect(markers.join(' ')).toContain('[DATA REQUIRED BEFORE LAUNCH: logo URL');
   await expect(page.locator('input[data-path="tagline"]')).toHaveValue('');
+  // Logo lives under the compact optional details; open it before reading.
+  await page.locator('#setupMore').evaluate((el) => { el.open = true; });
   await expect(page.locator('input[data-path="logo_url"]')).toHaveValue('');
 });
 

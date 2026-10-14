@@ -2108,7 +2108,9 @@
         if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not on this device, so nothing was deleted.');
         d.workspaces = d.workspaces.filter(function (w) { return w.id !== id; });
         if (d.active_id === id) d.active_id = '';
-        writeDevice(d);
+        // A write that fails (quota / blocked storage) must not report success:
+        // the in-memory filter would vanish on reload and the brand would return.
+        if (!writeDevice(d)) throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the change (storage is full or blocked), so nothing was deleted.');
         writeSide('catalog', id, null);
         writeSide('pack', id, null);
         // Its uploaded files go with it (logo, icon, fonts, imagery, the guide).
@@ -2119,6 +2121,12 @@
         // So do the order export and exchange rates Revenue by region keeps
         // for it on this device (revenue-by-region.html, 2026-10-11).
         try { ['lc-region-revenue-orders', 'lc-region-revenue-fx'].forEach(function (k) { localStorage.removeItem(k + '::' + id); }); } catch (_) {}
+        // Drop a deleted active brand from in-memory state immediately so a
+        // following refresh cannot keep painting a row that is gone.
+        if (state.brand && state.brand.id === id) {
+          state.brand = null;
+          try { clearCache(); } catch (_) {}
+        }
         return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
       case 'readiness':
         id = str(q.get('id') || body.id);
@@ -2774,8 +2782,25 @@
     } catch (e) { log(e); }
   }
 
+  /* While the wizard drafts a NEW brand (/onboarding?new=1), the page chrome
+     must wear the setup palette - not the account's previously active brand.
+     Found live: Switch Brand kept Nykaa pink on a blank record. setupShell
+     blocks paint() of the active brand until endSetupShell() / setActive. */
+  var setupShell = false;
+  var SETUP_SHELL = {
+    name: 'New brand',
+    slug: '',
+    logo_url: '',
+    palette: { primary: '#1F5FD0', accent: '#111111', ink: '#111111', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' },
+    typography: {
+      heading: { family: 'Lora', stack: "'Lora',Georgia,serif", google: true, weights: '500;600;700' },
+      body: { family: 'Inter', stack: "'Inter',system-ui,-apple-system,Segoe UI,sans-serif", google: true, weights: '400;500;600;700' }
+    }
+  };
+
   function paint(brand) {
     if (!brand) return;
+    if (setupShell) return;
     brandPaintVersion++;
     // Regenerate foregrounds from the saved palette, including older records
     // whose cached tokens predate the contrast rules.
@@ -2785,7 +2810,45 @@
     applyChrome(brand);
     relabel(brand);
     document.documentElement.setAttribute('data-brand', brand.slug || '');
+    document.documentElement.removeAttribute('data-brand-setup');
     paintBrandFiles(brand);
+  }
+
+  /**
+   * Paint the wizard's blank-setup schema onto the page chrome without changing
+   * which brand is active on the account. Pass a draft record to preview its
+   * palette as the operator fills the form; omit for the neutral app setup look.
+   */
+  function paintSetupShell(draft) {
+    var rec = draft && typeof draft === 'object' ? draft : SETUP_SHELL;
+    setupShell = true;
+    // Invalidate any in-flight relabel() observer from the previous brand so
+    // it cannot rewrite .lnav-brandname back to Nykaa (etc.) after we set
+    // "New brand".
+    brandPaintVersion++;
+    var tok = tokensFor(rec);
+    applyTokens(Object.assign({}, rec.tokens || {}, tok));
+    applyFonts(fontsHrefFor(rec));
+    try {
+      document.documentElement.setAttribute('data-brand', '');
+      document.documentElement.setAttribute('data-brand-setup', '1');
+      var label = String(rec.name || 'New brand').trim() || 'New brand';
+      fillBrandSlot({ name: label, logo_url: rec.logo_url || '' });
+      document.querySelectorAll('.lnav-brandname').forEach(function (el) { el.textContent = label; });
+      var primary = tok['--brand-primary'];
+      if (primary) {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; (document.head || document.documentElement).appendChild(meta); }
+        meta.setAttribute('content', primary);
+      }
+    } catch (e) { log(e); }
+  }
+
+  function endSetupShell() {
+    if (!setupShell) return;
+    setupShell = false;
+    try { document.documentElement.removeAttribute('data-brand-setup'); } catch (_) {}
+    if (state.brand) paint(state.brand);
   }
 
   /* ── data ──────────────────────────────────────────────────────────────── */
@@ -3207,6 +3270,9 @@
     if (opts && opts.coherence_override) body.coherence_override = opts.coherence_override;
     var r = await api('activate', { body: body });
     state.brand = r.brand || null;
+    // Activating ends the blank-setup chrome so the chosen brand paints.
+    setupShell = false;
+    try { document.documentElement.removeAttribute('data-brand-setup'); } catch (_) {}
     if (state.brand) {
       if (state.brand.storage !== 'device') writeCache(state.brand);
       paint(state.brand);
@@ -3555,6 +3621,114 @@
     return out;
   }
 
+  /* ── Brand picker in the rail (2026-10-14) ───────────────────────────────
+     The active brand used to be a label under the wordmark with no way to
+     switch or start another from the shell — "Onboard another brand" lived
+     only on onboarding step 6. The picker lists every brand on the account
+     (or this device), switches with one press, and offers "+ Add another
+     brand" → /onboarding?new=1. */
+  function escAttr(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+  function escText(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function closeBrandMenus() {
+    try {
+      document.querySelectorAll('[data-brand-menu]').forEach(function (m) { m.hidden = true; });
+      document.querySelectorAll('[data-brand-picker]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    } catch (_) {}
+  }
+  async function openBrandMenu(btn) {
+    var block = btn.closest('.lnav-brandblock') || btn.parentElement;
+    var menu = block && block.querySelector('[data-brand-menu]');
+    if (!menu) return;
+    var open = btn.getAttribute('aria-expanded') === 'true';
+    closeBrandMenus();
+    if (open) return;
+    btn.setAttribute('aria-expanded', 'true');
+    menu.hidden = false;
+    menu.innerHTML = '<p class="lnav-brandmenu-empty">Loading your brands…</p>';
+    try {
+      var r = await list();
+      var rows = (r && r.workspaces) || state.workspaces || [];
+      var activeId = state.brand && state.brand.id;
+      if (!rows.length) {
+        menu.innerHTML = '<p class="lnav-brandmenu-empty">No brands yet.</p>'
+          + '<a class="lnav-brandmenu-add" href="/onboarding?new=1">+ Add your first brand</a>';
+        return;
+      }
+      menu.innerHTML = rows.map(function (w) {
+        var p = (w && w.palette) || {};
+        var cur = w.id === activeId;
+        var chip = w.storage === 'device' ? ' · on this device' : '';
+        return '<button type="button" class="lnav-brandmenu-item" role="option" data-brand-id="' + escAttr(w.id) + '"'
+          + (cur ? ' aria-current="true"' : '') + '>'
+          + '<span class="ws-dot" style="background:' + escAttr(p.primary || '#ccc') + '"></span>'
+          + '<span><b>' + escText(w.name || 'Untitled') + '</b>'
+          + '<small>' + escText((w.status || 'draft') + chip) + (cur ? ' · Active' : '') + '</small></span>'
+          + '</button>';
+      }).join('') + '<a class="lnav-brandmenu-add" href="/onboarding?new=1">+ Add another brand</a>';
+      Array.prototype.forEach.call(menu.querySelectorAll('[data-brand-id]'), function (el) {
+        el.addEventListener('click', async function () {
+          var id = el.getAttribute('data-brand-id');
+          if (!id || id === activeId) { closeBrandMenus(); return; }
+          try {
+            await setActive(id);
+            closeBrandMenus();
+          } catch (e) {
+            try {
+              if (window.LifecycleStatus && window.LifecycleStatus.show) {
+                window.LifecycleStatus.show(menu, (window.LifecycleFailure && window.LifecycleFailure.sentence) ? window.LifecycleFailure.sentence(e) : String(e.message || e));
+              } else { menu.innerHTML = '<p class="lnav-brandmenu-empty">' + escText(e.message || e) + '</p>'; }
+            } catch (_) {}
+          }
+        });
+      });
+    } catch (e) {
+      menu.innerHTML = '<p class="lnav-brandmenu-empty">' + escText((e && e.message) || 'Your brands could not be loaded.') + '</p>'
+        + '<a class="lnav-brandmenu-add" href="/onboarding?new=1">+ Add a brand</a>';
+    }
+  }
+  function wireBrandPicker(btn) {
+    if (!btn || btn.getAttribute('data-brand-picker-wired') === '1') return;
+    btn.setAttribute('data-brand-picker-wired', '1');
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openBrandMenu(btn);
+    });
+  }
+  function mountBrandPickers(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    var found = scope.querySelectorAll ? scope.querySelectorAll('[data-brand-picker]') : [];
+    for (var i = 0; i < found.length; i++) wireBrandPicker(found[i]);
+    if (scope !== document && scope.matches && scope.matches('[data-brand-picker]')) wireBrandPicker(scope);
+  }
+  (function watchBrandPickers() {
+    function scan() { try { mountBrandPickers(document); } catch (_) {} }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scan);
+    else scan();
+    try {
+      var mo = new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            if (added[j] && added[j].nodeType === 1) mountBrandPickers(added[j]);
+          }
+        }
+      });
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (_) {}
+    document.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.closest && ev.target.closest('[data-brand-picker],[data-brand-menu]')) return;
+      closeBrandMenus();
+    });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeBrandMenus(); });
+  })();
+
   window.BrandContext = {
     get brand() { return state.brand; },
     activeBrand: function () { return state.brand; },
@@ -3574,6 +3748,9 @@
     list: list,
     api: api,
     paint: paint,
+    paintSetupShell: paintSetupShell,
+    endSetupShell: endSetupShell,
+    inSetupShell: function () { return !!setupShell; },
     token: token,
     // Where a brand is stored right now, and the device store itself. The
     // token maths is exposed so the parity test can drive the SAME functions

@@ -46,9 +46,11 @@ test('each brand\'s own palette is the one instructed', () => {
 
 test('the SUBJECT follows what the brand sells', () => {
   // A publisher has no packaging and no product shot; a store does.
+  // market_data / news_media scenes say "No physical product…" (the
+  // asset-playbooks subject); other content brands say "No product…".
   const pub = buildPreamble(PUBLISHER, 'photo');
   expect(pub).toMatch(/editorial/i);
-  expect(pub).toMatch(/No product, no packaging/i);
+  expect(pub).toMatch(/No (?:physical )?product, no packaging/i);
 
   const store = buildPreamble(TENANT_ZERO, 'photo');
   expect(store).toMatch(/product this brand sells/i);
