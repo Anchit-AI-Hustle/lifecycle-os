@@ -257,7 +257,7 @@ function satOf(hex) {
  */
 function isNeutral(hex) {
   const l = relLum(hex), s = satOf(hex);
-  return s < 0.12 || l > 0.93 || l < 0.02;
+  return s < 0.12 || l > 0.93 || (l < 0.02 && s < 0.40);
 }
 /** Hue in degrees 0..360 from an #RRGGBB. */
 function hueOf(hex) {
@@ -342,6 +342,10 @@ const nonSelectorAt = (at) => NON_SELECTOR_AT.test(String(at || ''));
 const AT_EXCLUDED = /prefers-color-scheme\s*:\s*dark|\bprint\b|forced-colors\s*:\s*active|inverted-colors\s*:\s*inverted/i;
 const atExcluded = (at) => !!at && !nonSelectorAt(at) && AT_EXCLUDED.test(String(at));
 
+/** Theme selector variants describing a dark ground (e.g. :root[data-theme="dark"], html.dark). */
+const RX_DARK_THEME_SEL = /(?:^|[\s,>+~.\[])(?:dark\b|theme\s*=\s*['"]?dark|color-mode\s*=\s*['"]?dark|color-scheme\s*=\s*['"]?dark)/i;
+const isDarkSelector = (sel) => RX_DARK_THEME_SEL.test(String(sel || ''));
+
 /**
  * Flatten a stylesheet into `{selector, decls, at}` rulesets.
  *
@@ -423,7 +427,7 @@ function customProperties(rulesets) {
   const rootLevel = [], nested = [];
   for (const r of rulesets) {
     if (nonSelectorAt(r.at) || atExcluded(r.at)) continue;   // @font-face; the dark scheme; print
-    (r.at ? nested : rootLevel).push(r);
+    (r.at || isDarkSelector(r.selector) ? nested : rootLevel).push(r);
   }
   for (const r of rootLevel) {
     for (const d of r.decls) {
@@ -474,7 +478,7 @@ function propWeight(prop) {
   return 0.6;
 }
 
-const RX_ACTION_SEL = /(?:^|[\s,>+~(])(?:button|\.btn\b|\.button\b|\.cta\b|\.buy\b|\.checkout\b|\.add-to-cart\b|\.shopify-payment-button|\[type=['"]?(?:submit|button))/i;
+const RX_ACTION_SEL = /(?:^|[\s,>+~(])(?:button|\.[a-z0-9_-]*btn\b|\.button\b|\.cta\b|\.go\b|\.action\b|\.buy\b|\.checkout\b|\.add-to-cart\b|\.shopify-payment-button|\[type=['"]?(?:submit|button))/i;
 const RX_IDENTITY_SEL = /(?:logo|wordmark|brandmark|\.brand\b)/i;
 const RX_GROUND_SEL = /(?:^|[\s,])(?:html|body|:root)(?=$|[\s,:.\[{])/i;
 const RX_CHROME_SEL = /(?:header|nav\b|footer|masthead|topbar|site-head|announcement)/i;
@@ -741,6 +745,18 @@ function taglineCandidates(ctx) {
       out.push(cand(n.description, `json-ld:${rawType}.description`, url, CONF.strong, n.description));
     }
   }
+  if (isHome) {
+    const title = clip(stripTags(textBetween(html, 'title')[0] || ''), 200);
+    if (title) {
+      const parts = title.split(TITLE_SPLIT).map((s) => s.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        const seg = parts.slice(1).join(' - ');
+        if (seg.length <= 120) out.push(cand(seg, 'html:title(tagline segment)', url, CONF.strong, title));
+      }
+    }
+    const lede = stripTags(textBetween(html, 'p class="lede"')[0] || textBetween(html, "p class='lede'")[0] || '');
+    if (lede && lede.length <= 220) out.push(cand(lede, 'html:p.lede', url, CONF.strong, lede));
+  }
   if (meta['og:description']) out.push(cand(meta['og:description'], 'opengraph:og:description', url, CONF.strong, meta['og:description']));
   if (meta.description) out.push(cand(meta.description, 'meta:description', url, CONF.strong, meta.description));
   if (isHome) {
@@ -814,7 +830,10 @@ function logoCandidates(ctx) {
     if (!a.href) continue;
     if (/apple-touch-icon/.test(rel)) push(a.href, 'link:apple-touch-icon', CONF.weak, tag);
     else if (/(^|\s)mask-icon(\s|$)/.test(rel)) push(a.href, 'link:mask-icon', CONF.weak, tag);
-    else if (/(^|\s)(icon|shortcut icon)(\s|$)/.test(rel)) push(a.href, 'link:icon(favicon)', CONF.weak, tag);
+    else if (/(^|\s)(icon|shortcut icon)(\s|$)/.test(rel)) {
+      const isSvg = /\.svg($|\?)/i.test(a.href) || /image\/svg\+xml/i.test(String(a.type || ''));
+      push(a.href, isSvg ? 'link:icon(svg)' : 'link:icon(favicon)', isSvg ? CONF.strong : CONF.weak, tag);
+    }
   }
   if (meta['og:image']) push(meta['og:image'], 'opengraph:og:image', CONF.weak, 'og:image is often a share card, not a logo');
   if (meta['twitter:image']) push(meta['twitter:image'], 'meta:twitter:image', CONF.weak, 'twitter:image is often a share card, not a logo');
@@ -937,7 +956,9 @@ function imageCandidates(ctx) {
  * silence and a fabricated URL.
  */
 function inlineSvgLogo(html, url) {
-  const scope = (/<header\b[\s\S]*?<\/header>/i.exec(html) || [''])[0] || String(html).slice(0, 20000);
+  const bodyOnly = withoutScripts(html).replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  const headerMatch = /<(?:header|nav|div\b[^>]*\b(?:bar|navbar|site-head|topbar|brand)\b)[^>]*>[\s\S]*?<\/(?:header|nav|div)>/i.exec(bodyOnly);
+  const scope = headerMatch ? headerMatch[0] : bodyOnly.slice(0, 100000);
   for (const m of scope.matchAll(/<svg\b[\s\S]{0,20000}?<\/svg>/gi)) {
     const svg = m[0];
     const around = scope.slice(Math.max(0, m.index - 200), m.index + 200).toLowerCase();
@@ -1020,7 +1041,7 @@ function colourSightings(ctx) {
       // @font-face and friends are not selectors; the dark scheme and print are
       // a different page. A responsive breakpoint IS this page, read at half
       // weight so it can never outrank the root-level declaration it adjusts.
-      if (nonSelectorAt(r.at) || atExcluded(r.at)) continue;
+      if (nonSelectorAt(r.at) || atExcluded(r.at) || isDarkSelector(r.selector)) continue;
       const nestedScale = r.at ? 0.5 : 1;
       const selRole = selectorRole(r.selector);
       for (const d of r.decls) {

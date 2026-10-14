@@ -82,11 +82,20 @@ function chromaOf(hex) {
 /**
  * A colour with hue. Chroma at least 0.14 and not a near-white tint: black,
  * white and greys (and the off-white #ecf0f4 of a page tab) are neutral.
+ * Rich, saturated deep tones whose absolute RGB spread is bounded by low lightness
+ * (e.g. Parwah's #2a1235 deep jamun) are recognized as chromatic when saturation is high.
  */
 function chromatic(hex) {
   const c = rgbOf(hex);
   if (!c) return false;
-  return chromaOf(hex) >= 0.14 && lum(c) < 0.9;
+  const ch = chromaOf(hex);
+  if (ch >= 0.14 && lum(c) < 0.9) return true;
+  if (ch >= 0.12 && lum(c) < 0.9) {
+    const max = Math.max(...c), min = Math.min(...c);
+    const sat = (max + min) <= 255 ? (max - min) / (max + min || 1) : (max - min) / (510 - max - min || 1);
+    return sat >= 0.40;
+  }
+  return false;
 }
 
 /**

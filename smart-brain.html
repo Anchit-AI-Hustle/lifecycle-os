@@ -628,18 +628,15 @@ function agenticMarket(){
    market this brand plans for. Each is ONE run with ONE market. */
 function agenticMarkets(){
   const RC = window.RegionContext;
-  if(SELECTED_MKT && SELECTED_MKT.size > 0){
-    return { markets: Array.from(SELECTED_MKT), marker: '' };
-  }
-  if(RC && RC.marketsFor){
-    const list = RC.marketsFor().filter(Boolean);
-    if(list.length) return { markets: list, marker: '' };
-  }
-  if(ALL_MKTS && ALL_MKTS.length > 0){
-    return { markets: ALL_MKTS.slice(), marker: '' };
-  }
   if(RC){
-    const list = [RC.region || RC.home].filter(Boolean);
+    if(!RC.regions || !RC.regions.length){
+      return { markets: [], marker: RC.marker('home market') };
+    }
+    if(SELECTED_MKT && SELECTED_MKT.size > 0){
+      const valid = Array.from(SELECTED_MKT).map(m => (RC.resolve ? RC.resolve(m) : m) || m).filter(m => RC.regions.some(r => r.code === m));
+      if(valid.length) return { markets: valid, marker: '' };
+    }
+    const list = (RC.marketsFor ? RC.marketsFor() : [RC.region || RC.home]).filter(Boolean);
     if(list.length) return { markets: list, marker: '' };
     return { markets: [], marker: RC.marker('home market') };
   }
