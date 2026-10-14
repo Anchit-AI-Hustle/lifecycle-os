@@ -657,98 +657,157 @@ function priceOfOffer(o) {
   return { price, currency, compare_at: compare, available: av ? /instock|limitedavailability|preorder|presale/.test(av) : null };
 }
 
+const SERVICE_SCHEMA_TYPES = /^(?:softwareapplication|webapplication|mobileapplication|service|financialproduct)$/i;
+
 /**
  * One product page -> its declared product, or null. JSON-LD Product or
- * ProductGroup (wherever it sits: bare, an array, an @graph), else the page's
- * OpenGraph product tags. Never a price read out of prose.
+ * ProductGroup or SoftwareApplication/Service (wherever it sits: bare, an array, an @graph),
+ * else declared articles or OpenGraph product tags. Never a price read out of prose.
  */
 function rowFromPage(html, pageUrl, { region, source }) {
-  let node = null;
+  const nodes = [];
   for (const n of crawl.jsonLdBlocks(html)) {
-    if (typeIs(n, 'productgroup')) { node = n; break; }
-    if (typeIs(n, 'product') && !node) node = n;
+    if (typeIs(n, 'productgroup') || typeIs(n, 'product') || SERVICE_SCHEMA_TYPES.test(String(n && n['@type'] || ''))) {
+      nodes.push(n);
+    }
   }
   let declaredBy = 'json-ld';
-  if (!node) {
+  if (!nodes.length) {
     // The page's own server-delivered application data (Next.js __NEXT_DATA__,
     // a type="application/json" block): a schema.org Product inside it is the
     // same declaration as JSON-LD, read as such.
     const app = embeddedJson(html);
-    for (const j of app) { const n = findNode(j, (o) => typeIs(o, 'productgroup') || typeIs(o, 'product')); if (n) { node = n; declaredBy = 'embedded schema.org'; break; } }
-    if (!node) {
+    for (const j of app) {
+      const n = findNode(j, (o) => typeIs(o, 'productgroup') || typeIs(o, 'product') || SERVICE_SCHEMA_TYPES.test(String(o && o['@type'] || '')));
+      if (n) { nodes.push(n); declaredBy = 'embedded schema.org'; break; }
+    }
+    if (!nodes.length) {
       const plain = embeddedProduct(app, html, pageUrl);
       if (plain) {
-        return { row: {
+        const row = {
           region, title: plain.title, handle: handleFromUrl(pageUrl) || null, sku: plain.sku, description: null, product_type: null, collections: [],
           price: plain.price, compare_at: null, currency: plain.currency || marketCurrency(region) || null, image_url: plain.images[0] || null, image_urls: plain.images, variants: [],
           product_url: pageUrl, in_stock: null, tags: [], source, source_url: pageUrl,
           raw: { declared: 'embedded-json', keys: plain.keys },
-        } };
+        };
+        return { row, rows: [row] };
       }
     }
   }
-  if (node) {
-    const title = str(node.name, 300);
-    if (!title) return { skip: 'no_title' };
-    const variants = [];
-    for (const v of (Array.isArray(node.hasVariant) ? node.hasVariant : [])) {
-      if (!v || typeof v !== 'object') continue;
-      const pr = priceOfOffer(offersOf(v)[0]);
-      variants.push({ id: null, sku: str(v.sku, 120) || null, title: str(v.name, 120) || null, price: pr.price, compare_at: pr.compare_at, available: pr.available, currency: pr.currency });
-    }
-    const offers = offersOf(node);
-    if (!variants.length && offers.length > 1) {
-      for (const o of offers.slice(0, 100)) {
-        const pr = priceOfOffer(o);
-        variants.push({ id: null, sku: str(o.sku, 120) || null, title: str(o.name, 120) || null, price: pr.price, compare_at: pr.compare_at, available: pr.available, currency: pr.currency });
+  if (nodes.length > 0) {
+    const meta = crawl.metaTags(html);
+    const builtRows = [];
+    for (const node of nodes) {
+      const title = str(node.name || node.alternateName, 300);
+      if (!title) continue;
+      const variants = [];
+      for (const v of (Array.isArray(node.hasVariant) ? node.hasVariant : [])) {
+        if (!v || typeof v !== 'object') continue;
+        const pr = priceOfOffer(offersOf(v)[0]);
+        variants.push({ id: null, sku: str(v.sku, 120) || null, title: str(v.name, 120) || null, price: pr.price, compare_at: pr.compare_at, available: pr.available, currency: pr.currency });
       }
-    }
-    const head = offers.length ? priceOfOffer(offers[0]) : (variants[0] || { price: null, currency: null, compare_at: null, available: null });
-    const images = imagesOf(node.image, pageUrl);
-    if (!images.length) for (const v of (Array.isArray(node.hasVariant) ? node.hasVariant : [])) images.push(...imagesOf(v && v.image, pageUrl));
-    const declaredUrl = httpAbs(node.url, pageUrl);
-    const anyAvail = variants.length
-      ? (variants.some((v) => v.available === true) ? true : (variants.every((v) => v.available === false) ? false : null))
-      : head.available;
-    return {
-      row: {
+      const offers = offersOf(node);
+      if (!variants.length && offers.length > 1) {
+        for (const o of offers.slice(0, 100)) {
+          const pr = priceOfOffer(o);
+          variants.push({ id: null, sku: str(o.sku, 120) || null, title: str(o.name, 120) || null, price: pr.price, compare_at: pr.compare_at, available: pr.available, currency: pr.currency });
+        }
+      }
+      const head = offers.length ? priceOfOffer(offers[0]) : (variants[0] || { price: null, currency: null, compare_at: null, available: null });
+      const images = imagesOf(node.image, pageUrl);
+      if (!images.length && meta['og:image']) {
+        const ogImg = httpAbs(meta['og:image'], pageUrl);
+        if (ogImg) images.push(ogImg);
+      }
+      if (!images.length) for (const v of (Array.isArray(node.hasVariant) ? node.hasVariant : [])) images.push(...imagesOf(v && v.image, pageUrl));
+      const declaredUrl = httpAbs(node.url, pageUrl);
+      const anyAvail = variants.length
+        ? (variants.some((v) => v.available === true) ? true : (variants.every((v) => v.available === false) ? false : null))
+        : head.available;
+      const isService = SERVICE_SCHEMA_TYPES.test(String(node['@type'] || ''));
+      const handle = handleFromUrl(pageUrl) || (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 100) : null);
+      builtRows.push({
         region, title,
-        handle: handleFromUrl(pageUrl) || null,
-        sku: str(node.sku || node.productGroupID || node.mpn, 120) || null,
+        handle,
+        sku: str(node.sku || node.productGroupID || node.mpn || node.applicationCategory, 120) || null,
         description: str(node.description, 4000) || null,
-        product_type: str(typeof node.category === 'string' ? node.category : '', 120) || null,
+        product_type: str(typeof node.category === 'string' ? node.category : (node.applicationCategory || (isService ? 'Service' : '')), 120) || null,
         collections: [],
         price: head.price != null ? head.price : null,
         compare_at: head.compare_at != null ? head.compare_at : null,
         currency: head.currency || (variants[0] && variants[0].currency) || marketCurrency(region) || null,
         image_url: images[0] || null,
-        image_urls: [...new Set(images)].slice(0, 30),
+        image_urls: [...new Set(images.filter(Boolean))].slice(0, 30),
         variants: variants.map((v) => ({ id: v.id, sku: v.sku, title: v.title, price: v.price, compare_at: v.compare_at, available: v.available })),
         product_url: declaredUrl && hostOf(declaredUrl) === hostOf(pageUrl) ? declaredUrl : pageUrl,
         in_stock: anyAvail,
         tags: [],
         source,
         source_url: pageUrl,
-        raw: { declared: declaredBy, type: typeIs(node, 'productgroup') ? 'ProductGroup' : 'Product' },
-      },
-    };
+        raw: { declared: declaredBy, type: typeIs(node, 'productgroup') ? 'ProductGroup' : (node['@type'] || 'Product') },
+      });
+    }
+    if (builtRows.length > 0) {
+      return { row: builtRows[0], rows: builtRows };
+    }
+    return { skip: 'no_title' };
   }
   const meta = crawl.metaTags(html);
   const ogType = String(meta['og:type'] || '').toLowerCase();
   if (ogType.includes('product') && meta['og:title']) {
     const img = httpAbs(meta['og:image'], pageUrl);
-    return {
-      row: {
-        region, title: str(meta['og:title'], 300), handle: handleFromUrl(pageUrl) || null, sku: null,
-        description: str(meta['og:description'], 4000) || null, product_type: null, collections: [],
-        price: num(meta['product:price:amount'] || meta['og:price:amount']),
-        compare_at: null,
-        currency: str(meta['product:price:currency'] || meta['og:price:currency'], 8).toUpperCase() || null,
-        image_url: img || null, image_urls: img ? [img] : [], variants: [],
-        product_url: pageUrl, in_stock: null, tags: [], source, source_url: pageUrl,
-        raw: { declared: 'opengraph' },
-      },
+    const row = {
+      region, title: str(meta['og:title'], 300), handle: handleFromUrl(pageUrl) || null, sku: null,
+      description: str(meta['og:description'], 4000) || null, product_type: null, collections: [],
+      price: num(meta['product:price:amount'] || meta['og:price:amount']),
+      compare_at: null,
+      currency: str(meta['product:price:currency'] || meta['og:price:currency'], 8).toUpperCase() || marketCurrency(region) || null,
+      image_url: img || null, image_urls: img ? [img] : [], variants: [],
+      product_url: pageUrl, in_stock: null, tags: [], source, source_url: pageUrl,
+      raw: { declared: 'opengraph' },
     };
+    return { row, rows: [row] };
+  }
+  // Declared product articles on range/care/services/shop pages or pages with matching articles
+  if (/care|product|range|service|shop|store/i.test(pageUrl) || /<article\b[^>]*class=["'][^"']*\b(?:worry|product|card|item|offering)\b/i.test(html)) {
+    const articleRows = [];
+    for (const m of html.matchAll(/<article\b[^>]*class=["'][^"']*\b(?:worry|product|card|item|offering)\b[^"']*["'][^>]*>([\s\S]*?)<\/article>/gi)) {
+      const body = m[1];
+      const h = (body.match(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i) || [])[1];
+      const p = (body.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i) || [])[1];
+      if (h) {
+        const cleanName = h.replace(/<[^>]+>/g, '').trim();
+        const cleanDesc = (p || '').replace(/<[^>]+>/g, '').trim();
+        if (cleanName && cleanName.length <= 120) {
+          const img = meta['og:image'] ? httpAbs(meta['og:image'], pageUrl) : null;
+          const artHandle = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 100);
+          articleRows.push({
+            region,
+            title: cleanName,
+            handle: artHandle,
+            sku: null,
+            description: cleanDesc.slice(0, 4000) || null,
+            product_type: 'Care & Living Essentials',
+            collections: [],
+            price: null,
+            compare_at: null,
+            currency: marketCurrency(region) || null,
+            image_url: img,
+            image_urls: img ? [img] : [],
+            variants: [],
+            product_url: `${pageUrl.split('#')[0]}#${artHandle}`,
+            in_stock: true,
+            tags: [],
+            source,
+            source_url: pageUrl,
+            raw: { declared: 'html:article' },
+          });
+        }
+      }
+    }
+    if (articleRows.length > 0) {
+      return { row: articleRows[0], rows: articleRows };
+    }
   }
   return { skip: scriptRendered(html) ? 'script_rendered' : 'no_product_declared' };
 }
@@ -1380,6 +1439,16 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       // a time, that far apart.
       if (st.crawl_delay_ms) { st.rate_ms = st.crawl_delay_ms; st.conc = 1; }
       if (ctx.queue) { try { await ctx.queue.clear(true); } catch (_) { /* an older run's rows: best effort */ } }
+      if (baseHtml) {
+        const baseGot = rowFromPage(baseHtml, rb.base, { region: reg, source: 'sitemap_jsonld' });
+        if (baseGot.rows && baseGot.rows.length) {
+          for (const r of baseGot.rows) {
+            if (keep(r)) stats.by_source.sitemap_jsonld += 1;
+          }
+        } else if (baseGot.row && keep(baseGot.row)) {
+          stats.by_source.sitemap_jsonld += 1;
+        }
+      }
     }
   }
 
@@ -1595,8 +1664,11 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
           st.geo = st.geo || { hits: 0, prefix: x.geo.prefix, country: x.geo.country, example: `${x.it.u} -> ${x.to || (x.row && x.row.source_url) || ''}` };
           st.geo.hits += 1;
           st.geo.filed_as = x.filedAs || st.geo.filed_as || '';
-          if (x.row && x.filedAs && keep(x.row)) { stats.by_source.sitemap_jsonld += 1; st.geo.filed = (st.geo.filed || 0) + 1; }
-          else stats.skipped.geo_redirect = (stats.skipped.geo_redirect || 0) + 1;
+          if (x.rows && x.rows.length && x.filedAs) {
+            for (const r of x.rows) if (keep(r)) { stats.by_source.sitemap_jsonld += 1; st.geo.filed = (st.geo.filed || 0) + 1; }
+          } else if (x.row && x.filedAs && keep(x.row)) {
+            stats.by_source.sitemap_jsonld += 1; st.geo.filed = (st.geo.filed || 0) + 1;
+          } else stats.skipped.geo_redirect = (stats.skipped.geo_redirect || 0) + 1;
           if (st.geo.hits >= LIMITS.geoRedirectsToStop) { halt = { reason: 'geo_redirect', at: src.label() }; cut = i + 1; break; }
           continue;
         }
@@ -1627,7 +1699,13 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
           if (x.skip === 'script_rendered' && stats.script_examples.length < 10) stats.script_examples.push(x.it.u);
           continue;
         }
-        if (x.row && keep(x.row)) stats.by_source.sitemap_jsonld += 1;
+        if (x.rows && x.rows.length) {
+          for (const r of x.rows) {
+            if (keep(r)) stats.by_source.sitemap_jsonld += 1;
+          }
+        } else if (x.row && keep(x.row)) {
+          stats.by_source.sitemap_jsonld += 1;
+        }
       }
       await src.settle(done, retry, dead, results.slice(cut).map((y) => y.it), cut);
       stepPages += answered;
@@ -1708,8 +1786,16 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       onPage: (html, pageUrl) => {
         visited.add(pageUrl);
         const got = rowFromPage(html, pageUrl, { region: reg, source: 'site_crawl' });
-        if (got.row && keep(got.row)) stats.by_source.crawl += 1;
-        else if (got.skip === 'script_rendered') { stats.skipped.script_rendered += 1; if (stats.script_examples.length < 10) stats.script_examples.push(pageUrl); }
+        if (got.rows && got.rows.length) {
+          for (const r of got.rows) {
+            if (keep(r)) stats.by_source.crawl += 1;
+          }
+        } else if (got.row && keep(got.row)) {
+          stats.by_source.crawl += 1;
+        } else if (got.skip === 'script_rendered') {
+          stats.skipped.script_rendered += 1;
+          if (stats.script_examples.length < 10) stats.script_examples.push(pageUrl);
+        }
       },
     });
     st.visited = [...visited].slice(-3000);
