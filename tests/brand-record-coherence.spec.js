@@ -725,6 +725,7 @@ test.describe('the device store', () => {
     // Applied anyway, it is recorded as describing another brand, and blocks.
     await page.click('#docApply');
     await page.click('[data-doc-identity-go]');
+    await page.locator('#setupMore').evaluate((el) => { el.open = true; });
     await page.waitForSelector('#docRevert', { timeout: 15000 });
     await page.click('[data-go="next"]');
     await page.waitForTimeout(500);

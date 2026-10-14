@@ -2108,7 +2108,9 @@
         if (!ws) throw deviceFail(404, 'workspace_not_found', 'That brand is not on this device, so nothing was deleted.');
         d.workspaces = d.workspaces.filter(function (w) { return w.id !== id; });
         if (d.active_id === id) d.active_id = '';
-        writeDevice(d);
+        // A write that fails (quota / blocked storage) must not report success:
+        // the in-memory filter would vanish on reload and the brand would return.
+        if (!writeDevice(d)) throw deviceFail(507, 'device_storage_unavailable', 'This browser refused to store the change (storage is full or blocked), so nothing was deleted.');
         writeSide('catalog', id, null);
         writeSide('pack', id, null);
         // Its uploaded files go with it (logo, icon, fonts, imagery, the guide).
@@ -2119,6 +2121,12 @@
         // So do the order export and exchange rates Revenue by region keeps
         // for it on this device (revenue-by-region.html, 2026-10-11).
         try { ['lc-region-revenue-orders', 'lc-region-revenue-fx'].forEach(function (k) { localStorage.removeItem(k + '::' + id); }); } catch (_) {}
+        // Drop a deleted active brand from in-memory state immediately so a
+        // following refresh cannot keep painting a row that is gone.
+        if (state.brand && state.brand.id === id) {
+          state.brand = null;
+          try { clearCache(); } catch (_) {}
+        }
         return { ok: true, deleted: id, name: ws.name || null, storage: 'device' };
       case 'readiness':
         id = str(q.get('id') || body.id);
