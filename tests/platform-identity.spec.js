@@ -210,9 +210,13 @@ async function openPage(page, file, brand) {
 const READ = () => {
   const abs = (h) => { try { return new URL(h, location.href).href; } catch (_) { return String(h); } };
   const links = (sel) => Array.from(document.querySelectorAll(sel)).map((l) => l.href);
-  const rail = document.querySelector('#lifecycle-nav .lnav-brand');
+  // Platform wordmark lives on .lnav-brand; the ACTIVE brand name + logo live
+  // on the sibling picker (.lnav-brandpick) inside .lnav-brandblock (2026-10-14).
+  const block = document.querySelector('#lifecycle-nav .lnav-brandblock') || document.querySelector('#lifecycle-nav .lnav-brand');
+  const rail = block && (block.querySelector('.lnav-brand') || block);
+  const pick = block && block.querySelector('.lnav-brandpick');
   const svg = rail && rail.querySelector('svg.lnav-mark');
-  const slotEl = rail && rail.querySelector('.lnav-brandlogo');
+  const slotEl = (pick || block) && (pick || block).querySelector('.lnav-brandlogo');
   const slotImg = slotEl && slotEl.querySelector('img');
   const firstPath = svg && svg.querySelector('path');
   const word = rail && rail.querySelector('.lnav-bt b');
@@ -229,7 +233,7 @@ const READ = () => {
       wordmark: word ? word.textContent.trim() : '',
       wordColor: word ? getComputedStyle(word).color : '',
       imgMarks: Array.from(rail.querySelectorAll('img.lnav-mark')).map((i) => i.src),
-      brandName: ((rail.querySelector('.lnav-brandname') || {}).textContent || '').trim(),
+      brandName: (((pick || block).querySelector('.lnav-brandname') || {}).textContent || '').trim(),
       slot: (slotEl && !slotEl.hidden) ? { kind: slotEl.getAttribute('data-brand-slot'), src: slotImg ? slotImg.src : '', text: slotEl.textContent.trim() } : null,
     } : null,
     images: Array.from(document.images).map((i) => ({ src: i.currentSrc || i.src, slot: !!i.closest('.lnav-brandlogo,[data-brand-slot],[data-shipped-for]') })),
