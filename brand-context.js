@@ -2774,8 +2774,25 @@
     } catch (e) { log(e); }
   }
 
+  /* While the wizard drafts a NEW brand (/onboarding?new=1), the page chrome
+     must wear the setup palette - not the account's previously active brand.
+     Found live: Switch Brand kept Nykaa pink on a blank record. setupShell
+     blocks paint() of the active brand until endSetupShell() / setActive. */
+  var setupShell = false;
+  var SETUP_SHELL = {
+    name: 'New brand',
+    slug: '',
+    logo_url: '',
+    palette: { primary: '#1F5FD0', accent: '#111111', ink: '#111111', surface: '#FFFFFF', surface_alt: '#F6F7F9', muted: '#5A6270' },
+    typography: {
+      heading: { family: 'Lora', stack: "'Lora',Georgia,serif", google: true, weights: '500;600;700' },
+      body: { family: 'Inter', stack: "'Inter',system-ui,-apple-system,Segoe UI,sans-serif", google: true, weights: '400;500;600;700' }
+    }
+  };
+
   function paint(brand) {
     if (!brand) return;
+    if (setupShell) return;
     brandPaintVersion++;
     // Regenerate foregrounds from the saved palette, including older records
     // whose cached tokens predate the contrast rules.
@@ -2785,7 +2802,45 @@
     applyChrome(brand);
     relabel(brand);
     document.documentElement.setAttribute('data-brand', brand.slug || '');
+    document.documentElement.removeAttribute('data-brand-setup');
     paintBrandFiles(brand);
+  }
+
+  /**
+   * Paint the wizard's blank-setup schema onto the page chrome without changing
+   * which brand is active on the account. Pass a draft record to preview its
+   * palette as the operator fills the form; omit for the neutral app setup look.
+   */
+  function paintSetupShell(draft) {
+    var rec = draft && typeof draft === 'object' ? draft : SETUP_SHELL;
+    setupShell = true;
+    // Invalidate any in-flight relabel() observer from the previous brand so
+    // it cannot rewrite .lnav-brandname back to Nykaa (etc.) after we set
+    // "New brand".
+    brandPaintVersion++;
+    var tok = tokensFor(rec);
+    applyTokens(Object.assign({}, rec.tokens || {}, tok));
+    applyFonts(fontsHrefFor(rec));
+    try {
+      document.documentElement.setAttribute('data-brand', '');
+      document.documentElement.setAttribute('data-brand-setup', '1');
+      var label = String(rec.name || 'New brand').trim() || 'New brand';
+      fillBrandSlot({ name: label, logo_url: rec.logo_url || '' });
+      document.querySelectorAll('.lnav-brandname').forEach(function (el) { el.textContent = label; });
+      var primary = tok['--brand-primary'];
+      if (primary) {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; (document.head || document.documentElement).appendChild(meta); }
+        meta.setAttribute('content', primary);
+      }
+    } catch (e) { log(e); }
+  }
+
+  function endSetupShell() {
+    if (!setupShell) return;
+    setupShell = false;
+    try { document.documentElement.removeAttribute('data-brand-setup'); } catch (_) {}
+    if (state.brand) paint(state.brand);
   }
 
   /* ── data ──────────────────────────────────────────────────────────────── */
@@ -3207,6 +3262,9 @@
     if (opts && opts.coherence_override) body.coherence_override = opts.coherence_override;
     var r = await api('activate', { body: body });
     state.brand = r.brand || null;
+    // Activating ends the blank-setup chrome so the chosen brand paints.
+    setupShell = false;
+    try { document.documentElement.removeAttribute('data-brand-setup'); } catch (_) {}
     if (state.brand) {
       if (state.brand.storage !== 'device') writeCache(state.brand);
       paint(state.brand);
@@ -3682,6 +3740,9 @@
     list: list,
     api: api,
     paint: paint,
+    paintSetupShell: paintSetupShell,
+    endSetupShell: endSetupShell,
+    inSetupShell: function () { return !!setupShell; },
     token: token,
     // Where a brand is stored right now, and the device store itself. The
     // token maths is exposed so the parity test can drive the SAME functions
