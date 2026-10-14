@@ -107,8 +107,78 @@ const VISUAL_CASCADE = `VISUALS — use this source order: (1) if a hosted media
  * a breakdown is easier to produce than a finished email — so the outline is
  * what came back. Both halves now ask for the same artefact.
  */
-function mailerContract(variant, cf) {
+const assetPlaybooks = require('./asset-playbooks.js');
+
+/*
+ * These describe what the FINISHED email contains, not what to write about it.
+ *
+ * V2 previously opened item 2 with "Section-by-section layout: for each section
+ * give the COPY and the VISUAL". That is an instruction to produce a PLAN, and
+ * it sat in the same prompt as a deliverable line saying "not a
+ * section-by-section outline". Given a contradiction, a model resolves it, and
+ * a breakdown is easier to produce than a finished email — so the outline is
+ * what came back. Both halves now ask for the same artefact.
+ */
+function mailerContract(variant, cf, brand, market) {
   cf = cf || creativeFacts(null);
+  const model = brand ? assetPlaybooks.businessModel(brand) : 'commerce';
+
+  if (model === 'market_data') {
+    const disclaimer = assetPlaybooks.financialDisclaimer(market, brand);
+    if (variant === 'V1') {
+      return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
+A high-signal financial intelligence briefing that stands on its own with zero images: typography, data hierarchy, and editorial clarity do all the work.
+It must CONTAIN, in this order:
+1. Subject lines and preheader (3 subject options and 1 preheader, in their own sections before the HTML, inside the limits the OUTPUT REQUIREMENT states).
+2. Session dateline & reading time (e.g. "Pre-Market Intelligence · 4 min read").
+3. Market Pulse: macro / index benchmark summary (e.g. Nifty, S&P 500, Yields) strictly from supplied data.
+4. Lead Catalyst / The Big Move: macroeconomic or sector development with causal analysis and second-order impacts.
+5. Sector Watchlist: 3–4 bulleted sector developments with concise drivers.
+6. Pro Intelligence / Premium membership callout with one primary CTA.
+7. Regulatory Disclaimer: "${disclaimer}".
+Compact and executive-ready. Because there are no images, every structural cue has to be typographic: weight, size, rules and generous space.`;
+    }
+    return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
+The same financial intelligence persuasion as V1, laid out with verified data visuals. A finished email, not a layout plan.
+It must CONTAIN, in this order:
+1. Subject lines and preheader (3 options and 1 preheader, in their own sections before the HTML).
+2. Executive Terminal Masthead: date, edition name, estimated read time.
+3. Market Pulse & Benchmark Bar: key index benchmarks from supplied numbers.
+4. Lead Catalyst Story: core driver analysis with hosted verified chart or data table as an <img>. NEVER hallucinate fake charts or fictional tickers.
+5. Sector Radar: 3–5 bulleted sector movers with concise causal rationale.
+6. Pro Tools / Premium Tier card with high-contrast primary CTA button.
+7. Regulatory Compliance Footer: "${disclaimer}".
+Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
+${VISUAL_CASCADE}`;
+  }
+
+  if (model === 'news_media') {
+    if (variant === 'V1') {
+      return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
+An authoritative editorial news briefing that stands on its own with zero images: typography, journalistic hierarchy, and smart brevity do all the work.
+It must CONTAIN, in this order:
+1. Subject lines and preheader (3 subject options and 1 preheader, in their own sections before the HTML, inside the limits the OUTPUT REQUIREMENT states).
+2. Publication masthead line (date, edition, read time).
+3. Lead Story: headline, context, and a bolded "Why it matters" paragraph.
+4. Bulletin Radar: 3–5 bulleted 2-sentence updates across key desks.
+5. Membership / Subscriber perks callout with one primary CTA.
+6. Editorial colophon and feedback link.
+Compact and scannable. Because there are no images, every structural cue has to be typographic: weight, size, rules and generous space.`;
+    }
+    return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
+The same editorial briefing as V1, laid out with imagery. A finished email, not a layout plan.
+It must CONTAIN, in this order:
+1. Subject lines and preheader (3 options and 1 preheader, in their own sections before the HTML).
+2. Publication masthead with reading time and edition name.
+3. Lead Story: headline, opening context, editorial photo as an <img> pointing at a hosted story image, and bolded "Why it matters".
+4. By The Numbers / Data snippet (only from supplied numbers).
+5. Quick Scans / Bulletin Radar: bulleted updates with bolded lead-in words.
+6. Member perks / Premium edition upsell card with one primary CTA button.
+7. Colophon and reader feedback footer.
+Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
+${VISUAL_CASCADE}`;
+  }
+
   if (variant === 'V1') {
     return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
 A finished email that stands on its own with zero images: type, rules, colour and space do all the work. Not a copy deck, and not a description of an email — the email.
@@ -137,8 +207,9 @@ ${VISUAL_CASCADE}`;
 // the text overlay baked in. Be honest about that: list the exact static sizes
 // it produces and treat motion as an OPTIONAL hand-off brief, never a delivered
 // asset. The text fields (headlines/captions/scripts) are still authored as copy.
-function adContract(platform, cf) {
+function adContract(platform, cf, brand, market) {
   cf = cf || creativeFacts(null);
+  const model = brand ? assetPlaybooks.businessModel(brand) : 'commerce';
   // Copy-field limits per platform (authored text). Produced creative SIZES are
   // sourced from asset-specs.js (single source of truth) so every placement size
   // stays canonical and complete across the whole app.
@@ -152,9 +223,16 @@ function adContract(platform, cf) {
   // onlyProduced: list ONLY the sizes the compositor actually renders, so the
   // prompt never claims deliverables the flow does not generate.
   const spec = (copyGuide[platform] || copyGuide.meta) + ' PRODUCED at each placement — ' + assetSpecs.adSpecText(sizeKey, { onlyProduced: true });
+
+  const complianceRule = model === 'market_data'
+    ? `\nFINANCIAL COMPLIANCE RULE: Absolutely NO guaranteed return claims (e.g. "make 10x in 24 hours" or "guaranteed profits"). Visuals must use authentic terminal UI stills, macro data textures, or trading desk photography with unreadable numbers. Include regulatory disclaimer: "${assetPlaybooks.financialDisclaimer(market, brand)}".`
+    : (model === 'news_media'
+      ? '\nEDITORIAL COMPLIANCE RULE: No fake breaking-news alerts or simulated politician/celebrity portraits. Lead with intellectual curiosity, depth, and smart brevity.'
+      : '');
+
   return `ASSET: Paid ad creative for ${platform.toUpperCase()} — a FULL ad, not just copy.
 The PRODUCED creative is a still, photoreal, on-palette image at each size below, with the on-creative text overlay BAKED INTO the image — exactly like a real ${platform} ad. The text is part of the rendered creative, NOT a separate caption: specify the exact overlay wording, font (${cf.fonts}), colour (use ONLY ${cf.paletteList}), size and pixel placement within the safe zones (on 9:16 keep all text clear of the bottom 20% platform-UI chrome), legible at a glance.
-
+${complianceRule}
 ━━ STRATEGY — SELL THE OUTCOME, NOT THE TECHNIQUE ━━
 TARGET: the audience defined by THIS brand's own record and the campaign brief. Never borrow another brand's persona; if neither names an audience, write [DATA REQUIRED BEFORE LAUNCH: audience, campaign, market] instead of inventing one.
 SELL THE EMOTIONAL END-STATE, never the technique. Lead with what the buyer's life looks like after — belonging, status, relief, mastery — whatever THIS brand's proposition genuinely delivers. A spec or process detail may appear only as the *reason* the payoff is believable, never as the hook.
@@ -168,8 +246,27 @@ VISUALS (produced asset): one still, on-palette, photoreal image per size with t
 AUDIO for any video deliverable: use ${cf.audio}. Never a trending or licensed track.`;
 }
 
-function landingContract(facts, cf) {
+function landingContract(facts, cf, brand, market) {
   cf = cf || creativeFacts(null);
+  const model = brand ? assetPlaybooks.businessModel(brand) : 'commerce';
+
+  if (model === 'market_data') {
+    const disclaimer = assetPlaybooks.financialDisclaimer(market, brand);
+    return `ASSET: Landing page in a financial intelligence / subscription terminal presell style.
+Build a conversion-focused, single-scroll-friendly page using the brand palette/typography.
+Sections, in order: sticky session / next-edition alert bar · hero (headline + value proposition + 1-click email capture box) · social proof bar (subscriber count, notable institutional logos) · sample market breakdown preview (actual analysis sample) · Free vs Pro feature comparison matrix (daily brief vs real-time alerts/models) · named professional testimonials · cancel-anytime guarantee · FAQ · regulatory disclaimer: "${disclaimer}" · sticky footer CTA.
+Mobile-first, fast, self-contained HTML/CSS (inline), no external fonts/scripts.
+${VISUAL_CASCADE}`;
+  }
+
+  if (model === 'news_media') {
+    return `ASSET: Landing page in an editorial newsletter subscription / reader presell style.
+Build a conversion-focused, single-scroll-friendly page using the brand palette/typography.
+Sections, in order: sticky alert bar · hero (headline + sub + 1-click email capture box) · social proof bar (reader count, notable subscriber logos) · sample edition interactive preview snippet · member benefits breakdown · reader quotes / testimonials · 1-click unsubscribe privacy guarantee · sticky footer CTA.
+Mobile-first, fast, self-contained HTML/CSS (inline), no external fonts/scripts.
+${VISUAL_CASCADE}`;
+  }
+
   return `ASSET: Landing page in a direct-response presell style (reference: https://${facts.presell}/...).
 Build a conversion-focused, single-scroll-friendly page using the brand palette/typography.
 Sections, in order: sticky announcement bar · hero (headline + sub + primary CTA) · trust/credentials row · problem→solution narrative · offering reveal with price (${facts.currency}) · collection/offering grid · proof section built ONLY from the brand's verifiable claims (${cf.claims}) · testimonials as mini-stories (only supplied ones; none supplied = omit the section) · FAQ (accordion) · risk-reversal/guarantee (only if the brand states one) · sticky footer CTA.
@@ -221,9 +318,11 @@ function buildMasterPrompt(o = {}) {
   }
 
   let contract;
-  if (assetType === 'ad') contract = adContract(String(platform).toLowerCase(), cf);
-  else if (assetType === 'landing_page' || assetType === 'lp') contract = landingContract(facts, cf);
-  else contract = mailerContract(variant === 'V1' ? 'V1' : 'V2', cf);
+  if (assetType === 'ad') contract = adContract(String(platform).toLowerCase(), cf, pb, market);
+  else if (assetType === 'landing_page' || assetType === 'lp') contract = landingContract(facts, cf, pb, market);
+  else contract = mailerContract(variant === 'V1' ? 'V1' : 'V2', cf, pb, market);
+
+  const benchmarkBlock = assetPlaybooks.playbookBlock(pb, assetType, { market });
 
   return [
     `You are ${brandName}'s senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.`,
@@ -238,6 +337,8 @@ function buildMasterPrompt(o = {}) {
     `PRODUCTS IN SCOPE:\n${productLines(products, facts.currency, brandName)}`,
     ``,
     contract,
+    ``,
+    benchmarkBlock,
     ``,
     `QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims. Do not ask questions: where a fact is missing, write the DATA REQUIRED marker the OUTPUT REQUIREMENT names and carry on.`,
     extra ? `\nADDITIONAL CONSTRAINTS:\n${String(extra).trim()}` : '',

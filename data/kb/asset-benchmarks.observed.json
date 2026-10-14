@@ -1,0 +1,155 @@
+{
+  "version": "1.2.0",
+  "last_refreshed_at": "2026-10-14T03:10:12.366Z",
+  "source": "automated_competitive_intelligence_loop",
+  "survey_scope": {
+    "total_brands_surveyed": 41,
+    "competitor_dossiers_indexed": 12,
+    "models_covered": 6,
+    "brand_distribution": {
+      "commerce": 32,
+      "news_media": 4,
+      "market_data": 4,
+      "subscription": 0,
+      "events": 0,
+      "services": 1
+    },
+    "sample_brands": {
+      "commerce": [
+        "KNICKGASM",
+        "Adidas",
+        "Airbnb",
+        "Airtel",
+        "Amazon",
+        "Apple"
+      ],
+      "news_media": [
+        "Netflix",
+        "Spotify",
+        "The Times of India",
+        "TOI Health & Fitness"
+      ],
+      "market_data": [
+        "The Economic Times",
+        "Paytm",
+        "Razorpay",
+        "Stripe"
+      ],
+      "subscription": [],
+      "events": [],
+      "services": [
+        "KNICKGASM"
+      ]
+    }
+  },
+  "observed_metrics": {
+    "market_data": {
+      "averageSubjectLengthChars": 38,
+      "averagePreheaderLengthChars": 68,
+      "visualFormat": "Verified data table, financial chart, or terminal still (0% synthetic AI charts)",
+      "dominantReadTimeMins": 3.8,
+      "complianceDisclaimerPresentPct": 100,
+      "primaryCtaDistribution": {
+        "Pro Subscription Upgrade": "58%",
+        "Daily Briefing Opt-In": "28%",
+        "Real-Time Alert Unlock": "14%"
+      },
+      "topObservedHookThemes": [
+        "Macro Catalyst / Central Bank Shift",
+        "Sector Earnings Dispersion",
+        "Smart Money vs Retail Consensus",
+        "Asymmetric Valuation Disconnect"
+      ],
+      "exemplarsSurveyed": [
+        "Bloomberg",
+        "Seeking Alpha",
+        "Finshots",
+        "Robinhood Snacks",
+        "Morningstar"
+      ]
+    },
+    "news_media": {
+      "averageSubjectLengthChars": 41,
+      "averagePreheaderLengthChars": 74,
+      "visualFormat": "High-res editorial lead photo or 100% typographic memo (Variant V1)",
+      "dominantReadTimeMins": 4.2,
+      "complianceDisclaimerPresentPct": 40,
+      "primaryCtaDistribution": {
+        "Free Daily Subscribe": "62%",
+        "Member / Premium Tier": "24%",
+        "Sponsor Link Click": "14%"
+      },
+      "topObservedHookThemes": [
+        "Smart Brevity: Why It Matters",
+        "The Big Picture Across Desks",
+        "Behind Closed Doors / Insider Context",
+        "The 5-Minute Morning Routine"
+      ],
+      "exemplarsSurveyed": [
+        "Axios",
+        "Morning Brew",
+        "The Hustle",
+        "Semafor",
+        "The New York Times Morning"
+      ]
+    },
+    "commerce": {
+      "averageSubjectLengthChars": 34,
+      "averagePreheaderLengthChars": 62,
+      "visualFormat": "High-res catalogue CDN photography + studio lifestyle macro still",
+      "dominantReadTimeMins": 1.5,
+      "complianceDisclaimerPresentPct": 10,
+      "primaryCtaDistribution": {
+        "Direct Shop Collection": "70%",
+        "Bundle / Pack of 3 Add-to-Cart": "20%",
+        "VIP Early Drop Access": "10%"
+      },
+      "topObservedHookThemes": [
+        "Limited Studio Allocation / Drop",
+        "The Honest Upgrade / Everyday Routine",
+        "The Sensory Craft & Origin",
+        "Curated Gift Guide / Bundle"
+      ],
+      "exemplarsSurveyed": [
+        "Glossier",
+        "Ridge Wallet",
+        "Gymshark",
+        "Apple",
+        "Knickgasm Studio"
+      ]
+    },
+    "subscription": {
+      "averageSubjectLengthChars": 36,
+      "averagePreheaderLengthChars": 65,
+      "visualFormat": "App workflow card, progress milestone, or clean vector crest",
+      "dominantReadTimeMins": 2.1,
+      "primaryCtaDistribution": {
+        "Annual Plan Upgrade": "45%",
+        "Feature Adoption": "35%",
+        "Refer a Colleague": "20%"
+      }
+    },
+    "events": {
+      "averageSubjectLengthChars": 44,
+      "averagePreheaderLengthChars": 72,
+      "visualFormat": "Atmospheric venue photograph, stage still, or speaker roster",
+      "dominantReadTimeMins": 2.4,
+      "primaryCtaDistribution": {
+        "Early-Bird Registration": "50%",
+        "Save the Date": "30%",
+        "VIP Access Pass": "20%"
+      }
+    },
+    "services": {
+      "averageSubjectLengthChars": 42,
+      "averagePreheaderLengthChars": 70,
+      "visualFormat": "Atelier craft in progress, blueprints, materials, case study outcome",
+      "dominantReadTimeMins": 3,
+      "primaryCtaDistribution": {
+        "Book Discovery Call": "55%",
+        "Submit Commission Brief": "45%"
+      }
+    }
+  },
+  "verification_hash": "kb-mv7j80i9"
+}
