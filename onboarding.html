@@ -973,6 +973,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">Start from your own website, from your brand guidelines, from a profile below, or fill the form by hand. Whichever you pick, you can change anything afterwards.</p>' +
+        // Existing brands first so adding another is one press away, not buried
+        // under extract / presets. data-no-brand-swap is LOAD-BEARING here too:
+        // brand-context.js rewrites the shipped brand name into the active
+        // brand's throughout the page, which is right for the shell and wrong
+        // for a list of DIFFERENT brands.
+        '<div id="step1Brands" class="ws-list" data-no-brand-swap style="margin:0 0 18px"></div>' +
         extractBlock() + xRenderedPanel() + '<div id="cohSlot">' + coherenceBlock(false) + '</div>' + xPanel('brand') +
         docBlock() +
         // data-no-brand-swap is LOAD-BEARING. brand-context.js rewrites the
@@ -983,7 +989,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // Reported live as a card reading "<active brand> - hand-painted
         // one-of-one custom sneakers, 436-product catalogue", which is another
         // company's product claim under this operator's name.
-        '<div id="step1Brands" class="ws-list" data-no-brand-swap style="margin:0 0 18px"></div>' +
         '<div id="presetGallery" class="presets" data-no-brand-swap>Loading brand profiles...</div>' +
         '<p class="hint" style="margin-top:18px">Or enter your own. Leave anything you are not sure of blank - the platform reports missing data rather than inventing it.</p>' +
         '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
