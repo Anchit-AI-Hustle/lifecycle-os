@@ -1878,6 +1878,49 @@ function regionCandidates(ctx) {
       if (r) r.signals.push({ signal: 'html:country selector', source_url: url, evidence: clip(o[0], 90) });
     }
   }
+  // Regional storefront links, country switchers, and language tunnel links in the markup
+  for (const m of String(html).matchAll(/<a\b[^>]*href\s*=\s*(?:["']([^"']*)["']|([^\s>]+))[^>]*>([\s\S]{0,100}?)<\/a>/gi)) {
+    const rawHref = m[1] || m[2] || '';
+    const text = stripTags(m[3] || '').trim();
+    const abs = absolute(rawHref, url);
+    if (!abs) continue;
+
+    const pMatch = /\/(us|gb|uk|in|ca|au|de|fr|es|it|nl|jp|kr|sg|ae|nz|br|mx|se|dk|no|fi|pl|ch|at|be|pt|ie|za)(?:[-_\/][a-z]{2})?(?:\/|$|\?)/i.exec(abs);
+    if (pMatch) {
+      const code = pMatch[1].toUpperCase() === 'UK' ? 'GB' : pMatch[1].toUpperCase();
+      const r = touch(code);
+      if (r) {
+        if (!r.store_url) r.store_url = abs;
+        r.signals.push({ signal: 'html:regional link in page', source_url: url, evidence: clip(abs, 120), href: abs });
+      }
+    }
+
+    if (text && text.length >= 2 && text.length <= 40 && typeof countryCodeOf === 'function') {
+      const countryCode = countryCodeOf(text);
+      if (countryCode) {
+        const r = touch(countryCode);
+        if (r) {
+          if (!r.store_url) r.store_url = abs;
+          r.signals.push({ signal: 'html:country link text', source_url: url, evidence: clip(text + ' -> ' + abs, 120), href: abs });
+        }
+      }
+    }
+  }
+
+  // JSON-LD areaServed / shippingDestination
+  for (const n of ld) {
+    if (!n || typeof n !== 'object') continue;
+    const areas = Array.isArray(n.areaServed) ? n.areaServed : (n.areaServed ? [n.areaServed] : []);
+    for (const a of areas) {
+      const val = typeof a === 'string' ? a : (a && (a.name || a.addressCountry || ''));
+      const code = typeof countryCodeOf === 'function' ? countryCodeOf(val) : '';
+      if (code) {
+        const r = touch(code);
+        if (r) r.signals.push({ signal: 'json-ld:areaServed', source_url: url, evidence: String(val) });
+      }
+    }
+  }
+
   // A declared price currency IS a currency fact — but only for the page it
   // was declared on, so it is attached to that page's own region if one is known.
   const currencies = [];
@@ -1892,7 +1935,12 @@ function regionCandidates(ctx) {
   }
   if (meta['product:price:currency']) currencies.push({ currency: String(meta['product:price:currency']).toUpperCase().slice(0, 8), signal: 'opengraph:product:price:currency', source_url: url });
 
-  return { regions: [...rows.values()], currencies, x_default: xDefault, og_locale: ogLocale, lang };
+  return { regions: [...rows.values()].map(function(r) {
+    if (!r.currency && typeof COUNTRY_CURRENCY !== 'undefined' && COUNTRY_CURRENCY[r.code]) {
+      r.currency = COUNTRY_CURRENCY[r.code];
+    }
+    return r;
+  }), currencies, x_default: xDefault, og_locale: ogLocale, lang };
 }
 
 /* ── the HOME market ───────────────────────────────────────────────────── */
@@ -1942,6 +1990,20 @@ const CURRENCY_COUNTRY = {
  * price in it); EUR names no single country at all, so it is only noted.
  */
 const CURRENCY_ZONE = { USD: 'US', EUR: '' };
+
+/* ISO Country to default trading currency */
+const COUNTRY_CURRENCY = {
+  IN: 'INR', GB: 'GBP', US: 'USD', AU: 'AUD', CA: 'CAD', NZ: 'NZD',
+  JP: 'JPY', KR: 'KRW', CN: 'CNY', HK: 'HKD', TW: 'TWD', SG: 'SGD',
+  MY: 'MYR', ID: 'IDR', PH: 'PHP', TH: 'THB', VN: 'VND', PK: 'PKR',
+  BD: 'BDT', LK: 'LKR', NP: 'NPR', AE: 'AED', SA: 'SAR', QA: 'QAR',
+  KW: 'KWD', BH: 'BHD', OM: 'OMR', IL: 'ILS', EG: 'EGP', TR: 'TRY',
+  ZA: 'ZAR', NG: 'NGN', KE: 'KES', BR: 'BRL', MX: 'MXN', AR: 'ARS',
+  CL: 'CLP', SE: 'SEK', DK: 'DKK', NO: 'NOK', PL: 'PLN', CZ: 'CZK',
+  HU: 'HUF', RO: 'RON', CH: 'CHF', UA: 'UAH', RU: 'RUB',
+  DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', NL: 'EUR', BE: 'EUR',
+  AT: 'EUR', PT: 'EUR', IE: 'EUR', FI: 'EUR', GR: 'EUR',
+};
 
 /* Country NAMES as they appear in a published address, to ISO 3166-1 alpha-2. */
 const COUNTRY_NAMES = {
