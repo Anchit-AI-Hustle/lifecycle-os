@@ -248,3 +248,51 @@ test('observed benchmarks file exists, has valid structure, and surveyed brands'
   expect(data.observed_metrics.news_media).toBeDefined();
   expect(data.observed_metrics.commerce).toBeDefined();
 });
+
+/* ═══ 8. Must-Have Enhancements: Overrides, Hooks & Auditor ═════════════════ */
+
+test('explicit business_model override via top-level or voice takes precedence', () => {
+  const brandTop = { name: 'Generic Brand', business_model: 'market_data' };
+  expect(playbooks.businessModel(brandTop)).toBe('market_data');
+
+  const brandVoice = { name: 'Hybrid Brand', voice: { business_model: 'subscription' } };
+  expect(playbooks.businessModel(brandVoice)).toBe('subscription');
+});
+
+test('competitorHooksFor provides high-converting formulas per business model', () => {
+  const finBrand = { name: 'Alpha Intelligence', industry: 'stock trading' };
+  const finHooks = playbooks.competitorHooksFor(finBrand);
+  expect(finHooks.length).toBeGreaterThanOrEqual(3);
+  expect(finHooks.some((h) => h.name.includes('Contrarian') || h.name.includes('Blindspot'))).toBe(true);
+
+  const comBrand = { name: 'Urban Apparel', industry: 'fashion clothing' };
+  const comHooks = playbooks.competitorHooksFor(comBrand);
+  expect(comHooks.length).toBeGreaterThanOrEqual(3);
+  expect(comHooks.some((h) => h.name.includes('End-State') || h.name.includes('Us vs Them'))).toBe(true);
+});
+
+test('assetAuditor accurately grades compliant vs non-compliant marketing assets', () => {
+  const assetAuditor = require('../api/_shared/asset-auditor.js');
+  const finBrand = { name: 'Terminal Pro', industry: 'stock market data' };
+
+  // 1. Non-compliant financial mailer with guaranteed profit and missing disclaimer
+  const badContent = `Subject: Quick Wealth\nBuy our stock picks now and enjoy guaranteed 10x profits in 24 hours!`;
+  const badAudit = assetAuditor.auditAsset({ content: badContent, assetType: 'mailer', brand: finBrand, market: 'IN' });
+  expect(badAudit.passed).toBe(false);
+  expect(badAudit.score).toBeLessThan(60);
+  expect(badAudit.issues.some((i) => i.rule === 'prohibited_guarantee_claim')).toBe(true);
+  expect(badAudit.issues.some((i) => i.rule === 'missing_financial_disclaimer')).toBe(true);
+
+  // 2. High-converting compliant financial briefing
+  const goodContent = `Subject: Pre-Market Catalyst: Institutional Capital Flows
+Preheader: 4 min read on sector rotations and yield curve shifts
+Session Dateline: Pre-Market Briefing · 4 min read
+Lead Catalyst: While retail observed headline rate cuts, institutional desks reallocated to domestic defensives.
+Primary CTA: <a href="https://terminalpro.com/membership" class="btn">Explore Pro Intelligence</a>
+Regulatory Disclaimer: Investments in securities market are subject to market risks. Read all scheme related documents carefully before investing. Not an investment adviser.`;
+  const goodAudit = assetAuditor.auditAsset({ content: goodContent, assetType: 'mailer', brand: finBrand, market: 'IN' });
+  expect(goodAudit.passed).toBe(true);
+  expect(goodAudit.score).toBeGreaterThanOrEqual(85);
+  expect(goodAudit.breakdown.compliance.passed).toBe(true);
+});
+

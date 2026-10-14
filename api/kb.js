@@ -269,7 +269,18 @@ module.exports = async function handler(req, res) {
     return brandKit(req, res, env);
   }
 
-  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|ingest-files|ingest-site|list|top-emails|brands|classify-emails|digest|brand-kit' });
+  // ── 8. ASSET PLAYBOOK & COMPETITOR HOOKS ─────────────────────────────────
+  //   GET → the active brand's commercial playbook, revenue levers & top hooks.
+  if (action === 'asset-playbook' || action === 'playbook') {
+    return assetPlaybookHandler(req, res, env);
+  }
+
+  // ── 9. AUDIT ASSET — Pre-flight revenue & compliance evaluation ───────────
+  if (action === 'audit-asset' || action === 'audit') {
+    return auditAssetHandler(req, res, env);
+  }
+
+  return res.status(400).json({ ok: false, error: 'Unknown action. Use ?action=ingest|ingest-files|ingest-site|list|top-emails|brands|classify-emails|digest|brand-kit|playbook|audit' });
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -873,6 +884,54 @@ async function classifyEmails(req, res, env) {
   });
   if (!r.ok) return res.status(r.status).json({ ok: false, error: (await r.text()).slice(0, 300), scanned, inserted: 0 });
   return res.status(200).json({ ok: true, scanned, skipped, inserted: toUpsert.length, counts });
+}
+
+async function assetPlaybookHandler(req, res, env) {
+  const assetPlaybooks = require('./_shared/asset-playbooks.js');
+  const wsScope = require('./_shared/workspace-scope.js');
+  const wsId = await wsScope.resolve(env, req);
+  let brand = null;
+  if (wsId) {
+    try { brand = await wsScope.brandForWorkspace(env, wsId); } catch (_) { brand = null; }
+  }
+  if (!brand) {
+    try { brand = require('./_shared/brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { brand = null; }
+  }
+  const market = String(req.query.market || 'Global');
+  const assetType = String(req.query.assetType || 'mailer');
+  const model = assetPlaybooks.businessModel(brand);
+  const pb = assetPlaybooks.playbookFor(brand, assetType);
+  const hooks = assetPlaybooks.competitorHooksFor(brand, assetType);
+  const disclaimer = assetPlaybooks.financialDisclaimer(market, brand);
+  return res.status(200).json({
+    ok: true,
+    brand: brand ? brand.name : 'the brand',
+    businessModel: model,
+    assetType,
+    market,
+    playbook: pb,
+    hooks,
+    disclaimer: model === 'market_data' ? disclaimer : null,
+  });
+}
+
+async function auditAssetHandler(req, res, env) {
+  const assetAuditor = require('./_shared/asset-auditor.js');
+  const wsScope = require('./_shared/workspace-scope.js');
+  const wsId = await wsScope.resolve(env, req);
+  let brand = null;
+  if (wsId) {
+    try { brand = await wsScope.brandForWorkspace(env, wsId); } catch (_) { brand = null; }
+  }
+  if (!brand) {
+    try { brand = require('./_shared/brand-runtime.js').scopedBrand(null, { allowTenantZero: true }); } catch (_) { brand = null; }
+  }
+  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  const content = body.content || req.query.content || '';
+  const assetType = body.assetType || req.query.assetType || 'mailer';
+  const market = body.market || req.query.market || 'Global';
+  const result = assetAuditor.auditAsset({ content, assetType, brand, market });
+  return res.status(200).json(Object.assign({ ok: true }, result));
 }
 
 // Wrapped so everything this router calls - including the generic Supabase

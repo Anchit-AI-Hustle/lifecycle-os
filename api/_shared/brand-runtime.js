@@ -146,7 +146,7 @@ function scopedBrand(candidate, opts) {
  * is the one place a persisted row enters the system, so hoisting here fixes
  * every consumer at once, including the ones nobody has written yet.
  */
-const HOISTED = ['offerings', 'claims', 'market_study', 'legal_entity', 'contact', 'social', 'asset_hosts'];
+const HOISTED = ['offerings', 'claims', 'market_study', 'legal_entity', 'contact', 'social', 'asset_hosts', 'business_model', 'businessModel'];
 
 /**
  * Lift brand_data fields onto the brand, without ever shadowing a real column.
