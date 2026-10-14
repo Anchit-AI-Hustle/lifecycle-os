@@ -524,8 +524,13 @@ function designMdTokens(report, brand) {
     // readableAsText(). These are the colours the site actually paints its text,
     // read as published and adjusted by nothing, so borrowing that suffix would
     // claim an AA guarantee nobody made.
+    // When every identity colour was refused (warn-like gold / amber, or none
+    // at all), `colors` stays null and the colors section is omitted - but the
+    // site may still publish heading/body ink. Creating the map here keeps the
+    // *-ink tokens without inventing a primary (2026-10-14: #F2E14C fixture).
     for (const [name, got] of Object.entries(inkFor)) {
       if (!got.hex) continue;
+      if (!colors) colors = {};
       colors[`${name}-ink`] = got.hex;
       sources.colors[`${name}-ink`] = `${got.cand.signal || 'declared'} · ${got.cand.source_url || ''}`;
     }
