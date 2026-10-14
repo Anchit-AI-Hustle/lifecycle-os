@@ -1991,12 +1991,21 @@
         #lifecycle-nav .lnav-mbrand:hover .lnav-mark { transform: translateY(-1px); }
         #lifecycle-nav .lnav-brand .lnav-bt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
         #lifecycle-nav .lnav-brand .lnav-bt b { font-family: var(--los-font-wordmark, system-ui, sans-serif); font-size: 14.5px; letter-spacing: -0.01em; color: var(--vh-ink, inherit); font-weight: 700; }
-        #lifecycle-nav .lnav-brand .lnav-tagline { font-size: 8px; line-height: 1.25; letter-spacing: .04em; color: var(--vh-ink-dim, inherit); white-space: normal; max-width: 178px; }
+        /* Tagline is a <small.lnav-tagline>. The generic .lnav-bt small rule
+           (accent-text + uppercase) is more specific and used to win, so under
+           a pale accent the line painted --brand-accent-text on the picker's
+           --vh-line border (#dadada) at 3.7:1. Beat that rule and use ink:
+           ink-dim also fails AA on the line colour if a sample grazes it. */
+        #lifecycle-nav .lnav-brand .lnav-bt small.lnav-tagline {
+          font-size: 8px; line-height: 1.25; letter-spacing: .04em; font-weight: 500;
+          text-transform: none; color: var(--vh-ink, inherit);
+          white-space: normal; overflow: visible; text-overflow: unset; max-width: 178px;
+        }
         #lifecycle-nav .lnav-brand .lnav-bt small { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vh-accent-text, var(--vh-ink-dim, inherit)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* Brand block: platform wordmark (→ home) above the active-brand
            picker. The picker is how a person switches brands or starts another
            without digging into onboarding step 6. */
-        #lifecycle-nav .lnav-brandblock { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; position: relative; }
+        #lifecycle-nav .lnav-brandblock { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; position: relative; }
         #lifecycle-nav .lnav-brandpick {
           display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%;
           margin: 0 0 10px; padding: 8px; border-radius: 8px;
@@ -2056,7 +2065,10 @@
         /* min-width:0 so a long brand name ellipsises inside the rail instead of
            pushing the collapse button out past its edge (seen on /design-system
            with a 30-character brand name). */
-        #lifecycle-nav .lnav-head .lnav-brand { padding: 4px 8px 2px; min-width: 0; min-height: 44px; }
+        /* Bottom padding clears the brand-picker's 1px --vh-line border so the
+           AA probe (and the eye) read the tagline on the rail surface, not on
+           the hairline. 2px left the last line of the tagline on that border. */
+        #lifecycle-nav .lnav-head .lnav-brand { padding: 4px 8px 8px; min-width: 0; min-height: 44px; }
         html.lnav-collapsed #lifecycle-nav .lnav-brandpick,
         html.lnav-collapsed #lifecycle-nav .lnav-brandmenu { display: none; }
         #lifecycle-nav .lnav-collapse {
