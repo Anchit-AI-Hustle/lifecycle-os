@@ -1371,12 +1371,17 @@ function brandSystem(brand) {
 function strategySystem(brand) {
   let b = brand && brand.id ? brand : null;
   if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
-  return `Adopt the role of an expert marketing strategist tasked with developing a high-converting, actionable campaign strategy. Your primary objective is to increase brand awareness and drive sales for ${b.name || 'this brand'}${b.industry ? ` (${b.industry})` : ''} in a detailed, actionable plan format.
+  return `Adopt the role of an expert marketing strategist tasked with developing a comprehensive marketing strategy. Your primary objective is to increase brand awareness and drive sales for ${b.name || 'this brand'}${b.industry ? ` (${b.industry})` : ''} in a detailed, actionable plan format.
 Take a deep breath and work on this problem step-by-step.
 Force real tactics instead of generic advice:
-- Structure the strategy so each element builds on the one before it.
-- Ground decisions in concrete audience insight, market positioning, and product mechanics.
-- Be specific and quantitative where data allows; never write generic advice or placeholders.
+- Analyze current market position and target audience truth.
+- Develop a content marketing strategy with concrete creation guidelines.
+- Create a social media marketing plan with realistic posting schedules.
+- Design an email marketing campaign with high-converting direct-response hooks.
+- Plan paid advertising initiatives with crisp budget allocation recommendations.
+- Integrate all tactics into a cohesive strategy where each element builds on the one before it.
+- Establish key performance indicators (KPIs) to measure success.
+- Present your comprehensive marketing strategy in a bullet point list format, with clear headings for each major section and sub-bullets for specific tactics and recommendations, keeping the output easy to scan and easy to hand to a team.
 ${D2C_KNOWLEDGE}
 Return exactly what the OUTPUT REQUIREMENT at the end of the request states.`;
 }
@@ -1408,22 +1413,26 @@ function strategyPrompt(entry) { return OC.append(strategyTask(entry), strategyO
 function strategyTask(entry) {
   const d = entry.decision || {};
   return `Devise the comprehensive marketing strategy for ONE lifecycle send.
-Context:
-- Brand: ${(entry.brand && entry.brand.name) || 'This brand'}
-- Market: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
-${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
-- Offer: ${d.offer ? (d.offer.code ? `${d.offer.code} (${Math.round((d.offer.pct || 0) * 100)}%)` : 'no discount') : 'n/a'}
+Context (#INFORMATION ABOUT ME):
+- Business type: ${(entry.brand && (entry.brand.industry || entry.brand.category || entry.brand.name)) || 'D2C Brand'}
+- Target audience: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
+- Offering / Hero product: ${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
+- Current marketing efforts / Offer: ${d.offer ? (d.offer.code ? `${d.offer.code} (${Math.round((d.offer.pct || 0) * 100)}%)` : 'no discount') : 'n/a'}
+- Marketing budget / Reach target: ${entry.reach?.planned_recipients?.toLocaleString?.() || 'n/a'} recipients, ${entry.reach?.per_user_per_week?.min || 2}-${entry.reach?.per_user_per_week?.max || 3} mailers/user/week.
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
-- Reach target: ${entry.reach?.planned_recipients?.toLocaleString?.() || 'n/a'} recipients, ${entry.reach?.per_user_per_week?.min || 2}-${entry.reach?.per_user_per_week?.max || 3} mailers/user/week.
 - ${regionalNuance(entry.market)}
 
 ${creativeEvidence.briefFor(entry)}
 
-STRATEGY REQUIREMENTS:
+STRATEGY REQUIREMENTS (Cover all 7 strategic dimensions):
 1. Analyze market positioning and audience truth: identify the precise behavioural trigger for this cohort now.
-2. Structure the strategy so each element builds on the preceding one: hook -> insight -> mechanism -> proof -> call to action.
-3. Provide actionable tactics for each marketing channel: content creation guidelines, posting schedule, and specific conversion levers.
-4. Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework". Make this send DIFFERENT from a generic promo and true to its cohort + theme.`;
+2. Develop a content marketing strategy and creation guidelines for this campaign angle.
+3. Structure the strategy so each element builds on the one before it: hook -> insight -> mechanism -> proof -> call to action.
+4. Provide actionable tactics for each marketing channel: content creation guidelines, posting schedules, and budget allocation recommendations.
+5. Plan paid advertising initiatives with crisp visual briefs and scroll-stopping hooks.
+6. Integrate all tactics into a cohesive multichannel strategy.
+7. Establish key performance indicators (KPIs) to measure conversion, engagement, and retention success.
+Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework".`;
 }
 
 async function strategyBrief(entry) {
@@ -1998,46 +2007,80 @@ img{max-width:100%;height:auto;display:block}
 .bar{background:var(--moss-deep);color:var(--on-moss);text-align:center;font-size:13px;letter-spacing:.04em;padding:10px 16px}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px}
 h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
-.hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:64px 22px 72px}
-.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 0 18px}
-.hero h1{font-size:40px;max-width:720px;margin:0 auto 16px}
-.hero p{max-width:560px;margin:0 auto 28px;color:var(--on-moss)}
-.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:16px 34px;min-height:48px;border-radius:6px;border:0;cursor:pointer;font-size:16px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
+.hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:34px 20px 38px}
+.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:11px;margin:0 0 12px}
+.hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
+.hero p{max-width:540px;margin:0 auto 20px;color:var(--on-moss);font-size:15px}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:12px 28px;min-height:44px;border-radius:6px;border:0;cursor:pointer;font-size:15px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
 .btn:hover{opacity:.92}
 .btn-dark{background:var(--moss);color:var(--on-moss)}
-.trust{display:flex;flex-wrap:wrap;justify-content:center;gap:18px 30px;background:var(--chalk-warm);padding:18px 22px;font-size:13px;color:var(--ink-dim);text-align:center}
-.sec{padding:54px 0}
-.sec h2{font-size:30px}
-.why li{list-style:none;margin:12px 0;padding-left:6px}
-.tick{color:var(--moss);font-weight:800;margin-right:10px}
+.trust{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 24px;background:var(--chalk-warm);padding:12px 18px;font-size:12px;color:var(--ink-dim);text-align:center}
+.sec{padding:26px 0}
+.sec h2{font-size:26px;margin:0 0 12px}
+.why li{list-style:none;margin:8px 0;padding-left:6px;font-size:14px}
+.tick{color:var(--moss);font-weight:800;margin-right:8px}
 .why ul{padding:0;margin:0}
-.reveal{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:14px;padding:30px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
-.reveal .price{font-family:var(--head);font-size:30px;color:var(--moss)}
+.reveal{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:20px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
+.reveal .price{font-family:var(--head);font-size:26px;color:var(--moss)}
 .proof{background:var(--moss-near);color:var(--on-moss);text-align:center}
-.proof blockquote{font-family:var(--head);font-size:26px;max-width:680px;margin:0 auto;line-height:1.35}
-.proof .who{color:var(--lava);font-weight:700;margin-top:16px}
-.proof .proofshot{width:140px;border-radius:12px;margin:0 auto 18px}
+.proof blockquote{font-family:var(--head);font-size:22px;max-width:640px;margin:0 auto;line-height:1.35}
+.proof .who{color:var(--lava);font-weight:700;margin-top:12px}
+.proof .proofshot{width:120px;border-radius:10px;margin:0 auto 14px}
 /* Missing approved proof is PRINTED, not silently dropped. Deliberately styled
    as a build note on a light surface (dark ink on chalk-warm, AA) so nobody can
    mistake it for customer-facing content, and so the reviewer sees the gap. */
-.datareq-band{padding:26px 0}
-.datareq{margin:0;text-align:center;font-family:var(--body);font-size:13px;line-height:1.5;color:var(--ink);background:var(--chalk-warm);border:1px dashed var(--ink-dim);border-radius:10px;padding:14px 18px}
-.faq{border-top:1px solid rgba(171,135,67,.3);padding:16px 0}
-.faq summary{font-weight:700;cursor:pointer;font-size:17px;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.datareq-band{padding:18px 0}
+.datareq{margin:0;text-align:center;font-family:var(--body);font-size:12px;line-height:1.45;color:var(--ink);background:var(--chalk-warm);border:1px dashed var(--ink-dim);border-radius:8px;padding:10px 14px}
+.faq{border-top:1px solid rgba(171,135,67,.3);padding:12px 0}
+.faq summary{font-weight:700;cursor:pointer;font-size:16px;list-style:none;display:flex;align-items:center;justify-content:space-between}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::marker{display:none}
-.faq summary::after{content:'+';font-size:20px;font-weight:400;margin-left:12px}
+.faq summary::after{content:'+';font-size:18px;font-weight:400;margin-left:10px}
 .faq[open] summary::after{content:'−'}
-.faq p{color:var(--ink-dim);margin:10px 0 0;line-height:1.55}
-.guarantee{background:var(--chalk-warm);text-align:center;border-radius:14px;padding:34px;margin:30px 0}
-.sticky{position:-webkit-sticky;position:sticky;bottom:0;z-index:100;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 22px;padding-bottom:max(12px,env(safe-area-inset-bottom,12px));box-shadow:0 -6px 24px rgba(0,0,0,.08);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
-.sticky .info{font-size:14px}.sticky .info b{display:block;font-family:var(--head);font-size:16px}
+.faq p{color:var(--ink-dim);margin:8px 0 0;line-height:1.5;font-size:14px}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 20px}
+.sec-eyebrow{color:var(--ink-dim);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;display:block}
+.sec-head h2{font-size:26px;line-height:1.2;margin:4px 0 8px}
+.sec-sub{color:var(--ink-dim);font-size:14px;margin:0;line-height:1.45}
+.friction-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}
+.f-card{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:18px;box-shadow:0 3px 12px rgba(0,0,0,0.02);text-align:left}
+.f-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:99px;background:var(--chalk-warm);color:var(--ink);margin-bottom:10px;border:1px solid rgba(0,0,0,0.12)}
+.f-card h3{font-size:16px;margin:0 0 6px;color:var(--ink)}
+.f-card p{font-size:13px;color:var(--ink-dim);margin:0 0 12px;line-height:1.45}
+.f-mockup{background:var(--chalk-warm);border-radius:8px;padding:8px 12px;border:1px solid rgba(0,0,0,0.06)}
+.f-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06)}
+.f-row:last-child{border-bottom:0}
+.f-pill{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.03em}
+.f-warn{background:rgba(255,193,7,0.2);color:#856404}
+.f-err{background:rgba(220,53,69,0.15);color:#b02a37}
+
+.timeline{display:flex;flex-direction:column;gap:12px;max-width:620px;margin:18px auto 0;position:relative;padding-left:48px}
+.timeline::before{content:"";position:absolute;left:16px;top:12px;bottom:12px;width:2px;background:var(--moss);opacity:0.35}
+.t-step{position:relative;background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.02);text-align:left}
+.t-num{position:absolute;left:-48px;top:12px;width:34px;height:34px;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.t-step h3{font-size:15px;margin:0 0 4px;color:var(--ink)}
+.t-step p{font-size:13px;color:var(--ink-dim);margin:0;line-height:1.45}
+
+.metrics-card{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.03);margin-top:16px}
+.m-card-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--chalk-warm);border-bottom:1px solid rgba(0,0,0,0.06);font-size:12px}
+.m-badge{font-size:10px;font-weight:700;color:var(--ink);background:var(--chalk-warm);border:1px solid rgba(0,0,0,0.12);padding:3px 8px;border-radius:4px;letter-spacing:.04em}
+.m-table-wrap{overflow-x:auto}
+.m-table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
+.m-table th{padding:8px 14px;color:var(--ink-dim);font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--chalk-warm)}
+.m-table td{padding:9px 14px;border-bottom:1px solid var(--chalk-warm);color:var(--ink)}
+.m-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.m-ok{background:rgba(40,167,69,0.15);color:#1e7e34}
+.m-info{background:rgba(23,162,184,0.15);color:#117a8b}
+
+.guarantee{background:var(--chalk-warm);text-align:center;border-radius:12px;padding:20px;margin:18px 0}
+.sticky{position:-webkit-sticky;position:sticky;bottom:0;z-index:100;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 18px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px));box-shadow:0 -4px 18px rgba(0,0,0,.06);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.sticky .info{font-size:13px}.sticky .info b{display:block;font-family:var(--head);font-size:15px}
 /* The footer was a near-black band (var(--ink) is #111111 for tenant zero),
    which the design rules forbid for any section. It is the brand primary now,
    with the contrast-adjusted on-primary text rather than a 60%-opacity cream
    that was only legible because the ground behind it was black. */
-footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26px 22px;padding-bottom:max(26px,env(safe-area-inset-bottom,26px));font-size:12px}
-@media(max-width:640px){.hero{padding:48px 18px 56px}.hero h1{font-size:28px}.sec{padding:40px 0}.sec h2{font-size:22px}.reveal{flex-direction:column;align-items:flex-start}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:12px}.sticky{padding:10px 16px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px))}.sticky .info .sub{display:none}.btn{padding:14px 24px;font-size:15px}}
+footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18px 18px;padding-bottom:max(18px,env(safe-area-inset-bottom,18px));font-size:12px}
+@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:11px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:11px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:10px 18px;font-size:13px;min-height:38px}img.hero-asset{max-height:160px!important}}
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
@@ -2048,9 +2091,114 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
   ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
   <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
 </section>
-${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:520px;object-fit:cover"/>` : ''}
+${creativeUrl ? `<img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:220px;object-fit:cover"/>` : ''}
 <div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
 <div class="wrap" data-ds="wrap">
+  <section class="sec friction">
+    <div class="sec-head">
+      <span class="sec-eyebrow">THE BOTTLENECK</span>
+      <h2>Why ordinary solutions fall short</h2>
+      <p class="sec-sub">Fragmented execution and generic alternatives leave critical opportunities on the table.</p>
+    </div>
+    <div class="friction-grid">
+      <div class="f-card">
+        <div class="f-badge">Friction Point</div>
+        <h3>Scattered handoffs &amp; stalled momentum</h3>
+        <p>When communication and follow-through stall, potential customers disengage and valuable intent cools rapidly.</p>
+        <div class="f-mockup">
+          <div class="f-row"><span>Engagement follow-up</span><span class="f-pill f-warn">Delayed</span></div>
+          <div class="f-row"><span>Retention drop-off</span><span class="f-pill f-err">High risk</span></div>
+        </div>
+      </div>
+      <div class="f-card">
+        <div class="f-badge">Inconsistency</div>
+        <h3>Disconnected touchpoints</h3>
+        <p>Generic messaging lacks the targeted relevance, verified proof, and authentic craft that modern buyers expect.</p>
+        <div class="f-mockup">
+          <div class="f-row"><span>Audience alignment</span><span class="f-pill f-warn">Mismatched</span></div>
+          <div class="f-row"><span>Repeat conversion</span><span class="f-pill f-err">Stagnant</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec steps-sec">
+    <div class="sec-head">
+      <span class="sec-eyebrow">HOW IT WORKS</span>
+      <h2>Connected in three seamless steps</h2>
+      <p class="sec-sub">Engineered to activate with precision, deliver authentic value, and compound results over time.</p>
+    </div>
+    <div class="timeline">
+      <div class="t-step">
+        <div class="t-num">1</div>
+        <div class="t-content">
+          <h3>Targeted Alignment</h3>
+          <p>Ground strategy in authentic audience behaviour and verified catalogue offerings rather than assumptions.</p>
+        </div>
+      </div>
+      <div class="t-step">
+        <div class="t-num">2</div>
+        <div class="t-content">
+          <h3>Direct-Response Activation</h3>
+          <p>Deploy high-converting copy, responsive visual design, and unified multichannel creative tailored to the buyer journey.</p>
+        </div>
+      </div>
+      <div class="t-step">
+        <div class="t-num">3</div>
+        <div class="t-content">
+          <h3>Compounding Return &amp; Scale</h3>
+          <p>Track measurable KPIs, repeat engagement, and authentic customer loyalty backed by genuine satisfaction.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec metrics-sec">
+    <div class="sec-head">
+      <span class="sec-eyebrow">SEE IT IN ACTION</span>
+      <h2>Performance benchmarked across channels</h2>
+      <p class="sec-sub">Transparent, data-backed execution built for predictable conversion and consistent growth.</p>
+    </div>
+    <div class="metrics-card">
+      <div class="m-card-header">
+        <b>Campaign Architecture · Performance Overview</b>
+        <span class="m-badge">Active Lifecycle</span>
+      </div>
+      <div class="m-table-wrap">
+        <table class="m-table">
+          <thead>
+            <tr>
+              <th>Initiative / Channel</th>
+              <th>Target Audience</th>
+              <th>Benchmark Focus</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Direct Mailer &amp; Retention</b></td>
+              <td>Verified Customer Cohort</td>
+              <td>Repeat Purchase &amp; LTV</td>
+              <td><span class="m-pill m-ok">Selected</span></td>
+            </tr>
+            <tr>
+              <td><b>Targeted Social Ads</b></td>
+              <td>High Intent Interest</td>
+              <td>Optimized Acquisition</td>
+              <td><span class="m-pill m-ok">Active</span></td>
+            </tr>
+            <tr>
+              <td><b>Conversion Landing Page</b></td>
+              <td>Direct Traffic &amp; Shoppers</td>
+              <td>Maximized Cart Completion</td>
+              <td><span class="m-pill m-info">Updated</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <section class="sec why">
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
