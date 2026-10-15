@@ -2028,12 +2028,6 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26p
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
 <div class="bar">${esc(bName)} · ${esc(entry.market)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
 <section class="hero">
-  <!-- The eyebrow read "<cohort> edit" — so a landing page served to a real
-       visitor announced the RFM bucket the business had put them in:
-       "Hibernating edit", "At Risk edit", "Lost edit". The market is a place and
-       is fine to say; the segment is an internal classification and is not. -->
-  <!-- The market code ("IN edit") read as an internal label too (2026-10-14):
-       the eyebrow is what the product IS, else the brand's name. -->
   <p class="eyebrow">${esc((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.category) || bName)}</p>
   <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
   ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
