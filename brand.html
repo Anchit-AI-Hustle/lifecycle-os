@@ -480,6 +480,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       },
       guide_pdf_url: $('f-guide').value.trim() || null
     };
+    if (resetExtractedActive) {
+      out._reset_fields = ['palette.primary', 'palette.accent', 'palette.surface', 'palette.ink', 'palette.bg', 'palette.text'];
+      out.user_reset_fields = out._reset_fields;
+    }
+    return out;
   }
 
   // Drift check against the prompt-side brand block (master-prompt.js is the
@@ -560,22 +565,47 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .then(function () { $('save').disabled = false; });
   });
 
+  var resetExtractedActive = false;
   $('reload').addEventListener('click', load);
   $('reset-extracted').addEventListener('click', function () {
     var b = onboarded();
     var ext = (b && b.brand_data && b.brand_data.brand_extraction) || null;
-    var extPal = (ext && ext.fields && ext.fields.palette && ext.fields.palette.proposed) ||
+    var extPal = (ext && (ext.palette && (ext.palette.primary ? ext.palette : ext.palette.proposed))) ||
+                 (ext && ext.fields && ext.fields.palette && ext.fields.palette.proposed) ||
                  (ext && ext.palette && ext.palette.proposed) ||
-                 (b && b.palette) || null;
-    if (extPal && (extPal.primary || extPal.surface)) {
-      if (extPal.primary) { $('c-primary').value = extPal.primary.toUpperCase(); if ($('c-primary-pick')) $('c-primary-pick').value = extPal.primary; }
-      if (extPal.accent || extPal.primary) { $('c-accent').value = (extPal.accent || extPal.primary).toUpperCase(); if ($('c-accent-pick')) $('c-accent-pick').value = extPal.accent || extPal.primary; }
-      if (extPal.surface || extPal.bg) { $('c-bg').value = (extPal.surface || extPal.bg).toUpperCase(); if ($('c-bg-pick')) $('c-bg-pick').value = extPal.surface || extPal.bg; }
-      if (extPal.ink || extPal.text) { $('c-text').value = (extPal.ink || extPal.text).toUpperCase(); if ($('c-text-pick')) $('c-text-pick').value = extPal.ink || extPal.text; }
+                 (ext && ext.read && ext.read.palette) || null;
+    function applyPal(p) {
+      if (p.primary) { $('c-primary').value = p.primary.toUpperCase(); if ($('c-primary-pick')) $('c-primary-pick').value = p.primary; }
+      if (p.accent || p.primary) { $('c-accent').value = (p.accent || p.primary).toUpperCase(); if ($('c-accent-pick')) $('c-accent-pick').value = p.accent || p.primary; }
+      if (p.surface || p.bg) { $('c-bg').value = (p.surface || p.bg).toUpperCase(); if ($('c-bg-pick')) $('c-bg-pick').value = p.surface || p.bg; }
+      if (p.ink || p.text) { $('c-text').value = (p.ink || p.text).toUpperCase(); if ($('c-text-pick')) $('c-text-pick').value = p.ink || p.text; }
       render();
       edited = true;
+      resetExtractedActive = true;
       $('status').className = 'status ok';
       $('status').textContent = 'Reset to website extracted colours. Click "Save brand kit" to apply.';
+    }
+    if (extPal && (extPal.primary || extPal.surface)) {
+      applyPal(extPal);
+    } else if (b && b.website) {
+      $('status').className = 'status';
+      $('status').textContent = 'Extracting palette from website...';
+      fetch('/api/brand?op=extract&url=' + encodeURIComponent(b.website))
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          var p = (res && res.fields && res.fields.palette && res.fields.palette.proposed) ||
+                  (res && res.read && res.read.palette) || null;
+          if (p && (p.primary || p.surface)) {
+            applyPal(p);
+          } else {
+            $('status').className = 'status err';
+            $('status').textContent = 'Could not extract colours from ' + b.website + '.';
+          }
+        })
+        .catch(function () {
+          $('status').className = 'status err';
+          $('status').textContent = 'Could not reach website to extract colours.';
+        });
     } else {
       $('status').className = 'status err';
       $('status').textContent = 'No website extracted palette found on this brand\'s onboarding record.';
