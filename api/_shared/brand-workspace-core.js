@@ -1724,6 +1724,15 @@ async function saveExisting(auth, id, input) {
   const typed = claimedFields(input);
   const others = recordedOrigins(input);
   const placeholders = placeholderFields(input);
+  const resetFields = Array.isArray(input && (input._reset_fields || input.user_reset_fields))
+    ? (input._reset_fields || input.user_reset_fields)
+    : [];
+  if (resetFields.length) {
+    for (const f of resetFields) {
+      if (typed.indexOf(f) < 0) typed.push(f);
+      delete others[f];
+    }
+  }
   for (let attempt = 0; attempt < SAVE_ATTEMPTS; attempt++) {
     const existing = await getWorkspace(auth, id);
     if (!existing) { const e = new Error('Workspace not found (or not yours).'); e.status = 404; throw e; }
