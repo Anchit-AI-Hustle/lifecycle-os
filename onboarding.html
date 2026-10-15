@@ -1070,6 +1070,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<h2>Colour schema</h2>' +
         xPanel('colour') +
         '<p class="hint">These four colours become the design tokens for the entire app and every asset it generates. They are checked live against the platform\'s design rules: WCAG AA contrast on every pairing, and no black or dark neutral page surfaces.</p>' +
+        '<div style="margin:8px 0 16px;display:flex;gap:10px;align-items:center">' +
+          '<button type="button" class="btn" id="resetPaletteBtn" style="padding:7px 14px;font-size:13px">Reset to website extracted colours</button>' +
+          '<span class="muted" style="font-size:12px">Restores the palette extracted from your website</span>' +
+        '</div>' +
         '<div class="row">' + colourField('primary', 'Primary', 'buttons, headings, brand ground') + colourField('accent', 'Accent', 'highlights, links') + '</div>' +
         '<div class="row">' + colourField('ink', 'Text', 'body copy') + colourField('surface', 'Page surface', 'the page background') + '</div>' +
         '<div class="row">' + colourField('surface_alt', 'Card surface', 'cards above the page') + colourField('muted', 'Secondary text', 'captions, labels') + '</div>' +
@@ -1968,7 +1972,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!extraction || (extraction.read && extraction.read.method === 'rendered')) return;
     var f = extraction.fields || {};
     var p = f.palette || {};
-    if (p.proposed && p.proposed.primary && !((p.conflicts || []).length) && !setupHasOwn('palette.primary')) { applyExtract('palette-all'); setupAdopted.push('colours'); }
+    var currentPalValid = (function () {
+      try { return checkPalette().ok; } catch (_) { return false; }
+    })();
+    if (p.proposed && p.proposed.primary && !((p.conflicts || []).length) && (!setupHasOwn('palette.primary') || !currentPalValid)) { applyExtract('palette-all', 0, { auto: true }); setupAdopted.push('colours'); }
     ['heading', 'body'].forEach(function (slot) {
       var c = ((f.typography && f.typography[slot]) || [])[0];
       if (c && /^(declared|strong)$/.test(c.confidence || '') && !setupHasOwn('typography.' + slot)) { applyExtract('font-' + slot, 0); setupAdopted.push(slot); }
@@ -2532,7 +2539,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     else if (act === 'palette-all') {
       var p = f.palette.proposed;
       ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].forEach(function (k) { if (p[k]) brand.palette[k] = p[k]; });
-      Object.keys(f.palette.sources || {}).forEach(function (k) { if (f.palette.sources[k]) noteSource('palette.' + k, Object.assign({ value: p[k] }, f.palette.sources[k])); });
+      var isAuto = editedValue && editedValue.auto;
+      Object.keys(f.palette.sources || {}).forEach(function (k) {
+        if (f.palette.sources[k]) {
+          var src = Object.assign({ value: p[k] }, f.palette.sources[k]);
+          src.origin = isAuto ? (src.origin || 'site-parse') : 'user';
+          src.signal = isAuto ? (src.signal || src.role || k) : ('operator applied extracted palette: ' + (src.signal || src.role || k));
+          noteSource('palette.' + k, src);
+        }
+      });
+      paintShell();
+      render();
     }
     else if (act === 'font-heading' || act === 'font-body') {
       var slot = act === 'font-heading' ? 'heading' : 'body';
@@ -2650,9 +2667,41 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       brand.website = sw.url;
       setOrigin('website', 'user');
       xUrlDraft = sw.url;
+      ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted'].forEach(function (f) {
+        markOrigin(f, 'default');
+      });
       render();
       var xi = $('xUrl'); if (xi) xi.value = sw.url;
       runExtract({ confirmed: true });
+      return;
+    }
+    var rst = e.target && e.target.closest ? e.target.closest('#resetPaletteBtn') : null;
+    if (rst) {
+      var ext = extraction || (brand.brand_data && brand.brand_data.brand_extraction) || null;
+      var p = (ext && ext.fields && ext.fields.palette && ext.fields.palette.proposed) ||
+              (ext && ext.palette && ext.palette.proposed) ||
+              (ext && ext.read && ext.read.palette) || null;
+      if (p && p.primary) {
+        ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].forEach(function (k) {
+          if (p[k]) brand.palette[k] = p[k];
+        });
+        ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].forEach(function (k) {
+          if (p[k]) {
+            noteSource('palette.' + k, {
+              value: p[k],
+              signal: 'operator reset to website extracted palette',
+              source_url: (ext && ext.start) || brand.website || '',
+              confidence: 'declared',
+              origin: 'user'
+            });
+          }
+        });
+        paintShell();
+        render();
+        toast('Colours reset to website extracted palette.');
+      } else {
+        toast('No website extracted palette found. Run "Read my site" on Brand step first.');
+      }
       return;
     }
     var run = e.target && e.target.closest ? e.target.closest('#xRun') : null;
