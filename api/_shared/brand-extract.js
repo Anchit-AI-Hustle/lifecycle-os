@@ -745,21 +745,19 @@ function taglineCandidates(ctx) {
       out.push(cand(n.description, `json-ld:${rawType}.description`, url, CONF.strong, n.description));
     }
   }
+  if (meta['og:description']) out.push(cand(meta['og:description'], 'opengraph:og:description', url, CONF.strong, meta['og:description']));
+  if (meta.description) out.push(cand(meta.description, 'meta:description', url, CONF.strong, meta.description));
   if (isHome) {
+    const lede = stripTags(textBetween(html, 'p class="lede"')[0] || textBetween(html, "p class='lede'")[0] || '');
+    if (lede && lede.length <= 220) out.push(cand(lede, 'html:p.lede', url, CONF.strong, lede));
     const title = clip(stripTags(textBetween(html, 'title')[0] || ''), 200);
     if (title) {
       const parts = title.split(TITLE_SPLIT).map((s) => s.trim()).filter(Boolean);
       if (parts.length > 1) {
         const seg = parts.slice(1).join(' - ');
-        if (seg.length <= 120) out.push(cand(seg, 'html:title(tagline segment)', url, CONF.strong, title));
+        if (seg.length <= 120) out.push(cand(seg, 'html:title(tagline segment)', url, CONF.weak, title));
       }
     }
-    const lede = stripTags(textBetween(html, 'p class="lede"')[0] || textBetween(html, "p class='lede'")[0] || '');
-    if (lede && lede.length <= 220) out.push(cand(lede, 'html:p.lede', url, CONF.strong, lede));
-  }
-  if (meta['og:description']) out.push(cand(meta['og:description'], 'opengraph:og:description', url, CONF.strong, meta['og:description']));
-  if (meta.description) out.push(cand(meta.description, 'meta:description', url, CONF.strong, meta.description));
-  if (isHome) {
     const h1 = stripTags(textBetween(html, 'h1')[0] || '');
     if (h1) out.push(cand(h1, 'html:h1(home hero)', url, CONF.weak, h1));
   }
