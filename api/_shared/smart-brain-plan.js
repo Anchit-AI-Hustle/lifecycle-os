@@ -1968,6 +1968,16 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const guaranteeBlock = _guaranteeText
     ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(_guaranteeText)}</p></div>`
     : '';
+  const cleanWhyTitle = (() => {
+    let t = L.why_title || ('Why ' + ((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title) || bName));
+    t = String(t).replace(/^Why\s+(The story behind|Why)\s+/i, 'Why ');
+    return t;
+  })();
+  const fallbackBullets = (bClaims.length ? bClaims.slice(0, 3) : [
+    `100% authentic from ${bName}'s verified collection.`,
+    `Thoughtfully engineered for everyday reliability and peace of mind.`,
+    `Backed by ${bName}'s authentic support and dedicated care.`,
+  ]).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
@@ -2027,14 +2037,14 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
   <p class="eyebrow">${esc((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.category) || bName)}</p>
   <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
   ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
-  <a class="btn" data-ds="button-primary" href="${esc(shopUrl)}">${cta}</a>
+  <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
 </section>
 ${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:520px;object-fit:cover"/>` : ''}
 <div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
 <div class="wrap" data-ds="wrap">
   <section class="sec why">
-    <h2>${esc(L.why_title || ('Why ' + ((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title) || bName)))}</h2>
-    <ul data-ds="body">${bullets || `<li><span class="tick">✓</span>Selected from ${esc(bName)}'s own catalogue.</li>`}</ul>
+    <h2>${esc(cleanWhyTitle)}</h2>
+    <ul data-ds="body">${bullets || fallbackBullets}</ul>
   </section>
   <section class="sec">
     <div class="reveal" data-ds="card">
@@ -2045,7 +2055,7 @@ ${creativeUrl ? `<img src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || en
       </div>
       <div style="text-align:right">
         ${priceLabel ? `<div class="price" data-ds="card-price">${esc(priceLabel)}</div>` : ''}
-        <a class="btn btn-dark" href="${esc(shopUrl)}">${cta}</a>
+        <a href="${esc(shopUrl)}" class="btn btn-dark">${cta}</a>
       </div>
     </div>
   </section>
@@ -2057,7 +2067,7 @@ ${proofSection}
 </div>
 <div class="sticky">
   <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
-  <a class="btn" href="${esc(shopUrl)}">${cta}</a>
+  <a href="${esc(shopUrl)}" class="btn">${cta}</a>
 </div>
 <footer data-ds="footer" data-campaign="${esc(campaignId)}">© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}</footer>
 </body></html>`;
