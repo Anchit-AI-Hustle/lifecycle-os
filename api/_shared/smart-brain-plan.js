@@ -1988,21 +1988,22 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     `Thoughtfully engineered for everyday reliability and peace of mind.`,
     `Backed by ${bName}'s authentic support and dedicated care.`,
   ]).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
 :root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--on-moss:${ON_P};--on-lava:${ON_ACC};--head:${HEADF};--body:${BODYF}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
-img{max-width:100%;display:block}
+body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+img{max-width:100%;height:auto;display:block}
 .bar{background:var(--moss-deep);color:var(--on-moss);text-align:center;font-size:13px;letter-spacing:.04em;padding:10px 16px}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px}
-h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
+h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:64px 22px 72px}
 .hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 0 18px}
 .hero h1{font-size:40px;max-width:720px;margin:0 auto 16px}
 .hero p{max-width:560px;margin:0 auto 28px;color:var(--on-moss)}
-.btn{display:inline-block;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:16px 34px;border-radius:6px;border:0;cursor:pointer;font-size:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:16px 34px;min-height:48px;border-radius:6px;border:0;cursor:pointer;font-size:16px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
+.btn:hover{opacity:.92}
 .btn-dark{background:var(--moss);color:var(--on-moss)}
 .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:18px 30px;background:var(--chalk-warm);padding:18px 22px;font-size:13px;color:var(--ink-dim);text-align:center}
 .sec{padding:54px 0}
@@ -2021,18 +2022,22 @@ h1,h2,h3{font-family:var(--head);line-height:1.12;margin:0 0 14px}
    mistake it for customer-facing content, and so the reviewer sees the gap. */
 .datareq-band{padding:26px 0}
 .datareq{margin:0;text-align:center;font-family:var(--body);font-size:13px;line-height:1.5;color:var(--ink);background:var(--chalk-warm);border:1px dashed var(--ink-dim);border-radius:10px;padding:14px 18px}
-.faq{border-top:1px solid rgba(171,135,67,.3);padding:14px 0}
-.faq summary{font-weight:700;cursor:pointer;font-size:17px}
-.faq p{color:var(--ink-dim);margin:10px 0 0}
+.faq{border-top:1px solid rgba(171,135,67,.3);padding:16px 0}
+.faq summary{font-weight:700;cursor:pointer;font-size:17px;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::marker{display:none}
+.faq summary::after{content:'+';font-size:20px;font-weight:400;margin-left:12px}
+.faq[open] summary::after{content:'−'}
+.faq p{color:var(--ink-dim);margin:10px 0 0;line-height:1.55}
 .guarantee{background:var(--chalk-warm);text-align:center;border-radius:14px;padding:34px;margin:30px 0}
-.sticky{position:sticky;bottom:0;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 22px;box-shadow:0 -6px 24px rgba(0,0,0,.08)}
+.sticky{position:-webkit-sticky;position:sticky;bottom:0;z-index:100;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:14px;align-items:center;justify-content:space-between;padding:12px 22px;padding-bottom:max(12px,env(safe-area-inset-bottom,12px));box-shadow:0 -6px 24px rgba(0,0,0,.08);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .sticky .info{font-size:14px}.sticky .info b{display:block;font-family:var(--head);font-size:16px}
 /* The footer was a near-black band (var(--ink) is #111111 for tenant zero),
    which the design rules forbid for any section. It is the brand primary now,
    with the contrast-adjusted on-primary text rather than a 60%-opacity cream
    that was only legible because the ground behind it was black. */
-footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26px;font-size:12px}
-@media(max-width:640px){.hero h1{font-size:30px}.sec h2{font-size:24px}.sticky .info .sub{display:none}}
+footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:26px 22px;padding-bottom:max(26px,env(safe-area-inset-bottom,26px));font-size:12px}
+@media(max-width:640px){.hero{padding:48px 18px 56px}.hero h1{font-size:28px}.sec{padding:40px 0}.sec h2{font-size:22px}.reveal{flex-direction:column;align-items:flex-start}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:12px}.sticky{padding:10px 16px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px))}.sticky .info .sub{display:none}.btn{padding:14px 24px;font-size:15px}}
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
@@ -2310,7 +2315,7 @@ function emailHtml(entry, copy, creativeUrl) {
     ? `<p style="font-size:13.5px;line-height:1.6;color:${INK};margin:24px 0 0;padding-top:16px;border-top:1px solid ${pal.line || '#e8e4dc'};"><strong>P.S.</strong> ${esc(E.ps)}</p>`
     : '';
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${E.subject}</title></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${E.subject}</title></head>
 <body style="margin:0;background:${SURF};color:${INK};font-family:${_ef.body}">
 <main style="max-width:680px;margin:auto;background:${SURF}">
   <section style="background:${P};color:${onP};padding:44px 36px;text-align:center">
@@ -2327,7 +2332,7 @@ function emailHtml(entry, copy, creativeUrl) {
     ${psHtml}
   </section>
   ${proofBlockHtml(entry)}
-  <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName} ${entry.cohort?.name || 'customer'} in ${entry.market}.</footer>
+  <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName ? `${bName} ` : ''}subscriber${entry.market ? ` in ${entry.market}` : ''}.</footer>
 </main>
 </body></html>`;
 }
