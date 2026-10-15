@@ -262,6 +262,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="actions">
       <button type="submit" class="btn btn-primary" id="save">Save brand kit</button>
       <button type="button" class="btn btn-ghost" id="reload">Reset to saved</button>
+      <button type="button" class="btn btn-ghost" id="reset-extracted">Reset to website extracted colours</button>
       <span class="status" id="status"></span>
     </div>
   </form>
@@ -560,6 +561,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   });
 
   $('reload').addEventListener('click', load);
+  $('reset-extracted').addEventListener('click', function () {
+    var b = onboarded();
+    var ext = (b && b.brand_data && b.brand_data.brand_extraction) || null;
+    var extPal = (ext && ext.fields && ext.fields.palette && ext.fields.palette.proposed) ||
+                 (ext && ext.palette && ext.palette.proposed) ||
+                 (b && b.palette) || null;
+    if (extPal && (extPal.primary || extPal.surface)) {
+      if (extPal.primary) { $('c-primary').value = extPal.primary.toUpperCase(); if ($('c-primary-pick')) $('c-primary-pick').value = extPal.primary; }
+      if (extPal.accent || extPal.primary) { $('c-accent').value = (extPal.accent || extPal.primary).toUpperCase(); if ($('c-accent-pick')) $('c-accent-pick').value = extPal.accent || extPal.primary; }
+      if (extPal.surface || extPal.bg) { $('c-bg').value = (extPal.surface || extPal.bg).toUpperCase(); if ($('c-bg-pick')) $('c-bg-pick').value = extPal.surface || extPal.bg; }
+      if (extPal.ink || extPal.text) { $('c-text').value = (extPal.ink || extPal.text).toUpperCase(); if ($('c-text-pick')) $('c-text-pick').value = extPal.ink || extPal.text; }
+      render();
+      edited = true;
+      $('status').className = 'status ok';
+      $('status').textContent = 'Reset to website extracted colours. Click "Save brand kit" to apply.';
+    } else {
+      $('status').className = 'status err';
+      $('status').textContent = 'No website extracted palette found on this brand\'s onboarding record.';
+    }
+  });
   var edited = false;
   $('form').addEventListener('input', function () { edited = true; });
   load();
