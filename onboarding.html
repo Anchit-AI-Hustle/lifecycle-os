@@ -1975,7 +1975,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var currentPalValid = (function () {
       try { return checkPalette().ok; } catch (_) { return false; }
     })();
-    if (p.proposed && p.proposed.primary && !((p.conflicts || []).length) && (!setupHasOwn('palette.primary') || !currentPalValid)) { applyExtract('palette-all', 0, { auto: true }); setupAdopted.push('colours'); }
+    if (p.proposed && p.proposed.primary && (!setupHasOwn('palette.primary') || !currentPalValid)) { applyExtract('palette-all', 0, { auto: true }); setupAdopted.push('colours'); }
     ['heading', 'body'].forEach(function (slot) {
       var c = ((f.typography && f.typography[slot]) || [])[0];
       if (c && /^(declared|strong)$/.test(c.confidence || '') && !setupHasOwn('typography.' + slot)) { applyExtract('font-' + slot, 0); setupAdopted.push(slot); }
@@ -2126,7 +2126,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!r || r.ok === false) throw new Error((r && (r.message || r.error)) || 'The site could not be read.');
       extraction = r;
       // The record of reads names the read that produced its values, not the first one ever made.
-      if (brand.brand_data && brand.brand_data.brand_extraction) { brand.brand_data.brand_extraction.source = r.start || url; brand.brand_data.brand_extraction.extracted_at = new Date().toISOString(); }
+      if (!brand.brand_data || typeof brand.brand_data !== 'object') brand.brand_data = {};
+      if (!brand.brand_data.brand_extraction) brand.brand_data.brand_extraction = { source: r.start || url, extracted_at: new Date().toISOString(), applied: {} };
+      brand.brand_data.brand_extraction.source = r.start || url;
+      brand.brand_data.brand_extraction.extracted_at = new Date().toISOString();
+      if (r.fields && r.fields.palette && r.fields.palette.proposed) {
+        brand.brand_data.brand_extraction.palette = r.fields.palette.proposed;
+      } else if (r.read && r.read.palette) {
+        brand.brand_data.brand_extraction.palette = r.read.palette;
+      }
       if (r.read && r.read.method === 'rendered' && r.rendered && r.rendered.apply) applyRendered(r);
       // Auto-apply all detected locations and markets where the brand covers (only if empty)
       if (r.fields && r.fields.regions && r.fields.regions.candidates && r.fields.regions.candidates.length) {
@@ -2679,7 +2687,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (rst) {
       var ext = extraction || (brand.brand_data && brand.brand_data.brand_extraction) || null;
       var p = (ext && ext.fields && ext.fields.palette && ext.fields.palette.proposed) ||
-              (ext && ext.palette && ext.palette.proposed) ||
+              (ext && ext.palette && (ext.palette.primary ? ext.palette : ext.palette.proposed)) ||
               (ext && ext.read && ext.read.palette) || null;
       if (p && p.primary) {
         ['primary', 'accent', 'ink', 'surface', 'surface_alt', 'muted'].forEach(function (k) {
