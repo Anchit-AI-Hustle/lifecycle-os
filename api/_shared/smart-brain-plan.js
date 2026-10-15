@@ -1371,9 +1371,12 @@ function brandSystem(brand) {
 function strategySystem(brand) {
   let b = brand && brand.id ? brand : null;
   if (!b) { try { b = require('./brand-runtime.js').scopedBrand(null); } catch (_) { b = {}; } }
-  return `You are ${b.name || 'the brand'}'s Head of Growth Strategy - a top lifecycle-marketing analyst${b.industry ? ` for ${b.industry}` : ''}.
-You turn cohort + offering + competitor data into a sharp, differentiated campaign strategy for THIS brand only.
-Be specific and quantitative where the data allows; never borrow another brand's facts.
+  return `Adopt the role of an expert marketing strategist tasked with developing a high-converting, actionable campaign strategy. Your primary objective is to increase brand awareness and drive sales for ${b.name || 'this brand'}${b.industry ? ` (${b.industry})` : ''} in a detailed, actionable plan format.
+Take a deep breath and work on this problem step-by-step.
+Force real tactics instead of generic advice:
+- Structure the strategy so each element builds on the one before it.
+- Ground decisions in concrete audience insight, market positioning, and product mechanics.
+- Be specific and quantitative where data allows; never write generic advice or placeholders.
 ${D2C_KNOWLEDGE}
 Return exactly what the OUTPUT REQUIREMENT at the end of the request states.`;
 }
@@ -1404,7 +1407,9 @@ function offeringBrief(entry) {
 function strategyPrompt(entry) { return OC.append(strategyTask(entry), strategyOutputSpec(entry)); }
 function strategyTask(entry) {
   const d = entry.decision || {};
-  return `Devise the strategy for ONE lifecycle send. Data:
+  return `Devise the comprehensive marketing strategy for ONE lifecycle send.
+Context:
+- Brand: ${(entry.brand && entry.brand.name) || 'This brand'}
 - Market: ${entry.market} | Cohort: ${entry.cohort?.name} (${entry.cohort?.size ?? 'size via ESP'} profiles) | Objective: ${entry.objective}
 ${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: ${(entry.supportingProducts).map((p) => p.title).join(', ')}` : ''}
 - Offer: ${d.offer ? (d.offer.code ? `${d.offer.code} (${Math.round((d.offer.pct || 0) * 100)}%)` : 'no discount') : 'n/a'}
@@ -1414,7 +1419,11 @@ ${offeringBrief(entry)}${(entry.supportingProducts || []).length ? `\n- Bundle: 
 
 ${creativeEvidence.briefFor(entry)}
 
-Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework". Make this send DIFFERENT from a generic promo and true to its cohort + theme.`;
+STRATEGY REQUIREMENTS:
+1. Analyze market positioning and audience truth: identify the precise behavioural trigger for this cohort now.
+2. Structure the strategy so each element builds on the preceding one: hook -> insight -> mechanism -> proof -> call to action.
+3. Provide actionable tactics for each marketing channel: content creation guidelines, posting schedule, and specific conversion levers.
+4. Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework". Make this send DIFFERENT from a generic promo and true to its cohort + theme.`;
 }
 
 async function strategyBrief(entry) {
@@ -1731,6 +1740,7 @@ CONVERSION-DRIVEN DIRECT RESPONSE RULES:
 - Benefits (benefits): Provide EXACTLY 3 sensory-rich, outcome-focused bullet points articulating the vivid "After-State" (what the buyer achieves or feels).
 - Action CTA (cta): Clear, high-contrast action verb driving to the destination PDP.
 - Skimmer P.S. (ps): A punchy 1-2 sentence post-script restating the core hook or risk reversal for readers who scroll to the bottom.
+- Channel Architecture: Ensure elements across email, landing page, and ads build on each other cohesively, delivering specific, actionable, bulleted tactics rather than generic advice or empty boilerplate.
 
 Every asset must ship with a CREATIVE as well as copy. For each asset write an "image_brief": a vivid 1-2 sentence art-direction prompt for a photoreal product/lifestyle scene of the hero product. Channel rules (ALL creatives are TEXT-FREE photographs — never describe overlaid words, headlines, prices, logos or UI in the image_brief; diffusion models cannot spell and render garbled fake letterforms, and the real ad copy is rendered natively by the platform, not painted into the pixels):
 - email / LP heroes: just scene, props, light, mood; aspirational hero.
