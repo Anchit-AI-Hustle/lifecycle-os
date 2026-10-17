@@ -238,3 +238,73 @@ test('the market on the slot is the market in the prompt', async () => {
     expect(c.assets.email.master_prompt_v2).toMatch(new RegExp(`MARKET: ${market}\\b`));
   }
 });
+
+/* ═══ the rotation covers the catalogue, not one product in its packs ════════ */
+// The operator, on a tea store's /brain (2026-10-17): "Why are all daily planned
+// assets using the same items from the catalog?" With no orders every product
+// scored 0, the sort kept the catalogue's title order, and the first 50 rows
+// were one tea in its packs and grades, each its own row, so every slot of
+// every day was that tea. Executed: the shipped analysis and planner over a
+// catalogue shaped like that store's.
+test('with no order history, a week of slots spreads across distinct products and categories, never one product\'s packs', () => {
+  const { AnalysisService } = require('../lib/smart-brain/services.js');
+  const packs = ['Ex 40/2026', 'DJ FF BT/50g', 'DJ FF BT/Pack of 4', '100g', 'Gift Box (2 x 50g)'];
+  const estates = ['Diamond', 'Ruby', 'Emerald', 'Sapphire', 'Topaz', 'Pearl', 'Opal', 'Garnet', 'Jade', 'Coral', 'Amber', 'Onyx'];
+  const catalog = [];
+  let n = 0;
+  for (const e of estates) for (const pk of packs) catalog.push({ sku: 'T' + (n++), title: `2026 Arya ${e} Darjeeling First Flush Black Tea ${pk}`, category: 'Black Tea' });
+  for (const [cat, names] of [['Green Tea', ['Jasmine Pearls', 'Sencha Spring', 'Gunpowder Classic', 'Matcha Ceremonial', 'Genmaicha Toasted']], ['Oolong', ['Milky Oolong', 'Iron Goddess', 'Oriental Beauty', 'Dong Ding']], ['Accessories', ['Glass Teapot', 'Bamboo Scoop', 'Tea Strainer', 'Travel Tumbler']]]) {
+    for (const name of names) catalog.push({ sku: 'X' + (n++), title: name, category: cat });
+  }
+  const analysis = new AnalysisService(smartConfig({})).analyze({ catalog, indexedCampaigns: [] }, { users: [], orders: [], mvtResults: [] });
+  const families = (p) => require('../lib/smart-brain/services.js').familyKey(p);
+  // Packs, sizes, grades and codes of one product are one family; a single
+  // digit that names a product line, or a letter+digit model, is not.
+  const fk = (title) => families({ title, category: 'c' });
+  expect(fk('2026 Arya Diamond Darjeeling First Flush Black Tea Ex 40/2026')).toBe(fk('2026 Arya Diamond Darjeeling First Flush Black Tea DJ FF BT/Pack of 4'));
+  expect(fk('Custom Nike Air Force 1')).not.toBe(fk('Custom Nike Air Force 2'));
+  expect(fk('Blend AB12 Tin')).not.toBe(fk('Blend AB13 Tin'));
+  // One entry per product family; packs of one tea count once.
+  const fams = analysis.productScores.map((s) => families(s.product));
+  expect(new Set(fams).size, 'the rotation holds one row per product, not its packs').toBe(fams.length);
+  expect(fams.length).toBe(estates.length + 13);
+
+  const svc = new CalendarIntelligenceService(smartConfig({ markets: ['IN'], cohortsPerDay: 3 }));
+  const entries = svc.generate({
+    analysis: Object.assign({}, analysis, { cohorts: [{ name: 'Nurture', count: 0 }, { name: 'Engaged', count: 0 }, { name: 'At Risk', count: 0 }] }),
+    startDate: '2026-10-20', days: 7, brand: { name: 'Arya Teas' },
+  }).entries.filter((e) => e.heroProduct && e.heroProduct.sku);
+  expect(entries.length).toBeGreaterThanOrEqual(21);
+  const byDay = {};
+  for (const e of entries) (byDay[e.date] = byDay[e.date] || []).push(families(e.heroProduct));
+  for (const [day, list] of Object.entries(byDay)) expect(new Set(list).size, `${day}: two slots share one product`).toBe(list.length);
+  const heroFams = new Set(entries.map((e) => families(e.heroProduct)));
+  expect(heroFams.size, 'a week covers many distinct products').toBeGreaterThanOrEqual(15);
+  const cats = new Set(entries.map((e) => e.heroProduct.category));
+  expect(cats.size, 'a week reaches beyond one category').toBeGreaterThanOrEqual(3);
+
+  // With real orders, the best seller still leads the rotation.
+  const withOrders = new AnalysisService(smartConfig({})).analyze({ catalog, indexedCampaigns: [] }, { users: [], orders: Array.from({ length: 9 }, () => ({ product_sku: 'X62', total: 500 })), mvtResults: [] });
+  expect(withOrders.productScores[0].product.sku).toBe('X62');
+});
+
+test('a large catalogue with no orders: the rotation reaches the whole catalogue, not its alphabetical head', () => {
+  const { AnalysisService, familyKey } = require('../lib/smart-brain/services.js');
+  const catalog = [];
+  let n = 0;
+  // 150 black teas whose titles sort first, then three other categories.
+  for (let i = 0; i < 150; i++) catalog.push({ sku: 'B' + (n++), title: `2026 Estate${String(i).padStart(3, '0')} Black Tea 100g`, category: 'Black Tea' });
+  for (const cat of ['Green Tea', 'Oolong', 'Accessories']) for (let i = 0; i < 30; i++) catalog.push({ sku: 'O' + (n++), title: `${cat} Item${String(i).padStart(2, '0')}`, category: cat });
+  const analysis = new AnalysisService(smartConfig({})).analyze({ catalog, indexedCampaigns: [] }, { users: [], orders: [], mvtResults: [] });
+  const cats = new Set(analysis.productScores.map((s) => s.product.category));
+  expect(cats.size, 'the 50 the rotation holds come from every part of the catalogue').toBe(4);
+  // Interleaved: the first four slots of the rotation are four categories.
+  expect(new Set(analysis.productScores.slice(0, 4).map((s) => s.product.category)).size).toBe(4);
+  const svc = new CalendarIntelligenceService(smartConfig({ markets: ['IN'], cohortsPerDay: 3 }));
+  const entries = svc.generate({
+    analysis: Object.assign({}, analysis, { cohorts: [{ name: 'Nurture', count: 0 }, { name: 'Engaged', count: 0 }, { name: 'At Risk', count: 0 }] }),
+    startDate: '2026-10-20', days: 7, brand: { name: 'Arya Teas' },
+  }).entries.filter((e) => e.heroProduct && e.heroProduct.sku);
+  expect(new Set(entries.map((e) => e.heroProduct.category)).size, 'a week shows every category').toBe(4);
+  expect(new Set(entries.map((e) => familyKey(e.heroProduct))).size).toBe(entries.length);
+});
