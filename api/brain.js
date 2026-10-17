@@ -1124,6 +1124,15 @@ module.exports = async function handler(req, res) {
           duration_s: b.duration_s || b.duration || 8,
           aspect: b.aspect || '16:9',
           tier: b.tier || 'premium',
+          // With no video key the answer is the code-rendered motion creative
+          // (video-core.codeMotion): this request's brand, and only the photos
+          // and on-screen lines the caller sent (2026-10-17).
+          brand: __activeBrand(),
+          motion: {
+            images: Array.isArray(b.images) ? b.images : (b.image ? [b.image] : []),
+            lines: Array.isArray(b.lines) ? b.lines : (b.headline ? [b.headline] : []),
+            product: b.product || '', cta: b.cta || '', ctaHeadline: b.cta_headline || '',
+          },
         });
         return res.json(out);
       }
@@ -1161,6 +1170,7 @@ module.exports = async function handler(req, res) {
         const out = await assetAgent.fillMailerAssets(html, {
           tier: b.tier || 'premium', market: b.market || __homeMarket(), persist: b.persist !== false,
           video: b.video !== false, gif: b.gif !== false,
+          brand: __activeBrand(), photos: Array.isArray(b.photos) ? b.photos : null,
         });
         return res.json({ ...out, entry_id: entryId });
       }

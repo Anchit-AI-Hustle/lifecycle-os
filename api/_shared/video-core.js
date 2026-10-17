@@ -18,12 +18,13 @@
  *   getVideoStatus({ provider, job_id })
  *     → { ok, provider, job_id, status, video_url? }        (poll until 'completed')
  *
- * Graceful degradation (Klaviyo pattern — see api/_shared/klaviyo-core.js):
+ * Graceful degradation:
  *   • a rung whose key is missing is SKIPPED;
- *   • when NO video key exists at all, returns
- *       { ok:false, connected:false, not_connected:true,
- *         would_request:{ provider, method, url, body }, hint }
- *     for the best rung, so chat/tool-calling work end-to-end key-free.
+ *   • when NO video key exists at all, or every configured rung fails, returns
+ *     the code-rendered rung (2026-10-17): { ok:true, provider:'code-motion',
+ *     status:'rendered', motion_html, motion_brief, mp4:null, note } - an
+ *     animated 9:16 HTML creative from scripts/lib/motion-ad.js, with the
+ *     provider request it would have sent as `would_request` when keyless.
  *
  * Any synchronous wait is time-boxed to SYNC_WAIT_MS (20s) — after that the
  * caller gets { status:'processing' } and polls via getVideoStatus.
@@ -389,7 +390,81 @@ function audioBedFor(duration_s, { voiceover = false, brand = null } = {}) {
   };
 }
 
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0 } = {}) {
+/**
+ * THE KEYLESS RUNG (2026-10-17): a code-rendered motion creative.
+ *
+ * With no video key (or with every configured provider failing) this used to
+ * answer `not_connected` and every surface showed a stub. The animated 9:16
+ * creative `scripts/lib/motion-ad.js` renders needs no model and no key: the
+ * brand's own palette and type, the photos the CALLER hands over (never one
+ * invented here), and on-screen lines the caller wrote as customer copy. The
+ * prompt is a production direction for a video model and is never put on
+ * screen. With no line, the card is the brand's own name; with no photo, the
+ * scene is the brand-coloured card motion-ad already draws. It is an animated
+ * HTML document, not an MP4, and the answer says so (`mp4: null`).
+ *
+ * motion = { images?: [https url], lines?: [string], product?, cta?, ctaHeadline? }
+ */
+function _https(u) { return typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u.trim()) ? u.trim() : ''; }
+function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:16', reason = '', attempts = null, wouldRequest = null } = {}) {
+  const rt = require('./brand-runtime.js');
+  // The brand this request is for, else the request's own, else the
+  // unresolved placeholder: never tenant zero by default.
+  let b = null;
+  try { b = rt.scopedBrand(brand); } catch (_) { b = brand || null; }
+  b = b || rt.unresolvedBrand('no brand resolved for this video');
+  const name = String(b.name || '').trim() || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
+  const m = motion && typeof motion === 'object' ? motion : {};
+  const clean = (t) => String(t == null ? '' : t).replace(/\s+/g, ' ').trim().slice(0, 90);
+  const isGap = (t) => /^\[DATA REQUIRED/.test(t);
+  const images = (Array.isArray(m.images) ? m.images : []).map(_https).filter(Boolean).slice(0, 6);
+  const lines = [];
+  const push = (l) => { const v = clean(l); if (v && !isGap(v) && !lines.some((x) => x.toLowerCase() === v.toLowerCase())) lines.push(v); };
+  (Array.isArray(m.lines) ? m.lines : []).forEach(push);
+  const product = isGap(clean(m.product)) ? '' : clean(m.product);
+  if (product) push(product);
+  const beats = lines.slice(0, 3);
+  const scenes = (beats.length ? beats : [name]).map((headline, i) => ({
+    image: images.length ? images[i % images.length] : '',
+    headline,
+    seconds: 2.6,
+  }));
+  const audio = audioBedFor(Number(duration_s) || 8, { brand: b });
+  let cta = clean(m.cta);
+  if (!cta) { try { cta = require('./asset-playbooks.js').defaultCta(b, { hasProduct: !!product }); } catch (_) { cta = 'Learn more'; } }
+  const spec = {
+    brand: b,
+    product,
+    scenes,
+    cta,
+    // The end card names the brand: a creative over photos otherwise never does.
+    ctaHeadline: clean(m.ctaHeadline) || name,
+    audio: (audio && audio.bed) ? audio.bed : false,
+    loop: true,
+  };
+  const motionAd = require('../../scripts/lib/motion-ad.js');
+  const out = {
+    ok: true, connected: false, provider: 'code-motion', status: 'rendered',
+    format: 'text/html', aspect: '9:16',
+    motion_html: motionAd.renderMotionAd(spec),
+    motion_brief: motionAd.motionBrief(spec),
+    video_url: null, mp4: null,
+    images_used: Array.from(new Set(scenes.map((s) => s.image).filter(Boolean))),
+    audio,
+    note: 'Animated HTML creative rendered in code in ' + name + '\'s own palette' +
+      (images.length ? ', over the photos supplied' : '; no photo was supplied, so each scene is the brand-coloured card') +
+      '. It is not an MP4: ' + (reason || 'no video provider key is configured') + '.' +
+      (String(aspect || '9:16') !== '9:16' ? ' Rendered at 9:16 (asked for ' + String(aspect) + ').' : ''),
+  };
+  if (attempts) out.attempts = attempts;
+  if (wouldRequest) {
+    out.would_request = wouldRequest;
+    out.hint = 'Set GEMINI_API_KEY (Veo 3.1), OPENAI_API_KEY (Sora 2), HIGGSFIELD_API_KEY, OPENMONTAGE_API_KEY or RUNWAY_API_KEY for an MP4. would_request is what will be sent.';
+  }
+  return out;
+}
+
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null } = {}) {
   const p = String(prompt || '').trim();
   if (!p) return { ok: false, error: 'prompt required' };
   // One budget for the whole cascade (default 90s, inside a 120s function).
@@ -402,7 +477,13 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
     // Best rung's exact request shape — honour the caller's first preference.
     const first = (preferProviders && preferProviders[0]) || 'veo';
     const shape = { higgsfield: higgsfieldRequest, openmontage: openMontageRequest, sora: soraRequest, runway: runwayRequest, veo: veoRequest }[first] || veoRequest;
-    return Object.assign(_notConnected(shape(opts)), { audio });
+    // The keyless rung: a real, code-rendered creative instead of a stub. The
+    // request a provider WOULD receive stays on the answer for the operator.
+    try {
+      return codeMotion({ brand, motion, duration_s, aspect, wouldRequest: shape(opts) });
+    } catch (e) {
+      return Object.assign(_notConnected(shape(opts)), { audio, motion_error: String((e && e.message) || e).slice(0, 160) });
+    }
   }
 
   let rungs = [
@@ -443,7 +524,14 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
     }
   }
   const why = attempts.map((a) => a.provider + ': ' + (a.skipped || a.error)).join('; ');
-  return { ok: false, error: 'All video providers failed: ' + why, attempts, tier };
+  // Every configured provider failed: the code-rendered creative still ships,
+  // and the failure is said beside it, never hidden.
+  try {
+    return Object.assign(codeMotion({ brand, motion, duration_s, aspect, attempts, reason: 'every configured video provider failed (' + why + ')' }),
+      { tier, provider_error: 'All video providers failed: ' + why });
+  } catch (_) {
+    return { ok: false, error: 'All video providers failed: ' + why, attempts, tier };
+  }
 }
 
 /**
@@ -460,6 +548,8 @@ async function getVideoStatus({ provider, job_id } = {}) {
     case 'higgsfield': return statusHiggsfield(id);
     case 'openmontage': return statusOpenMontage(id);
     case 'runway': return statusRunway(id);
+    case 'code-motion':
+      return { ok: true, provider: 'code-motion', job_id: id, status: 'rendered', video_url: null, mp4: null, note: 'A code-rendered motion creative is returned whole by generateVideo; there is no job to poll.' };
     default:
       return { ok: false, error: "Unknown video provider '" + provider + "'", available: ['veo', 'sora', 'higgsfield', 'openmontage', 'runway'] };
   }
@@ -467,4 +557,4 @@ async function getVideoStatus({ provider, job_id } = {}) {
 
 function isConnected() { return anyKey(); }
 
-module.exports = { generateVideo, getVideoStatus, isConnected, AUDIO_BEDS, audioBedFor };
+module.exports = { generateVideo, getVideoStatus, isConnected, codeMotion, AUDIO_BEDS, audioBedFor };

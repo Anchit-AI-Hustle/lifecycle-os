@@ -633,8 +633,32 @@ add('webengage-report', { gate: 'none', browser: 'demo', run: { method: 'GET', q
 });
 add('video-generate', { gate: 'model', model: 'video.generate', browser: 'refuse', run: { json: { prompt: 'a shoe', duration: 5 } },
   stubs: () => S.on(M.video, 'generateVideo', async () => ({ ok: true, provider: 'stub', job_id: 'v1' })),
-  expect: (r) => { expect(r.out).toEqual({ ok: true, provider: 'stub', job_id: 'v1' }); expect(last(M.video, 'generateVideo')[0]).toEqual({ prompt: 'a shoe', duration_s: 5, aspect: '16:9', tier: 'premium' }); },
-  cases: [{ name: 'no prompt is a 400 before any provider', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.video)).toEqual([]); } }],
+  expect: (r) => {
+    expect(r.out).toEqual({ ok: true, provider: 'stub', job_id: 'v1' });
+    const a = last(M.video, 'generateVideo')[0];
+    expect(a).toMatchObject({ prompt: 'a shoe', duration_s: 5, aspect: '16:9', tier: 'premium' });
+    // The keyless rung renders as THIS request's brand, from only what it sent.
+    expect(a.brand.name).toBe('Harness Brand');
+    expect(a.motion).toEqual({ images: [], lines: [], product: '', cta: '', ctaHeadline: '' });
+  },
+  cases: [
+    { name: 'no prompt is a 400 before any provider', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.video)).toEqual([]); } },
+    // No stub: the shipped video-core with no key answers the code-rendered
+    // motion creative (2026-10-17), in the active brand, with no network call.
+    { name: 'with no video key the answer is the code-rendered creative of the active brand', stubs: () => {},
+      env: { HIGGSFIELD_API_KEY: undefined, HIGGSFIELD_API_SECRET: undefined, OPENMONTAGE_API_KEY: undefined, RUNWAY_API_KEY: undefined },
+      run: { json: { prompt: 'a shoe', images: ['https://harness.example/p/one.jpg'], lines: ['A line written for the card.'] } },
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        expect(r.out.provider).toBe('code-motion');
+        expect(r.out.mp4).toBeNull();
+        expect(r.out.motion_html).toContain('Harness Brand');
+        expect(r.out.motion_html).toContain('#1d4ed8');
+        expect(r.out.motion_html).toContain('https://harness.example/p/one.jpg');
+        expect(r.out.motion_html).toContain('A line written for the card.');
+        expect(r.out.motion_html).not.toMatch(/KNICKGASM|#D0473E/i);
+      } },
+  ],
 });
 add('video-status', { gate: 'none', browser: 'refuse', run: { method: 'GET', query: { provider: 'veo', job_id: 'v1' } },
   stubs: () => S.on(M.video, 'getVideoStatus', async () => ({ ok: true, status: 'pending' })),
@@ -648,7 +672,10 @@ add('mailer-assets', { gate: 'model', model: 'image.generate', browser: 'demo', 
   },
   expect: (r) => {
     expect(r.out).toEqual({ ok: true, filled: 2, entry_id: null });
-    expect(last(M.assetAgent, 'fillMailerAssets')).toEqual(['<p>v</p>', { tier: 'premium', market: 'UK', persist: true, video: true, gif: true }]);
+    const [h, o] = last(M.assetAgent, 'fillMailerAssets');
+    expect(h).toBe('<p>v</p>');
+    expect(o).toMatchObject({ tier: 'premium', market: 'UK', persist: true, video: true, gif: true, photos: null });
+    expect(o.brand.name, 'the keyless video rung renders as the request\'s brand').toBe('Harness Brand');
   },
   cases: [
     { name: 'neither html nor an entry_id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.assetAgent)).toEqual([]); } },
