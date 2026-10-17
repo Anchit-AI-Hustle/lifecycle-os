@@ -511,7 +511,7 @@ module.exports = async function handler(req, res) {
 // subject-metadata header (mailer-format.js) so every mailer path is uniform.
 const MF = require('./mailer-format.js');
 function renderTextVariant(opts) {
-  const html = _renderVariantBody(opts || {});
+  const html = MF.fluid(_renderVariantBody(opts || {}));
   return MF.withSubjectMeta(html, {
     subject: opts && opts.subject,
     alts: (opts && opts.subject_alts) || [],
