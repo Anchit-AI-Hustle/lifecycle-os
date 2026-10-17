@@ -146,8 +146,62 @@ function fluid(html) {
   return opened.slice(0, at) + '<!--[if mso]></td></tr></table><![endif]-->' + opened.slice(at);
 }
 
+/**
+ * The brand's homepage, as a link a mailer header can carry: its website, else
+ * the store a caller passes. https only; '' when the record names neither.
+ */
+function homepageOf(brand, fallback) {
+  const raw = String((brand && brand.website) || '').trim() || String(fallback || '').trim();
+  if (!raw || /^\[DATA REQUIRED/.test(raw)) return '';
+  const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^\/+/, '')}`;
+  return /^https:\/\/[^\s"'<>]+$/i.test(url) ? url.replace(/\/+$/, '/') : '';
+}
+
+/**
+ * The logo a mail client can SHOW. Gmail and Outlook do not render SVG in an
+ * <img>, and most brand logos read off a website are SVG: an SVG logo goes
+ * through a free, keyless image service that serves it as PNG (the same
+ * free-generation switch as every other keyless rung). A data: URI is never a
+ * mailer image (Gmail clips the message). '' when there is nothing to show.
+ */
+function emailLogoSrc(brand) {
+  const s = String((brand && brand.logo_url) || '').trim();
+  if (!/^https:\/\/[^\s"'<>]+$/i.test(s)) return '';
+  if (!/\.svg(?:$|[?#])/i.test(s)) return s.slice(0, 500);
+  const off = /^(0|false|off|no)$/i.test(String(process.env.FREE_GENERATION || '').trim());
+  return off ? '' : `https://images.weserv.nl/?url=${encodeURIComponent(s)}&output=png&w=320`;
+}
+
+/**
+ * The header every mailer opens with: the brand's logo (alt = its name, so a
+ * reader with images off still sees who wrote), linked to the brand's
+ * homepage. A brand with no showable logo gets its name as a wordmark, still
+ * linked. `data-mail-logo` marks the row for the contract check.
+ */
+function logoMark({ brand, store = '', color = '', font = 'Arial,sans-serif', align = 'center', height = 56 } = {}) {
+  const b = brand || {};
+  const name = String(b.name || '').trim() || 'Brand';
+  const href = homepageOf(b, store);
+  const src = emailLogoSrc(b);
+  const mark = src
+    ? `<img src="${esc(src)}" alt="${esc(name)}" width="140" style="display:${align === 'center' ? 'block;margin:0 auto' : 'block'};width:140px;max-width:140px;height:auto;max-height:${height}px;border:0;font-family:${font};font-size:18px;font-weight:700;color:${color};" />`
+    : `<span style="font-family:${font};font-size:22px;letter-spacing:0.2em;font-weight:700;color:${color};">${esc(name.toUpperCase())}</span>`;
+  const html = href ? `<a href="${esc(href)}" target="_blank" data-mail-logo-link style="text-decoration:none;display:inline-block;">${mark}</a>` : mark;
+  return { html, kind: src ? 'image' : 'wordmark', href };
+}
+
+function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', align = 'center', pad = '20px 24px 12px', tagline = '', taglineColor = '' } = {}) {
+  const m = logoMark({ brand, store, color, font, align });
+  const tag = tagline ? `<div style="font-family:${font};font-size:12px;line-height:1.45;color:${taglineColor || color};margin-top:6px;">${esc(tagline)}</div>` : '';
+  return `<tr><td align="${align}" data-mail-logo="${m.kind}" style="padding:${pad};">${m.html}${tag}</td></tr>`;
+}
+
 module.exports = {
   fluid,
+  homepageOf,
+  emailLogoSrc,
+  logoHeader,
+  logoMark,
   PLACEHOLDER,
   ASSET_PROMPT_RE,
   subjectMetaBlock,

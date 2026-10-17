@@ -1657,11 +1657,12 @@ function copyOutputSpec(entry) {
       email: { type: 'object', of: {
         subject: { type: 'string', max: L('email.mailer', 'subject') }, subject_alt1: { type: 'string', max: L('email.mailer', 'subject') }, subject_alt2: { type: 'string', max: L('email.mailer', 'subject') },
         preheader: { type: 'string', max: L('email.mailer', 'preheader'), note: 'extends the subject, never repeats it' },
-        hook: { type: 'string', note: 'the first-scroll pattern-interrupt line' }, hero_headline: 'string', intro_paragraph: 'string', body_paragraph: 'string',
-        benefits: { type: 'array', count: 3, items: 'string' },
+        hook: { type: 'string', note: 'the first-scroll pattern-interrupt line' }, hero_headline: { type: 'string', note: `at most ${ac.MAIL_WORDS.headline} words` },
+        intro_paragraph: { type: 'string', note: `at most ${ac.MAIL_WORDS.paragraph} words` }, body_paragraph: { type: 'string', note: `at most ${ac.MAIL_WORDS.paragraph} words` },
+        benefits: { type: 'array', count: 3, items: { type: 'string', note: `at most ${ac.MAIL_WORDS.benefit} words` } },
         rating: Object.assign({ type: 'any' }, proof('null')), reviews: Object.assign({ type: 'array', items: 'any' }, proof('[]')),
         badges: Object.assign({ type: 'array', items: 'any' }, proof('[]')), guarantee: Object.assign({ type: 'string' }, proof('an empty string')),
-        ps: { type: 'string', note: 'the skimmer P.S. restating the core hook, deadline, or risk reversal' },
+        ps: { type: 'string', note: `the skimmer P.S. restating the core hook, deadline, or risk reversal; at most ${ac.MAIL_WORDS.ps} words` },
         faq, cta: 'string', image_brief: img } },
       landing: { type: 'object', of: {
         hero_headline: 'string', hero_sub: 'string', why_title: 'string', why_bullets: { type: 'array', count: 3, items: 'string' },
@@ -1764,6 +1765,7 @@ CONVERSION-DRIVEN DIRECT RESPONSE RULES:
 - Benefits (benefits): Provide EXACTLY 3 sensory-rich, outcome-focused bullet points articulating the vivid "After-State" (what the buyer achieves or feels).
 - Action CTA (cta): Clear, high-contrast action verb driving to the destination PDP.
 - Skimmer P.S. (ps): A punchy 1-2 sentence post-script restating the core hook or risk reversal for readers who scroll to the bottom.
+- LENGTH (hard editorial limit, the mail is read on a phone in seconds): hero_headline at most ${require('./asset-contracts.js').MAIL_WORDS.headline} words; each paragraph at most ${require('./asset-contracts.js').MAIL_WORDS.paragraph} words; each benefit at most ${require('./asset-contracts.js').MAIL_WORDS.benefit} words; the P.S. at most ${require('./asset-contracts.js').MAIL_WORDS.ps} words. The whole mail body, headline to button, stays under ${require('./asset-contracts.js').MAIL_WORDS.visual} words for the picture-led mailer and ${require('./asset-contracts.js').MAIL_WORDS.text} for the text mailer. Say one idea, then the button.
 - Channel Architecture: Ensure elements across email, landing page, and ads build on each other cohesively, delivering specific, actionable, bulleted tactics rather than generic advice or empty boilerplate.
 
 Every asset must ship with a CREATIVE as well as copy. For each asset write an "image_brief": a vivid 1-2 sentence art-direction prompt for a photoreal product/lifestyle scene of the hero product. Channel rules (ALL creatives are TEXT-FREE photographs — never describe overlaid words, headlines, prices, logos or UI in the image_brief; diffusion models cannot spell and render garbled fake letterforms, and the real ad copy is rendered natively by the platform, not painted into the pixels):
@@ -2325,15 +2327,32 @@ function renderVariant(entry, copy, style, img) {
         ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || undefined, note: row.subtitle || row.tasting_notes || '' }; }),
       ]
     : undefined;
-  const bodyBlocks = [
-    E.intro_paragraph ? { heading: '', body: E.intro_paragraph } : null,
-    E.body_paragraph ? { heading: '', body: E.body_paragraph } : null,
+  // NOT TOO MUCH TEXT (2026-10-17). Blocks are taken in order of what they
+  // do for the reader - the opening line, the three benefits, the second
+  // paragraph, the P.S., the guarantee - while the mail stays inside its word
+  // budget (asset-contracts.MAIL_WORDS: the visual mailer says less, its
+  // picture carries part of the message). A block that would break the budget
+  // is left out WHOLE; no sentence is ever cut.
+  const MW = require('./asset-contracts.js').MAIL_WORDS;
+  const wc = (t) => String(t || '').split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+  const budget = style === 'visual' ? MW.visual : MW.text;
+  let used = wc(E.hero_headline || E.subject) + wc(E.subheadline || E.preheader) + wc(E.cta);
+  const candidates = [
+    E.intro_paragraph ? { heading: '', body: E.intro_paragraph, at: 0 } : null,
     (Array.isArray(E.benefits) && E.benefits.length)
-      ? { heading: 'What you get', body: E.benefits.map((b) => `✦ ${b}`).join('\n\n') }
+      ? { heading: 'What you get', body: E.benefits.slice(0, MW.benefits).map((b) => `✦ ${b}`).join('\n\n'), at: 2 }
       : null,
-    E.guarantee ? { heading: 'Our Guarantee', body: E.guarantee } : null,
-    E.ps ? { heading: '', body: /^\s*p\.?\s*s\b/i.test(E.ps) ? E.ps : `P.S. ${E.ps}` } : null,
+    E.body_paragraph ? { heading: '', body: E.body_paragraph, at: 1 } : null,
+    E.ps ? { heading: '', body: /^\s*p\.?\s*s\b/i.test(E.ps) ? E.ps : `P.S. ${E.ps}`, at: 4 } : null,
+    E.guarantee ? { heading: 'Our Guarantee', body: E.guarantee, at: 3 } : null,
   ].filter(Boolean);
+  const keep = new Set();
+  for (const blk of candidates) {
+    const n = wc(blk.heading) + wc(blk.body);
+    if (used + n <= budget || keep.size === 0) { keep.add(blk); used += n; }
+  }
+  // Printed in reading order, whichever survived.
+  const bodyBlocks = candidates.filter((blk) => keep.has(blk)).sort((x, y) => x.at - y.at).map(({ heading, body }) => ({ heading, body }));
 
   // The shared renderer carries no proof slot, so the brand's REAL testimonials
   // (and, when there are none, the marker) are composed onto its output.
@@ -2419,8 +2438,8 @@ function emailHtml(entry, copy, creativeUrl) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${E.subject}</title></head>
 <body style="margin:0;background:${SURF};color:${INK};font-family:${_ef.body}">
 <main style="max-width:680px;margin:auto;background:${SURF}">
+  <header data-mail-logo style="background:${SURF};text-align:center;padding:20px 24px">${require('./mailer-format.js').logoMark({ brand: b, store: brandStore(b, entry.market), color: INK, font: _ef.head }).html}</header>
   <section style="background:${P};color:${onP};padding:44px 36px;text-align:center">
-    <p style="letter-spacing:.18em;text-transform:uppercase;font-size:11px;margin:0 0 14px">${bName}</p>
     <h1 style="font-family:${_ef.head};font-size:32px;line-height:1.15;margin:0">${E.hero_headline}</h1>
   </section>
   ${heroImg}
@@ -2433,7 +2452,7 @@ function emailHtml(entry, copy, creativeUrl) {
     ${psHtml}
   </section>
   ${proofBlockHtml(entry)}
-  <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this because you subscribed${bName ? ` to ${bName}` : ''}.</footer>
+  <footer data-mail-footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this because you subscribed${bName ? ` to ${bName}` : ''}. Manage preferences or unsubscribe from your account settings.</footer>
 </main>
 </body></html>`;
 }
@@ -2850,6 +2869,15 @@ function checkAssetContracts(campaign, entry) {
   };
 
   judge(campaign.assets && campaign.assets.email, 'email');
+  // Each mailer variant is judged as its own type (2026-10-17): a Text mail
+  // must carry no picture but the logo, a Text + Visual one must carry one.
+  const _em = campaign.assets && campaign.assets.email;
+  (Array.isArray(_em && _em.variants) ? _em.variants : []).forEach((vr) => {
+    const as = { contract: 'email.mailer', subject: vr.subject_line, preheader: vr.preview_text, html: vr.html, mailer_type: /visual/i.test(String(vr.type || vr.key)) ? 'text_visual' : 'text' };
+    judge(as, `email:${vr.key || vr.type}`);
+    vr.contract_check = as.contract_check;
+    vr.compliance_check = as.compliance_check;
+  });
   ((campaign.assets && campaign.assets.ads) || []).forEach((ad, i) =>
     judge(ad, `ad:${ad.platform}:${ad.creative_type || 'static'}:${ad.variant || 'A'}#${i}`));
   ((campaign.assets && campaign.assets.landing_pages) || []).forEach((lp, i) =>
@@ -2946,6 +2974,11 @@ function realImagePool(entry, width = 1600) {
   const market = entry.market;
   const urls = [];
   const push = (arr) => { for (const u of arr || []) if (u && !urls.includes(u)) urls.push(u); };
+  // The slot's own product photo, as the planner read it off this brand's
+  // catalogue row (2026-10-17: a named hero with its image on the entry gave
+  // the Text + Visual mailers no picture when the catalogue lookup missed).
+  const hp = entry.heroProduct;
+  if (hp && !hp.placeholder && /^https:\/\//i.test(String(hp.image || '')) && !/^\[DATA REQUIRED/.test(String(hp.title || ''))) push([String(hp.image)]);
   try { push(catalogImage.imagesFor(entry.heroProduct || entry, market, { width, brand: entry.brand })); } catch (_) {}
   const supporting = Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [];
   for (const p of supporting) { try { push(catalogImage.imagesFor(p, market, { width, brand: entry.brand })); } catch (_) {} }
@@ -3322,6 +3355,22 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     console.warn('[smart-brain] LLM copy failed, using template assets:', e.message);
     trace.push({ agent: 'fallback', role: 'template assets', ok: false, output: { reason: String(e && e.message || e).slice(0, 160) } });
   }
+  // BOTH MAILER TYPES ON EVERY PATH (2026-10-17). The operator: "Need both
+  // types of mailers - 1. Text only 2. Text and visuals". Only the model path
+  // built the four variants; a send built with no model (or with a model that
+  // failed) shipped one mailer of neither type. The template's own facts go
+  // through the same shared renderer: two Text, two Text + Visual, the visual
+  // pair led by the slot's real picture (catalogue photo, the brand's own
+  // imagery or the generated brand scene).
+  try {
+    const em = campaign.assets && campaign.assets.email;
+    if (em && !Array.isArray(em.variants) && renderTextVariant) {
+      const tc = require('../../lib/smart-brain/services.js').templateEmailCopy(entry, em);
+      const pool = slotImagePool(entry, 1200);
+      const heroImg = (scene && scene.url) || pool[0] || null;
+      em.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, heroImg);
+    }
+  } catch (e) { console.warn('[smart-brain] template mail variants failed:', e && e.message); }
   // A VIDEO AD CARRIES ITS ARTEFACT ON EVERY PATH.
   //
   // attachMotionCreative only ran inside applyCopy, which is the LLM branch —

@@ -448,7 +448,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         + '<div class="note" style="margin-bottom:8px">' + esc(w.why || "") + '</div>'
         + evs
         + '<div class="li"><b>Verification</b>' + esc(w.verification || "") + '</div>'
-        + (rc ? '<div class="li"><b>Receiver</b>' + (verified ? "Verifies deliveries in code." : "Refuses deliveries (501) until the scheme is implemented.") + '</div>' : "")
+        + (rc ? '<div class="li"><b>Receiver</b>' + (verified ? "Verifies deliveries in code." : "Deliveries are verified once the signature scheme is implemented; until then they are held (501).") + '</div>' : "")
         + '</div>';
     }).join("");
   }

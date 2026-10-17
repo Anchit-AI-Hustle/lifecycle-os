@@ -511,13 +511,13 @@ test('every mail fits a 375px phone, keeps its 600px column on a desktop, and Ou
 // price "₹1450", its card repeated the hero, and B never named the product; the
 // ads said "<product> from <brand>" and used "Shop now" as a Google headline.
 const TEA = {
-  id: 'device:arya', slug: 'arya-teas', name: 'Arya Tea Estate', website: 'https://aryateas.example', industry: 'Darjeeling tea estate and store',
-  tagline: 'Single-estate Darjeeling, picked and packed at the garden',
+  id: 'device:arya', slug: 'arya-teas', name: 'Arya Tea Estate', website: 'https://aryateas.example', industry: 'Kalimpong tea estate and store',
+  tagline: 'Single-estate Kalimpong, picked and packed at the garden',
   palette: { primary: '#0E4D35', accent: '#C99A2E', ink: '#1E2A24', surface: '#FBF8F1' },
   regions: [{ code: 'IN', currency: 'INR', store_url: 'https://aryateas.example', home: true }],
-  claims: ['Grown at 1,800 metres in Darjeeling', 'Packed at the garden within 48 hours of plucking'],
+  claims: ['Grown at 1,800 metres in Kalimpong', 'Packed at the garden within 48 hours of plucking'],
   imagery: [{ url: 'https://aryateas.example/cdn/garden.jpg', page: 'https://aryateas.example/', role: 'hero' }],
-  legal_entity: 'Arya Tea Estate Pvt Ltd, Darjeeling 734101, India',
+  legal_entity: 'Arya Tea Estate Pvt Ltd, Kalimpong 734101, India',
 };
 const teaSlot = () => slot(TEA, {
   heroProduct: { sku: 'A1', title: 'Arya Diamond First Flush', handle: 'arya-diamond', category: 'Black Tea', image: 'https://aryateas.example/cdn/diamond.jpg', price: 1450 },

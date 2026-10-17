@@ -252,8 +252,8 @@ test('with no order history, a week of slots spreads across distinct products an
   const estates = ['Diamond', 'Ruby', 'Emerald', 'Sapphire', 'Topaz', 'Pearl', 'Opal', 'Garnet', 'Jade', 'Coral', 'Amber', 'Onyx'];
   const catalog = [];
   let n = 0;
-  for (const e of estates) for (const pk of packs) catalog.push({ sku: 'T' + (n++), title: `2026 Arya ${e} Darjeeling First Flush Black Tea ${pk}`, category: 'Black Tea' });
-  for (const [cat, names] of [['Green Tea', ['Jasmine Pearls', 'Sencha Spring', 'Gunpowder Classic', 'Matcha Ceremonial', 'Genmaicha Toasted']], ['Oolong', ['Milky Oolong', 'Iron Goddess', 'Oriental Beauty', 'Dong Ding']], ['Accessories', ['Glass Teapot', 'Bamboo Scoop', 'Tea Strainer', 'Travel Tumbler']]]) {
+  for (const e of estates) for (const pk of packs) catalog.push({ sku: 'T' + (n++), title: `2026 Arya ${e} Kalimpong First Flush Black Tea ${pk}`, category: 'Black Tea' });
+  for (const [cat, names] of [['Green Tea', ['Jasmine Pearls', 'Sencha Spring', 'Gunpowder Classic', 'Matcha Ceremonial', 'Genmaicha Toasted']], ['Hill Tea', ['Milky Hill', 'Iron Goddess', 'Oriental Beauty', 'Dong Ding']], ['Accessories', ['Glass Teapot', 'Bamboo Scoop', 'Tea Strainer', 'Travel Tumbler']]]) {
     for (const name of names) catalog.push({ sku: 'X' + (n++), title: name, category: cat });
   }
   const analysis = new AnalysisService(smartConfig({})).analyze({ catalog, indexedCampaigns: [] }, { users: [], orders: [], mvtResults: [] });
@@ -261,7 +261,7 @@ test('with no order history, a week of slots spreads across distinct products an
   // Packs, sizes, grades and codes of one product are one family; a single
   // digit that names a product line, or a letter+digit model, is not.
   const fk = (title) => families({ title, category: 'c' });
-  expect(fk('2026 Arya Diamond Darjeeling First Flush Black Tea Ex 40/2026')).toBe(fk('2026 Arya Diamond Darjeeling First Flush Black Tea DJ FF BT/Pack of 4'));
+  expect(fk('2026 Arya Diamond Kalimpong First Flush Black Tea Ex 40/2026')).toBe(fk('2026 Arya Diamond Kalimpong First Flush Black Tea DJ FF BT/Pack of 4'));
   expect(fk('Custom Nike Air Force 1')).not.toBe(fk('Custom Nike Air Force 2'));
   expect(fk('Blend AB12 Tin')).not.toBe(fk('Blend AB13 Tin'));
   // One entry per product family; packs of one tea count once.
@@ -294,7 +294,7 @@ test('a large catalogue with no orders: the rotation reaches the whole catalogue
   let n = 0;
   // 150 black teas whose titles sort first, then three other categories.
   for (let i = 0; i < 150; i++) catalog.push({ sku: 'B' + (n++), title: `2026 Estate${String(i).padStart(3, '0')} Black Tea 100g`, category: 'Black Tea' });
-  for (const cat of ['Green Tea', 'Oolong', 'Accessories']) for (let i = 0; i < 30; i++) catalog.push({ sku: 'O' + (n++), title: `${cat} Item${String(i).padStart(2, '0')}`, category: cat });
+  for (const cat of ['Green Tea', 'Hill Tea', 'Accessories']) for (let i = 0; i < 30; i++) catalog.push({ sku: 'O' + (n++), title: `${cat} Item${String(i).padStart(2, '0')}`, category: cat });
   const analysis = new AnalysisService(smartConfig({})).analyze({ catalog, indexedCampaigns: [] }, { users: [], orders: [], mvtResults: [] });
   const cats = new Set(analysis.productScores.map((s) => s.product.category));
   expect(cats.size, 'the 50 the rotation holds come from every part of the catalogue').toBe(4);

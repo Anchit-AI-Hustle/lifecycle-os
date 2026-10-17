@@ -253,6 +253,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // Narrow phones: keep it off the content bottom-right instead of stacking
       // under the phone bar + notice chrome at the top.
       '@media (max-width:640px){.lc-credit-pill{top:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:max(14px,env(safe-area-inset-right,0px))}}',
+      // The pill floats over the foot of the page on a phone: the page gets
+      // that much room at the bottom, so its last button is never under it
+      // (2026-10-17, /: it covered "About this platform").
+      '@media (max-width:640px){body:has(.lc-credit-pill){padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}}',
       '@media (prefers-reduced-motion:reduce){.lc-credit-pill.is-pulse{animation:none}}',
     ].join('');
     (document.head || document.documentElement).appendChild(s);
