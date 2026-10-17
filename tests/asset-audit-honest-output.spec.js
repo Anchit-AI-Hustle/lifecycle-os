@@ -349,3 +349,28 @@ test('nothing of its own: one generated brand scene, hosted, labelled, with no p
     expect(JSON.stringify(c.assets)).not.toContain('data:image/png');
   } finally { if (real) require.cache[CI] = real; else delete require.cache[CI]; }
 });
+
+// Phones (2026-10-17): every mail was a FIXED 600/560px table, so at 375px it
+// scrolled sideways (measured: 592-632px). Fluid up to its width now, with an
+// Outlook-only fixed table (Word ignores max-width).
+test('every mail fits a 375px phone, keeps its 600px column on a desktop, and Outlook keeps a fixed width', async ({ page }) => {
+  const trigger = require(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
+  const c = await build(slot(APP));
+  const mails = { template: c.assets.email.html };
+  for (const style of ['pure', 'visual', 'editorial']) {
+    mails[`shared ${style}`] = trigger.helpers.renderTextVariant({ brand: APP, style, subject: 'S', hero_headline: 'A headline long enough to wrap on a phone screen', hero_subline: 'Sub', body_blocks: [{ heading: 'H', body: 'Body.' }], cta_text: 'Learn more', cta_url: 'https://famapp.example', market: 'IN', hero_image_url: 'https://famapp.example/hero.jpg' });
+  }
+  await page.route('**/*', (r) => r.abort());
+  for (const [name, mail] of Object.entries(mails)) {
+    expect(mail, `${name}: no Outlook fixed table`).toMatch(/<!--\[if mso\]><table role="presentation" width="(600|560)"/);
+    expect((mail.match(/<!--\[if mso\]>/g) || []).length, `${name}: Outlook table opened and closed`).toBe(2);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.setContent(mail);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `${name} at 375px`).toBeLessThanOrEqual(375);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.setContent(mail);
+    const widest = await page.evaluate(() => Math.max(...[...document.querySelectorAll('table')].map((t) => t.getBoundingClientRect().width).filter((w) => w < 1280)));
+    expect(widest, `${name}: the desktop column`).toBeGreaterThanOrEqual(560);
+    expect(widest).toBeLessThanOrEqual(600);
+  }
+});

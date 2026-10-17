@@ -115,7 +115,39 @@ function assertGoldStandard(html) {
   return { ok: missing.length === 0, missing };
 }
 
+/**
+ * Fluid-hybrid width for a finished mail (2026-10-17). Every mail the builders
+ * produced was a FIXED 600px (or 560px) table, so on a 375px phone it scrolled
+ * sideways. The container becomes width:100% up to its old width, and Outlook
+ * on Windows (the Word engine ignores max-width) gets the old fixed width from
+ * a table only it reads (<!--[if mso]>). Exactly one container, the shape every
+ * builder here emits: <outer 100% table> <container> ... </container> </outer>.
+ * Anything else is returned unchanged.
+ */
+function fluid(html) {
+  const s = String(html || '');
+  const re = /<table role="presentation"((?:\s+(?:border|cellpadding|cellspacing)="0")*)\s+width="(600|560)"([^>]*?)(?:\s+style="([^"]*)")?([^>]*)>/g;
+  const hits = s.match(re);
+  if (!hits || hits.length !== 1) return s;
+  const closes = [];
+  let i = -1;
+  while ((i = s.indexOf('</table>', i + 1)) !== -1) closes.push(i);
+  if (closes.length < 2) return s;
+  const innerClose = closes[closes.length - 2];
+  let w = 600;
+  const opened = s.replace(re, (m, pre, width, mid, style, post) => {
+    w = Number(width);
+    const css = String(style || '').replace(/(^|;)\s*(max-)?width\s*:[^;]*/gi, '').replace(/^;+/, '');
+    return `<!--[if mso]><table role="presentation" width="${w}" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->`
+      + `<table role="presentation"${pre} width="100%"${mid} style="width:100%;max-width:${w}px;${css}"${post}>`;
+  });
+  const shift = opened.length - s.length;
+  const at = innerClose + shift + '</table>'.length;
+  return opened.slice(0, at) + '<!--[if mso]></td></tr></table><![endif]-->' + opened.slice(at);
+}
+
 module.exports = {
+  fluid,
   PLACEHOLDER,
   ASSET_PROMPT_RE,
   subjectMetaBlock,
