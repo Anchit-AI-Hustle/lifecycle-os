@@ -160,7 +160,7 @@ test('template path: the lapsed reader is told why the mail reaches them, each p
   const c = await buildTemplate(entry);
   const mails = (c.assets.email.variants || []).map((v) => textOf(v.html));
   expect(mails.length).toBe(4);
-  for (const m of mails) expect(m).toMatch(/It has been a while/);
+  for (const m of mails) expect(m).toMatch(/It has been a while\. We are here whenever you are ready/);
   const st = (p) => c.assets.ads.find((a) => a.platform === p && a.creative_type === 'static');
   expect(st('meta').primary_text, 'Meta and Google read differently').not.toBe(st('google').primary_text);
   expect(st('tiktok').caption, 'TikTok and Meta read differently').not.toBe(st('meta').primary_text);
