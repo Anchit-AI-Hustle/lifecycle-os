@@ -335,8 +335,11 @@ test('nothing of its own: one generated brand scene, hosted, labelled, with no p
   expect(prompt).toContain('Famapp');
   expect(prompt).toMatch(/No product, no packaging/);
   const png = 'data:image/png;base64,iVBORw0KGgo=';
-  expect(await bi.generatedScene(APP, { generate: async () => ({ image: 'data:image/svg+xml,<svg/>', provider: 'placeholder' }), upload: async () => 'https://x/y.png' })).toBe(null);
-  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null }), 'an image that cannot be hosted').toBe(null);
+  // The hosted path alone: the free host is "not answering" here (its own test
+  // is below), or CI, which can reach it, would get the free scene back.
+  const offline = async () => false;
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: 'data:image/svg+xml,<svg/>', provider: 'placeholder' }), upload: async () => 'https://x/y.png', probe: offline })).toBe(null);
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null, probe: offline }), 'an image that cannot be hosted, and no free host').toBe(null);
   const ok = await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => 'https://cdn.example/scene.png' });
   expect(ok).toMatchObject({ url: 'https://cdn.example/scene.png', generated: true });
 
