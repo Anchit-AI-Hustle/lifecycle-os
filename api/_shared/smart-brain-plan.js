@@ -1958,7 +1958,13 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const cta = esc(L.cta || entry.cta || 'See more');
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
-  const priceLabel = _o.priceText ? String(_o.priceText) : (price != null ? `${cur}${price}` : '');
+  // The market's own format ("₹1,450", not "₹1450"), through the one money
+  // formatter; a value that is not a number is not printed.
+  const priceLabel = _o.priceText ? String(_o.priceText) : (() => {
+    const n = Number(price);
+    if (price == null || !Number.isFinite(n) || n <= 0) return '';
+    try { return require('./brand-locale.js').money(n, _b, entry.market) || `${cur}${n}`; } catch (_) { return `${cur}${n}`; }
+  })();
   const _cardImg = _ds.present ? (_o.productImage || entry.heroProduct?.image || '') : '';
   // The header bar exists only when the brand's own site has one measured: its
   // logo (a hosted URL, or the inline SVG as an IMAGE - never as markup, so a
@@ -2019,6 +2025,19 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // The brand's own claims, or nothing: the fallback here was three claims no
   // brand made ("100% authentic from <brand>'s verified collection" ...).
   const fallbackBullets = bClaims.slice(0, 3).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
+  // Each claim ONCE (2026-10-17 visual audit): the top bar, the trust strip and
+  // the "Why" list printed the same two claims three times. The why list keeps
+  // them; the strip carries only a rating and claims the list does not.
+  const _whyItems = ((L.why_bullets && L.why_bullets.length) ? L.why_bullets : bClaims.slice(0, 3)).concat([L.hero_headline || '']).map((x) => String(x).trim().toLowerCase());
+  const _stripItems = [
+    ...(_appRating ? [`★★★★★ Rated ${String(_appRating)}/5`] : []),
+    ...bClaims.filter((c) => _whyItems.indexOf(String(c).trim().toLowerCase()) < 0).slice(0, 3),
+  ];
+  // The send's other products, by name, each to its own page (or the store).
+  const _others = (Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [])
+    .filter((x) => x && x.title && !/^\[DATA REQUIRED/.test(String(x.title))).slice(0, 3);
+  const _otherHref = (x) => (facts.store ? `https://${facts.store}${x.handle ? `/products/${x.handle}` : ''}` : '#');
+  const _otherImg = (x) => { if (x.image) return x.image; try { return (catalogImage.imagesFor(x, entry.market, { width: 600, brand: entry.brand }) || [])[0] || ''; } catch (_) { return ''; } };
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
@@ -2030,6 +2049,14 @@ img{max-width:100%;height:auto;display:block}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px}
 h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:34px 20px 38px}
+.hero-grid{max-width:1080px;margin:0 auto;display:grid;gap:24px;align-items:center}
+.hero-media img{width:100%;height:280px;object-fit:cover;border-radius:12px;display:block}
+@media(min-width:900px){.hero{padding:56px 32px}.hero-grid.has-media{grid-template-columns:1fr 1fr;text-align:left;gap:48px}.hero-grid.has-media h1,.hero-grid.has-media p{margin-left:0;margin-right:0}.hero-media img{height:420px}}
+.others{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:14px}
+.other{display:block;text-decoration:none;color:var(--ink);background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;overflow:hidden}
+.other img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.other span{display:block;padding:12px 14px;font-family:var(--head);font-size:16px;line-height:1.3}
+body{padding-bottom:4px}
 .hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:11px;margin:0 0 12px}
 .hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
 .hero p{max-width:540px;margin:0 auto 20px;color:var(--on-moss);font-size:15px}
@@ -2097,31 +2124,36 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 
 .guarantee{background:var(--chalk-warm);text-align:center;border-radius:12px;padding:20px;margin:18px 0}
 .sticky{position:-webkit-sticky;position:sticky;bottom:0;z-index:100;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 18px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px));box-shadow:0 -4px 18px rgba(0,0,0,.06);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
-.sticky .info{font-size:13px}.sticky .info b{display:block;font-family:var(--head);font-size:15px}
+.sticky .info{font-size:13px;min-width:0;flex:1 1 auto}.sticky .info b{display:block;font-family:var(--head);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sticky .btn{flex:0 0 auto;white-space:nowrap}
 /* The footer was a near-black band (var(--ink) is #111111 for tenant zero),
    which the design rules forbid for any section. It is the brand primary now,
    with the contrast-adjusted on-primary text rather than a 60%-opacity cream
    that was only legible because the ground behind it was black. */
 footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18px 18px;padding-bottom:max(18px,env(safe-area-inset-bottom,18px));font-size:12px}
-@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:11px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:11px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:10px 18px;font-size:13px;min-height:38px}img.hero-asset{max-height:160px!important}}
+@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:11px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:11px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
-<div class="bar">${esc(bName)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
+<div class="bar">${esc(bName)}</div>
 <section class="hero">
-  <p class="eyebrow">${esc(_cat || bName)}</p>
-  <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
-  ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
-  <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
+  <div class="hero-grid${creativeUrl ? ' has-media' : ''}">
+    <div class="hero-copy">
+      <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>
+      <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
+      ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
+      ${priceLabel ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 0 18px">${esc(priceLabel)}</p>` : ''}
+      <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
+    </div>
+    ${creativeUrl ? `<div class="hero-media"><img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct.title : bName)}"></div>` : ''}
+  </div>
 </section>
-${creativeUrl ? `<img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:220px;object-fit:cover"/>` : ''}
-<div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
+${_stripItems.length ? `<div class="trust">${_stripItems.map((c) => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
 <div class="wrap" data-ds="wrap">
   ${(bullets || fallbackBullets) ? `<section class="sec why">
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
   </section>` : ''}
-  <section class="sec">
+  ${_ds.present ? `<section class="sec">
     <div class="reveal" data-ds="card">
       ${_cardImg ? `<img class="ds-card-img" data-ds="card-image" src="${esc(_cardImg)}" alt="${esc(entry.heroProduct?.title || '')}" style="flex-basis:100%">` : ''}
       <div>
@@ -2133,7 +2165,8 @@ ${creativeUrl ? `<img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(L.
         <a href="${esc(shopUrl)}" class="btn btn-dark">${cta}</a>
       </div>
     </div>
-  </section>
+  </section>` : ''}
+  ${_others.length ? `<section class="sec"><h2>Also from ${esc(bName)}</h2><div class="others">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : ''}<span>${esc(x.title)}</span></a>`; }).join('')}</div></section>` : ''}
 </div>
 ${proofSection}
 <div class="wrap">

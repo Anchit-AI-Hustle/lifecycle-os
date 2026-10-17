@@ -501,3 +501,62 @@ test('every mail fits a 375px phone, keeps its 600px column on a desktop, and Ou
     expect(widest).toBeLessThanOrEqual(600);
   }
 });
+
+// The visual audit of a tea store's no-key assets (2026-10-17). The operator:
+// "Still the content and visuals need to be improved a lot". Rendered at 1280
+// and 390: the mail named its product three times ("A special pick for you: X
+// by <brand>", a heading, "X from <brand>. <tagline>") with no price though the
+// catalogue states one; the footer read "as a <Brand> IN customer"; the landing
+// page printed the same claims three times, its photo was a 220px strip, its
+// price "₹1450", its card repeated the hero, and B never named the product; the
+// ads said "<product> from <brand>" and used "Shop now" as a Google headline.
+const TEA = {
+  id: 'device:arya', slug: 'arya-teas', name: 'Arya Tea Estate', website: 'https://aryateas.example', industry: 'Darjeeling tea estate and store',
+  tagline: 'Single-estate Darjeeling, picked and packed at the garden',
+  palette: { primary: '#0E4D35', accent: '#C99A2E', ink: '#1E2A24', surface: '#FBF8F1' },
+  regions: [{ code: 'IN', currency: 'INR', store_url: 'https://aryateas.example', home: true }],
+  claims: ['Grown at 1,800 metres in Darjeeling', 'Packed at the garden within 48 hours of plucking'],
+  imagery: [{ url: 'https://aryateas.example/cdn/garden.jpg', page: 'https://aryateas.example/', role: 'hero' }],
+  legal_entity: 'Arya Tea Estate Pvt Ltd, Darjeeling 734101, India',
+};
+const teaSlot = () => slot(TEA, {
+  heroProduct: { sku: 'A1', title: 'Arya Diamond First Flush', handle: 'arya-diamond', category: 'Black Tea', image: 'https://aryateas.example/cdn/diamond.jpg', price: 1450 },
+  supportingProducts: [{ sku: 'A2', title: 'Arya Ruby Second Flush', handle: 'arya-ruby', category: 'Black Tea' }, { sku: 'G1', title: 'Glass Teapot', handle: 'glass-teapot', category: 'Accessories' }],
+});
+const count = (hay, needle) => String(hay).split(needle).length - 1;
+
+test('the no-key mail and landing pages say each fact once, show the price, and fit a phone', async ({ page }) => {
+  const c = await build(teaSlot());
+  const mail = c.assets.email.html;
+  const mailText = textOf(mail.replace(/<title>[\s\S]*?<\/title>/i, ""));
+  expect(count(mailText, 'Arya Diamond First Flush'), 'the product name, once in the headline').toBeLessThanOrEqual(1);
+  expect(mailText).toContain('₹1,450');
+  expect(mailText).toContain('Also from Arya Tea Estate');
+  expect(mailText).toContain('Arya Ruby Second Flush');
+  expect(mailText).toMatch(/because you are a Arya Tea Estate customer|because you are an? Arya Tea Estate customer/);
+  expect(mailText).not.toMatch(/ IN customer|A special pick for you|from Arya Tea Estate\./);
+  for (const lp of c.assets.landing_pages) {
+    const t = textOf(lp.html.replace(/<title>[\s\S]*?<\/title>/i, ""));
+    for (const claim of TEA.claims) expect(count(t, claim), `${lp.variant}: "${claim}" printed more than once`).toBeLessThanOrEqual(1);
+    expect(t).toContain('₹1,450');
+    expect(t).not.toContain('₹1450');
+    expect(t, `${lp.variant} names the product`).toContain('Arya Diamond First Flush');
+    expect(t).toContain('Also from Arya Tea Estate');
+    expect(lp.html).toMatch(/class="hero-grid has-media"/);
+    for (const [w, h] of [[390, 844], [1280, 900]]) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.route('**/*', (r) => (r.request().url().startsWith('https://aryateas.example/cdn/') ? r.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="900" height="600" fill="#6b8"/></svg>' }) : r.abort()));
+      await page.setContent(lp.html, { waitUntil: 'load' });
+      const m = await page.evaluate(() => ({ over: document.documentElement.scrollWidth - innerWidth, img: (document.querySelector('.hero-media img') || {}).getBoundingClientRect ? document.querySelector('.hero-media img').getBoundingClientRect().height : 0, btnLines: (() => { const b = document.querySelector('.sticky .btn'); return b ? Math.round(b.getBoundingClientRect().height / parseFloat(getComputedStyle(b).lineHeight || '20')) : 0; })() }));
+      expect(m.over, `${lp.variant} at ${w}px scrolls sideways`).toBeLessThanOrEqual(0);
+      expect(m.img, `${lp.variant} at ${w}px: the photo is a strip`).toBeGreaterThanOrEqual(w < 600 ? 200 : 380);
+      await page.unrouteAll();
+    }
+  }
+  const google = c.assets.ads.find((a) => a.platform === 'google' && a.creative_type === 'static');
+  expect(google.headlines).not.toContain('Shop now');
+  expect(google.headlines.join(' ')).toContain('₹1,450');
+  const meta = c.assets.ads.find((a) => a.platform === 'meta' && a.creative_type === 'static');
+  expect(meta.primary_text).not.toMatch(/from Arya Tea Estate/);
+  expect(meta.primary_text).toContain('₹1,450');
+});
