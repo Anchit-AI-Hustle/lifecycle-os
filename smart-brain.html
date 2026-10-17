@@ -1114,6 +1114,15 @@ window.pvTab = function(btn, paneId){
 function renderAd(ad){
   const rows = [];
   const add = (k,v)=>{ if(v!=null && String(v).trim()!=='') rows.push(`<div class="k">${esc(k)}</div><div class="v">${esc(Array.isArray(v)?v.filter(Boolean).join('\n'):v)}</div>`); };
+  // What each placement shows (attachPlacementCopy): Stories / Reels and
+  // TikTok's feed show an on-screen line and the button, not the feed copy.
+  const placementLines = (ad.placements||[]).map(p=>{
+    const head = `${p.label||p.key} (${p.ratio||''})`;
+    if(p.cards) return `${head}: ${p.cards.length} cards - ${p.cards.map(c=>c.headline).join(' / ')}`;
+    if(p.on_screen!=null) return `${head}: on screen "${p.on_screen||'no line short enough on record'}"${p.cta?`, button "${p.cta}"`:''}${p.safe_zone?`; ${p.safe_zone}`:''}`;
+    return `${head}: the primary text and headline above`;
+  });
+  if(placementLines.length) add('Placements', placementLines);
   const platform = (ad.platform||'ad').toUpperCase();
   const ctype = ad.creative_type || ((ad.storyboard||ad.script) && !ad.creative_brief ? 'video' : 'static');
   // EVERY colour here resolves through the active brand's tokens. These were

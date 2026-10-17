@@ -126,6 +126,29 @@ function isSlow(provider) {
   SLOW.delete(provider);
   return false;
 }
+// The keyless provider answers one request per 30 s per address (its own
+// 402 says so). With no key at all a Smart Brain build used to send three calls
+// within a second, and every one after the first was refused: the copy always
+// fell to the template on a keyless deployment (measured 2026-10-17). Calls to
+// it from this process now wait their turn, one at a time, for as long as the
+// call's own budget allows; nothing is sent that the provider would refuse.
+const KEYLESS_GAP = () => (Number(process.env.LLM_KEYLESS_GAP_MS) > 0 ? Number(process.env.LLM_KEYLESS_GAP_MS) : 30000);
+const KEYLESS = { next: 0, chain: Promise.resolve() };
+function keylessTurn(remainingMs) {
+  const turn = KEYLESS.chain.then(async () => {
+    const wait = KEYLESS.next - Date.now();
+    if (wait > 0) {
+      if (wait > remainingMs() - 5000) return false;
+      await new Promise((r) => setTimeout(r, wait));
+    }
+    return true;
+  });
+  // The next caller waits for this one's answer, not just its start.
+  let release;
+  const done = new Promise((r) => { release = r; });
+  KEYLESS.chain = turn.then(() => done, () => done);
+  return { turn, release: (afterMs) => { KEYLESS.next = Date.now() + (afterMs == null ? KEYLESS_GAP() : afterMs); release(); } };
+}
 // "Please try again in 6m28.8s" (Groq) when no Retry-After header came.
 function waitInBody(body) {
   const m = String(body || '').match(/try again in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:([\d.]+)s)?/i);
@@ -378,7 +401,7 @@ module.exports = async function callLLM(opts) {
   // there, so a model call that ran beyond it would be work nobody receives.
   let deadlineLeft = Infinity;
   try { deadlineLeft = require('./time-budget.js').timeLeft() - 1000; } catch (_) { /* no scope */ }
-  const budgetMs = Math.max(0, Math.min(askedBudget, deadlineLeft));
+  let budgetMs = Math.max(0, Math.min(askedBudget, deadlineLeft));
   const remaining = () => budgetMs - (Date.now() - startedAt);
   // An attempt shorter than this cannot complete a generation; it is not started.
   const MIN_ATTEMPT_MS = 750;
@@ -452,6 +475,14 @@ module.exports = async function callLLM(opts) {
     // turns it off (prompts then never leave for a service nobody configured).
     pollinations: freeGenerationOn(),
   };
+
+  // Nothing but the keyless floor: its answers take 15-40 s for a full copy
+  // prompt (measured), and its turn may be up to 30 s away, so the call gets the
+  // time that needs (still never past the request's deadline). A per-attempt
+  // cap written for a keyed provider (12-20 s) cut every answer off.
+  const keylessOnly = !!hasKey.pollinations && !Object.keys(hasKey).some((p) => p !== 'pollinations' && hasKey[p]);
+  if (keylessOnly) budgetMs = Math.max(0, Math.min(Math.max(askedBudget, 90000), deadlineLeft));
+  const keylessAttemptMs = Math.max(timeoutMs, 55000);
 
   if (!Object.keys(hasKey).some((p) => p !== 'sakana' && hasKey[p])) {
     const e = new Error('No AI provider configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY, CLOUDFLARE_API_TOKEN(+CLOUDFLARE_ACCOUNT_ID)');
@@ -604,11 +635,31 @@ module.exports = async function callLLM(opts) {
     // Pollinations' documented OpenAI-compatible endpoint, no key, no model and
     // no response_format (neither is documented); one request per 30 s per
     // address, answered 402 + Retry-After when exceeded (counted as a rate limit).
-    pollinations: function (model) {
-      return attempt('pollinations', model, POLLINATIONS_TEXT_URL, {
+    pollinations: async function (model) {
+      const send = () => attempt('pollinations', model, POLLINATIONS_TEXT_URL, {
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }] }),
-      }, timeoutMs, readChat);
+        // Its model is a REASONING model (gpt-oss-20b, measured 2026-10-17)
+        // with a default of 1,500 completion tokens: on Smart Brain's copy
+        // prompt the reasoning took all of them and the answer was 53
+        // characters (finish "length"). It accepts the OpenAI fields
+        // max_tokens and reasoning_effort (measured: complete JSON, finish
+        // "stop", 15 s), so the answer gets its room and reasoning stays short.
+        body: JSON.stringify({ messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }], max_tokens: Math.min(8000, Math.max(4000, maxTokens + 2000)), reasoning_effort: 'low' }),
+      }, keylessOnly ? keylessAttemptMs : timeoutMs, readChat);
+      if (!keylessOnly) return send();
+      // The only provider: wait for its turn rather than be refused, and when
+      // it still asks to wait (another process used the turn) wait once more
+      // if the call's budget allows.
+      for (let tries = 0; tries < 2; tries++) {
+        const t = keylessTurn(remaining);
+        const mine = await t.turn;
+        if (!mine) { t.release(KEYLESS.next - Date.now()); return { ok: false, status: 402, err: 'keyless provider busy: its next free turn is after this call\'s budget', retry_after_s: Math.ceil((KEYLESS.next - Date.now()) / 1000) }; }
+        const r = await send();
+        const waitS = r.ok ? null : (r.retry_after_s != null ? r.retry_after_s : waitInBody(r.err) || (((String(r.err || '').match(/retry after\s+(\d+)\s*s/i)) || [])[1] | 0) || null);
+        t.release(r.ok ? KEYLESS_GAP() : Math.max(KEYLESS_GAP(), (waitS || 0) * 1000));
+        if (r.ok || r.status !== 402 || tries === 1) return r;
+      }
+      return { ok: false, status: 402, err: 'keyless provider busy' };
     },
   };
 
@@ -960,3 +1011,22 @@ module.exports.modelsFor = modelsFor;
 module.exports.providerOrder = providerOrder;
 module.exports.classifyFailure = classifyFailure;
 module.exports.retryAfterSeconds = retryAfterSeconds;
+/**
+ * True when the only model this call could reach is the keyless floor (no
+ * platform key and no workspace key of any provider). Smart Brain then makes one
+ * copy call instead of three: that provider answers one request per 30 s.
+ */
+module.exports.keylessOnly = async function keylessOnly() {
+  if (!freeGenerationOn()) return false;
+  const ov = await scopedOverrides();
+  const k = (ov && ov.keys) || {};
+  const any = (...v) => v.some((x) => !!_clean(x));
+  return !(any(k.openai, process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2, process.env.OPENAI_API_KEY_3)
+    || any(k.anthropic, process.env.ANTHROPIC_API_KEY) || any(k.gemini, process.env.GEMINI_API_KEY)
+    || any(k.grok, process.env.XAI_API_KEY) || any(k.groq, process.env.GROQ_API_KEY)
+    || any(k.cerebras, process.env.CEREBRAS_API_KEY) || any(k.openrouter, process.env.OPENROUTER_API_KEY, process.env.OpenRouter_API_KEY)
+    || (any(k.cloudflare, process.env.CLOUDFLARE_API_TOKEN) && !!cloudflareBase())
+    || !!process.env.OLLAMA_BASE_URL || (ov && ov.bases && ov.bases.ollama)
+    || (!!process.env.SAKANA_BASE_URL && any(process.env.SAKANA_API_KEY)));
+};
+module.exports._resetKeyless = function () { KEYLESS.next = 0; KEYLESS.chain = Promise.resolve(); };
