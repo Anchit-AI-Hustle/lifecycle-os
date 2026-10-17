@@ -892,3 +892,31 @@ test('a market-data brand: the benchmark briefs every writing stage, and the mai
   }
   restoreEnv();
 });
+
+// The brand guard (2026-10-17): a stage whose model answer invents a figure or
+// names another company does not serve it; its heuristic, built from the
+// brand's own record, is served instead. A clean answer is served as written.
+test('the brand guard: an off-brand plan or mailer from the model is replaced by the brand\'s own; a clean one is kept', async () => {
+  const restoreEnv = pinEnv(METERED);
+  const OFF = 'Join 2 million hikers who trust us more than Patagonia or Nike.';
+  const page = (line) => '<!doctype html><html><body><table role="presentation" width="600"><tr><td>IMAGE_HERO_URL<p>' + 'Built for the long way round. '.repeat(30) + line + '</p><p>You are receiving this. Unsubscribe</p></td></tr></table></body></html>';
+  const run = async (stage, body, answer, user) => {
+    const llm = stubLLM(() => answer);
+    const net = fakeNetwork({ user: { id: user, email: user + '@example.com' }, activeWorkspace: OTHER.id, workspace: OTHER });
+    try { return await call(stage, body, 'session-' + user); } finally { net.restore(); llm.restore(); }
+  };
+  try {
+    const offPlan = await run('variant', { variant: 'A', strategy_output: {}, brief: 'b', market: 'US', products: [] },
+      { sections: [{ id: 'hero', headline: OFF }], subject_lines: ['a', 'b', 'c'], preheader: 'p' }, 'guard-v1');
+    expect(offPlan.body._heuristic, 'an off-brand plan is not served').toBe(true);
+    expect(JSON.stringify(offPlan.body.sections)).not.toMatch(/2 million|Nike/);
+    const okPlan = await run('variant', { variant: 'A', strategy_output: {}, brief: 'b', market: 'US', products: [] },
+      { sections: [{ id: 'hero', headline: 'Sewn in Oregon, repaired for life' }], subject_lines: ['a', 'b', 'c'], preheader: 'p' }, 'guard-v2');
+    expect(okPlan.body._heuristic, 'a clean plan is served as written').toBeFalsy();
+    const offHtml = await run('html', { variant: 'A', plan: {}, strategy: {}, brief: 'b', market: 'US', products: [] }, page(OFF), 'guard-h1');
+    expect(offHtml.body._heuristic).toBe(true);
+    expect(String(offHtml.body.html)).not.toMatch(/2 million|Nike/);
+    const okHtml = await run('html', { variant: 'A', plan: {}, strategy: {}, brief: 'b', market: 'US', products: [] }, page('Sewn in Oregon.'), 'guard-h2');
+    expect(okHtml.body._heuristic).toBeFalsy();
+  } finally { restoreEnv(); }
+});

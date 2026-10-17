@@ -544,6 +544,12 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
       };
       if (!posts[key].hashtags.length && PLATFORM_SPECS[key].hashtags[0] > 0) posts[key].hashtags = fbp.hashtags;
     }
+    // The brand guard (brand-guard.js): a post that invents a figure or claim,
+    // or names another company, is replaced by that platform's own fallback post.
+    try {
+      const g = require('./brand-guard.js').check(posts[key], ctx.brand, { market: ctx.market, allow: [ctx.focus && ctx.focus.product && ctx.focus.product.title].filter(Boolean) });
+      if (!g.ok) { posts[key] = Object.assign({}, fbp, { brand_guard: g.violations.map((v) => v.detail) }); }
+    } catch (_) { /* the guard could not run: keep the scrubbed post */ }
   }
   return { posts };
 }
@@ -793,7 +799,11 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
   // product-types.json no matter which brand the pipeline then went on to
   // resolve - and that file, not the catalogue, is where the sneaker titles
   // and the knickgasm.com product URLs were coming from.
-  let __brand = (brand && (brand.id || brand.slug)) ? brand : null;
+  // A record that NAMES its brand is that brand (brand-runtime.namesBrand), id
+  // or not: a carried record with a name and no id fell to "no brand" here and
+  // was given tenant zero's product taxonomy (found 2026-10-17).
+  let __brand = null;
+  try { __brand = (require('./brand-runtime.js').namesBrand(brand) || (brand && typeof brand === 'object' && brand.name)) ? brand : null; } catch (_) { __brand = (brand && (brand.id || brand.slug || brand.name)) ? brand : null; }
   if (!__brand && workspaceId) {
     try {
       const wsScope = require('./workspace-scope.js');
