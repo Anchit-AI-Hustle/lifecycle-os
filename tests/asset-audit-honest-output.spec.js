@@ -255,3 +255,30 @@ test('the social fallback posts say only what the brand states, with its busines
     for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
   }
 });
+
+// The real product photo (2026-10-17): the static ads carried the catalogue
+// photo, while the template mail had no image at all and the template landing
+// page read entry.heroProduct.image, which nothing ever sets.
+test('the template mail and both landing pages carry the product\'s own catalogue photo; a brand with none borrows nobody\'s', async () => {
+  const fs = require('fs');
+  const file = path.join(ROOT, 'data', 'catalog', 'products_us.json');
+  test.skip(!fs.existsSync(file), 'the built catalogue (npm run build) is not here');
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const p = (Array.isArray(raw) ? raw : raw.products).find((r) => r.h && r.n);
+  const entry = { id: 'photo-zero', date: '2026-10-20', market: 'US', objective: 'reactivation', cohort: { name: 'At Risk', size: 500, rules: ['r'] },
+    channels: ['email', 'meta', 'landing_page'], confidence: 0.6, offer: { depth: 'none', pct: 0 }, heroProduct: { sku: p.s, title: p.n, handle: p.h } };
+  const c = await build(entry);
+  const adPhoto = c.assets.ads.find((a) => a.creative_type === 'static').creative.image;
+  expect(adPhoto, 'the static ad has the catalogue photo').toMatch(/^https:\/\//);
+  const base = adPhoto.split('?')[0];
+  const mailImg = c.assets.email.html.match(/<img[^>]+>/);
+  expect(mailImg, 'the template mail has no image').toBeTruthy();
+  expect(mailImg[0]).toContain(base);
+  expect(mailImg[0]).toMatch(/alt="[^"]+"/);
+  for (const lp of c.assets.landing_pages) expect(lp.html, `landing ${lp.variant}`).toContain(base);
+  expect(c.contract_check.blocking).toBe(0);
+
+  const other = await build(slot(APP, { heroProduct: { title: p.n, handle: p.h } }));
+  const all = [other.assets.email.html, ...other.assets.landing_pages.map((l) => l.html)].join('\n');
+  expect(all, 'another brand\'s catalogue photo on this brand\'s assets').not.toContain(base);
+});
