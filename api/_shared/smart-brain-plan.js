@@ -3433,6 +3433,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   reportCatalogGaps(campaign, entry, trace);
   reportProofGap(campaign, entry, trace);
   attachDisclaimer(campaign, entry);
+  campaign.build_version = ASSET_BUILD_VERSION;
   // Last, because it judges the FINISHED artefacts rather than the plan. The
   // entry names whose brand, which market and which offer they are judged as.
   checkAssetContracts(campaign, entry);
@@ -3638,6 +3639,7 @@ async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   // A saved bundle made for another version of the record is never replayed
   // (2026-10-11): the sneaker hero under DelhiChic was a prebuilt campaign.
   if (campaign && !identityMatches(campaign.brand_identity, ident)) campaign = null;
+  if (campaign && !currentBuild(campaign)) campaign = null;   // built by an earlier renderer
   // AUTO-HEAL stale template fallbacks. A slot built during an earlier LLM outage
   // persisted template-fallback copy (copywriter.provider === 'template-fallback')
   // and would otherwise be REPLAYED forever — showing the "template fallback"
@@ -3744,6 +3746,7 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     if (pc && pc[0] && pc[0].payload) campaign = pc[0].payload;
   }
   if (campaign && !identityMatches(campaign.brand_identity, ident)) campaign = null;
+  if (campaign && !currentBuild(campaign)) campaign = null;   // built by an earlier renderer
   // buildCampaign generates copy + creatives and attaches master prompts. Use
   // the ACTIVE scenario (medium unless a human switched the slot), internal keys
   // stripped so projected revenue/spend can never reach the asset builders.
@@ -4022,6 +4025,15 @@ async function healOrphans({ config: cfg = {}, batchSize = 12, reviewer = 'syste
 // of the now-stale assets. Human-approved/final slots are skipped (they own a
 // real campaign already).
 const PREBUILD_MARKER = '__prebuilt';
+// THE RENDERER THAT BUILT A SAVED BUNDLE (2026-10-17). Saved mailers, pages and
+// ads were replayed forever, so production kept showing assets built by the
+// renderers of weeks ago (the operator's screenshot: a tagline in spaced blue
+// capitals under the wordmark, "The Transformation", a button only at the
+// end) after every one of those was fixed. A bundle built by an earlier
+// renderer is not reused: viewing rebuilds it, and the prebuild queue rebuilds
+// it. Bump this whenever what a saved asset LOOKS like changes.
+const ASSET_BUILD_VERSION = '2026-10-17.mailer-layout';
+function currentBuild(campaign) { return !!(campaign && campaign.build_version === ASSET_BUILD_VERSION); }
 // Marker for an ON-DEMAND preview build that has been persisted so it is reused
 // (instant) on every later view/download instead of rebuilt. Distinct from
 // __prebuilt so the background prebuild queue STILL upgrades the slot to the full
@@ -4039,7 +4051,8 @@ function reuseCampaignId(entry, row) {
 
 function isPrebuilt(row) {
   const p = row && row.payload && row.payload[PREBUILD_MARKER];
-  return !!(p && p.campaign_id);
+  // A slot prebuilt by an earlier renderer is queued again.
+  return !!(p && p.campaign_id && p.build_version === ASSET_BUILD_VERSION);
 }
 function creativeCount(campaign) {
   let n = 0;
@@ -4132,7 +4145,7 @@ async function prebuildAssets({ config: cfg = {}, batchSize = 1, sinceDate = nul
       const fresh = (await db.select(config.tableNames.calendarEntries, { filters: { id: `eq.${row.id}` }, limit: 1 }).catch(() => []))?.[0];
       if (fresh && (fresh.status === 'tentative' || fresh.status === 'rejected')) {
         const payload = { ...(fresh.payload || {}) };
-        payload[PREBUILD_MARKER] = { campaign_id: campaign.campaign_id, at: nowIso(), images: creativeCount(campaign), copy: campaign.copywriter?.provider || null };
+        payload[PREBUILD_MARKER] = { campaign_id: campaign.campaign_id, at: nowIso(), images: creativeCount(campaign), copy: campaign.copywriter?.provider || null, build_version: ASSET_BUILD_VERSION };
         const log = Array.isArray(fresh.change_log) ? fresh.change_log.slice(-30) : [];
         log.push({ at: nowIso(), kind: 'prebuilt', detail: `Assets prebuilt (mailer + ads + landing page; copy ${campaign.copywriter?.provider || 'template'}, ${creativeCount(campaign)} images); campaign ${campaign.campaign_id}.` });
         await db.update(config.tableNames.calendarEntries, { id: `eq.${row.id}`, status: SYNC_WRITABLE_STATUSES }, { payload, change_log: log, updated_at: nowIso() });

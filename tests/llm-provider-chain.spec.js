@@ -228,8 +228,12 @@ test('a cool-down belongs to ONE key: a workspace key out of credits never stops
   net = installNet((c) => (c.provider === 'openrouter' && c.key === 'workspace-or'
     ? { status: 402, raw: '{"error":{"message":"Insufficient credits"}}' } : undefined));
   const ws = { order: ['openrouter'], keys: { openrouter: 'workspace-or' }, fallback: true };
-  const a = await ask({ overrides: ws });
-  expect(a.provider).not.toBe('openrouter');
+  // A workspace with its own key uses ONLY its own models (2026-10-17): its
+  // key out of credits fails that workspace's call, and nothing of the
+  // platform's answers for it.
+  const a = await ask({ overrides: ws }).catch((e) => e);
+  expect(a).toBeInstanceOf(Error);
+  expect(net.calls.filter((c) => c.key === 'platform-or' || c.provider === 'groq')).toEqual([]);
   const b = await ask({ preferProvider: 'openrouter' });
   expect(b.provider).toBe('openrouter');
   expect(net.calls.filter((c) => c.key === 'platform-or').length).toBe(1);
@@ -237,6 +241,40 @@ test('a cool-down belongs to ONE key: a workspace key out of credits never stops
   const state = JSON.stringify(llm().providerCooldowns());
   expect(state).not.toContain('workspace-or');
   expect(state).not.toContain('platform-or');
+});
+
+/* ── a workspace's own models (2026-10-17) ─────────────────────────────── */
+// The operator: "users should still have the option to integrate the ai models
+// they want to use themselves ... if entered, then only those ai models shall
+// be used with the priority order ... claude, openai, gemini, grok and then so
+// on based on the accuracy and quality".
+
+test('a workspace\'s own keys: only its models, Claude then OpenAI then Gemini then Grok, never the platform\'s or the free model', async () => {
+  process.env.FREE_GENERATION = 'on';
+  setEnv({ ANTHROPIC_API_KEY: 'platform-ak', GROQ_API_KEY: 'platform-gq' });
+  net = installNet(() => undefined);
+  // Connected in another order: the operator's priority decides.
+  const ws = { order: [], keys: { grok: 'ws-xai', gemini: 'ws-gm', openai: 'ws-oa', anthropic: 'ws-ak' }, configured: ['grok', 'gemini', 'openai', 'anthropic'], fallback: true };
+  const first = await ask({ overrides: ws });
+  expect(first.provider).toBe('anthropic');
+  expect(net.calls[0].key).toBe('ws-ak');
+  // Each one down in turn: the next in the operator's order, never outside the workspace.
+  const down = new Set();
+  const answer = [];
+  for (const p of ['anthropic', 'openai', 'gemini', 'grok']) {
+    net.restore();
+    net = installNet((c) => (down.has(c.provider) ? { status: 500, json: { error: 'down' } } : undefined));
+    const out = await ask({ overrides: ws });
+    answer.push(out.provider);
+    down.add(p);
+  }
+  expect(answer).toEqual(['anthropic', 'openai', 'gemini', 'grok']);
+  // All four down: the call fails; the platform's keys and the free model stay unused.
+  net.restore();
+  net = installNet((c) => (['anthropic', 'openai', 'gemini', 'grok'].includes(c.provider) ? { status: 500, json: { error: 'down' } } : undefined));
+  const err = await ask({ overrides: ws }).catch((e) => e);
+  expect(err).toBeInstanceOf(Error);
+  expect(net.calls.filter((c) => c.key === 'platform-ak' || c.key === 'platform-gq' || c.provider === 'pollinations')).toEqual([]);
 });
 
 /* ── 4. a low-credit provider is asked for less ──────────────────────────── */
@@ -288,23 +326,38 @@ test('with no key at all, the free keyless model answers; no key, no model id is
   expect(net.calls[0].key, 'nothing is sent as a key').toBe('');
   expect(net.calls[0].body.model, 'no undocumented model id').toBeUndefined();
   expect(net.calls[0].body.messages.map((m) => m.role)).toEqual(['system', 'user']);
+  // Free first (2026-10-17): the keyless model, then the free tiers, then paid.
+  const PAID = ['anthropic', 'openai', 'grok'];
   for (const tier of ['premium', 'standard', 'fast']) {
     const order = llm().providerOrder(tier);
-    expect(order[order.length - 1], `${tier}: the free floor is last`).toBe('pollinations');
+    expect(order[0], `${tier}: the free model is first`).toBe('pollinations');
+    const firstPaid = Math.min(...PAID.map((p) => order.indexOf(p)).filter((i) => i >= 0));
+    const lastFree = Math.max(...order.map((p, i) => (PAID.includes(p) ? -1 : i)));
+    expect(lastFree, `${tier}: every free provider comes before any paid one`).toBeLessThan(firstPaid);
   }
+  process.env.FREE_GENERATION = 'off';
+  expect(llm().providerOrder('standard')[0], 'free generation off: the paid-first order is unchanged').toBe('anthropic');
 });
 
-test('the free model is the floor: a keyed provider answers first, and the free one only after it fails', async () => {
+test('free first (the operator: "done for free in the backend"): a paid key is reached only when every free provider failed', async () => {
   process.env.FREE_GENERATION = 'on';
-  setEnv({ GROQ_API_KEY: 'gq' });
+  setEnv({ ANTHROPIC_API_KEY: 'ak', GROQ_API_KEY: 'gq' });
   net = installNet(() => undefined);
-  expect((await ask()).provider).toBe('groq');
-  expect(net.calls.some((c) => c.provider === 'pollinations')).toBe(false);
+  expect((await ask()).provider).toBe('pollinations');
+  expect(net.calls.some((c) => c.provider === 'anthropic'), 'no paid call while a free one answers').toBe(false);
   net.restore();
-  net = installNet((c) => (c.provider === 'groq' ? { status: 500, json: { error: 'down' } } : undefined));
+  net = installNet((c) => (c.provider === 'pollinations' ? { status: 500, json: { error: 'down' } } : undefined));
+  expect((await ask()).provider).toBe('groq');
+  expect(net.calls.some((c) => c.provider === 'anthropic')).toBe(false);
+  net.restore();
+  net = installNet((c) => (c.provider === 'anthropic' ? undefined : { status: 500, json: { error: 'down' } }));
   const out = await ask();
-  expect(out.provider).toBe('pollinations');
-  expect(out.attempts.map((a) => a.provider)).toContain('groq');
+  expect(out.provider).toBe('anthropic');
+  expect(out.attempts.map((a) => a.provider)).toEqual(expect.arrayContaining(['pollinations', 'groq']));
+  // A paid provider named as a preference does not jump the free ones.
+  net.restore();
+  net = installNet(() => undefined);
+  expect((await ask({ preferProvider: 'anthropic' })).provider).toBe('pollinations');
 });
 
 test('its 402 is a rate limit (a wait), never a bill; FREE_GENERATION=off means no prompt leaves', async () => {

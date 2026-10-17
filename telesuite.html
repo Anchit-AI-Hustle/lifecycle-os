@@ -921,7 +921,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         esc('This browser has no built-in speech recognition (Firefox, for one), so live transcription is not available here. Paste the transcript into the box above, and the run is free.') + '</p></div>';
     }
     return '<div class="dictate" id="' + id + '"><div class="rowbtns">' +
-      '<button type="button" class="btn" data-dictate="1">Transcribe live in the browser (free)</button>' +
+      '<button type="button" class="btn" data-dictate="1">Transcribe live in the browser</button>' +
       '<span class="muted" data-dictate-status role="status" aria-live="polite">Runs in this browser with its own speech recognition; no key and no credits.</span></div></div>';
   }
   function wireDictation(host) {
@@ -932,9 +932,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var recog = null, on = false;
     function box() { return document.querySelector('#form textarea[data-f="transcript"]'); }
     function say(t) { if (line) line.textContent = t; }
-    function stop() { on = false; btn.textContent = 'Transcribe live in the browser (free)'; btn.classList.remove('primary'); try { recog && recog.stop(); } catch (_) {} }
+    function stop() { on = false; btn.textContent = 'Transcribe live in the browser'; btn.classList.remove('primary'); try { recog && recog.stop(); } catch (_) {} }
     btn.onclick = function () {
-      if (on) { stop(); say('Stopped. The transcript is in the box above; press Run to save it (free).'); return; }
+      if (on) { stop(); say('Stopped. The transcript is in the box above; press Run to save it.'); return; }
       try {
         recog = new SRC();
         recog.continuous = true; recog.interimResults = true;
@@ -949,7 +949,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           say('Listening. ' + t.value.split(/\n+/).filter(Boolean).length + ' line(s) so far.');
         };
         recog.onerror = function (e) { say('Microphone: ' + (e.error || 'error') + '. Paste the transcript instead.'); stop(); };
-        recog.onend = function () { if (on) { on = false; btn.textContent = 'Transcribe live in the browser (free)'; btn.classList.remove('primary'); say('Stopped. The transcript is in the box above; press Run to save it (free).'); } };
+        recog.onend = function () { if (on) { on = false; btn.textContent = 'Transcribe live in the browser'; btn.classList.remove('primary'); say('Stopped. The transcript is in the box above; press Run to save it.'); } };
         recog.start();
         on = true; btn.textContent = 'Stop transcribing'; btn.classList.add('primary');
         say('Listening. Speak, or play the recording near the microphone.');

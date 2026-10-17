@@ -53,9 +53,13 @@ test.beforeAll(() => {
   // A priced deployment, so a recharge records an amount rather than refusing.
   process.env.CREDIT_PACK_PRICES = JSON.stringify(Object.fromEntries(catalog.PACKS.map((p) => [p.key, { currency: 'INR', amount_minor: 49900 }])));
   for (const k of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY', 'CREDIT_WELCOME_GRANT', 'CREDITS_ALLOW_SELF_SERVE', 'CREDITS_COMP_ACCOUNTS']) delete process.env[k];
+  // These tests are about the meter's mechanics, written against a 500 credit
+  // first wallet; the gift's own size (enough to try every feature once) is
+  // asserted in the router test below with the operator's override cleared.
+  process.env.CREDIT_WELCOME_GRANT = '500';
 });
 test.afterAll(() => { ENV.restore(); global.fetch = REAL_FETCH; });
-test.afterEach(() => { process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY; require.cache[CREDITS] = ORIGINAL_ENTRY; });
+test.afterEach(() => { process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY; process.env.CREDIT_WELCOME_GRANT = '500'; require.cache[CREDITS] = ORIGINAL_ENTRY; });
 
 /* ── the world ──────────────────────────────────────────────────────────── */
 
@@ -346,9 +350,14 @@ test('the router: prices are public, everything else needs a session, and fulfil
     return res;
   };
 
+  // The signup gift is exactly enough to try every priced feature once.
+  delete process.env.CREDIT_WELCOME_GRANT;
   let r = await run({ op: 'catalog' });
   expect(r.code).toBe(200);
-  expect(r.payload).toMatchObject({ ok: true, configured: true, welcome_grant: 500 });
+  const everyOnce = catalog.list().reduce((n, f) => n + Math.max(0, Number(f.cost) || 0), 0);
+  expect(everyOnce).toBeGreaterThan(500);
+  expect(r.payload).toMatchObject({ ok: true, configured: true, welcome_grant: everyOnce });
+  process.env.CREDIT_WELCOME_GRANT = '500';   // the wallet below is the mechanics' 500
   expect(r.payload.features.find((f) => f.key === 'mailer.generate').cost).toBe(20);
   expect(r.payload.packs.every((p) => p.price.configured)).toBe(true);
   expect(db.calls.some((c) => c.url.includes('/auth/v1/user'))).toBe(false);

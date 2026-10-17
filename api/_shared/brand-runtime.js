@@ -589,7 +589,9 @@ function brandBlock(brand) {
   const imp = fontImport(t);
   if (imp) lines.push(`For any HTML asset, inject this EXACT import into the <head> <style> before app rules:\n  ${imp}`);
   const pend = Array.isArray(b.pending_hosting) ? b.pending_hosting : [];
-  const logo = httpsUrl(b.logo_url);
+  // The brand's own logo wherever its record holds it, else its site's icon
+  // (mailer-format.logoSourceOf), never only the one logo_url field.
+  const logo = httpsUrl(b.logo_url) || (() => { try { return require('./mailer-format.js').emailLogoSrc(b); } catch (_) { return ''; } })();
   lines.push(`LOGO (header, exact — never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30-56px)${b.website ? `, wrapped in a link to the brand's homepage (${String(b.website).replace(/^(?!https?:\/\/)/i, 'https://')})` : ''}. Every mailer, Text included, opens with it.`
     : pend.includes('logo') ? `${hostedMarker('logo', b)} - the logo exists only as an uploaded file on the operator's device. Write this marker where the logo goes; never embed an image as data:/base64 and never invent a URL.`
       : missing('logo URL', '', b)}`);

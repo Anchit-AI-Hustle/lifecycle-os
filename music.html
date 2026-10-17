@@ -88,19 +88,18 @@
               <option>cinematic and rising</option>
             </select></label>
           <label><span class="mk-label">Length in seconds</span>
-            <input class="mk-field" id="mkSecs" type="number" min="3" max="120" value="30"></label>
+            <input class="mk-field" id="mkSecs" type="number" min="15" max="60" value="30"></label>
         </div>
         <label class="flex items-center gap-2 mt-3 text-[13px]" style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="checkbox" id="mkInstr" checked style="width:20px;height:20px"> Instrumental only (no vocals)</label>
         <label class="block mt-3"><span class="mk-label">Brief</span>
           <textarea class="mk-field" id="mkPrompt" spellcheck="true"></textarea></label>
         <div class="flex flex-wrap gap-2 mt-3">
           <button type="button" class="btn-primary" id="mkGenerate" data-credit-feature="audio.music">Generate here</button>
-          <button type="button" class="btn-outline" id="mkFree">Generate here, free</button>
           <button type="button" class="btn-lava" id="mkSuno">Open in Suno <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></button>
           <button type="button" class="btn-outline" id="mkCopy">Copy brief</button>
         </div>
         <div class="mt-3 text-[13px]" id="mkStatus" role="status" aria-live="polite"></div>
-        <p class="mk-note mt-2">Generate here uses ElevenLabs Music and costs credits. Generate here, free makes a generated instrumental in your browser from the brief (its tempo if it states one, its mood words and the length above, 15 to 60 seconds): no service, no key, no credits, and the same brief always gives the same track. Suno has no public API yet, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
+        <p class="mk-note mt-2">Generate here makes an instrumental from the brief (its tempo if it states one, its mood words and the length above, 15 to 60 seconds) and costs credits; the same brief always gives the same track. Suno has no public API yet, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
         <div id="mkMade"></div>
       </div>
     </section>
@@ -202,7 +201,6 @@
   </main>
 
   <script src="/auth.js"></script>
-  <script src="/music-synth.js"></script>
   <script>
   (function(){
     "use strict";
@@ -319,26 +317,6 @@
       var n = document.createElement("p"); n.className = "mk-note mt-2"; n.textContent = (note ? note + " " : "") + "Kept in this tab only: download it to keep it."; row.appendChild(n);
       box.insertBefore(row, box.firstChild);
     }
-    // Code-only: rendered in this browser by music-synth.js (Web Audio API,
-    // OfflineAudioContext), no request leaves the page. Offline rendering
-    // needs no user gesture, so it works on iOS Safari too.
-    var freeBusy = false;
-    async function makeFree(lead){
-      var prompt = $("mkPrompt").value.trim();
-      if (!prompt) { say("Write a brief first."); return; }
-      if (!window.MusicSynth) { say("The in-browser generator did not load: reload the page."); return; }
-      if (freeBusy) return; freeBusy = true; $("mkFree").disabled = true;
-      say((lead ? lead + " " : "") + "Making a generated instrumental in your browser.");
-      try {
-        var out = await window.MusicSynth.render(prompt, Number($("mkSecs").value) || 30);
-        addMade(URL.createObjectURL(out.blob), "Generated instrumental, made in your browser · " + out.plan.summary, "wav",
-          "A generated instrumental made in your browser from the brief, not a composed song.");
-        say((lead ? lead + " " : "") + "Done: a generated instrumental made in your browser (" + out.plan.summary + "). Play it below.");
-      } catch (e) {
-        say("This browser could not make the track: " + ((e && e.message) || e));
-      } finally { freeBusy = false; $("mkFree").disabled = false; }
-    }
-    $("mkFree").addEventListener("click", function(){ makeFree(""); });
     $("mkGenerate").addEventListener("click", async function(){
       var btn = this, prompt = $("mkPrompt").value.trim();
       if (!prompt) { say("Write a brief first."); return; }
@@ -353,19 +331,16 @@
         var type = r.headers.get("content-type") || "";
         if (r.ok && /audio/.test(type)) {
           var url = URL.createObjectURL(await r.blob());
-          addMade(url, "New track · " + $("mkUse").selectedOptions[0].textContent);
+          var isWav = /wav/.test(type);
+          addMade(url, "New track · " + $("mkUse").selectedOptions[0].textContent, isWav ? "wav" : undefined,
+            isWav ? "A generated instrumental made from the brief, not a composed song." : undefined);
           say("Done. Play it below.");
         } else {
           var j = null; try { j = await r.json(); } catch(_){}
           var err = new Error((j && (j.message || j.error)) || ("The server answered " + r.status + "."));
           if (j && j.error) err.code = j.error;
           err.status = r.status;
-          if (r.status === 501 && j && j.error === "music_unconfigured") {
-            // No music key on this deployment: make it here instead, free.
-            btn.disabled = false;
-            await makeFree("No music service key is set on this deployment (ELEVENLABS_API_KEY), so the track is made here instead.");
-          }
-          else if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show($("mkStatus"), err);
+          if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show($("mkStatus"), err);
           else say(err.message);
         }
       } catch (e) {

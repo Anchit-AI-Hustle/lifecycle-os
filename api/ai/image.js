@@ -149,8 +149,19 @@ module.exports = async function handler(req, res) {
   // Keys cleaned and de-duplicated: the same OpenAI key set twice used to be
   // sent twice after it had already been refused.
   const _clean = (s) => String(s || '').replace(/[﻿​ ]/g, '').trim();
-  const geminiKey = _clean(process.env.GEMINI_API_KEY);
-  const openaiKeys = [...new Set([
+  // The workspace's OWN image-capable keys (OpenAI, Gemini), when it connected
+  // any: then only those draw, in the operator's order (OpenAI before Gemini),
+  // and neither the platform's keys nor the free rungs are used (2026-10-17).
+  // A workspace whose own models cannot draw (Anthropic, Grok text only) uses
+  // the platform's order, as before.
+  let ownImg = null;
+  try {
+    const ov = await require('../_shared/workspace-connections-core.js').llmOverridesForCurrentRequest();
+    const k = (ov && ov.keys) || {};
+    if (_clean(k.openai) || _clean(k.gemini)) ownImg = { openai: _clean(k.openai), gemini: _clean(k.gemini) };
+  } catch (_) { ownImg = null; }
+  const geminiKey = ownImg ? ownImg.gemini : _clean(process.env.GEMINI_API_KEY);
+  const openaiKeys = ownImg ? (ownImg.openai ? [ownImg.openai] : []) : [...new Set([
     process.env.OPENAI_API_KEY,
     process.env.OPENAI_API_KEY_2,
     process.env.OPENAI_API_KEY_3
@@ -420,13 +431,29 @@ module.exports = async function handler(req, res) {
   // A caller that honours FREE_GENERATION=off (the pipeline's images stage)
   // asks for no keyless rung with `free: false`. Absent, the route is unchanged.
   if (body.free === false) { const i = rungs.indexOf(tryPollinations); if (i >= 0) rungs.splice(i, 1); }
+  // FREE FIRST (2026-10-17, the operator: "everything will cost the user
+  // credits - but it should be done for free in the backend"). The credit
+  // charge is unchanged; the picture is made by the free rungs first (the
+  // keyless one, then the free Flux bucket), and a paid provider is reached
+  // only when every free one failed. FREE_GENERATION=off keeps the old order.
+  const freeFirst = !ownImg && String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off' && body.free !== false;
+  if (ownImg) {
+    rungs.length = 0;
+    if (ownImg.openai) rungs.push(tryOpenai);
+    if (ownImg.gemini) rungs.push(() => tryGeminiNative(['gemini-3-pro-image-preview', 'gemini-2.5-flash-image']), () => tryImagen(['imagen-4.0-fast-generate-001']));
+  } else if (freeFirst) {
+    for (const r of [tryCloudflare, tryPollinations]) {
+      const i = rungs.indexOf(r);
+      if (i > 0) { rungs.splice(i, 1); rungs.unshift(r); }
+    }
+  }
 
   const hadKeys = !!(geminiKey || openaiKeys.length > 0);
   for (const rung of rungs) {
     if (left() < 1000) { budgetOut = true; break; }
     const hit = await rung();
     if (hit) {
-      const usedFreeFallback = hit.provider === 'pollinations' && hadKeys;
+      const usedFreeFallback = hit.provider === 'pollinations' && hadKeys && !freeFirst;
       return res.status(200).json({
         ok: true, provider: hit.provider, model: hit.model, size, quality,
         image_data_url: hit.image_data_url,

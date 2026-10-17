@@ -115,6 +115,13 @@ const CONTRACTS = {
       'The mailer must be COMPLETE with images disabled. An image-only mailer is a blank rectangle to a reader whose client blocks images by default.',
       'Images are REFERENCED by hosted URL, never embedded as base64. Gmail clips past roughly 102KB and the mailer is truncated mid-layout.',
       'Animation may only hide content inside the same gated block that animates it, or a client that strips animation paints the mailer permanently invisible (see motion-design.js).',
+      // Email design practice (2026-10-17; vendor guidance from Dotdigital,
+      // ATTN, Hostinger, Insider and the American Express email design system,
+      // read and agreed across sources, not a measured benchmark):
+      'One column. The brand\'s logo first, linked to its homepage.',
+      'Inverted pyramid: the hero picture (Text + Visual) or the headline, a one-line subhead, then the main button, all within the first ~300px; the rest is supporting detail, and the button is repeated at the end for readers who scroll.',
+      'Never an image-only mail: words carry the message (about 60:40 text to image is the common rule of thumb), and every picture has alt text that says what it is for.',
+      'The preheader extends the subject in about 40 to 70 characters; it never repeats it.',
     ],
     algorithm: [
       'Resolve the cohort and the offer, so the mailer knows who it is for before it knows what it says.',
@@ -455,6 +462,13 @@ function mailQuality(a) {
   const paras = (mailBody(html).match(/<p\b[^>]*>([\s\S]*?)<\/p>/gi) || []).map((p) => words(htmlText(p)));
   const long = paras.filter((x) => x > MAIL_WORDS.paragraph).length;
   if (long) v.push(warn('copy', `${long} paragraph${long === 1 ? ' is' : 's are'} over ${MAIL_WORDS.paragraph} words: a wall of text on a phone. Split it or cut to one idea.`));
+  // 4b. The main button sits near the top, not after the whole body.
+  const bodyHtml = mailBody(html);
+  const firstCta = bodyHtml.search(/data-ds="(?:button-primary|cta-link)"|<a\b[^>]*class="[^"]*\bbtn\b/i);
+  if (firstCta > 0) {
+    const before = words(htmlText(bodyHtml.slice(0, firstCta)));
+    if (before > 70) v.push(warn('cta', `The main button comes after ${before} words. Put it under the headline and subhead, inside the first screen, and repeat it at the end.`));
+  }
   // 5. The rules every commercial mail must keep.
   if (!/unsubscribe/i.test(htmlText(html))) v.push(block('footer', 'No way to unsubscribe is stated. Every commercial email must offer one (CAN-SPAM 15 U.S.C. 7704(a)(3); UK PECR reg. 22).'));
   const subj = String(a.subject || '');
