@@ -1911,6 +1911,15 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const P = sectionGround(_pal.primary, _pal.accent, SURF);
   const ACC = _pal.accent;
   const ON_P = textOn(P, SURF, INKC), ON_ACC = textOn(ACC, SURF, INKC);
+  // The hero button sits ON the primary band: an accent that does not stand
+  // off that band (under 1.5:1, the reader's own CTA floor) left the page's
+  // main action as bare text (2026-10-17 audit). Then it takes the surface.
+  const _k = _wsCore();
+  const HERO_BTN = (_k && _k.contrast && _k.contrast(ACC, P) < 1.5) ? SURF : ACC;
+  const ON_HERO_BTN = textOn(HERO_BTN, SURF, INKC);
+  // A category is shown only when it reads as words: a store's raw tag list
+  // ("af1,gaming,aesthetic") is not one.
+  const _cat = (() => { const c = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.category || '') : ''; return /[,;|]/.test(c) ? '' : c; })();
   // THE BRAND'S DESIGN SYSTEM, as read off its own rendered site (2026-10-04).
   // Until now this page painted tenant zero's two font families for EVERY
   // brand (FONT_HEAD / FONT_BODY are its literals) and consumed nothing but a
@@ -1996,11 +2005,9 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     t = String(t).replace(/^Why\s+(The story behind|Why)\s+/i, 'Why ');
     return t;
   })();
-  const fallbackBullets = (bClaims.length ? bClaims.slice(0, 3) : [
-    `100% authentic from ${bName}'s verified collection.`,
-    `Thoughtfully engineered for everyday reliability and peace of mind.`,
-    `Backed by ${bName}'s authentic support and dedicated care.`,
-  ]).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
+  // The brand's own claims, or nothing: the fallback here was three claims no
+  // brand made ("100% authentic from <brand>'s verified collection" ...).
+  const fallbackBullets = bClaims.slice(0, 3).map((b) => `<li><span class="tick">✓</span>${esc(b)}</li>`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
@@ -2016,6 +2023,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
 .hero p{max-width:540px;margin:0 auto 20px;color:var(--on-moss);font-size:15px}
 .btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:12px 28px;min-height:44px;border-radius:6px;border:0;cursor:pointer;font-size:15px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
+.hero .btn{background:${HERO_BTN};color:${ON_HERO_BTN}}
 .btn:hover{opacity:.92}
 .btn-dark{background:var(--moss);color:var(--on-moss)}
 .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 24px;background:var(--chalk-warm);padding:12px 18px;font-size:12px;color:var(--ink-dim);text-align:center}
@@ -2088,9 +2096,9 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18p
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
-<div class="bar">${esc(bName)} · ${esc(entry.market)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
+<div class="bar">${esc(bName)}${bClaims[0] ? ` · ${esc(bClaims[0])}` : ''}</div>
 <section class="hero">
-  <p class="eyebrow">${esc((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.category) || bName)}</p>
+  <p class="eyebrow">${esc(_cat || bName)}</p>
   <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
   ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
   <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
@@ -2098,121 +2106,16 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
 ${creativeUrl ? `<img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(L.hero_headline || entry.heroProduct?.title || bName)}" style="width:100%;display:block;max-height:220px;object-fit:cover"/>` : ''}
 <div class="trust">${trustStars}${bClaims.slice(1, 4).map((c) => `<span>${esc(c)}</span>`).join('')}</div>
 <div class="wrap" data-ds="wrap">
-  <section class="sec friction">
-    <div class="sec-head">
-      <span class="sec-eyebrow">THE BOTTLENECK</span>
-      <h2>Why ordinary solutions fall short</h2>
-      <p class="sec-sub">Fragmented execution and generic alternatives leave critical opportunities on the table.</p>
-    </div>
-    <div class="friction-grid">
-      <div class="f-card">
-        <div class="f-badge">Friction Point</div>
-        <h3>Scattered handoffs &amp; stalled momentum</h3>
-        <p>When communication and follow-through stall, potential customers disengage and valuable intent cools rapidly.</p>
-        <div class="f-mockup">
-          <div class="f-row"><span>Engagement follow-up</span><span class="f-pill f-warn">Delayed</span></div>
-          <div class="f-row"><span>Retention drop-off</span><span class="f-pill f-err">High risk</span></div>
-        </div>
-      </div>
-      <div class="f-card">
-        <div class="f-badge">Inconsistency</div>
-        <h3>Disconnected touchpoints</h3>
-        <p>Generic messaging lacks the targeted relevance, verified proof, and authentic craft that modern buyers expect.</p>
-        <div class="f-mockup">
-          <div class="f-row"><span>Audience alignment</span><span class="f-pill f-warn">Mismatched</span></div>
-          <div class="f-row"><span>Repeat conversion</span><span class="f-pill f-err">Stagnant</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec steps-sec">
-    <div class="sec-head">
-      <span class="sec-eyebrow">HOW IT WORKS</span>
-      <h2>Connected in three seamless steps</h2>
-      <p class="sec-sub">Engineered to activate with precision, deliver authentic value, and compound results over time.</p>
-    </div>
-    <div class="timeline">
-      <div class="t-step">
-        <div class="t-num">1</div>
-        <div class="t-content">
-          <h3>Targeted Alignment</h3>
-          <p>Ground strategy in authentic audience behaviour and verified catalogue offerings rather than assumptions.</p>
-        </div>
-      </div>
-      <div class="t-step">
-        <div class="t-num">2</div>
-        <div class="t-content">
-          <h3>Direct-Response Activation</h3>
-          <p>Deploy high-converting copy, responsive visual design, and unified multichannel creative tailored to the buyer journey.</p>
-        </div>
-      </div>
-      <div class="t-step">
-        <div class="t-num">3</div>
-        <div class="t-content">
-          <h3>Compounding Return &amp; Scale</h3>
-          <p>Track measurable KPIs, repeat engagement, and authentic customer loyalty backed by genuine satisfaction.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec metrics-sec">
-    <div class="sec-head">
-      <span class="sec-eyebrow">SEE IT IN ACTION</span>
-      <h2>Performance benchmarked across channels</h2>
-      <p class="sec-sub">Transparent, data-backed execution built for predictable conversion and consistent growth.</p>
-    </div>
-    <div class="metrics-card">
-      <div class="m-card-header">
-        <b>Campaign Architecture · Performance Overview</b>
-        <span class="m-badge">Active Lifecycle</span>
-      </div>
-      <div class="m-table-wrap">
-        <table class="m-table">
-          <thead>
-            <tr>
-              <th>Initiative / Channel</th>
-              <th>Target Audience</th>
-              <th>Benchmark Focus</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><b>Direct Mailer &amp; Retention</b></td>
-              <td>Verified Customer Cohort</td>
-              <td>Repeat Purchase &amp; LTV</td>
-              <td><span class="m-pill m-ok">Selected</span></td>
-            </tr>
-            <tr>
-              <td><b>Targeted Social Ads</b></td>
-              <td>High Intent Interest</td>
-              <td>Optimized Acquisition</td>
-              <td><span class="m-pill m-ok">Active</span></td>
-            </tr>
-            <tr>
-              <td><b>Conversion Landing Page</b></td>
-              <td>Direct Traffic &amp; Shoppers</td>
-              <td>Maximized Cart Completion</td>
-              <td><span class="m-pill m-info">Updated</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <section class="sec why">
+  ${(bullets || fallbackBullets) ? `<section class="sec why">
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
-  </section>
+  </section>` : ''}
   <section class="sec">
     <div class="reveal" data-ds="card">
       ${_cardImg ? `<img class="ds-card-img" data-ds="card-image" src="${esc(_cardImg)}" alt="${esc(entry.heroProduct?.title || '')}" style="flex-basis:100%">` : ''}
       <div>
-        <h3 class="ds-card-title" data-ds="card-title" style="margin:0 0 6px">${esc(entry.heroProduct?.title || 'The edit')}</h3>
-        <p style="margin:0;color:var(--ink-dim)">${esc(entry.heroProduct?.category || (entry.offering && entry.offering.kind) || '')}</p>
+        <h3 class="ds-card-title" data-ds="card-title" style="margin:0 0 6px">${esc((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title) || bName)}</h3>
+        <p style="margin:0;color:var(--ink-dim)">${esc(_cat || (entry.offering && entry.offering.kind) || '')}</p>
       </div>
       <div style="text-align:right">
         ${priceLabel ? `<div class="price" data-ds="card-price">${esc(priceLabel)}</div>` : ''}
@@ -2382,10 +2285,10 @@ function renderVariant(entry, copy, style, img) {
     E.intro_paragraph ? { heading: '', body: E.intro_paragraph } : null,
     E.body_paragraph ? { heading: '', body: E.body_paragraph } : null,
     (Array.isArray(E.benefits) && E.benefits.length)
-      ? { heading: 'The Transformation', body: E.benefits.map((b) => `✦ ${b}`).join('\n\n') }
+      ? { heading: 'What you get', body: E.benefits.map((b) => `✦ ${b}`).join('\n\n') }
       : null,
     E.guarantee ? { heading: 'Our Guarantee', body: E.guarantee } : null,
-    E.ps ? { heading: 'P.S.', body: E.ps } : null,
+    E.ps ? { heading: '', body: /^\s*p\.?\s*s\b/i.test(E.ps) ? E.ps : `P.S. ${E.ps}` } : null,
   ].filter(Boolean);
 
   // The shared renderer carries no proof slot, so the brand's REAL testimonials
@@ -2402,7 +2305,9 @@ function renderVariant(entry, copy, style, img) {
     // redirects; matches the flagship mailer's link + grid logic.
     cta_text: E.cta || 'Shop the edit', cta_url: links.pdp,
     market: entry.market, hero_product: heroProduct, hero_image_url: img || undefined,
-    products, collection_url: links.collectionUrl,
+    // A second button only to a DIFFERENT page: for a brand with no catalogue
+    // collection the "collection" was the same address as the main CTA.
+    products, collection_url: (links.collectionUrl && links.collectionUrl !== links.pdp && links.collectionUrl !== links.store) ? links.collectionUrl : undefined,
     offer_bar: (withGrid && (E.offer || (copy.landing && copy.landing.offer_bar))) || undefined,
   }), entry, style);
 }
