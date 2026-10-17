@@ -639,8 +639,8 @@ function _renderVariantBody(o) {
     ? `font-family:${_E.head};font-size:${_px(_E.h1.size) || '34px'};line-height:${_E.h1.line_height === 'normal' ? 'normal' : (_px(_E.h1.line_height) || '1.18')};color:${_E.h1.color || palette.green};margin:0 0 8px;font-weight:${_E.h1.weight || 500};letter-spacing:${_px(_E.h1.letter_spacing) || '0px'};text-transform:${_E.h1.transform || 'none'};`
     : `font-family:${HEAD};font-size:34px;line-height:1.18;color:${palette.green};margin:0 0 8px;font-weight:500;letter-spacing:-0.3px;`;
   const subStyle = _E && _E.text
-    ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '16px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.55')};color:${_E.text.color || palette.ink};margin:0 0 24px;`
-    : `font-family:${BODY};font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;`;
+    ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '16px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.55')};color:${_E.text.color || palette.ink};margin:0 0 24px;${MF.JUSTIFY}`
+    : `font-family:${BODY};font-size:16px;line-height:1.55;color:${palette.ink};margin:0 0 24px;${MF.JUSTIFY}`;
   // The same tokens for EVERY style (review finding, 2026-10-04: only the
   // default editorial style read them; visual, pure and founder kept tenant
   // zero's type). `margin`/`color` are the style's own layout and ground.
@@ -648,8 +648,8 @@ function _renderVariantBody(o) {
     ? `font-family:${_E.head};font-size:${_px(_E.h1.size) || '28px'};line-height:${_E.h1.line_height === 'normal' ? 'normal' : (_px(_E.h1.line_height) || '1.25')};color:${color || _E.h1.color || palette.green};margin:${margin};font-weight:${_E.h1.weight || 500};letter-spacing:${_px(_E.h1.letter_spacing) || '0px'};text-transform:${_E.h1.transform || 'none'};`
     : fallback);
   const subWith = (fallback, margin) => (_E && _E.text
-    ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '15px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.6')};color:${_E.text.color || palette.ink};margin:${margin};`
-    : fallback);
+    ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '15px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.6')};color:${_E.text.color || palette.ink};margin:${margin};${MF.JUSTIFY}`
+    : fallback.replace(/;?$/, ';') + MF.JUSTIFY);
   const emailHead = _E && (_E.faces || _E.googleHref)
     ? `<head>${_E.googleHref ? `<link rel="stylesheet" href="${esc(_E.googleHref)}">` : ''}${_E.faces ? `<style>${_E.faces}</style>` : ''}</head>` : '';
 
@@ -741,7 +741,7 @@ function _renderVariantBody(o) {
   const blocks = (body_blocks || []).map((b) => `
     <tr><td style="padding:18px 32px 0;">
       ${b.heading ? `<p style="font-family:${HEAD};font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading)}</p>` : ''}
-      <p style="font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '').replace(/\n\n+/g, '</p><p style="font-family:' + BODY + ';font-size:15px;line-height:1.65;color:' + palette.ink + ';margin:8px 0 0;">').replace(/\n/g, '<br>')}</p>
+      <p data-mail-body style="font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;${MF.JUSTIFY}">${esc(b.body || '').replace(/\n\n+/g, '</p><p data-mail-body style="font-family:' + BODY + ';font-size:15px;line-height:1.65;color:' + palette.ink + ';margin:8px 0 0;' + MF.JUSTIFY + '">').replace(/\n/g, '<br>')}</p>
     </td></tr>`).join('');
 
   // THE BUTTON ABOVE THE FOLD (2026-10-17, the operator: "visuals in mailers
@@ -817,7 +817,7 @@ function _renderVariantBody(o) {
   // ── V1 · Pure Text: simple, monospace-free, no decorative blocks at all.
   if (style === 'pure') {
     const textBlocks = (body_blocks || []).map((b) => `
-      <p style="font-family:${BODY};font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;">
+      <p data-mail-body style="font-family:${BODY};font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;${MF.JUSTIFY}">
         ${b.heading ? `<strong style="color:${palette.greenText};">${esc(b.heading)}${/\n/.test(b.body || '') ? '' : ': '}</strong>${/\n/.test(b.body || '') ? '<br>' : ''}` : ''}${esc(b.body || '').replace(/\n\n+/g, '<br>').replace(/\n/g, '<br>')}
       </p>`);
     return `<!doctype html>

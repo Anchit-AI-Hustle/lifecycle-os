@@ -2484,7 +2484,7 @@ function emailHtml(entry, copy, creativeUrl) {
 
   const benefitsHtml = (Array.isArray(E.benefits) && E.benefits.length)
     ? `<div style="margin:24px 0;padding:20px 22px;background:${pal.surface_alt || '#f7f6f2'};border-radius:6px;border-left:3px solid ${ACC}">
-        <p style="font-family:${_ef.head};font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;color:${P}">Why this changes everything</p>
+        <p style="font-family:${_ef.head};font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;color:${P}">What you get</p>
         <ul style="margin:0;padding-left:18px;line-height:1.7;color:${INK}">
           ${E.benefits.map((b) => `<li style="margin-bottom:6px">${esc(b)}</li>`).join('')}
         </ul>
@@ -2498,7 +2498,7 @@ function emailHtml(entry, copy, creativeUrl) {
     : '';
 
   const psHtml = E.ps
-    ? `<p style="font-size:13.5px;line-height:1.6;color:${INK};margin:24px 0 0;padding-top:16px;border-top:1px solid ${pal.line || '#e8e4dc'};"><strong>P.S.</strong> ${esc(E.ps)}</p>`
+    ? `<p data-mail-body style="font-size:13.5px;line-height:1.6;color:${INK};margin:24px 0 0;padding-top:16px;border-top:1px solid ${pal.line || '#e8e4dc'};${require('./mailer-format.js').JUSTIFY}"><strong>P.S.</strong> ${esc(E.ps)}</p>`
     : '';
 
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${E.subject}</title>${require('./mailer-format.js').MOBILE_CSS}</head>
@@ -2510,8 +2510,8 @@ function emailHtml(entry, copy, creativeUrl) {
   </section>
   ${heroImg}
   <section style="padding:36px">
-    <p style="line-height:1.7">${E.intro_paragraph}</p>
-    <p style="line-height:1.7">${E.body_paragraph}</p>
+    <p data-mail-body style="line-height:1.7;${require('./mailer-format.js').JUSTIFY}">${E.intro_paragraph}</p>
+    <p data-mail-body style="line-height:1.7;${require('./mailer-format.js').JUSTIFY}">${E.body_paragraph}</p>
     ${benefitsHtml}
     ${guaranteeHtml}
     <p style="text-align:center;margin:32px 0 8px"><a href="${slotLinks(entry).pdp}" style="background:${ACC};color:${onACC};padding:15px 28px;text-decoration:none;border-radius:4px;font-weight:700;display:inline-block">${E.cta || entry.cta || 'See more'}</a></p>
@@ -4222,8 +4222,18 @@ const PREBUILD_MARKER = '__prebuilt';
 // capitals under the wordmark, "The Transformation", a button only at the
 // end) after every one of those was fixed. A bundle built by an earlier
 // renderer is not reused: viewing rebuilds it, and the prebuild queue rebuilds
-// it. Bump this whenever what a saved asset LOOKS like changes.
-const ASSET_BUILD_VERSION = '2026-10-17.mailer-layout';
+// it. A hand-kept version was never bumped (the Parwah mailer of 2026-10-17
+// still showed invented benefits and a #0000EE divider a day after both were
+// fixed), so the version is now the content of the code that renders and
+// grounds the assets: change any of it and every saved bundle is rebuilt.
+const ASSET_BUILD_VERSION = (() => {
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js'];
+  const h = require('crypto').createHash('sha256');
+  for (const f of files) {
+    try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
+  }
+  return 'src.' + h.digest('hex').slice(0, 16);
+})();
 function currentBuild(campaign) { return !!(campaign && campaign.build_version === ASSET_BUILD_VERSION); }
 // Marker for an ON-DEMAND preview build that has been persisted so it is reused
 // (instant) on every later view/download instead of rebuilt. Distinct from
@@ -4392,6 +4402,9 @@ async function dbCheck({ config: cfg = {} } = {}) {
 }
 
 module.exports = {
+  // exported for tests/mailer-justified.spec.js: a saved bundle from other
+  // renderer code is never replayed.
+  ASSET_BUILD_VERSION, __test_currentBuild: currentBuild,
   // exported for scripts/test-brand-isolation.js only
   __test_emailHtml: emailHtml,
   // exported for tests/brand-data-scope.spec.js: the slot-id namespace is the

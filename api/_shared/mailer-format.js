@@ -168,6 +168,12 @@ function article(name) {
   return /^[aeiou]/i.test(String(name || '').replace(/^[^A-Za-z]+/, '')) ? 'an' : 'a';
 }
 
+// Body copy in every mailer is set justified (the operator, 2026-10-17:
+// "alignment must be justified in mailers"). A line before a <br> and the
+// last line of a paragraph stay at the start edge (CSS text-align-last), so a
+// list of short lines is not stretched. Headings, buttons and the footer keep
+// their own alignment.
+const JUSTIFY = 'text-align:justify;text-justify:inter-word;';
 const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
@@ -284,6 +290,7 @@ function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', 
 }
 
 module.exports = {
+  JUSTIFY,
   article,
   mobile,
   MOBILE_CSS,
