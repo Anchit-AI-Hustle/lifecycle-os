@@ -681,6 +681,9 @@ function _renderVariantBody(o) {
   // (never one-product-per-vertical-section). Matches the flagship grid exactly.
   const gridProducts = Array.isArray(products) ? products.filter(Boolean).slice(0, 3) : [];
   const anyImg = gridProducts.some((p) => _productImg(p, market, o && o.brand));
+  // Every card's text block is the same height too: a name that wraps to a
+  // second line made its card taller than its neighbours (two lines held).
+  const anyNote = gridProducts.some((p) => _productNote(p, market, o && o.brand));
   const productGrid = gridProducts.length ? `
       <tr><td style="padding:16px 20px 4px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
@@ -699,8 +702,8 @@ function _renderVariantBody(o) {
           <a href="${pdp}" target="_blank" style="text-decoration:none;">
             <div style="background:${palette.chalk};border:1px solid ${palette.lava}33;border-radius:10px;padding:12px 8px 16px;">
               ${tile}
-              <div style="font-family:${HEAD};font-size:14px;color:${palette.ink};line-height:1.35;">${esc(p.title || p.n || '')}</div>
-              ${note ? `<div style="font-family:${BODY};font-size:12px;color:${palette.mutedOnSurface};margin-top:4px;line-height:1.4;">${esc(note)}</div>` : ''}
+              <div style="font-family:${HEAD};font-size:14px;color:${palette.ink};line-height:19px;height:38px;overflow:hidden;">${esc(p.title || p.n || '')}</div>
+              ${anyNote ? `<div style="font-family:${BODY};font-size:12px;color:${palette.mutedOnSurface};margin-top:4px;line-height:17px;height:17px;overflow:hidden;">${esc(note || '')}</div>` : ''}
               ${price ? `<div style="font-family:${BODY};font-size:13px;color:${palette.greenText};margin-top:6px;font-weight:600;">${price}</div>` : ''}
             </div>
           </a></td>`;
