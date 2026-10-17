@@ -2669,13 +2669,28 @@
   function bindSkipTarget(wrap) {
     const skip = wrap && wrap.querySelector('.lnav-skip');
     if (!skip) return;
+    // A page with no <main> skips to the first element after the rail that is
+    // the page's own: the signed-out notice and the consent bar sit there too
+    // and are chrome. A target that already has an id of its own gets an empty
+    // marker before it, so #lc-content always exists (the consent bar's own id
+    // once took the target and left the link pointing at nothing).
+    const CHROME = /^(lc-authnotice|lc-consent|lc-activity-bar|lc-popup-blocked)$/;
+    const firstContent = () => {
+      let n = wrap.nextElementSibling;
+      while (n && (CHROME.test(n.id || '') || /^(SCRIPT|STYLE|LINK|NOSCRIPT)$/.test(n.tagName))) n = n.nextElementSibling;
+      return n;
+    };
     const resolve = () => document.getElementById('lc-content')
       || document.querySelector('main, [role="main"]')
-      || wrap.nextElementSibling;
+      || firstContent();
     const mark = (t) => {
       if (!t) return null;
-      if (!t.id) t.id = 'lc-content';
-      return t;
+      if (t.id === 'lc-content') return t;
+      if (!t.id) { t.id = 'lc-content'; return t; }
+      const m = document.createElement('span');
+      m.id = 'lc-content';
+      t.parentNode.insertBefore(m, t);
+      return m;
     };
     mark(resolve());
     skip.addEventListener('click', (e) => {
