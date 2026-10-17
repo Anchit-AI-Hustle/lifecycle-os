@@ -383,3 +383,25 @@ test('its 402 is a rate limit (a wait), never a bill; FREE_GENERATION=off means 
   expect(off.message).toMatch(/No AI provider configured/);
   expect(net.calls).toHaveLength(0);
 });
+
+/* ── a provider that just timed out is tried LAST for a while (2026-10-17) ── */
+// Production, one Smart Brain preview: the keyless provider timed out (12 s),
+// a key with no quota timed out (16 s), and only then the provider that
+// answered was reached; every later call of the same build paid the same
+// waits again. 72 s for one slot.
+test('a provider that timed out moves behind the ones that answer, for the next calls; it is still tried', async () => {
+  setEnv({ GEMINI_API_KEY: 'gm', GROQ_API_KEY: 'gq' });
+  net = installNet((c) => (c.provider === 'gemini' ? { hang: true } : undefined));
+  const first = await ask();
+  expect(first.provider).toBe('groq');
+  expect(net.calls.map((c) => c.provider)).toEqual(['gemini', 'groq']);
+  net.calls.length = 0;
+  const second = await ask();
+  expect(second.provider).toBe('groq');
+  expect(net.calls.map((c) => c.provider), 'the provider that just timed out is not asked first again').toEqual(['groq']);
+  // Still a fallback: when the answering one fails, the slow one is tried.
+  net.restore();
+  net = installNet((c) => (c.provider === 'groq' ? { status: 500, json: { error: 'down' } } : undefined));
+  const third = await ask();
+  expect(third.provider).toBe('gemini');
+});

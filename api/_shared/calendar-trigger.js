@@ -615,6 +615,7 @@ function _renderVariantBody(o) {
   // The section ground used AS TEXT on the white card (the visual mailer's
   // headline under a real photo): derived for AA, never the raw ground.
   palette.greenText = _core ? _core.readableAsText(palette.green, '#ffffff', 4.5) : palette.ink;
+  palette.tile = _bpal.surface_alt || _bpal.surface || '#f4f4f4';
 
   // THE BRAND'S DESIGN SYSTEM, under EMAIL constraints (2026-10-04). When
   // "Read my site" measured one, the call to action, the headline and the
@@ -679,21 +680,28 @@ function _renderVariantBody(o) {
   // Compact product grid: real inline images + PDP links, up to 3 across one row
   // (never one-product-per-vertical-section). Matches the flagship grid exactly.
   const gridProducts = Array.isArray(products) ? products.filter(Boolean).slice(0, 3) : [];
+  const anyImg = gridProducts.some((p) => _productImg(p, market, o && o.brand));
   const productGrid = gridProducts.length ? `
       <tr><td style="padding:16px 20px 4px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
         ${gridProducts.map((p) => {
     const img = _productImg(p, market, o && o.brand);
+    // Cards in one row are the same size (2026-10-17): every picture sits in
+    // the same 140px square, and a product with no photo of its own gets a
+    // plain tile with its initial instead of a shorter card.
+    const tile = img
+      ? `<img src="${esc(img)}" alt="${esc(p.title || p.n || '')}" width="140" height="140" style="width:140px;max-width:100%;height:140px;object-fit:cover;border-radius:8px;display:block;margin:0 auto 10px;" />`
+      : (anyImg ? `<div role="presentation" style="width:140px;max-width:100%;height:140px;line-height:140px;border-radius:8px;margin:0 auto 10px;background:${palette.tile};color:${palette.greenText};font-family:${HEAD};font-size:40px;text-align:center;">${esc(String(p.title || p.n || '').trim().charAt(0).toUpperCase())}</div>` : '');
     const note = _productNote(p, market, o && o.brand);
     const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl);
     const price = (p.price != null && p.price !== '') ? (() => { const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return `${cur}${p.price}`; })() : '';
     return `<td align="center" valign="top" style="width:33%;padding:8px;">
           <a href="${pdp}" target="_blank" style="text-decoration:none;">
             <div style="background:${palette.chalk};border:1px solid ${palette.lava}33;border-radius:10px;padding:12px 8px 16px;">
-              ${img ? `<img src="${esc(img)}" alt="${esc(p.title || p.n || '')}" width="140" style="width:100%;max-width:140px;height:auto;border-radius:8px;display:block;margin:0 auto 10px;" />` : ''}
+              ${tile}
               <div style="font-family:${HEAD};font-size:14px;color:${palette.ink};line-height:1.35;">${esc(p.title || p.n || '')}</div>
-              ${note ? `<div style="font-family:${BODY};font-size:12px;color:#7a6e5a;margin-top:4px;line-height:1.4;">${esc(note)}</div>` : ''}
-              ${price ? `<div style="font-family:${BODY};font-size:13px;color:${palette.lava};margin-top:6px;font-weight:600;">${price}</div>` : ''}
+              ${note ? `<div style="font-family:${BODY};font-size:12px;color:${palette.mutedOnSurface};margin-top:4px;line-height:1.4;">${esc(note)}</div>` : ''}
+              ${price ? `<div style="font-family:${BODY};font-size:13px;color:${palette.greenText};margin-top:6px;font-weight:600;">${price}</div>` : ''}
             </div>
           </a></td>`;
   }).join('')}
