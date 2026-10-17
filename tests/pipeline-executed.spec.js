@@ -831,11 +831,14 @@ test('with every model down and nothing supplied, the mailer says only what the 
   const brief = 'Win back lapsed buyers before winter';
   try {
     const run = async (stage, body) => {
-      const net = fakeNetwork(AS.other);
-      try { return await call(stage, body, 'session-other'); } finally { net.restore(); }
+      // Its own account, on the same brand: the router's per-account brake
+      // (30 generation requests a minute, per instance) is already spent by
+      // the tests above it in this worker, and a 429 is not the fallback.
+      const net = fakeNetwork({ user: { id: 'user-fallback', email: 'fallback@example.com' }, activeWorkspace: OTHER.id, workspace: OTHER });
+      try { return await call(stage, body, 'session-fallback'); } finally { net.restore(); }
     };
     const strat = await run('strategy', { brief, market: 'US', products: [] });
-    expect(strat.body._heuristic).toBe(true);
+    expect(strat.body._heuristic, JSON.stringify({ status: strat.statusCode, body: strat.body }).slice(0, 600)).toBe(true);
     const plan = await run('variant', { variant: 'A', strategy_output: strat.body, brief, market: 'US', products: [] });
     expect(plan.body._heuristic).toBe(true);
     const planText = JSON.stringify({ s: plan.body.sections, subj: plan.body.subject_lines, pre: plan.body.preheader });
