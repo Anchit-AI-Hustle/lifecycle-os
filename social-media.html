@@ -48,7 +48,7 @@
      ordinary note is the status line's (sunken panel, accent rule). */
   .banner{display:none;border:1px solid var(--vh-line);border-left:4px solid var(--vh-err);background:var(--vh-panel-2);color:var(--vh-ink);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:13px}
   .banner.info{border-left-color:var(--vh-accent)}
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
   .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
   .card h3{margin:0;font-size:14px;color:var(--vh-primary-text);display:flex;justify-content:space-between;align-items:center;gap:8px}
   .plat{color:var(--vh-accent-text);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
@@ -58,12 +58,17 @@
   .tags{font-size:12px;color:var(--vh-ink);word-break:break-word}
   .heroimg{width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid var(--vh-line);display:block}
   .prompt{font-size:11px;color:var(--vh-ink-dim);background:var(--vh-panel-2);border:1px dashed var(--vh-line-hot);border-radius:10px;padding:8px;max-height:110px;overflow:auto}
+  /* The code-rendered motion creative (2026-10-17), shown from its own bytes in
+     a sandboxed frame (no scripts): 9:16, never wider than the card. */
+  .mstage{display:flex;justify-content:center;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:10px;padding:8px;min-width:0}
+  .mframe{display:block;width:270px;max-width:100%;height:480px;border:0;border-radius:10px;background:var(--vh-panel)}
+  @supports (aspect-ratio: 9 / 16){ .mframe{height:auto;aspect-ratio:9 / 16} }
   .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink)}
   .st.draft{background:var(--vh-panel-2)}
   .st.approved{color:var(--vh-ok-text);border-color:var(--vh-ok-text)}
   .st.skipped{color:var(--vh-err-text);border-color:var(--vh-err-text)}
   .st.posted{color:var(--vh-ok-text);border-color:var(--vh-ok-text);background:var(--vh-panel-2)}
-  .actions{display:flex;gap:8px;margin-top:auto}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
   .wide{grid-column:1/-1}
   .trace{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:16px;padding:16px;margin-top:18px}
   .trace h2{margin:0 0 10px;font-size:16px;color:var(--vh-primary-text);font-family:var(--vh-font-head)}
@@ -88,8 +93,8 @@
   .so-modal-body{font-size:13px;line-height:1.6;color:var(--vh-ink);white-space:pre-wrap;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:10px;padding:14px;max-height:62vh;overflow:auto;word-break:break-word}
   .so-modal-x{position:absolute;top:12px;right:14px;background:var(--vh-panel);border:1px solid var(--vh-line-hot);color:var(--vh-ink);border-radius:8px;padding:4px 10px;font-family:inherit;font-size:13px;cursor:pointer}
   .so-modal-dl{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-  @media(max-width:1024px){.grid{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:680px){.grid{grid-template-columns:1fr}h1{font-size:30px}body{padding:16px}}
+  @media(max-width:1024px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:680px){.grid{grid-template-columns:minmax(0,1fr)}h1{font-size:30px}body{padding:16px}}
 </style>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
@@ -258,6 +263,11 @@
   $('soModal').addEventListener('click', function (e) { if (e.target === $('soModal')) closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
 
+  function motionOf(p) {
+    var m = p && p.media;
+    var html = m && m.type === 'video' && m.video && m.video.motion_html;
+    return typeof html === 'string' && html ? html : '';
+  }
   function mediaHtml(media) {
     if (!media) return '';
     var h = '';
@@ -270,11 +280,16 @@
       var shots = (v.storyboard && v.storyboard.storyboard) || [];
       h += '<div class="prompt"><b>VIDEO STORYBOARD:</b><br>' + shots.map(esc).join('<br>');
       var job = v.job || {};
-      if (job.not_connected) h += '<br><b>Render:</b> stubbed — no video key set (would call ' + esc((job.would_request && job.would_request.provider) || 'veo') + ')';
+      if (v.motion_html) h += '<br><b>Render:</b> ' + esc(job.note || 'Animated HTML creative rendered in code. It is not an MP4.');
+      else if (job.not_connected) h += '<br><b>Render:</b> no video provider is configured, so no video was made.';
       else if (job.job_id) h += '<br><b>Render job:</b> ' + esc(job.provider || '') + ' ' + esc(job.job_id) + ' (' + esc(job.status || '') + ')';
       else if (job.status) h += '<br><b>Render:</b> ' + esc(job.status);
       else if (job.error) h += '<br><b>Render:</b> failed — ' + esc(job.error);
       h += '</div>';
+      // The document itself is written into the frame by card() (srcdoc, set as
+      // a property), never into this markup: a whole HTML document inside the
+      // page's own string would end at its first closing tag.
+      if (v.motion_html) h += '<div class="mstage"><iframe class="mframe" sandbox="" title="Animated creative preview"></iframe></div>';
     }
     if (media.crop) h += '<div class="meta">Crop: ' + esc(media.crop) + '</div>';
     return h;
@@ -311,6 +326,7 @@
         '<button type="button" class="btn sm secondary" data-view="1">View full</button>' +
         '<button type="button" class="btn sm secondary" data-dl="json">Download</button>' +
         (isBlogPost(p) ? '<button type="button" class="btn sm secondary" data-dl="md">.md</button>' : '') +
+        (motionOf(p) ? '<button type="button" class="btn sm secondary" data-dl-motion="1">Creative (HTML)</button>' : '') +
         '<button type="button" class="btn sm ok" data-act="social-approve">Approve</button>' +
         '<button type="button" class="btn sm no" data-act="social-skip">Skip</button>' +
       '</div>';
@@ -318,6 +334,16 @@
       btn.addEventListener('click', function () { decide(btn, el, id, btn.getAttribute('data-act')); });
     });
     el.querySelector('button[data-view]').addEventListener('click', function () { openModal(post); });
+    // The motion creative: previewed from its exact bytes, downloaded as them.
+    var motion = motionOf(p);
+    if (motion) {
+      var frame = el.querySelector('.mframe');
+      if (frame) frame.srcdoc = motion;
+      var mb = el.querySelector('button[data-dl-motion]');
+      if (mb) mb.addEventListener('click', function () {
+        downloadBlob((p.platform || 'post') + '-' + (p.date || 'creative') + '-motion.html', motion, 'text/html');
+      });
+    }
     el.querySelectorAll('button[data-dl]').forEach(function (btn) {
       btn.addEventListener('click', function () { downloadPost(post, btn.getAttribute('data-dl')); });
     });
