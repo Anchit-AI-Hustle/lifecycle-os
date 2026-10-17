@@ -288,14 +288,18 @@ test('a workspace key replaces the platform key for that provider', async () => 
   expect(everySent).not.toContain('platform-openai-key');
 });
 
-test('a provider the workspace did not bring a key for still uses the platform key', async () => {
+test('a workspace that brought a key of its own is answered only by its own models, never the platform\'s keys', async () => {
+  // The operator (2026-10-17): "if entered, then only those ai models shall be
+  // used". The workspace named Anthropic first but brought only an OpenAI key.
   const w = fresh();
   await callLLM({
     userMessage: 'hi', stage: 'test',
     overrides: { order: ['anthropic'], models: {}, keys: { openai: 'workspace-openai-key' }, bases: {}, fallback: false },
   });
-  const call = w.calls.find((c) => c.url.includes('api.anthropic.com'));
-  expect(call.headers['x-api-key']).toBe('platform-anthropic-key');
+  const call = w.calls.find((c) => c.url.includes('api.openai.com'));
+  expect(call.headers.Authorization).toBe('Bearer workspace-openai-key');
+  expect(w.calls.some((c) => c.url.includes('api.anthropic.com'))).toBe(false);
+  expect(w.calls.map((c) => JSON.stringify(c.headers)).join(' ')).not.toContain('platform-');
 });
 
 test('a stored key reaches the provider through the request scope alone', async () => {
