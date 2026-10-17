@@ -367,6 +367,9 @@ test('nothing of its own: one generated brand scene, hosted, labelled, with no p
 // a provider key and a bucket. Now the keyless Pollinations address, the same
 // picture every time for a brand, carried as a URL, never base64.
 test('no model key and no storage: the template assets still carry one free, keyless brand scene', async () => {
+  const savedFree = process.env.FREE_GENERATION;
+  process.env.FREE_GENERATION = 'on';
+  try {
   const bi = require(path.join(ROOT, 'api', '_shared', 'brand-imagery.js'));
   const url = bi.freeSceneUrl(APP);
   expect(url).toMatch(/^https:\/\/image\.pollinations\.ai\/prompt\//);
@@ -418,6 +421,60 @@ test('no model key and no storage: the template assets still carry one free, key
     if (realP) require.cache[PLAN] = realP; else delete require.cache[PLAN];
     for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
   }
+  // Switched off, nothing leaves for the free host.
+  process.env.FREE_GENERATION = 'off';
+  expect(await bi.generatedScene(APP, { generate: async () => null, upload: async () => null, probe: async () => true })).toBe(null);
+  } finally { if (savedFree === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = savedFree; }
+});
+
+// Every generated image, not only the brand scene (2026-10-17): with nowhere
+// to host the bytes, the free generator's own address is used, and a mail
+// never carries base64. Exercised through the shipped image route's answer.
+test('a generated image is carried as a URL: hosted, else the free generator\'s address, never base64', async () => {
+  const CI = require(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  const free = 'https://image.pollinations.ai/prompt/x?seed=1';
+  const SUPA = require.resolve(path.join(ROOT, 'api', '_shared', 'supa.js'));
+  const real = require.cache[SUPA];
+  require.cache[SUPA] = { id: SUPA, filename: SUPA, loaded: true, exports: { uploadObject: async () => { throw new Error('storage unreachable'); } } };
+  try {
+    expect(await CI.hostedUrl({ image: png, url: free })).toBe(free);
+    expect(await CI.hostedUrl({ image: png, url: null }), 'no address and no storage: no image').toBe(null);
+    expect(await CI.hostedUrl({ image: 'https://cdn.example/a.png' })).toBe('https://cdn.example/a.png');
+    require.cache[SUPA].exports.uploadObject = async () => ({ public_url: 'https://store.example/a.png' });
+    expect(await CI.hostedUrl({ image: png, url: free }), 'the hosted copy wins').toBe('https://store.example/a.png');
+  } finally { if (real) require.cache[SUPA] = real; else delete require.cache[SUPA]; }
+  // Through the shipped image route, as the server calls it. It used to send no
+  // credentials, so the route answered 401 and every server-side image was null.
+  const realFetch = global.fetch;
+  const ENVK = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_API_KEY_3', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'CRON_SECRET', 'FREE_GENERATION', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
+  const saved = {}; for (const k of ENVK) { saved[k] = process.env[k]; delete process.env[k]; }
+  const hosts = [];
+  global.fetch = async (u) => {
+    const s2 = String(u); hosts.push(new URL(s2).host);
+    if (s2.startsWith('https://image.pollinations.ai/')) return new Response(new Uint8Array(9000), { status: 200, headers: { 'content-type': 'image/jpeg' } });
+    throw new Error('unexpected ' + s2);
+  };
+  try {
+    // The deployment's scheduler: the route itself answers, and says where its free picture lives.
+    process.env.CRON_SECRET = 'scheduler-secret-for-the-test';
+    process.env.FREE_GENERATION = 'off';
+    const viaRoute = await CI.generateCreativeImage('a calm room, no text', { size: '1024x1024' });
+    expect(viaRoute, 'the route admitted the server\'s own call').toBeTruthy();
+    expect(viaRoute.provider).toBe('pollinations');
+    expect(viaRoute.url).toMatch(/^https:\/\/image\.pollinations\.ai\/prompt\//);
+    expect(await CI.hostedUrl(viaRoute)).toBe(viaRoute.url);
+    // No scheduler, no session: the free floor, unless it is switched off.
+    delete process.env.CRON_SECRET;
+    expect(await CI.generateCreativeImage('a calm room, no text'), 'switched off: nothing').toBe(null);
+    process.env.FREE_GENERATION = 'on';
+    const floor = await CI.generateCreativeImage('a calm room, no text');
+    expect(floor).toMatchObject({ provider: 'pollinations', keyless: true });
+    expect(floor.image).toMatch(/^https:\/\//);
+  } finally {
+    global.fetch = realFetch;
+    for (const k of ENVK) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
 });
 
 // Phones (2026-10-17): every mail was a FIXED 600/560px table, so at 375px it
@@ -443,4 +500,63 @@ test('every mail fits a 375px phone, keeps its 600px column on a desktop, and Ou
     expect(widest, `${name}: the desktop column`).toBeGreaterThanOrEqual(560);
     expect(widest).toBeLessThanOrEqual(600);
   }
+});
+
+// The visual audit of a tea store's no-key assets (2026-10-17). The operator:
+// "Still the content and visuals need to be improved a lot". Rendered at 1280
+// and 390: the mail named its product three times ("A special pick for you: X
+// by <brand>", a heading, "X from <brand>. <tagline>") with no price though the
+// catalogue states one; the footer read "as a <Brand> IN customer"; the landing
+// page printed the same claims three times, its photo was a 220px strip, its
+// price "₹1450", its card repeated the hero, and B never named the product; the
+// ads said "<product> from <brand>" and used "Shop now" as a Google headline.
+const TEA = {
+  id: 'device:arya', slug: 'arya-teas', name: 'Arya Tea Estate', website: 'https://aryateas.example', industry: 'Kalimpong tea estate and store',
+  tagline: 'Single-estate Kalimpong, picked and packed at the garden',
+  palette: { primary: '#0E4D35', accent: '#C99A2E', ink: '#1E2A24', surface: '#FBF8F1' },
+  regions: [{ code: 'IN', currency: 'INR', store_url: 'https://aryateas.example', home: true }],
+  claims: ['Grown at 1,800 metres in Kalimpong', 'Packed at the garden within 48 hours of plucking'],
+  imagery: [{ url: 'https://aryateas.example/cdn/garden.jpg', page: 'https://aryateas.example/', role: 'hero' }],
+  legal_entity: 'Arya Tea Estate Pvt Ltd, Kalimpong 734101, India',
+};
+const teaSlot = () => slot(TEA, {
+  heroProduct: { sku: 'A1', title: 'Arya Diamond First Flush', handle: 'arya-diamond', category: 'Black Tea', image: 'https://aryateas.example/cdn/diamond.jpg', price: 1450 },
+  supportingProducts: [{ sku: 'A2', title: 'Arya Ruby Second Flush', handle: 'arya-ruby', category: 'Black Tea' }, { sku: 'G1', title: 'Glass Teapot', handle: 'glass-teapot', category: 'Accessories' }],
+});
+const count = (hay, needle) => String(hay).split(needle).length - 1;
+
+test('the no-key mail and landing pages say each fact once, show the price, and fit a phone', async ({ page }) => {
+  const c = await build(teaSlot());
+  const mail = c.assets.email.html;
+  const mailText = textOf(mail.replace(/<title>[\s\S]*?<\/title>/i, ""));
+  expect(count(mailText, 'Arya Diamond First Flush'), 'the product name, once in the headline').toBeLessThanOrEqual(1);
+  expect(mailText).toContain('₹1,450');
+  expect(mailText).toContain('Also from Arya Tea Estate');
+  expect(mailText).toContain('Arya Ruby Second Flush');
+  expect(mailText).toMatch(/because you are a Arya Tea Estate customer|because you are an? Arya Tea Estate customer/);
+  expect(mailText).not.toMatch(/ IN customer|A special pick for you|from Arya Tea Estate\./);
+  for (const lp of c.assets.landing_pages) {
+    const t = textOf(lp.html.replace(/<title>[\s\S]*?<\/title>/i, ""));
+    for (const claim of TEA.claims) expect(count(t, claim), `${lp.variant}: "${claim}" printed more than once`).toBeLessThanOrEqual(1);
+    expect(t).toContain('₹1,450');
+    expect(t).not.toContain('₹1450');
+    expect(t, `${lp.variant} names the product`).toContain('Arya Diamond First Flush');
+    expect(t).toContain('Also from Arya Tea Estate');
+    expect(lp.html).toMatch(/class="hero-grid has-media"/);
+    for (const [w, h] of [[390, 844], [1280, 900]]) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.route('**/*', (r) => (r.request().url().startsWith('https://aryateas.example/cdn/') ? r.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="900" height="600" fill="#6b8"/></svg>' }) : r.abort()));
+      await page.setContent(lp.html, { waitUntil: 'load' });
+      const m = await page.evaluate(() => ({ over: document.documentElement.scrollWidth - innerWidth, img: (document.querySelector('.hero-media img') || {}).getBoundingClientRect ? document.querySelector('.hero-media img').getBoundingClientRect().height : 0, btnLines: (() => { const b = document.querySelector('.sticky .btn'); return b ? Math.round(b.getBoundingClientRect().height / parseFloat(getComputedStyle(b).lineHeight || '20')) : 0; })() }));
+      expect(m.over, `${lp.variant} at ${w}px scrolls sideways`).toBeLessThanOrEqual(0);
+      expect(m.img, `${lp.variant} at ${w}px: the photo is a strip`).toBeGreaterThanOrEqual(w < 600 ? 200 : 380);
+      await page.unrouteAll();
+    }
+  }
+  const google = c.assets.ads.find((a) => a.platform === 'google' && a.creative_type === 'static');
+  expect(google.headlines).not.toContain('Shop now');
+  expect(google.headlines.join(' ')).toContain('₹1,450');
+  const meta = c.assets.ads.find((a) => a.platform === 'meta' && a.creative_type === 'static');
+  expect(meta.primary_text).not.toMatch(/from Arya Tea Estate/);
+  expect(meta.primary_text).toContain('₹1,450');
 });

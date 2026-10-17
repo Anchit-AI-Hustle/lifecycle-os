@@ -392,12 +392,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var clean = text.replace(/https?:\/\/\S+/g,'the product page').replace(/[*_#`]/g,'');
     try{
       var r = await fetch(API+'?action=tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:clean})});
-      if(r.ok && (r.headers.get('content-type')||'').indexOf('audio')>-1){
+      var ct=(r.headers.get('content-type')||'');
+      if(r.ok && ct.indexOf('audio')>-1){
         var blob=await r.blob(); if(audioEl) audioEl.pause();
         audioEl=new Audio(URL.createObjectURL(blob));
         audioEl.onended=maybeAutoListen; audioEl.play(); return;
       }
+      // No voice key on this deployment: the server hands back a free keyless
+      // voice to play. If it does not load, the browser voice speaks instead.
+      if(r.ok && ct.indexOf('json')>-1){
+        var j=await r.json();
+        if(j && j.audio_url){
+          if(audioEl) audioEl.pause();
+          var done=false, fell=function(){ if(done) return; done=true; browserVoice(clean); };
+          audioEl=new Audio(j.audio_url);
+          audioEl.onended=maybeAutoListen; audioEl.onerror=fell;
+          var pp=audioEl.play(); if(pp && pp.catch) pp.catch(fell);
+          return;
+        }
+      }
     }catch(e){}
+    browserVoice(clean);
+  }
+  function browserVoice(clean){
     if('speechSynthesis' in window){
       window.speechSynthesis.cancel();
       var u=new SpeechSynthesisUtterance(clean);

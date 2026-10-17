@@ -161,8 +161,22 @@
     // On a brand's website there is no signed-in caller for the server voice,
     // so the browser's own voice speaks (no request that would be refused).
     (BRAND ? Promise.reject(0) : fetch(API + '?action=tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: clean }) }))
-      .then(function (r) { if (r.ok && (r.headers.get('content-type') || '').indexOf('audio') > -1) return r.blob(); throw 0; })
-      .then(function (b) { var a = new Audio(URL.createObjectURL(b)); a.onended = function () { if (onDone) onDone(); }; a.onerror = function () { if (onDone) onDone(); }; a.play(); })
+      .then(function (r) {
+        var ct = r.headers.get('content-type') || '';
+        if (r.ok && ct.indexOf('audio') > -1) return r.blob().then(function (b) { return URL.createObjectURL(b); });
+        // No voice key: the server answers a free keyless voice to play here.
+        if (r.ok && ct.indexOf('json') > -1) return r.json().then(function (j) { if (j && j.audio_url) return String(j.audio_url); throw 0; });
+        throw 0;
+      })
+      .then(function (src) {
+        return new Promise(function (resolve, reject) {
+          var a = new Audio(src), started = false;
+          a.onplaying = function () { started = true; };
+          a.onended = function () { resolve(); if (onDone) onDone(); };
+          a.onerror = function () { if (started) { resolve(); if (onDone) onDone(); } else reject(0); };
+          var p = a.play(); if (p && p.catch) p.catch(function () { if (!started) reject(0); });
+        });
+      })
       .catch(function () {
         if ('speechSynthesis' in window) {
           var u = new SpeechSynthesisUtterance(spoken);

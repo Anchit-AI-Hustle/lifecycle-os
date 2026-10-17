@@ -544,6 +544,12 @@ async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
       };
       if (!posts[key].hashtags.length && PLATFORM_SPECS[key].hashtags[0] > 0) posts[key].hashtags = fbp.hashtags;
     }
+    // The brand guard (brand-guard.js): a post that invents a figure or claim,
+    // or names another company, is replaced by that platform's own fallback post.
+    try {
+      const g = require('./brand-guard.js').check(posts[key], ctx.brand, { market: ctx.market, allow: [ctx.focus && ctx.focus.product && ctx.focus.product.title].filter(Boolean) });
+      if (!g.ok) { posts[key] = Object.assign({}, fbp, { brand_guard: g.violations.map((v) => v.detail) }); }
+    } catch (_) { /* the guard could not run: keep the scrubbed post */ }
   }
   return { posts };
 }
@@ -610,7 +616,21 @@ function fallbackStoryboard(ctx, ideology) {
     on_screen_text: [ideology.theme, ctx.focus.type === 'tb' ? 'One-time pack. No strings.' : 'Subscribe & save.'],
   };
 }
-async function videoAgent(ctx, ideology, content, remainingMs) {
+// The on-screen lines and pictures of the keyless motion creative (2026-10-17):
+// the post's own customer copy (hook, then caption sentences, then the product
+// name), scrubbed like every other string, and the hero ONLY when it is the
+// brand's real catalogue photo. The storyboard is a shot list for whoever
+// films it and never goes on screen; a placeholder panel is not a photo.
+function motionFor(ctx, content, hero) {
+  const words = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+  const tt = (content && content.posts && (content.posts.tiktok || content.posts.reels || content.posts.shorts)) || {};
+  const sentences = words(tt.caption).replace(/#\S+/g, '').split(/(?<=[.!?])\s+/).map(words).filter((x) => x.length >= 8 && x.length <= 90);
+  const title = words(ctx && ctx.focus && ctx.focus.product && ctx.focus.product.title);
+  const lines = [tt.hook].concat(sentences).filter(Boolean).map((l) => scrubString(words(l)));
+  const real = hero && hero.provider === 'catalog' && /^https:\/\//i.test(String(hero.image_url || '')) ? [hero.image_url] : [];
+  return { images: real, lines, product: /^\[DATA REQUIRED/.test(title) ? '' : scrubString(title) };
+}
+async function videoAgent(ctx, ideology, content, remainingMs, hero) {
   let board = null;
   const budget = Math.min(12000, Math.max(0, remainingMs - 4000));
   if (callLLM && budget >= 5000) {
@@ -639,12 +659,22 @@ async function videoAgent(ctx, ideology, content, remainingMs) {
     job = { status: 'skipped_dry_run', note: 'video keys present but dry_run — no render submitted' };
   } else {
     try {
-      job = await video.generateVideo({ prompt: videoPrompt, duration_s: 8, aspect: '9:16', tier: 'standard' });
+      job = await video.generateVideo({ prompt: videoPrompt, duration_s: 8, aspect: '9:16', tier: 'standard',
+        brand: brandRecord(ctx), motion: motionFor(ctx, content, hero) });
     } catch (e) {
       job = { ok: false, error: String(e.message || e).slice(0, 200) };
     }
   }
-  return { storyboard: board, prompt: videoPrompt, job };
+  // The code-rendered creative travels on the post (attached AFTER the brand
+  // scrub in runDaily: the scrub rewrites "transform", which is CSS here), and
+  // the job keeps only its state.
+  let motion = null;
+  if (job && job.motion_html) {
+    motion = { html: job.motion_html, brief: job.motion_brief || null };
+    job = Object.assign({}, job);
+    delete job.motion_html; delete job.motion_brief;
+  }
+  return { storyboard: board, prompt: videoPrompt, job, motion };
 }
 
 // ── Agent 7: Compilation (fast) + limits + content validation ────────────────
@@ -793,7 +823,11 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
   // product-types.json no matter which brand the pipeline then went on to
   // resolve - and that file, not the catalogue, is where the sneaker titles
   // and the knickgasm.com product URLs were coming from.
-  let __brand = (brand && (brand.id || brand.slug)) ? brand : null;
+  // A record that NAMES its brand is that brand (brand-runtime.namesBrand), id
+  // or not: a carried record with a name and no id fell to "no brand" here and
+  // was given tenant zero's product taxonomy (found 2026-10-17).
+  let __brand = null;
+  try { __brand = (require('./brand-runtime.js').namesBrand(brand) || (brand && typeof brand === 'object' && brand.name)) ? brand : null; } catch (_) { __brand = (brand && (brand.id || brand.slug || brand.name)) ? brand : null; }
   if (!__brand && workspaceId) {
     try {
       const wsScope = require('./workspace-scope.js');
@@ -876,8 +910,8 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
 
   // 6. Audio/Video (storyboard LLM + graceful video job)
   const vStart = Date.now();
-  const av = await videoAgent(ctx, ideology, content, remaining());
-  trace.push({ step: '6-video', agent: 'Audio/Video agent', tier: 'standard', ok: true, source: av.job && av.job.not_connected ? 'stub:would_request' : (av.job && av.job.status === 'skipped_dry_run' ? 'skipped:dry_run' : 'submitted-or-error'), ms: Date.now() - vStart, note: 'storyboard ' + av.storyboard.storyboard.length + ' shots; job: ' + ((av.job && (av.job.status || (av.job.not_connected ? 'not_connected' : av.job.error))) || 'n/a') });
+  const av = await videoAgent(ctx, ideology, content, remaining(), hero);
+  trace.push({ step: '6-video', agent: 'Audio/Video agent', tier: 'standard', ok: true, source: av.job && av.job.provider === 'code-motion' ? 'code-motion:html' : av.job && av.job.not_connected ? 'stub:would_request' : (av.job && av.job.status === 'skipped_dry_run' ? 'skipped:dry_run' : 'submitted-or-error'), ms: Date.now() - vStart, note: 'storyboard ' + av.storyboard.storyboard.length + ' shots; job: ' + ((av.job && (av.job.status || (av.job.not_connected ? 'not_connected' : av.job.error))) || 'n/a') });
 
   // 7. Compile
   let posts = buildPosts(ctx, ideology, strategy, content, hero, av, keys);
@@ -886,6 +920,16 @@ async function runDaily({ date, platforms, dry_run = false, workspaceId = null, 
 
   // 8. Sanitize — EVERY string through the brand scrub.
   posts = deepScrub(posts);
+  // The motion creative's copy was scrubbed line by line before it was
+  // rendered; the document itself is HTML and CSS and must not be rewritten.
+  if (av.motion && av.motion.html) {
+    posts.forEach((p) => {
+      if (p.media && p.media.type === 'video' && p.media.video) {
+        p.media.video.motion_html = av.motion.html;
+        p.media.video.motion_brief = av.motion.brief;
+      }
+    });
+  }
   const pkg = deepScrub({
     ok: true, date: iso, market: ctx.market, dry_run: ctx.dry_run,
     focus: { type: ctx.focus.type, label: ctx.focus.label, purchase_mode: ctx.focus.purchase_mode, product: ctx.focus.product },

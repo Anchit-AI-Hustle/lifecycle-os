@@ -198,7 +198,8 @@ test('a campaign the app builds for a supplement brand (US and UK) and for a sne
     expect(comp.findings, `${label}: ${JSON.stringify(comp.findings).slice(0, 400)}`).toEqual([]);
     expect(comp.verdict).toBe('pass');
     // A check that inspects nothing passes everything: every asset was read.
-    const assets = 1 + campaign.assets.ads.length + campaign.assets.landing_pages.length;
+    // The email, each of its four type variants, every ad and every page.
+    const assets = 1 + (campaign.assets.email.variants || []).length + campaign.assets.ads.length + campaign.assets.landing_pages.length;
     expect(comp.checked, `${label}: assets linted`).toBe(assets);
     for (const ad of campaign.assets.ads) expect(ad.compliance_check.fields, `${label} ${ad.platform} ${ad.creative_type}: no copy read`).toBeGreaterThan(0);
     expect(campaign.assets.email.compliance_check.fields).toBeGreaterThanOrEqual(3);
@@ -929,7 +930,7 @@ test('the copywriter is briefed from the same context: the disclaimer verbatim, 
   }
 });
 
-test('the scripted-model path: copy a model wrote is linted in the build, and the prompt it was given carried the compliance brief', async () => {
+test('the scripted-model path: copy a model wrote is linted before it is used, never ships when it breaks a rule, and the prompt it was given carried the compliance brief', async () => {
   test.setTimeout(120_000);
   const LLM = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
   const PLAN = require.resolve(path.join(ROOT, 'api', '_shared', 'smart-brain-plan.js'));
@@ -957,13 +958,15 @@ test('the scripted-model path: copy a model wrote is linted in the build, and th
   try {
     const plan = require(PLAN);
     const c = await plan.buildCampaign(slot(CALMROOT, 'US'), smartConfig({}), { withCreatives: false });
-    expect(c.copywriter.provider).toBe('scripted');
-    const comp = c.contract_check.compliance;
-    expect(comp.verdict).toBe('block');
-    const where = (id) => comp.findings.filter((f) => f.id === id).map((f) => `${f.asset}/${f.field}`);
-    expect(where('us.fda.disease_claim')).toContain('email/subject');
-    expect(where('generic.objective_superlative')).toEqual(expect.arrayContaining([expect.stringMatching(/^ad:meta:/)]));
-    expect(comp.findings.some((f) => f.id === 'generic.uncited_clinical_claim')).toBe(true);
+    // The model's copy is linted the moment it is answered (the brand guard,
+    // 2026-10-17): every BLOCK finding the gate would raise is named on the
+    // campaign, and copy that breaks the rules never reaches an asset, so the
+    // send falls back to the template, which the gate then passes.
+    const ids = ((c.brand_guard && c.brand_guard.rejected) || []).flatMap((r) => r.violations.map((v) => v.id));
+    expect(ids).toEqual(expect.arrayContaining(['us.fda.disease_claim', 'generic.objective_superlative', 'generic.uncited_clinical_claim']));
+    expect(c.copywriter.provider).toBe('template-fallback');
+    expect(JSON.stringify(c.assets)).not.toMatch(/Cures anxiety|The #1 sleep blend|Clinically proven/);
+    expect(c.contract_check.compliance.verdict).toBe('pass');
     const writer = prompts.find((p) => /smart-brain-copy/.test(String(p.stage || '')));
     expect(writer, 'the copywriter was never called').toBeTruthy();
     expect(writer.userMessage).toContain('COMPLIANCE for Calmroot in US');

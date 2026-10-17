@@ -316,7 +316,9 @@ function surfaces() {
   return [
     ['landing (built, A)', lp && lp.html, 2, 6],
     ['landing (built, B)', lpB && lpB.html, 2, 6],
-    ['landing (/lp/:id)', sbPlan.__test_lpHtml(built.calendar_entry || SLOT, COPY, 'cid-1', null), 6, 18],
+    // 14: the page says each fact once (2026-10-17), so it carries fewer runs
+    // than it did; the floor proves a real page was measured, not its length.
+    ['landing (/lp/:id)', sbPlan.__test_lpHtml(built.calendar_entry || SLOT, COPY, 'cid-1', null), 6, 14],
     ['email (LLM branch)', sbPlan.__test_emailHtml(built.calendar_entry || SLOT, COPY, null), 3, 6],
     ['email (built)', built.assets.email && built.assets.email.html, 2, 6],
     ['video creative', motion.renderMotionAd(MOTION_SPEC), 2, 3],

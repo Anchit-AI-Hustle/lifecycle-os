@@ -776,8 +776,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     for (var i = 0; i < s.inputs.length; i++) parts.push(await fieldHtml(s.inputs[i]));
     var price = s.credit_key && window.Credits ? window.Credits.cost(s.credit_key) : null;
     $('form').innerHTML = parts.join('') +
+      (s.op === 'transcription' ? dictationHtml('formDictate') : '') +
       '<div class="rowbtns"><button type="button" class="btn primary" id="run" data-credit-feature="' + esc(s.credit_key) + '">Run ' + esc(s.label) + '</button>' +
       (price && price.metered ? '<span class="muted">Metered: ' + price.cost + ' credits ' + esc(price.unit) + '. Only what you use is charged.</span>' : '') + '</div>';
+    if (s.op === 'transcription') wireDictation($('formDictate'));
     if (window.Credits) window.Credits.decorate($('form'));
 
     $('run').onclick = async function () {
@@ -815,7 +817,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       try {
         var r = await ts(s.op, { input: input });
         renderRun(s, r);
-      } catch (e) { handleRunError(e, $('out')); }
+      } catch (e) {
+        // No audio transcription on this deployment (no key): the free path is
+        // the browser's own speech recognition, offered right here, never a
+        // failure frame for something the person can still do.
+        if (s.op === 'transcription' && e.status === 503 && e.payload && e.payload.code === 'transcription_unavailable') {
+          $('out').innerHTML = '<div class="card" style="margin-top:16px"><p class="vh-status" role="status">' +
+            esc('This deployment cannot transcribe an audio file (it has no audio model key). Transcribe live in this browser instead, for free: play the recording aloud or speak the call, and the words go into the transcript box above. Then press Run, and a pasted transcript costs nothing.') +
+            '</p>' + dictationHtml('outDictate') + '</div>';
+          wireDictation($('outDictate'));
+        } else handleRunError(e, $('out'));
+      }
       busy = false; btn.disabled = false; btn.innerHTML = 'Run ' + esc(s.label);
       if (window.Credits) window.Credits.decorate($('main'));
     };
@@ -893,9 +905,61 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { window.LifecycleFailure.show($('runs'), e, { title: 'Run history could not be loaded' }); }
   }
 
+  /* ── the browser's own speech recognition (free, no key) ─────────────── */
+  function speechRecognizer() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+  // The brand's home-market locale (en-IN for an Indian brand), not a typed en-US (2026-10-05).
+  function recognitionLang() {
+    return ((window.RegionContext && window.RegionContext.localeOf && window.RegionContext.localeOf(window.RegionContext.home).locale) || navigator.language || 'en');
+  }
+
+  /* Live transcription in the browser (2026-10-17): the keyless path for a
+     deployment with no audio model. The same SpeechRecognition the voice agents
+     use, continuous, writing each final phrase into the transcript box. */
+  function dictationHtml(id) {
+    if (!speechRecognizer()) {
+      return '<div class="dictate" id="' + id + '"><p class="vh-status" role="status">' +
+        esc('This browser has no built-in speech recognition (Firefox, for one), so live transcription is not available here. Paste the transcript into the box above, and the run is free.') + '</p></div>';
+    }
+    return '<div class="dictate" id="' + id + '"><div class="rowbtns">' +
+      '<button type="button" class="btn" data-dictate="1">Transcribe live in the browser (free)</button>' +
+      '<span class="muted" data-dictate-status role="status" aria-live="polite">Runs in this browser with its own speech recognition; no key and no credits.</span></div></div>';
+  }
+  function wireDictation(host) {
+    var SRC = speechRecognizer();
+    var btn = host && host.querySelector('[data-dictate]');
+    if (!SRC || !btn) return;
+    var line = host.querySelector('[data-dictate-status]');
+    var recog = null, on = false;
+    function box() { return document.querySelector('#form textarea[data-f="transcript"]'); }
+    function say(t) { if (line) line.textContent = t; }
+    function stop() { on = false; btn.textContent = 'Transcribe live in the browser (free)'; btn.classList.remove('primary'); try { recog && recog.stop(); } catch (_) {} }
+    btn.onclick = function () {
+      if (on) { stop(); say('Stopped. The transcript is in the box above; press Run to save it (free).'); return; }
+      try {
+        recog = new SRC();
+        recog.continuous = true; recog.interimResults = true;
+        recog.lang = recognitionLang();
+        recog.onresult = function (ev) {
+          var t = box(); if (!t) return;
+          for (var i = ev.resultIndex; i < ev.results.length; i++) {
+            if (!ev.results[i].isFinal) continue;
+            var phrase = String(ev.results[i][0].transcript || '').trim();
+            if (phrase) t.value = (t.value ? t.value.replace(/\s+$/, '') + '\n' : '') + phrase;
+          }
+          say('Listening. ' + t.value.split(/\n+/).filter(Boolean).length + ' line(s) so far.');
+        };
+        recog.onerror = function (e) { say('Microphone: ' + (e.error || 'error') + '. Paste the transcript instead.'); stop(); };
+        recog.onend = function () { if (on) { on = false; btn.textContent = 'Transcribe live in the browser (free)'; btn.classList.remove('primary'); say('Stopped. The transcript is in the box above; press Run to save it (free).'); } };
+        recog.start();
+        on = true; btn.textContent = 'Stop transcribing'; btn.classList.add('primary');
+        say('Listening. Speak, or play the recording near the microphone.');
+      } catch (e) { say('Could not start the microphone. Paste the transcript instead.'); stop(); }
+    };
+  }
+
   /* ── voice agents ───────────────────────────────────────────────────── */
   async function viewVoice(s) {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var SR = speechRecognizer();
     var parts = [];
     for (var i = 0; i < s.inputs.length; i++) parts.push(await fieldHtml(s.inputs[i]));
     var price = window.Credits ? window.Credits.cost(s.credit_key) : null;
@@ -991,8 +1055,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       try {
         recog = new SR();
         recog.continuous = false; recog.interimResults = true;
-        // The brand's home-market locale (en-IN for an Indian brand), not a typed en-US (2026-10-05).
-        recog.lang = ((window.RegionContext && window.RegionContext.localeOf && window.RegionContext.localeOf(window.RegionContext.home).locale) || navigator.language || 'en');
+        recog.lang = recognitionLang();
         var finalText = '';
         recog.onstart = function () { listening = true; $('mic').classList.add('live'); $('mic').textContent = 'Listening'; status('Listening…'); };
         recog.onresult = function (ev) {

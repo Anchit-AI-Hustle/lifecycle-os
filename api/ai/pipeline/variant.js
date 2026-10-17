@@ -372,6 +372,9 @@ async function handler(req, res) {
     catch (_) {
       return res.status(502).json({ ok: false, error: 'json_parse_failed', provider, variant: o.variant, message: 'The model did not return valid JSON for the variant plan.', raw: String(text || '').substring(0, 400) });
     }
+    // The brand guard (brand-guard.js): a plan that invents a figure or claim,
+    // or names another company, is not used; the heuristic plan is.
+    require('../../_shared/brand-guard.js').assertOnBrand(parsed, ctx.brand, { market: ctx.market, allow: (Array.isArray(ctx.body && ctx.body.products) ? ctx.body.products : []).map((p) => p && (p.name || p.n || p.title)) });
     const output_check = P.OC.validate(parsed, outputSpec(ctx, o.variant));
     parsed.variant = o.variant;
     // A text mailer has no image slots, whatever the model answered.

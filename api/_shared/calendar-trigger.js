@@ -317,13 +317,16 @@ module.exports = async function handler(req, res) {
   // the whole mailer build. Derive on-brand copy from the calendar entry itself so
   // the mailer still renders (mirrors the heuristic fallback in ai/pipeline/strategy.js).
   let S, strategyHeuristic = false;
-  if (strategy.ok && strategy.data && strategy.data.subject_line) {
+  // The brand guard (brand-guard.js): copy that invents a figure or claim, or
+  // names another company, is not used; the brand's own words are.
+  const onBrand = strategy.ok && strategy.data ? require('./brand-guard.js').check(strategy.data, _brand({ entry }), { market, allow: [entry.hero_product, entry.collection].filter(Boolean) }) : { ok: true, violations: [] };
+  if (strategy.ok && strategy.data && strategy.data.subject_line && onBrand.ok) {
     S = strategy.data;
     runs.push({ stage: 'strategy', ok: true, error: null });
   } else {
     strategyHeuristic = true;
     S = heuristicStrategy(entry, market, framework);
-    runs.push({ stage: 'strategy', ok: true, error: null, heuristic: true, llm_error: strategy.ok ? 'empty_or_invalid_copy_json' : strategy.error });
+    runs.push({ stage: 'strategy', ok: true, error: null, heuristic: true, llm_error: !onBrand.ok ? 'brand_guard: ' + onBrand.violations.map((v) => v.detail).join('; ') : (strategy.ok ? 'empty_or_invalid_copy_json' : strategy.error) });
   }
 
   // Brand scrub — every LLM copy string passes sanitizeBrand (CLAUDE.md banned
@@ -435,7 +438,7 @@ module.exports = async function handler(req, res) {
   if (!variants.V2.hosted_media_url) {
     let timer = null;
     try {
-      const { generateCreativeImage, uploadCreative } = require('../_shared/creative-image.js');
+      const { generateCreativeImage, hostedUrl } = require('../_shared/creative-image.js');
       const gen = await Promise.race([
         generateCreativeImage(variants.V2.hero_image_brief, { size: '1536x1024' }),
         new Promise((resolve) => { timer = setTimeout(() => resolve(null), 30000); }),
@@ -446,10 +449,10 @@ module.exports = async function handler(req, res) {
       const isReal = gen && gen.image &&
         gen.provider !== 'placeholder' &&
         String(gen.image).indexOf('data:image/svg') !== 0;
-      if (isReal) {
-        // Prefer a small hosted URL (Supabase Storage) over a multi-MB data-URL.
-        const hosted = await uploadCreative(gen.image, `calendar-v2-${slugify(entry.date || entry.segment || 'hero')}`).catch(() => null);
-        const heroImageUrl = hosted || gen.image;
+      // A URL or nothing: the hosted copy, else the free generator's address.
+      // Never the base64 bytes in the mail (the contract refuses them).
+      const heroImageUrl = isReal ? await hostedUrl(gen, `calendar-v2-${slugify(entry.date || entry.segment || 'hero')}`).catch(() => null) : null;
+      if (heroImageUrl) {
         variants.V2.hero_image_url = heroImageUrl;
         variants.V2.hero_image_provider = gen.provider || null;
         variants.V2.html = renderTextVariant({
@@ -650,8 +653,6 @@ function _renderVariantBody(o) {
     ? `<head>${_E.googleHref ? `<link rel="stylesheet" href="${esc(_E.googleHref)}">` : ''}${_E.faces ? `<style>${_E.faces}</style>` : ''}</head>` : '';
 
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
-  // Brand header: KNICKGASM wordmark linking to the market store (the ONLY header
-  // link, matching the flagship's logo→store rule).
   // The line under the wordmark is the brand's tagline as the brand writes it,
   // and only when it is a line: a 200-character self-description set in
   // spaced capitals under the logo (the Parwah mailer, 2026-10-17) is a
@@ -659,14 +660,15 @@ function _renderVariantBody(o) {
   // reader's. A long tagline is left to the body copy.
   const _tag = String(_brand(o).tagline || '').trim();
   const _fold = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const headerTagline = _tag && _tag.length <= 70 && _fold(_tag) !== _fold(hero_headline) ? _tag : '';
-  const brandHeader = `
-      <tr><td align="center" style="padding:18px 0 6px;">
-        <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block;">
-          <div style="font-family:${HEAD};font-size:22px;letter-spacing:0.28em;color:${palette.green};font-weight:700;">${esc(brandNameOf(o).toUpperCase())}</div>
-          ${headerTagline ? `<div style="font-family:${BODY};font-size:12px;line-height:1.45;color:${palette.mutedOnSurface};margin-top:6px;">${esc(headerTagline)}</div>` : ''}
-        </a>
-      </td></tr>`;
+  // Everything the body says, so a fact is said once (header line, footer claims).
+  const _bodyTxt = _fold([hero_headline, hero_subline].concat((body_blocks || []).map((b) => `${b.heading || ''} ${b.body || ''}`)).join(' '));
+  // Said once: not when the body already says it.
+  const headerTagline = _tag && _tag.length <= 70 && !_bodyTxt.includes(_fold(_tag)) ? _tag : '';
+  // The brand's LOGO, linked to the brand's HOMEPAGE (2026-10-17, the
+  // operator: "Headers of the mails must have the brand logo with redirection
+  // to homepage of brand"). It was the name set in spaced capitals, linked to
+  // the market store. No showable logo: the name, still linked home.
+  const brandHeader = MF.logoHeader({ brand: _brand(o), store, color: palette.greenText, font: HEAD, pad: '18px 24px 6px', tagline: headerTagline, taglineColor: palette.mutedOnSurface });
   // Optional lava offer bar (only when an offer string is supplied).
   // The label was the INK on the accent - 2.77:1 for tenant zero, under the 4.5
   // floor, on the one line in the mailer that states the offer. Same pairing as
@@ -684,7 +686,7 @@ function _renderVariantBody(o) {
     const img = _productImg(p, market, o && o.brand);
     const note = _productNote(p, market, o && o.brand);
     const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl);
-    const price = (p.price != null && p.price !== '') ? `${cur}${p.price}` : '';
+    const price = (p.price != null && p.price !== '') ? (() => { const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return `${cur}${p.price}`; })() : '';
     return `<td align="center" valign="top" style="width:33%;padding:8px;">
           <a href="${pdp}" target="_blank" style="text-decoration:none;">
             <div style="background:${palette.chalk};border:1px solid ${palette.lava}33;border-radius:10px;padding:12px 8px 16px;">
@@ -716,11 +718,13 @@ function _renderVariantBody(o) {
   // opacity at 2.54:1. A comment asserting a rule is not the rule being kept.
   // The sender block is the one line in a commercial email that must be
   // readable, so it is not faded.
+  // The claims close the mail only when the body has not listed them already.
+  const footerClaims = brandClaims.filter((c) => !_bodyTxt.includes(_fold(c))).map((c) => esc(c));
   const brandFooter = `
-      <tr><td align="center" style="background:${palette.green};padding:22px 20px 28px;">
+      <tr><td align="center" data-mail-footer style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
-        ${brandClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${brandClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
+        ${footerClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${footerClaims.join(" &middot; ")}</div>` : ""}
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this because you are a ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   const blocks = (body_blocks || []).map((b) => `
@@ -734,7 +738,8 @@ function _renderVariantBody(o) {
   if (style === 'visual') {
     // No product: no eyebrow. "<Brand> Studio Spotlight" was tenant zero's
     // sneaker-studio line, printed for every brand without a product.
-    const heroLabel = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? esc(hero_product) : '';
+    // The eyebrow names the product only when the headline does not already.
+    const heroLabel = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) && _fold(hero_product) !== _fold(hero_headline) ? esc(hero_product) : '';
     // Real hero photograph if we have one; otherwise, when a generation prompt
     // is supplied, emit the lava-standard IMAGE GENERATION PROMPT comment + a
     // PASTE_IMAGE_URL_HERE slot the asset agent fills. With neither, the
@@ -792,7 +797,7 @@ function _renderVariantBody(o) {
   if (style === 'pure') {
     const textBlocks = (body_blocks || []).map((b) => `
       <p style="font-family:${BODY};font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;">
-        ${b.heading ? `<strong style="color:${palette.green};">${esc(b.heading)}: </strong>` : ''}${esc(b.body || '')}
+        ${b.heading ? `<strong style="color:${palette.greenText};">${esc(b.heading)}${/\n/.test(b.body || '') ? '' : ': '}</strong>${/\n/.test(b.body || '') ? '<br>' : ''}` : ''}${esc(b.body || '').replace(/\n\n+/g, '<br>').replace(/\n/g, '<br>')}
       </p>`).join('');
     return `<!doctype html>
 <html>${emailHead}<body style="margin:0;padding:0;background:#fff;">
@@ -800,7 +805,7 @@ function _renderVariantBody(o) {
   <tr><td align="center" style="padding:40px 16px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0">
       <tr><td style="padding:0 8px;">
-        <p style="font-family:${BODY};font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())}</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${MF.logoHeader({ brand: _brand(o), store, color: palette.greenText, font: HEAD, align: 'left', pad: '0 0 18px' })}</table>
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
         ${textBlocks}
@@ -808,7 +813,7 @@ function _renderVariantBody(o) {
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
         <p style="font-family:${BODY};font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
-        <p style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this because you are a ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>

@@ -34,6 +34,10 @@ const fs = require('fs');
 
 const ROOT = path.resolve(__dirname, '..');
 const STAGES = ['strategy', 'variant', 'images', 'html', 'score'];
+
+// The caller gate's per-instance brake (30 a minute per account) is state one
+// test leaves for the next in this one process; each test starts with its own.
+test.beforeEach(() => { require(path.join(ROOT, 'api/_shared/require-caller.js'))._resetRateWindow(); });
 const stagePath = (s) => path.join(ROOT, 'api', 'ai', 'pipeline', `${s}.js`);
 const LLM = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
 const REAL_LLM = require(LLM);
@@ -136,7 +140,7 @@ function stubLLM(script) {
     if (out instanceof Error) throw out;
     return { text: typeof out === 'string' ? out : JSON.stringify(out), provider: 'scripted', model: 'scripted-1' };
   };
-  for (const k of ['parseJSON', 'corsHeaders', 'normalizeTier', 'modelsFor', 'providerOrder']) stub[k] = REAL_LLM[k];
+  for (const k of ['parseJSON', 'corsHeaders', 'normalizeTier', 'modelsFor', 'providerOrder', 'freeGenerationOn']) stub[k] = REAL_LLM[k];
   const real = require.cache[LLM];
   require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: stub };
   return {
@@ -596,7 +600,10 @@ test('the mailer the html stage builds itself passes the rendered gates and its 
 
           const summary = sbPlan.checkAssetContracts({ assets: { email: { subject: res.body.subject_lines[0], preheader: res.body.preheader, html: doc, intro_paragraph: 'x', cta: 'x' } } });
           expect(summary.checked, `${label}: the contract governed nothing`).toBe(1);
-          for (const v of summary.violations) (v.level === 'block' ? bad.blocking : bad.warnings).push(`${label} ${v.slot}: ${v.message}`);
+          // A data gap (no logo on the fixture's record, an image slot the
+          // images stage fills) is the operator's or a later stage's, not this
+          // stage's; it is reported, not counted as the stage's warning.
+          for (const v of summary.violations) { if (v.data_gap) continue; (v.level === 'block' ? bad.blocking : bad.warnings).push(`${label} ${v.slot}: ${v.message}`); }
         }
       }
     }
@@ -640,13 +647,34 @@ test('a stage that fails, or falls back, releases its hold instead of settling i
 /* ═══ 5. the images stage, through a controllable provider ════════════════ */
 
 function pngB64() { return 'iVBORw0KGgo' + 'A'.repeat(2400); }
+function openaiImage(b64) {
+  const body = JSON.stringify({ data: [{ b64_json: b64 }] });
+  return { ok: true, status: 200, json: async () => JSON.parse(body), text: async () => body };
+}
+function pollinationsImage() {
+  return { ok: true, status: 200, headers: { get: (k) => (/content-type/i.test(k) ? 'image/jpeg' : null) }, arrayBuffer: async () => new Uint8Array(9000).buffer, text: async () => '' };
+}
+/** pinEnv plus FREE_GENERATION, which the config pins 'off' for every other test. */
+function pinFree(set, free) {
+  const saved = process.env.FREE_GENERATION;
+  const undo = pinEnv(set);
+  process.env.FREE_GENERATION = free;
+  return () => { undo(); if (saved === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = saved; };
+}
+const NO_KEYS = { OPENAI_API_KEY: '', OPENAI_API_KEY_2: '', OPENAI_API_KEY_3: '', GEMINI_API_KEY: '', CLOUDFLARE_API_TOKEN: '', CLOUDFLARE_ACCOUNT_ID: '', CRON_SECRET: '' };
 
-test('the images stage generates through the provider it was given, and refunds a call that produced nothing', async () => {
-  const restoreEnv = pinEnv(Object.assign({ OPENAI_API_KEY: 'sk-test' }, METERED));
+/*
+ * Since 2026-10-17 this stage runs the SHARED image cascade (api/ai/image.js
+ * in-process through creative-image.js) instead of its own OpenAI-then-
+ * Pollinations copy, so the counts below are image.js's: one model per
+ * attempt, the keyless rung only while FREE_GENERATION is on.
+ */
+test('the images stage generates through the shared cascade, and refunds a call that produced nothing', async () => {
+  const restoreEnv = pinFree(Object.assign({}, NO_KEYS, { OPENAI_API_KEY: 'sk-test' }, METERED), 'off');
   const llm = stubLLM(() => new Error('no text model is needed here'));
   const seen = [];
   const good = fakeNetwork(Object.assign({}, AS.other, {
-    image: (u, init, parsed) => { seen.push(parsed); return { ok: true, status: 200, json: async () => ({ data: [{ b64_json: pngB64() }] }), text: async () => '' }; },
+    image: (u, init, parsed) => { seen.push(parsed); return openaiImage(pngB64()); },
   }));
   try {
     const res = await call('images', Object.assign({}, BODIES.images, {
@@ -656,24 +684,28 @@ test('the images stage generates through the provider it was given, and refunds 
     expect(res.body.stage).toBe('images');
     expect(res.body.success_count).toBe(3);
     expect(res.body.all_success).toBe(true);
+    expect(res.body.provider).toBe('openai');
     expect(res.body.images.map((i) => i.slot)).toEqual(['hero', 'product', 'lifestyle']);
+    // A keyed provider's bytes with no storage to host them: base64 for review, said so.
     expect(res.body.images.every((i) => i.data_url.startsWith('data:image/png;base64,'))).toBe(true);
+    expect(res.body.images.every((i) => i.url === null)).toBe(true);
     expect(res.body.hosting_note).toMatch(/blocked by its contract/);
     // The preamble names THIS brand, and the scene prompt reached the provider.
     expect(seen.length).toBe(3);
     expect(seen[0].prompt).toMatch(/for Northwind Trail Co\./);
     expect(seen[0].prompt).toMatch(/natural light jacket on a rock/);
     expect(seen[0].prompt).not.toMatch(/KNICKGASM/i);
+    // ONE hold for the call: the cascade ran unmetered inside the stage's own.
     expect(good.ledger.map((l) => l.op)).toEqual(['hold', 'settle']);
     expect(good.ledger[0].feature).toBe('image.generate');
+    expect(good.providers.filter((u) => /pollinations/.test(u))).toEqual([]);
   } finally { good.restore(); }
 
-  // Quota exhausted on the keyed provider. The stage's documented cascade then
-  // tries the free provider (the same free-tier rungs llm.js has), which is
-  // also down here, so the call produces nothing.
+  // Quota exhausted on the keyed provider and the free model switched off:
+  // nothing else is tried, and the call produces nothing.
   const dead = fakeNetwork(Object.assign({}, AS.other, {
     image: () => ({ ok: false, status: 429, text: async () => 'rate limited', json: async () => ({}) }),
-    pollinations: () => ({ ok: false, status: 503, text: async () => 'down', json: async () => ({}), headers: { get: () => 'text/plain' } }),
+    pollinations: () => { throw new Error('the keyless model was called with FREE_GENERATION=off'); },
   }));
   try {
     const res = await call('images', BODIES.images, 'session-other');
@@ -683,11 +715,11 @@ test('the images stage generates through the provider it was given, and refunds 
     const slot = res.body.images[0];
     expect(slot.success).toBe(false);
     expect(slot.placeholder).toBe(true);
+    expect(slot.url).toBeNull();
     expect(slot.attempts).toBe(3);
-    expect(slot.error).toMatch(/Pollinations 503/);
-    // Both rungs were actually tried before the slot was given up.
-    expect(dead.providers.filter((u) => /api\.openai\.com/.test(u)).length).toBe(3);
-    expect(dead.providers.filter((u) => /pollinations/.test(u)).length).toBe(3);
+    expect(slot.error).toMatch(/openai 429/);
+    expect(dead.providers.filter((u) => /api\.openai\.com/.test(u)).length).toBeGreaterThanOrEqual(3);
+    expect(dead.providers.filter((u) => /pollinations/.test(u))).toEqual([]);
     // The panel a failed slot degrades to is THIS brand's, not tenant zero's.
     const svg = decodeURIComponent(slot.data_url.replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
     expect(svg).toContain('Northwind Trail Co');
@@ -695,6 +727,43 @@ test('the images stage generates through the provider it was given, and refunds 
     expect(svg).not.toMatch(/KNICKGASM|#D0473E|#6A33D8/i);
     expect(dead.ledger.map((l) => l.op)).toEqual(['hold', 'release']);
   } finally { dead.restore(); llm.restore(); restoreEnv(); }
+});
+
+test('with NO image key the free keyless model draws each slot and the stage returns its URL, never base64; FREE_GENERATION=off keeps the placeholder', async () => {
+  const llm = stubLLM(() => new Error('no text model is needed here'));
+  let restoreEnv = pinFree(Object.assign({}, NO_KEYS, METERED), 'on');
+  const net = fakeNetwork(Object.assign({}, AS.other, { pollinations: () => pollinationsImage() }));
+  try {
+    const res = await call('images', Object.assign({}, BODIES.images, {
+      requirements: [{ slot: 'hero', prompt: 'jacket on a rock', size: '1536x1024' }, { slot: 'product', prompt: 'the jacket', size: '1024x1024' }],
+    }), 'session-other');
+    expect(res.statusCode, JSON.stringify(res.body).slice(0, 300)).toBe(200);
+    expect(res.body.success_count).toBe(2);
+    expect(res.body.provider).toBe('pollinations');
+    for (const img of res.body.images) {
+      expect(img.success).toBe(true);
+      expect(img.url).toMatch(/^https:\/\/image\.pollinations\.ai\/prompt\//);
+      expect(img.data_url).toBe(img.url);
+      expect(img.data_url.startsWith('data:')).toBe(false);
+    }
+    // The picture asked for is this brand's.
+    expect(decodeURIComponent(res.body.images[0].url)).toMatch(/Northwind Trail Co/);
+    expect(net.providers.every((u) => /image\.pollinations\.ai/.test(u))).toBe(true);
+    expect(net.ledger.map((l) => l.op)).toEqual(['hold', 'settle']);
+  } finally { net.restore(); restoreEnv(); }
+
+  restoreEnv = pinFree(Object.assign({}, NO_KEYS, METERED), 'off');
+  const off = fakeNetwork(Object.assign({}, AS.other, { pollinations: () => { throw new Error('the keyless model was called with FREE_GENERATION=off'); } }));
+  try {
+    const res = await call('images', BODIES.images, 'session-other');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success_count).toBe(0);
+    expect(res.body.provider).toBeNull();
+    expect(res.body.images[0].placeholder).toBe(true);
+    expect(res.body.images[0].data_url).toMatch(/^data:image\/svg\+xml/);
+    expect(off.providers).toEqual([]);
+    expect(off.ledger.map((l) => l.op)).toEqual(['hold', 'release']);
+  } finally { off.restore(); llm.restore(); restoreEnv(); }
 });
 
 /* ═══ 6. the score stage enforces the pass rules itself ═══════════════════ */
@@ -891,4 +960,32 @@ test('a market-data brand: the benchmark briefs every writing stage, and the mai
     } finally { llm.restore(); }
   }
   restoreEnv();
+});
+
+// The brand guard (2026-10-17): a stage whose model answer invents a figure or
+// names another company does not serve it; its heuristic, built from the
+// brand's own record, is served instead. A clean answer is served as written.
+test('the brand guard: an off-brand plan or mailer from the model is replaced by the brand\'s own; a clean one is kept', async () => {
+  const restoreEnv = pinEnv(METERED);
+  const OFF = 'Join 2 million hikers who trust us more than Patagonia or Nike.';
+  const page = (line) => '<!doctype html><html><body><table role="presentation" width="600"><tr><td>IMAGE_HERO_URL<p>' + 'Built for the long way round. '.repeat(30) + line + '</p><p>You are receiving this. Unsubscribe</p></td></tr></table></body></html>';
+  const run = async (stage, body, answer, user) => {
+    const llm = stubLLM(() => answer);
+    const net = fakeNetwork({ user: { id: user, email: user + '@example.com' }, activeWorkspace: OTHER.id, workspace: OTHER });
+    try { return await call(stage, body, 'session-' + user); } finally { net.restore(); llm.restore(); }
+  };
+  try {
+    const offPlan = await run('variant', { variant: 'A', strategy_output: {}, brief: 'b', market: 'US', products: [] },
+      { sections: [{ id: 'hero', headline: OFF }], subject_lines: ['a', 'b', 'c'], preheader: 'p' }, 'guard-v1');
+    expect(offPlan.body._heuristic, 'an off-brand plan is not served').toBe(true);
+    expect(JSON.stringify(offPlan.body.sections)).not.toMatch(/2 million|Nike/);
+    const okPlan = await run('variant', { variant: 'A', strategy_output: {}, brief: 'b', market: 'US', products: [] },
+      { sections: [{ id: 'hero', headline: 'Sewn in Oregon, repaired for life' }], subject_lines: ['a', 'b', 'c'], preheader: 'p' }, 'guard-v2');
+    expect(okPlan.body._heuristic, 'a clean plan is served as written').toBeFalsy();
+    const offHtml = await run('html', { variant: 'A', plan: {}, strategy: {}, brief: 'b', market: 'US', products: [] }, page(OFF), 'guard-h1');
+    expect(offHtml.body._heuristic).toBe(true);
+    expect(String(offHtml.body.html)).not.toMatch(/2 million|Nike/);
+    const okHtml = await run('html', { variant: 'A', plan: {}, strategy: {}, brief: 'b', market: 'US', products: [] }, page('Sewn in Oregon.'), 'guard-h2');
+    expect(okHtml.body._heuristic).toBeFalsy();
+  } finally { restoreEnv(); }
 });

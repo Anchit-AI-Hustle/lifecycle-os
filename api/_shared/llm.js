@@ -158,6 +158,11 @@ function _dedupe(arr) {
   return arr.filter(m => { if (!m || seen.has(m)) return false; seen.add(m); return true; });
 }
 
+// The free keyless text floor (see CALL.pollinations). On unless the deployment
+// says FREE_GENERATION=off.
+const POLLINATIONS_TEXT_URL = 'https://text.pollinations.ai/openai';
+function freeGenerationOn() { return String(process.env.FREE_GENERATION || '').toLowerCase() !== 'off'; }
+
 // ── Model tables (July 2026 — all env-overridable) ───────────────────────────
 function modelsFor(provider, tier) {
   const env = process.env;
@@ -206,6 +211,11 @@ function modelsFor(provider, tier) {
       return _dedupe([env.OLLAMA_TEXT_MODEL || 'llama3.3']);
     case 'sakana':
       return _dedupe([env.SAKANA_TEXT_MODEL || 'sakana-default']);
+    case 'pollinations':
+      // A label for the trace only: the request names no model, because the
+      // service's documentation names none to send (text.pollinations.ai/models
+      // lists the one it serves).
+      return ['pollinations-default'];
     default:
       return [];
   }
@@ -214,8 +224,8 @@ function modelsFor(provider, tier) {
 // Provider ORDER per tier (blueprint). Fast skips Grok (no cheap rung there).
 function providerOrder(tier) {
   return tier === 'fast'
-    ? ['anthropic', 'openai', 'gemini', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana']
-    : ['anthropic', 'openai', 'gemini', 'grok', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana'];
+    ? ['anthropic', 'openai', 'gemini', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations']
+    : ['anthropic', 'openai', 'gemini', 'grok', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations'];
 }
 
 // ── Failure classification (drives demotion) ─────────────────────────────────
@@ -402,7 +412,11 @@ module.exports = async function callLLM(opts) {
     openrouter: !!openrouterKey,
     cloudflare: cloudflareOn,  // gated on CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
     ollama:    ollamaOn,       // gated on OLLAMA_BASE_URL (auth optional)
-    sakana:    sakanaOn        // gated on SAKANA_BASE_URL + SAKANA_API_KEY
+    sakana:    sakanaOn,       // gated on SAKANA_BASE_URL + SAKANA_API_KEY
+    // The free, keyless floor (2026-10-17): the operator asked that every model
+    // feature work with no key at all. Last in every order; FREE_GENERATION=off
+    // turns it off (prompts then never leave for a service nobody configured).
+    pollinations: freeGenerationOn(),
   };
 
   if (!Object.keys(hasKey).some((p) => p !== 'sakana' && hasKey[p])) {
@@ -553,6 +567,15 @@ module.exports = async function callLLM(opts) {
     cloudflare: _openaiCompatible('cloudflare', bases.cloudflare, cloudflareKey, _std),
     ollama: _openaiCompatible('ollama', bases.ollama, ollamaKey, _std),
     sakana: _openaiCompatible('sakana', bases.sakana, sakanaKey, _std),
+    // Pollinations' documented OpenAI-compatible endpoint, no key, no model and
+    // no response_format (neither is documented); one request per 30 s per
+    // address, answered 402 + Retry-After when exceeded (counted as a rate limit).
+    pollinations: function (model) {
+      return attempt('pollinations', model, POLLINATIONS_TEXT_URL, {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: seededUserMessage }] }),
+      }, timeoutMs, readChat);
+    },
   };
 
   // ── Tier-ordered cascade ────────────────────────────────────────────────────
@@ -562,13 +585,14 @@ module.exports = async function callLLM(opts) {
   const keyFor = {
     anthropic: anthropicKey, gemini: geminiKey, grok: grokKey, groq: groqKey, cerebras: cerebrasKey,
     openrouter: openrouterKey, cloudflare: cloudflareKey + '@' + bases.cloudflare, ollama: ollamaKey + '@' + bases.ollama,
-    sakana: sakanaKey + '@' + bases.sakana,
+    sakana: sakanaKey + '@' + bases.sakana, pollinations: 'keyless',
   };
   const coolWords = (e) => 'cooling down after ' + (KIND_WORDS[e.kind] || e.kind) + (e.model ? ' on ' + e.model : '') + ' until ' + new Date(e.until).toISOString();
   let budgetOut = false;
 
   function record(provider, model, result, keyIndex) {
-    const kind = classifyFailure(result.status, result.err);
+    // Pollinations answers its per-address limit with 402: a wait, not a bill.
+    const kind = provider === 'pollinations' && result.status === 402 ? 'rate_limit' : classifyFailure(result.status, result.err);
     const row = {
       provider, model, status: result.status, kind, reason: KIND_WORDS[kind] || kind,
       err: String(result.err || '').substring(0, 120),
@@ -872,6 +896,7 @@ module.exports.corsHeaders = function corsHeaders(res) {
 
 // Exposed for tier-aware callers/tests (not part of the legacy surface).
 module.exports.normalizeTier = normalizeTier;
+module.exports.freeGenerationOn = freeGenerationOn;
 module.exports.modelsFor = modelsFor;
 module.exports.providerOrder = providerOrder;
 module.exports.classifyFailure = classifyFailure;

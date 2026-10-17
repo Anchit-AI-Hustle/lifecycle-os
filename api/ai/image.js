@@ -89,8 +89,12 @@ const POLLINATIONS_SIZE_MAP = {
 module.exports = async function handler(req, res) {
   /* Same gate as generate.js. The only `Authorization` strings in this file
      were OUTBOUND headers to the image providers, which is why a grep for auth
-     looked like it found something. There was no inbound check at all. */
-  if (!(await require('../_shared/require-caller.js').requireCaller(req, res))) return;
+     looked like it found something. There was no inbound check at all.
+     `__admitted` is set only by server code calling `inProcess` below, on a
+     request object it built after its OWN gate admitted the caller (a pipeline
+     stage): an HTTP request cannot carry a property, only headers and a body. */
+  const admitted = req && req.__admitted === true && req.__caller && req.__caller.ok;
+  if (!admitted && !(await require('../_shared/require-caller.js').requireCaller(req, res))) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   let body = req.body;
@@ -115,7 +119,7 @@ module.exports = async function handler(req, res) {
   // Resolve the caller's brand so the picture is theirs. A lookup failure
   // falls back to tenant zero rather than failing the generation, which is the
   // same contract every other generator here follows.
-  const brand = await brandRuntime.resolve(req);
+  const brand = await brandRuntime.resolve(req, admitted ? { auth: req.__caller } : undefined);
   // The SUBJECT of a product photograph (2026-10-10). A food brand's hero came
   // back as a pair of sneakers because the prompt named no product and the
   // scene text was another brand's. A caller that is photographing a product
@@ -362,7 +366,9 @@ module.exports = async function handler(req, res) {
       if (out.status === -1) return null;
       if (out.dataUrl) {
         console.log('[image] Success · Pollinations ' + pollinationsModel + ' (' + out.kb + ' KB)');
-        return { provider: 'pollinations', model: pollinationsModel, image_data_url: out.dataUrl };
+        // Its address too: the same (prompt, seed) answers the same picture, so a
+        // caller with nowhere to host the bytes can carry this URL instead of base64.
+        return { provider: 'pollinations', model: pollinationsModel, image_data_url: out.dataUrl, image_url: pollUrl };
       }
       const kind = note('pollinations', pollinationsModel, out.status, kindOf(out.status, out.err), out.err);
       console.warn('[image] Pollinations ' + pollinationsModel + ' → ' + out.status + ' (' + kind + ')');
@@ -411,6 +417,9 @@ module.exports = async function handler(req, res) {
         tryPollinations,                                                       // free floor
         tryOpenai                                                              // last paid resort
       ];
+  // A caller that honours FREE_GENERATION=off (the pipeline's images stage)
+  // asks for no keyless rung with `free: false`. Absent, the route is unchanged.
+  if (body.free === false) { const i = rungs.indexOf(tryPollinations); if (i >= 0) rungs.splice(i, 1); }
 
   const hadKeys = !!(geminiKey || openaiKeys.length > 0);
   for (const rung of rungs) {
@@ -421,6 +430,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         ok: true, provider: hit.provider, model: hit.model, size, quality,
         image_data_url: hit.image_data_url,
+        ...(hit.image_url ? { image_url: hit.image_url } : {}),
         ...(hit.key_index ? { key_index: hit.key_index } : {}),
         ...(attempts.length ? { attempts, fell_back: true } : {}),
         ...(usedFreeFallback ? {
@@ -461,6 +471,7 @@ module.exports = async function handler(req, res) {
 // Image generation is the second most expensive call in the app, so it must be
 // charged. 'reels' mode is a distinct, pricier product in the catalog.
 const _credits = require('../_shared/credits-core.js');
+const _unmeteredCore = module.exports;
 module.exports = _credits.metered(
   module.exports,
   (req, body) => (String(body.mode || '').toLowerCase() === 'reels' ? 'image.reels' : 'image.generate'),
@@ -478,3 +489,9 @@ module.exports = _credits.metered(
 // the hundred-odd call sites having to pass `req` down to it. See
 // api/_shared/request-scope.js for why an ambient variable would not do.
 module.exports = require('../_shared/request-scope.js').wrap(module.exports);
+
+// In-process, for server code that has ALREADY gated and metered its own call
+// (api/ai/pipeline/images.js charges `image.generate` once per call): the same
+// cascade without a second hold per slot. Not an HTTP route; the request it
+// is handed must carry `__admitted` and the verified `__caller` (see the gate).
+module.exports.inProcess = _unmeteredCore;

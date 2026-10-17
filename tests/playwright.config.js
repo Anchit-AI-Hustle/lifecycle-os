@@ -5,6 +5,10 @@
 // Or with UI to step through visually:
 //   npx playwright test --ui
 const { defineConfig, devices } = require('@playwright/test');
+// The free keyless generators (Pollinations text and images) are OFF in tests
+// unless a test turns them on against a fake: CI can reach the real service,
+// and a test must never depend on a third party's answer or its rate limit.
+if (process.env.FREE_GENERATION === undefined) process.env.FREE_GENERATION = 'off';
 const fs = require('fs');
 
 // Some sandboxes ship a Chromium at a fixed path whose build number does not

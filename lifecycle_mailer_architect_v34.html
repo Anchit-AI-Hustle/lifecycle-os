@@ -6975,55 +6975,98 @@ function previewBothSideBySide(){
   w.document.write(pageHtml);w.document.close();
 }
 
+// Design reference -> HTML email (2026-10-17). This used to POST the uploaded
+// image straight from the browser to api.anthropic.com with no key, so it always
+// failed and fell to the template. It now goes through the app's own
+// /api/ai/generate (mode mailer_full), i.e. the shared llm.js cascade that ends
+// on the free keyless model. That route takes TEXT only and no vision provider
+// is added here, so the uploaded design is NOT read: the email is written from
+// the brief, the selected products and the brand's own record, and the status
+// line says so. The spec it returns is rendered into a table email below with
+// the brand's own palette, type, product photos and links. Any failure returns
+// null and the caller keeps the built-in template.
 async function analyzeImageAndBuildEmail(base64DataUrl,prods,prompt,market){
   const statusEl=document.getElementById('analyzeStatus');
   function setStatus(msg,loading){if(statusEl){statusEl.textContent=(loading!==false?'⏳ ':'')+msg;statusEl.style.display='block';}}
-  setStatus('Sending image to Claude for analysis...');
+  prods=Array.isArray(prods)?prods:[];
+  setStatus('Writing the email from your brief (the uploaded design is a visual reference only; it is not read here)...');
   try {
-    const parts=base64DataUrl.split(',');
-    const b64=parts[1];
-    const mediaType=(parts[0].match(/data:([^;]+)/)||[])[1]||'image/png';
-    const base=getBase(market);
-    const collUrl=collectionUrl(prompt,market);
-    const prodImgTags=prods.map(function(p,i){
-      return '<img src="'+p.i+'" alt="'+p.n+'" width="'+(i===0?300:Math.floor(560/prods.length))+'" style="display:block;border:0;outline:none;text-decoration:none">';
-    }).join('\n');
-    const prodLinks=prods.map(function(p){return '- '+p.n+': '+pdpUrl(p.n,market);}).join('\n');
-    // Prefer the KB-driven prompt (single source of truth). Fall back to the
-    // literal-string version below only if KB is unreachable on first paint.
-    const kbPrompt=(typeof buildClaudeSystemPromptFromKB==='function')?buildClaudeSystemPromptFromKB():null;
-    const systemPrompt=kbPrompt||('You are a world-class HTML email developer and D2C campaign specialist. Your output is deployed directly in Klaviyo/Mailchimp for '+brandFacts().name+'.\n\nYour task: analyse the uploaded campaign design image and reproduce it as a flawless production-ready HTML email, ensuring EVERY element — copy, headline, offer, products, and tone — reflects the campaign brief provided by the user.\n\nOFFICIAL BRAND STYLE GUIDE (only these colours are on-brand):\n• '+brandStyleLine()+'\n• Hero headlines: 40-48px heading family, bold. Section headings: 18-22px heading family, bold. Body: 12-13px body family.\n\nHTML TECHNICAL REQUIREMENTS:\n1. Reproduce the design EXACTLY — every section, colour, font size, spacing, hierarchy, and copy\n2. TABLE-BASED layout ONLY — zero divs for layout, zero flexbox (Outlook 2016+ requirement)\n3. ALL styles INLINE on every element — only @media queries allowed in <style> in <head>\n4. Product images: use EXACT Shopify CDN URLs provided — never placeholder or invented URLs\n5. All CTA/nav links: use EXACT market-specific URLs provided\n6. MSO conditional comments: <!--[if mso]> ... <![endif]--> for Outlook rendering\n7. Preheader: <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px"> after <body>\n8. Bulletproof CTA buttons: <a> tag with VML fallback for Outlook\n9. Images: border="0" style="display:block;border:0;outline:none;text-decoration:none" + alt text\n10. Footer: '+brandFacts().legalLine+' | unsubscribe + privacy policy links\n11. 600px wide centred table, background #FFFFFF\n12. Mobile @media max-width:600px responsive overrides\n13. MSO XML namespace in <head>\n14. LANGUAGE: ALL copy — headings, body, CTAs, labels, footer — MUST be in English regardless of market.\n\nOutput ONLY raw HTML starting with <!DOCTYPE html>. No markdown. No explanation. No code fences.');
-    const offer2=offerText(prompt);const code2=offerCode(prompt);const cta2=ctaText(prompt);const hl2=heroHeadline(prompt);const sc2=subCopy(prompt);
-    const userText='You are looking at a '+brandFacts().name+' email campaign design. Study every section, colour, font size, spacing, layout hierarchy, and copy block precisely.\n\nReproduce it as a complete standalone production-ready HTML email that ALSO reflects the campaign brief below.\n\n====================================================\nCAMPAIGN BRIEF (CRITICAL — every headline and CTA must reflect this)\n====================================================\nDescription: '+prompt.substring(0,350)+'\nMarket: '+market+(code2?' | Promo Code: "'+code2+'" (must appear prominently)':'')+(offer2?' | Offer: '+offer2:'')+'\nSuggested Hero Headline: "'+hl2[0]+(hl2[1]?' / '+hl2[1]:'')+'"'+'\nSuggested Sub-copy: "'+sc2.substring(0,120)+'"\nSuggested CTA: "'+cta2+'"\n====================================================\n\nEXACT PRODUCT IMAGE TAGS TO USE (copy src URLs verbatim):\n'+prodImgTags+'\n\nMARKET-SPECIFIC LINKS (use these exact URLs):\n- Base URL: '+base+'\n- Main Collection CTA: '+collUrl+'\n'+prodLinks+'\n- Unsubscribe: '+base+'/pages/unsubscribe\n- Privacy Policy: '+base+'/pages/privacy-policy\n\nTECHNICAL SPEC:\n- Email width: 600px, tables use explicit width="600"\n- All <img>: border="0" style="display:block;border:0;outline:none;text-decoration:none"\n- CTA buttons: bulletproof VML method for Outlook + standard <a>\n- Include MSO conditional comments in <head>\n- Preheader div immediately after <body>'+'\n\n'+window.OutputContract.block({id:'studio.design-to-html',kind:'asset',format:'html',brand:brandFacts().name,region:market,returns:'ONE complete, production-ready HTML email that reproduces the attached design and carries the campaign brief above.',forbid:['a description of the design','an image or screenshot of the email'],formatRule:'ONE HTML email document, starting with <!DOCTYPE html> and ending with <\/html>.',lines:['Table-based, every style inline, only @media queries in the <head> <style>; product images are the exact src URLs above, never base64.']});
-    setStatus('Claude is analysing your design and writing the HTML email...');
-    const response=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+    if(typeof _archSyncBrand==='function'){ try{ _archSyncBrand(); }catch(_){} }
+    const type=(window.S&&S.type)||(typeof detectType==='function'?detectType(prompt):'')||'Bestseller';
+    const headers=(typeof _getApiHeaders==='function')?_getApiHeaders():{'Content-Type':'application/json'};
+    const res=await fetch('/api/ai/generate',{
+      method:'POST',cache:'no-store',headers:headers,
       body:JSON.stringify({
-        model:'claude-opus-4-5',
-        max_tokens:8000,
-        system:systemPrompt,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
-          {type:'text',text:userText}
-        ]}]
+        mode:'mailer_full',
+        market:market,
+        markets:[market],
+        theme:type,
+        campaign_brief:String(prompt||'').substring(0,1000),
+        variant:'A',
+        selected_products:prods.slice(0,5).map(function(p){return {name:p.n,price:p.p||p.price||'',image_url:p.i||'',url:(typeof pdpUrl==='function'?pdpUrl(p.n,market):'')};})
       })
     });
-    if(!response.ok){const err=await response.json().catch(function(){return {};});throw new Error((err.error&&err.error.message)||'API error '+response.status);}
-    const data=await response.json();
-    const text=((data.content||[]).filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('')).trim();
-    let html=text;
-    const fenceStart=text.indexOf('```html');
-    if(fenceStart>=0){const fenceEnd=text.lastIndexOf('```');html=text.slice(fenceStart+7,fenceEnd>=fenceStart+7?fenceEnd:text.length).trim();}
-    else if(!html.includes('<!DOCTYPE')&&!html.includes('<html')){const m=html.match(/(<!DOCTYPE[\s\S]+<\/html>)/i);if(m)html=m[1].trim();}
-    if(!html.includes('<!DOCTYPE')&&!html.includes('<html'))throw new Error('Claude did not return valid HTML.');
-    setStatus('HTML email generated successfully ✓',false);
+    const data=await res.json().catch(function(){return {};});
+    if(!res.ok||!data||!data.data) throw new Error((data&&(data.message||data.error))||('generate answered '+res.status));
+    const spec=data.data.variant_a||data.data.variant_b;
+    if(!spec||!Array.isArray(spec.sections)||!spec.sections.length) throw new Error('The model returned no email sections.');
+    let html=_renderSpecEmail(spec,prods,market);
+    if(typeof _archEnforceAA==='function'){ try{ html=_archEnforceAA(html)||html; }catch(_){} }
+    setStatus('HTML email written by '+(data.provider||'the model')+' ✓',false);
     return html;
   } catch(e){
-    setStatus('Could not reach Claude API — using built-in template.',false);
-    statusPill('warn','Claude vision unavailable · template used',e.message);
+    setStatus('The model could not write this email, so the built-in template is used.',false);
+    statusPill('warn','Model unavailable · template used',e&&e.message);
     return null;
   }
+}
+
+// A mailer_full variant spec as a table email: Outlook-safe tables, inline
+// styles, the brand's resolved colours (an email cannot read CSS custom
+// properties), the exact catalogue photos and market links. Copy is the
+// model's, escaped; nothing is added that the spec or the record does not say.
+function _renderSpecEmail(spec,prods,market){
+  const e=_esc, F=brandFacts(market);
+  const base=getBase(market)||F.store||'';
+  const coll=(typeof collectionUrl==='function'?collectionUrl((window.S&&S.prompt)||'',market):'')||base;
+  const subj=(Array.isArray(spec.subject_lines)&&spec.subject_lines[0])||'';
+  const td='font-family:'+_ARCH_FB+';color:'+_ARCH_INK+';';
+  const btn=function(label,href){
+    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td bgcolor="'+_ARCH_GREEN+'" style="background:'+_ARCH_GREEN+';border-radius:6px;padding:14px 28px;"><a href="'+e(href)+'" style="font-family:'+_ARCH_FB+';font-size:15px;font-weight:700;color:'+_ARCH_ON_GREEN+';text-decoration:none;display:inline-block;">'+e(label)+'</a></td></tr></table>';
+  };
+  let pi=0;
+  const rows=spec.sections.slice(0,11).map(function(sec,i){
+    const c=(sec&&sec.copy)||{};
+    const band=(i===0);
+    const bg=band?_ARCH_GREEN:_ARCH_BG, fg=band?_ARCH_ON_GREEN:_ARCH_INK;
+    let img='';
+    if(sec&&sec.image_slot&&sec.image_slot!=='none'&&prods[pi]&&/^https?:\/\//.test(prods[pi].i||'')){
+      const p=prods[pi++];
+      img='<tr><td style="padding:0 0 16px 0;"><a href="'+e(pdpUrl(p.n,market))+'"><img src="'+e(p.i)+'" alt="'+e(p.n)+'" width="560" border="0" style="display:block;border:0;outline:none;text-decoration:none;width:100%;max-width:560px;height:auto;"></a></td></tr>';
+    }
+    return '<tr><td bgcolor="'+bg+'" style="background:'+bg+';padding:28px 20px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'+img+
+      (c.eyebrow?'<tr><td style="'+td+'color:'+fg+';font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding-bottom:8px;">'+e(c.eyebrow)+'</td></tr>':'')+
+      (c.headline?'<tr><td style="font-family:'+_ARCH_FH+';color:'+fg+';font-size:'+(band?'32px':'22px')+';font-weight:800;line-height:1.2;padding-bottom:10px;">'+e(c.headline)+'</td></tr>':'')+
+      (c.subcopy?'<tr><td style="'+td+'color:'+fg+';font-size:15px;line-height:1.55;padding-bottom:14px;">'+e(c.subcopy)+'</td></tr>':'')+
+      (c.cta&&!band?'<tr><td>'+btn(c.cta,coll)+'</td></tr>':'')+
+      '</table></td></tr>';
+  }).join('\n');
+  const legal=F.legalLine||F.legal||'';
+  // The closing button repeats the first button the model wrote, else its CTA
+  // verb; no generic label is invented for a brand.
+  const firstCta=(spec.sections.filter(function(x){return x&&x.copy&&x.copy.cta;})[0]||{copy:{}}).copy.cta;
+  const endCta=firstCta||(spec.copy_framework&&spec.copy_framework.cta_verb)||'';
+  return '<!DOCTYPE html><html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+e(subj||F.name)+'</title>'+
+    '<style>@media (max-width:600px){.wrap{width:100%!important}}</style></head><body style="margin:0;padding:0;background:'+_ARCH_BG+';">'+
+    '<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;">'+e(spec.preheader||'')+'</div>'+
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="'+_ARCH_BG+'"><tr><td align="center">'+
+    '<table role="presentation" class="wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;background:'+_ARCH_BG+';">'+
+    '<tr><td style="font-family:'+_ARCH_FH+';color:'+_ARCH_INK+';font-size:20px;font-weight:800;padding:20px;">'+e(F.name)+'</td></tr>'+
+    rows+
+    (endCta?'<tr><td style="padding:24px 20px;">'+btn(endCta,coll)+'</td></tr>':'')+
+    '<tr><td style="'+td+'font-size:12px;line-height:1.5;padding:20px;border-top:1px solid '+_ARCH_BORDER+';">'+e(legal)+
+      (base?' | <a href="'+e(base+'/pages/unsubscribe')+'" style="color:'+_ARCH_INK+';">Unsubscribe</a> | <a href="'+e(base+'/pages/privacy-policy')+'" style="color:'+_ARCH_INK+';">Privacy policy</a>':'')+'</td></tr>'+
+    '</table></td></tr></table></body></html>';
 }
 
 // ============================================================================

@@ -1421,7 +1421,7 @@ function renderPreview(payload, e, i, opts){
     emailVars.forEach((v, vi)=>{
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
-      tab(id, '✉ '+esc(v.label || ('Mailer '+(vi+1))), first);
+      tab(id, '✉ Mailer · '+esc(v.label || String(vi+1)), first);
       pane(id, `${v.type ? `<div class="pvnote" style="margin:0 0 6px">${esc(v.type)}</div>` : ''}${expBar('mailer-'+(v.key||vi), html)}${docFrame(html, 'mail', v.label || 'Mailer')}${promptBar(emailAsset)}`, first);
       first=false;
     });
@@ -2213,11 +2213,11 @@ async function sbPreflight(){
   try { rep = await (await fetch(`${API}?action=connectors-check`)).json(); }
   catch(_){ return true; }   // diagnostic unreachable — don't block generation on it
   const det = $('detail');
+  // No model at all is not a reason to stop: every asset has a code-written
+  // version built from the brand's own record. Say which one this run uses.
   if(!rep.anyConfigured){
-    const m = 'Cannot generate — no text AI provider is connected. ' + (rep.summary||'') +
-              ((rep.missing||[]).length ? ' Missing: ' + rep.missing.join(', ') : '');
-    if(det) det.innerHTML = `<span class="terr">⚠ ${esc(m)}</span>`;
-    return false;
+    if(det) det.innerHTML = `<span style="color:var(--vh-ink)">${esc(rep.summary||'No text model is connected; copy is written from the brand record.')}</span>`;
+    return true;
   }
   if(!rep.anyUsable){
     return await sbConfirm((rep.summary||'All configured providers are rate-limited.') + ' Generate anyway? Copy will fall back to templates until they recover.');

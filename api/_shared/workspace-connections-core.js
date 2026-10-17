@@ -926,6 +926,23 @@ function platformDefault(reg) {
 }
 
 /**
+ * The free keyless models (2026-10-17). With no key at all, text ends on the
+ * free model llm.js keeps last in every cascade and images on Pollinations, so
+ * "Not connected" on every AI card was true and still misleading: generation
+ * works. This says so, for a signed-in member only (the same line as
+ * platform_default), and never marks any provider connected.
+ * FREE_GENERATION=off switches the free models off, and then nothing is said.
+ */
+function freeGenerationView(signedIn) {
+  if (!signedIn) return null;
+  let on = false;
+  try { on = require('./llm.js').freeGenerationOn(); } catch (_) { on = false; }
+  return on
+    ? { on: true, note: 'Text and images also run on the free keyless models (Pollinations) when no key answers. They are rate-limited (about one request per 30 seconds per address), so add a key for volume and quality. This connects no provider.' }
+    : { on: false, note: '' };
+}
+
+/**
  * `signedIn` gates one field. Whether the PLATFORM holds a key is answered for
  * a member of a workspace, because without it the page cannot say whether a key
  * is needed at all; it is withheld from an anonymous caller, which is the same
@@ -1108,7 +1125,7 @@ async function handle(req, res) {
       return res.status(200).json({
         ok: true, workspace_id: null, storage: 'device', note: message,
         connections: [], routing: { entries: [], use_platform_fallback: true },
-        providers: registryView(true), secrets_storage: { encrypted: cryptoConfigured(), store: serviceConfigured() },
+        providers: registryView(true), free_generation: freeGenerationView(true), secrets_storage: { encrypted: cryptoConfigured(), store: serviceConfigured() },
       });
     }
     return res.status(409).json({ ok: false, error: 'device_account', storage: 'device', message });
@@ -1132,6 +1149,7 @@ async function handle(req, res) {
           connections: rows.map(sanitize),
           routing,
           providers: registryView(true),
+          free_generation: freeGenerationView(true),
           secrets_storage: { encrypted: cryptoConfigured(), store: serviceConfigured() },
         });
       }
@@ -1142,7 +1160,7 @@ async function handle(req, res) {
       case 'check':
         return res.status(200).json(await checkConnection(auth, workspaceId, str(body.provider || q.provider)));
       case 'routing':
-        return res.status(200).json({ ok: true, routing: await getRouting(auth, workspaceId), providers: registryView(true).filter((p) => p.llm_provider) });
+        return res.status(200).json({ ok: true, routing: await getRouting(auth, workspaceId), providers: registryView(true).filter((p) => p.llm_provider), free_generation: freeGenerationView(true) });
       case 'routing-save':
         return res.status(200).json({ ok: true, routing: await saveRouting(auth, workspaceId, body.routing || body) });
 
@@ -1196,7 +1214,7 @@ async function handle(req, res) {
 
 module.exports = {
   handle,
-  PROVIDERS, BY_ID, BY_LLM, registryView, knownModels,
+  PROVIDERS, BY_ID, BY_LLM, registryView, knownModels, freeGenerationView,
   // storage
   listConnections, saveConnection, deleteConnection, getRouting, saveRouting, normalizeRouting,
   // service-role storage (OAuth callback + the dispatch queue only — see the

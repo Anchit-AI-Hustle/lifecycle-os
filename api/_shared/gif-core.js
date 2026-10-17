@@ -54,6 +54,13 @@ async function generateGif({ prompt, duration_s = 3, aspect = '1:1', tier = 'sta
     prompt: p, duration_s: Math.min(duration_s, 6), aspect, tier, preferProviders: DEFAULT_PREFER,
   });
 
+  // The keyless rung (2026-10-17) answers with an animated HTML creative, not
+  // a clip: there is nothing for the ffmpeg worker to convert, so a GIF is not
+  // available and the caller decides the email-safe fallback.
+  if (vid && vid.provider === 'code-motion') {
+    return { ok: false, connected: false, not_connected: true, code_motion: true,
+      hint: 'A GIF derives from a generated clip, and no video provider produced one (' + (vid.provider_error || 'no video provider key is configured') + '). The code-rendered creative is HTML, which an email cannot play.' };
+  }
   if (!vid || vid.not_connected) {
     return { ok: false, connected: false, not_connected: true,
       hint: 'No video provider key set — GIF derives from a generated clip. ' + (vid && vid.hint || ''),

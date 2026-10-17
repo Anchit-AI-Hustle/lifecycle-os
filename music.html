@@ -95,11 +95,12 @@
           <textarea class="mk-field" id="mkPrompt" spellcheck="true"></textarea></label>
         <div class="flex flex-wrap gap-2 mt-3">
           <button type="button" class="btn-primary" id="mkGenerate" data-credit-feature="audio.music">Generate here</button>
+          <button type="button" class="btn-outline" id="mkFree">Generate here, free</button>
           <button type="button" class="btn-lava" id="mkSuno">Open in Suno <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></button>
           <button type="button" class="btn-outline" id="mkCopy">Copy brief</button>
         </div>
         <div class="mt-3 text-[13px]" id="mkStatus" role="status" aria-live="polite"></div>
-        <p class="mk-note mt-2">Generate here uses ElevenLabs Music and costs credits. Suno has no public API yet, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
+        <p class="mk-note mt-2">Generate here uses ElevenLabs Music and costs credits. Generate here, free makes a generated instrumental in your browser from the brief (its tempo if it states one, its mood words and the length above, 15 to 60 seconds): no service, no key, no credits, and the same brief always gives the same track. Suno has no public API yet, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
         <div id="mkMade"></div>
       </div>
     </section>
@@ -201,6 +202,7 @@
   </main>
 
   <script src="/auth.js"></script>
+  <script src="/music-synth.js"></script>
   <script>
   (function(){
     "use strict";
@@ -307,16 +309,36 @@
         say((ok ? "Brief copied. " : "Copy the brief above, then ") + "In Suno, paste it into the Style box and press Create. Download the track and use it like any track on this page." + (w ? "" : " (Your browser blocked the new tab: open suno.com/create yourself.)"));
       });
     });
-    function addMade(url, label){
+    function addMade(url, label, fileExt, note){
       var box = $("mkMade");
       var row = document.createElement("div"); row.className = "mk-made"; row.setAttribute("data-made-track", "");
       var t = document.createElement("div"); t.className = "text-[13px] font-bold"; t.textContent = label; row.appendChild(t);
       var a = document.createElement("audio"); a.controls = true; a.src = url; a.style.width = "100%"; a.className = "mt-2"; row.appendChild(a);
-      var dl = document.createElement("a"); dl.className = "btn-lava mt-2"; dl.href = url; var nm = (brand && brand.name) || (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name) || "brand"; dl.download = nm.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-track.mp3"; dl.textContent = "Download";
+      var dl = document.createElement("a"); dl.className = "btn-lava mt-2"; dl.href = url; var nm = (brand && brand.name) || (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name) || "brand"; dl.download = nm.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-track." + (fileExt || "mp3"); dl.textContent = fileExt === "wav" ? "Download .wav" : "Download";
       row.appendChild(dl);
-      var n = document.createElement("p"); n.className = "mk-note mt-2"; n.textContent = "Kept in this tab only: download it to keep it."; row.appendChild(n);
+      var n = document.createElement("p"); n.className = "mk-note mt-2"; n.textContent = (note ? note + " " : "") + "Kept in this tab only: download it to keep it."; row.appendChild(n);
       box.insertBefore(row, box.firstChild);
     }
+    // Code-only: rendered in this browser by music-synth.js (Web Audio API,
+    // OfflineAudioContext), no request leaves the page. Offline rendering
+    // needs no user gesture, so it works on iOS Safari too.
+    var freeBusy = false;
+    async function makeFree(lead){
+      var prompt = $("mkPrompt").value.trim();
+      if (!prompt) { say("Write a brief first."); return; }
+      if (!window.MusicSynth) { say("The in-browser generator did not load: reload the page."); return; }
+      if (freeBusy) return; freeBusy = true; $("mkFree").disabled = true;
+      say((lead ? lead + " " : "") + "Making a generated instrumental in your browser.");
+      try {
+        var out = await window.MusicSynth.render(prompt, Number($("mkSecs").value) || 30);
+        addMade(URL.createObjectURL(out.blob), "Generated instrumental, made in your browser · " + out.plan.summary, "wav",
+          "A generated instrumental made in your browser from the brief, not a composed song.");
+        say((lead ? lead + " " : "") + "Done: a generated instrumental made in your browser (" + out.plan.summary + "). Play it below.");
+      } catch (e) {
+        say("This browser could not make the track: " + ((e && e.message) || e));
+      } finally { freeBusy = false; $("mkFree").disabled = false; }
+    }
+    $("mkFree").addEventListener("click", function(){ makeFree(""); });
     $("mkGenerate").addEventListener("click", async function(){
       var btn = this, prompt = $("mkPrompt").value.trim();
       if (!prompt) { say("Write a brief first."); return; }
@@ -338,7 +360,12 @@
           var err = new Error((j && (j.message || j.error)) || ("The server answered " + r.status + "."));
           if (j && j.error) err.code = j.error;
           err.status = r.status;
-          if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show($("mkStatus"), err);
+          if (r.status === 501 && j && j.error === "music_unconfigured") {
+            // No music key on this deployment: make it here instead, free.
+            btn.disabled = false;
+            await makeFree("No music service key is set on this deployment (ELEVENLABS_API_KEY), so the track is made here instead.");
+          }
+          else if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show($("mkStatus"), err);
           else say(err.message);
         }
       } catch (e) {
