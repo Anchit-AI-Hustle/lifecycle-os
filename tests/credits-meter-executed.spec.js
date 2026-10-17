@@ -539,3 +539,51 @@ test('the operator confirms an off-platform payment with CRON_SECRET, exactly on
   expect(r.code).toBe(503);
   expect(r.payload.error).toBe('credits_unavailable');
 });
+
+/* ── own model keys: what the workspace's own keys make costs it nothing ── */
+
+test('a workspace with its own model keys: work its own keys made costs no credits, even on an empty wallet; work the platform made is charged, or refused when the wallet cannot pay', async () => {
+  const db = world();
+  const scope = require(path.resolve(__dirname, '..', 'api', '_shared', 'request-scope.js'));
+  const WCC = path.resolve(__dirname, '..', 'api', '_shared', 'workspace-connections-core.js');
+  const wcc = require(WCC);
+  const realOv = wcc.llmOverridesForCurrentRequest;
+  let ownKeys = true;
+  wcc.llmOverridesForCurrentRequest = async () => (ownKeys ? { order: [], keys: { anthropic: 'ws-own' }, configured: ['anthropic'], fallback: false, source: 'workspace' } : null);
+  // What llm.js / image.js record for each answer (executed in llm-provider-chain).
+  const answered = (own) => async (_r, r) => { scope.noteLlm('ok', { own }); r.status(200).json({ ok: true, html: '<p>x</p>' }); };
+  const run = (handler, tok = 'tok-a') => { const res = makeRes(); const rq = req(tok); return scope.run(rq, () => credits.metered(handler, () => 'ads.generate')(rq, res)).then(() => res); };
+  try {
+    // A full wallet, own keys answered: nothing spent, the receipt says why.
+    let res = await run(answered(true));
+    expect(res.code).toBe(200);
+    expect(res.payload.credits).toMatchObject({ charged: 0, own_keys: true });
+    expect(wallet(db)).toMatchObject({ balance: 500, held: 0, lifetime_spent: 0 });
+
+    // The same workspace, but the platform made it (no own key answered): charged.
+    res = await run(answered(false));
+    expect(res.payload.credits).toMatchObject({ charged: 18 });
+    expect(wallet(db)).toMatchObject({ balance: 482, held: 0, lifetime_spent: 18 });
+
+    // An empty wallet does not stop work its own keys make.
+    db.find('credit_wallets', (w) => w.user_id === 'user-a' && w.workspace_id === 'ws-a').balance = 5;
+    res = await run(answered(true));
+    expect(res.code).toBe(200);
+    expect(res.payload.html).toBe('<p>x</p>');
+    expect(res.payload.credits).toMatchObject({ charged: 0, own_keys: true });
+    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
+
+    // ...but platform work it cannot pay for is not handed over.
+    res = await run(answered(false));
+    expect(res.code).toBe(402);
+    expect(res.payload).toMatchObject({ ok: false, error: 'insufficient_credits' });
+    expect(res.payload.html).toBeUndefined();
+    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
+
+    // A workspace with NO keys of its own is refused up front, as before.
+    ownKeys = false;
+    res = await run(answered(false));
+    expect(res.code).toBe(402);
+    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
+  } finally { wcc.llmOverridesForCurrentRequest = realOv; }
+});

@@ -137,13 +137,46 @@ function fluid(html) {
   let w = 600;
   const opened = s.replace(re, (m, pre, width, mid, style, post) => {
     w = Number(width);
-    const css = String(style || '').replace(/(^|;)\s*(max-)?width\s*:[^;]*/gi, '').replace(/^;+/, '');
+    // Every style attribute on the tag, merged: a builder that wrote two (one
+    // for the width, one for the card's ground and border) lost the second, as
+    // a browser keeps only the first attribute of a name (2026-10-17).
+    const extra = [];
+    const strip = (t) => String(t || '').replace(/\s+style="([^"]*)"/g, (_m, c) => { extra.push(c); return ''; });
+    const midC = strip(mid), postC = strip(post);
+    const css = [style || ''].concat(extra).join(';').replace(/(^|;)\s*(max-)?width\s*:[^;]*/gi, '').replace(/;{2,}/g, ';').replace(/^;+/, '');
     return `<!--[if mso]><table role="presentation" width="${w}" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->`
-      + `<table role="presentation"${pre} width="100%"${mid} style="width:100%;max-width:${w}px;${css}"${post}>`;
+      + `<table role="presentation"${pre} width="100%"${midC} style="width:100%;max-width:${w}px;${css}"${postC}>`;
   });
   const shift = opened.length - s.length;
   const at = innerClose + shift + '</table>'.length;
-  return opened.slice(0, at) + '<!--[if mso]></td></tr></table><![endif]-->' + opened.slice(at);
+  return mobile(opened.slice(0, at) + '<!--[if mso]></td></tr></table><![endif]-->' + opened.slice(at));
+}
+
+/**
+ * A mail that reads on a phone (2026-10-17, measured on iPhone SE / 12 and
+ * iPad sizes). Without a viewport meta a phone lays the mail out 980px wide and
+ * shrinks it, so the copy read at about 40% of its size; and a square hero
+ * photo the width of a phone pushed the button below the first screen. Adds
+ * the viewport meta when the mail has none, and on a narrow screen caps the
+ * hero photo (`data-mail-hero`) to a band (46% of a phone's width, 320px on a
+ * tablet), cropped, so the logo, headline and
+ * button sit in the first screen. Mail clients that ignore <style> keep the
+ * full photo; nothing else changes.
+ */
+/** "a" or "an" before a name, by its first sound as far as its first letter tells. */
+function article(name) {
+  return /^[aeiou]/i.test(String(name || '').replace(/^[^A-Za-z]+/, '')) ? 'an' : 'a';
+}
+
+const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}}</style>';
+function mobile(html) {
+  let s = String(html || '');
+  if (!s || !/<body\b/i.test(s)) return s;
+  const add = (/name="viewport"/i.test(s) ? '' : '<meta name="viewport" content="width=device-width,initial-scale=1.0">')
+    + (/data-mail-mobile/.test(s) ? '' : MOBILE_CSS);
+  if (!add) return s;
+  if (/<head\b[^>]*>/i.test(s)) return s.replace(/<head\b[^>]*>/i, (h) => h + (/charset/i.test(s) ? '' : '<meta charset="utf-8">') + add);
+  return s.replace(/<html\b[^>]*>/i, (h) => h + '<head><meta charset="utf-8">' + add + '</head>');
 }
 
 /**
@@ -251,6 +284,9 @@ function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', 
 }
 
 module.exports = {
+  article,
+  mobile,
+  MOBILE_CSS,
   fluid,
   homepageOf,
   emailLogoSrc,

@@ -2059,7 +2059,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .other img{width:100%;aspect-ratio:4/3;object-fit:cover}
 .other span{display:block;padding:12px 14px;font-family:var(--head);font-size:16px;line-height:1.3}
 body{padding-bottom:4px}
-.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:11px;margin:0 0 12px}
+.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 0 12px}
 .hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
 .hero p{max-width:540px;margin:0 auto 20px;color:var(--on-moss);font-size:15px}
 .btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:12px 28px;min-height:44px;border-radius:6px;border:0;cursor:pointer;font-size:15px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
@@ -2091,18 +2091,18 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 .faq[open] summary::after{content:'−'}
 .faq p{color:var(--ink-dim);margin:8px 0 0;line-height:1.5;font-size:14px}
 .sec-head{text-align:center;max-width:640px;margin:0 auto 20px}
-.sec-eyebrow{color:var(--ink-dim);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;display:block}
+.sec-eyebrow{color:var(--ink-dim);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin:0 0 6px;display:block}
 .sec-head h2{font-size:26px;line-height:1.2;margin:4px 0 8px}
 .sec-sub{color:var(--ink-dim);font-size:14px;margin:0;line-height:1.45}
 .friction-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:16px}
 .f-card{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:18px;box-shadow:0 3px 12px rgba(0,0,0,0.02);text-align:left}
-.f-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:99px;background:var(--chalk-warm);color:var(--ink);margin-bottom:10px;border:1px solid rgba(0,0,0,0.12)}
+.f-badge{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 8px;border-radius:99px;background:var(--chalk-warm);color:var(--ink);margin-bottom:10px;border:1px solid rgba(0,0,0,0.12)}
 .f-card h3{font-size:16px;margin:0 0 6px;color:var(--ink)}
 .f-card p{font-size:13px;color:var(--ink-dim);margin:0 0 12px;line-height:1.45}
 .f-mockup{background:var(--chalk-warm);border-radius:8px;padding:8px 12px;border:1px solid rgba(0,0,0,0.06)}
-.f-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06)}
+.f-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06)}
 .f-row:last-child{border-bottom:0}
-.f-pill{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.03em}
+.f-pill{padding:2px 7px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.03em}
 .f-warn{background:rgba(255,193,7,0.2);color:#856404}
 .f-err{background:rgba(220,53,69,0.15);color:#b02a37}
 
@@ -2115,12 +2115,12 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 
 .metrics-card{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.03);margin-top:16px}
 .m-card-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--chalk-warm);border-bottom:1px solid rgba(0,0,0,0.06);font-size:12px}
-.m-badge{font-size:10px;font-weight:700;color:var(--ink);background:var(--chalk-warm);border:1px solid rgba(0,0,0,0.12);padding:3px 8px;border-radius:4px;letter-spacing:.04em}
+.m-badge{font-size:12px;font-weight:700;color:var(--ink);background:var(--chalk-warm);border:1px solid rgba(0,0,0,0.12);padding:3px 8px;border-radius:4px;letter-spacing:.04em}
 .m-table-wrap{overflow-x:auto}
 .m-table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}
-.m-table th{padding:8px 14px;color:var(--ink-dim);font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--chalk-warm)}
+.m-table th{padding:8px 14px;color:var(--ink-dim);font-size:12px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--chalk-warm)}
 .m-table td{padding:9px 14px;border-bottom:1px solid var(--chalk-warm);color:var(--ink)}
-.m-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.m-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .m-ok{background:rgba(40,167,69,0.15);color:#1e7e34}
 .m-info{background:rgba(23,162,184,0.15);color:#117a8b}
 
@@ -2132,7 +2132,7 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
    with the contrast-adjusted on-primary text rather than a 60%-opacity cream
    that was only legible because the ground behind it was black. */
 footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18px 18px;padding-bottom:max(18px,env(safe-area-inset-bottom,18px));font-size:12px}
-@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:11px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:11px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
+@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:12px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:12px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
@@ -2413,7 +2413,7 @@ function emailHtml(entry, copy, creativeUrl) {
   const onACC = textOn(ACC, SURF, INK);
   const img = creativeUrl || catalogImage.imageFor(entry, entry.market, { brand: entry.brand });
   const heroImg = img
-    ? `<img src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
+    ? `<img data-mail-hero src="${img}" alt="${String(E.hero_headline || entry.heroProduct?.title || bName).replace(/"/g, '')}" style="width:100%;display:block;max-height:440px;object-fit:cover"/>`
     : '';
 
   const benefitsHtml = (Array.isArray(E.benefits) && E.benefits.length)
@@ -2435,7 +2435,7 @@ function emailHtml(entry, copy, creativeUrl) {
     ? `<p style="font-size:13.5px;line-height:1.6;color:${INK};margin:24px 0 0;padding-top:16px;border-top:1px solid ${pal.line || '#e8e4dc'};"><strong>P.S.</strong> ${esc(E.ps)}</p>`
     : '';
 
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${E.subject}</title></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${E.subject}</title>${require('./mailer-format.js').MOBILE_CSS}</head>
 <body style="margin:0;background:${SURF};color:${INK};font-family:${_ef.body}">
 <main style="max-width:680px;margin:auto;background:${SURF}">
   <header data-mail-logo style="background:${SURF};text-align:center;padding:20px 24px">${require('./mailer-format.js').logoMark({ brand: b, store: brandStore(b, entry.market), color: INK, font: _ef.head }).html}</header>

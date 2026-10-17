@@ -71,10 +71,10 @@ module.exports = defineConfig({
    * written for the drawer layout, which these were not.
    */
   projects: [
-    { name: 'iphone-se',    testMatch: /studio\.spec\.js$/, use: { ...devices['iPhone SE'] } },     // 320x568
-    { name: 'iphone-12',    testMatch: /studio\.spec\.js$/, use: { ...devices['iPhone 12'] } },     // 390x844
-    { name: 'pixel-5',      testMatch: /studio\.spec\.js$/, use: { ...devices['Pixel 5'], ...chromiumUse } },       // 393x851
-    { name: 'ipad',         testMatch: /studio\.spec\.js$/, use: { ...devices['iPad (gen 7)'] } },  // 810x1080
+    { name: 'iphone-se',    testMatch: /(studio|asset-devices)\.spec\.js$/, use: { ...devices['iPhone SE'] } },     // 320x568
+    { name: 'iphone-12',    testMatch: /(studio|asset-devices)\.spec\.js$/, use: { ...devices['iPhone 12'] } },     // 390x844
+    { name: 'pixel-5',      testMatch: /(studio|asset-devices)\.spec\.js$/, use: { ...devices['Pixel 5'], ...chromiumUse } },       // 393x851
+    { name: 'ipad',         testMatch: /(studio|asset-devices)\.spec\.js$/, use: { ...devices['iPad (gen 7)'] } },  // 810x1080
     { name: 'desktop-1920', testMatch: /studio\.spec\.js$/, use: { viewport: { width: 1920, height: 1080 }, ...chromiumUse } },
     // Everything, at the width the app is designed around. Named desktop-1280
     // because every `--project=desktop-1280` invocation in the docs, the CI
