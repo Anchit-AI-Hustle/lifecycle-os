@@ -836,9 +836,18 @@ function competitorHooksFor(brand, assetType = 'mailer') {
   return HOOK_CATALOG[model] || HOOK_CATALOG.commerce;
 }
 
+// The button a reader of THIS business presses when no copy named one: a news
+// reader starts reading, nobody "shops" a newsletter (2026-10-17 audit).
+function defaultCta(brand, opts) {
+  const hasProduct = !!(opts && opts.hasProduct);
+  const map = { commerce: hasProduct ? 'Shop now' : 'Learn more', news_media: 'Start reading', market_data: 'See the research', subscription: 'Start now', events: 'Book your place', services: 'Get in touch' };
+  return map[businessModel(brand)] || 'Learn more';
+}
+
 module.exports = {
   BUSINESS_MODELS,
   businessModel,
+  defaultCta,
   financialDisclaimer,
   imagePolicyFor,
   playbookFor,

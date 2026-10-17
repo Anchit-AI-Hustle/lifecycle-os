@@ -26,6 +26,7 @@ const catalogServer = require('./brand-catalog-server.js');
 // contract"), with the subject and preheader limits READ from the email
 // contract. The parser below checks the same keys.
 const OC = require('./output-contract.js');
+const AP = require('./asset-playbooks.js');
 function mailerCopySpec(brandName, region) {
   const L = require('./asset-contracts.js').slotLimit;
   return {
@@ -103,31 +104,18 @@ function lookupHandle(market, sku, brand) {
   return hit ? (hit.h || hit.handle || null) : null;
 }
 
-// Map a content type / festival to a sensible collection slug.
-function collectionForEntry(entry) {
-  const tags = (entry.festival_tags || []).map((t) => String(t).toLowerCase());
-  if (tags.includes('gift')) return 'gift-sets';
-  switch (String(entry.content_type || '').toLowerCase()) {
-    case 'launch':   return 'new-arrivals';
-    case 'editorial':return 'bestsellers';
-    case 'winback':  return 'bestsellers';
-    case 'lifecycle':return 'bestsellers';   // no tenant-specific category default
-    case 'promo':    return 'bestsellers';
-    default:         return 'bestsellers';
-  }
-}
-
 // Resolve the single CTA destination for a calendar entry → a real KNICKGASM URL.
 function ctaUrlForEntry(entry, market) {
   const base = regionBase(market, { entry });
   // 1. Precise product page if we know the handle (or can resolve it from the SKU).
   const handle = entry.hero_handle || lookupHandle(market, entry.hero_sku, entry.brand);
   if (handle) return `${base}/products/${handle}`;
-  // 2. Otherwise the relevant collection page.
-  const slug = collectionForEntry(entry);
-  if (slug) return `${base}/collections/${slug}`;
-  // 3. Last resort: on-site search for the hero product so the link still lands somewhere real.
-  if (entry.hero_product) return `${base}/search?q=${encodeURIComponent(entry.hero_product)}`;
+  // 2. A collection or offering page the entry or the record names. A slug
+  //    nobody gave ("/collections/bestsellers") is an invented URL
+  //    (2026-10-17 audit), and so is a search path on a site that may not have one.
+  if (entry.collection_url) return String(entry.collection_url);
+  const off = entry.heroOffering || entry.offering;
+  if (off && off.url) return String(off.url);
   return base;
 }
 
@@ -159,7 +147,6 @@ function buildBriefFromEntry(entry, fw) {
 // Derive on-brand copy from a calendar entry when the LLM strategy stage cannot
 // return parseable JSON. Keeps the mailer build alive instead of 503-ing.
 function heuristicStrategy(entry, market, framework) {
-  const seg = entry.segment || 'you';
   const type = String(entry.content_type || '').toLowerCase();
   const subjectHint = entry.subject_hint || '';
 
@@ -183,10 +170,19 @@ function heuristicStrategy(entry, market, framework) {
     };
   }
 
-  const name = (plan && plan.offering.name) || entry.hero_product || entry.hero_sku || 'this';
+  // Only what the record states reaches the reader (2026-10-17 audit): this
+  // fallback used to print its own brief as copy ("this: the facts the
+  // catalogue actually states, never invented ones", "Chosen for the At Risk
+  // segment.") with "this" as the subject and "Shop now" for a newspaper.
+  const b = _brand({ entry });
+  const bName = b.name || brandNameOf({ entry });
+  const tagline = String(b.tagline || '').trim();
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter((c) => typeof c === 'string' && c.trim()).map((c) => c.trim());
+  const product = [entry.hero_product, entry.hero_sku].find((v) => v && !/^\[DATA REQUIRED/.test(String(v)));
+  const name = (plan && plan.offering.name) || product || bName;
   const kind = plan ? plan.kind : 'product';
-  const cta = plan ? plan.cta
-    : (type === 'promo' ? 'Shop now' : type === 'launch' ? 'Discover it' : type === 'winback' ? 'Come back' : 'See more');
+  const cta = plan ? plan.cta : AP.defaultCta(b, { hasProduct: !!product });
+  const sentence = (list) => list.map((c) => c.replace(/[.\s]+$/, '')).join('. ') + '.';
 
   // Copy shaped by what the reader is being asked to DO.
   let subject, preview, headline, subline, body_blocks;
@@ -198,46 +194,42 @@ function heuristicStrategy(entry, market, framework) {
       ? `How ${name} went, and what is next.`
       : `${when}${days > 0 ? ` - ${days} day${days === 1 ? '' : 's'} away` : ' - today'}.`;
     headline = plan.phase === 'follow-up' ? `That is a wrap on ${name}` : name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     body_blocks = plan.phase === 'follow-up'
-      ? [{ heading: 'Thank you', body: `${name} has happened. This is a note of thanks and a look at what comes next - nothing here asks anyone to register.` }]
+      ? [{ heading: 'Thank you', body: `${name} has happened. Thank you for being part of it.` }]
       : [
           { heading: 'What it is', body: `${name}${plan.offering.venue ? `, at ${plan.offering.venue}` : ''}${when ? `, on ${when}` : ''}.` },
-          { heading: 'Who it is for', body: `Written for the ${seg} segment: why this is worth their time.` },
           { heading: 'How to take part', body: plan.cta_url ? `Registration: ${plan.cta_url}` : '[DATA REQUIRED BEFORE LAUNCH: registration link]' },
         ];
   } else if (kind === 'programme') {
     subject = subjectHint || `${name}, every ${plan.offering.cadence || 'week'}`;
     preview = `A routine you can actually keep.`;
     headline = name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     body_blocks = [
       { heading: 'The routine', body: `${name} runs ${plan.offering.cadence || 'on a regular cadence'}${plan.offering.duration ? ` over ${plan.offering.duration}` : ''}.` },
-      { heading: 'What changes', body: 'What the reader can expect by the end, stated without promising an outcome that cannot be evidenced.' },
     ];
   } else if (kind === 'section' || kind === 'plan') {
     subject = subjectHint || name;
     preview = kind === 'plan' ? 'What your subscription unlocks.' : 'Worth your next five minutes.';
     headline = name;
-    subline = plan.job;
-    body_blocks = [{ heading: 'Why now', body: `Why ${name} is worth returning to for the ${seg} segment.` }];
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
+    const about = String(plan.offering.description || '').trim();
+    body_blocks = about ? [{ heading: '', body: about }] : (claims.length ? [{ heading: `Why ${bName}`, body: sentence(claims.slice(0, 3)) }] : []);
   } else if (kind === 'service') {
     subject = subjectHint || `Commission ${name}`;
     preview = plan.offering.lead_time ? `Made to order, ${plan.offering.lead_time}.` : 'Made to order.';
     headline = name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     body_blocks = [
       { heading: 'How it works', body: `Brief, then made to order${plan.offering.lead_time ? ` in ${plan.offering.lead_time}` : ''}.` },
     ];
   } else {
-    subject = (subjectHint || `${name}`).toString().slice(0, 60);
-    preview = `Chosen for the ${seg} segment.`;
-    headline = (subjectHint ? subjectHint.split(/[.!?]/)[0] : name).toString().split(/\s+/).slice(0, 8).join(' ');
-    subline = `Why this one, for this reader, now.`;
-    body_blocks = [
-      { heading: 'What it is', body: `${name}: the facts the catalogue actually states, never invented ones.` },
-      { heading: 'Why this reader', body: `What makes it right for the ${seg} segment.` },
-    ];
+    subject = subjectHint || (product ? `${name} from ${bName}` : (tagline && tagline.length <= 60 ? tagline : bName));
+    preview = product ? (tagline || claims[0] || '') : (claims[0] || '');
+    headline = (subjectHint ? subjectHint.split(/[.!?]/)[0] : (product ? name : (tagline || bName))).toString().split(/\s+/).slice(0, 10).join(' ');
+    subline = product ? tagline : '';
+    body_blocks = claims.length ? [{ heading: `Why ${bName}`, body: sentence(claims.slice(0, 3)) }] : [];
   }
 
   return {
@@ -379,12 +371,12 @@ module.exports = async function handler(req, res) {
     hero_headline: S.hero_headline,
     hero_subline: S.hero_subline,
     body_blocks: S.body_blocks || [],
-    cta_text: S.cta_text || 'Shop the edit',
+    cta_text: S.cta_text || AP.defaultCta(_brand({ entry }), { hasProduct: !!entry.hero_product }),
     cta_url: ctaUrl,
     market,
     // Flagship-parity: real inline product grid + derived collection CTA.
     products: promptProducts,
-    collection_url: `${regionBase(market, { entry })}/collections/${collectionForEntry(entry)}`,
+    collection_url: entry.collection_url || null,
   };
 
   const variants = {
@@ -487,7 +479,7 @@ module.exports = async function handler(req, res) {
     cta_url: ctaUrl, preview_text: S.preview_text,
     hero_image_url: variants.V2.hero_image_url || null,
     hero_image_provider: variants.V2.hero_image_provider || null,
-    hero_image_brief: `${heroBriefBase} Composition: tight hero close-up of ${entry.hero_product || entry.hero_sku} on a chalk linen surface, shallow depth of field, warm morning light.`,
+    hero_image_brief: `${heroBriefBase} Composition: tight hero close-up of ${entry.hero_product || entry.hero_sku} in the brand's own setting, shallow depth of field.`,
     master_prompt: variants.V2.master_prompt,
   };
   variants.A2 = {
@@ -665,7 +657,8 @@ function _renderVariantBody(o) {
   // paragraph nobody reads. The market code is the planner's, not the
   // reader's. A long tagline is left to the body copy.
   const _tag = String(_brand(o).tagline || '').trim();
-  const headerTagline = _tag && _tag.length <= 70 ? _tag : '';
+  const _fold = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const headerTagline = _tag && _tag.length <= 70 && _fold(_tag) !== _fold(hero_headline) ? _tag : '';
   const brandHeader = `
       <tr><td align="center" style="padding:18px 0 6px;">
         <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block;">
@@ -738,14 +731,16 @@ function _renderVariantBody(o) {
   // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
   //    and a brand palette hero block. Visual elements stay light and on-brand.
   if (style === 'visual') {
-    const heroLabel = hero_product ? esc(hero_product) : `${esc(brandNameOf(o))} Studio Spotlight`;
+    // No product: no eyebrow. "<Brand> Studio Spotlight" was tenant zero's
+    // sneaker-studio line, printed for every brand without a product.
+    const heroLabel = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? esc(hero_product) : '';
     // Real hero photograph if we have one; otherwise, when a generation prompt
     // is supplied, emit the lava-standard IMAGE GENERATION PROMPT comment + a
     // PASTE_IMAGE_URL_HERE slot the asset agent fills. With neither, the
     // variant renders as before (brand-palette hero block only).
     const heroImgRow = hero_image_url ? `
       <tr><td style="padding:20px 32px 0;">
-        <img src="${esc(hero_image_url)}" width="536" alt="${heroLabel}" style="display:block;width:100%;height:auto;border-radius:6px;" />
+        <img src="${esc(hero_image_url)}" width="536" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;border-radius:6px;" />
       </td></tr>` : (hero_prompt ? `
       <tr><td style="padding:20px 32px 0;">
         ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green })}
@@ -758,14 +753,14 @@ function _renderVariantBody(o) {
       ${offerBarRow}${brandHeader}${heroImgRow}
       ${(hero_image_url || hero_prompt) ? `
       <tr><td style="padding:22px 32px 0;">
-        <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+        ${heroLabel ? `<div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.22;color:${palette.greenText};font-weight:600;margin:0;`, '0', palette.greenText)}">${esc(hero_headline)}</h1>
       </td></tr>` : `
       <tr><td style="padding:20px 32px 0;">
         <!-- Brand-palette hero block (no external image needed) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
           <tr><td style="padding:34px 26px;text-align:center;">
-            <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+            ${heroLabel ? `<div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
             <div data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
           </td></tr>
         </table>
@@ -804,7 +799,7 @@ function _renderVariantBody(o) {
   <tr><td align="center" style="padding:40px 16px;">
     <table role="presentation" width="560" cellpadding="0" cellspacing="0">
       <tr><td style="padding:0 8px;">
-        <p style="font-family:${BODY};font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())} · ${esc(market)}</p>
+        <p style="font-family:${BODY};font-size:11px;letter-spacing:0.16em;color:${palette.lava};text-transform:uppercase;margin:0 0 10px;">${esc(brandNameOf(o).toUpperCase())}</p>
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
         ${textBlocks}

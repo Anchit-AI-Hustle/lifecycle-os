@@ -247,9 +247,10 @@ function renderMotionAd(spec) {
       ? `<img class="ken" src="${esc(s.image)}" alt="${esc(s.alt)}">`
       : `<div class="ken solid"></div>`;
     sceneHtml.push(`
-  <section class="scene" id="sc${i}">
+  <section class="scene${s.image ? '' : ' noimg'}" id="sc${i}">
     ${bg}
     <div class="veil"></div>
+    ${s.image || String(s.headline || '').trim() === BRAND_NAME ? '' : `<div class="mark">${esc(BRAND_NAME)}</div>`}
     <div class="type">
       <h2 class="kin"${i === 0 ? ' data-ds="headline"' : ''}>${esc(s.headline)}</h2>
       ${s.sub ? `<p class="kin" style="animation-delay:.12s">${esc(s.sub)}</p>` : ''}
@@ -300,6 +301,14 @@ function renderMotionAd(spec) {
   .type p { color:var(--chalk); opacity:.94; font-size:clamp(14px, 3.6vmin, 22px);
             margin-top:10px; text-shadow:0 1px 14px ${alpha(PAL.ink, 0.5)}; }
   .kin { opacity:0; will-change:transform,opacity; }
+  /* A scene with no photo of the brand's own (2026-10-17 audit): the line sat
+     at the top of an empty colour field, 80% of the frame blank, with no mark
+     of whose ad it was. It is centred and set larger, under the brand's name. */
+  .scene.noimg .type { top:50%; transform:translateY(-50%); text-align:center; }
+  .scene.noimg .type h2 { font-size:clamp(30px, 10.5vmin, 62px); }
+  .mark { position:absolute; left:7%; right:7%; top:7%; text-align:center; color:var(--chalk);
+          font-family:var(--head); font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+          font-size:clamp(11px, 3vmin, 15px); }
   .cta { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
          justify-content:center; gap:16px; text-align:center; padding:0 9%;
          background:radial-gradient(130% 100% at 50% 20%, ${mix(PAL.green, PAL.ink, 0.78)} 0%, var(--green) 72%);

@@ -4,6 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Every asset says only what the brand states, for brands with and without data (2026-10-17, audit)
+The operator: *"rate each functionality and feature and output asset ... test everything thoroughly ... fix all the
+issues"*. Campaigns built for four kinds of brand (own catalogue, an app with no catalogue, a news publisher, a bare
+name) through the template and model paths, every asset rendered in Chromium. Found and fixed at source:
+- `lpHtml` carried three blocks of agency copy about no brand ("Why ordinary solutions fall short", "Connected in three
+  seamless steps", a "Performance benchmarked across channels" table marked SELECTED/ACTIVE) on EVERY page (#260): gone.
+  The top bar no longer prints the market code; a store's raw tag list ("af1,gaming,aesthetic") is never the category;
+  the hero button takes the surface when the accent does not stand off the band (< 1.5:1).
+- Template landing B (`services.buildLandingPageAsset`) printed one brand's claims ("works seamlessly offline",
+  "privacy and consent at the core") for every brand; both variants, `lpHtml` and the template mailer fell back to
+  invented claims and FAQ answers ("100% authentic from <brand>'s verified collection"). Only the record's own claims
+  now; no FAQ without facts; the planner's rationale is never the page's subhead; no "<market> Edition".
+- No product named: ads and the template subject spoke the `[DATA REQUIRED ...]` marker. They speak for the brand now
+  (name, tagline, claims, its named offerings); the gap stays in `data_gaps`. Meta headline <= 40 / primary <= 125,
+  TikTok caption <= 100 by CHOOSING a shorter line the brand has, never cutting; Google RSA lost "IN Edit" and tag
+  lists, gained the tagline and offering names. `services.defaultCta()` fits the business (`asset-playbooks.
+  businessModel`): Shop now / Start reading / See the research / Start now / Book your place / Get in touch, and
+  "Learn more" with no product.
+- Model-path mailer: no "<Brand> Studio Spotlight" eyebrow, benefits headed "What you get" (was "The Transformation"),
+  one P.S., no second button to the same page. Video ads: a scene with no photo is centred under the brand's name.
+Gated by `tests/asset-audit-honest-output.spec.js` (6 executed; all 6 fail on the code before).
+
 ## ⭐ The output first, then the checks; one hero per mailer (2026-10-17)
 The operator, on /brain (Parwah): *"dont need so much information to be shown before - first the user priorities need to be
 addressed always which is the required output they are looking for"*. `smart-brain.html renderPreview`: the action bar, then
