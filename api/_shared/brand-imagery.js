@@ -71,22 +71,60 @@ function scenePrompt(brand) {
 
 /**
  * One generated, HOSTED brand scene, or null. Never a placeholder SVG, never a
- * data URL in an asset. `deps` lets a test supply the generator and uploader.
+ * data URL in an asset. With no provider key or no storage, the free keyless
+ * scene below. `deps` lets a test supply the generator, uploader and probe.
  */
 async function generatedScene(brand, deps) {
   const d = deps || {};
   let gen = d.generate; let up = d.upload;
   if (!gen || !up) {
-    try { const ci = require('./creative-image.js'); gen = gen || ci.generateCreativeImage; up = up || ci.uploadCreative; } catch (_) { return null; }
+    try { const ci = require('./creative-image.js'); gen = gen || ci.generateCreativeImage; up = up || ci.uploadCreative; } catch (_) { return freeScene(brand, d); }
   }
   const prompt = scenePrompt(brand);
   let out = null;
   try { out = await gen(prompt, { size: '1536x1024' }); } catch (_) { out = null; }
-  if (!out || !out.image || out.provider === 'placeholder' || /^data:image\/svg/i.test(out.image)) return null;
+  if (!out || !out.image || out.provider === 'placeholder' || /^data:image\/svg/i.test(out.image)) return freeScene(brand, d);
   let url = /^https:\/\//i.test(out.image) ? out.image : null;
   if (!url) { try { url = await up(out.image, `brand-scene-${String((brandRecord(brand).slug || 'brand')).slice(0, 30)}`); } catch (_) { url = null; } }
-  if (!url || !/^https:\/\//i.test(url)) return null;
+  // Generated but nowhere to keep it (no storage): the keyless address instead.
+  if (!url || !/^https:\/\//i.test(url)) return freeScene(brand, d);
   return { url, provider: out.provider || 'generated', generated: true, prompt };
 }
 
-module.exports = { ownImages, ownImageUrls, scenePrompt, generatedScene };
+// The free, keyless scene (2026-10-17). The operator: "use free code based
+// generation and rendering if that can replace the requirement of api keys".
+// Pollinations needs no key and serves the picture at its own https address,
+// one image per (prompt, seed): with the seed taken from the brand, the same
+// address always answers the same scene, so nothing has to be stored and the
+// mail carries a URL, never base64. Probed once before it is used; a host that
+// does not answer with a real image gives no scene at all.
+const FREE_SCENE_HOST = 'https://image.pollinations.ai/prompt/';
+function seedOf(brand) {
+  const b = brandRecord(brand);
+  const key = String(b.slug || b.id || b.name || 'brand');
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i += 1) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0) % 1000000;
+}
+function freeSceneUrl(brand, size) {
+  const [w, h] = String(size || '1536x1024').split('x').map((n) => Number(n) || 1024);
+  return `${FREE_SCENE_HOST}${encodeURIComponent(scenePrompt(brand).slice(0, 900))}?width=${w}&height=${h}&seed=${seedOf(brand)}&nologo=true&model=flux`;
+}
+async function probeImage(url) {
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), 60000) : null;
+  try {
+    const r = await fetch(url, { method: 'GET', signal: ctl ? ctl.signal : undefined });
+    const ct = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').toLowerCase();
+    if (!r.ok || !ct.startsWith('image/')) return false;
+    const buf = await r.arrayBuffer();
+    return buf.byteLength >= 5000;
+  } catch (_) { return false; } finally { if (t) clearTimeout(t); }
+}
+async function freeScene(brand, deps) {
+  const url = freeSceneUrl(brand);
+  const ok = await ((deps && deps.probe) || probeImage)(url).catch(() => false);
+  return ok ? { url, provider: 'pollinations', generated: true, keyless: true, prompt: scenePrompt(brand) } : null;
+}
+
+module.exports = { ownImages, ownImageUrls, scenePrompt, generatedScene, freeSceneUrl };

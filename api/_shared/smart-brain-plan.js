@@ -3172,12 +3172,29 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       },
     };
   }
+  // No product photo and no image of its own: one generated brand scene (never
+  // a product), labelled. BEFORE the template assets are built, so a send with
+  // no model key at all still carries it: with no key and no storage the scene
+  // is the free keyless one (brand-imagery.freeScene). Only when creatives are
+  // asked for on the full path; noLLM is the fast offline rebuild.
+  let scene = null;
+  if (!noLLM && withCreatives && !_scenes.get(entry) && !realImagePool(entry, 400).length && !brandImagery.ownImageUrls(entry.brand).length) {
+    scene = await brandImagery.generatedScene(entry.brand).catch(() => null);
+    if (scene) {
+      _scenes.set(entry, scene);
+      try { Object.defineProperty(entry, '__scene_url', { value: scene.url, enumerable: false, configurable: true }); } catch (_) { /* frozen entry: the pool still has it */ }
+    }
+  }
   const campaign = new GenerationService(config).generate(entry);
   campaign.offer = offerOf(entry);
   let copyMeta = { provider: 'template-fallback', model: null, creatives: 'none' };
   // Agent pipeline trace, surfaced in the console so the reviewer sees which
   // specialist agent produced each part of the mailer.
   const trace = [];
+  if (scene) {
+    campaign.generated_imagery = { url: scene.url, provider: scene.provider, keyless: !!scene.keyless, note: 'A generated brand scene: the brand has no product photo and no imagery of its own on record. It shows no product.' };
+    trace.push({ agent: 'Asset Director', role: 'Brand scene', ok: true, provider: scene.provider, output: { url: scene.url } });
+  }
   // noLLM: skip the whole LLM copy/creative pipeline and ship the deterministic
   // template campaign GenerationService already built (real catalog data, brand
   // palette, servable LP html). Used by the orphan-heal path so pages can be
@@ -3235,16 +3252,6 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // Name every ad the campaign actually contains, so each gets its own photo
     // (see generateCreatives — youtube and pinterest used to get none at all).
     creativeOpts.adPlatforms = (campaign.assets.ads || []).map((a) => ({ platform: a.platform, creative_type: a.creative_type }));
-    // No product photo and no image of its own: one generated brand scene
-    // (never a product), hosted, labelled. Only when creatives are asked for.
-    if (withCreatives && !realImagePool(entry, 400).length && !brandImagery.ownImageUrls(entry.brand).length && !_scenes.get(entry)) {
-      const scene = await brandImagery.generatedScene(entry.brand).catch(() => null);
-      if (scene) {
-        _scenes.set(entry, scene);
-        campaign.generated_imagery = { url: scene.url, provider: scene.provider, note: 'A generated brand scene: the brand has no product photo and no imagery of its own on record. It shows no product.' };
-        trace.push({ agent: 'Asset Director', role: 'Brand scene', ok: true, provider: scene.provider, output: { url: scene.url } });
-      }
-    }
     const creatives = withCreatives ? await generateCreatives(copyA, entry, creativeOpts) : {};
     const imgProviders = [...new Set(Object.values(creatives).map((c) => c && c.provider).filter(Boolean))];
     if (withCreatives) trace.push({ agent: 'Asset Director', role: 'Creative / Art Direction', ok: imgProviders.length > 0, provider: imgProviders.join(',') || null, output: { assets: Object.keys(creatives).length } });
