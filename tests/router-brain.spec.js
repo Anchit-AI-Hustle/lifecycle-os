@@ -721,8 +721,24 @@ add('tts', { gate: 'model', model: 'audio.tts', browser: 'refuse', run: { json: 
     const c = guard.calls.find((x) => /elevenlabs/.test(x.url));
     expect(c.url).toContain('/v1/text-to-speech/voice_h'); expect(c.headers['xi-api-key']).toBe('eleven-harness'); expect(JSON.parse(c.body).text).toBe('hello there');
   },
-  cases: [{ name: 'with no key the client is told to fall back, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined },
-    expect: (r) => { expect(r.status).toBe(501); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } }],
+  cases: [
+    { name: 'with no key and free generation OFF the client is told to fall back, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'off' },
+      expect: (r) => { expect(r.status).toBe(501); expect(r.out.audio_url).toBeUndefined(); expect(guard.calls.filter((c) => /elevenlabs|pollinations/.test(c.url))).toEqual([]); } },
+    // 2026-10-17: no key, free generation on (the default) = a keyless voice the
+    // BROWSER plays, in exactly the URL form copilot.js plays; the server
+    // fetches nothing (the URL is handed back, never called here).
+    { name: 'with no key and free generation ON it answers the keyless Pollinations voice URL, and fetches nothing itself', run: { json: { text: 'Hello  there, friend & co' } }, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'on' },
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        expect(r.out).toMatchObject({ ok: true, provider: 'pollinations', voice: 'nova' });
+        expect(r.out.audio_url).toBe('https://text.pollinations.ai/' + encodeURIComponent('Hello there, friend & co') + '?model=openai-audio&voice=nova');
+        expect(guard.calls.filter((c) => /elevenlabs|pollinations/.test(c.url))).toEqual([]);
+      } },
+    { name: 'the keyless voice text is cut at 700 characters, as copilot.js cuts it', run: { json: { text: 'a'.repeat(900) } }, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'on' },
+      expect: (r) => { expect(r.status).toBe(200); expect(decodeURIComponent(r.out.audio_url.split('/').pop().split('?')[0])).toHaveLength(700); } },
+    { name: 'an empty text with free generation on is a 400 sentence, not a URL', run: { json: { text: '   ' } }, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'on' },
+      expect: (r) => { expect(r.status).toBe(400); expect(r.out.audio_url).toBeUndefined(); } },
+  ],
 });
 add('console-chat', { gate: 'model', model: 'assistant.chat', browser: 'refuse', run: { json: { message: 'what should ship next?' } },
   stubs: () => { S.on(M.analysis, 'runDaily', async () => ({ summary: { s: 1 }, patterns: { angle: ['a1'] } })); S.on(M.review, 'recalibrationStatus', async () => ({ overdue: false })); db.rows.smart_calendar = [{ slot_date: '2026-10-01', theme: 't' }]; },
