@@ -193,10 +193,14 @@ function heuristic(ctx, o, err) {
   const isB = o.variant === 'B';
   const text = ctx.mailerType === 'text';
   const s = o.strategy_output || {};
-  const hero = ((s.product_selection || {}).hero) || {};
-  const heroName = hero.name || (o.products[0] && (o.products[0].name || o.products[0].n)) || P.marker('hero product', b.name, ctx.market);
-  const themeName = ((s.theme || {}).name) || o.brief.split(/[.!?\n]/)[0].trim() || heroName;
-  const claims = Array.isArray(b.claims) ? b.claims.filter(Boolean).slice(0, 4) : [];
+  // Only what the record and the strategy state (2026-10-17 audit): the
+  // operator's BRIEF was the headline and the subject, and the copy was this
+  // function's own brief. pipeline-core.fallbackCopy() is shared with html.js.
+  const fc = P.fallbackCopy(ctx, o, s);
+  const product = fc.product;
+  const heroName = product || b.name; // image prompts only; never printed as a product
+  const themeName = fc.headline;
+  const claims = fc.claims;
   const proofSupplied = Array.isArray(o.proof) && o.proof.length ? o.proof[0] : null;
   const scheme = isB
     ? { background: t.primary, primary: t.onPrimary, accent: t.accent, text: t.onPrimary }
@@ -208,12 +212,10 @@ function heuristic(ctx, o, err) {
       type: text ? 'centered' : (isB ? 'full-bleed' : 'split-hero'),
       purpose: isB ? 'Atmosphere first; the reader feels the setting before the product.' : 'Immediate product impact; the hero drives the first impression.',
       copy: {
-        eyebrow: isB ? (b.tagline || b.name) : (b.tagline || 'New from ' + b.name),
+        eyebrow: fc.tagline && fc.tagline !== themeName ? fc.tagline : '',
         headline: String(themeName).substring(0, 60),
-        subcopy: isB
-          ? `A closer look at ${heroName}, in the setting it was made for.`
-          : `${heroName} from ${b.name}: what it is, and why it fits right now.`,
-        cta: isB ? 'See the story' : 'See it now',
+        subcopy: fc.sub !== fc.tagline ? fc.sub : '',
+        cta: fc.cta,
       },
       layout: text ? 'Single column, typographic hero, 32px padding' : (isB ? 'Full-width image, copy stacked below on the primary, 48px padding' : 'Two cells: 55% image, 45% copy, vertically centred'),
       image_slot: text ? 'none' : 'hero',
@@ -225,7 +227,7 @@ function heuristic(ctx, o, err) {
       purpose: isB ? 'Build the narrative before the product reveal.' : 'Quick-scan benefits that reinforce the decision.',
       copy: {
         headline: isB ? `Why ${b.name}` : '',
-        subcopy: claims.length ? claims.join(' · ') : P.marker('verifiable claims', b.name, ctx.market),
+        subcopy: claims.join(' · '),
         cta: '',
       },
       layout: isB ? 'Centred text block, max-width 480px, generous space' : 'Three equal cells, one claim each',
@@ -237,10 +239,10 @@ function heuristic(ctx, o, err) {
       type: isB ? 'centered' : 'two-col-grid',
       purpose: 'The product, its supplied price if any, and a clear action.',
       copy: {
-        eyebrow: isB ? 'The product' : '',
-        headline: heroName,
-        subcopy: hero.why || `Made by ${b.name}.`,
-        cta: isB ? 'Explore it' : 'Add to cart',
+        eyebrow: '',
+        headline: product,
+        subcopy: fc.why,
+        cta: fc.cta,
       },
       layout: isB ? 'Single product, full-width image, centred copy below' : 'Image left, name, price and CTA right',
       image_slot: text ? 'none' : 'product',
@@ -254,7 +256,7 @@ function heuristic(ctx, o, err) {
         headline: '',
         subcopy: proofSupplied
           ? `"${String(proofSupplied.text || proofSupplied).trim()}"${proofSupplied.author ? ` — ${proofSupplied.author}` : ''}`.replace(/[—–]/g, ', ')
-          : P.marker('approved review', heroName, ctx.market),
+          : '',
         cta: '',
       },
       layout: 'Centred quote in the heading face; author line below only when one was supplied',
@@ -271,7 +273,7 @@ function heuristic(ctx, o, err) {
         eyebrow: 'Offer',
         headline: String(o.offer.headline || o.offer.label || '').substring(0, 60),
         subcopy: String(o.offer.detail || o.offer.terms || '').substring(0, 160),
-        cta: isB ? 'See the offer' : 'Shop the offer',
+        cta: 'See the offer',
       },
       layout: isB ? 'Single inline line on the primary' : 'Full-width accent banner, centred text, CTA below',
       image_slot: 'none',
@@ -282,7 +284,7 @@ function heuristic(ctx, o, err) {
     id: 'cta',
     type: 'button-row',
     purpose: 'Final call to action.',
-    copy: { headline: isB ? `More from ${b.name}` : `Shop ${b.name}`, subcopy: '', cta: isB ? 'Explore the range' : 'Shop now' },
+    copy: { headline: isB ? `More from ${b.name}` : b.name, subcopy: '', cta: fc.cta },
     layout: isB ? 'Ghost button, centred, generous padding' : 'Filled accent button, centred',
     image_slot: 'none',
     ux_intent: 'Final conversion capture',
@@ -299,7 +301,12 @@ function heuristic(ctx, o, err) {
       size: '1024x1024', negative_prompt: 'no text overlays, no logos, no UI elements, no stock look, no artificial lighting' },
   ];
 
+  // A section with nothing true to say is left out, not filled.
+  const drop = { benefit_strip: !claims.length, context: !claims.length, product_reveal: !product, social_proof: !proofSupplied };
+  for (let i = sections.length - 1; i >= 0; i--) if (drop[sections[i].id]) sections.splice(i, 1);
+  const layoutOf = (id) => (sections.find((x) => x.id === id) || {}).layout || 'none';
   const subject = String(themeName).substring(0, 60);
+  const uniq = (list) => list.map((x) => String(x || '').substring(0, 60)).filter((x, i, a) => x && a.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
   return {
     ok: true, provider: 'heuristic', model: 'fallback-v2', stage: 'variant', variant: o.variant,
     _heuristic: true,
@@ -307,8 +314,8 @@ function heuristic(ctx, o, err) {
     layout_plan: {
       hero: sections[0].layout,
       benefit_section: 'Three equal cells, one claim each',
-      product_section: sections[2].layout,
-      proof_section: sections[3].layout,
+      product_section: layoutOf('product_reveal'),
+      proof_section: layoutOf('social_proof'),
       offer_section: o.offer ? (isB ? 'Inline line on the primary' : 'Full-width accent banner') : 'none (no offer supplied)',
       cta_section: isB ? 'Ghost button, centred' : 'Filled accent button, centred',
       color_scheme: scheme,
@@ -321,14 +328,11 @@ function heuristic(ctx, o, err) {
       tone: isB ? 'sensory, evocative' : 'precise, authoritative',
       voice: (b.voice && b.voice.tone) || (isB ? 'storytelling guide' : 'confident product expert'),
       headline_style: isB ? 'indirect, sensory' : 'benefit-first, declarative',
-      cta_verb: isB ? 'Explore | See | Discover' : 'Shop | See | Add to cart',
+      cta_verb: fc.cta,
     },
-    subject_lines: [
-      subject,
-      `${heroName}, from ${b.name}`.substring(0, 60),
-      (isB ? `A closer look at ${heroName}` : `${heroName} is here`).substring(0, 60),
-    ],
-    preheader: String(b.tagline || `${heroName} from ${b.name}, with the details that matter`).substring(0, 90),
+    subject_lines: uniq([subject, product ? `${product}, from ${b.name}` : b.name, fc.tagline, claims[0]]).slice(0, 3),
+    preheader: String((fc.tagline && fc.tagline !== subject ? fc.tagline : claims[0]) || '').substring(0, 90),
+    data_gaps: fc.gaps.concat(proofSupplied ? [] : [P.marker('approved review', product || b.name, ctx.market)]),
   };
 }
 
