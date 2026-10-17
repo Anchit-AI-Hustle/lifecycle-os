@@ -7441,7 +7441,7 @@ function _sec_heroSplit(s,c){
   var oc=s._suppressOfferInHero?'':(s.offer.code||'');
   var heroImg=c.uploadedDesignImg||hero.i||'';
   return '<tr><td style="padding:0;border-left:1px solid '+_ARCH_BORDER+';border-right:1px solid '+_ARCH_BORDER+'">'+
-    '<table width="600" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:'+_ARCH_CREAM+'"><tr>'+
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:'+_ARCH_CREAM+'"><tr>'+
       '<td class="hero-left" width="300" valign="middle" style="width:300px;padding:30px 26px;vertical-align:middle;background:'+_ARCH_CREAM+'">'+
         (ot?'<p style="font-family:'+_ARCH_FB+';font-size:9px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:'+_ARCH_GOLD_TEXT+';margin:0 0 10px">'+ot+'</p>':'')+
         '<p style="font-family:'+_ARCH_FH+';font-size:34px;font-weight:bold;color:'+_ARCH_GREEN_TEXT+';margin:0 0 6px;line-height:1.07">'+hl[0]+(hl[1]?'<br>'+hl[1]:'')+'</p>'+
@@ -7774,7 +7774,7 @@ function _sec_countdownBlock(s,c){
   // — three green-on-green tiles would have disappeared into it.
   return '<tr><td style="background:'+_ARCH_GREEN+';padding:28px 28px;text-align:center"><p style="font-family:'+_ARCH_FB+';font-size:10px;font-weight:800;letter-spacing:0.32em;color:'+_ARCH_ON_GREEN+';margin:0 0 12px;text-transform:uppercase">Limited drop ends in</p>'+
     '<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse"><tr>'+
-      ['48 HRS','LIMITED STOCK','SHIPS NOW'].map(function(t,i){return '<td style="padding:10px 18px;background:'+_ARCH_CREAM+';border:1px solid '+_ARCH_ON_GREEN+';margin:0 4px"><p style="font-family:'+_ARCH_FH+';font-size:18px;font-weight:bold;color:'+_archTextOn(_ARCH_CREAM,_ARCH_GREEN,_ARCH_INK)+';margin:0;letter-spacing:0.08em">'+t+'</p></td>'+(i<2?'<td width="6"></td>':'');}).join('')+
+      ['48 HRS','LIMITED STOCK','SHIPS NOW'].map(function(t,i){return '<td class="cd-tile" style="padding:10px 18px;background:'+_ARCH_CREAM+';border:1px solid '+_ARCH_ON_GREEN+';margin:0 4px"><p style="font-family:'+_ARCH_FH+';font-size:18px;font-weight:bold;color:'+_archTextOn(_ARCH_CREAM,_ARCH_GREEN,_ARCH_INK)+';margin:0;letter-spacing:0.08em">'+t+'</p></td>'+(i<2?'<td width="6"></td>':'');}).join('')+
     '</tr></table>'+
     '<p style="font-family:'+_ARCH_FH+';font-size:24px;color:'+_ARCH_ON_GREEN+';margin:14px 0 0;line-height:1.15">'+s.headline[0]+'</p>'+
   '</td></tr>';
@@ -7833,7 +7833,9 @@ function _arch_renderEmail(strategy,archetype,variant,uploadedDesignImg,mt){
       'h1,h2,h3,h4{font-family:'+_ARCH_FH+'}'+
       '@media only screen and (max-width:600px){'+
       '.email-wrap{width:100%!important}'+
-      '.hero-left,.hero-right{display:block!important;width:100%!important}'+
+      '.hero-left,.hero-right{display:block!important;width:100%!important;box-sizing:border-box!important}'+
+      '.outer-pad{padding:12px 0!important}'+
+      '.cd-tile{padding:8px 10px!important}'+
       '.hero-right img{height:auto!important;max-height:280px!important;padding:8px 0!important}'+
       '.pcol{display:block!important;width:100%!important;padding:0 0 12px!important}'+
       '.pcol img{height:auto!important;max-height:280px!important;padding:14px 0!important}'+
@@ -7844,7 +7846,7 @@ function _arch_renderEmail(strategy,archetype,variant,uploadedDesignImg,mt){
     '<!-- archetype:'+archetype+' · variant:'+variant+' -->\n'+
     '</head>\n<body style="margin:0;padding:0;background:'+_archOuter+';-webkit-text-size-adjust:100%">\n'+
     '<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:'+_archOuter+'">'+preheader+'</div>\n'+
-    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:'+_archOuter+';border-collapse:collapse"><tr><td align="center" style="padding:24px 10px">\n'+
+    '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:'+_archOuter+';border-collapse:collapse"><tr><td class="outer-pad" align="center" style="padding:24px 10px">\n'+
     '<table class="email-wrap" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-collapse:collapse;background:'+_ARCH_PAPER+'">\n'+
     sectionsHtml+
     '</table></td></tr></table>\n</body></html>';

@@ -240,13 +240,21 @@ test('the social fallback posts say only what the brand states, with its busines
   require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
   delete require.cache[SC];
   try {
-    const out = await require(SC).runDaily({ brand: NEWS, dry_run: true, date: '2026-10-20' });
+    const out = await require(SC).runDaily({ brand: { ...NEWS, brand_data: { hashtags: ['#PuneDesk', 'ward watch'] } }, dry_run: true, date: '2026-10-20' });
     expect(out.posts.length).toBeGreaterThan(5);
     for (const p of out.posts) {
       const words = JSON.stringify(p.copy);
       expect(words, p.key).not.toMatch(/pair|footwear|Lacing|studio taught|3pm|ritual|DATA REQUIRED|Shop |origin-fresh|one-of-one|chalk linen/i);
       expect(p.cta, p.key).toBe('Start reading');
     }
+    // Only tags the brand owns: its listed ones, its name; never an invented topic.
+    const owned = new Set(['#PuneDesk', '#WardWatch', '#LedgerlineGazette', '#Shorts']);
+    for (const p of out.posts.filter((x) => x.key !== 'blog')) {
+      const tags = p.hashtags || [];
+      expect(tags.length, `${p.key} carries no hashtag at all`).toBeGreaterThan(p.key === 'instagram_stories' ? -1 : 0);
+      for (const t of tags) expect(owned.has(t), `${p.key}: ${t} is not the brand's`).toBe(true);
+    }
+    expect(out.posts.find((p) => p.key === 'instagram_feed').hashtags).toEqual(['#PuneDesk', '#WardWatch', '#LedgerlineGazette']);
     const feed = out.posts.find((p) => p.key === 'instagram_feed');
     expect(feed.copy.caption).toContain('Pune news, checked twice by the desk');
     expect(feed.copy.caption).toContain('Reporters in all 14 Pune wards');
