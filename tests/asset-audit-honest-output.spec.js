@@ -367,6 +367,9 @@ test('nothing of its own: one generated brand scene, hosted, labelled, with no p
 // a provider key and a bucket. Now the keyless Pollinations address, the same
 // picture every time for a brand, carried as a URL, never base64.
 test('no model key and no storage: the template assets still carry one free, keyless brand scene', async () => {
+  const savedFree = process.env.FREE_GENERATION;
+  process.env.FREE_GENERATION = 'on';
+  try {
   const bi = require(path.join(ROOT, 'api', '_shared', 'brand-imagery.js'));
   const url = bi.freeSceneUrl(APP);
   expect(url).toMatch(/^https:\/\/image\.pollinations\.ai\/prompt\//);
@@ -417,6 +420,60 @@ test('no model key and no storage: the template assets still carry one free, key
     if (realC) require.cache[CI] = realC; else delete require.cache[CI];
     if (realP) require.cache[PLAN] = realP; else delete require.cache[PLAN];
     for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
+  // Switched off, nothing leaves for the free host.
+  process.env.FREE_GENERATION = 'off';
+  expect(await bi.generatedScene(APP, { generate: async () => null, upload: async () => null, probe: async () => true })).toBe(null);
+  } finally { if (savedFree === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = savedFree; }
+});
+
+// Every generated image, not only the brand scene (2026-10-17): with nowhere
+// to host the bytes, the free generator's own address is used, and a mail
+// never carries base64. Exercised through the shipped image route's answer.
+test('a generated image is carried as a URL: hosted, else the free generator\'s address, never base64', async () => {
+  const CI = require(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  const free = 'https://image.pollinations.ai/prompt/x?seed=1';
+  const SUPA = require.resolve(path.join(ROOT, 'api', '_shared', 'supa.js'));
+  const real = require.cache[SUPA];
+  require.cache[SUPA] = { id: SUPA, filename: SUPA, loaded: true, exports: { uploadObject: async () => { throw new Error('storage unreachable'); } } };
+  try {
+    expect(await CI.hostedUrl({ image: png, url: free })).toBe(free);
+    expect(await CI.hostedUrl({ image: png, url: null }), 'no address and no storage: no image').toBe(null);
+    expect(await CI.hostedUrl({ image: 'https://cdn.example/a.png' })).toBe('https://cdn.example/a.png');
+    require.cache[SUPA].exports.uploadObject = async () => ({ public_url: 'https://store.example/a.png' });
+    expect(await CI.hostedUrl({ image: png, url: free }), 'the hosted copy wins').toBe('https://store.example/a.png');
+  } finally { if (real) require.cache[SUPA] = real; else delete require.cache[SUPA]; }
+  // Through the shipped image route, as the server calls it. It used to send no
+  // credentials, so the route answered 401 and every server-side image was null.
+  const realFetch = global.fetch;
+  const ENVK = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_API_KEY_3', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'CRON_SECRET', 'FREE_GENERATION', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
+  const saved = {}; for (const k of ENVK) { saved[k] = process.env[k]; delete process.env[k]; }
+  const hosts = [];
+  global.fetch = async (u) => {
+    const s2 = String(u); hosts.push(new URL(s2).host);
+    if (s2.startsWith('https://image.pollinations.ai/')) return new Response(new Uint8Array(9000), { status: 200, headers: { 'content-type': 'image/jpeg' } });
+    throw new Error('unexpected ' + s2);
+  };
+  try {
+    // The deployment's scheduler: the route itself answers, and says where its free picture lives.
+    process.env.CRON_SECRET = 'scheduler-secret-for-the-test';
+    process.env.FREE_GENERATION = 'off';
+    const viaRoute = await CI.generateCreativeImage('a calm room, no text', { size: '1024x1024' });
+    expect(viaRoute, 'the route admitted the server\'s own call').toBeTruthy();
+    expect(viaRoute.provider).toBe('pollinations');
+    expect(viaRoute.url).toMatch(/^https:\/\/image\.pollinations\.ai\/prompt\//);
+    expect(await CI.hostedUrl(viaRoute)).toBe(viaRoute.url);
+    // No scheduler, no session: the free floor, unless it is switched off.
+    delete process.env.CRON_SECRET;
+    expect(await CI.generateCreativeImage('a calm room, no text'), 'switched off: nothing').toBe(null);
+    process.env.FREE_GENERATION = 'on';
+    const floor = await CI.generateCreativeImage('a calm room, no text');
+    expect(floor).toMatchObject({ provider: 'pollinations', keyless: true });
+    expect(floor.image).toMatch(/^https:\/\//);
+  } finally {
+    global.fetch = realFetch;
+    for (const k of ENVK) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
   }
 });
 

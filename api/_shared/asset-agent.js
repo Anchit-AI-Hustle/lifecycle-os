@@ -128,7 +128,8 @@ async function fillMailerAssets(html, {
       if (!gen || !gen.image) { assets.push({ slot, kind: 'image', status: 'failed', error: 'no image from cascade' }); return null; }
       let url = gen.image;
       if (persist) {
-        const hosted = await creative.uploadCreative(gen.image, `${name}-${slot}`);
+        // The hosted copy, else the free generator's own address (2026-10-17).
+        const hosted = await creative.hostedUrl(gen, `${name}-${slot}`);
         if (hosted) url = hosted;
       }
       assets.push({ slot, kind: 'image', status: 'done', provider: gen.provider, model: gen.model, url, hosted: url !== gen.image });

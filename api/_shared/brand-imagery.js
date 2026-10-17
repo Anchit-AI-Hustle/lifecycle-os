@@ -122,6 +122,7 @@ async function probeImage(url) {
   } catch (_) { return false; } finally { if (t) clearTimeout(t); }
 }
 async function freeScene(brand, deps) {
+  if (String(process.env.FREE_GENERATION || '').toLowerCase() === 'off') return null;
   const url = freeSceneUrl(brand);
   const ok = await ((deps && deps.probe) || probeImage)(url).catch(() => false);
   return ok ? { url, provider: 'pollinations', generated: true, keyless: true, prompt: scenePrompt(brand) } : null;

@@ -435,7 +435,7 @@ module.exports = async function handler(req, res) {
   if (!variants.V2.hosted_media_url) {
     let timer = null;
     try {
-      const { generateCreativeImage, uploadCreative } = require('../_shared/creative-image.js');
+      const { generateCreativeImage, hostedUrl } = require('../_shared/creative-image.js');
       const gen = await Promise.race([
         generateCreativeImage(variants.V2.hero_image_brief, { size: '1536x1024' }),
         new Promise((resolve) => { timer = setTimeout(() => resolve(null), 30000); }),
@@ -446,10 +446,10 @@ module.exports = async function handler(req, res) {
       const isReal = gen && gen.image &&
         gen.provider !== 'placeholder' &&
         String(gen.image).indexOf('data:image/svg') !== 0;
-      if (isReal) {
-        // Prefer a small hosted URL (Supabase Storage) over a multi-MB data-URL.
-        const hosted = await uploadCreative(gen.image, `calendar-v2-${slugify(entry.date || entry.segment || 'hero')}`).catch(() => null);
-        const heroImageUrl = hosted || gen.image;
+      // A URL or nothing: the hosted copy, else the free generator's address.
+      // Never the base64 bytes in the mail (the contract refuses them).
+      const heroImageUrl = isReal ? await hostedUrl(gen, `calendar-v2-${slugify(entry.date || entry.segment || 'hero')}`).catch(() => null) : null;
+      if (heroImageUrl) {
         variants.V2.hero_image_url = heroImageUrl;
         variants.V2.hero_image_provider = gen.provider || null;
         variants.V2.html = renderTextVariant({
