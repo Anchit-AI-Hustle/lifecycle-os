@@ -4,6 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Mailer body copy is justified; a saved bundle from other renderer code is rebuilt (2026-10-17)
+The operator, with a screenshot of production /brain (Parwah): "alignment must be justified in mailers". Gated by
+`tests/mailer-justified.spec.js` (3 executed; 5 mutations, each caught).
+- **Justified**: `mailer-format.JUSTIFY` (`text-align:justify;text-justify:inter-word`) on every body paragraph
+  (`[data-mail-body]`, and the subline `[data-ds="body"]`) in the shared variants (`calendar-trigger.renderTextVariant`:
+  pure / editorial / visual / founder), the model-path fallback `emailHtml` and the template mailer (services). A line
+  before a `<br>` and a paragraph's last line stay at the start edge, so a benefit list is not stretched; headings,
+  buttons and the footer keep their own alignment. The fallback mailer's "Why this changes everything" is "What you get".
+- **Why the screenshot still showed #276's defects** (invented benefits, a `#0000EE` divider): the saved bundle carried
+  `build_version: '2026-10-17.mailer-layout'`, a hand-kept string nobody bumped after #276, so it was replayed.
+  `ASSET_BUILD_VERSION` is now `src.<sha256 of smart-brain-plan.js, calendar-trigger.js, mailer-format.js,
+  copy-grounding.js, brand-runtime.js, lib/smart-brain/services.js>`: any change to that code rebuilds saved bundles
+  on view and in the prebuild queue. The cost is that a deploy touching those files re-queues the prebuild.
+
 ## ⭐ A keyless deployment writes real copy; every ad says what each placement shows (2026-10-17)
 The operator: "complete all listed" (the open items after #277). A LIVE Smart Brain build with no key (the keyless
 floor, `text.pollinations.ai`) always fell to template copy. Gated by `tests/live-keyless-and-placements.spec.js`
