@@ -421,19 +421,33 @@ async function strategyAgent(ctx, ideology, hypothesis, keys, timeoutMs) {
 }
 
 // ── Agent 4: Content (premium) — per-platform copy incl. blog ────────────────
-const TAG_POOLS = {
-  brand: [],
-  tb: [],
-  coffee: [],
-  supplements: [],
-};
-function tagsFor(key, focus) {
+// Hashtags the brand OWNS (2026-10-17): the pools here were empty for every
+// brand, so no fallback post carried a single tag. Topical tags are not
+// invented (a guessed #FamilyApp is a claim about the market); a post carries
+// the brand's own listed tags (brand_data.hashtags), its name and the named
+// product's, and a platform minimum is never padded with generic ones.
+function tagWord(text) {
+  const words = String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').match(/[A-Za-z0-9]+/g) || [];
+  const t = words.map((w) => (w.length > 1 && w === w.toUpperCase() ? w : w.charAt(0).toUpperCase() + w.slice(1))).join('');
+  return t && t.length <= 30 && /[A-Za-z]/.test(t) ? '#' + t : '';
+}
+function brandTags(ctx) {
+  const b = brandRecord(ctx);
+  const bd = (b && b.brand_data) || {};
+  const listed = (Array.isArray(bd.hashtags) ? bd.hashtags : Array.isArray(b.hashtags) ? b.hashtags : [])
+    .map((h) => String(h || '').trim()).filter(Boolean).map((h) => (h.charAt(0) === '#' ? '#' + h.slice(1).replace(/[^\p{L}\p{N}_]/gu, '') : tagWord(h))).filter((h) => h.length > 1);
+  const title = String((ctx && ctx.focus && ctx.focus.product && ctx.focus.product.title) || '');
+  const product = title && !/^\[DATA REQUIRED/.test(title) ? tagWord(title.split(',')[0]) : '';
+  const out = [];
+  for (const t of [...listed, tagWord(b && b.name), product]) if (t && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+  return out;
+}
+function tagsFor(key, focus, ctx) {
   const spec = PLATFORM_SPECS[key];
   const max = spec.hashtags[1];
   if (!max) return [];
-  const pool = TAG_POOLS.brand.concat(TAG_POOLS[focus.type] || TAG_POOLS.tb);
   const extra = key === 'youtube_shorts' ? ['#Shorts'] : [];
-  return extra.concat(pool).slice(0, Math.max(spec.hashtags[0], Math.min(max, 8)));
+  return extra.concat(brandTags(Object.assign({}, ctx || {}, { focus }))).slice(0, max);
 }
 function focusLine(focus) {
   if (focus.type === 'coffee') {
@@ -476,7 +490,7 @@ function fallbackContent(ctx, ideology, strategy, keys) {
       default:
         posts[key] = { caption: join([head, go], ' '), hook, alt_text: alt };
     }
-    if (!posts[key].hashtags) posts[key].hashtags = tagsFor(key, ctx.focus);
+    if (!posts[key].hashtags) posts[key].hashtags = tagsFor(key, ctx.focus, ctx);
   }
   const data_gaps = [];
   if (!r.product) data_gaps.push('[DATA REQUIRED BEFORE LAUNCH: hero product, ' + r.name + ']');
