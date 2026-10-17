@@ -123,10 +123,20 @@ for (const f of FEATURES) {
   BY_KEY[f.key] = Object.assign({ metered: false, estimate: 1, group: 'Other' }, f);
 }
 
-/** Signup / trial grant. An operator can change it with CREDIT_WELCOME_GRANT. */
+/**
+ * The signup gift: exactly enough credits to try EVERY feature once (2026-10-17,
+ * the operator: "everyone should get a gift of the minimum credits required to
+ * test each and every functionality of the app as soon as they signup for the
+ * first time"). The sum of every charged feature's price for one use, read off
+ * this catalogue, so a new or repriced feature changes the gift by itself. An
+ * operator can still set it with CREDIT_WELCOME_GRANT.
+ */
+function tryEverythingOnce() {
+  return list().reduce((sum, f) => sum + Math.max(0, Number(f.cost) || 0), 0);
+}
 function welcomeGrant() {
   const n = parseInt(process.env.CREDIT_WELCOME_GRANT || '', 10);
-  return Number.isFinite(n) && n >= 0 ? n : 500;
+  return Number.isFinite(n) && n >= 0 ? n : tryEverythingOnce();
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -281,6 +291,6 @@ function quote(key, units, overrides) {
 }
 
 module.exports = {
-  FEATURES, PACKS, get, list, grouped, quote, pack, welcomeGrant,
+  FEATURES, PACKS, get, list, grouped, quote, pack, welcomeGrant, tryEverythingOnce,
   packPrice, packList, formatPrice, minorExponent, normalisePrice, envPackPrices,
 };

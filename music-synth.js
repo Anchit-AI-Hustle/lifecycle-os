@@ -201,8 +201,10 @@
     return [L, R];
   }
 
-  function wav(channels) {
-    var ch = channels.length, len = channels[0].length, rate = SAMPLE_RATE;
+  // The WAV bytes (an ArrayBuffer), for the server, which renders the same
+  // track in Node (2026-10-17: made free in the backend, charged as credits).
+  function wavBytes(channels, sampleRate) {
+    var ch = channels.length, len = channels[0].length, rate = sampleRate || SAMPLE_RATE;
     var data = channels;
     var peak = 0;
     for (var c = 0; c < ch; c++) {
@@ -225,7 +227,19 @@
         v.setInt16(off, Math.round(s * 32767), true); off += 2;
       }
     }
-    return new Blob([ab], { type: 'audio/wav' });
+    return ab;
+  }
+  function wav(channels) { return new Blob([wavBytes(channels)], { type: 'audio/wav' }); }
+  // `compact`: one channel at half the rate (a pair of samples averaged, then
+  // kept once), so a 60 s track is ~2.6 MB and fits a serverless response
+  // (Vercel caps one at 4.5 MB; 60 s of 16-bit stereo at 44.1 kHz is 10.6 MB).
+  function renderBytes(brief, seconds, opts) {
+    var p = plan(brief, seconds);
+    var ch = synthesise(p);
+    if (!(opts && opts.compact)) return { bytes: wavBytes(ch), plan: p, sampleRate: SAMPLE_RATE, seconds: p.seconds };
+    var L = ch[0], R = ch[1] || ch[0], n = Math.floor(L.length / 2), m = new Float32Array(n);
+    for (var i = 0; i < n; i++) m[i] = (L[2 * i] + L[2 * i + 1] + R[2 * i] + R[2 * i + 1]) / 4;
+    return { bytes: wavBytes([m], SAMPLE_RATE / 2), plan: p, sampleRate: SAMPLE_RATE / 2, seconds: p.seconds };
   }
 
   function render(brief, seconds) {
@@ -241,5 +255,7 @@
     });
   }
 
-  root.MusicSynth = { plan: plan, render: render, wav: wav, SAMPLE_RATE: SAMPLE_RATE, MIN_SECS: MIN_SECS, MAX_SECS: MAX_SECS };
-})(typeof window !== 'undefined' ? window : this);
+  var api = { plan: plan, render: render, renderBytes: renderBytes, wav: wav, SAMPLE_RATE: SAMPLE_RATE, MIN_SECS: MIN_SECS, MAX_SECS: MAX_SECS };
+  root.MusicSynth = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : {});
