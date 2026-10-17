@@ -38,3 +38,4 @@ uploaded_by_*/
 # In-country catalogue readers: their own Vercel projects (root directory readers/),
 # never part of this deployment.
 readers
+image.png
