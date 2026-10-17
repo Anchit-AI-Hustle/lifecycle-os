@@ -304,7 +304,36 @@ function mount(handler, featureKey, opts) {
 /** The mailer numbers, read from the spec rather than re-typed. */
 const MAILER = specs.MAILER;
 
+/**
+ * The copy a fallback may write when no model answered (2026-10-17 audit): only
+ * what the record and the strategy state. The fallbacks used to print the
+ * operator's brief as the headline and subject, their own brief as copy
+ * ("<product> from <brand>: what it is, and why it fits right now."), "Add to
+ * cart" for a newspaper, and the DATA REQUIRED marker as the product's name.
+ * A gap is returned in `gaps`, never written into the mail.
+ */
+function fallbackCopy(ctx, o, strategy) {
+  const b = (ctx && ctx.brand) || {};
+  const s = strategy || {};
+  const hero = ((s.product_selection || {}).hero) || {};
+  const first = (o && Array.isArray(o.products) && o.products[0]) || {};
+  const raw = String(hero.name || first.name || first.n || '').trim();
+  const product = raw && !/^\[DATA REQUIRED/.test(raw) ? raw : '';
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter((c) => typeof c === 'string' && c.trim()).map((c) => c.trim()).slice(0, 4);
+  const tagline = String(b.tagline || '').trim();
+  let cta = 'Learn more';
+  try { cta = require('./asset-playbooks.js').defaultCta(b, { hasProduct: !!product }); } catch (_) { /* keep */ }
+  const theme = String(((s.theme || {}).name) || '').trim();
+  const headline = theme || product || tagline || b.name || '';
+  const sub = product ? (tagline || claims[0] || '') : (claims[0] && claims[0] !== headline ? claims[0] : '');
+  const gaps = [];
+  if (!product) gaps.push(marker('hero product', b.name, ctx && ctx.market));
+  if (!claims.length) gaps.push(marker('verifiable claims', b.name, ctx && ctx.market));
+  return { product, claims, tagline, cta, headline, sub, why: String(hero.why || '').trim(), gaps };
+}
+
 module.exports = {
+  fallbackCopy,
   admit, briefing, tokens, storeFor, linkFor, legalFor, productLines, marker, OC, slotLimit: contracts.slotLimit,
   llm, parseJSON, mount, MAILER,
 };

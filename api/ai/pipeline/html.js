@@ -276,10 +276,8 @@ function heuristicHtml(ctx, o) {
   const proofSection = find('social_proof');
 
   const heroProduct = (o.products && o.products[0]) || {};
-  const heroName = String(copyOf(productSection).headline
-    || ((strategy.product_selection || {}).hero || {}).name
-    || heroProduct.name || heroProduct.n
-    || P.marker('hero product', b.name, ctx.market));
+  const fc = P.fallbackCopy(ctx, o, strategy);
+  const heroName = String(copyOf(productSection).headline || fc.product);
   const heroHandle = heroProduct.handle || heroProduct.h || '';
   const utm = `?utm_source=email&utm_medium=mailer&utm_campaign=${encodeURIComponent(b.slug || 'pipeline')}`;
   const shopUrl = P.linkFor(store, utm);
@@ -288,14 +286,14 @@ function heuristicHtml(ctx, o) {
   const price = (heroProduct.price != null && heroProduct.price !== '') ? `${currency}${heroProduct.price}` : '';
   const compare = (heroProduct.compare_at != null && heroProduct.compare_at !== '') ? `${currency}${heroProduct.compare_at}` : '';
 
-  const heroHeadline = String(copyOf(heroSection).headline || ((strategy.theme || {}).name) || heroName);
-  const heroEyebrow = String(copyOf(heroSection).eyebrow || b.tagline || b.name);
-  const heroSubcopy = String(copyOf(heroSection).subcopy || (isB ? `A closer look at ${heroName}, in the setting it was made for.` : `${heroName} from ${b.name}: what it is, and why it fits right now.`));
-  const heroCta = String(copyOf(heroSection).cta || (isB ? 'See the story' : 'See it now'));
-  const productCopy = String(copyOf(productSection).subcopy || ((strategy.product_selection || {}).hero || {}).why || `Made by ${b.name}.`);
-  const productCta = String(copyOf(productSection).cta || (isB ? 'Explore it' : 'Add to cart'));
-  const finalHeadline = String(copyOf(ctaSection).headline || (isB ? `More from ${b.name}` : `Shop ${b.name}`));
-  const finalCta = String(copyOf(ctaSection).cta || (isB ? 'Explore the range' : 'Shop now'));
+  const heroHeadline = String(copyOf(heroSection).headline || fc.headline);
+  const heroEyebrow = String(copyOf(heroSection).eyebrow || (fc.tagline && fc.tagline !== heroHeadline ? fc.tagline : ''));
+  const heroSubcopy = String(copyOf(heroSection).subcopy || (fc.sub !== heroEyebrow ? fc.sub : ''));
+  const heroCta = String(copyOf(heroSection).cta || fc.cta);
+  const productCopy = String(copyOf(productSection).subcopy || fc.why);
+  const productCta = String(copyOf(productSection).cta || fc.cta);
+  const finalHeadline = String(copyOf(ctaSection).headline || (isB ? `More from ${b.name}` : b.name));
+  const finalCta = String(copyOf(ctaSection).cta || fc.cta);
   const claims = Array.isArray(b.claims) ? b.claims.filter(Boolean).slice(0, 4) : [];
   const proof = (o.proof && o.proof[0]) || null;
   const offer = o.offer || null;
@@ -303,9 +301,9 @@ function heuristicHtml(ctx, o) {
   const offerDetail = offer ? String(copyOf(offerSection).subcopy || offer.detail || offer.terms || '') : '';
 
   const subjectLines = (Array.isArray(plan.subject_lines) && plan.subject_lines.length ? plan.subject_lines : [heroHeadline]).map((s) => String(s).substring(0, 60));
-  let preheader = String(plan.preheader || b.tagline || `${heroName} from ${b.name}, with the details that matter`).substring(0, 90);
+  let preheader = String(plan.preheader || fc.tagline || fc.claims[0] || '').substring(0, 90);
   // The preheader extends the subject; a copy of it wastes the inbox's second line.
-  if (preheader.trim().toLowerCase() === String(subjectLines[0]).trim().toLowerCase()) preheader = `${heroName} from ${b.name}, with the details that matter`.substring(0, 90);
+  if (preheader.trim().toLowerCase() === String(subjectLines[0]).trim().toLowerCase()) preheader = String(fc.claims.find((c) => c.toLowerCase() !== preheader.trim().toLowerCase()) || '').substring(0, 90);
 
   const H = t.headingStack;
   const F = t.bodyStack;
@@ -350,17 +348,17 @@ function heuristicHtml(ctx, o) {
 
   let hero;
   if (isB) {
-    const copyCell = `${eyebrow(heroEyebrow, t.onPrimary)}`
+    const copyCell = `${heroEyebrow ? eyebrow(heroEyebrow, t.onPrimary) : ''}`
       + `<h1 style="margin:0 0 16px;font-family:${H};font-size:40px;line-height:1.1;font-weight:400;color:${t.onPrimary}">${esc(heroHeadline)}</h1>`
-      + p(esc(heroSubcopy), t.onPrimary, 16, 'max-width:440px;margin-left:auto;margin-right:auto')
+      + (heroSubcopy ? p(esc(heroSubcopy), t.onPrimary, 16, 'max-width:440px;margin-left:auto;margin-right:auto') : '')
       + ghost(pdpUrl, heroCta, t.onPrimary)
       + shippingLine(t.onPrimary);
     hero = (text ? '' : section(t.primary, img('IMAGE_HERO_URL', heroHeadline, W), 'padding:0'))
       + section(t.primary, copyCell, 'padding:48px 40px;text-align:center');
   } else {
-    const copy = `${eyebrow(heroEyebrow, t.accentAsText)}`
+    const copy = `${heroEyebrow ? eyebrow(heroEyebrow, t.accentAsText) : ''}`
       + `<h1 style="margin:0 0 14px;font-family:${H};font-size:28px;line-height:1.2;font-weight:700;color:${t.primaryAsText}">${esc(heroHeadline)}</h1>`
-      + p(esc(heroSubcopy), t.onSurface)
+      + (heroSubcopy ? p(esc(heroSubcopy), t.onSurface) : '')
       + button(pdpUrl, heroCta, t.accent, t.onAccent)
       + shippingLine(t.mutedOnSurface);
     hero = text
@@ -372,12 +370,12 @@ function heuristicHtml(ctx, o) {
         + `</tr></table>`, 'padding:0');
   }
 
-  const claimCells = (claims.length ? claims : [P.marker('verifiable claims', b.name, ctx.market)])
+  const claimCells = claims
     .map((c) => `<td class="vh-m-col" valign="top" style="padding:8px 10px;text-align:center;font-family:${F};font-size:13px;line-height:1.5;font-weight:700;color:${t.onSurfaceAlt};background:${t.surfaceAlt}" bgcolor="${t.surfaceAlt}">${esc(c)}</td>`)
     .join('');
-  const benefits = section(t.surfaceAlt, `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${claimCells}</tr></table>`, 'padding:20px 16px');
+  const benefits = claims.length && section(t.surfaceAlt, `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${claimCells}</tr></table>`, 'padding:20px 16px');
 
-  const lifestyle = text ? '' : section(isB ? t.primary : t.surface, img('IMAGE_LIFESTYLE_URL', `${b.name}: ${heroName}`, W), 'padding:0');
+  const lifestyle = text ? '' : section(isB ? t.primary : t.surface, img('IMAGE_LIFESTYLE_URL', heroName ? `${b.name}: ${heroName}` : b.name, W), 'padding:0');
 
   const priceLine = price
     ? p(`<strong>${esc(price)}</strong>${compare ? ` <span style="text-decoration:line-through">${esc(compare)}</span>` : ''}`, isB ? t.onPrimary : t.onSurface, 16)
@@ -386,15 +384,13 @@ function heuristicHtml(ctx, o) {
     + `<h2 style="margin:0 0 12px;font-family:${H};font-size:24px;line-height:1.3;font-weight:${isB ? 400 : 700};color:${isB ? t.onPrimary : t.primaryAsText}">${esc(heroName)}</h2>`
     + (text ? '' : `<div style="margin:0 auto 16px;width:${isB ? 400 : 260}px;max-width:100%">${img('IMAGE_PRODUCT_URL', heroName, isB ? 400 : 260)}</div>`)
     + priceLine
-    + p(esc(productCopy), isB ? t.onPrimary : t.onSurface, BODY_PX, 'max-width:420px;margin-left:auto;margin-right:auto')
+    + (productCopy ? p(esc(productCopy), isB ? t.onPrimary : t.onSurface, BODY_PX, 'max-width:420px;margin-left:auto;margin-right:auto') : '')
     + (isB ? ghost(pdpUrl, productCta, t.onPrimary) : button(pdpUrl, productCta, t.accent, t.onAccent));
-  const product = section(isB ? t.primary : t.surface, productInner, 'padding:36px 32px;text-align:center');
+  const product = heroName && section(isB ? t.primary : t.surface, productInner, 'padding:36px 32px;text-align:center');
 
-  const proofInner = proof
-    ? `<p style="margin:0 0 8px;font-family:${H};font-size:18px;line-height:1.5;font-style:italic;color:${t.onSurface}">&ldquo;${esc(String(proof.text || proof).replace(/[—–]/g, ', '))}&rdquo;</p>`
-      + (proof.author ? p(esc(String(proof.author).replace(/[—–]/g, ', ')), t.mutedOnSurface, 13) : '')
-    : p(esc(P.marker('approved review', heroName, ctx.market)), t.mutedOnSurface, 13);
-  const proofBlock = section(t.surface, proofInner, 'padding:28px 36px;text-align:center');
+  const proofInner = proof && (`<p style="margin:0 0 8px;font-family:${H};font-size:18px;line-height:1.5;font-style:italic;color:${t.onSurface}">&ldquo;${esc(String(proof.text || proof).replace(/[—–]/g, ', '))}&rdquo;</p>`
+      + (proof.author ? p(esc(String(proof.author).replace(/[—–]/g, ', ')), t.mutedOnSurface, 13) : ''));
+  const proofBlock = proofInner && section(t.surface, proofInner, 'padding:28px 36px;text-align:center');
 
   const offerBar = offer
     ? section(t.accentBand,
@@ -413,7 +409,7 @@ function heuristicHtml(ctx, o) {
   const footer = section(t.primary,
     `<p style="margin:0 0 10px;font-family:${H};font-size:16px;line-height:1.3;letter-spacing:.12em;text-transform:uppercase;color:${t.onPrimary}">${esc(b.name)}</p>`
     + p(`${esc(legal.name)}, ${esc(legal.address)}`, t.onPrimary, 12)
-    + `<p style="margin:0 0 10px;font-family:${F};font-size:12px;line-height:1.6;color:${t.onPrimary}">${link('{{UNSUBSCRIBE_URL}}', 'Unsubscribe')} &nbsp;&middot;&nbsp; ${link('#', 'Privacy Policy')} &nbsp;&middot;&nbsp; ${link('#', 'Terms of Service')}</p>`
+    + `<p style="margin:0 0 10px;font-family:${F};font-size:12px;line-height:1.6;color:${t.onPrimary}">${link('{{UNSUBSCRIBE_URL}}', 'Unsubscribe')}</p>`
     + p(`&copy; ${new Date().getFullYear()} ${esc(legal.name)}. All rights reserved.`, t.onPrimary, 11, 'margin:0'),
     'padding:28px 24px;text-align:center');
 
@@ -450,6 +446,7 @@ ${order.filter(Boolean).join('\n')}
     subjectLines,
     preheader,
     sectionCount: order.filter(Boolean).length,
+    data_gaps: fc.gaps.concat(proof ? [] : [P.marker('approved review', heroName || b.name, ctx.market)]),
   };
 }
 
@@ -560,6 +557,7 @@ async function handler(req, res) {
       _heuristic: true,
       _llm_error: String(e.message || e).substring(0, 200),
       section_count: built.sectionCount,
+      data_gaps: built.data_gaps,
       subject_lines: built.subjectLines,
       preheader: built.preheader,
     });
