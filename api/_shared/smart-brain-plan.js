@@ -2023,7 +2023,7 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
 .hero p{max-width:540px;margin:0 auto 20px;color:var(--on-moss);font-size:15px}
 .btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:12px 28px;min-height:44px;border-radius:6px;border:0;cursor:pointer;font-size:15px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
-.hero .btn{background:${HERO_BTN};color:${ON_HERO_BTN}}
+${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${ON_HERO_BTN}}` : ''}
 .btn:hover{opacity:.92}
 .btn-dark{background:var(--moss);color:var(--on-moss)}
 .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 24px;background:var(--chalk-warm);padding:12px 18px;font-size:12px;color:var(--ink-dim);text-align:center}
