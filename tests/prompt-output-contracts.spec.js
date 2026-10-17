@@ -462,17 +462,25 @@ test('the Studio\'s email prompt and the design-to-HTML request end with the blo
     expect(hero.split('\n')[0], 'the hero prompt names itself one element').toMatch(/^DELIVERABLE: HERO PHOTOGRAPH \(image\) - ONE ELEMENT/);
     expect(hero.trim().split('\n').slice(-1)[0]).toMatch(/^OUTPUT: the image only\./);
   }
-  // The design-to-HTML request goes straight to a provider: its body is judged as sent.
+  // The design-to-HTML request (2026-10-17) no longer goes straight to a
+  // provider with a prompt the page wrote: it asks the app's own
+  // /api/ai/generate in mode mailer_full, whose prompt the server builds and
+  // closes with that mode's block (judged by the router pass above).
   const sent = await page.evaluate(async () => {
     const seen = [];
     const real = window.fetch;
-    window.fetch = (u, init) => { if (/api\.anthropic\.com/.test(String(u))) { seen.push(JSON.parse(init.body)); return Promise.resolve(new Response('{}', { status: 500 })); } return real(u, init); };
+    window.fetch = (u, init) => {
+      if (/api\.anthropic\.com/.test(String(u))) seen.push({ provider: true });
+      if (/\/api\/ai\/generate/.test(String(u))) { seen.push(JSON.parse(init.body)); return Promise.resolve(new Response('{}', { status: 500 })); }
+      return real(u, init);
+    };
     try { if (typeof window.analyzeImageAndBuildEmail === 'function') await window.analyzeImageAndBuildEmail('data:image/png;base64,AAAA', [], 'Bring readers back', window.RegionContext && window.RegionContext.home); } catch (_) {}
     window.fetch = real;
-    return seen.map((b) => (b.messages[0].content.find((c) => c.type === 'text') || {}).text || '');
+    return seen;
   });
   expect(sent.length, 'the design-to-HTML request never left (nothing judged)').toBeGreaterThan(0);
-  for (const t of sent) problems.push(...pageJudge(t, 'studio design-to-html'));
+  expect(sent.filter((b) => b.provider), 'the page called a model provider directly').toEqual([]);
+  for (const b of sent) expect(b.mode).toBe('mailer_full');
   expect(problems, problems.join('\n')).toEqual([]);
 });
 

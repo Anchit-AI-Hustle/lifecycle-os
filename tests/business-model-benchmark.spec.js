@@ -116,7 +116,7 @@ test('a market-data brand\'s mail, every variant and its page close with the dis
     for (const lp of campaign.assets.landing_pages) expect(count(lp.html, 'data-disclaimer'), `landing ${lp.variant || ''}`).toBe(1);
     expect(campaign.disclaimer).toBe(want);
     // Above the sender line, not under the unsubscribe.
-    const i = e.html.indexOf('data-disclaimer'); const j = e.html.search(/receiving this as/i);
+    const i = e.html.indexOf('data-disclaimer'); const j = e.html.search(/receiving this (as|because)/i);
     if (j > -1) expect(i).toBeLessThan(j);
   }
   for (const brand of [NEWS, SHOP]) {

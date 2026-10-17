@@ -15,6 +15,11 @@
  *           returned in `pending` for the caller to poll via video-status.
  *   GIF   → gif-core.js (short clip → ffmpeg-worker GIF).
  *
+ * With no video key (2026-10-17) the video slot is DONE as video-core's
+ * code-rendered motion creative (`format:'motion_html'`, the mailer's own
+ * photo as the email poster), and the GIF slot becomes a still of the
+ * mailer's own photo (`format:'static_image'`): no GIF encoder ships here.
+ *
  * Everything degrades gracefully: a slot that can't be produced (no key,
  * provider down) is left as its placeholder and reported — the mailer still
  * ships. Nothing here throws on provider failure.
@@ -105,9 +110,20 @@ function replaceInOrder(html, token, urls) {
  */
 async function fillMailerAssets(html, {
   tier = 'premium', market = require('./brand-locale.js').defaultMarket(), persist = true,
-  video: doVideo = true, gif: doGif = true, name = 'mailer',
+  video: doVideo = true, gif: doGif = true, name = 'mailer', brand = null, photos = null,
 } = {}) {
   let out = String(html || '');
+  // The photos this mailer ALREADY carries (hosted https images, read before any
+  // slot is filled, so a generated image never stands in for a photograph),
+  // after any the caller names. They are the keyless rung's only pictures:
+  // the motion creative's scenes, the video slot's poster, the GIF's still.
+  const ownPhotos = [];
+  const addPhoto = (u) => {
+    const v = typeof u === 'string' ? u.trim() : '';
+    if (/^https:\/\/[^\s"'<>]+$/i.test(v) && !ownPhotos.includes(v)) ownPhotos.push(v);
+  };
+  (Array.isArray(photos) ? photos : []).forEach(addPhoto);
+  { const re = /<img\b[^>]*\bsrc="([^"]+)"/gi; let mm; while ((mm = re.exec(out))) addPhoto(mm[1]); }
   const prompts = parseAssetPrompts(out);
   const pairs = pairPlaceholders(out, prompts);
   if (!pairs.length) {
@@ -128,7 +144,8 @@ async function fillMailerAssets(html, {
       if (!gen || !gen.image) { assets.push({ slot, kind: 'image', status: 'failed', error: 'no image from cascade' }); return null; }
       let url = gen.image;
       if (persist) {
-        const hosted = await creative.uploadCreative(gen.image, `${name}-${slot}`);
+        // The hosted copy, else the free generator's own address (2026-10-17).
+        const hosted = await creative.hostedUrl(gen, `${name}-${slot}`);
         if (hosted) url = hosted;
       }
       assets.push({ slot, kind: 'image', status: 'done', provider: gen.provider, model: gen.model, url, hosted: url !== gen.image });
@@ -146,7 +163,18 @@ async function fillMailerAssets(html, {
     const slot = slotOf(pr, 'video');
     if (!pr.prompt) { assets.push({ slot, kind: 'video', status: 'skipped' }); return null; }
     try {
-      const r = await video.generateVideo({ prompt: pr.prompt.prompt, aspect: aspectFor(pr.prompt.genW, pr.prompt.genH), tier, duration_s: 8, preferProviders: VIDEO_PREFER });
+      const r = await video.generateVideo({ prompt: pr.prompt.prompt, aspect: aspectFor(pr.prompt.genW, pr.prompt.genH), tier, duration_s: 8, preferProviders: VIDEO_PREFER,
+        brand, motion: { images: ownPhotos } });
+      if (r && r.provider === 'code-motion' && r.motion_html) {
+        // The keyless rung: the animated creative is the asset (an email cannot
+        // play HTML or video, so the slot in the mail takes the mailer's own
+        // first photo as its poster; with none the placeholder stays, said).
+        const poster = ownPhotos[0] || null;
+        assets.push({ slot, kind: 'video', format: 'motion_html', status: 'done', provider: 'code-motion',
+          motion_html: r.motion_html, motion_brief: r.motion_brief || null, mp4: null, poster_url: poster,
+          note: r.note + (poster ? ' The email slot shows the mailer\'s own photo as the poster.' : ' The mailer carries no photo, so the email slot keeps its placeholder until a poster is supplied.') });
+        return poster;
+      }
       if (r && r.not_connected) { assets.push({ slot, kind: 'video', status: 'not_connected', hint: r.hint }); return null; }
       if (r && r.status === 'processing') { pending.push({ slot, kind: 'video', provider: r.provider, job_id: r.job_id }); assets.push({ slot, kind: 'video', status: 'processing', provider: r.provider, job_id: r.job_id }); return null; }
       if (r && r.ok && r.video_url) { assets.push({ slot, kind: 'video', status: 'done', provider: r.provider, url: r.video_url }); return r.video_url; }
@@ -168,6 +196,18 @@ async function fillMailerAssets(html, {
       const r = await gif.generateGif({ prompt: pr.prompt.prompt, aspect: aspectFor(pr.prompt.genW, pr.prompt.genH), tier, duration_s: 3, width: Math.min(pr.prompt.genW, 600) });
       if (r && r.gif_url) { assets.push({ slot, kind: 'gif', status: 'done', url: r.gif_url }); return r.gif_url; }
       if (r && r.convert_pending) { pending.push({ slot, kind: 'gif', provider: r.provider, job_id: r.job_id, needs_convert: true }); assets.push({ slot, kind: 'gif', status: 'processing', provider: r.provider, job_id: r.job_id }); return null; }
+      if (r && r.code_motion) {
+        // No clip to convert and no encoder here: the email-safe fallback is a
+        // STILL, the mailer's own photo, never a generated picture or base64.
+        const still = ownPhotos[0] || null;
+        if (still) {
+          assets.push({ slot, kind: 'gif', format: 'static_image', status: 'done', provider: 'mailer-photo', url: still,
+            note: 'A still in place of the GIF: ' + r.hint + ' The slot shows the mailer\'s own photo, which every email client renders.' });
+          return still;
+        }
+        assets.push({ slot, kind: 'gif', status: 'not_connected', hint: r.hint + ' The mailer carries no photo to stand in, so the placeholder stays.' });
+        return null;
+      }
       if (r && r.not_connected) { assets.push({ slot, kind: 'gif', status: 'not_connected', hint: r.hint, video_url: r.video_url }); return r.video_url || null; }
       assets.push({ slot, kind: 'gif', status: 'failed', error: (r && r.error) || 'unknown' });
       return null;

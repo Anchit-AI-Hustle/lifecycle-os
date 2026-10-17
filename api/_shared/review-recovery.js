@@ -125,7 +125,7 @@ function reviewMailerHtml(product, market, brand) {
   <tr><td style="height:28px"></td></tr>
   <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:14px;color:#1b1612;font-weight:600">Warmly,</p><p style="margin:4px 0 0;font-family:${BODY};font-size:14px;color:#1b1612">The ${esc((brand && brand.name) || '')} Team</p></td></tr>
   <tr><td style="height:30px"></td></tr>
-  <tr><td style="padding:20px 24px;border-top:1px solid #e5e7eb;text-align:center"><p style="margin:0;font-family:${BODY};font-size:11px;color:#9ca3af;line-height:1.6">You are receiving this as a ${esc((brand && brand.name) || '')} ${esc(String(market).toUpperCase())} customer. Manage preferences or unsubscribe from your account settings.</p></td></tr>
+  <tr><td style="padding:20px 24px;border-top:1px solid #e5e7eb;text-align:center"><p style="margin:0;font-family:${BODY};font-size:11px;color:#9ca3af;line-height:1.6">You are receiving this because you are a ${esc((brand && brand.name) || '')} customer. Manage preferences or unsubscribe from your account settings.</p></td></tr>
 </table></td></tr></table></body></html>`;
 }
 

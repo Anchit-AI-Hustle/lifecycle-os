@@ -41,6 +41,7 @@ const HOSTS = {
   'api.anthropic.com': 'anthropic', 'api.openai.com': 'openai', 'generativelanguage.googleapis.com': 'gemini',
   'api.x.ai': 'grok', 'api.groq.com': 'groq', 'api.cerebras.ai': 'cerebras', 'openrouter.ai': 'openrouter',
   'models.inference.ai.azure.com': 'github', 'models.github.ai': 'github', 'api.cloudflare.com': 'cloudflare',
+  'text.pollinations.ai': 'pollinations',
 };
 
 function okBody(provider, said) {
@@ -76,7 +77,7 @@ function installNet(script) {
   return { calls, restore() { global.fetch = real; } };
 }
 
-const ENV = ['OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_API_KEY_3', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'GROQ_API_KEY',
+const ENV = ['FREE_GENERATION', 'OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_API_KEY_3', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'GROQ_API_KEY',
   'CEREBRAS_API_KEY', 'OPENROUTER_API_KEY', 'OpenRouter_API_KEY', 'GITHUB_MODELS_TOKEN', 'GITHUB_TOKEN', 'CLOUDFLARE_API_TOKEN',
   'CLOUDFLARE_ACCOUNT_ID', 'OLLAMA_BASE_URL', 'SAKANA_BASE_URL', 'SAKANA_API_KEY', 'APP_AI_PROVIDER', 'APP_AI_TIER', 'LLM_TOTAL_BUDGET_MS',
   'OPENROUTER_MAX_TOKENS', 'GROQ_TEXT_MODEL', 'GEMINI_TEXT_MODEL', 'ANTHROPIC_TEXT_MODEL', 'OPENAI_TEXT_MODEL', 'CEREBRAS_TEXT_MODEL',
@@ -88,6 +89,8 @@ let realNow = Date.now;
 test.beforeEach(() => {
   saved = {};
   for (const k of ENV) { saved[k] = process.env[k]; delete process.env[k]; }
+  // The free keyless floor is off unless a test turns it on (see playwright.config.js).
+  process.env.FREE_GENERATION = 'off';
   llm().resetProviderCooldowns();
 });
 test.afterEach(() => {
@@ -266,4 +269,55 @@ test('a hanging provider costs one attempt and the next provider answers inside 
   expect(out.provider).toBe('groq');
   expect(realNow() - t0).toBeLessThan(1500);
   expect(net.calls.filter((c) => c.provider === 'anthropic').length).toBe(1);
+});
+
+
+/* ── the free keyless floor (2026-10-17) ──────────────────────────────────── */
+// The operator: "use free code based generation ... if that can replace the
+// requirement of api keys for model usage", "for all cases". Pollinations'
+// documented OpenAI-compatible endpoint needs no key: it is the last rung of
+// every order, so every model feature answers on a deployment with no key.
+
+test('with no key at all, the free keyless model answers; no key, no model id is sent', async () => {
+  process.env.FREE_GENERATION = 'on';
+  net = installNet(() => undefined);
+  const out = await ask();
+  expect(out.provider).toBe('pollinations');
+  expect(out.text).toMatch(/answer from pollinations/);
+  expect(net.calls).toHaveLength(1);
+  expect(net.calls[0].key, 'nothing is sent as a key').toBe('');
+  expect(net.calls[0].body.model, 'no undocumented model id').toBeUndefined();
+  expect(net.calls[0].body.messages.map((m) => m.role)).toEqual(['system', 'user']);
+  for (const tier of ['premium', 'standard', 'fast']) {
+    const order = llm().providerOrder(tier);
+    expect(order[order.length - 1], `${tier}: the free floor is last`).toBe('pollinations');
+  }
+});
+
+test('the free model is the floor: a keyed provider answers first, and the free one only after it fails', async () => {
+  process.env.FREE_GENERATION = 'on';
+  setEnv({ GROQ_API_KEY: 'gq' });
+  net = installNet(() => undefined);
+  expect((await ask()).provider).toBe('groq');
+  expect(net.calls.some((c) => c.provider === 'pollinations')).toBe(false);
+  net.restore();
+  net = installNet((c) => (c.provider === 'groq' ? { status: 500, json: { error: 'down' } } : undefined));
+  const out = await ask();
+  expect(out.provider).toBe('pollinations');
+  expect(out.attempts.map((a) => a.provider)).toContain('groq');
+});
+
+test('its 402 is a rate limit (a wait), never a bill; FREE_GENERATION=off means no prompt leaves', async () => {
+  process.env.FREE_GENERATION = 'on';
+  net = installNet(() => ({ status: 402, json: { error: 'one request at a time' }, headers: { 'Retry-After': '30' } }));
+  const err = await ask().catch((e) => e);
+  expect(err).toBeInstanceOf(Error);
+  const row = (err._providerErrors || []).find((r) => r.provider === 'pollinations');
+  expect(row && row.kind).toBe('rate_limit');
+  net.restore();
+  process.env.FREE_GENERATION = 'off';
+  net = installNet(() => undefined);
+  const off = await ask().catch((e) => e);
+  expect(off.message).toMatch(/No AI provider configured/);
+  expect(net.calls).toHaveLength(0);
 });

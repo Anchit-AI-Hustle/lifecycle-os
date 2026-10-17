@@ -480,7 +480,11 @@ module.exports = async function handler(req, res) {
   const anyKey = userGeminiKey ||
     ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'XAI_API_KEY', 'GROQ_API_KEY', 'CEREBRAS_API_KEY']
       .some(k => _ck(process.env[k]));
-  if (!anyKey) {
+  // The free keyless model (llm.js, FREE_GENERATION) answers with no key at
+  // all: the refusal stands only when it is switched off too (2026-10-17).
+  let freeFloor = false;
+  try { freeFloor = require('../_shared/llm.js').freeGenerationOn(); } catch (_) { freeFloor = false; }
+  if (!anyKey && !freeFloor) {
     return res.status(500).json({ error: 'server_misconfigured', detail: 'No AI provider configured. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, or CEREBRAS_API_KEY.' });
   }
 
@@ -946,6 +950,10 @@ Target market for this autofill: ${targetMarket}.`;
     }
 
     const text = result.text || '';
+    // The brand guard (brand-guard.js) on what goes back to the operator: an
+    // answer that invents a figure or claim, or names another company, is
+    // returned WITH what breaks the brand's rules, so the page can say so.
+    const brandCheck = (v) => { try { return require('../_shared/brand-guard.js').check(v, body && body.__brand, { market: body && (body.market || body.region) }); } catch (_) { return null; } };
     if (mode === 'concepts' || mode === 'mailer_full' || mode === 'suggested_prompts') {
       // Parsed by the SAME spec the prompt was briefed with (fences and a
       // prose prefix tolerated); its problems are reported, never repaired.
@@ -973,12 +981,12 @@ Target market for this autofill: ${targetMarket}.`;
           console.warn('[generate] quality loop unavailable: ' + String(qe && qe.message || qe).slice(0, 120));
         }
         return res.status(200).json({
-          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt, output_check,
+          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(data),
           ...(quality ? { quality } : {})
         });
       }
 
-      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check });
+      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(parsed) });
     }
 
     // ── Autofill on an ad surface: also return the portable master_prompt and a
@@ -1000,7 +1008,7 @@ Target market for this autofill: ${targetMarket}.`;
         const targetMarket = body.market || body.region || market;
         const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
         const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null,  assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
-        return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt });
+        return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt, brand_check: brandCheck(fields) });
       }
     }
 
@@ -1010,7 +1018,7 @@ Target market for this autofill: ${targetMarket}.`;
     // parses, fences removed; it is checked against its spec all the same.
     const readBack = OC.parse(text, outputSpec);
     const textOut = outputSpec.format === 'json' ? (readBack ? JSON.stringify(deepScrubDashes(readBack, body && body.__brand)) : brandScrub(OC.stripFences(text))) : readBack;
-    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: outputSpec.format === 'json' ? textOut : brandScrub(textOut), portable_prompt, output_check: OC.validate(readBack, outputSpec) });
+    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: outputSpec.format === 'json' ? textOut : brandScrub(textOut), portable_prompt, output_check: OC.validate(readBack, outputSpec), brand_check: brandCheck(textOut) });
 
   } catch (e) {
     return res.status(500).json({ error: 'server_error', provider: 'cascade', detail: String(e && e.message || e).substring(0, 300) });

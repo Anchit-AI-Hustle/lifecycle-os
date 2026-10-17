@@ -557,8 +557,13 @@ test('video: every provider failing says which and why', async () => {
   net = installNet(() => ({ status: 401, raw: 'bad key' }));
   const video = require(path.join(ROOT, 'api', '_shared', 'video-core.js'));
   const out = await video.generateVideo({ prompt: 'a product turning on a plinth' });
-  expect(out.ok).toBe(false);
-  expect(out.error).toMatch(/veo: HTTP 401/);
-  expect(out.error).toMatch(/runway: HTTP 401/);
-  expect(out.error).toMatch(/sora: no key/);
+  // Changed on purpose (2026-10-17): the code-rendered motion creative still
+  // ships when every provider fails, and the failure is said beside it.
+  expect(out.ok).toBe(true);
+  expect(out.provider).toBe('code-motion');
+  expect(out.mp4).toBeNull();
+  expect(out.provider_error).toMatch(/veo: HTTP 401/);
+  expect(out.provider_error).toMatch(/runway: HTTP 401/);
+  expect(out.provider_error).toMatch(/sora: no key/);
+  expect(out.note).toMatch(/every configured video provider failed/);
 });

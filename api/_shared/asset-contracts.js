@@ -78,6 +78,18 @@ const M = specs.MAILER;
 
 /* ── the contracts ───────────────────────────────────────────────────────── */
 
+/**
+ * HOW MUCH A MAILER SAYS (2026-10-17). The operator: "ensure that the text is
+ * not too much". One set of numbers that briefs the writer, picks which blocks
+ * the renderer prints and judges the finished mail, so the three cannot
+ * disagree. Body words = everything a reader reads between the logo header and
+ * the footer: headline, subline, paragraphs, bullets, the button. A visual
+ * mailer lets the picture carry part of the message, so it says less.
+ * These are editorial limits of this platform (no inbox enforces them), so a
+ * breach WARNS and never blocks.
+ */
+const MAIL_WORDS = Object.freeze({ headline: 10, paragraph: 45, benefit: 12, benefits: 3, ps: 25, text: 130, visual: 90 });
+
 const CONTRACTS = {
   /* ═════════════════════════════════════════════════════════════════════════
      EMAIL. The only surface here whose renderer is a 25-year-old table engine
@@ -125,6 +137,9 @@ const CONTRACTS = {
       if (a.html && /<img[^>]*>/i.test(a.html) && !/alt=/i.test(a.html)) {
         v.push(warn('html', 'An image with no alt text is invisible to a reader whose client blocks images, and to a screen reader.'));
       }
+      // The full-mail rules judge a complete mail; a fragment (a block being
+      // composed) keeps only the rules that hold for any HTML.
+      if (typeof a.html === 'string' && /<body\b|<html\b/i.test(a.html)) v.push(...mailQuality(a));
       return v.concat(urlsNotPayloads(a, ['html']));
     },
   },
@@ -247,7 +262,7 @@ const CONTRACTS = {
       else if (heads.length < 3) v.push(block('headlines', `Only ${heads.length} headline(s). google-ads-adapter.js requires at least 3 before it will build a request, and the format exists to be combined.`));
       if (!descs.length) v.push(block('descriptions', 'A responsive search ad has no descriptions. google-ads-adapter.js requires at least 2.'));
       else if (descs.length < 2) v.push(block('descriptions', `Only ${descs.length} description(s). google-ads-adapter.js requires at least 2.`));
-      return v;
+      return v.concat(adQuality(asset || {}, CONTRACTS['ad.google.rsa']));
     },
   },
 
@@ -362,7 +377,102 @@ const CONTRACTS = {
 /* ── shared validators ───────────────────────────────────────────────────── */
 
 function block(slot, message) { return { level: 'block', slot, message }; }
+
+/* ── mailer quality rules (2026-10-17) ─────────────────────────────────────
+   The operator: "Headers of the mails must have the brand logo with
+   redirection to homepage of brand", both mailer TYPES ("Text only" and "Text
+   and visuals"), "ensure that the text is not too much" and "ensure that
+   visuals are properly created". Each rule reads the RENDERED html, so it
+   judges what a reader receives, whichever builder or model wrote it. */
+function htmlText(h) {
+  return String(h || '').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<(style|script|head|title)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;/g, "'").replace(/&[a-z#0-9]+;/gi, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+function words(t) { return String(t || '').split(/\s+/).filter((w) => /[A-Za-z0-9À-￿]/.test(w)).length; }
+function imgTags(h) { return String(h || '').match(/<img\b[^>]*>/gi) || []; }
+function attr(tag, name) { const m = String(tag).match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, 'i')); return m ? (m[2] != null ? m[2] : m[3]) : null; }
+// The body a reader reads: after the logo header, before the footer.
+function mailBody(html) {
+  let h = String(html || '').replace(/<head[\s\S]*?<\/head>/i, ' ');
+  const logo = h.search(/data-mail-logo(?!-link)/i);
+  if (logo >= 0) { const end = h.indexOf('</tr>', logo); const endDiv = h.indexOf('</header>', logo); const cut = [end, endDiv].filter((x) => x > logo).sort((x, y) => x - y)[0]; if (cut) h = h.slice(cut); }
+  const foot = h.search(/data-mail-footer/i);
+  if (foot >= 0) h = h.slice(0, h.lastIndexOf('<', foot));
+  else { const t = h.search(/(You(?:'|&#39;|&rsquo;| a)re receiving this|receiving this (?:email|because)|unsubscribe)/i); if (t > 0) h = h.slice(0, h.lastIndexOf('<', t)); }
+  // The disclaimer and the proof block are not the brand's pitch.
+  return h.replace(/<[a-z]+[^>]*data-(?:disclaimer|proof)[^>]*>[\s\S]*?<\/(?:div|p|table|section)>/gi, ' ');
+}
+function mailQuality(a) {
+  const v = [];
+  const html = String(a.html || '');
+  const body = html.replace(/<head[\s\S]*?<\/head>/i, ' ');
+  // 1. The logo header, linked to the brand's homepage.
+  const firstLink = body.match(/<a\b[^>]*href\s*=\s*"([^"]*)"[^>]*>([\s\S]*?)<\/a>/i);
+  const marked = /data-mail-logo(?!-link)/i.test(body);
+  const headLink = marked ? (body.slice(body.search(/data-mail-logo(?!-link)/i)).match(/<a\b[^>]*href\s*=\s*"([^"]*)"[^>]*>([\s\S]*?)<\/a>/i)) : firstLink;
+  const headTxt = headLink ? (htmlText(headLink[2]) || (/<img/i.test(headLink[2]) ? 'img' : '')) : '';
+  if (!headLink || !/^https:\/\//i.test(headLink[1]) || !headTxt) {
+    v.push(block('header', 'The mail does not open with the brand\'s logo linked to its homepage. Every mailer must: the reader checks who wrote before reading anything, and the logo is how they go to the brand\'s site. Add the logo (or the brand\'s name when it has no hosted logo) as the first element, linked to https://<the brand\'s website>.'));
+  } else if (!/<img/i.test(headLink[2])) {
+    v.push(gap(warn('header', 'The header shows the brand\'s name, not its logo: the record has no logo a mail client can show. Add a hosted https logo_url (PNG or JPG; an SVG is converted) to the brand.')));
+  }
+  // 2. The two mailer types.
+  const content = imgTags(body).filter((t) => !/width="1"|height="1"/i.test(t));
+  // The logo is the image INSIDE the header row, never the first image after it.
+  const logoSrc = (() => {
+    if (!marked) return null;
+    const at = body.search(/data-mail-logo(?!-link)/i);
+    const ends = ['</td>', '</header>', '</div>'].map((e) => body.indexOf(e, at)).filter((x) => x > at);
+    const row = body.slice(at, ends.length ? Math.min(...ends) : at);
+    const m = row.match(/<img\b[^>]*>/i);
+    return m ? attr(m[0], 'src') : null;
+  })();
+  const pics = content.filter((t) => attr(t, 'src') !== logoSrc);
+  if (a.mailer_type === 'text' && pics.length) {
+    v.push(warn('html', `A Text mailer carries ${pics.length} picture${pics.length === 1 ? '' : 's'}. The Text type is words, colour and built elements only; the logo is the one image it keeps.`));
+  }
+  if (a.mailer_type === 'text_visual' && !pics.length) {
+    v.push(gap(warn('html', 'A Text + Visual mailer has no picture: it falls back to a brand-colour block. Give the slot a product photo, the brand\'s own imagery, or let the free brand scene run.')));
+  }
+  // 3. Every picture is properly made: hosted over https, described, sized.
+  for (const t of pics) {
+    const src = attr(t, 'src') || '';
+    // A slot a later stage fills (IMAGE_HERO_URL, PASTE_IMAGE_URL_HERE, an ESP
+    // merge tag) is a picture not placed yet, not a broken link.
+    if (/^(?:[A-Z][A-Z0-9_]*|\{\{[\s\S]*\}\}|\[[^\]]*\])$/.test(src.trim())) { v.push(gap(warn('html', `A picture slot is not filled yet (${src.slice(0, 40)}): place the hosted image before this is sent.`))); continue; }
+    if (!/^https:\/\//i.test(src)) v.push(block('html', `A picture is not served over https (${src.slice(0, 60) || 'no src'}): mail clients block or warn on it, and the reader sees an empty box.`));
+    if (!String(attr(t, 'alt') || '').trim()) v.push(warn('html', 'A picture has an empty alt: with images off (the default in many clients) the reader sees nothing where it was.'));
+    if (!attr(t, 'width')) v.push(warn('html', 'A picture has no width attribute: Outlook renders it at its natural size and breaks the 600px column.'));
+  }
+  // 4. Not too much text.
+  const bodyTxt = htmlText(mailBody(html));
+  const n = words(bodyTxt);
+  const cap = a.mailer_type === 'text_visual' || (a.mailer_type == null && pics.length) ? MAIL_WORDS.visual : MAIL_WORDS.text;
+  if (n > cap) v.push(warn('copy', `The mail body is ${n} words against a budget of ${cap} for a ${cap === MAIL_WORDS.visual ? 'Text + Visual' : 'Text'} mailer. A mail is read on a phone in seconds: one idea, then the button.`));
+  const h1 = body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i) || body.match(/data-ds="h1"[^>]*>([\s\S]*?)<\/(?:div|p)>/i);
+  if (h1 && words(htmlText(h1[1])) > MAIL_WORDS.headline) v.push(warn('hero_headline', `The headline is ${words(htmlText(h1[1]))} words; keep it to ${MAIL_WORDS.headline} so it reads at a glance.`));
+  const paras = (mailBody(html).match(/<p\b[^>]*>([\s\S]*?)<\/p>/gi) || []).map((p) => words(htmlText(p)));
+  const long = paras.filter((x) => x > MAIL_WORDS.paragraph).length;
+  if (long) v.push(warn('copy', `${long} paragraph${long === 1 ? ' is' : 's are'} over ${MAIL_WORDS.paragraph} words: a wall of text on a phone. Split it or cut to one idea.`));
+  // 5. The rules every commercial mail must keep.
+  if (!/unsubscribe/i.test(htmlText(html))) v.push(block('footer', 'No way to unsubscribe is stated. Every commercial email must offer one (CAN-SPAM 15 U.S.C. 7704(a)(3); UK PECR reg. 22).'));
+  const subj = String(a.subject || '');
+  if (subj) {
+    const caps = (subj.match(/\b[A-Z]{4,}\b/g) || []).length;
+    if (caps > 1) v.push(warn('subject', 'The subject has more than one word in capitals: it reads as shouting and spam filters weigh it.'));
+    if ((subj.match(/!/g) || []).length > 1) v.push(warn('subject', 'More than one exclamation mark in the subject: spam filters weigh it and it reads as pushy.'));
+    if ((subj.match(/\p{Extended_Pictographic}/gu) || []).length > 1) v.push(warn('subject', 'More than one emoji in the subject.'));
+    if (/^\s*(re|fwd?):/i.test(subj)) v.push(block('subject', 'The subject pretends to be a reply or forward. A deceptive subject line is prohibited (CAN-SPAM 15 U.S.C. 7704(a)(2)).'));
+  }
+  if (/\[DATA REQUIRED BEFORE LAUNCH/i.test(subj + ' ' + String(a.preheader || ''))) v.push(block('subject', 'The subject or preheader prints a DATA REQUIRED marker: fill the gap before this is sent.'));
+  if (/<a\b[^>]*href\s*=\s*"#"[^>]*data-ds="button-primary"|data-ds="button-primary"[^>]*href\s*=\s*"#"/i.test(html)) v.push(block('cta', 'The main button links to "#": the one action the mail exists for goes nowhere.'));
+  return v;
+}
 function warn(slot, message) { return { level: 'warn', slot, message }; }
+// A finding about what the brand's RECORD lacks (a logo, a photo), not about
+// how the asset was built: the operator fills it, the builder cannot.
+function gap(v) { return Object.assign(v, { data_gap: true }); }
 
 /**
  * A rendered asset REFERENCES its images; it does not carry them.
@@ -437,8 +547,41 @@ function adCopyValidator(contractId) {
         v.push(s.verified ? block(s.slot, over) : warn(s.slot, `${over} (Advisory: this limit is recorded in asset-specs.js and is not enforced anywhere in this repo against the live platform, so it is not treated as a hard failure.)`));
       }
     }
-    return v;
+    return v.concat(adQuality(a, c));
   };
+}
+
+/* ── ad quality rules (2026-10-17), on every ad contract ──────────────────
+   What a paid ad says to a stranger: never a gap marker, never shouting, one
+   idea per field, and a static ad shows what it sells. Platform policy items
+   are cited; the rest are editorial and warn. */
+function adQuality(a, c) {
+  const v = [];
+  const fields = ['headline', 'primary_text', 'description', 'caption'].filter((k) => typeof a[k] === 'string' && a[k]);
+  const lists = ['headlines', 'descriptions'].filter((k) => Array.isArray(a[k]));
+  const all = fields.map((k) => [k, a[k]]).concat(...lists.map((k) => a[k].filter((x) => typeof x === 'string').map((x) => [k, x])));
+  for (const [k, t] of all) {
+    if (/\[DATA REQUIRED BEFORE LAUNCH/i.test(t)) { v.push(block(k, `${k} prints a DATA REQUIRED marker: a paid ad must never say that to a stranger. Fill the gap, or let the ad speak for the brand.`)); continue; }
+    if ((t.match(/\b[A-Z]{4,}\b/g) || []).length > 1) v.push(warn(k, `${k} has more than one word in capitals. Meta's and Google's editorial policies refuse excessive capitalisation ("FREE", "SALE").`));
+    if ((t.match(/!/g) || []).length > 1 || /!{2,}/.test(t)) v.push(warn(k, `${k} has more than one exclamation mark. Google Ads' editorial policy refuses repeated or gimmicky punctuation.`));
+    if ((t.match(/\p{Extended_Pictographic}/gu) || []).length > 2) v.push(warn(k, `${k} has more than two emoji.`));
+    if (/(?:click here|tap here)/i.test(t)) v.push(warn(k, `${k} says "click here": Google Ads refuses it as a generic call to action; name the action.`));
+  }
+  if (a.headline && a.primary_text && String(a.headline).trim().toLowerCase() === String(a.primary_text).trim().toLowerCase()) {
+    v.push(warn('headline', 'The headline repeats the primary text word for word; the two fields are read together, so each must add something.'));
+  }
+  if (Array.isArray(a.headlines)) {
+    const seen = new Set(); let dup = 0;
+    for (const h of a.headlines) { const k = String(h || '').trim().toLowerCase(); if (seen.has(k)) dup += 1; seen.add(k); }
+    if (dup) v.push(warn('headlines', `${dup} headline${dup === 1 ? ' is' : 's are'} repeated. Google assembles the ad from distinct headlines; a duplicate is a wasted slot.`));
+  }
+  const isStatic = c && /static/.test(c.id);
+  if (isStatic) {
+    const img = (a.creative && a.creative.image) || a.image || a.image_url || '';
+    if (!img) v.push(gap(warn('creative', 'A static ad with no picture of what it sells. Give it the product photo, the brand\'s own imagery or the brand scene.')));
+    else if (!/^https:\/\//i.test(String(img)) && !/^data:image\/svg\+xml/i.test(String(img))) v.push(warn('creative', 'The static ad\'s picture is not a hosted https URL: an ad platform cannot fetch it.'));
+  }
+  return v;
 }
 
 /* ── spec readers, so no number is ever re-typed ─────────────────────────── */
@@ -525,4 +668,4 @@ function slotLimit(id, slot) {
   return s ? s.max : null;
 }
 
-module.exports = { CONTRACTS, contractFor, check, list, brief, slotLimit, VERIFIED_SOURCES };
+module.exports = { MAIL_WORDS, CONTRACTS, contractFor, check, list, brief, slotLimit, VERIFIED_SOURCES };

@@ -21,6 +21,9 @@ const TEXT_PROVIDERS = [
   { id: "cerebras", label: "Cerebras", keys: () => [process.env.CEREBRAS_API_KEY].map(_clean).filter(Boolean) },
   { id: "ollama",   label: "Ollama",   keys: () => (_clean(process.env.OLLAMA_BASE_URL) ? ["local"] : []) },
   { id: "sakana",   label: "Sakana",   keys: () => (_clean(process.env.SAKANA_BASE_URL) && _clean(process.env.SAKANA_API_KEY) ? ["configured"] : []) },
+  // The free keyless floor llm.js ends every order with (2026-10-17). "Keys"
+  // here means "usable": it needs none, and FREE_GENERATION=off removes it.
+  { id: "pollinations", label: "Free model (no key)", keys: () => { try { return require("./llm.js").freeGenerationOn() ? ["keyless"] : []; } catch (_) { return []; } } },
 ];
 
 // Short-lived cache of quota state observed at runtime (populated by
@@ -70,8 +73,11 @@ function checkTextProviders(opts = {}) {
   const anyConfigured = providers.some((p) => p.configured);
   const anyUsable = usable.length > 0;
 
+  const keyed = providers.filter((p) => p.configured && p.id !== "pollinations").length;
   const summary = !anyConfigured
-    ? "No text LLM provider is configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY."
+    ? "No text model is connected and the free model is switched off, so copy is written from the brand's own record (templates). Set a provider key, or remove FREE_GENERATION=off."
+    : !keyed
+      ? "No provider key is set, so copy comes from the free model (no key, about one request per 30 seconds), and from the brand's own record when it is busy."
     : !anyUsable
       ? `All configured providers recently hit quota (${degraded.join(", ")}). Generation will fall back to templates until they recover.`
       : `${usable.length} provider(s) ready: ${usable.map((p) => p.label).join(", ")}.` +
