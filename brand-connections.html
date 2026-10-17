@@ -306,7 +306,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // The free keyless models: generation works with no key. Said once, above
       // the AI cards, without marking any of them connected.
       if (cat === 'ai' && state.free && state.free.on) {
-        html += '<p class="vh-status" role="status" data-free-generation><span class="chip plat">Free models on</span> ' + esc(state.free.note) + '</p>';
+        html += '<p class="vh-status" role="status" data-free-generation><span class="chip plat">Platform models</span> ' + esc(state.free.note) + '</p>';
       }
       html += '<div class="grid">' + list.map(providerCard).join('') + '</div>';
     });

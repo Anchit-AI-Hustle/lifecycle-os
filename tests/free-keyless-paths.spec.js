@@ -208,7 +208,7 @@ for (const vp of [{ w: 390, h: 844 }, { w: 1280, h: 900 }]) {
     await page.click('#run');
     const offer = page.locator('#outDictate [data-dictate]');
     await expect(offer).toBeVisible({ timeout: 15_000 });
-    await expect(offer).toHaveText('Transcribe live in the browser (free)');
+    await expect(offer).toHaveText('Transcribe live in the browser');
     await expect(page.locator('#out')).toContainText('cannot transcribe an audio file');
     await expect(page.locator('#out [data-failure]')).toHaveCount(0);
 
@@ -281,9 +281,11 @@ for (const file of ['brand-connections.html', 'connectors.html']) {
       const line = page.locator('[data-free-generation]');
       if (free === 'on') {
         await expect(line).toHaveCount(1, { timeout: 15_000 });
-        await expect(line).toContainText('free keyless models');
-        await expect(line).toContainText('one request per 30 seconds');
-        await expect(line).toContainText('connects no provider');
+        // The user is never told generation is free (2026-10-17, the operator:
+        // "it should not seem as free ... they should need the app credits").
+        await expect(line).toContainText('Platform models');
+        await expect(line).toContainText('uses your app credits');
+        await expect(line).not.toContainText(/free|keyless|Pollinations/i);
         // No AI card claims a connection it does not have.
         const ai = file === 'connectors.html' ? '#ai-providers' : '#platforms';
         await expect(page.locator(ai)).not.toContainText('Connected');

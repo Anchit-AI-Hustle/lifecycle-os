@@ -250,3 +250,27 @@ test('ad rules: no gap marker to a stranger, no shouting, no duplicate headlines
   const rsa = contracts.check({ platform: 'google', headlines: ['First flush', 'First flush', 'Kalimpong'], descriptions: ['One description.', 'Two description.'] });
   expect(slots(rsa)).toContain('warn:headlines');
 });
+
+// ── The brand's own logo, wherever its record holds it (2026-10-17) ─────────
+// The operator: "use the brand logos itself". Only `logo_url` reached the mail
+// header, so a brand whose logo sat in its read site, its assets or its icon got
+// its name in type. Nothing read off another company's site is ever used.
+test('the mail header takes the brand\'s own logo from anywhere on its record, then its site\'s icon, never another site\'s', () => {
+  const on = (b) => withEnvSync({ FREE_GENERATION: 'on' }, () => MF.emailLogo(b));
+  const site = { name: 'Arya', website: 'https://aryateas.example' };
+  expect(on(Object.assign({}, site, { logo_url: 'https://aryateas.example/l.png' }))).toMatchObject({ url: 'https://aryateas.example/l.png', kind: 'logo', source: 'logo_url' });
+  expect(on(Object.assign({}, site, { brand_data: { design_system: { logo: { url: 'https://cdn.aryateas.example/mark.png' } } } }))).toMatchObject({ kind: 'logo', source: 'design_system.logo' });
+  expect(on(Object.assign({}, site, { brand_assets: [{ url: 'https://cdn.example/arya-logo.png', role: 'logo', found_on: 'https://aryateas.example/' }] }))).toMatchObject({ url: 'https://cdn.example/arya-logo.png', kind: 'logo' });
+  expect(on(Object.assign({}, site, { favicon_url: 'https://aryateas.example/apple-touch-icon.png' }))).toMatchObject({ kind: 'icon', source: 'favicon_url' });
+  // A logo read off ANOTHER company's site is passed over for the brand's own icon.
+  const foreign = on(Object.assign({}, site, { brand_assets: [{ url: 'https://cdn.example/other-logo.png', role: 'logo', found_on: 'https://othercompany.example/' }] }));
+  expect(foreign.url).not.toContain('other-logo');
+  expect(foreign.url).toBe('https://www.google.com/s2/favicons?domain=aryateas.example&sz=256');
+  // Nothing on the record but the website: the icon its site publishes.
+  expect(on(site)).toMatchObject({ kind: 'icon', url: 'https://www.google.com/s2/favicons?domain=aryateas.example&sz=256' });
+  // The header renders it, linked home, an icon at an icon's size.
+  const h = withEnvSync({ FREE_GENERATION: 'on' }, () => MF.logoHeader({ brand: site }));
+  expect(h).toMatch(/<a href="https:\/\/aryateas\.example"[^>]*><img src="https:\/\/www\.google\.com\/s2\/favicons\?domain=aryateas\.example&amp;sz=256" alt="Arya" width="48"/);
+  // A template mail for a brand with no logo_url still opens with an image.
+  expect(contracts.check({ contract: 'email.mailer', subject: 's', preheader: 'p', html: `<html><body><table>${h}<tr><td>x</td></tr><tr><td data-mail-footer>unsubscribe</td></tr></table></body></html>` }).violations.filter((v) => v.slot === 'header')).toEqual([]);
+});
