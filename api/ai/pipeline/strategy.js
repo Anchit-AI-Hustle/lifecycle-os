@@ -216,7 +216,11 @@ function heuristic(ctx, o, err) {
       avoid: 'Stock imagery, generic superlatives, any figure or review that was not supplied, any phrase in the banned list.',
     },
     theme: {
-      name: briefWords.split(/\s+/).slice(0, 4).join(' '),
+      // The brief is the operator's instruction, never the reader's headline
+      // (2026-10-17 audit): with every stage on its fallback it was printed
+      // as the subject and the hero. The brand's own line stands in.
+      name: String(b.tagline || '').trim(),
+      working_title: briefWords.split(/\s+/).slice(0, 4).join(' '),
       core_idea: `${heroName}, made specific for the person reading.`,
       emotional_driver: isGifting ? 'The reader feels they have chosen well for someone.' : 'The reader feels this was written for them, not for a segment.',
       conversion_logic: stratType === 'Conversion Push' ? 'The offer removes hesitation and the deadline resolves it.' : 'Specific detail makes the product feel chosen rather than sold.',

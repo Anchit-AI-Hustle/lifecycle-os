@@ -819,3 +819,41 @@ test('pipeline health with every provider unset reports unconfigured, and names 
     expect(res2.body.checks.text_model).not.toBe('unconfigured');
   } finally { global.fetch = real; restoreEnv(); }
 });
+
+// Every stage on its fallback, no product and no proof supplied (2026-10-17
+// audit): the operator's brief came back as the subject and the hero headline,
+// the copy was the fallback's own brief ("what it is, and why it fits right
+// now."), the product slot printed the DATA REQUIRED marker, and the buttons
+// said "Add to cart" / "Shop now" whatever the business.
+test('with every model down and nothing supplied, the mailer says only what the brand states; gaps are returned, not printed', async () => {
+  const restoreEnv = pinEnv(METERED);
+  const llm = stubLLM(() => new Error('every provider is down'));
+  const brief = 'Win back lapsed buyers before winter';
+  try {
+    const run = async (stage, body) => {
+      // Its own account, on the same brand: the router's per-account brake
+      // (30 generation requests a minute, per instance) is already spent by
+      // the tests above it in this worker, and a 429 is not the fallback.
+      const net = fakeNetwork({ user: { id: 'user-fallback', email: 'fallback@example.com' }, activeWorkspace: OTHER.id, workspace: OTHER });
+      try { return await call(stage, body, 'session-fallback'); } finally { net.restore(); }
+    };
+    const strat = await run('strategy', { brief, market: 'US', products: [] });
+    expect(strat.body._heuristic, JSON.stringify({ status: strat.statusCode, body: strat.body }).slice(0, 600)).toBe(true);
+    const plan = await run('variant', { variant: 'A', strategy_output: strat.body, brief, market: 'US', products: [] });
+    expect(plan.body._heuristic).toBe(true);
+    const planText = JSON.stringify({ s: plan.body.sections, subj: plan.body.subject_lines, pre: plan.body.preheader });
+    expect(planText).not.toMatch(/Win back lapsed|why it fits right now|DATA REQUIRED|Add to cart|Shop now/);
+    expect(plan.body.sections.map((x) => x.id)).not.toContain('product_reveal');
+    expect(plan.body.data_gaps.join(' ')).toMatch(/hero product/);
+    for (const variant of ['A', 'B']) {
+      const res = await run('html', { variant, plan: variant === 'A' ? plan.body : {}, strategy: strat.body, brief, market: 'US', products: [] });
+      expect(res.body._heuristic).toBe(true);
+      const words = String(res.body.html).replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]+>/g, ' ');
+      expect(words, variant).not.toMatch(/Win back lapsed|why it fits right now|in the setting it was made for|DATA REQUIRED BEFORE LAUNCH: (hero product|approved review|verifiable claims)|Add to cart|Shop now|Privacy Policy/);
+      expect(words, `${variant}: the brand's own line`).toContain('Built for the long way round');
+      expect(words).toContain('Sewn in Oregon');
+      expect(res.body.subject_lines.join(' | ')).not.toMatch(/Win back lapsed|DATA REQUIRED/);
+      expect(res.body.data_gaps.join(' '), variant).toMatch(/hero product.*approved review|approved review/s);
+    }
+  } finally { llm.restore(); restoreEnv(); }
+});
