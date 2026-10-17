@@ -113,6 +113,10 @@ test('the shared mailer: a real hero photo is not followed by a second hero bloc
   expect(withPhoto, 'the colour hero block repeats the photo\'s job').not.toContain('Brand-palette hero block');
   expect(withPhoto).toContain('Everyday nutrition for your parents');
   expect(withPhoto, 'a 140-character tagline under the logo').not.toContain('family superapp');
+  // A slot the asset agent fills with a generated photo later is a photo too.
+  const slot = trigger.helpers.renderTextVariant(Object.assign({}, base, { style: 'visual', hero_prompt: 'A parent and child reading together, natural light' }));
+  expect(slot, 'a fillable photo slot is followed by a second hero block').not.toContain('Brand-palette hero block');
+  expect(slot).toContain('Everyday nutrition for your parents');
   const noPhoto = trigger.helpers.renderTextVariant(Object.assign({}, base, { style: 'visual' }));
   expect(noPhoto, 'with no photo the colour block is the hero').toContain('Brand-palette hero block');
   const short = trigger.helpers.renderTextVariant(Object.assign({}, base, { style: 'visual', brand: Object.assign({}, base.brand, { tagline: 'Care for the people who cared for you' }) }));
