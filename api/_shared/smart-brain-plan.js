@@ -2822,6 +2822,9 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     // framework directions). No static template strings repeated across slots.
     const copy = isB ? copyB : copyA;
     if (ad.platform === 'meta' && copy.ads.meta) Object.assign(ad, { primary_text: copy.ads.meta.primary_text || ad.primary_text, headline: copy.ads.meta.headline || ad.headline, description: copy.ads.meta.description || ad.description });
+    // The preview draws overlay.headline; it stayed the template's while the ad
+    // carried the model's, so the reviewed creative and the copy disagreed.
+    if (ad.platform === 'meta' && ad.overlay && ad.headline) ad.overlay.headline = ad.headline;
     // The model's lines first, then the template's own lines (the brand's
     // names, tagline, claims and action) up to Google's 15 / 4: a model that
     // wrote 3 headlines left Google no choice to make, and the template path

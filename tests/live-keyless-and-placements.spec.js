@@ -61,7 +61,7 @@ const COPY = (b, hero) => ({
   email: { subject: `${hero || b.name}: back for you`, preheader: b.tagline, hook: 'h', hero_headline: `Back to ${hero || b.name}`, intro_paragraph: `${b.claims[0]}.`, body_paragraph: '', benefits: [], rating: null, reviews: [], badges: [], guarantee: '', ps: '', faq: [], cta: 'Come back', image_brief: 'x' },
   landing: { hero_headline: `Back to ${hero || b.name}`, hero_sub: `${b.tagline}.`, why_title: 'Why', why_bullets: [], proof_quote: '', proof_author: '', faq: [], cta: 'Come back', image_brief: 'y' },
   ads: {
-    meta: { primary_text: `${b.tagline}.`, headline: 'Trusted by readers', description: b.name, image_brief: 'z' },
+    meta: { primary_text: `${b.tagline}.`, headline: b === NEWS ? 'Trusted by readers' : `Back to ${hero || b.name}`.slice(0, 40), description: b.name, image_brief: 'z' },
     google: { headlines: ['Trusted News Source', 'Fast, Reliable Reporting', b.name.slice(0, 30)], descriptions: [`${b.tagline}.`, `${b.claims[0]}.`], image_brief: 'w' },
     tiktok: { script: 's', caption: b.tagline, image_brief: 'v' },
   },
@@ -118,8 +118,13 @@ test('a keyed provider present: the keyless floor is not the only route, and no 
   const saved = process.env.GROQ_API_KEY;
   const w = keylessWorld(async () => ok('x'));
   process.env.GROQ_API_KEY = 'test-key';
-  try { expect(await require(LLM).keylessOnly()).toBe(false); }
-  finally { w.restore(); if (saved === undefined) delete process.env.GROQ_API_KEY; else process.env.GROQ_API_KEY = saved; }
+  try {
+    expect(await require(LLM).keylessOnly()).toBe(false);
+    // A Sakana endpoint with its key is a keyed provider too (Codex on #278).
+    delete process.env.GROQ_API_KEY;
+    process.env.SAKANA_BASE_URL = 'https://sakana.example'; process.env.SAKANA_API_KEY = 'test-key';
+    expect(await require(LLM).keylessOnly()).toBe(false);
+  } finally { w.restore(); if (saved === undefined) delete process.env.GROQ_API_KEY; else process.env.GROQ_API_KEY = saved; }
 });
 
 async function buildKeyless(entry) {
@@ -143,6 +148,10 @@ test('a keyless-only Smart Brain build makes ONE copy call and uses its answer, 
   expect(brief).toContain('- Name: Palmgrove Estate Medium Roast');
   expect(brief).toMatch(/- Price: ₹650/);
   expect(brief).not.toContain('PRODUCT FACTS: none on record');
+  // The model's Meta headline is what the preview draws (overlay), not the template's (Codex on #278).
+  const meta = c.assets.ads.filter((x) => x.platform === 'meta' && x.overlay);
+  expect(meta.length).toBeGreaterThan(0);
+  for (const ad of meta) { expect(ad.headline).toBe('Back to Palmgrove Estate Medium Roast'); expect(ad.overlay.headline).toBe(ad.headline); }
 });
 
 test('ad headlines are held to the brand\'s words: "Trusted", "Reliable" are dropped, the brand\'s own lines fill the RSA', async () => {
@@ -154,6 +163,8 @@ test('ad headlines are held to the brand\'s words: "Trusted", "Reliable" are dro
   expect(meta.headline).not.toMatch(/Trusted/);
   const dropped = c.copy_grounding.dropped.map((d) => d.field);
   expect(dropped).toEqual(expect.arrayContaining(['ads.google.headlines', 'ads.meta.headline']));
+  // The preview draws overlay.headline: it shows the headline the ad carries (Codex on #278).
+  for (const ad of c.assets.ads.filter((x) => x.platform === 'meta' && x.overlay)) expect(ad.overlay.headline).toBe(ad.headline);
 });
 
 test('an information brand\'s buttons go to the subscription its record names, on the mail and the landing page alike', async () => {

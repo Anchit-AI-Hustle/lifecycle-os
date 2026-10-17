@@ -480,7 +480,7 @@ module.exports = async function callLLM(opts) {
   // prompt (measured), and its turn may be up to 30 s away, so the call gets the
   // time that needs (still never past the request's deadline). A per-attempt
   // cap written for a keyed provider (12-20 s) cut every answer off.
-  const keylessOnly = !!hasKey.pollinations && !Object.keys(hasKey).some((p) => p !== 'pollinations' && p !== 'sakana' && hasKey[p]);
+  const keylessOnly = !!hasKey.pollinations && !Object.keys(hasKey).some((p) => p !== 'pollinations' && hasKey[p]);
   if (keylessOnly) budgetMs = Math.max(0, Math.min(Math.max(askedBudget, 90000), deadlineLeft));
   const keylessAttemptMs = Math.max(timeoutMs, 55000);
 
@@ -1026,6 +1026,7 @@ module.exports.keylessOnly = async function keylessOnly() {
     || any(k.grok, process.env.XAI_API_KEY) || any(k.groq, process.env.GROQ_API_KEY)
     || any(k.cerebras, process.env.CEREBRAS_API_KEY) || any(k.openrouter, process.env.OPENROUTER_API_KEY, process.env.OpenRouter_API_KEY)
     || (any(k.cloudflare, process.env.CLOUDFLARE_API_TOKEN) && !!cloudflareBase())
-    || !!process.env.OLLAMA_BASE_URL || (ov && ov.bases && ov.bases.ollama));
+    || !!process.env.OLLAMA_BASE_URL || (ov && ov.bases && ov.bases.ollama)
+    || (!!process.env.SAKANA_BASE_URL && any(process.env.SAKANA_API_KEY)));
 };
 module.exports._resetKeyless = function () { KEYLESS.next = 0; KEYLESS.chain = Promise.resolve(); };
