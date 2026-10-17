@@ -362,7 +362,9 @@ module.exports = async function handler(req, res) {
       if (out.status === -1) return null;
       if (out.dataUrl) {
         console.log('[image] Success · Pollinations ' + pollinationsModel + ' (' + out.kb + ' KB)');
-        return { provider: 'pollinations', model: pollinationsModel, image_data_url: out.dataUrl };
+        // Its address too: the same (prompt, seed) answers the same picture, so a
+        // caller with nowhere to host the bytes can carry this URL instead of base64.
+        return { provider: 'pollinations', model: pollinationsModel, image_data_url: out.dataUrl, image_url: pollUrl };
       }
       const kind = note('pollinations', pollinationsModel, out.status, kindOf(out.status, out.err), out.err);
       console.warn('[image] Pollinations ' + pollinationsModel + ' → ' + out.status + ' (' + kind + ')');
@@ -421,6 +423,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         ok: true, provider: hit.provider, model: hit.model, size, quality,
         image_data_url: hit.image_data_url,
+        ...(hit.image_url ? { image_url: hit.image_url } : {}),
         ...(hit.key_index ? { key_index: hit.key_index } : {}),
         ...(attempts.length ? { attempts, fell_back: true } : {}),
         ...(usedFreeFallback ? {

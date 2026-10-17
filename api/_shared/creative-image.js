@@ -23,18 +23,56 @@ async function generateCreativeImage(prompt, { size = '1024x1024', mode = '' } =
   try { handler = require('../ai/image.js'); } catch (_) { return null; }
   return await new Promise((resolve) => {
     let settled = false;
-    const done = (v) => { if (!settled) { settled = true; resolve(v); } };
+    let timer = null;
+    const done = (v) => { if (!settled) { settled = true; if (timer) clearTimeout(timer); resolve(v); } };
     const res = {
       setHeader() {}, status() { return res; }, end() { done(null); return res; },
-      json(obj) { done(obj && obj.image_data_url ? { image: obj.image_data_url, provider: obj.provider, model: obj.model } : null); return res; },
+      json(obj) { done(obj && obj.image_data_url ? { image: obj.image_data_url, provider: obj.provider, model: obj.model, url: obj.image_url || null } : null); return res; },
     };
     // budget_ms keeps the cascade inside this function's own 60s wait, so a
     // slow provider is cut off by the cascade (which then tries the next one)
     // rather than by the timer below (which gives up on all of them).
-    const req = { method: 'POST', body: { prompt: String(prompt).slice(0, 1800), size, quality: 'high', mode, budget_ms: 55000 } };
+    // The route admits a signed-in person or the deployment's own scheduler.
+    // This call is the server's own work (a slot being built, a trigger mailer),
+    // and it carried NO credentials, so since the route gained its caller gate
+    // every one of these was refused (401) and every server-side image was
+    // null (found 2026-10-17). It names itself as the scheduler when the
+    // deployment has one, else carries the person's own session.
+    const req = { method: 'POST', headers: internalAuth(), body: { prompt: String(prompt).slice(0, 1800), size, quality: 'high', mode, budget_ms: 55000 } };
     Promise.resolve().then(() => handler(req, res)).catch(() => done(null));
-    setTimeout(() => done(null), 60000);
-  });
+    timer = setTimeout(() => done(null), 60000);
+  }).then((got) => got || freeImage(prompt, size));
+}
+
+function internalAuth() {
+  const cron = process.env.CRON_SECRET || '';
+  if (cron) return { authorization: 'Bearer ' + cron };
+  try {
+    const r = require('./request-scope.js').currentRequest();
+    const a = r && r.headers && (r.headers.authorization || r.headers.Authorization);
+    if (a) return { authorization: a };
+  } catch (_) { /* no request in scope */ }
+  return {};
+}
+
+// The free, keyless floor (2026-10-17): when the route produced nothing (no
+// key, no scheduler, a refusal), Pollinations' own address for this prompt,
+// probed once for a real image. FREE_GENERATION=off turns it off.
+async function freeImage(prompt, size) {
+  if (String(process.env.FREE_GENERATION || '').toLowerCase() === 'off') return null;
+  const [w, h] = String(size || '1024x1024').split('x').map((n) => Number(n) || 1024);
+  let seed = 2166136261;
+  for (const ch of String(prompt)) { seed ^= ch.charCodeAt(0); seed = Math.imul(seed, 16777619); }
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(String(prompt).slice(0, 900))}?width=${w}&height=${h}&seed=${(seed >>> 0) % 1000000}&nologo=true&model=flux`;
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), 60000) : null;
+  try {
+    const r = await fetch(url, { method: 'GET', signal: ctl ? ctl.signal : undefined });
+    const ct = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').toLowerCase();
+    if (!r.ok || !ct.startsWith('image/')) return null;
+    const buf = await r.arrayBuffer();
+    return buf.byteLength >= 5000 ? { image: url, url, provider: 'pollinations', model: 'flux', keyless: true } : null;
+  } catch (_) { return null; } finally { if (t) clearTimeout(t); }
 }
 
 // Upload a base64 data-URL creative to the public Supabase Storage bucket and
@@ -55,4 +93,15 @@ async function uploadCreative(dataUrl, name) {
   } catch (_) { return null; }
 }
 
-module.exports = { generateCreativeImage, uploadCreative };
+// Where a generated image lives, never base64 (2026-10-17): the hosted copy when
+// storage answers, else the free generator's own address (Pollinations serves the
+// same picture at it every time), else nothing. A mailer carries a URL or no image.
+async function hostedUrl(gen, name) {
+  if (!gen || !gen.image) return null;
+  if (/^https:\/\//i.test(gen.image)) return gen.image;
+  const up = await uploadCreative(gen.image, name).catch(() => null);
+  if (up) return up;
+  return gen.url && /^https:\/\//i.test(gen.url) ? gen.url : null;
+}
+
+module.exports = { generateCreativeImage, uploadCreative, hostedUrl };
