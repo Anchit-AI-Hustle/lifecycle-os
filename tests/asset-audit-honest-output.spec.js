@@ -163,3 +163,55 @@ test('a video scene with no photo is centred under the brand\'s name', () => {
   expect((ad.match(/class="mark"/g) || []).length, 'the mark is shown on the scene that does not already say the name').toBe(1);
   expect(ad).toMatch(/\.scene\.noimg \.type \{ top:50%/);
 });
+
+// The trigger mailer (`?action=trigger-mailer`) when no model answers: its
+// fallback printed its own brief ("this: the facts the catalogue actually
+// states, never invented ones", "Chosen for the At Risk segment.") with "this"
+// as the subject, "Shop now" for a newspaper, a "/collections/bestsellers" link
+// nobody gave it, and the market code beside the name.
+async function trigger(brand) {
+  const CT = require.resolve(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
+  const CI = require.resolve(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
+  const rt = require(path.join(ROOT, 'api', '_shared', 'brand-runtime.js'));
+  const saved = { llm: require.cache[LLM], ci: require.cache[CI], ct: require.cache[CT], resolve: rt.resolve };
+  const real = require(LLM);
+  const down = async () => { throw new Error('ALL PROVIDERS FAILED'); };
+  Object.assign(down, real);
+  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
+  require.cache[CI] = { id: CI, filename: CI, loaded: true, exports: { generateCreativeImage: async () => null, uploadCreative: async () => null } };
+  delete require.cache[CT];
+  rt.resolve = async () => brand;
+  try {
+    const handler = require(CT);
+    const res = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(o) { this.body = o; return this; }, end() { return this; } };
+    await handler({ method: 'POST', headers: {}, body: { entry: { date: '2026-10-20', market: 'IN', segment: 'At Risk', content_type: 'promo', archetype: 'hero-led-editorial' } } }, res);
+    return res;
+  } finally {
+    rt.resolve = saved.resolve;
+    require.cache[LLM] = saved.llm;
+    if (saved.ci) require.cache[CI] = saved.ci; else delete require.cache[CI];
+    if (saved.ct) require.cache[CT] = saved.ct; else delete require.cache[CT];
+  }
+}
+
+test('the trigger mailer with no model: the brand\'s own words, its business\'s button, no brief text, no invented link', async () => {
+  for (const [b, cta] of [[NEWS, 'Start reading'], [BARE, 'Learn more']]) {
+    const res = await trigger(b);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.strategy_heuristic).toBe(true);
+    const S = res.body.strategy;
+    expect(S.subject_line, b.name).not.toMatch(/^this$|DATA REQUIRED/);
+    expect(S.cta_text).toBe(cta);
+    for (const key of ['V1', 'V2']) {
+      const mail = res.body.variants[key].html;
+      const words = textOf(mail);
+      expect(words, `${b.name} ${key}`).not.toMatch(/never invented|Why this one|segment|What makes it right|Shop now|Explore the collection/);
+      expect(mail, `${b.name} ${key}`).not.toContain('/collections/');
+      expect(words, `${b.name} ${key} names the market beside the brand`).not.toMatch(new RegExp(b.name.toUpperCase() + '\\s*·\\s*IN'));
+    }
+  }
+  const news = await trigger(NEWS);
+  expect(textOf(news.body.variants.V1.html)).toContain('Reporters in all 14 Pune wards');
+  const visual = textOf(news.body.variants.V2.html);
+  expect((visual.match(/checked twice by the desk/g) || []).length, 'the tagline under the logo repeats the headline').toBe(1);
+});
