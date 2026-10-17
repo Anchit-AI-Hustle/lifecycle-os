@@ -438,6 +438,9 @@ function mailQuality(a) {
   // 3. Every picture is properly made: hosted over https, described, sized.
   for (const t of pics) {
     const src = attr(t, 'src') || '';
+    // A slot a later stage fills (IMAGE_HERO_URL, PASTE_IMAGE_URL_HERE, an ESP
+    // merge tag) is a picture not placed yet, not a broken link.
+    if (/^(?:[A-Z][A-Z0-9_]*|\{\{[\s\S]*\}\}|\[[^\]]*\])$/.test(src.trim())) { v.push(gap(warn('html', `A picture slot is not filled yet (${src.slice(0, 40)}): place the hosted image before this is sent.`))); continue; }
     if (!/^https:\/\//i.test(src)) v.push(block('html', `A picture is not served over https (${src.slice(0, 60) || 'no src'}): mail clients block or warn on it, and the reader sees an empty box.`));
     if (!String(attr(t, 'alt') || '').trim()) v.push(warn('html', 'A picture has an empty alt: with images off (the default in many clients) the reader sees nothing where it was.'));
     if (!attr(t, 'width')) v.push(warn('html', 'A picture has no width attribute: Outlook renders it at its natural size and breaks the 600px column.'));

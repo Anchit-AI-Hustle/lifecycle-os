@@ -600,7 +600,10 @@ test('the mailer the html stage builds itself passes the rendered gates and its 
 
           const summary = sbPlan.checkAssetContracts({ assets: { email: { subject: res.body.subject_lines[0], preheader: res.body.preheader, html: doc, intro_paragraph: 'x', cta: 'x' } } });
           expect(summary.checked, `${label}: the contract governed nothing`).toBe(1);
-          for (const v of summary.violations) (v.level === 'block' ? bad.blocking : bad.warnings).push(`${label} ${v.slot}: ${v.message}`);
+          // A data gap (no logo on the fixture's record, an image slot the
+          // images stage fills) is the operator's or a later stage's, not this
+          // stage's; it is reported, not counted as the stage's warning.
+          for (const v of summary.violations) { if (v.data_gap) continue; (v.level === 'block' ? bad.blocking : bad.warnings).push(`${label} ${v.slot}: ${v.message}`); }
         }
       }
     }

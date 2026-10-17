@@ -418,7 +418,7 @@ function heuristicHtml(ctx, o) {
     + p(`${esc(legal.name)}, ${esc(legal.address)}`, t.onPrimary, 12)
     + `<p style="margin:0 0 10px;font-family:${F};font-size:12px;line-height:1.6;color:${t.onPrimary}">${link('{{UNSUBSCRIBE_URL}}', 'Unsubscribe')}</p>`
     + p(`&copy; ${new Date().getFullYear()} ${esc(legal.name)}. All rights reserved.`, t.onPrimary, 11, 'margin:0'),
-    'padding:28px 24px;text-align:center');
+    'padding:28px 24px;text-align:center').replace('<td class="vh-m-pad"', '<td data-mail-footer class="vh-m-pad"');
 
   const order = isB
     ? [header, hero, lifestyle, benefits, product, proofBlock, offerBar, closing, footer]
