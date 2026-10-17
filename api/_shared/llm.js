@@ -110,6 +110,22 @@ function setCool(provider, key, model, kind, ms) {
   COOL.set(coolKey(provider, key, model), e);
   return e;
 }
+// A provider that just TIMED OUT, or asked us to wait a few seconds, is still
+// tried, but LAST for a short while (2026-10-17). Production, one Smart Brain
+// preview: the keyless provider timed out after 12 s and again after 20 s, a
+// key with no quota timed out after 16 s, and only then the provider that
+// answered was reached: 72 s for one slot. Skipping them would lose a fallback;
+// moving them behind the providers that are answering loses nothing.
+const SLOW_MS = 2 * 60 * 1000;
+const SLOW = new Map();
+function markSlow(provider, ms) { SLOW.set(provider, Date.now() + Math.max(ms || 0, 1000)); }
+function isSlow(provider) {
+  const until = SLOW.get(provider);
+  if (!until) return false;
+  if (until > Date.now()) return true;
+  SLOW.delete(provider);
+  return false;
+}
 // "Please try again in 6m28.8s" (Groq) when no Retry-After header came.
 function waitInBody(body) {
   const m = String(body || '').match(/try again in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:([\d.]+)s)?/i);
@@ -627,6 +643,11 @@ module.exports = async function callLLM(opts) {
       row.cooled_until = new Date(setCool(provider, key, null, kind, Math.max(COOL_KEY_MS, (waitS || 0) * 1000)).until).toISOString();
     } else if (kind === 'rate_limit' && DAILY_RE.test(String(result.err || ''))) {
       row.cooled_until = new Date(setCool(provider, key, model, kind, waitS ? waitS * 1000 : COOL_DAILY_MS).until).toISOString();
+    } else if (kind === 'timeout') {
+      markSlow(provider, SLOW_MS);
+    } else if (kind === 'rate_limit') {
+      const m = String(result.err || '').match(/retry after\s+(\d+)\s*s/i);
+      markSlow(provider, (waitS || (m && Number(m[1])) || 30) * 1000);
     }
     return kind;
   }
@@ -763,6 +784,8 @@ module.exports = async function callLLM(opts) {
     }
   }
   order = _dedupe(order);
+  // Providers that timed out or asked to wait moments ago go last, in order.
+  if (order.length > 1) order = order.filter((p) => !isSlow(p)).concat(order.filter(isSlow));
   for (const p of outsideRouting) if (hasKey[p]) _skipped.push({ provider: p, reason: 'outside this call\'s routing' });
 
   for (let i = 0; i < order.length; i++) {
@@ -822,7 +845,7 @@ module.exports = async function callLLM(opts) {
  * Handles: clean JSON, markdown fences, prose prefix/suffix, nested fences.
  */
 /** Forget every cool-down (tests; and an operator who has just topped up a key). */
-module.exports.resetProviderCooldowns = function resetProviderCooldowns() { COOL.clear(); };
+module.exports.resetProviderCooldowns = function resetProviderCooldowns() { COOL.clear(); SLOW.clear(); };
 /** The active cool-downs: provider, key fingerprint, model, kind, until. Never a key. */
 module.exports.providerCooldowns = function providerCooldowns() {
   const now = Date.now();

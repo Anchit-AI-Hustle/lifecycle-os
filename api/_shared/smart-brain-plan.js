@@ -326,6 +326,19 @@ const LIFECYCLE_STRATEGY = [
   { name: 'Lost', rules: ['Quiet long enough that an earlier reactivation has had its turn.', 'One send, then leave them alone.'] },
 ];
 
+// The job of one send to this audience, for an evergreen offering. The
+// offering's own job ("Drive the reader to buy this product.") is the last line.
+function cohortJob(cohort, name, fallback) {
+  const n = String(name || 'it');
+  const jobs = {
+    Nurture: `Show what ${n} is and who it is for, before asking for anything.`,
+    Engaged: `Turn interest into a first step with ${n}.`,
+    'At Risk': `Bring back customers who have gone quiet, with ${n}.`,
+    Winback: `Win back customers who have lapsed, with ${n}.`,
+  };
+  return jobs[cohort] || fallback;
+}
+
 function strategyPlay(name) {
   return {
     'Never Purchased': 'Education for people who have not bought: one idea, and no offer code this brand has not published.',
@@ -635,6 +648,11 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       // Thanksgiving for US), from market-moments.js - never another market's
       // holidays and never tenant zero's audience days (2026-10-05).
       const moment = require('./market-moments.js').momentOn(market, date, brand);
+      // The AUDIENCE decides the job of an evergreen send (2026-10-17). Every
+      // row read "Drive the reader to buy this product." whatever the cohort,
+      // so a lapsed customer and a first-time reader got the same brief. A
+      // dated offering keeps its phase's job (the date is the reason to send).
+      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, useOff.name, rotated.job);
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
@@ -642,7 +660,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         status: 'needs_human_verification',
         confidence,
         cohort: { name: cohort, size: 0, estimated: true },
-        objective: rotated.job,
+        objective,
         theme: `${useOff.name} (${useOff.kind})`,
         heroOffering: useOff,
         offering: useOff,
@@ -657,7 +675,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           cohort: { name: cohort, size: 0 },
           product: { title: useOff.name, category: useOff.kind },
           channels: ['email', 'meta', 'google', 'landing_page'],
-          objective: rotated.job,
+          objective,
           market,
           confidence: { score: confidence, reasons: [{ label: 'Derived from the brand\'s own catalogue', delta: 0, detail: `${useOff.kind} "${useOff.name}"` }] },
           dataSource: 'brand-offerings',
@@ -1302,7 +1320,7 @@ async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null }
 // Ridge Wallet-style objection-led conversion.
 const D2C_KNOWLEDGE = `D2C GROWTH KNOWLEDGE BASE (apply, do not cite):
 - Value frameworks: Hook-Story-Offer (Brunson), Problem-Agitate-Solve (PAS), Identity-Driven (align the product with who the reader wants to become), Feature-Advantage-Benefit.
-- Email structure (Dimond/Sharma): a pattern-interrupt HOOK in the first scroll, one clear idea, visceral sensory benefits, objection-killing social proof, one low-friction CTA. No wall of text.
+- Email structure (Dimond/Sharma): a pattern-interrupt HOOK in the first scroll, one clear idea, benefits taken from the brand's own facts, objection-killing social proof, one low-friction CTA. No wall of text.
 - Creative (Murray): the offer and the transformation lead; the product is the proof, not the headline.
 - Competitor benchmarking aesthetics: study the ACTIVE brand's own competitive set (see its competitor universe) rather than a fixed list; common winning registers are high-contrast minimalism, rich origin-story education, problem-centric bold layouts, and calm clinical clean design.`;
 
@@ -1319,8 +1337,8 @@ function regionalNuance(market) {
 const MAILER_COMPONENTS = `Every marketing asset must follow the 7-Step High-Conversion Direct-Response Persuasion Architecture:
 (1) THE PATTERN-INTERRUPT HOOK: First-scroll stop (curiosity loop, bold contrast, or friction callout). The subject line + preheader work together: preheader extends curiosity, never repeats subject.
 (2) PROBLEM AGITATION & FRICTION: Agitate the real dilemma or hidden cost of inaction—why conventional alternatives fail or disappoint.
-(3) THE UNIQUE MECHANISM: Introduce the offering not as a generic commodity, but through its specific mechanism, craft, formulation, or data integrity (from the brand's own facts).
-(4) SENSORY TRANSFORMATION: 3 concrete, sensory-rich benefits focused on the "After-State" (what the buyer feels, achieves, or experiences once in their hands).
+(3) WHAT IT IS: Introduce the offering through what the brand's own facts say it is and does, and nothing more.
+(4) WHAT THE READER GETS: up to 3 benefits, each one a fact the brand or its catalogue states, said as what it means for the reader. Fewer than 3 when fewer are stated; never a quality, ingredient, standard or result the facts do not name.
 (5) TRANSPARENT OFFER & PRICING ANCHOR: State the exact catalog price, what is included, and any shipping/bundle terms clearly without ambiguity.
 (6) VERIFIED PROOF & RISK REVERSAL: Authentic social proof (drawn STRICTLY from approved proof library) and explicit risk reversal (satisfaction guarantee, trial, or hassle-free returns if stated).
 (7) SINGLE HIGH-CONTRAST CALL TO ACTION & SKIMMER P.S.: Clear action-oriented CTA button driving to the PDP/destination, followed by a punchy P.S. that restates the core hook, deadline, or risk-reversal for bottom-scrollers.`;
@@ -1659,13 +1677,13 @@ function copyOutputSpec(entry) {
         preheader: { type: 'string', max: L('email.mailer', 'preheader'), note: 'extends the subject, never repeats it' },
         hook: { type: 'string', note: 'the first-scroll pattern-interrupt line' }, hero_headline: { type: 'string', note: `at most ${ac.MAIL_WORDS.headline} words` },
         intro_paragraph: { type: 'string', note: `at most ${ac.MAIL_WORDS.paragraph} words` }, body_paragraph: { type: 'string', note: `at most ${ac.MAIL_WORDS.paragraph} words` },
-        benefits: { type: 'array', count: 3, items: { type: 'string', note: `at most ${ac.MAIL_WORDS.benefit} words` } },
+        benefits: { type: 'array', count: [0, 3], items: { type: 'string', note: `at most ${ac.MAIL_WORDS.benefit} words` } },
         rating: Object.assign({ type: 'any' }, proof('null')), reviews: Object.assign({ type: 'array', items: 'any' }, proof('[]')),
         badges: Object.assign({ type: 'array', items: 'any' }, proof('[]')), guarantee: Object.assign({ type: 'string' }, proof('an empty string')),
         ps: { type: 'string', note: `the skimmer P.S. restating the core hook, deadline, or risk reversal; at most ${ac.MAIL_WORDS.ps} words` },
         faq, cta: 'string', image_brief: img } },
       landing: { type: 'object', of: {
-        hero_headline: 'string', hero_sub: 'string', why_title: 'string', why_bullets: { type: 'array', count: 3, items: 'string' },
+        hero_headline: 'string', hero_sub: 'string', why_title: 'string', why_bullets: { type: 'array', count: [0, 3], items: 'string' },
         proof_quote: Object.assign({ type: 'string' }, proof('an empty string')), proof_author: Object.assign({ type: 'string' }, proof('an empty string')),
         faq, cta: 'string', image_brief: img } },
       ads: { type: 'object', of: {
@@ -1761,8 +1779,8 @@ ${MAILER_COMPONENTS}
 CONVERSION-DRIVEN DIRECT RESPONSE RULES:
 - Subject & Preheader: Subject line must feature a curiosity gap, pattern-interrupt, or specific outcome. Preheader must extend the curiosity loop, never repeating the subject line.
 - Opening Hook (intro_paragraph): Stop apathy immediately. Agitate the problem, hidden cost of inaction, or why ordinary category alternatives fail.
-- Unique Mechanism (body_paragraph): Introduce the offering as the systematic solution. Explain WHY it works through verified craft, formulation, or data integrity.
-- Benefits (benefits): Provide EXACTLY 3 sensory-rich, outcome-focused bullet points articulating the vivid "After-State" (what the buyer achieves or feels).
+- What it is (body_paragraph): what the offering is and does, in the brand's own facts only.
+- Benefits (benefits): up to 3 bullets, each a fact the brand or its catalogue states (its claims, the product description), said as what it means for the reader. Return fewer, even none, rather than add a quality, ingredient, standard or result the facts do not name.
 - Action CTA (cta): Clear, high-contrast action verb driving to the destination PDP.
 - Skimmer P.S. (ps): A punchy 1-2 sentence post-script restating the core hook or risk reversal for readers who scroll to the bottom.
 - LENGTH (hard editorial limit, the mail is read on a phone in seconds): hero_headline at most ${require('./asset-contracts.js').MAIL_WORDS.headline} words; each paragraph at most ${require('./asset-contracts.js').MAIL_WORDS.paragraph} words; each benefit at most ${require('./asset-contracts.js').MAIL_WORDS.benefit} words; the P.S. at most ${require('./asset-contracts.js').MAIL_WORDS.ps} words. The whole mail body, headline to button, stays under ${require('./asset-contracts.js').MAIL_WORDS.visual} words for the picture-led mailer and ${require('./asset-contracts.js').MAIL_WORDS.text} for the text mailer. Say one idea, then the button.
@@ -2040,6 +2058,14 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     .filter((x) => x && x.title && !/^\[DATA REQUIRED/.test(String(x.title))).slice(0, 3);
   const _otherHref = (x) => (facts.store ? `https://${facts.store}${x.handle ? `/products/${x.handle}` : ''}` : '#');
   const _otherImg = (x) => { if (x.image) return x.image; try { return (catalogImage.imagesFor(x, entry.market, { width: 600, brand: entry.brand }) || [])[0] || ''; } catch (_) { return ''; } };
+  const _othersAnyImg = _others.some((x) => _otherImg(x));
+  // A brand with no other product on this send still names what it offers,
+  // from its own record (2026-10-17 audit: a publisher's page was the name
+  // three times, one bullet and the end). Never an offering it does not list.
+  const _heroName = String((entry.heroProduct && entry.heroProduct.title) || '').trim().toLowerCase();
+  const _offerList = (Array.isArray(_b.offerings) ? _b.offerings : [])
+    .filter((o) => o && o.name && String(o.name).trim().toLowerCase() !== _heroName && !/^\[DATA REQUIRED/.test(String(o.name)))
+    .slice(0, 6).map((o) => ({ name: String(o.name), url: /^https?:\/\//.test(String(o.url || '')) ? String(o.url) : '' }));
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
 <style>
@@ -2054,7 +2080,12 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero-grid{max-width:1080px;margin:0 auto;display:grid;gap:24px;align-items:center}
 .hero-media img{width:100%;height:280px;object-fit:cover;border-radius:12px;display:block}
 @media(min-width:900px){.hero{padding:56px 32px}.hero-grid.has-media{grid-template-columns:1fr 1fr;text-align:left;gap:48px}.hero-grid.has-media h1,.hero-grid.has-media p{margin-left:0;margin-right:0}.hero-media img{height:420px}}
-.others{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:14px}
+.others{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),260px));gap:14px}
+.other img{width:100%;aspect-ratio:1/1;object-fit:cover}
+.other .ph{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1/1;background:var(--chalk-warm);color:var(--ink);font-family:var(--head);font-size:44px}
+.offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px;padding:0;margin:0;list-style:none}
+.offers li{border:1px solid var(--chalk-warm);border-radius:12px;padding:14px 16px;background:var(--chalk)}
+.offers a{color:var(--ink);font-weight:700}
 .other{display:block;text-decoration:none;color:var(--ink);background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;overflow:hidden}
 .other img{width:100%;aspect-ratio:4/3;object-fit:cover}
 .other span{display:block;padding:12px 14px;font-family:var(--head);font-size:16px;line-height:1.3}
@@ -2168,7 +2199,8 @@ ${_stripItems.length ? `<div class="trust">${_stripItems.map((c) => `<span>${esc
       </div>
     </div>
   </section>` : ''}
-  ${_others.length ? `<section class="sec"><h2>Also from ${esc(bName)}</h2><div class="others">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : ''}<span>${esc(x.title)}</span></a>`; }).join('')}</div></section>` : ''}
+  ${_others.length ? `<section class="sec"><h2>Also from ${esc(bName)}</h2><div class="others">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span></a>`; }).join('')}</div></section>` : ''}
+  ${(!_others.length && _offerList.length) ? `<section class="sec"><h2>What ${esc(bName)} offers</h2><ul class="offers">${_offerList.map((o) => `<li>${o.url ? `<a href="${esc(o.url)}">${esc(o.name)}</a>` : `<b>${esc(o.name)}</b>`}</li>`).join('')}</ul></section>` : ''}
 </div>
 ${proofSection}
 <div class="wrap">
@@ -2315,7 +2347,11 @@ function renderVariant(entry, copy, style, img) {
   // matches (it would always return gallery[0] = the same photo). Compare on the
   // width/version-stripped BASE url instead. Only a single-photo product shares.
   const baseKey = (u) => String(u || '').replace(/[?&](width|v)=[^&]*/g, '');
-  const heroCardImg = heroGallery.find((u) => baseKey(u) !== baseKey(heroImgUrl)) || heroGallery[1] || heroGallery[0] || heroImgUrl;
+  // The card is the PRODUCT's: only its own catalogue photos. It used to fall
+  // back to the hero picture, so a product with no photo wore the brand's promo
+  // banner as its product shot (Parwah, 2026-10-17); it renders a plain tile now.
+  const _hpOwn = (entry.heroProduct && !entry.heroProduct.placeholder && /^https:\/\//i.test(String(entry.heroProduct.image || ''))) ? String(entry.heroProduct.image) : undefined;
+  const heroCardImg = heroGallery.find((u) => baseKey(u) !== baseKey(heroImgUrl)) || heroGallery[1] || heroGallery[0] || _hpOwn;
   // Grid = hero + any bundled supporting products, each with its OWN real HD photo
   // and real catalog content (subtitle / design notes), linking to its own real
   // product page (never a fabricated handle).
@@ -2324,7 +2360,7 @@ function renderVariant(entry, copy, style, img) {
   const products = withGrid && entry.heroProduct
     ? [
         { title: entry.heroProduct.title, handle: entry.heroProduct.handle, image: heroCardImg, price: entry.heroProduct.price, url: links.pdp, note: (catRow(entry.heroProduct) || {}).subtitle || (catRow(entry.heroProduct) || {}).tasting_notes || '' },
-        ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || undefined, note: row.subtitle || row.tasting_notes || '' }; }),
+        ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || (/^https:\/\//i.test(String(p.image || '')) ? String(p.image) : undefined), note: row.subtitle || row.tasting_notes || '' }; }),
       ]
     : undefined;
   // NOT TOO MUCH TEXT (2026-10-17). Blocks are taken in order of what they
@@ -2689,6 +2725,17 @@ function videoStatus() {
 }
 
 function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runId = null) {
+  // Held to the brand's own words before anything is rendered (2026-10-17):
+  // a benefit or sentence that states a quality the brand and its catalogue
+  // never state is dropped (copy-grounding.js), and the campaign says what.
+  try {
+    let row = null;
+    try { row = catalogImage.match(entry, entry.market, { brand: entry.brand }); } catch (_) { row = null; }
+    const product = Object.assign({}, entry.heroProduct || {}, row || {});
+    const grounding = require('./copy-grounding.js');
+    const dropped = grounding.groundCopy(copyA, entry.brand, product).concat(copyB && copyB !== copyA ? grounding.groundCopy(copyB, entry.brand, product) : []);
+    if (dropped.length) campaign.copy_grounding = { dropped, note: `${dropped.length} line(s) the model wrote were left out: they state something the brand's own record and catalogue do not.` };
+  } catch (_) { /* grounding must never stop a build */ }
   const briefFor = (copy, k) => ({ brief: (k && copy.ads?.[k]?.image_brief) || '', image: null, provider: null });
   // Distinct real gallery pool for this slot (hero product + supporting), HD.
   // B-variants draw an ALTERNATE real photo (not the email hero) so the A/B
@@ -3556,7 +3603,22 @@ async function resolveEntry({ id, inlineEntry, config, db }) {
 
 // ── Preview (generate-on-demand, NO persistence, NO status change) ───────────
 
-async function previewEntry({ id, reviewer = null, config: cfg = {}, entry: inlineEntry = null } = {}) {
+// One build per slot at a time (2026-10-17). Production: two requests for the
+// same slot 8 s apart each spent ~72 s of model calls building the same bundle.
+// A request that arrives while that slot is building waits for the same answer.
+const PREVIEW_INFLIGHT = new Map();
+function previewEntry(args = {}) {
+  const e = args.entry || {};
+  const cfg = args.config || {};
+  const key = [cfg.workspace_id || cfg.workspaceId || '', args.id || e.id || '', e.__prebuilt ? 'p' : 'n'].join('|');
+  if (!args.id && !e.id) return _previewEntry(args);
+  const running = PREVIEW_INFLIGHT.get(key);
+  if (running) return running;
+  const p = _previewEntry(args).finally(() => { if (PREVIEW_INFLIGHT.get(key) === p) PREVIEW_INFLIGHT.delete(key); });
+  PREVIEW_INFLIGHT.set(key, p);
+  return p;
+}
+async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inlineEntry = null } = {}) {
   const config = smartConfig(cfg);
   const db = new SmartBrainDbAdapter(config);
   const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });

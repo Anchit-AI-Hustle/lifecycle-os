@@ -345,7 +345,7 @@ function identityCandidates(desk, manifestThemeColor) {
     [r.nav_link && r.nav_link.type && r.nav_link.type.color, 'navigation links'], [r.link && r.link.type && r.link.type.color, 'body links'],
     [r.display && r.display.type && r.display.type.color, 'display heading'], [r.headings && r.headings.h1 && r.headings.h1.type && r.headings.h1.type.color, 'h1'],
     [r.card && r.card.badge && r.card.badge.style && r.card.badge.style.background, 'product badge'],
-  ].filter((x) => x[0]);
+  ].filter((x) => x[0] && !/^#(0000ee|551a8b|ee0000)$/i.test(String(x[0])));
   const renderedCount = new Map(((desk.rendered_colors || [])).map((x) => [String(x.hex).toLowerCase(), x.n]));
   const stepped = new Map();
   const plain = [];
@@ -578,7 +578,9 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
   if (!colors.accent) {
     const sec = rd.button_secondary && rd.button_secondary.style ? (rd.button_secondary.style.background || rd.button_secondary.style.border_color) : '';
     const linkC = rd.link && rd.link.type ? rd.link.type.color : '';
-    const alt = [sec, linkC].find((c) => c && !bx.isNeutral(c) && (!colors.primary || deltaE(c, colors.primary.value) > 2.3));
+    // A link the site never styled is the browser's blue, not the brand's.
+    const uaLink = (c) => /^#(0000ee|551a8b|ee0000)$/i.test(String(c || ''));
+    const alt = [sec, linkC].find((c) => c && !uaLink(c) && !bx.isNeutral(c) && (!colors.primary || deltaE(c, colors.primary.value) > 2.3));
     if (alt) set('accent', alt, src(desk, alt === sec ? 'secondary call to action' : 'body link', 'desktop', alt === sec ? 'background-color' : 'color', alt === sec ? rd.button_secondary.selector : rd.link.selector), { from_role: alt === sec ? 'action' : 'link' });
   }
 
