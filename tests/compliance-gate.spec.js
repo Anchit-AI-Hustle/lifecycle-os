@@ -962,8 +962,15 @@ test('the scripted-model path: copy a model wrote is linted before it is used, n
     // 2026-10-17): every BLOCK finding the gate would raise is named on the
     // campaign, and copy that breaks the rules never reaches an asset, so the
     // send falls back to the template, which the gate then passes.
+    // Since the asset rating pass (2026-10-17) copy grounding runs BEFORE the
+    // guard, so a sentence using a claim word the brand never states
+    // ("Clinically proven.") is dropped there and recorded on
+    // copy_grounding; the guard names what grounding cannot drop. Either
+    // way the clinical claim is caught and never ships.
     const ids = ((c.brand_guard && c.brand_guard.rejected) || []).flatMap((r) => r.violations.map((v) => v.id));
-    expect(ids).toEqual(expect.arrayContaining(['us.fda.disease_claim', 'generic.objective_superlative', 'generic.uncited_clinical_claim']));
+    expect(ids).toEqual(expect.arrayContaining(['us.fda.disease_claim', 'generic.objective_superlative']));
+    const grounded = ((c.copy_grounding && c.copy_grounding.dropped) || []).map((d) => d.text);
+    expect(ids.includes('generic.uncited_clinical_claim') || grounded.some((t) => /Clinically proven/.test(t)), 'the clinical claim is caught by the guard or by grounding').toBe(true);
     expect(c.copywriter.provider).toBe('template-fallback');
     expect(JSON.stringify(c.assets)).not.toMatch(/Cures anxiety|The #1 sleep blend|Clinically proven/);
     expect(c.contract_check.compliance.verdict).toBe('pass');

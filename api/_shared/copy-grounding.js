@@ -92,7 +92,10 @@ function groundText(text, facts, dropped, field) {
 }
 
 /** A benefit list held to the facts, refilled from the brand's own claims. */
-function groundList(list, facts, dropped, field, max) {
+function groundList(list, facts, dropped, field, max, said) {
+  // `said` is the copy around the list: a benefit it already states is a
+  // repeat, not a benefit (the body and "What you get" read the same line twice).
+  const already = (t) => !!said && String(said).toLowerCase().indexOf(String(t).toLowerCase().replace(/[.!?]+$/, '')) >= 0;
   const items = (Array.isArray(list) ? list : []).map((x) => String(x || '').trim()).filter(Boolean);
   const kept = [];
   for (const it of items) {
@@ -100,12 +103,13 @@ function groundList(list, facts, dropped, field, max) {
     const cw = content(it);
     const mine = cw.filter((w) => has(facts, w)).length;
     if (bad.length || (cw.length && mine / cw.length < 0.5)) { dropped.push({ field, text: it, words: bad.length ? bad : ['not the brand\'s words'] }); continue; }
+    if (already(it)) continue;
     kept.push(it);
   }
   const lower = new Set(kept.map((k) => k.toLowerCase()));
   for (const c of facts.claims) {
     if (kept.length >= (max || 3)) break;
-    if (!lower.has(c.toLowerCase())) { kept.push(c); lower.add(c.toLowerCase()); }
+    if (!lower.has(c.toLowerCase()) && !already(c)) { kept.push(c); lower.add(c.toLowerCase()); }
   }
   return kept.slice(0, max || 3);
 }
@@ -122,10 +126,10 @@ function groundCopy(copy, brand, product) {
   for (const f of ['hero_subline', 'hook', 'intro_paragraph', 'body_paragraph', 'ps', 'preheader']) {
     if (typeof e[f] === 'string') e[f] = groundText(e[f], facts, dropped, 'email.' + f);
   }
-  if (Array.isArray(e.benefits)) e.benefits = groundList(e.benefits, facts, dropped, 'email.benefits', 3);
+  if (Array.isArray(e.benefits)) e.benefits = groundList(e.benefits, facts, dropped, 'email.benefits', 3, [e.hero_subline, e.intro_paragraph, e.body_paragraph].filter(Boolean).join(' '));
   const l = copy.landing || {};
   for (const f of ['hero_sub']) if (typeof l[f] === 'string') l[f] = groundText(l[f], facts, dropped, 'landing.' + f);
-  if (Array.isArray(l.why_bullets)) l.why_bullets = groundList(l.why_bullets, facts, dropped, 'landing.why_bullets', 3);
+  if (Array.isArray(l.why_bullets)) l.why_bullets = groundList(l.why_bullets, facts, dropped, 'landing.why_bullets', 3, l.hero_sub);
   const a = copy.ads || {};
   if (a.meta) for (const f of ['primary_text', 'description']) if (typeof a.meta[f] === 'string') a.meta[f] = groundText(a.meta[f], facts, dropped, 'ads.meta.' + f);
   if (a.google && Array.isArray(a.google.descriptions)) {
