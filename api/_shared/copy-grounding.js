@@ -35,7 +35,11 @@ const CLAIM_WORDS = ('nutrient nutrients nutrition nutritious vitamin vitamins m
   + 'doctor doctors expert experts dermatologist award award-winning best finest leading top trusted favourite favorite '
   + 'healthy healthier health wellness immunity immune energy boost boosts boosting cure cures heal heals healing '
   + 'safe safest effective guaranteed guarantee instant instantly sustainable eco-friendly vegan gluten sugar-free '
-  + 'durable waterproof lightweight comfortable ergonomic secure').split(' ');
+  + 'durable waterproof lightweight comfortable ergonomic secure '
+  // Found on a live keyless answer (2026-10-17): a news brand's ads called it a
+  // "Trusted News Source" with "Fast, Reliable Reporting", a coffee brand's
+  // promised "freshness" - qualities its record never states.
+  + 'reliable reliability rigorous accurate accuracy unbiased independent freshness authoritative').split(' ');
 const CLAIM = new Set(CLAIM_WORDS);
 
 function stem(w) {
@@ -132,6 +136,17 @@ function groundCopy(copy, brand, product) {
   if (Array.isArray(l.why_bullets)) l.why_bullets = groundList(l.why_bullets, facts, dropped, 'landing.why_bullets', 3, l.hero_sub);
   const a = copy.ads || {};
   if (a.meta) for (const f of ['primary_text', 'description']) if (typeof a.meta[f] === 'string') a.meta[f] = groundText(a.meta[f], facts, dropped, 'ads.meta.' + f);
+  if (a.google && Array.isArray(a.google.headlines)) {
+    a.google.headlines = a.google.headlines.filter((h) => {
+      const bad = unbacked(h, facts);
+      if (bad.length) dropped.push({ field: 'ads.google.headlines', text: h, words: bad });
+      return !bad.length;
+    });
+  }
+  if (a.meta && typeof a.meta.headline === 'string' && unbacked(a.meta.headline, facts).length) {
+    dropped.push({ field: 'ads.meta.headline', text: a.meta.headline, words: unbacked(a.meta.headline, facts) });
+    a.meta.headline = '';
+  }
   if (a.google && Array.isArray(a.google.descriptions)) {
     a.google.descriptions = a.google.descriptions.filter((d) => {
       const bad = unbacked(d, facts);

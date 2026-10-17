@@ -160,7 +160,10 @@ async function callLLMTiered(opts) {
     /* any other routing problem: fall back to the caller's tier */
   }
   if (routeNote) { try { console.log(`[model-router] ${(opts && (opts.stage || opts.feature)) || 'llm'} -> ${wanted} (${routeNote})`); } catch (_) {} }
-  const tiers = [...new Set([wanted, 'standard', 'fast'])];
+  let tiers = [...new Set([wanted, 'standard', 'fast'])];
+  // The keyless provider has one model and one answer per 30 s: a tier ladder
+  // would only queue the same request three times.
+  try { if (await require('./llm.js').keylessOnly()) tiers = [wanted]; } catch (_) { /* keep the ladder */ }
   let lastErr;
   for (const tier of tiers) {
     try { return await callLLM({ ...opts, tier }); }
@@ -1707,6 +1710,13 @@ function productFactsBrief(entry) {
   let row = null;
   try { row = catalogImage.match(entry, entry.market, { brand: entry.brand }); } catch (_) { row = null; }
   const hp = entry.heroProduct || {};
+  // The slot's own hero carries the planner's catalogue facts (title, price,
+  // type) even when the image matcher finds no row for it (a device brand's
+  // catalogue, a row matched by title only): the brief said "none on record"
+  // and the live copy never named the product or its price (2026-10-17).
+  if (!row && !hp.placeholder && hp.title && (Number(hp.price) > 0 || hp.category || hp.description)) {
+    row = { n: hp.title, price: hp.price, compare_at: hp.compare_at, currency: hp.currency, type: hp.category, description: hp.description };
+  }
   if (row && !hp.placeholder) {
     const name = String(row.n || hp.title || '').trim();
     const cur = String(row.currency || '').trim();
@@ -1974,7 +1984,16 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   try { _zeroLp = require('./brand-catalog-server.js').isTenantZeroBrand(_b) === true; } catch (_) { _zeroLp = false; }
   if (!facts) facts = _zeroLp ? regionFacts(entry.market) : { store: '', currency: '', code: entry.market || '' };
   const handle = entry.heroProduct?.handle || '';
-  const shopUrl = facts.store ? `https://${facts.store}${handle ? `/products/${handle}` : ''}` : '#';
+  // Any brand but tenant zero links where its mailer links (slotLinks: the
+  // offering's own page, the product's own page, else its store or website),
+  // never a guessed `/products/<handle>` path or a dead '#' (2026-10-17: a news
+  // brand's page buttons went nowhere while its mail went to its subscription).
+  let shopUrl = facts.store ? `https://${facts.store}${handle ? `/products/${handle}` : ''}` : '#';
+  if (!_zeroLp) {
+    let sl = null;
+    try { sl = slotLinks(entry); } catch (_) { sl = null; }
+    if (sl && /^https?:\/\//i.test(String(sl.pdp || ''))) shopUrl = sl.pdp;
+  }
   const cta = esc(L.cta || entry.cta || 'See more');
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
@@ -2277,9 +2296,21 @@ function slotLinks(entry) {
   // zero keeps the catalogue-mapped collection logic below.
   if (!slotIsTenantZero(entry)) {
     const bStore = entry.brand ? brandStore(entry.brand, entry.market) : '';
-    const off = entry.heroOffering || entry.offering || {};
+    let off = entry.heroOffering || entry.offering || {};
     const hp = entry.heroProduct || {};
     const own = /^https?:\/\//i.test(String(hp.product_url || hp.url || '')) ? String(hp.product_url || hp.url) : '';
+    // An information brand sells a subscription, not a cart: with no offering
+    // on the slot and no product page, its button goes to the subscription the
+    // record names (its own URL), not the homepage (asset-playbooks: the news
+    // presell's whole job is the subscribe step).
+    if (!off.url && !own && entry.brand && Array.isArray(entry.brand.offerings)) {
+      let model = '';
+      try { model = require('./asset-playbooks.js').businessModel(entry.brand); } catch (_) { model = ''; }
+      if (/^(news_media|market_data|subscription)$/.test(model)) {
+        const named = entry.brand.offerings.find((o) => o && /^https?:\/\//i.test(String(o.url || '')));
+        if (named) off = named;
+      }
+    }
     const target = off.url || own || bStore || storeGap(entry.brand, entry.market);
     // `pdp` is what the renderers read; `pdpUrl` stays for older callers.
     return { store: bStore || target, collectionUrl: off.url || bStore || target, pdp: target, pdpUrl: target };
@@ -2514,8 +2545,10 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
     { maxTokens: 4096, waitBefore: 1500 },
   ];
   let lastErr;
-  for (let i = 0; i < ROUNDS.length; i++) {
-    const r = ROUNDS[i];
+  let rounds = ROUNDS;
+  try { if (await require('./llm.js').keylessOnly()) rounds = ROUNDS.slice(-1); } catch (_) { /* keep both */ }
+  for (let i = 0; i < rounds.length; i++) {
+    const r = rounds[i];
     if (r.waitBefore) await new Promise((res) => setTimeout(res, r.waitBefore));
     let res;
     try {
@@ -3355,7 +3388,11 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // copy writer runs fine without it. So it is NON-BLOCKING and only appears in
     // the pipeline trace when it SUCCEEDS — a failed optional brief no longer
     // shows an alarming ⚠ pill (the copy step is what actually matters).
-    const sb = await strategyBrief(entry);
+    // With nothing but the keyless provider (one answer per 30 s), three calls
+    // meant the copy was always refused; one copy call, no optional brief.
+    let keylessOnly = false;
+    try { keylessOnly = await require('./llm.js').keylessOnly(); } catch (_) { keylessOnly = false; }
+    const sb = keylessOnly ? null : await strategyBrief(entry);
     const brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
     if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
 
@@ -3366,10 +3403,12 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const fwB = CF.frameworkByKey(otherKeys[CF.stableIndex(`${entry.id || entry.date || ''}|b`, otherKeys.length)]) || fwA;
     // Stagger the two copy directions by ~600ms so they don't hit the same
     // provider's per-minute limit in the exact same instant (reduces burst-429s).
-    const [pA, pB] = await Promise.allSettled([
-      writeCopyWithLLM(entry, fwA, brief),
-      (async () => { await new Promise((r) => setTimeout(r, 600)); return writeCopyWithLLM(entry, fwB, brief); })(),
-    ]);
+    const [pA, pB] = keylessOnly
+      ? await Promise.allSettled([writeCopyWithLLM(entry, fwA, brief), Promise.reject(new Error('one copy direction on the keyless provider'))])
+      : await Promise.allSettled([
+        writeCopyWithLLM(entry, fwA, brief),
+        (async () => { await new Promise((r) => setTimeout(r, 600)); return writeCopyWithLLM(entry, fwB, brief); })(),
+      ]);
     if (pA.status !== 'fulfilled' && pB.status !== 'fulfilled') {
       throw new Error('copy generation failed for both directions: ' + String((pA.reason && pA.reason.message) || pA.reason));
     }
@@ -3515,11 +3554,63 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   reportCatalogGaps(campaign, entry, trace);
   reportProofGap(campaign, entry, trace);
   attachDisclaimer(campaign, entry);
+  attachPlacementCopy(campaign, entry);
   campaign.build_version = ASSET_BUILD_VERSION;
   // Last, because it judges the FINISHED artefacts rather than the plan. The
   // entry names whose brand, which market and which offer they are judged as.
   checkAssetContracts(campaign, entry);
   return campaign;
+}
+
+// Copy for each placement an ad runs in (2026-10-17, the asset rating pass).
+// A Meta ad was one primary text + one headline whatever it ran in, while
+// Stories / Reels show neither: the viewer sees the frame, a short on-screen
+// line and the CTA, inside safe zones asset-specs names. Each placement now
+// carries what it shows: feeds the ad's own copy; Stories / Reels and TikTok's
+// in-feed a short line CHOSEN (never cut) from lines the ad and the brand
+// already have, within the headline limit, plus the safe zone; a carousel only
+// when two or more products have their own photo (one card each). Nothing is
+// written here that the copy or the record does not already say.
+function attachPlacementCopy(campaign, entry) {
+  try {
+    const specs = require('./asset-specs.js').ADS;
+    const ac = require('./asset-contracts.js');
+    const b = (entry && entry.brand) || {};
+    const lim = Number(ac.slotLimit('ad.meta.static', 'headline')) || 40;
+    const sentences = (t) => String(t || '').match(/[^.!?]+[.!?]?/g) || [];
+    const pick = (lines) => {
+      const seen = new Set();
+      for (const raw of lines) {
+        const t = String(raw || '').replace(/\s+/g, ' ').trim().replace(/[.]$/, '');
+        if (!t || /DATA REQUIRED/.test(t) || seen.has(t.toLowerCase())) continue;
+        seen.add(t.toLowerCase());
+        if (t.length <= lim) return t;
+      }
+      return '';
+    };
+    const hp = entry && entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct : null;
+    const cards = [hp].concat((entry && entry.supportingProducts) || []).filter((p) => p && p.title && (p.image || p.image_url))
+      .map((p) => ({ headline: pick([p.title]), image: p.image || p.image_url, product: p.title }))
+      .filter((c) => c.headline);
+    for (const ad of (campaign.assets && campaign.assets.ads) || []) {
+      const spec = specs[ad.platform];
+      if (!spec || !Array.isArray(spec.placements)) continue;
+      const overlay = pick([ad.headline, hp && hp.title, b.tagline, ...sentences(ad.primary_text), b.name]);
+      const out = [];
+      for (const pl of spec.placements) {
+        const base = { key: pl.key, label: pl.note || pl.key, size: pl.size, ratio: pl.ratio };
+        if (pl.safe) base.safe_zone = pl.safe;
+        if (ad.platform === 'meta') {
+          if (/^feed/.test(pl.key)) out.push(Object.assign(base, { primary_text: ad.primary_text || '', headline: ad.headline || '', description: ad.description || '', cta: ad.cta || '' }));
+          else if (pl.key === 'story_reel') out.push(Object.assign(base, { on_screen: overlay, cta: ad.cta || '', note: 'Stories and Reels show the frame, this line and the button; keep the line inside the safe zone.' }));
+          else if (pl.key === 'carousel' && ad.creative_type === 'static' && cards.length >= 2) out.push(Object.assign(base, { primary_text: ad.primary_text || '', cards: cards.slice(0, 10), cta: ad.cta || '' }));
+        } else if (ad.platform === 'tiktok' && pl.key === 'in_feed') {
+          out.push(Object.assign(base, { caption: ad.caption || '', on_screen: overlay, cta: ad.cta || '' }));
+        }
+      }
+      if (out.length) ad.placements = out;
+    }
+  } catch (_) { /* placement copy is additive; never block a build */ }
 }
 
 // A market-data brand's mail and pages close with its regulatory disclaimer
