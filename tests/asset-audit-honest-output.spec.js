@@ -169,7 +169,7 @@ test('a video scene with no photo is centred under the brand\'s name', () => {
 // states, never invented ones", "Chosen for the At Risk segment.") with "this"
 // as the subject, "Shop now" for a newspaper, a "/collections/bestsellers" link
 // nobody gave it, and the market code beside the name.
-async function trigger(brand) {
+async function trigger(brand, extra) {
   const CT = require.resolve(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
   const CI = require.resolve(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
   const rt = require(path.join(ROOT, 'api', '_shared', 'brand-runtime.js'));
@@ -184,7 +184,7 @@ async function trigger(brand) {
   try {
     const handler = require(CT);
     const res = { statusCode: 200, setHeader() {}, status(c) { this.statusCode = c; return this; }, json(o) { this.body = o; return this; }, end() { return this; } };
-    await handler({ method: 'POST', headers: {}, body: { entry: { date: '2026-10-20', market: 'IN', segment: 'At Risk', content_type: 'promo', archetype: 'hero-led-editorial' } } }, res);
+    await handler({ method: 'POST', headers: {}, body: { entry: Object.assign({ date: '2026-10-20', market: 'IN', segment: 'At Risk', content_type: 'promo', archetype: 'hero-led-editorial' }, extra || {}) } }, res);
     return res;
   } finally {
     rt.resolve = saved.resolve;
@@ -214,4 +214,14 @@ test('the trigger mailer with no model: the brand\'s own words, its business\'s 
   expect(textOf(news.body.variants.V1.html)).toContain('Reporters in all 14 Pune wards');
   const visual = textOf(news.body.variants.V2.html);
   expect((visual.match(/checked twice by the desk/g) || []).length, 'the tagline under the logo repeats the headline').toBe(1);
+});
+
+test('an event send through the trigger mailer never prints the phase\'s brief as the subline', async () => {
+  const ev = { kind: 'event', name: 'Ward Hall Live', starts_at: '2026-10-23T18:00:00+05:30', registration_url: 'https://ledgerline.example/hall', venue: 'Ward Hall' };
+  const res = await trigger(NEWS, { heroOffering: ev });
+  expect(res.body.strategy_heuristic).toBe(true);
+  const words = textOf(res.body.variants.V1.html);
+  expect(words).not.toMatch(/Close the undecided|Drive (the )?(reader|turnout)|Convert intent|segment/);
+  expect(words, 'the subline is the brand\'s own tagline').toContain('Pune news, checked twice by the desk');
+  expect(res.body.variants.V1.html).toContain('https://ledgerline.example/hall');
 });

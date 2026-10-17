@@ -194,9 +194,9 @@ function heuristicStrategy(entry, market, framework) {
       ? `How ${name} went, and what is next.`
       : `${when}${days > 0 ? ` - ${days} day${days === 1 ? '' : 's'} away` : ' - today'}.`;
     headline = plan.phase === 'follow-up' ? `That is a wrap on ${name}` : name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     body_blocks = plan.phase === 'follow-up'
-      ? [{ heading: 'Thank you', body: `${name} has happened. This is a note of thanks and a look at what comes next - nothing here asks anyone to register.` }]
+      ? [{ heading: 'Thank you', body: `${name} has happened. Thank you for being part of it.` }]
       : [
           { heading: 'What it is', body: `${name}${plan.offering.venue ? `, at ${plan.offering.venue}` : ''}${when ? `, on ${when}` : ''}.` },
           { heading: 'How to take part', body: plan.cta_url ? `Registration: ${plan.cta_url}` : '[DATA REQUIRED BEFORE LAUNCH: registration link]' },
@@ -205,7 +205,7 @@ function heuristicStrategy(entry, market, framework) {
     subject = subjectHint || `${name}, every ${plan.offering.cadence || 'week'}`;
     preview = `A routine you can actually keep.`;
     headline = name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     body_blocks = [
       { heading: 'The routine', body: `${name} runs ${plan.offering.cadence || 'on a regular cadence'}${plan.offering.duration ? ` over ${plan.offering.duration}` : ''}.` },
     ];
@@ -213,14 +213,14 @@ function heuristicStrategy(entry, market, framework) {
     subject = subjectHint || name;
     preview = kind === 'plan' ? 'What your subscription unlocks.' : 'Worth your next five minutes.';
     headline = name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     const about = String(plan.offering.description || '').trim();
     body_blocks = about ? [{ heading: '', body: about }] : (claims.length ? [{ heading: `Why ${bName}`, body: sentence(claims.slice(0, 3)) }] : []);
   } else if (kind === 'service') {
     subject = subjectHint || `Commission ${name}`;
     preview = plan.offering.lead_time ? `Made to order, ${plan.offering.lead_time}.` : 'Made to order.';
     headline = name;
-    subline = plan.job;
+    subline = String(plan.offering.description || '').trim() || tagline; // plan.job is the send's brief, never copy
     body_blocks = [
       { heading: 'How it works', body: `Brief, then made to order${plan.offering.lead_time ? ` in ${plan.offering.lead_time}` : ''}.` },
     ];
