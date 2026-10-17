@@ -761,8 +761,14 @@ function fontStacks(brand) {
 }
 
 /** The brand's palette over the neutral one: a missing key is neutral, never another brand's hex. */
+// The browser's own colours for an unstyled link (unvisited, visited, active).
+// A site that never styles its links shows them, and a read once took one as
+// the brand's accent: Parwah's mailer drew its divider in #0000EE (2026-10-17).
+const UA_LINK_COLOURS = new Set(['#0000ee', '#00e', '#551a8b', '#ee0000', '#e00']);
+function isUaLinkColour(hex) { return UA_LINK_COLOURS.has(String(hex || '').trim().toLowerCase()); }
 function paletteOf(brand) {
-  const p = (brand && brand.palette) || {};
+  const p = Object.assign({}, (brand && brand.palette) || {});
+  if (isUaLinkColour(p.accent)) delete p.accent;
   const out = Object.assign({}, NEUTRAL_PALETTE);
   for (const k of Object.keys(p)) if (typeof p[k] === 'string' && /^#[0-9a-f]{3,8}$/i.test(p[k].trim())) out[k] = p[k].trim();
   if (!p.accent && p.primary) out.accent = out.primary;
@@ -799,6 +805,7 @@ function promptFacts(brand) {
 }
 
 module.exports = {
+  isUaLinkColour,
   coherentForGeneration,
   NEUTRAL_FONTS, NEUTRAL_PALETTE, fontStacks, paletteOf, promptFacts, namesBrand,
   scopedBrand, unresolvedBrand, isUnresolved, carriedBrand,

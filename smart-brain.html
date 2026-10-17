@@ -143,7 +143,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      t..."); the three action buttons ran past the card's edge. Every cell
      wraps inside its own column, columns have room, actions stack. */
   #plantable td.cohort{min-width:150px;max-width:190px}
-  #plantable td.cohort .pill,#plantable td.chan .pill{white-space:normal;display:inline-block;max-width:100%;overflow-wrap:anywhere;line-height:1.35}
+  #plantable td.cohort .pill{white-space:normal;display:inline-block;max-width:100%;overflow-wrap:break-word;line-height:1.35}#plantable td.chan .pill{white-space:normal;overflow-wrap:normal;word-break:normal;display:inline-block;max-width:100%;line-height:1.35}
   #plantable td.obj,#plantable th.obj{min-width:190px;max-width:260px}
   #plantable td.why,#plantable th.why{min-width:200px;max-width:320px}
   #plantable td.obj .clamp2,#plantable td.why .clamp2{display:block;-webkit-line-clamp:unset;overflow:visible}
@@ -1025,7 +1025,9 @@ function renderPlan(){
   $('plan').innerHTML = strategyRow + PLAN.map((e,i)=>{
     if(!slotVisible(e)) return '';
     const a = e.analysis || null;
-    const why = a && a.summary ? a.summary : (e.rationale || '');
+    // Rows saved before the 2026-10-17 fix read "Chosen to drive Drive the
+    // reader ..." until the next Daily Sync re-plans them: said once here.
+    const why = String(a && a.summary ? a.summary : (e.rationale || '')).replace(/\b(to drive) Drive\b/g, '$1');
     const confLabel = a && a.confidence && a.confidence.label ? a.confidence.label : '';
     const confTip = a && a.confidence && Array.isArray(a.confidence.factors)
       ? a.confidence.factors.map(f=>`${f.delta>=0?'+':''}${f.delta} ${f.label}`).join('\n') : '';
@@ -1068,10 +1070,10 @@ function renderPlan(){
     return `<tr class="planrow" id="planrow-${i}">
     <td>${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
     <td><b>${esc(e.market === 'UNDECLARED' ? 'Home market undeclared' : e.market)}</b>${e.festival ? `<br><span class="pill">🎉 ${esc(e.festival.name)}</span>` : ''}</td>
-    <td class="cohort">${esc(e.cohort?.name)}<br><span class="tdim" style="font-size:11px">${e.cohort?.size ?? '—'} profiles</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
+    <td class="cohort">${esc(e.cohort?.name)}<br><span class="tdim" style="font-size:11px">${(e.cohort && e.cohort.size > 0) ? `${e.cohort.size} profiles` : (e.cohort && e.cohort.estimated ? 'size not measured' : `${e.cohort?.size ?? '—'} profiles`)}</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
     <td class="obj"><div class="clamp2 tink" style="font-weight:600">${esc(e.objective)}</div><span class="tdim" style="font-size:12px">${esc(e.heroProduct?.title || '')}${(e.supportingProducts&&e.supportingProducts.length)?` <span class="tdim">· + ${esc(e.supportingProducts.map(p=>p.title).filter(Boolean).join(', '))}</span>`:''}</span></td>
     <td class="why"><div class="clamp2" style="font-size:12px;color:var(--vh-ink-dim);line-height:1.45" title="${esc(why)}">${esc(why)}</div></td>
-    <td class="chan">${(e.channels||[]).map(c=>`<span class="pill">${esc(c)}</span>`).join('')}</td>
+    <td class="chan">${(e.channels||[]).map(c=>`<span class="pill">${esc(CHANNEL_LABEL[c] || c)}</span>`).join('')}</td>
     <td class="conf" title="${esc(confTip)}">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}${confLabel?`<br><span class="tdim" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em">${esc(confLabel)}</span>`:''}</td>
     <td>${status}</td>
     <td class="acts"><div class="acts-col">
@@ -1084,6 +1086,10 @@ function renderPlan(){
 }
 
 // ── Funnel preview (generate-on-demand, before approval) ────────────────────
+// A channel's name as a person reads it, not its key ("landing_page" wrapped
+// to "landin g_pag e" in a narrow column, 2026-10-17).
+const CHANNEL_LABEL = { email:'Email', meta:'Meta', google:'Google', tiktok:'TikTok', youtube:'YouTube', pinterest:'Pinterest', landing_page:'Landing page', sms:'SMS', whatsapp:'WhatsApp', push:'Push' };
+const PREVIEW_INFLIGHT = {}; // keyed by entry id → the preview request still running
 const PREVIEW_CACHE = {};   // keyed by entry id → preview payload (avoid re-calling the LLM)
 
 function clearPreview(){ $('preview').innerHTML = ''; }
@@ -1517,7 +1523,7 @@ function renderPreview(payload, e, i, opts){
   // bytes of it (Blob URL) now that the panes are in the DOM.
   hydrateMotionAds(host);
   loadPreviewFrames(host);
-  host.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  host.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' });
 }
 
 // Fit a preview frame to the document inside it. A fixed 560px frame hid the
@@ -1644,7 +1650,7 @@ window.viewDecision = function(i){
   const row = $('exprow-'+i), body = $('expbody-'+i);
   document.querySelectorAll('.exprow').forEach(r=>{ if(r!==row) r.style.display='none'; });
   if(row) row.style.display='';
-  if(body){ body.innerHTML = decisionPanelHTML(e); body.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  if(body){ body.innerHTML = decisionPanelHTML(e); body.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' }); }
 };
 // Open the primary mailer full-screen over this page (the "detailed page" when
 // a slot is not yet approved and has no hosted /lp/:id). It used to write the
@@ -1888,15 +1894,21 @@ async function viewEntry(i, forceRegen){
     await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
     if(row.style.display === 'none') return;
     renderPreview(PREVIEW_CACHE[e.id], e, i, { target: body, persisted: (e.status==='approved'||e.status==='final') }); body.setAttribute('data-loaded','1'); return; }
-  body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Generating the full funnel (mailer, ads & landing page) — usually 10–30s…</p>`;
-  row.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Writing the mailer, ads & landing page for this send. This can take up to a minute…</p>`;
+  row.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' });
   try{
     // Regenerate = a TRUE rebuild: strip the prebuilt marker so preview does not
     // reuse the stale prebuilt bundle (it would otherwise return the exact bundle
     // that was just rejected). A normal View keeps the marker for instant reuse.
     const entryPayload = forceRegen ? (function(){ var c = Object.assign({}, e); delete c.__prebuilt; return c; })() : e;
-    const r = await fetch(`${API}?action=smart-brain-preview`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: entryPayload, reviewer: reviewerEmail() })});
-    const data = await safeJson(r);
+    // A second press while this slot is building waits for the same request
+    // instead of starting another ~1-minute build (2026-10-17).
+    const flightKey = e.id + (forceRegen ? '|regen' : '');
+    if(!PREVIEW_INFLIGHT[flightKey]){
+      PREVIEW_INFLIGHT[flightKey] = fetch(`${API}?action=smart-brain-preview`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: entryPayload, reviewer: reviewerEmail() })})
+        .then(safeJson).finally(()=>{ delete PREVIEW_INFLIGHT[flightKey]; });
+    }
+    const data = await PREVIEW_INFLIGHT[flightKey];
     if(!data.ok) throw new Error(data.error || 'Preview failed');
     if(previewScope !== planScope()) return;
     PREVIEW_CACHE[e.id] = data;
@@ -2129,7 +2141,7 @@ async function generateEntry(i, { silent = false } = {}){
   if(!silent){
     document.querySelectorAll('.exprow').forEach(r=>{ if(r!==row) r.style.display='none'; });
     if(row) row.style.display='';
-    if(body){ body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Generating the final assets (mailer, ads & landing page) — usually 10–30s…</p>`; body.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+    if(body){ body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Writing the final mailer, ads & landing page. This can take up to a minute…</p>`; body.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' }); }
   }
   const r = await fetch(`${API}?action=smart-brain-approve`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: e, reviewer: reviewerEmail() })});
   const data = await safeJson(r);

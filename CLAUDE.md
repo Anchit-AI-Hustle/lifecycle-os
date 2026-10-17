@@ -4,6 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ /brain previews: why 72 s, and why the Parwah mailer looked broken (2026-10-17)
+The operator, with two screenshots of production /brain (Parwah): "why so long ... the mailers seem broken now ... ensure
+top quality". Gated by `tests/brain-preview-parwah.spec.js` (5, executed; each fix mutation-checked) and a new case in
+`tests/llm-provider-chain.spec.js`.
+- **72 s per preview** (Vercel runtime logs, one Parwah slot): the keyless provider timed out (12 s, 20 s), a Gemini key
+  with no quota timed out (16 s), and only then Cloudflare answered; every later call of the same build paid it again,
+  and the same slot was built TWICE concurrently (a second press while building). `llm.js` now moves a provider that
+  just timed out or asked to wait (`markSlow`, 2 min / its retry-after) to the END of the order: still tried, never
+  first. `previewEntry` keeps one in-flight build per slot (`PREVIEW_INFLIGHT`), and the page reuses its own pending
+  request. The wait line says "up to a minute", not "10-30 s".
+- **The blue divider** was `#0000EE`, the browser's unstyled-link colour, read off the site as the brand accent
+  (brand-render took the body-link colour when the site declared no accent). The reader skips UA link colours;
+  `brand-runtime.paletteOf` (and services/motion-ad) treat a stored `#0000EE`/`#551A8B`/`#EE0000` accent as unset.
+- **Invented benefits** ("Essential nutrients / High-quality ingredients / Scientific research") came from the copy
+  prompt itself ("visceral sensory benefits", "formulation", EXACTLY 3). The prompt now asks for up to 3 facts the
+  brand states, and `copy-grounding.js` holds every model answer to the brand's own words before rendering: a sentence
+  or benefit using a claim word (nutrients, quality, scientific, proven, natural, best ...) the record and catalogue do
+  not contain is DROPPED (never rewritten), benefits refill from the brand's own claims, `campaign.copy_grounding` says
+  what went. The brand guard still rejects whole answers first.
+- **Product cards**: a product with no photo wore the brand's promo banner (the hero picture fallback); a card uses only
+  the product's own photos, and cards in a row are the same size (140px square, a plain initial tile when one has no
+  photo). The price is `greenText` (was the accent as text, ~2:1).
+- **The plan table**: the offering planner set every evergreen slot's objective to the offering's job ("Drive the reader
+  to buy this product.") whatever the cohort; `cohortJob()` gives Nurture / Engaged / At Risk / Winback their own job.
+  Old rows' "Chosen to drive Drive" is tidied on display; channel keys read as words ("Landing page", wrapping between
+  words only - a no-wrap chip widened the table past its card, which clipped the date column); an unmeasured cohort reads
+  "size not measured", not "0 profiles".
+- **Template path, from the asset judgement**: `services.audienceLine()` tells the reader why the mail reaches them now
+  (true by the cohort's own definition, nothing about the product); Meta opens with it, TikTok's caption is its own
+  line, the video's first frame is its first sentence; Google RSAs get up to 15 headlines from the brand's own names and
+  action, and no description under three words; a landing page with no other product lists the brand's named offerings.
+
 ## ⭐ The 20 website essentials, each checked on what ships (2026-10-17)
 The operator, with a "20 things you MUST have when building a website" checklist: "Ensure all 20 points are
 implemented". Gated by `tests/site-essentials.spec.js` (13 executed; consent, honeypot and single-CTA mutations caught).

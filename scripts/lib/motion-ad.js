@@ -45,7 +45,9 @@ function neutral() {
 }
 function paletteOf(spec) {
   const b = (spec && spec.brand) || null;
-  const p = (b && b.palette) || {};
+  const p = Object.assign({}, (b && b.palette) || {});
+  // The browser's unstyled-link blue is not a brand accent.
+  if (/^#(0000ee|00e|551a8b|ee0000)$/i.test(String(p.accent || '').trim())) delete p.accent;
   // A brand was named but did not supply a colour: the NEUTRAL palette, never
   // tenant zero's. A brand with no palette at all got tenant zero's red and
   // purple on its video ad (2026-10-10). Only a spec with NO brand (the
