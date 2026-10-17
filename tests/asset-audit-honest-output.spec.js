@@ -147,19 +147,19 @@ test('a landing hero button stands off its band, and a raw tag list is never sho
   const core = require(path.join(ROOT, 'api', '_shared', 'brand-workspace-core.js'));
   const plan = require(PLAN);
   const flat = { ...APP, palette: { primary: '#2B4A80', accent: '#2B4A80', ink: '#111827', surface: '#FFFFFF' } };
-  const html = plan.lpHtml(slot(flat, { heroProduct: { title: 'Blue Kit', category: 'af1,gaming,aesthetic' } }), COPY, 'cid-1', null);
-  const m = html.match(/\.hero \.btn\{background:(#[0-9a-fA-F]{6});color:(#[0-9a-fA-F]{6})\}/);
+  const page = plan.lpHtml(slot(flat, { heroProduct: { title: 'Blue Kit', category: 'af1,gaming,aesthetic' } }), COPY, 'cid-1', null);
+  const m = page.match(/\.hero \.btn\{background:(#[0-9a-fA-F]{6});color:(#[0-9a-fA-F]{6})\}/);
   expect(m, 'no hero button rule').toBeTruthy();
   const band = core.sectionGround('#2B4A80', '#2B4A80', '#FFFFFF');
   expect(core.contrast(m[1], band)).toBeGreaterThanOrEqual(1.5);
   expect(core.contrast(m[2], m[1])).toBeGreaterThanOrEqual(4.5);
-  expect(textOf(html)).not.toMatch(/af1,gaming/i);
+  expect(textOf(page)).not.toMatch(/af1,gaming/i);
 });
 
 test('a video scene with no photo is centred under the brand\'s name', () => {
   const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
-  const html = motion.renderMotionAd({ brand: APP, product: 'Famapp', scenes: [{ headline: 'Ready when you are' }, { headline: 'Famapp' }], cta: 'Learn more' });
-  expect(html).toMatch(/class="scene noimg"/);
-  expect((html.match(/class="mark"/g) || []).length, 'the mark is shown on the scene that does not already say the name').toBe(1);
-  expect(html).toMatch(/\.scene\.noimg \.type \{ top:50%/);
+  const ad = motion.renderMotionAd({ brand: APP, product: 'Famapp', scenes: [{ headline: 'Ready when you are' }, { headline: 'Famapp' }], cta: 'Learn more' });
+  expect(ad).toMatch(/class="scene noimg"/);
+  expect((ad.match(/class="mark"/g) || []).length, 'the mark is shown on the scene that does not already say the name').toBe(1);
+  expect(ad).toMatch(/\.scene\.noimg \.type \{ top:50%/);
 });
