@@ -958,6 +958,44 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* A brand's OWN hashtags (2026-10-17), read by social-core brandTags() from
+     brand_data.hashtags. Stored without the '#', one word each, by the same
+     rule as social-core tagWord(): accents folded, '&' read as 'and', letters
+     and digits only, each word capitalised unless it is all capitals, at most
+     30 characters, at least one letter. Duplicates (any case) are dropped.
+     tests/brand-hashtags-field.spec.js holds this copy equal to tagWord(). */
+  function hashtagWord(text) {
+    var words = String(text || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/&/g, ' and ').match(/[A-Za-z0-9]+/g) || [];
+    var t = words.map(function (w) { return (w.length > 1 && w === w.toUpperCase()) ? w : w.charAt(0).toUpperCase() + w.slice(1); }).join('');
+    return t && t.length <= 30 && /[A-Za-z]/.test(t) ? t : '';
+  }
+  function normHashtags(text) {
+    var out = [];
+    String(text || '').split(/[\s,]+/).forEach(function (tok) {
+      var w = hashtagWord(tok.replace(/^#+/, ''));
+      if (w && !out.some(function (x) { return x.toLowerCase() === w.toLowerCase(); })) out.push(w);
+    });
+    return out;
+  }
+  function hashtagsText(list) {
+    return (Array.isArray(list) ? list : []).map(function (h) { return '#' + String(h || '').replace(/^#+/, ''); }).filter(function (h) { return h.length > 1; }).join(' ');
+  }
+  window.__onboardingHashtags = normHashtags;
+
+  function bindHashtags(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('[data-hashtags]'), function (el) {
+      el.addEventListener('input', function () {
+        var list = normHashtags(el.value);
+        if (list.length) bd().hashtags = list; else delete bd().hashtags;
+        // Typing makes the field the person's, in both origin shapes.
+        markOrigin('brand_data.hashtags', 'user');
+        origins()['brand_data.hashtags'] = { origin: 'user', at: new Date().toISOString() };
+      });
+      // Shown back in its stored shape once the field is left.
+      el.addEventListener('change', function () { el.value = hashtagsText(bd().hashtags); });
+    });
+  }
+
   function bindChips(root) {
     Array.prototype.forEach.call(root.querySelectorAll('[data-rm]'), function (b) {
       b.addEventListener('click', function () { brand.voice[b.dataset.rm].splice(+b.dataset.i, 1); render(); });
@@ -1106,6 +1144,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         '<div class="field"><label>Banned phrases <span class="note">press Enter to add</span></label>' +
           '<input type="text" data-add="banned" placeholder="game-changer, hurry, last chance">' + chipEditor('banned', brand.voice.banned) +
           suggestBlock('voice.banned') + '</div>' +
+        '<div class="field"><label for="hashtagsInput">Hashtags <span class="note">separate with commas, spaces or new lines</span></label>' +
+          '<textarea id="hashtagsInput" data-hashtags rows="2" placeholder="#yourbrand, #yourproduct">' + esc(hashtagsText(bd().hashtags)) + '</textarea>' +
+          '<p class="muted" data-hashtags-help>Used on social posts. Leave empty and posts use only your brand name and product.</p></div>' +
         '<div class="field"><label style="display:flex;align-items:center;gap:8px;font-weight:600">' +
           '<input type="checkbox" data-path="voice.no_em_dashes" ' + (brand.voice.no_em_dashes ? 'checked' : '') + ' style="width:auto"> Never use em dashes or en dashes</label></div>' +
         '<div class="field"><label>Notes for the writer</label><textarea data-path="voice.notes" placeholder="Testimonials read as short personal stories, not reviews.">' + esc(brand.voice.notes) + '</textarea>' +
@@ -1196,7 +1237,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       loadWorkspaces();
     }
 
-    bindInputs(c); bindFonts(c); bindChips(c); bindSuggest(c);
+    bindInputs(c); bindFonts(c); bindChips(c); bindHashtags(c); bindSuggest(c);
     if (step === 2) renderVerdict();
     wireActions();
     if (step === 5) wireImport();

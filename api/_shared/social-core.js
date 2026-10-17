@@ -950,5 +950,5 @@ module.exports = {
   runDaily, listPosts, setStatus,
   PLATFORM_SPECS, ALL_KEYS,
   // exposed for tests
-  deepScrub, focusFor, festivalFor, resolveKeys,
+  deepScrub, focusFor, festivalFor, resolveKeys, tagWord,
 };

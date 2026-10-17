@@ -1720,6 +1720,16 @@ function productFactsBrief(entry) {
   return lines.join('\n');
 }
 
+// The benchmark for THIS brand's business (asset-playbooks.js): how a news
+// digest, a market brief or a store's mail is built, as structure only. Read
+// for the slot's own brand, never tenant zero's (2026-10-17).
+function benchmarkBrief(entry) {
+  try {
+    const brand = require('./brand-runtime.js').scopedBrand(entry && entry.brand) || (entry && entry.brand) || {};
+    return require('./asset-playbooks.js').playbookBrief(brand, ['mailer_v2', 'landing_page', 'ad_meta'], { market: entry && entry.market });
+  } catch (_) { return ''; }
+}
+
 function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
 function copyTask(entry, fw = null, brief = null) {
   const fwLine = fw
@@ -1735,6 +1745,7 @@ ${productFactsBrief(entry)}
 - ${entry.festival ? `Seasonal moment: ${entry.festival.name}` : 'No festival; evergreen angle.'}
 - Rationale: ${entry.rationale || ''}
 ${creativeEvidence.briefFor(entry)}
+${benchmarkBrief(entry)}
 - ${regionalNuance(entry.market)}${fwLine}${briefLine}
 
 WHO THIS IS FOR:
@@ -3304,10 +3315,30 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   attachMasterPrompts(campaign, entry);
   reportCatalogGaps(campaign, entry, trace);
   reportProofGap(campaign, entry, trace);
+  attachDisclaimer(campaign, entry);
   // Last, because it judges the FINISHED artefacts rather than the plan. The
   // entry names whose brand, which market and which offer they are judged as.
   checkAssetContracts(campaign, entry);
   return campaign;
+}
+
+// A market-data brand's mail and pages close with its regulatory disclaimer
+// (asset-playbooks.withDisclaimer); every other business is left as built.
+function attachDisclaimer(campaign, entry) {
+  try {
+    const ap = require('./asset-playbooks.js');
+    const brand = require('./brand-runtime.js').scopedBrand(entry && entry.brand) || (entry && entry.brand) || {};
+    const mk = entry && entry.market;
+    if (!ap.disclaimerFor(brand, mk)) return;
+    const a = (campaign && campaign.assets) || {};
+    if (a.email) {
+      if (a.email.html) a.email.html = ap.withDisclaimer(a.email.html, brand, mk);
+      for (const v of a.email.variants || []) if (v && v.html) v.html = ap.withDisclaimer(v.html, brand, mk);
+      if (a.email.text && !a.email.text.includes(ap.disclaimerFor(brand, mk))) a.email.text += `\n\n${ap.disclaimerFor(brand, mk)}`;
+    }
+    for (const lp of a.landing_pages || []) if (lp && lp.html) lp.html = ap.withDisclaimer(lp.html, brand, mk);
+    campaign.disclaimer = ap.disclaimerFor(brand, mk);
+  } catch (_) { /* never take a campaign down */ }
 }
 
 /**

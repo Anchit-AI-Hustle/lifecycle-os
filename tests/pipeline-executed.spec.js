@@ -857,3 +857,38 @@ test('with every model down and nothing supplied, the mailer says only what the 
     }
   } finally { llm.restore(); restoreEnv(); }
 });
+
+// A market-data brand (2026-10-17): every stage is briefed with its own
+// business's benchmark (structure only), and the html stage, model or
+// fallback, closes the mail with the regulatory disclaimer once.
+test('a market-data brand: the benchmark briefs every writing stage, and the mail carries the disclaimer', async () => {
+  const MKT = Object.assign({}, OTHER, {
+    id: '55555555-5555-4555-8555-555555555555', slug: 'tickerly', name: 'Tickerly Research', industry: 'stock market research',
+    tagline: 'Indian equities, explained before the open', website: 'https://tickerly.example',
+    regions: [{ code: 'IN', currency: 'INR', store_url: 'https://tickerly.example', home: true }],
+    brand_data: { claims: ['Read by the desk before the open'], legal_entity: 'Tickerly Research Pvt Ltd, Mumbai 400001, India' },
+  });
+  const restoreEnv = pinEnv(METERED);
+  for (const mode of ['model', 'fallback']) {
+    const llm = stubLLM((opts) => (mode === 'fallback' ? new Error('down')
+      : /html/i.test(String(opts.stage || opts.feature || '')) || /DOCTYPE|complete HTML/i.test(`${opts.systemPrompt || ''}`)
+        ? '<!doctype html><html><body><table role="presentation" width="600"><tr><td>IMAGE_HERO_URL<p>' + 'Morning note. '.repeat(60) + '</p><p style="color:#123">You are receiving this as a reader. Unsubscribe</p></td></tr></table></body></html>'
+        : { theme: { name: 't' }, sections: [], subject_lines: ['a', 'b', 'c'], preheader: 'p' }));
+    const run = async (stage, body) => {
+      const net = fakeNetwork({ user: { id: `user-mkt-${mode}`, email: `mkt-${mode}@example.com` }, activeWorkspace: MKT.id, workspace: MKT });
+      try { return await call(stage, body, `session-mkt-${mode}`); } finally { net.restore(); }
+    };
+    try {
+      const res = await run('html', { variant: 'A', plan: {}, strategy: {}, brief: 'Morning brief', market: 'IN', products: [] });
+      expect(res.statusCode, JSON.stringify(res.body).slice(0, 400)).toBe(200);
+      expect(String(res.body.html).split('data-disclaimer').length - 1, mode).toBe(1);
+      expect(res.body.html).toContain('SEBI (Research Analysts) Regulations, 2014');
+      if (mode === 'model') {
+        const all = llm.calls.map((c) => `${c.systemPrompt || ''}\n${c.userMessage || ''}`).join('\n');
+        expect(all).toContain('COMPETITIVE BENCHMARK (market data');
+        expect(all).toContain('borrow the STRUCTURE and the order of sections only');
+      }
+    } finally { llm.restore(); }
+  }
+  restoreEnv();
+});

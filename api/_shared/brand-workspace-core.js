@@ -1591,7 +1591,7 @@ function carriedFields(input) {
     }
   }
   if (b.brand_data && typeof b.brand_data === 'object') {
-    for (const k of ['claims', 'social', 'legal_entity']) {
+    for (const k of ['claims', 'social', 'legal_entity', 'hashtags']) {
       const v = b.brand_data[k];
       if (v !== undefined && (Array.isArray(v) ? v.length : str(v))) out.push(`brand_data.${k}`);
     }
@@ -1667,7 +1667,7 @@ const SAVE_FIELDS = ['name', 'tagline', 'legal_name', 'industry', 'website', 'lo
   'palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted',
   'typography.heading', 'typography.body', 'typography.mono',
   'voice.tone', 'voice.preferred', 'voice.notes', 'voice.banned',
-  'brand_data.claims', 'brand_data.social', 'brand_data.legal_entity', 'regions'];
+  'brand_data.claims', 'brand_data.social', 'brand_data.legal_entity', 'brand_data.hashtags', 'regions'];
 
 /** `input` with each listed field replaced by the row's own value (or removed when the row has none). */
 function withRowValues(input, existing, fields) {

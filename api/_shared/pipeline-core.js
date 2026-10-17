@@ -229,6 +229,14 @@ function legalFor(brand) {
  * block states that there is no history and forbids inventing one - an
  * omitted section is an invitation, a stated one is a constraint.
  */
+// The benchmark for this brand's business, for the asset this stage writes
+// (asset-playbooks.js): borrowed structure, never another company's facts.
+function benchmarkFor(ctx, contractId) {
+  const id = String(contractId || 'email.mailer');
+  const type = id.startsWith('landing') ? 'landing_page' : id.startsWith('ad.') ? 'ad_meta' : 'mailer_v2';
+  try { return require('./asset-playbooks.js').playbookBrief(ctx.brand || {}, [type], { market: ctx.market }); } catch (_) { return ''; }
+}
+
 function briefing(ctx, contractId) {
   const c = ctx || {};
   const supplied = (c.body && c.body.evidence && typeof c.body.evidence === 'object') ? c.body.evidence : {};
@@ -239,6 +247,8 @@ function briefing(ctx, contractId) {
     contracts.brief(contractId || 'email.mailer'),
     '',
     evidence.briefFor(entry),
+    '',
+    benchmarkFor(c, contractId),
     '',
     // The rules the dispatch gate lints this copy against, briefed from the
     // same brand and market (compliance-lint.js), so writer and gate agree.
