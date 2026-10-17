@@ -1876,7 +1876,7 @@ function injectProofBlock(html, entry, style = 'visual') {
   // sender block as an ordinary paragraph inside the body table rather than a
   // <footer>, so anchor on the paragraph that carries it; appending at </body>
   // would put a customer testimonial underneath the unsubscribe line.
-  const legal = /<p[^>]*>(?=(?:(?!<\/p>)[\s\S])*?(?:receiving this as|unsubscribe|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s);
+  const legal = /<p[^>]*>(?=(?:(?!<\/p>)[\s\S])*?(?:receiving this (?:as|because)|unsubscribe|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s);
   if (legal && legal.index > 0) return s.slice(0, legal.index) + block + s.slice(legal.index);
   const i = s.toLowerCase().lastIndexOf('</body>');
   return i === -1 ? s + block : s.slice(0, i) + block + s.slice(i);
@@ -2400,7 +2400,7 @@ function emailHtml(entry, copy, creativeUrl) {
     ${psHtml}
   </section>
   ${proofBlockHtml(entry)}
-  <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this as a ${bName ? `${bName} ` : ''}subscriber${entry.market ? ` in ${entry.market}` : ''}.</footer>
+  <footer style="background:${P};color:${onP};text-align:center;padding:22px;font-size:11px">You're receiving this because you subscribed${bName ? ` to ${bName}` : ''}.</footer>
 </main>
 </body></html>`;
 }

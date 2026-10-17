@@ -886,7 +886,7 @@ function withDisclaimer(html, brand, market) {
   const t = text.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
   // The sender line is a <p> in some renderers and a <div> in others; the
   // block takes the same tag and style, so it sits on the same ground.
-  const legal = /<(p|div)(\s[^>]*)?>(?=(?:(?!<\/?(?:p|div)[\s>])[\s\S])*?(?:receiving this as|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s)
+  const legal = /<(p|div)(\s[^>]*)?>(?=(?:(?!<\/?(?:p|div)[\s>])[\s\S])*?(?:receiving this (?:as|because)|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s)
     || /<(p|div)(\s[^>]*)?>(?=(?:(?!<\/?(?:p|div)[\s>])[\s\S])*?unsubscribe)/i.exec(s);
   if (legal) return s.slice(0, legal.index) + `<${legal[1]} data-disclaimer${legal[2] || ''}>${t}</${legal[1]}>` + s.slice(legal.index);
   const foot = /<footer[^>]*>/i.exec(s);
