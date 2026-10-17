@@ -69,11 +69,16 @@ function once(key, factory) {
  * a run that got no model answer is never charged, whatever status the handler
  * chose to answer with. Outside a request nothing is recorded.
  */
-function noteLlm(kind) {
+function noteLlm(kind, info) {
   const s = current();
   if (!s) return;
-  if (!s.llm) s.llm = { ok: 0, failed: 0 };
-  if (kind === 'ok') s.llm.ok += 1; else s.llm.failed += 1;
+  if (!s.llm) s.llm = { ok: 0, failed: 0, own: 0 };
+  if (kind === 'ok') {
+    s.llm.ok += 1;
+    // Answered on the workspace's OWN key (2026-10-17): a run whose every answer
+    // came from the workspace's own models costs it no credits.
+    if (info && info.own) s.llm.own += 1;
+  } else s.llm.failed += 1;
 }
 function llmOutcome() {
   const s = current();
