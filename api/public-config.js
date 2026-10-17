@@ -220,6 +220,11 @@ module.exports = async function handler(req, res) {
       groq: !!process.env.GROQ_API_KEY, cerebras: !!process.env.CEREBRAS_API_KEY,
     };
     const tiers = [keys.openai && 'OpenAI', keys.anthropic && 'Anthropic/Claude', keys.gemini && 'Gemini', keys.grok && 'Grok/xAI', keys.groq && 'Groq', keys.cerebras && 'Cerebras'].filter(Boolean);
+    // The free keyless floor (llm.js) answers when nothing above does.
+    let freeFloor = false;
+    try { freeFloor = require('./_shared/llm.js').freeGenerationOn(); } catch (_) { freeFloor = false; }
+    const keyedTiers = tiers.length;
+    if (freeFloor) tiers.push('Pollinations (free, keyless)');
     const hasProvider = tiers.length > 0;
     // The text model is the one llm.js would actually try FIRST for the first
     // configured provider in its own order - read from llm.js, not re-typed
@@ -232,7 +237,7 @@ module.exports = async function handler(req, res) {
         const llm = require('./_shared/llm.js');
         const envKey = { openai: 'OPENAI_API_KEY', anthropic: 'ANTHROPIC_API_KEY', gemini: 'GEMINI_API_KEY', grok: 'XAI_API_KEY', groq: 'GROQ_API_KEY', cerebras: 'CEREBRAS_API_KEY' };
         const first = llm.providerOrder('standard').find((p) => envKey[p] && process.env[envKey[p]]);
-        textModel = first ? `${first}: ${llm.modelsFor(first, 'standard')[0]}` : 'per provider (see llm.js modelsFor)';
+        textModel = first ? `${first}: ${llm.modelsFor(first, 'standard')[0]}` : (freeFloor ? 'pollinations: free keyless model' : 'per provider (see llm.js modelsFor)');
       } catch (_) { textModel = 'per provider (see llm.js modelsFor)'; }
     }
     return res.status(200).json({
@@ -248,7 +253,8 @@ module.exports = async function handler(req, res) {
         image_model: keys.openai ? (process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2 (default)') : 'Pollinations FLUX (free — no OpenAI key)',
         text_model: textModel, node_version: process.version, timestamp: new Date().toISOString(),
       },
-      warnings: hasProvider ? [] : ['CRITICAL: No AI provider keys configured. Set at least GEMINI_API_KEY (free) or OPENAI_API_KEY in Vercel env.'],
+      warnings: !hasProvider ? ['CRITICAL: No AI provider keys configured. Set at least GEMINI_API_KEY (free) or OPENAI_API_KEY in Vercel env.']
+        : (!keyedTiers ? ['Running on the free keyless model only (Pollinations: about one text request per 30 seconds per address). Set GEMINI_API_KEY (free) or another provider key for volume and quality; FREE_GENERATION=off turns the free model off.'] : []),
       verdict: hasProvider ? 'Pipeline ready · ' + tiers.join(' → ') : 'BLOCKED: No LLM provider configured.',
     });
   }

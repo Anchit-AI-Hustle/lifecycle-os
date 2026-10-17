@@ -3234,8 +3234,33 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // …then the PROOF gate: any rating, review, reviewer, badge or guarantee the
     // model produced without an approved source behind it is removed here, not
     // merely discouraged in the prompt.
-    const copyA = gateProof(scrubCopyDeep(rawA.copy), entry);
-    const copyB = gateProof(scrubCopyDeep(rawB.copy), entry);
+    let copyA = gateProof(scrubCopyDeep(rawA.copy), entry);
+    let copyB = gateProof(scrubCopyDeep(rawB.copy), entry);
+    // …then the BRAND GUARD (brand-guard.js): an answer that invents a figure
+    // or a claim, or names another company, is not used, whichever model wrote
+    // it. One direction failing takes the other's copy; both failing falls to
+    // the template assets, which say only what the brand's own record states.
+    {
+      const guard = require('./brand-guard.js');
+      const gBrand = (() => { try { return require('./brand-runtime.js').scopedBrand(entry.brand) || entry.brand || {}; } catch (_) { return entry.brand || {}; } })();
+      const allow = [entry.heroProduct && entry.heroProduct.title].concat((entry.supportingProducts || []).map((x) => x && x.title), [entry.offering && entry.offering.name]).filter(Boolean);
+      const gA = guard.check(copyA, gBrand, { market: entry.market, allow });
+      const gB = copyB === copyA ? gA : guard.check(copyB, gBrand, { market: entry.market, allow });
+      const rejected = [];
+      if (!gA.ok) rejected.push({ direction: 'A', provider: rawA.provider || null, violations: gA.violations });
+      if (!gB.ok && copyB !== copyA) rejected.push({ direction: 'B', provider: rawB.provider || null, violations: gB.violations });
+      if (rejected.length) {
+        campaign.brand_guard = { rejected };
+        trace.push({ agent: 'Brand Guard', role: 'Brand guidelines', ok: false, provider: 'rule-based', output: { rejected: rejected.map((r) => ({ direction: r.direction, provider: r.provider, violations: r.violations.map((v) => v.detail) })) } });
+      }
+      if (!gA.ok && !gB.ok) {
+        const e = new Error('brand_guard: every copy direction broke the brand\'s rules; using the template assets');
+        e.brandGuard = rejected;
+        throw e;
+      }
+      if (!gA.ok) copyA = copyB;
+      if (!gB.ok) copyB = copyA;
+    }
     const proofGap = copyA.__proof_gap || copyB.__proof_gap || null;
     if (proofGap) {
       campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), proofGap.marker])];

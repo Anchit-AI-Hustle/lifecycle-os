@@ -317,13 +317,16 @@ module.exports = async function handler(req, res) {
   // the whole mailer build. Derive on-brand copy from the calendar entry itself so
   // the mailer still renders (mirrors the heuristic fallback in ai/pipeline/strategy.js).
   let S, strategyHeuristic = false;
-  if (strategy.ok && strategy.data && strategy.data.subject_line) {
+  // The brand guard (brand-guard.js): copy that invents a figure or claim, or
+  // names another company, is not used; the brand's own words are.
+  const onBrand = strategy.ok && strategy.data ? require('./brand-guard.js').check(strategy.data, _brand({ entry }), { market, allow: [entry.hero_product, entry.collection].filter(Boolean) }) : { ok: true, violations: [] };
+  if (strategy.ok && strategy.data && strategy.data.subject_line && onBrand.ok) {
     S = strategy.data;
     runs.push({ stage: 'strategy', ok: true, error: null });
   } else {
     strategyHeuristic = true;
     S = heuristicStrategy(entry, market, framework);
-    runs.push({ stage: 'strategy', ok: true, error: null, heuristic: true, llm_error: strategy.ok ? 'empty_or_invalid_copy_json' : strategy.error });
+    runs.push({ stage: 'strategy', ok: true, error: null, heuristic: true, llm_error: !onBrand.ok ? 'brand_guard: ' + onBrand.violations.map((v) => v.detail).join('; ') : (strategy.ok ? 'empty_or_invalid_copy_json' : strategy.error) });
   }
 
   // Brand scrub — every LLM copy string passes sanitizeBrand (CLAUDE.md banned

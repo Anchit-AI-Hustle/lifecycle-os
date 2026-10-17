@@ -519,6 +519,8 @@ async function handler(req, res) {
     if (!/<\/html>/i.test(html)) {
       throw new Error('html_truncated: the model output (' + html.length + ' chars) has no </html>; using the heuristic fallback');
     }
+    // The brand guard: an off-brand mailer is not served; the heuristic one is.
+    require('../../_shared/brand-guard.js').assertOnBrand(html, ctx.brand, { market: ctx.market, allow: (Array.isArray(ctx.body && ctx.body.products) ? ctx.body.products : []).map((p) => p && (p.name || p.n || p.title)) });
     if (ctx.mailerType !== 'text') {
       const missing = ['IMAGE_HERO_URL', 'IMAGE_PRODUCT_URL', 'IMAGE_LIFESTYLE_URL'].filter((s) => !html.includes(s));
       if (missing.length === 3) {
