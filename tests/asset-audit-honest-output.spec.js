@@ -225,3 +225,33 @@ test('an event send through the trigger mailer never prints the phase\'s brief a
   expect(words, 'the subline is the brand\'s own tagline').toContain('Pune news, checked twice by the desk');
   expect(res.body.variants.V1.html).toContain('https://ledgerline.example/hall');
 });
+
+// Social Media OS with no model: every brand's posts carried one sneaker
+// brand's lines, a sibling project's ("Your 3pm deserved better", "the
+// ritual") and "Shop [DATA REQUIRED ...]" as the call to action.
+test('the social fallback posts say only what the brand states, with its business\'s button', async () => {
+  const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+  for (const k of KEYS) delete process.env[k];
+  const SC = require.resolve(path.join(ROOT, 'api', '_shared', 'social-core.js'));
+  const realLlm = require.cache[LLM]; const realSc = require.cache[SC];
+  const real = require(LLM);
+  const down = async () => { throw new Error('ALL PROVIDERS FAILED'); };
+  Object.assign(down, real);
+  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
+  delete require.cache[SC];
+  try {
+    const out = await require(SC).runDaily({ brand: NEWS, dry_run: true, date: '2026-10-20' });
+    expect(out.posts.length).toBeGreaterThan(5);
+    for (const p of out.posts) {
+      const words = JSON.stringify(p.copy);
+      expect(words, p.key).not.toMatch(/pair|footwear|Lacing|studio taught|3pm|ritual|DATA REQUIRED|Shop |origin-fresh|one-of-one|chalk linen/i);
+      expect(p.cta, p.key).toBe('Start reading');
+    }
+    const feed = out.posts.find((p) => p.key === 'instagram_feed');
+    expect(feed.copy.caption).toContain('Pune news, checked twice by the desk');
+    expect(feed.copy.caption).toContain('Reporters in all 14 Pune wards');
+  } finally {
+    require.cache[LLM] = realLlm; if (realSc) require.cache[SC] = realSc; else delete require.cache[SC];
+    for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
+});
