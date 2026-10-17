@@ -1382,29 +1382,6 @@ function renderPreview(payload, e, i, opts){
     const idx = window.__SB_FRAMES.push(String(html || '')) - 1;
     return `<iframe class="pvframe${kind === 'mail' ? ' is-mail' : ''}" sandbox="allow-same-origin" data-frame-idx="${idx}" title="${esc(title || 'Asset preview')}"></iframe>`;
   };
-  const auditBadge = (htmlOrText, type) => {
-    const txt = String(htmlOrText || '');
-    if (!txt) return '';
-    const b = (window.BrandContext && window.BrandContext.brand) || {};
-    const isFinance = /\b(?:stock|trading|invest|equities|market\s*data|portfolio)\b/i.test((b.industry||'') + ' ' + (b.tagline||''));
-    let score = 96;
-    const notes = [];
-    if (isFinance) {
-      const hasDisclaimer = /\b(?:educational|not\s+financial\s+advice|past\s+performance|sebi|sec|fca)\b/i.test(txt);
-      if (!hasDisclaimer) { score -= 20; notes.push('Add regulatory non-advice disclaimer'); }
-      if (/\bguaranteed\s+(?:return|profit|10x)\b/i.test(txt)) { score -= 30; notes.push('Remove guaranteed returns claim'); }
-    }
-    const hasCTA = /\b(?:cta|button|href=|subscribe|join|start|claim|view|shop)\b/i.test(txt);
-    if (!hasCTA) { score -= 15; notes.push('Add primary CTA'); }
-    const grade = score >= 93 ? 'A+' : (score >= 85 ? 'A' : (score >= 75 ? 'B' : 'Needs Polish'));
-    const isOk = score >= 80;
-    const noteStr = notes.length ? ` · <span style="color:var(--kg-red)">(${notes.join(', ')})</span>` : ' · Benchmark verified';
-    return `<div class="pvnote" style="display:inline-flex;align-items:center;gap:8px;padding:3px 9px;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:6px;margin:0 0 8px;font-size:11px">
-      <span style="font-weight:700;color:${isOk?'var(--vh-ok-text)':'var(--kg-red)'}">🏆 Revenue &amp; Quality: ${score}/100 (${grade})</span>
-      <span style="color:var(--muted)">${noteStr}</span>
-    </div>`;
-  };
-
   const promptBar = (asset) => {
     const rows = (asset && Array.isArray(asset.prompts)) ? asset.prompts : [];
     if(!rows.length) return '';
@@ -1445,10 +1422,10 @@ function renderPreview(payload, e, i, opts){
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ '+esc(v.label || ('Mailer '+(vi+1))), first);
-      pane(id, `<div class="pvnote" style="margin:0 0 8px">${esc(v.type||'')}</div>${auditBadge(html, 'mailer')}${expBar('mailer-'+(v.key||vi), html)}${promptBar(emailAsset)}${docFrame(html, 'mail', v.label || 'Mailer')}`, first);
+      pane(id, `${v.type ? `<div class="pvnote" style="margin:0 0 6px">${esc(v.type)}</div>` : ''}${expBar('mailer-'+(v.key||vi), html)}${docFrame(html, 'mail', v.label || 'Mailer')}${promptBar(emailAsset)}`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${auditBadge(html, 'mailer')}${expBar('mailer', html)}${promptBar(emailAsset)}${docFrame(html, 'mail', 'Mailer')}`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${docFrame(html, 'mail', 'Mailer')}${promptBar(emailAsset)}`, first); first=false; }
   // EVERY landing page, not just the first. The builder ships an A/B pair and
   // only landing_pages[0] was ever rendered, so the B variant existed in the
   // payload, was downloaded by "Download all", and could not be looked at.
@@ -1462,13 +1439,13 @@ function renderPreview(payload, e, i, opts){
     const id = 'pv-lp' + (li ? '-' + li : '');
     const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
     tab(id, label, first);
-    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${promptBar(lp)}${docFrame(html, 'page', lp.title || 'Landing page')}`, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${docFrame(html, 'page', lp.title || 'Landing page')}${promptBar(lp)}`, first);
     first = false;
   });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
   // names its variant and angle, otherwise both A and B collide on the same id
   // ("pv-ad-meta") and read as a duplicate "meta ad" tile (B hidden behind A).
-  ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, JSON.stringify(ad,null,2))+promptBar(ad)+renderAd(ad), first); first=false; });
+  ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, JSON.stringify(ad,null,2))+renderAd(ad)+promptBar(ad), first); first=false; });
   tab('pv-json','{ } Details', first); pane('pv-json', `<pre style="margin:0">${esc(JSON.stringify(campaign && campaign.campaign_id ? campaign : e, null, 2))}</pre>`, first);
 
   const banner = `<span class="st approved">final</span> <span class="pvnote" style="margin:0">Final generated version — the best version of each asset, ready to view and download.</span>`;
@@ -1478,6 +1455,40 @@ function renderPreview(payload, e, i, opts){
     ? `<a class="btn sm secondary" href="/lp/${esc(liveLpId)}" target="_blank" rel="noopener">Open detailed page ↗</a>`
     : `<button type="button" class="btn sm secondary" onclick="openDetailPage(${i}, this)">Open detailed page ↗</button>`;
 
+  // OUTPUT FIRST (2026-10-17). The operator: "first the user priorities need
+  // to be addressed always which is the required output they are looking
+  // for". The assets are what the row is opened for, so they come straight
+  // after the action bar; how the copy was made, the compliance findings and
+  // the agent trace sit in ONE collapsed block after them. Only what changes
+  // a decision stays above the assets, in one line: a blocking finding, or
+  // copy that came from the template because no model answered.
+  const comp = campaign.contract_check && campaign.contract_check.compliance;
+  const trace = payload.agent_trace || campaign.agent_trace || [];
+  const isFallback = /template/.test(String(cw.provider||''));
+  const fbRow = Array.isArray(trace) ? trace.find(a=>a && a.agent==='fallback' && a.output && a.output.reason) : null;
+  const leadBits = [];
+  if (comp && comp.verdict === 'block') leadBits.push(`<b>Blocked:</b> ${comp.blocking} issue(s) must be fixed before this can be published.`);
+  if (isFallback || fbRow) leadBits.push('Copy came from the template: no AI provider answered for this slot.');
+  const checksLead = leadBits.length
+    ? `<div class="pvnote is-error pvlead" style="margin-top:4px;border-radius:6px;padding:6px 9px;font-size:12px">${leadBits.join(' ')} <a href="#" onclick="var d=this.closest('.pvroot').querySelector('.pvchecks');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'nearest'});}return false;">See checks</a></div>`
+    : '';
+  const checksSummary = [
+    comp ? (comp.verdict === 'block' ? `${comp.blocking} blocking` : comp.verdict === 'warn' ? `${comp.warnings} to review` : 'no compliance findings') : null,
+    `copy by ${esc(cw.provider || 'template')}`,
+  ].filter(Boolean).join(' · ');
+  const traceHtml = (Array.isArray(trace) && trace.length)
+    ? `<div class="pvnote" style="margin-top:4px">Agent pipeline:${trace.map(a=>`<span class="pill" style="background:var(--vh-panel-2);color:${a.ok?'var(--vh-ok-text)':'var(--vh-err-text)'};border-color:${a.ok?'var(--vh-ok)':'var(--vh-err)'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`
+    : '';
+  const fbHtml = (isFallback || fbRow)
+    ? `<div class="pvnote" style="margin-top:4px">Copy used the <b>template fallback</b>: ${esc((fbRow && fbRow.output && fbRow.output.reason) || 'the LLM cascade returned nothing for this slot')}. Check that at least one text API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / CEREBRAS_API_KEY / XAI_API_KEY) is set and not quota-exhausted for this deployment, then Regenerate.</div>`
+    : '';
+  const checksBlock = `<details class="pvchecks"${comp && comp.verdict === 'block' ? ' open' : ''} style="margin-top:14px;border:1px solid var(--vh-line);border-radius:8px;padding:8px 10px;background:var(--vh-panel)">
+      <summary style="cursor:pointer;font-weight:600">Checks and how this was made <span class="pvnote" style="margin:0;font-weight:400">· ${checksSummary}</span></summary>
+      <div class="pvnote" style="margin-top:6px">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
+      ${fbHtml}
+      ${complianceHTML(campaign)}
+      ${traceHtml}
+    </details>`;
   const host = (opts && opts.target) || $('expbody-'+i) || $('preview');
   host.innerHTML = `<div class="pvroot">
     <div class="pvbar">
@@ -1488,19 +1499,7 @@ function renderPreview(payload, e, i, opts){
       <button type="button" class="btn sm secondary" onclick="viewEntry(${i}, true)">↻ Regenerate</button>
       <button type="button" class="btn sm secondary" onclick="closeExp(${i})" title="Collapse">✕</button>
     </div>
-    <div class="pvnote">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
-    ${complianceHTML(campaign)}
-    ${(() => { const tr = payload.agent_trace || campaign.agent_trace; if(!Array.isArray(tr)||!tr.length) return ''; return `<div class="pvnote" style="margin-top:4px">Agent pipeline:${tr.map(a=>`<span class="pill" style="background:var(--vh-panel-2);color:${a.ok?'var(--vh-ok-text)':'var(--vh-err-text)'};border-color:${a.ok?'var(--vh-ok)':'var(--vh-err)'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`; })()}
-    ${(() => {
-      // When copy fell back to the template (no LLM provider answered), show the
-      // EXACT reason inline so the cause is visible — not buried in a tooltip.
-      const tr = payload.agent_trace || campaign.agent_trace || [];
-      const isFallback = /template/.test(String(cw.provider||''));
-      const fb = Array.isArray(tr) ? tr.find(a=>a && a.agent==='fallback' && a.output && a.output.reason) : null;
-      if(!isFallback && !fb) return '';
-      const reason = (fb && fb.output && fb.output.reason) || 'the LLM cascade returned nothing for this slot';
-      return `<div class="pvnote is-error" style="margin-top:4px;border-radius:6px;padding:6px 9px;font-size:11px">⚠ Copy used the <b>template fallback</b>: ${esc(reason)}. This means no LLM provider answered — check that at least one text API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / CEREBRAS_API_KEY / XAI_API_KEY) is set and not quota-exhausted for this deployment, then Regenerate.</div>`;
-    })()}
+    ${checksLead}
     ${(() => {
       // A jump strip, not a switcher: the row is tall now, so these scroll to a
       // section rather than hiding the others.
@@ -1511,7 +1510,8 @@ function renderPreview(payload, e, i, opts){
       const h = heads.find((x) => x.id === p.id);
       return `<section class="pvsec"><h4 class="pvsech">${h ? h.label : ''}</h4>`
         + `<div class="pvpane on" id="${p.id}">${p.html}</div></section>`;
-    }).join('')}</div>`;
+    }).join('')}
+    ${checksBlock}</div>`;
   // Video ads carry a real animated creative; point each iframe at the exact
   // bytes of it (Blob URL) now that the panes are in the DOM.
   hydrateMotionAds(host);
