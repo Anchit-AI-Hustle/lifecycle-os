@@ -733,6 +733,15 @@ function _renderVariantBody(o) {
       <p style="font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;">${esc(b.body || '').replace(/\n\n+/g, '</p><p style="font-family:' + BODY + ';font-size:15px;line-height:1.65;color:' + palette.ink + ';margin:8px 0 0;">').replace(/\n/g, '<br>')}</p>
     </td></tr>`).join('');
 
+  // THE BUTTON ABOVE THE FOLD (2026-10-17, the operator: "visuals in mailers
+  // are not structured correctly"; email design practice: the primary call to
+  // action sits within the first ~300px, right under the hero's headline and
+  // subhead, with a second one at the end for readers who scroll). The mail
+  // used to put its only button after the body, the benefits and the products.
+  const ctaRow = (pad) => `
+      <tr><td style="padding:${pad};text-align:center;">
+        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
+      </td></tr>`;
   // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
   //    and a brand palette hero block. Visual elements stay light and on-brand.
   if (style === 'visual') {
@@ -774,6 +783,7 @@ function _renderVariantBody(o) {
       <tr><td style="padding:22px 32px 0;">
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;`, '0')}">${esc(hero_subline)}</p>
       </td></tr>
+      ${ctaRow('20px 32px 4px')}
       <!-- Botanical-style lava divider -->
       <tr><td style="padding:20px 32px 0;text-align:center;">
         <div style="display:inline-block;height:1px;width:38%;background:${palette.lava};vertical-align:middle;"></div>
@@ -798,7 +808,7 @@ function _renderVariantBody(o) {
     const textBlocks = (body_blocks || []).map((b) => `
       <p style="font-family:${BODY};font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;">
         ${b.heading ? `<strong style="color:${palette.greenText};">${esc(b.heading)}${/\n/.test(b.body || '') ? '' : ': '}</strong>${/\n/.test(b.body || '') ? '<br>' : ''}` : ''}${esc(b.body || '').replace(/\n\n+/g, '<br>').replace(/\n/g, '<br>')}
-      </p>`).join('');
+      </p>`);
     return `<!doctype html>
 <html>${emailHead}<body style="margin:0;padding:0;background:#fff;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -808,7 +818,7 @@ function _renderVariantBody(o) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${MF.logoHeader({ brand: _brand(o), store, color: palette.greenText, font: HEAD, align: 'left', pad: '0 0 18px' })}</table>
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
-        ${textBlocks}
+        ${textBlocks.length ? textBlocks.slice(0, 1).join('') + `<p style="font-family:${BODY};font-size:15px;line-height:1.6;margin:0 0 18px;"><a href="${baseUrl}" data-ds="cta-link" style="color:${palette.greenText};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a></p>` + textBlocks.slice(1).join('') : ''}
         <p style="font-family:${BODY};font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
@@ -831,8 +841,9 @@ function _renderVariantBody(o) {
       <tr><td style="padding:24px 32px 0;">
         <p data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
-        <p style="font-family:${BODY};font-size:13px;color:#7a6e5a;margin:0;">A note from the ${esc(brandNameOf(o))} team</p>
+        <p style="font-family:${BODY};font-size:13px;color:${palette.mutedOnSurface};margin:0;">A note from the ${esc(brandNameOf(o))} team</p>
       </td></tr>
+      ${ctaRow('18px 32px 4px')}
       ${blocks}
       ${productGrid}
       <tr><td style="padding:26px 32px 8px;text-align:center;">
@@ -857,6 +868,7 @@ function _renderVariantBody(o) {
         <h1 data-ds="h1" style="${h1Style}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subStyle}">${esc(hero_subline)}</p>
       </td></tr>
+      ${ctaRow('4px 32px 22px')}
       ${blocks}
       ${productGrid}
       <tr><td style="padding:26px 32px 8px;text-align:center;border-top:1px solid #ece4d2;">

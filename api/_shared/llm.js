@@ -222,7 +222,25 @@ function modelsFor(provider, tier) {
 }
 
 // Provider ORDER per tier (blueprint). Fast skips Grok (no cheap rung there).
+// The providers that cost nothing to call: the keyless one and the free tiers.
+// FREE FIRST (2026-10-17, the operator: "everything will cost the user credits
+// - but it should be done for free in the backend"): with free generation on,
+// they are tried before any paid provider, and a paid key (Anthropic, OpenAI,
+// xAI) is reached only when every free one failed. The user's credit charge is
+// unchanged. FREE_GENERATION=off keeps the paid-first order (and no keyless).
+const PAID_PROVIDERS = new Set(['anthropic', 'openai', 'grok']);
+// The order a workspace's OWN models are used in: the operator's four first,
+// then the rest by output quality.
+const OWN_KEY_PRIORITY = ['anthropic', 'openai', 'gemini', 'grok', 'openrouter', 'groq', 'cerebras', 'cloudflare', 'sakana', 'ollama'];
 function providerOrder(tier) {
+  const base = providerOrderBase(tier);
+  if (!freeGenerationOn()) return base;
+  const keyless = base.filter((p) => p === 'pollinations');
+  const freeTier = base.filter((p) => !PAID_PROVIDERS.has(p) && p !== 'pollinations');
+  const paid = base.filter((p) => PAID_PROVIDERS.has(p));
+  return keyless.concat(freeTier, paid);
+}
+function providerOrderBase(tier) {
   return tier === 'fast'
     ? ['anthropic', 'openai', 'gemini', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations']
     : ['anthropic', 'openai', 'gemini', 'grok', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations'];
@@ -695,7 +713,22 @@ module.exports = async function callLLM(opts) {
   const known = (p) => hasKey[p] !== undefined;
   let order;
   let outsideRouting = [];
-  if (ov && ov.fallback === false && !ovOrder.length) {
+  // THE WORKSPACE'S OWN KEYS (2026-10-17, the operator: "users should still
+  // have the option to integrate the ai models they want to use themselves ...
+  // if entered, then only those ai models shall be used with the priority
+  // order ... claude, openai, gemini, grok and then so on based on the accuracy
+  // and quality"). A workspace that connected any model of its own gets ONLY
+  // its own models, in that fixed order; the platform's keys and the free
+  // model are not used for it. With none connected, the platform's free-first
+  // order (providerOrder) applies.
+  const ownKeyed = new Set((Array.isArray(ov && ov.configured) && ov.configured.length ? ov.configured : Object.keys(ovKeys))
+    .map((p) => String(p).toLowerCase()).filter((p) => known(p)));
+  if (ownKeyed.size) {
+    order = OWN_KEY_PRIORITY.filter((p) => ownKeyed.has(p));
+    for (const p of ownKeyed) if (order.indexOf(p) < 0) order.push(p);
+    if (exclusive && preferredProvider && ownKeyed.has(preferredProvider)) order = [preferredProvider];
+    outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
+  } else if (ov && ov.fallback === false && !ovOrder.length) {
     // "Only my providers" with no explicit order: the providers the workspace
     // CONNECTED, in the tier's order. This used to run the platform's whole
     // default cascade on the platform's keys, which is the one thing switching
@@ -717,7 +750,10 @@ module.exports = async function callLLM(opts) {
     outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
   } else {
     order = providerOrder(tierNorm).slice();
-    if (preferredProvider && known(preferredProvider)) {
+    // With free generation on, a PAID provider named as a preference does not
+    // jump the free ones (an exclusive pin, which a capability needs, still does).
+    const paidPreference = freeGenerationOn() && PAID_PROVIDERS.has(preferredProvider) && !exclusive;
+    if (preferredProvider && known(preferredProvider) && !paidPreference) {
       // A preferred provider goes FIRST, and the rest of the cascade still
       // follows it. It used to SKIP every other provider, so a pinned provider
       // that stumbled once left the call with no fallback at all (the sticky

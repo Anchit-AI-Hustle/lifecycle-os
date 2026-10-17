@@ -938,7 +938,7 @@ function freeGenerationView(signedIn) {
   let on = false;
   try { on = require('./llm.js').freeGenerationOn(); } catch (_) { on = false; }
   return on
-    ? { on: true, note: 'Text and images also run on the free keyless models (Pollinations) when no key answers. They are rate-limited (about one request per 30 seconds per address), so add a key for volume and quality. This connects no provider.' }
+    ? { on: true, note: 'With no key of your own, the platform\'s models make your content and each creation uses your app credits. Connect your own key above to use only your models instead (Claude, then OpenAI, Gemini and Grok, in that order).' }
     : { on: false, note: '' };
 }
 

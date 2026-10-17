@@ -473,7 +473,12 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
 
-  if (!anyKey()) {
+  // FREE FIRST (2026-10-17, the operator: "everything will cost the user
+  // credits - but it should be done for free in the backend"): with free
+  // generation on, the creative is rendered in code and no paid video provider
+  // is called, key or no key. FREE_GENERATION=off restores the provider cascade.
+  const freeFirst = String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off';
+  if (!anyKey() || freeFirst) {
     // Best rung's exact request shape — honour the caller's first preference.
     const first = (preferProviders && preferProviders[0]) || 'veo';
     const shape = { higgsfield: higgsfieldRequest, openmontage: openMontageRequest, sora: soraRequest, runway: runwayRequest, veo: veoRequest }[first] || veoRequest;

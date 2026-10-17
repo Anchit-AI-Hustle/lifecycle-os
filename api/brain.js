@@ -1231,7 +1231,9 @@ module.exports = async function handler(req, res) {
       case 'tts': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const apiKey = process.env.ELEVENLABS_API_KEY;
-        if (!apiKey) {
+        // Free first: with free generation on, the free voice speaks even when
+        // a paid key exists (the operator: "done for free in the backend").
+        if (!apiKey || freeGenerationOn()) {
           // No key: a keyless voice the browser plays itself (2026-10-17). The
           // SAME Pollinations audio URL form copilot.js already plays
           // (text.pollinations.ai/<text>?model=openai-audio&voice=<voice>),
@@ -1242,7 +1244,7 @@ module.exports = async function handler(req, res) {
           if (!clean) return res.status(400).json({ ok: false, error: 'text_required', message: 'Nothing to speak.' });
           const voice = /^[a-z]{2,20}$/i.test(String(b.voice || '')) ? String(b.voice) : 'nova';
           const audio_url = 'https://text.pollinations.ai/' + encodeURIComponent(clean) + '?model=openai-audio&voice=' + encodeURIComponent(voice);
-          return res.status(200).json({ ok: true, provider: 'pollinations', voice, audio_url, note: 'A free keyless voice the browser plays directly; if it does not load, the browser voice speaks instead.' });
+          return res.status(200).json({ ok: true, provider: 'pollinations', voice, audio_url, note: 'The browser plays this voice directly; if it does not load, the browser voice speaks instead.' });
         }
         const voiceId = b.voice_id || process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
         const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
@@ -1265,6 +1267,21 @@ module.exports = async function handler(req, res) {
       case 'music-compose': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const apiKey = process.env.ELEVENLABS_API_KEY;
+        // FREE FIRST (2026-10-17, the operator: "everything will cost the user
+        // credits - but it should be done for free in the backend"): the track
+        // is composed HERE, by the same code-only synthesiser the page loads
+        // (music-synth.js: tempo, scale and drums read from the brief, a
+        // deterministic WAV), under the route's credit charge, and no paid
+        // music service is called. FREE_GENERATION=off restores ElevenLabs.
+        if (freeGenerationOn()) {
+          const brief = String(b.prompt || '').trim().slice(0, 4100);
+          if (!brief) return res.status(400).json({ ok: false, error: 'prompt_required', message: 'Describe the track first.' });
+          const out = require('../music-synth.js').renderBytes(brief, Number(b.seconds) || 30, { compact: true });
+          res.setHeader('Content-Type', 'audio/wav');
+          res.setHeader('X-Music-Provider', 'code-synth');
+          res.setHeader('Content-Disposition', 'inline; filename="track.wav"');
+          return res.status(200).send(Buffer.from(out.bytes));
+        }
         if (!apiKey) return res.status(501).json({ ok: false, error: 'music_unconfigured', message: 'Generating a track here needs ELEVENLABS_API_KEY set on this deployment. Until then, use Open in Suno: the brief is copied for you.' });
         const prompt = String(b.prompt || '').trim().slice(0, 4100);
         if (!prompt) return res.status(400).json({ ok: false, error: 'prompt_required', message: 'Describe the track first.' });

@@ -734,6 +734,20 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
     { name: 'the length is clamped to the documented 3 s floor and our 2 minute ceiling', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: { json: { prompt: 'x', seconds: 9999, instrumental: false } },
       stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3'), { 'content-type': 'audio/mpeg' })),
       expect: (r) => { const b = JSON.parse(guard.calls.find((x) => /elevenlabs/.test(x.url)).body); expect(b.music_length_ms).toBe(120000); expect(b.force_instrumental).toBe(false); } },
+    // Free in the backend, charged as credits (2026-10-17): with free generation
+    // on, the track is composed here by music-synth.js even with a key, and no
+    // music service is called. A compact WAV: mono, 22.05 kHz, 15-60 s, so a
+    // minute fits the 4.5 MB serverless response.
+    { name: 'free generation on: composed here as a WAV, no music service called, key or no key', env: { ELEVENLABS_API_KEY: 'eleven-harness', FREE_GENERATION: 'on' }, run: { json: { prompt: 'Calm minimal underscore at 84 BPM', seconds: 9999 } },
+      expect: (r) => {
+        expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/wav'); expect(r.headers['x-music-provider']).toBe('code-synth');
+        const b = r.bytes;
+        expect(b.slice(0, 4).toString()).toBe('RIFF'); expect(b.slice(8, 12).toString()).toBe('WAVE');
+        expect(b.readUInt16LE(22)).toBe(1); expect(b.readUInt32LE(24)).toBe(22050);
+        expect(b.readUInt32LE(40)).toBe(60 * 22050 * 2);
+        expect(b.length).toBeLessThan(4.5 * 1024 * 1024);
+        expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]);
+      } },
     { name: 'a provider refusal is a sentence, not audio', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: {},
       stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(422, JSON.stringify({ detail: 'bad prompt' }), { 'content-type': 'application/json' })),
       expect: (r) => { expect(r.status).toBe(502); expect(r.out.message).toMatch(/422/); } },

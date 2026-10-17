@@ -157,6 +157,55 @@ function homepageOf(brand, fallback) {
   return /^https:\/\/[^\s"'<>]+$/i.test(url) ? url.replace(/\/+$/, '/') : '';
 }
 
+const FREE_OFF = () => /^(0|false|off|no)$/i.test(String(process.env.FREE_GENERATION || '').trim());
+const HTTPS = /^https:\/\/[^\s"'<>]+$/i;
+
+/**
+ * THE BRAND'S OWN LOGO, wherever its record holds it (2026-10-17, the
+ * operator: "use the brand logos itself"). Only `logo_url` reached the mail
+ * header, so 16 of the 40 starter brands - and every brand whose "Read my
+ * site" logo was not pressed into that one field - got their name in type.
+ * In order: the logo field; the logo the rendered read measured in the site's
+ * header; an image of the brand's own site labelled as its logo; an uploaded
+ * logo that is hosted; the site's own icon (favicon / app icon); and, with
+ * nothing on the record but a website, the icon that website publishes,
+ * fetched by a free keyless icon service. Nothing read off ANOTHER company's
+ * site is ever used (the coherence rule's sameBrand). '' url when none.
+ * @returns {{url:string, kind:'logo'|'icon'|'', source:string}}
+ */
+function logoSourceOf(brand) {
+  const b = brand || {};
+  const bd = b.brand_data || {};
+  let coh = null;
+  try { coh = require('./brand-coherence.js'); } catch (_) { coh = null; }
+  const home = String(b.website || '').trim();
+  const homeDom = coh && home ? coh.registrableDomain(coh.hostOf(/^https?:/i.test(home) ? home : `https://${home}`)) : '';
+  const own = (page) => {
+    if (!page || !coh || !homeDom) return true;            // no page recorded: the record's own value
+    const d = coh.registrableDomain(coh.hostOf(String(page)));
+    return !d || coh.sameBrand(d, homeDom);
+  };
+  const ok = (u) => HTTPS.test(String(u || '').trim());
+  if (ok(b.logo_url)) return { url: String(b.logo_url).trim(), kind: 'logo', source: 'logo_url' };
+  const ds = bd.design_system && bd.design_system.logo;
+  if (ds && ok(ds.url) && own(ds.url)) return { url: ds.url, kind: 'logo', source: 'design_system.logo' };
+  const assets = [].concat(Array.isArray(b.brand_assets) ? b.brand_assets : [], Array.isArray(bd.brand_assets) ? bd.brand_assets : []);
+  const tagged = (re) => assets.find((a) => a && ok(a.url) && re.test(`${a.role || ''} ${a.type || ''} ${a.kind || ''}`) && own(a.found_on || a.page || a.url));
+  const asLogo = tagged(/\b(logo|wordmark|brandmark)\b/i);
+  if (asLogo) return { url: asLogo.url, kind: 'logo', source: 'brand_assets' };
+  const files = bd.brand_files || {};
+  const up = files.logo && (files.logo.hosted_url || files.logo.url);
+  if (ok(up)) return { url: up, kind: 'logo', source: 'uploaded' };
+  if (ok(b.favicon_url) && own(b.favicon_url)) return { url: b.favicon_url, kind: 'icon', source: 'favicon_url' };
+  const icon = tagged(/\b(icon|favicon|apple-touch|app-icon)\b/i);
+  if (icon) return { url: icon.url, kind: 'icon', source: 'brand_assets.icon' };
+  if (homeDom && !FREE_OFF()) {
+    const host = coh.hostOf(/^https?:/i.test(home) ? home : `https://${home}`);
+    if (host) return { url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=256`, kind: 'icon', source: 'site-icon (free icon service)' };
+  }
+  return { url: '', kind: '', source: '' };
+}
+
 /**
  * The logo a mail client can SHOW. Gmail and Outlook do not render SVG in an
  * <img>, and most brand logos read off a website are SVG: an SVG logo goes
@@ -164,13 +213,15 @@ function homepageOf(brand, fallback) {
  * free-generation switch as every other keyless rung). A data: URI is never a
  * mailer image (Gmail clips the message). '' when there is nothing to show.
  */
-function emailLogoSrc(brand) {
-  const s = String((brand && brand.logo_url) || '').trim();
-  if (!/^https:\/\/[^\s"'<>]+$/i.test(s)) return '';
-  if (!/\.svg(?:$|[?#])/i.test(s)) return s.slice(0, 500);
-  const off = /^(0|false|off|no)$/i.test(String(process.env.FREE_GENERATION || '').trim());
-  return off ? '' : `https://images.weserv.nl/?url=${encodeURIComponent(s)}&output=png&w=320`;
+function emailLogo(brand) {
+  const src = logoSourceOf(brand);
+  const s = src.url;
+  if (!s) return src;
+  if (!/\.svg(?:$|[?#])/i.test(s)) return Object.assign({}, src, { url: s.slice(0, 500) });
+  if (FREE_OFF()) return { url: '', kind: '', source: '' };
+  return Object.assign({}, src, { url: `https://images.weserv.nl/?url=${encodeURIComponent(s)}&output=png&w=320` });
 }
+function emailLogoSrc(brand) { return emailLogo(brand).url; }
 
 /**
  * The header every mailer opens with: the brand's logo (alt = its name, so a
@@ -182,9 +233,12 @@ function logoMark({ brand, store = '', color = '', font = 'Arial,sans-serif', al
   const b = brand || {};
   const name = String(b.name || '').trim() || 'Brand';
   const href = homepageOf(b, store);
-  const src = emailLogoSrc(b);
+  const lg = emailLogo(b);
+  const src = lg.url;
+  // A logo is set at a header width; an icon (square) at an icon's size.
+  const w = lg.kind === 'icon' ? 48 : 140;
   const mark = src
-    ? `<img src="${esc(src)}" alt="${esc(name)}" width="140" style="display:${align === 'center' ? 'block;margin:0 auto' : 'block'};width:140px;max-width:140px;height:auto;max-height:${height}px;border:0;font-family:${font};font-size:18px;font-weight:700;color:${color};" />`
+    ? `<img src="${esc(src)}" alt="${esc(name)}" width="${w}" style="display:${align === 'center' ? 'block;margin:0 auto' : 'block'};width:${w}px;max-width:${w}px;height:auto;max-height:${height}px;border:0;font-family:${font};font-size:18px;font-weight:700;color:${color};" />`
     : `<span style="font-family:${font};font-size:22px;letter-spacing:0.2em;font-weight:700;color:${color};">${esc(name.toUpperCase())}</span>`;
   const html = href ? `<a href="${esc(href)}" target="_blank" data-mail-logo-link style="text-decoration:none;display:inline-block;">${mark}</a>` : mark;
   return { html, kind: src ? 'image' : 'wordmark', href };
@@ -200,6 +254,8 @@ module.exports = {
   fluid,
   homepageOf,
   emailLogoSrc,
+  emailLogo,
+  logoSourceOf,
   logoHeader,
   logoMark,
   PLACEHOLDER,
