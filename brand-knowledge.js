@@ -65,7 +65,8 @@
    * What a URL asks for. The route is /kb/brand/<doc> (a vercel.json rewrite
    * onto brand-doc.html, which keeps the address in the bar) and the file also
    * answers ?doc=<id>; /kb/brand alone is the index. A generated or platform
-   * markdown document opens with ?local=<key> or ?md=<path under /docs/>.
+   * markdown document opens with ?local=<key> or ?md=<path under /docs/ or
+   * /knowledge/benchmarks/>.
    *   -> { mode: 'index'|'doc'|'local'|'md'|'unknown', id, value }
    */
   function docFromPath(pathname, search) {
@@ -86,7 +87,15 @@
    *  reached through that brand's route, never by path. */
   function isPlatformDoc(p) {
     var s = String(p || '');
-    return /^\/docs\/[A-Za-z0-9._/-]+\.md$/.test(s) && s.indexOf('..') < 0 && s.indexOf('//') < 0;
+    if (s.indexOf('..') >= 0 || s.indexOf('//') >= 0) return false;
+    return /^\/docs\/[A-Za-z0-9._/-]+\.md$/.test(s) || isBenchmarkDoc(s);
+  }
+  /** The asset design benchmarks: platform RESEARCH about how other
+   *  publications and stores build their assets. One flat folder, no
+   *  sub-paths; nothing else under knowledge/ is reachable by path. */
+  function isBenchmarkDoc(p) {
+    var s = String(p || '');
+    return /^\/knowledge\/benchmarks\/[A-Za-z0-9_-]+\.md$/.test(s);
   }
   /* Platform documents that were written ABOUT one workspace: they quote its
      products, copy and routes as findings, so they are shown to that
@@ -660,7 +669,7 @@
 
   return {
     DOCS: DOCS, BASE: BASE, ZERO_FILES: ZERO_FILES,
-    docById: docById, docFromPath: docFromPath, hrefFor: hrefFor, isPlatformDoc: isPlatformDoc, operatorOnly: operatorOnly,
+    docById: docById, docFromPath: docFromPath, hrefFor: hrefFor, isPlatformDoc: isPlatformDoc, isBenchmarkDoc: isBenchmarkDoc, operatorOnly: operatorOnly,
     marker: marker, parseMarkdown: parseMarkdown, normalize: normalize,
     build: build, render: render, safeHref: safeHref,
   };
