@@ -422,10 +422,12 @@ async function meter(req, featureKey, opts) {
   // low balance must not stop it: the run goes ahead with no hold, and only work
   // the platform made (a picture with no image key of its own, a video, a
   // track) is charged afterwards, when the run is known.
-  const ownModels = await workspaceHasOwnModels();
+  // (Asked only when the wallet is short: an answer recorded as made by the
+  // workspace's own key already proves it has one, so a funded run needs no
+  // lookup.)
   if (!held || held.ok !== true) {
     const refusal = Object.assign({ ok: false, status: 402, error: 'insufficient_credits', quote: q, feature: q.key, label: q.label }, held || {});
-    if (!ownModels) return refusal;
+    if (!(await workspaceHasOwnModels())) return refusal;
     return deferredGate(q, o, auth, workspaceId, refusal);
   }
 
@@ -444,7 +446,7 @@ async function meter(req, featureKey, opts) {
     /** Charge the real usage. `actualUnits` only matters for metered features. */
     async settle(actualUnits, extra) {
       if (done) return { ok: true, already: true };
-      if (ownModels && madeByOwnKeys()) {
+      if (madeByOwnKeys()) {
         // Every answer came from the workspace's own keys: nothing to charge.
         const r = await this.release(OWN_KEYS_NOTE);
         this.receipt = ownKeysReceipt(q);
