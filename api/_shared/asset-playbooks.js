@@ -139,7 +139,7 @@ const IMAGE_POLICIES = {
       '1. Hosted verified charts or tables built from actual supplied historical data.',
       '2. Brand-owned visual assets (licensed logo mark, terminal screenshots, verified brand UI).',
       '3. High-resolution editorial still capturing authentic financial environment (trading desk, stock exchange floor, financial district skyline, mobile trader hands) with NO readable numerals or fake tickers.',
-      '4. Abstract conceptual data art: mathematical geometry, dark terminal grids, gradient depth fields in brand palette.',
+      '4. Abstract conceptual data art: mathematical geometry, terminal grids, gradient depth fields in the brand palette on a light ground.',
     ],
     never: [
       'NEVER generate AI-rendered charts with fake bars, fictional candlesticks, or synthetic trends.',
@@ -232,7 +232,7 @@ const PLAYBOOKS = {
           id: 'market_pulse',
           name: 'Market Pulse & Benchmark Bar',
           purpose: 'High-level macro snapshot (Nifty, S&P 500, Yields, Crude) strictly using supplied numbers. Bulleted and scannable.',
-          required: true,
+          required: false,
         },
         {
           id: 'lead_story',
@@ -255,7 +255,7 @@ const PLAYBOOKS = {
         {
           id: 'pro_monetization_card',
           name: 'Premium Intelligence / Pro Tier Callout',
-          purpose: 'The revenue engine: "Unlock the full institutional earnings model / real-time breakout alerts with Pro". Clear single CTA.',
+          purpose: 'The revenue engine: what the brand\'s own paid tier gives, in the brand\'s words. Clear single CTA. Leave out when the brand states no paid tier.',
           required: true,
         },
         {
@@ -267,7 +267,7 @@ const PLAYBOOKS = {
       ],
       designRules: [
         'Max content width 600px, responsive table container.',
-        'High-contrast terminal aesthetics: dark or slate-tinted containers with crisp sans-serif monospace accents.',
+        'High-contrast data aesthetics on the brand surface (never a dark section background): crisp sans-serif with monospace accents for figures.',
         'No frivolous decorative imagery. Every visual must earn its pixels through data clarity.',
         'Single prominent primary CTA button for the premium tier; all other links are subdued text hyperlinks.',
       ],
@@ -307,19 +307,19 @@ const PLAYBOOKS = {
       kpis: ['Cost Per Lead (CPL)', 'Cost Per Trial (CPT)', 'ROAS on Paid Subscriptions'],
       sections: [
         { id: 'primary_text', name: 'Hook + Agitation + Curiosity Gap', purpose: 'Call out smart investors tired of generic noise. Present one non-consensus fact.', required: true },
-        { id: 'creative_image', name: 'Clean Data Visualization Still', purpose: 'Visual proof: authentic terminal UI or macro chart with clean headline overlay.', required: true },
-        { id: 'headline', name: 'Benefit-Led Punchy Hook (≤ 40 chars)', purpose: 'E.g., "The Stock Market Brief 85k Pros Read Daily".', required: true },
+        { id: 'creative_image', name: 'Clean Data Visualization Still', purpose: 'Visual proof: the brand\'s own product screen or a chart built from supplied data. No text painted into the image; the platform renders the copy.', required: true },
+        { id: 'headline', name: 'Benefit-Led Punchy Hook (≤ 40 chars)', purpose: 'One concrete promise the brand itself makes. A reader count only when the brand states it.', required: true },
         { id: 'cta_button', name: 'Direct Frictionless Action', purpose: 'Subscribe / Sign Up / Learn More.', required: true },
       ],
       designRules: [
         'Creative ratio: 1:1 square for feed, 9:16 for Reels/Stories.',
-        'Text overlay kept in safe zone (middle 60%), large high-contrast typography.',
+        'No words painted into the image; keep the middle 60% clear of clutter for the platform\'s own text.',
         'No fake return promises ("Make 10x in 24 hours" violates platform policies and financial law).',
       ],
       ideationAngles: [
-        'The Insider vs Retail Gap: "Wall Street tracks these 3 metrics before buying. Most retail investors never see them."',
-        'The Morning Advantage: "Cut 90 minutes of financial noise into a 4-minute morning briefing before the opening bell."',
-        'The Cost of Ignorance: "The last time this yield curve inverted, here is what happened to tech valuations."',
+        'The Insider vs Retail Gap: what professionals check that most readers never see.',
+        'The Morning Advantage: the day\'s noise cut to one short briefing before the open.',
+        'The Cost of Ignorance: what happened the last time a supplied indicator moved this way.',
       ],
     },
     landing_page: {
@@ -329,13 +329,13 @@ const PLAYBOOKS = {
       revenueLevers: ['Opt-in Conversion Rate', 'Annual Upfront Plan Upgrades', 'Customer Lifetime Value (LTV)'],
       kpis: ['Visitor-to-Lead %', 'Lead-to-Paid %', 'Average Revenue Per User (ARPU)'],
       sections: [
-        { id: 'sticky_bar', name: 'Urgency / Daily Issue Alert Bar', purpose: 'E.g. "Tomorrow morning edition drops at 7:30 AM EST".', required: true },
+        { id: 'sticky_bar', name: 'Daily Issue Alert Bar', purpose: 'When the next edition arrives, only as the brand states its schedule. Leave out otherwise.', required: false },
         { id: 'hero', name: 'Clear Value Proposition & Email Capture Box', purpose: 'What you get, when it arrives, who reads it, zero-click email form.', required: true },
-        { id: 'social_proof_bar', name: 'Subscriber Count & Industry Logos', purpose: '"Join 120,000+ portfolio managers, analysts, and active traders".', required: true },
+        { id: 'social_proof_bar', name: 'Subscriber Count & Industry Logos', purpose: 'A subscriber count or reader logos only when the brand states them. Leave out otherwise.', required: false },
         { id: 'sample_edition', name: 'Interactive / Visual Sample Issue Preview', purpose: 'Let the reader read 2 actual analysis snippets so they experience the quality.', required: true },
         { id: 'pro_features_grid', name: 'What Free Gets vs What Pro Gets', purpose: 'Feature comparison table: daily brief vs real-time alerts + valuation models.', required: true },
-        { id: 'testimonials', name: 'Named Subscriber Testimonials', purpose: 'Quotes from named professionals with verified credentials.', required: true },
-        { id: 'risk_reversal', name: 'Unconditional Guarantee / Cancel Anytime', purpose: '30-day money-back or 1-click cancel guarantee.', required: true },
+        { id: 'testimonials', name: 'Named Subscriber Testimonials', purpose: 'Quotes copied from the brand\'s approved review library. Leave out when it is empty.', required: false },
+        { id: 'risk_reversal', name: 'Unconditional Guarantee / Cancel Anytime', purpose: 'The brand\'s own stated refund or cancellation terms. Leave out when it states none.', required: false },
         { id: 'faq', name: 'Frequently Asked Questions & Disclaimer', purpose: 'Addresses source credibility, frequency, and mandatory SEBI/SEC disclaimer.', required: true },
       ],
       designRules: ['Single scroll path.', 'Zero navigation leaks (no external social links leading off page).', 'Immediate frictionless form field.'],
@@ -352,13 +352,13 @@ const PLAYBOOKS = {
       revenueLevers: ['Open Rate & Daily Retention', 'Ad Sponsorship Click Yield', 'Subscriber Membership Tiers'],
       kpis: ['Open Rate (target ≥ 42%)', 'CTOR (target ≥ 15%)', '7-Day & 30-Day Cohort Retention'],
       sections: [
-        { id: 'masthead', name: 'Publication Header & Reading Time', purpose: 'Brand mark, current date, weather/city tag, and estimated read time.', required: true },
+        { id: 'masthead', name: 'Publication Header & Reading Time', purpose: 'Brand mark, edition date and estimated read time. No weather or city line unless supplied.', required: true },
         { id: 'lead_story', name: 'Top Story with "Why It Matters"', purpose: 'The primary headline, journalistic summary, bulleted facts, and bolded "Why it matters" paragraph.', required: true },
         { id: 'visual_editorial', name: 'Editorial Photo or Infographic', purpose: 'Single authoritative photograph or data visual directly linked to story.', required: false },
         { id: 'bulletin_bites', name: 'In Other News (The Quick Scans)', purpose: '4 to 6 punchy 2-sentence updates across politics, business, tech, culture.', required: true },
         { id: 'sponsor_slot', name: 'Native Sponsored Placement', purpose: 'Seamlessly styled ad slot matching editorial typeface, clearly labelled.', required: false },
         { id: 'curated_link', name: 'The Long Read / Watercooler Item', purpose: 'Delight piece: unexpected trivia, cultural essay, or thought-provoking interview.', required: true },
-        { id: 'footer', name: 'Editorial Colophon & Feedback', purpose: 'Masthead byline, reader reaction polls (Did you love this today? 👍/👎), unsubscribe.', required: true },
+        { id: 'footer', name: 'Editorial Colophon & Feedback', purpose: 'Masthead byline, a reader feedback link, unsubscribe.', required: true },
       ],
       designRules: [
         'Axios "Smart Brevity" style: bold lead-in words on every paragraph.',
@@ -367,7 +367,7 @@ const PLAYBOOKS = {
       ],
       ideationAngles: [
         'The Big Picture: Connecting three seemingly unrelated stories into one mega-trend.',
-        'Behind Closed Doors: What insiders are whispering that has not hit the press releases yet.',
+        'The Story Behind the Story: context the brand\'s own reporting adds to a headline.',
         'What We are Watching: Upcoming deadlines, trials, or releases that will reshape the quarter.',
       ],
     },
@@ -383,7 +383,7 @@ const PLAYBOOKS = {
         { id: 'the_takeaway', name: 'The Bottom Line', purpose: 'Clear 1-sentence conclusion.', required: true },
         { id: 'footer', name: 'Author Byline & Share Link', purpose: 'Referral engine CTA.', required: true },
       ],
-      designRules: ['Clean typography, web-safe fonts, dark neutral ink on soft paper surface.'],
+      designRules: ['Clean typography, web-safe fonts, brand ink on the brand surface.'],
       ideationAngles: ['The Context Behind the Headline.', 'The Untold Angle.'],
     },
     ad_meta: {
@@ -400,7 +400,7 @@ const PLAYBOOKS = {
       ],
       designRules: ['Quote card or clean editorial photograph.', 'Minimalist, dignified aesthetic.'],
       ideationAngles: [
-        'The 5-Minute Hack: "How 4 Million executives start their day without reading 50 open tabs."',
+        'The 5-Minute Habit: the day\'s news in one short read, in the brand\'s own words.',
         'The Perspective Shift: "News that explains why things happened, not just that they happened."',
       ],
     },
@@ -413,8 +413,8 @@ const PLAYBOOKS = {
       sections: [
         { id: 'hero', name: 'Headline + Sub + Instant Email Field', purpose: 'No scrolling needed to subscribe.', required: true },
         { id: 'edition_preview', name: 'Sample Snippet / Carousel', purpose: 'Shows exactly what lands in the inbox tomorrow.', required: true },
-        { id: 'reader_proof', name: 'Social Proof / Reader Testimonials', purpose: 'Wall of reader quotes from notable professionals.', required: true },
-        { id: 'footer', name: 'Privacy Guarantee', purpose: '100% free, no spam, 1-click unsubscribe.', required: true },
+        { id: 'reader_proof', name: 'Social Proof / Reader Testimonials', purpose: 'Reader quotes copied from the brand\'s approved review library. Leave out when it is empty.', required: false },
+        { id: 'footer', name: 'Privacy Guarantee', purpose: 'The brand\'s own privacy and unsubscribe terms, as it states them.', required: true },
       ],
       designRules: ['Mobile above-the-fold form.', 'Zero friction, instant confirmation.'],
       ideationAngles: ['The Morning Routine of the Ambitious.'],
@@ -433,12 +433,12 @@ const PLAYBOOKS = {
         { id: 'hero', name: 'Hero Spotlight / Drop Announcement', purpose: 'Striking product visual, headline, and primary purchase CTA.', required: true },
         { id: 'story_craft', name: 'The Craft / Material Origin Story', purpose: 'Sensory copywriting explaining what makes this piece unique.', required: true },
         { id: 'product_grid', name: 'Curated 2-to-4 Product Grid', purpose: 'Complementary items, cross-sell accessories, or bestsellers.', required: true },
-        { id: 'social_proof', name: 'Verified Customer Mini-Stories', purpose: 'Real quotes from buyers with star ratings and photos.', required: true },
-        { id: 'benefit_strip', name: 'Trust Bar (Shipping, Guarantee, Returns)', purpose: 'Eliminates checkout friction.', required: true },
+        { id: 'social_proof', name: 'Verified Customer Mini-Stories', purpose: 'Quotes, ratings and photos copied from the brand\'s approved review library. Leave out when it is empty.', required: false },
+        { id: 'benefit_strip', name: 'Trust Bar (Shipping, Guarantee, Returns)', purpose: 'The shipping, returns and guarantee terms the brand states, verbatim. Leave out when it states none.', required: false },
         { id: 'footer_cta', name: 'Final Sticky CTA', purpose: 'Shop the collection button.', required: true },
       ],
       designRules: ['600px width table.', 'HD product photos on brand surface.', 'High-contrast primary CTA buttons.'],
-      ideationAngles: ['The Limited Archive Drop.', 'Built for the Daily Routine.', 'The Uncompromised Standard.'],
+      ideationAngles: ['Built for the Daily Routine.', 'The Uncompromised Standard.'],
     },
     mailer_v1: {
       name: 'D2C Typographic Letter / Studio Origin Note',
@@ -462,10 +462,10 @@ const PLAYBOOKS = {
       kpis: ['ROAS', 'Cost Per Acquisition (CPA)', 'Thumb-stop Rate (3-sec video/image view)'],
       sections: [
         { id: 'hook', name: 'Visual Scroll-Stopper + Problem Agitation', purpose: 'Call out the daily annoyance or upgrade desire in 1 second.', required: true },
-        { id: 'product_reveal', name: 'Product Hero Showcase', purpose: 'Clean studio image with crisp offer tag.', required: true },
-        { id: 'proof_offer', name: 'Offer + Risk Reversal', purpose: 'Free shipping over $50, lifetime warranty, B2G1.', required: true },
+        { id: 'product_reveal', name: 'Product Hero Showcase', purpose: 'The product\'s own catalogue photo; the offer goes in the copy, never painted on the image.', required: true },
+        { id: 'proof_offer', name: 'Offer + Risk Reversal', purpose: 'The offer and terms on record for this slot, exactly. Leave out when there is none.', required: false },
       ],
-      designRules: ['1:1 and 9:16 aspect ratios.', 'Text overlay clear of bottom 20% safe zone.'],
+      designRules: ['1:1 and 9:16 aspect ratios.', 'No words painted into the image; keep the bottom 20% clear.'],
       ideationAngles: ['The Upgrade You Feel Every Day.', 'Ditch the Bulky Relic.'],
     },
     landing_page: {
@@ -475,14 +475,14 @@ const PLAYBOOKS = {
       revenueLevers: ['Direct Checkout Conversion %', 'Bundle Take Rate'],
       kpis: ['Conversion Rate', 'AOV', 'Add-to-Cart %'],
       sections: [
-        { id: 'announcement', name: 'Sticky Offer Bar', purpose: 'Free shipping + bundle gift countdown.', required: true },
-        { id: 'hero', name: 'Hero Headline + Social Proof Badge + Buy Box', purpose: 'Fast order path.', required: true },
-        { id: 'comparison_table', name: 'Us vs Traditional Market Alternatives', purpose: 'Checkmark comparison matrix proving superiority.', required: true },
-        { id: 'bundle_selector', name: 'Tiered Pricing Ladder (Good / Better / Best)', purpose: 'Pre-selects Pack of 3 or VIP bundle to lift AOV.', required: true },
-        { id: 'guarantee', name: '30-Day Money-Back Guarantee', purpose: 'Zero risk to try.', required: true },
+        { id: 'announcement', name: 'Sticky Offer Bar', purpose: 'The offer on record, exactly; no countdown unless a real end date is on record.', required: false },
+        { id: 'hero', name: 'Hero Headline + Buy Box', purpose: 'Fast order path. A proof badge only from the approved review library.', required: true },
+        { id: 'comparison_table', name: 'Us vs Alternatives', purpose: 'Only differences the brand itself states. Leave out otherwise.', required: false },
+        { id: 'bundle_selector', name: 'Tiered Pricing Ladder (Good / Better / Best)', purpose: 'Only bundles and prices in the catalogue. Leave out otherwise.', required: false },
+        { id: 'guarantee', name: 'Guarantee', purpose: 'The brand\'s own stated guarantee, verbatim. Leave out when it states none.', required: false },
       ],
-      designRules: ['Sticky bottom buy-button on mobile.', 'Social proof badges visible without scroll.'],
-      ideationAngles: ['Why 50,000 People Made the Switch This Year.'],
+      designRules: ['Sticky bottom buy-button on mobile.', 'Approved proof, when there is any, visible without scroll.'],
+      ideationAngles: ['Why People Make the Switch, in the brand\'s own words.'],
     },
   },
 
@@ -497,9 +497,9 @@ const PLAYBOOKS = {
       sections: [
         { id: 'hero', name: 'Member Milestone / Weekly Summary', purpose: 'Celebrate their usage and progress.', required: true },
         { id: 'feature_unlock', name: 'New Feature / Perk Spotlight', purpose: 'Reinforce membership value.', required: true },
-        { id: 'upgrade_cta', name: 'Annual Upgrade Incentive', purpose: 'Save 25% with annual billing.', required: true },
+        { id: 'upgrade_cta', name: 'Annual Upgrade Incentive', purpose: 'The annual-plan saving the brand states, exactly. Leave out when it states none.', required: false },
       ],
-      designRules: ['App-like cards, dark mode friendly, clean icons.'],
+      designRules: ['App-like cards on the brand surface, clean icons.'],
       ideationAngles: ['Your Weekly Recap: How You Compared.', 'Member Perk Unlocked.'],
     },
   },
@@ -513,10 +513,10 @@ const PLAYBOOKS = {
       sections: [
         { id: 'hero', name: 'Event Name, Date, City, Venue', purpose: 'Immediate logistical clarity.', required: true },
         { id: 'agenda_highlight', name: 'Keynote & Experience Highlights', purpose: 'Why attending in person changes things.', required: true },
-        { id: 'ticket_ladder', name: 'Registration Tiers with Real Deadlines', purpose: 'Early bird vs Standard.', required: true },
+        { id: 'ticket_ladder', name: 'Registration Tiers with Real Deadlines', purpose: 'Only tiers, prices and deadlines the brand states.', required: true },
       ],
-      designRules: ['Prominent calendar save-the-date widget.', 'Countdown to price bump.'],
-      ideationAngles: ['The Gathering of the Year.', 'Seats are Limited to Venue Capacity.'],
+      designRules: ['Prominent calendar save-the-date widget.', 'A countdown only to a deadline the brand states.'],
+      ideationAngles: ['The Gathering of the Year.', 'Why Being in the Room Matters.'],
     },
   },
   services: {
@@ -527,7 +527,7 @@ const PLAYBOOKS = {
       revenueLevers: ['Qualified Inquiries', 'Average Deal Size'],
       kpis: ['Brief Submission Rate', 'Consultation Bookings'],
       sections: [
-        { id: 'hero', name: 'Case Study Outcome Showcase', purpose: 'Demonstrate elite mastery.', required: true },
+        { id: 'hero', name: 'Case Study Outcome Showcase', purpose: 'A finished project the brand itself publishes. Leave out otherwise.', required: false },
         { id: 'process', name: 'The 3-Step Engagement Process', purpose: 'Demystify how working together begins.', required: true },
         { id: 'inquiry_cta', name: 'Book Discovery Call / Submit Brief', purpose: 'Low-friction private inquiry.', required: true },
       ],
@@ -576,6 +576,38 @@ function playbookFor(brand, assetType) {
 function imagePolicyFor(brand) {
   const model = businessModel(brand);
   return IMAGE_POLICIES[model] || IMAGE_POLICIES.commerce;
+}
+
+// What a benchmark may lend and what it may not (2026-10-17). These playbooks
+// describe how OTHER publications and stores build assets; the structure is
+// borrowed, never their facts. Said in every block so a section that needs a
+// fact this brand has not given is left out instead of filled.
+const BORROW_RULE = 'HOW TO USE THIS BENCHMARK: borrow the STRUCTURE and the order of sections only. Every fact, number, price, review, rating, subscriber count, guarantee, shipping or returns term, deadline and market figure comes from this brand\'s own record and the data supplied above, or the section is left out. Never write a figure from the benchmark or its exemplars. Section backgrounds are the brand colour or its surface, never black or dark grey.';
+
+/**
+ * The benchmark for every asset ONE copy request writes (Smart Brain writes
+ * the email, the landing page and the ads in one answer), compact: the
+ * revenue job once, then each asset's section order, then the rule above.
+ */
+function playbookBrief(brand, assetTypes, opts = {}) {
+  const types = (Array.isArray(assetTypes) && assetTypes.length) ? assetTypes : ['mailer_v2'];
+  const first = playbookFor(brand, types[0]);
+  const model = first.businessModel;
+  const lines = [
+    `COMPETITIVE BENCHMARK (${model.replace('_', ' ')}; patterns from ${(first.exemplars || []).slice(0, 4).join(', ')}):`,
+    `- Revenue job: ${first.revenueJob}`,
+  ];
+  const label = { mailer_v2: 'Email', mailer_v1: 'Text email', landing_page: 'Landing page', ad_meta: 'Ads' };
+  for (const t of types) {
+    const pb = playbookFor(brand, t);
+    const secs = (pb.sections || []).map((x) => `${x.name}${x.required ? '' : ' (only if the brand states it)'}`).join(' > ');
+    if (secs) lines.push(`- ${label[t] || t} sections, in order: ${secs}`);
+  }
+  const angles = (first.ideationAngles || []).slice(0, 3);
+  if (angles.length) lines.push(`- Angles that work in this business: ${angles.join(' | ')}`);
+  lines.push(`- ${BORROW_RULE}`);
+  if (model === 'market_data') lines.push(`- Every email and page closes with this disclaimer, which the layout adds; write nothing that contradicts it (no advice, no promised return): "${financialDisclaimer(opts.market || (brand && brand.region) || 'US', brand)}"`);
+  return lines.join('\n');
 }
 
 /**
@@ -632,6 +664,8 @@ function playbookBlock(brand, assetType, opts = {}) {
     imgNeverLines,
     `Composition Rule: ${imgPolicy.compositionRule}`,
   ];
+
+  parts.push(``, BORROW_RULE);
 
   if (model === 'market_data') {
     parts.push(
@@ -697,15 +731,15 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Contrarian Shift',
         category: 'Market Catalyst',
         formula: 'While retail was watching {event_A}, institutional capital quietly rotated into {sector_B}.',
-        example: `While retail was fixated on headline rate cuts, institutional desks quietly accumulated $4.2B in defensive domestic industrials.`,
+        example: `While retail was fixated on headline rate cuts, institutional desks quietly added to defensive domestic industrials.`,
         whyItConverts: 'Subverts consensus expectations; triggers fear of missing the institutional move.',
       },
       {
         id: 'blindspot_reveal',
         name: 'The Blindspot Reveal',
         category: 'Data Asymmetry',
-        formula: 'The 1 metric 95% of {market} investors miss before {key_event}.',
-        example: `The 1 liquidity divergence metric 95% of equity investors miss before quarterly earnings.`,
+        formula: 'The 1 metric most {market} investors miss before {key_event}.',
+        example: `The 1 liquidity metric most equity investors miss before quarterly earnings.`,
         whyItConverts: 'Promises proprietary edge and information asymmetry without making illegal return promises.',
       },
       {
@@ -765,7 +799,7 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Emotional End-State',
         category: 'Aspirational Outcome',
         formula: 'What everyday life feels like once you upgrade to {product_or_collection}.',
-        example: `What mornings feel like when your footwear is custom-engineered for 14-hour city pavement comfort.`,
+        example: `What a {use_moment} feels like once {product} is part of it.`,
         whyItConverts: 'Sells the payoff and transformation rather than technical specifications.',
       },
       {
@@ -773,7 +807,7 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Us vs Them Contrast',
         category: 'Craftsmanship & Integrity',
         formula: 'Most {category} cut corners with {cheap_practice}. Why {brandName} obsesses over {premium_craft}.',
-        example: `Most sneakers use printed vinyl that cracks in weeks. Why ${brandName} paints by hand with scratch-resistant acrylics.`,
+        example: `Most {category} cut corners on {practice}. Why ${brandName} does {what the brand itself states it does}.`,
         whyItConverts: 'Differentiates the brand sharply against commoditized mass-market competitors.',
       },
       {
@@ -781,15 +815,15 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Sensory Unboxing',
         category: 'Tactile Proof',
         formula: 'From the first unboxing: {sensory_details} that prove this isn\'t ordinary {category}.',
-        example: `From the magnetic weight of the box to the matte finish: the sensory details of the Grail Drop.`,
+        example: `From the first touch to the finish: the details of {product} that its own page describes.`,
         whyItConverts: 'Triggers anticipatory desire and builds tangible value before purchase.',
       },
       {
         id: 'vault_drop',
         name: 'The Vault Drop / Scarcity',
         category: 'Exclusivity & Urgency',
-        formula: 'Limited studio run: only {quantity} pairs produced. When they are gone, this archive closes.',
-        example: `Limited studio run: only 150 pairs produced for this release. When claimed, the design is vaulted.`,
+        formula: 'Limited run: only {quantity the brand states} made. When they are gone, this release closes.',
+        example: `Limited run: only {stated quantity} made for this release. Use this only when the brand states the quantity.`,
         whyItConverts: 'Genuine scarcity drives immediate purchase action without resorting to cheap countdown timers.',
       },
     ],
@@ -798,8 +832,8 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         id: 'compounding_advantage',
         name: 'The Compounding Advantage',
         category: 'Productivity & ROI',
-        formula: 'How the top 1% of {professionals} save {hours} every week using {feature}.',
-        example: `How the top 1% of ecommerce operators save 14 hours every week using automated lifecycle playbooks.`,
+        formula: 'How {professionals} save time every week using {feature}.',
+        example: `How {the brand's readers} get back time every week with {a feature the brand names}.`,
         whyItConverts: 'Translates recurring cost into massive ROI and career leverage.',
       },
       {
@@ -807,7 +841,7 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Cost of Inaction',
         category: 'Loss Aversion',
         formula: 'The silent revenue leakage happening in your {system} every month you delay.',
-        example: `The 22% subscriber churn silently eroding your bottom line every month without proactive winback flows.`,
+        example: `The quiet cost of {problem the brand solves} every month it waits.`,
         whyItConverts: 'Loss aversion is psychologically 2x more potent than prospective gain.',
       },
     ],
@@ -817,7 +851,7 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Closed-Door Room',
         category: 'Access & Status',
         formula: 'The room where the future of {industry} gets decided. Meet the {speakers/delegates}.',
-        example: `The room where the next decade of direct-to-consumer commerce gets decided. Meet the 500 keynote leaders.`,
+        example: `The room where the next chapter of {industry} gets decided. Meet {the speakers the brand names}.`,
         whyItConverts: 'Leverages FOMO and professional status recognition.',
       },
     ],
@@ -827,13 +861,39 @@ function competitorHooksFor(brand, assetType = 'mailer') {
         name: 'The Strategic Teardown',
         category: 'Proven Track Record',
         formula: 'How we diagnosed {client_challenge} and engineered a {measurable_payoff} in {timeframe}.',
-        example: `How we diagnosed Knickgasm's global retention bottlenecks and generated a 34% lift in repeat orders in 60 days.`,
+        example: `How we diagnosed {a client's challenge} and delivered {a result the brand publishes}. Use only a case the brand itself publishes.`,
         whyItConverts: 'Tangible case study proof eliminates buyer skepticism before the discovery call.',
       },
     ],
   };
 
   return HOOK_CATALOG[model] || HOOK_CATALOG.commerce;
+}
+
+// The regulatory disclaimer, printed (2026-10-17). The playbooks always said a
+// market-data asset must close with it, but only the Studio's prompt carried it
+// and no renderer printed it, so a research brand's mail and landing page went
+// out with none. Inserted above the sender line, in that line's own style (its
+// colour is already AA on its ground), else at the top of the <footer>, else
+// before </body>. Any other business: the html unchanged.
+function disclaimerFor(brand, market) {
+  return businessModel(brand) === 'market_data' ? financialDisclaimer(market, brand) : '';
+}
+function withDisclaimer(html, brand, market) {
+  const s = String(html || '');
+  const text = disclaimerFor(brand, market);
+  if (!s || !text || /data-disclaimer/.test(s)) return s;
+  const t = text.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+  // The sender line is a <p> in some renderers and a <div> in others; the
+  // block takes the same tag and style, so it sits on the same ground.
+  const legal = /<(p|div)(\s[^>]*)?>(?=(?:(?!<\/?(?:p|div)[\s>])[\s\S])*?(?:receiving this as|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s)
+    || /<(p|div)(\s[^>]*)?>(?=(?:(?!<\/?(?:p|div)[\s>])[\s\S])*?unsubscribe)/i.exec(s);
+  if (legal) return s.slice(0, legal.index) + `<${legal[1]} data-disclaimer${legal[2] || ''}>${t}</${legal[1]}>` + s.slice(legal.index);
+  const foot = /<footer[^>]*>/i.exec(s);
+  if (foot) { const at = foot.index + foot[0].length; return s.slice(0, at) + `<p data-disclaimer style="margin:0 0 10px;font-size:11px;line-height:1.6">${t}</p>` + s.slice(at); }
+  const i = s.toLowerCase().lastIndexOf('</body>');
+  const block = `<p data-disclaimer style="margin:16px;font-size:11px;line-height:1.6">${t}</p>`;
+  return i === -1 ? s + block : s.slice(0, i) + block + s.slice(i);
 }
 
 // The button a reader of THIS business presses when no copy named one: a news
@@ -848,6 +908,10 @@ module.exports = {
   BUSINESS_MODELS,
   businessModel,
   defaultCta,
+  playbookBrief,
+  disclaimerFor,
+  withDisclaimer,
+  BORROW_RULE,
   financialDisclaimer,
   imagePolicyFor,
   playbookFor,
