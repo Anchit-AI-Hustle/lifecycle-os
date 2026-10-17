@@ -322,10 +322,14 @@ module.exports = async function handler(req, res) {
     const hasOpenAI = !!process.env.OPENAI_API_KEY;
     const hasGemini = !!process.env.GEMINI_API_KEY;
     const hasSupabase = !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL);
+    // With no key, text still runs on the free keyless model llm.js keeps last
+    // in every cascade, unless FREE_GENERATION=off (then it is 'none').
+    let freeText = false;
+    try { freeText = require('./_shared/llm.js').freeGenerationOn(); } catch (_) { freeText = false; }
     return res.status(200).json({
       ok: true, build: 'lifecycle-os', ts: new Date().toISOString(), region: process.env.VERCEL_REGION || 'unknown', env: process.env.VERCEL_ENV || 'unknown',
       providers: {
-        text: { active: hasOpenAI ? 'openai' : (hasGemini ? 'gemini' : 'none'), openai_configured: hasOpenAI, gemini_configured: hasGemini },
+        text: { active: hasOpenAI ? 'openai' : (hasGemini ? 'gemini' : (freeText ? 'pollinations (free)' : 'none')), openai_configured: hasOpenAI, gemini_configured: hasGemini, free_generation: freeText },
         image: { active: hasOpenAI ? 'openai' : 'pollinations', pollinations_available: true },
         storage: { supabase_configured: hasSupabase },
       },
