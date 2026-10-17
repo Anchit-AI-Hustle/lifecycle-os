@@ -134,13 +134,101 @@ test('Generate here sends the edited brief once and plays the track that comes b
   expect(log.errors).toEqual([]);
 });
 
-test('with no music key the server\'s own sentence is shown, naming what to set and the Suno route', async ({ page }) => {
+// Changed on purpose 2026-10-17: with no music key the page no longer stops at
+// the server's sentence; it names the missing key and makes the track in the
+// browser instead (music-synth.js), a generated instrumental.
+test('with no music key the page names the missing key and makes a generated instrumental here instead', async ({ page }) => {
   const log = await harness(page, 'http://localhost:4977', { noKey: true });
+  await page.fill('#mkSecs', '15');
   await page.click('#mkGenerate');
+  await expect(page.locator('[data-made-track] audio')).toHaveCount(1, { timeout: 30000 });
   await expect(page.locator('#mkStatus')).toContainText('ELEVENLABS_API_KEY');
-  await expect(page.locator('#mkStatus')).toContainText('Open in Suno');
+  await expect(page.locator('#mkStatus')).toContainText('made in your browser');
   expect(log.compose).toHaveLength(1);
-  await expect(page.locator('[data-made-track]')).toHaveCount(0);
+  await expect(page.locator('[data-made-track] a[download]')).toHaveAttribute('download', 'lensbrand-track.wav');
+  expect(log.errors).toEqual([]);
+});
+
+/* ── Generate here, free: a WAV rendered in the browser (2026-10-17) ──────── */
+
+/** Reads the blob behind the made track in the page and decodes its WAV header and samples. */
+async function readMade(page, index) {
+  return page.evaluate(async (i) => {
+    const audios = document.querySelectorAll('[data-made-track] audio');
+    const src = audios[i].getAttribute('src');
+    const buf = await (await fetch(src)).arrayBuffer();
+    const v = new DataView(buf);
+    const tag = (o) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
+    const dataBytes = v.getUint32(40, true);
+    let peak = 0, nonzero = 0;
+    for (let o = 44; o < 44 + dataBytes; o += 2) { const x = Math.abs(v.getInt16(o, true)); if (x > peak) peak = x; if (x > 200) nonzero++; }
+    let h = 0x811c9dc5; const u8 = new Uint8Array(buf);
+    for (let k = 0; k < u8.length; k++) { h ^= u8[k]; h = Math.imul(h, 0x01000193) >>> 0; }
+    return { src, size: buf.byteLength, riff: tag(0), wave: tag(8), fmt: tag(12), data: tag(36), riffSize: v.getUint32(4, true),
+      format: v.getUint16(20, true), channels: v.getUint16(22, true), rate: v.getUint32(24, true), bits: v.getUint16(34, true), dataBytes, peak, nonzero, hash: h };
+  }, index);
+}
+
+for (const width of [390, 1280]) {
+  test(`at ${width}px Generate here, free renders a valid, audible, deterministic WAV in the browser and sends nothing`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
+    const log = await harness(page, 'http://localhost:4977', {});
+    // The brief is rewritten when the full record arrives: let it settle first.
+    await page.waitForLoadState('networkidle');
+    await page.fill('#mkSecs', '15');
+    const BRIEF = 'Calm minimal underscore at 84 BPM for an eyewear film';
+    await page.locator('#mkPrompt').fill(BRIEF);
+    await expect(page.locator('#mkPrompt')).toHaveValue(BRIEF);
+    await page.click('#mkFree');
+    await expect(page.locator('[data-made-track] audio')).toHaveCount(1, { timeout: 30000 });
+    await expect(page.locator('#mkStatus')).toContainText('generated instrumental made in your browser');
+    await expect(page.locator('#mkStatus')).toContainText('84 BPM (stated)');
+    await expect(page.locator('#mkStatus')).toContainText('minor');
+    const a = await readMade(page, 0);
+    expect(a.src).toMatch(/^blob:/);
+    expect([a.riff, a.wave, a.fmt, a.data]).toEqual(['RIFF', 'WAVE', 'fmt ', 'data']);
+    expect(a.format).toBe(1); expect(a.bits).toBe(16); expect(a.channels).toBe(2); expect(a.rate).toBe(44100);
+    expect(a.dataBytes).toBe(15 * 44100 * 2 * 2);
+    expect(a.riffSize).toBe(a.size - 8);
+    expect(a.peak, 'the track is silent').toBeGreaterThan(20000);
+    expect(a.nonzero).toBeGreaterThan(a.dataBytes / 2 / 4);
+    const dl = page.locator('[data-made-track] a[download]').first();
+    await expect(dl).toHaveAttribute('download', 'lensbrand-track.wav');
+    expect(await dl.getAttribute('href')).toBe(a.src);
+    await expect(page.locator('[data-made-track]').first()).toContainText('made in your browser');
+
+    // Same brief, same length: the same bytes.
+    await expect(page.locator('#mkPrompt')).toHaveValue(BRIEF);
+    await page.click('#mkFree');
+    await expect(page.locator('[data-made-track] audio')).toHaveCount(2, { timeout: 30000 });
+    const b = await readMade(page, 0);
+    expect(b.src).not.toBe(a.src);
+    expect(b.size).toBe(a.size); expect(b.hash).toBe(a.hash);
+    // A different brief is a different track.
+    await page.locator('#mkPrompt').fill('Upbeat bright playful ad bed with a punchy hook');
+    await page.click('#mkFree');
+    await expect(page.locator('[data-made-track] audio')).toHaveCount(3, { timeout: 30000 });
+    await expect(page.locator('#mkStatus')).toContainText('major');
+    await expect(page.locator('#mkStatus')).toContainText('high energy');
+    const c = await readMade(page, 0);
+    expect(c.hash).not.toBe(a.hash);
+
+    expect(log.compose, 'the free generator called the server').toEqual([]);
+    expect(log.errors).toEqual([]);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, 'the page scrolls sideways').toBeLessThanOrEqual(0);
+  });
+}
+
+test('the length is held to 15-60 seconds, and Generate here, free works signed out against a paused backend', async ({ page }) => {
+  const log = await harness(page, 'http://app.example.test', { dead: true });
+  await page.fill('#mkSecs', '120');
+  await page.click('#mkFree');
+  await expect(page.locator('[data-made-track] audio')).toHaveCount(1, { timeout: 60000 });
+  const a = await readMade(page, 0);
+  expect(a.dataBytes).toBe(60 * 44100 * 2 * 2);
+  await expect(page.locator('#mkStatus')).toContainText('60 seconds');
+  expect(log.compose).toEqual([]);
 });
 
 test('signed out against a paused backend nothing is sent, and the page says why', async ({ page }) => {

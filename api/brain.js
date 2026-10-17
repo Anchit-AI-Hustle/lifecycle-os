@@ -173,6 +173,17 @@ function unattributedShape(req, b) {
   return !(q.workspace_id || body.workspace_id) && !tokenOn(req) && !!(h.origin || h.referer);
 }
 
+// Free keyless generation (a provider that needs no key, or code alone) is on
+// unless FREE_GENERATION=off. llm.js owns the switch when it exports it; this
+// reads the same variable otherwise, resolved at CALL time (a test sets it).
+function freeGenerationOn() {
+  try {
+    const l = require('./_shared/llm.js');
+    if (l && typeof l.freeGenerationOn === 'function') return !!l.freeGenerationOn();
+  } catch (_) {}
+  return String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off';
+}
+
 function cronAuthorized(req) {
   const secret = (process.env.CRON_SECRET || '').trim();
   if (secret) {
@@ -1210,7 +1221,19 @@ module.exports = async function handler(req, res) {
       case 'tts': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const apiKey = process.env.ELEVENLABS_API_KEY;
-        if (!apiKey) return res.status(501).json({ ok: false, error: 'ELEVENLABS_API_KEY not configured — client should use browser speechSynthesis fallback' });
+        if (!apiKey) {
+          // No key: a keyless voice the browser plays itself (2026-10-17). The
+          // SAME Pollinations audio URL form copilot.js already plays
+          // (text.pollinations.ai/<text>?model=openai-audio&voice=<voice>),
+          // so nothing is fetched here and no key is spent. FREE_GENERATION=off
+          // turns it off and the client keeps its browser-voice fallback.
+          if (!freeGenerationOn()) return res.status(501).json({ ok: false, error: 'ELEVENLABS_API_KEY not configured — client should use browser speechSynthesis fallback' });
+          const clean = String(b.text || '').replace(/\s+/g, ' ').trim().slice(0, 700);
+          if (!clean) return res.status(400).json({ ok: false, error: 'text_required', message: 'Nothing to speak.' });
+          const voice = /^[a-z]{2,20}$/i.test(String(b.voice || '')) ? String(b.voice) : 'nova';
+          const audio_url = 'https://text.pollinations.ai/' + encodeURIComponent(clean) + '?model=openai-audio&voice=' + encodeURIComponent(voice);
+          return res.status(200).json({ ok: true, provider: 'pollinations', voice, audio_url, note: 'A free keyless voice the browser plays directly; if it does not load, the browser voice speaks instead.' });
+        }
         const voiceId = b.voice_id || process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
         const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
           method: 'POST',
