@@ -281,12 +281,13 @@ function brandGates(ctx) {
 // ── Agent 1: Ideology (premium) ───────────────────────────────────────────────
 function fallbackIdeology(ctx) {
   const f = ctx.festival;
-  const p = ctx.focus.product;
+  const r = recordFacts(ctx);
+  const b = brandRecord(ctx);
   return {
-    theme: f ? (f.name + ' — a pair that exists once') : ('One of one, and only one: ' + p.title),
-    narrative: 'Today we sit with ' + p.title + ', from ' + brandName(ctx) + '.',
-    mood: 'calm, warm, sensory',
-    visual_direction: 'Golden-hour still life on chalk linen: ' + p.title + ' as hero, deep deep-purple ceramics, steam catching the light, small lava accents; generous negative space.',
+    theme: f ? (r.product ? f.name + ': ' + r.product : f.name) : (r.product || r.tagline || r.name),
+    narrative: r.lead,
+    mood: String((b.voice && b.voice.tone) || ''),
+    visual_direction: (r.product ? r.product + ', in ' + r.name + "'s own setting and palette" : r.name + "'s own world, in its own palette") + '; generous negative space; no text in frame.',
     calendar_moment: f ? f.name : null,
   };
 }
@@ -368,16 +369,31 @@ function allowedLink(ctx, link) {
   return hosts.indexOf(host) >= 0;
 }
 
-function defaultCta(focus) {
-  if (focus.type === 'tb') return 'Shop ' + focus.product.title.split(',')[0];
-  return 'Shop ' + focus.product.title.split(',')[0]; // every lane is one-time purchase
+// What the record states, for the fallbacks (2026-10-17 audit): they wrote
+// one sneaker brand's lines ("the right pair stops being footwear", "Lacing
+// ... the way the studio taught us"), a sibling project's ("Your 3pm deserved
+// better", "the ritual"), "Shop [DATA REQUIRED ...]" and a GBP price for every
+// brand. A gap goes to data_gaps, never into a post.
+function recordFacts(ctx) {
+  const b = brandRecord(ctx);
+  const title = String((ctx && ctx.focus && ctx.focus.product && ctx.focus.product.title) || '').trim();
+  const product = title && !/^\[DATA REQUIRED/.test(title) ? title.split(',')[0].trim() : '';
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter((c) => typeof c === 'string' && c.trim()).map((c) => c.trim().replace(/[.\s]+$/, ''));
+  const tagline = String(b.tagline || '').trim();
+  const name = b.name || 'this brand';
+  let cta = 'Learn more';
+  try { cta = require('./asset-playbooks.js').defaultCta(b, { hasProduct: !!product }); } catch (_) { /* keep */ }
+  return { name, product, subject: product || name, tagline, claims, lead: tagline || claims[0] || '', cta };
+}
+function defaultCta(focus, ctx) {
+  return recordFacts(Object.assign({}, ctx || {}, { focus })).cta;
 }
 function fallbackStrategy(ctx, keys) {
   const per = {};
   for (const key of keys) {
     per[key] = {
       objective: DEFAULT_OBJECTIVE[key] || 'awareness',
-      cta: defaultCta(ctx.focus),
+      cta: defaultCta(ctx.focus, ctx),
       link: ctx.focus.product.url,
       note: 'deterministic default (objective map + focus product page)',
     };
@@ -431,64 +447,53 @@ function focusLine(focus) {
   return p.title + (price ? ' - ' + price : '');
 }
 function fallbackContent(ctx, ideology, strategy, keys) {
-  const p = ctx.focus.product;
-  const line = focusLine(ctx.focus);
-  const opener = 'There is a moment when the right pair stops being footwear and starts being a signature.';
-  const hook = ctx.focus.type === 'coffee' ? 'Your 3pm deserved better. So we rebuilt the pair.' : 'The slowest two minutes of your day, done properly.';
-  const alt = 'Editorial still life of ' + p.title + " in " + brandName(ctx) + "'s own palette.";
+  const r = recordFacts(ctx);
+  const proof = r.claims.filter((c) => c !== r.lead).slice(0, 2).join(' · ');
+  const head = r.product ? r.product + (r.lead ? ': ' + r.lead : '') : (r.lead || r.name);
+  const hook = r.lead || r.subject;
+  const alt = (r.product ? r.product + ', ' : '') + r.name + ', in its own palette.';
+  const join = (parts, sep) => parts.filter(Boolean).join(sep);
   const posts = {};
   for (const key of keys) {
-    const st = strategy.per_platform[key];
+    const st = strategy.per_platform[key] || {};
+    const go = st.link ? st.cta + ': ' + st.link : st.cta;
     switch (key) {
       case 'instagram_feed':
-        posts[key] = { caption: opener + '\n\n' + line + '\n\n' + ideology.narrative + '\n\n' + st.cta + ' — link in bio.', hook: opener, alt_text: alt }; break;
+        posts[key] = { caption: join([head, proof, st.cta + ', link in bio.'], '\n\n'), hook, alt_text: alt }; break;
       case 'instagram_reels':
-        posts[key] = { caption: hook + ' ' + line + ' ' + st.cta + ' — link in bio.', hook, alt_text: alt }; break;
-      case 'instagram_stories':
-        posts[key] = { caption: hook + ' Tap through for the ritual → ' + st.cta + '.', hook, alt_text: alt }; break;
-      case 'facebook':
-        posts[key] = { caption: opener + ' ' + line + ' ' + st.cta + ': ' + st.link, hook: opener, alt_text: alt }; break;
-      case 'tiktok':
-        posts[key] = { caption: hook + ' ' + (ctx.focus.type === 'tb' ? 'Lacing ' + p.title.split(',')[0] + ' the way the studio taught us.' : line), hook, alt_text: alt }; break;
-      case 'linkedin':
-        posts[key] = { caption: 'Today from ' + brandName(ctx) + ': ' + p.title + '. ' + line + '\n\n' + st.cta + ': ' + st.link, hook: '', alt_text: alt }; break;
-      case 'x':
-        posts[key] = { caption: hook + ' ' + p.title.split(',')[0] + ' → ' + st.link, hook, alt_text: alt }; break;
-      case 'pinterest':
-        posts[key] = { title: (p.title + ' | ' + brandName(ctx)).slice(0, 100), caption: line + ' ' + st.cta + '.', hook: '', alt_text: alt }; break;
-      case 'youtube_shorts':
-        posts[key] = { title: (hook + ' | ' + brandName(ctx)).slice(0, 100), caption: line + ' ' + st.cta + ': ' + st.link, hook, alt_text: alt }; break;
       case 'threads':
-        posts[key] = { caption: hook + ' ' + line, hook, alt_text: alt }; break;
+        posts[key] = { caption: join([head, proof], ' '), hook, alt_text: alt }; break;
+      case 'instagram_stories':
+        posts[key] = { caption: join([hook, st.cta], ' · '), hook, alt_text: alt }; break;
+      case 'linkedin':
+        posts[key] = { caption: join(['From ' + r.name + ': ' + head, proof, go], '\n\n'), hook: '', alt_text: alt }; break;
+      case 'pinterest':
+        posts[key] = { title: join([r.subject, r.subject !== r.name ? r.name : ''], ' | ').slice(0, 100), caption: join([head, st.cta + '.'], ' '), hook: '', alt_text: alt }; break;
+      case 'youtube_shorts':
+        posts[key] = { title: join([hook, hook !== r.name ? r.name : ''], ' | ').slice(0, 100), caption: join([head, go], ' '), hook, alt_text: alt }; break;
       case 'blog':
         posts[key] = fallbackBlog(ctx, ideology, st); break;
       default:
-        posts[key] = { caption: opener + ' ' + line, hook: opener, alt_text: alt };
+        posts[key] = { caption: join([head, go], ' '), hook, alt_text: alt };
     }
     if (!posts[key].hashtags) posts[key].hashtags = tagsFor(key, ctx.focus);
   }
-  return { posts };
+  const data_gaps = [];
+  if (!r.product) data_gaps.push('[DATA REQUIRED BEFORE LAUNCH: hero product, ' + r.name + ']');
+  if (!r.lead) data_gaps.push('[DATA REQUIRED BEFORE LAUNCH: tagline or verifiable claims, ' + r.name + ']');
+  return { posts, data_gaps };
 }
 function fallbackBlog(ctx, ideology, st) {
-  const p = ctx.focus.product;
-  const name = p.title.split(',')[0];
-  const paras = [
-    'Today we want to spend a moment with ' + p.title + ', from ' + brandName(ctx) + '.',
-    ideology.narrative,
-    '[DATA REQUIRED BEFORE LAUNCH: origin story for ' + brandName(ctx) + ']',
-    ctx.focus.type === 'coffee'
-      ? '[DATA REQUIRED BEFORE LAUNCH: collection narrative for ' + brandName(ctx) + ']'
-      : '[DATA REQUIRED BEFORE LAUNCH: product narrative for ' + brandName(ctx) + ']',
-    '## Getting the most from it\n\n[DATA REQUIRED BEFORE LAUNCH: care and usage notes for ' + brandName(ctx) + ']',
-    '## Worth keeping\n\n[DATA REQUIRED BEFORE LAUNCH: closing narrative for ' + brandName(ctx) + ']'
-  ];
+  const r = recordFacts(ctx);
+  const paras = [r.lead, r.claims.length > 1 ? r.claims.map((c) => '- ' + c).join('\n') : '', st && st.link ? '[' + st.cta + '](' + st.link + ')' : ''].filter(Boolean);
+  const slugBase = r.subject + '-' + ctx.date;
   return {
-    title: (ideology.theme + ' — with ' + name).slice(0, 90),
-    slug: (name + '-' + ctx.date).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-    meta_description: ('The story behind ' + p.title + ' — origin-fresh, one-of-one, and how to build a daily ritual around it.').slice(0, 158),
-    body_markdown: '# ' + ideology.theme + '\n\n' + paras.join('\n\n'),
+    title: r.subject.slice(0, 90),
+    slug: slugBase.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+    meta_description: (r.lead || r.subject).slice(0, 158),
+    body_markdown: '# ' + r.subject + '\n\n' + paras.join('\n\n'),
     hashtags: [],
-    alt_text: 'Editorial hero image of ' + p.title + " in " + brandName(ctx) + "'s own palette.",
+    alt_text: (r.product ? r.product + ', ' : '') + r.name + ', in its own palette.',
   };
 }
 async function contentAgent(ctx, ideology, strategy, keys, timeoutMs) {
