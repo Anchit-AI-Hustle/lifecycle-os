@@ -2081,16 +2081,15 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero-media img{width:100%;height:280px;object-fit:cover;border-radius:12px;display:block}
 @media(min-width:900px){.hero{padding:56px 32px}.hero-grid.has-media{grid-template-columns:1fr 1fr;text-align:left;gap:48px}.hero-grid.has-media h1,.hero-grid.has-media p{margin-left:0;margin-right:0}.hero-media img{height:420px}}
 .others{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),260px));gap:14px}
-.other img{width:100%;aspect-ratio:1/1;object-fit:cover}
-.other .ph{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:1/1;background:var(--chalk-warm);color:var(--ink);font-family:var(--head);font-size:44px}
+.other .ph{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;padding:0;background:var(--chalk-warm);color:var(--ink);font-family:var(--head);font-size:44px}
 .offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px;padding:0;margin:0;list-style:none}
-.offers li{border:1px solid var(--chalk-warm);border-radius:12px;padding:14px 16px;background:var(--chalk)}
+.offers li{border:1px solid var(--ink-dim);border-radius:12px;padding:14px 16px;background:var(--chalk-warm)}
 .offers a{color:var(--ink);font-weight:700}
 .other{display:block;text-decoration:none;color:var(--ink);background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;overflow:hidden}
 .other img{width:100%;aspect-ratio:4/3;object-fit:cover}
 .other span{display:block;padding:12px 14px;font-family:var(--head);font-size:16px;line-height:1.3}
 body{padding-bottom:4px}
-.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 0 12px}
+.hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 auto 12px}
 .hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
 .hero p{max-width:540px;margin:0 auto 20px;color:var(--on-moss);font-size:15px}
 .btn{display:inline-flex;align-items:center;justify-content:center;background:var(--lava);color:var(--on-lava);font-weight:700;text-decoration:none;padding:12px 28px;min-height:44px;border-radius:6px;border:0;cursor:pointer;font-size:15px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease}
@@ -2724,18 +2723,29 @@ function videoStatus() {
   }
 }
 
-function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runId = null) {
-  // Held to the brand's own words before anything is rendered (2026-10-17):
-  // a benefit or sentence that states a quality the brand and its catalogue
-  // never state is dropped (copy-grounding.js), and the campaign says what.
+// Held to the brand's own words before anything is judged or rendered
+// (2026-10-17): a benefit or sentence that states a quality the brand and its
+// catalogue never state is dropped (copy-grounding.js), and the campaign says
+// what. It runs BEFORE the brand guard: one invented line ("Award-winning
+// service") used to make the guard discard the whole answer - mailer, landing
+// page and every ad - when only that line was the problem.
+function groundModelCopy(campaign, entry, copyA, copyB) {
   try {
     let row = null;
     try { row = catalogImage.match(entry, entry.market, { brand: entry.brand }); } catch (_) { row = null; }
     const product = Object.assign({}, entry.heroProduct || {}, row || {});
     const grounding = require('./copy-grounding.js');
-    const dropped = grounding.groundCopy(copyA, entry.brand, product).concat(copyB && copyB !== copyA ? grounding.groundCopy(copyB, entry.brand, product) : []);
+    let dropped = grounding.groundCopy(copyA, entry.brand, product).concat(copyB && copyB !== copyA ? grounding.groundCopy(copyB, entry.brand, product) : []);
+    const seen = new Set((campaign.copy_grounding && campaign.copy_grounding.dropped || []).map((d) => d.field + '|' + d.text));
+    const fresh = dropped.filter((d) => { const k = d.field + '|' + d.text; if (seen.has(k)) return false; seen.add(k); return true; });
+    if (fresh.length) dropped = (campaign.copy_grounding && campaign.copy_grounding.dropped || []).concat(fresh);
+    else dropped = (campaign.copy_grounding && campaign.copy_grounding.dropped) || [];
     if (dropped.length) campaign.copy_grounding = { dropped, note: `${dropped.length} line(s) the model wrote were left out: they state something the brand's own record and catalogue do not.` };
   } catch (_) { /* grounding must never stop a build */ }
+}
+
+function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runId = null) {
+  groundModelCopy(campaign, entry, copyA, copyB);
   const briefFor = (copy, k) => ({ brief: (k && copy.ads?.[k]?.image_brief) || '', image: null, provider: null });
   // Distinct real gallery pool for this slot (hero product + supporting), HD.
   // B-variants draw an ALTERNATE real photo (not the email hero) so the A/B
@@ -2779,7 +2789,31 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     // framework directions). No static template strings repeated across slots.
     const copy = isB ? copyB : copyA;
     if (ad.platform === 'meta' && copy.ads.meta) Object.assign(ad, { primary_text: copy.ads.meta.primary_text || ad.primary_text, headline: copy.ads.meta.headline || ad.headline, description: copy.ads.meta.description || ad.description });
-    if (ad.platform === 'google' && copy.ads.google) Object.assign(ad, { headlines: copy.ads.google.headlines?.filter(Boolean) || ad.headlines, descriptions: copy.ads.google.descriptions?.filter(Boolean) || ad.descriptions });
+    // The model's lines first, then the template's own lines (the brand's
+    // names, tagline, claims and action) up to Google's 15 / 4: a model that
+    // wrote 3 headlines left Google no choice to make, and the template path
+    // already offers more. A line over Google's limit is left out, never cut
+    // (google-ads-adapter.js drops it anyway).
+    if (ad.platform === 'google' && copy.ads.google) {
+      const ac = require('./asset-contracts.js');
+      const fit = (list, slot, max) => {
+        const lim = ac.slotLimit('ad.google.rsa', slot);
+        const out = [];
+        for (const t of list) {
+          const s = String(t || '').trim();
+          if (!s || (Number(lim) > 0 && s.length > Number(lim)) || out.some((x) => x.toLowerCase() === s.toLowerCase())) continue;
+          out.push(s);
+          if (out.length >= max) break;
+        }
+        return out;
+      };
+      const mh = (copy.ads.google.headlines || []).filter(Boolean);
+      const md = (copy.ads.google.descriptions || []).filter(Boolean);
+      Object.assign(ad, {
+        headlines: mh.length ? fit(mh.concat(ad.headlines || []), 'headlines', 15) : ad.headlines,
+        descriptions: md.length ? fit(md.concat(ad.descriptions || []), 'descriptions', 4) : ad.descriptions,
+      });
+    }
     if (ad.platform === 'tiktok' && copy.ads.tiktok) Object.assign(ad, { script: copy.ads.tiktok.script || ad.script, caption: copy.ads.tiktok.caption || ad.caption });
     // Per-AD creative (see generateCreatives): the static and the video of one
     // platform are two different ads and no longer share one photo, and youtube
@@ -3352,6 +3386,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // merely discouraged in the prompt.
     let copyA = gateProof(scrubCopyDeep(rawA.copy), entry);
     let copyB = gateProof(scrubCopyDeep(rawB.copy), entry);
+    groundModelCopy(campaign, entry, copyA, copyB);
     // …then the BRAND GUARD (brand-guard.js): an answer that invents a figure
     // or a claim, or names another company, is not used, whichever model wrote
     // it. One direction failing takes the other's copy; both failing falls to
