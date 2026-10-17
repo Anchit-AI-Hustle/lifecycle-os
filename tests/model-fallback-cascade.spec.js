@@ -308,13 +308,17 @@ test('a workspace order or model list with repeats runs each once', async () => 
 
 /* ── 4. the workspace's own order ────────────────────────────────────────── */
 
-test('a workspace order replaces the default, and a failing workspace provider falls to the NEXT in its order', async () => {
+test('a workspace\'s own keys replace the default, in the operator\'s quality order, and a failing one falls to the NEXT', async () => {
+  // Since 2026-10-17 a workspace that connected keys of its own is answered
+  // only by them, in the order Claude, OpenAI, Gemini, Grok, then the rest:
+  // Gemini before Groq, whatever order the workspace listed them in.
   keys(KEYS);
-  net = installNet((c) => (c.provider === 'groq' ? CLASSES['HTTP 429 insufficient_quota'].spec() : undefined));
-  const out = await ask({ overrides: { order: ['groq', 'gemini'], models: {}, keys: { groq: 'ws-groq' }, bases: {}, fallback: true } });
-  expect(out.provider).toBe('gemini');
-  expect(net.calls[0].provider).toBe('groq');
-  expect(net.calls[0].key).toBe('ws-groq');
+  net = installNet((c) => (c.provider === 'gemini' ? CLASSES['HTTP 429 insufficient_quota'].spec() : undefined));
+  const out = await ask({ overrides: { order: ['groq', 'gemini'], models: {}, keys: { groq: 'ws-groq', gemini: 'ws-gemini' }, bases: {}, fallback: true } });
+  expect(out.provider).toBe('groq');
+  expect(net.calls[0].provider).toBe('gemini');
+  expect(net.calls[0].key).toBe('ws-gemini');
+  expect(net.calls.filter((c) => c.provider === 'groq').every((c) => c.key === 'ws-groq')).toBe(true);
   expect(net.calls.some((c) => c.provider === 'anthropic')).toBe(false);
   expect(out.routing).toBe('workspace');
 });

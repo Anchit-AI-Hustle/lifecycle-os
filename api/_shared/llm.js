@@ -122,8 +122,8 @@ function openrouterCap() {
 }
 
 // Tell the request scope (when there is one) whether this call got an answer.
-function noteOutcome(kind) {
-  try { require('./request-scope.js').noteLlm(kind); } catch (_) { /* no scope */ }
+function noteOutcome(kind, info) {
+  try { require('./request-scope.js').noteLlm(kind, info); } catch (_) { /* no scope */ }
 }
 
 function genSeed() {
@@ -632,7 +632,7 @@ module.exports = async function callLLM(opts) {
   }
 
   function _success(result) {
-    noteOutcome('ok');
+    noteOutcome('ok', { own: !!ovKeys[result.provider] });
     return { text: result.text, provider: result.provider, model: result.model, seed,
              quota_warning: openaiKeysExhausted > 0, exhausted_keys: openaiKeysExhausted,
              // Which routing decided this call, and whether the key that paid

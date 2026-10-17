@@ -692,7 +692,7 @@ function _renderVariantBody(o) {
             <div style="background:${palette.chalk};border:1px solid ${palette.lava}33;border-radius:10px;padding:12px 8px 16px;">
               ${img ? `<img src="${esc(img)}" alt="${esc(p.title || p.n || '')}" width="140" style="width:100%;max-width:140px;height:auto;border-radius:8px;display:block;margin:0 auto 10px;" />` : ''}
               <div style="font-family:${HEAD};font-size:14px;color:${palette.ink};line-height:1.35;">${esc(p.title || p.n || '')}</div>
-              ${note ? `<div style="font-family:${BODY};font-size:11px;color:#7a6e5a;margin-top:4px;line-height:1.4;">${esc(note)}</div>` : ''}
+              ${note ? `<div style="font-family:${BODY};font-size:12px;color:#7a6e5a;margin-top:4px;line-height:1.4;">${esc(note)}</div>` : ''}
               ${price ? `<div style="font-family:${BODY};font-size:13px;color:${palette.lava};margin-top:6px;font-weight:600;">${price}</div>` : ''}
             </div>
           </a></td>`;
@@ -724,7 +724,7 @@ function _renderVariantBody(o) {
       <tr><td align="center" data-mail-footer style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
         ${footerClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${footerClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this because you are a ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   const blocks = (body_blocks || []).map((b) => `
@@ -755,7 +755,7 @@ function _renderVariantBody(o) {
     // variant renders as before (brand-palette hero block only).
     const heroImgRow = hero_image_url ? `
       <tr><td style="padding:20px 32px 0;">
-        <img src="${esc(hero_image_url)}" width="536" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;border-radius:6px;" />
+        <img data-mail-hero src="${esc(hero_image_url)}" width="536" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;border-radius:6px;" />
       </td></tr>` : (hero_prompt ? `
       <tr><td style="padding:20px 32px 0;">
         ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green })}
@@ -768,14 +768,14 @@ function _renderVariantBody(o) {
       ${offerBarRow}${brandHeader}${heroImgRow}
       ${(hero_image_url || hero_prompt) ? `
       <tr><td style="padding:22px 32px 0;">
-        ${heroLabel ? `<div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
+        ${heroLabel ? `<div style="font-family:${HEAD};font-size:12px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.22;color:${palette.greenText};font-weight:600;margin:0;`, '0', palette.greenText)}">${esc(hero_headline)}</h1>
       </td></tr>` : `
       <tr><td style="padding:20px 32px 0;">
         <!-- Brand-palette hero block (no external image needed) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
           <tr><td style="padding:34px 26px;text-align:center;">
-            ${heroLabel ? `<div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
+            ${heroLabel ? `<div style="font-family:${HEAD};font-size:12px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
             <div data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
           </td></tr>
         </table>
@@ -818,12 +818,12 @@ function _renderVariantBody(o) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${MF.logoHeader({ brand: _brand(o), store, color: palette.greenText, font: HEAD, align: 'left', pad: '0 0 18px' })}</table>
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
-        ${textBlocks.length ? textBlocks.slice(0, 1).join('') + `<p style="font-family:${BODY};font-size:15px;line-height:1.6;margin:0 0 18px;"><a href="${baseUrl}" data-ds="cta-link" style="color:${palette.greenText};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a></p>` + textBlocks.slice(1).join('') : ''}
+        ${textBlocks.length > 1 ? textBlocks.slice(0, 1).join('') + `<p style="font-family:${BODY};font-size:15px;line-height:1.6;margin:0 0 18px;"><a href="${baseUrl}" data-ds="cta-link" style="color:${palette.greenText};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a></p>` + textBlocks.slice(1).join('') : textBlocks.join('')}
         <p style="font-family:${BODY};font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
         <p style="font-family:${BODY};font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
-        <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this because you are a ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>

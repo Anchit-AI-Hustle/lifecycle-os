@@ -938,7 +938,7 @@ function freeGenerationView(signedIn) {
   let on = false;
   try { on = require('./llm.js').freeGenerationOn(); } catch (_) { on = false; }
   return on
-    ? { on: true, note: 'With no key of your own, the platform\'s models make your content and each creation uses your app credits. Connect your own key above to use only your models instead (Claude, then OpenAI, Gemini and Grok, in that order).' }
+    ? { on: true, note: 'With no key of your own, the platform\'s models make your content and each creation uses your app credits. Connect your own key above to use only your models instead (Claude, then OpenAI, Gemini and Grok, in that order), and what your own models make uses no credits.' }
     : { on: false, note: '' };
 }
 
