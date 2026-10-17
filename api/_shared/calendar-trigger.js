@@ -616,6 +616,9 @@ function _renderVariantBody(o) {
   // #9a8f7c, which is 3.18:1 on white - under the floor, and a colour from no
   // brand's palette. Softened from the ink only as far as AA allows.
   palette.mutedOnSurface = _core ? _core.readableAsText(palette.ink, palette.chalk, 4.5) : palette.ink;
+  // The section ground used AS TEXT on the white card (the visual mailer's
+  // headline under a real photo): derived for AA, never the raw ground.
+  palette.greenText = _core ? _core.readableAsText(palette.green, '#ffffff', 4.5) : palette.ink;
 
   // THE BRAND'S DESIGN SYSTEM, under EMAIL constraints (2026-10-04). When
   // "Read my site" measured one, the call to action, the headline and the
@@ -656,11 +659,18 @@ function _renderVariantBody(o) {
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
   // Brand header: KNICKGASM wordmark linking to the market store (the ONLY header
   // link, matching the flagship's logo→store rule).
+  // The line under the wordmark is the brand's tagline as the brand writes it,
+  // and only when it is a line: a 200-character self-description set in
+  // spaced capitals under the logo (the Parwah mailer, 2026-10-17) is a
+  // paragraph nobody reads. The market code is the planner's, not the
+  // reader's. A long tagline is left to the body copy.
+  const _tag = String(_brand(o).tagline || '').trim();
+  const headerTagline = _tag && _tag.length <= 70 ? _tag : '';
   const brandHeader = `
       <tr><td align="center" style="padding:18px 0 6px;">
         <a href="${store}" target="_blank" style="text-decoration:none;display:inline-block;">
           <div style="font-family:${HEAD};font-size:22px;letter-spacing:0.28em;color:${palette.green};font-weight:700;">${esc(brandNameOf(o).toUpperCase())}</div>
-          <div style="font-family:${BODY};font-size:10px;letter-spacing:0.22em;color:${palette.lava};text-transform:uppercase;margin-top:4px;">${esc(market)}${_brand(o).tagline ? ' · ' + esc(_brand(o).tagline) : ''}</div>
+          ${headerTagline ? `<div style="font-family:${BODY};font-size:12px;line-height:1.45;color:${palette.mutedOnSurface};margin-top:6px;">${esc(headerTagline)}</div>` : ''}
         </a>
       </td></tr>`;
   // Optional lava offer bar (only when an offer string is supplied).
@@ -746,6 +756,11 @@ function _renderVariantBody(o) {
   <tr><td align="center" style="padding:36px 16px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
       ${offerBarRow}${brandHeader}${heroImgRow}
+      ${hero_image_url ? `
+      <tr><td style="padding:22px 32px 0;">
+        <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+        <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.22;color:${palette.greenText};font-weight:600;margin:0;`, '0', palette.greenText)}">${esc(hero_headline)}</h1>
+      </td></tr>` : `
       <tr><td style="padding:20px 32px 0;">
         <!-- Brand-palette hero block (no external image needed) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
@@ -754,7 +769,7 @@ function _renderVariantBody(o) {
             <div data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
           </td></tr>
         </table>
-      </td></tr>
+      </td></tr>`}
       <tr><td style="padding:22px 32px 0;">
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;`, '0')}">${esc(hero_subline)}</p>
       </td></tr>

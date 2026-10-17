@@ -1713,6 +1713,10 @@ function productFactsBrief(entry) {
   lines.push(hasOffer
     ? `- OFFER on record: ${[o.depth, o.pct ? `${o.pct}%` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`
     : '- OFFER: none on record. The reason to buy is the product itself; invent no discount, code, deadline or stock line.');
+  // The Parwah mailer (2026-10-17): "pure, locally-sourced nutrition" and "the
+  // best care" under a brand whose record says neither. An attribute is a
+  // product fact: it comes from the brand's own words or it is not written.
+  lines.push('- DESCRIBE the product only with words the brand itself uses above or in its claims. Do not add an attribute it does not state (pure, natural, organic, locally sourced, premium, clinically proven, certified, award-winning, best, #1 or any like them).');
   return lines.join('\n');
 }
 
