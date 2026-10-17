@@ -58,7 +58,7 @@ const slot = (brand, extra) => Object.assign({
 }, extra || {});
 
 const KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
-async function build(entry, { scripted } = {}) {
+async function build(entry, { scripted, withCreatives = false } = {}) {
   const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
   for (const k of KEYS) delete process.env[k];
   const realLlm = require.cache[LLM]; const realPlan = require.cache[PLAN];
@@ -72,7 +72,7 @@ async function build(entry, { scripted } = {}) {
     }
     const { smartConfig } = require(path.join(ROOT, 'lib', 'smart-brain', 'services.js'));
     const plan = require(PLAN);
-    return await plan.buildCampaign(entry, smartConfig({}), { noLLM: !scripted, withCreatives: false });
+    return await plan.buildCampaign(entry, smartConfig({}), { noLLM: !scripted, withCreatives });
   } finally {
     if (scripted) { require.cache[LLM] = realLlm; if (realPlan) require.cache[PLAN] = realPlan; else delete require.cache[PLAN]; }
     for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
@@ -253,5 +253,124 @@ test('the social fallback posts say only what the brand states, with its busines
   } finally {
     require.cache[LLM] = realLlm; if (realSc) require.cache[SC] = realSc; else delete require.cache[SC];
     for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
+});
+
+// The real product photo (2026-10-17): the static ads carried the catalogue
+// photo, while the template mail had no image at all and the template landing
+// page read entry.heroProduct.image, which nothing ever sets.
+test('the template mail and both landing pages carry the product\'s own catalogue photo; a brand with none borrows nobody\'s', async () => {
+  const fs = require('fs');
+  const file = path.join(ROOT, 'data', 'catalog', 'products_us.json');
+  test.skip(!fs.existsSync(file), 'the built catalogue (npm run build) is not here');
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const p = (Array.isArray(raw) ? raw : raw.products).find((r) => r.h && r.n);
+  const entry = { id: 'photo-zero', date: '2026-10-20', market: 'US', objective: 'reactivation', cohort: { name: 'At Risk', size: 500, rules: ['r'] },
+    channels: ['email', 'meta', 'landing_page'], confidence: 0.6, offer: { depth: 'none', pct: 0 }, heroProduct: { sku: p.s, title: p.n, handle: p.h } };
+  const c = await build(entry);
+  const adPhoto = c.assets.ads.find((a) => a.creative_type === 'static').creative.image;
+  expect(adPhoto, 'the static ad has the catalogue photo').toMatch(/^https:\/\//);
+  const base = adPhoto.split('?')[0];
+  const mailImg = c.assets.email.html.match(/<img[^>]+>/);
+  expect(mailImg, 'the template mail has no image').toBeTruthy();
+  expect(mailImg[0]).toContain(base);
+  expect(mailImg[0]).toMatch(/alt="[^"]+"/);
+  for (const lp of c.assets.landing_pages) expect(lp.html, `landing ${lp.variant}`).toContain(base);
+  expect(c.contract_check.blocking).toBe(0);
+
+  const other = await build(slot(APP, { heroProduct: { title: p.n, handle: p.h } }));
+  const all = [other.assets.email.html, ...other.assets.landing_pages.map((l) => l.html)].join('\n');
+  expect(all, 'another brand\'s catalogue photo on this brand\'s assets').not.toContain(base);
+});
+
+// A brand with no catalogue (the operator, 2026-10-17): "either a suitable image
+// must be created or a brand image must be used which is appropriate and
+// relevant". Its own site imagery first; else one generated brand scene that
+// shows no product; never a logo, never imagery read from another site.
+const OWN = 'https://famapp.example/media/family-hero.jpg';
+const imageryBrand = (rows) => ({ ...APP, website: 'https://famapp.example', brand_data: { imagery: rows } });
+
+test('no catalogue: every asset uses the brand\'s own site imagery, never its logo', async () => {
+  const b = imageryBrand([
+    { url: 'https://famapp.example/media/logo-mark.png', page: 'https://famapp.example/', role: 'logo' },
+    { url: OWN, page: 'https://famapp.example/', role: 'hero' },
+  ]);
+  for (const scripted of [null, COPY]) {
+    const c = await build(slot(b), { scripted });
+    const label = scripted ? 'model' : 'template';
+    expect(c.image_source, label).toBe('brand-site');
+    expect(c.assets.email.html, `${label} mail`).toContain(OWN);
+    for (const lp of c.assets.landing_pages) expect(lp.html, `${label} landing ${lp.variant}`).toContain(OWN);
+    for (const ad of c.assets.ads.filter((a) => a.creative_type === 'static')) {
+      expect(ad.creative.image, `${label} ${ad.platform} static`).toBe(OWN);
+      expect(ad.creative.provider).toBe('brand-site');
+    }
+    const all = JSON.stringify(c.assets);
+    expect(all, 'a logo used as a picture').not.toContain('logo-mark.png');
+  }  // A brand picture is not a photo of the product: a named product with no
+  // photo is still a stated gap on the campaign.
+  const named = await build(slot(b, { heroProduct: { title: 'Family Card', handle: 'family-card' } }));
+  expect(named.assets.email.html).toContain(OWN);
+  expect(named.data_gaps.join(' ')).toMatch(/DATA REQUIRED BEFORE LAUNCH: product image/);
+});
+
+test('imagery read from another site is never used, and a missing picture stays a stated gap', async () => {
+  const b = imageryBrand([{ url: 'https://othersite.example/hero.jpg', page: 'https://othersite.example/', role: 'hero' }]);
+  const c = await build(slot(b));
+  expect(JSON.stringify(c.assets)).not.toContain('othersite.example');
+  expect(c.image_source).toBe(null);
+});
+
+test('nothing of its own: one generated brand scene, hosted, labelled, with no product in the brief', async () => {
+  const bi = require(path.join(ROOT, 'api', '_shared', 'brand-imagery.js'));
+  const prompt = bi.scenePrompt(APP);
+  expect(prompt).toContain('Famapp');
+  expect(prompt).toMatch(/No product, no packaging/);
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: 'data:image/svg+xml,<svg/>', provider: 'placeholder' }), upload: async () => 'https://x/y.png' })).toBe(null);
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null }), 'an image that cannot be hosted').toBe(null);
+  const ok = await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => 'https://cdn.example/scene.png' });
+  expect(ok).toMatchObject({ url: 'https://cdn.example/scene.png', generated: true });
+
+  // Through the builder, with creatives asked for and the generator scripted.
+  const CI = require.resolve(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
+  const real = require.cache[CI];
+  const prompts = [];
+  require.cache[CI] = { id: CI, filename: CI, loaded: true, exports: {
+    generateCreativeImage: async (p) => { prompts.push(p); return { image: png, provider: 'openai' }; },
+    uploadCreative: async () => 'https://cdn.example/famapp-scene.png' } };
+  try {
+    const c = await build(slot(APP), { scripted: COPY, withCreatives: true });
+    expect(c.image_source).toBe('generated');
+    expect(c.generated_imagery && c.generated_imagery.url).toBe('https://cdn.example/famapp-scene.png');
+    expect(c.assets.ads.filter((a) => a.creative_type === 'static').every((a) => a.creative.image === 'https://cdn.example/famapp-scene.png' && a.creative.provider === 'generated')).toBe(true);
+    expect(prompts.length, 'one scene for the whole campaign').toBe(1);
+    expect(prompts[0]).toMatch(/No product/);
+    expect(JSON.stringify(c.assets)).not.toContain('data:image/png');
+  } finally { if (real) require.cache[CI] = real; else delete require.cache[CI]; }
+});
+
+// Phones (2026-10-17): every mail was a FIXED 600/560px table, so at 375px it
+// scrolled sideways (measured: 592-632px). Fluid up to its width now, with an
+// Outlook-only fixed table (Word ignores max-width).
+test('every mail fits a 375px phone, keeps its 600px column on a desktop, and Outlook keeps a fixed width', async ({ page }) => {
+  const trigger = require(path.join(ROOT, 'api', '_shared', 'calendar-trigger.js'));
+  const c = await build(slot(APP));
+  const mails = { template: c.assets.email.html };
+  for (const style of ['pure', 'visual', 'editorial']) {
+    mails[`shared ${style}`] = trigger.helpers.renderTextVariant({ brand: APP, style, subject: 'S', hero_headline: 'A headline long enough to wrap on a phone screen', hero_subline: 'Sub', body_blocks: [{ heading: 'H', body: 'Body.' }], cta_text: 'Learn more', cta_url: 'https://famapp.example', market: 'IN', hero_image_url: 'https://famapp.example/hero.jpg' });
+  }
+  await page.route('**/*', (r) => r.abort());
+  for (const [name, mail] of Object.entries(mails)) {
+    expect(mail, `${name}: no Outlook fixed table`).toMatch(/<!--\[if mso\]><table role="presentation" width="(600|560)"/);
+    expect((mail.match(/<!--\[if mso\]>/g) || []).length, `${name}: Outlook table opened and closed`).toBe(2);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.setContent(mail);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `${name} at 375px`).toBeLessThanOrEqual(375);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.setContent(mail);
+    const widest = await page.evaluate(() => Math.max(...[...document.querySelectorAll('table')].map((t) => t.getBoundingClientRect().width).filter((w) => w < 1280)));
+    expect(widest, `${name}: the desktop column`).toBeGreaterThanOrEqual(560);
+    expect(widest).toBeLessThanOrEqual(600);
   }
 });
