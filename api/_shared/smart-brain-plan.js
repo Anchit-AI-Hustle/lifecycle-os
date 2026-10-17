@@ -2821,7 +2821,10 @@ function offerOf(entry) {
 function checkAssetContracts(campaign, entry) {
   const contracts = require('./asset-contracts.js');
   const compliance = require('./compliance-lint.js');
-  const summary = { checked: 0, blocking: 0, warnings: 0, by_contract: {}, violations: [] };
+  // `warnings` are findings about how an asset was BUILT; `data_gaps` are
+  // findings about what the brand's record lacks (a logo, a photo), which the
+  // operator fills and the builder cannot (2026-10-17). Both are listed.
+  const summary = { checked: 0, blocking: 0, warnings: 0, data_gaps: 0, by_contract: {}, violations: [] };
   const ctx = complianceContext(campaign, entry);
   const comp = {
     checked: 0, blocking: 0, warnings: 0, verdict: 'pass',
@@ -2863,7 +2866,7 @@ function checkAssetContracts(campaign, entry) {
     summary.by_contract[verdict.contract] = (summary.by_contract[verdict.contract] || 0) + 1;
     for (const v of verdict.violations) {
       if (v.compliance) continue;              // counted above
-      if (v.level === 'block') summary.blocking += 1; else summary.warnings += 1;
+      if (v.level === 'block') summary.blocking += 1; else if (v.data_gap) summary.data_gaps += 1; else summary.warnings += 1;
       summary.violations.push({ asset: label, contract: verdict.contract, ...v });
     }
   };

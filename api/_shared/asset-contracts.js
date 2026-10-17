@@ -137,7 +137,9 @@ const CONTRACTS = {
       if (a.html && /<img[^>]*>/i.test(a.html) && !/alt=/i.test(a.html)) {
         v.push(warn('html', 'An image with no alt text is invisible to a reader whose client blocks images, and to a screen reader.'));
       }
-      if (typeof a.html === 'string' && a.html) v.push(...mailQuality(a));
+      // The full-mail rules judge a complete mail; a fragment (a block being
+      // composed) keeps only the rules that hold for any HTML.
+      if (typeof a.html === 'string' && /<body\b|<html\b/i.test(a.html)) v.push(...mailQuality(a));
       return v.concat(urlsNotPayloads(a, ['html']));
     },
   },
