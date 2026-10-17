@@ -147,7 +147,12 @@ function buildEntryAnalysis(input = {}) {
     `${festival && festival.name ? ` timed to ${festival.name}` : ''}, then ${metric} should improve versus a generic send, because ` +
     `${hypothesisReason({ cohortName, own, festival, product })}.`;
 
-  const summary = `Chosen to drive ${objective} for ${cohortName}${cohortSize != null ? ` (${num(cohortSize) || cohortSize} profiles)` : ''}` +
+  // An objective may arrive as a sentence that already starts with the verb
+  // ("Drive the reader to buy this product."): "Chosen to drive Drive the
+  // reader ..." was printed on every such row of the plan.
+  const objText = String(objective || '').trim().replace(/[.\s]+$/, '');
+  const aim = /^drive\b/i.test(objText) ? objText.charAt(0).toLowerCase() + objText.slice(1) : `drive ${objText}`;
+  const summary = `Chosen to ${aim} for ${cohortName}${cohortSize != null ? ` (${num(cohortSize) || cohortSize} profiles)` : ''}` +
     ` with ${productName}${festival && festival.name ? `, timed to ${festival.name}` : ''}.`;
 
   return {
