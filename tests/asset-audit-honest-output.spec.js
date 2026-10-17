@@ -58,7 +58,7 @@ const slot = (brand, extra) => Object.assign({
 }, extra || {});
 
 const KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY'];
-async function build(entry, { scripted } = {}) {
+async function build(entry, { scripted, withCreatives = false } = {}) {
   const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
   for (const k of KEYS) delete process.env[k];
   const realLlm = require.cache[LLM]; const realPlan = require.cache[PLAN];
@@ -72,7 +72,7 @@ async function build(entry, { scripted } = {}) {
     }
     const { smartConfig } = require(path.join(ROOT, 'lib', 'smart-brain', 'services.js'));
     const plan = require(PLAN);
-    return await plan.buildCampaign(entry, smartConfig({}), { noLLM: !scripted, withCreatives: false });
+    return await plan.buildCampaign(entry, smartConfig({}), { noLLM: !scripted, withCreatives });
   } finally {
     if (scripted) { require.cache[LLM] = realLlm; if (realPlan) require.cache[PLAN] = realPlan; else delete require.cache[PLAN]; }
     for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
@@ -281,4 +281,71 @@ test('the template mail and both landing pages carry the product\'s own catalogu
   const other = await build(slot(APP, { heroProduct: { title: p.n, handle: p.h } }));
   const all = [other.assets.email.html, ...other.assets.landing_pages.map((l) => l.html)].join('\n');
   expect(all, 'another brand\'s catalogue photo on this brand\'s assets').not.toContain(base);
+});
+
+// A brand with no catalogue (the operator, 2026-10-17): "either a suitable image
+// must be created or a brand image must be used which is appropriate and
+// relevant". Its own site imagery first; else one generated brand scene that
+// shows no product; never a logo, never imagery read from another site.
+const OWN = 'https://famapp.example/media/family-hero.jpg';
+const imageryBrand = (rows) => ({ ...APP, website: 'https://famapp.example', brand_data: { imagery: rows } });
+
+test('no catalogue: every asset uses the brand\'s own site imagery, never its logo', async () => {
+  const b = imageryBrand([
+    { url: 'https://famapp.example/media/logo-mark.png', page: 'https://famapp.example/', role: 'logo' },
+    { url: OWN, page: 'https://famapp.example/', role: 'hero' },
+  ]);
+  for (const scripted of [null, COPY]) {
+    const c = await build(slot(b), { scripted });
+    const label = scripted ? 'model' : 'template';
+    expect(c.image_source, label).toBe('brand-site');
+    expect(c.assets.email.html, `${label} mail`).toContain(OWN);
+    for (const lp of c.assets.landing_pages) expect(lp.html, `${label} landing ${lp.variant}`).toContain(OWN);
+    for (const ad of c.assets.ads.filter((a) => a.creative_type === 'static')) {
+      expect(ad.creative.image, `${label} ${ad.platform} static`).toBe(OWN);
+      expect(ad.creative.provider).toBe('brand-site');
+    }
+    const all = JSON.stringify(c.assets);
+    expect(all, 'a logo used as a picture').not.toContain('logo-mark.png');
+  }  // A brand picture is not a photo of the product: a named product with no
+  // photo is still a stated gap on the campaign.
+  const named = await build(slot(b, { heroProduct: { title: 'Family Card', handle: 'family-card' } }));
+  expect(named.assets.email.html).toContain(OWN);
+  expect(named.data_gaps.join(' ')).toMatch(/DATA REQUIRED BEFORE LAUNCH: product image/);
+});
+
+test('imagery read from another site is never used, and a missing picture stays a stated gap', async () => {
+  const b = imageryBrand([{ url: 'https://othersite.example/hero.jpg', page: 'https://othersite.example/', role: 'hero' }]);
+  const c = await build(slot(b));
+  expect(JSON.stringify(c.assets)).not.toContain('othersite.example');
+  expect(c.image_source).toBe(null);
+});
+
+test('nothing of its own: one generated brand scene, hosted, labelled, with no product in the brief', async () => {
+  const bi = require(path.join(ROOT, 'api', '_shared', 'brand-imagery.js'));
+  const prompt = bi.scenePrompt(APP);
+  expect(prompt).toContain('Famapp');
+  expect(prompt).toMatch(/No product, no packaging/);
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: 'data:image/svg+xml,<svg/>', provider: 'placeholder' }), upload: async () => 'https://x/y.png' })).toBe(null);
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null }), 'an image that cannot be hosted').toBe(null);
+  const ok = await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => 'https://cdn.example/scene.png' });
+  expect(ok).toMatchObject({ url: 'https://cdn.example/scene.png', generated: true });
+
+  // Through the builder, with creatives asked for and the generator scripted.
+  const CI = require.resolve(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
+  const real = require.cache[CI];
+  const prompts = [];
+  require.cache[CI] = { id: CI, filename: CI, loaded: true, exports: {
+    generateCreativeImage: async (p) => { prompts.push(p); return { image: png, provider: 'openai' }; },
+    uploadCreative: async () => 'https://cdn.example/famapp-scene.png' } };
+  try {
+    const c = await build(slot(APP), { scripted: COPY, withCreatives: true });
+    expect(c.image_source).toBe('generated');
+    expect(c.generated_imagery && c.generated_imagery.url).toBe('https://cdn.example/famapp-scene.png');
+    expect(c.assets.ads.filter((a) => a.creative_type === 'static').every((a) => a.creative.image === 'https://cdn.example/famapp-scene.png' && a.creative.provider === 'generated')).toBe(true);
+    expect(prompts.length, 'one scene for the whole campaign').toBe(1);
+    expect(prompts[0]).toMatch(/No product/);
+    expect(JSON.stringify(c.assets)).not.toContain('data:image/png');
+  } finally { if (real) require.cache[CI] = real; else delete require.cache[CI]; }
 });

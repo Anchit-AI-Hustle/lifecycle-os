@@ -2630,14 +2630,16 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
   // Distinct real gallery pool for this slot (hero product + supporting), HD.
   // B-variants draw an ALTERNATE real photo (not the email hero) so the A/B
   // pair is visually distinct while every image stays a real catalog shot.
-  const pool = realImagePool(entry, 1400);
+  const pool = slotImagePool(entry, 1400);
   const heroReal = pool[0] || catalogImage.imageFor(entry, entry.market, { width: 1400, brand: entry.brand }) || null;
   const altReal = pool.find((u) => u !== heroReal) || heroReal;
   if (campaign.assets.email) {
     campaign.assets.email.subject = copyA.email.subject || campaign.assets.email.subject;
     campaign.assets.email.preheader = copyA.email.preheader || campaign.assets.email.preheader;
     campaign.assets.email.creative = creatives.email || { brief: copyA.email.image_brief || '', image: null, provider: null };
-    const heroImg = campaign.assets.email.creative.image;
+    // The slot's own picture when no creative was generated: the product's
+    // catalogue photo, else the brand's own imagery (2026-10-17).
+    const heroImg = campaign.assets.email.creative.image || heroReal || null;
     // Four framework variants: copyA drives the A-slots, copyB the B-slots.
     const emailVars = emailVariants(entry, copyA, copyB, fwA, fwB, heroImg);
     campaign.assets.email.variants = emailVars || null;
@@ -2657,7 +2659,7 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
       ? (altReal || (creatives.landing && creatives.landing.image) || null)
       : ((creatives.landing && creatives.landing.image) || heroReal || null);
     lp.title = (copy.landing && copy.landing.hero_headline) || lp.title;
-    lp.creative = { brief: (copy.landing && copy.landing.image_brief) || '', image: img, provider: isB ? 'catalog' : ((creatives.landing && creatives.landing.provider) || 'catalog') };
+    lp.creative = { brief: (copy.landing && copy.landing.image_brief) || '', image: img, provider: isB ? (poolSource(entry) || 'catalog') : ((creatives.landing && creatives.landing.provider) || poolSource(entry) || 'catalog') };
     lp.html = lpHtml(entry, copy, campaign.campaign_id, img);
     lp.path = isB ? `/lp/${campaign.campaign_id}?v=b` : `/lp/${campaign.campaign_id}`;
   });
@@ -2677,7 +2679,7 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     const adKey = `${ad.platform}:${ad.creative_type}`;
     if (isB) {
       const catImg = altReal;
-      ad.creative = catImg ? { brief: ad.creative_brief || '', image: catImg, provider: 'catalog' } : (creatives[adKey] || creatives[ad.platform] || briefFor(copy, ad.platform));
+      ad.creative = catImg ? { brief: ad.creative_brief || '', image: catImg, provider: poolSource(entry) || 'catalog' } : (creatives[adKey] || creatives[ad.platform] || briefFor(copy, ad.platform));
     } else {
       ad.creative = creatives[adKey] || creatives[ad.platform] || briefFor(copy, ad.platform);
     }
@@ -2906,6 +2908,26 @@ function realImagePool(entry, width = 1600) {
   return urls;
 }
 
+// A brand with no product photo is not an image-free brand (2026-10-17): its
+// own site imagery, else one generated brand scene (brand-imagery.js), fills
+// the same pool every channel draws from. Product photos always win.
+const brandImagery = require('./brand-imagery.js');
+const _scenes = new WeakMap();
+function slotImagePool(entry, width) {
+  const real = realImagePool(entry, width);
+  if (real.length) return real;
+  const own = brandImagery.ownImageUrls(entry && entry.brand);
+  if (own.length) return own;
+  const scene = entry && typeof entry === 'object' ? _scenes.get(entry) : null;
+  return scene ? [scene.url] : [];
+}
+function poolSource(entry) {
+  if (realImagePool(entry, 400).length) return 'catalog';
+  if (brandImagery.ownImageUrls(entry && entry.brand).length) return 'brand-site';
+  if (entry && typeof entry === 'object' && _scenes.get(entry)) return 'generated';
+  return null;
+}
+
 async function generateCreatives(copy, entry, { only = null, lean = false, adPlatforms = null } = {}) { // eslint-disable-line no-unused-vars
   // HARD RULE (product owner): every product / brand image MUST be REAL — the
   // actual packet, box or pack shot from the Shopify catalog (the PDP gallery),
@@ -2931,12 +2953,12 @@ async function generateCreatives(copy, entry, { only = null, lean = false, adPla
   ];
   // `only` limits which creatives are built (preview passes ['email']).
   const activeSpecs = Array.isArray(only) ? specs.filter(([key]) => only.includes(key)) : specs;
-  const pool = realImagePool(entry, 1600);
+  const pool = slotImagePool(entry, 1600);
   const out = {};
   activeSpecs.forEach(([key, rawBrief], i) => {
     const b = (rawBrief && String(rawBrief).trim()) || `${(entry.brand && entry.brand.name) || 'Brand'} ${entry.heroProduct?.title || 'catalogue item'} — real product photograph, on this brand's own palette.`;
     const image = pool.length ? pool[i % pool.length] : null;
-    out[key] = { brief: b, image, provider: image ? 'catalog' : null };
+    out[key] = { brief: b, image, provider: image ? (poolSource(entry) || 'catalog') : null };
   });
   return out;
 }
@@ -3202,6 +3224,16 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // Name every ad the campaign actually contains, so each gets its own photo
     // (see generateCreatives — youtube and pinterest used to get none at all).
     creativeOpts.adPlatforms = (campaign.assets.ads || []).map((a) => ({ platform: a.platform, creative_type: a.creative_type }));
+    // No product photo and no image of its own: one generated brand scene
+    // (never a product), hosted, labelled. Only when creatives are asked for.
+    if (withCreatives && !realImagePool(entry, 400).length && !brandImagery.ownImageUrls(entry.brand).length && !_scenes.get(entry)) {
+      const scene = await brandImagery.generatedScene(entry.brand).catch(() => null);
+      if (scene) {
+        _scenes.set(entry, scene);
+        campaign.generated_imagery = { url: scene.url, provider: scene.provider, note: 'A generated brand scene: the brand has no product photo and no imagery of its own on record. It shows no product.' };
+        trace.push({ agent: 'Asset Director', role: 'Brand scene', ok: true, provider: scene.provider, output: { url: scene.url } });
+      }
+    }
     const creatives = withCreatives ? await generateCreatives(copyA, entry, creativeOpts) : {};
     const imgProviders = [...new Set(Object.values(creatives).map((c) => c && c.provider).filter(Boolean))];
     if (withCreatives) trace.push({ agent: 'Asset Director', role: 'Creative / Art Direction', ok: imgProviders.length > 0, provider: imgProviders.join(',') || null, output: { assets: Object.keys(creatives).length } });
@@ -3231,7 +3263,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const needsMotion = (campaign.assets && campaign.assets.ads || [])
       .filter((ad) => ad.creative_type === 'video' && !(ad.creative && ad.creative.motion_html));
     if (needsMotion.length) {
-      const pool = realImagePool(entry, 1400);
+      const pool = slotImagePool(entry, 1400);
       for (const ad of needsMotion) attachMotionCreative(ad, entry, pool);
     }
   } catch (_) { /* a motion build must never take a campaign down */ }
@@ -3247,14 +3279,14 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const statics = (campaign.assets && campaign.assets.ads || [])
       .filter((ad) => ad.creative_type !== 'video' && !(ad.creative && ad.creative.image));
     if (statics.length) {
-      const pool = realImagePool(entry, 1200);
+      const pool = slotImagePool(entry, 1200);
       const used = new Set((campaign.assets.ads || []).map((a) => a.creative && a.creative.image).filter(Boolean));
       const fresh = pool.filter((u) => !used.has(u));
       const order = fresh.length ? fresh : pool;
       statics.forEach((ad, i) => {
         if (!order.length) return;
         const image = order[i % order.length];
-        ad.creative = Object.assign({ brief: ad.creative_brief || '' }, ad.creative || {}, { image, provider: 'catalog' });
+        ad.creative = Object.assign({ brief: ad.creative_brief || '' }, ad.creative || {}, { image, provider: poolSource(entry) || 'catalog' });
       });
     }
   } catch (_) { /* a photo assignment must never take a campaign down */ }
@@ -3335,7 +3367,10 @@ function reportCatalogGaps(campaign, entry, trace) {
     }
     const email = campaign.assets && campaign.assets.email;
     const hasImage = !!(email && ((email.creative && email.creative.image) || /<img\s/i.test(String(email.html || ''))));
-    if (hasImage) return;
+    campaign.image_source = poolSource(entry);
+    // A brand's own imagery or a generated scene is not a photo of the product:
+    // the product-photo gap is still said.
+    if (hasImage && campaign.image_source === 'catalog') return;
     const probe = catalogImage.resolveImage(entry, entry.market, { brand: entry.brand });
     if (!probe.marker) return;
     const gaps = Array.isArray(campaign.data_gaps) ? campaign.data_gaps : [];
