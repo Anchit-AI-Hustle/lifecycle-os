@@ -90,6 +90,8 @@
       '<button class="vah-win" id="vah-max" title="Maximise the chat" aria-label="Maximise">⤢</button>' +
       '<button class="vah-win" id="vah-min" title="Minimise to the floating button" aria-label="Minimise">—</button></div>' +
     '<div id="vah-agent-msgs"></div>' +
+    // A field no person sees or fills; a bot that fills every input does (spam protection).
+    '<input id="vah-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">' +
     '<div id="vah-agent-input">' +
       '<div class="vah-mode"><button id="vah-mode-btn" class="vah-mode-btn" type="button" aria-haspopup="true" aria-expanded="false">💬 Chat ▾</button>' +
         '<div class="vah-menu" id="vah-menu">' +
@@ -97,8 +99,6 @@
           '<button type="button" data-mode="narrate"><b>🔊 Narrate</b><em>Listen to this page</em></button>' +
         '</div></div>' +
       '<input id="vah-q" placeholder="Ask about benefits, crafting, value…" aria-label="Your question" maxlength="1500">' +
-      // A field no person sees or fills; a bot that fills every input does (spam protection).
-      '<input id="vah-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">' +
       '<div class="vah-reply" role="group" aria-label="How replies come back">' +
         '<button type="button" data-reply="text" title="Text only — silent answers">Aa</button>' +
         '<button type="button" data-reply="voice" class="on" title="Voice reply — answers read aloud">🔊</button>' +

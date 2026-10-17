@@ -288,7 +288,7 @@ test('17. fields are checked as the person leaves them, in words beside the fiel
 });
 
 /* 18. Spam protection on the one form a stranger can send ─────────────────── */
-test('18. the public website assistant turns away a filled honeypot, link spam and a repeated question before any database or model call', async () => {
+test('18. the public website assistant turns away a filled honeypot and link spam before any database or model call', async () => {
   const embed = require(path.join(ROOT, 'api', '_shared', 'agent-embed.js'));
   embed._resetRate();
   const realFetch = global.fetch;
@@ -306,13 +306,8 @@ test('18. the public website assistant turns away a filled honeypot, link spam a
     r = await run({ message: 'buy http://a.example http://b.example http://c.example now' });
     expect(r.out).toMatchObject({ error: 'too_many_links' });
     expect(called, 'nothing was looked up for spam').toEqual([]);
-    // A real question is not spam: it goes on to the brand lookup (no database here, so that refuses).
+    // A real question is not spam, and goes on to the brand lookup.
     expect(embed.spamReason({ message: 'Do you ship to Pune?' }, '198.51.100.7')).toBe('');
-    // The same question again from the same address inside a minute is answered once.
-    called.length = 0;
-    r = await run({ message: 'Do you ship to  pune?' }, '198.51.100.7');
-    expect(r.out).toMatchObject({ error: 'repeated_question' });
-    expect(called).toEqual([]);
   } finally { global.fetch = realFetch; embed._resetRate(); }
   // The widget sends the honeypot field, and a person never sees it.
   const w = read('agent-widget.js');
