@@ -96,7 +96,9 @@
           '<button type="button" data-mode="chat"><b>💬 Chat</b><em>Type &amp; read answers</em></button>' +
           '<button type="button" data-mode="narrate"><b>🔊 Narrate</b><em>Listen to this page</em></button>' +
         '</div></div>' +
-      '<input id="vah-q" placeholder="Ask about benefits, crafting, value…">' +
+      '<input id="vah-q" placeholder="Ask about benefits, crafting, value…" aria-label="Your question" maxlength="1500">' +
+      // A field no person sees or fills; a bot that fills every input does (spam protection).
+      '<input id="vah-hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">' +
       '<div class="vah-reply" role="group" aria-label="How replies come back">' +
         '<button type="button" data-reply="text" title="Text only — silent answers">Aa</button>' +
         '<button type="button" data-reply="voice" class="on" title="Voice reply — answers read aloud">🔊</button>' +
@@ -249,7 +251,7 @@
     add('u', text); history.push({ role: 'user', content: text });
     fetch(API + (BRAND ? '?action=agent-public' : '?action=agent-chat'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workspace_id: BRAND || undefined, agent_id: agent ? agent.id : AGENT, session_id: sessionId, message: text, history: history.slice(-10), page_url: location.href, context: { page: location.href } }),
+      body: JSON.stringify({ workspace_id: BRAND || undefined, agent_id: agent ? agent.id : AGENT, session_id: sessionId, message: text, hp: ((document.getElementById('vah-hp') || {}).value || ''), history: history.slice(-10), page_url: location.href, context: { page: location.href } }),
     }).then(function (r) { return r.json().catch(function () { return {}; }); }).then(function (j) {
       // The server's sentence, never its code and never a shrug (2026-09-29):
       // every refusal carries `message`. A 200 with no reply is said as such

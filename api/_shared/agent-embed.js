@@ -99,6 +99,26 @@ function rateHit(addr, now) {
   return true;
 }
 
+// Spam protection for the one form a stranger can send (2026-10-17): a
+// honeypot field a person never sees (a bot that fills every input fills it),
+// at most MAX_LINKS links in a question (link spam is the commonest abuse of
+// a site chat), and the same question from the same address inside a minute
+// answered once. Each is refused before the database or a model is touched.
+const MAX_LINKS = 2;
+const recent = new Map();
+function spamReason(b, addr, now) {
+  const t = now || Date.now();
+  if (String((b && (b.hp || b.website_hp)) || '').trim()) return 'honeypot';
+  const message = String((b && b.message) || '');
+  if ((message.match(/https?:\/\/|www\./gi) || []).length > MAX_LINKS) return 'links';
+  const key = addr + '|' + message.trim().toLowerCase().replace(/\s+/g, ' ');
+  const at = recent.get(key);
+  if (at && t - at < 60000) return 'repeat';
+  recent.set(key, t);
+  if (recent.size > 5000) recent.clear();
+  return '';
+}
+
 function addressOf(req) {
   const h = (req && req.headers) || {};
   return String(h['x-forwarded-for'] || h['x-real-ip'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim();
@@ -128,6 +148,10 @@ async function publicChat(req, res, b, deps) {
   const message = String((b && b.message) || '').trim().slice(0, 1500);
   if (!wsId || !agentId) return say(res, 400, 'embed_incomplete', 'This website assistant is missing its brand or agent id. Copy the embed code again from the Agent page.');
   if (!message) return say(res, 400, 'message_required', 'Type a question first.');
+  const spam = spamReason(b, addressOf(req));
+  if (spam === 'honeypot') return res.status(200).json({ ok: true, reply: 'Thanks, your message was received.', spam: true });
+  if (spam === 'links') return say(res, 400, 'too_many_links', `Please ask without more than ${MAX_LINKS} links in one question.`);
+  if (spam === 'repeat') return say(res, 429, 'repeated_question', 'That question was just asked. The answer is above; please ask something new.');
 
   const wsRows = (await service(`brand_workspaces?select=id,name,website,owner_id,brand_data&id=eq.${encodeURIComponent(wsId)}&limit=1`)).data;
   const ws = Array.isArray(wsRows) && wsRows[0];
@@ -210,4 +234,4 @@ async function settings(req, res, b) {
   return res.status(200).json({ ok: true, workspace_id: wsId, website: ws.website || '', daily_cap: capOf(ws), used_today: used, price: FEATURE });
 }
 
-module.exports = { publicChat, settings, originAllowed, capOf, DEFAULT_DAILY_CAP, REF, FEATURE, _resetRate: () => hits.clear() };
+module.exports = { publicChat, settings, originAllowed, capOf, DEFAULT_DAILY_CAP, REF, FEATURE, _resetRate: () => { hits.clear(); recent.clear(); }, spamReason, MAX_LINKS };
