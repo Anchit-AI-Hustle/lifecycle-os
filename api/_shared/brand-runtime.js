@@ -590,7 +590,7 @@ function brandBlock(brand) {
   if (imp) lines.push(`For any HTML asset, inject this EXACT import into the <head> <style> before app rules:\n  ${imp}`);
   const pend = Array.isArray(b.pending_hosting) ? b.pending_hosting : [];
   const logo = httpsUrl(b.logo_url);
-  lines.push(`LOGO (header, exact — never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30px).`
+  lines.push(`LOGO (header, exact — never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30-56px)${b.website ? `, wrapped in a link to the brand's homepage (${String(b.website).replace(/^(?!https?:\/\/)/i, 'https://')})` : ''}. Every mailer, Text included, opens with it.`
     : pend.includes('logo') ? `${hostedMarker('logo', b)} - the logo exists only as an uploaded file on the operator's device. Write this marker where the logo goes; never embed an image as data:/base64 and never invent a URL.`
       : missing('logo URL', '', b)}`);
   if (pend.includes('font')) lines.push(`FONT FILES: ${hostedMarker('font', b)} - a brand font was uploaded as a file and has no hosted URL yet. Use the family name with its fallback stack; never embed the font as data:/base64.`);

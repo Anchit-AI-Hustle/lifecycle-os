@@ -69,10 +69,15 @@ function systemPrompt(ctx) {
   // marker - never embedded (2026-10-04, brand-runtime.hostedMarker).
   const logoUrl = brandRuntime.httpsUrl(b.logo_url);
   const pendingLogo = !logoUrl && Array.isArray(b.pending_hosting) && b.pending_hosting.includes('logo');
-  const logo = logoUrl && !text
-    ? `<img src="${logoUrl}" alt="${esc(b.name)}" height="30" style="display:block;border:0;height:30px;width:auto">`
-    : `<span style="font-family:${t.headingStack};font-size:22px;letter-spacing:.14em;color:${t.onSurface}">${esc(b.name)}</span>`
-      + (pendingLogo && !text ? ` followed by the line ${brandRuntime.hostedMarker('logo', b)} (the logo is an uploaded file with no hosted URL yet: never embed it as data:/base64)` : '');
+  // Every mailer, Text included, opens with the brand's logo linked to its
+  // homepage (2026-10-17): the logo is the sender's mark, not a graphic.
+  const home = require('../../_shared/mailer-format.js').homepageOf(b);
+  const logoSrc = require('../../_shared/mailer-format.js').emailLogoSrc(b);
+  const logoInner = logoSrc
+    ? `<img src="${logoSrc}" alt="${esc(b.name)}" width="140" style="display:block;border:0;width:140px;max-width:140px;height:auto;max-height:56px">`
+    : `<span style="font-family:${t.headingStack};font-size:22px;letter-spacing:.14em;color:${t.onSurface}">${esc(b.name)}</span>`;
+  const logo = (home ? `<a href="${home}" target="_blank" style="text-decoration:none">${logoInner}</a> (the logo LINKS to the brand's homepage ${home}; keep that link)` : logoInner)
+    + (!logoUrl && pendingLogo ? ` followed by the line ${brandRuntime.hostedMarker('logo', b)} (the logo is an uploaded file with no hosted URL yet: never embed it as data:/base64)` : '');
   return `You are the HTML execution engine for ${b.name}'s email programme. You produce COMPLETE, conversion-optimised, email-client-safe HTML that implements the creative plan EXACTLY: no rewrites, no truncation, no invented content.
 
 ${ctx.briefing}
@@ -328,13 +333,15 @@ function heuristicHtml(ctx, o) {
   const facts = ctx.facts;
   const logoHref = brandRuntime.httpsUrl(b.logo_url);
   const logoPending = !logoHref && Array.isArray(b.pending_hosting) && b.pending_hosting.includes('logo');
+  const _mf = require('../../_shared/mailer-format.js');
+  const _lm = _mf.logoMark({ brand: b, color: t.onSurface, font: H });
   const header = section(t.surface,
-    ((logoHref && !text)
-      ? `<img src="${esc(logoHref)}" alt="${esc(b.name)}" height="30" style="display:block;margin:0 auto;border:0;height:30px;width:auto">`
-      : `<p style="margin:0;font-family:${H};font-size:22px;line-height:1.3;letter-spacing:.14em;text-transform:uppercase;color:${t.onSurface};text-align:center">${esc(b.name)}</p>`
+    ((_lm.kind === 'image' || _lm.href)
+      ? `<div data-mail-logo="${_lm.kind}" style="text-align:center">${_lm.html}</div>`
+      : `<p style="margin:0;font-family:${H};font-size:22px;line-height:1.3;letter-spacing:.14em;text-transform:uppercase;color:${t.onSurface};text-align:center">${esc(b.name)}</p>`)
         // The brand's logo is an uploaded FILE on the operator's device with
         // no hosted URL yet: the slot says so, in the spec's own words.
-        + ((logoPending && !text) ? `<p style="margin:6px 0 0;font-family:${F};font-size:12px;line-height:1.4;color:${t.mutedOnSurface};text-align:center" data-marker="hosted-logo">${esc(brandRuntime.hostedMarker('logo', b))}</p>` : ''))
+        + (((logoPending && _lm.kind !== 'image') ? `<p style="margin:6px 0 0;font-family:${F};font-size:12px;line-height:1.4;color:${t.mutedOnSurface};text-align:center" data-marker="hosted-logo">${esc(brandRuntime.hostedMarker('logo', b))}</p>` : ''))
     + (facts.foundedLine ? `<p style="margin:6px 0 0;font-family:${F};font-size:12px;line-height:1.4;letter-spacing:.08em;color:${t.mutedOnSurface};text-align:center">${esc(facts.foundedLine)}</p>` : ''),
     'padding:18px 32px;text-align:center');
   // The brand's OWN shipping claim, once, beside the first CTA; nothing when the
