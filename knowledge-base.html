@@ -199,6 +199,82 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   })();
   </script>
 
+  <!-- Asset design benchmarks: the six research documents under
+       knowledge/benchmarks/, each opened in the document viewer
+       (/doc?md=/knowledge/benchmarks/<file>.md). They are PLATFORM research
+       about other publications and stores, never facts about the active
+       brand, and no generator reads them. The one matching the active brand's
+       business model (asset-playbooks.businessModel, answered by
+       /api/kb?action=asset-playbook) is marked; no answer, or an answer about
+       another brand than the one active here, marks none. -->
+  <section class="bkb-box" aria-labelledby="bmk-h" data-kb-benchmarks>
+    <div class="bkb-head">
+      <h2 class="bkb-h" id="bmk-h">Asset design benchmarks</h2>
+    </div>
+    <p class="bmk-lede">How leading publications, market data services and stores build their mailers, ads and landing pages, and why. These documents describe how other publications and stores build assets; assets for your brand still say only what your brand states.</p>
+    <div class="bkb-grid" id="benchmarkGrid">
+      <a class="bkb" data-benchmark="00" href="/doc?md=%2Fknowledge%2Fbenchmarks%2F00-methodology.md">Competitive Marketing Benchmarking Methodology<span>How the benchmarks were chosen and what each business model measures</span></a>
+      <a class="bkb" data-benchmark="01" href="/doc?md=%2Fknowledge%2Fbenchmarks%2F01-mailers.md">Competitive Mailer Architecture &amp; Design Playbook<span>Email structure and design, by business model</span></a>
+      <a class="bkb" data-benchmark="02" href="/doc?md=%2Fknowledge%2Fbenchmarks%2F02-ads.md">Competitive Paid Advertising Playbook (Meta, Google, TikTok, Instagram)<span>Ad formats, safe zones and policy limits</span></a>
+      <a class="bkb" data-benchmark="03" href="/doc?md=%2Fknowledge%2Fbenchmarks%2F03-landing-pages.md">Competitive Landing Page &amp; Conversion Architecture Playbook<span>Landing page structure and conversion patterns</span></a>
+      <a class="bkb" data-benchmark="04" href="/doc?md=%2Fknowledge%2Fbenchmarks%2F04-information-and-market-data-brands.md">Deep Dive: Information, News &amp; Stock Market Intelligence Brands<span>Publishers, newsletters and market data services</span></a>
+      <a class="bkb" data-benchmark="05" href="/doc?md=%2Fknowledge%2Fbenchmarks%2F05-commerce-and-lifestyle-brands.md">Deep Dive: Commerce &amp; D2C Lifestyle Brand Benchmarks<span>Stores and direct-to-consumer brands</span></a>
+    </div>
+  </section>
+  <style>
+    .bmk-lede{color:var(--brand-ink-muted,CanvasText);font-size:13px;line-height:1.6;margin:0 0 14px;max-width:820px}
+    .bkb[data-match]{border-color:var(--brand-accent-text,CanvasText);border-width:2px}
+    .bkb .bmk-match{display:inline-block;margin:0 0 6px;padding:2px 8px;border-radius:99px;background:var(--brand-primary,ButtonFace);color:var(--brand-on-primary,ButtonText);font-size:10.5px;font-weight:700;letter-spacing:.02em}
+  </style>
+  <script>
+  /* Marks the benchmark document for the active brand's business model.
+     Never an error frame: a failed call simply leaves all six unmarked. */
+  (function () {
+    var DOC_FOR = { news_media: '04', market_data: '04', commerce: '05' };
+    function clear() {
+      document.querySelectorAll('#benchmarkGrid [data-match]').forEach(function (a) {
+        a.removeAttribute('data-match');
+        var b = a.querySelector('.bmk-match'); if (b) b.remove();
+      });
+    }
+    function mark(id) {
+      var a = document.querySelector('#benchmarkGrid [data-benchmark="' + id + '"]');
+      if (!a) return;
+      a.setAttribute('data-match', '');
+      var chip = document.createElement('span');
+      chip.className = 'bmk-match';
+      chip.textContent = 'Matches your brand';
+      a.insertBefore(chip, a.firstChild);
+    }
+    var seq = 0;
+    function run(brand) {
+      var mine = ++seq;
+      clear();
+      var name = brand && brand.name ? String(brand.name) : '';
+      if (!name) return;
+      fetch('/api/kb?action=asset-playbook', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (mine !== seq || !j || !j.ok) return;
+          // The answer must be about the brand active HERE; a server that
+          // resolved another brand (a brand kept on this device) marks none.
+          if (String(j.brand || '').trim().toLowerCase() !== name.trim().toLowerCase()) return;
+          var id = DOC_FOR[j.businessModel];
+          if (id) mark(id);
+        })
+        .catch(function () {});
+    }
+    function hook() {
+      var B = window.BrandContext;
+      if (!B) return;
+      var ready = B.ready ? B.ready() : Promise.resolve(B.brand);
+      Promise.resolve(ready).then(function (b) { run(B.brand || b); }, function () {});
+      if (B.onChange) B.onChange(function (d) { run(d && d.brand); });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
+  })();
+  </script>
+
   <div class="subtabs" id="chanTabs">
     <button type="button" class="subtab" data-chan="mailers">✉ Mailers</button>
     <button type="button" class="subtab" data-chan="meta">▼ Meta Ads</button>

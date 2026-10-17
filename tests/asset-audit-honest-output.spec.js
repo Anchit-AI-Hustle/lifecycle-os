@@ -335,8 +335,11 @@ test('nothing of its own: one generated brand scene, hosted, labelled, with no p
   expect(prompt).toContain('Famapp');
   expect(prompt).toMatch(/No product, no packaging/);
   const png = 'data:image/png;base64,iVBORw0KGgo=';
-  expect(await bi.generatedScene(APP, { generate: async () => ({ image: 'data:image/svg+xml,<svg/>', provider: 'placeholder' }), upload: async () => 'https://x/y.png' })).toBe(null);
-  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null }), 'an image that cannot be hosted').toBe(null);
+  // The hosted path alone: the free host is "not answering" here (its own test
+  // is below), or CI, which can reach it, would get the free scene back.
+  const offline = async () => false;
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: 'data:image/svg+xml,<svg/>', provider: 'placeholder' }), upload: async () => 'https://x/y.png', probe: offline })).toBe(null);
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null, probe: offline }), 'an image that cannot be hosted, and no free host').toBe(null);
   const ok = await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => 'https://cdn.example/scene.png' });
   expect(ok).toMatchObject({ url: 'https://cdn.example/scene.png', generated: true });
 
@@ -356,6 +359,65 @@ test('nothing of its own: one generated brand scene, hosted, labelled, with no p
     expect(prompts[0]).toMatch(/No product/);
     expect(JSON.stringify(c.assets)).not.toContain('data:image/png');
   } finally { if (real) require.cache[CI] = real; else delete require.cache[CI]; }
+});
+
+// No key and no storage (2026-10-17). The operator: "use free code based
+// generation and rendering if that can replace the requirement of api keys".
+// Copy already has its code path (the template assets); the brand scene needed
+// a provider key and a bucket. Now the keyless Pollinations address, the same
+// picture every time for a brand, carried as a URL, never base64.
+test('no model key and no storage: the template assets still carry one free, keyless brand scene', async () => {
+  const bi = require(path.join(ROOT, 'api', '_shared', 'brand-imagery.js'));
+  const url = bi.freeSceneUrl(APP);
+  expect(url).toMatch(/^https:\/\/image\.pollinations\.ai\/prompt\//);
+  expect(decodeURIComponent(url)).toMatch(/No product, no packaging/);
+  expect(bi.freeSceneUrl(APP), 'one address per brand').toBe(url);
+  expect(bi.freeSceneUrl(NEWS)).not.toBe(url);
+  // Generation unavailable: the probe decides.
+  expect(await bi.generatedScene(APP, { generate: async () => null, upload: async () => null, probe: async () => true })).toMatchObject({ url, keyless: true, generated: true });
+  expect(await bi.generatedScene(APP, { generate: async () => null, upload: async () => null, probe: async () => false }), 'a host that does not answer gives no scene').toBe(null);
+  // Generated but nowhere to keep it: the keyless address, never the data URL.
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  expect(await bi.generatedScene(APP, { generate: async () => ({ image: png, provider: 'openai' }), upload: async () => null, probe: async () => true })).toMatchObject({ url });
+
+  // The whole build: every text model down, the image cascade finds nothing,
+  // and only the free host answers (with a real image).
+  const LLM_ = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
+  const CI = require.resolve(path.join(ROOT, 'api', '_shared', 'creative-image.js'));
+  const realL = require.cache[LLM_]; const realC = require.cache[CI]; const realP = require.cache[PLAN];
+  const realFetch = global.fetch;
+  const asked = [];
+  const down = async () => { throw new Error('every provider is down'); };
+  Object.assign(down, require(LLM_));
+  require.cache[LLM_] = { id: LLM_, filename: LLM_, loaded: true, exports: down };
+  require.cache[CI] = { id: CI, filename: CI, loaded: true, exports: { generateCreativeImage: async () => null, uploadCreative: async () => null } };
+  delete require.cache[PLAN];
+  global.fetch = async (u, init) => {
+    const s = String(u);
+    if (s.startsWith('https://image.pollinations.ai/')) { asked.push(s); return new Response(new Uint8Array(8000), { status: 200, headers: { 'content-type': 'image/jpeg' } }); }
+    throw new Error('unexpected network call: ' + s);
+  };
+  const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+  for (const k of KEYS) delete process.env[k];
+  try {
+    const { smartConfig } = require(path.join(ROOT, 'lib', 'smart-brain', 'services.js'));
+    const c = await require(PLAN).buildCampaign(slot(APP), smartConfig({}), { noLLM: false, withCreatives: true });
+    expect(c.copywriter.provider).toBe('template-fallback');
+    expect(asked, 'the free host is asked once').toHaveLength(1);
+    expect(c.image_source).toBe('generated');
+    expect(c.generated_imagery).toMatchObject({ url, keyless: true });
+    expect(c.assets.email.html.replace(/&amp;/g, '&'), 'the template mail carries the scene').toContain(url);
+    const statics = c.assets.ads.filter((a) => a.creative_type === 'static');
+    expect(statics.length).toBeGreaterThan(0);
+    expect(statics.every((a) => a.creative.image === url)).toBe(true);
+    expect(JSON.stringify(c.assets)).not.toMatch(/data:image\/(png|jpeg)/);
+  } finally {
+    global.fetch = realFetch;
+    if (realL) require.cache[LLM_] = realL; else delete require.cache[LLM_];
+    if (realC) require.cache[CI] = realC; else delete require.cache[CI];
+    if (realP) require.cache[PLAN] = realP; else delete require.cache[PLAN];
+    for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
 });
 
 // Phones (2026-10-17): every mail was a FIXED 600/560px table, so at 375px it
