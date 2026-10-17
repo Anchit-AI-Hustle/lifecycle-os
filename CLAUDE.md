@@ -4,6 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The output first, then the checks; one hero per mailer (2026-10-17)
+The operator, on /brain (Parwah): *"dont need so much information to be shown before - first the user priorities need to be
+addressed always which is the required output they are looking for"*. `smart-brain.html renderPreview`: the action bar, then
+the assets (each pane: download/copy, the asset, THEN its prompt buttons); "Copy by", the compliance panel, the template-fallback
+reason and the agent trace are ONE `<details class="pvchecks">` after the assets (opened when something blocks). Above the
+assets only what changes a decision, in one line (`.pvlead`): a blocking finding, or copy from the template. The regex
+"Revenue & Quality 96/100 · Benchmark verified" badge is gone (a score nobody measured). Shared mailer
+(`calendar-trigger.renderTextVariant`): a real hero photo is followed by its headline on the card, not by a second colour hero
+block; the line under the wordmark is the tagline only when it is <= 70 characters (no market code, no spaced capitals).
+`output-reasoning`: "Chosen to drive Drive the reader ..." fixed. Copy brief: describe the product only with the brand's own
+words (no pure/natural/locally sourced/best... it does not state). Gated by `tests/output-first-preview.spec.js`
+(mutation-checked).
+
 ## ⭐ The agent goes on the brand's own website; /agent, /assets and /music fixed from production (2026-10-14)
 - **/agent answered "the database is unreachable"** while credits loaded from the same project. Vercel's log:
   `column smart_products.active does not exist` - the buyer agent, the KB and the legacy slot engine filtered on a
