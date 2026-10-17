@@ -99,6 +99,18 @@ function rateHit(addr, now) {
   return true;
 }
 
+// Spam protection for the one form a stranger can send (2026-10-17): a
+// honeypot field a person never sees (a bot that fills every input fills it),
+// at most MAX_LINKS links in a question (link spam is the commonest abuse of
+// a site chat). Each is refused before the database or a model is touched;
+// floods are held by the per-address rate limit and the brand's daily cap.
+const MAX_LINKS = 2;
+function spamReason(b) {
+  if (String((b && (b.hp || b.website_hp)) || '').trim()) return 'honeypot';
+  const message = String((b && b.message) || '');
+  if ((message.match(/https?:\/\/|www\./gi) || []).length > MAX_LINKS) return 'links';
+  return '';
+}
 function addressOf(req) {
   const h = (req && req.headers) || {};
   return String(h['x-forwarded-for'] || h['x-real-ip'] || (req.socket && req.socket.remoteAddress) || 'unknown').split(',')[0].trim();
@@ -128,6 +140,9 @@ async function publicChat(req, res, b, deps) {
   const message = String((b && b.message) || '').trim().slice(0, 1500);
   if (!wsId || !agentId) return say(res, 400, 'embed_incomplete', 'This website assistant is missing its brand or agent id. Copy the embed code again from the Agent page.');
   if (!message) return say(res, 400, 'message_required', 'Type a question first.');
+  const spam = spamReason(b, addressOf(req));
+  if (spam === 'honeypot') return res.status(200).json({ ok: true, reply: 'Thanks, your message was received.', spam: true });
+  if (spam === 'links') return say(res, 400, 'too_many_links', `Please ask without more than ${MAX_LINKS} links in one question.`);
 
   const wsRows = (await service(`brand_workspaces?select=id,name,website,owner_id,brand_data&id=eq.${encodeURIComponent(wsId)}&limit=1`)).data;
   const ws = Array.isArray(wsRows) && wsRows[0];
@@ -210,4 +225,4 @@ async function settings(req, res, b) {
   return res.status(200).json({ ok: true, workspace_id: wsId, website: ws.website || '', daily_cap: capOf(ws), used_today: used, price: FEATURE });
 }
 
-module.exports = { publicChat, settings, originAllowed, capOf, DEFAULT_DAILY_CAP, REF, FEATURE, _resetRate: () => hits.clear() };
+module.exports = { publicChat, settings, originAllowed, capOf, DEFAULT_DAILY_CAP, REF, FEATURE, _resetRate: () => hits.clear(), spamReason, MAX_LINKS };

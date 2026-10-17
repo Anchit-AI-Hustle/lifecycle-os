@@ -56,6 +56,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Set up your brand</title>
+<meta name="description" content="Set up your brand: read your website, confirm colours, type and voice, import your catalogue and start.">
 <link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
@@ -1169,7 +1170,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             '<button type="button" class="imp-tab" data-imp="file">Upload a file</button>' +
           '</div>' +
           '<div data-panel="storefront">' +
-            '<input type="text" id="impUrl" placeholder="https://yourbrand.com" value="' + esc(impUrlTyped ? impUrlDraft : storeFeedUrl()) + '">' +
+            '<input type="text" inputmode="url" autocomplete="url" id="impUrl" placeholder="https://yourbrand.com" value="' + esc(impUrlTyped ? impUrlDraft : storeFeedUrl()) + '">' +
             '<p class="muted" style="margin-top:6px">Reads the store\'s public product feed at <code>/products.json</code> (Shopify and compatible). If there is no feed there, it crawls your own pages instead and takes only what they DECLARE in structured data. Read only, no credentials, and the source is recorded on every row.</p>' +
           '</div>' +
           '<div data-panel="csv" style="display:none">' +
@@ -1863,7 +1864,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return '<div class="xtract compact" data-no-brand-swap><h3>Set up from my website</h3>' +
       '<p class="xmeta"><b>Set up from my website</b> runs every step and opens Review. <b>Read my site</b> only fills this step. Own domain, robots.txt respected, revert in one click.</p>' +
       '<div style="display:flex;gap:9px;margin-top:8px;flex-wrap:wrap">' +
-        '<input type="text" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
+        '<input type="text" inputmode="url" autocomplete="url" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
           ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
           : '<button type="button" class="btn primary" id="xSetup" data-credit-feature="brand.extract"' + (setupBusy || extractBusy ? ' disabled aria-disabled="true"' : '') + '>' + (setupBusy ? 'Setting up...' : 'Set up from my website') + '</button>' +

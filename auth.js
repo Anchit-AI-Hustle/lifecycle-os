@@ -3947,3 +3947,194 @@
   document.addEventListener('auxclick', retarget, true);
   window.__docViewerFor = viewerFor;
 })();
+
+/* ── Cookie and storage notice; analytics only with consent (2026-10-17) ──────
+ * The operator's checklist: "cookie consent" and "set up analytics". What this
+ * app keeps is ESSENTIAL: the sign-in session and the brand's settings, held in
+ * this browser's storage so the app works; no advertising or tracking cookie is
+ * set. Analytics is Vercel Web Analytics (its own script, cookieless), and it
+ * loads ONLY after the visitor chooses "Allow analytics" here. A browser that
+ * sends Global Privacy Control is recorded as essential-only without asking.
+ * The choice is kept in localStorage `lifecycle.consent.v1`; the privacy page
+ * offers to change it (LifecycleConsent.reset()). The bar sits in the page's
+ * flow after the rail and the signed-out notice, so it never covers a control.
+ */
+(function () {
+  'use strict';
+  if (typeof window === 'undefined' || window.__lcConsentInit) return;
+  window.__lcConsentInit = true;
+  var KEY = 'lifecycle.consent.v1';
+  function read() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; } }
+  function write(analytics) {
+    var rec = { analytics: !!analytics, at: new Date().toISOString(), v: 1 };
+    try { localStorage.setItem(KEY, JSON.stringify(rec)); } catch (_) { /* private mode: the choice lasts this page */ }
+    window.__lcConsent = rec;
+    return rec;
+  }
+  function current() { return window.__lcConsent || read(); }
+  function loadAnalytics() {
+    if (window.__lcAnalyticsLoaded) return;
+    window.__lcAnalyticsLoaded = true;
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    var s = document.createElement('script');
+    s.defer = true;
+    s.src = '/_vercel/insights/script.js';
+    s.setAttribute('data-lc-analytics', 'vercel');
+    (document.head || document.documentElement).appendChild(s);
+    // Page speed (Vercel Speed Insights, also cookieless) rides the same choice.
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    var sp = document.createElement('script');
+    sp.defer = true;
+    sp.src = '/_vercel/speed-insights/script.js';
+    sp.setAttribute('data-lc-analytics', 'speed');
+    (document.head || document.documentElement).appendChild(sp);
+  }
+  function apply() { var c = current(); if (c && c.analytics) loadAnalytics(); }
+  function removeBar() { var b = document.getElementById('lc-consent'); if (b) b.remove(); }
+  function choose(analytics) {
+    write(analytics);
+    removeBar();
+    if (analytics) loadAnalytics();
+  }
+  function styles() {
+    if (document.getElementById('lc-consent-style')) return;
+    var st = document.createElement('style');
+    st.id = 'lc-consent-style';
+    st.textContent = [
+      '#lc-consent{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:10px 16px;',
+      'background:var(--vh-panel-2,#f5f5f5);color:var(--vh-ink,#111111);border-bottom:1px solid var(--vh-line,#ebebeb);',
+      'box-shadow:inset 0 3px 0 var(--vh-accent,currentColor);font:13px/1.5 var(--vh-font-body,system-ui,sans-serif)}',
+      '#lc-consent-text{flex:1 1 320px;min-width:0;margin:0}',
+      '#lc-consent-text a{color:var(--vh-link,var(--vh-ink,#111111))}',
+      '#lc-consent .lc-consent-actions{display:flex;gap:8px;flex-wrap:wrap}',
+      '#lc-consent button{min-height:44px;padding:8px 14px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}',
+      '#lc-consent .lc-consent-yes{background:var(--brand-primary,#333333);color:var(--brand-on-primary,#FFFFFF);border:1px solid var(--brand-primary,#333333)}',
+      '#lc-consent .lc-consent-no{background:transparent;color:var(--vh-ink,#111111);border:1px solid var(--vh-line,#bbbbbb)}',
+      '#lc-consent button:focus-visible{outline:3px solid var(--brand-focus,currentColor);outline-offset:2px}',
+    ].join('');
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function showBar() {
+    if (document.getElementById('lc-consent') || !document.body) return;
+    styles();
+    var bar = document.createElement('section');
+    bar.id = 'lc-consent';
+    bar.setAttribute('aria-label', 'Cookie and storage choices');
+    bar.setAttribute('data-no-brand-swap', '');
+    var p = document.createElement('p');
+    p.id = 'lc-consent-text';
+    p.innerHTML = 'Lifecycle OS keeps only what it needs to work in this browser: your sign-in and your brand settings. '
+      + 'With your permission it also counts page visits, without cookies, to improve the app. '
+      + '<a href="/privacy.html#cookies">How we use your data</a>';
+    var acts = document.createElement('div');
+    acts.className = 'lc-consent-actions';
+    var yes = document.createElement('button');
+    yes.type = 'button'; yes.className = 'lc-consent-yes'; yes.textContent = 'Allow analytics';
+    yes.onclick = function () { choose(true); };
+    var no = document.createElement('button');
+    no.type = 'button'; no.className = 'lc-consent-no'; no.textContent = 'Essential only';
+    no.onclick = function () { choose(false); };
+    acts.appendChild(yes); acts.appendChild(no);
+    bar.appendChild(p); bar.appendChild(acts);
+    var host = document.body;
+    var after = document.getElementById('lc-authnotice') || document.getElementById('lifecycle-nav');
+    if (after && after.parentNode === host) after.insertAdjacentElement('afterend', bar);
+    else host.insertBefore(bar, host.firstChild);
+  }
+  function start() {
+    if (window.top !== window) return;           // a preview inside another page asks nothing
+    var c = current();
+    if (!c && navigator.globalPrivacyControl === true) c = write(false);
+    if (c) { apply(); return; }
+    showBar();
+  }
+  window.LifecycleConsent = {
+    get: current,
+    allow: function () { choose(true); },
+    deny: function () { choose(false); },
+    reset: function () { try { localStorage.removeItem(KEY); } catch (_) {} window.__lcConsent = null; showBar(); },
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+
+/* ── Form validation on every page (2026-10-17) ───────────────────────────────
+ * The operator's checklist: "form validation". Every page's fields are checked
+ * as the person leaves them, and the reason is said beside the field in words
+ * (aria-invalid + a described-by line), never a browser bubble or an alert:
+ *  - a web address field (type=url or inputmode=url) takes https://... or a bare
+ *    domain like yourbrand.com (the app adds the scheme), nothing else;
+ *  - an email field takes an address; a number field stays inside its min/max;
+ *  - a required field cannot be left empty; a pattern / maxlength is respected.
+ * The server still checks every value it is sent: this only says it sooner.
+ */
+(function () {
+  'use strict';
+  if (typeof window === 'undefined' || window.__lcFieldCheck) return;
+  window.__lcFieldCheck = true;
+  var WEB = /^(https?:\/\/)?(localhost|[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+)(:\d{2,5})?([\/?#][^\s]*)?$/i;
+  var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function isWeb(el) { return el.type === 'url' || (el.getAttribute('inputmode') || '') === 'url'; }
+  function problem(el) {
+    var v = String(el.value || '').trim();
+    if (el.disabled || el.readOnly) return '';
+    if (!v) return el.required ? 'This is needed.' : '';
+    if (isWeb(el) && !WEB.test(v)) return 'Enter a web address, for example https://yourbrand.com';
+    if (el.type === 'email' && !EMAIL.test(v)) return 'Enter an email address, for example name@yourbrand.com';
+    if (el.type === 'number') {
+      var n = Number(v);
+      if (!Number.isFinite(n)) return 'Enter a number.';
+      if (el.min !== '' && n < Number(el.min)) return 'Enter ' + el.min + ' or more.';
+      if (el.max !== '' && n > Number(el.max)) return 'Enter ' + el.max + ' or less.';
+    }
+    if (el.maxLength > 0 && v.length > el.maxLength) return 'Keep this to ' + el.maxLength + ' characters.';
+    if (el.pattern) { try { if (!new RegExp('^(?:' + el.pattern + ')$').test(v)) return el.title || 'This is not in the expected format.'; } catch (_) { /* a page pattern we cannot read */ } }
+    return '';
+  }
+  var seq = 0;
+  function say(el, msg) {
+    var id = el.getAttribute('data-lc-msg');
+    var line = id && document.getElementById(id);
+    if (!msg) {
+      el.removeAttribute('aria-invalid');
+      if (line) line.remove();
+      if (id) {
+        el.removeAttribute('data-lc-msg');
+        var d = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(function (x) { return x && x !== id; });
+        if (d.length) el.setAttribute('aria-describedby', d.join(' ')); else el.removeAttribute('aria-describedby');
+      }
+      return;
+    }
+    el.setAttribute('aria-invalid', 'true');
+    if (!line) {
+      id = 'lc-field-msg-' + (++seq);
+      line = document.createElement('span');
+      line.id = id;
+      line.className = 'lc-field-msg';
+      line.setAttribute('role', 'status');
+      line.style.cssText = 'display:block;margin-top:4px;font-size:12px;line-height:1.4;color:var(--brand-err-text,var(--vh-err,#b3261e))';
+      el.insertAdjacentElement('afterend', line);
+      el.setAttribute('data-lc-msg', id);
+      el.setAttribute('aria-describedby', ((el.getAttribute('aria-describedby') || '') + ' ' + id).trim());
+    }
+    line.textContent = msg;
+  }
+  function target(e) {
+    var el = e.target;
+    return el && el.tagName === 'INPUT' && !/^(hidden|checkbox|radio|file|range|color|submit|button|password)$/i.test(el.type) ? el : null;
+  }
+  // Checked when the person leaves the field; once flagged, re-checked as they type.
+  document.addEventListener('blur', function (e) { var el = target(e); if (el) say(el, problem(el)); }, true);
+  document.addEventListener('input', function (e) { var el = target(e); if (el && el.getAttribute('aria-invalid') === 'true') say(el, problem(el)); }, true);
+  // A real <form> is not sent with a field the check refuses.
+  document.addEventListener('submit', function (e) {
+    var form = e.target, bad = null;
+    if (!form || !form.querySelectorAll) return;
+    form.querySelectorAll('input').forEach(function (el) {
+      if (!target({ target: el })) return;
+      var m = problem(el); say(el, m); if (m && !bad) bad = el;
+    });
+    if (bad) { e.preventDefault(); e.stopImmediatePropagation(); try { bad.focus(); } catch (_) {} }
+  }, true);
+  window.LifecycleFieldCheck = { problem: problem, check: function (el) { var m = problem(el); say(el, m); return !m; } };
+})();

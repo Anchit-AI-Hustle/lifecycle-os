@@ -4,6 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The 20 website essentials, each checked on what ships (2026-10-17)
+The operator, with a "20 things you MUST have when building a website" checklist: "Ensure all 20 points are
+implemented". Gated by `tests/site-essentials.spec.js` (13 executed; consent, honeypot and single-CTA mutations caught).
+- **1-2** privacy (new `#cookies` section + "Change my cookie choice") and terms (rewritten: account, credits incl.
+  the gift and own-key exemption, content responsibility, acceptable use incl. CAN-SPAM/GDPR, connected platforms,
+  availability, liability, contact). **3** no key pattern / service-role JWT / real private key in any served file.
+  **4** HSTS on `/(.*)`, no `http://` subresource. **5 + 19** `auth.js` consent bar (`#lc-consent`, in flow after the
+  rail/notice, never over a control): Vercel Web Analytics AND Speed Insights load ONLY after "Allow analytics"
+  (`lifecycle.consent.v1`), never on "Essential only" or under Global Privacy Control; the 9 static Speed Insights
+  tags are gone. **Enable Web Analytics + Speed Insights in the Vercel dashboard** or the scripts 404.
+  **6-8** every page has title, 60-160-char description, og:image, favicon (`diff-version`/`_sbtest` exempt by
+  name); tenant-zero brand pages use the brand's own logo as icon; `/favicon.ico` redirects to the mark.
+  **9** robots names the sitemap; every sitemap URL is allowed. **10** no `<img>` without alt (markup + rendered).
+  **11-12** images a page uses < 300 KB, `/assets` images cached, unused `image.png` in `.vercelignore`, home page
+  light with no blocking script. **13/14** contrast and mobile are owned by their existing gates. **15** `404.html`
+  (noindex, tokens, one button home). **16** every internal link in pages and the menu resolves. **17** `auth.js`
+  field check (blur, words beside the field, aria-invalid/describedby; a web address may be a bare domain; a form
+  with a bad field is not sent). **18** the public website assistant refuses a filled honeypot (`#vah-hp`), more
+  than 2 links and a repeated question within a minute, before any database or model call. **20** the home page's
+  one primary CTA moved into the first screen.
+
 ## ⭐ Own model keys cost no credits; mailers read on phones, tablets and Safari (2026-10-17)
 The operator: a workspace that connects its own keys "should be exempted", and "test and fix any issues" on phones,
 tablets and Safari.

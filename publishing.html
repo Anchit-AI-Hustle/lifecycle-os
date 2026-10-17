@@ -56,6 +56,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Publishing &amp; deliverability</title>
+<meta name="description" content="Publish and send: map assets to your platforms, check deliverability and dispatch safely.">
 <link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
@@ -255,7 +256,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             <option value="transactional">Transactional</option>
           </select>
           <label for="domain-send">Sending domain</label>
-          <input type="text" id="domain-send" placeholder="mail.yourbrand.com">
+          <input type="text" inputmode="url" id="domain-send" placeholder="mail.yourbrand.com">
         </div>
       </div>
       <label for="recipients">Recipients (optional)</label>
@@ -298,7 +299,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <div class="card">
       <h3>Check a sending domain</h3>
       <div class="row" style="margin-top:4px">
-        <input type="text" id="domain-in" placeholder="mail.yourbrand.com" style="flex:1;min-width:220px">
+        <input type="text" inputmode="url" id="domain-in" placeholder="mail.yourbrand.com" style="flex:1;min-width:220px">
         <button class="primary" id="btn-domain" data-credit-feature="deliverability_domain_audit">Check</button>
       </div>
       <p class="muted" style="margin-top:8px">SPF, DKIM, DMARC, MX and BIMI are parsed, not just counted. A check that cannot complete is reported as unavailable and excluded from the score &mdash; never scored as a failure.</p>
