@@ -3892,6 +3892,7 @@
       return '/kb/brand' + (id ? '/' + id : '');
     }
     if (/^\/docs\/[A-Za-z0-9._/-]+\.md$/.test(u.pathname) && u.pathname.indexOf('..') < 0) return '/doc?md=' + encodeURIComponent(u.pathname);
+    if (/^\/knowledge\/benchmarks\/[A-Za-z0-9_-]+\.md$/.test(u.pathname)) return '/doc?md=' + encodeURIComponent(u.pathname);
     return '';
   }
   function brandNow() {

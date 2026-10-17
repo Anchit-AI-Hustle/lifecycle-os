@@ -344,7 +344,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return fetch(path, { cache: 'no-cache' }).then(function (r) {
       if (!r.ok) throw new Error('The document answered ' + r.status + '.');
       return r.text();
-    }).then(function (md) { showMarkdown(path.split('/').pop(), md, 'Platform document', 'Lifecycle OS platform document (' + path.replace(/^\//, '') + ').'); });
+    }).then(function (md) {
+      if (K.isBenchmarkDoc && K.isBenchmarkDoc(path)) {
+        // Research about OTHER publications and stores: never this brand's facts.
+        showMarkdown(path.split('/').pop(), md, 'Asset design benchmark',
+          'Platform research (' + path.replace(/^\//, '') + '). It describes how other publications and stores build their assets; an asset for your brand still says only what your brand states.');
+        return;
+      }
+      showMarkdown(path.split('/').pop(), md, 'Platform document', 'Lifecycle OS platform document (' + path.replace(/^\//, '') + ').');
+    });
   }
 
   var shownFor = null;
