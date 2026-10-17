@@ -2213,11 +2213,11 @@ async function sbPreflight(){
   try { rep = await (await fetch(`${API}?action=connectors-check`)).json(); }
   catch(_){ return true; }   // diagnostic unreachable — don't block generation on it
   const det = $('detail');
+  // No model at all is not a reason to stop: every asset has a code-written
+  // version built from the brand's own record. Say which one this run uses.
   if(!rep.anyConfigured){
-    const m = 'Cannot generate — no text AI provider is connected. ' + (rep.summary||'') +
-              ((rep.missing||[]).length ? ' Missing: ' + rep.missing.join(', ') : '');
-    if(det) det.innerHTML = `<span class="terr">⚠ ${esc(m)}</span>`;
-    return false;
+    if(det) det.innerHTML = `<span style="color:var(--vh-ink)">${esc(rep.summary||'No text model is connected; copy is written from the brand record.')}</span>`;
+    return true;
   }
   if(!rep.anyUsable){
     return await sbConfirm((rep.summary||'All configured providers are rate-limited.') + ' Generate anyway? Copy will fall back to templates until they recover.');

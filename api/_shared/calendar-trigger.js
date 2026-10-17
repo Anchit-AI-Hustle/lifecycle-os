@@ -723,7 +723,7 @@ function _renderVariantBody(o) {
       <tr><td align="center" style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
         ${brandClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${brandClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc(brandOrg(o).name)} &middot; ${esc(brandOrg(o).address)}<br>You are receiving this because you are a ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   const blocks = (body_blocks || []).map((b) => `
@@ -811,7 +811,7 @@ function _renderVariantBody(o) {
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
         <p style="font-family:${BODY};font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
-        <p style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this as a ${esc(brandNameOf(o))} ${esc(market)} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc(brandOrg(o).name)}, ${esc(brandOrg(o).address)}<br>You are receiving this because you are a ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>

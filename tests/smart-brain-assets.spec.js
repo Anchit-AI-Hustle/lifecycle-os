@@ -243,7 +243,7 @@ test('a Text mailer keeps its testimonials typographic, and proof sits above the
   const base = ct.helpers.renderTextVariant({ style: 'pure', subject: 's', hero_headline: 'H', body_blocks: [{ heading: '', body: 'b' }], cta_text: 'go', cta_url: 'https://x', market: 'US' });
   const out = sbp.__test_injectProofBlock(base, e, 'pure');
   const iProof = out.indexOf('In their words');
-  const iLegal = out.search(/receiving this as/i);
+  const iLegal = out.search(/receiving this (as|because)/i);
   expect(iProof).toBeGreaterThan(0);
   expect(iLegal).toBeGreaterThan(0);
   expect(iProof).toBeLessThan(iLegal);
