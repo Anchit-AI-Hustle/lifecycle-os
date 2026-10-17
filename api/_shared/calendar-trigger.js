@@ -756,7 +756,7 @@ function _renderVariantBody(o) {
   <tr><td align="center" style="padding:36px 16px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
       ${offerBarRow}${brandHeader}${heroImgRow}
-      ${hero_image_url ? `
+      ${(hero_image_url || hero_prompt) ? `
       <tr><td style="padding:22px 32px 0;">
         <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.22;color:${palette.greenText};font-weight:600;margin:0;`, '0', palette.greenText)}">${esc(hero_headline)}</h1>
