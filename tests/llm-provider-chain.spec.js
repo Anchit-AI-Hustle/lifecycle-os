@@ -255,9 +255,18 @@ test('a workspace\'s own keys: only its models, Claude then OpenAI then Gemini t
   net = installNet(() => undefined);
   // Connected in another order: the operator's priority decides.
   const ws = { order: [], keys: { grok: 'ws-xai', gemini: 'ws-gm', openai: 'ws-oa', anthropic: 'ws-ak' }, configured: ['grok', 'gemini', 'openai', 'anthropic'], fallback: true };
-  const first = await ask({ overrides: ws });
+  // Run inside a request scope: the answer is recorded as made by the
+  // workspace's own key, which is what the credit meter waives the charge on.
+  const scope = require(path.resolve(__dirname, '..', 'api', '_shared', 'request-scope.js'));
+  const { first, outcome } = await scope.run({ headers: {} }, async () => ({ first: await ask({ overrides: ws }), outcome: scope.llmOutcome() }));
   expect(first.provider).toBe('anthropic');
   expect(net.calls[0].key).toBe('ws-ak');
+  expect(outcome).toMatchObject({ ok: 1, own: 1 });
+  // The platform's own key answering is not the workspace's.
+  net.restore();
+  net = installNet(() => undefined);
+  const plat = await scope.run({ headers: {} }, async () => { await ask(); return scope.llmOutcome(); });
+  expect(plat).toMatchObject({ ok: 1, own: 0 });
   // Each one down in turn: the next in the operator's order, never outside the workspace.
   const down = new Set();
   const answer = [];

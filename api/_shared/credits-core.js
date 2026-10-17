@@ -417,8 +417,16 @@ async function meter(req, featureKey, opts) {
     p_ref: o.ref || null, p_meta: o.meta || {},
   });
 
+  // A WORKSPACE THAT CONNECTED ITS OWN MODELS (2026-10-17, the operator: "yes
+  // they should be exempted"). What its own keys make costs it no credits, so a
+  // low balance must not stop it: the run goes ahead with no hold, and only work
+  // the platform made (a picture with no image key of its own, a video, a
+  // track) is charged afterwards, when the run is known.
+  const ownModels = await workspaceHasOwnModels();
   if (!held || held.ok !== true) {
-    return Object.assign({ ok: false, status: 402, error: 'insufficient_credits', quote: q, feature: q.key, label: q.label }, held || {});
+    const refusal = Object.assign({ ok: false, status: 402, error: 'insufficient_credits', quote: q, feature: q.key, label: q.label }, held || {});
+    if (!ownModels) return refusal;
+    return deferredGate(q, o, auth, workspaceId, refusal);
   }
 
   const holdId = held.hold_id;
@@ -436,6 +444,12 @@ async function meter(req, featureKey, opts) {
     /** Charge the real usage. `actualUnits` only matters for metered features. */
     async settle(actualUnits, extra) {
       if (done) return { ok: true, already: true };
+      if (ownModels && madeByOwnKeys()) {
+        // Every answer came from the workspace's own keys: nothing to charge.
+        const r = await this.release(OWN_KEYS_NOTE);
+        this.receipt = ownKeysReceipt(q);
+        return Object.assign({ ok: true, charged: 0, own_keys: true }, r && typeof r === 'object' ? { balance: r.balance } : {});
+      }
       done = true;
       // An explicit finite 0 must settle at zero (the run did no billable work
       // and the whole reservation comes back). Only undefined/NaN falls back to
@@ -469,6 +483,69 @@ async function meter(req, featureKey, opts) {
     },
 
     receipt: { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units: q.units, charged: q.total },
+  };
+}
+
+const OWN_KEYS_NOTE = 'made with the workspace\'s own model keys; no credits charged';
+
+/** Does the workspace serving this request have model keys of its own connected? */
+async function workspaceHasOwnModels() {
+  try {
+    const ov = await require('./workspace-connections-core.js').llmOverridesForCurrentRequest();
+    const configured = Array.isArray(ov && ov.configured) ? ov.configured : Object.keys((ov && ov.keys) || {});
+    return !!(ov && configured.length);
+  } catch (_) { return false; }
+}
+
+/** Every model or image answer THIS request got came from the workspace's own keys. */
+function madeByOwnKeys() {
+  const out = scope.llmOutcome();
+  return !!(out && out.ok > 0 && out.own === out.ok);
+}
+
+function ownKeysReceipt(q) {
+  return { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units: q.units, charged: 0, own_keys: true, note: 'Made with your own model keys: no credits used.' };
+}
+
+/**
+ * The gate of a workspace with its own models whose balance could not cover a
+ * hold. Nothing is reserved; at settle, a run its own keys made costs nothing,
+ * and a run the platform made is charged then (hold + settle in one go). If the
+ * wallet cannot cover THAT, settle answers `insufficient` and the metered
+ * wrapper answers the 402 instead of the result.
+ */
+function deferredGate(q, o, auth, workspaceId, refusal) {
+  let done = false;
+  return {
+    ok: true, free: false, deferred: true, hold_id: null, quote: q, auth, workspace_id: workspaceId,
+    receipt: ownKeysReceipt(q),
+    async settle(actualUnits, extra) {
+      if (done) return { ok: true, already: true };
+      done = true;
+      if (madeByOwnKeys()) { this.receipt = ownKeysReceipt(q); return { ok: true, charged: 0, own_keys: true }; }
+      const asked = Number(actualUnits);
+      const units = !q.metered ? q.units
+        : (actualUnits != null && Number.isFinite(asked)) ? Math.max(0, Math.ceil(asked)) : q.units;
+      const actual = q.cost * units;
+      if (actual <= 0) { this.receipt = { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: 0 }; return { ok: true, charged: 0 }; }
+      const held = await rpc('credit_hold', {
+        p_user: auth.user_id, p_workspace: workspaceId, p_amount: actual,
+        p_feature: q.key, p_label: q.label, p_unit_label: q.unit, p_units: units,
+        p_ref: o.ref || null, p_meta: o.meta || {},
+      }).catch(() => null);
+      if (!held || held.ok !== true) {
+        this.receipt = { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: 0 };
+        return Object.assign({ ok: false, insufficient: true }, refusal, held || {});
+      }
+      const r = await rpc('credit_settle', {
+        p_hold: held.hold_id, p_actual: actual, p_units: units,
+        p_ref: (extra && extra.ref) || o.ref || null, p_meta: (extra && extra.meta) || o.meta || {},
+      });
+      this.receipt = { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: (r && r.charged) || actual, balance: r && r.balance };
+      this.balance = r && r.balance;
+      return r;
+    },
+    async release() { done = true; this.receipt = ownKeysReceipt(q); this.receipt.charged = 0; return { ok: true, released: 0 }; },
   };
 }
 
@@ -611,6 +688,7 @@ function metered(handler, featureFor, unitsFor, opts) {
     res.end = (...args) => { if (!captured) captured = { kind: 'end', args }; return res; };
 
     let settled = false;
+    let unpaid = null;
     async function settleNow(statusCode, payload) {
       if (settled) return;
       settled = true;
@@ -633,9 +711,15 @@ function metered(handler, featureFor, unitsFor, opts) {
         ok = false;
         note = `no model answered (${llmOut.failed} call${llmOut.failed === 1 ? '' : 's'} failed on every provider or ran out of time); reservation returned`;
       }
-      const work = ok
+      const work = (ok
         ? gate.settle(unitsFor ? unitsFor(req, body) : undefined)
-        : gate.release(note);
+        : gate.release(note)).then((r) => {
+          // A workspace with its own models ran on no hold, and the platform
+          // made this (not its keys): the wallet could not pay, so the result
+          // is not handed over.
+          if (r && r.insufficient) unpaid = r;
+          return r;
+        });
       // Bounded: a hung ledger call must not hang the user's response. Either
       // way the reservation is already reflected in their balance, and an
       // unsettled hold shows in the wallet as `held`.
@@ -651,6 +735,15 @@ function metered(handler, featureFor, unitsFor, opts) {
 
     function flush() {
       restore();
+      if (unpaid) {
+        const r = unpaid;
+        return origStatus(402) && origJson({
+          ok: false, error: 'insufficient_credits', feature: r.feature, label: r.label, balance: r.balance,
+          required: r.required, short_by: r.short_by,
+          message: 'This was made by the platform, not by your own model keys, and your credits do not cover it. Recharge, or connect a model of your own that can make it.',
+          credits: gate.receipt || null,
+        });
+      }
       if (!captured) return undefined;
       if (captured.kind === 'json') {
         const payload = captured.payload;

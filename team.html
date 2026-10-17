@@ -107,6 +107,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     .hint{margin-top:6px;font-size:12px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;cursor:pointer}
     .hint.open{display:block}
   }
+  /* A phone on its side (375px tall): the note is one line, so the composer
+     and the menu bar stay under 40% of the screen. */
+  @media (max-height:520px){
+    textarea{height:44px}
+    .hint{-webkit-line-clamp:1}
+  }
 </style>
 </head>
 <body>

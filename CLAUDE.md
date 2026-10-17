@@ -4,6 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Own model keys cost no credits; mailers read on phones, tablets and Safari (2026-10-17)
+The operator: a workspace that connects its own keys "should be exempted", and "test and fix any issues" on phones,
+tablets and Safari.
+- **Credits**: `request-scope.noteLlm('ok', {own})` records whether each answer came from the workspace's OWN key
+  (llm.js `_success`: `ovKeys[provider]`; image.js: `ownImg`). `credits-core.meter()`: a run whose every answer was
+  its own keys is RELEASED (receipt `charged:0, own_keys:true`); a workspace with own models whose wallet cannot
+  cover the hold runs with no hold (`deferredGate`) and is charged after only for work the platform made; if the
+  wallet cannot pay that, the metered wrapper answers 402 instead of the result. A workspace without own keys is
+  unchanged. Gated in `credits-meter-executed` (own keys) and `llm-provider-chain` (the scope records `own`).
+- **Mailers on devices** (`mailer-format.mobile()`, applied by `fluid()` and the model-path mailer): the four
+  variants had NO viewport meta (a phone laid them out 980px wide, copy at ~40%); the card's second `style=` was
+  dropped (merged now); `img[data-mail-hero]` is capped (46vw on a phone, 320px on a tablet, cropped) so the button is
+  on the first screen; the text mailer no longer prints its button twice; "a Arya" -> `MF.article()`; labels under
+  12px raised (variant eyebrows, card notes, "Also from", landing-page eyebrows and tables). `team.html` composer
+  fits a phone on its side. Gated by `tests/asset-devices.spec.js`, run on WebKit by the iphone-se / iphone-12 /
+  ipad projects in CI and on Chromium at the same sizes by desktop-1280 (WebKit cannot be downloaded here).
+
 ## ⭐ Every asset says only what the brand states, for brands with and without data (2026-10-17, audit)
 The operator: *"rate each functionality and feature and output asset ... test everything thoroughly ... fix all the
 issues"*. Campaigns built for four kinds of brand (own catalogue, an app with no catalogue, a news publisher, a bare
