@@ -738,14 +738,16 @@ function _renderVariantBody(o) {
   // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
   //    and a brand palette hero block. Visual elements stay light and on-brand.
   if (style === 'visual') {
-    const heroLabel = hero_product ? esc(hero_product) : `${esc(brandNameOf(o))} Studio Spotlight`;
+    // No product: no eyebrow. "<Brand> Studio Spotlight" was tenant zero's
+    // sneaker-studio line, printed for every brand without a product.
+    const heroLabel = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? esc(hero_product) : '';
     // Real hero photograph if we have one; otherwise, when a generation prompt
     // is supplied, emit the lava-standard IMAGE GENERATION PROMPT comment + a
     // PASTE_IMAGE_URL_HERE slot the asset agent fills. With neither, the
     // variant renders as before (brand-palette hero block only).
     const heroImgRow = hero_image_url ? `
       <tr><td style="padding:20px 32px 0;">
-        <img src="${esc(hero_image_url)}" width="536" alt="${heroLabel}" style="display:block;width:100%;height:auto;border-radius:6px;" />
+        <img src="${esc(hero_image_url)}" width="536" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;border-radius:6px;" />
       </td></tr>` : (hero_prompt ? `
       <tr><td style="padding:20px 32px 0;">
         ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green })}
@@ -758,14 +760,14 @@ function _renderVariantBody(o) {
       ${offerBarRow}${brandHeader}${heroImgRow}
       ${(hero_image_url || hero_prompt) ? `
       <tr><td style="padding:22px 32px 0;">
-        <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+        ${heroLabel ? `<div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.22;color:${palette.greenText};font-weight:600;margin:0;`, '0', palette.greenText)}">${esc(hero_headline)}</h1>
       </td></tr>` : `
       <tr><td style="padding:20px 32px 0;">
         <!-- Brand-palette hero block (no external image needed) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
           <tr><td style="padding:34px 26px;text-align:center;">
-            <div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>
+            ${heroLabel ? `<div style="font-family:${HEAD};font-size:11px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
             <div data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
           </td></tr>
         </table>
