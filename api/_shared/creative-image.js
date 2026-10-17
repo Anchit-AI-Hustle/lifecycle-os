@@ -17,17 +17,32 @@
 
 // Invoke the existing image handler in-process via a mock res object, so we get
 // the full Gemini → OpenAI → free-Pollinations cascade without an HTTP hop.
-async function generateCreativeImage(prompt, { size = '1024x1024', mode = '' } = {}) {
+//
+// `admitted` (optional): { caller, headers } from a route that has ALREADY
+// gated and metered this work (the pipeline's images stage). The cascade then
+// runs unmetered (image.js `inProcess`) as THAT caller, so the picture is
+// that caller's brand and no second hold is taken per image. `free: false`
+// asks the route for no keyless rung and skips the floor below (the caller
+// honours FREE_GENERATION=off). `report` (an object) receives the route's
+// `detail` and `attempts` when it produced nothing. `budgetMs` caps the cascade.
+async function generateCreativeImage(prompt, { size = '1024x1024', mode = '', admitted = null, free, report = null, budgetMs = 55000 } = {}) {
   if (!prompt || !String(prompt).trim()) return null;
   let handler;
   try { handler = require('../ai/image.js'); } catch (_) { return null; }
+  if (admitted) {
+    if (!admitted.caller || !admitted.caller.ok || typeof handler.inProcess !== 'function') return null;
+    handler = handler.inProcess;
+  }
   return await new Promise((resolve) => {
     let settled = false;
     let timer = null;
     const done = (v) => { if (!settled) { settled = true; if (timer) clearTimeout(timer); resolve(v); } };
     const res = {
       setHeader() {}, status() { return res; }, end() { done(null); return res; },
-      json(obj) { done(obj && obj.image_data_url ? { image: obj.image_data_url, provider: obj.provider, model: obj.model, url: obj.image_url || null } : null); return res; },
+      json(obj) {
+        if (!(obj && obj.image_data_url) && report && obj) { report.detail = obj.detail || obj.message || obj.error || null; report.attempts = obj.attempts || []; }
+        done(obj && obj.image_data_url ? { image: obj.image_data_url, provider: obj.provider, model: obj.model, url: obj.image_url || null } : null); return res;
+      },
     };
     // budget_ms keeps the cascade inside this function's own 60s wait, so a
     // slow provider is cut off by the cascade (which then tries the next one)
@@ -38,10 +53,15 @@ async function generateCreativeImage(prompt, { size = '1024x1024', mode = '' } =
     // every one of these was refused (401) and every server-side image was
     // null (found 2026-10-17). It names itself as the scheduler when the
     // deployment has one, else carries the person's own session.
-    const req = { method: 'POST', headers: internalAuth(), body: { prompt: String(prompt).slice(0, 1800), size, quality: 'high', mode, budget_ms: 55000 } };
-    Promise.resolve().then(() => handler(req, res)).catch(() => done(null));
-    timer = setTimeout(() => done(null), 60000);
-  }).then((got) => got || freeImage(prompt, size));
+    const budget = Math.max(5000, Math.min(55000, Number(budgetMs) || 55000));
+    const reqBody = { prompt: String(prompt).slice(0, 1800), size, quality: 'high', mode, budget_ms: budget };
+    if (free === false) reqBody.free = false;
+    const req = admitted
+      ? { method: 'POST', headers: Object.assign({}, admitted.headers || {}), body: reqBody, __admitted: true, __caller: admitted.caller }
+      : { method: 'POST', headers: internalAuth(), body: reqBody };
+    Promise.resolve().then(() => handler(req, res)).catch((e) => { if (report) report.detail = String((e && e.message) || e); done(null); });
+    timer = setTimeout(() => done(null), budget + 5000);
+  }).then((got) => got || (free === false ? null : freeImage(prompt, size)));
 }
 
 function internalAuth() {

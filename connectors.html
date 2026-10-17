@@ -284,7 +284,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function aiRenderProviders(){
     var ps=aiProviders();
-    $("ai-providers").innerHTML=ps.length?ps.map(aiCard).join(""):'<div class="banner info">No AI providers are registered on this build.</div>';
+    // The free keyless models: generation works with no key; no card is marked connected by it.
+    var free=(aiState.free&&aiState.free.on)?'<p class="vh-status" role="status" data-free-generation style="grid-column:1/-1"><span class="st partial">Free models on</span> '+esc(aiState.free.note)+'</p>':'';
+    $("ai-providers").innerHTML=free+(ps.length?ps.map(aiCard).join(""):'<div class="banner info">No AI providers are registered on this build.</div>');
   }
   function aiKeySource(p){
     if(!p)return"";
@@ -326,7 +328,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function aiLoad(){
     return aiApi("list").then(function(d){
-      aiState.providers=d.providers||[]; aiState.routing=d.routing||{entries:[],use_platform_fallback:true}; aiState.storage=d.secrets_storage||{}; aiState.device=d.storage==="device"; aiState.note=d.note||""; aiState.connections={};
+      aiState.providers=d.providers||[]; aiState.routing=d.routing||{entries:[],use_platform_fallback:true}; aiState.storage=d.secrets_storage||{}; aiState.device=d.storage==="device"; aiState.note=d.note||""; aiState.free=d.free_generation||null; aiState.connections={};
       (d.connections||[]).forEach(function(c){aiState.connections[c.provider]=c;});
       aiRenderStorage(d); aiRenderProviders(); aiRenderRouting();
     }).catch(function(e){

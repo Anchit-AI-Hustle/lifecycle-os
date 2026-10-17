@@ -80,7 +80,7 @@ const SUBFEATURES = [
     op: 'transcription', credit_key: 'telesuite.transcription', output: 'transcript',
     inputs: [
       { name: 'audio', label: 'Call recording', type: 'audio', accept: 'audio/*',
-        help: 'Needs GEMINI_API_KEY for audio. No key, or no file? Paste the transcript below instead and the run is free.' },
+        help: 'An audio file needs GEMINI_API_KEY on this deployment. No key, or no file? Transcribe live in the browser (free) or paste the transcript below; either run is free.' },
       { name: 'transcript', label: 'Or paste a transcript', type: 'textarea', placeholder: 'Agent: ...\nCustomer: ...' },
       { name: 'language', label: 'Language', type: 'text', default: 'English', placeholder: 'English' },
     ] },
@@ -662,8 +662,8 @@ OPS.transcription = async (ctx, input) => {
   const minutes = Number(input.duration_minutes) > 0 ? Number(input.duration_minutes) : null;
   const out = await geminiTranscribe(String(audio.data), str(audio.mime) || 'audio/mpeg', str(input.language));
   if (!out) {
-    const e = new Error('Audio transcription needs GEMINI_API_KEY on this deployment. Paste the transcript instead and the run is free.');
-    e.status = 503; throw e;
+    const e = new Error('Audio transcription needs GEMINI_API_KEY on this deployment. Transcribe live in the browser (free) or paste the transcript instead, and the run is free.');
+    e.status = 503; e.code = 'transcription_unavailable'; throw e;
   }
   return {
     result: { transcript: out.text, source: 'audio', model: out.model, filename: str(audio.name), minutes },
@@ -1319,7 +1319,9 @@ async function handle(req, res) {
       balance: m.balance,
     }, ctx.device ? { device: ctx.device.changes() } : {}));
   } catch (err) {
-    return res.status(err.status || 500).json({ ok: false, error: err.message || 'telesuite_failed' });
+    // `code` names a refusal a page can act on (transcription_unavailable:
+    // offer the browser's own speech recognition); `error` stays the sentence.
+    return res.status(err.status || 500).json(Object.assign({ ok: false, error: err.message || 'telesuite_failed' }, err.code ? { code: String(err.code) } : {}));
   }
 }
 

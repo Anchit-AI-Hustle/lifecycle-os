@@ -302,7 +302,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     CAT_ORDER.forEach(function (cat) {
       var list = state.providers.filter(function (p) { return p.category === cat; });
       if (!list.length) return;
-      html += '<div class="cat">' + esc(CAT_LABEL[cat] || cat) + '</div><div class="grid">' + list.map(providerCard).join('') + '</div>';
+      html += '<div class="cat">' + esc(CAT_LABEL[cat] || cat) + '</div>';
+      // The free keyless models: generation works with no key. Said once, above
+      // the AI cards, without marking any of them connected.
+      if (cat === 'ai' && state.free && state.free.on) {
+        html += '<p class="vh-status" role="status" data-free-generation><span class="chip plat">Free models on</span> ' + esc(state.free.note) + '</p>';
+      }
+      html += '<div class="grid">' + list.map(providerCard).join('') + '</div>';
     });
     $('platforms').innerHTML = html || '<p class="muted">No platforms are available to connect.</p>';
   }
@@ -460,6 +466,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       state.providers = d.providers || [];
       state.routing = d.routing || { entries: [], use_platform_fallback: true };
       state.storage = d.secrets_storage || {};
+      state.free = d.free_generation || null;
       state.connections = {};
       (d.connections || []).forEach(function (c) { state.connections[c.provider] = c; });
       $('banner').innerHTML = '';
