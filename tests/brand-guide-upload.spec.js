@@ -247,9 +247,16 @@ async function open(page, world, opts) {
   await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded && window.BrandContext.storage && window.BrandContext.storage().known && window.BrandDocument, null, { timeout: 20000 });
   // Logo / guidelines live under the compact optional details; open it so
   // #docBlock and the asset inputs are visible and actionable.
-  await page.waitForSelector('#setupMore');
-  await page.locator('#setupMore').evaluate((el) => { el.open = true; });
-  await page.waitForSelector('#docBlock');
+  // The wizard re-renders this block while it boots, and a render that lands
+  // before the 'toggle' event replaces the opened <details> with a closed one
+  // (seen in CI under load). Open it until it stays open.
+  await page.waitForFunction(() => {
+    const more = document.getElementById('setupMore');
+    if (!more) return false;
+    if (!more.open) more.open = true;
+    const doc = document.getElementById('docBlock');
+    return !!(doc && doc.offsetParent);
+  }, null, { timeout: 20000, polling: 100 });
   await page.waitForTimeout(250);
   return log;
 }
