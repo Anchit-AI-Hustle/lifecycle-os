@@ -256,7 +256,11 @@ test('a slot with no hero product produces a marked asset instead of throwing', 
   // to throw a bare TypeError out of GenerationService and kill the whole
   // generation, so the operator saw a failed run rather than a stated gap.
   const c = await build({ heroProduct: undefined });
-  expect(c.assets.email.subject).toMatch(/DATA REQUIRED BEFORE LAUNCH: hero product/);
+  // The gap is stated on the campaign; the subject a customer reads never
+  // carries the marker (2026-10-17 audit).
+  expect(c.data_gaps.join(' ')).toMatch(/DATA REQUIRED BEFORE LAUNCH: (hero product|product)/);
+  expect(c.assets.email.subject).not.toMatch(/DATA REQUIRED/);
+  expect(c.assets.email.subject.length).toBeGreaterThan(0);
   expect(c.assets.email.prompts.length).toBeGreaterThan(0);
 });
 
