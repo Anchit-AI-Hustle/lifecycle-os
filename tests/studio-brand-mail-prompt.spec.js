@@ -192,7 +192,7 @@ test('every archetype x variant the Studio renders wears the active brand: its p
   await viewer.route('**/*', (route) => (route.request().resourceType() === 'image'
     ? route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') })
     : route.abort()));
-  const bad = { tz: [], fam: [], dark: [], unreadable: [], words: [] };
+  const bad = { tz: [], fam: [], dark: [], unreadable: [], words: [], phone: [] };
   let textRuns = 0, primaryUsed = 0;
   for (const [k, mailer] of Object.entries(renders)) {
     expect(mailer.startsWith('ERROR'), `${k} threw: ${mailer.slice(0, 160)}`).toBe(false);
@@ -210,8 +210,15 @@ test('every archetype x variant the Studio renders wears the active brand: its p
     for (const f of r.families) if (!/^(Poppins|Helvetica|Arial|sans-serif)$/i.test(f)) bad.fam.push(`${k}: ${f}`);
     bad.dark.push(...r.dark.map((d) => `${k}: ${d}`));
     bad.unreadable.push(...r.unreadable.map((d) => `${k}: ${d}`));
+    // A phone (2026-10-17): no mail may scroll sideways at 375px.
+    await viewer.setViewportSize({ width: 375, height: 800 });
+    await viewer.setContent(mailer, { waitUntil: 'domcontentloaded' });
+    const sw = await viewer.evaluate(() => document.documentElement.scrollWidth);
+    if (sw > 375) bad.phone.push(`${k}: ${sw}px wide at 375 ` + await viewer.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > 376 && e.parentElement && e.parentElement.getBoundingClientRect().right <= 376).slice(0, 4).map((e) => e.tagName + ' w=' + Math.round(e.getBoundingClientRect().width) + ' attrW=' + e.getAttribute('width') + ' ' + (e.getAttribute('style') || '').slice(0, 160) + ' txt=' + (e.textContent || '').trim().slice(0, 40)).join(' | ')));
+    await viewer.setViewportSize({ width: 1280, height: 720 });
   }
   await viewer.close();
+  expect([...new Set(bad.phone)], 'a mail that scrolls sideways on a phone').toEqual([]);
   // A check that inspects nothing passes everything.
   expect(textRuns, 'too few text runs measured to mean anything').toBeGreaterThan(400);
   expect(primaryUsed, 'the brand primary #ffa517 is never a ground in any mailer').toBeGreaterThan(10);
