@@ -4,6 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Winning angles: competitor ads that keep running -> angles + hook bank -> briefs + test plan (2026-10-18)
+The operator, with a workflow seen elsewhere (competitor patterns from the Meta Ad Library -> angles + 20-hook bank ->
+brief stack + test plan): "take your learnings ... keep it free to the max extent possible in execution but dont show
+that to the users". `api/_shared/ad-angle-lab.js` on `brain.js ?action=ad-angle-lab` (POST, metered `ads.copy_matrix`,
+refused for an unattributed browser like every generator), the "Winning angles" tab on `/ad-campaigns`.
+- **Sources, no new scraper**: the workspace's own `ci_ads` and `competitor-core.fetchMetaAds` per competitor (Apify's
+  free plan with `APIFY_TOKEN`, else a library link per competitor). Competitors: named on the call, else the brand
+  record's own (`deriveFromBrandRecord`). None read: angles come from the brand's own claims, labelled `basis: own`.
+- **Longevity is the signal**: every pattern is weighted by the days its ads have run (start date, else first
+  sighting; 30+ days = long-running, capped at 180). Hook patterns are classified from each ad's own first line in
+  code (`hookPattern`); formats, awareness, personas and pains from `ci-enrich` tags when present. No model here.
+- **Angles**: competitor pain clusters (else hook patterns), ranked by signal share; each is answered by one of the
+  brand's OWN claims - the model picks it by NUMBER (it cannot invent one), else word overlap, else a different
+  unused claim flagged `answer_basis: 'unmatched'`. Never "predicted lift": the rank is the competitor signal, said so.
+- **Hook bank**: ONE model call (the shared free-first waterfall; output-contract JSON), held by `copy-grounding`
+  (a claim word the brand does not back drops the hook), unique across the bank, <=4 per angle, <=125 chars, never
+  padded to 20; no model -> hooks built from the brand's own lines. **Briefs**: one per angle + a control (the
+  brand as it speaks today), within Meta's limits, the format its competitor ads run, `defaultCta`. **Test plan**: the
+  control keeps 20%, the rest by signal share with a 10% floor; amounts only with a stated daily budget, else the marker.
+- **Not shown to the user**: which model or service did the work (`_by` is removed by the route; the page never
+  renders a provider). Gated by `tests/ad-angle-lab.spec.js` (7 executed, incl. the tab in Chromium at 1280 and 390;
+  4 mutations caught) plus entries in `router-brain`, `prompt-output-contracts` and `brand-content-invariant`.
+
 ## ⭐ A brand with no catalogue gets its picture on every build, the /brain View build too (2026-10-18)
 The operator: "brands without catalog are not being able to generate appropriate visuals in the marketing assets".
 Measured on the shipped builder: a brand with no catalogue and no imagery of its own shipped 0 pictures across 4 mail
