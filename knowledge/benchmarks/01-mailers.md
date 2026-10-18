@@ -104,3 +104,22 @@ Direct-response commerce emails drive measurable GMV and expand LTV.
 3. **Outlook Background Colors**: Always supply explicit `bgcolor` attribute on table cells alongside `background-color` style.
 4. **Image Alt Text**: Always provide descriptive, human-readable `alt` text so the email communicates full meaning even when images are disabled by default.
 5. **No Broken Links**: Never invent URLs. If a specific product or section URL is not available, leave the CTA linking to the verified store/home domain.
+
+---
+
+## 6. Measured study (2026-10-18)
+
+56 real sent emails from category leaders, read from Really Good Emails and measured as rendered in Chromium (`api/_shared/competitor-mail-study.js`, data in `data/benchmarks/mail-reference.json`). This is the reference set a brand's mailers follow until the competitive benchmarking feature has captured three or more emails from the brand's own competitors.
+
+| Category | Emails | Subject chars | Headline words | Words | Picture before first button | Full-width first picture | Products side by side | Service strip | Shop-by row | Top button verbs |
+|---|---|---|---|---|---|---|---|---|---|---|
+| eyewear | 18 | 33 | 5 | 199 | 100% | 67% | 28% | 28% | 28% | Find, Shop, Get |
+| apparel | 5 | 37 | 3 | 115 | 80% | 40% | 40% | 0% | 40% | Shop |
+| footwear | 7 | 34 | 3 | 53 | 86% | 71% | 43% | 0% | 57% | Shop, Find, Head |
+| beauty | 8 | 29 | 4 | 129 | 100% | 25% | 50% | 0% | 25% | Shop, Get, View |
+| food | 7 | 35 | 3 | 134 | 86% | 29% | 43% | 0% | 57% | Get, Watch, More |
+| news | 4 | 37 | 6 | 281 | 100% | 50% | 25% | 0% | 50% | Explore, See, Join |
+| winback | 7 | 29 | 7 | 144 | 100% | 14% | 14% | 14% | 29% | Shop, View, Sign |
+| **all** | 56 | 34 | 4 | 137 | 95% | 46% | 34% | 11% | 38% | Shop, Get, Find |
+
+What the mailers take from it: a short headline (a reason, never a product code) above a full-width picture, one button with a specific verb, the other products side by side with their own photos and prices, and a promise strip or shop-by row only when the brand's own record can fill it. Shape only: no competitor's words, offers, claims or pictures.

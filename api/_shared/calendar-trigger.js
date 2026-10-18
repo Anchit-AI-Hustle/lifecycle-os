@@ -552,10 +552,13 @@ function _productImg(p, market, brand) {
 function _productNote(p, market, brand) {
   if (!p) return '';
   let s = p.note || p.subtitle || p.tasting_notes || '';
+  let row = null;
   if (!s && _catImg && _catImg.match) {
-    const row = _catImg.match({ handle: p.handle || p.h, title: p.title || p.n }, market, { brand });
+    row = _catImg.match({ handle: p.handle || p.h, title: p.title || p.n }, market, { brand });
     if (row) s = row.subtitle || row.tasting_notes || '';
   }
+  // The store's own description, shortened by leaving words out (MF.productLine).
+  if (!s) s = MF.productLine(p.description || (row && row.description) || '', p.title || p.n, (brand && brand.name) || '');
   return s ? String(s) : '';
 }
 
@@ -650,8 +653,13 @@ function _renderVariantBody(o) {
   const subWith = (fallback, margin) => (_E && _E.text
     ? `font-family:${_E.body};font-size:${_px(_E.text.size) || '15px'};line-height:${_E.text.line_height === 'normal' ? 'normal' : (_px(_E.text.line_height) || '1.6')};color:${_E.text.color || palette.ink};margin:${margin};${MF.JUSTIFY}`
     : fallback.replace(/;?$/, ';') + MF.JUSTIFY);
+  // With no measured design system, the brand's own family still loads when
+  // Google serves it (2026-10-18): every style was set in Arial for a brand
+  // whose site uses Plus Jakarta Sans under a hashed Next.js name.
+  const _fontLink = (() => { try { return _core && _core.fontsHref ? _core.fontsHref(_brand(o)) : ''; } catch (_) { return ''; } })();
   const emailHead = _E && (_E.faces || _E.googleHref)
-    ? `<head>${_E.googleHref ? `<link rel="stylesheet" href="${esc(_E.googleHref)}">` : ''}${_E.faces ? `<style>${_E.faces}</style>` : ''}</head>` : '';
+    ? `<head>${_E.googleHref ? `<link rel="stylesheet" href="${esc(_E.googleHref)}">` : ''}${_E.faces ? `<style>${_E.faces}</style>` : ''}</head>`
+    : (_fontLink ? `<head><link rel="stylesheet" href="${esc(_fontLink)}"></head>` : '');
 
   // ── Flagship-parity shared fragments (identical logic to brain-generate.js) ──
   // The line under the wordmark is the brand's tagline as the brand writes it,
@@ -756,57 +764,134 @@ function _renderVariantBody(o) {
   // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
   //    and a brand palette hero block. Visual elements stay light and on-brand.
   if (style === 'visual') {
-    // No product: no eyebrow. "<Brand> Studio Spotlight" was tenant zero's
-    // sneaker-studio line, printed for every brand without a product.
-    // The eyebrow names the product only when the headline does not already.
+    // THE SHOWCASE (2026-10-18). Built from what the brand's competitors'
+    // emails are made of (competitor-mail-study.js: the brand's own captured
+    // competitor mail, else the category reference set, measured as rendered).
+    // In the eyewear set 96% put a picture before the first button and 61%
+    // open with a full-width one; headlines run about five words; the buttons
+    // say Shop / Find / Get; a fifth or more carry a row of products side by
+    // side, a strip of service promises or a row of shop-by links. The mail it
+    // replaced was a 140px product thumbnail grid under a one-line body, the
+    // hero product printed twice, and the headline a product code.
+    //
+    // Every section is drawn only when the study's share says the category
+    // uses it AND the brand has the facts to fill it: no claims, no strip; no
+    // URLs, no shop-by row; fewer than two other products, no grid.
+    const layout = o.layout || (() => { try { return require('./competitor-mail-study.js').referenceStudy(_brand(o)).layout; } catch (_) { return null; } })() || {};
     const heroLabel = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) && _fold(hero_product) !== _fold(hero_headline) ? esc(hero_product) : '';
-    // Real hero photograph if we have one; otherwise, when a generation prompt
-    // is supplied, emit the lava-standard IMAGE GENERATION PROMPT comment + a
-    // PASTE_IMAGE_URL_HERE slot the asset agent fills. With neither, the
-    // variant renders as before (brand-palette hero block only).
+    const border = _core ? _core.readableAsText(palette.lava, '#ffffff', 1.3) : '#e6e6e6';
+    // 1. The picture, full width, linked to the page the button goes to.
     const heroImgRow = hero_image_url ? `
-      <tr><td style="padding:20px 32px 0;">
-        <img data-mail-hero src="${esc(hero_image_url)}" width="536" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;border-radius:6px;" />
+      <tr><td align="center" style="padding:${layout.hero_full_width === false ? '20px 32px 0' : '8px 0 0'};background:#ffffff;">
+        <a href="${baseUrl}" target="_blank" style="display:block;text-decoration:none;"><img data-mail-hero src="${esc(hero_image_url)}" width="${layout.hero_full_width === false ? 536 : 600}" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;max-height:440px;object-fit:contain;border:0;margin:0 auto;" /></a>
       </td></tr>` : (hero_prompt ? `
       <tr><td style="padding:20px 32px 0;">
         ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green })}
       </td></tr>` : '');
+    // 2. The headline above the picture (Warby Parker, ASICS, CULTURE all set
+    //    it there): eyebrow, a short headline, then the picture and the button.
+    const headRow = `
+      <tr><td align="center" style="padding:${hero_image_url || hero_prompt ? '22px 36px 6px' : '26px 32px 6px'};">
+        ${heroLabel ? `<div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;color:${palette.greenText};text-transform:uppercase;margin:0 0 10px;">${heroLabel}</div>` : ''}
+        <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:32px;line-height:1.15;color:${palette.greenText};font-weight:700;margin:0;letter-spacing:-0.4px;text-align:center;`, '0', palette.greenText)}text-align:center;">${esc(hero_headline)}</h1>
+      </td></tr>`;
+    // No picture at all: the headline sits on the brand's own section ground
+    // (the eyebrow and headline move into it; they are not printed twice).
+    const bandRow = hero_image_url || hero_prompt ? '' : `
+      <tr><td style="padding:12px 32px 0;">
+        <!-- Brand-palette hero block (no external image needed) -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:10px;">
+          <tr><td style="padding:34px 26px;text-align:center;">
+            ${heroLabel ? `<div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:10px;">${heroLabel}</div>` : ''}
+            <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.2;color:${palette.onGreen};font-weight:700;margin:0;`, '0', palette.onGreen)}">${esc(hero_headline)}</h1>
+          </td></tr>
+        </table>
+      </td></tr>`;
+    const sublineRow = hero_subline ? `
+      <tr><td style="padding:20px 40px 0;">
+        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:16px;line-height:1.6;color:${palette.ink};margin:0;`, '0')}text-align-last:center;">${esc(hero_subline)}</p>
+      </td></tr>` : '';
+    // 3. The button(s): one solid, and an outline one only to another page.
+    const outline = `display:inline-block;font-family:${BODY};font-size:14px;font-weight:700;color:${palette.greenText};border:1.5px solid ${palette.greenText};border-radius:${_E && _E.button && _E.button.radius != null ? _px(_E.button.radius) : '6px'};padding:12px 24px;text-decoration:none;`;
+    const solid = `${ctaStyle}${_E && _E.button && _E.button.radius != null ? '' : 'border-radius:6px;'}`;
+    const ctaPair = `
+      <tr><td align="center" style="padding:22px 24px 6px;">
+        <a href="${baseUrl}" data-ds="button-primary" style="${solid}">${esc(cta_text)}</a>${collection_url ? `&nbsp;&nbsp;<a href="${esc(collection_url)}" target="_blank" style="${outline}">Explore the collection</a>` : ''}
+      </td></tr>`;
+    // 4. Products side by side, each with its OWN photo, the store's own name
+    //    and description line, its price and its own page. The hero product
+    //    already has the picture above, so it is not printed again.
+    const others = (Array.isArray(products) ? products.filter(Boolean) : []).filter((p, i) => !(hero_image_url && i === 0 && _fold(p.title || p.n) === _fold(hero_product)));
+    const pool = others.length >= 2 ? others : (Array.isArray(products) ? products.filter(Boolean) : []);
+    const cols = layout.grid_columns === 3 ? 3 : 2;
+    const gridItems = layout.product_grid === false ? [] : pool.slice(0, Math.max(cols, Math.min(layout.grid_max || 4, pool.length - (pool.length % cols)) || cols));
+    const pic = cols === 3 ? 160 : 230;
+    const money = (p) => { if (p.price == null || p.price === '') return ''; const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return `${cur}${p.price}`; };
+    const anyNote = gridItems.some((p) => _productNote(p, market, o && o.brand));
+    const card = (p) => {
+      const img = _productImg(p, market, o && o.brand);
+      const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl);
+      const note = _productNote(p, market, o && o.brand);
+      const price = money(p);
+      return `<td data-mail-col valign="top" width="${Math.floor(100 / cols)}%" style="width:${Math.floor(100 / cols)}%;padding:8px;">
+          <a href="${esc(pdp)}" target="_blank" style="display:block;text-decoration:none;">
+            <div data-mail-card style="background:#ffffff;border:1px solid ${border};border-radius:12px;overflow:hidden;">
+              <div data-mail-pic style="height:${pic}px;background:#ffffff;text-align:center;">${img
+    ? `<img data-mail-pic src="${esc(img)}" alt="${esc(p.title || p.n || '')}" width="${pic}" height="${pic}" style="display:block;width:100%;height:${pic}px;object-fit:cover;margin:0 auto;border:0;" />`
+    : `<div role="presentation" style="height:${pic}px;line-height:${pic}px;background:${palette.tile};color:${palette.greenText};font-family:${HEAD};font-size:44px;text-align:center;">${esc(String(p.title || p.n || '').trim().charAt(0).toUpperCase())}</div>`}</div>
+              <div style="padding:12px 14px 16px;border-top:1px solid ${border};">
+                <div style="font-family:${HEAD};font-size:15px;font-weight:700;color:${palette.ink};line-height:20px;height:40px;overflow:hidden;">${esc(p.title || p.n || '')}</div>
+                ${anyNote ? `<div style="font-family:${BODY};font-size:12px;color:${palette.mutedOnSurface};line-height:17px;height:34px;overflow:hidden;margin-top:4px;">${esc(note || '')}</div>` : ''}
+                <div style="font-family:${BODY};font-size:14px;line-height:20px;margin-top:10px;"><span style="font-weight:700;color:${palette.greenText};">${price || '&nbsp;'}</span><span style="float:right;color:${palette.greenText};text-decoration:underline;font-weight:600;">View</span></div>
+              </div>
+            </div>
+          </a></td>`;
+    };
+    const rows = [];
+    for (let i = 0; i < gridItems.length; i += cols) rows.push(gridItems.slice(i, i + cols));
+    const gridSection = gridItems.length >= 2 ? `
+      <tr><td align="center" style="padding:30px 32px 4px;">
+        <div style="font-family:${HEAD};font-size:20px;font-weight:700;color:${palette.greenText};">More to see</div>
+      </td></tr>
+      <tr><td style="padding:6px 16px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${rows.map((r) => `<tr>${r.map(card).join('')}${r.length < cols ? `<td width="${Math.floor(100 / cols) * (cols - r.length)}%" colspan="${cols - r.length}"></td>` : ''}</tr>`).join('')}
+        </table>
+      </td></tr>` : '';
+    // 5. The brand's own promises, side by side (Sunglass Hut, ASICS, CULTURE,
+    //    Oakley): only claims the record states, only the ones the body did not.
+    const promises = layout.service_strip === false ? [] : brandClaims.filter((c) => !_bodyTxt.includes(_fold(c)) && c.length <= 70);
+    const strip = promises.length >= 2 ? `
+      <tr><td style="padding:26px 24px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.tile};border-radius:10px;"><tr>
+          ${promises.map((c, i) => `<td align="center" valign="top" width="${Math.floor(100 / promises.length)}%" style="padding:18px 12px;${i ? `border-left:1px solid ${border};` : ''}">
+            <div style="width:24px;height:3px;background:${palette.lava};margin:0 auto 10px;line-height:3px;font-size:1px;">&nbsp;</div>
+            <div style="font-family:${BODY};font-size:13px;line-height:1.45;color:${palette.ink};font-weight:600;">${esc(c)}</div></td>`).join('')}
+        </tr></table>
+      </td></tr>` : '';
+    // 6. Shop-by links (Ray-Ban, Oakley, ASICS): the brand's own named
+    //    offerings that have their own page, never one the button already is.
+    const offers = layout.shop_by_links === false ? [] : (Array.isArray(_brand(o).offerings) ? _brand(o).offerings : [])
+      .filter((x) => x && x.name && /^https:\/\//i.test(String(x.url || '')) && String(x.url).replace(/\/+$/, '') !== String(baseUrl).replace(/\/+$/, ''))
+      .filter((x, i, a) => a.findIndex((y) => String(y.url).replace(/\/+$/, '') === String(x.url).replace(/\/+$/, '')) === i).slice(0, 4);
+    const shopBy = offers.length >= 2 ? `
+      <tr><td align="center" style="padding:26px 24px 0;">
+        <div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${palette.mutedOnSurface};margin:0 0 12px;">Shop by</div>
+        ${offers.map((x) => `<a href="${esc(x.url)}" target="_blank" style="display:inline-block;margin:0 4px 8px;${outline}padding:9px 18px;font-size:13px;">${esc(x.name)}</a>`).join('')}
+      </td></tr>` : '';
     return `<!doctype html>
 <html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
-  <tr><td align="center" style="padding:36px 16px;">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
-      ${offerBarRow}${brandHeader}${heroImgRow}
-      ${(hero_image_url || hero_prompt) ? `
-      <tr><td style="padding:22px 32px 0;">
-        ${heroLabel ? `<div style="font-family:${HEAD};font-size:12px;letter-spacing:0.18em;color:${palette.greenText};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
-        <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.22;color:${palette.greenText};font-weight:600;margin:0;`, '0', palette.greenText)}">${esc(hero_headline)}</h1>
-      </td></tr>` : `
-      <tr><td style="padding:20px 32px 0;">
-        <!-- Brand-palette hero block (no external image needed) -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:6px;">
-          <tr><td style="padding:34px 26px;text-align:center;">
-            ${heroLabel ? `<div style="font-family:${HEAD};font-size:12px;letter-spacing:0.18em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:8px;">${heroLabel}</div>` : ''}
-            <div data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:26px;line-height:1.2;color:${palette.onGreen};font-weight:500;`, '0', palette.onGreen)}">${esc(hero_headline)}</div>
-          </td></tr>
-        </table>
-      </td></tr>`}
-      <tr><td style="padding:22px 32px 0;">
-        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0;`, '0')}">${esc(hero_subline)}</p>
-      </td></tr>
-      ${ctaRow('20px 32px 4px')}
-      <!-- Botanical-style lava divider -->
-      <tr><td style="padding:20px 32px 0;text-align:center;">
-        <div style="display:inline-block;height:1px;width:38%;background:${palette.lava};vertical-align:middle;"></div>
-        <span style="display:inline-block;vertical-align:middle;color:${palette.lava};font-family:${HEAD};font-size:14px;padding:0 12px;">✦</span>
-        <div style="display:inline-block;height:1px;width:38%;background:${palette.lava};vertical-align:middle;"></div>
-      </td></tr>
+  <tr><td align="center" style="padding:28px 12px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${border};border-radius:14px;overflow:hidden;">
+      ${offerBarRow}${brandHeader}${bandRow || headRow}${heroImgRow}${sublineRow}${ctaPair}
       ${blocks}
-      ${productGrid}
-      <tr><td style="padding:26px 32px 8px;text-align:center;border-top:1px solid #ece4d2;">
-        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
+      ${gridSection}
+      ${strip}
+      ${shopBy}
+      <tr><td style="padding:30px 32px 26px;text-align:center;">
+        <a href="${baseUrl}" data-ds="button-primary" style="${solid}">${esc(cta_text)}</a>
       </td></tr>
-      ${secondaryCta}
       ${brandFooter}
     </table>
   </td></tr>

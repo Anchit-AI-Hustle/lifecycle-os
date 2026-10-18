@@ -591,12 +591,17 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
   const fontFor = (slot, role, roleName) => {
     if (!role || !role.type) { markers.push(MARKER(`typography.${slot}`, host)); return; }
     const t = role.type;
-    const stackFams = String(t.stack || '').split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-    const fam = t.family_kind === 'webfont' ? t.family : (stackFams[0] || t.family);
+    let stackFams = String(t.stack || '').split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    const famRaw = t.family_kind === 'webfont' ? t.family : (stackFams[0] || t.family);
+    // A build tool's hashed alias (`__Inter_a1b2c3`) is recorded as the family
+    // it renames; its `_Fallback_` alias is dropped (brand-runtime.realFamily).
+    const _rf = require('./brand-runtime.js');
+    const fam = _rf.realFamily(famRaw) || famRaw;
+    stackFams = stackFams.map((f) => _rf.realFamily(f)).filter(Boolean);
     const idx = stackFams.findIndex((f) => f.toLowerCase() === String(fam).toLowerCase());
     const rest = idx >= 0 ? stackFams.slice(idx) : [fam].concat(stackFams);
     const stack = rest.map((f) => (/^(serif|sans-serif|monospace|system-ui|cursive|fantasy|ui-[a-z-]+|-apple-system|blinkmacsystemfont)$/i.test(f) ? f : `'${f.replace(/'/g, '')}'`)).join(',');
-    const files = faces.filter((f) => f.family.toLowerCase() === String(fam).toLowerCase());
+    const files = faces.filter((f) => [String(fam).toLowerCase(), String(famRaw).toLowerCase()].includes(String(f.family).toLowerCase()));
     const used = files.filter((f) => fetchedFonts.has(f.url));
     const keep = (used.length ? used : files).slice(0, 6).map((f) => ({ url: f.url, weight: f.weight, style: f.style, format: f.format }));
     const servedByGoogle = keep.some((f) => /fonts\.gstatic\.com/.test(f.url)) || files.some((f) => /fonts\.googleapis\.com/.test(f.sheet));
@@ -605,7 +610,7 @@ function buildManifest({ start, desk, mob, extra, states, ledger, renderer, mani
     // were marked non-Google and shown in fallback).
     const selfHostedGoogle = !servedByGoogle && t.family_kind === 'webfont' && isGoogleFamily(fam);
     const google = servedByGoogle || selfHostedGoogle;
-    const weights = [...new Set(((desk.fonts && desk.fonts.faces) || []).filter((f) => f.family.toLowerCase() === String(fam).toLowerCase() && f.status === 'loaded').map((f) => String(f.weight)))].slice(0, 6);
+    const weights = [...new Set(((desk.fonts && desk.fonts.faces) || []).filter((f) => [String(fam).toLowerCase(), String(famRaw).toLowerCase()].includes(String(f.family).toLowerCase()) && f.status === 'loaded').map((f) => String(f.weight)))].slice(0, 6);
     // THE FONT LEGAL GATE (2026-10-04): a family and the URLs its files are
     // served from are RECORDED; the files are loaded BY REFERENCE to measure
     // the site and preview our clone, and are never copied or re-hosted into

@@ -4,6 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Mailers are shaped by what the brand's competitors' emails are made of, for every brand (2026-10-18)
+The operator: "atrocious mailer quality - do competitive research properly using the competitive benchmarking feature
+... create the best quality assets for the selected brand" (Lenskart), then "general ... for any and every brand".
+Measured on Lenskart (its own site + 665 catalogue rows through the shipped readers): the Text + Visual mail was headed
+by a model code ("Back for you: Vincent Chase VC 5158/P"), one line of copy, the hero printed again in 140px
+thumbnails, and set in Arial. Gated by `tests/competitor-mail-study.spec.js` (8 executed; 9 mutations, each caught).
+- **`api/_shared/competitor-mail-study.js`**: `measureInPage` measures an email AS RENDERED (Chromium, 640px): picture
+  before the first button, full-width hero, headline words, buttons (solid/outline, verbs), products side by side,
+  service strip, shop-by row, split block, offer. `studyFor(brand, {workspaceId})` reads the competitive benchmarking
+  feature's own captured mail (`brand_competitors` x `ci_emails`, by name or sending domain; static `analyse` on the
+  request path) when there are 3+, else the shipped REFERENCE set `data/benchmarks/mail-reference.json` (56 real emails
+  from Really Good Emails - Warby Parker, Oakley, Ray-Ban, Sunglass Hut, ASICS, CULTURE, Stumptown ... - measurements,
+  subject, sender and URL only, never their HTML), matched by WHOLE words of the brand's industry/offerings ("team" is
+  not "tea"; "eyewear" is not "wear"). Rebuild with `node scripts/build-mail-reference.js` (network + Chromium).
+- **Where it is used**: Smart Brain `buildCampaign` attaches the study (non-enumerable `entry.__mailStudy`), the copy
+  prompt gets `briefLines()` (subject/headline lengths, never a model/SKU code, the competitors' button verbs, shape
+  only - never their words, offers or claims), the renderer gets `layoutFor()`, the campaign carries `mail_study`
+  (basis, sources) and /brain's checks say which emails shaped it.
+- **The showcase** (`calendar-trigger.renderTextVariant` style `visual`, every caller): headline above a full-width
+  picture (95% of the studied mail put a picture before the first button), subline, solid button (+ outline only to
+  another page), body, "More to see" grid of the OTHER products 2 (or 3) across, each card the product's own photo,
+  name, the store's own description line (`mailer-format.productLine`: the description without the name, codes or
+  "at <store>"), price and its own page; a strip of the brand's own claims and a shop-by row of its offerings with
+  pages, each only when the category uses it and the record can fill it; closing button; footer. Cards are
+  `[data-mail-card]`, square pictures on a phone.
+- **Copy**: `services.isModelCode/productKind/sayableProduct/headlineFor` - a subject says "Lenskart sunglasses", not the
+  code; the template headline is a five-word line from the objective ("Take another look at sunglasses").
+- **Fonts**: `brand-runtime.realFamily()` - a Next.js hashed family (`__Plus_Jakarta_Sans_7aabe8`) is the real one
+  (its `_Fallback_` alias dropped) in the reader, the stacks and `fontsHref`, so the mail links and sets the brand font.
+- Tests changed on purpose: `asset-rating-pass` and `brain-preview-parwah` (cards are `[data-mail-card]`, two across).
+
 ## ⭐ Winning angles: competitor ads that keep running -> angles + hook bank -> briefs + test plan (2026-10-18)
 The operator, with a workflow seen elsewhere (competitor patterns from the Meta Ad Library -> angles + 20-hook bank ->
 brief stack + test plan): "take your learnings ... keep it free to the max extent possible in execution but dont show
