@@ -346,7 +346,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
 
     <div class="card wide">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
         <h2 style="margin:0">Rolling calendar</h2>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:210px">
           <button type="button" id="generateAll" class="btn sm ok" onclick="generateAll()" style="display:none;text-align:center" title="Generate the final best version of every asset (mailer, ads, landing page) for the sends currently shown (respects the region filter).">⚙ Generate all</button>
@@ -824,7 +824,7 @@ function buildMktChips(){
     paintMktChips();
   }
   // A single-region brand needs no region filter at all.
-  host.style.display = ALL_MKTS.length > 1 ? '' : 'none';
+  host.style.display = ALL_MKTS.length > 1 ? 'flex' : 'none';
 }
 
 // The control in the Agentic card drives the same selection; the plan filter
@@ -898,7 +898,9 @@ function buildCatChips(){
     btn.addEventListener('click', function(){ toggleCat(b); });
     host.insertBefore(btn, anchor);
   });
-  if(host.parentNode) host.style.display = ALL_CATS.length > 1 ? '' : 'none';
+  // 'flex', never '': clearing display also cleared the row's inline flex,
+  // so the chips fell into text flow with no gap between them (2026-10-18).
+  if(host.parentNode) host.style.display = ALL_CATS.length > 1 ? 'flex' : 'none';
 }
 function catVisible(e){ return SELECTED_CAT.size===0 || SELECTED_CAT.has(catBucket(e)); }
 window.toggleCat = function(cat){

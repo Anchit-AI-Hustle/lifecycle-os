@@ -4,6 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A brand with no catalogue gets its picture on every build, the /brain View build too (2026-10-18)
+The operator: "brands without catalog are not being able to generate appropriate visuals in the marketing assets".
+Measured on the shipped builder: a brand with no catalogue and no imagery of its own shipped 0 pictures across 4 mail
+variants, 2 landing pages and 8 ads. The generated brand scene (`brand-imagery.js`: the brand's world in its palette,
+no product, no text, labelled `generated_imagery`) was made only when `withCreatives` was asked, and `previewEntry`
+(View) asks for none. Now every build that writes copy makes it: `sceneFor(brand, {quick, budgetMs})` (View: the free
+keyless scene, at most 25 s; a full build may ask a keyed provider first), ONE scene per brand kept per instance
+(`_sceneCache`, keyed by the brand's deterministic scene URL), and the offline rebuild (noLLM) only `peekScene()`s,
+never waits. A brand with its own site imagery uses it and asks the host nothing; a host that is down gives no picture,
+never a broken one; the product-photo gap is still said in `data_gaps`. Gated by `tests/brand-scene-every-build.spec.js`
+(4 executed, `global.fetch` playing the free host, the visual mail rendered in Chromium; 3 mutations caught).
+`asset-audit-honest-output` resets the cache before its one-request assertion (changed on purpose).
+
+## ⭐ /brain calendar toolbar on a phone: no touching chips, space under the buttons (2026-10-18)
+The operator, with a phone screenshot of production /brain: "Fix overlap issue". `smart-brain.html` showed the region
+and catalogue filter rows with `host.style.display = ''`, which also removed their inline `display:flex`: the chips
+fell into text flow with no gap ("Plans" ran into "Sections"). Both now set `'flex'`; the header block (title +
+Generate / Approve / Download all) has `margin-bottom:14px`, so a single-market brand's duration row (the region row
+hidden) no longer sits flush under the buttons. Never clear an inline `display` with `''` on an element whose layout
+lives in that same inline style. Gated by `tests/brain-toolbar-phone.spec.js` (6 executed: one and two markets x
+390 / 375 / 1280; 3 mutations, each caught).
+
 ## ⭐ Mailer body copy is justified; a saved bundle from other renderer code is rebuilt (2026-10-17)
 The operator, with a screenshot of production /brain (Parwah): "alignment must be justified in mailers". Gated by
 `tests/mailer-justified.spec.js` (3 executed; 5 mutations, each caught).
