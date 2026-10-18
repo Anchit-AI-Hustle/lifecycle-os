@@ -61,7 +61,7 @@ jobs:
         run: node scripts/catalog-probe.js --url "$PROBE_URL" --region "$PROBE_REGION" --steps "$PROBE_STEPS" --out catalog-probe-out
       - name: Upload what was read
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: catalog-probe-${{ github.run_id }}
           path: catalog-probe-out
