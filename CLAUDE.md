@@ -4,6 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A mail about one product, as a person reads it (2026-10-18)
+The operator, with production /brain (Lenskart, IN): "broken alignment still and atrocious quality of all content".
+Production was still on the commit before #303 (no deployment of its merge existed), but the shipped code had
+the same defects in a single-product send: the model code as eyebrow and B subline, the store's attribute list
+glued onto a body sentence, the hero printed again as the only card, two identical buttons with nothing between
+them, and the base template mail in Arial under the subject repeated as headline.
+- `mailer-format.displayName()` (the range, never the code: "John Jacobs JJ S16881" -> "John Jacobs") and
+  `isProse()` (a sentence vs an attribute list). The showcase's eyebrow says the display name; an attribute-list
+  description is a centred caption `[data-mail-caption]` under the picture, a sentence stays in the body; the
+  subline is the price (and tagline); the hero leaves the grid only when it has its own photo (pool never falls
+  back to all products); the closing button prints only when a grid or strip stands between it and the first.
+- The base template mail (`services.buildEmailAsset`): `headlineFor()` as headline, the brand font linked
+  (`fontsHref`), product name + caption + price under the picture. The text proof block no longer touches the
+  sign-off. Gated in `tests/competitor-mail-study.spec.js` ("a mail about one product", 8 mutations caught).
+- Main CI 807 failed on `llm-provider-chain` "its 402 is a rate limit": a real 30 s Retry-After honoured twice
+  ran past 60 s. The test uses a 1 s Retry-After and a short `LLM_KEYLESS_GAP_MS`; `resetProviderCooldowns()`
+  also resets the keyless turn queue (it leaked a 30 s wait between tests).
+
 ## ⭐ Mailers are shaped by what the brand's competitors' emails are made of, for every brand (2026-10-18)
 The operator: "atrocious mailer quality - do competitive research properly using the competitive benchmarking feature
 ... create the best quality assets for the selected brand" (Lenskart), then "general ... for any and every brand".

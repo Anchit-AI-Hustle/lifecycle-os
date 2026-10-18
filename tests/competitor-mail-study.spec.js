@@ -294,3 +294,60 @@ test('on a phone the showcase fits, and every card picture is square', async ({ 
   expect(m.pics.length).toBeGreaterThanOrEqual(2);
   for (const [w, h] of m.pics) expect(Math.abs(w - h), `card picture ${w}x${h}`).toBeLessThanOrEqual(2);
 });
+
+// Production /brain, Lenskart IN, 2026-10-18 ("broken alignment still and
+// atrocious quality of all content"): a send about ONE product whose name is a
+// model code. The code was the eyebrow and the subline, the store's attribute
+// list was glued onto a sentence of the body ("... whenever you are ready.
+// Trendy Maroon Brown Gradient Full Rim Round Tints Sunglasses"), the same
+// button was printed twice with nothing between them, and the base template
+// mail was set in Arial under the subject repeated as its headline.
+test('a mail about one product: shown once, named as a person says it, its description a caption, one button', async ({ page }) => {
+  const one = Object.assign({}, SLOT, { market: 'US', heroProduct: P('Jacob JJ S16881', 7, 3000, 'Trendy Maroon Brown Gradient Full Rim Round Tints Sunglasses'), supportingProducts: [] });
+  const { c } = await build(one);
+  await page.route(/^https?:\/\//, (r) => (/fonts\.googleapis/.test(r.request().url()) ? r.fulfill({ contentType: 'text/css', body: '' }) : r.fulfill({ contentType: 'image/svg+xml', body: PHOTO })));
+  const all = [{ label: 'base', html: c.assets.email.html }].concat(c.assets.email.variants);
+  for (const v of all) {
+    const visible = textOf(v.html);
+    expect(visible, `${v.label}: no model code anywhere a person reads`).not.toMatch(/S16881/);
+    const bodies = [...v.html.matchAll(/<p data-mail-body[^>]*>([\s\S]*?)<\/p>/g)].map((x) => textOf(x[1]));
+    expect(bodies.join(' | '), `${v.label}: the attribute list is not body copy`).not.toMatch(/Full Rim Round Tints/);
+    expect(v.html, `${v.label} links the brand's font`).toContain('fonts.googleapis.com/css2?family=Plus+Jakarta+Sans');
+  }
+  const base = c.assets.email.html;
+  const h1 = textOf((/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(base) || [])[1]).trim();
+  expect(h1, 'the base mail heads with a line to a person, not the subject again').not.toBe(c.assets.email.subject);
+  expect(textOf(base)).toMatch(/Jacob\s+Trendy Maroon Brown Gradient Full Rim Round Tints Sunglasses/);
+  const visual = c.assets.email.variants.find((v) => /Visual/.test(v.label));
+  await page.setViewportSize({ width: 640, height: 1000 });
+  await page.setContent(visual.html, { waitUntil: 'load' });
+  const m = await page.evaluate(() => {
+    const cap = document.querySelector('[data-mail-caption]');
+    const hero = document.querySelector('img[data-mail-hero]');
+    return {
+      eyebrow: (document.querySelector('h1').previousElementSibling || {}).innerText || '',
+      heroSrc: hero && hero.getAttribute('src'),
+      pics: [...document.querySelectorAll('img')].map((i) => i.getAttribute('src')),
+      cards: document.querySelectorAll('[data-mail-card]').length,
+      buttons: document.querySelectorAll('a[data-ds="button-primary"]').length,
+      cap: cap && cap.innerText, capAlign: cap && getComputedStyle(cap).textAlign,
+      capBelow: cap && hero ? cap.getBoundingClientRect().top >= hero.getBoundingClientRect().bottom : false,
+    };
+  });
+  expect(m.pics.filter((s) => s === m.heroSrc).length, 'the product picture once').toBe(1);
+  expect(m.cards, 'no card repeating the only product').toBe(0);
+  expect(m.buttons, 'one button when nothing stands between it and a second').toBe(1);
+  expect(m.cap).toBe('Trendy Maroon Brown Gradient Full Rim Round Tints Sunglasses');
+  expect(m.capAlign, 'a caption is centred, never justified').toBe('center');
+  expect(m.capBelow).toBe(true);
+  // With one other product, the picture's product is never the other card.
+  const two = await build(Object.assign({}, one, { supportingProducts: [P('Hooper HP E16256', 4, 59, 'Black Full Rim Rectangle Hooper HP E16256 Sunglasses')] }));
+  const tv = two.c.assets.email.variants.find((v) => /Visual/.test(v.label));
+  const cardsTxt = [...tv.html.matchAll(/<div data-mail-card[\s\S]*?<\/a><\/td>/g)].map((x) => textOf(x[0])).join(' | ');
+  expect(cardsTxt, 'the hero is not a card beside its own picture').not.toMatch(/Jacob JJ S16881/);
+  // A store that writes its description as a sentence keeps it in the body.
+  const prose = await build(Object.assign({}, one, { heroProduct: P('Harbour', 8, 90, 'Lightweight acetate frames made for all-day wear.') }));
+  const pv = prose.c.assets.email.variants.find((v) => /Visual/.test(v.label));
+  const pb = [...pv.html.matchAll(/<p data-mail-body[^>]*>([\s\S]*?)<\/p>/g)].map((x) => textOf(x[1])).join(' ');
+  expect(pb).toMatch(/Lightweight acetate frames made for all-day wear/);
+});
