@@ -134,6 +134,8 @@ const GENERATORS = [
   { id: 'generate', path: '/api/brain', q: { action: 'generate' }, body: () => ({ slot_id: 'slot-inv-1' }), modes: ['device'], marker: true,
     statuses: { 409: 'the legacy slot engine is tenant zero\'s content library: any other brand is refused with a marker, never built as tenant zero' } },
   { id: 'social-run-daily', path: '/api/brain', q: { action: 'social-run-daily' }, body: () => ({ dry_run: true, platforms: ['instagram', 'linkedin'], date: '2026-10-20' }), modes: ['device', 'account'], own: ['name'], marker: true, templates: true },
+  // Competitor ads -> angles + hooks + briefs: built from the ACTIVE brand's own claims and name only.
+  { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), modes: ['device', 'account'], own: ['name'] },
   { id: 'mailer-assets', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ html: '<!doctype html><html><body><!-- IMAGE GENERATION PROMPT (hero, 1200x628): the hero product, natural light --><img src="IMAGE_HERO_URL" alt="hero"></body></html>', video: false, gif: false, persist: false }), modes: ['device'] },
   { id: 'mailer-assets (lifecycle entry)', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ entry_id: 'lc_2026-10-20_tb_buyers_non_engagers_UK' }), modes: ['device'], marker: true,
     statuses: { 409: 'an entry_id names a row of tenant zero\'s lifecycle programme: refused for any other brand with a marker' } },

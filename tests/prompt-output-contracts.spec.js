@@ -81,6 +81,7 @@ const GENERATORS = [
   { id: 'social-run-daily', path: '/api/brain', q: { action: 'social-run-daily' }, body: () => ({ dry_run: true, platforms: ['instagram', 'linkedin'], date: '2026-10-20' }), minCalls: 3 },
   { id: 'mailer-assets', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ html: '<!doctype html><html><body><img src="IMAGE_HERO_URL" alt="hero"></body></html>', video: false, gif: false, persist: false }), statuses: [400, 409] },
   { id: 'platform-agents', path: '/api/brain', q: { action: 'platform-agents' }, body: () => ({}) },
+  { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), statuses: [409] },
   { id: 'revenue-os', path: '/api/brain', q: { action: 'revenue-os' }, body: null },
   { id: 'telesuite', path: '/api/brain', q: { action: 'telesuite' }, body: () => ({ op: 'pitch', input: { product: (B.catalogue[0] || {}).title } }), minCalls: 1 },
   { id: 'telesuite rebuttal', path: '/api/brain', q: { action: 'telesuite' }, body: () => ({ op: 'rebuttal', input: { objection: 'It costs too much.' } }), minCalls: 1 },
@@ -152,7 +153,7 @@ const DRIVEN_FILES = {
   'api/_shared/calendar-trigger.js': 'trigger-mailer', 'api/_shared/landing-page-core.js': 'landing-page', 'api/_shared/competitor-universe.js': 'modules: discoveryPrompt',
   'api/_shared/ci-enrich.js': 'modules: buildPrompt', 'api/_shared/kb-files.js': 'modules: analyse', 'api/_shared/brand-extract.js': 'modules: observeVoice',
   'api/_shared/brand-suggest.js': 'modules: suggest', 'api/_shared/data-validation-core.js': 'analysis-narrative / modules', 'api/_shared/ingest-guardrail.js': 'modules: phase2',
-  'api/_shared/reference-intel.js': 'modules: VISION_INSTRUCTION',
+  'api/_shared/reference-intel.js': 'modules: VISION_INSTRUCTION', 'api/_shared/ad-angle-lab.js': 'ad-angle-lab',
 };
 const EXEMPT_FILES = {
   'api/_shared/llm.js': 'the provider cascade itself; it builds no prompt',
