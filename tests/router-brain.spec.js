@@ -80,6 +80,7 @@ const M = {
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
   ledger: 'api/_shared/contact-ledger.js',
   gateway: 'api/_shared/social-gateway-core.js',
+  angleLab: 'api/_shared/ad-angle-lab.js',
 };
 
 /** The active brand as brain.js resolves it onto req.__brand (home market UK). */
@@ -716,6 +717,16 @@ add('social-skip', { gate: 'none', browser: 'refuse', run: { json: { id: 'p2' } 
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: false, error: 'not found' })),
   expect: (r) => { expect(r.status).toBe(400); expect(last(M.social, 'setStatus')).toEqual(['p2', 'skipped']); },
 });
+add('ad-angle-lab', { gate: 'model', model: 'ads.copy_matrix', browser: 'refuse', run: { json: { competitors: ['Rival One'], budget: 500 } },
+  stubs: () => S.on(M.angleLab, 'run', async (o) => ({ ok: true, brand: o.brand.name, market: o.market, competitors: o.competitors, budget: o.budget, ws: o.workspaceId, _by: 'model' })),
+  // The brand is the one the request resolved, its home market the default; the
+  // worker that wrote the hooks never reaches the page.
+  expect: (r) => {
+    expect(r.status).toBe(200);
+    expect(r.out).toEqual({ ok: true, brand: BRAND.name, market: 'UK', competitors: ['Rival One'], budget: 500, ws: H.WS });
+    expect(last(M.angleLab, 'run')[0].brand).toEqual(expect.objectContaining({ name: BRAND.name }));
+  },
+});
 add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15, instrumental: true } },
   env: { ELEVENLABS_API_KEY: 'eleven-harness' },
   // The documented compose endpoint is the core: the recorded call is the dispatch.
@@ -1283,7 +1294,7 @@ test.describe('the router', () => {
     // meter fails here, and a key the catalog does not declare fails too.
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
-      'access-narrative', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
+      'access-narrative', 'ad-angle-lab', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
       'console-chat', 'generate', 'mailer-assets', 'music-compose', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
