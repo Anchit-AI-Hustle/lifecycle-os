@@ -210,6 +210,8 @@ function productLine(description, title, brandName) {
 // Jacobs") and drops the code and the short initialism before it. Words are
 // only left out, never added; '' when nothing sayable is left.
 function displayName(title) {
+  // A merge tag is the ESP's to fill: never cut inside it.
+  if (/\{\{|\{%/.test(String(title || ''))) return String(title).trim();
   const t = String(title || '').split(/\s+/).filter(Boolean);
   const code = (w) => { const x = w.replace(/[^A-Za-z0-9/-]/g, ''); return (/[a-z]/i.test(x) && /\d/.test(x) && x.length >= 3) || /\d\/|\/\d/.test(x) || /^\d{3,}$/.test(x); };
   if (!t.some(code)) return t.join(' ');
