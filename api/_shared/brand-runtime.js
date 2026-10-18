@@ -733,14 +733,31 @@ const NEUTRAL_PALETTE = Object.freeze({
   primary: '#2B4C7E', accent: '#2B4C7E', ink: '#1F2328', surface: '#FFFFFF', surface_alt: '#F6F7F9', line: '#E3E6EA', muted: '#5B6470',
 });
 
+// A family a build tool renamed (2026-10-18, Lenskart): Next.js `next/font`
+// serves "Plus Jakarta Sans" as `__Plus_Jakarta_Sans_7aabe8` and its metric
+// fallback as `__Plus_Jakarta_Sans_Fallback_7aabe8`. The site's own CSS uses
+// the hashed name, so a reader records it, and no mail client or font service
+// knows it: every mailer fell back to Arial. The real name is the part between
+// the underscores; a `_Fallback_` alias is not a family at all ('').
+function realFamily(name) {
+  const n = String(name || '').replace(/['"]/g, '').trim();
+  const m = /^__(.+?)(_Fallback)?_[0-9a-f]{5,8}$/i.exec(n);
+  if (!m) return n;
+  return m[2] ? '' : m[1].replace(/_/g, ' ').trim();
+}
+function realStack(stack) {
+  return String(stack || '').split(',').map((f) => f.trim()).filter(Boolean)
+    .map((f) => { const q = /^['"]/.test(f); const r = realFamily(f); return r ? (q || /\s/.test(r) ? `'${r}'` : r) : ''; })
+    .filter(Boolean).filter((f, i, a) => a.indexOf(f) === i).join(',');
+}
 function familyOf(slot) {
   if (!slot) return '';
-  if (typeof slot === 'string') return slot.replace(/['"\\<>;{}]/g, '').split(',')[0].trim();
-  return String(slot.family || '').replace(/['"\\<>;{}]/g, '').trim();
+  if (typeof slot === 'string') return realFamily(slot.replace(/['"\\<>;{}]/g, '').split(',')[0].trim());
+  return realFamily(String(slot.family || '').replace(/['"\\<>;{}]/g, '').trim());
 }
 function stackOfSlot(slot, generic) {
   if (!slot) return '';
-  const own = typeof slot === 'object' ? String(slot.stack || '').trim() : '';
+  const own = typeof slot === 'object' ? realStack(String(slot.stack || '').trim()) : '';
   const fam = familyOf(slot);
   const s = own || (fam ? `'${fam}'` : '');
   if (!s) return '';
@@ -805,6 +822,7 @@ function promptFacts(brand) {
 }
 
 module.exports = {
+  realFamily, realStack,
   isUaLinkColour,
   coherentForGeneration,
   NEUTRAL_FONTS, NEUTRAL_PALETTE, fontStacks, paletteOf, promptFacts, namesBrand,

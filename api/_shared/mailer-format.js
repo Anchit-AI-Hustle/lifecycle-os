@@ -174,7 +174,38 @@ function article(name) {
 // list of short lines is not stretched. Headings, buttons and the footer keep
 // their own alignment.
 const JUSTIFY = 'text-align:justify;text-justify:inter-word;';
-const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}}</style>';
+
+/**
+ * A product's one line under its name on a card, in the STORE'S OWN words
+ * (2026-10-18). A catalogue whose names are model codes ("John Jacobs JJ
+ * S16880") describes each product on its own page ("Trendy Maroon Brown
+ * Gradient Full Rim Round John Jacobs JJ Tints JJ S16880-C2 Sunglasses at
+ * Lenskart."). That description, without the words the name already says,
+ * the model code and the "at <store>" tail, is what a card can say: the
+ * store's text, shortened by leaving words out, never by inventing any.
+ * '' when it would say nothing new or runs past two short lines.
+ */
+function productLine(description, title, brandName) {
+  let d = String(description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!d) return '';
+  d = d.split(/(?<=[.!?])\s+/)[0].replace(/[.!?]+$/, '');
+  if (brandName) d = d.replace(new RegExp(`\\s+(at|from|by|on)\\s+${String(brandName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b.*$`, 'i'), '');
+  // A short sentence is prose the store wrote: kept whole.
+  if (d.length <= 64 && !/\d/.test(d) && d.split(' ').length >= 3) return d;
+  const fold = (w) => w.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const said = new Set(String(title || '').split(/\s+/).map(fold).filter(Boolean));
+  const keep = d.split(/\s+/).filter((w) => {
+    const f = fold(w);
+    if (!f || said.has(f)) return false;
+    if (/\d/.test(w) && /[a-z]/i.test(w)) return false; // a model / colour code
+    if (/^[A-Z]{1,3}$/.test(w)) return false;            // a range initialism
+    return true;
+  });
+  const out = keep.join(' ').replace(/\s+/g, ' ').trim();
+  if (!out || out.split(' ').length < 2 || out.length > 80) return '';
+  return out;
+}
+const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
   if (!s || !/<body\b/i.test(s)) return s;
@@ -290,6 +321,7 @@ function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', 
 }
 
 module.exports = {
+  productLine,
   JUSTIFY,
   article,
   mobile,

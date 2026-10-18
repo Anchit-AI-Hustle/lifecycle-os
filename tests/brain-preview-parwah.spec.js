@@ -109,7 +109,8 @@ test('a product card shows the product\'s own photo or a plain tile, never the b
   await page.route(/^https?:\/\//, (r) => r.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600"><rect width="1200" height="600" fill="#caa"/></svg>' }));
   await page.setViewportSize({ width: 700, height: 1000 });
   await page.setContent(visual.html, { waitUntil: 'load' });
-  const cards = await page.evaluate(() => [...document.querySelectorAll('a > div')].filter((d) => /border-radius:10px/.test(d.getAttribute('style') || '')).map((d) => {
+  // The showcase grid (2026-10-18) marks each card: [data-mail-card].
+  const cards = await page.evaluate(() => [...document.querySelectorAll('[data-mail-card]')].map((d) => {
     const img = d.querySelector('img');
     return { src: img ? img.getAttribute('src') : '', h: Math.round(d.getBoundingClientRect().height), text: d.textContent.trim() };
   }));
