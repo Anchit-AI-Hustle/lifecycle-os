@@ -33,7 +33,12 @@ const SITE = 'https://shop.harbourlight.example';      // a public website, CORS
 const NOCORS = 'https://drive.harbourlight.example';   // sends none: read through op=document-fetch
 const PAUSED = 'paused-project.supabase.co';
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
-const PDFJS_RX = /^https:\/\/cdn\.jsdelivr\.net\/npm\/pdfjs-dist@4\.10\.38\/build\/(pdf(?:\.worker)?\.min\.mjs)$/;
+// The pdf.js the browser loads is the version brand-document.js names on the
+// CDN; the tests serve those bytes from node_modules. ONE version, read from
+// the shipped file, and the installed package must be the same one (below):
+// a dependency bump of the npm copy alone would test a reader nobody ships.
+const PDFJS_VERSION = (fs.readFileSync(path.join(ROOT, 'brand-document.js'), 'utf8').match(/pdfjs-dist@(\d+\.\d+\.\d+)\/build\/pdf\.min\.mjs/) || [])[1] || '';
+const PDFJS_RX = new RegExp('^https://cdn\\.jsdelivr\\.net/npm/pdfjs-dist@' + PDFJS_VERSION.replace(/\./g, '\\.') + '/build/(pdf(?:\\.worker)?\\.min\\.mjs)$');
 const STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' };
 const USER_A = { id: 'dev-guideA0001', phone: '+919876543210', name: 'Asha' };
 const USER_B = { id: 'dev-guideB0002', phone: '+919812345678', name: 'Bala' };
@@ -299,6 +304,18 @@ const OWN_PAGE = { host: 'app.example.test', origin: HOST };
 
 
 /* ═══ 1. the PDF brand book: read, not paraphrased ═══════════════════════ */
+// 2026-10-18: Dependabot proposed pdfjs-dist 4.10.38 -> 6.4.299 for the npm
+// copy only. Against v6 five of these tests fail (an API change), and the
+// browser would still load 4.10.38 from the CDN: upgrade both together or not
+// at all.
+test('the pdf.js the tests serve is the version the browser loads', () => {
+  const installed = require(path.join(ROOT, 'node_modules', 'pdfjs-dist', 'package.json')).version;
+  const declared = require(path.join(ROOT, 'package.json')).devDependencies['pdfjs-dist'];
+  expect(PDFJS_VERSION, 'brand-document.js names a pdf.js version').toMatch(/^\d+\.\d+\.\d+$/);
+  expect(installed, 'node_modules/pdfjs-dist matches the CDN version in brand-document.js').toBe(PDFJS_VERSION);
+  expect(declared, 'package.json pins the CDN version in brand-document.js').toBe(PDFJS_VERSION);
+});
+
 test('a PDF brand book: every stated value with its page and verbatim line; a print or prose colour is not a value', async ({ page }) => {
   const log = await open(page, world);
   await readBook(page);
