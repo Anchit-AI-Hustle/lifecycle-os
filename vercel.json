@@ -11,7 +11,8 @@
   "trailingSlash": false,
   "git": {
     "deploymentEnabled": {
-      "claude/**": false
+      "claude/**": false,
+      "dependabot/**": false
     }
   },
   "functions": {
