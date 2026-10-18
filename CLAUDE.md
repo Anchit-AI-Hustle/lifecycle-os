@@ -1313,8 +1313,11 @@ required"*. `brand-document.js` (browser) + `onboarding.html` step 1 "Upload my 
 Gated by `tests/brand-guide-upload.spec.js` (15, Chromium, documents built byte by byte in
 `tests/brand-guide-fixtures.js`) and `tests/brand-document-origin-sql.spec.js` (6, the migration
 EXECUTED on PGlite - real Postgres in WebAssembly, a devDependency).
-- **Read in the browser, never paraphrased.** PDF via pdf.js 4.10.38 from jsdelivr (the same CDN the pages
-  use; `isEvalSupported:false`, so CVE-2024-4367's font-eval path is closed), DOCX unzipped with the
+- **Read in the browser, never paraphrased.** PDF via pdf.js 6.4.299's LEGACY build from jsdelivr (the
+  same CDN the pages use; the modern 6.x build needs `Map.prototype.getOrInsertComputed`, which the test
+  Chromium and many browsers lack, so `getOperatorList()` threw and no logo was lifted; CVE-2024-4367's
+  font-eval path no longer exists in 5.0+, and the spec asserts the served bundles compile no string with
+  `Function()`/`eval`; `isEvalSupported:false` is still passed for an older `window.pdfjsLib`), DOCX unzipped with the
   browser's own `DecompressionStream`, DESIGN.md (our own format), W3C DTCG / Style Dictionary / Tokens
   Studio / Figma-variables JSON, CSS custom properties + `@font-face`, SVG text + labelled swatches, and
   an image (no text layer: says so, offers it as the logo). Every value carries file or URL, page, line

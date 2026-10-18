@@ -37,8 +37,9 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 // CDN; the tests serve those bytes from node_modules. ONE version, read from
 // the shipped file, and the installed package must be the same one (below):
 // a dependency bump of the npm copy alone would test a reader nobody ships.
-const PDFJS_VERSION = (fs.readFileSync(path.join(ROOT, 'brand-document.js'), 'utf8').match(/pdfjs-dist@(\d+\.\d+\.\d+)\/build\/pdf\.min\.mjs/) || [])[1] || '';
-const PDFJS_RX = new RegExp('^https://cdn\\.jsdelivr\\.net/npm/pdfjs-dist@' + PDFJS_VERSION.replace(/\./g, '\\.') + '/build/(pdf(?:\\.worker)?\\.min\\.mjs)$');
+const PDFJS_VERSION = (fs.readFileSync(path.join(ROOT, 'brand-document.js'), 'utf8').match(/pdfjs-dist@(\d+\.\d+\.\d+)\/(?:legacy\/)?build\/pdf\.min\.mjs/) || [])[1] || '';
+// m[1] is the path inside the package (legacy/build/pdf.min.mjs), served as is.
+const PDFJS_RX = new RegExp('^https://cdn\\.jsdelivr\\.net/npm/pdfjs-dist@' + PDFJS_VERSION.replace(/\./g, '\\.') + '/((?:legacy/)?build/pdf(?:\\.worker)?\\.min\\.mjs)$');
 const STATUS = { ok: true, mode: 'device', reason: 'no_database_url', host: '', message: 'Saved on this device only: no database is configured.' };
 const USER_A = { id: 'dev-guideA0001', phone: '+919876543210', name: 'Asha' };
 const USER_B = { id: 'dev-guideB0002', phone: '+919812345678', name: 'Bala' };
@@ -198,7 +199,7 @@ async function open(page, world, opts) {
     const req = route.request();
     const u = req.url();
     const m = PDFJS_RX.exec(u);
-    if (m) return route.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', 'build', m[1])) });
+    if (m) return route.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', m[1])) });
     if (/\/auth\/v1\/health/.test(u)) return route.abort('addressunreachable');
     if (u.startsWith(SITE)) {
       return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', headers: { 'access-control-allow-origin': '*' }, body: '<!doctype html><html><head><title>Harbourlight</title></head><body><h1>Harbourlight</h1></body></html>' });
@@ -305,15 +306,31 @@ const OWN_PAGE = { host: 'app.example.test', origin: HOST };
 
 /* ═══ 1. the PDF brand book: read, not paraphrased ═══════════════════════ */
 // 2026-10-18: Dependabot proposed pdfjs-dist 4.10.38 -> 6.4.299 for the npm
-// copy only. Against v6 five of these tests fail (an API change), and the
-// browser would still load 4.10.38 from the CDN: upgrade both together or not
-// at all.
+// copy only, and the browser would still have loaded 4.10.38 from the CDN:
+// upgrade both together or not at all. Both are 6.4.299 now, on the LEGACY
+// build (the modern one needs Map.prototype.getOrInsertComputed, which this
+// Chromium lacks, and five tests here failed on it).
 test('the pdf.js the tests serve is the version the browser loads', () => {
   const installed = require(path.join(ROOT, 'node_modules', 'pdfjs-dist', 'package.json')).version;
   const declared = require(path.join(ROOT, 'package.json')).devDependencies['pdfjs-dist'];
   expect(PDFJS_VERSION, 'brand-document.js names a pdf.js version').toMatch(/^\d+\.\d+\.\d+$/);
   expect(installed, 'node_modules/pdfjs-dist matches the CDN version in brand-document.js').toBe(PDFJS_VERSION);
   expect(declared, 'package.json pins the CDN version in brand-document.js').toBe(PDFJS_VERSION);
+  const BD = require(path.join(ROOT, 'brand-document.js'));
+  expect(BD.PDFJS, 'the page loads the legacy build').toMatch(/\/legacy\/build\/pdf\.min\.mjs$/);
+  expect(BD.PDFJS_WORKER, 'the worker is the same build').toMatch(/\/legacy\/build\/pdf\.worker\.min\.mjs$/);
+  // CVE-2024-4367 was arbitrary JS through pdf.js compiling font glyphs with
+  // Function(); isEvalSupported:false turned that off on 4.x. On 6.x the code
+  // path is gone, so assert the bytes the browser runs carry no way to compile
+  // a string, rather than an option the library no longer reads.
+  for (const f of ['legacy/build/pdf.min.mjs', 'legacy/build/pdf.worker.min.mjs']) {
+    const src = fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', f), 'utf8');
+    // The one exception is core-js's globalThis fallback, a constant string
+    // that runs only where globalThis does not exist (never in a browser here).
+    const calls = (src.match(/(?<![\w$.])(?:(?:new\s+)?Function|eval)\s*\([^)]{0,40}\)?/g) || [])
+      .filter((c) => c !== 'Function("return this")');
+    expect(calls, f + ' compiles no string with Function() or eval()').toEqual([]);
+  }
 });
 
 test('a PDF brand book: every stated value with its page and verbatim line; a print or prose colour is not a value', async ({ page }) => {
@@ -907,7 +924,7 @@ test('signed in to an account: Apply hosts the logo, and the private brand book 
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, async (route) => {
       const u = route.request().url();
       const m = PDFJS_RX.exec(u);
-      if (m) return route.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', 'build', m[1])) });
+      if (m) return route.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(path.join(ROOT, 'node_modules', 'pdfjs-dist', m[1])) });
       if (/\/storage\/v1\/object\//.test(u)) {
         // Writes only: the previews then GET the hosted logo from its public URL.
         if (route.request().method() !== 'GET') uploads.push(new URL(u).pathname);

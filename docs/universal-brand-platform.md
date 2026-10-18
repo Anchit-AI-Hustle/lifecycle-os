@@ -374,7 +374,7 @@ Step 1 offers a third way to start, beside "Read my brand from my website" and t
 
 | Format | How it is read (in the browser, `brand-document.js`) | Provenance |
 |---|---|---|
-| PDF | pdf.js 4.10.38 (jsdelivr, `isEvalSupported:false`): text by page and line, embedded images | file · page · line · verbatim line |
+| PDF | pdf.js 6.4.299 legacy build (jsdelivr; no eval path, asserted by the spec): text by page and line, embedded images | file · page · line · verbatim line |
 | Word `.docx` | unzipped with the browser's `DecompressionStream`; paragraphs, tables, shaded swatch cells, embedded images with their alt text, footers | file · paragraph |
 | `DESIGN.md` | front matter (`colors`, `typography`, `rounded`, `spacing`, `components`) + the prose sections | file · line |
 | JSON tokens | W3C DTCG (`$value`/`$type`, aliases), Style Dictionary / Tokens Studio (`value`/`type`), Figma variables export (`valuesByMode`) | file · line |
