@@ -96,6 +96,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     background: transparent; border: none; border-bottom: 2px solid transparent; font-family: inherit; transition: all .14s; }
   .tab:hover { color:var(--vh-ink); }
   .tab.active { color:var(--vh-ink); border-bottom-color:var(--vh-accent); }
+  /* Winning angles (2026-10-18): tokens only. */
+  .al-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 14px; }
+  .al-card { border: 1px solid var(--vh-line); border-radius: 12px; padding: 14px; background: var(--vh-panel); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .al-card h4 { margin: 0; font-family: var(--vh-font-head); font-size: 15px; color: var(--vh-ink); }
+  .al-k { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--vh-ink-dim); margin: 6px 0 2px; }
+  .al-v { font-size: 13px; color: var(--vh-ink); line-height: 1.5; overflow-wrap: anywhere; }
+  .al-bar { height: 6px; border-radius: 99px; background: var(--vh-panel-2); overflow: hidden; }
+  .al-bar > span { display: block; height: 100%; background: var(--vh-accent); }
+  .al-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .al-table th, .al-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--vh-line); color: var(--vh-ink); vertical-align: top; }
+  .al-table th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--vh-ink-dim); }
+  .al-hooks { margin: 0; padding-left: 18px; }
+  .al-hooks li { margin: 4px 0; font-size: 13px; color: var(--vh-ink); }
+  .al-sec { margin-top: 22px; }
+  .al-sec > h3 { font-family: var(--vh-font-head); font-size: 17px; margin: 0 0 10px; color: var(--vh-ink); }
   .panel { display: none; }
   .panel.active { display: block; }
 
@@ -220,6 +235,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="tab" data-tab="google">Google Ads</button>
     <button type="button" class="tab" data-tab="meta">Meta Ads</button>
     <button type="button" class="tab" data-tab="tiktok">TikTok Ads</button>
+    <button type="button" class="tab" data-tab="angles">Winning angles</button>
   </div>
 
   <!-- CALENDAR -->
@@ -345,6 +361,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div id="m-list"></div>
       </div>
     </div>
+  </section>
+
+
+  <!-- WINNING ANGLES (2026-10-18): competitor ads that keep running -> ranked
+       angles + a hook bank -> briefs + a test plan, for the active brand. -->
+  <section class="panel" id="panel-angles">
+    <div class="card">
+      <div class="list-head"><h3>Winning angles</h3></div>
+      <p class="note" style="margin:4px 0 12px">Reads the ads your competitors keep running, finds the hooks and formats that last, ranks the angles behind them, writes a hook bank in your brand's own words, and turns each angle into a ready brief with a test plan.</p>
+      <div class="row">
+        <div><div id="al-market" data-region-multi="single" data-region-label="Market"></div></div>
+        <div><label class="label" for="al-budget">Daily test budget (optional)</label><input id="al-budget" type="number" min="0" placeholder="Leave empty for percentages only"></div>
+      </div>
+      <label class="label" for="al-comp">Competitors (optional, comma separated)</label>
+      <input id="al-comp" placeholder="Leave empty to use the competitors on your brand's record">
+      <div class="btn-row" style="margin-top:10px"><button type="button" class="btn btn-solid" id="al-run" data-credit-feature="ads.copy_matrix">Find winning angles</button></div>
+      <div id="al-status" role="status" aria-live="polite"></div>
+    </div>
+    <div id="al-out"></div>
   </section>
 
   <!-- TIKTOK -->
@@ -1067,7 +1102,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   // ── Tabs (hash-routed to match sidebar deep-links) ───────────────────
-  const TABS = ['calendar', 'google', 'meta', 'tiktok'];
+  const TABS = ['calendar', 'google', 'meta', 'tiktok', 'angles'];
   function showTab(t) {
     if (!TABS.includes(t)) t = 'calendar';
     document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
@@ -1076,6 +1111,73 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
   window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+
+
+  // ── Winning angles (2026-10-18, /api/brain?action=ad-angle-lab) ──────
+  const alEsc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  let AL_LAST = null;
+  function alRender(d) {
+    const out = $('#al-out'); if (!out) return;
+    AL_LAST = d;
+    const rep = d.report || {};
+    const rows = (list, label) => (list && list.length) ? `<table class="al-table"><thead><tr><th>${label}</th><th>Ads</th><th>Share of signal</th></tr></thead><tbody>${list.slice(0, 6).map((r) => `<tr><td>${alEsc(r.key)}${r.examples && r.examples[0] ? `<div class="note">"${alEsc(r.examples[0].line)}" (${alEsc(r.examples[0].competitor)}${r.examples[0].days != null ? `, ${r.examples[0].days} days` : ''})</div>` : ''}</td><td>${r.ads}</td><td><div class="al-bar"><span style="width:${Math.max(2, r.share)}%"></span></div><div class="note">${r.share}%</div></td></tr>`).join('')}</tbody></table>` : '';
+    const links = (d.library_links || []).map((l) => `<a href="${alEsc(l.url)}" target="_blank" rel="noopener" style="color:var(--vh-accent-text)">${alEsc(l.competitor)} in the ad library</a>`).join(' · ');
+    const gaps = (d.gaps || []).map((g) => `<p class="vh-status" style="margin:6px 0">${alEsc(g)}</p>`).join('');
+    const bank = (d.hooks && d.hooks.bank) || [];
+    const angles = (d.angles || []).map((a) => `<div class="al-card" data-angle="${alEsc(a.id)}">
+        <div class="pill" style="align-self:flex-start">#${a.rank}${a.signal_share != null ? ` · ${a.signal_share}% of the signal` : ' · from your own claims'}</div>
+        <h4>${alEsc(a.name)}</h4>
+        <div class="al-k">Who it speaks to</div><div class="al-v">${alEsc(a.audience)}</div>
+        <div class="al-k">Your answer</div><div class="al-v">${alEsc(a.answer)}${a.answer_basis === 'unmatched' ? '<div class="note">Matched by order, check that this claim answers it.</div>' : ''}</div>
+        <div class="al-k">Hook pattern and format that last</div><div class="al-v">${alEsc((a.patterns || []).join(', '))} · ${alEsc(a.format)}</div>
+        <div class="al-k">Hooks</div><ol class="al-hooks">${((bank.find((b) => b.angle === a.id) || {}).hooks || []).map((h) => `<li>${alEsc(h)}</li>`).join('') || '<li class="note">None yet: the brand states too little for this angle.</li>'}</ol>
+      </div>`).join('');
+    const briefs = (d.briefs || []).map((b) => `<div class="al-card" data-brief="${alEsc(b.id)}">
+        <div class="pill" style="align-self:flex-start">${b.basis === 'control' ? 'Control' : 'Brief ' + b.rank}</div>
+        <h4>${alEsc(b.angle_name)}</h4>
+        <div class="al-k">Hook</div><div class="al-v">${alEsc(b.hook)}</div>
+        <div class="al-k">Primary text</div><div class="al-v">${alEsc(b.primary_text)}</div>
+        <div class="al-k">Headline</div><div class="al-v">${alEsc(b.headline)}</div>
+        <div class="al-k">Visual direction</div><div class="al-v">${alEsc(b.visual_direction)}</div>
+        <div class="al-k">Button</div><div class="al-v">${alEsc(b.cta)}</div>
+        <div class="al-k">Evidence</div><div class="al-v note">${alEsc(b.evidence)}</div>
+        <div class="btn-row"><button type="button" class="btn btn-ghost" data-use-brief="${alEsc(b.id)}">Use in a Meta ad</button></div>
+      </div>`).join('');
+    const tp = d.test_plan || { rows: [] };
+    const plan = `<table class="al-table"><thead><tr><th>Brief</th><th>Share</th><th>Daily</th></tr></thead><tbody>${tp.rows.map((r) => `<tr><td>${alEsc(r.angle)}</td><td>${r.share}%</td><td>${r.daily != null ? alEsc(r.daily + (tp.currency ? ' ' + tp.currency : '')) : '<span class="note">set a budget</span>'}</td></tr>`).join('')}</tbody></table>
+      <p class="note">${alEsc(tp.budget_note)}</p><p class="note">${alEsc(tp.method)}</p><ul class="al-hooks">${(tp.rules || []).map((r) => `<li>${alEsc(r)}</li>`).join('')}</ul>`;
+    out.innerHTML = `
+      <div class="card al-sec"><h3>What competitors keep running</h3><p class="note" style="margin:0 0 10px">${alEsc(rep.note)}</p>${gaps}${links ? `<p class="note">${links}</p>` : ''}
+        ${rep.read ? `<div class="al-grid">${rows(rep.hooks, 'Hook pattern') ? `<div>${rows(rep.hooks, 'Hook pattern')}</div>` : ''}${rows(rep.formats, 'Format') ? `<div>${rows(rep.formats, 'Format')}</div>` : ''}${rows(rep.personas, 'Audience') ? `<div>${rows(rep.personas, 'Audience')}</div>` : ''}</div>` : ''}</div>
+      <div class="al-sec"><h3>Ranked angles and hook bank (${(d.hooks && d.hooks.count) || 0} hooks)</h3><div class="al-grid">${angles}</div></div>
+      <div class="al-sec"><h3>Briefs</h3><div class="al-grid">${briefs}</div></div>
+      <div class="card al-sec"><h3>Test plan</h3>${plan}</div>`;
+    out.querySelectorAll('[data-use-brief]').forEach((btn) => btn.addEventListener('click', () => {
+      const b = (AL_LAST.briefs || []).find((x) => x.id === btn.dataset.useBrief); if (!b) return;
+      const fill = (sel, v) => { const el = $(sel); if (el && v && !/^\[DATA REQUIRED/.test(v)) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } };
+      fill('#m-primary', b.primary_text); fill('#m-headline', b.headline); fill('#m-name', b.angle_name);
+      showTab('meta');
+      const note = $('#m-ai-note'); if (note) note.textContent = `Filled from the brief "${b.angle_name}". The visual direction: ${b.visual_direction}`;
+    }));
+  }
+  { const runBtn = $('#al-run'); if (runBtn) runBtn.onclick = async () => {
+    const status = $('#al-status'); status.innerHTML = '';
+    const refused = window.LifecycleStatus ? await window.LifecycleStatus.decide('Finding winning angles', { metered: true }) : null;
+    if (refused) { window.LifecycleFailure.show(status, refused, { title: 'No angles were found' }); return; }
+    runBtn.disabled = true; status.innerHTML = '<p class="note">Reading competitor ads and building the angles. This can take up to a minute.</p>';
+    try {
+      const rc = window.RegionContext;
+      const market = (rc && rc.marketsFor ? rc.marketsFor()[0] : '') || firstMarket();
+      const comps = String(($('#al-comp') || {}).value || '').split(',').map((x) => x.trim()).filter(Boolean);
+      const budget = Number(($('#al-budget') || {}).value) || null;
+      const r = await fetch('/api/brain?action=ad-angle-lab', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ market, competitors: comps.length ? comps : null, budget, currency: (rc && rc.localeOf && market) ? (rc.localeOf(market).currency || '') : '' }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) { const e = new Error(d.message || d.note || d.error || ('HTTP ' + r.status)); e.code = d.error; e.status = r.status; throw e; }
+      status.innerHTML = '';
+      alRender(d);
+    } catch (e) { window.LifecycleFailure.show(status, e, { title: 'No angles were found' }); }
+    finally { runBtn.disabled = false; }
+  }; }
 
   // ── Calendar — the SAME rolling plan as the Smart Brain mailer calendar ──
   // Not a separate manual grid: it reads the Smart Brain plan (identical slots,

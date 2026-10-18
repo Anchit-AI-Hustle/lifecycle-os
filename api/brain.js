@@ -137,6 +137,7 @@ const MODEL_FEATURE = {
   'mailer-assets': ['POST', 'image.generate'],
   tts: ['POST', 'audio.tts'],
   'music-compose': ['POST', 'audio.music'],
+  'ad-angle-lab': ['POST', 'ads.copy_matrix'],
   'social-run-daily': ['POST', 'social.daily_run'],
   'platform-agents': [null, 'analytics.report'],
   'revenue-os': ['GET', 'analytics.report'],
@@ -297,7 +298,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|ad-angle-lab|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -1264,6 +1265,25 @@ module.exports = async function handler(req, res) {
       //    operator edits it; this route only sends it. Suno has no public API
       //    (invite-only partner programme), so the page hands a Suno brief off
       //    by clipboard instead of calling anything here. ─────────────────────
+      // Competitor ad patterns -> ranked angles + a hook bank -> briefs + a
+      // test plan, for the ACTIVE brand (2026-10-18, ad-angle-lab.js). The
+      // brand is the one this request resolved, never one named in the body.
+      case 'ad-angle-lab': {
+        if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        const rt = require('./_shared/brand-runtime.js');
+        const brand = req.__brand && !rt.isUnresolved(req.__brand) ? req.__brand : null;
+        if (!brand || !brand.name) return res.status(409).json({ ok: false, error: 'brand_required', message: 'Set up or choose a brand first: its angles are built from its own record.' });
+        const out = await require('./_shared/ad-angle-lab.js').run({
+          brand, workspaceId: req.__workspaceId || null,
+          market: String(b.market || rt.homeRegion(brand) || '').toUpperCase(),
+          competitors: Array.isArray(b.competitors) ? b.competitors.slice(0, 8) : null,
+          budget: Number(b.budget) || null, currency: String(b.currency || '').slice(0, 8),
+        });
+        // Which model or service did the work is the platform's business.
+        delete out._by;
+        return res.status(out.ok ? 200 : 409).json(out);
+      }
+
       case 'music-compose': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const apiKey = process.env.ELEVENLABS_API_KEY;
