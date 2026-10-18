@@ -799,13 +799,23 @@ function componentTokens(brand) {
 }
 
 /** Google Fonts stylesheet URL for whichever families are marked google:true. */
+let _googleFamilies = null;
+function isGoogleFont(fam) {
+  if (!_googleFamilies) { try { _googleFamilies = new Set(require('../../data/google-fonts/families.json').families.map((f) => String(f).toLowerCase())); } catch (_) { _googleFamilies = new Set(); } }
+  return _googleFamilies.has(String(fam || '').trim().toLowerCase());
+}
 function fontsHref(brand) {
   const t = (brand && brand.typography) || {};
   const families = [];
   for (const slot of ['heading', 'body', 'mono']) {
     const f = t[slot];
-    if (!f || !f.family || f.google === false) continue;
-    const fam = String(f.family).trim().replace(/\s+/g, '+');
+    if (!f || !f.family) continue;
+    // A build tool's hashed name is the real family underneath
+    // (brand-runtime.realFamily); a family Google serves loads from Google
+    // whatever the reader concluded about where the site hosted it.
+    const real = require('./brand-runtime.js').realFamily(f.family);
+    if (!real || (f.google === false && !(real !== String(f.family).trim() && isGoogleFont(real)))) continue;
+    const fam = real.replace(/\s+/g, '+');
     const weights = String(f.weights || '400;600;700').replace(/[^0-9;]/g, '');
     if (!fam) continue;
     const spec = weights ? `family=${fam}:wght@${weights}` : `family=${fam}`;

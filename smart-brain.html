@@ -1504,6 +1504,7 @@ function renderPreview(payload, e, i, opts){
       <summary style="cursor:pointer;font-weight:600">Checks and how this was made <span class="pvnote" style="margin:0;font-weight:400">· ${checksSummary}</span></summary>
       <div class="pvnote" style="margin-top:6px">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
       ${fbHtml}
+      ${(campaign && campaign.mail_study && campaign.mail_study.emails) ? `<div class="pvnote" data-mail-study style="margin-top:4px">Mail layout and line lengths follow ${campaign.mail_study.emails} competitor emails${campaign.mail_study.basis === 'own' ? ' your competitive benchmarking captured' : ' from category leaders (add competitors on Competitor Benchmarking to study your own)'}: ${(campaign.mail_study.sources || []).slice(0, 6).map(esc).join(', ')}.</div>` : ''}
       ${complianceHTML(campaign)}
       ${traceHtml}
     </details>`;

@@ -141,8 +141,11 @@ test('cards in a row are the same size in the mailer and on the landing page; th
   const visual = C.assets.email.variants.find((v) => /Visual/.test(v.name || v.label || ''));
   await page.setViewportSize({ width: 700, height: 1000 });
   await page.setContent(visual.html, { waitUntil: 'load' });
-  const mailCards = await page.evaluate(() => [...document.querySelectorAll('td[style*="width:33%"] > a > div')].map((d) => Math.round(d.getBoundingClientRect().height)));
-  expect(mailCards.length).toBe(3);
+  // The showcase grid (2026-10-18): the products beside the hero, two to a
+  // row, each card marked [data-mail-card]; the hero product has the picture
+  // above and is not printed again.
+  const mailCards = await page.evaluate(() => [...document.querySelectorAll('[data-mail-card]')].map((d) => Math.round(d.getBoundingClientRect().height)));
+  expect(mailCards.length).toBeGreaterThanOrEqual(2);
   expect(new Set(mailCards).size, `mail card heights ${mailCards}`).toBe(1);
 
   const lp = C.assets.landing_pages[0].html;
