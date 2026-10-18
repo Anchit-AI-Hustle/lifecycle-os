@@ -78,7 +78,7 @@ jobs:
           SLUG: ${{ matrix.slug }}
           STEPS: ${{ inputs.steps }}
         run: node scripts/market-probe.js --presets --only "$SLUG" --steps "$STEPS" --out "market-probe-out/$SLUG"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: market-probe-${{ matrix.slug }}
@@ -113,7 +113,7 @@ jobs:
             fs.writeFileSync("market-probe-all/summary.md", md);
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + "\n");
           '
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: market-probe-all
           path: market-probe-all
