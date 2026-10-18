@@ -3361,11 +3361,16 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   // No product photo and no image of its own: one generated brand scene (never
   // a product), labelled. BEFORE the template assets are built, so a send with
   // no model key at all still carries it: with no key and no storage the scene
-  // is the free keyless one (brand-imagery.freeScene). Only when creatives are
-  // asked for on the full path; noLLM is the fast offline rebuild.
+  // is the free keyless one (brand-imagery.freeScene).
+  // Every build, not only one that asks for creatives (2026-10-18): the /brain
+  // View build asks for none, so a brand with no picture of its own saw none in
+  // any asset. One scene per brand, kept: the View build waits a bounded time
+  // for the free keyless scene, a full build may ask a keyed provider, and the
+  // offline rebuild (noLLM) uses a scene already made and never waits.
   let scene = null;
-  if (!noLLM && withCreatives && !_scenes.get(entry) && !realImagePool(entry, 400).length && !brandImagery.ownImageUrls(entry.brand).length) {
-    scene = await brandImagery.generatedScene(entry.brand).catch(() => null);
+  if (!_scenes.get(entry) && !realImagePool(entry, 400).length && !brandImagery.ownImageUrls(entry.brand).length) {
+    scene = noLLM ? brandImagery.peekScene(entry.brand)
+      : await brandImagery.sceneFor(entry.brand, { quick: !withCreatives, budgetMs: 25000 }).catch(() => null);
     if (scene) {
       _scenes.set(entry, scene);
       try { Object.defineProperty(entry, '__scene_url', { value: scene.url, enumerable: false, configurable: true }); } catch (_) { /* frozen entry: the pool still has it */ }

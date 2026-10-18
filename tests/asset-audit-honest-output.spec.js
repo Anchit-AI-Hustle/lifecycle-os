@@ -404,6 +404,9 @@ test('no model key and no storage: the template assets still carry one free, key
   for (const k of KEYS) delete process.env[k];
   try {
     const { smartConfig } = require(path.join(ROOT, 'lib', 'smart-brain', 'services.js'));
+    // A brand's scene is made once per process (2026-10-18): start this build
+    // with none made, so the one request to the free host is this build's.
+    bi._resetScenes();
     const c = await require(PLAN).buildCampaign(slot(APP), smartConfig({}), { noLLM: false, withCreatives: true });
     expect(c.copywriter.provider).toBe('template-fallback');
     expect(asked, 'the free host is asked once').toHaveLength(1);
