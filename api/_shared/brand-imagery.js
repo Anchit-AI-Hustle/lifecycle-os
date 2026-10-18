@@ -110,9 +110,9 @@ function freeSceneUrl(brand, size) {
   const [w, h] = String(size || '1536x1024').split('x').map((n) => Number(n) || 1024);
   return `${FREE_SCENE_HOST}${encodeURIComponent(scenePrompt(brand).slice(0, 900))}?width=${w}&height=${h}&seed=${seedOf(brand)}&nologo=true&model=flux`;
 }
-async function probeImage(url) {
+async function probeImage(url, timeoutMs) {
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
-  const t = ctl ? setTimeout(() => ctl.abort(), 60000) : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), Math.max(1000, Number(timeoutMs) || 60000)) : null;
   try {
     const r = await fetch(url, { method: 'GET', signal: ctl ? ctl.signal : undefined });
     const ct = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').toLowerCase();
@@ -121,11 +121,33 @@ async function probeImage(url) {
     return buf.byteLength >= 5000;
   } catch (_) { return false; } finally { if (t) clearTimeout(t); }
 }
-async function freeScene(brand, deps) {
+async function freeScene(brand, deps, timeoutMs) {
   if (String(process.env.FREE_GENERATION || '').toLowerCase() === 'off') return null;
   const url = freeSceneUrl(brand);
-  const ok = await ((deps && deps.probe) || probeImage)(url).catch(() => false);
+  const ok = await ((deps && deps.probe) || probeImage)(url, timeoutMs).catch(() => false);
   return ok ? { url, provider: 'pollinations', generated: true, keyless: true, prompt: scenePrompt(brand) } : null;
 }
 
-module.exports = { ownImages, ownImageUrls, scenePrompt, generatedScene, freeSceneUrl };
+// ONE SCENE PER BRAND, ON EVERY BUILD (2026-10-18). The operator: "brands
+// without catalog are not being able to generate appropriate visuals in the
+// marketing assets". The scene was made only when a build asked for creatives,
+// and the /brain View build does not, so a brand with no catalogue and no
+// imagery of its own saw no picture in any mail, page or ad. A brand's scene is
+// the same picture for every send (its prompt and seed come from the brand), so
+// it is made once and kept for this instance: `quick` (the View build) waits at
+// most `budgetMs` for the free keyless scene; a full build may also ask a keyed
+// provider. `peekScene` is the cached answer only, for a build that must not wait.
+const _sceneCache = new Map();
+function sceneKey(brand) { return freeSceneUrl(brand); }
+function peekScene(brand) { return _sceneCache.get(sceneKey(brand)) || null; }
+async function sceneFor(brand, opts) {
+  const o = opts || {};
+  const key = sceneKey(brand);
+  if (_sceneCache.has(key)) return _sceneCache.get(key);
+  const scene = o.quick ? await freeScene(brand, o.deps, o.budgetMs || 25000) : await generatedScene(brand, o.deps);
+  if (scene) _sceneCache.set(key, scene);
+  return scene;
+}
+function _resetScenes() { _sceneCache.clear(); }
+
+module.exports = { ownImages, ownImageUrls, scenePrompt, generatedScene, freeSceneUrl, sceneFor, peekScene, _resetScenes };
