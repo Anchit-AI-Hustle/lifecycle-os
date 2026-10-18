@@ -68,6 +68,11 @@ const AGENT_BRANCHES = [
   'claude/execute-money-paths',
   'claude/vercel-quota',
   'claude/a/b',
+  // Dependabot's branches (2026-10-18): a preview of a dependency bump spent one
+  // of the team's 100 deployments each, and once the cap was hit Vercel posted
+  // a FAILED status on the PR, which auto-merge refuses. CI is the check.
+  'dependabot/npm_and_yarn/capacitor/core-8.5.3',
+  'dependabot/github_actions/actions/download-artifact-8',
 ];
 
 // Production (`main`), the branch that syncs into it, the SiS distribution and
@@ -93,7 +98,7 @@ test('the evaluator agrees with the examples in Vercel\'s own git-configuration 
   expect(deploysOnPush(undefined, 'claude/anything')).toBe(true);
 });
 
-test('no push to a claude/* branch starts a Vercel deployment', () => {
+test('no push to a claude/* or dependabot/* branch starts a Vercel deployment', () => {
   const config = loadConfig();
   const rules = config.git && config.git.deploymentEnabled;
   expect(rules, 'vercel.json has no git.deploymentEnabled block').toBeTruthy();
