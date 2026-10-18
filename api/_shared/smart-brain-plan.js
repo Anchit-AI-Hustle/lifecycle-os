@@ -1862,7 +1862,7 @@ function proofBlockHtml(entry, style = 'visual') {
   // quietly promoted into Text + Graphics by their proof block.
   const textOnly = style === 'pure' || style === 'editorial';
   const band = (inner) => (textOnly
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:22px 24px;font-family:${pal.BODY};color:${pal.INK};border-top:1px solid ${pal.LINE}">${inner}</td></tr></table>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px"><tr><td style="padding:22px 24px;font-family:${pal.BODY};color:${pal.INK};border-top:1px solid ${pal.LINE}">${inner}</td></tr></table>`
     : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${pal.SURF2};border-top:1px solid ${pal.LINE}"><tr><td style="padding:26px 24px;font-family:${pal.BODY};color:${pal.INK}">${inner}</td></tr></table>`);
   if (!reviews.length) {
     return band(`<p style="margin:0;text-align:center;font-size:12.5px;line-height:1.5;color:${pal.INK}${textOnly ? '' : `;border:1px dashed ${pal.INK};border-radius:8px;padding:12px 14px`}">${esc(marker)}</p>`);

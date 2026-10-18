@@ -568,10 +568,12 @@ test('(#141-3) a BUILT campaign carries each recipient\'s own SKU as merge data 
   expect(built.platform_ready.lifecycle_messaging[0].audience.personalisation.values).toEqual(p.values);
   // The hero slot names the recipient's own product, the group hero only as fallback.
   const tag = `{{ ${p.field}|default:'${slot.heroProduct.title}' }}`;
-  // The headline is where the product is named, once (2026-10-17: the mail
-  // stopped repeating the product name under its own headline).
+  // The product is named once, on the line under its picture (2026-10-18:
+  // the headline is a line to the reader, never a product or model code).
+  const named = [...built.assets.email.html.matchAll(/<p\b[^>]*font-weight:700[^>]*>([\s\S]*?)<\/p>/g)].map((m) => m[1]);
+  expect(named).toContain(tag);
   const h1 = (built.assets.email.html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/) || [])[1] || '';
-  expect(h1).toContain(tag);
+  expect(h1).not.toContain('SKU-A');
   expect(built.assets.email.subject).toContain(tag);
   // No raw customer id anywhere in what is built.
   const wire = JSON.stringify(built);
