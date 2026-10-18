@@ -84,7 +84,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "google-auth-library": "^11.1.0",
     "googleapis": "^184.0.0",
-    "imapflow": "^2.1.2",
+    "imapflow": "^2.4.2",
     "mailparser": "^3.9.32",
     "pixelmatch": "^8.0.0",
     "playwright-core": "^1.63.0",
