@@ -48,8 +48,12 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
-  var PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs';
-  var PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+  // The LEGACY build: pdf.js 6.x's modern build calls Map.prototype.
+  // getOrInsertComputed (and other just-shipped built-ins) in the page AND in
+  // its worker, so on a browser without them getOperatorList() throws and no
+  // embedded logo is ever lifted out. The legacy build carries the polyfills.
+  var PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/pdf.min.mjs';
+  var PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/pdf.worker.min.mjs';
   // A file is read in this browser, so the cap is about the tab, not a server.
   var LIMITS = { document: 80 * 1024 * 1024, images: 16, image_min_px: 16 };
 
@@ -1089,6 +1093,10 @@
     var lib = await loadPdfJs();
     var pdf;
     try {
+      // isEvalSupported:false was the CVE-2024-4367 hardening on 4.x. pdf.js 5.0
+      // removed the option together with the font-eval code path it guarded, so
+      // 6.x ignores it (the test asserts the served bundles hold no Function()
+      // or eval); it stays so an older pdf.js on window.pdfjsLib is held to it.
       pdf = await lib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false, disableFontFace: true, useSystemFonts: false, stopAtErrors: false }).promise;
     } catch (e) {
       if (e && /password/i.test(e.name || e.message || '')) throw err('That PDF is password-protected, so it cannot be read. Upload an unlocked copy.', 'pdf_password');

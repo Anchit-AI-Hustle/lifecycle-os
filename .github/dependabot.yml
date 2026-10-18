@@ -7,8 +7,8 @@ updates:
     ignore:
       # The browser loads pdf.js from the CDN at the version brand-document.js
       # names; the npm copy only lets the tests serve those same bytes. A major
-      # bump of the npm copy alone tests a reader nobody ships (6.x failed five
-      # brand-guide tests, 2026-10-18): upgrade both together, by hand.
+      # bump of the npm copy alone tests a reader nobody ships: upgrade both
+      # together, by hand (4.10.38 -> 6.4.299 needed the legacy build, 2026-10-18).
       - dependency-name: "pdfjs-dist"
         update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
