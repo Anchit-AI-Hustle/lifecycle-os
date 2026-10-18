@@ -778,7 +778,10 @@ function _renderVariantBody(o) {
     // uses it AND the brand has the facts to fill it: no claims, no strip; no
     // URLs, no shop-by row; fewer than two other products, no grid.
     const layout = o.layout || (() => { try { return require('./competitor-mail-study.js').referenceStudy(_brand(o)).layout; } catch (_) { return null; } })() || {};
-    const heroLabel = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) && _fold(hero_product) !== _fold(hero_headline) ? esc(hero_product) : '';
+    // The eyebrow names the product as a person says it: the range, never the
+    // model code ("JOHN JACOBS", not "JOHN JACOBS JJ S16881", 2026-10-18).
+    const _say = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? MF.displayName(hero_product) : '';
+    const heroLabel = _say && _fold(_say) !== _fold(hero_headline) && !_fold(hero_headline).includes(_fold(_say)) ? esc(_say) : '';
     const border = _core ? _core.readableAsText(palette.lava, '#ffffff', 1.3) : '#e6e6e6';
     // 1. The picture, full width, linked to the page the button goes to.
     const heroImgRow = hero_image_url ? `
@@ -807,6 +810,15 @@ function _renderVariantBody(o) {
           </td></tr>
         </table>
       </td></tr>`;
+    // The pictured product's own description line, as a caption under its
+    // picture (the store's words, the name and code left out), centred and
+    // never justified: an attribute list is not a paragraph (2026-10-18).
+    const _heroRow = hero_image_url && hero_product ? (Array.isArray(products) ? products : []).find((p) => p && _fold(p.title || p.n) === _fold(hero_product)) : null;
+    const _cap = _heroRow ? _productNote(_heroRow, market, o && o.brand) : '';
+    const captionRow = _cap && !_bodyTxt.includes(_fold(_cap)) ? `
+      <tr><td align="center" style="padding:14px 40px 0;">
+        <p data-mail-caption style="font-family:${BODY};font-size:14px;line-height:1.5;color:${palette.mutedOnSurface};margin:0;text-align:center;">${esc(_cap)}</p>
+      </td></tr>` : '';
     const sublineRow = hero_subline ? `
       <tr><td style="padding:20px 40px 0;">
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:16px;line-height:1.6;color:${palette.ink};margin:0;`, '0')}text-align-last:center;">${esc(hero_subline)}</p>
@@ -821,8 +833,12 @@ function _renderVariantBody(o) {
     // 4. Products side by side, each with its OWN photo, the store's own name
     //    and description line, its price and its own page. The hero product
     //    already has the picture above, so it is not printed again.
-    const others = (Array.isArray(products) ? products.filter(Boolean) : []).filter((p, i) => !(hero_image_url && i === 0 && _fold(p.title || p.n) === _fold(hero_product)));
-    const pool = others.length >= 2 ? others : (Array.isArray(products) ? products.filter(Boolean) : []);
+    //    Never the hero again: a mail about one product had that product
+    //    printed twice, above and as the only card (2026-10-18).
+    //    (Only when that picture can be its own: a hero with no photo of its
+    //    own keeps its card.)
+    const others = (Array.isArray(products) ? products.filter(Boolean) : []).filter((p) => !(hero_image_url && hero_product && _fold(p.title || p.n) === _fold(hero_product) && _productImg(p, market, o && o.brand)));
+    const pool = others;
     const cols = layout.grid_columns === 3 ? 3 : 2;
     const gridItems = layout.product_grid === false ? [] : pool.slice(0, Math.max(cols, Math.min(layout.grid_max || 4, pool.length - (pool.length % cols)) || cols));
     const pic = cols === 3 ? 160 : 230;
@@ -884,14 +900,14 @@ function _renderVariantBody(o) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:28px 12px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${border};border-radius:14px;overflow:hidden;">
-      ${offerBarRow}${brandHeader}${bandRow || headRow}${heroImgRow}${sublineRow}${ctaPair}
+      ${offerBarRow}${brandHeader}${bandRow || headRow}${heroImgRow}${captionRow}${sublineRow}${ctaPair}
       ${blocks}
       ${gridSection}
       ${strip}
       ${shopBy}
-      <tr><td style="padding:30px 32px 26px;text-align:center;">
+      ${gridSection || strip ? `<tr><td style="padding:30px 32px 26px;text-align:center;">
         <a href="${baseUrl}" data-ds="button-primary" style="${solid}">${esc(cta_text)}</a>
-      </td></tr>
+      </td></tr>` : '<tr><td style="padding:0 0 26px;font-size:1px;line-height:1px;">&nbsp;</td></tr>'}
       ${brandFooter}
     </table>
   </td></tr>

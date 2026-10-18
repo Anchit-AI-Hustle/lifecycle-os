@@ -896,7 +896,7 @@ module.exports = async function callLLM(opts) {
  * Handles: clean JSON, markdown fences, prose prefix/suffix, nested fences.
  */
 /** Forget every cool-down (tests; and an operator who has just topped up a key). */
-module.exports.resetProviderCooldowns = function resetProviderCooldowns() { COOL.clear(); SLOW.clear(); };
+module.exports.resetProviderCooldowns = function resetProviderCooldowns() { COOL.clear(); SLOW.clear(); KEYLESS.next = 0; KEYLESS.chain = Promise.resolve(); };
 /** The active cool-downs: provider, key fingerprint, model, kind, until. Never a key. */
 module.exports.providerCooldowns = function providerCooldowns() {
   const now = Date.now();

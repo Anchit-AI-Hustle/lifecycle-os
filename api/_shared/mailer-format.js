@@ -205,6 +205,29 @@ function productLine(description, title, brandName) {
   if (!out || out.split(' ').length < 2 || out.length > 80) return '';
   return out;
 }
+// A product's name as a person says it (2026-10-18): a catalogue that names
+// products by model code ("John Jacobs JJ S16881") keeps the range ("John
+// Jacobs") and drops the code and the short initialism before it. Words are
+// only left out, never added; '' when nothing sayable is left.
+function displayName(title) {
+  const t = String(title || '').split(/\s+/).filter(Boolean);
+  const code = (w) => { const x = w.replace(/[^A-Za-z0-9/-]/g, ''); return (/[a-z]/i.test(x) && /\d/.test(x) && x.length >= 3) || /\d\/|\/\d/.test(x) || /^\d{3,}$/.test(x); };
+  if (!t.some(code)) return t.join(' ');
+  const out = t.filter((w, i) => !code(w) && !(/^[A-Z]{1,3}$/.test(w) && t[i + 1] && code(t[i + 1])));
+  return out.join(' ').replace(/[\s:,;.\-]+$/, '').trim();
+}
+// Whether a store's description is a sentence someone wrote ("Smooth, with
+// notes of cocoa.") or an attribute list ("Trendy Maroon Brown Gradient Full
+// Rim Round Tints Sunglasses"). Only a sentence belongs in the body copy; an
+// attribute list is a caption under the product.
+function isProse(d) {
+  const s = String(d || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!s) return false;
+  const words = s.split(' ').filter((w) => /^[A-Za-z]/.test(w) && w.length > 3);
+  if (!words.length) return false;
+  const lower = words.filter((w) => /^[a-z]/.test(w)).length;
+  return /[.!?]$/.test(s) || lower / words.length >= 0.4;
+}
 const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
@@ -322,6 +345,8 @@ function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', 
 
 module.exports = {
   productLine,
+  displayName,
+  isProse,
   JUSTIFY,
   article,
   mobile,

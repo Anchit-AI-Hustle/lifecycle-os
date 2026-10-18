@@ -82,7 +82,7 @@ const ENV = ['FREE_GENERATION', 'OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_AP
   'CLOUDFLARE_ACCOUNT_ID', 'OLLAMA_BASE_URL', 'SAKANA_BASE_URL', 'SAKANA_API_KEY', 'APP_AI_PROVIDER', 'APP_AI_TIER', 'LLM_TOTAL_BUDGET_MS',
   'OPENROUTER_MAX_TOKENS', 'GROQ_TEXT_MODEL', 'GEMINI_TEXT_MODEL', 'ANTHROPIC_TEXT_MODEL', 'OPENAI_TEXT_MODEL', 'CEREBRAS_TEXT_MODEL',
   'CLOUDFLARE_TEXT_MODEL', 'CLOUDFLARE_TEXT_MODEL_FAST', 'CLOUDFLARE_TEXT_MODEL_MAX', 'GROK_TEXT_MODEL', 'GROK_TEXT_MODEL_MAX',
-  'GEMINI_TEXT_MODEL_MAX', 'GEMINI_TEXT_MODEL_FAST', 'ANTHROPIC_TEXT_MODEL_MAX', 'ANTHROPIC_TEXT_MODEL_FAST', 'OPENAI_TEXT_MODEL_MAX', 'OPENAI_TEXT_MODEL_FAST'];
+  'GEMINI_TEXT_MODEL_MAX', 'GEMINI_TEXT_MODEL_FAST', 'ANTHROPIC_TEXT_MODEL_MAX', 'ANTHROPIC_TEXT_MODEL_FAST', 'OPENAI_TEXT_MODEL_MAX', 'OPENAI_TEXT_MODEL_FAST', 'LLM_KEYLESS_GAP_MS'];
 let saved = {};
 let net = null;
 let realNow = Date.now;
@@ -371,7 +371,12 @@ test('free first (the operator: "done for free in the backend"): a paid key is r
 
 test('its 402 is a rate limit (a wait), never a bill; FREE_GENERATION=off means no prompt leaves', async () => {
   process.env.FREE_GENERATION = 'on';
-  net = installNet(() => ({ status: 402, json: { error: 'one request at a time' }, headers: { 'Retry-After': '30' } }));
+  // The keyless provider is the only one here, so the call waits its turn and
+  // honours a short Retry-After once: a 30 s wait twice ran past the test's
+  // 60 s (main, run 807). The turn gap and the wait are short in the test; the
+  // classification is what is asserted.
+  process.env.LLM_KEYLESS_GAP_MS = '50';
+  net = installNet(() => ({ status: 402, json: { error: 'one request at a time' }, headers: { 'Retry-After': '1' } }));
   const err = await ask().catch((e) => e);
   expect(err).toBeInstanceOf(Error);
   const row = (err._providerErrors || []).find((r) => r.provider === 'pollinations');
