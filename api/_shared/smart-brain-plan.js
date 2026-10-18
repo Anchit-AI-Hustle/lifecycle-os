@@ -1759,6 +1759,10 @@ function benchmarkBrief(entry) {
   } catch (_) { return ''; }
 }
 
+// The competitor email study, as lines for the writer (competitor-mail-study).
+function mailStudyBrief(entry) {
+  try { return require('./competitor-mail-study.js').briefLines(entry && entry.__mailStudy).join('\n'); } catch (_) { return ''; }
+}
 function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
 function copyTask(entry, fw = null, brief = null) {
   const fwLine = fw
@@ -1775,6 +1779,7 @@ ${productFactsBrief(entry)}
 - Rationale: ${entry.rationale || ''}
 ${creativeEvidence.briefFor(entry)}
 ${benchmarkBrief(entry)}
+${mailStudyBrief(entry)}
 - ${regionalNuance(entry.market)}${fwLine}${briefLine}
 
 WHO THIS IS FOR:
@@ -2389,8 +2394,8 @@ function renderVariant(entry, copy, style, img) {
   const catRow = (p) => { try { return catalogImage.match({ handle: p.handle || p.h, title: p.title || p.n }, entry.market, { brand: entry.brand }); } catch (_) { return null; } };
   const products = withGrid && entry.heroProduct
     ? [
-        { title: entry.heroProduct.title, handle: entry.heroProduct.handle, image: heroCardImg, price: entry.heroProduct.price, url: links.pdp, note: (catRow(entry.heroProduct) || {}).subtitle || (catRow(entry.heroProduct) || {}).tasting_notes || '' },
-        ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || (/^https:\/\//i.test(String(p.image || '')) ? String(p.image) : undefined), note: row.subtitle || row.tasting_notes || '' }; }),
+        { title: entry.heroProduct.title, handle: entry.heroProduct.handle, image: heroCardImg, price: entry.heroProduct.price, url: links.pdp, note: (catRow(entry.heroProduct) || {}).subtitle || (catRow(entry.heroProduct) || {}).tasting_notes || '', description: entry.heroProduct.description || (catRow(entry.heroProduct) || {}).description || '' },
+        ...supporting.map((p) => { const row = catRow(p) || {}; return { title: p.title, handle: p.handle, price: p.price, url: productUrl(p, entry.market, entry.brand), image: catalogImage.imagesFor(p, entry.market, { width: 900, brand: entry.brand })[0] || (/^https:\/\//i.test(String(p.image || '')) ? String(p.image) : undefined), note: row.subtitle || row.tasting_notes || '', description: p.description || row.description || '' }; }),
       ]
     : undefined;
   // NOT TOO MUCH TEXT (2026-10-17). Blocks are taken in order of what they
@@ -2438,6 +2443,7 @@ function renderVariant(entry, copy, style, img) {
     // collection the "collection" was the same address as the main CTA.
     products, collection_url: (links.collectionUrl && links.collectionUrl !== links.pdp && links.collectionUrl !== links.store) ? links.collectionUrl : undefined,
     offer_bar: (withGrid && (E.offer || (copy.landing && copy.landing.offer_bar))) || undefined,
+    layout: (entry.__mailStudy && entry.__mailStudy.layout) || undefined,
   }), entry, style);
 }
 // Four variants in the SAME taxonomy as the Mailer Calendar: 2 Text + 2 Text +
@@ -2763,6 +2769,19 @@ function videoStatus() {
 // service") used to make the guard discard the whole answer - mailer, landing
 // page and every ad - when only that line was the problem.
 function groundModelCopy(campaign, entry, copyA, copyB) {
+  // No model code in a line a person reads first (the subject, the preheader,
+  // the headlines): services.stripModelCode, on both directions.
+  try {
+    const { stripModelCode, sayableProduct } = require('../../lib/smart-brain/services.js');
+    const hp = (entry && entry.heroProduct && entry.heroProduct.title) || '';
+    const instead = hp ? sayableProduct(entry, hp) : '';
+    const say = instead && instead !== hp ? instead : '';
+    for (const c of [copyA, copyB]) {
+      if (!c || !c.email) continue;
+      for (const k of ['subject', 'preheader', 'hero_headline', 'cta']) if (c.email[k]) c.email[k] = stripModelCode(c.email[k], say);
+      for (const k of ['hero_headline', 'cta']) if (c.landing && c.landing[k]) c.landing[k] = stripModelCode(c.landing[k], say);
+    }
+  } catch (_) { /* never stops a build */ }
   try {
     let row = null;
     try { row = catalogImage.match(entry, entry.market, { brand: entry.brand }); } catch (_) { row = null; }
@@ -3292,8 +3311,22 @@ async function buildCampaign(entry, config, opts = {}) {
     brand: (entry && entry.brand) || null,
     workspaceId: (entry && entry.workspace_id) || (config && config.workspace_id) || null,
   };
+  // WHAT THE BRAND'S COMPETITORS' EMAILS ARE MADE OF (2026-10-18): the mail
+  // the competitive benchmarking feature captured from this brand's own
+  // competitor set, else the category reference set, measured as rendered.
+  // It shapes the mail's layout and briefs the writer on line lengths; it is
+  // never a source of facts. Kept off the stored entry (not enumerable).
+  if (entry && typeof entry === 'object' && !entry.__mailStudy) {
+    let st = null;
+    try { st = await require('./competitor-mail-study.js').studyFor(entry.brand, { workspaceId: catalogCtx.workspaceId }); } catch (_) { st = null; }
+    if (st) Object.defineProperty(entry, '__mailStudy', { value: st, enumerable: false, configurable: true });
+  }
   const built = await catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
   if (built && typeof built === 'object') {
+    if (entry && entry.__mailStudy) {
+      const st = entry.__mailStudy;
+      built.mail_study = { basis: st.basis, emails: (st.patterns && st.patterns.emails) || 0, sources: (st.sources || []).slice(0, 12), layout: st.layout, why: st.why || '' };
+    }
     built.brand_identity = brandIdentity(entry && entry.brand);
     built.brand_name = (entry && entry.brand && entry.brand.name) || null;
   }
