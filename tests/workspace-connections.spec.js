@@ -125,7 +125,8 @@ function installFetch(w) {
     /* ── Supabase ───────────────────────────────────────────────────────── */
     if (u.includes('/auth/v1/user')) {
       const user = w.users[token];
-      return user ? json(user) : json({ message: 'invalid' }, 401);
+      // Every account the app admits signed in with Google (2026-10-20).
+      return user ? json(Object.assign({ app_metadata: { provider: 'google', providers: ['google'] } }, user)) : json({ message: 'invalid' }, 401);
     }
     if (u.includes('/rest/v1/brand_user_prefs')) {
       const user = w.users[token];

@@ -426,7 +426,7 @@ test('onboarding follows an import that is continuing on the server: "X of Y pro
     await expect(page.locator('#impCoverage')).toContainText('Catalogue read completely', { timeout: 20000 });
     expect(calls.filter((c) => c.op === 'catalog-import')).toHaveLength(1);
     expect(calls.filter((c) => c.op === 'catalog-status').length).toBeGreaterThanOrEqual(2);
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await new Promise((r) => { if (srv.closeAllConnections) srv.closeAllConnections(); srv.close(r); }); }
 });
 
 test('onboarding: an EARLIER import\'s coverage is shown only as labelled history beside a new failure, and the failure is said once - no toast over the panel', async ({ page }) => {
@@ -461,7 +461,7 @@ test('onboarding: an EARLIER import\'s coverage is shown only as labelled histor
     // Read at once: a toast hides itself after a few seconds, and an
     // auto-retrying assertion would wait for that and pass.
     expect(await page.locator('#toast').evaluate((e) => getComputedStyle(e).display)).toBe('none');
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await new Promise((r) => { if (srv.closeAllConnections) srv.closeAllConnections(); srv.close(r); }); }
 });
 
 test('/connections follows an import continuing by itself until it is complete, with no Continue button while it moves', async ({ page }) => {
@@ -489,7 +489,7 @@ test('/connections follows an import continuing by itself until it is complete, 
     await expect(page.locator('#catalogContinue')).toHaveCount(0);
     await expect(card).toContainText('Product catalogue: read completely', { timeout: 20000 });
     expect(calls.filter((c) => c.op === 'catalog-import')).toHaveLength(0);
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await new Promise((r) => { if (srv.closeAllConnections) srv.closeAllConnections(); srv.close(r); }); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -697,7 +697,7 @@ test('onboarding: the markets an import finds are ADDED to the brand\'s regions 
     expect(regs.slice(1).map((r) => [r.code, r.currency, r.store_url, r.home])).toEqual([['US', 'USD', 'https://lensworld.example/en-us', false], ['AE', 'AED', 'https://lensworld.example/en-ae', false]]);
     expect(regs[1].source).toContain('site read: the site\'s hreflang="en-us"');
     await expect(page.locator('#impCoverage')).toContainText('IN: 567 of 600 · US: 40 of 130');
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await new Promise((r) => { if (srv.closeAllConnections) srv.closeAllConnections(); srv.close(r); }); }
 });
 
 test('a resumed read re-reads robots.txt first: one that still cannot be read stops it again, never a crawl of a site that has not said what may be read', async () => {
