@@ -338,9 +338,15 @@ test.describe('stored artefacts made for another version of the brand', () => {
     db.table('brand_workspaces').push(Object.assign(F.workspaceRow(F.BRAMBLE, 'ws-b'), { owner_id: OWNER, created_at: '2026-09-21T00:00:00Z' }));
     db.route((u) => u.startsWith('https://kicks.example'), () => require('./lib/fake-supabase.js').response(200,
       '<html><head><title>Custom Air Force 1 drop</title></head><body>Hand-painted one-of-one sneakers, a grail colorway for your rotation.</body></html>', { 'content-type': 'text/html' }));
+    // As the scheduler: since 2026-10-20 an anonymous caller naming a workspace
+    // is not given it (found on production), and the scheduler still is.
     const kb = req('api/kb.js');
     const res = makeRes();
-    await kb(makeReq({ query: { action: 'ingest', workspace_id: 'ws-b' }, body: { url: 'https://kicks.example/af1', workspace_id: 'ws-b' }, method: 'POST' }), res);
+    const prevCron = process.env.CRON_SECRET;
+    process.env.CRON_SECRET = 'cron-secret-for-kb-guardrail-test';
+    try {
+      await kb(makeReq({ query: { action: 'ingest', workspace_id: 'ws-b' }, body: { url: 'https://kicks.example/af1', workspace_id: 'ws-b' }, method: 'POST', headers: { authorization: 'Bearer cron-secret-for-kb-guardrail-test' } }), res);
+    } finally { if (prevCron === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = prevCron; }
     expect(res.payload, JSON.stringify(res.payload)).toEqual(expect.objectContaining({ ok: true, filtered: true }));
     expect(res.payload.reason).toMatch(/Brambleweld Larder's own vocabulary/);
   });
