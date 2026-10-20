@@ -3596,6 +3596,12 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   reportProofGap(campaign, entry, trace);
   attachDisclaimer(campaign, entry);
   attachPlacementCopy(campaign, entry);
+  // THE MARKETING TEAM (2026-10-20): UTM tags on every link to the brand's own
+  // site, a tracked destination on every ad, the KPI and test plan for the send,
+  // an SEO check of each landing page, and what each department did for it.
+  let __target = '';
+  try { __target = slotLinks(entry).pdp || ''; } catch (_) { __target = ''; }
+  require('./marketing-team-server.js').applyToCampaign(campaign, entry, { target: __target });
   campaign.build_version = ASSET_BUILD_VERSION;
   // Last, because it judges the FINISHED artefacts rather than the plan. The
   // entry names whose brand, which market and which offer they are judged as.
@@ -4265,7 +4271,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
