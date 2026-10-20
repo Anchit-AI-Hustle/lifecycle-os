@@ -558,16 +558,15 @@ RULES — CLEAR AND TO-THE-POINT:
       provider = typeof out === 'object' ? out.provider : 'llm';
     } catch (_) { reply = ''; }
   }
-  if (!reply && !_zero) {
-    // No canned sales copy for any other brand: the copy below is tenant
-    // zero's, and a stand-in reply is a claim about a product nobody checked.
+  if (!reply) {
+    // No canned sales copy for ANY brand (2026-10-20, found on production).
+    // The stand-in reply was allowed for "tenant zero", which on a live
+    // deployment is simply the OLDEST workspace - Lenskart there - and it
+    // read "results in 2-4 weeks of a daily pair ... roughly forty cents ...
+    // origin-fresh", claims no brand ever made. Say there is no reply.
     const e = new Error('No language model answered just now, so the agent has no reply for this turn. Nothing was charged; please ask again in a moment.');
     e.status = 503; e.code = 'no_provider';
     throw e;
-  }
-  if (!reply) {
-    const p = scoped[0];
-    reply = `Happy to help! ${p ? `A good place to start is ${p.title} (${'$' + p.price}) — ${p.category.toLowerCase()} our customers lace-up daily.` : ''} With our streetwear colorways, the honest answer on results is 2–4 weeks of a daily pair. Per pair it works out to roughly forty cents — origin-fresh, packed in India within days of drop. What does your daily routine look like, so I can point you to the right colorway?`;
   }
   reply = scrubBannedPhrases(reply, brand);
 

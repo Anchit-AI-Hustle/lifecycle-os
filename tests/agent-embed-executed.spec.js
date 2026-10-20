@@ -118,7 +118,7 @@ test('a brand with no credits left is told politely, nothing runs; a failed repl
   w.llm.down = true;
   const r2 = await visitor('https://www.oldest.example');
   w.llm.down = false;
-  expect(r2.status).toBeGreaterThanOrEqual(500);
+  expect(r2.status, JSON.stringify(r2.out).slice(0, 500)).toBeGreaterThanOrEqual(500);
   const last = holds().slice(before).pop();
   expect(last, 'no hold was taken for the failed reply').toBeTruthy();
   expect(w.db.table('credit_ledger').some((l) => l.kind === 'release' && l.hold_id === last.hold_id), 'the failed reply was charged').toBe(true);

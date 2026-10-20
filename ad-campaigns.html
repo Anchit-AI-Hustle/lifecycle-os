@@ -1254,14 +1254,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // AD_PLAN_ERROR separates "the plan is empty" from "the plan could not be
   // read". Both used to collapse into the same "No plan yet" line, so an
   // unreachable API looked like a brand with nothing scheduled.
-  let AD_PLAN_ERROR = '', AD_PLAN_LOADING = false;
+  let AD_PLAN_ERROR = '', AD_PLAN_STATUS = '', AD_PLAN_LOADING = false;
   async function loadAdPlan() {
     const host = $('#ad-plan'); if (host) host.innerHTML = '<p class="note">Loading the Smart Brain plan…</p>';
-    AD_PLAN_ERROR = ''; AD_PLAN_LOADING = true;
+    AD_PLAN_ERROR = ''; AD_PLAN_STATUS = ''; AD_PLAN_LOADING = true;
     try {
       const r = await fetch(BRAIN + '?action=smart-brain-plan');
       const d = await r.json();
       if (!d || d.ok === false) throw new Error((d && d.error) || ('HTTP ' + r.status));
+      // No workspace on this request (signed out, or no brand yet) is an
+      // ordinary state, said in the status line, not a failure frame
+      // (2026-10-20, seen on production by every signed-out visitor).
+      if (d.error === 'workspace_unresolved') {
+        AD_PLAN = (await deviceSmartBrainPlan()) || [];
+        if (!AD_PLAN.length) AD_PLAN_STATUS = d.note || 'Sign in with Google to see your brand\'s plan here.';
+        AD_PLAN_LOADING = false; renderAdPlan(); return;
+      }
       if (d.error) throw new Error(d.note || d.error);
       AD_PLAN = d.entries || d.plan || [];
       if (!AD_PLAN.length) AD_PLAN = (await deviceSmartBrainPlan()) || [];
@@ -1282,6 +1290,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       host.innerHTML = '';
       if (empty) {
         empty.style.display = 'block';
+        if (AD_PLAN_STATUS && !AD_PLAN_ERROR) {
+          if (window.LifecycleStatus) window.LifecycleStatus.show(empty, AD_PLAN_STATUS); else empty.textContent = AD_PLAN_STATUS;
+          return;
+        }
         if (AD_PLAN_ERROR) {
           // Separating "empty" from "unreadable" was already the intent here;
           // it still landed in the EMPTY element, styled as an empty state.

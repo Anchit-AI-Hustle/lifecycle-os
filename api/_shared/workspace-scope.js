@@ -254,10 +254,19 @@ async function resolve(env, req, explicit) {
   const q = (req && req.query) || {};
   const body = (req && req.body && typeof req.body === 'object') ? req.body : {};
   const fromReq = q.workspace_id || body.workspace_id;
-  if (fromReq) return String(fromReq);
+  const userId = userIdFromReq(req);
+  // A NAMED WORKSPACE IS HONOURED ONLY FOR SOMEONE WHO MAY READ IT
+  // (2026-10-20, found on production). Any caller could name any workspace_id
+  // and every scoped read and write ran as that workspace through the service
+  // role: an anonymous POST wrote an agent into the live brand's workspace.
+  // The scheduler may name one (WORKSPACE_ID-style runs FOR a brand); a
+  // signed-in user only one they own or are a member of; nobody else.
+  if (fromReq) {
+    if (userId) return (await isMemberOf(env, String(fromReq), userId)) ? String(fromReq) : null;
+    return schedulerRequest(req) ? String(fromReq) : null;
+  }
   // A signed-in user's request resolves to THEIR active workspace. Only a
   // request with no user at all (cron, internal jobs) may use the default.
-  const userId = userIdFromReq(req);
   if (userId) {
     const ws = await activeWorkspaceForUser(env, userId);
     // A user with no active workspace gets NOTHING scoped, never another
@@ -275,9 +284,64 @@ async function resolve(env, req, explicit) {
   // lets an operator run one of those FOR a specific brand; without it they
   // read and write tenant zero, which is where the backfill put every
   // historical row. Deliberately last, so it can never override a real user.
+  // A request that IS in flight and is not the scheduler's is a stranger
+  // (2026-10-20, found on production): `curl /api/calendar?action=smart-brain-plan`
+  // with no session read the live brand's whole plan, because "no user" was
+  // read as "the scheduler". Workers, seed scripts and other code with no
+  // request at all keep the default below.
+  if (req && req.headers && !schedulerRequest(req)) return null;
   const pinned = String(process.env.WORKSPACE_ID || '').trim();
   if (pinned) return pinned;
   return defaultWorkspaceId(env);
+}
+
+/** CRON_SECRET presented as a bearer, ?cron_secret= or ?secret= (constant length check first). */
+function schedulerRequest(req) {
+  const secret = String(process.env.CRON_SECRET || '').trim();
+  if (!secret || !req) return false;
+  const h = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
+  const m = /^Bearer\s+(.+)$/i.exec(String(h));
+  const q = req.query || {};
+  for (const t of [m && m[1], q.cron_secret, q.secret]) {
+    const v = String(t || '');
+    if (v.length === secret.length && require('crypto').timingSafeEqual(Buffer.from(v), Buffer.from(secret))) return true;
+  }
+  return false;
+}
+
+/**
+ * The workspace for a caller the router has VERIFIED (2026-10-20). resolve()
+ * reads the JWT's `sub` before anything has checked the token; once
+ * requireUser() has, the scope is re-derived from the verified id: the named
+ * workspace if the user owns it or is a member, else their active one.
+ */
+async function forVerifiedUser(env, userId, named) {
+  if (!userId) return null;
+  if (named) return (await isMemberOf(env, String(named), String(userId))) ? String(named) : null;
+  return activeWorkspaceForUser(env, String(userId));
+}
+
+const MEMBER_CACHE = new Map();
+/** Is `userId` the owner or a member of workspace `ws` (is_brand_member's rule, read with the service role)? */
+async function isMemberOf(env, ws, userId) {
+  if (!ws || !userId || !env || !env.url || !env.key) return false;
+  const k = ws + '|' + userId;
+  const hit = MEMBER_CACHE.get(k);
+  if (hit && Date.now() - hit.at < PREF_TTL) return hit.ok;
+  const h = { apikey: env.key, Authorization: `Bearer ${env.key}` };
+  let ok = false;
+  try {
+    const r = await fetch(`${env.url}/rest/v1/brand_workspaces?id=eq.${encodeURIComponent(ws)}&owner_id=eq.${encodeURIComponent(userId)}&select=id&limit=1`, { headers: h });
+    const rows = r.ok ? await r.json().catch(() => []) : [];
+    ok = Array.isArray(rows) && rows.length > 0;
+    if (!ok) {
+      const r2 = await fetch(`${env.url}/rest/v1/brand_workspace_members?workspace_id=eq.${encodeURIComponent(ws)}&user_id=eq.${encodeURIComponent(userId)}&select=workspace_id&limit=1`, { headers: h });
+      const rows2 = r2.ok ? await r2.json().catch(() => []) : [];
+      ok = Array.isArray(rows2) && rows2.length > 0;
+    }
+  } catch (_) { ok = false; }
+  MEMBER_CACHE.set(k, { ok, at: Date.now() });
+  return ok;
 }
 
 /**
@@ -399,6 +463,7 @@ async function brandForWorkspace(env, workspaceId) {
  * cleared wholesale, because a stale entry is worse than a re-read.
  */
 function invalidate({ userId, workspaceId } = {}) {
+  MEMBER_CACHE.clear();
   if (userId) PREF_CACHE.delete(String(userId)); else PREF_CACHE.clear();
   if (workspaceId) BRAND_CACHE.delete(String(workspaceId)); else BRAND_CACHE.clear();
   CACHE.id = null; CACHE.at = 0;
@@ -420,4 +485,4 @@ function requestHasUser(req) {
 module.exports = {
   isTenantZeroIdentity,
   brandForWorkspace, SCOPED_TABLES, isScoped, resolve, currentWorkspaceId,
-  defaultWorkspaceId, filterFor, stamp, invalidate, requestHasUser, carriesMobileToken };
+  defaultWorkspaceId, filterFor, stamp, invalidate, requestHasUser, carriesMobileToken, schedulerRequest, isMemberOf, activeWorkspaceForUser, forVerifiedUser };
