@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Only Google sign-in: the Vercel login wall is off (2026-10-20)
+The operator: "Is it asking for sign in with Vercel? Only sign in with Google should be required." Every
+`*.vercel.app` address of this project (deployment URLs, `lifecycle-os-anchit-ai-hustle.vercel.app`) answered with
+Vercel's own SSO page, because the project had Standard Protection (`ssoProtection: all_except_custom_domains`).
+It is now OFF (set through the Vercel connector: `ssoProtection: null`); those addresses open the app, which forwards
+to `lifecycle-os.anchit-tandon.com`. The app's own sign-in is unchanged: Supabase Auth, Google provider only in the
+browser, client `608774819914-…apps.googleusercontent.com`, callback `https://dypkppctdbmsiqclnhzx.supabase.co/auth/v1/callback`,
+checked live (the button lands on Google's sign-in page with that client and callback). Still the operator's to do
+in the dashboards (no connector reaches them): the Supabase project's Email provider is ON server-side (turn it off
+so only Google can create an account), and the Google client secret can only be proven by a real sign-in.
+`self-url.js`'s bypass header stays harmless with protection off.
+
 ## ⭐ A mail about one product, as a person reads it (2026-10-18)
 The operator, with production /brain (Lenskart, IN): "broken alignment still and atrocious quality of all content".
 Production was still on the commit before #303 (no deployment of its merge existed), but the shipped code had
@@ -303,7 +315,7 @@ words (no pure/natural/locally sourced/best... it does not state). Gated by `tes
 Production, after the move to bom1: Lenskart's import said "It is continuing by itself" while nothing moved, IN stayed
 "STOPPED ... sent to the US store", and Continue import looked dead. Two causes, both fixed at source:
 - **Every background chain called `https://${VERCEL_URL}`** (catalogue import, context pack, prebuild queue, the cron's
-  kick). The project has Vercel Standard Protection (`ssoProtection: all_except_custom_domains`) and Vercel's docs say
+  kick). The project HAD Vercel Standard Protection (`ssoProtection: all_except_custom_domains`; off since 2026-10-20) and Vercel's docs say
   VERCEL_URL "cannot be used in conjunction with Standard Deployment Protection": the self-call met the protection page
   and the next step never ran. `api/_shared/self-url.js` `selfBaseUrl()` = SELF_BASE_URL, else the host the CURRENT
   request arrived on (not a generated *.vercel.app), else `VERCEL_PROJECT_PRODUCTION_URL` on production, else
