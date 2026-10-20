@@ -185,6 +185,14 @@ function freeGenerationOn() {
   return String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off';
 }
 
+/** A write to a table no workspace owns: a verified caller or the scheduler. */
+function mayWriteUnscoped(req) {
+  return !!(req && (req.__verifiedUser || schedulerBearer(req) || cronAuthorized(req)));
+}
+function signInFirst(action) {
+  return { ok: false, action, error: 'sign_in_required', message: 'You are not signed in, so this could not run. Sign in with Google and try again; nothing was changed.' };
+}
+
 function cronAuthorized(req) {
   const secret = (process.env.CRON_SECRET || '').trim();
   if (secret) {
@@ -261,6 +269,16 @@ module.exports = async function handler(req, res) {
     if (tokenOn(req) && !schedulerBearer(req)) {
       __auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
     }
+    // The brain-core adapter acts with the service role only for a verified
+    // caller or the scheduler (brain-core.mayUseServiceRole, 2026-10-20).
+    if (__auth && __auth.ok) {
+      req.__verifiedUser = true;
+      if (__auth.user_id) {
+        try {
+          __wsId = await wsScope.forVerifiedUser(scopeEnv, __auth.user_id, hadExplicit ? (q0.workspace_id || b0.workspace_id) : '');
+        } catch (_) { /* keep what resolve() gave */ }
+      }
+    }
     const tokenRefused = !!(__auth && !__auth.ok && Number(__auth.status) === 401);
     // A refused token proves no identity, so the workspace an unverified JWT
     // `sub` resolved to is not the caller's either.
@@ -329,7 +347,14 @@ module.exports = async function handler(req, res) {
       ));
     }
     req.__workspaceId = __wsId;
-    if (req.query) req.query.workspace_id = req.query.workspace_id || __wsId || undefined;
+    // The request carries the RESOLVED workspace only (2026-10-20): a name the
+    // scoping refused (a stranger's, a non-member's) must not reach a handler
+    // that reads req.query / the body directly. The website agent checks the
+    // page's Origin against the named brand's own website itself.
+    if (action !== 'agent-public') {
+      if (req.query) req.query.workspace_id = __wsId || undefined;
+      if (b && typeof b === 'object' && b.workspace_id !== undefined) b.workspace_id = __wsId || undefined;
+    }
 
     /* Resolve the brand RECORD here too, not just its id.
        Handlers used to each resolve their own, and the ones that forgot fell
@@ -453,6 +478,9 @@ module.exports = async function handler(req, res) {
       }
       case 'config': {
         if (req.method === 'POST') {
+          // The deployment-wide thresholds: a signed-in caller or the scheduler
+          // only (2026-10-20: an anonymous POST rewrote them).
+          if (!mayWriteUnscoped(req)) return res.status(401).json(signInFirst(action));
           for (const [k, v] of Object.entries(b.config || {})) await core.setConfig(k, v);
           return res.json({ ok: true, updated: Object.keys(b.config || {}) });
         }
@@ -471,8 +499,11 @@ module.exports = async function handler(req, res) {
 
       // ── ANALYSIS ─────────────────────────────────────────────────────────
       case 'analyze': {
-        const out = await analysis.runDaily({ persist: req.method === 'POST' });
-        await core.logRun('manual', out.summary, true);
+        // Computes for anyone; persists and logs only for a signed-in caller or
+        // the scheduler (2026-10-20: an anonymous GET wrote a run row).
+        const may = mayWriteUnscoped(req);
+        const out = await analysis.runDaily({ persist: req.method === 'POST' && may });
+        if (may) await core.logRun('manual', out.summary, true);
         return res.json({ ok: true, ...out });
       }
       case 'cohorts': {
@@ -1807,6 +1838,8 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         // Manual trigger is open; the scheduled path is CRON_SECRET-guarded.
         const viaCron = (req.query || {}).cron === '1' || String(req.headers['user-agent'] || '').includes('vercel-cron');
         if (viaCron && !cronAuthorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
+        // The manual run writes the job ledger: a signed-in caller only (2026-10-20).
+        if (!viaCron && !mayWriteUnscoped(req)) return res.status(401).json(signInFirst(action));
         return res.json({ ok: true, ...(await osb.runDailyJob(viaCron ? 'cron' : 'manual')) });
       }
       case 'os-dashboard':
@@ -1836,6 +1869,7 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
 function failureStatus(err) {
   const s = Number(err && err.status) || 0;
   if (s >= 400 && s < 500) return s;
+  if (storeRefusedPermission(err)) return 403;
   return storeDown(err) ? 503 : 500;
 }
 // A 400/404 from PostgREST is the database ANSWERING: a column or table this
@@ -1846,9 +1880,16 @@ function storeRefusedSchema(err) {
   const msg = String((err && err.message) || err || '');
   return /linked-db (select|insert|upsert|update|delete) [^:]+: 40[04]\b|supabase (get|post|patch|delete) .* -> 40[04]\b/i.test(msg);
 }
+// The database ANSWERED and refused on privileges (401/403, 42501 "permission
+// denied"): not a paused project (2026-10-20, production read "has most likely
+// been paused" for a 42501 on smart_generated_campaigns).
+function storeRefusedPermission(err) {
+  const msg = String((err && err.message) || err || '');
+  return /linked-db (select|insert|upsert|update|delete) [^:]+: 40[13]\b.*(42501|permission denied)/i.test(msg);
+}
 function storeDown(err) {
   const msg = String((err && err.message) || err || '');
-  if (storeRefusedSchema(err)) return false;
+  if (storeRefusedSchema(err) || storeRefusedPermission(err)) return false;
   return /linked-db (select|insert|upsert|update|delete)|supabase (get|post|patch|delete) .* -> \d{3}|fetch failed|econnrefused|enotfound|getaddrinfo|network call escaped/i.test(msg);
 }
 function failurePayload(action, err) {
@@ -1862,6 +1903,14 @@ function failurePayload(action, err) {
     return {
       ok: false, action, error: 'store_schema_mismatch',
       message: `The workspace database answered, but "${action}" asked it for something it does not have${m ? ` (${m[1]})` : ''}. Nothing was saved. This is a defect in this deployment, not your data.`,
+      detail: msg.slice(0, 300),
+    };
+  }
+  if (storeRefusedPermission(err)) {
+    const m = msg.match(/"message":"([^"]{1,200})"/);
+    return {
+      ok: false, action, error: 'store_permission_refused',
+      message: `The workspace database answered, but refused "${action}"${m ? ` (${m[1]})` : ''}. Nothing was read or saved. Sign in with Google and try again; if you are signed in, this is a defect in this deployment, not your data.`,
       detail: msg.slice(0, 300),
     };
   }

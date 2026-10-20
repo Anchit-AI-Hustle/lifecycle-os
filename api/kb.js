@@ -164,7 +164,10 @@ async function ingestSite(req, res, env) {
   })();
 
   let store;
-  try { store = token ? pack.userStore(token) : pack.serviceStore(); }
+  // The scheduler's CRON_SECRET bearer is not a person's token: it takes the
+  // service store (the only userless caller workspace-scope admits).
+  const scheduler = require('./_shared/workspace-scope.js').schedulerRequest(req);
+  try { store = token && !scheduler ? pack.userStore(token) : pack.serviceStore(); }
   catch (e) { return res.status(503).json({ ok: false, error: e.message }); }
 
   try {

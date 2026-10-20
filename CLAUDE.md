@@ -4,6 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Origin testing of production: nobody reads or writes a workspace they are not in (2026-10-20)
+The operator: "Check and fix all current issues on live with the origin testing". A Chromium + curl sweep of
+https://lifecycle-os.anchit-tandon.com found, all fixed at source:
+- **An anonymous GET of `/api/calendar?action=smart-brain-plan` returned the live brand's plan**, and naming any
+  `workspace_id` read that workspace: `workspace-scope.resolve()` gave every userless request the OLDEST workspace and
+  honoured any named one. Now a named workspace is honoured only for its owner or a member (`isMemberOf`, cached,
+  `invalidate()` clears) or the scheduler (`schedulerRequest()`: CRON_SECRET as bearer / `?cron_secret=` / `?secret=`);
+  a request in flight that is not the scheduler gets null. Routers re-derive the scope from the user `requireUser()`
+  VERIFIED (`forVerifiedUser`), since `resolve()` reads the JWT `sub` unverified. calendar.js answers an unsigned
+  request `workspace_unresolved` (no entries) and a non-member `403 not_a_member`; brain.js carries only the resolved
+  workspace on query and body. `SmartBrainDbAdapter.workspace()` falls back to the oldest only for the scheduler.
+- **Anonymous writes**: agent-upsert and friends wrote into the live workspace; `config` POST, `analyze`'s persist /
+  logRun and a manual `os-run-daily-job` wrote unscoped rows. `mayWriteUnscoped()` (verified user or scheduler) gates
+  them with `401 sign_in_required`. brain-core's LinkedDb uses the service key only when `mayUseServiceRole()` allows it
+  (no request, a verified user, a granted website-agent scope, the scheduler), else the anon key under RLS.
+- **library / kb answered 500**: ordered `smart_campaigns` by `started_at`, a column it never had (`sent_at`).
+  A PostgREST 42501 / 401 / 403 is `403 store_permission_refused`, never "the database is paused".
+- **The built-in agent with no model spoke canned tenant-zero sales copy** ("2-4 weeks of a daily pair ... forty
+  cents"): gone for every brand; it says no model answered (503 `no_provider`).
+- `/ad-campaigns` shows the device plan / a status line, not a failure frame, when signed out; `/agent` no longer
+  speaks its greeting on load. Gated by `tests/live-origin-fixes.spec.js` plus new cases in `router-brain`,
+  `router-calendar`, `router-kb`, `agents-review`, `contact-fatigue-executed`; each fix mutation-checked.
+
 ## ⭐ Credits follow the usage of the provider that made the work (2026-10-20)
 The operator: "Ensure credit system is built perfectly and syncs to the respective-selected-platform usage for credits
 correctly and accurately". Before this, every run cost its flat catalogue price; a run made partly with the workspace's

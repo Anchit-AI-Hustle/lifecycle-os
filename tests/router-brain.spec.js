@@ -178,7 +178,9 @@ add('config', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   stubs: () => { S.on(CORE, 'getConfig', async () => ({ thresholds: { email: {} } })); S.on(CORE, 'setConfig', async () => [{}]); },
   expect: (r) => { expect(r.status).toBe(200); expect(r.out.config).toEqual({ thresholds: { email: {} } }); expect(S.hits(CORE, 'setConfig')).toEqual([]); },
   cases: [{ name: 'POST writes every key through setConfig', run: { json: { config: { alpha: 1, beta: { x: 2 } } } },
-    expect: (r) => { expect(r.out).toEqual({ ok: true, updated: ['alpha', 'beta'] }); expect(S.hits(CORE, 'setConfig').map((h) => h.args)).toEqual([['alpha', 1], ['beta', { x: 2 }]]); } }],
+    expect: (r) => { expect(r.out).toEqual({ ok: true, updated: ['alpha', 'beta'] }); expect(S.hits(CORE, 'setConfig').map((h) => h.args)).toEqual([['alpha', 1], ['beta', { x: 2 }]]); } },
+    { name: 'an anonymous server-to-server POST writes nothing (found on production, 2026-10-20)', run: { json: { config: { alpha: 1 } }, auth: 'none', origin: false },
+      expect: (r) => { expect(r.status).toBe(401); expect(r.out.error).toBe('sign_in_required'); expect(S.hits(CORE, 'setConfig')).toEqual([]); } }],
 });
 add('kb', { gate: 'none', browser: 'demo', run: { method: 'GET', query: { limit: '1' } },
   stubs: () => S.on(M.kb, 'libraryIndex', async () => [{ id: 'c1' }, { id: 'c2' }]),
@@ -191,7 +193,9 @@ add('kb-patterns', { gate: 'none', browser: 'demo', run: { method: 'GET' },
 add('analyze', { gate: 'none', browser: 'demo', run: { json: {} },
   stubs: () => { S.on(M.analysis, 'runDaily', async () => ({ summary: { campaigns: 3 }, patterns: {} })); S.on(CORE, 'logRun', async () => 'run_1'); },
   expect: (r) => { expect(r.out).toMatchObject({ ok: true, summary: { campaigns: 3 } }); expect(last(M.analysis, 'runDaily')[0]).toEqual({ persist: true }); expect(last(CORE, 'logRun').slice(0, 3)).toEqual(['manual', { campaigns: 3 }, true]); },
-  cases: [{ name: 'GET analyses without persisting', run: { method: 'GET', json: undefined }, expect: () => { expect(last(M.analysis, 'runDaily')[0]).toEqual({ persist: false }); } }],
+  cases: [{ name: 'GET analyses without persisting', run: { method: 'GET', json: undefined }, expect: () => { expect(last(M.analysis, 'runDaily')[0]).toEqual({ persist: false }); } },
+    { name: 'an anonymous POST analyses but persists and logs nothing', run: { json: {}, auth: 'none', origin: false },
+      expect: () => { expect(last(M.analysis, 'runDaily')[0]).toEqual({ persist: false }); expect(S.hits(CORE, 'logRun')).toEqual([]); } }],
 });
 add('cohorts', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   expect: (r) => { expect(r.out).toEqual({ ok: true, cohorts: [] }); expect(last('db', 'select')).toEqual(['smart_cohorts', { limit: 200, order: 'value_score.desc', filters: { active: 'eq.true' } }]); },
@@ -999,6 +1003,7 @@ add('os-run-daily-job', { gate: 'cron-flag', browser: 'refuse', run: { method: '
   cases: [
     { name: 'the scheduled path (?cron=1) without the secret is refused', run: { method: 'GET', query: { cron: '1', workspace_id: H.WS }, auth: 'none', origin: false }, expect: (r) => { expect(r.status).toBe(401); expect(S.hits(M.osb)).toEqual([]); } },
     { name: 'the scheduled path with the secret runs as cron', run: { method: 'GET', query: { cron: '1' }, auth: 'cron', origin: false }, expect: (r) => { expect(r.out).toEqual({ ok: true, source: 'cron' }); } },
+    { name: 'a manual run by an anonymous caller is refused before the job', run: { method: 'GET', auth: 'none', origin: false }, expect: (r) => { expect(r.status).toBe(401); expect(S.hits(M.osb)).toEqual([]); } },
   ],
 });
 add('os-dashboard', { gate: 'none', browser: 'demo', run: { method: 'GET' },
@@ -1323,11 +1328,15 @@ test.describe('workspace scoping', () => {
     expect(r.out).toEqual({ ws: H.WS, q: H.WS, brand: H.WS });
     expect(guard.rest(/brand_user_prefs/).length).toBe(1);
   });
-  test('an explicit workspace_id wins over the session, and is what the brand record is resolved for', async () => {
+  test('a workspace the session names is honoured only when it owns it or is a member of it, and is what the brand record is resolved for', async () => {
     S.on(M.telesuite, 'handle', async (req, res) => res.json({ ws: req.__workspaceId, brand: req.__brand && req.__brand.__resolved_for }));
-    const r = await call('telesuite', { json: {}, auth: 'session', origin: true, query: { workspace_id: 'ws_explicit' } });
-    expect(r.out).toEqual({ ws: 'ws_explicit', brand: 'ws_explicit' });
+    const r = await call('telesuite', { json: {}, auth: 'session', origin: true, query: { workspace_id: H.WS } });
+    expect(r.out).toEqual({ ws: H.WS, brand: H.WS });
     expect(guard.rest(/brand_user_prefs/)).toEqual([]);
+    // Changed on purpose (2026-10-20, found on production): any caller could
+    // name any workspace and every scoped read and write ran as it.
+    const other = await call('telesuite', { json: {}, auth: 'session', origin: true, query: { workspace_id: 'ws_explicit' } });
+    expect(other.out.ws).toBe(null);
   });
   test('a signed-in user with NO active workspace gets null, never the oldest workspace', async () => {
     guard.restore();
@@ -1346,10 +1355,16 @@ test.describe('workspace scoping', () => {
     expect(r.out.error).toBe('no_workspace');
     expect(S.hits(M.regionRevenue)).toEqual([]);
   });
-  test('a userless server-to-server call falls to the default workspace, which is the documented cron behaviour', async () => {
+  test('only the scheduler is userless: it falls to the default workspace; an anonymous caller is scoped to nothing, named workspace or not', async () => {
     S.on(M.telesuite, 'handle', async (req, res) => res.json({ ws: req.__workspaceId }));
-    const r = await call('telesuite', { json: {}, auth: 'none', origin: false });
+    const r = await call('telesuite', { json: {}, auth: 'cron', origin: false });
     expect(r.out).toEqual({ ws: H.WS_OLDEST });
+    // Changed on purpose (2026-10-20, found on production): an anonymous POST
+    // with no Origin wrote an agent into the live brand's workspace.
+    for (const query of [{}, { workspace_id: H.WS }, { workspace_id: H.WS_OLDEST }]) {
+      const a = await call('telesuite', { json: {}, auth: 'none', origin: false, query });
+      expect(a.out).toEqual({ ws: null });
+    }
   });
   test('scoping never hard-fails the router: a dead auth backend still answers the action', async () => {
     guard.restore();
