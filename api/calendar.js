@@ -324,7 +324,7 @@ async function smartBrain(req, res, smartAction) {
   if (personWithoutWorkspace && NEEDS_WORKSPACE.has(smartAction) && req.method === 'POST') {
     return res.status(409).json({
       ok: false, error: 'no_workspace',
-      message: 'This rewrites the stored calendar, and this sign-in has none: a mobile-number account keeps its brands on the device and its calendar is computed each time, so there is no stored plan to change. Preview, approve and reject all work, and the decisions are kept on this device.',
+      message: 'This rewrites the stored calendar, and this request has no brand workspace. Sign in with Google and pick or set up a brand first. Nothing was changed.',
     });
   }
   if (personWithoutWorkspace) {

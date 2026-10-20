@@ -1026,6 +1026,22 @@ module.exports = async function handler(req, res) {
       // budget split across ad sets, the build step by step (every object
       // PAUSED), going live as its own approval, and budget changes. Writes
       // are behind the three switches; a signed-in caller only.
+      // THE MARKETING TEAM (2026-10-20): ten departments, each step tied to the
+      // feature that does it (marketing-team.js), and the technical SEO audit of
+      // the brand's OWN website (the record's website, never a URL the caller names).
+      case 'marketing-team': {
+        const op = String(req.query.op || b.op || 'map');
+        const MT = require('./_shared/marketing-team.js');
+        if (op === 'map') return res.json({ ok: true, departments: MT.map() });
+        if (op === 'site-audit') {
+          const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+          if (!auth.ok) return res.status(auth.status || 401).json(auth);
+          const out = await require('./_shared/marketing-team-server.js').siteAudit(req.__brand || null);
+          return res.status(out.ok ? 200 : (out.error === 'website_required' ? 409 : 502)).json(Object.assign({ action }, out));
+        }
+        return res.status(400).json({ ok: false, action, error: 'unknown_op', message: 'Use op=map or op=site-audit.' });
+      }
+
       case 'paid-launch': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
