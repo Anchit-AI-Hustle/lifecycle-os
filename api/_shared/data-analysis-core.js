@@ -114,7 +114,8 @@ async function authorize(req, { cron = false } = {}) {
     // provider, is not - the same rule as brand-workspace-core.verifyCaller.
     const supaAuth = require('./mobile-auth-supabase.js');
     const oauth = supaAuth.oauthProvider(user);
-    if (supaAuth.phoneIdentity(user) || (oauth && oauth !== 'google')) return { ok: false, status: 401, error: 'invalid_operator_session' };
+    // Google only (2026-10-20): an email-and-password account is not an operator either.
+    if (supaAuth.phoneIdentity(user) || oauth !== 'google') return { ok: false, status: 401, error: 'invalid_operator_session' };
     // Any VALID session is allowed. This used to default to a single tenant's
     // email domain, which locked every operator who onboarded their own brand
     // out of the whole analytics surface with a bare 403.
