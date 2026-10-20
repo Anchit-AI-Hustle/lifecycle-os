@@ -75,7 +75,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .does{font-size:13px;line-height:1.5;margin:4px 0 2px;color:var(--vh-ink)}
   .gap{font-size:13px;line-height:1.5;border-left:3px solid var(--vh-accent);padding:2px 0 2px 8px;margin:4px 0;color:var(--vh-ink)}
   .links{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
-  .links a{color:var(--vh-primary-text);font-weight:600;min-height:44px;display:inline-flex;align-items:center}
+  .links a{color:var(--vh-primary-text);font-weight:600;min-height:44px;min-width:44px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center}
+  .lede a{color:var(--vh-primary-text);font-weight:600}
   .field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--vh-ink-dim)}
   .field input,.field select{font-family:inherit;font-size:16px;min-height:44px;padding:8px 10px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink);width:100%}
   .form{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px;margin:10px 0}
@@ -89,7 +90,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   td{padding:8px 10px;border-bottom:1px solid var(--vh-line);vertical-align:top;overflow-wrap:anywhere}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   [hidden]{display:none!important}
-  @media (max-width:640px){ body{padding:52px 16px 56px} h1{font-size:26px} }
+  @media (max-width:640px){ body{padding:52px 16px 56px} h1{font-size:26px} .card{padding:14px 7px} }
 </style>
 </head>
 <body>

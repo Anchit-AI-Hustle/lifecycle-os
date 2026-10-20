@@ -32,9 +32,9 @@
       S('marketing-strategy', 'Marketing strategy', 'A hypothesis per send: who, what, why now, and the result it should move.', ['/brain', '/growth-os'], { per_slot: true }),
       S('goal-setting', 'Goal setting', 'A primary KPI per send, the brand\'s own baseline for it, a planning target and the date to read it.', ['/brain'], { per_slot: true }),
       S('channel-planning', 'Channel planning', 'The job each channel does in the send, and a budget split across paid ad sets.', ['/brain', '/publishing?tab=launch'], { per_slot: true }),
-      S('growth-roadmap', 'Growth roadmap', 'A rolling 90-day plan per market, re-planned daily, every slot built ahead.', ['/brain', '/calendar']),
+      S('growth-roadmap', 'Growth roadmap', 'A rolling 90-day plan per market, re-planned daily, every slot built ahead.', ['/brain', '/plan']),
       S('budget-allocation', 'Budget allocation', 'A total daily budget split into ad sets by test share, exact to the currency\'s smallest unit.', ['/publishing?tab=launch']),
-      S('market-moments', 'Market moments', 'Festivals and dates from the brand\'s own markets placed in the plan.', ['/calendar', '/brain']),
+      S('market-moments', 'Market moments', 'Festivals and dates from the brand\'s own markets placed in the plan.', ['/plan', '/brain']),
     ] },
     { id: 'intel', n: 2, name: 'Market & Customer Intelligence', steps: [
       S('market-research', 'Market research', 'A study per market: categories, competitors and the moments that matter there.', ['/research']),
@@ -52,12 +52,12 @@
       S('brand-knowledge', 'Brand knowledge', 'The brand\'s foundation, catalogue, cohorts, offers, creative and market documents.', ['/kb/brand']),
     ] },
     { id: 'content', n: 4, name: 'Content Marketing & Copywriting', steps: [
-      S('content-strategy', 'Content strategy', 'An objective per slot from the cohort\'s own job (activation, reactivation, retention...).', ['/brain', '/calendar'], { per_slot: true }),
+      S('content-strategy', 'Content strategy', 'An objective per slot from the cohort\'s own job (activation, reactivation, retention...).', ['/brain', '/plan'], { per_slot: true }),
       S('content-creation', 'Content creation', 'Mail (text and text + visual), landing pages, static and video ads, social posts.', ['/brain', '/studio', '/landing-pages', '/ads', '/social'], { per_slot: true }),
       S('content-distribution', 'Content distribution', 'Each asset mapped to the platforms that carry it, and sent through the dispatch queue.', ['/publishing'], { per_slot: true }),
       S('thought-leadership', 'Thought leadership', 'A daily theme across social and a blog post in Social Media OS.', ['/social'], { status: 'partial', gap: 'There is no long-form article writer or byline programme yet; the blog post is one of the daily social formats.' }),
       S('video-motion', 'Video and motion', 'A playable 9:16 motion ad over the brand\'s own photos for every video ad, and music beds.', ['/brain', '/music'], { per_slot: true }),
-      S('localisation', 'Localisation', 'One build per ticked market, in that market\'s currency, time zone and store.', ['/brain', '/calendar']),
+      S('localisation', 'Localisation', 'One build per ticked market, in that market\'s currency, time zone and store.', ['/brain', '/plan']),
     ] },
     { id: 'seo', n: 5, name: 'SEO, AEO & AI Search Visibility', steps: [
       S('seo-aeo', 'SEO & AEO', 'Every landing page checked for title, description, one H1, language, alt text and answer-ready structured data.', ['/brain', '/marketing-team?tool=seo'], { per_slot: true }),
@@ -74,7 +74,7 @@
       S('social-performance', 'Social performance', 'Posts below the brand\'s own median are flagged and a regeneration is offered.', ['/publishing?tab=gateway']),
     ] },
     { id: 'paid', n: 7, name: 'Paid Advertising & Customer Acquisition', steps: [
-      S('paid-strategy', 'Paid ads strategy', 'Competitor ads that keep running turned into angles, a hook bank, briefs and a test plan.', ['/ads#angles', '/ad-campaigns'], { per_slot: true }),
+      S('paid-strategy', 'Paid ads strategy', 'Competitor ads that keep running turned into angles, a hook bank, briefs and a test plan.', ['/ads#angles', '/ads'], { per_slot: true }),
       S('campaign-creation', 'Campaign creation', 'Meta, Google, YouTube and TikTok ads per slot, each with a tracked destination; Meta built step by step.', ['/brain', '/publishing?tab=launch'], { per_slot: true }),
       S('audience-targeting', 'Audience targeting', 'Inclusion and exclusion rules, a lookalike seed and retargeting windows per slot.', ['/brain', '/publishing?tab=launch'], { per_slot: true }),
       S('optimisation', 'Optimisation', 'An ad QA score per slot; underperformers flagged against the brand\'s own median; budgets re-split.', ['/publishing?tab=gateway', '/publishing?tab=launch', '/ads-dashboard'], { per_slot: true }),
