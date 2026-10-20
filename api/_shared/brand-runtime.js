@@ -383,7 +383,14 @@ async function resolve(req, opts) {
       // default. `named_workspace` is what the REQUEST named, before a router
       // filled in its default workspace.
       const named = String(o.named_workspace !== undefined ? (o.named_workspace || '') : (body.workspace_id || q.workspace_id || ''));
-      if (!named) return defaultBrand();
+      // Only the SCHEDULER (or code with no request) is tenant zero's door; an
+      // anonymous request in flight is nobody's brand (2026-10-20, found on
+      // production: the routers no longer hand it the oldest workspace).
+      if (!named) {
+        let sched = !(req && req.headers);
+        try { if (!sched) sched = require('./workspace-scope.js').schedulerRequest(req); } catch (_) { sched = false; }
+        return sched ? defaultBrand() : unresolvedBrand('this request is not signed in, so it is not any brand\'s');
+      }
       person = true;
       const env = {
         url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
