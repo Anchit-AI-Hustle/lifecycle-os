@@ -160,14 +160,21 @@ async function verifyCaller(req) {
     // its refresh tokens still work against GoTrue until they are revoked or
     // the users removed), and any other OAuth provider a dashboard switch
     // might turn on. Both get the anonymous refusal.
+    //
+    // 2026-10-20 (the operator: "only sign in with Gmail should be required"):
+    // an account made by EMAIL and password is refused too. The project's
+    // Email provider is on server-side and public sign-ups are open, so anyone
+    // holding the public anon key could create one and walk past a gate that
+    // only refused phone and other OAuth accounts. Only a Google account is in.
     const supaAuth = require('./mobile-auth-supabase.js');
     const oauth = supaAuth.oauthProvider(user);
-    if (supaAuth.phoneIdentity(user) || (oauth && oauth !== 'google')) {
+    if (supaAuth.phoneIdentity(user) || oauth !== 'google') {
+      const how = supaAuth.phoneIdentity(user) ? 'a mobile-number sign-in' : (oauth ? 'a ' + oauth + ' sign-in' : 'an email and password sign-in');
       return {
         ok: false, status: 401, error: 'sign_in_required',
-        provider_refused: oauth || 'phone',
+        provider_refused: supaAuth.phoneIdentity(user) ? 'phone' : (oauth || 'email'),
         message: 'You are not signed in, so this could not run. Sign-in is with Google; '
-          + (oauth && oauth !== 'google' ? 'a ' + oauth + ' sign-in' : 'a mobile-number sign-in') + ' is not accepted. Sign in with Google and try again.',
+          + how + ' is not accepted. Sign in with Google and try again.',
       };
     }
     return { ok: true, token, user_id: user.id, email: String(user.email || '').toLowerCase(), mode: 'supabase' };

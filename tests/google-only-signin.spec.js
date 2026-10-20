@@ -174,13 +174,16 @@ test('a PIN-shaped token is refused exactly like no token: a live Neon session, 
   expect(calls).toEqual([]);
 });
 
-test('a Google account is a principal; a Supabase phone account, another provider and a forged JWT are not', async () => {
+test('a Google account is a principal; a Supabase phone account, an email-and-password account, another provider and a forged JWT are not', async () => {
   process.env.SUPABASE_URL = 'https://proj.supabase.co';
   process.env.SUPABASE_ANON_KEY = 'anon';
   const USERS = {
     [jwt('google-1')]: { id: 'google-1', email: 'Person@Example.com', app_metadata: { provider: 'google', providers: ['google'] }, identities: [{ provider: 'google' }] },
     [jwt('phone-1')]: { id: 'phone-1', email: '', phone: '919876543210', app_metadata: { provider: 'phone', lifecycle_account: 'mobile-pin', phone_e164: '+919876543210' }, user_metadata: { name: 'Asha' } },
     [jwt('github-1')]: { id: 'github-1', email: 'gh@example.com', app_metadata: { provider: 'github' }, identities: [{ provider: 'github' }] },
+    // The project's Email provider is on server-side and sign-ups are open, so
+    // anyone with the public anon key can make one of these (2026-10-20).
+    [jwt('email-1')]: { id: 'email-1', email: 'someone@example.com', app_metadata: { provider: 'email', providers: ['email'] }, identities: [{ provider: 'email' }] },
   };
   guard([[(u) => u === 'https://proj.supabase.co/auth/v1/user', (_u, init) => {
     const t = String((init.headers || {}).authorization || '').replace(/^Bearer /, '');
@@ -195,6 +198,17 @@ test('a Google account is a principal; a Supabase phone account, another provide
   expect(phone, 'a Supabase phone account was admitted').toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
   const gh = await ask(jwt('github-1'));
   expect(gh).toMatchObject({ ok: false, status: 401, error: 'sign_in_required' });
+  const mail = await ask(jwt('email-1'));
+  expect(mail, 'an email-and-password account was admitted').toMatchObject({ ok: false, status: 401, error: 'sign_in_required', provider_refused: 'email' });
+  expect(mail.message).toMatch(/email and password sign-in is not accepted/);
+  // The analytics operator gate holds the same rule.
+  const DA = require.resolve('../api/_shared/data-analysis-core.js');
+  delete require.cache[DA];
+  const da = require(DA);
+  const v = await da.authorize({ headers: Object.assign({ authorization: 'Bearer ' + jwt('email-1') }, ORIGIN_HEADERS) });
+  expect(v, JSON.stringify(v)).toMatchObject({ ok: false, error: 'invalid_operator_session' });
+  const g = await da.authorize({ headers: Object.assign({ authorization: 'Bearer ' + jwt('google-1') }, ORIGIN_HEADERS) });
+  expect(g.ok, 'a Google operator is still admitted: ' + JSON.stringify(g)).toBe(true);
   const forged = await ask(jwt('attacker'));
   expect(forged.ok).toBe(false);
   expect(forged.status).toBe(401);

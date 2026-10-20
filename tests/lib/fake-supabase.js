@@ -285,7 +285,9 @@ class FakeSupabase {
 
   /* ── world building ─────────────────────────────────────────────────────── */
 
-  addUser(token, id, email) { this.users[token] = { id, email }; return this; }
+  // A user the app admits signed in with Google, the only sign-in (2026-10-20):
+  // GoTrue's record carries the provider. Pass `provider` to model another kind.
+  addUser(token, id, email, provider = 'google') { this.users[token] = { id, email, app_metadata: { provider, providers: [provider] }, identities: [{ provider }] }; return this; }
   addWorkspace(id, ownerId, extra) {
     this.workspaces[id] = Object.assign({ id, slug: id, name: id, owner_id: ownerId, status: 'active' }, extra || {});
     return this;
