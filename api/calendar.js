@@ -182,6 +182,40 @@ async function smartBrain(req, res, smartAction) {
       });
     }
     const hadAuth = tokenOn;
+    // Re-derived from the VERIFIED user (resolve() read the JWT's unverified sub).
+    if (verified && verified.ok && verified.user_id) {
+      try { wsId = await wsScope.forVerifiedUser(scopeEnv, verified.user_id, hadExplicit ? (q0.workspace_id || b0.workspace_id) : ''); } catch (_) { /* keep */ }
+    }
+    // NOBODY READS A WORKSPACE THEY CANNOT PROVE IS THEIRS (2026-10-20, found
+    // on production). A request with no session and no Origin was given the
+    // DEFAULT workspace ("userless = the scheduler"), and any caller could
+    // name a workspace_id: `curl /api/calendar?action=smart-brain-plan` read
+    // the live brand's whole 843-slot plan, approvers included. The scheduler
+    // and the prebuild self-chain both send CRON_SECRET, so they are the only
+    // userless callers; anyone else gets a workspace only as a verified OWNER
+    // or MEMBER of it (workspace-scope.resolve). cron and prebuild answer their
+    // own secret check (401) below.
+    if (!scheduler && smartAction !== 'cron' && smartAction !== 'prebuild') {
+      // A token the backend refused was answered (401) above; a backend that
+      // did not answer leaves a session with no workspace, which reads nothing.
+      // preview/approve keep their own 401 (they build with a model) below.
+      if (!tokenOn && !((smartAction === 'preview' || smartAction === 'approve') && req.method === 'POST')) {
+        return res.status(200).json({
+          ok: true, mode: 'unscoped', stored: false, entries: [], plan: [],
+          changes: [], insights: [],
+          error: 'workspace_unresolved',
+          note: 'This request is not signed in, so no workspace data is returned. Sign in with Google to see your brand\'s plan.',
+        });
+      }
+      // workspace-scope.resolve() honours a named workspace only for its owner
+      // or a member; a name that resolved to nothing is someone else's.
+      if (hadExplicit && !wsId) {
+        return res.status(403).json({
+          ok: false, error: 'not_a_member',
+          message: 'This account is not a member of that brand workspace, so nothing was read or changed.',
+        });
+      }
+    }
     personWithoutWorkspace = !!(verified && verified.ok && !wsId);
     body.config = Object.assign({}, body.config, { workspace_id: wsId || null });
     const fromBrowser = !!(req.headers && (req.headers.origin || req.headers.referer));

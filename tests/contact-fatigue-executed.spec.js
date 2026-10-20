@@ -787,13 +787,24 @@ test('the calendar router reads a workspace\'s contact ledger only for a verifie
   };
   // An anonymous BROWSER request naming ws-b, and a signed-in member of ws-a
   // naming ws-b: plan (GET) and the daily sync (POST, nothing persisted).
-  for (const who of [{ token: null, reason: 'unverified' }, { token: 'tok-a', reason: 'not_member' }]) {
+  // Since 2026-10-20 (found on production) neither reaches the plan at all:
+  // the anonymous request gets the unscoped envelope and the other brand's
+  // member a 403, so there is no plan for a ledger number to leak into.
+  void unchecked;
+  const raw = async (action, { token = null, method = 'GET', body = null, query = {} } = {}) => {
+    const req = makeReq({ token, method, body: body || {}, query: Object.assign({ action }, query), headers: { origin: 'https://app.example.test' } });
+    const res = makeRes();
+    await calendar(req, res);
+    return res;
+  };
+  for (const who of [{ token: null, status: 200 }, { token: 'tok-a', status: 403 }]) {
     db.clearCalls();
-    const p = await call('smart-brain-plan', { token: who.token, query: { workspace_id: 'ws-b' } });
-    unchecked(p);
-    expect(p.entries[0].reach.eligibility.reason).toBe(who.reason);
-    const s = await call('smart-brain-sync-daily', { token: who.token, method: 'POST', body: { workspace_id: 'ws-b', persist: false, prebuild: false, days: 3 } });
-    unchecked({ entries: s.plan || s.entries || [] });
-    expect(db.calls.filter(LEDGER_FOR_B), `${who.reason}: no ledger or rules query for ws-b`).toEqual([]);
+    const p = await raw('smart-brain-plan', { token: who.token, query: { workspace_id: 'ws-b' } });
+    expect(p.code).toBe(who.status);
+    expect((p.payload.entries || []).length).toBe(0);
+    const s = await raw('smart-brain-sync-daily', { token: who.token, method: 'POST', body: { workspace_id: 'ws-b', persist: false, prebuild: false, days: 3 } });
+    expect(s.code).toBe(who.status);
+    expect((s.payload.plan || s.payload.entries || []).length).toBe(0);
+    expect(db.calls.filter(LEDGER_FOR_B), `${who.token || 'anonymous'}: no ledger or rules query for ws-b`).toEqual([]);
   }
 });

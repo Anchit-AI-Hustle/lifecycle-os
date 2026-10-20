@@ -255,6 +255,8 @@ function project(row, select) {
 // a column mismatch is found; never invent a column.
 const LIVE_COLUMNS = {
   smart_products: ['id', 'sku', 'title', 'handle', 'category', 'market', 'price', 'tags', 'metadata', 'updated_at', 'workspace_id'],
+  // 20260609000001 + the workspace column (2026-10-20: started_at was ordered on and never existed).
+  smart_campaigns: ['id', 'name', 'channel', 'market', 'campaign_type', 'subject', 'headline', 'hook', 'sent_at', 'cohort_key', 'hero_sku', 'metadata', 'updated_at', 'workspace_id'],
 };
 
 class FakeSupabase {

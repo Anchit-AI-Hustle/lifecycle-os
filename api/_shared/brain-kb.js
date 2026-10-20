@@ -34,7 +34,10 @@ async function snapshot() {
   const [products, assets, campaigns, creatives, metrics] = await Promise.all([
     d.select('smart_products', { limit: 2000 }),
     d.select('smart_assets', { limit: 200 }),
-    d.select('smart_campaigns', { limit: 5000, order: 'started_at.desc' }),
+    // smart_campaigns has sent_at, never started_at (20260609000001): ordering
+    // on a column the table does not have answered 400 42703, and /api/brain's
+    // library and kb answered 500 on production (2026-10-20).
+    d.select('smart_campaigns', { limit: 5000, order: 'sent_at.desc.nullslast' }),
     d.select('smart_campaign_assets', { limit: 20000 }),
     d.select('smart_campaign_metrics', { limit: 50000 }),
   ]);
@@ -60,7 +63,7 @@ async function libraryIndex() {
   const snap = await snapshot();
   return snap.campaigns.map((c) => ({
     id: c.id, name: c.name, channel: c.channel, market: c.market,
-    campaign_type: c.campaign_type, started_at: c.started_at,
+    campaign_type: c.campaign_type, started_at: c.sent_at || null,
     theme: c.theme, hook: c.hook, angle: c.angle, format: c.format,
     archetype: c.archetype, festival: c.festival, audience: c.audience,
     kpis: c.kpis,

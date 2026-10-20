@@ -355,7 +355,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { document.dispatchEvent(new CustomEvent('agent:current', { detail: current })); } catch (_) {}
   }
   window.__agentCurrent = function(){ return current; };
-  function greet(){ if(current && current.greeting){ el('agent', current.greeting); maybeSpeak(current.greeting); } }
+  // The greeting is shown, not spoken: speaking it on load sent a paid voice
+  // request before anyone pressed anything (2026-10-20, seen on production).
+  // Replies to what the person types are still spoken in Narration mode.
+  function greet(){ if(current && current.greeting){ el('agent', current.greeting); } }
 
   // ── Conversation history (saved locally; new / switch / continue) ──────────
   function buildConvoBar(){

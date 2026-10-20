@@ -223,12 +223,12 @@ test('agentic-run: refused for an unattributed browser, and for a mobile-number 
 });
 
 test('a store that does not answer is a 503 naming the host, with a sentence, not a 500 carrying a PostgREST error', async () => {
-  // The workspace database goes down for the smart_* tables; a userless
-  // server-to-server read (which resolves the default workspace and reads
-  // through brain-core's LinkedDb) meets it.
+  // The workspace database goes down for the smart_* tables; the scheduler's
+  // read (the only userless caller since 2026-10-20: it resolves the default
+  // workspace and reads through brain-core's LinkedDb) meets it.
   w.db.failures.smart_agents = 503;
   try {
-    const r = await call('agents', { method: 'GET', state: 'server' });
+    const r = await call('agents', { method: 'GET', state: 'server', headers: { authorization: 'Bearer ' + H.CRON } });
     expect(r.status).toBe(503);
     expect(r.out).toMatchObject({ ok: false, action: 'agents', error: 'backend_unreachable', backend_unreachable: true });
     expectSentence(r, 'agents with the store down');
