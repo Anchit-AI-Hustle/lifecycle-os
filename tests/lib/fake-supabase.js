@@ -125,6 +125,7 @@ const WORKSPACE_SCOPED = new Set([
   'workspace_connections', 'workspace_ai_routing', 'domain_health_profiles', 'channel_mappings',
   'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
+  'paid_launches', 'paid_account_syncs',
   'brand_catalog_products', 'brand_catalog_import_queue',
   // is_brand_member policies (20260813120000 / 20260810120000)
   'brand_competitors', 'kb_knowledge',

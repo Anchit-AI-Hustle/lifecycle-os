@@ -49,6 +49,7 @@ const GRAPH = `https://graph.facebook.com/${VER}`;
 
 const IG_DOCS = 'https://developers.facebook.com/documentation/instagram-platform';
 const GRAPH_DOCS = 'https://developers.facebook.com/docs/graph-api/reference';
+const MKT_DOCS = 'https://developers.facebook.com/docs/marketing-api';
 
 /**
  * The gateway's Meta calls. `verified: true` means the method, path and the
@@ -115,6 +116,48 @@ const ENDPOINTS = {
   ad_activate: {
     method: 'POST', url: `${GRAPH}/{ad_id}`, verified: true,
     doc: `${GRAPH_DOCS}/adgroup (status enum ACTIVE, PAUSED, DELETED, ARCHIVED; "Other statuses can be used for update")`,
+    scopes: ['ads_management'],
+  },
+  // The paid launch pipeline (2026-10-20, paid-launch-core.js). Each read on
+  // developers.facebook.com on that date, the page named per entry.
+  account_campaigns_list: {
+    method: 'GET', url: `${GRAPH}/{act_id}/campaigns`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-account/campaigns (GET: "A list of Campaign nodes"; fields per ${MKT_DOCS}/reference/ad-campaign-group Reading: status, effective_status, objective, daily_budget, lifetime_budget)`,
+    scopes: ['ads_read'],
+  },
+  account_adsets_list: {
+    method: 'GET', url: `${GRAPH}/{act_id}/adsets`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-campaign (the ad set node: daily_budget, lifetime_budget, status, effective_status, campaign_id)`,
+    scopes: ['ads_read'],
+  },
+  campaign_create: {
+    method: 'POST', url: `${GRAPH}/{act_id}/campaigns`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-account/campaigns (POST: special_ad_categories [required]; "Only ACTIVE and PAUSED are valid during creation"; budget "at the campaign level or at the adset level, not both"; example sends is_adset_budget_sharing_enabled=0)`,
+    scopes: ['ads_management'],
+  },
+  adset_create: {
+    method: 'POST', url: `${GRAPH}/{act_id}/adsets`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-campaign (create: name, campaign_id, daily_budget "defined in your account currency", billing_event, optimization_goal, targeting, status; EU targeting needs dsa_payor and dsa_beneficiary) and ${MKT_DOCS}/bidding/overview/budgets ("at ad account currencies minimum denomination level, such as cents for USD")`,
+    scopes: ['ads_management'],
+  },
+  adcreative_create: {
+    method: 'POST', url: `${GRAPH}/{act_id}/adcreatives`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-account/adcreatives (POST) with ${MKT_DOCS}/reference/ad-creative-object-story-spec (page_id: "An unpublished page post will be created on this page") and ${MKT_DOCS}/reference/ad-creative-link-data (message, link, name, description, picture)`,
+    scopes: ['ads_management'],
+  },
+  ad_create: {
+    method: 'POST', url: `${GRAPH}/{act_id}/ads`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-account/ads (POST: name [required], adset_id "required on creation", creative {creative_id}; "Only ACTIVE and PAUSED are valid during creation")`,
+    scopes: ['ads_management'],
+  },
+  campaign_update: {
+    method: 'POST', url: `${GRAPH}/{campaign_id}`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-campaign-group ("You can update a Campaign by making a POST request to /{campaign_id}"; status ACTIVE, PAUSED, DELETED, ARCHIVED)`,
+    scopes: ['ads_management'],
+  },
+  adset_update: {
+    method: 'POST', url: `${GRAPH}/{adset_id}`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-campaign (Updating: POST /<AD_SET_ID>; "The other statuses can be used for update"; a lower budget "must be at least 10% greater than the amount already spent")`,
     scopes: ['ads_management'],
   },
 };
@@ -638,6 +681,108 @@ class MetaAdapter extends AdPlatformAdapter {
         };
       }),
     };
+  }
+
+  /* ── the paid launch pipeline (paid-launch-core.js) ─────────────────────── */
+
+  /**
+   * One account's live structure: every campaign and ad set with its status
+   * and budget, and the last 7 days of spend per ad set. Paged with Meta's own
+   * `after` cursor up to `maxPages`; a structure that did not fit says so.
+   * A budget Meta did not return is ABSENT (null), never zero.
+   */
+  async readPaidStructure(actId, { maxPages = 10 } = {}) {
+    const act = this.actPath(actId);
+    if (act === 'act_') return { ok: false, note: this.gap('ad account id', 'Meta account sync') };
+    const all = async (op, fields) => {
+      const rows = [];
+      let after = '';
+      for (let page = 0; page < maxPages; page += 1) {
+        const q = Object.assign({ fields, limit: '100' }, this.authParams());
+        if (after) q.after = after;
+        const r = await this.callEndpoint(op, { params: { act_id: act }, query: q });
+        if (!r.ok) return Object.assign({ ok: false }, r);
+        rows.push(...((r.data && r.data.data) || []));
+        after = r.data && r.data.paging && r.data.paging.cursors && r.data.paging.next ? r.data.paging.cursors.after : '';
+        if (!after) return { ok: true, rows, complete: true };
+      }
+      return { ok: true, rows, complete: false };
+    };
+    const camps = await all('account_campaigns_list', 'id,name,objective,status,effective_status,daily_budget,lifetime_budget');
+    if (!camps.ok) return camps;
+    const sets = await all('account_adsets_list', 'id,name,campaign_id,status,effective_status,daily_budget,lifetime_budget');
+    if (!sets.ok) return sets;
+    const spend = await this.callEndpoint('ad_insights', {
+      params: { act_id: act },
+      query: Object.assign({ level: 'adset', fields: 'adset_id,spend,impressions,clicks,date_start,date_stop', date_preset: 'last_7d' }, this.authParams()),
+    });
+    const minor = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+    const bySet = {};
+    for (const x of (spend.ok && spend.data && spend.data.data) || []) bySet[String(x.adset_id)] = { spend: num(x.spend), impressions: num(x.impressions), clicks: num(x.clicks), start: x.date_start || null, stop: x.date_stop || null };
+    return {
+      ok: true,
+      complete: camps.complete && sets.complete,
+      campaigns: camps.rows.map((c) => ({ id: String(c.id), name: c.name || '', objective: c.objective || null, status: c.status || null, effective_status: c.effective_status || null, daily_budget_minor: minor(c.daily_budget), lifetime_budget_minor: minor(c.lifetime_budget) })),
+      ad_sets: sets.rows.map((s) => ({ id: String(s.id), name: s.name || '', campaign_id: String(s.campaign_id || ''), status: s.status || null, effective_status: s.effective_status || null, daily_budget_minor: minor(s.daily_budget), lifetime_budget_minor: minor(s.lifetime_budget), last_7d: bySet[String(s.id)] || null })),
+      spend_read: spend.ok ? true : (spend.error || spend.note || 'not read'),
+    };
+  }
+
+  /**
+   * One step of a launch. Every object is created PAUSED: the pipeline builds
+   * the structure and a person turns on the spend (approveLive). `spec` is the
+   * plan's own row; nothing here invents a field the plan did not state.
+   */
+  async createPaidObject(kind, spec) {
+    const s = spec || {};
+    const act = this.actPath(s.ad_account_id);
+    const q = this.authParams();
+    let r;
+    if (kind === 'campaign') {
+      r = await this.callEndpoint('campaign_create', { params: { act_id: act }, query: q, body: {
+        name: s.name, objective: s.objective, status: 'PAUSED',
+        special_ad_categories: Array.isArray(s.special_ad_categories) ? s.special_ad_categories : [],
+        // Budgets live on the ad sets, so each keeps the share it was given.
+        is_adset_budget_sharing_enabled: false,
+      } });
+    } else if (kind === 'adset') {
+      const body = {
+        name: s.name, campaign_id: s.campaign_id, daily_budget: s.daily_budget_minor,
+        billing_event: s.billing_event, optimization_goal: s.optimization_goal,
+        targeting: s.targeting, status: 'PAUSED',
+      };
+      if (s.start_time) body.start_time = s.start_time;
+      if (s.end_time) body.end_time = s.end_time;
+      if (s.dsa_payor) body.dsa_payor = s.dsa_payor;
+      if (s.dsa_beneficiary) body.dsa_beneficiary = s.dsa_beneficiary;
+      r = await this.callEndpoint('adset_create', { params: { act_id: act }, query: q, body });
+    } else if (kind === 'creative') {
+      const link = { message: s.primary_text, link: s.link, name: s.headline || undefined, description: s.description || undefined, picture: s.image_url };
+      if (s.cta_type) link.call_to_action = { type: s.cta_type, value: { link: s.link } };
+      r = await this.callEndpoint('adcreative_create', { params: { act_id: act }, query: q, body: { name: s.name, object_story_spec: { page_id: s.page_id, link_data: link } } });
+    } else if (kind === 'ad') {
+      r = await this.callEndpoint('ad_create', { params: { act_id: act }, query: q, body: { name: s.name, adset_id: s.adset_id, creative: { creative_id: s.creative_id }, status: 'PAUSED' } });
+    } else {
+      return { ok: false, sent: false, error_class: 'validation', error: `Unknown launch step "${kind}".` };
+    }
+    if (!r.ok) return r;
+    const id = r.raw && r.raw.id;
+    if (!id) return { ok: false, sent: true, error_class: 'transient', error: `Meta accepted the ${kind} call but returned no id.` };
+    return { ok: true, sent: true, external_id: String(id), status: 'paused', op: r.op, doc: r.doc };
+  }
+
+  /** Change an existing object: status (ACTIVE / PAUSED) or an ad set's daily budget. */
+  async updatePaidObject(kind, id, fields) {
+    const f = fields || {};
+    const body = {};
+    if (f.status) body.status = f.status;
+    if (f.daily_budget_minor != null) body.daily_budget = f.daily_budget_minor;
+    const q = this.authParams();
+    const r = kind === 'campaign' ? await this.callEndpoint('campaign_update', { params: { campaign_id: id }, query: q, body })
+      : kind === 'adset' ? await this.callEndpoint('adset_update', { params: { adset_id: id }, query: q, body })
+      : kind === 'ad' ? await this.callEndpoint('ad_activate', { params: { ad_id: id }, query: q, body })
+      : { ok: false, sent: false, error_class: 'validation', error: `Unknown object "${kind}".` };
+    return r.ok ? { ok: true, sent: true, external_id: String(id), status: body.status ? body.status.toLowerCase() : 'updated', op: r.op } : r;
   }
 
   /** access_token (+ appsecret_proof) as a plain object for callEndpoint's query. */

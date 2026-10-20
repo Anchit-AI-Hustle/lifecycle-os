@@ -80,6 +80,7 @@ const M = {
   shopify: 'api/_shared/shopify-core.js', connections: 'api/_shared/workspace-connections-core.js', webhooks: 'api/_shared/platform-webhooks.js',
   ledger: 'api/_shared/contact-ledger.js',
   gateway: 'api/_shared/social-gateway-core.js',
+  launch: 'api/_shared/paid-launch-core.js',
   angleLab: 'api/_shared/ad-angle-lab.js',
 };
 
@@ -1003,6 +1004,18 @@ add('os-run-daily-job', { gate: 'cron-flag', browser: 'refuse', run: { method: '
 add('os-dashboard', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   stubs: () => S.on(M.osb, 'dashboard', async () => ({ kpis: {} })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, kpis: {} }); },
+});
+add('paid-launch', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
+  stubs: () => S.on(M.launch, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
+  expect: (r) => {
+    // The verified caller and the workspace SCOPING resolved are handed over;
+    // the pipeline never reads a workspace from the request.
+    expect(r.out).toEqual({ ok: true, op: 'status', ws: H.WS, user: H.USER_ID });
+    const a = last(M.launch, 'handle');
+    expect(a[2].auth).toMatchObject({ ok: true, user_id: H.USER_ID });
+  },
+  cases: [{ name: 'a POST hands the parsed body through for a build step', run: { json: { launch_id: 'l9' }, query: { op: 'run' } },
+    expect: (r) => { expect(r.out.op).toBe('run'); const a = last(M.launch, 'handle'); expect(a[2].body).toMatchObject({ launch_id: 'l9' }); } }],
 });
 add('social-gateway', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
   stubs: () => S.on(M.gateway, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),

@@ -72,6 +72,70 @@ function installPlatforms(db, opts) {
       return { access_token: 'meta-extended-2', expires_in: 5184000 };
     }
     if (!token) return refuse(400, { error: { message: 'An access token is required', code: 190 } });
+    // A stateful ad account for the paid launch pipeline (opts.metaAccount).
+    // It answers the documented shapes and enforces what the Marketing API
+    // documentation states: special_ad_categories on a campaign, ACTIVE or
+    // PAUSED at creation, an ad set's budget as a whole number of the smallest
+    // unit, the DSA fields for EU targeting, the ad set and creative an ad
+    // names must exist, and a lower budget at least 10% above what was spent.
+    if (o.metaAccount) {
+      const A = o.metaAccount;
+      A.objects = A.objects || {};
+      A.seq = A.seq || 0;
+      const id = (pre) => `${pre}-${++A.seq}`;
+      const b = call.body || {};
+      if (o.metaFail && o.metaFail.path === p[1] && call.method === 'POST' && o.metaFail.times > 0) {
+        o.metaFail.times -= 1;
+        return refuse(400, { error: { message: o.metaFail.message || 'Invalid parameter', code: 100 } });
+      }
+      if (call.method === 'GET' && p[0] === 'me' && p[1] === 'adaccounts') return { data: [{ id: A.id, name: 'Brand account', account_status: 1, currency: A.currency }] };
+      if (p[0] === A.id && (p[1] === 'campaigns' || p[1] === 'adsets') && call.method === 'GET') {
+        const kind = p[1] === 'campaigns' ? 'campaign' : 'adset';
+        return { data: Object.values(A.objects).filter((x) => x.kind === kind).map((x) => Object.assign({}, x.fields, { id: x.id })) };
+      }
+      if (p[0] === A.id && p[1] === 'insights' && u.searchParams.get('level') === 'adset') {
+        return { data: Object.entries(A.spend || {}).map(([k, v]) => ({ adset_id: k, spend: String(v), impressions: '1000', clicks: '20', date_start: '2026-10-13', date_stop: '2026-10-19' })) };
+      }
+      if (p[0] === A.id && call.method === 'POST') {
+        const status = b.status;
+        if (status && status !== 'ACTIVE' && status !== 'PAUSED') return refuse(400, { error: { message: 'Only ACTIVE and PAUSED are valid during creation' } });
+        if (p[1] === 'campaigns') {
+          if (!Array.isArray(b.special_ad_categories)) return refuse(400, { error: { message: 'special_ad_categories is required' } });
+          const o2 = { id: id('cmp'), kind: 'campaign', fields: { name: b.name, objective: b.objective, status, effective_status: status } };
+          A.objects[o2.id] = o2; return { id: o2.id };
+        }
+        if (p[1] === 'adsets') {
+          if (!A.objects[b.campaign_id]) return refuse(400, { error: { message: 'campaign_id does not exist' } });
+          if (!Number.isInteger(b.daily_budget) || b.daily_budget <= 0) return refuse(400, { error: { message: 'daily_budget must be a positive whole number of the smallest unit' } });
+          const countries = (b.targeting && b.targeting.geo_locations && b.targeting.geo_locations.countries) || [];
+          if (!countries.length) return refuse(400, { error: { message: 'targeting is required' } });
+          if (countries.some((c) => ['DE', 'FR', 'NL', 'IE', 'ES', 'IT'].includes(c)) && (!b.dsa_payor || !b.dsa_beneficiary)) return refuse(400, { error: { message: 'dsa_payor and dsa_beneficiary are required' } });
+          const o2 = { id: id('as'), kind: 'adset', fields: { name: b.name, campaign_id: b.campaign_id, status, effective_status: status, daily_budget: String(b.daily_budget) } };
+          A.objects[o2.id] = o2; return { id: o2.id };
+        }
+        if (p[1] === 'adcreatives') {
+          const s = b.object_story_spec || {};
+          if (!s.page_id || !s.link_data || !s.link_data.picture || !s.link_data.link) return refuse(400, { error: { message: 'object_story_spec needs page_id and link_data' } });
+          const o2 = { id: id('cr'), kind: 'creative', fields: { name: b.name } };
+          A.objects[o2.id] = o2; return { id: o2.id };
+        }
+        if (p[1] === 'ads') {
+          if (!A.objects[b.adset_id] || !b.creative || !A.objects[b.creative.creative_id]) return refuse(400, { error: { message: 'adset_id and creative must exist' } });
+          const o2 = { id: id('ad'), kind: 'ad', fields: { name: b.name, adset_id: b.adset_id, status, effective_status: status } };
+          A.objects[o2.id] = o2; return { id: o2.id };
+        }
+      }
+      if (call.method === 'POST' && p.length === 1 && A.objects[p[0]]) {
+        const x = A.objects[p[0]];
+        if (b.status) { x.fields.status = b.status; x.fields.effective_status = b.status; }
+        if (b.daily_budget != null) {
+          const spent = Number((A.spend || {})[x.id] || 0) * 100;
+          if (b.daily_budget < Number(x.fields.daily_budget) && b.daily_budget < spent * 1.1) return refuse(400, { error: { message: 'The new budget must be at least 10% greater than the amount already spent' } });
+          x.fields.daily_budget = String(b.daily_budget);
+        }
+        return { success: true };
+      }
+    }
     if (call.method === 'GET' && p[1] === 'insights' && /^act_/.test(p[0])) {
       return { data: [
         { ad_id: 'ad-1', ad_name: 'Grail drop A', spend: '120.50', impressions: '10000', clicks: '150', ctr: '1.5', purchase_roas: [{ action_type: 'omni_purchase', value: '2.4' }] },
