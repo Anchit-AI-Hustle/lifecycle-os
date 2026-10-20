@@ -179,8 +179,8 @@ function fixtureSite() {
   const site = {
     'https://shop.example/robots.txt': { ct: 'text/plain', body: 'User-agent: *\nDisallow: /private\nSitemap: https://shop.example/sitemap.xml\n' },
     'https://shop.example/sitemap.xml': { ct: 'application/xml', body: '<?xml version="1.0"?><urlset><url><loc>https://shop.example/</loc></url><url><loc>https://shop.example/teas</loc></url><url><loc>https://shop.example/about</loc></url></urlset>' },
-    'https://shop.example/': { ct: 'text/html', body: page('Smoked tea from Darjeeling | Shop', 'Smoked and black teas from one Darjeeling garden, packed the week they are picked.', '<h1>Smoked tea</h1><img src="/a.jpg" alt="Tea"><a href="/teas">Teas</a><a href="/about">About</a>', '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Shop"}</script>') },
-    'https://shop.example/teas': { ct: 'text/html', body: page('Smoked tea from Darjeeling | Shop', '', '<h1>Teas</h1><h1>More teas</h1><img src="/b.jpg">') },
+    'https://shop.example/': { ct: 'text/html', body: page('Smoked tea from Glenmarrow | Shop', 'Smoked and black teas from one Glenmarrow garden, packed the week they are picked.', '<h1>Smoked tea</h1><img src="/a.jpg" alt="Tea"><a href="/teas">Teas</a><a href="/about">About</a>', '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Shop"}</script>') },
+    'https://shop.example/teas': { ct: 'text/html', body: page('Smoked tea from Glenmarrow | Shop', '', '<h1>Teas</h1><h1>More teas</h1><img src="/b.jpg">') },
     'https://shop.example/about': { ct: 'text/html', body: page('About', 'Short.', '<p>No heading here.</p>') },
   };
   return async (u) => {
@@ -201,7 +201,7 @@ test('the site audit reads the brand\'s own site and reports each issue with how
   expect(iss['h1:improve']).toBe(1);               // /teas (two)
   expect(iss['alt:fix']).toBe(1);                  // /teas image
   expect(iss['canonical:improve']).toBe(3);
-  expect(out.duplicate_titles).toEqual([{ title: 'Smoked tea from Darjeeling | Shop', pages: 2 }]);
+  expect(out.duplicate_titles).toEqual([{ title: 'Smoked tea from Glenmarrow | Shop', pages: 2 }]);
   expect(out.schema_types).toEqual(['Organization']);
   expect(out.answer_engines).toEqual({ organization: true, faq: false, product: false, article: false });
   expect(out.top_terms[0]).toEqual({ term: 'smoked', pages: 3 });
