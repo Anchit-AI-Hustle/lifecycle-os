@@ -211,7 +211,7 @@ function fakeSupabase(g, o) {
   const base = SUPABASE_URL;
   g.route((u) => u.startsWith(base + '/auth/v1/user'), (u, init) => {
     const t = bearerOf(lowerKeys(init.headers));
-    if (t === SESSION) return reply(200, { id: USER_ID, email: 'operator@harness.test', aud: 'authenticated' });
+    if (t === SESSION) return reply(200, { id: USER_ID, email: 'operator@harness.test', aud: 'authenticated', app_metadata: { provider: 'google', providers: ['google'] }, identities: [{ provider: 'google' }] });
     return reply(401, { msg: 'invalid token', code: 401 });
   });
   g.route((u) => u.startsWith(base + '/rest/v1/brand_user_prefs'), (u) => {

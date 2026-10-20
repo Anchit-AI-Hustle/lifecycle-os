@@ -14,6 +14,11 @@ browser, client `608774819914-…apps.googleusercontent.com`, callback `https://
 checked live (the button lands on Google's sign-in page with that client and callback). Still the operator's to do
 in the dashboards (no connector reaches them): the Supabase project's Email provider is ON server-side (turn it off
 so only Google can create an account), and the Google client secret can only be proven by a real sign-in.
+Because that provider is on and sign-ups are open, anyone with the public anon key could create an email-and-password
+account, and `verifyCaller()` / `data-analysis-core.authorize()` admitted it (they refused only phone and non-Google
+OAuth accounts). Both now admit ONLY `oauthProvider(user) === 'google'` (`provider_refused: 'email'`, its own sentence).
+`tests/lib/fake-supabase.js addUser()` and `router-harness`'s session user carry `app_metadata.provider: 'google'`,
+as every real admitted user does. Gated in `google-only-signin` ("is a principal"; both gates mutation-checked).
 `self-url.js`'s bypass header stays harmless with protection off.
 
 ## ⭐ A mail about one product, as a person reads it (2026-10-18)

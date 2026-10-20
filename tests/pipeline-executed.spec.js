@@ -101,7 +101,8 @@ function fakeNetwork(fx) {
     try { parsed = init.body ? JSON.parse(init.body) : null; } catch (_) { parsed = null; }
     log.push({ url: u, method, body: parsed });
 
-    if (/\/auth\/v1\/user/.test(u)) return f.user ? json(f.user) : json({ msg: 'invalid token' }, 401);
+    // Every account the app admits signed in with Google (2026-10-20).
+    if (/\/auth\/v1\/user/.test(u)) return f.user ? json(Object.assign({ app_metadata: { provider: 'google', providers: ['google'] } }, f.user)) : json({ msg: 'invalid token' }, 401);
     if (/\/rest\/v1\/brand_user_prefs/.test(u)) return json(f.activeWorkspace ? [{ active_workspace_id: f.activeWorkspace }] : []);
     if (/\/rest\/v1\/brand_workspaces/.test(u)) return json(f.workspace ? [f.workspace] : []);
     if (/\/rest\/v1\/credit_prices/.test(u) || /\/rest\/v1\/credit_pack_prices/.test(u) || /\/rest\/v1\/credit_ledger/.test(u)) return json([]);
