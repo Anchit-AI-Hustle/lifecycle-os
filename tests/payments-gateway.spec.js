@@ -120,7 +120,7 @@ function startSupabase() {
 
       if (url === '/auth/v1/user') {
         if (!who || who.service) return send(401, { message: 'invalid' });
-        return send(200, { id: who.user.id, email: who.user.email });
+        return send(200, { id: who.user.id, email: who.user.email, app_metadata: { provider: 'google', providers: ['google'] } });
       }
 
       if (!who) return send(401, { message: 'no token' });
