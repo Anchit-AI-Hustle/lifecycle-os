@@ -298,7 +298,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|ad-angle-lab|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|ad-angle-lab|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -989,6 +989,16 @@ module.exports = async function handler(req, res) {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         return await require('./_shared/social-gateway-core.js').handle(req, res, { auth, workspaceId: __wsId, body: b });
+      }
+
+      // The paid launch pipeline (2026-10-20): account sync, a plan with the
+      // budget split across ad sets, the build step by step (every object
+      // PAUSED), going live as its own approval, and budget changes. Writes
+      // are behind the three switches; a signed-in caller only.
+      case 'paid-launch': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return await require('./_shared/paid-launch-core.js').handle(req, res, { auth, workspaceId: __wsId, body: b });
       }
 
       case 'deliverability-domain': {
