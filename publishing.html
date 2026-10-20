@@ -178,6 +178,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .gw-days{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
   .gw-day{border:1px solid var(--vh-line);border-radius:9px;padding:6px 9px;font-size:12px;background:var(--vh-panel)}
   .gw-day b{display:block;font-family:var(--vh-font-mono);font-size:11px;color:var(--vh-ink-dim);font-weight:600}
+
+  /* Paid launch (2026-10-20) */
+  .pl-steps{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .pl-steps li{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--vh-line);border-radius:10px;padding:8px 11px;background:var(--vh-panel)}
+  .pl-steps li .lbl{flex:1;min-width:0;overflow-wrap:anywhere}
+  .pl-steps li .id{font-family:var(--vh-font-mono);font-size:11px;color:var(--vh-ink-dim)}
+  .pl-steps pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;margin:6px 0 0;max-height:180px;overflow:auto}
+  .pl-checks{margin:8px 0 0;padding-left:18px}
+  .pl-checks li{margin:3px 0;overflow-wrap:anywhere}
+  .pl-scroll{overflow-x:auto}
 </style>
 </head>
 <body>
@@ -196,6 +206,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button class="tab" role="tab" aria-selected="false" data-panel="domain">Domain strength</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="jobs">Dispatch log</button>
     <button class="tab" role="tab" aria-selected="false" data-panel="gateway">Social gateway</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="launch">Paid launch</button>
   </div>
 
   <div id="msg"></div>
@@ -396,6 +407,72 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div id="gw-inbox" class="muted" style="margin-top:12px"></div>
     </div>
   </section>
+
+  <!-- ─────────────── Paid launch (2026-10-20) ─────────────── -->
+  <section class="panel" id="panel-launch">
+    <p class="muted" style="margin-bottom:14px">
+      Build a paid campaign on the brand&rsquo;s own ad account, one step at a time: read the account, plan the campaign
+      from this brand&rsquo;s own ads with your daily budget split across its ad sets, then create the campaign, each ad set
+      with its budget, each creative and each ad &mdash; every one <b>paused</b>. Turning the spend on is a separate press,
+      recorded with your account. Nothing is sent until LIVE_CONNECTORS, this brand&rsquo;s live publishing and
+      META_ALLOW_WRITES are all on; with one off, each step shows the exact request it would have made.
+    </p>
+    <div id="pl-state" class="muted">Open this tab to load the launch pipeline.</div>
+    <div class="grid" id="pl-platforms"></div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>1. Account sync</h3>
+      <p class="muted">Reads every campaign and ad set on the account with its status and daily budget, and what each ad set spent in the last 7 days. A figure Meta did not return is shown as not read, never as zero.</p>
+      <div class="grid">
+        <div><label for="pl-account">Ad account</label><select id="pl-account"><option value="">The account on the Meta connection</option></select></div>
+      </div>
+      <div class="row"><button id="pl-load-accounts">List ad accounts</button><button class="primary" id="pl-sync">Sync this account</button></div>
+      <div id="pl-sync-out" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>2. Plan the launch</h3>
+      <p class="muted">Built from this brand&rsquo;s own ads: a Smart Brain campaign (one ad set per market), or the briefs you sent here from Winning angles (one ad set per brief, split by its test plan). Every ad is checked against its own copy limits and the compliance gate; a gap blocks the build and says what is missing.</p>
+      <div class="grid">
+        <div><label for="pl-source">Built from</label>
+          <select id="pl-source"><option value="campaign">A Smart Brain campaign</option><option value="briefs">Winning angles briefs</option></select></div>
+        <div><label for="pl-campaign">Smart Brain campaign id</label><input type="text" id="pl-campaign" placeholder="campaign id from /brain"></div>
+        <div><label for="pl-budget">Total daily budget (account currency)</label><input type="number" min="0" step="any" id="pl-budget" placeholder="e.g. 1500"></div>
+        <div><label for="pl-markets">Markets (country codes, comma separated)</label><input type="text" id="pl-markets" placeholder="e.g. IN"></div>
+        <div><label for="pl-objective">Objective</label><select id="pl-objective"><option value="OUTCOME_TRAFFIC">Traffic: clicks to the brand&rsquo;s page</option></select></div>
+        <div><label for="pl-link">Landing page (if the ads do not carry one)</label><input type="url" id="pl-link" placeholder="https://"></div>
+        <div><label for="pl-image">Image (if a brief has none)</label><input type="url" id="pl-image" placeholder="https:// a product photo"></div>
+        <div><label for="pl-page">Facebook Page id (if not on the connection)</label><input type="text" id="pl-page"></div>
+        <div><label for="pl-dsa-payor">EU only: who pays for the ads</label><input type="text" id="pl-dsa-payor"></div>
+        <div><label for="pl-dsa-beneficiary">EU only: who the ads are for</label><input type="text" id="pl-dsa-beneficiary"></div>
+      </div>
+      <p class="muted" id="pl-briefs-note"></p>
+      <div class="row"><button class="primary" id="pl-plan">Plan the launch</button></div>
+    </div>
+
+    <div class="card" id="pl-launch-card" style="display:none">
+      <h3 id="pl-launch-title">3. Build, step by step</h3>
+      <div id="pl-checks"></div>
+      <div class="pl-scroll" id="pl-sets"></div>
+      <ol class="pl-steps" id="pl-steps"></ol>
+      <div class="row">
+        <button class="primary" id="pl-run">Build the next steps</button>
+        <button id="pl-live">Turn the spend on</button>
+        <button id="pl-pause">Pause the campaign</button>
+      </div>
+      <div class="grid" style="margin-top:10px">
+        <div><label for="pl-new-budget">New total daily budget</label><input type="number" min="0" step="any" id="pl-new-budget"></div>
+      </div>
+      <div class="row"><button id="pl-apply-budget">Re-split and apply the budget</button></div>
+      <div id="pl-run-out" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Launches</h3>
+      <div class="row"><button id="pl-list-refresh">Refresh</button></div>
+      <div id="pl-list" class="muted" style="margin-top:10px"></div>
+    </div>
+  </section>
 </div>
 
 <!-- Preflight modal -->
@@ -473,6 +550,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
       if (t.dataset.panel === 'jobs') loadJobs();
       if (t.dataset.panel === 'gateway') loadGateway();
+      if (t.dataset.panel === 'launch') loadLaunch();
     });
   });
 
@@ -1189,13 +1267,231 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { gwFail(e); b.disabled = false; }
   });
 
+
+  /* ── paid launch (2026-10-20) ─────────────────────────────────────────
+     Account sync, a plan with the budget split across ad sets, the build
+     step by step (every object paused), going live as its own press, and
+     budget changes. Every call goes through call(); a brand kept on this
+     device has no ad account and gets the reason, not a failure. */
+  var PL = BRAIN + 'paid-launch&op=';
+  var PL_CURRENT = null;
+  var PL_DEVICE = false;
+  var PL_LIVE_ARMED = 0;
+  var PL_BUTTONS = ['pl-load-accounts', 'pl-sync', 'pl-plan', 'pl-run', 'pl-live', 'pl-pause', 'pl-apply-budget', 'pl-list-refresh'];
+  var PL_DEVICE_WHY = 'Ad accounts are connected to a brand workspace on the server. This brand is kept on this device, so there is no ad account to sync or launch on yet.';
+
+  function plMoney(v, cur) { return v == null ? 'not read' : (Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) + (cur ? ' ' + cur : '')); }
+  function plBriefs() {
+    try { var raw = window.sessionStorage.getItem('lifecycle.launch.briefs'); return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
+  }
+
+  async function loadLaunch() {
+    var state = document.getElementById('pl-state');
+    state.textContent = 'Loading the launch pipeline…';
+    var st;
+    try { st = await call(PL + 'status'); }
+    catch (e) { window.LifecycleFailure.show(state, e, { title: 'The launch pipeline could not be loaded' }); return; }
+    PL_DEVICE = st.storage === 'device';
+    PL_BUTTONS.forEach(function (id) { var b = document.getElementById(id); b.disabled = PL_DEVICE; b.title = PL_DEVICE ? PL_DEVICE_WHY : ''; });
+    if (PL_DEVICE) { gwStatusLine(state, PL_DEVICE_WHY); }
+    else state.textContent = st.rule || '';
+    if (st.objectives && st.objectives.length) {
+      document.getElementById('pl-objective').innerHTML = st.objectives.map(function (o) { return '<option value="' + esc(o.id) + '">' + esc(o.label) + '</option>'; }).join('');
+    }
+    document.getElementById('pl-platforms').innerHTML = (st.platforms || []).map(function (p) {
+      var chips = [p.built ? chip('on', 'built') : chip('off', 'not built')];
+      if (p.built) chips.push(p.connected ? chip('on', 'connected') : chip('off', 'not connected'));
+      if (p.switches) chips.push(p.switches.all_on ? chip('on', 'writes on') : chip('warn', 'writes withheld'));
+      var lines = p.built ? ((p.switches && p.switches.off) || []).concat(p.note ? [p.note] : []) : [p.reason];
+      return '<div class="conn"><div class="hd"><span class="nm">' + esc(p.label) + '</span><span>' + chips.join(' ') + '</span></div>'
+        + (lines.length ? '<ul class="checklist">' + lines.map(function (n) { return '<li><span class="dot warn"></span><span>' + esc(n) + '</span></li>'; }).join('') + '</ul>' : '')
+        + '</div>';
+    }).join('');
+    var rc = window.RegionContext;
+    var mk = document.getElementById('pl-markets');
+    if (!mk.value && rc && rc.marketsFor) { try { mk.value = (rc.marketsFor() || []).join(', '); } catch (_) {} }
+    var br = plBriefs();
+    if (br && br.briefs && br.briefs.length) {
+      document.getElementById('pl-source').value = 'briefs';
+      document.getElementById('pl-briefs-note').textContent = br.briefs.length + ' brief(s) from Winning angles are ready to plan' + (br.market ? ' (' + br.market + ')' : '') + '.';
+      if (br.budget && !document.getElementById('pl-budget').value) document.getElementById('pl-budget').value = br.budget;
+    } else {
+      document.getElementById('pl-briefs-note').textContent = 'To launch Winning angles briefs, open Ad Campaigns, Winning angles, and press "Launch on Meta, step by step".';
+    }
+    if (!PL_DEVICE) plList();
+  }
+
+  document.getElementById('pl-load-accounts').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    try {
+      var r = await call(PL + 'accounts');
+      var sel = document.getElementById('pl-account');
+      if (!r.ok) { gwStatusLine(document.getElementById('pl-sync-out'), r.note || r.error || 'The ad accounts were not read.'); }
+      else {
+        sel.innerHTML = '<option value="">The account on the Meta connection</option>' + (r.accounts || []).map(function (a) {
+          return '<option value="' + esc(a.id) + '"' + (r.configured_ad_account && (a.id === r.configured_ad_account || a.id === 'act_' + r.configured_ad_account) ? ' selected' : '') + '>' + esc(a.name + ' (' + a.id + ', ' + (a.currency || '?') + ')') + '</option>';
+        }).join('');
+      }
+    } catch (e) { gwFail(e); }
+    b.disabled = false;
+  });
+
+  document.getElementById('pl-sync').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    var out = document.getElementById('pl-sync-out');
+    out.textContent = 'Reading the account…';
+    try {
+      var r = await call(PL + 'sync', { provider: 'meta', ad_account_id: document.getElementById('pl-account').value || undefined });
+      if (!r.ok) { gwStatusLine(out, r.note || r.error || 'The account was not read.'); b.disabled = false; return; }
+      var cur = r.currency || '';
+      var sets = r.ad_sets || [];
+      out.innerHTML = '<p class="muted">' + esc((r.campaigns || []).length + ' campaign(s), ' + sets.length + ' ad set(s) on ' + r.ad_account_id + (cur ? ', in ' + cur : '') + '. ' + (r.spend_read === true ? '' : 'Spend was not read: ' + r.spend_read) + (r.note || '')) + '</p>'
+        + (sets.length ? '<div class="pl-scroll"><table><thead><tr><th>Ad set</th><th>Status</th><th>Daily budget</th><th>Spent, 7 days</th></tr></thead><tbody>'
+          + sets.map(function (s) { return '<tr><td>' + esc(s.name) + '<div class="muted">' + esc(s.id) + '</div></td><td>' + esc(s.effective_status || s.status || '') + '</td><td>' + esc(plMoney(s.daily_budget, cur)) + '</td><td>' + esc(s.last_7d ? plMoney(s.last_7d.spend, cur) : 'not read') + '</td></tr>'; }).join('')
+          + '</tbody></table></div>' : '');
+    } catch (e) { gwFail(e); out.textContent = ''; }
+    b.disabled = false;
+  });
+
+  document.getElementById('pl-plan').addEventListener('click', async function () {
+    var b = this; b.disabled = true;
+    var kind = document.getElementById('pl-source').value;
+    var val = function (id) { return document.getElementById(id).value.trim(); };
+    var body = {
+      provider: 'meta',
+      ad_account_id: val('pl-account') || undefined,
+      total_daily_budget: Number(val('pl-budget')) || null,
+      markets: val('pl-markets').split(',').map(function (x) { return x.trim(); }).filter(Boolean),
+      objective: val('pl-objective'),
+      link: val('pl-link') || undefined, image_url: val('pl-image') || undefined, page_id: val('pl-page') || undefined,
+      dsa_payor: val('pl-dsa-payor') || undefined, dsa_beneficiary: val('pl-dsa-beneficiary') || undefined,
+    };
+    if (kind === 'campaign') body.source = { kind: 'campaign', campaign_id: val('pl-campaign') };
+    else { var br = plBriefs(); body.source = { kind: 'briefs', briefs: (br && br.briefs) || [] }; }
+    try {
+      var r = await call(PL + 'plan', body);
+      plShow(r.launch);
+      plList();
+    } catch (e) { gwFail(e, 'The launch was not planned: '); }
+    b.disabled = false;
+  });
+
+  function plShow(L) {
+    PL_CURRENT = L;
+    PL_LIVE_ARMED = 0;
+    var card = document.getElementById('pl-launch-card');
+    card.style.display = L ? '' : 'none';
+    if (!L) return;
+    var P = L.plan || {};
+    var cur = P.currency || '';
+    var c = P.checks || {};
+    document.getElementById('pl-launch-title').textContent = L.name + ' (' + L.status + ', ' + L.progress.done + ' of ' + L.progress.total + ' steps built)';
+    var html = '';
+    if ((c.blocking || []).length) html += '<p><b>Fix before it can be built:</b></p><ul class="pl-checks">' + c.blocking.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+    if ((c.warnings || []).length) html += '<details><summary>' + c.warnings.length + ' warning(s)</summary><ul class="pl-checks">' + c.warnings.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>';
+    if ((c.notes || []).length) html += '<ul class="pl-checks">' + c.notes.map(function (x) { return '<li class="muted">' + esc(x) + '</li>'; }).join('') + '</ul>';
+    document.getElementById('pl-checks').innerHTML = html;
+    document.getElementById('pl-sets').innerHTML = '<p class="muted">' + esc((P.total_daily_budget != null ? 'Total ' + plMoney(P.total_daily_budget, cur) + ' a day. ' : '') + (P.split_rule || '') + (P.currency_basis ? ' Currency ' + P.currency_basis + '.' : '')) + '</p>'
+      + '<table><thead><tr><th>Ad set</th><th>Countries</th><th>Share</th><th>Daily budget</th><th>Ads</th></tr></thead><tbody>'
+      + (P.ad_sets || []).map(function (s) { return '<tr><td>' + esc(s.name) + '</td><td>' + esc((s.countries || []).join(', ')) + '</td><td>' + esc(s.share_pct + '%') + '</td><td>' + esc(plMoney(s.daily_budget, cur)) + '</td><td>' + esc((s.ads || []).map(function (a) { return a.headline || a.name; }).join(' · ')) + '</td></tr>'; }).join('')
+      + '</tbody></table>';
+    document.getElementById('pl-steps').innerHTML = (L.steps || []).map(function (s) {
+      var cls = s.status === 'done' ? 'on' : s.status === 'failed' ? 'bad' : s.status === 'withheld' ? 'warn' : 'off';
+      return '<li data-step-status="' + esc(s.status) + '">' + chip(cls, s.status) + '<div class="lbl">' + esc(s.label)
+        + (s.external_id ? '<div class="id">' + esc(s.external_id) + '</div>' : '')
+        + (s.error ? '<div class="muted">' + esc(s.error) + '</div>' : '')
+        + (s.would_request ? '<details><summary>The request it would send</summary><pre>' + esc(JSON.stringify(s.would_request, null, 2)) + '</pre></details>' : '')
+        + '</div></li>';
+    }).join('');
+    var blocked = (c.blocking || []).length > 0;
+    document.getElementById('pl-run').disabled = PL_DEVICE || blocked || L.status === 'live' || L.status === 'built';
+    document.getElementById('pl-live').disabled = PL_DEVICE || !(L.status === 'built' || L.status === 'paused');
+    document.getElementById('pl-live').textContent = 'Turn the spend on';
+    document.getElementById('pl-pause').disabled = PL_DEVICE || L.status !== 'live';
+    document.getElementById('pl-apply-budget').disabled = PL_DEVICE || !(L.status === 'built' || L.status === 'live' || L.status === 'paused');
+    document.getElementById('pl-run-out').textContent = L.last_note || '';
+  }
+
+  document.getElementById('pl-run').addEventListener('click', async function () {
+    if (!PL_CURRENT) return;
+    var b = this; b.disabled = true;
+    try {
+      // One request builds as many steps as fit; it says when there are more.
+      for (var i = 0; i < 6; i += 1) {
+        var r;
+        try { r = await call(PL + 'run', { launch_id: PL_CURRENT.id }); }
+        catch (e) { if (e.payload && e.payload.launch) { plShow(e.payload.launch); gwStatusLine(document.getElementById('pl-run-out'), e.payload.message || e.message); return; } throw e; }
+        plShow(r.launch);
+        if (!r.launch || r.launch.status !== 'building') break;
+      }
+    } catch (e) { gwFail(e); }
+    finally { if (PL_CURRENT) plShow(PL_CURRENT); }
+  });
+
+  document.getElementById('pl-live').addEventListener('click', async function () {
+    if (!PL_CURRENT) return;
+    var b = this;
+    // Two presses: spending money is never one accidental click.
+    if (Date.now() - PL_LIVE_ARMED > 6000) {
+      PL_LIVE_ARMED = Date.now();
+      b.textContent = 'Press again to start spending';
+      gwStatusLine(document.getElementById('pl-run-out'), 'Turning the spend on sets every ad, ad set and the campaign ACTIVE, and is recorded with your account. Press again within a few seconds to confirm.');
+      return;
+    }
+    PL_LIVE_ARMED = 0; b.disabled = true;
+    try { var r = await call(PL + 'go-live', { launch_id: PL_CURRENT.id }); plShow(r.launch); note('ok', 'The launch is live.'); }
+    catch (e) { if (e.payload && e.payload.launch) { plShow(e.payload.launch); gwStatusLine(document.getElementById('pl-run-out'), e.payload.message || e.message); } else gwFail(e); }
+  });
+
+  document.getElementById('pl-pause').addEventListener('click', async function () {
+    if (!PL_CURRENT) return;
+    this.disabled = true;
+    try { var r = await call(PL + 'pause', { launch_id: PL_CURRENT.id }); plShow(r.launch); }
+    catch (e) { if (e.payload && e.payload.launch) { plShow(e.payload.launch); gwStatusLine(document.getElementById('pl-run-out'), e.payload.message || e.message); } else gwFail(e); }
+  });
+
+  document.getElementById('pl-apply-budget').addEventListener('click', async function () {
+    if (!PL_CURRENT) return;
+    var v = Number(document.getElementById('pl-new-budget').value);
+    var out = document.getElementById('pl-run-out');
+    if (!(v > 0)) { gwStatusLine(out, 'Type the new total daily budget first.'); return; }
+    this.disabled = true;
+    try {
+      var r = await call(PL + 'budget', { launch_id: PL_CURRENT.id, total_daily_budget: v });
+      plShow(r.launch);
+      gwStatusLine(out, 'Updated ' + (r.updated || []).length + ' ad set budget(s). ' + (r.warnings || []).join(' '));
+    } catch (e) { if (e.payload && e.payload.launch) { plShow(e.payload.launch); gwStatusLine(out, e.payload.message || e.message); } else gwFail(e); }
+  });
+
+  async function plList() {
+    var el = document.getElementById('pl-list');
+    try {
+      var r = await call(PL + 'list');
+      var ls = r.launches || [];
+      el.innerHTML = ls.length ? '<div class="pl-scroll"><table><thead><tr><th>Launch</th><th>Status</th><th>Steps</th><th></th></tr></thead><tbody>'
+        + ls.map(function (l) { return '<tr><td>' + esc(l.name) + '</td><td>' + esc(l.status) + '</td><td>' + l.progress.done + ' / ' + l.progress.total + '</td><td><button data-pl-open="' + esc(l.id) + '">Open</button></td></tr>'; }).join('')
+        + '</tbody></table></div>' : 'No launches yet.';
+    } catch (e) { gwStatusLine(el, e.message); }
+  }
+  document.getElementById('pl-list-refresh').addEventListener('click', plList);
+  document.getElementById('pl-list').addEventListener('click', async function (ev) {
+    var b = ev.target.closest('button[data-pl-open]'); if (!b) return;
+    try { var r = await call(PL + 'get&launch_id=' + encodeURIComponent(b.dataset.plOpen)); plShow(r.launch); document.getElementById('pl-launch-card').scrollIntoView({ behavior: 'smooth' }); }
+    catch (e) { gwFail(e); }
+  });
+
   /* ── boot ───────────────────────────────────────────────────────────── */
   var params = new URLSearchParams(window.location.search);
   if (params.get('oauth') === 'connected') note('ok', params.get('provider') + ' connected.');
   if (params.get('oauth') === 'denied') note('warn', 'The sign-in was cancelled or refused at ' + params.get('provider') + '.');
   if (params.get('oauth') === 'error') note('err', 'The connection did not complete: ' + (params.get('reason') || 'unknown') + '.');
 
-  function boot() { loadHub(); loadRules(); }
+  function boot() {
+    loadHub(); loadRules();
+    var want = params.get('tab');
+    var t = want && document.querySelector('.tab[data-panel="' + want.replace(/[^a-z-]/g, '') + '"]');
+    if (t) t.click();
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 </script>

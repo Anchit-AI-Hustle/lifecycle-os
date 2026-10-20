@@ -1151,7 +1151,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         ${rep.read ? `<div class="al-grid">${rows(rep.hooks, 'Hook pattern') ? `<div>${rows(rep.hooks, 'Hook pattern')}</div>` : ''}${rows(rep.formats, 'Format') ? `<div>${rows(rep.formats, 'Format')}</div>` : ''}${rows(rep.personas, 'Audience') ? `<div>${rows(rep.personas, 'Audience')}</div>` : ''}</div>` : ''}</div>
       <div class="al-sec"><h3>Ranked angles and hook bank (${(d.hooks && d.hooks.count) || 0} hooks)</h3><div class="al-grid">${angles}</div></div>
       <div class="al-sec"><h3>Briefs</h3><div class="al-grid">${briefs}</div></div>
-      <div class="card al-sec"><h3>Test plan</h3>${plan}</div>`;
+      <div class="card al-sec"><h3>Test plan</h3>${plan}<div class="btn-row"><button type="button" class="btn" id="al-launch">Launch on Meta, step by step</button></div><p class="note">Opens Publishing, Paid launch: each brief becomes its own ad set with its share of the daily budget, built paused. Add a product photo and a landing page there if a brief has none.</p></div>`;
+    { const lb = out.querySelector('#al-launch'); if (lb) lb.addEventListener('click', () => {
+      const shareOf = {}; for (const r of (tp.rows || [])) shareOf[r.brief] = r.share;
+      const rc = window.RegionContext;
+      const market = (rc && rc.marketsFor ? rc.marketsFor()[0] : '') || '';
+      const briefs = (AL_LAST.briefs || []).map((b) => ({ id: b.id, angle_name: b.angle_name, basis: b.basis, primary_text: b.primary_text, headline: b.headline, signal_share: b.signal_share, share: shareOf[b.id] || null }));
+      try { window.sessionStorage.setItem('lifecycle.launch.briefs', JSON.stringify({ at: new Date().toISOString(), market, budget: Number(($('#al-budget') || {}).value) || null, briefs })); } catch (_) {}
+      window.location.href = '/publishing?tab=launch';
+    }); }
     out.querySelectorAll('[data-use-brief]').forEach((btn) => btn.addEventListener('click', () => {
       const b = (AL_LAST.briefs || []).find((x) => x.id === btn.dataset.useBrief); if (!b) return;
       const fill = (sel, v) => { const el = $(sel); if (el && v && !/^\[DATA REQUIRED/.test(v)) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } };

@@ -753,6 +753,7 @@ module.exports = {
   handle,
   status,
   read,
+  credentialsFor,
   recordInbound,
   markInbound,
   refreshDueTokens,

@@ -4,6 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Paid launch: account sync, a budget split, the build step by step, live as its own press (2026-10-20)
+The operator: "pipeline must be built for direct platform updation with account sync and complete step by step asset
+updation like budget allotment everything". The Meta adapter could create a campaign, an ad set and an ad, but nothing
+chained them (a meta_ad job made a creative with no ad set: an ad set is a budget and targeting decision nobody made).
+`api/_shared/paid-launch-core.js` on `brain.js ?action=paid-launch&op=status|accounts|sync|syncs|plan|list|get|run|
+go-live|pause|budget` (still 12/12), the "Paid launch" tab on `/publishing` (`?tab=launch`), "Launch on Meta, step by
+step" on Winning angles (briefs + test-plan shares via sessionStorage), migration `20261020103000_paid_launches.sql`
+(`paid_launches`, `paid_account_syncs`; members read, service role writes).
+- **Sync**: campaigns and ad sets (status, daily/lifetime budget) paged by Meta's `after` cursor, 7-day spend per ad
+  set (insights level=adset); a value Meta did not return is null. The account currency comes from Meta here.
+- **Plan** (no platform call): from a Smart Brain campaign (its Meta IMAGE ads, one ad set per market; video is said,
+  not sent: video upload is not built) or Winning angles briefs (one ad set per brief). The operator's total daily budget
+  is split by the test plan's rule (control 20%, the rest by share/signal, 10% floor; else equal) into the currency's
+  SMALLEST unit by Meta's own offset table (`OFFSET_1`/`OFFSET_100`, read on developers.facebook.com: "minimum
+  denomination level, such as cents for USD"); the split adds up exactly (largest remainder); a currency not in the
+  table is a marker. Traffic only (OUTCOME_TRAFFIC / LINK_CLICKS / IMPRESSIONS: no pixel needed). Each ad is checked
+  against `asset-contracts` and `compliance-lint`; no https image or landing page, a DATA REQUIRED marker in the copy,
+  EU countries without `dsa_payor`/`dsa_beneficiary`, no Page id, no budget: BLOCKS the build.
+- **Build**: one runner per launch (a lease CLAIMED by a conditional PATCH, `or=(run_token.is.null,run_started_at.lt.)`);
+  steps in order campaign (`is_adset_budget_sharing_enabled:false`, `special_ad_categories`) -> each ad set with its
+  `daily_budget` -> creative (`object_story_spec.page_id` + `link_data`) -> ad, every one PAUSED; the platform's id is
+  saved after EACH step, so a re-run resumes and never creates an object twice; a refused step stops the run. Behind the
+  three switches: one off = the step is `withheld` with its exact (token-redacted) request, nothing sent.
+- **Live** (owner/editor, two presses on the page): ads, then ad sets, then the campaign ACTIVE (nothing serves until the
+  last); `approved_by` is the SESSION's user. **Budget**: a new total re-split by the same shares, written per ad set;
+  a cut below Meta's floor (10% above what the set already spent, as the last sync read) is refused before any call.
+- Every new Meta call is a row in the adapter's endpoint table with the doc page it was read on (2026-10-20).
+  Google Ads / TikTok Ads / Pinterest are listed as not built, with the reason (their create calls are unconfirmed).
+- Gated by `tests/paid-launch-executed.spec.js` (12, over the stateful fake ad account in `fake-social-platforms.js`
+  `opts.metaAccount`, which enforces the documented rules) and `tests/paid-launch-page.spec.js` (Chromium, 1280 + 390);
+  10 mutations (ACTIVE at creation, no lease, no resume, approver from the body, inexact split, no floor check, the
+  offset table, no DSA check, live order reversed, one-press live), each caught. `router-brain` has its entry.
+
 ## ⭐ Only Google sign-in: the Vercel login wall is off (2026-10-20)
 The operator: "Is it asking for sign in with Vercel? Only sign in with Google should be required." Every
 `*.vercel.app` address of this project (deployment URLs, `lifecycle-os-anchit-ai-hustle.vercel.app`) answered with
