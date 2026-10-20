@@ -61,6 +61,7 @@ const BRAND_RT = 'api/_shared/brand-runtime.js';
 const WS_SCOPE = 'api/_shared/workspace-scope.js';
 const BWC = 'api/_shared/brand-workspace-core.js';
 const M = {
+  mteam: 'api/_shared/marketing-team-server.js', mtreg: 'api/_shared/marketing-team.js',
   kb: 'api/_shared/brain-kb.js', analysis: 'api/_shared/brain-analysis.js', competitor: 'api/_shared/brain-competitor.js',
   calendar: 'api/_shared/brain-calendar.js', generate: 'api/_shared/brain-generate.js', review: 'api/_shared/brain-review.js',
   agents: 'api/_shared/brain-agent.js', embed: 'api/_shared/agent-embed.js', jarvis: 'api/_shared/jarvis.js', agentic: 'api/_shared/agentic-orchestrator.js',
@@ -1006,6 +1007,21 @@ add('os-run-daily-job', { gate: 'cron-flag', browser: 'refuse', run: { method: '
     { name: 'a manual run by an anonymous caller is refused before the job', run: { method: 'GET', auth: 'none', origin: false }, expect: (r) => { expect(r.status).toBe(401); expect(S.hits(M.osb)).toEqual([]); } },
   ],
 });
+add('marketing-team', { gate: 'none', browser: 'demo', run: { method: 'GET', query: { op: 'map' } },
+  stubs: () => S.on(M.mtreg, 'map', () => require(require('path').join(__dirname, '..', 'api', '_shared', 'marketing-team.js')).DEPARTMENTS),
+  expect: (r) => { expect(r.status).toBe(200); expect(r.out.departments.length).toBe(10); expect(S.hits(M.mteam)).toEqual([]); },
+  cases: [
+    { name: 'the site audit refuses an anonymous caller before it reads anything', run: { method: 'POST', json: {}, query: { op: 'site-audit' }, auth: 'none', origin: false },
+      expect: (r) => { expect(r.status).toBe(401); expect(S.hits(M.mteam)).toEqual([]); } },
+    { name: 'a signed-in caller audits the website on the brand record, never a URL the request names', run: { method: 'POST', json: { url: 'https://elsewhere.example', website: 'https://elsewhere.example' }, query: { op: 'site-audit', url: 'https://elsewhere.example' }, auth: 'session', origin: true },
+      stubs: () => S.on(M.mteam, 'siteAudit', async (brand) => ({ ok: true, site: brand && brand.website, name: brand && brand.name })),
+      expect: (r) => { expect(r.status, r.text).toBe(200); const brand = last(M.mteam, 'siteAudit')[0]; expect(brand && brand.name).toBeTruthy(); expect(JSON.stringify(brand)).not.toContain('elsewhere.example'); } },
+    { name: 'a brand with no website is told so (409)', run: { method: 'POST', json: {}, query: { op: 'site-audit' }, auth: 'session', origin: true },
+      stubs: () => S.on(M.mteam, 'siteAudit', async () => ({ ok: false, error: 'website_required', message: 'no website' })),
+      expect: (r) => { expect(r.status).toBe(409); expect(r.out.error).toBe('website_required'); } },
+    { name: 'an unknown op is a 400', run: { method: 'GET', query: { op: 'nope' } }, expect: (r) => { expect(r.status).toBe(400); } },
+  ],
+});
 add('os-dashboard', { gate: 'none', browser: 'demo', run: { method: 'GET' },
   stubs: () => S.on(M.osb, 'dashboard', async () => ({ kpis: {} })),
   expect: (r) => { expect(r.out).toEqual({ ok: true, kpis: {} }); },
@@ -1300,7 +1316,7 @@ test.describe('the router', () => {
       'alerts-preview', 'analyze', 'asset', 'assets', 'benchmarks', 'brand-tools',
       'calendar', 'calendar-generate', 'calendar-review', 'calendar-scenarios', 'campaigns', 'cohorts', 'confidence',
       'config', 'connectors-health', 'decide', 'feedback', 'festivals', 'festivals-extract',
-      'growth-os', 'jarvis', 'kb', 'kb-patterns', 'klaviyo', 'library', 'mailer-assets-status', 'mvt',
+      'growth-os', 'jarvis', 'kb', 'kb-patterns', 'klaviyo', 'library', 'mailer-assets-status', 'marketing-team', 'mvt',
       'os-connector-sync', 'os-connectors', 'os-dashboard', 'recalibrate', 'review', 'scores', 'snowflake-metrics',
       'social-approve', 'social-list', 'social-skip', 'status', 'telesuite',
       'video-status', 'webengage-report',

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove (see credits.html:
+   auth.js loads deferred and overwrites this the moment it runs). Built with
+   textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    return d.outerHTML;
+  }
+  return {
+    sentence: sentence, code: function () { return ''; }, unreachable: function () { return false; }, html: html,
+    rowHtml: function (e, o) { return '<tr class="vh-failure-tr"><td colspan="99">' + html(e, o) + '</td></tr>'; },
+    show: function (el, e, o) { if (el) el.innerHTML = html(e, o); },
+  };
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Marketing team</title>
+<meta name="description" content="Ten marketing departments, every step tied to the feature that does it, plus SEO audit, A/B and UTM tools.">
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta property="og:image" content="/assets/lifecycle-os-og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<script src="/auth.js?v=20260809" defer></script>
+<script src="/marketing-team.js?v=20261020" defer></script>
+<style>
+  /* Role tokens only (design/lifecycle-os/CONTRACT.md): no colour literal. */
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--vh-font-body,system-ui,sans-serif);background:var(--vh-bg);color:var(--vh-ink);padding:56px 20px 64px;min-height:100vh;min-height:100svh}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--vh-accent-text);font-weight:700;margin:0 0 8px}
+  h1{font-family:var(--vh-font-head,inherit);font-size:32px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
+  h2{font-family:var(--vh-font-head,inherit);font-size:20px;margin:32px 0 12px}
+  h3{font-size:16px;margin:0 0 8px}
+  .lede{color:var(--vh-ink-dim);font-size:15px;line-height:1.6;max-width:760px;margin:0 0 18px}
+  .muted{color:var(--vh-ink-dim);font-size:13px;line-height:1.55}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:var(--vh-r-lg,14px);padding:18px;min-width:0}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 18px}
+  .tab{font-family:inherit;font-size:14px;font-weight:700;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--vh-primary);border-color:var(--vh-primary);color:var(--vh-on-primary)}
+  .tab:focus-visible,.btn:focus-visible,.field input:focus-visible{outline:2px solid var(--vh-focus);outline-offset:2px}
+  .summary{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 14px;font-size:14px}
+  .summary b{font-variant-numeric:tabular-nums}
+  .depts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:14px}
+  .dept-n{font-size:12px;font-weight:700;color:var(--vh-accent-text);letter-spacing:.12em;text-transform:uppercase}
+  .steps{list-style:none;margin:8px 0 0;padding:0}
+  .steps li{padding:9px 0;border-top:1px solid var(--vh-line)}
+  .steps li:first-child{border-top:0}
+  .step-head{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+  .step-name{font-weight:700;font-size:14px}
+  .chip{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--vh-line);color:var(--vh-ink-dim)}
+  .chip.built{color:var(--vh-ok-text,var(--vh-ink));border-color:currentColor}
+  .chip.partial{color:var(--vh-warn-text,var(--vh-ink));border-color:currentColor}
+  .chip.not_built{color:var(--vh-err-text,var(--vh-ink));border-color:currentColor}
+  .chip.slot{color:var(--vh-primary-text);border-color:currentColor}
+  .does{font-size:13px;line-height:1.5;margin:4px 0 2px;color:var(--vh-ink)}
+  .gap{font-size:13px;line-height:1.5;border-left:3px solid var(--vh-accent);padding:2px 0 2px 8px;margin:4px 0;color:var(--vh-ink)}
+  .links{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
+  .links a{color:var(--vh-primary-text);font-weight:600;min-height:44px;display:inline-flex;align-items:center}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--vh-ink-dim)}
+  .field input,.field select{font-family:inherit;font-size:16px;min-height:44px;padding:8px 10px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink);width:100%}
+  .form{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px;margin:10px 0}
+  .btn{font-family:inherit;font-size:15px;font-weight:700;min-height:44px;min-width:44px;padding:0 16px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-primary);background:var(--vh-primary);color:var(--vh-on-primary);cursor:pointer}
+  .btn.ghost{background:var(--vh-panel);color:var(--vh-primary-text);border-color:var(--vh-line)}
+  .out{margin-top:12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+  .out code{font-size:13px;word-break:break-all}
+  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--vh-ink-dim);padding:8px 10px;border-bottom:1px solid var(--vh-line)}
+  td{padding:8px 10px;border-bottom:1px solid var(--vh-line);vertical-align:top;overflow-wrap:anywhere}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  [hidden]{display:none!important}
+  @media (max-width:640px){ body{padding:52px 16px 56px} h1{font-size:26px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow" id="brandLabel">Marketing team</p>
+  <h1>Marketing team</h1>
+  <p class="lede">Ten marketing departments and every step each one takes, tied to the feature that does it. Steps marked <b>every send</b> are done by Smart Brain for each slot it builds; open any slot on <a href="/brain">/brain</a> and its checks list what each department did for that send. A step that is only partly built says what is missing.</p>
+
+  <div class="tabs" role="tablist" aria-label="Marketing team">
+    <button type="button" class="tab" role="tab" data-tab="map" aria-selected="true">Departments</button>
+    <button type="button" class="tab" role="tab" data-tab="seo" aria-selected="false">SEO audit</button>
+    <button type="button" class="tab" role="tab" data-tab="ab" aria-selected="false">A/B test</button>
+    <button type="button" class="tab" role="tab" data-tab="utm" aria-selected="false">UTM builder</button>
+  </div>
+
+  <section data-panel="map">
+    <div class="summary" id="summary"></div>
+    <div class="depts" id="depts"></div>
+  </section>
+
+  <section data-panel="seo" hidden>
+    <div class="card">
+      <h3>Technical SEO and answer-engine audit</h3>
+      <p class="muted">Reads the active brand's own website (the one on its record) and checks each page it reaches: title, meta description, H1, language, canonical, alt text, viewport, Open Graph and schema.org data, plus robots.txt and the sitemap. It also lists the words the site's titles and headings use most. No search volumes: that needs a keyword data source, which is not connected.</p>
+      <button type="button" class="btn" id="seoRun">Audit the brand's website</button>
+      <div id="seoStatus" class="out" role="status"></div>
+      <div id="seoOut" class="out"></div>
+    </div>
+  </section>
+
+  <section data-panel="ab" hidden>
+    <div class="card">
+      <h3>Is the difference real?</h3>
+      <p class="muted">Enter each variant's visitors (or sends) and conversions (or clicks). A two-sided two-proportion test at 95% confidence. Nothing leaves this page.</p>
+      <div class="form">
+        <label class="field">A visitors<input id="abNa" inputmode="numeric" value=""></label>
+        <label class="field">A conversions<input id="abXa" inputmode="numeric" value=""></label>
+        <label class="field">B visitors<input id="abNb" inputmode="numeric" value=""></label>
+        <label class="field">B conversions<input id="abXb" inputmode="numeric" value=""></label>
+      </div>
+      <button type="button" class="btn" id="abRun">Check significance</button>
+      <div id="abOut" class="out" role="status"></div>
+      <h3 style="margin-top:22px">How many do I need?</h3>
+      <div class="form">
+        <label class="field">Baseline rate (%)<input id="ssP" inputmode="decimal" value=""></label>
+        <label class="field">Lift to detect (%)<input id="ssL" inputmode="decimal" value="20"></label>
+      </div>
+      <button type="button" class="btn ghost" id="ssRun">Work out the sample</button>
+      <div id="ssOut" class="out" role="status"></div>
+    </div>
+  </section>
+
+  <section data-panel="utm" hidden>
+    <div class="card">
+      <h3>Tracking link</h3>
+      <p class="muted">The same tags Smart Brain puts on every link it builds: source and medium from the channel, the campaign as a slug. Use it for a link you post by hand.</p>
+      <div class="form">
+        <label class="field">Page on your site<input id="utmUrl" inputmode="url" placeholder="https://"></label>
+        <label class="field">Channel<select id="utmCh"></select></label>
+        <label class="field">Campaign<input id="utmCamp" placeholder="2026-10-20 IN reactivation"></label>
+        <label class="field">Content (optional)<input id="utmContent" placeholder="hero-button"></label>
+      </div>
+      <button type="button" class="btn" id="utmRun">Build the link</button>
+      <div id="utmOut" class="out" role="status"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  function MT() { return window.MarketingTeam; }
+  var STATUS = { built: 'Built', partial: 'Partly built', not_built: 'Not built' };
+
+  function renderMap() {
+    if (!MT()) return;
+    var all = [];
+    MT().DEPARTMENTS.forEach(function (d) { d.steps.forEach(function (s) { all.push(s); }); });
+    var count = function (k) { return all.filter(function (s) { return s.status === k; }).length; };
+    $('summary').innerHTML = '<span><b>' + MT().DEPARTMENTS.length + '</b> departments</span><span><b>' + all.length + '</b> steps</span>'
+      + '<span><b>' + count('built') + '</b> built</span><span><b>' + count('partial') + '</b> partly built</span>'
+      + '<span><b>' + all.filter(function (s) { return s.per_slot; }).length + '</b> done for every send</span>';
+    $('depts').innerHTML = MT().DEPARTMENTS.map(function (d) {
+      return '<article class="card" data-dept="' + esc(d.id) + '"><div class="dept-n">Department ' + String(d.n).padStart(2, '0') + '</div><h3>' + esc(d.name) + '</h3><ul class="steps">'
+        + d.steps.map(function (s) {
+          return '<li data-step="' + esc(s.id) + '"><div class="step-head"><span class="step-name">' + esc(s.name) + '</span>'
+            + '<span class="chip ' + esc(s.status) + '">' + esc(STATUS[s.status] || s.status) + '</span>'
+            + (s.per_slot ? '<span class="chip slot">Every send</span>' : '') + '</div>'
+            + '<p class="does">' + esc(s.does) + '</p>'
+            + (s.gap ? '<p class="gap">' + esc(s.gap) + '</p>' : '')
+            + '<div class="links">' + s.where.map(function (w) { return '<a href="' + esc(w) + '">' + esc(w.replace(/[?#].*$/, '')) + '</a>'; }).join('') + '</div></li>';
+        }).join('') + '</ul></article>';
+    }).join('');
+  }
+
+  function show(tab) {
+    if (['map', 'seo', 'ab', 'utm'].indexOf(tab) < 0) tab = 'map';
+    document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-tab') === tab ? 'true' : 'false'); });
+    document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== tab; });
+    try { var u = new URL(location.href); if (tab === 'map') u.searchParams.delete('tool'); else u.searchParams.set('tool', tab); history.replaceState(null, '', u.toString()); } catch (_) {}
+  }
+  document.querySelectorAll('.tab').forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-tab')); }); });
+
+  function num(id) { var v = String($(id).value || '').replace(/[, ]/g, ''); return v === '' ? NaN : Number(v); }
+  function pct(x) { return (x * 100).toFixed(2) + '%'; }
+
+  $('abRun').addEventListener('click', function () {
+    var r = MT().abTest({ visitors: num('abNa'), conversions: num('abXa') }, { visitors: num('abNb'), conversions: num('abXb') });
+    if (!r.ok) { $('abOut').innerHTML = '<p class="gap">' + esc(r.message) + '</p>'; return; }
+    $('abOut').innerHTML = '<p><b>' + esc(r.verdict) + '</b></p><p>A converts at ' + pct(r.rate_a) + ', B at ' + pct(r.rate_b)
+      + (r.relative_lift == null ? '' : ' (' + (r.relative_lift >= 0 ? '+' : '') + (r.relative_lift * 100).toFixed(1) + '% relative)')
+      + '. The true difference is between ' + pct(r.ci_difference[0]) + ' and ' + pct(r.ci_difference[1]) + ' (95%).</p>';
+  });
+  $('ssRun').addEventListener('click', function () {
+    var n = MT().sampleSize(num('ssP') / 100, num('ssL') / 100);
+    $('ssOut').innerHTML = n ? '<p><b>' + n.toLocaleString() + '</b> per variant (' + (2 * n).toLocaleString() + ' in all) to detect that lift at 95% confidence and 80% power.</p>'
+      : '<p class="gap">Enter a baseline rate between 0 and 100 and a lift above 0.</p>';
+  });
+
+  function fillChannels() {
+    if (!MT()) return;
+    $('utmCh').innerHTML = Object.keys(MT().CHANNEL_UTM).map(function (k) { return '<option value="' + esc(k) + '">' + esc(k.replace('_', ' ')) + '</option>'; }).join('');
+  }
+  $('utmRun').addEventListener('click', function () {
+    var url = String($('utmUrl').value || '').trim();
+    var p = MT().utmFor($('utmCh').value, $('utmCamp').value, $('utmContent').value);
+    if (!MT().taggable(url)) { $('utmOut').innerHTML = '<p class="gap">Enter a full address on your site, starting with https:// (a link that is already tagged keeps its own tags).</p>'; return; }
+    if (!p) { $('utmOut').innerHTML = '<p class="gap">Name the campaign.</p>'; return; }
+    var out = MT().utmUrl(url, p);
+    $('utmOut').innerHTML = '<p><code data-utm-result>' + esc(out) + '</code></p><button type="button" class="btn ghost" id="utmCopy">Copy</button>';
+    $('utmCopy').addEventListener('click', function () { try { navigator.clipboard.writeText(out); $('utmCopy').textContent = 'Copied'; } catch (_) {} });
+  });
+
+  $('seoRun').addEventListener('click', async function () {
+    var btn = $('seoRun');
+    $('seoOut').innerHTML = '';
+    try {
+      var refused = window.LifecycleStatus ? await window.LifecycleStatus.decide('Auditing the brand\'s website') : null;
+      if (refused) throw refused;
+      btn.disabled = true;
+      $('seoStatus').textContent = 'Reading the site. This takes up to a minute.';
+      var r = await fetch('/api/brain?action=marketing-team&op=site-audit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}' });
+      var j = null; try { j = await r.json(); } catch (_) { j = null; }
+      if (!r.ok || !j || j.ok === false) { var e = new Error((j && (j.message || j.error)) || ('The audit answered ' + r.status + '.')); e.payload = j || {}; throw e; }
+      $('seoStatus').textContent = '';
+      renderAudit(j);
+    } catch (e) {
+      $('seoStatus').textContent = '';
+      var LS = window.LifecycleStatus;
+      if (LS && (e.ordinary || LS.ordinary(e.payload || e))) LS.show($('seoStatus'), e, { title: 'The audit did not run' });
+      else window.LifecycleFailure.show($('seoStatus'), e, { title: 'The audit did not run' });
+    } finally { btn.disabled = false; }
+  });
+
+  function renderAudit(j) {
+    var ae = j.answer_engines || {};
+    var yes = function (b) { return b ? 'yes' : 'no'; };
+    $('seoOut').innerHTML = '<p><b>' + esc(j.pages_read) + '</b> page(s) of ' + esc(j.site) + ' read. ' + esc(j.coverage || '') + '</p>'
+      + '<p>Sitemap: ' + (j.sitemap && j.sitemap.found ? 'found, ' + esc(j.sitemap.declared) + ' URL(s) declared' : 'none found') + '. Structured data on the site: ' + (j.schema_types && j.schema_types.length ? esc(j.schema_types.join(', ')) : 'none') + '.</p>'
+      + '<p>For answer engines: organization ' + yes(ae.organization) + ', FAQ ' + yes(ae.faq) + ', product ' + yes(ae.product) + ', article ' + yes(ae.article) + '.</p>'
+      + (j.issues && j.issues.length ? '<div class="tbl-scroll"><table data-seo-issues><thead><tr><th>What</th><th>Level</th><th class="num">Pages</th></tr></thead><tbody>'
+        + j.issues.map(function (i) { return '<tr><td>' + esc(i.label) + '</td><td>' + (i.level === 'fix' ? 'Fix' : 'Improve') + '</td><td class="num">' + esc(i.pages) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<p>No issues found on the pages read.</p>')
+      + (j.duplicate_titles && j.duplicate_titles.length ? '<p class="gap">Titles used on more than one page: ' + j.duplicate_titles.map(function (d) { return esc(d.title) + ' (' + d.pages + ')'; }).join('; ') + '.</p>' : '')
+      + (j.top_terms && j.top_terms.length ? '<h3 style="margin-top:16px">Words the site leads with</h3><p>' + j.top_terms.map(function (t) { return esc(t.term) + ' (' + t.pages + ')'; }).join(', ') + '</p><p class="muted">' + esc(j.terms_note) + '</p>' : '');
+  }
+
+  function boot() {
+    renderMap(); fillChannels();
+    try { var b = window.BrandContext && window.BrandContext.brand; if (b && b.name) $('brandLabel').textContent = b.name + ' · Marketing team'; } catch (_) {}
+    var t = null; try { t = new URL(location.href).searchParams.get('tool'); } catch (_) {}
+    show(t || 'map');
+  }
+  if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
+})();
+</script>
+</body>
+</html>

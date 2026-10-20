@@ -958,6 +958,7 @@
       { id: 'research-india',  label: 'India Study',            href: '/research?region=india',  icon: 'insights' },
     ]},
     { id: 'allinone',   label: 'Master Dashboard', href: '/master-dashboard', icon: 'analysis', ver: 'v2', match: ['/master-dashboard', '/master', '/all-in-one', '/os', '/dashboard-os', '/all-in-one.html'] },
+    { id: 'mteam',      label: 'Marketing Team',   href: '/marketing-team',   icon: 'insights', ver: 'v2', match: ['/marketing-team', '/marketing-team.html'] },
 
     { section: 'Research & Benchmark' },
     { group: 'Competitor Benchmarking', icon: 'competitor', gid: 'competitor', ver: 'v1', children: [
@@ -1325,6 +1326,23 @@
         ['Design + layout + structure', 'Scores render as a ring + per-feature axis bars, colour-coded by threshold.'],
         ['Compilation + presentation', 'An overall rating, the blocker board, the scorecard and the roadmap, plus a downloadable Markdown audit.', '/audit']
       ]
+    },
+    'mteam': {
+      title: "Marketing Team",
+      what: "Ten marketing departments (strategy and planning, market and customer intelligence, brand and messaging, content, SEO and AI search, social, paid acquisition, email and CRM, lead generation and conversion, analytics) and every step each one takes, each tied to the page that does it, with a technical SEO audit of the brand's own site, an A/B significance calculator and a UTM link builder.",
+      who: "The founder and the growth team of the active brand, checking that every part of marketing is covered and where each part is done.",
+      how: "Each step names the feature that does it and whether it is built, partly built (with what is missing) or done by Smart Brain for every send. For every slot it builds, Smart Brain records what each department did for that send: the hypothesis, the KPI with the brand's own baseline and target, the cohort it is for, the offer, the assets, UTM tags on every link to the brand's own site, a tracked destination on every ad, the audience, the A/B test with the sample it needs, and an SEO check of each landing page.",
+      input: "Nothing for the map. The SEO audit reads the website on the brand's record. The A/B and UTM tools take the figures and the link you type.",
+      pipeline: true,
+      steps: [
+        ['Ideology', 'Every part of marketing has a home, and a step that is not built says so.'],
+        ['Data analysis + review + hypothesis', 'Smart Brain writes each send\'s hypothesis and reads the brand\'s own campaigns for a baseline.', '/brain'],
+        ['Business & strategy decisions', 'A KPI and a planning target per send; an A/B test sized to read a 20% lift.'],
+        ['Content', 'Mail, landing pages and ads per send, each link tagged so a sale is read back to it.'],
+        ['Design + layout + structure', 'One card per department; brand tokens only.'],
+        ['Coding', 'One shared module the page and the server both run, and one op on the brain router.', '/api/brain?action=marketing-team'],
+        ['Final compilation + presentation', 'Each slot on /brain lists what every department did for it.', '/marketing-team'],
+      ],
     },
     'da-revenue': {
       title: "Revenue by Region",
