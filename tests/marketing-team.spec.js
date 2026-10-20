@@ -45,6 +45,8 @@ test('every step of the screenshot is in the registry, in its department, and mo
   }
   const all = MT.DEPARTMENTS.flatMap((d) => d.steps);
   expect(all.length, 'not limited to the 40').toBeGreaterThan(40);
+  // A link to a page is distinct within a step.
+  for (const s of all) expect(new Set(s.where).size, s.id).toBe(s.where.length);
 });
 
 test('every page a step names is one the deployment serves', () => {
@@ -52,7 +54,8 @@ test('every page a step names is one the deployment serves', () => {
   const routed = new Set([...(v.rewrites || []), ...(v.redirects || [])].map((r) => r.source));
   for (const w of MT.paths()) {
     const p = w.replace(/[?#].*$/, '');
-    const ok = routed.has(p) || fs.existsSync(path.join(ROOT, p.replace(/^\//, ''))) || fs.existsSync(path.join(ROOT, p.replace(/^\//, '') + '.html'));
+    // cleanUrls is off: a path is served only by a rewrite, a redirect or a file at that exact path.
+    const ok = routed.has(p) || fs.existsSync(path.join(ROOT, p.replace(/^\//, '')));
     expect(ok, `${w} does not resolve`).toBe(true);
   }
 });

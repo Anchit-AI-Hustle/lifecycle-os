@@ -65,14 +65,16 @@ async function buildTemplate(brand) {
   });
 }
 
+const noUtm = (u) => String(u || '').replace(/&amp;/g, '&').replace(/[?&]utm_[a-z]+=[^&#"]*/g, '').replace(/^([^?]*)&/, '$1?');
 function expectLogoHeader(html, brand) {
   const h = headerLink(html);
   expect(h.at, 'the mail has a logo header').toBeGreaterThan(-1);
-  expect(h.href, 'the logo links to the brand homepage').toBe(brand.website);
+  // The link carries the send's UTM tags since 2026-10-20 (marketing-team); under them, the homepage.
+  expect(noUtm(h.href), 'the logo links to the brand homepage').toBe(brand.website);
   expect(h.inner).toMatch(new RegExp(`<img[^>]*alt="${brand.name}"`));
   // The header comes before any other link in the mail.
   const firstHref = (html.replace(/<head[\s\S]*?<\/head>/i, '').match(/<a\b[^>]*href="([^"]*)"/) || [])[1];
-  expect(firstHref).toBe(brand.website);
+  expect(noUtm(firstHref)).toBe(brand.website);
 }
 
 test('with no model, a send ships BOTH types: two Text and two Text + Visual, each headed by the logo linked home', async () => {

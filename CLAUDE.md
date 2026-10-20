@@ -4,6 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The marketing team: ten departments, every step tied to the feature that does it (2026-10-20)
+The operator, with "The Ultimate GPT-6 Astra Marketing Team" (10 departments x 4 steps; the LinkedIn post's 80 prompts
+are comment-gated, so the screenshot is the spec): "ensure each step ... is followed and integrated appropriately ...
+for our smart brain and other features too. Don't limit to Astra 6". `api/_shared/marketing-team.js` (UMD; root
+`/marketing-team.js` byte-identical) holds the 40 steps plus the steps the platform does beyond them (52), each with
+`where` (pages, every one resolved against vercel.json by the test), `status` built | partial (with the gap in a
+sentence: keyword volumes need an unconnected source, LinkedIn ads/analytics, influencer database, lead capture, long-form
+articles) and `per_slot`. Never mark a step built that the code does not do.
+- **Every Smart Brain build** (`marketing-team-server.applyToCampaign`, after the assets are final, before the contracts):
+  UTM tags on every link to the brand's OWN hosts (website, region stores, offerings; `brand-coherence.sameBrand`) in the
+  mail, its variants, its text and the landing pages (`utm_campaign` = date-market-objective; never a marker,
+  placeholder, mailto, unsubscribe or an already-tagged link); landing pages forward the visitor's incoming UTMs
+  (`data-utm-forward`); every ad gets `destination_url` (Google `final_url`) from `slotLinks().pdp`, or the marker;
+  `measurement` (KPI, baseline = median click rate of the brand's own campaigns on the slot, target 10% above it
+  LABELLED a planning target, read date; no history = marker, no target); `test_plan` (the A/B pair, sample per variant
+  for a 20% lift at 95%/80%, "directional" when the cohort is too small); `seoHead` (meta description CHOSEN 50-160 from
+  the brand's own lines, Open Graph, schema.org Organization) then `seoCheck` per landing page; `departments` (one row
+  per per-slot step, done or gap with why). /brain shows it under "Checks and how this was made".
+- **/marketing-team** (rail: Marketing Team): the ten departments; a technical SEO + answer-engine audit of the
+  website on the brand's RECORD (`?action=marketing-team&op=site-audit`, signed in, never a URL the request names);
+  an A/B significance calculator (two-proportion z-test) and sample-size tool; a UTM builder.
+- Gated by `tests/marketing-team.spec.js` (10 executed: registry vs the screenshot, routes, UTM, the maths against
+  hand-computed values, a real build, the audit over a fixture site, the page at 1280 + 390; 4 mutations caught) and
+  router-brain's `marketing-team` entry. `ASSET_BUILD_VERSION` hashes both new modules.
+
 ## ⭐ Origin testing of production: nobody reads or writes a workspace they are not in (2026-10-20)
 The operator: "Check and fix all current issues on live with the origin testing". A Chromium + curl sweep of
 https://lifecycle-os.anchit-tandon.com found, all fixed at source:

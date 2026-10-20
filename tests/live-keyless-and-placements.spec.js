@@ -167,15 +167,17 @@ test('ad headlines are held to the brand\'s words: "Trusted", "Reliable" are dro
   for (const ad of c.assets.ads.filter((x) => x.platform === 'meta' && x.overlay)) expect(ad.overlay.headline).toBe(ad.headline);
 });
 
+const noUtm = (u) => String(u || '').replace(/&amp;/g, '&').replace(/[?&]utm_[a-z]+=[^&#"]*/g, '').replace(/^([^?]*)&/, '$1?');
 test('an information brand\'s buttons go to the subscription its record names, on the mail and the landing page alike', async () => {
   const { c } = await buildKeyless(slot(NEWS));
   for (const lp of c.assets.landing_pages) {
     const hrefs = [...lp.html.matchAll(/<a href="([^"]*)" class="btn/g)].map((m) => m[1]);
     expect(hrefs.length).toBeGreaterThan(0);
-    for (const h of hrefs) expect(h, `landing ${lp.variant}`).toBe('https://ledgerline.example/ledger');
+    // Tagged for tracking since 2026-10-20 (marketing-team): the page under the tags is the subscription.
+    for (const h of hrefs) { expect(noUtm(h), `landing ${lp.variant}`).toBe('https://ledgerline.example/ledger'); expect(h).toContain('utm_campaign='); }
   }
   const mail = c.assets.email.variants.map((v) => v.html).join('\n');
-  expect(mail).toContain('href="https://ledgerline.example/ledger"');
+  expect(mail).toMatch(/href="https:\/\/ledgerline\.example\/ledger\?utm_source=email/);
 });
 
 test('every Meta and TikTok ad carries what each placement shows: feeds the copy, Stories / Reels a short chosen line and its safe zone, a carousel only with two photographed products', async () => {
