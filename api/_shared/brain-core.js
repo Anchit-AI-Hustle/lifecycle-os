@@ -92,7 +92,7 @@ function mayUseServiceRole() {
  * field. The reason is kept in `detail`; the reader gets a sentence.
  */
 function noWorkspace(detail) {
-  const e = new Error('This needs a brand workspace in the database, and this sign-in has none: a mobile-number account keeps its brands on the device, so nothing could be written and nothing was saved.');
+  const e = new Error('This needs a brand workspace, and this request has none. Sign in with Google and pick or set up a brand, then try again. Nothing was written.');
   e.status = 409; e.code = 'no_workspace'; e.detail = detail;
   return e;
 }

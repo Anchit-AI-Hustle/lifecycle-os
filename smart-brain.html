@@ -529,6 +529,18 @@ async function safeJson(r){
   }
 }
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// What each marketing department did for THIS send (marketing-team-server.attachDepartments),
+// with the KPI, the test plan and the tracking it adds; a step it could not do says why.
+function departmentsHTML(c){
+  const d = c && c.departments;
+  if (!d || !Array.isArray(d.departments) || !d.departments.length) return '';
+  const m = c.measurement || {}; const t = c.test_plan || {}; const tr = c.tracking || {};
+  const kpi = m.primary_kpi ? `<div class="pvnote" data-measurement style="margin-top:4px"><b>Goal:</b> ${esc(m.primary_kpi)}${m.baseline ? ` · baseline ${(m.baseline.value*100).toFixed(2)}% (${esc(m.baseline.basis)})` : ''}${m.target ? ` · target ${(m.target.value*100).toFixed(2)}% (${esc(m.target.basis)})` : ''}${m.data_gap ? ` · ${esc(m.data_gap)}` : ''}${m.read_on ? ` · read on ${esc(m.read_on)}` : ''}</div>` : '';
+  const test = (t.tests && t.tests.length) ? `<div class="pvnote" data-test-plan style="margin-top:4px"><b>A/B test:</b> ${t.tests.map(x=>`${esc(x.asset)} ${x.arms.map(esc).join(' vs ')} (${esc(x.differs_by)})`).join('; ')}${t.per_variant ? ` · ${Number(t.per_variant).toLocaleString()} per variant to read a ${Math.round((t.minimum_detectable_lift||0.2)*100)}% lift` : ''}${t.note ? ` · ${esc(t.note)}` : ''}${t.data_gap ? ` · ${esc(t.data_gap)}` : ''}</div>` : '';
+  const trk = tr.utm_campaign ? `<div class="pvnote" data-tracking style="margin-top:4px"><b>Tracking:</b> ${Number(tr.tagged||0)} link(s) tagged utm_campaign=${esc(tr.utm_campaign)}; ${Number(tr.ads_with_destination||0)} ad(s) with a tracked destination${tr.ads_without_destination ? `, ${tr.ads_without_destination} without one` : ''}.</div>` : '';
+  const rows = d.departments.map(x => `<li style="margin:6px 0"><b>${String(x.n).padStart(2,'0')} ${esc(x.name)}</b><ul style="margin:2px 0 0;padding-left:18px">${x.steps.map(s => `<li data-dept-step="${esc(s.id)}" data-state="${esc(s.state)}" style="margin:2px 0"><span style="font-weight:600;color:${s.state==='done'?'var(--vh-ok-text)':'var(--vh-warn-text)'}">${s.state==='done'?'✓':'!'} ${esc(s.name)}</span>: ${esc(s.says)}</li>`).join('')}</ul></li>`).join('');
+  return `<div class="pvnote" data-departments style="margin-top:8px"><b>Marketing team for this send</b> · ${d.done} of ${d.steps} steps done${d.gaps ? `, ${d.gaps} with a gap` : ''} · <a href="/marketing-team">all departments</a></div>${kpi}${test}${trk}<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;line-height:1.5">${rows}</ul>`;
+}
 
 // ── The three visible end states ────────────────────────────────────────────
 // Every generate, sync or approve action has to finish in exactly one of these,
@@ -1506,6 +1518,7 @@ function renderPreview(payload, e, i, opts){
       ${fbHtml}
       ${(campaign && campaign.mail_study && campaign.mail_study.emails) ? `<div class="pvnote" data-mail-study style="margin-top:4px">Mail layout and line lengths follow ${campaign.mail_study.emails} competitor emails${campaign.mail_study.basis === 'own' ? ' your competitive benchmarking captured' : ' from category leaders (add competitors on Competitor Benchmarking to study your own)'}: ${(campaign.mail_study.sources || []).slice(0, 6).map(esc).join(', ')}.</div>` : ''}
       ${complianceHTML(campaign)}
+      ${departmentsHTML(campaign)}
       ${traceHtml}
     </details>`;
   const host = (opts && opts.target) || $('expbody-'+i) || $('preview');
