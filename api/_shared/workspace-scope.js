@@ -129,6 +129,10 @@ const SCOPED_TABLES = new Set([
   // the workspace named; a rate read across brands would convert one brand's
   // revenue at another brand's entered rate.
   'brand_fx_rates',
+  // 20261020103000 — the paid launch pipeline. paid-launch-core names the
+  // workspace on every query; a launch or account sync read across brands would
+  // put one brand's ad account, budgets and spend in front of another.
+  'paid_launches', 'paid_account_syncs',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }
