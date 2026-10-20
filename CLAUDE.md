@@ -4,6 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Credits follow the usage of the provider that made the work (2026-10-20)
+The operator: "Ensure credit system is built perfectly and syncs to the respective-selected-platform usage for credits
+correctly and accurately". Before this, every run cost its flat catalogue price; a run made partly with the workspace's
+own keys cost the full price; nothing recorded which provider or model made it or what it used.
+- **Read off the provider's own response** (`llm.js reportedUsage`): OpenAI-compatible `usage.prompt_tokens/
+  completion_tokens`; Anthropic `usage.input_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`,
+  `output_tokens`; Gemini `usageMetadata.promptTokenCount`, `candidatesTokenCount` + `thoughtsTokenCount`. A count
+  the provider did not send is null, never estimated. `callLLM` answers carry `usage`; `image.js` records each
+  picture (`kind:'image'`, provider, model). `request-scope.noteLlm` keeps one row per answer (provider, model, own or
+  platform key, counts; 200 per request) and `llmUsage()` groups them and computes `platform_share`: by TOKENS when
+  every answer was text with both counts, else by ANSWERS (a token and a picture are not one unit).
+- **The charge** (`credits-core.platformBill`): all platform = the catalogue price (unchanged); part own keys = the
+  platform's share, rounded UP, never above the price (note on the receipt: "charged N of M"); all own keys = 0, now
+  SETTLED at zero (not released) so the ledger keeps which of its own providers made it; a run with no recorded answer
+  (template, voice, track) = the price, no usage invented. Every spend row's `meta.usage` = basis, share, charged,
+  full_price, by_provider. `op=ledger` returns `usage` only (a payment row's meta never leaves); `op=usage` adds
+  `by_provider` (`providerUsage()`: per provider x key, models, answers, tokens, `tokens_complete`, pictures, credits
+  attributed by platform answers, `saved_by_own_keys`, `runs_without_usage`). `/credits` shows "By model provider"
+  and each ledger row names its providers.
+- Gated by `tests/credits-platform-usage.spec.js` (11 executed: the shipped llm.js over each provider's response
+  shape, the meter over the fake ledger, the router, image.js over a fake Pollinations, `/credits` in Chromium at
+  1280 + 390); 11 mutations, each caught. Model calls that do not go through llm.js / image.js (video, voice, music)
+  are charged their price and record no provider usage.
+
 ## ⭐ Paid launch: account sync, a budget split, the build step by step, live as its own press (2026-10-20)
 The operator: "pipeline must be built for direct platform updation with account sync and complete step by step asset
 updation like budget allotment everything". The Meta adapter could create a campaign, an ad set and an ad, but nothing

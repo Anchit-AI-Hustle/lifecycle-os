@@ -173,15 +173,74 @@ async function wallet(userId, workspaceId) {
 
 async function ledger(userId, workspaceId, limit = 50) {
   const lim = Math.max(1, Math.min(500, +limit || 50));
-  let q = `credit_ledger?select=id,kind,feature_key,feature_label,units,unit_label,delta,balance_after,ref,note,created_at&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=${lim}`;
+  let q = `credit_ledger?select=id,kind,feature_key,feature_label,units,unit_label,delta,balance_after,ref,note,meta,created_at&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=${lim}`;
   if (workspaceId) q += `&workspace_id=eq.${encodeURIComponent(workspaceId)}`;
   const rows = await serviceRest(q);
-  return Array.isArray(rows) ? rows : [];
+  // Only the recorded model usage leaves the ledger's meta (a payment row's
+  // meta is the operator's, not the page's).
+  return Array.isArray(rows) ? rows.map((r) => {
+    const u = r && r.meta && r.meta.usage;
+    const out = Object.assign({}, r);
+    delete out.meta;
+    if (u && typeof u === 'object') out.usage = u;
+    return out;
+  }) : [];
 }
 
 async function usage(userId, workspaceId, days = 30) {
   const rows = await rpc('credit_usage', { p_user: userId, p_workspace: workspaceId || null, p_days: Math.max(1, +days || 30) });
   return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * The window's usage per model provider, from what each settled run recorded
+ * (`meta.usage`, written by platformBill): answers, the tokens and pictures each
+ * provider reported, on the platform's keys or the workspace's own, and the
+ * credits the platform's share cost. Paged to an empty page (PostgREST answers
+ * at most max_rows whatever limit asks). A run settled before usage was
+ * recorded is counted apart (`runs_without_usage`), never guessed.
+ */
+async function providerUsage(userId, workspaceId, days = 30) {
+  const since = new Date(Date.now() - Math.max(1, +days || 30) * 86400000).toISOString();
+  const base = `credit_ledger?select=feature_key,meta,created_at&user_id=eq.${encodeURIComponent(userId)}&kind=eq.spend&created_at=gte.${encodeURIComponent(since)}`
+    + (workspaceId ? `&workspace_id=eq.${encodeURIComponent(workspaceId)}` : '') + '&order=created_at.desc';
+  const rows = [];
+  for (let offset = 0, page = 0; page < 50; page++) {
+    const got = await serviceRest(base + `&limit=1000&offset=${offset}`);
+    if (!Array.isArray(got) || !got.length) break;
+    rows.push(...got);
+    offset += got.length;
+  }
+  const groups = new Map();
+  let without = 0; let charged = 0; let fullPrice = 0;
+  for (const row of rows) {
+    const u = row && row.meta && row.meta.usage;
+    if (!u || !Array.isArray(u.by_provider)) { without += 1; continue; }
+    charged += Number(u.charged) || 0;
+    fullPrice += Number(u.full_price) || 0;
+    // A run's charge is attributed to its PLATFORM providers by their share of
+    // its platform answers; its own-key providers carry none.
+    const platAnswers = u.by_provider.filter((g) => g.key === 'platform').reduce((a, g) => a + (g.answers || 0), 0);
+    for (const g of u.by_provider) {
+      const k = [g.provider, g.key].join('|');
+      let t = groups.get(k);
+      if (!t) { t = { provider: g.provider, key: g.key, models: [], runs: 0, answers: 0, input_tokens: 0, output_tokens: 0, tokens_complete: true, images: 0, credits: 0 }; groups.set(k, t); }
+      if (g.model && !t.models.includes(g.model) && t.models.length < 8) t.models.push(g.model);
+      t.runs += 1;
+      t.answers += g.answers || 0;
+      t.images += g.images || 0;
+      if (g.kind === 'text') {
+        t.input_tokens += g.input_tokens || 0;
+        t.output_tokens += g.output_tokens || 0;
+        if (!g.tokens_reported) t.tokens_complete = false;
+      }
+      if (g.key === 'platform' && platAnswers > 0) t.credits += (Number(u.charged) || 0) * (g.answers || 0) / platAnswers;
+    }
+  }
+  const providers = Array.from(groups.values())
+    .map((t) => Object.assign(t, { credits: Math.round(t.credits * 100) / 100 }))
+    .sort((a, b) => (b.credits - a.credits) || (b.answers - a.answers));
+  return { days: Math.max(1, +days || 30), providers, runs: rows.length, runs_without_usage: without, charged, full_price: fullPrice, saved_by_own_keys: Math.max(0, fullPrice - charged) };
 }
 
 /* ── the meter ────────────────────────────────────────────────────────────── */
@@ -448,8 +507,16 @@ async function meter(req, featureKey, opts) {
       if (done) return { ok: true, already: true };
       if (madeByOwnKeys()) {
         // Every answer came from the workspace's own keys: nothing to charge.
-        const r = await this.release(OWN_KEYS_NOTE);
-        this.receipt = ownKeysReceipt(q);
+        // Settled at ZERO (the whole hold comes back) rather than released, so
+        // the ledger keeps which of its own providers made it and what they
+        // reported using; a ledger that refuses the settle still releases.
+        const bill = platformBill(q, q.units, (extra && extra.meta) || o.meta);
+        let r = null;
+        try {
+          r = await rpc('credit_settle', { p_hold: holdId, p_actual: 0, p_units: q.units, p_ref: (extra && extra.ref) || o.ref || null, p_meta: Object.assign(bill.meta, { note: OWN_KEYS_NOTE }) });
+          done = true;
+        } catch (_) { r = await this.release(OWN_KEYS_NOTE); }
+        this.receipt = Object.assign(ownKeysReceipt(q), bill.receipt.usage ? { usage: bill.receipt.usage } : {});
         return Object.assign({ ok: true, charged: 0, own_keys: true }, r && typeof r === 'object' ? { balance: r.balance } : {});
       }
       done = true;
@@ -460,16 +527,17 @@ async function meter(req, featureKey, opts) {
       const units = !q.metered ? q.units
         : (actualUnits != null && Number.isFinite(asked)) ? Math.max(0, Math.ceil(asked))
         : q.units;
-      const actual = q.cost * units;
+      const bill = platformBill(q, units, (extra && extra.meta) || o.meta);
+      const actual = bill.actual;
       const r = await rpc('credit_settle', {
         p_hold: holdId, p_actual: actual, p_units: units,
-        p_ref: (extra && extra.ref) || o.ref || null, p_meta: (extra && extra.meta) || o.meta || {},
+        p_ref: (extra && extra.ref) || o.ref || null, p_meta: bill.meta,
       });
-      this.receipt = {
+      this.receipt = Object.assign({
         feature: q.key, label: q.label, cost: q.cost, unit: q.unit,
-        units, charged: (r && r.charged) || actual, refunded: (r && r.refunded) || 0,
+        units, charged: (r && r.charged != null) ? r.charged : actual, refunded: (r && r.refunded) || 0,
         balance: r && r.balance,
-      };
+      }, bill.receipt);
       this.balance = r && r.balance;
       return r;
     },
@@ -489,6 +557,45 @@ async function meter(req, featureKey, opts) {
 }
 
 const OWN_KEYS_NOTE = 'made with the workspace\'s own model keys; no credits charged';
+
+/**
+ * What a run costs, synced to the usage of the platform that made it
+ * (2026-10-20, the operator: "syncs to the respective-selected-platform usage
+ * for credits correctly and accurately").
+ *
+ * The catalogue price is for the run made on the PLATFORM's keys. When some of
+ * its answers came from the workspace's own keys (its connected models answered
+ * part of it, another provider the rest), only the platform's share is charged:
+ * by the tokens each provider REPORTED when every answer was text and stated
+ * both counts, else by answers (see request-scope.llmUsage). Rounded up to a
+ * whole credit, never above the price. A run with no recorded answer (a
+ * template, a voice, a track) is charged its price as before.
+ *
+ * The ledger row's meta carries the usage per provider, model and key, so the
+ * spend can be read against each provider's own usage page.
+ */
+function platformBill(q, units, baseMeta) {
+  const full = q.cost * units;
+  const u = scope.llmUsage();
+  const meta = Object.assign({}, baseMeta || {});
+  if (!u) return { actual: full, meta, receipt: {} };
+  const share = Math.max(0, Math.min(1, u.platform_share));
+  const actual = share >= 1 ? full : Math.min(full, Math.ceil(full * share - 1e-9));
+  const usage = {
+    basis: u.basis, platform_share: Math.round(share * 10000) / 10000, answers: u.calls,
+    full_price: full,
+    by_provider: u.by_provider.map((g) => ({
+      provider: g.provider, model: g.model, key: g.key, kind: g.kind, answers: g.answers,
+      input_tokens: g.kind === 'text' ? g.input_tokens : null, output_tokens: g.kind === 'text' ? g.output_tokens : null,
+      tokens_reported: g.kind === 'text' ? g.tokens_reported : null, images: g.images,
+    })),
+  };
+  usage.charged = actual;
+  meta.usage = usage;
+  const receipt = { usage };
+  if (actual < full) receipt.note = 'Part of this was made with your own model keys: charged ' + actual + ' of ' + full + ' credits, the platform\'s share by ' + (u.basis === 'tokens' ? 'tokens' : 'answers') + '.';
+  return { actual, meta, receipt };
+}
 
 /** Does the workspace serving this request have model keys of its own connected? */
 async function workspaceHasOwnModels() {
@@ -524,12 +631,17 @@ function deferredGate(q, o, auth, workspaceId, refusal) {
     async settle(actualUnits, extra) {
       if (done) return { ok: true, already: true };
       done = true;
-      if (madeByOwnKeys()) { this.receipt = ownKeysReceipt(q); return { ok: true, charged: 0, own_keys: true }; }
+      if (madeByOwnKeys()) {
+        const u = platformBill(q, q.units, null).receipt.usage;
+        this.receipt = Object.assign(ownKeysReceipt(q), u ? { usage: u } : {});
+        return { ok: true, charged: 0, own_keys: true };
+      }
       const asked = Number(actualUnits);
       const units = !q.metered ? q.units
         : (actualUnits != null && Number.isFinite(asked)) ? Math.max(0, Math.ceil(asked)) : q.units;
-      const actual = q.cost * units;
-      if (actual <= 0) { this.receipt = { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: 0 }; return { ok: true, charged: 0 }; }
+      const bill = platformBill(q, units, (extra && extra.meta) || o.meta);
+      const actual = bill.actual;
+      if (actual <= 0) { this.receipt = Object.assign({ feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: 0 }, bill.receipt); return { ok: true, charged: 0 }; }
       const held = await rpc('credit_hold', {
         p_user: auth.user_id, p_workspace: workspaceId, p_amount: actual,
         p_feature: q.key, p_label: q.label, p_unit_label: q.unit, p_units: units,
@@ -541,9 +653,9 @@ function deferredGate(q, o, auth, workspaceId, refusal) {
       }
       const r = await rpc('credit_settle', {
         p_hold: held.hold_id, p_actual: actual, p_units: units,
-        p_ref: (extra && extra.ref) || o.ref || null, p_meta: (extra && extra.meta) || o.meta || {},
+        p_ref: (extra && extra.ref) || o.ref || null, p_meta: bill.meta,
       });
-      this.receipt = { feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: (r && r.charged) || actual, balance: r && r.balance };
+      this.receipt = Object.assign({ feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units, charged: (r && r.charged != null) ? r.charged : actual, balance: r && r.balance }, bill.receipt);
       this.balance = r && r.balance;
       return r;
     },
@@ -1138,7 +1250,12 @@ async function handle(req, res) {
       case 'ledger':
         return res.status(200).json({ ok: true, entries: await ledger(auth.user_id, workspaceId, q.limit || body.limit) });
       case 'usage':
-        return res.status(200).json({ ok: true, usage: await usage(auth.user_id, workspaceId, q.days || body.days || 30) });
+        const days = q.days || body.days || 30;
+        const [rows, byProvider] = await Promise.all([
+          usage(auth.user_id, workspaceId, days),
+          providerUsage(auth.user_id, workspaceId, days).catch(() => null),
+        ]);
+        return res.status(200).json({ ok: true, usage: rows, by_provider: byProvider });
       case 'quote': {
         const ov = await overrides();
         return res.status(200).json({ ok: true, quote: catalog.quote(String(q.feature || body.feature || ''), q.units || body.units, ov) });
@@ -1158,7 +1275,7 @@ async function handle(req, res) {
 }
 
 module.exports = {
-  handle, meter, withCredits, enforce, metered, wallet, ledger, usage, priceList, overrides,
+  handle, meter, withCredits, enforce, metered, wallet, ledger, usage, providerUsage, platformBill, priceList, overrides,
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,
   isCompPhone, isCompAuth, compPhones, phoneHash, COMP_PHONE_HASHES, MOBILE_ACCOUNT_MESSAGE,

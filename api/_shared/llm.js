@@ -160,6 +160,30 @@ function openrouterCap() {
   return n > 0 ? Math.floor(n) : 2048;
 }
 
+// The tokens the PROVIDER says this answer used, read off its own response
+// (2026-10-20, the operator: credits must sync to the usage of the platform that
+// ran). OpenAI-shaped `usage.prompt_tokens/completion_tokens`; Anthropic
+// `usage.input_tokens/output_tokens` plus its cache reads/writes (input billed
+// apart from input_tokens); Gemini `usageMetadata.promptTokenCount/
+// candidatesTokenCount` plus `thoughtsTokenCount` (billed as output). A count
+// the provider did not send is null - never estimated from the text.
+function reportedUsage(data) {
+  const n = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
+  const sum = (...v) => (v[0] == null ? null : v.reduce((a, b) => a + (b == null ? 0 : b), 0));
+  const u = data && data.usage;
+  if (u && typeof u === 'object') {
+    if (n(u.input_tokens) != null || n(u.output_tokens) != null) {
+      return { input_tokens: sum(n(u.input_tokens), n(u.cache_creation_input_tokens), n(u.cache_read_input_tokens)), output_tokens: n(u.output_tokens) };
+    }
+    return { input_tokens: n(u.prompt_tokens), output_tokens: n(u.completion_tokens) };
+  }
+  const g = data && data.usageMetadata;
+  if (g && typeof g === 'object') {
+    return { input_tokens: n(g.promptTokenCount), output_tokens: sum(n(g.candidatesTokenCount), n(g.thoughtsTokenCount)) };
+  }
+  return { input_tokens: null, output_tokens: null };
+}
+
 // Tell the request scope (when there is one) whether this call got an answer.
 function noteOutcome(kind, info) {
   try { require('./request-scope.js').noteLlm(kind, info); } catch (_) { /* no scope */ }
@@ -522,7 +546,7 @@ module.exports = async function callLLM(opts) {
       if (got.refusal) { console.warn('[llm][' + stage + '] ' + provider + ' refused on ' + model + ' — demoting'); return { ok: false, status: 200, err: 'refusal: ' + got.refusal }; }
       if (!String(got.text || '').trim()) { console.warn('[llm][' + stage + '] ' + provider + ' EMPTY content on ' + model + ' — demoting'); return { ok: false, status: 200, err: 'empty_response' }; }
       console.log('[llm][' + stage + '] ' + provider + ' ok model=' + model + ' len=' + got.text.length);
-      return { ok: true, text: got.text, provider, model };
+      return { ok: true, text: got.text, provider, model, usage: reportedUsage(data) };
     } catch (e) {
       const aborted = ctrl.signal.aborted;
       return { ok: false, status: 0, err: aborted ? ('timeout after ' + ms + 'ms') : (e && e.message) || String(e) };
@@ -704,8 +728,10 @@ module.exports = async function callLLM(opts) {
   }
 
   function _success(result) {
-    noteOutcome('ok', { own: !!ovKeys[result.provider] });
-    return { text: result.text, provider: result.provider, model: result.model, seed,
+    const usage = result.usage || { input_tokens: null, output_tokens: null };
+    noteOutcome('ok', { own: !!ovKeys[result.provider], kind: 'text', provider: result.provider, model: result.model,
+      input_tokens: usage.input_tokens, output_tokens: usage.output_tokens });
+    return { text: result.text, provider: result.provider, model: result.model, seed, usage,
              quota_warning: openaiKeysExhausted > 0, exhausted_keys: openaiKeysExhausted,
              // Which routing decided this call, and whether the key that paid
              // for it was the workspace's. Never the key, only the fact.
@@ -1010,6 +1036,7 @@ module.exports.freeGenerationOn = freeGenerationOn;
 module.exports.modelsFor = modelsFor;
 module.exports.providerOrder = providerOrder;
 module.exports.classifyFailure = classifyFailure;
+module.exports.reportedUsage = reportedUsage;
 module.exports.retryAfterSeconds = retryAfterSeconds;
 /**
  * True when the only model this call could reach is the keyless floor (no
