@@ -316,12 +316,12 @@ test.describe('3. another domain\'s legal entity, logo and social never reach a 
 
 /* ── 4. an anonymous call naming a workspace gets THAT workspace's brand ─── */
 
-test.describe('4. a request with no verified caller that names a workspace is answered as that workspace, never tenant zero', () => {
+test.describe('4. a request with no verified caller is answered as no brand: never the workspace it names, never tenant zero', () => {
   const A = require('./agents-harness');
   const F = require('./lib/brand-invariant-fixtures');
   const ZERO_NAME = F.ZERO.name;
 
-  async function brandFor(workspaceId) {
+  async function brandFor(workspaceId, headers) {
     const w = await A.world({});
     try {
       w.db.addUser('tok-bramble', 'user-bramble', 'b@example.test').addWorkspace('ws-bramble', 'user-bramble', F.workspaceRow(F.BRAMBLE, 'ws-bramble'));
@@ -334,7 +334,7 @@ test.describe('4. a request with no verified caller that names a workspace is an
       growth.handle = async (req, res) => { seen.push(req.__brand || null); return res.json({ ok: true }); };
       try {
         // Server to server: no Origin, no bearer, a workspace named.
-        const res = await w.request('/api/brain', { query: Object.assign({ action: 'growth-os' }, workspaceId ? { workspace_id: workspaceId } : {}), method: 'GET' });
+        const res = await w.request('/api/brain', { query: Object.assign({ action: 'growth-os' }, workspaceId ? { workspace_id: workspaceId } : {}), method: 'GET', headers });
         expect(res.status, res.text).toBe(200);
       } finally { growth.handle = real; }
       expect(seen.length, 'the core was reached').toBe(1);
@@ -342,11 +342,30 @@ test.describe('4. a request with no verified caller that names a workspace is an
     } finally { await w.close(); }
   }
 
-  test('naming another brand\'s workspace resolves that brand\'s own record', async () => {
+  // CHANGED ON PURPOSE (2026-10-20, found on production): an anonymous caller
+  // that named a workspace used to be answered AS that workspace, which let
+  // anyone read or write any brand by naming it. Now only the scheduler is.
+  test('naming another brand\'s workspace anonymously is not that brand, and not tenant zero', async () => {
     const b = await brandFor('ws-bramble');
+    expect(b && b.unresolved).toBe(true);
+    expect(JSON.stringify(b)).not.toContain(F.BRAMBLE.name);
+    expect(JSON.stringify(b)).not.toContain(ZERO_NAME);
+  });
+
+  test('the scheduler naming a workspace is answered as that brand\'s own record', async () => {
+    const b = await brandFor('ws-bramble', { authorization: 'Bearer ' + require('./router-harness').CRON });
     expect(b && b.name).toBe(F.BRAMBLE.name);
     expect(require('../api/_shared/brand-runtime.js').homeRegion(b)).toBe('UK');
+  });
+
+  test('an anonymous request naming no workspace is no brand; code with no request (a worker) keeps the shipped default', async () => {
+    const rt = require('../api/_shared/brand-runtime.js');
+    const anon = { headers: {}, query: {}, body: {} };
+    const b = await rt.resolve(anon, { auth: { ok: false, status: 401 }, workspace_id: null, named_workspace: '' });
+    expect(b && b.unresolved).toBe(true);
     expect(JSON.stringify(b)).not.toContain(ZERO_NAME);
+    const worker = await rt.resolve(null, { auth: { ok: false, status: 401 }, workspace_id: null, named_workspace: '' });
+    expect(worker && worker.name).toBe(ZERO_NAME);
   });
 
   test('naming a workspace that cannot be read is the unresolved placeholder, never tenant zero', async () => {

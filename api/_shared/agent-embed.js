@@ -168,6 +168,22 @@ async function publicChat(req, res, b, deps) {
     return say(res, 403, 'origin_not_allowed', msg);
   }
   if (!rateHit(addressOf(req))) return say(res, 429, 'slow_down', 'Too many questions in a minute. Please wait a moment and ask again.');
+  // The visitor is admitted to THIS brand only, by the checks above (the page
+  // is on the brand's own website, the agent is this workspace's). The router
+  // scopes an anonymous request to nothing (2026-10-20), so the scope the
+  // agent reads under is granted here, after those checks, and nowhere else.
+  req.__workspaceId = ws.id;
+  req.__scopeGranted = true;
+  // ...and the BRAND it answers as is that workspace's own record (the router
+  // resolved none for a visitor; the built-in agent reads req.__brand).
+  try {
+    const env = {
+      url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
+    };
+    const own = await require('./workspace-scope.js').brandForWorkspace(env, ws.id);
+    if (own) req.__brand = own;
+  } catch (_) { /* the agent says it has no brand */ }
 
   const cap = capOf(ws);
   const used = await repliesToday(wsId);

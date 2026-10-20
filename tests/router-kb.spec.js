@@ -125,11 +125,17 @@ test.describe('list', () => {
     expect(hits).toEqual([]);
     expect(guard.rest(/brand_user_prefs/).length).toBe(1);
   });
-  test('an explicit workspace_id wins over the session', async () => {
+  test('a workspace the session names is honoured only when it owns it or is a member of it', async () => {
     const hits = table('kb_knowledge', []);
-    await call('list', { method: 'GET', query: { workspace_id: 'ws_explicit' } });
-    expect(wsFilter(hits[0].url)).toBe('ws_explicit');
+    await call('list', { method: 'GET', query: { workspace_id: H.WS } });
+    expect(wsFilter(hits[0].url)).toBe(H.WS);
     expect(guard.rest(/brand_user_prefs/)).toEqual([]);
+    // Changed on purpose (2026-10-20, found on production): naming another
+    // brand's workspace read that brand's knowledge base.
+    const before = hits.length;
+    const r = await call('list', { method: 'GET', query: { workspace_id: 'ws_explicit' } });
+    expect(r.out).toMatchObject(NOTHING);
+    expect(hits.length).toBe(before);
   });
   test('a store error is passed through with its status, never as items', async () => {
     table('kb_knowledge', { __reply: H.reply(503, 'db paused') });
@@ -276,7 +282,8 @@ test.describe('ingest-site', () => {
     S.on(PACK, 'userStore', () => ({ kind: 'user' }));
     S.on(PACK, 'serviceStore', () => ({ kind: 'service' }));
     S.on(PACK, 'getPackRow', async () => null);
-    await call('ingest-site', { json: {}, auth: 'none', origin: false });
+    // The scheduler is the only userless caller (2026-10-20): it takes the service store.
+    await call('ingest-site', { json: {}, auth: 'cron', origin: false });
     expect(S.hit(PACK, 'getPackRow').args[0].kind).toBe('service');
     guard.restore(); guard = H.netGuard({ activeWorkspace: null });
     const none = await call('ingest-site', { json: {} });

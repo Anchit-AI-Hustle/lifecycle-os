@@ -713,14 +713,21 @@ test('a core that throws inside smart-brain is a 500 with the message', async ()
 /* ── the workspace-scoping contract (same as api/brain.js) ──────────────── */
 
 test.describe('workspace scoping', () => {
-  test('a session resolves the caller\'s ACTIVE workspace into config; an explicit workspace_id wins over it', async () => {
+  test('a session resolves the caller\'s ACTIVE workspace into config; a workspace it names is used only when it is a member of it', async () => {
     S.on(PLAN, 'getPlan', async () => ({ ok: true }));
     await call('smart-brain-plan', { method: 'GET' });
     expect(cfgOf(last(PLAN, 'getPlan'))).toEqual({ workspace_id: H.WS });
-    await call('smart-brain-plan', { method: 'GET', query: { workspace_id: 'ws_explicit' } });
-    expect(cfgOf(last(PLAN, 'getPlan'))).toEqual({ workspace_id: 'ws_explicit' });
-    await call('smart-brain-plan', { json: { workspace_id: 'ws_in_body' } });
-    expect(cfgOf(last(PLAN, 'getPlan'))).toEqual({ workspace_id: 'ws_in_body' });
+    await call('smart-brain-plan', { method: 'GET', query: { workspace_id: H.WS } });
+    expect(cfgOf(last(PLAN, 'getPlan'))).toEqual({ workspace_id: H.WS });
+    // Changed on purpose (2026-10-20, found on production): naming a workspace
+    // the caller is not a member of read that workspace's plan.
+    const before = S.hits(PLAN).length;
+    for (const run of [{ method: 'GET', query: { workspace_id: 'ws_explicit' } }, { json: { workspace_id: 'ws_in_body' } }]) {
+      const r = await call('smart-brain-plan', run);
+      expect(r.status).toBe(403);
+      expect(r.out.error).toBe('not_a_member');
+    }
+    expect(S.hits(PLAN).length).toBe(before);
   });
   test('a signed-in user with NO active workspace gets null, never the oldest workspace', async () => {
     guard.restore(); guard = H.netGuard({ activeWorkspace: null });
@@ -729,10 +736,22 @@ test.describe('workspace scoping', () => {
     expect(cfgOf(last(PLAN, 'getPlan'))).toEqual({ workspace_id: null });
     expect(guard.rest(/order=created_at\.asc/)).toEqual([]);
   });
-  test('a userless server-to-server call falls to the default workspace (the documented cron behaviour)', async () => {
+  test('only the scheduler is userless: it falls to the default workspace, an anonymous call reads nothing', async () => {
     S.on(PLAN, 'getPlan', async () => ({ ok: true }));
-    await call('smart-brain-plan', { method: 'GET', auth: 'none', origin: false });
+    await call('smart-brain-plan', { method: 'GET', auth: 'cron', origin: false });
     expect(cfgOf(last(PLAN, 'getPlan'))).toEqual({ workspace_id: H.WS_OLDEST });
+    // Changed on purpose (2026-10-20, found on production): `curl
+    // /api/calendar?action=smart-brain-plan` with no session and no Origin read
+    // the live brand's whole plan. Anonymous, with or without a named workspace:
+    const before = S.hits(PLAN).length;
+    for (const query of [{}, { workspace_id: H.WS }, { workspace_id: H.WS_OLDEST }]) {
+      for (const origin of [false, true]) {
+        const r = await call('smart-brain-plan', { method: 'GET', auth: 'none', origin, query });
+        expect(r.status).toBe(200);
+        expect(r.out).toMatchObject({ ok: true, mode: 'unscoped', stored: false, entries: [], error: 'workspace_unresolved' });
+      }
+    }
+    expect(S.hits(PLAN).length).toBe(before);
   });
   test('scoping never hard-fails the router: a dead backend still answers with an empty config', async () => {
     guard.restore(); guard = H.netGuard({ supabase: false });

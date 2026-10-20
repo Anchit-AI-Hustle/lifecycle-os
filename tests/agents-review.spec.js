@@ -162,7 +162,7 @@ test.describe('1-2. what an anonymous caller can reach', () => {
     }
   });
 
-  test('RECORDED, not changed: an anonymous server-to-server caller can still write through these actions', async () => {
+  test('CLOSED (2026-10-20, found on production): an anonymous caller writes through no action, named workspace or not', async () => {
     // The ungated posture of api/brain.js that tests/router-brain.spec.js pins
     // (2026-09-28), measured here as WRITES. None of them reaches a model any
     // more (the test above), and none is reachable from a page; closing them
@@ -170,19 +170,20 @@ test.describe('1-2. what an anonymous caller can reach', () => {
     // action that writes for an anonymous caller fails this pin.
     test.setTimeout(240000);
     const writers = new Set();
+    const writeLog = [];
     for (const a of brainActions()) {
       for (const shape of ['server', 'namedServer', 'namedBrowser']) {
         for (const method of ['GET', 'POST']) {
           w.reset();
           await send('/api/brain', a, method, SHAPES[shape]);
-          if (restWrites().length) writers.add(a);
+          if (restWrites().length) { writers.add(a); writeLog.push([a, shape, method, restWrites()]); }
         }
       }
     }
-    expect([...writers].sort()).toEqual([
-      'agent-upsert', 'analyze', 'calendar-generate', 'calendar-review', 'config', 'feedback', 'mvt',
-      'os-run-daily-job', 'social-approve', 'social-skip',
-    ]);
+    // It used to write through agent-upsert, analyze, calendar-generate, calendar-review,
+    // config, feedback, mvt, os-run-daily-job, social-approve and social-skip; on
+    // production an anonymous POST wrote an agent into the live brand's workspace.
+    expect([...writers].sort(), JSON.stringify(writeLog).slice(0, 1500)).toEqual([]);
   });
 });
 

@@ -54,8 +54,34 @@ function connection() {
   else if (envUrl && envKey) { url = envUrl; key = envKey; }               // this deployment's own project
   else if (file.url && file.anonKey) { url = file.url; key = file.anonKey; } // pinned clone fallback
   else { url = envUrl || smartUrl || file.url || ''; key = envKey || file.anonKey || ''; }
-  _conn = { url: url.replace(/\/$/, ''), key };
+  // THE SERVICE KEY, WHEN THE PROJECT IS THE DEPLOYMENT'S OWN (2026-10-20,
+  // found on production). With no SMART_BRAIN_* override the pair above is
+  // (SUPABASE_URL, the ANON key), although this adapter is written for the
+  // service role and scopes every read and write by workspace itself. As anon,
+  // the workspace lookup (brand_user_prefs) was refused by RLS, so every
+  // signed-in caller's scoped read came back empty, and a table with no anon
+  // grant (smart_generated_campaigns) answered 42501, reported as "the
+  // database is paused". The service key is used only for a caller who may
+  // act on a workspace (see LinkedDb.key); anyone else keeps the anon key.
+  const serviceKey = clean(process.env.SUPABASE_SERVICE_ROLE_KEY) || clean(process.env.SUPABASE_SERVICE_KEY);
+  const base = url.replace(/\/$/, '');
+  _conn = { url: base, key, serviceKey: (envUrl && serviceKey && base === envUrl.replace(/\/$/, '')) ? serviceKey : '' };
   return _conn;
+}
+
+/**
+ * May the request in flight act with the service role? The scheduler
+ * (CRON_SECRET) and a caller the router VERIFIED (req.__verifiedUser, set by
+ * api/brain.js after requireUser) may; so may code running outside any request
+ * (workers, scripts). A stranger may not: it keeps the anon key, so RLS still
+ * decides what it reaches, as it always has.
+ */
+function mayUseServiceRole() {
+  let req = null;
+  try { req = require('./request-scope.js').currentRequest(); } catch (_) { req = null; }
+  if (!req) return true;
+  if (req.__verifiedUser || req.__scopeGranted) return true;
+  try { return require('./workspace-scope.js').schedulerRequest(req); } catch (_) { return false; }
 }
 
 /**
@@ -75,8 +101,11 @@ class LinkedDb {
   constructor() {
     const c = connection();
     this.url = c.url;
-    this.key = c.key;
+    this._key = c.key;
+    this._serviceKey = c.serviceKey || '';
   }
+  /** Chosen per request (the adapter is a module-level singleton). */
+  get key() { return (this._serviceKey && mayUseServiceRole()) ? this._serviceKey : this._key; }
   get connected() { return Boolean(this.url && this.key); }
   headers(extra = {}) {
     return {
