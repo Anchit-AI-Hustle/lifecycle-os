@@ -455,7 +455,7 @@ module.exports = async function handler(req, res) {
     if (hit) {
       // Whose key drew it: the credit meter waives the charge for a picture the
       // workspace's own key made.
-      try { require('../_shared/request-scope.js').noteLlm('ok', { own: !!ownImg }); } catch (_) { /* no scope */ }
+      try { require('../_shared/request-scope.js').noteLlm('ok', { own: !!ownImg, kind: 'image', provider: hit.provider, model: hit.model, images: 1 }); } catch (_) { /* no scope */ }
       const usedFreeFallback = hit.provider === 'pollinations' && hadKeys && !freeFirst;
       return res.status(200).json({
         ok: true, provider: hit.provider, model: hit.model, size, quality,
