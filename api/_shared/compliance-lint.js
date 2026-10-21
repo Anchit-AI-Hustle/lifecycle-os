@@ -767,6 +767,17 @@ function jurisdictionsFor(market) {
 function claimRegex(text, opts) {
   const t = String(text || '').trim().replace(/[.!?;:,\s*†‡]+$/u, '');
   if (t.length < 3) return null;
+  // Copy writes a measurement in words (unit-words.js: "100W" -> "100-watt"), so
+  // an approved claim stated with a symbol is matched in either form.
+  let spoken = '';
+  try { spoken = require('./unit-words.js').spellUnits(t); } catch (_) { spoken = ''; }
+  const body = claimSource(t);
+  const alt = spoken && spoken !== t ? claimSource(spoken) : '';
+  const tail = opts && opts.inflect && /[\p{L}]$/u.test(t) ? '(?:s|es|ed|d|ing)?' : '';
+  return rx(`${B}${alt ? `(?:${body}|${alt})` : body}${tail}${E}`);
+}
+
+function claimSource(t) {
   const parts = [];
   for (const ch of t) {
     if (/\s/.test(ch)) { if (parts[parts.length - 1] !== '\\s+') parts.push('\\s+'); continue; }
@@ -774,8 +785,7 @@ function claimRegex(text, opts) {
     if (/[-‐‑–—]/.test(ch)) { parts.push('[-‐‑–—\\s]*'); continue; }
     parts.push(ch.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
   }
-  const tail = opts && opts.inflect && /[\p{L}]$/u.test(t) ? '(?:s|es|ed|d|ing)?' : '';
-  return rx(`${B}${parts.join('')}${tail}${E}`);
+  return parts.join('');
 }
 
 function citationOf(c) {
