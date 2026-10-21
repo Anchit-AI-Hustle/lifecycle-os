@@ -3596,6 +3596,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   reportProofGap(campaign, entry, trace);
   attachDisclaimer(campaign, entry);
   attachPlacementCopy(campaign, entry);
+  attachUnitWords(campaign, entry);
   // THE MARKETING TEAM (2026-10-20): UTM tags on every link to the brand's own
   // site, a tracked destination on every ad, the KPI and test plan for the send,
   // an SEO check of each landing page, and what each department did for it.
@@ -3607,6 +3608,72 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   // entry names whose brand, which market and which offer they are judged as.
   checkAssetContracts(campaign, entry);
   return campaign;
+}
+
+// A measurement is written as a person says it (2026-10-21, the operator: "the
+// letter W ... means watts, so basically 100 watts, it shouldn't say 100 W").
+// The store's spec line ("100W", "20000mAh", "500ml") reaches copy from the
+// catalogue, the claims and the model; every finished asset is spelled here, in
+// text only (never a URL, attribute, style or script), for the brand's home
+// market. An ad field keeps its symbol only when the words would break the
+// platform's character limit, and says so.
+function attachUnitWords(campaign, entry) {
+  const a = campaign && campaign.assets;
+  if (!a) return null;
+  const U = require('./unit-words.js');
+  const ac = require('./asset-contracts.js');
+  const brand = entry && entry.brand;
+  let locale = '';
+  try { locale = require('./brand-runtime.js').homeRegion(brand); } catch (_) { locale = ''; }
+  const opts = { locale };
+  const report = { spelled: 0, kept_for_limit: [] };
+  const say = (v, html) => {
+    if (typeof v !== 'string' || !/\d/.test(v)) return v;
+    const out = html ? U.spellUnitsHtml(v, opts) : U.spellUnits(v, opts);
+    if (out !== v) report.spelled += 1;
+    return out;
+  };
+  const em = a.email;
+  if (em && typeof em === 'object') deep(em);
+  for (const lp of Array.isArray(a.landing_pages) ? a.landing_pages : []) deep(lp);
+  for (const ad of Array.isArray(a.ads) ? a.ads : []) {
+    if (!ad || typeof ad !== 'object') continue;
+    const contract = ac.contractFor(ad);
+    const limitOf = (slot) => (contract ? ac.slotLimit(contract.id, slot) : null);
+    const fit = (slot, v) => {
+      const out = say(v, false);
+      const lim = Number(limitOf(slot)) || 0;
+      if (lim && out !== v && out.length > lim) { report.kept_for_limit.push({ platform: ad.platform, slot, text: v }); return v; }
+      return out;
+    };
+    for (const slot of ['headline', 'primary_text', 'description', 'caption', 'cta', 'overlay', 'script', 'hook']) {
+      if (typeof ad[slot] === 'string') ad[slot] = fit(slot === 'overlay' ? 'headline' : slot, ad[slot]);
+    }
+    if (Array.isArray(ad.headlines)) ad.headlines = ad.headlines.map((h) => fit('headlines', h));
+    if (Array.isArray(ad.descriptions)) ad.descriptions = ad.descriptions.map((d) => fit('descriptions', d));
+    if (ad.creative && typeof ad.creative === 'object' && typeof ad.creative.motion_html === 'string') ad.creative.motion_html = say(ad.creative.motion_html, true);
+    // Every other line a viewer reads: the overlay, the video's on-screen words.
+    deep(ad.overlay); if (ad.creative) deep(ad.creative.motion_brief);
+    if (Array.isArray(ad.placements)) for (const pl of ad.placements) if (pl && typeof pl === 'object') {
+      for (const k of Object.keys(pl)) if (typeof pl[k] === 'string' && !/url|safe|aspect|id$|^key$|^label$|^note$/i.test(k)) pl[k] = fit(k === 'on_screen' ? 'headline' : k, pl[k]);
+    }
+  }
+  // The platform-ready copies of the same copy (services.platformAdObject).
+  const pr = campaign.platform_ready;
+  if (pr && typeof pr === 'object') for (const k of Object.keys(pr)) deep(pr[k]);
+  campaign.unit_words = report;
+  return report;
+  // A string a reader sees, anywhere in a node, but never a prompt, a URL or an id.
+  function deep(node, key) {
+    if (node == null) return node;
+    if (typeof node === 'string') {
+      if (/prompt|url|^id$|_id$|image|src|href|key|platform|type|aspect|format|path|slug|handle|sku|code|check|__/i.test(key || '')) return node;
+      return say(node, /html$/i.test(key || ''));
+    }
+    if (Array.isArray(node)) { for (let i = 0; i < node.length; i += 1) node[i] = deep(node[i], key); return node; }
+    if (typeof node === 'object') for (const k of Object.keys(node)) node[k] = deep(node[k], k);
+    return node;
+  }
 }
 
 // Copy for each placement an ad runs in (2026-10-17, the asset rating pass).
@@ -4271,7 +4338,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
@@ -4446,6 +4513,7 @@ async function dbCheck({ config: cfg = {} } = {}) {
 }
 
 module.exports = {
+  attachUnitWords,
   // exported for tests/mailer-justified.spec.js: a saved bundle from other
   // renderer code is never replayed.
   ASSET_BUILD_VERSION, __test_currentBuild: currentBuild,

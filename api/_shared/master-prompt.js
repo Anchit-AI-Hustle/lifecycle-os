@@ -82,7 +82,7 @@ function creativeFacts(brand) {
   const t = b.typography || {};
   const fonts = `${(t.heading && t.heading.family) || '[DATA REQUIRED BEFORE LAUNCH: heading font]'} headings / ${(t.body && t.body.family) || '[DATA REQUIRED BEFORE LAUNCH: body font]'} body`;
   const claims = (Array.isArray(b.claims) && b.claims.length)
-    ? b.claims.join(' · ')
+    ? b.claims.map((c) => require('./unit-words.js').spellUnits(String(c))).join(' · ')
     : `[DATA REQUIRED BEFORE LAUNCH: verifiable brand claims, ${name}]`;
   const industry = b.industry || 'its industry';
   // The named .wav beds are tenant zero's own repo assets. No other brand may
