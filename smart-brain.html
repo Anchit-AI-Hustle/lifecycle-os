@@ -409,6 +409,100 @@ function exportStem(){
     return s || 'lifecycle';
   } catch(_) { return 'lifecycle'; }
 }
+
+/* DOWNLOADS THAT OPEN AS THE ASSET, NOT AS CODE (2026-10-20).
+ *
+ * The operator: "images not loading, icons not loading, html codes loading
+ * instead of output" in the files /brain downloads. Reproduced in Chromium:
+ * an ad's Download saved its JSON under a .html name, so it opened as a wall of
+ * code, and the motion creative's HTML inside that JSON was half-parsed into
+ * broken <img src=\"...\"> tags; "Download all" pasted every document, and that
+ * JSON, into ONE page, so the mailers' styles fought and the code showed again.
+ * A downloaded file is opened from disk, away from this page: it cannot read
+ * CSS custom properties or relative paths, so everything it needs is resolved
+ * here, at download time, into plain values. */
+function sbBrandName(){
+  try { const b = window.BrandContext && window.BrandContext.brand; return String((b && b.name) || '').trim(); } catch(_) { return ''; }
+}
+// The page's own role colours, RESOLVED (a saved file has no --vh-* tokens).
+function sbDocColors(){
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n, f) => { const x = String(cs.getPropertyValue(n) || '').trim(); return x || f; };
+  return { primary: v('--vh-primary', '#3a3a3a'), onPrimary: v('--vh-on-primary', '#ffffff'), ink: v('--vh-ink', '#1f1f1f'),
+    dim: v('--vh-ink-dim', '#555555'), panel: v('--vh-panel', '#ffffff'), bg: v('--vh-bg', '#ffffff'), line: v('--vh-line', '#dddddd'),
+    accentText: v('--vh-accent-text', v('--vh-ink', '#1f1f1f')), head: v('--vh-font-head', 'system-ui, sans-serif'), body: v('--vh-font-body', 'system-ui, sans-serif') };
+}
+// A document that works opened from disk: protocol-relative links get https,
+// and the landing-page placeholder is the hosted page when there is one.
+function sbPortable(html, lpUrl){
+  return String(html || '')
+    .replace(/\{\{\s*landing_page_url\s*\}\}/g, lpUrl || '#')
+    .replace(/(\s(?:src|href|poster)\s*=\s*["'])\/\//gi, '$1https://')
+    .replace(/url\(\s*(["']?)\/\//gi, 'url($1https://');
+}
+const sbAbsUrl = u => String(u || '').replace(/^\/\//, 'https://');
+const sbEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// One ad as a page: the creative as it shows on the platform, then every line
+// of copy it carries. Never the JSON, never the prompt.
+function sbAdDocHTML(ad){
+  ad = ad || {}; const C = sbDocColors(); const cr = ad.creative || {}; const ov = ad.overlay || {};
+  const brand = sbBrandName();
+  const platform = String(ad.platform || 'ad'); const P = platform.charAt(0).toUpperCase() + platform.slice(1);
+  const isVideo = (ad.creative_type || '') === 'video';
+  const ratio = String(ad.aspect || (isVideo ? '9:16' : '1:1')).replace(':', '/');
+  const cta = ov.cta || ad.cta || '';
+  const rows = [];
+  const add = (k, v) => { const val = Array.isArray(v) ? v.filter(Boolean) : v; if (val == null || (Array.isArray(val) ? !val.length : !String(val).trim())) return;
+    rows.push(`<tr><th>${sbEsc(k)}</th><td>${Array.isArray(val) ? '<ol>' + val.map(x => `<li>${sbEsc(x)}</li>`).join('') + '</ol>' : sbEsc(val)}</td></tr>`); };
+  add('Headline', ad.headline); add('Primary text', ad.primary_text); add('Description', ad.description);
+  add('Headlines', ad.headlines); add('Descriptions', ad.descriptions); add('Caption', ad.caption); add('Hook', ad.hook);
+  add('Script', ad.script); add('Button', cta); add('Placement', ad.placement);
+  if (/^https?:\/\//i.test(String(ad.destination_url || ''))) rows.push(`<tr><th>Destination</th><td><a href="${sbEsc(ad.destination_url)}">${sbEsc(ad.destination_url)}</a></td></tr>`);
+  else add('Destination', ad.destination_url);
+  add('Placements', (ad.placements || []).map(p => `${p.label || p.key}${p.ratio ? ' (' + p.ratio + ')' : ''}${p.on_screen ? ': "' + p.on_screen + '"' : ''}`));
+  add('Image brief (for the photo only)', ad.creative_brief);
+  let stage;
+  if (isVideo && cr.motion_html) {
+    stage = `<iframe title="${sbEsc(P)} video creative" style="width:100%;max-width:360px;aspect-ratio:9/16;border:0;border-radius:12px;display:block;margin:0 auto" srcdoc="${sbEsc(sbPortable(cr.motion_html))}"></iframe>`;
+  } else if (cr.image) {
+    stage = `<div class="frame" style="aspect-ratio:${sbEsc(ratio)}"><img src="${sbEsc(sbAbsUrl(cr.image))}" alt="${sbEsc((ov.headline || ad.headline || P) + ' creative')}">` +
+      `<div class="over"><div class="h">${sbEsc(ov.headline || ad.headline || '')}</div><div class="row">${ov.proof ? `<span class="proof">${sbEsc(ov.proof)}</span>` : ''}${cta ? `<span class="cta">${sbEsc(cta)}</span>` : ''}</div></div></div>`;
+  } else {
+    stage = `<div class="frame empty" style="aspect-ratio:${sbEsc(ratio)}"><span>${sbEsc(cr.data_gap || 'No approved photograph for this ad yet.')}</span></div>`;
+  }
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<title>${sbEsc((brand ? brand + ' · ' : '') + P + ' ' + (isVideo ? 'video' : 'static') + ' ad')}</title><style>` +
+    `*{box-sizing:border-box}body{margin:0;background:${C.bg};color:${C.ink};font-family:${C.body};line-height:1.5;padding:24px 16px}` +
+    `.wrap{max-width:560px;margin:0 auto}h1{font-family:${C.head};font-size:20px;margin:0 0 4px}.sub{color:${C.dim};font-size:13px;margin:0 0 16px}` +
+    `.frame{position:relative;width:100%;border-radius:12px;overflow:hidden;background:${C.panel};border:1px solid ${C.line}}` +
+    `.frame img{width:100%;height:100%;object-fit:cover;display:block}.frame.empty{display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;color:${C.dim};font-size:14px}` +
+    `.over{position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(transparent,rgba(0,0,0,.62));color:#fff}` +
+    `.over .h{font-family:${C.head};font-weight:700;font-size:20px;line-height:1.2;margin-bottom:8px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}` +
+    `.proof{font-size:12px;background:rgba(255,255,255,.18);padding:4px 8px;border-radius:999px}.cta{margin-left:auto;background:${C.primary};color:${C.onPrimary};font-weight:700;font-size:13px;padding:8px 14px;border-radius:8px}` +
+    `table{width:100%;border-collapse:collapse;margin-top:18px;font-size:14px}th{text-align:left;vertical-align:top;width:34%;color:${C.dim};font-weight:600;padding:8px 10px 8px 0;border-top:1px solid ${C.line}}` +
+    `td{padding:8px 0;border-top:1px solid ${C.line};overflow-wrap:anywhere;white-space:pre-wrap}td ol{margin:0;padding-left:18px}a{color:${C.accentText}}` +
+    `</style></head><body><div class="wrap"><h1>${sbEsc(P)} ${isVideo ? 'video' : 'static'} ad${ad.variant ? ' · ' + sbEsc(ad.variant) : ''}</h1>` +
+    `<p class="sub">${sbEsc(brand)}${ad.placement ? ' · ' + sbEsc(ad.placement) : ''}${ad.aspect ? ' · ' + sbEsc(ad.aspect) : ''}</p>${stage}<table>${rows.join('')}</table></div></body></html>`;
+}
+// Every downloadable item in ONE file, each asset in its own frame (so no
+// asset's styles reach another) and a contents list; the frames fit their page.
+function sbBundleHTML(items, title){
+  const C = sbDocColors(); const brand = sbBrandName();
+  const docs = items.filter(it => (it.ext || 'html') === 'html');
+  const toc = docs.map((it, n) => `<li><a href="#a${n}">${sbEsc(it.label || it.name)}</a></li>`).join('');
+  const parts = docs.map((it, n) => `<section id="a${n}"><h2>${sbEsc(it.label || it.name)}</h2>` +
+    `<iframe title="${sbEsc(it.label || it.name)}" data-fit loading="lazy" srcdoc="${sbEsc(it.html)}"></iframe></section>`).join('');
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<title>${sbEsc(title || ((brand ? brand + ' · ' : '') + 'campaign assets'))}</title><style>` +
+    `*{box-sizing:border-box}body{margin:0;background:${C.bg};color:${C.ink};font-family:${C.body};padding:24px 16px}` +
+    `.wrap{max-width:760px;margin:0 auto}h1{font-family:${C.head};font-size:24px;margin:0 0 8px}h2{font-family:${C.head};font-size:17px;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid ${C.primary}}` +
+    `ol.toc{font-size:14px;margin:0 0 28px}ol.toc a{color:${C.accentText}}section{margin:0 0 36px}` +
+    `iframe{width:100%;min-height:600px;border:1px solid ${C.line};border-radius:10px;background:#fff;display:block}` +
+    `</style></head><body><div class="wrap"><h1>${sbEsc(title || ((brand ? brand + ' · ' : '') + 'Campaign assets'))}</h1>` +
+    `<ol class="toc">${toc}</ol>${parts}</div>` +
+    `<script>document.querySelectorAll('iframe[data-fit]').forEach(function(f){f.addEventListener('load',function(){try{var d=f.contentDocument;var fit=function(){f.style.height=Math.max(600,d.documentElement.scrollHeight+4)+'px'};fit();setTimeout(fit,800);setTimeout(fit,2500)}catch(e){}})});<\/script>` +
+    `</body></html>`;
+}
 function paintBrainTitle(){
   let name = '';
   try { name = (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name) || ''; } catch(_) {}
@@ -1383,18 +1477,22 @@ function renderPreview(payload, e, i, opts){
   // Per-asset control bar: Download + Copy. (Approve/reject removed — the tool
   // generates the final best version of every asset by default; the reviewer
   // just views and downloads.)
-  const expBar = (name, html) => {
-    const idx = window.__SB_EXPORTS.push({ name, html }) - 1;
+  const lpUrlAbs = liveLpId ? (location.origin + '/lp/' + encodeURIComponent(liveLpId)) : '';
+  const expBar = (name, html, label) => {
+    const idx = window.__SB_EXPORTS.push({ name, label: label || name, html: sbPortable(html, lpUrlAbs), ext: 'html' }) - 1;
     return `<div class="akbar">
       <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download</button>
       <button type="button" class="btn sm secondary" onclick="sbCopy(${idx}, this)">📋 Copy</button>
     </div>`;
   };
-  // Ads are not HTML files — Download the copy JSON.
-  const adBar = (name, text) => {
-    const idx = window.__SB_EXPORTS.push({ name, html: text }) - 1;
+  // An ad downloads as the AD: a page showing the creative and its copy. Its
+  // data is a separate .json file, never saved under a .html name.
+  const adBar = (name, ad, label) => {
+    const idx = window.__SB_EXPORTS.push({ name, label: label || name, html: sbAdDocHTML(ad), ext: 'html' }) - 1;
+    const jdx = window.__SB_EXPORTS.push({ name: name + '-copy', label: (label || name) + ' (data)', html: JSON.stringify(ad, null, 2), ext: 'json' }) - 1;
     return `<div class="akbar">
-      <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download copy</button>
+      <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download ad</button>
+      <button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button>
     </div>`;
   };
   // Every copyable prompt for one asset, whole-asset prompts first, each saying
@@ -1452,10 +1550,10 @@ function renderPreview(payload, e, i, opts){
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ Mailer · '+esc(v.label || String(vi+1)), first);
-      pane(id, `${v.type ? `<div class="pvnote" style="margin:0 0 6px">${esc(v.type)}</div>` : ''}${expBar('mailer-'+(v.key||vi), html)}${docFrame(html, 'mail', v.label || 'Mailer')}${promptBar(emailAsset)}`, first);
+      pane(id, `${v.type ? `<div class="pvnote" style="margin:0 0 6px">${esc(v.type)}</div>` : ''}${expBar('mailer-'+(v.key||vi), html, 'Mailer · '+(v.label || String(vi+1)))}${docFrame(html, 'mail', v.label || 'Mailer')}${promptBar(emailAsset)}`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html)}${docFrame(html, 'mail', 'Mailer')}${promptBar(emailAsset)}`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html, 'Mailer')}${docFrame(html, 'mail', 'Mailer')}${promptBar(emailAsset)}`, first); first=false; }
   // EVERY landing page, not just the first. The builder ships an A/B pair and
   // only landing_pages[0] was ever rendered, so the B variant existed in the
   // payload, was downloaded by "Download all", and could not be looked at.
@@ -1469,13 +1567,13 @@ function renderPreview(payload, e, i, opts){
     const id = 'pv-lp' + (li ? '-' + li : '');
     const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
     tab(id, label, first);
-    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html)}${docFrame(html, 'page', lp.title || 'Landing page')}${promptBar(lp)}`, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html, lp.title ? 'Landing page · ' + lp.title : 'Landing page ' + (li + 1))}${docFrame(html, 'page', lp.title || 'Landing page')}${promptBar(lp)}`, first);
     first = false;
   });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
   // names its variant and angle, otherwise both A and B collide on the same id
   // ("pv-ad-meta") and read as a duplicate "meta ad" tile (B hidden behind A).
-  ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, JSON.stringify(ad,null,2))+renderAd(ad)+promptBar(ad), first); first=false; });
+  ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, ad, (ad.platform||'ad')+' ad'+(ad.variant?' · '+ad.variant:''))+renderAd(ad)+promptBar(ad), first); first=false; });
   tab('pv-json','{ } Details', first); pane('pv-json', `<pre style="margin:0">${esc(JSON.stringify(campaign && campaign.campaign_id ? campaign : e, null, 2))}</pre>`, first);
 
   const banner = `<span class="st approved">final</span> <span class="pvnote" style="margin:0">Final generated version — the best version of each asset, ready to view and download.</span>`;
@@ -1687,7 +1785,7 @@ window.openDetailPage = function(i, btn){
   const e = PLAN[i]; const p = PREVIEW_CACHE[e && e.id];
   const html = p && (p.email_html || (p.email_variants && p.email_variants.find(v=>v.key==='visual_a')?.html) || (p.campaign?.assets?.email?.html));
   if(!html){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
-  const doc = String(html).replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
+  const doc = sbPortable(html);
   const old = document.getElementById('sbdetail'); if(old) old.remove();
   const ov = document.createElement('div'); ov.id = 'sbdetail';
   // The scrim is the ink at an opacity (the contract's modal), the dialog the
@@ -1712,9 +1810,10 @@ window.openDetailPage = function(i, btn){
 // Export an approved/previewed asset out of the tool.
 window.sbDownload = function(idx){
   const item = (window.__SB_EXPORTS||[])[idx]; if(!item) return;
-  const blob = new Blob([item.html], { type:'text/html' });
+  const json = item.ext === 'json';
+  const blob = new Blob([item.html], { type: json ? 'application/json' : 'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = exportStem()+'-'+String(item.name||'asset').replace(/[^a-z0-9_-]/gi,'-')+'.html';
+  a.download = exportStem()+'-'+String(item.name||'asset').replace(/[^a-z0-9_-]/gi,'-')+(json ? '.json' : '.html');
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
 };
@@ -1731,8 +1830,7 @@ window.sbAsset = function(ak, verdict, btn){
 window.sbDownloadAll = function(btn){
   const items = window.__SB_EXPORTS || [];
   if(!items.length){ sbSay(btn, 'Open View first so the assets are generated; there is nothing to download yet.'); return; }
-  const parts = items.map(it => `<section style="margin:0 0 28px"><h2 style="font-family:sans-serif;border-bottom:2px solid #6A33D8;padding-bottom:6px">${String(it.name||'asset')}</h2>${it.html}</section>`);
-  const doc = `<!doctype html><meta charset="utf-8"><title>Lifecycle OS campaign assets</title><body style="max-width:720px;margin:24px auto;padding:0 16px">${parts.join('\n')}</body>`;
+  const doc = sbBundleHTML(items);
   const blob = new Blob([doc], { type:'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = exportStem()+'-campaign-all-assets.html';
@@ -1785,27 +1883,28 @@ function _zipDashboardHTML(rows){
     return `<h2>${esc(d)} <span class="cnt">${byDate[d].length} send${byDate[d].length>1?'s':''}</span></h2>`+
       `<table><thead><tr><th>Market</th><th>Cohort</th><th>Objective</th><th>Hero</th><th>Offer</th><th>Conf.</th><th>Assets</th></tr></thead><tbody>${cards}</tbody></table>`;
   }).join('');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lifecycle OS Campaign Calendar — export</title><style>
-    :root{--g:#D0473E;--lava:#6A33D8;--ink:#111111;--chalk:#FFFFFF}*{box-sizing:border-box}
-    body{margin:0;background:var(--chalk);color:var(--ink);font:15px/1.55 'Instrument Sans',Arial,sans-serif;padding:28px max(20px,5vw)}
-    h1{font-family:'Montserrat',Georgia,serif;color:var(--g);margin:0 0 4px;font-size:30px}
-    .sub{color:var(--vh-ink);margin:0 0 22px}
-    h2{font-family:'Montserrat',Georgia,serif;color:var(--g);margin:26px 0 8px;font-size:20px}
-    .cnt{font:600 12px/1 'Instrument Sans',Arial;color:var(--brand-accent-text);letter-spacing:.05em}
+  const C = sbDocColors(); const brandName = sbBrandName(); const brand = brandName ? brandName + ' campaign calendar' : 'Campaign calendar';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(brand)}, export</title><style>
+    :root{--g:${C.primary};--lava:${C.line};--ink:${C.ink};--chalk:${C.bg};--on-g:${C.onPrimary};--dim:${C.dim};--acc:${C.accentText}}*{box-sizing:border-box}
+    body{margin:0;background:var(--chalk);color:var(--ink);font:15px/1.55 ${C.body};padding:28px max(20px,5vw)}
+    h1{font-family:${C.head};color:var(--ink);margin:0 0 4px;font-size:30px}
+    .sub{color:var(--dim);margin:0 0 22px}
+    h2{font-family:${C.head};color:var(--ink);margin:26px 0 8px;font-size:20px}
+    .cnt{font-size:12px;font-weight:600;color:var(--acc);letter-spacing:.05em}
     table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--lava);border-radius:12px;overflow:hidden;margin-bottom:8px}
-    th{background:var(--g);color:var(--chalk);text-align:left;padding:10px 12px;font-size:12px;letter-spacing:.04em}
-    td{padding:10px 12px;border-bottom:1px solid var(--vh-panel-tan);font-size:13px;vertical-align:top}
+    th{background:var(--g);color:var(--on-g);text-align:left;padding:10px 12px;font-size:12px;letter-spacing:.04em}
+    td{padding:10px 12px;border-bottom:1px solid var(--lava);font-size:13px;vertical-align:top}
     tr:last-child td{border-bottom:0}
     .links{white-space:normal}
     .chip{display:inline-block;margin:2px 4px 2px 0;padding:5px 10px;border-radius:999px;text-decoration:none;font-weight:700;font-size:11px;border:1px solid var(--lava)}
-    .chip.mailer{background:rgba(0,74,43,.1);color:var(--g)} .chip.landing{background:rgba(171,135,67,.16);color:var(--vh-ink)} .chip.ad{background:rgba(23,23,23,.08);color:var(--ink)}
+    .chip{color:var(--acc);background:var(--chalk)}
     .chip:hover{filter:brightness(.96)}
-    footer{margin-top:26px;color:#6b756e;font-size:12px}
+    footer{margin-top:26px;color:var(--dim);font-size:12px}
   </style></head><body>
-    <h1>KNICKGASM Campaign Calendar</h1>
+    <h1>${esc(brand)}</h1>
     <p class="sub">${rows.length} generated send${rows.length===1?'':'s'} across ${dates.length} day${dates.length===1?'':'s'} · exported ${esc(new Date().toISOString().slice(0,16).replace('T',' '))} UTC. Every asset link opens the real generated file in this bundle.</p>
     ${body || '<p>No sends in this export.</p>'}
-    <footer>Lifecycle OS · offline export. Open any mailer/landing HTML directly; ad JSON holds the platform-ready payload. See calendar.json for the machine-readable manifest.</footer>
+    <footer>Lifecycle OS · offline export. Open any mailer, landing page or ad page directly; each ad's .json beside it holds its data. See calendar.json for the machine-readable manifest.</footer>
   </body></html>`;
 }
 
@@ -1825,12 +1924,17 @@ window.sbZipAll = function(){
     const links = []; // {label, path} relative to ZIP root, for index.html
     const emailVars = p.email_variants || (c.assets && c.assets.email && c.assets.email.variants) || [];
     const emailHtml = p.email_html || (c.assets && c.assets.email && c.assets.email.html) || '';
-    if(emailVars.length){ emailVars.forEach((v,vi)=>{ if(v && v.html){ const n=`${base}/mailer_${slug(v.label)||('v'+(vi+1))}.html`; files.push({ name:n, data:v.html }); links.push({label:'Mailer · '+(v.label||('v'+(vi+1))), path:n, kind:'mailer'}); } }); }
-    else if(emailHtml){ const n=`${base}/mailer.html`; files.push({ name:n, data:emailHtml }); links.push({label:'Mailer', path:n, kind:'mailer'}); }
+    if(emailVars.length){ emailVars.forEach((v,vi)=>{ if(v && v.html){ const n=`${base}/mailer_${slug(v.label)||('v'+(vi+1))}.html`; files.push({ name:n, data:sbPortable(v.html) }); links.push({label:'Mailer · '+(v.label||('v'+(vi+1))), path:n, kind:'mailer'}); } }); }
+    else if(emailHtml){ const n=`${base}/mailer.html`; files.push({ name:n, data:sbPortable(emailHtml) }); links.push({label:'Mailer', path:n, kind:'mailer'}); }
     const lps = (c.assets && c.assets.landing_pages) || (p.landing_html ? [{ html:p.landing_html }] : []);
-    lps.forEach((lp,li)=>{ if(lp && lp.html){ const n=`${base}/landing_${slug(lp.variant)||('v'+(li+1))}.html`; files.push({ name:n, data:lp.html }); links.push({label:'Landing · '+(lp.variant||('v'+(li+1))), path:n, kind:'landing'}); } });
+    lps.forEach((lp,li)=>{ if(lp && lp.html){ const n=`${base}/landing_${slug(lp.variant)||('v'+(li+1))}.html`; files.push({ name:n, data:sbPortable(lp.html) }); links.push({label:'Landing · '+(lp.variant||('v'+(li+1))), path:n, kind:'landing'}); } });
     const ads = p.ads || (c.assets && c.assets.ads) || [];
-    ads.forEach((ad,ai)=>{ const n=`${base}/ad_${slug(ad.platform)||('ad'+(ai+1))}.json`; files.push({ name:n, data:JSON.stringify(ad,null,2) }); links.push({label:'Ad · '+(ad.platform||('ad'+(ai+1))), path:n, kind:'ad'}); });
+    // Each ad as a page you can open (the creative and its copy) and, beside
+    // it, its data as JSON. Named per platform AND type, so a static and a video
+    // ad of one platform never overwrite each other.
+    ads.forEach((ad,ai)=>{ const stem=`${base}/ad_${slug(ad.platform)||('ad'+(ai+1))}_${slug(ad.creative_type||ad.variant)||(ai+1)}`;
+      files.push({ name:stem+'.html', data:sbAdDocHTML(ad) }); files.push({ name:stem+'.json', data:JSON.stringify(ad,null,2) });
+      links.push({label:'Ad · '+(ad.platform||('ad'+(ai+1)))+(ad.creative_type?' '+ad.creative_type:''), path:stem+'.html', kind:'ad'}); });
     files.push({ name:`${base}/_slot.json`, data:JSON.stringify({ date:e.date, market:e.market, cohort:e.cohort, objective:e.objective, hero:e.heroProduct, bundle:e.supportingProducts, offer:e.offer, reach:e.reach, feasibility:e.feasibility, confidence:e.confidence }, null, 2) });
     rows.push({ date:e.date, market:e.market, cohort:(e.cohort&&e.cohort.name)||'', objective:e.objective||'', hero:(e.heroProduct&&(e.heroProduct.name||e.heroProduct))||'', offer:e.offer||'', confidence:e.confidence, feasibility:e.feasibility, links });
   }

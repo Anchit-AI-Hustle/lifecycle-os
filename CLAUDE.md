@@ -4,6 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ /brain downloads open as the asset, from disk (2026-10-20)
+The operator: "Check the downloaded output of all files in the smart brain - issues: images not loading, icons not
+loading, html codes loading instead of output". In `smart-brain.html`: an ad's Download saved `JSON.stringify(ad)` as
+text/html under a .html name (a wall of code, its `motion_html` half-parsed into broken `<img src=\"...\">`); Download
+all pasted every full document and that JSON into one page; a protocol-relative `//host/logo.png` does not load from
+file://; the ZIP index said "KNICKGASM Campaign Calendar" in tenant zero's hexes for every brand. Now: `sbAdDocHTML()`
+renders each ad as a page (the photo with its overlay, or the playable motion creative in a frame, plus its copy table;
+never JSON or a prompt) and its data is a separate `.json` download; `sbPortable()` gives `//` links https and fills
+`{{landing_page_url}}` with the hosted /lp page; `sbBundleHTML()` puts each asset in its own auto-sized `<iframe
+srcdoc>`; the ZIP carries `ad_<platform>_<type>.html` beside each `.json`, and its index takes the ACTIVE brand's name
+and computed tokens (`sbDocColors()`: a file opened from disk cannot read CSS variables). Gated by
+`tests/brain-downloads.spec.js` (3 executed: every download saved and opened via file://, every image incl. inside
+frames loaded, no code; 4 mutations caught).
+
 ## ⭐ The marketing team: ten departments, every step tied to the feature that does it (2026-10-20)
 The operator, with "The Ultimate GPT-6 Astra Marketing Team" (10 departments x 4 steps; the LinkedIn post's 80 prompts
 are comment-gated, so the screenshot is the spec): "ensure each step ... is followed and integrated appropriately ...
