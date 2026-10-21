@@ -94,6 +94,10 @@
   const LAST = new Map();
   function lastSpec(id) { return LAST.get(id) || null; }
 
+  // A measurement is written as a person says it (unit-words.js carries the same
+  // rule and enforces it on finished copy): every prompt with words a person reads.
+  const UNITS_LINE = 'Units: write every unit of measure the way a person says it, never as its symbol ("100 watts", "a 100-watt charger", "500 millilitres", "25 degrees Celsius", not "100 W", "100W", "500ml", "25°C"); a model name or product code stays exactly as written.';
+
   const BASE_FORBID = ['a plan, an outline or a description of the deliverable in place of the deliverable itself', 'follow-up questions'];
 
   /* ── the marker ──────────────────────────────────────────────────────── */
@@ -199,6 +203,7 @@
     if (ml) lines.push(ml);
     lines.push(`Do NOT return: ${forbid.join('; ')}.`);
     lines.push(`Format: ${fmt.label}. ${spec.formatRule || fmt.rule}`);
+    if (kind !== 'element') lines.push(UNITS_LINE);
     for (const l of (spec.lines || [])) if (l) lines.push(l);
     if (spec.format === 'json' && spec.shape) {
       lines.push('Shape (exactly these keys, every one required; each value shows the TYPE, limit or allowed values to return, never an example to copy):');

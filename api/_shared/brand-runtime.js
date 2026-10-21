@@ -614,13 +614,14 @@ function brandBlock(brand) {
   // actually assert, so a generator had nothing approved to reach for and every
   // proof line came out as a DATA REQUIRED marker even when the brand had
   // supplied claims. These are the only ones any asset may state as fact.
-  const claims = Array.isArray(b.claims) ? b.claims.filter(Boolean) : [];
+  const claims = (Array.isArray(b.claims) ? b.claims.filter(Boolean) : []).map((c) => spellUnitsFor(String(c), b, false));
   lines.push(claims.length
     ? `VERIFIABLE CLAIMS (the ONLY statements that may be presented as fact; never assert anything else): ${claims.map((c) => `"${c}"`).join(' · ')}.`
     : `VERIFIABLE CLAIMS: ${missing('verifiable claims', '', b)}. Until they are supplied, write no proof, guarantee or credential line at all.`);
   if (Array.isArray(v.preferred) && v.preferred.length) lines.push(`PREFERRED words: ${v.preferred.join(', ')}.`);
   if (Array.isArray(v.banned) && v.banned.length) lines.push(`BANNED phrases (never use): ${v.banned.map((s) => `"${s}"`).join(', ')}.`);
   if (v.no_em_dashes !== false) lines.push('Never use em dashes or en dashes anywhere in output copy. Use commas, colons or plain hyphens.');
+  lines.push(require('./unit-words.js').RULE);
   lines.push(`REGIONS: ${regionLines(b.regions, b)}`);
   lines.push(`LOCALE: ${localeLine(b)}`);
   lines.push('NEVER: off-palette tints, fabricated product facts, prices, URLs, reviews, ratings, reviewer names, statistics or filenames. If a fact you need was not supplied, write [DATA REQUIRED BEFORE LAUNCH: field, product, region] in its place instead of inventing one.');
@@ -656,6 +657,16 @@ function regionFacts(brand, market) {
   return null;
 }
 
+// A measurement in copy is written as a person says it ("100 watts", never "100 W"),
+// spelled for the brand's home market (unit-words.js, 2026-10-21).
+function spellUnitsFor(s, brand, html) {
+  try {
+    const U = require('./unit-words.js');
+    const locale = brand ? homeRegion(brand) : '';
+    return html ? U.spellUnitsHtml(s, { locale }) : U.spellUnits(s, { locale });
+  } catch (_) { return s; }
+}
+
 /**
  * Brand-aware banned-phrase scrubber. scenario-model.sanitizeBrand enforces
  * tenant zero's list; this additionally strips whatever THIS brand banned.
@@ -663,7 +674,7 @@ function regionFacts(brand, market) {
  */
 function scrubForBrand(str, brand) {
   const v = (brand && brand.voice) || {};
-  let s = String(str == null ? '' : str);
+  let s = spellUnitsFor(String(str == null ? '' : str), brand, false);
   if (v.no_em_dashes !== false) s = s.replace(/[—–]/g, ', ');
   const banned = Array.isArray(v.banned) ? v.banned.filter(Boolean) : [];
   if (!banned.length) return s;
@@ -705,7 +716,7 @@ function scrubForBrand(str, brand) {
  */
 function scrubHtmlForBrand(html, brand) {
   const v = (brand && brand.voice) || {};
-  let s = String(html == null ? '' : html);
+  let s = spellUnitsFor(String(html == null ? '' : html), brand, true);
   if (v.no_em_dashes !== false) s = s.replace(/[—–]/g, ', ');
   const banned = Array.isArray(v.banned) ? v.banned.filter(Boolean) : [];
   if (!banned.length) return s;

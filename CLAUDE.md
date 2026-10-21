@@ -4,6 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A measurement is written as a person says it, for any brand (2026-10-21)
+The operator: "the letter W ... means watts, so basically 100 watts, it shouldn't say 100 W ... It could be based on
+any brand ... any other spectrum". A store's spec line ("100W", "20000mAh", "500ml", "25°C") reached copy, the
+claims list and the prompts operators paste into ChatGPT / Gemini as a symbol. `api/_shared/unit-words.js` (UMD):
+`spellUnits` / `spellUnitsHtml` expand only symbols UNAMBIGUOUS after a number ("100 watts"; before a noun the
+attributive "100-watt charger"; metre/litre per the brand's home market, -er for US), never inside a URL, attribute,
+style, script, Outlook `[if mso]` block, model code ("VC5158W", "#100W"), "5G", "2 in 1", "4K", "1080p"; m, s, h, A,
+L, in are deliberately left to the model. `RULE` rides every prompt through `brand-runtime.brandBlock` (claims are
+listed there in words too) and `output-contract.block` (`Units:` line, every kind but element; both copies identical).
+Enforced on finished copy: `smart-brain-plan.attachUnitWords` (every reader-facing string of email incl. variants and
+the header comment, landing pages, ads incl. overlay / motion words / placements, `platform_ready`; an ad field keeps
+its symbol only when the words would break the platform limit, listed in `campaign.unit_words.kept_for_limit`), and
+`brand-runtime.scrubForBrand` / `scrubHtmlForBrand` (generate.js, pipeline, landing page builder, agents). The
+compliance gate matches an approved claim in either form (`claimRegex` alternation). `ASSET_BUILD_VERSION` hashes
+unit-words.js. Gated by `tests/unit-words.spec.js` (7 executed, template and scripted-model builds; 6 mutations caught).
+
 ## ⭐ /brain downloads open as the asset, from disk (2026-10-20)
 The operator: "Check the downloaded output of all files in the smart brain - issues: images not loading, icons not
 loading, html codes loading instead of output". In `smart-brain.html`: an ad's Download saved `JSON.stringify(ad)` as
