@@ -202,6 +202,7 @@ function normalizeScenes(spec) {
     alt: s.alt || spec.product || brandNameOf(spec),
     headline: s.headline || '',
     sub: s.sub || '',
+    badge: s.badge || '',
     seconds: Math.max(1.6, Math.min(4, Number(s.seconds) || 2.6)),
     move: MOVES[i % MOVES.length]
   }));
@@ -253,9 +254,27 @@ function renderMotionAd(spec) {
     ${bg}
     <div class="veil"></div>
     ${s.image || String(s.headline || '').trim() === BRAND_NAME ? '' : `<div class="mark">${esc(BRAND_NAME)}</div>`}
+    <div class="brand-bar">
+      <div class="avatar">${esc((BRAND_NAME[0]||'B').toUpperCase())}</div>
+      <div class="brand-meta">
+        <span class="brand-name">${esc(BRAND_NAME)}</span>
+        <span class="brand-badge">Sponsored ✓</span>
+      </div>
+    </div>
     <div class="type">
-      <h2 class="kin"${i === 0 ? ' data-ds="headline"' : ''}>${esc(s.headline)}</h2>
-      ${s.sub ? `<p class="kin" style="animation-delay:.12s">${esc(s.sub)}</p>` : ''}
+      <div class="type-card">
+        ${s.badge ? `<div class="badge-tag">${esc(s.badge)}</div>` : ''}
+        <h2 class="kin"${i === 0 ? ' data-ds="headline"' : ''}>${esc(s.headline)}</h2>
+        ${s.sub ? `<p class="kin" style="animation-delay:.12s">${esc(s.sub)}</p>` : ''}
+      </div>
+    </div>
+    <div class="social-rail" aria-hidden="true">
+      <div class="s-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span>24K</span></div>
+      <div class="s-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg><span>1.2K</span></div>
+      <div class="s-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg><span>Share</span></div>
+    </div>
+    <div class="bottom-action">
+      <div class="action-pill">${esc(spec.cta || 'Learn More')} <span>→</span></div>
     </div>
   </section>`);
   });
@@ -296,12 +315,37 @@ function renderMotionAd(spec) {
                      ${alpha(PAL.ink, 0.42)} 0%,
                      transparent 34%, transparent 55%,
                      ${alpha(PAL.green, 0.62)} 100%); }
-  .type { position:absolute; left:7%; right:7%; top:9%; }
+  .brand-bar { position:absolute; left:6%; top:4%; z-index:4; display:flex; align-items:center; gap:8px;
+               background:${alpha(PAL.ink, 0.5)}; color:var(--chalk); padding:5px 12px 5px 6px;
+               border-radius:999px; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+               border:1px solid ${alpha(PAL.chalk, 0.15)}; }
+  .brand-bar .avatar { width:22px; height:22px; border-radius:50%; background:var(--lava);
+                       color:var(--on-lava); display:flex; align-items:center; justify-content:center;
+                       font-weight:700; font-size:11px; }
+  .brand-bar .brand-name { font-weight:700; font-size:clamp(11px, 2.8vmin, 13px); letter-spacing:.02em; }
+  .brand-bar .brand-badge { font-size:10px; opacity:.85; margin-left:4px; color:var(--chalk); }
+  .type { position:absolute; left:6%; right:6%; top:12%; z-index:3; }
+  .type-card { background:${alpha(PAL.ink, 0.55)}; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+               border:1px solid ${alpha(PAL.chalk, 0.16)}; border-radius:14px; padding:14px 16px;
+               box-shadow:0 8px 24px ${alpha(PAL.ink, 0.35)}; }
+  .badge-tag { display:inline-block; background:var(--lava); color:var(--on-lava); font-weight:700;
+               font-size:clamp(10px, 2.4vmin, 12px); letter-spacing:.08em; text-transform:uppercase;
+               padding:3px 8px; border-radius:6px; margin-bottom:8px; }
   .type h2 { font-family:var(--head); font-weight:700;
-             color:var(--chalk); font-size:clamp(26px, 8.5vmin, 54px); line-height:1.12;
-             text-shadow:0 2px 22px ${alpha(PAL.ink, 0.45)}; }
-  .type p { color:var(--chalk); opacity:.94; font-size:clamp(14px, 3.6vmin, 22px);
-            margin-top:10px; text-shadow:0 1px 14px ${alpha(PAL.ink, 0.5)}; }
+             color:var(--chalk); font-size:clamp(22px, 7vmin, 44px); line-height:1.15;
+             text-shadow:0 2px 18px ${alpha(PAL.ink, 0.45)}; }
+  .type p { color:var(--chalk); opacity:.94; font-size:clamp(13px, 3.4vmin, 18px);
+            margin-top:8px; line-height:1.3; text-shadow:0 1px 12px ${alpha(PAL.ink, 0.5)}; }
+  .social-rail { position:absolute; right:4%; bottom:14%; z-index:4; display:flex; flex-direction:column;
+                 align-items:center; gap:12px; color:var(--chalk); }
+  .social-rail .s-btn { display:flex; flex-direction:column; align-items:center; gap:2px;
+                        font-size:10px; font-weight:600; text-shadow:0 1px 4px ${alpha(PAL.ink, 0.7)}; }
+  .social-rail .s-btn svg { filter:drop-shadow(0 1px 4px ${alpha(PAL.ink, 0.7)}); }
+  .bottom-action { position:absolute; left:6%; right:6%; bottom:5%; z-index:4; }
+  .action-pill { display:flex; align-items:center; justify-content:space-between;
+                 background:${alpha(PAL.chalk, 0.95)}; color:var(--ink); font-weight:700;
+                 font-size:clamp(12px, 3vmin, 15px); padding:10px 18px; border-radius:10px;
+                 box-shadow:0 4px 16px ${alpha(PAL.ink, 0.3)}; }
   .kin { opacity:0; will-change:transform,opacity; }
   /* A scene with no photo of the brand's own (2026-10-17 audit): the line sat
      at the top of an empty colour field, 80% of the frame blank, with no mark
@@ -351,6 +395,7 @@ function renderMotionAd(spec) {
     .scene { opacity: 0 !important; }
     .scene:first-of-type { opacity: 1 !important; }
     .kin { opacity: 1 !important; transform: none !important; }
+    .social-rail, .bottom-action { display: none !important; }
     .cta { opacity: 1 !important; transform: none !important;
            inset: auto 0 0 0 !important; padding: 7% 9% !important;
            gap: 12px !important; justify-content: flex-end !important; }
