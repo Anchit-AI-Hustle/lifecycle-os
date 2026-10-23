@@ -191,6 +191,14 @@ function fromRow(row) {
     source_url: typeof row.source_url === 'string' && /^https?:\/\//.test(row.source_url) ? row.source_url : '',
     region: String(row.region || '').toLowerCase(),
     __workspace_id: row.workspace_id || '',
+    unit_spec: row.unit_spec || (row.specs && row.specs.weight) || null,
+    piece_count: row.piece_count || (row.specs && row.specs.piece_count) || null,
+    servings: row.servings || (row.specs && row.specs.servings) || null,
+    claims: Array.isArray(row.claims) ? row.claims : ((row.specs && row.specs.claims) || []),
+    metrics: row.metrics || null,
+    author: row.author || null,
+    read_time: row.read_time || null,
+    offering_kind: row.offering_kind || null,
   };
 }
 
