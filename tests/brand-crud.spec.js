@@ -74,11 +74,13 @@ test('edit reuses the wizard\'s own ?id= path rather than a second seeding route
 
 test('delete requires the brand name, not a single OK', () => {
   // One shared confirmDeleteBrand() serves step 1 and Review.
-  const fn = ONBOARDING.slice(ONBOARDING.indexOf('async function confirmDeleteBrand'));
-  const block = fn.slice(0, 2500);
+  const fn = ONBOARDING.slice(ONBOARDING.indexOf('function confirmDeleteBrand'));
+  const block = fn.slice(0, 5000);
   // A confirm() is too cheap for something that removes a catalogue, stored
-  // credentials and a credit ledger.
-  expect(block).toMatch(/window\.prompt/);
+  // credentials and a credit ledger. The name is typed in a panel under the
+  // row (2026-10-23): a native prompt answers null at once under remote
+  // debugging, so Delete did nothing (executed in brand-delete-step1.spec.js).
+  expect(block).toMatch(/data-delete-confirm/);
   expect(block, 'a mistyped name must delete nothing').toMatch(/Nothing was deleted/);
   // The warning has to name what else goes, or "delete brand" reads as a label
   // change rather than the cascade it is.
@@ -87,10 +89,10 @@ test('delete requires the brand name, not a single OK', () => {
 });
 
 test('deleting the ACTIVE brand warns that it is the active one', () => {
-  const fn = ONBOARDING.slice(ONBOARDING.indexOf('async function confirmDeleteBrand'));
+  const fn = ONBOARDING.slice(ONBOARDING.indexOf('function confirmDeleteBrand'));
   const block = fn.slice(0, 2500);
   expect(block).toMatch(/alsoActive/);
-  expect(block).toMatch(/ACTIVE brand/);
+  expect(block).toMatch(/your active brand/i);
 });
 
 test('a row action does not also trigger the row switch', () => {
