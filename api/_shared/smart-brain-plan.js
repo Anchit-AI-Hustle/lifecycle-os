@@ -2043,6 +2043,9 @@ const textOn = (ground, surface, ink) => { const k = _wsCore(); try { return k ?
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
 function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
+  // This page's own composition (asset-style.js): hero arrangement varies by
+  // brand and slot; the brand's palette, type and radii do not.
+  const _lpRecipe = require('./asset-style.js').recipe(entry, `landing:${campaignId || ''}`);
   const L = copy.landing || {};
   const _o = opts || {};
   // Everything brand-visible derives from the ACTIVE brand on the entry:
@@ -2220,8 +2223,9 @@ img{max-width:100%;height:auto;display:block}
 h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:34px 20px 38px}
 .hero-grid{max-width:1080px;margin:0 auto;display:grid;gap:24px;align-items:center}
+.hero--media-left .hero-media,.hero--media-top .hero-media{order:-1}
 .hero-media img{width:100%;height:280px;object-fit:cover;border-radius:12px;display:block}
-@media(min-width:900px){.hero{padding:56px 32px}.hero-grid.has-media{grid-template-columns:1fr 1fr;text-align:left;gap:48px}.hero-grid.has-media h1,.hero-grid.has-media p{margin-left:0;margin-right:0}.hero-media img{height:420px}}
+@media(min-width:900px){.hero{padding:56px 32px}.hero-grid.has-media{grid-template-columns:1fr 1fr;text-align:left;gap:48px}.hero-grid.has-media.hero--media-top{grid-template-columns:1fr;text-align:center;max-width:760px}.hero-grid.has-media.hero--media-top h1,.hero-grid.has-media.hero--media-top p{margin-left:auto;margin-right:auto}.hero-grid.has-media h1,.hero-grid.has-media p{margin-left:0;margin-right:0}.hero-media img{height:420px}}
 .others{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),260px));gap:14px}
 .other .ph{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;padding:0;background:var(--chalk-warm);color:var(--ink);font-family:var(--head);font-size:44px}
 .offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px;padding:0;margin:0;list-style:none}
@@ -2309,8 +2313,8 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18p
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
 <div class="bar">${esc(bName)}</div>
-<section class="hero">
-  <div class="hero-grid${creativeUrl ? ' has-media' : ''}">
+<section class="hero" data-recipe="${esc(_lpRecipe.id)}">
+  <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpRecipe.hero)}">
     <div class="hero-copy">
       ${(() => {
         const hp = entry.heroProduct || {};
@@ -2569,7 +2573,9 @@ function renderVariant(entry, copy, style, img) {
     // collection the "collection" was the same address as the main CTA.
     products, collection_url: (links.collectionUrl && links.collectionUrl !== links.pdp && links.collectionUrl !== links.store) ? links.collectionUrl : undefined,
     offer_bar: (withGrid && (E.offer || (copy.landing && copy.landing.offer_bar))) || undefined,
-    layout: (entry.__mailStudy && entry.__mailStudy.layout) || undefined,
+    // The studied layout, composed differently for each slot and variant
+    // (asset-style.js): the brand's look stays, the arrangement moves.
+    layout: require('./asset-style.js').mailLayout(entry.__mailStudy && entry.__mailStudy.layout, require('./asset-style.js').recipe(entry, `mail:${style}`)),
   }), entry, style);
 }
 // Four variants in the SAME taxonomy as the Mailer Calendar: 2 Text + 2 Text +
@@ -4672,7 +4678,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
