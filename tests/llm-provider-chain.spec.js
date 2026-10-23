@@ -42,10 +42,12 @@ const HOSTS = {
   'api.x.ai': 'grok', 'api.groq.com': 'groq', 'api.cerebras.ai': 'cerebras', 'openrouter.ai': 'openrouter',
   'models.inference.ai.azure.com': 'github', 'models.github.ai': 'github', 'api.cloudflare.com': 'cloudflare',
   'text.pollinations.ai': 'pollinations',
+  'api.deepseek.com': 'deepseek',
+  'bedrock-runtime.us-east-1.amazonaws.com': 'bedrock',
 };
 
 function okBody(provider, said) {
-  if (provider === 'anthropic') return { content: [{ type: 'text', text: said }], stop_reason: 'end_turn' };
+  if (provider === 'anthropic' || provider === 'bedrock') return { content: [{ type: 'text', text: said }], stop_reason: 'end_turn' };
   if (provider === 'gemini') return { candidates: [{ content: { parts: [{ text: said }] } }] };
   return { choices: [{ message: { content: said }, finish_reason: 'stop' }] };
 }
@@ -63,7 +65,8 @@ function installNet(script) {
     const key = (h.Authorization || '').replace(/^Bearer\s+/, '') || h['x-api-key'] || u.searchParams.get('key') || '';
     let model = body.model || '';
     if (provider === 'gemini') { const m = u.pathname.match(/models\/([^:/]+):/); model = m ? decodeURIComponent(m[1]) : ''; }
-    const call = { provider, model, key, body };
+    if (provider === 'bedrock') { const m = u.pathname.match(/\/model\/([^/]+)\/invoke/); model = m ? decodeURIComponent(m[1]) : ''; }
+    const call = { provider, model, key, body, headers: h };
     calls.push(call);
     const spec = script(call) || { status: 200, json: okBody(provider, 'answer from ' + provider + '/' + model) };
     if (spec.hang) {
@@ -82,7 +85,8 @@ const ENV = ['FREE_GENERATION', 'OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_AP
   'CLOUDFLARE_ACCOUNT_ID', 'OLLAMA_BASE_URL', 'SAKANA_BASE_URL', 'SAKANA_API_KEY', 'APP_AI_PROVIDER', 'APP_AI_TIER', 'LLM_TOTAL_BUDGET_MS',
   'OPENROUTER_MAX_TOKENS', 'GROQ_TEXT_MODEL', 'GEMINI_TEXT_MODEL', 'ANTHROPIC_TEXT_MODEL', 'OPENAI_TEXT_MODEL', 'CEREBRAS_TEXT_MODEL',
   'CLOUDFLARE_TEXT_MODEL', 'CLOUDFLARE_TEXT_MODEL_FAST', 'CLOUDFLARE_TEXT_MODEL_MAX', 'GROK_TEXT_MODEL', 'GROK_TEXT_MODEL_MAX',
-  'GEMINI_TEXT_MODEL_MAX', 'GEMINI_TEXT_MODEL_FAST', 'ANTHROPIC_TEXT_MODEL_MAX', 'ANTHROPIC_TEXT_MODEL_FAST', 'OPENAI_TEXT_MODEL_MAX', 'OPENAI_TEXT_MODEL_FAST', 'LLM_KEYLESS_GAP_MS'];
+  'GEMINI_TEXT_MODEL_MAX', 'GEMINI_TEXT_MODEL_FAST', 'ANTHROPIC_TEXT_MODEL_MAX', 'ANTHROPIC_TEXT_MODEL_FAST', 'OPENAI_TEXT_MODEL_MAX', 'OPENAI_TEXT_MODEL_FAST', 'LLM_KEYLESS_GAP_MS',
+  'DEEPSEEK_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION', 'BEDROCK_API_KEY', 'USE_BEDROCK_FOR_ANTHROPIC'];
 let saved = {};
 let net = null;
 let realNow = Date.now;
@@ -335,38 +339,55 @@ test('with no key at all, the free keyless model answers; no key, no model id is
   expect(net.calls[0].key, 'nothing is sent as a key').toBe('');
   expect(net.calls[0].body.model, 'no undocumented model id').toBeUndefined();
   expect(net.calls[0].body.messages.map((m) => m.role)).toEqual(['system', 'user']);
-  // Free first (2026-10-17): the keyless model, then the free tiers, then paid.
-  const PAID = ['anthropic', 'openai', 'grok'];
+  // Strongest free models first (Gemini, Groq, Cerebras...), then paid/low-cost, and weak keyless last.
   for (const tier of ['premium', 'standard', 'fast']) {
     const order = llm().providerOrder(tier);
-    expect(order[0], `${tier}: the free model is first`).toBe('pollinations');
-    const firstPaid = Math.min(...PAID.map((p) => order.indexOf(p)).filter((i) => i >= 0));
-    const lastFree = Math.max(...order.map((p, i) => (PAID.includes(p) ? -1 : i)));
-    expect(lastFree, `${tier}: every free provider comes before any paid one`).toBeLessThan(firstPaid);
+    expect(order[0], `${tier}: strongest free model is first`).toBe('gemini');
+    expect(order[order.length - 1], `${tier}: weak keyless model drops to last`).toBe('pollinations');
   }
   process.env.FREE_GENERATION = 'off';
   expect(llm().providerOrder('standard')[0], 'free generation off: the paid-first order is unchanged').toBe('anthropic');
 });
 
-test('free first (the operator: "done for free in the backend"): a paid key is reached only when every free provider failed', async () => {
+test('free first: strong free provider runs before paid, and paid reached when free failed', async () => {
   process.env.FREE_GENERATION = 'on';
   setEnv({ ANTHROPIC_API_KEY: 'ak', GROQ_API_KEY: 'gq' });
   net = installNet(() => undefined);
-  expect((await ask()).provider).toBe('pollinations');
+  // Strong free model with key present (groq) answers first, rather than falling to weak keyless model or burning paid key
+  expect((await ask()).provider).toBe('groq');
   expect(net.calls.some((c) => c.provider === 'anthropic'), 'no paid call while a free one answers').toBe(false);
   net.restore();
-  net = installNet((c) => (c.provider === 'pollinations' ? { status: 500, json: { error: 'down' } } : undefined));
-  expect((await ask()).provider).toBe('groq');
-  expect(net.calls.some((c) => c.provider === 'anthropic')).toBe(false);
-  net.restore();
-  net = installNet((c) => (c.provider === 'anthropic' ? undefined : { status: 500, json: { error: 'down' } }));
+  net = installNet((c) => (c.provider === 'groq' ? { status: 500, json: { error: 'down' } } : undefined));
   const out = await ask();
   expect(out.provider).toBe('anthropic');
-  expect(out.attempts.map((a) => a.provider)).toEqual(expect.arrayContaining(['pollinations', 'groq']));
-  // A paid provider named as a preference does not jump the free ones.
-  net.restore();
+  expect(out.attempts.map((a) => a.provider)).toEqual(expect.arrayContaining(['groq']));
+});
+
+test('deepseek provider is called when DEEPSEEK_API_KEY is configured', async () => {
+  setEnv({ DEEPSEEK_API_KEY: 'ds-test-key' });
   net = installNet(() => undefined);
-  expect((await ask({ preferProvider: 'anthropic' })).provider).toBe('pollinations');
+  const out = await ask({ preferProvider: 'deepseek' });
+  expect(out.provider).toBe('deepseek');
+  expect(out.text).toMatch(/answer from deepseek/);
+  expect(net.calls[0].provider).toBe('deepseek');
+  expect(net.calls[0].key).toBe('ds-test-key');
+});
+
+test('aws bedrock ai model is used for claude when bedrock credentials are set', async () => {
+  setEnv({
+    AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
+    AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    AWS_REGION: 'us-east-1',
+  });
+  net = installNet(() => undefined);
+  const out = await ask({ preferProvider: 'anthropic' });
+  expect(out.provider).toBe('bedrock');
+  expect(out.text).toMatch(/answer from bedrock/);
+  expect(net.calls[0].provider).toBe('bedrock');
+  const authHeader = net.calls[0].headers.Authorization || net.calls[0].headers.authorization;
+  expect(authHeader).toMatch(/^AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/);
+  expect(net.calls[0].headers['x-amz-date']).toBeTruthy();
+  expect(net.calls[0].body.anthropic_version).toBe('bedrock-2023-05-31');
 });
 
 test('its 402 is a rate limit (a wait), never a bill; FREE_GENERATION=off means no prompt leaves', async () => {

@@ -59,7 +59,12 @@ function aptnessFor(stage) {
 function capByBudget(tier, balance, cost) {
   if (!Number.isFinite(balance)) return { tier, why: '' };          // unknown balance: do not degrade
   const need = Number.isFinite(cost) ? cost : 0;
-  if (balance <= 0) return { tier: null, why: 'no credits remaining' };
+  if (balance <= 0) {
+    if (String(process.env.ZERO_CREDITS_FALLBACK || 'off').toLowerCase() === 'on') {
+      return { tier: 'fast', fallback: true, why: 'wallet balance is 0: routed to basic fallback model' };
+    }
+    return { tier: null, why: 'no credits remaining' };
+  }
   // Headroom multiples: how many more runs of this size the wallet holds.
   const runs = need > 0 ? balance / need : Infinity;
   if (runs >= 5) return { tier, why: '' };
