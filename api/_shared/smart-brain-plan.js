@@ -299,7 +299,7 @@ async function planningBrand(config, db) {
         const rankOf = (p) => (p.metrics && Number.isFinite(Number(p.metrics.popularity_rank)) ? Number(p.metrics.popularity_rank) : Infinity);
         const ordered = catalog.products.map((p, i) => [p, i]).sort((a, b) => (rankOf(a[0]) - rankOf(b[0])) || (a[1] - b[1])).map((x) => x[0]);
         const products = ordered.map(p => ({ kind: p.offering_kind === 'story' ? 'story' : 'product', name: p.n, handle: p.h,
-          price: p.price, compare_at: p.compare_at, currency: p.currency || null, image: p.i, type: p.type, tags: p.t, url: p.product_url || '',
+          price: p.price, compare_at: p.compare_at, currency: p.currency || null, region: p.region || null, image: p.i, type: p.type, tags: p.t, url: p.product_url || '',
           unit_spec: p.unit_spec || null, piece_count: p.piece_count || null, servings: p.servings || null,
           claims: Array.isArray(p.claims) && p.claims.length ? p.claims : null, metrics: p.metrics || null,
           author: p.author || null, read_time: p.read_time || null, published_at: p.published_at || null,
@@ -433,7 +433,7 @@ function strategyPlanEntries(brand, startDate, days, ns) {
         theme: objective,
         heroProduct: hero,
         heroOffering: null,
-        channels: ['email', 'meta', 'google', 'landing_page'],
+        channels: require('../../lib/smart-brain/services.js').BUILT_CHANNELS.slice(),
         cta: strategyCta(objective),
         cta_url: null,
         offer,
@@ -441,7 +441,7 @@ function strategyPlanEntries(brand, startDate, days, ns) {
         analysis: buildEntryAnalysis({
           cohort: { name: job.name, size: null },
           product: hero,
-          channels: ['email', 'meta', 'google', 'landing_page'],
+          channels: require('../../lib/smart-brain/services.js').BUILT_CHANNELS.slice(),
           objective,
           market: where,
           confidence,
@@ -615,14 +615,46 @@ function _mulberry32(seedStr) {
 function offeringPlanEntries(brand, offerings, startDate, days, ns) {
   const oc = require('./offering-campaign.js');
   const regions = (Array.isArray(brand.regions) && brand.regions.length) ? brand.regions : [];
-  const markets = regions.map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
-  if (!markets.length || !offerings.length) return [];
+  let markets = regions.map((r) => String(r.code || '').toUpperCase()).filter(Boolean);
+  if (!offerings.length) return [];
+  // A brand with offerings and no declared market still plans its OWN
+  // offerings (2026-10-23): it used to fall to the no-catalogue strategy plan,
+  // whose marker named the wrong gap. The gap is the home market, said once
+  // per slot.
+  const noMarket = !markets.length;
+  if (noMarket) markets = ['UNDECLARED'];
+  const homeGap = noMarket ? require('./brand-locale.js').marker('home market', brand) : null;
   const rnd = _mulberry32(String(brand.slug || brand.name || 'brand'));
   const cohorts = ['Nurture', 'Engaged', 'At Risk', 'Winback'];
   const entries = [];
+  // A catalogue row filed under a market is that market's (its price is in
+  // that market's currency); a row with no market serves every market.
+  const canon = (c) => { try { return require('./catalog-import.js').canonRegion(c) || String(c || '').toLowerCase(); } catch (_) { return String(c || '').toLowerCase(); } };
+  const forMarket = {};
+  for (const m of markets) {
+    // ...and an offering priced in a currency belongs to markets in that
+    // currency (an INR price is never shown to the US).
+    let cur = '';
+    try { cur = require('./catalog-import.js').marketCurrency(canon(m)) || ''; } catch (_) { cur = ''; }
+    const mine = offerings.filter((o) => (!o.region || canon(o.region) === canon(m))
+      && (!o.currency || !cur || String(o.currency).toUpperCase() === cur));
+    forMarket[m] = mine.length ? mine : [];
+  }
+  // An event inside its ramp takes only its milestone days, so the rest of
+  // the catalogue still rotates (a save-the-date every day for six weeks is
+  // spam): announce, early, a week out, the day before, the day, and two
+  // follow-ups.
+  const MILESTONES = new Set([45, 30, 21, 14, 7, 3, 1, 0, -1, -3]);
   for (let i = 0; i < days; i++) {
     const date = addDaysIso(startDate, i);
+    // Rotation on the ABSOLUTE day number, never the offset from today: the
+    // same calendar date resolves to the same cohort and offering on every
+    // daily sync, so its id is stable and a re-sync never adds a second slot
+    // beside the first (2026-10-23, the calendar audit).
+    const epoch = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86400000) || i;
     for (const market of markets) {
+      const offerings = forMarket[market];
+      if (!offerings.length) continue;
       // Pick the offering for this slot.
       //  - A date-bound offering takes the slot only while its window is
       //    genuinely CLOSING (inside RAMP_DAYS). A save-the-date repeated for
@@ -634,7 +666,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       const urgent = oc.pickForDate(offerings, date);
       let rotated = null;
       if (urgent && urgent.viable && KINDS.isDateBound(urgent.kind)
-          && urgent.days_until !== null && urgent.days_until <= RAMP_DAYS) {
+          && urgent.days_until !== null && urgent.days_until <= RAMP_DAYS && MILESTONES.has(urgent.days_until)) {
         rotated = urgent;                                   // the window is closing: it wins
       } else {
         const pool = offerings.filter((o) => {
@@ -644,16 +676,16 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           // A RECURRING offering (a daily series, a rolling training plan) is
           // date-bound by kind but carries no single date - it runs any time.
           if (p.days_until === null) return true;
-          return p.days_until <= RAMP_DAYS;                 // a dated event: only in its ramp
+          return false;                                     // a dated event: only on its milestone days (above)
         });
         const list = pool.length ? pool : offerings;
-        const pick = list[(i + markets.indexOf(market)) % list.length];
+        const pick = list[(epoch + markets.indexOf(market)) % list.length];
         const p = oc.planSend(pick, date);
         rotated = (p && p.viable) ? p : (urgent && urgent.viable ? urgent : null);
       }
       if (!rotated || !rotated.viable) continue;
       const useOff = rotated.offering;
-      const cohort = cohorts[(i + markets.indexOf(market)) % cohorts.length];
+      const cohort = cohorts[(epoch + markets.indexOf(market)) % cohorts.length];
       const confidence = Math.round((0.45 + rnd() * 0.3) * 100) / 100;   // demo, deterministic
       // The public moment of THIS market on this date (Diwali for IN,
       // Thanksgiving for US), from market-moments.js - never another market's
@@ -667,10 +699,11 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
+        ...(homeGap ? { data_gaps: [homeGap] } : {}),
         festival: moment ? { name: moment.name, weight: moment.weight, tags: moment.tags } : null,
         status: 'needs_human_verification',
         confidence,
-        cohort: { name: cohort, size: 0, estimated: true },
+        cohort: { name: cohort, size: null, estimated: true },
         objective,
         theme: `${useOff.name} (${useOff.kind})`,
         heroOffering: useOff,
@@ -697,7 +730,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           // stated reads), never a default (offering-intelligence.enrich).
           proof: (() => { try { return require('./offering-intelligence.js').enrich(Object.assign({ title: useOff.name, product_url: useOff.url }, useOff)).proof; } catch (_) { return []; } })(),
         },
-        channels: ['email', 'meta', 'google', 'landing_page'],
+        channels: require('../../lib/smart-brain/services.js').BUILT_CHANNELS.slice(),
         cta: useOff.kind === 'product' && /food|poultry|deli|restaurant/i.test(brand.industry || '')
           ? (useOff.type ? 'Order ' + useOff.type : 'Explore the menu') : rotated.cta,
         cta_url: rotated.cta_url || null,
@@ -706,7 +739,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         analysis: buildEntryAnalysis({
           cohort: { name: cohort, size: 0 },
           product: { title: useOff.name, category: useOff.kind },
-          channels: ['email', 'meta', 'google', 'landing_page'],
+          channels: require('../../lib/smart-brain/services.js').BUILT_CHANNELS.slice(),
           objective,
           market,
           confidence: { score: confidence, reasons: [{ label: 'Derived from the brand\'s own catalogue', delta: 0, detail: `${useOff.kind} "${useOff.name}"` }] },
@@ -1070,9 +1103,9 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
   const changes = [];
   let stored = [];
   if (db.connected && persist) {
-    stored = (await db.select(config.tableNames.calendarEntries, {
-      filters: { date: `gte.${start}` }, order: 'date.asc', limit: 1000,
-    }).catch(() => [])) || [];
+    stored = await selectAllRows(db, config.tableNames.calendarEntries, {
+      filters: { date: `gte.${start}` }, order: 'date.asc,id.asc',
+    });
   }
   const storedById = new Map(stored.map((r) => [r.id, r]));
   // Slots already stored from a catalogue the coherence rule now calls another
@@ -1185,6 +1218,23 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
         const upd = await db.update(config.tableNames.calendarEntries, { id: `eq.${r.id}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', change_log: log, updated_at: nowIso() }).catch(() => null);
         if (upd && upd.ok) changes.push({ id: r.id, kind: 'brand_changed', detail: `${r.date} ${r.market}: ${detail}` });
       }
+      // A still-editable slot of THIS record version that today's plan no
+      // longer contains (2026-10-23, the calendar audit): the planner changed
+      // its rotation, or a cap now holds the slot. Left in place it sat beside
+      // the new slot on the same day, so a person got two sends. Archived with
+      // the reason; an approved slot is its reviewer's and is never touched.
+      const lastFresh = fresh.reduce((m, e) => (e.date > m ? e.date : m), '');
+      for (const r of stored) {
+        if (freshIds.has(r.id) || !(r.status === 'tentative' || r.status === 'needs_human_verification')) continue;
+        if (!identityMatches((r.payload || {})[IDENTITY_KEY], ident)) continue;
+        if (!lastFresh || String(r.date) > lastFresh || String(r.date) < start) continue;
+        if (staleForeign.some((sf) => sf.row.id === r.id)) continue;
+        const log = Array.isArray(r.change_log) ? r.change_log.slice(-30) : [];
+        const detail = 'Archived: today\'s plan no longer has this slot (the rotation or the contact cap changed it).';
+        log.push({ at: nowIso(), kind: 'superseded', detail });
+        const upd = await db.update(config.tableNames.calendarEntries, { id: `eq.${r.id}`, status: 'in.(tentative,needs_human_verification)' }, { status: 'archived', change_log: log, updated_at: nowIso() }).catch(() => null);
+        if (upd && upd.ok) changes.push({ id: r.id, kind: 'superseded', detail: `${r.date} ${r.market}: ${detail}` });
+      }
     }
     for (const sf of staleForeign) {
       if (fresh.some((e) => e.id === sf.row.id)) continue;   // re-planned in place above
@@ -1246,13 +1296,39 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
 
 // ── Read current plan ───────────────────────────────────────────────────────
 
+/**
+ * Every row of a calendar read, paged to an EMPTY page (2026-10-23, the
+ * calendar audit): a 90-day plan over four markets is ~1,440 slots, and one
+ * read of `limit 1000` (PostgREST's max_rows is 1,000 too) dropped its last
+ * weeks - the console never showed them and daily sync re-created them as
+ * "new" every run. Bounded at 20,000 rows.
+ */
+async function selectAllRows(db, table, { filters = {}, order, pageSize = 1000, maxRows = 20000 } = {}) {
+  const out = [];
+  let prevFirst = null;
+  while (out.length < maxRows) {
+    const f = Object.assign({}, filters);
+    if (out.length) f.offset = String(out.length);
+    let page;
+    try { page = await db.select(table, { filters: f, order, limit: pageSize }); } catch (_) { page = []; }
+    if (!Array.isArray(page) || !page.length) break;
+    // A server that ignores `offset` hands the same page back for ever: the
+    // same first row twice is the end, not more rows.
+    const first = page[0] && page[0].id != null ? page[0].id : JSON.stringify(page[0]);
+    if (prevFirst !== null && first === prevFirst) break;
+    prevFirst = first;
+    out.push(...page);
+  }
+  return out.slice(0, maxRows);
+}
+
 async function getPlan({ config: cfg = {}, _ctxFallback = null, contact = null } = {}) {
   const config = _ctxFallback?.config || smartConfig(cfg);
   const db = _ctxFallback?.db || new SmartBrainDbAdapter(config);
   if (db.connected) {
-    let rows = (await db.select(config.tableNames.calendarEntries, {
-      filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc,market.asc', limit: 1000,
-    }).catch(() => [])) || [];
+    let rows = await selectAllRows(db, config.tableNames.calendarEntries, {
+      filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc,market.asc,id.asc',
+    });
     // Only slots made for the brand record as it is NOW (2026-10-11).
     if (rows.length) {
       const ident = await currentIdentity(config, db);
@@ -1893,9 +1969,10 @@ function proofBlockHtml(entry, style = 'visual') {
   const band = (inner) => (textOnly
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px"><tr><td style="padding:22px 24px;font-family:${pal.BODY};color:${pal.INK};border-top:1px solid ${pal.LINE}">${inner}</td></tr></table>`
     : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${pal.SURF2};border-top:1px solid ${pal.LINE}"><tr><td style="padding:26px 24px;font-family:${pal.BODY};color:${pal.INK}">${inner}</td></tr></table>`);
-  if (!reviews.length) {
-    return band(`<p style="margin:0;text-align:center;font-size:12.5px;line-height:1.5;color:${pal.INK}${textOnly ? '' : `;border:1px dashed ${pal.INK};border-radius:8px;padding:12px 14px`}">${esc(marker)}</p>`);
-  }
+  // No approved reviews: no proof section at all (2026-10-23, the operator:
+  // "no matter what, no placeholders will be used"). The gap is not hidden:
+  // it stays in the campaign's data_gaps and the copy's __proof_gap marker.
+  if (!reviews.length) { void marker; return ''; }
   if (textOnly) {
     const lines = reviews.slice(0, 2).map((r) => {
       const rating = (r.rating && r.rating.value && String(r.rating.scale || '5') === '5') ? ` (${esc(String(r.rating.value))}/5)` : '';
@@ -2094,7 +2171,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _prShot = _pr && (Array.isArray(_pr.media) ? _pr.media : []).find((m) => m && m.hosted_url);
   const proofSection = _pr
     ? `<section class="sec proof"><div class="wrap">${_prShot ? `<img class="proofshot" src="${esc(_prShot.hosted_url)}" alt="${esc(`Customer photo published by ${bName}`)}">` : ''}<blockquote>“${esc(_pr.quote || '')}”</blockquote>${_pr.author ? `<p class="who">- ${esc(_pr.author)}</p>` : ''}</div></section>`
-    : `<section class="sec datareq-band"><div class="wrap"><p class="datareq">${esc(proofMarker(entry))}</p></div></section>`;
+    : '';   // no approved review: no section (the gap is in data_gaps), never a marker on the page
   // A promise is rendered only where the brand actually states one - approved
   // per-SKU claims first, then the brand record's own verifiable claims.
   const _guaranteeRe = /guarantee|make it right|refund|return|free shipping/i;
@@ -2641,54 +2718,49 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
 // Deep brand scrub of an LLM copy object: every string through sanitizeBrand
 // (banned phrases → preferred lexicon, em/en dashes → hyphens). Safe no-op if
 // sanitizeBrand is unavailable.
+/**
+ * No placeholder reaches a customer, and no fact is invented to replace one
+ * (2026-10-23). The first version of this pass (#318) swapped each marker for
+ * a made-up value: a discount marker became "WELCOME10", an offer "10% OFF",
+ * the legal sender "<Brand> Official Store", the review library "verified by
+ * <brand> quality standards". Those are fabricated offers and claims.
+ *
+ * Now a placeholder is replaced only by the brand's OWN value when the record
+ * holds it (its name, its real hero product, its real website). Any other
+ * placeholder takes the SENTENCE it sits in with it: the copy says less, never
+ * something untrue. The gap itself stays in the campaign's data_gaps / checks.
+ */
+const MARKER_RX = /\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/gi;
+function dropSentencesWith(s, rx) {
+  // Split into sentences (keeping their ends) and lines; drop any that still
+  // hold a placeholder. A string that is nothing but a placeholder is ''.
+  const parts = String(s).split(/(?<=[.!?])\s+|\n/);
+  const kept = parts.filter((p) => { rx.lastIndex = 0; return !rx.test(p); });
+  return kept.join(' ').replace(/\s{2,}/g, ' ').trim();
+}
 function eliminatePlaceholders(text, entry = {}) {
   if (text == null) return text;
   let s = String(text);
-  if (!s.includes('[') && !s.includes('TBD') && !s.includes('Lorem') && !s.includes('placeholder')) return s;
-
+  if (!s.includes('[') && !s.includes('{{') && !s.includes('TBD') && !s.includes('Lorem')) return s;
+  // Liquid / Jinja-style merge fields an ESP fills ({{ first_name }}) and our
+  // own {{landing_page_url}} are not placeholders here: they are resolved where
+  // the asset is assembled.
   const brand = (entry && entry.brand) || {};
-  const bName = brand.name || 'Our Brand';
-  const heroName = (entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title)
-    || (entry.offering && entry.offering.name)
-    || `${bName} Signature Selection`;
-  const website = brand.website || (brand.regions && brand.regions[0] && brand.regions[0].store_url) || '/';
-  const cta = entry.cta || 'Shop Now';
-  const tagline = brand.tagline || (brand.claims && brand.claims[0]) || 'Quality Crafted & Delivered Fresh';
-
-  // Specific DATA REQUIRED patterns
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*product catalogue[^\]]*\]/gi, heroName);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*(?:region store URL|destination URL)[^\]]*\]/gi, website);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*approved review library[^\]]*\]/gi, `Crafted with care and verified by ${bName} quality standards`);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*audience[^\n\]]*\]/gi, `curated for ${bName} customers`);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*hero product[^\]]*\]/gi, heroName);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*verifiable claims[^\]]*\]/gi, tagline);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*brand descriptor[^\]]*\]/gi, tagline);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*brand palette[^\]]*\]/gi, 'Signature Brand Colors');
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*legal sender[^\]]*\]/gi, `${bName} Official Store`);
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*discount code[^\]]*\]/gi, 'WELCOME10');
-  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/gi, bName);
-
-  // Common bracketed templates
-  s = s.replace(/\[(?:Brand\s*Name|Your\s*Brand|Company\s*Name)\]/gi, bName);
-  s = s.replace(/\[(?:Product\s*Name|Item\s*Name|Hero\s*Product)\]/gi, heroName);
-  s = s.replace(/\[(?:CTA|Call\s*to\s*Action|Button\s*Text)\]/gi, cta);
-  s = s.replace(/\[(?:URL|Link|Store\s*URL|Website)\]/gi, website);
-  s = s.replace(/\[(?:INSERT|ENTER|FILL IN)[^\]]*\]/gi, heroName);
-  s = s.replace(/\[(?:Discount|Offer|Promo\s*Code)\]/gi, '10% OFF');
-  s = s.replace(/\[(?:Headline|Title)\]/gi, heroName);
-  s = s.replace(/\[(?:TBD|N\/A|Pending)\]/gi, heroName);
-
-  // Generic uppercase bracketed tags
-  s = s.replace(/\[([A-Z][A-Z0-9_\s-]{1,30})\]/g, (match, tag) => {
-    const t = tag.trim().toUpperCase();
-    if (/BRAND/i.test(t)) return bName;
-    if (/PROD|HERO|ITEM/i.test(t)) return heroName;
-    if (/CTA|BUTTON/i.test(t)) return cta;
-    if (/URL|LINK|STORE|WEB/i.test(t)) return website;
-    if (/OFFER|DISCOUNT|CODE/i.test(t)) return 'Special Collection';
-    return heroName;
-  });
-
+  const bName = String(brand.name || '').trim();
+  const hp = entry && entry.heroProduct;
+  const heroName = hp && !hp.placeholder && hp.title && !/^\[DATA REQUIRED/.test(hp.title) ? String(hp.title) : '';
+  const site = /^https?:\/\//i.test(String(brand.website || '')) ? String(brand.website) : '';
+  // True substitutions only.
+  if (heroName) s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*(?:product catalogue|hero product)[^\]]*\]/gi, heroName);
+  if (site) s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*(?:region store URL|destination URL)[^\]]*\]/gi, site);
+  if (bName) s = s.replace(/\[(?:Brand\s*Name|Your\s*Brand|Company\s*Name)\]/gi, bName);
+  if (heroName) s = s.replace(/\[(?:Product\s*Name|Item\s*Name|Hero\s*Product)\]/gi, heroName);
+  if (site) s = s.replace(/\[(?:URL|Link|Store\s*URL|Website)\]/gi, site);
+  // Everything else: the sentence goes.
+  if (MARKER_RX.test(s)) s = dropSentencesWith(s, MARKER_RX);
+  MARKER_RX.lastIndex = 0;
+  const tagRx = /\[(?:[A-Z][A-Za-z0-9_\s/-]{1,30})\]|\bLorem ipsum\b|\bTBD\b/g;
+  if (tagRx.test(s)) s = dropSentencesWith(s, tagRx);
   return s;
 }
 
@@ -2807,31 +2879,32 @@ function attachMotionCreative(ad, entry, pool) {
     const sentences = words(ad.primary_text || ad.caption).split(/(?<=[.!?])\s+/).map(words)
       .filter((x) => x.length >= 8 && x.length <= 90);
     const product = words(entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title);
-    const bName = (brand && brand.name) || 'Our Brand';
-    const isMedia = /news|times|post|journal|press|daily|gazette|herald|chronicle/i.test(bName) || (brand && brand.industry === 'media');
+    const bName = (brand && brand.name) || '';
     const lines = [];
     const push = (t) => { const v = words(t).slice(0, 90); if (v && !lines.some((x) => x.toLowerCase() === v.toLowerCase())) lines.push(v); };
-    let hook = words(ad.hook || ad.headline);
-    if (hook && hook.length < 16 && !hook.includes(':') && !hook.includes(' - ') && !hook.includes('—')) {
-      if (isMedia) {
-        hook = `${hook}: Daily Intelligence & Industry Analysis`;
-      } else if (product && !hook.toLowerCase().includes(product.toLowerCase())) {
-        hook = `${hook} — ${product}`;
-      } else {
-        hook = `${hook}: Curated Fresh by ${bName}`;
-      }
-    }
-    push(hook);
+    // The hook as the ad wrote it (2026-10-23): no suffix templates ("Daily
+    // Intelligence & Industry Analysis", "Curated Fresh by <brand>") that the
+    // brand never said.
+    push(ad.hook || ad.headline);
     sentences.forEach(push);
     if (product) push(product);
+    // A badge only when the store STATES it (its own popularity rank, a stated
+    // rating): never "BESTSELLER" on every first scene, which the compliance
+    // gate rightly blocked as an unsubstantiated superlative.
+    let proofBadge = '';
+    try { proofBadge = require('./offering-intelligence.js').enrich(Object.assign({ title: product, product_url: entry.heroProduct && entry.heroProduct.product_url }, entry.heroProduct || {})).badge || ''; } catch (_) { proofBadge = ''; }
     const nBeats = Math.max(1, Math.min(3, (Array.isArray(ad.storyboard) ? ad.storyboard.length : 3) - 1));
-    const beats = lines.slice(0, nBeats).map((line, i) => ({
-      image: images.length ? images[i % images.length] : '',
-      headline: line,
-      sub: sentences[i] || (i === 0 ? (sentences[0] || (entry.theme && entry.theme !== line ? entry.theme : '') || `${bName} Exclusive`) : ''),
-      badge: i === 0 ? (isMedia ? 'MARKET PULSE' : 'BESTSELLER') : (i === 1 ? 'SPOTLIGHT' : 'CURATED'),
-      seconds: 2.6,
-    }));
+    const beats = lines.slice(0, nBeats).map((line, i) => {
+      // The sub line is a DIFFERENT sentence from the headline, or none.
+      const sub = sentences.find((x, j) => j >= i && x.toLowerCase() !== line.toLowerCase()) || '';
+      return {
+        image: images.length ? images[i % images.length] : '',
+        headline: line,
+        sub: lines.some((l, k) => k !== i && l.toLowerCase() === sub.toLowerCase() && k < nBeats) ? '' : sub,
+        badge: i === 0 && proofBadge ? proofBadge : '',
+        seconds: 2.6,
+      };
+    });
     const scenes = beats.length ? beats : [{
       image: images[0] || '',
       headline: String(ad.hook || ad.headline || (entry.heroProduct && entry.heroProduct.title) || '').slice(0, 90),
@@ -3717,7 +3790,23 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   reportProofGap(campaign, entry, trace);
   attachDisclaimer(campaign, entry);
   attachPlacementCopy(campaign, entry);
+  fillLandingUrl(campaign, entry);
   attachUnitWords(campaign, entry);
+  // The review gap is in the checks even when nothing was dropped: the asset
+  // shows no proof section, and the reviewer still sees why.
+  if (!(Array.isArray(entry.__reviews) && entry.__reviews.length)) {
+    campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), proofMarker(entry)])];
+  }
+  // A commercial mail needs the sender's legal name and postal address
+  // (CAN-SPAM). The mail shows neither marker; the gap is listed here.
+  {
+    const b = (entry && entry.brand) || {};
+    const legal = String(b.legal_entity || b.legal_name || (b.brand_data && (b.brand_data.legal_entity || b.brand_data.legal_name)) || '').trim();
+    if (!legal || legal.split(',').length < 2) {
+      const L = require('./brand-locale.js');
+      campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), L.marker('legal sender name and postal address', b)])];
+    }
+  }
   // THE MARKETING TEAM (2026-10-20): UTM tags on every link to the brand's own
   // site, a tracked destination on every ad, the KPI and test plan for the send,
   // an SEO check of each landing page, and what each department did for it.
@@ -3738,6 +3827,51 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
 // text only (never a URL, attribute, style or script), for the brand's home
 // market. An ad field keeps its symbol only when the words would break the
 // platform's character limit, and says so.
+/**
+ * `{{landing_page_url}}` is a real address in what is saved and sent
+ * (2026-10-23): only the /brain download filled it, so an approved mail went
+ * out with a button that pointed nowhere. It becomes this campaign's hosted
+ * landing page (absolute, on this deployment) when it has one, else the
+ * slot's own product or store page. With neither, the link is left out of the
+ * text part and the button keeps the brand's website.
+ */
+function fillLandingUrl(campaign, entry) {
+  if (!campaign || !campaign.assets) return null;
+  let base = '';
+  try { base = String(require('./self-url.js').selfBaseUrl() || '').replace(/\/$/, ''); } catch (_) { base = ''; }
+  const hasLp = Array.isArray(campaign.assets.landing_pages) && campaign.assets.landing_pages.length && campaign.campaign_id;
+  let target = hasLp && /^https?:\/\//.test(base) ? `${base}/lp/${campaign.campaign_id}` : '';
+  if (!target) {
+    let l = null;
+    try { l = slotLinks(entry); } catch (_) { l = null; }
+    const pdp = l && /^https?:\/\//.test(String(l.pdp || '')) ? String(l.pdp) : '';
+    const site = entry && entry.brand && /^https?:\/\//.test(String(entry.brand.website || '')) ? String(entry.brand.website) : '';
+    target = pdp || site;
+  }
+  const seen = new WeakSet();
+  const fixHref = (v) => (target ? v.replace(/href=(["'])(?:\[DATA REQUIRED BEFORE LAUNCH:[^"']*|#)\1/g, (m, q) => `href=${q}${target}${q}`) : v);
+  const walk = (v) => {
+    if (typeof v === 'string') {
+      // A link to a marker or to "#" goes where the button means to go.
+      const w = /href=/.test(v) ? fixHref(v) : v;
+      return w.indexOf('{{landing_page_url}}') < 0 ? w
+        : (target ? w.split('{{landing_page_url}}').join(target) : w.replace(/[^\n]*\{\{landing_page_url\}\}[^\n]*\n?/g, ''));
+    }
+    if (!v || typeof v !== 'object' || seen.has(v)) return v;
+    seen.add(v);
+    if (Array.isArray(v)) { for (let i = 0; i < v.length; i++) v[i] = walk(v[i]); return v; }
+    for (const k of Object.keys(v)) {
+      if (target && /^(destination_url|final_url|url|link)$/.test(k) && typeof v[k] === 'string' && /^\[DATA REQUIRED BEFORE LAUNCH:/.test(v[k])) v[k] = target;
+      else v[k] = walk(v[k]);
+    }
+    return v;
+  };
+  walk(campaign.assets);
+  if (campaign.platform_ready) walk(campaign.platform_ready);
+  campaign.landing_url = target || null;
+  return target;
+}
+
 function attachUnitWords(campaign, entry) {
   const a = campaign && campaign.assets;
   if (!a) return null;
@@ -4156,24 +4290,27 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
       campaign.assets.email.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, pool[0] || null);
     }
   } else if (normType === 'landing' || normType === 'landing_page') {
-    const genSvc = require('../../lib/smart-brain/services.js');
-    const lpAsset = genSvc.buildLandingPageAsset(entry, campaign.campaign_id || entry.id);
-    if (lpAsset) {
-      campaign.assets.landing_pages = [lpAsset.variant_a, lpAsset.variant_b].filter(Boolean);
+    // The same builder as the full build (2026-10-23): it called a function
+    // services.js does not export, so "Regenerate landing" always failed.
+    const fresh = await buildCampaign(Object.assign({}, entry), config, { withCreatives: 'hero' });
+    if (fresh && fresh.assets && Array.isArray(fresh.assets.landing_pages) && fresh.assets.landing_pages.length) {
+      campaign.assets.landing_pages = fresh.assets.landing_pages;
     }
   } else if (normType === 'ads' || normType === 'ad') {
-    const pool = slotImagePool(entry, 1400);
-    const ads = campaign.assets.ads || [];
-    for (const ad of ads) {
-      if (ad.creative_type === 'video') {
-        attachMotionCreative(ad, entry, pool);
-      } else if (pool[0]) {
-        ad.creative = ad.creative || {};
-        ad.creative.image = pool[0];
-      }
+    // New copy AND creatives, from the same builder as the full build: this
+    // only re-attached pictures, so "Regenerate ads" changed no words.
+    const fresh = await buildCampaign(Object.assign({}, entry), config, { withCreatives: 'lean' });
+    if (fresh && fresh.assets && Array.isArray(fresh.assets.ads) && fresh.assets.ads.length) {
+      campaign.assets.ads = fresh.assets.ads;
+      if (fresh.platform_ready) campaign.platform_ready = fresh.platform_ready;
     }
   }
 
+  // A regenerated asset gets the full build's finishing passes: the real
+  // landing address, units in words, and fresh contract checks.
+  try { fillLandingUrl(campaign, entry); } catch (_) { /* keep the asset */ }
+  try { attachUnitWords(campaign, entry); } catch (_) { /* keep the asset */ }
+  try { campaign.contract_check = undefined; checkAssetContracts(campaign, entry); } catch (_) { /* keep the asset */ }
   if (db.connected && row && campaign) {
     try {
       await persistCampaignAssets(db, config, campaign, { status: 'preview', origin: 'smart-brain-generate-asset', reviewer, mirror: false });
@@ -4354,7 +4491,7 @@ async function activateScenario({ scenario, reviewer = null, scope = 'all', conf
   } else if (scope && scope.date && scope.market) {
     rows = await db.select(config.tableNames.calendarEntries, { filters: { date: `eq.${scope.date}`, market: `eq.${scope.market}` }, limit: 100 }).catch(() => []);
   } else {
-    rows = await db.select(config.tableNames.calendarEntries, { filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc', limit: 1000 }).catch(() => []);
+    rows = await selectAllRows(db, config.tableNames.calendarEntries, { filters: { date: `gte.${todayIso()}`, status: 'neq.archived' }, order: 'date.asc,id.asc' });
   }
 
   const switched = [];
@@ -4631,12 +4768,15 @@ async function prebuildAssets({ config: cfg = {}, batchSize = 1, sinceDate = nul
   const start = sinceDate || todayIso();
   // Candidates: future, still writable (tentative/rejected — approved/final own a
   // real campaign), nearest-date first so imminent slots build first.
-  const rows = (await db.select(config.tableNames.calendarEntries, {
+  const rows = await selectAllRows(db, config.tableNames.calendarEntries, {
     filters: { date: `gte.${start}`, status: SYNC_WRITABLE_STATUSES },
-    order: 'date.asc', limit: 1000,
-  }).catch(() => [])) || [];
+    order: 'date.asc,id.asc',
+  });
   const prebuildIdent = await currentIdentity(config, db);
-  const pending = rows.filter((r) => !isPrebuilt(r) && !!prebuildIdent && identityMatches((r.payload || {})[IDENTITY_KEY], prebuildIdent));
+  // A slot its own cap pass calls BLOCKED is never built (an older stored row
+  // may still carry that status).
+  const blocked = (r) => { const p = r.payload || {}; const fc = (p.reach && p.reach.frequency_cap) || {}; return fc.status === 'BLOCKED'; };
+  const pending = rows.filter((r) => !isPrebuilt(r) && !blocked(r) && !!prebuildIdent && identityMatches((r.payload || {})[IDENTITY_KEY], prebuildIdent));
   const batch = pending.slice(0, Math.max(1, batchSize));
   const built = [];
   const failed = [];
