@@ -105,6 +105,16 @@ function genContract(mode, ctx) {
     case 'chat': return { id: 'generate.chat', kind: 'reply', format: 'text', brand, region, missing: 'say',
       returns: 'ONE reply to the operator\'s last message: short paragraphs or a tight list; when copy is asked for, ready-to-paste options.',
       formatRule: 'Plain text only. A list may use "- " at the start of a line.' };
+    case 'sms': case 'whatsapp': case 'push': {
+      // The line the model writes; the sender, the link and the opt-out are
+      // added by messaging-assets.build, never by the model (2026-10-23).
+      const frag = require('../_shared/messaging-assets.js').copySchema({ channels: [mode] });
+      const what = mode === 'sms' ? 'an SMS' : mode === 'whatsapp' ? 'a WhatsApp marketing template' : 'a push notification';
+      return { id: 'generate.' + mode, kind: 'data', format: 'json', brand, region,
+        returns: `ONE JSON object: the copy of ${what} for this brand. The sender, the link and the opt-out are added for you.`,
+        forbid: ['a link or URL', 'an opt-out line', 'an offer, price or code the brief does not state'],
+        schema: frag.of[mode].of };
+    }
     case 'landing_page': return { id: 'generate.landing_page', kind: 'asset', format: 'html', brand, region,
       returns: 'ONE complete, production-ready, single-file, mobile-first landing page as an HTML document.',
       lines: ['All CSS inline in ONE <style> block. No <script>, no external stylesheet, no CDN, no web-font link.',
@@ -675,6 +685,27 @@ RULES:
 Target market for this autofill: ${targetMarket}.`;
 
     userMessage = `USER PROMPT:\n"""\n${userPrompt}\n"""\n\n${referenceSnippet ? `REFERENCE PAGE (mirror the structure, voice, length, conversion logic — but rewrite for ${_L.name} and the prompt above):\n"""\n${referenceSnippet}\n"""\n\n` : ''}Return the JSON object now. Do not include any text outside the JSON.`;
+  } else if (mode === 'sms' || mode === 'whatsapp' || mode === 'push') {
+    // SMS / WhatsApp / push (2026-10-23). The model writes the LINE only; the
+    // builder (api/_shared/messaging-assets.js) adds the sender, the brand's
+    // own link and the opt-out, so the answer cannot ship without them.
+    const what = mode === 'sms' ? 'SMS' : mode === 'whatsapp' ? 'WhatsApp marketing template (header, body, button text)' : 'push notification (title, body)';
+    response_format = { type: 'json_object' };
+    systemPrompt = [
+      `You write a ${what} for ${_L.identity}.`,
+      `Voice: ${_L.tone}. Prefer: ${_L.preferred}. Never use: ${_L.banned}.`,
+      `The only statements of fact allowed: ${_L.claims}.`,
+      'Say ONE thing to the reader, in the brand\'s own facts. Never invent an offer, price, discount code, deadline, stock level, rating or review: use only what the brief states.',
+      mode === 'sms' ? 'Plain GSM characters only: no emoji, no curly quotes. One sentence.' : 'Short sentences a person reads on a phone.',
+      'Write no brand-name prefix, no link and no opt-out line: they are added for you.',
+    ].join('\n');
+    const p0 = selected_products[0] || null;
+    userMessage = [
+      `MARKET: ${market || _locale.marker('home market', _pb)}`,
+      `CAMPAIGN TYPE: ${theme || 'evergreen'}`,
+      `BRIEF: ${String(campaign_brief || '(none: speak for the brand in its own words)').slice(0, 800)}`,
+      p0 ? `PRODUCT: ${p0.name || p0.n || p0.title || ''}${p0.category ? ' (' + p0.category + ')' : ''}` : 'PRODUCT: none named; speak for the brand.',
+    ].join('\n');
   } else if (mode === 'landing_page') {
     // FULL AI-written landing page — returns ONE complete, mobile-first HTML
     // document (no JSON). The client previews it in the inline modal and falls
@@ -903,6 +934,11 @@ Target market for this autofill: ${targetMarket}.`;
       };
     }
 
+    if ((!result || !result.ok) && MESSAGING_MODES.includes(mode)) {
+      // No model answered: the message is built from the brand's own lines,
+      // labelled so (the same template path Smart Brain uses).
+      return res.status(200).json(finishMessaging(mode, null, { provider: 'template', model: null }, body, _pb, market, selected_products, portable_prompt));
+    }
     if (!result || !result.ok) {
       // ── HEURISTIC FALLBACK for create_brief mode ─────────────────────────
       // When all providers fail, generate a structured brief from inputs so the
@@ -950,6 +986,17 @@ Target market for this autofill: ${targetMarket}.`;
     }
 
     const text = result.text || '';
+    if (MESSAGING_MODES.includes(mode)) {
+      const parsed = OC.parse(text, outputSpec);
+      const out = finishMessaging(mode, parsed, result, body, _pb, market, selected_products, portable_prompt);
+      out.output_check = OC.validate(parsed, outputSpec);
+      return res.status(200).json(out);
+    }
+    // The finishing passes (2026-10-23, generate-finish.js): what Smart Brain
+    // applies to a finished asset, applied here too. Fields are ADDED to each
+    // response, never removed.
+    const FIN = require('../_shared/generate-finish.js');
+    const fin = FIN.context(_pb, { market, products: selected_products });
     // The brand guard (brand-guard.js) on what goes back to the operator: an
     // answer that invents a figure or claim, or names another company, is
     // returned WITH what breaks the brand's rules, so the page can say so.
@@ -980,13 +1027,30 @@ Target market for this autofill: ${targetMarket}.`;
         } catch (qe) {
           console.warn('[generate] quality loop unavailable: ' + String(qe && qe.message || qe).slice(0, 120));
         }
+        const finished = FIN.finishDeep(deepScrubDashes(data, body && body.__brand), fin);
+        // Each variant judged as the mailer it specifies (never rewritten).
+        const variant_checks = {};
+        for (const vk of ['variant_a', 'variant_b']) {
+          const v = finished && finished[vk];
+          if (!v || typeof v !== 'object') continue;
+          const secs = Array.isArray(v.sections) ? v.sections : [];
+          const asset = { contract: 'email.mailer', subject: (v.subject_lines || [])[0] || '', preheader: v.preheader || '',
+            subject_line: (v.subject_lines || []).join(' / '), headings: secs.map((x) => x && x.copy && x.copy.headline).filter((x) => typeof x === 'string'),
+            text: secs.map((x) => x && x.copy && [x.copy.eyebrow, x.copy.subcopy, x.copy.cta].filter(Boolean).join(' ')).filter(Boolean).join('\n') };
+          variant_checks[vk] = FIN.judge(asset, fin);
+        }
         return res.status(200).json({
-          ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(data, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(data),
-          ...(quality ? { quality } : {})
+          ok: true, mode, provider: result.provider, model: result.model, data: finished, portable_prompt, output_check, brand_check: brandCheck(data),
+          ...(quality ? { quality } : {}),
+          contract_check: variant_checks.variant_a ? variant_checks.variant_a.contract_check : null, variant_checks,
+          copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin),
         });
       }
 
-      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(parsed) });
+      // Concepts and suggested briefs are directions for the operator, not a
+      // finished asset: scrubbed for the brand (banned words, dashes, units)
+      // and never placeholder-stripped, since a brief may name a gap to fill.
+      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(parsed), finish: FIN.summary(fin) });
     }
 
     // ── Autofill on an ad surface: also return the portable master_prompt and a
@@ -998,7 +1062,7 @@ Target market for this autofill: ${targetMarket}.`;
       const surf = String(body.surface || '').toLowerCase();
       if (AD_FORMATS[surf]) {
         let fields = OC.parse(text, outputSpec) || {};
-        fields = deepScrubDashes(fields, body && body.__brand);
+        fields = FIN.finishDeep(deepScrubDashes(fields, body && body.__brand), fin);
         const overlay = {
           headline: fields.overlay_headline || '',
           sub: fields.overlay_sub || '',
@@ -1008,7 +1072,16 @@ Target market for this autofill: ${targetMarket}.`;
         const targetMarket = body.market || body.region || market;
         const userPrompt = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
         const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null,  assetType: 'ad', platform: surf, market: targetMarket, brief: userPrompt });
-        return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: brandScrub(text), creative_spec, master_prompt, portable_prompt, brand_check: brandCheck(fields) });
+        // The ad as its own contract judges it: lines split the way the form splits them.
+        const lines = (v) => String(v || '').split(/\n+/).map((x) => x.trim()).filter(Boolean);
+        const adAsset = surf === 'google'
+          ? { platform: 'google', headlines: lines(fields.headlines), descriptions: lines(fields.desc) }
+          : surf === 'meta'
+            ? { platform: 'meta', creative_type: 'static', primary_text: fields.primary || '', headline: fields.headline || '', image_url: '' }
+            : { platform: 'tiktok', creative_type: 'static', caption: fields.caption || '', headline: fields.overlay_headline || '', creative_brief: creative_spec.map((c) => `${c.format} ${c.size}: ${[overlay.headline, overlay.sub].filter(Boolean).join(' / ')}`).join('; ') };
+        const checks = FIN.judge(adAsset, fin);
+        return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: JSON.stringify(fields), creative_spec, master_prompt, portable_prompt, brand_check: brandCheck(fields),
+          contract_check: checks.contract_check, compliance_check: checks.compliance_check, copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin) });
       }
     }
 
@@ -1017,13 +1090,80 @@ Target market for this autofill: ${targetMarket}.`;
     // A JSON reply (an lp-* autofill) is handed back as the JSON text the page
     // parses, fences removed; it is checked against its spec all the same.
     const readBack = OC.parse(text, outputSpec);
-    const textOut = outputSpec.format === 'json' ? (readBack ? JSON.stringify(deepScrubDashes(readBack, body && body.__brand)) : brandScrub(OC.stripFences(text))) : readBack;
-    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: outputSpec.format === 'json' ? textOut : brandScrub(textOut), portable_prompt, output_check: OC.validate(readBack, outputSpec), brand_check: brandCheck(textOut) });
+    const extra = {};
+    let textOut;
+    if (outputSpec.format === 'json') {
+      // An lp-* autofill: the page's fields, finished like an asset's copy.
+      textOut = readBack ? JSON.stringify(FIN.finishDeep(deepScrubDashes(readBack, body && body.__brand), fin)) : brandScrub(OC.stripFences(text));
+      Object.assign(extra, { copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin) });
+    } else if (mode === 'landing_page') {
+      // A finished page: no base64 image, no unfilled tag, no link to "#",
+      // every text run held to the brand's facts; judged, never rewritten.
+      textOut = FIN.finishHtml(brandScrub(readBack || ''), fin);
+      const h1 = (textOut.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || '';
+      const checks = FIN.judge({ contract: 'landing.page', html: textOut, hero_headline: h1.replace(/<[^>]+>/g, ' ').trim() }, fin);
+      Object.assign(extra, checks, { copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin) });
+    } else {
+      // A brief, a reply, a segment: the brand's words, dashes and units, line
+      // breaks kept. A brief may name a gap for the operator to fill, so its
+      // markers stay.
+      textOut = FIN.scrubProse(brandScrub(readBack || ''), _pb);
+    }
+    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: textOut, portable_prompt, output_check: OC.validate(readBack, outputSpec), brand_check: brandCheck(textOut), ...extra, finish: FIN.summary(fin) });
 
   } catch (e) {
     return res.status(500).json({ error: 'server_error', provider: 'cascade', detail: String(e && e.message || e).substring(0, 300) });
   }
 };
+
+// ── SMS / WhatsApp / push, finished (2026-10-23) ────────────────────────────
+// The same builder Smart Brain uses (messaging-assets.build): the model's line,
+// else the brand's own; the sender, the brand's own link and the opt-out added
+// by the builder; then the finishing passes and both verdicts attached.
+const MESSAGING_MODES = ['sms', 'whatsapp', 'push'];
+function finishMessaging(mode, parsed, result, body, brand, market, products, portable_prompt) {
+  const M = require('../_shared/messaging-assets.js');
+  const FIN = require('../_shared/generate-finish.js');
+  const fin = FIN.context(brand, { market, products });
+  const copy = parsed && typeof parsed === 'object' ? FIN.finishDeep(JSON.parse(JSON.stringify(parsed)), fin) : null;
+  // The link: the one the request names when it is on the brand's own site,
+  // else the brand's store for the market, else its website; never another site.
+  const asked = String((body && (body.link || body.url)) || '').trim();
+  let link = '';
+  try {
+    const own = require('../_shared/marketing-team-server.js').ownHosts(brand);
+    const host = (u) => { try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch (_) { return ''; } };
+    const C = require('../_shared/brand-coherence.js');
+    const mine = (u) => [...own].some((h) => h === host(u) || (C.sameBrand && C.sameBrand(host(u), h)));
+    if (/^https:\/\//i.test(asked) && mine(asked)) link = asked;
+  } catch (_) { link = ''; }
+  if (!link) {
+    let f = null;
+    try { f = require('../_shared/brand-runtime.js').regionFacts(brand, market); } catch (_) { f = null; }
+    link = f && f.store ? `https://${f.store}` : FIN.websiteOf(brand);
+  }
+  const p0 = (products || [])[0] || null;
+  const entry = {
+    id: 'generate-' + mode, brand, market, channels: [mode], objective: String((body && (body.objective || body.theme || body.type)) || ''),
+    heroProduct: p0 ? { title: p0.name || p0.n || p0.title || '', category: p0.category || '' } : null,
+  };
+  const built = M.build(entry, { copy: copy ? { [mode]: copy } : null, link, channels: [mode], finish: (t) => FIN.scrubProse(t, brand) });
+  const msg = built.messages[0] || null;
+  if (msg) {
+    for (const k of ['text', 'line', 'headline', 'body', 'title', 'cta', 'footer']) if (typeof msg[k] === 'string') msg[k] = FIN.scrubProse(msg[k], brand).replace(/\s*\n\s*/g, ' ');
+    M.syncTemplate(msg);
+    Object.assign(msg, FIN.judge(msg, fin));
+  }
+  const plain = !msg ? '' : mode === 'sms' ? msg.text : mode === 'whatsapp'
+    ? [msg.headline, msg.body, msg.footer, ...(msg.buttons || []).map((b) => `[${b.text}] ${b.url}`)].filter(Boolean).join('\n\n')
+    : [msg.title, msg.body].filter(Boolean).join('\n');
+  return {
+    ok: !!msg, mode, provider: result && result.provider, model: result && result.model, data: msg, text: plain,
+    contract_check: msg ? msg.contract_check : null, compliance_check: msg ? msg.compliance_check : null,
+    copy_grounding: FIN.groundingOf(fin), data_gaps: [...new Set(built.data_gaps.concat(FIN.gapsOf(fin)))], finish: FIN.summary(fin),
+    portable_prompt,
+  };
+}
 
 // ── Multi-tenant + metering (Universal Brand Platform) ──────────────────────
 // Two cross-cutting concerns are applied here rather than threaded through the
@@ -1048,6 +1188,9 @@ const MODE_FEATURE = {
   audience_segment: 'analytics.narrative',
   suggested_prompts: 'assistant.chat',
   chat: 'assistant.chat',
+  sms: 'messaging.sms',
+  whatsapp: 'messaging.whatsapp',
+  push: 'messaging.push',
 };
 
 const _rawHandler = module.exports;

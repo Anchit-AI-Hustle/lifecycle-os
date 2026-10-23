@@ -4,6 +4,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The Owner's Desk: seven agency jobs from the owner's own files (2026-10-23)
+The operator, with seven "run your business like a $10K/month agency" prompts (lock in your brand, a launch in one
+prompt, fix your worst ad, mine your reviews, the money X-ray, the what-if model, the monthly CEO report): "match with
+this". `/owner-desk` (rail: Plan -> Owner's Desk), `api/_shared/owner-desk.js` (UMD; root `/owner-desk.js`
+byte-identical) does EVERY number in code from CSVs kept in this browser per brand (Shopify order export: an order's
+Total once, else its lines; expenses: category else vendor; Google/Meta ad report; reviews); a figure the files cannot
+give is null with a QUESTION ("no expenses for 2026-10, so its margin is not worked out"), never a guess.
+`owner-desk-server.js` on brain.js `launch-concepts` (`launch.concepts`), `ad-fix` (`ads.fix`), `review-mine`
+(`reviews.mine`), `launch-visuals` (signed in, no model): concepts and replacement ads held to copy-grounding and
+Google's own 30/90 (read from asset-contracts, dropped never cut); a review quote is a review's own words BY NUMBER and
+never a negative one; a reply only to a negative review and never promising a refund/discount/gift; a fix only for a
+complaint theme code counted. Worst ad = most spend above the account's own median cost per conversion. Scenarios
+(price +10%, ads -20%, an upsell) ranked by profit, each with the assumption it rests on and how far it can be wrong.
+The report has one versioned layout (`owner-report.v1`). The style lock (`brand_data.style_lock`: photo style, five-word
+personality, three rules) rides `brand-runtime.brandBlock` and `image-prompt.buildPreamble`. Gated by
+`tests/owner-desk.spec.js` (11 executed incl. the page at 1280 and 390; 6 mutations caught).
+Also this day: Delete brand and every other confirm/prompt are in-page (`auth.js` `LifecycleDialog`); `window.prompt`
+returned null at once under remote debugging and Delete did nothing (`tests/in-page-dialogs.spec.js`).
+
+## ⭐ SMS, WhatsApp and push are real assets; the standalone generator finishes what it returns (2026-10-23)
+Nothing in the app wrote an SMS, a WhatsApp message or a push notification, and `/api/ai/generate` returned the model's
+answer with only a dash scrub (audit D9). `api/_shared/messaging-assets.js` is the ONE builder (Smart Brain and
+generate.js both call `build()`); `api/_shared/generate-finish.js` is Smart Brain's finishing passes for generate.js.
+- **Planned only where stated**: `channelsOf(brand)` reads `channels` / `messaging_channels` (top level or brand_data,
+  words like "SMS", "push notifications" accepted; hoisted by `normalizeBrand`, carried by `carriedBrand`). services.js
+  `BUILT_CHANNELS` + `plannedChannels(base, brand)` at every planner (CalendarIntelligenceService, replenishment,
+  strategy and offering plans); scenario variants keep owned messaging. A brand that states nothing: plan, copy prompt
+  and build byte-for-byte as before (no `messaging` key in the copy contract, no `assets.messages`).
+- **Built** (`campaign.assets.messages`, both paths): the model's line (same copy call: `copyOutputSpec` gains
+  `messaging` only for a slot that plans it) else the brand's own lines (`headlineFor`, `audienceLine`, `defaultCta`,
+  tagline, claims). The BUILDER adds the sender (brand name first), the slot's own page (`slotLinks().pdp`) and the
+  opt-out ("Reply STOP to opt out."). An SMS line is CHOSEN so the text fits one GSM-7 part (3GPP TS 23.038/23.040:
+  160 / 153, UCS-2 70 / 67), never cut. WhatsApp is the approved-template shape (name, MARKETING, language from the
+  market's locale, HEADER/BODY/FOOTER opt-out/one URL button, no `{{1}}`). Push: title, body, deep link. No page on
+  record: no link and no marker in the message, the gap (and a missing legal sender) in `data_gaps`. Grounded
+  (`copy-grounding` reads `copy.messaging`), scrubbed, unit-words (an SMS keeps a symbol when words add a part),
+  UTM on WhatsApp/push links only (an SMS link's length is the message's), compliance-linted, contract-checked.
+- **Contracts** `sms.message`, `whatsapp.message`, `push.notification` (limits in `asset-specs.MESSAGING`, each with its
+  source): BLOCK on no opt-out, no sender (CTIA / PECR), a marker or unfilled tag, a non-https link; length WARNS (SMS
+  parts; WhatsApp numbers recorded unverified; push has no single limit, so none is invented).
+- **generate.js** modes `sms` / `whatsapp` / `push` (credit keys `messaging.*`, 3 each); no model = the template message,
+  `provider: 'template'`. Every asset mode now ADDS `contract_check`, `compliance_check`, `copy_grounding`, `data_gaps`,
+  `finish` (never removes a field): landing_page loses base64 rasters, `{{tags}}`, markers and unbacked-claim sentences,
+  `href="#"` goes to the brand's website (else the link becomes text, gap recorded); mailer_full is finished per string
+  and each variant judged (`variant_checks`); an ad autofill's `text` is the finished fields as JSON. Briefs, concepts
+  and chat are scrubbed only (a brief may name a gap for the operator).
+- Found on the way: `brand-runtime.scrubForBrand` stripped a leading "The"/"A"/"And" from EVERY line of a brand with a
+  banned list ("The ward ledger" -> "ward ledger"); the seam tidy now runs only when a phrase was actually cut.
+- /brain shows each message as its own pane (a phone bubble, tokens only): Copy (plain text), Download (.txt), Data (.json).
+- Gated by `tests/channel-generators.spec.js` (9 executed: planners, template + scripted-model builds, generate.js
+  through the router harness, the preview in Chromium; 8 mutations caught) plus new entries in
+  `prompt-output-contracts` and `brand-content-invariant`. Not done: a connected SMS/WhatsApp/push PROVIDER as a
+  "states the channel" signal (only the record is read), sending (no adapter), and the ZIP / Download all bundle.
+
 ## ⭐ A measurement is written as a person says it, for any brand (2026-10-21)
 The operator: "the letter W ... means watts, so basically 100 watts, it shouldn't say 100 W ... It could be based on
 any brand ... any other spectrum". A store's spec line ("100W", "20000mAh", "500ml", "25°C") reached copy, the

@@ -66,9 +66,16 @@ const FEATURES = [
   { key: 'mailer.score',          label: 'Score a mailer',              group: 'Creation', cost: 4,  unit: 'per score',     why: 'Runs the quality rubric over the built mailer.' },
 
   { key: 'ads.generate',          label: 'Generate ad set',             group: 'Creation', cost: 18, unit: 'per ad set',    why: 'Meta, Google and TikTok copy from one brief.' },
+  { key: 'launch.concepts',       label: 'Launch concepts',             group: 'Creation', cost: 5,  unit: 'per set of 3',  why: 'Three campaign concepts in one line each, from your own claims.' },
+  { key: 'ads.fix',               label: 'Fix your worst ad',           group: 'Creation', cost: 10, unit: 'per fix',       why: 'Three replacement ads, each testing a different angle, with a matching image brief.' },
   { key: 'ads.copy_matrix',       label: 'Ad copy matrix',              group: 'Creation', cost: 14, unit: 'per matrix',    why: '20 variations across angles and awareness levels.' },
   { key: 'landing.generate',      label: 'Generate landing page',       group: 'Creation', cost: 22, unit: 'per page',      why: 'Full brand-compliant page built from your catalog.' },
   { key: 'social.post',           label: 'Social post',                 group: 'Creation', cost: 6,  unit: 'per post',      why: 'Copy plus hooks and hashtags for one platform.' },
+  // SMS / WhatsApp / push (2026-10-23): one short model call for the line;
+  // the sender, link and opt-out are added without a model.
+  { key: 'messaging.sms',         label: 'SMS',                         group: 'Creation', cost: 3,  unit: 'per message',   why: 'One model call for the line; sender, link and opt-out are added by the builder.' },
+  { key: 'messaging.whatsapp',    label: 'WhatsApp template',           group: 'Creation', cost: 3,  unit: 'per template',  why: 'One model call for the header, body and button; the template is shaped for approval.' },
+  { key: 'messaging.push',        label: 'Push notification',           group: 'Creation', cost: 3,  unit: 'per notification', why: 'One model call for the title and body.' },
   { key: 'social.daily_run',      label: 'Social daily run',            group: 'Creation', cost: 30, unit: 'per day',       why: 'The 7-agent daily pipeline across every platform.' },
 
   // ── Publishing and deliverability ─────────────────────────────────────────
@@ -93,6 +100,7 @@ const FEATURES = [
   /* ── Intelligence ────────────────────────────────────────────────────── */
   { key: 'competitor.sync',       label: 'Sync competitor intel',       group: 'Intelligence', cost: 10, unit: 'per sync',      why: 'Pulls, dedupes and classifies newly captured competitor emails.' },
   { key: 'competitor.teardown',   label: 'Competitor teardown',         group: 'Intelligence', cost: 12, unit: 'per teardown',  why: 'Reads a rival page or ad and extracts angles to beat it.' },
+  { key: 'reviews.mine',          label: 'Mine your reviews',           group: 'Intelligence', cost: 8, unit: 'per batch of up to 150', why: 'Themes counted, ad lines quoted, replies drafted to negative reviews, three fixes.' },
   { key: 'kb.ingest',             label: 'Knowledge base ingest',       group: 'Intelligence', cost: 3,  unit: 'per document',  why: 'Parses, classifies and indexes one document.' },
   { key: 'kb.search',             label: 'Knowledge base search',       group: 'Intelligence', cost: 1,  unit: 'per query',     why: 'One retrieval pass over your indexed library.' },
   { key: 'seo.audit',             label: 'SEO / AEO audit',             group: 'Intelligence', cost: 14, unit: 'per page',      why: 'Crawls the page and scores it against the audit rubric.' },

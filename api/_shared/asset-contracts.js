@@ -75,6 +75,7 @@ function unbounded(why) {
 
 const A = specs.ADS;
 const M = specs.MAILER;
+const MSG = specs.MESSAGING;
 
 /* ── the contracts ───────────────────────────────────────────────────────── */
 
@@ -379,7 +380,163 @@ const CONTRACTS = {
       return v.concat(urlsNotPayloads(a, ['html']));
     },
   },
+
+  /* ═════════════════════════════════════════════════════════════════════════
+     OWNED MESSAGING (2026-10-23). Three surfaces with no layout at all: a
+     text read on a lock screen, a template a platform must approve before it
+     can be sent, and a notification the operating system truncates as it
+     pleases. Their limits are READ from asset-specs.MESSAGING.
+     ═══════════════════════════════════════════════════════════════════════ */
+  'sms.message': {
+    id: 'sms.message',
+    medium: 'sms',
+    label: 'SMS',
+    structure: [
+      { slot: 'text', required: true, max: MSG.sms.gsm7.single, why: `One part holds ${MSG.sms.gsm7.single} GSM-7 characters (${MSG.sms.ucs2.single} if any character is outside GSM-7); past that the message is sent as several parts of ${MSG.sms.gsm7.part} (or ${MSG.sms.ucs2.part}), each billed. Sent, never refused, so it warns.`, verified: false, source: `api/_shared/asset-specs.js (${MSG.sms.source})` },
+      { slot: 'sender', required: true, ...unbounded('Who is texting: the reader must be able to tell which brand this is before anything else.') },
+      { slot: 'opt_out', required: true, ...unbounded('Every marketing text says how to stop them.') },
+    ],
+    design: [
+      'There is no layout: one line of plain text on a lock screen, read in a second.',
+      'The brand names itself first, so the reader knows who is texting before deciding to read on.',
+      'Plain GSM-7 characters: one emoji or curly quote switches the whole message to UCS-2 and cuts a part from 160 characters to 70.',
+      'One link at most, to the brand\'s own page, and the opt-out last.',
+    ],
+    algorithm: [
+      'Confirm the brand states that it sends SMS; never plan the channel for a brand that does not.',
+      'Write ONE sentence to the reader from the brand\'s own facts.',
+      'Add the brand name first, the link to the slot\'s own page, then the opt-out (the builder adds these, never the model).',
+      'Count the parts in the encoding the text needs, and say it.',
+      'Validate, then run the compliance gate on the finished text.',
+    ],
+    validate(asset) {
+      const v = [];
+      const a = asset || {};
+      const text = String(a.text || '');
+      if (!text.trim()) return [block('text', 'The SMS has no text.')];
+      v.push(...placeholderBlocks(a, ['text']));
+      const seg = smsCount(text);
+      if (seg.segments > 1) v.push(warn('text', `${seg.units} ${seg.encoding} characters: sent as ${seg.segments} parts of ${seg.per_segment}, each billed.${seg.encoding === 'UCS-2' ? ` Outside GSM-7: ${seg.non_gsm.map((c) => JSON.stringify(c)).join(' ')}.` : ''} (Advisory: a long message is sent, never refused.)`));
+      else if (seg.encoding === 'UCS-2') v.push(warn('text', `A character outside GSM-7 (${seg.non_gsm.map((c) => JSON.stringify(c)).join(' ')}) switches the message to UCS-2: one part holds ${MSG.sms.ucs2.single} characters instead of ${MSG.sms.gsm7.single}.`));
+      if (!/\b(STOP|opt[\s-]?out|unsubscribe)\b/i.test(text)) v.push(block('opt_out', 'No opt-out in a marketing SMS. Every one must say how to stop them (CTIA Messaging Principles; TCPA practice; UK PECR reg. 22 "a simple means of refusing").'));
+      const sender = String(a.sender || '').trim();
+      if (!sender) v.push(block('sender', 'The SMS does not say which brand is texting. A marketing text must identify its sender (CTIA Messaging Principles; UK PECR reg. 23).'));
+      else if (text.toLowerCase().indexOf(sender.toLowerCase()) < 0) v.push(block('sender', `The text never names ${sender}: the reader cannot tell who is texting (CTIA Messaging Principles; UK PECR reg. 23).`));
+      if (a.link && !/^https:\/\//i.test(String(a.link))) v.push(block('link', 'The link is not an https address on the brand\'s own site.'));
+      v.push(...shouting('text', text));
+      return v;
+    },
+  },
+
+  'whatsapp.message': {
+    id: 'whatsapp.message',
+    medium: 'whatsapp',
+    label: 'WhatsApp marketing template',
+    structure: [
+      { slot: 'headline', required: false, ...msgLimit(MSG.whatsapp.header_text, 'Template header text.') },
+      { slot: 'body', required: true, ...msgLimit(MSG.whatsapp.body, 'Template body text.') },
+      { slot: 'footer', required: false, ...msgLimit(MSG.whatsapp.footer, 'Template footer text; carries the opt-out.') },
+      { slot: 'cta', required: false, ...msgLimit(MSG.whatsapp.button_text, 'Button text.') },
+    ],
+    design: [
+      'Outside the 24-hour customer service window a marketing message is an APPROVED TEMPLATE: header, body, footer and buttons, submitted before the send.',
+      `At most ${MSG.whatsapp.quick_reply_buttons} quick-reply buttons or ${MSG.whatsapp.cta_buttons} call-to-action buttons (recorded unverified).`,
+      'A chat bubble, not a page: short sentences, one action, the brand\'s own facts.',
+      'The footer says how to stop these messages.',
+    ],
+    algorithm: [
+      'Confirm the brand states that it sends on WhatsApp.',
+      'Write the header and body from the brand\'s own facts; every value filled, no {{1}} variables left.',
+      'Add one URL button to the slot\'s own page, and the opt-out footer.',
+      'Shape it as the template that is submitted for approval (name, MARKETING category, language, components).',
+      'Validate, then run the compliance gate.',
+    ],
+    validate(asset) {
+      const a = asset || {};
+      const v = adCopyValidator('whatsapp.message')(a);
+      v.push(...placeholderBlocks(a, ['headline', 'body', 'footer', 'cta']));
+      const t = a.template || {};
+      if (t.category && String(t.category).toUpperCase() !== 'MARKETING') v.push(warn('template', `The template category is ${t.category}; a promotional message is a MARKETING template.`));
+      const btns = Array.isArray(a.buttons) ? a.buttons : [];
+      const urlBtns = btns.filter((b) => b && /url|phone/i.test(String(b.type))).length;
+      const qrBtns = btns.filter((b) => b && /quick/i.test(String(b.type))).length;
+      if (urlBtns > MSG.whatsapp.cta_buttons) v.push(warn('buttons', `${urlBtns} call-to-action buttons against ${MSG.whatsapp.cta_buttons}. (Advisory: recorded unverified.)`));
+      if (qrBtns > MSG.whatsapp.quick_reply_buttons) v.push(warn('buttons', `${qrBtns} quick-reply buttons against ${MSG.whatsapp.quick_reply_buttons}. (Advisory: recorded unverified.)`));
+      for (const b of btns) {
+        if (b && b.text && String(b.text).length > MSG.whatsapp.button_text) v.push(warn('buttons', `Button "${b.text}" is ${String(b.text).length} characters against ${MSG.whatsapp.button_text}. (Advisory: recorded unverified.)`));
+        if (b && /url/i.test(String(b.type)) && !/^https:\/\//i.test(String(b.url || ''))) v.push(block('buttons', 'A URL button with no https address on the brand\'s own site.'));
+      }
+      const all = [a.headline, a.body, a.footer].map((x) => String(x || '')).join(' ');
+      if (!/\b(STOP|opt[\s-]?out|unsubscribe|stop promotions)\b/i.test(all) && !btns.some((b) => /stop/i.test(String(b && b.text)))) {
+        v.push(block('footer', 'No way to stop these messages. A marketing WhatsApp must offer one (WhatsApp Business messaging policy: honour opt-out requests; UK PECR reg. 22).'));
+      }
+      if (!String(a.sender || '').trim()) v.push(block('sender', 'No sender: the template is sent from the brand\'s own WhatsApp Business account, named on the record.'));
+      if (/\{\{\s*\d+\s*\}\}/.test(all)) v.push(block('body', 'A template variable ({{1}}) is left unfilled.'));
+      v.push(...shouting('body', String(a.body || '')));
+      return v;
+    },
+  },
+
+  'push.notification': {
+    id: 'push.notification',
+    medium: 'push',
+    label: 'Push notification',
+    structure: [
+      { slot: 'title', required: true, ...unbounded('Truncation varies by operating system, device and notification style; no single limit is recorded.') },
+      { slot: 'body', required: true, ...unbounded('Truncation varies by device; say the one thing first.') },
+    ],
+    design: [
+      'A lock-screen line the operating system truncates as it pleases: the title and the first words of the body carry the message.',
+      'The title does not repeat the body.',
+      'It opens the brand\'s own page (a deep link), never a page of another site.',
+    ],
+    algorithm: [
+      'Confirm the brand states that it sends push notifications.',
+      'Write a short title and one sentence from the brand\'s own facts.',
+      'Attach the slot\'s own page as the deep link.',
+      'Validate, then run the compliance gate.',
+    ],
+    validate(asset) {
+      const a = asset || {};
+      const v = [];
+      if (!String(a.title || '').trim()) v.push(block('title', 'A push notification has no title.'));
+      if (!String(a.body || '').trim()) v.push(block('body', 'A push notification has no body.'));
+      v.push(...placeholderBlocks(a, ['title', 'body']));
+      if (a.title && a.body && String(a.title).trim().toLowerCase() === String(a.body).trim().toLowerCase()) v.push(warn('body', 'The body repeats the title: the notification says one thing twice.'));
+      // No length rule: truncation varies by operating system and device, and
+      // no single limit could be sourced (asset-specs.MESSAGING.push).
+      const bodySentences = (String(a.body || '').match(/[.!?](\s|$)/g) || []).length;
+      if (bodySentences > 2) v.push(warn('body', `The body is ${bodySentences} sentences: a lock screen shows the first words, so the message has to be in them.`));
+      if (a.deep_link && !/^https:\/\//i.test(String(a.deep_link))) v.push(block('deep_link', 'The deep link is not an https address on the brand\'s own site.'));
+      v.push(...shouting('title', String(a.title || '')), ...shouting('body', String(a.body || '')));
+      return v;
+    },
+  },
 };
+
+/* ── messaging helpers ─────────────────────────────────────────────────── */
+
+/** A messaging limit recorded in asset-specs, never verified here: warns, never blocks. */
+function msgLimit(max, why) {
+  return { max, why, verified: false, source: `api/_shared/asset-specs.js (${MSG.whatsapp.source})` };
+}
+function smsCount(text) { return require('./messaging-assets.js').smsSegments(text); }
+/** A finished message never carries a gap marker or a merge tag. */
+function placeholderBlocks(a, slots) {
+  const v = [];
+  for (const s of slots) {
+    const t = String((a && a[s]) || '');
+    if (/\[DATA REQUIRED BEFORE LAUNCH/i.test(t)) v.push(block(s, `${s} prints a DATA REQUIRED marker: a finished message must never say that to a customer.`));
+    else if (/\{\{[^}]*\}\}|\{%[^%]*%\}/.test(t) && !/\{\{\s*\d+\s*\}\}/.test(t)) v.push(block(s, `${s} carries a merge tag nobody filled.`));
+  }
+  return v;
+}
+function shouting(slot, t) {
+  const v = [];
+  if ((String(t).match(/\b[A-Z]{4,}\b/g) || []).filter((w) => w !== 'STOP').length > 1) v.push(warn(slot, `${slot} has more than one word in capitals: it reads as shouting and carriers' filters weigh it.`));
+  if ((String(t).match(/!/g) || []).length > 1) v.push(warn(slot, `${slot} has more than one exclamation mark.`));
+  return v;
+}
 
 /* ── shared validators ───────────────────────────────────────────────────── */
 
@@ -615,6 +772,10 @@ function safeOf(group, key) {
 function contractFor(asset) {
   if (!asset) return null;
   if (asset.contract && CONTRACTS[asset.contract]) return CONTRACTS[asset.contract];
+  const channel = String(asset.channel || '').toLowerCase();
+  if (channel === 'sms') return CONTRACTS['sms.message'];
+  if (channel === 'whatsapp') return CONTRACTS['whatsapp.message'];
+  if (channel === 'push') return CONTRACTS['push.notification'];
   const platform = String(asset.platform || '').toLowerCase();
   const type = String(asset.creative_type || asset.type || '').toLowerCase();
   if (platform === 'google') return CONTRACTS['ad.google.rsa'];

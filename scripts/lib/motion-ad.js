@@ -323,7 +323,7 @@ function renderMotionAd(spec) {
                        color:var(--on-lava); display:flex; align-items:center; justify-content:center;
                        font-weight:700; font-size:11px; }
   .brand-bar .brand-name { font-weight:700; font-size:clamp(11px, 2.8vmin, 13px); letter-spacing:.02em; }
-  .brand-bar .brand-badge { font-size:10px; opacity:.85; margin-left:4px; color:var(--chalk); }
+  .brand-bar .brand-badge { font-size:10px; margin-left:4px; color:var(--chalk); }
   .type { position:absolute; left:6%; right:6%; top:12%; z-index:3; }
   .type-card { background:${alpha(PAL.ink, 0.55)}; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
                border:1px solid ${alpha(PAL.chalk, 0.16)}; border-radius:14px; padding:14px 16px;
