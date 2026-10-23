@@ -28,8 +28,9 @@ const BRAND = {
   palette: { primary: '#6B3E26', accent: '#E0A458', ink: '#2B1D14', surface: '#FFF8F0' },
   regions: [{ code: 'IN', currency: 'INR', home: true }], claims: ['Roasted every Monday'],
 };
+const TODAY = new Date().toISOString().slice(0, 10);
 const SLOT = {
-  id: 'dl-1', date: '2026-10-21', market: 'IN', objective: 'reactivation', brand: BRAND,
+  id: 'dl-1', date: TODAY, market: 'IN', objective: 'reactivation', brand: BRAND,
   cohort: { name: 'At Risk', size: 900, rules: ['no order in 90 days'] },
   channels: ['email', 'meta', 'google', 'tiktok', 'landing_page'], offer: { depth: 'none', pct: 0 },
 };
@@ -153,7 +154,8 @@ test('the ZIP carries a page per ad beside its data, and its index is the brand\
     const r = document.documentElement.style;
     r.setProperty('--vh-primary', '#6B3E26'); r.setProperty('--vh-bg', '#FFF8F0'); r.setProperty('--vh-ink', '#2B1D14'); r.setProperty('--vh-accent-text', '#8A5A1E');
     window.BrandContext = Object.create(window.BrandContext || {}, { brand: { value: { name: 'Brewline Coffee' } } });
-    PLAN = [{ id: 'dl-1', date: '2026-10-21', market: 'IN', cohort: { name: 'At Risk' } }];
+    const today = new Date().toISOString().slice(0, 10);
+    PLAN = [{ id: 'dl-1', date: today, market: 'IN', cohort: { name: 'At Risk' } }];
     PREVIEW_CACHE['dl-1'] = { campaign: c };
     let captured = null; const real = window.zipStore;
     window.zipStore = (fl) => { captured = fl.map((x) => ({ name: x.name, data: String(x.data) })); return real(fl); };

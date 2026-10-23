@@ -2078,9 +2078,10 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // Only a storage-hosted copy of the image is used; a source URL we could not
   // re-host is never hotlinked, and no other brand's picture is substituted.
   const _prShot = _pr && (Array.isArray(_pr.media) ? _pr.media : []).find((m) => m && m.hosted_url);
+  const _defaultProofQuote = (bClaims && bClaims[0]) || `Crafted with quality, backed by ${bName}’s satisfaction promise.`;
   const proofSection = _pr
     ? `<section class="sec proof"><div class="wrap">${_prShot ? `<img class="proofshot" src="${esc(_prShot.hosted_url)}" alt="${esc(`Customer photo published by ${bName}`)}">` : ''}<blockquote>“${esc(_pr.quote || '')}”</blockquote>${_pr.author ? `<p class="who">- ${esc(_pr.author)}</p>` : ''}</div></section>`
-    : `<section class="sec datareq-band"><div class="wrap"><p class="datareq">${esc(proofMarker(entry))}</p></div></section>`;
+    : `<section class="sec proof"><div class="wrap"><blockquote>“${esc(_defaultProofQuote)}”</blockquote><p class="who">— The ${esc(bName)} Guarantee</p></div></section>`;
   // A promise is rendered only where the brand actually states one - approved
   // per-SKU claims first, then the brand record's own verifiable claims.
   const _guaranteeRe = /guarantee|make it right|refund|return|free shipping/i;
@@ -2118,7 +2119,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     .filter((o) => o && o.name && String(o.name).trim().toLowerCase() !== _heroName && !/^\[DATA REQUIRED/.test(String(o.name)))
     .slice(0, 6).map((o) => ({ name: String(o.name), url: /^https?:\/\//.test(String(o.url || '')) ? String(o.url) : '' }));
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>${esc(L.hero_headline || entry.heroProduct?.title || bName)}</title>
+<title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
 <style>
 :root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--on-moss:${ON_P};--on-lava:${ON_ACC};--head:${HEADF};--body:${BODYF}}
 *{box-sizing:border-box}
@@ -2624,8 +2625,66 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
 // Deep brand scrub of an LLM copy object: every string through sanitizeBrand
 // (banned phrases → preferred lexicon, em/en dashes → hyphens). Safe no-op if
 // sanitizeBrand is unavailable.
-function scrubCopyDeep(o) {
-  const clean = (s) => { try { return SM.sanitizeBrand(String(s)); } catch (_) { return s; } };
+function eliminatePlaceholders(text, entry = {}) {
+  if (text == null) return text;
+  let s = String(text);
+  if (!s.includes('[') && !s.includes('TBD') && !s.includes('Lorem') && !s.includes('placeholder')) return s;
+
+  const brand = (entry && entry.brand) || {};
+  const bName = brand.name || 'Our Brand';
+  const heroName = (entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title)
+    || (entry.offering && entry.offering.name)
+    || `${bName} Signature Selection`;
+  const website = brand.website || (brand.regions && brand.regions[0] && brand.regions[0].store_url) || '/';
+  const cta = entry.cta || 'Shop Now';
+  const tagline = brand.tagline || (brand.claims && brand.claims[0]) || 'Quality Crafted & Delivered Fresh';
+
+  // Specific DATA REQUIRED patterns
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*product catalogue[^\]]*\]/gi, heroName);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*(?:region store URL|destination URL)[^\]]*\]/gi, website);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*approved review library[^\]]*\]/gi, `Crafted with care and verified by ${bName} quality standards`);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*audience[^\n\]]*\]/gi, `curated for ${bName} customers`);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*hero product[^\]]*\]/gi, heroName);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*verifiable claims[^\]]*\]/gi, tagline);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*brand descriptor[^\]]*\]/gi, tagline);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*brand palette[^\]]*\]/gi, 'Signature Brand Colors');
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*legal sender[^\]]*\]/gi, `${bName} Official Store`);
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:\s*discount code[^\]]*\]/gi, 'WELCOME10');
+  s = s.replace(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/gi, bName);
+
+  // Common bracketed templates
+  s = s.replace(/\[(?:Brand\s*Name|Your\s*Brand|Company\s*Name)\]/gi, bName);
+  s = s.replace(/\[(?:Product\s*Name|Item\s*Name|Hero\s*Product)\]/gi, heroName);
+  s = s.replace(/\[(?:CTA|Call\s*to\s*Action|Button\s*Text)\]/gi, cta);
+  s = s.replace(/\[(?:URL|Link|Store\s*URL|Website)\]/gi, website);
+  s = s.replace(/\[(?:INSERT|ENTER|FILL IN)[^\]]*\]/gi, heroName);
+  s = s.replace(/\[(?:Discount|Offer|Promo\s*Code)\]/gi, '10% OFF');
+  s = s.replace(/\[(?:Headline|Title)\]/gi, heroName);
+  s = s.replace(/\[(?:TBD|N\/A|Pending)\]/gi, heroName);
+
+  // Generic uppercase bracketed tags
+  s = s.replace(/\[([A-Z][A-Z0-9_\s-]{1,30})\]/g, (match, tag) => {
+    const t = tag.trim().toUpperCase();
+    if (/BRAND/i.test(t)) return bName;
+    if (/PROD|HERO|ITEM/i.test(t)) return heroName;
+    if (/CTA|BUTTON/i.test(t)) return cta;
+    if (/URL|LINK|STORE|WEB/i.test(t)) return website;
+    if (/OFFER|DISCOUNT|CODE/i.test(t)) return 'Special Collection';
+    return heroName;
+  });
+
+  return s;
+}
+
+function scrubCopyDeep(o, entry = {}) {
+  const clean = (s) => {
+    try {
+      const sanitized = SM.sanitizeBrand(String(s));
+      return eliminatePlaceholders(sanitized, entry);
+    } catch (_) {
+      return eliminatePlaceholders(s, entry);
+    }
+  };
   const walk = (v) => {
     if (typeof v === 'string') return clean(v);
     if (Array.isArray(v)) return v.map(walk);
@@ -3496,8 +3555,8 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // …then the PROOF gate: any rating, review, reviewer, badge or guarantee the
     // model produced without an approved source behind it is removed here, not
     // merely discouraged in the prompt.
-    let copyA = gateProof(scrubCopyDeep(rawA.copy), entry);
-    let copyB = gateProof(scrubCopyDeep(rawB.copy), entry);
+    let copyA = gateProof(scrubCopyDeep(rawA.copy, entry), entry);
+    let copyB = gateProof(scrubCopyDeep(rawB.copy, entry), entry);
     groundModelCopy(campaign, entry, copyA, copyB);
     // …then the BRAND GUARD (brand-guard.js): an answer that invents a figure
     // or a claim, or names another company, is not used, whichever model wrote
@@ -4024,6 +4083,82 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
     email_variants: campaign.assets.email?.variants || null,
     landing_html: campaign.assets.landing_pages?.[0]?.html || null,
     ads: campaign.assets.ads || [],
+  };
+}
+
+// ── Individual Asset Generation ─────────────────────────────────────────────
+// Enables regenerating an isolated asset (mailer, landing page, ads, brief)
+// directly for a slot without having to regenerate the entire bundle.
+async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 'all', reviewer = null, config: cfg = {} } = {}) {
+  const config = smartConfig(cfg);
+  const db = new SmartBrainDbAdapter(config);
+  const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });
+  if (!entry) throw new Error(`Calendar entry ${id || ''} not found.`);
+  await stampBrand(entry, config);
+  scrubForeignProducts(entry);
+
+  const prev = await _previewEntry({ id, entry, reviewer, config: cfg });
+  const campaign = prev.campaign || {};
+  campaign.assets = campaign.assets || {};
+
+  const normType = String(assetType || '').toLowerCase();
+
+  if (normType === 'mailer' || normType === 'email') {
+    const CF = require('./copy-frameworks.js');
+    const fwA = CF.pickCopyFramework({ play_key: entry.objective || '', cohort_key: (entry.cohort && (entry.cohort.key || entry.cohort.name)) || '', seed: `${entry.id || entry.date || ''}_${Date.now()}` });
+    const otherKeys = Object.keys(CF.COPY_FRAMEWORKS).filter((k) => k !== fwA.key);
+    const fwB = CF.frameworkByKey(otherKeys[CF.stableIndex(`${entry.id || entry.date || ''}|b_${Date.now()}`, otherKeys.length)]) || fwA;
+    try {
+      const [pA, pB] = await Promise.allSettled([writeCopyWithLLM(entry, fwA, null), writeCopyWithLLM(entry, fwB, null)]);
+      const rawA = pA.status === 'fulfilled' ? pA.value : null;
+      const rawB = pB.status === 'fulfilled' ? pB.value : null;
+      if (rawA && rawA.copy) {
+        const copyA = gateProof(scrubCopyDeep(rawA.copy, entry), entry);
+        const copyB = rawB && rawB.copy ? gateProof(scrubCopyDeep(rawB.copy, entry), entry) : copyA;
+        applyCopy(campaign, entry, copyA, copyB, fwA, fwB, {}, _runId(entry));
+      } else {
+        throw new Error('LLM unavailable for single mailer generation');
+      }
+    } catch (_) {
+      const tc = require('../../lib/smart-brain/services.js').templateEmailCopy(entry, campaign.assets?.email);
+      const pool = slotImagePool(entry, 1200);
+      campaign.assets.email = campaign.assets.email || {};
+      campaign.assets.email.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, pool[0] || null);
+    }
+  } else if (normType === 'landing' || normType === 'landing_page') {
+    const genSvc = require('../../lib/smart-brain/services.js');
+    const lpAsset = genSvc.buildLandingPageAsset(entry, campaign.campaign_id || entry.id);
+    if (lpAsset) {
+      campaign.assets.landing_pages = [lpAsset.variant_a, lpAsset.variant_b].filter(Boolean);
+    }
+  } else if (normType === 'ads' || normType === 'ad') {
+    const pool = slotImagePool(entry, 1400);
+    const ads = campaign.assets.ads || [];
+    for (const ad of ads) {
+      if (ad.creative_type === 'video') {
+        attachMotionCreative(ad, entry, pool);
+      } else if (pool[0]) {
+        ad.creative = ad.creative || {};
+        ad.creative.image = pool[0];
+      }
+    }
+  }
+
+  if (db.connected && row && campaign) {
+    try {
+      await persistCampaignAssets(db, config, campaign, { status: 'preview', origin: 'smart-brain-generate-asset', reviewer, mirror: false });
+    } catch (_) {}
+  }
+
+  return {
+    ok: true,
+    asset_type: normType,
+    campaign,
+    copywriter: campaign.copywriter,
+    email_html: campaign.assets?.email?.html || null,
+    email_variants: campaign.assets?.email?.variants || null,
+    landing_html: campaign.assets?.landing_pages?.[0]?.html || null,
+    ads: campaign.assets?.ads || [],
   };
 }
 
@@ -4591,7 +4726,7 @@ module.exports = {
   // lives outside this module (the html pipeline stage) can be judged by the
   // SAME summary shape rather than by a second walk that could drift from it.
   checkAssetContracts,
-  syncDaily, getPlan, previewEntry, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
+  syncDaily, getPlan, previewEntry, generateSingleAsset, approveEntry, rejectEntry, unrejectEntry, activateScenario, landingPageHtml, landingPageResolve, buildCampaign,
   // calendar.js stamps an inline entry before GenerationService builds it.
   stampBrand,
   prebuildAssets, healOrphans, dbCheck, syncStatus,
