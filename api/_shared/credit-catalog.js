@@ -71,6 +71,11 @@ const FEATURES = [
   { key: 'ads.copy_matrix',       label: 'Ad copy matrix',              group: 'Creation', cost: 14, unit: 'per matrix',    why: '20 variations across angles and awareness levels.' },
   { key: 'landing.generate',      label: 'Generate landing page',       group: 'Creation', cost: 22, unit: 'per page',      why: 'Full brand-compliant page built from your catalog.' },
   { key: 'social.post',           label: 'Social post',                 group: 'Creation', cost: 6,  unit: 'per post',      why: 'Copy plus hooks and hashtags for one platform.' },
+  // SMS / WhatsApp / push (2026-10-23): one short model call for the line;
+  // the sender, link and opt-out are added without a model.
+  { key: 'messaging.sms',         label: 'SMS',                         group: 'Creation', cost: 3,  unit: 'per message',   why: 'One model call for the line; sender, link and opt-out are added by the builder.' },
+  { key: 'messaging.whatsapp',    label: 'WhatsApp template',           group: 'Creation', cost: 3,  unit: 'per template',  why: 'One model call for the header, body and button; the template is shaped for approval.' },
+  { key: 'messaging.push',        label: 'Push notification',           group: 'Creation', cost: 3,  unit: 'per notification', why: 'One model call for the title and body.' },
   { key: 'social.daily_run',      label: 'Social daily run',            group: 'Creation', cost: 30, unit: 'per day',       why: 'The 7-agent daily pipeline across every platform.' },
 
   // ── Publishing and deliverability ─────────────────────────────────────────

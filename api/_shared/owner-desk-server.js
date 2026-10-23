@@ -190,7 +190,8 @@ async function adFix({ brand, worst, why, product, deps }) {
   const named = product && product.title ? { product: { title: product.title, category: product.category } } : null;
   const lock = styleLockLines(brand);
   ads.forEach((a) => { a.image_prompt = [a.image_brief, 'Frame: 1200x628 and 1:1 (Google responsive display).', lock, buildPreamble(brand, 'photo', named).trim()].filter(Boolean).join(' '); });
-  return { ok: ads.length > 0, ads: ads.slice(0, 3), by, dropped, limits: { headline: H, description: D } };
+  return { ok: ads.length > 0, ads: ads.slice(0, 3), by, dropped, limits: { headline: H, description: D },
+    note: ads.length ? null : `${L.name || 'This brand'} has no tagline or claims short enough for an ad, and no model wrote one that passed the checks, so nothing true could be written. Add its claims in Brand Setup.` };
 }
 
 /* ── 4. Mine the reviews ────────────────────────────────────────────────── */

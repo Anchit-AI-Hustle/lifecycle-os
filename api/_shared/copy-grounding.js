@@ -155,7 +155,14 @@ function groundCopy(copy, brand, product) {
     });
   }
   if (a.tiktok && typeof a.tiktok.caption === 'string') a.tiktok.caption = groundText(a.tiktok.caption, facts, dropped, 'ads.tiktok.caption');
+  // SMS / WhatsApp / push lines (2026-10-23): held to the same facts. An
+  // emptied line falls back to the brand's own line in the builder.
+  const m = copy.messaging || {};
+  for (const [ch, fields] of [['sms', ['text']], ['whatsapp', ['header', 'body']], ['push', ['title', 'body']]]) {
+    if (!m[ch] || typeof m[ch] !== 'object') continue;
+    for (const f of fields) if (typeof m[ch][f] === 'string') m[ch][f] = groundText(m[ch][f], facts, dropped, `messaging.${ch}.${f}`);
+  }
   return dropped;
 }
 
-module.exports = { groundCopy, factsFor, unbacked, CLAIM_WORDS };
+module.exports = { groundCopy, groundText, factsFor, unbacked, CLAIM_WORDS };

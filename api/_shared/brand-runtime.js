@@ -146,7 +146,7 @@ function scopedBrand(candidate, opts) {
  * is the one place a persisted row enters the system, so hoisting here fixes
  * every consumer at once, including the ones nobody has written yet.
  */
-const HOISTED = ['offerings', 'claims', 'market_study', 'legal_entity', 'contact', 'social', 'asset_hosts', 'business_model', 'businessModel'];
+const HOISTED = ['offerings', 'claims', 'market_study', 'legal_entity', 'contact', 'social', 'asset_hosts', 'business_model', 'businessModel', 'channels', 'messaging_channels'];
 
 /**
  * Lift brand_data fields onto the brand, without ever shadowing a real column.
@@ -331,6 +331,9 @@ function carriedBrand(body, auth) {
     },
     regions, claims: list(src.claims, 40, 300), offerings: records(src.offerings, 40, 10), competitors: records(src.competitors, 40, 8),
     legal_entity: legal, social, contact: flat(src.contact || data.contact, 8, 200),
+    // The channels the brand says it sends on (SMS / WhatsApp / push are built
+    // only where stated, messaging-assets.channelsOf): names only.
+    channels: list(Array.isArray(src.channels) ? src.channels : data.channels, 12, 40),
     timezone: /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(str(src.timezone, 60)) ? str(src.timezone, 60) : '',
     // A device brand's catalogue is not on the server either, and nothing
     // here may reach the shipped files: the slug above is what the gate reads.
@@ -688,12 +691,19 @@ function scrubForBrand(str, brand) {
   // The prompt already forbids these; this is the last-resort net, so it aims
   // for "readable without the phrase", not for a clever substitution it might
   // get wrong. Leading conjunctions and doubled punctuation are cleaned up.
+  let cut = false;
   for (const phrase of banned) {
     try {
       const rx = new RegExp(String(phrase).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      s = s.replace(rx, '');
+      const next = s.replace(rx, '');
+      if (next !== s) { cut = true; s = next; }
     } catch (_) { /* a phrase that will not compile is skipped, not fatal */ }
   }
+  // The seam is tidied only where a phrase was cut (2026-10-23): the tidy drops
+  // a sentence's leading "The" / "A" / "And", which is right after an excision
+  // ("is, the ...") and wrong on a line nothing was cut from ("The ward ledger"
+  // became "ward ledger" for every brand with a banned list).
+  if (!cut) return s.replace(/\s+/g, ' ').trim();
   return s
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+([.,;:!?])/g, '$1')
