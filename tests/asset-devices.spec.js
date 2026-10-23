@@ -31,8 +31,9 @@ const BRAND = {
   logo_url: IMG('logo'),
   legal_entity: 'Palmgrove Coffee Pvt Ltd, Coorg 571201, India',
 };
+const TODAY = new Date().toISOString().slice(0, 10);
 const SLOT = {
-  id: 'devices-1', date: '2026-10-20', market: 'IN', objective: 'reactivation', brand: BRAND,
+  id: 'devices-1', date: TODAY, market: 'IN', objective: 'reactivation', brand: BRAND,
   cohort: { name: 'At Risk', size: 900, rules: ['r'] }, channels: ['email', 'meta', 'landing_page'],
   confidence: 0.6, offer: { depth: 'none', pct: 0 },
   heroProduct: { sku: 'P1', title: 'Palmgrove Estate Medium Roast', handle: 'estate-medium', category: 'Coffee', image: IMG('estate'), price: 650 },

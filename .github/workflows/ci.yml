@@ -175,13 +175,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-v3-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright browsers (Chromium + WebKit)
-        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium webkit
-      - name: Install the browsers' system libraries (cache hit)
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium webkit
       - uses: actions/download-artifact@v8
         with: { name: selected-specs }
       - name: Run Playwright suite (shard ${{ matrix.shard }} of 6)
