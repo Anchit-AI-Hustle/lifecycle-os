@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+/* A FLOOR UNDER THE SHARED FAILURE TREATMENT - do not remove (see credits.html:
+   auth.js loads deferred and overwrites this the moment it runs). Built with
+   textContent, so a server string can never arrive as markup. */
+window.LifecycleFailure = window.LifecycleFailure || (function () {
+  var IDENT = /^[a-z][a-z0-9]*(?:[_.\-][a-z0-9]+)+$/;
+  function sentence(e) {
+    var s = String((e && (e.message || e.error)) || e || '').trim();
+    return (!s || IDENT.test(s)) ? 'This could not be loaded, and the server did not say why.' : s;
+  }
+  function html(e, o) {
+    var d = document.createElement('div');
+    d.className = 'vh-failure'; d.setAttribute('role', 'alert'); d.setAttribute('data-failure', '1');
+    var t = document.createElement('span'); t.className = 'vh-failure-tag';
+    t.textContent = (o && o.title) || 'Could not load';
+    var m = document.createElement('span'); m.className = 'vh-failure-msg';
+    m.textContent = sentence(e);
+    d.appendChild(t); d.appendChild(document.createTextNode('\n')); d.appendChild(m);
+    return d.outerHTML;
+  }
+  return {
+    sentence: sentence, code: function () { return ''; }, unreachable: function () { return false; }, html: html,
+    rowHtml: function (e, o) { return '<tr class="vh-failure-tr"><td colspan="99">' + html(e, o) + '</td></tr>'; },
+    show: function (el, e, o) { if (el) el.innerHTML = html(e, o); },
+  };
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Owner's Desk</title>
+<meta name="description" content="Lock in your brand style, launch in one go, fix your worst ad, mine your reviews, X-ray your money, model a price change and get one monthly report.">
+<link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta property="og:site_name" content="Lifecycle OS">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/assets/lifecycle-os-og.png">
+<script src="/auth.js?v=20260809" defer></script>
+<script src="/owner-desk.js?v=20261023" defer></script>
+<style>
+  /* Role tokens only (design/lifecycle-os/CONTRACT.md): no colour literal. */
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--vh-font-body,system-ui,sans-serif);background:var(--vh-bg);color:var(--vh-ink);padding:56px 20px 64px;min-height:100vh;min-height:100svh}
+  .wrap{max-width:1120px;margin:0 auto}
+  .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--vh-accent-text);font-weight:700;margin:0 0 8px}
+  h1{font-family:var(--vh-font-head,inherit);font-size:32px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em}
+  h2{font-family:var(--vh-font-head,inherit);font-size:22px;margin:0 0 6px}
+  h3{font-size:16px;margin:16px 0 6px}
+  .lede{color:var(--vh-ink-dim);font-size:15px;line-height:1.6;max-width:760px;margin:0 0 18px}
+  .muted{color:var(--vh-ink-dim);font-size:13px;line-height:1.55}
+  .card{background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:var(--vh-r-lg,14px);padding:18px;min-width:0;margin:0 0 14px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+  .tab{font-family:inherit;font-size:14px;font-weight:600;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary)}
+  .pane[hidden]{display:none}
+  .row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:8px 0}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--vh-ink-dim);min-width:0;flex:1 1 220px}
+  .field input,.field textarea,.field select{font-family:inherit;font-size:16px;min-height:44px;padding:8px 10px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-line);background:var(--vh-panel);color:var(--vh-ink);width:100%}
+  .field textarea{min-height:88px;resize:vertical}
+  .btn{font-family:inherit;font-size:15px;font-weight:700;min-height:44px;min-width:44px;padding:0 16px;border-radius:var(--vh-r-md,10px);border:1px solid var(--vh-primary);background:var(--vh-primary);color:var(--vh-on-primary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .btn.ghost{background:var(--vh-panel);color:var(--vh-primary-text);border-color:var(--vh-line)}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+  .btn:focus-visible,.tab:focus-visible,.field input:focus-visible,.field textarea:focus-visible{outline:2px solid var(--vh-focus);outline-offset:2px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:14px}
+  .swatch{display:inline-flex;align-items:center;gap:8px;margin:0 14px 8px 0;font-variant-numeric:tabular-nums}
+  .swatch i{display:inline-block;width:28px;height:28px;border-radius:8px;border:1px solid var(--vh-line)}
+  .say{border-left:3px solid var(--vh-accent);padding:6px 0 6px 12px;margin:10px 0;font-size:15px;line-height:1.55}
+  .ask{border-left:3px solid var(--vh-warn,var(--vh-accent));padding:4px 0 4px 10px;margin:6px 0;font-size:14px}
+  .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--vh-primary-text);overflow-wrap:anywhere}
+  .tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--vh-ink-dim);padding:8px 10px;border-bottom:1px solid var(--vh-line);white-space:nowrap}
+  td{padding:8px 10px;border-bottom:1px solid var(--vh-line);vertical-align:top}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  tr.flag td{background:var(--vh-panel-2)}
+  .pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--vh-line);color:var(--vh-ink-dim)}
+  .prompt{white-space:pre-wrap;font:13px/1.5 var(--vh-font-mono,ui-monospace,monospace);background:var(--vh-panel-2);border-radius:10px;padding:10px;max-height:180px;overflow:auto;overflow-wrap:anywhere}
+  .vis img{display:block;width:100%;height:auto;border-radius:10px;margin:8px 0}
+  .slider{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;margin:8px 0}
+  .slider input[type=range]{width:100%;min-height:44px}
+  .status:empty{display:none}
+  .report h1{font-size:22px}
+  @media (max-width:640px){ body{padding:52px 16px 56px} h1{font-size:26px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow" id="brandLabel">Owner's Desk</p>
+  <h1>Run the business from one desk</h1>
+  <p class="lede">Seven jobs an agency would bill you for, done from your own brand record and your own files. Every number here is worked out from your files; where a number is missing, the desk asks instead of guessing. Your files stay in this browser.</p>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-tab="brand" aria-selected="true">1. Brand style</button>
+    <button class="tab" role="tab" data-tab="launch">2. A launch in one go</button>
+    <button class="tab" role="tab" data-tab="ad">3. Fix your worst ad</button>
+    <button class="tab" role="tab" data-tab="reviews">4. Mine your reviews</button>
+    <button class="tab" role="tab" data-tab="money">5. Money X-ray</button>
+    <button class="tab" role="tab" data-tab="whatif">6. What-if model</button>
+    <button class="tab" role="tab" data-tab="report">7. Monthly report</button>
+  </div>
+
+  <!-- 1. Brand style -->
+  <section class="pane" data-pane="brand">
+    <div class="card">
+      <h2>Lock in your brand</h2>
+      <p class="muted">Do this once. Every picture, ad and mail the app makes after it carries this style. The colours and fonts are your brand record's own (read from your site or typed in Brand Setup).</p>
+      <h3>Exact colours</h3><div id="bsColors" class="muted">Loading…</div>
+      <h3>Fonts</h3><div id="bsFonts" class="muted"></div>
+      <div class="row">
+        <label class="field">Photo style: lighting, angles, mood
+          <textarea id="bsPhoto" placeholder="For example: soft daylight from a window, eye-level and close, warm and calm."></textarea></label>
+      </div>
+      <div class="row">
+        <label class="field">Brand personality in five words
+          <input id="bsPersonality" type="text" placeholder="Five words, separated by commas"></label>
+      </div>
+      <p class="muted" id="bsPersonalityNote"></p>
+      <h3>Three rules your visuals must never break</h3>
+      <div class="row"><label class="field">Rule 1<input id="bsRule1" type="text"></label></div>
+      <div class="row"><label class="field">Rule 2<input id="bsRule2" type="text"></label></div>
+      <div class="row"><label class="field">Rule 3<input id="bsRule3" type="text"></label></div>
+      <div class="row">
+        <button class="btn" id="bsSave" type="button">Save as my brand style</button>
+        <button class="btn ghost" id="bsCopy" type="button">Copy brand style</button>
+      </div>
+      <div class="status" id="bsStatus" role="status"></div>
+    </div>
+  </section>
+
+  <!-- 2. Launch -->
+  <section class="pane" data-pane="launch" hidden>
+    <div class="card">
+      <h2>A whole launch in one go</h2>
+      <p class="muted">Three campaign concepts in one line each, with the feeling each should create. Pick one, and get six visuals in your brand style: a website hero, three square posts and two vertical stories. Same product, same look, clean space for text.</p>
+      <div class="row">
+        <label class="field">Product<input id="lkProduct" type="text" list="lkProducts" placeholder="The product you are launching"></label>
+        <datalist id="lkProducts"></datalist>
+        <label class="field">Ideal customer<input id="lkCustomer" type="text" placeholder="Who it is for"></label>
+      </div>
+      <div class="row"><button class="btn" id="lkPitch" type="button" data-credit-feature="launch.concepts">Pitch me 3 concepts</button></div>
+      <div class="status" id="lkStatus" role="status"></div>
+      <div class="grid" id="lkConcepts"></div>
+    </div>
+    <div class="card" id="lkVisualsCard" hidden>
+      <h2>Six visuals</h2>
+      <p class="muted" id="lkVisualsNote"></p>
+      <div class="grid" id="lkVisuals"></div>
+    </div>
+  </section>
+
+  <!-- 3. Worst ad -->
+  <section class="pane" data-pane="ad" hidden>
+    <div class="card">
+      <h2>Fix your worst ad</h2>
+      <p class="muted">Export the last 30 days of your ads (Google Ads: Ads report with Cost, Clicks, Impressions and Conversions; Meta: Ads Manager export with Amount spent and Results) and add it here. The cost per conversion of every ad is worked out, and the one burning the most money is flagged, with why in plain words.</p>
+      <div class="row"><label class="btn ghost" for="adFile">Add the ad report (CSV)</label><input id="adFile" type="file" accept=".csv,text/csv" hidden></div>
+      <div class="status" id="adStatus" role="status"></div>
+      <div id="adResult"></div>
+    </div>
+  </section>
+
+  <!-- 4. Reviews -->
+  <section class="pane" data-pane="reviews" hidden>
+    <div class="card">
+      <h2>Mine your reviews</h2>
+      <p class="muted">Add your Google Business Profile reviews (a CSV export with the review text and rating) or paste them, one per line. Praise and complaints are grouped by theme and counted, the three lines to use in your ads are quoted word for word, a reply is drafted for every negative review, and the three fixes that would resolve the most complaints are named.</p>
+      <div class="row"><label class="btn ghost" for="rvFile">Add reviews (CSV)</label><input id="rvFile" type="file" accept=".csv,text/csv" hidden></div>
+      <div class="row"><label class="field">Or paste reviews, one per line<textarea id="rvPaste"></textarea></label></div>
+      <div class="row"><button class="btn" id="rvRun" type="button" data-credit-feature="reviews.mine">Mine these reviews</button></div>
+      <div class="status" id="rvStatus" role="status"></div>
+      <div id="rvResult"></div>
+    </div>
+  </section>
+
+  <!-- 5. Money -->
+  <section class="pane" data-pane="money" hidden>
+    <div class="card">
+      <h2>The money X-ray</h2>
+      <p class="muted">Your sales export (Shopify's order export works as it is) and this month's receipts or expense sheet (date, category or vendor, amount). Revenue by month, your top five products, your biggest expenses and your profit margin, then three sentences on where the money goes. Anything that looks off or is missing is asked, not guessed.</p>
+      <div class="row">
+        <label class="btn ghost" for="mxSales">Add sales (CSV)</label><input id="mxSales" type="file" accept=".csv,text/csv" hidden>
+        <label class="btn ghost" for="mxExp">Add expenses (CSV)</label><input id="mxExp" type="file" accept=".csv,text/csv" hidden>
+        <button class="btn ghost" id="mxClear" type="button">Remove my files</button>
+      </div>
+      <p class="muted" id="mxFiles"></p>
+      <div id="mxResult"></div>
+    </div>
+  </section>
+
+  <!-- 6. What-if -->
+  <section class="pane" data-pane="whatif" hidden>
+    <div class="card">
+      <h2>The what-if model</h2>
+      <p class="muted">Test a price change on a slider before you test it on real customers. Profit and your break-even point update as you move them. It starts from your money X-ray; type any number it could not read.</p>
+      <div id="wfInputs"></div>
+      <div id="wfLive"></div>
+      <h3>Three scenarios</h3>
+      <div class="row">
+        <label class="field">Orders a 10% price rise would lose (%)<input id="wfLoss" type="number" min="0" max="100" step="1" placeholder="Not given"></label>
+        <label class="field">Share of orders your ads bring (%)<input id="wfShare" type="number" min="0" max="100" step="1" placeholder="Not given"></label>
+        <label class="field">Upsell price<input id="wfUpsell" type="number" min="0" step="1" placeholder="Not given"></label>
+        <label class="field">Orders that would take it (%)<input id="wfTake" type="number" min="0" max="100" step="1" placeholder="Not given"></label>
+      </div>
+      <div id="wfScen"></div>
+    </div>
+  </section>
+
+  <!-- 7. Report -->
+  <section class="pane" data-pane="report" hidden>
+    <div class="card">
+      <h2>Your monthly report</h2>
+      <p class="muted">One page: sales, ad spend and new reviews, what grew, what dropped and why, then the three moves for next week, each with its expected impact. The same layout every month so you can compare. It uses the files on the other tabs.</p>
+      <div class="row">
+        <label class="field">Month<select id="rpMonth"></select></label>
+        <button class="btn" id="rpBuild" type="button">Build the report</button>
+        <button class="btn ghost" id="rpSave" type="button" disabled>Keep this month</button>
+        <button class="btn ghost" id="rpCopy" type="button" disabled>Copy</button>
+        <button class="btn ghost" id="rpDownload" type="button" disabled>Download</button>
+      </div>
+      <div class="status" id="rpStatus" role="status"></div>
+      <div id="rpOut" class="report"></div>
+      <h3>Kept months</h3>
+      <div id="rpKept" class="muted">None yet.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function OD() { return window.OwnerDesk; }
+  function BC() { return window.BrandContext; }
+  function brand() { return (BC() && BC().brand) || null; }
+  function store() { return window.LCStore || { get: function () { return null; }, set: function () { return false; }, remove: function () {} }; }
+  function key(k) { var b = brand(); return 'owner-desk.' + k + '.' + ((b && b.id) || 'none'); }
+  function say(el, text, kind) { el.innerHTML = text ? '<p class="' + (kind === 'ask' ? 'ask' : 'say') + '">' + esc(text) + '</p>' : ''; }
+  function fail(el, e, title) { if (window.LifecycleFailure) window.LifecycleFailure.show(el, e, { title: title }); else el.textContent = String(e && e.message || e); }
+  function n(v) { return v == null ? '' : (Math.round(v * 100) / 100).toLocaleString('en-US'); }
+
+  async function post(action, body) {
+    if (window.LifecycleStatus) { var refusal = await window.LifecycleStatus.decide('This', { metered: true }); if (refusal) throw refusal; }
+    var r = await fetch('/api/brain?action=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    var j = await r.json().catch(function () { return {}; });
+    if (!r.ok || j.ok === false) { var e = new Error(j.message || j.error || ('The server answered ' + r.status)); e.code = j.error; throw e; }
+    return j;
+  }
+  async function copy(text) { try { await navigator.clipboard.writeText(text); return true; } catch (_) { return false; } }
+
+  /* ── tabs ── */
+  function show(tab) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === tab)); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pane]'), function (p) { p.hidden = p.dataset.pane !== tab; });
+    try { history.replaceState(null, '', '#' + tab); } catch (_) {}
+    if (tab === 'whatif') renderWhatIf();
+    if (tab === 'report') fillMonths();
+  }
+  $('tabs').addEventListener('click', function (ev) { var b = ev.target.closest('[data-tab]'); if (b) show(b.dataset.tab); });
+
+  /* ── files kept in this browser, per brand ── */
+  var files = { sales: null, expenses: null, ads: null, reviews: null };
+  var parsed = {};
+  function loadFiles() {
+    ['sales', 'expenses', 'ads', 'reviews'].forEach(function (k) { files[k] = store().get(key('file.' + k)) || null; });
+    reparse();
+  }
+  function reparse() {
+    parsed.sales = files.sales ? OD().readSales(files.sales) : null;
+    parsed.expenses = files.expenses ? OD().readExpenses(files.expenses) : null;
+    parsed.ads = files.ads ? OD().readAds(files.ads) : null;
+    parsed.reviews = files.reviews ? OD().readReviews(files.reviews) : null;
+  }
+  function keep(k, text) { files[k] = text; try { store().set(key('file.' + k), text); } catch (_) {} reparse(); }
+  function readFile(input, k, then) {
+    input.addEventListener('change', async function () {
+      var f = input.files && input.files[0]; if (!f) return;
+      keep(k, await f.text()); input.value = ''; then();
+    });
+  }
+
+  /* ── 1. brand style ── */
+  var full = null;
+  var RULES = ['Never a black or dark-neutral background behind a section.', 'Text always reads clearly against what is behind it (at least WCAG AA contrast).', 'Only the brand\'s own colours and typefaces, and no words baked into photos.'];
+  async function loadBrand() {
+    var b = brand();
+    if (!b) { $('bsColors').textContent = 'Choose or set up a brand first.'; return; }
+    $('brandLabel').textContent = 'Owner\'s Desk · ' + (b.name || '');
+    try { var got = await BC().api('get', { query: '&id=' + encodeURIComponent(b.id) }); full = (got && got.brand) || b; } catch (_) { full = b; }
+    var p = full.palette || {};
+    var roles = [['primary', 'Primary'], ['accent', 'Accent'], ['ink', 'Text'], ['surface', 'Background']];
+    var sw = roles.filter(function (r) { return p[r[0]]; }).map(function (r) { return '<span class="swatch"><i style="background:' + esc(p[r[0]]) + '"></i>' + esc(r[1]) + ' <b>' + esc(String(p[r[0]]).toUpperCase()) + '</b></span>'; }).join('');
+    $('bsColors').innerHTML = sw || '<p class="ask">No colours are on the brand record yet. Read them from your site in Brand Setup.</p>';
+    var t = full.typography || {};
+    function fam(x) { return x && (x.family || (typeof x === 'string' ? x : '')); }
+    var fonts = [['Headings', fam(t.heading || t.head)], ['Body', fam(t.body)]].filter(function (f) { return f[1]; });
+    $('bsFonts').innerHTML = fonts.length ? fonts.map(function (f) { return esc(f[0]) + ': <b>' + esc(f[1]) + '</b>'; }).join(' · ') : '<span class="ask">No fonts are on the brand record yet.</span>';
+    var lock = (full.brand_data && full.brand_data.style_lock) || {};
+    $('bsPhoto').value = lock.photo_style || '';
+    var pref = (full.voice && Array.isArray(full.voice.preferred)) ? full.voice.preferred.slice(0, 5) : [];
+    $('bsPersonality').value = lock.personality || '';
+    $('bsPersonalityNote').textContent = lock.personality ? '' : (pref.length ? 'Your brand voice uses these words: ' + pref.join(', ') + '. Use them or write your own five.' : '');
+    var rules = Array.isArray(lock.rules) && lock.rules.length ? lock.rules : RULES;
+    $('bsRule1').value = rules[0] || ''; $('bsRule2').value = rules[1] || ''; $('bsRule3').value = rules[2] || '';
+    $('bsStatus').innerHTML = lock.saved_at ? '<p class="say">Saved on ' + esc(String(lock.saved_at).slice(0, 10)) + '. Every visual after it carries this style.</p>' : '';
+  }
+  function styleText() {
+    var b = full || brand() || {};
+    var p = b.palette || {};
+    return ['Brand style: ' + (b.name || ''), 'Colours: ' + ['primary', 'accent', 'ink', 'surface'].filter(function (k) { return p[k]; }).map(function (k) { return k + ' ' + String(p[k]).toUpperCase(); }).join(', '),
+      'Fonts: ' + $('bsFonts').textContent, 'Photo style: ' + $('bsPhoto').value.trim(), 'Personality: ' + $('bsPersonality').value.trim(),
+      'Never break:', '1. ' + $('bsRule1').value.trim(), '2. ' + $('bsRule2').value.trim(), '3. ' + $('bsRule3').value.trim()].join('\n');
+  }
+  $('bsSave').addEventListener('click', async function () {
+    var words = $('bsPersonality').value.split(/[,\s]+/).filter(Boolean);
+    if (words.length > 5) { say($('bsStatus'), 'The personality is ' + words.length + ' words. Keep it to five.', 'ask'); return; }
+    if (!$('bsPhoto').value.trim()) { say($('bsStatus'), 'Describe the photo style first: the lighting, the angles and the mood of your pictures.', 'ask'); return; }
+    if (!full || !full.id) { say($('bsStatus'), 'Choose or set up a brand first.', 'ask'); return; }
+    var lock = { photo_style: $('bsPhoto').value.trim().slice(0, 400), personality: $('bsPersonality').value.trim().slice(0, 80), rules: [$('bsRule1').value, $('bsRule2').value, $('bsRule3').value].map(function (r) { return r.trim().slice(0, 160); }).filter(Boolean), saved_at: new Date().toISOString() };
+    try {
+      var bd = Object.assign({}, full.brand_data || {}, { style_lock: lock });
+      await BC().api('save', { body: { id: full.id, brand_data: bd } });
+      full.brand_data = bd;
+      say($('bsStatus'), 'Saved. Every picture, ad and mail made after this carries your photo style, personality and rules.');
+    } catch (e) { fail($('bsStatus'), e, 'The brand style was not saved'); }
+  });
+  $('bsCopy').addEventListener('click', async function () { say($('bsStatus'), (await copy(styleText())) ? 'Copied.' : 'Copy was blocked by the browser.'); });
+
+  /* ── 2. launch ── */
+  function productFromInput() {
+    var t = $('lkProduct').value.trim(); if (!t) return null;
+    var rows = (window.__odProducts || []).filter(function (r) { return r.title === t; });
+    var r = rows[0] || {};
+    return { title: t, price: r.price_display || '', description: r.description || '', category: r.category || r.product_type || '', image_url: r.image_url || r.img || '' };
+  }
+  async function loadProducts() {
+    try {
+      if (!window.BrandCatalog || !window.BrandCatalog.load) return;
+      var res = await window.BrandCatalog.load();
+      var rows = (res && res.products) || [];
+      window.__odProducts = (rows || []).map(function (r) { return { title: r.title || r.n || '', image_url: r.image_url || r.i || '', category: r.category || r.product_type || '', description: r.description || '' }; }).filter(function (r) { return r.title; }).slice(0, 300);
+      $('lkProducts').innerHTML = window.__odProducts.map(function (r) { return '<option value="' + esc(r.title) + '"></option>'; }).join('');
+    } catch (_) {}
+  }
+  var concepts = [];
+  $('lkPitch').addEventListener('click', async function () {
+    var btn = this; btn.disabled = true; say($('lkStatus'), 'Pitching three concepts…');
+    try {
+      var r = await post('launch-concepts', { product: productFromInput(), customer: $('lkCustomer').value.trim() });
+      concepts = r.concepts || [];
+      $('lkStatus').innerHTML = r.by === 'model' ? '' : '<p class="say">Written from your brand\'s own tagline and claims.</p>';
+      $('lkConcepts').innerHTML = concepts.map(function (c, i) {
+        return '<div class="card" data-concept="' + i + '"><p class="pill">Concept ' + (i + 1) + (c.angle ? ' · ' + esc(c.angle) : '') + '</p><h3>' + esc(c.line) + '</h3><p class="muted">Feeling: ' + esc(c.feeling) + '</p><button class="btn ghost" type="button" data-pick="' + i + '">Use this one</button></div>';
+      }).join('');
+    } catch (e) { fail($('lkStatus'), e, 'No concepts this time'); }
+    btn.disabled = false;
+  });
+  $('lkConcepts').addEventListener('click', async function (ev) {
+    var b = ev.target.closest('[data-pick]'); if (!b) return;
+    var c = concepts[Number(b.dataset.pick)];
+    try {
+      var r = await post('launch-visuals', { concept: c, product: productFromInput() });
+      $('lkVisualsCard').hidden = false;
+      $('lkVisualsNote').textContent = 'For "' + c.line + '". ' + (r.style_locked ? 'Built in your saved brand style.' : 'Save your brand style on tab 1 so every frame carries it.');
+      $('lkVisuals').innerHTML = r.visuals.map(function (v, i) {
+        return '<div class="card vis" data-vis="' + i + '"><p class="pill">' + esc(v.label) + ' · ' + esc(v.size) + '</p>'
+          + (v.real_photo ? '<img src="' + esc(v.real_photo) + '" alt="' + esc(c.line) + '"><p class="muted">' + esc(v.real_note) + '</p>' : '')
+          + '<div class="prompt">' + esc(v.prompt) + '</div><div class="row"><button class="btn ghost" type="button" data-copy-vis="' + i + '">Copy prompt</button><button class="btn" type="button" data-gen="' + i + '" data-credit-feature="image.generate">Make this picture</button></div><div class="status" data-vis-status></div></div>';
+      }).join('');
+      window.__odVisuals = r.visuals;
+      $('lkVisualsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) { fail($('lkStatus'), e, 'The visuals were not built'); }
+  });
+  $('lkVisuals').addEventListener('click', async function (ev) {
+    var cp = ev.target.closest('[data-copy-vis]');
+    if (cp) { var v0 = window.__odVisuals[Number(cp.dataset.copyVis)]; cp.textContent = (await copy(v0.prompt)) ? 'Copied' : 'Copy blocked'; return; }
+    var g = ev.target.closest('[data-gen]'); if (!g) return;
+    var v = window.__odVisuals[Number(g.dataset.gen)];
+    var card = g.closest('.vis'); var st = card.querySelector('[data-vis-status]');
+    g.disabled = true; say(st, 'Making the picture…');
+    try {
+      var size = v.ratio === '9:16' ? '1080x1920' : (v.ratio === '1:1' ? '1080x1080' : '1536x1024');
+      var r = await fetch('/api/ai/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: v.prompt, size: size, mode: 'photo', product: productFromInput() }) });
+      var j = await r.json().catch(function () { return {}; });
+      var src = j.image_data_url || j.url || j.image_url;
+      if (!r.ok || !src) throw new Error(j.message || j.error || 'No picture came back.');
+      var img = document.createElement('img'); img.src = src; img.alt = v.label; card.insertBefore(img, card.querySelector('.prompt'));
+      st.innerHTML = '';
+    } catch (e) { fail(st, e, 'No picture this time'); }
+    g.disabled = false;
+  });
+
+  /* ── 3. worst ad ── */
+  var worst = null;
+  function renderAds() {
+    var out = $('adResult');
+    if (!parsed.ads) { out.innerHTML = ''; return; }
+    var w = OD().worstAd(parsed.ads); worst = w;
+    var q = (w.questions || []).map(function (x) { return '<p class="ask">' + esc(x) + '</p>'; }).join('');
+    if (!w.ok) { out.innerHTML = q + '<p class="ask">' + esc(w.note) + '</p>'; return; }
+    out.innerHTML = q
+      + '<div class="tbl"><table><thead><tr><th>Ad</th><th class="num">Cost</th><th class="num">Conversions</th><th class="num">Cost per conversion</th><th class="num">Above median</th></tr></thead><tbody>'
+      + w.ads.map(function (a, i) { return '<tr' + (i === 0 ? ' class="flag"' : '') + '><td>' + (i === 0 ? '<span class="pill">Burning the most</span> ' : '') + esc(a.ad) + '</td><td class="num">' + n(a.cost) + '</td><td class="num">' + n(a.conversions) + '</td><td class="num">' + (a.cpa == null ? 'none' : n(a.cpa)) + '</td><td class="num">' + n(a.excess) + '</td></tr>'; }).join('')
+      + '</tbody></table></div><h3>Why "' + esc(w.worst.ad) + '" is failing</h3>' + w.why.map(function (s) { return '<p class="say">' + esc(s) + '</p>'; }).join('')
+      + '<div class="row"><button class="btn" type="button" id="adFix" data-credit-feature="ads.fix">Write 3 replacement ads</button></div><div class="status" id="adFixStatus"></div><div class="grid" id="adFixOut"></div>';
+    $('adFix').addEventListener('click', async function () {
+      var btn = this; btn.disabled = true; say($('adFixStatus'), 'Writing three replacements…');
+      try {
+        var r = await post('ad-fix', { worst: { ad: w.worst.ad, cost: w.worst.cost, conversions: w.worst.conversions }, why: w.why, product: productFromInput() });
+        $('adFixStatus').innerHTML = r.dropped && r.dropped.length ? '<p class="muted">' + r.dropped.length + ' line(s) left out: ' + esc(r.dropped.map(function (d) { return d.why; }).join('; ')) + '</p>' : '';
+        $('adFixOut').innerHTML = r.ads.map(function (a, i) {
+          return '<div class="card"><p class="pill">Angle: ' + esc(a.angle) + '</p><h3>' + esc(a.headline) + ' <span class="muted">(' + a.headline.length + '/' + r.limits.headline + ')</span></h3><p>' + esc(a.description) + ' <span class="muted">(' + a.description.length + '/' + r.limits.description + ')</span></p><p class="muted">Image: ' + esc(a.image_brief) + '</p><button class="btn ghost" type="button" data-copy-ad="' + i + '">Copy ad and image prompt</button></div>';
+        }).join('');
+        $('adFixOut').onclick = async function (ev) { var b = ev.target.closest('[data-copy-ad]'); if (!b) return; var a = r.ads[Number(b.dataset.copyAd)]; b.textContent = (await copy('Headline: ' + a.headline + '\nDescription: ' + a.description + '\n\nImage prompt:\n' + a.image_prompt)) ? 'Copied' : 'Copy blocked'; };
+      } catch (e) { fail($('adFixStatus'), e, 'No replacements this time'); }
+      btn.disabled = false;
+    });
+  }
+  readFile($('adFile'), 'ads', function () { renderAds(); });
+
+  /* ── 4. reviews ── */
+  var mined = null;
+  readFile($('rvFile'), 'reviews', function () { say($('rvStatus'), (parsed.reviews.reviews.length) + ' reviews read.' + (parsed.reviews.issues[0] ? ' ' + parsed.reviews.issues[0] : '')); });
+  $('rvRun').addEventListener('click', async function () {
+    var list = parsed.reviews ? parsed.reviews.reviews : [];
+    var pasted = $('rvPaste').value.split(/\n+/).map(function (t) { return t.trim(); }).filter(Boolean);
+    if (pasted.length) list = pasted.map(function (t, i) { return { i: i, text: t, rating: null }; });
+    if (!list.length) { say($('rvStatus'), 'Add your reviews first.', 'ask'); return; }
+    var btn = this; btn.disabled = true; say($('rvStatus'), 'Reading ' + list.length + ' reviews…');
+    try {
+      var r = await post('review-mine', { reviews: list });
+      mined = r; try { store().set(key('reviews.themes'), JSON.stringify(r.themes)); } catch (_) {}
+      $('rvStatus').innerHTML = r.cap ? '<p class="muted">' + esc(r.cap) + '</p>' : '';
+      var t = r.themes;
+      function rows(list, kind) { return list.length ? '<div class="tbl"><table><thead><tr><th>' + kind + '</th><th class="num">Reviews</th><th class="num">Share</th></tr></thead><tbody>' + list.map(function (x) { return '<tr><td>' + esc(x.theme) + '</td><td class="num">' + x.count + '</td><td class="num">' + Math.round((x.share || 0) * 100) + '%</td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="muted">None.</p>'; }
+      $('rvResult').innerHTML = '<p class="say">' + t.total + ' reviews' + (t.average != null ? ', average ' + t.average + ' of 5 across the ' + t.rated + ' that state a rating' : '') + '.</p>'
+        + '<h3>Praise</h3>' + rows(t.praise, 'Theme') + '<h3>Complaints</h3>' + rows(t.complaints, 'Theme')
+        + '<h3>Three lines to use in your ads</h3>' + (r.quotes.length ? r.quotes.map(function (q) { return '<p class="say">"' + esc(q.text) + '"' + (q.author ? ' <span class="muted">' + esc(q.author) + '</span>' : '') + '</p>'; }).join('') : '<p class="muted">No praise review was specific enough to quote.</p>')
+        + '<h3>Replies to negative reviews (' + r.replies.length + ' of ' + r.negatives + ')</h3>' + r.replies.map(function (x, i) { return '<div class="card"><p class="muted">"' + esc(x.review) + '"</p><p>' + esc(x.reply) + '</p><button class="btn ghost" type="button" data-copy-reply="' + i + '">Copy reply</button></div>'; }).join('')
+        + (r.unreplied.length ? '<p class="ask">' + r.unreplied.length + ' negative review(s) got no reply that passed the checks. Reply to those yourself.</p>' : '')
+        + '<h3>Three fixes</h3>' + (r.fixes.length ? r.fixes.map(function (f, i) { return '<p class="say"><b>' + (i + 1) + '. ' + esc(f.fix) + '</b><br><span class="muted">Fixes "' + esc(f.theme) + '", in ' + f.count + ' of ' + f.of + ' reviews.</span></p>'; }).join('') : '<p class="muted">No complaint came up often enough to name a fix.</p>');
+      $('rvResult').onclick = async function (ev) { var b = ev.target.closest('[data-copy-reply]'); if (!b) return; b.textContent = (await copy(r.replies[Number(b.dataset.copyReply)].reply)) ? 'Copied' : 'Copy blocked'; };
+    } catch (e) { fail($('rvStatus'), e, 'The reviews were not read'); }
+    btn.disabled = false;
+  });
+
+  /* ── 5. money ── */
+  var x = null;
+  function bars(rows) {
+    var vals = rows.map(function (r) { return r.revenue || 0; }); var max = Math.max.apply(null, vals.concat([1]));
+    var w = 640, h = 160, bw = Math.max(8, Math.floor(w / Math.max(rows.length, 1)) - 8);
+    return '<svg viewBox="0 0 ' + w + ' ' + (h + 22) + '" role="img" aria-label="Revenue by month">' + rows.map(function (r, i) {
+      var bh = r.revenue == null ? 0 : Math.round((r.revenue / max) * h); var xx = i * (bw + 8);
+      return '<rect x="' + xx + '" y="' + (h - bh) + '" width="' + bw + '" height="' + bh + '" rx="4" style="fill:var(--vh-chart-1,var(--vh-primary))"></rect><text x="' + (xx + bw / 2) + '" y="' + (h + 16) + '" text-anchor="middle" style="fill:var(--vh-ink-dim);font-size:11px">' + esc(r.month.slice(2)) + '</text>';
+    }).join('') + '</svg>';
+  }
+  function renderMoney() {
+    $('mxFiles').textContent = [parsed.sales ? 'Sales: ' + parsed.sales.orders.length + ' orders' : 'No sales file', parsed.expenses ? 'Expenses: ' + parsed.expenses.expenses.length + ' rows' : 'no expenses file'].join(' · ');
+    if (!parsed.sales && !parsed.expenses) { $('mxResult').innerHTML = ''; x = null; return; }
+    x = OD().xray(parsed.sales, parsed.expenses);
+    var o = x.overall;
+    $('mxResult').innerHTML = x.summary.map(function (s) { return '<p class="say">' + esc(s) + '</p>'; }).join('')
+      + (o ? '<div class="grid"><div class="card"><p class="muted">Sales</p><p class="big">' + n(o.revenue) + '</p></div><div class="card"><p class="muted">Expenses</p><p class="big">' + n(o.expenses) + '</p></div><div class="card"><p class="muted">Profit margin</p><p class="big">' + (o.margin == null ? 'not worked out' : Math.round(o.margin * 100) + '%') + '</p></div></div>' : '')
+      + '<h3>Revenue by month</h3>' + bars(x.by_month.filter(function (r) { return r.revenue != null; }))
+      + '<div class="tbl"><table><thead><tr><th>Month</th><th class="num">Sales</th><th class="num">Orders</th><th class="num">Expenses</th><th class="num">Profit</th><th class="num">Margin</th></tr></thead><tbody>'
+      + x.by_month.map(function (r) { return '<tr><td>' + esc(r.month) + '</td><td class="num">' + (r.revenue == null ? 'no sales file' : n(r.revenue)) + '</td><td class="num">' + (r.orders == null ? '' : r.orders) + '</td><td class="num">' + (r.expenses == null ? 'not in the files' : n(r.expenses)) + '</td><td class="num">' + (r.profit == null ? '' : n(r.profit)) + '</td><td class="num">' + (r.margin == null ? '' : Math.round(r.margin * 100) + '%') + '</td></tr>'; }).join('') + '</tbody></table></div>'
+      + '<div class="grid"><div><h3>Top 5 products</h3>' + (x.top_products.length ? '<ol>' + x.top_products.map(function (p) { return '<li>' + esc(p.product) + ': ' + n(p.revenue) + '</li>'; }).join('') + '</ol>' : '<p class="muted">The sales file has no product lines.</p>') + '</div>'
+      + '<div><h3>Biggest expenses</h3>' + (x.biggest_expenses.length ? '<ol>' + x.biggest_expenses.map(function (c) { return '<li>' + esc(c.category) + ': ' + n(c.amount) + '</li>'; }).join('') + '</ol>' : '<p class="muted">No expenses read.</p>') + '</div></div>'
+      + (x.questions.length ? '<h3>Before trusting these figures</h3>' + x.questions.map(function (q) { return '<p class="ask">' + esc(q) + '</p>'; }).join('') : '');
+  }
+  readFile($('mxSales'), 'sales', renderMoney);
+  readFile($('mxExp'), 'expenses', renderMoney);
+  $('mxClear').addEventListener('click', async function () {
+    if (!(await window.LifecycleDialog.confirm('Remove the sales and expense files kept in this browser for this brand?', { ok: 'Remove', danger: true }))) return;
+    ['sales', 'expenses'].forEach(function (k) { files[k] = null; try { store().remove(key('file.' + k)); } catch (_) {} });
+    reparse(); renderMoney();
+  });
+
+  /* ── 6. what-if ── */
+  var wf = null;
+  function renderWhatIf() {
+    var base = OD().baseline(x || (parsed.sales || parsed.expenses ? OD().xray(parsed.sales, parsed.expenses) : null));
+    if (!wf) wf = { price: base.price.value, orders: base.orders.value, ad_spend: base.ad_spend.value, cost_per_order: base.cost_per_order.value, fixed_costs: base.fixed_costs.value, base: base };
+    var defs = [['price', 'Price (average order)'], ['orders', 'Orders per month'], ['ad_spend', 'Ad spend per month'], ['cost_per_order', 'What one order costs you to make and send'], ['fixed_costs', 'Other costs per month']];
+    $('wfInputs').innerHTML = defs.map(function (d) {
+      var v = wf[d[0]]; var b = base[d[0]];
+      if (d[0] === 'price' || d[0] === 'orders' || d[0] === 'ad_spend') {
+        var start = b.value || v || 0; var max = Math.max(1, Math.round((start || 100) * 3));
+        return '<div class="slider"><label for="wf-' + d[0] + '"><b>' + esc(d[1]) + '</b> <span class="muted">' + esc(b.source) + '</span></label><output id="wfo-' + d[0] + '">' + n(v) + '</output><input type="range" id="wf-' + d[0] + '" data-wf="' + d[0] + '" min="0" max="' + max + '" step="' + (max > 50 ? 1 : 0.5) + '" value="' + (v == null ? 0 : v) + '"></div>' + (v == null ? '<p class="ask">' + esc(d[1]) + ' is not in your files: move the slider or add the files on tab 5.</p>' : '');
+      }
+      return '<div class="row"><label class="field">' + esc(d[1]) + ' <span class="muted">' + esc(b.source) + '</span><input type="number" min="0" step="any" data-wf="' + d[0] + '" value="' + (v == null ? '' : v) + '" placeholder="Type it"></label></div>';
+    }).join('');
+    liveWhatIf();
+  }
+  function liveWhatIf() {
+    var e = OD().evaluate(wf);
+    $('wfLive').innerHTML = e.profit == null
+      ? '<p class="ask">To work out profit, give: ' + e.missing.map(function (m) { return m.replace(/_/g, ' '); }).join(', ') + '.</p>'
+      : '<div class="grid"><div class="card"><p class="muted">Profit a month</p><p class="big" data-wf-profit>' + n(e.profit) + '</p></div><div class="card"><p class="muted">Break-even</p><p class="big" data-wf-break>' + (e.break_even_orders == null ? 'never' : e.break_even_orders + ' orders') + '</p>' + (e.loses_per_order ? '<p class="ask">Each order costs more than it brings in.</p>' : '') + '</div></div>';
+    var opt = { price_order_loss: numIn('wfLoss', 100), ad_order_share: numIn('wfShare', 100), upsell_price: numIn('wfUpsell', 1), upsell_take: numIn('wfTake', 100) };
+    var sc = OD().scenarios(wf, opt);
+    $('wfScen').innerHTML = !sc.ranked.length ? '' : '<ol>' + sc.ranked.map(function (s) { return '<li data-scenario="' + s.key + '"><b>' + esc(s.label) + '</b>: ' + n(s.profit) + ' a month (' + (s.change >= 0 ? '+' : '') + n(s.change) + ').<br><span class="muted">' + esc(s.assumption) + ' ' + esc(s.holds_if || '') + '</span></li>'; }).join('') + '</ol>'
+      + sc.unranked.map(function (s) { return '<p class="ask">' + esc(s.label) + ': ' + esc(s.assumption) + '</p>'; }).join('')
+      + (sc.recommend ? '<p class="say" data-recommend>' + esc(sc.recommend.sentence) + '</p>' : '');
+  }
+  function numIn(id, div) { var v = $(id).value; if (v === '') return null; var k = Number(v); return isFinite(k) ? k / div : null; }
+  $('wfInputs').addEventListener('input', function (ev) {
+    var t = ev.target; if (!t.dataset.wf) return;
+    wf[t.dataset.wf] = t.value === '' ? null : Number(t.value);
+    var o = $('wfo-' + t.dataset.wf); if (o) o.textContent = n(wf[t.dataset.wf]);
+    liveWhatIf();
+  });
+  ['wfLoss', 'wfShare', 'wfUpsell', 'wfTake'].forEach(function (id) { $(id).addEventListener('input', function () { if (wf) liveWhatIf(); }); });
+
+  /* ── 7. report ── */
+  var report = null;
+  function months() {
+    var set = {};
+    (parsed.sales ? parsed.sales.orders : []).forEach(function (o) { set[o.date.slice(0, 7)] = 1; });
+    (parsed.expenses ? parsed.expenses.expenses : []).forEach(function (e) { set[e.date.slice(0, 7)] = 1; });
+    return Object.keys(set).sort().reverse();
+  }
+  function fillMonths() {
+    var m = months();
+    $('rpMonth').innerHTML = m.length ? m.map(function (k) { return '<option>' + k + '</option>'; }).join('') : '<option value="">Add files first</option>';
+    renderKept();
+  }
+  function kept() { try { return JSON.parse(store().get(key('reports')) || '{}') || {}; } catch (_) { return {}; } }
+  function renderKept() {
+    var k = kept(); var ks = Object.keys(k).sort().reverse();
+    $('rpKept').innerHTML = ks.length ? ks.map(function (m) { return '<button class="btn ghost" type="button" data-kept="' + esc(m) + '">' + esc(m) + '</button>'; }).join(' ') : 'None yet.';
+  }
+  $('rpKept').addEventListener('click', function (ev) { var b = ev.target.closest('[data-kept]'); if (!b) return; var md = kept()[b.dataset.kept]; if (md) { $('rpOut').innerHTML = mdHtml(md); } });
+  function mdHtml(md) {
+    var out = []; var table = [];
+    md.split('\n').forEach(function (l) {
+      if (/^\|/.test(l)) { if (!/^\|---/.test(l)) table.push(l.split('|').slice(1, -1).map(function (c) { return c.trim(); })); return; }
+      if (table.length) { out.push('<div class="tbl"><table>' + table.map(function (r, i) { return '<tr>' + r.map(function (c) { return i ? '<td>' + esc(c) + '</td>' : '<th>' + esc(c) + '</th>'; }).join('') + '</tr>'; }).join('') + '</table></div>'); table = []; }
+      if (/^# /.test(l)) out.push('<h1>' + esc(l.slice(2)) + '</h1>');
+      else if (/^## /.test(l)) out.push('<h3>' + esc(l.slice(3)) + '</h3>');
+      else if (/^(- |\d+\. )/.test(l)) out.push('<p>' + esc(l) + '</p>');
+      else if (l.trim()) out.push('<p class="muted">' + esc(l.replace(/^_|_$/g, '')) + '</p>');
+    });
+    if (table.length) out.push('<div class="tbl"><table>' + table.map(function (r, i) { return '<tr>' + r.map(function (c) { return i ? '<td>' + esc(c) + '</td>' : '<th>' + esc(c) + '</th>'; }).join('') + '</tr>'; }).join('') + '</table></div>');
+    return out.join('');
+  }
+  $('rpBuild').addEventListener('click', function () {
+    var m = $('rpMonth').value;
+    if (!m) { say($('rpStatus'), 'Add your sales and expense files on tab 5 first.', 'ask'); return; }
+    var themes = null; try { themes = JSON.parse(store().get(key('reviews.themes')) || 'null'); } catch (_) {}
+    var data = { sales: parsed.sales, expenses: parsed.expenses, reviews: parsed.reviews, adsByMonth: parsed.ads ? OD().adsForMonth(parsed.ads, m) : null };
+    var r = OD().ceoReport(m, data, { worst_ad: parsed.ads ? OD().worstAd(parsed.ads) : null, reviews: themes || (mined && mined.themes), xray: parsed.sales || parsed.expenses ? OD().xray(parsed.sales, parsed.expenses) : null });
+    report = OD().reportMarkdown(r, (brand() || {}).name, parsed.sales && parsed.sales.currency);
+    $('rpOut').innerHTML = mdHtml(report);
+    $('rpStatus').innerHTML = parsed.ads ? '<p class="muted">Ad spend for ' + esc(m) + ' is read from the ad report you added (one month per export).</p>' : '';
+    ['rpSave', 'rpCopy', 'rpDownload'].forEach(function (id) { $(id).disabled = false; });
+  });
+  $('rpSave').addEventListener('click', function () { var k = kept(); k[$('rpMonth').value] = report; try { store().set(key('reports'), JSON.stringify(k)); } catch (_) {} renderKept(); say($('rpStatus'), 'Kept. Next month\'s report has the same layout, so you can compare.'); });
+  $('rpCopy').addEventListener('click', async function () { say($('rpStatus'), (await copy(report)) ? 'Copied.' : 'Copy was blocked by the browser.'); });
+  $('rpDownload').addEventListener('click', function () {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([report], { type: 'text/markdown' }));
+    a.download = 'monthly-report-' + $('rpMonth').value + '.md'; document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  /* ── boot ── */
+  function boot() {
+    if (!window.OwnerDesk) return setTimeout(boot, 50);
+    loadFiles(); renderMoney(); renderAds();
+    loadBrand(); loadProducts();
+    var h = (location.hash || '').slice(1);
+    if (h && document.querySelector('[data-pane="' + h + '"]')) show(h);
+  }
+  function whenBrand(tries) {
+    tries = tries || 0;
+    var bc = window.BrandContext;
+    if ((bc && bc.loaded) || tries > 80) return boot();
+    setTimeout(function () { whenBrand(tries + 1); }, 100);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { whenBrand(0); }); else whenBrand(0);
+  window.addEventListener('brandcontext:change', function () { wf = null; full = null; loadFiles(); renderMoney(); renderAds(); loadBrand(); });
+})();
+</script>
+</body>
+</html>

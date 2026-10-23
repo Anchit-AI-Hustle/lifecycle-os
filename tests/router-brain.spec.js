@@ -83,6 +83,7 @@ const M = {
   gateway: 'api/_shared/social-gateway-core.js',
   launch: 'api/_shared/paid-launch-core.js',
   angleLab: 'api/_shared/ad-angle-lab.js',
+  ownerDesk: 'api/_shared/owner-desk-server.js',
 };
 
 /** The active brand as brain.js resolves it onto req.__brand (home market UK). */
@@ -733,6 +734,22 @@ add('ad-angle-lab', { gate: 'model', model: 'ads.copy_matrix', browser: 'refuse'
     expect(last(M.angleLab, 'run')[0].brand).toEqual(expect.objectContaining({ name: BRAND.name }));
   },
 });
+// The Owner's Desk (2026-10-23): the brand is the one the request resolved,
+// never a body's, and each action reaches its own op.
+for (const [action, op, key] of [['launch-concepts', 'launch-concepts', 'launch.concepts'], ['ad-fix', 'ad-fix', 'ads.fix'], ['review-mine', 'reviews', 'reviews.mine']]) {
+  add(action, { gate: 'model', model: key, browser: 'refuse', run: { json: { brand: { name: 'Elsewhere Co' }, reviews: [{ text: 'x' }] } },
+    stubs: () => S.on(M.ownerDesk, 'handle', async (a, o) => ({ ok: true, op: a, brand: o.brand.name, by: 'model' })),
+    expect: (r) => {
+      expect(r.status).toBe(200);
+      expect(r.out).toEqual({ ok: true, op, brand: BRAND.name, by: 'model' });
+      expect(JSON.stringify(last(M.ownerDesk, 'handle')[1].brand)).not.toContain('Elsewhere Co');
+    },
+  });
+}
+add('launch-visuals', { gate: 'user', browser: 'refuse', run: { json: { concept: { line: 'A line' } } },
+  stubs: () => S.on(M.ownerDesk, 'handle', async (a, o) => ({ ok: true, op: a, brand: o.brand.name })),
+  expect: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, op: 'launch-visuals', brand: BRAND.name }); },
+});
 add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15, instrumental: true } },
   env: { ELEVENLABS_API_KEY: 'eleven-harness' },
   // The documented compose endpoint is the core: the recorded call is the dispatch.
@@ -1328,8 +1345,8 @@ test.describe('the router', () => {
     // meter fails here, and a key the catalog does not declare fails too.
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
-      'access-narrative', 'ad-angle-lab', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
-      'console-chat', 'generate', 'mailer-assets', 'music-compose', 'platform-agents', 'revenue-os', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
+      'access-narrative', 'ad-angle-lab', 'ad-fix', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
+      'console-chat', 'generate', 'launch-concepts', 'mailer-assets', 'music-compose', 'platform-agents', 'revenue-os', 'review-mine', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();
   });

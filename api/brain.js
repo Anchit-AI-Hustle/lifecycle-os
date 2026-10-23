@@ -138,6 +138,9 @@ const MODEL_FEATURE = {
   tts: ['POST', 'audio.tts'],
   'music-compose': ['POST', 'audio.music'],
   'ad-angle-lab': ['POST', 'ads.copy_matrix'],
+  'launch-concepts': ['POST', 'launch.concepts'],
+  'ad-fix': ['POST', 'ads.fix'],
+  'review-mine': ['POST', 'reviews.mine'],
   'social-run-daily': ['POST', 'social.daily_run'],
   'platform-agents': [null, 'analytics.report'],
   'revenue-os': ['GET', 'analytics.report'],
@@ -316,7 +319,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|ad-angle-lab|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -1339,6 +1342,29 @@ module.exports = async function handler(req, res) {
         // Which model or service did the work is the platform's business.
         delete out._by;
         return res.status(out.ok ? 200 : 409).json(out);
+      }
+
+      // The Owner's Desk (2026-10-23, owner-desk-server.js): a launch in one
+      // prompt (3 concepts, then 6 visuals in the brand's style), 3
+      // replacements for the worst ad, and reviews mined by theme. The numbers
+      // (worst ad, theme counts) are computed in code; the brand is the one
+      // this request resolved, never one named in the body.
+      case 'launch-concepts':
+      case 'launch-visuals':
+      case 'ad-fix':
+      case 'review-mine': {
+        if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        if (action === 'launch-visuals') {
+          // No model and no charge, but it is the brand's own record: signed in.
+          const auth = __auth && __auth.ok ? __auth : await require('./_shared/brand-workspace-core.js').requireUser(req);
+          if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        }
+        const rt = require('./_shared/brand-runtime.js');
+        const brand = req.__brand && !rt.isUnresolved(req.__brand) ? req.__brand : null;
+        if (!brand || !brand.name) return res.status(409).json({ ok: false, error: 'brand_required', message: 'Set up or choose a brand first: this is written from its own record.' });
+        const op = action === 'review-mine' ? 'reviews' : action;
+        const out = await require('./_shared/owner-desk-server.js').handle(op, { brand, body: b });
+        return res.status(out.ok ? 200 : (out.error === 'reviews_required' ? 400 : 409)).json(out);
       }
 
       case 'music-compose': {

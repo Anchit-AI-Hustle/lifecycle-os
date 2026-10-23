@@ -590,6 +590,12 @@ function brandBlock(brand) {
   lines.push(`BRAND: ${b.name || missing('brand name', '', b)}${b.tagline ? ` — ${b.tagline}` : ''}${b.industry ? ` (${b.industry})` : ''}.`);
   if (b.website) lines.push(`WEBSITE: ${b.website}`);
   lines.push(`VOICE: ${v.tone || missing('voice.tone', '', b)}.${v.notes ? ` ${v.notes}` : ''}`);
+  // The brand's own style lock (2026-10-23, the Owner's Desk "Lock in your
+  // brand"): saved once, carried by every prompt after it.
+  const lock = b.brand_data && b.brand_data.style_lock;
+  if (lock && lock.personality) lines.push(`PERSONALITY (five words, the brand's own): ${String(lock.personality).slice(0, 80)}.`);
+  if (lock && lock.photo_style) lines.push(`PHOTO STYLE (every picture): ${String(lock.photo_style).slice(0, 400)}.`);
+  if (lock && Array.isArray(lock.rules) && lock.rules.length) lines.push(`VISUAL RULES (never break): ${lock.rules.slice(0, 5).map((r) => String(r).slice(0, 160)).join(' ')}`);
   lines.push(`PALETTE (use ONLY these): ${paletteLine(p, b)}.`);
   lines.push('CONTRAST (strict): every text/background pairing must reach WCAG AA (4.5:1). Never place dark text on a dark ground or light text on a light ground. Never use a black or dark-neutral section background; use the brand primary where a dark ground is wanted.');
   lines.push(`TYPOGRAPHY (strict): ${typographyLine(t, b)}. Never introduce another family.`);
