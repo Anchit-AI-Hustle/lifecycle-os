@@ -204,7 +204,9 @@ function normalizeScenes(spec) {
     sub: s.sub || '',
     badge: s.badge || '',
     seconds: Math.max(1.6, Math.min(4, Number(s.seconds) || 2.6)),
-    move: MOVES[i % MOVES.length]
+    // The first camera move rotates with the ad's own composition (asset-style
+    // recipe), so two ads of one brand do not open on the same push-in.
+    move: MOVES[(i + (Number(spec.layout && spec.layout.move_offset) || 0)) % MOVES.length]
   }));
 }
 
@@ -218,6 +220,11 @@ function renderMotionAd(spec) {
   const PAL = paletteOf(spec);
   const FONT = fontsOf(spec);
   const BRAND_NAME = brandNameOf(spec);
+  // Where the type sits (asset-style recipe: top / middle / lower). Lower
+  // stays clear of the CTA pill (bottom 5%) and the social rail (bottom 14%).
+  const AT = String((spec.layout && spec.layout.text_at) || 'top');
+  const TYPE_TOP = AT === 'middle' ? '34%' : (AT === 'lower' ? 'auto' : '12%');
+  const TYPE_BOTTOM = AT === 'lower' ? 'bottom:24%;' : '';
   const total = scenes.reduce((a, s) => a + s.seconds, 0) + 2.2; // + CTA card
   const loop = spec.loop !== false;
   let t = 0;
@@ -324,7 +331,7 @@ function renderMotionAd(spec) {
                        font-weight:700; font-size:11px; }
   .brand-bar .brand-name { font-weight:700; font-size:clamp(11px, 2.8vmin, 13px); letter-spacing:.02em; }
   .brand-bar .brand-badge { font-size:10px; margin-left:4px; color:var(--chalk); }
-  .type { position:absolute; left:6%; right:6%; top:12%; z-index:3; }
+  .type { position:absolute; left:6%; right:6%; top:${TYPE_TOP}; ${TYPE_BOTTOM} z-index:3; }
   .type-card { background:${alpha(PAL.ink, 0.55)}; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
                border:1px solid ${alpha(PAL.chalk, 0.16)}; border-radius:14px; padding:14px 16px;
                box-shadow:0 8px 24px ${alpha(PAL.ink, 0.35)}; }
@@ -401,7 +408,7 @@ function renderMotionAd(spec) {
            gap: 12px !important; justify-content: flex-end !important; }
     /* The type sits at the top, the card at the bottom; without this the two
        overlap on a short viewport. */
-    .type { bottom: auto !important; }
+    .type { top: 12% !important; bottom: auto !important; }
     .bar { width: 100% !important; }
   }
   .sound { position:absolute; right:5%; top:4%; z-index:5; border:0; cursor:pointer;

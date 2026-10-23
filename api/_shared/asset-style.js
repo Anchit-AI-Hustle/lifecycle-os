@@ -8,7 +8,8 @@
  * day. A RECIPE is now chosen per (brand, slot, asset): the brand's own
  * palette, type, radii and logo never change (they are the brand), but the
  * composition does: the mail's hero framing, grid width, split block and
- * outline button; the landing page's hero arrangement.
+ * outline button; the landing page's hero arrangement; a motion ad's type
+ * position and opening camera move.
  *
  * Deterministic: the same slot rebuilt shows the same design (what a reviewer
  * approved is what ships), and neighbouring slots differ. Only options the
@@ -40,6 +41,13 @@ function recipe(entry, asset) {
       grid_columns: pick([2, 3], b(8)),
       split_feature: pick([false, true], b(16)),
       secondary_outline: pick([false, true], b(24)),
+    };
+  }
+  if (kind === 'ad') {
+    return {
+      id: `ad-${s.toString(36)}`,
+      text_at: pick(['top', 'middle', 'lower'], b(0)),
+      move_offset: b(8) % 4,
     };
   }
   if (kind === 'landing') {

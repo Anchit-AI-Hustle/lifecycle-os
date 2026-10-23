@@ -2946,6 +2946,7 @@ function attachMotionCreative(ad, entry, pool) {
       ctaHeadline: ad.headline || ad.hook || '',
       audio: (audio && audio.bed) ? audio.bed : false,
       loop: true,
+      layout: require('./asset-style.js').recipe(entry, `ad:${ad.platform || ''}:${ad.creative_type || ''}`),
     };
     ad.creative = Object.assign({}, ad.creative, {
       motion_html: motion.renderMotionAd(spec),
