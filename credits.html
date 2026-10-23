@@ -187,6 +187,27 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
   </div>
 
+  <h2>Gift credits</h2>
+  <p class="muted" style="margin-bottom:14px">
+    Send credits from this balance to anyone by their email. They arrive the next time that person opens their
+    balance, signed in with that email, whether or not they have an account yet.
+  </p>
+  <div class="card" data-gift>
+    <form id="giftForm" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px;align-items:end" novalidate>
+      <label style="display:grid;gap:4px"><span class="muted" style="font-size:12px">Their email</span>
+        <input id="giftEmail" type="email" autocomplete="off" required placeholder="name@company.com"></label>
+      <label style="display:grid;gap:4px"><span class="muted" style="font-size:12px">Credits</span>
+        <input id="giftAmount" type="number" min="1" max="1000000" step="1" required inputmode="numeric"></label>
+      <label style="display:grid;gap:4px;grid-column:1/-1"><span class="muted" style="font-size:12px">A note (optional)</span>
+        <input id="giftNote" type="text" maxlength="200"></label>
+      <div style="grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn" type="submit" id="giftSend">Send gift</button>
+        <span id="giftStatus" class="vh-status" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+    <div id="giftList" style="margin-top:12px"></div>
+  </div>
+
   <h2>What each feature costs</h2>
   <p class="muted" style="margin-bottom:14px">
     This is the full price list. A metered feature is charged on what you actually use, with an estimate
@@ -449,12 +470,47 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     });
   }
 
+  /* ── gifts (2026-10-23) ──────────────────────────────────────────────── */
+  async function loadGifts() {
+    var el = $('giftList'); if (!el) return;
+    try {
+      var r = await window.Credits.api('gifts');
+      var g = (r && r.gifts) || [];
+      el.innerHTML = g.length ? '<table><tbody>' + g.map(function (x) {
+        return '<tr><td>' + esc(x.to_email_hint) + '</td><td>' + fmt(x.amount) + ' credits</td><td>' + esc(x.status === 'claimed' ? 'received' : 'waiting for them') + '</td><td class="muted">' + esc(String(x.created_at || '').slice(0, 10)) + '</td></tr>';
+      }).join('') + '</tbody></table>' : '';
+    } catch (_) { el.innerHTML = ''; }
+  }
+  function wireGift() {
+    var f = $('giftForm'); if (!f) return;
+    f.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      var st = $('giftStatus'), btn = $('giftSend');
+      var email = $('giftEmail').value.trim(), amount = Number($('giftAmount').value);
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.textContent = 'Give the email address of the person the credits are for.'; return; }
+      if (!Number.isInteger(amount) || amount < 1) { st.textContent = 'A gift is a whole number of credits, 1 or more.'; return; }
+      btn.disabled = true; st.textContent = 'Sending…';
+      try {
+        var r = await window.Credits.api('gift', { email: email, amount: amount, note: $('giftNote').value.trim() || undefined });
+        st.textContent = r.message || 'Sent.';
+        f.reset();
+        await window.Credits.refresh(); loadAll(); loadGifts();
+      } catch (e) { st.textContent = window.LifecycleFailure ? window.LifecycleFailure.sentence(e) : (e.message || 'The gift could not be sent.'); }
+      btn.disabled = false;
+    });
+    window.addEventListener('credits:gift', function (ev) {
+      var d = ev.detail || {};
+      toast('You received ' + fmt(d.credits) + ' gifted credits.');
+    });
+  }
+
   function loadAll() { loadUsage(currentDays); loadLedger(); }
 
   /* ── boot ───────────────────────────────────────────────────────────── */
   waitFor(function () { return !!window.Credits; }, function () {
     if (!window.Credits) { $('banner').innerHTML = '<div class="banner err">The credit runtime did not load. Refresh the page.</div>'; return; }
     wireTabs();
+    wireGift(); loadGifts();
     renderPacks(); renderPrices(); renderBalance();
 
     window.Credits.onChange(function () { renderBalance(); renderPrices(); renderPacks(); });

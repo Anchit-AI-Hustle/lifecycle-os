@@ -924,8 +924,12 @@
   // mailers = Draft 2 of mailer creation). The Draft label renders in tooltips
   // and the sub-item info panels — not in the row — to keep rows quiet.
   const NAV = [
-    { id: 'appaudit',   label: 'Overall App Audit', href: '/audit',      icon: 'insights', ver: 'v2', match: ['/audit', '/app-audit', '/app-audit.html'] },
     { id: 'home',       label: 'Home',          href: '/',               icon: 'home',     match: ['/', '/index.html'] },
+    // BRAND-FIRST ORDER (2026-10-23, chosen by the operator): set the brand up,
+    // then plan, create, publish and measure, then research, assistants and
+    // settings. The duplicate "Connectors" row (the same page as Connections,
+    // whose match already covers /connectors) is gone.
+    { section: 'Brand' },
     { group: 'Brand & Credits', icon: 'studio', gid: 'platform', ver: 'v2', children: [
       { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
       { id: 'brand-catalogue', label: 'Brand Catalogue', href: '/catalog', icon: 'insights', ver: 'v2', match: ['/catalog', '/brand-catalogue', '/brand-catalogue.html'] },
@@ -938,50 +942,98 @@
       { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
       { id: 'connections',   label: 'Connections',      href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
-      { id: 'ai-models',     label: 'AI Models & Routing', href: '/ai-models', icon: 'studio', ver: 'v2', match: ['/ai-models', '/models'] },
       { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
-      { id: 'publishing',    label: 'Publishing & Deliverability', href: '/publishing', icon: 'insights', ver: 'v2', match: ['/publishing', '/publisher', '/deliverability', '/publishing.html'] },
     ]},
-    { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
-      // 'research-all', not 'research': the GROUP already carries gid 'research',
-      // and a ? chip is rendered for any id or gid that has an INFO entry. With
-      // both keyed the same, the identical panel was offered twice — once on the
-      // group header and again on the row immediately under it. Naming follows
-      // the region rows below.
-      { id: 'research-all',    label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
-      // `region`: the row is offered only while the ACTIVE brand serves that
-      // market (syncRegionRows below). These four were shown to every brand,
-      // so a brand serving only India was offered US, UK and Global studies it
-      // has no study, store or currency for (2026-10-05).
-      { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
-      { id: 'research-uk',     label: 'UK Study',               href: '/research?region=uk',     icon: 'insights' },
-      { id: 'research-global', label: 'Global Study',           href: '/research?region=global', icon: 'insights' },
-      { id: 'research-india',  label: 'India Study',            href: '/research?region=india',  icon: 'insights' },
-    ]},
-    { id: 'allinone',   label: 'Master Dashboard', href: '/master-dashboard', icon: 'analysis', ver: 'v2', match: ['/master-dashboard', '/master', '/all-in-one', '/os', '/dashboard-os', '/all-in-one.html'] },
-    { id: 'mteam',      label: 'Marketing Team',   href: '/marketing-team',   icon: 'insights', ver: 'v2', match: ['/marketing-team', '/marketing-team.html'] },
+    // AI Models is its own item (2026-10-23, the operator: "ai models as a
+    // separate item instead of branched within brand setup"): which model makes
+    // the work, in what order, and on whose key is a decision of its own.
+    { id: 'ai-models',     label: 'AI Models & Routing', href: '/ai-models', icon: 'studio', ver: 'v2', match: ['/ai-models', '/models'] },
 
-    { section: 'Research & Benchmark' },
-    { group: 'Competitor Benchmarking', icon: 'competitor', gid: 'competitor', ver: 'v1', children: [
-      { id: 'comp-discover',label: 'Discover Brands',href: '/competitor-benchmarking.html#discover', icon: 'discover' },
-      { id: 'comp-mailers', label: 'Mailers',        href: '/competitor-benchmarking.html#mailers',  icon: 'mailer' },
-      { id: 'comp-meta',    label: 'Meta Ads',       href: '/competitor-benchmarking.html#meta',     icon: 'meta' },
-      { id: 'comp-google',  label: 'Google Ads',     href: '/competitor-benchmarking.html#google',   icon: 'google' },
-      { id: 'comp-tiktok',  label: 'TikTok Ads',     href: '/competitor-benchmarking.html#tiktok',   icon: 'tiktok' },
-      { id: 'comp-landing', label: 'Landing Pages',  href: '/competitor-benchmarking.html#landing',  icon: 'landing' },
-      { id: 'comp-insights',label: 'Insights',       href: '/competitor-benchmarking.html#insights', icon: 'insights' },
+    { section: 'Plan' },
+    // Automated Calendar Creation — the ONE calendar + asset-generation feature.
+    // A single flat feature, NO sub-items: it combines the best logic of the
+    // former Smart Brain engine, the Mailer Calendar and the Plan Calendar into
+    // one automated calendar that plans every slot and pre-builds its full asset
+    // bundle (mailer + ads + landing page). The older calendar surfaces stay
+    // reachable by URL but are no longer separate nav features; this one
+    // feature's match[] also lights up for them.
+    { id: 'brain', label: 'Smart Brain', href: '/brain', icon: 'calendar', ver: 'v2', match: ['/brain', '/smart-brain', '/smart-brain.html', '/mailer-calendar', '/lifecycle-calendar.html', '/calendar.html', '/plan'] },
+    // Growth OS sits right after Smart Brain in Plan because it frames the plan: the
+    // funnel, the north star and the ranked experiment list are what a calendar
+    // is supposed to serve. It is built from the brand record alone, so it is
+    // the one feature here that renders in full on day one with nothing connected.
+    { id: 'growthos', label: 'Growth OS', href: '/growth-os', icon: 'insights', ver: 'v2', match: ['/growth-os', '/growth', '/growth-os.html'] },
+    { id: 'retentionplaybook', label: 'Retention Playbook', href: '/retention-playbook', icon: 'calendar', ver: 'v2', match: ['/retention-playbook', '/retention-playbook.html'] },
+    { id: 'frameworks', label: 'Frameworks', href: '/frameworks', icon: 'kb', ver: 'v2', match: ['/frameworks', '/frameworks.html'] },
+    // UK Non-Engagers Hub removed from the user-facing nav (route /uk-non-engagers
+    // stays reachable directly); it is no longer a raw nav item.
+
+    { section: 'Design & Create' },
+    // Mailer Studio is an OPEN feature — works standalone without sign-in.
+    { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/lifecycle_mailer_architect_v34.html', '/app', '/mailer'] },
+    // Independent LHS item (product-owner request 2026-07-25): the master ads
+    // knowledge base + performance dashboard compiled from the KT handover
+    // (emails, spend workbook, social update deck) + live connector reads.
+    // "Ad Campaigns Master Dashboard -> /ads-master" used to sit here as a
+    // top-level row. /ads-master is a REDIRECT (vercel.json redirects, not
+    // rewrites) to /data-analysis?tab=live-ads — which the Data Analysis group
+    // already lists as "Paid Media". Two rows, one page, and the redirect hid
+    // it from any check that only reads rewrites. The description that lived on
+    // this row moved to the row that survives.
+    { group: 'Ad Campaigns', icon: 'ads', gid: 'ads', ver: 'v1', children: [
+      { id: 'ads-perf',    label: 'Ad Performance', href: '/ads-dashboard', icon: 'analysis', ver: 'v2', match: ['/ads-dashboard', '/ad-performance', '/ads-dashboard.html'] },
+      { id: 'ads-cal',     label: 'Calendar',   href: '/ad-campaigns.html#calendar', icon: 'calendar' },
+      { id: 'ads-meta',    label: 'Meta Ads',   href: '/ad-campaigns.html#meta',     icon: 'meta' },
+      { id: 'ads-google',  label: 'Google Ads', href: '/ad-campaigns.html#google',   icon: 'google' },
+      { id: 'ads-tiktok',  label: 'TikTok Ads', href: '/ad-campaigns.html#tiktok',   icon: 'tiktok' },
     ]},
-    { group: 'Knowledge Base', icon: 'kb', gid: 'kb', ver: 'v1', children: [
-      // The ACTIVE brand's knowledge documents, each at its own address
-      // (/kb/brand/<doc>, brand-doc.html), built from that brand's record.
-      { id: 'kbv-brand',   label: 'Brand Documents', href: '/kb/brand', icon: 'kb', match: ['/kb/brand', '/brand-doc.html', '/doc'] },
-      { id: 'kbv-mailers', label: 'Mailers',       href: '/knowledge-base.html#mailers', icon: 'mailer' },
-      { id: 'kbv-meta',    label: 'Meta Ads',      href: '/knowledge-base.html#meta',    icon: 'meta' },
-      { id: 'kbv-google',  label: 'Google Ads',    href: '/knowledge-base.html#google',  icon: 'google' },
-      { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
-      { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
+    // "Landing Page Builder", not "Landing Pages". Competitor Benchmarking and
+    // Knowledge Base each carry a "Landing Pages" ROW, and both are part of a
+    // parallel channel set (Mailers / Meta / Google / TikTok / Landing Pages)
+    // that this repo's design rules say to keep equal and aligned — renaming one
+    // of them to dodge a collision would break the set. Naming this group for
+    // what it holds costs nothing and leaves those rows alone. (The reference
+    // repo calls its group "Landing Pages" and carries the same collision.)
+    { group: 'Landing Page Builder', icon: 'landing', gid: 'landing', ver: 'v2', match: ['/landing-pages', '/landing-pages.html', '/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'], children: [
+      // The builder itself, first. Its four rows are anchors INSIDE this page,
+      // so without it there was no row that opened the page from the top.
+      { id: 'lp-build',   label: 'Overview (all channels)', href: '/landing-pages', icon: 'landing', match: ['/landing-pages', '/landing-pages.html'] },
+      { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages#mailers',  icon: 'mailer' },
+      { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages#meta',     icon: 'meta' },
+      { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages#google',   icon: 'google' },
+      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages#tiktok',   icon: 'tiktok' },
+      { id: 'lp-templates', label: 'Landing Page Templates', href: '/landing-page-templates', icon: 'landing', match: ['/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'] },
+      // Tenant zero's own landing artefacts. Hidden once another brand is
+      // active (data-shipped-nav); they are not this product's live pages.
+      { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'], shipped: true },
+      { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'], shipped: true },
+      { id: 'lp-agent',   label: 'Landing Page with All-In-One Voice+Chat+Talk Agent',   href: '/lp/agent', icon: 'knickgasm', match: ['/lp/agent'] },
     ]},
-    { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
+    // TWO GROUPS, because these are two features.
+    //
+    // Everything below used to sit in one group called "3D Storefront &
+    // Websites": the 3D storefront AND every landing-page feature. So the
+    // landing-page builder's own sub-pages were filed under a heading that does
+    // not mention landing pages, while "Landing Pages" appeared as a row under
+    // Competitor Benchmarking and again under Knowledge Base — three places
+    // using the term, none of them the builder. The builder's own root
+    // (/landing-pages) was not reachable from the rail at all; the four rows
+    // jumped straight to anchors inside it.
+    { group: '3D Storefront & Websites', icon: 'landing', gid: 'storefront3d', ver: 'v2', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d', '/store-3d', '/official-designs', '/official-designs.html', '/designs'], children: [
+      { id: 'store3d-all', label: '3D Storefront (overview)', href: '/3d', icon: 'knickgasm', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d'] },
+      { id: 'web-us',     label: '🇺🇸 US Website',     href: '/3d/us',     icon: 'knickgasm', match: ['/3d/us', '/store-3d-us'] },
+      { id: 'web-uk',     label: '🇬🇧 UK Website',     href: '/3d/uk',     icon: 'knickgasm', match: ['/3d/uk', '/store-3d-uk'] },
+      { id: 'web-global', label: '🌍 Global Website',  href: '/3d/global', icon: 'knickgasm', match: ['/3d/global', '/store-3d-global'] },
+      { id: 'web-india',  label: '🇮🇳 India Website',  href: '/3d/in',     icon: 'knickgasm', match: ['/3d/in', '/3d/india', '/store-3d-in'] },
+      { id: 'lp-overview', label: 'Design References', href: '/website-designs', icon: 'landing', match: ['/website-designs', '/website-designs.html'] },
+    ]},
+    { id: 'social', label: 'Social Media OS', href: '/social', icon: 'social', ver: 'v2', match: ['/social', '/social-media', '/social-media.html'] },
+
+    { id: 'music', label: 'Music (Official Songs)', href: '/music', icon: 'knickgasm', ver: 'v2', match: ['/music', '/music.html'] },
+    { id: 'assets', label: 'Created Assets', href: '/assets', icon: 'analysis', ver: 'v1', match: ['/assets', '/assets.html'] },
+    { section: 'Publish & Measure' },
+    { id: 'publishing',    label: 'Publishing & Deliverability', href: '/publishing', icon: 'insights', ver: 'v2', match: ['/publishing', '/publisher', '/deliverability', '/publishing.html'] },
+    { id: 'allinone',   label: 'Master Dashboard', href: '/master-dashboard', icon: 'analysis', ver: 'v2', match: ['/master-dashboard', '/master', '/all-in-one', '/os', '/dashboard-os', '/all-in-one.html'] },
     { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard', '/revenue-by-region', '/revenue-by-region.html'], children: [
       // Labels and tab ids track analysis-registry.js, which is what the
       // workbench builds its own tab bar from. A rail that names a tab
@@ -1017,91 +1069,56 @@
       { id: 'coh-behavioral', label: 'Behavioral',          href: '/cohorts?tab=behavioral', icon: 'cohort' },
     ]},
     { id: 'avatars', label: 'Avatars (Personas)', href: '/avatars', icon: 'avatars', ver: 'v2', match: ['/avatars', '/personas', '/avatars.html'] },
+    { id: 'mteam',      label: 'Marketing Team',   href: '/marketing-team',   icon: 'insights', ver: 'v2', match: ['/marketing-team', '/marketing-team.html'] },
 
-    { section: 'Plan' },
-    // Growth OS sits first in Plan because it frames everything under it: the
-    // funnel, the north star and the ranked experiment list are what a calendar
-    // is supposed to serve. It is built from the brand record alone, so it is
-    // the one feature here that renders in full on day one with nothing connected.
-    { id: 'growthos', label: 'Growth OS', href: '/growth-os', icon: 'insights', ver: 'v2', match: ['/growth-os', '/growth', '/growth-os.html'] },
-    // Automated Calendar Creation — the ONE calendar + asset-generation feature.
-    // A single flat feature, NO sub-items: it combines the best logic of the
-    // former Smart Brain engine, the Mailer Calendar and the Plan Calendar into
-    // one automated calendar that plans every slot and pre-builds its full asset
-    // bundle (mailer + ads + landing page). The older calendar surfaces stay
-    // reachable by URL but are no longer separate nav features; this one
-    // feature's match[] also lights up for them.
-    { id: 'brain', label: 'Smart Brain', href: '/brain', icon: 'calendar', ver: 'v2', match: ['/brain', '/smart-brain', '/smart-brain.html', '/mailer-calendar', '/lifecycle-calendar.html', '/calendar.html', '/plan'] },
-    { id: 'retentionplaybook', label: 'Retention Playbook', href: '/retention-playbook', icon: 'calendar', ver: 'v2', match: ['/retention-playbook', '/retention-playbook.html'] },
-    // UK Non-Engagers Hub removed from the user-facing nav (route /uk-non-engagers
-    // stays reachable directly); it is no longer a raw nav item.
-
-    { section: 'Design & Create' },
-    { id: 'frameworks', label: 'Frameworks', href: '/frameworks', icon: 'kb', ver: 'v2', match: ['/frameworks', '/frameworks.html'] },
-    // Mailer Studio is an OPEN feature — works standalone without sign-in.
-    { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/lifecycle_mailer_architect_v34.html', '/app', '/mailer'] },
-    // Independent LHS item (product-owner request 2026-07-25): the master ads
-    // knowledge base + performance dashboard compiled from the KT handover
-    // (emails, spend workbook, social update deck) + live connector reads.
-    // "Ad Campaigns Master Dashboard -> /ads-master" used to sit here as a
-    // top-level row. /ads-master is a REDIRECT (vercel.json redirects, not
-    // rewrites) to /data-analysis?tab=live-ads — which the Data Analysis group
-    // already lists as "Paid Media". Two rows, one page, and the redirect hid
-    // it from any check that only reads rewrites. The description that lived on
-    // this row moved to the row that survives.
-    { group: 'Ad Campaigns', icon: 'ads', gid: 'ads', ver: 'v1', children: [
-      { id: 'ads-perf',    label: 'Ad Performance', href: '/ads-dashboard', icon: 'analysis', ver: 'v2', match: ['/ads-dashboard', '/ad-performance', '/ads-dashboard.html'] },
-      { id: 'ads-cal',     label: 'Calendar',   href: '/ad-campaigns.html#calendar', icon: 'calendar' },
-      { id: 'ads-meta',    label: 'Meta Ads',   href: '/ad-campaigns.html#meta',     icon: 'meta' },
-      { id: 'ads-google',  label: 'Google Ads', href: '/ad-campaigns.html#google',   icon: 'google' },
-      { id: 'ads-tiktok',  label: 'TikTok Ads', href: '/ad-campaigns.html#tiktok',   icon: 'tiktok' },
+    { section: 'Research & Benchmark' },
+    { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
+      // 'research-all', not 'research': the GROUP already carries gid 'research',
+      // and a ? chip is rendered for any id or gid that has an INFO entry. With
+      // both keyed the same, the identical panel was offered twice — once on the
+      // group header and again on the row immediately under it. Naming follows
+      // the region rows below.
+      { id: 'research-all',    label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
+      // `region`: the row is offered only while the ACTIVE brand serves that
+      // market (syncRegionRows below). These four were shown to every brand,
+      // so a brand serving only India was offered US, UK and Global studies it
+      // has no study, store or currency for (2026-10-05).
+      { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
+      { id: 'research-uk',     label: 'UK Study',               href: '/research?region=uk',     icon: 'insights' },
+      { id: 'research-global', label: 'Global Study',           href: '/research?region=global', icon: 'insights' },
+      { id: 'research-india',  label: 'India Study',            href: '/research?region=india',  icon: 'insights' },
     ]},
-    // TWO GROUPS, because these are two features.
-    //
-    // Everything below used to sit in one group called "3D Storefront &
-    // Websites": the 3D storefront AND every landing-page feature. So the
-    // landing-page builder's own sub-pages were filed under a heading that does
-    // not mention landing pages, while "Landing Pages" appeared as a row under
-    // Competitor Benchmarking and again under Knowledge Base — three places
-    // using the term, none of them the builder. The builder's own root
-    // (/landing-pages) was not reachable from the rail at all; the four rows
-    // jumped straight to anchors inside it.
-    { group: '3D Storefront & Websites', icon: 'landing', gid: 'storefront3d', ver: 'v2', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d', '/store-3d', '/official-designs', '/official-designs.html', '/designs'], children: [
-      { id: 'store3d-all', label: '3D Storefront (overview)', href: '/3d', icon: 'knickgasm', match: ['/3d', '/storefront-3d', '/storefront-3d.html', '/shop-3d'] },
-      { id: 'web-us',     label: '🇺🇸 US Website',     href: '/3d/us',     icon: 'knickgasm', match: ['/3d/us', '/store-3d-us'] },
-      { id: 'web-uk',     label: '🇬🇧 UK Website',     href: '/3d/uk',     icon: 'knickgasm', match: ['/3d/uk', '/store-3d-uk'] },
-      { id: 'web-global', label: '🌍 Global Website',  href: '/3d/global', icon: 'knickgasm', match: ['/3d/global', '/store-3d-global'] },
-      { id: 'web-india',  label: '🇮🇳 India Website',  href: '/3d/in',     icon: 'knickgasm', match: ['/3d/in', '/3d/india', '/store-3d-in'] },
-      { id: 'lp-overview', label: 'Design References', href: '/website-designs', icon: 'landing', match: ['/website-designs', '/website-designs.html'] },
+    { group: 'Competitor Benchmarking', icon: 'competitor', gid: 'competitor', ver: 'v1', children: [
+      { id: 'comp-discover',label: 'Discover Brands',href: '/competitor-benchmarking.html#discover', icon: 'discover' },
+      { id: 'comp-mailers', label: 'Mailers',        href: '/competitor-benchmarking.html#mailers',  icon: 'mailer' },
+      { id: 'comp-meta',    label: 'Meta Ads',       href: '/competitor-benchmarking.html#meta',     icon: 'meta' },
+      { id: 'comp-google',  label: 'Google Ads',     href: '/competitor-benchmarking.html#google',   icon: 'google' },
+      { id: 'comp-tiktok',  label: 'TikTok Ads',     href: '/competitor-benchmarking.html#tiktok',   icon: 'tiktok' },
+      { id: 'comp-landing', label: 'Landing Pages',  href: '/competitor-benchmarking.html#landing',  icon: 'landing' },
+      { id: 'comp-insights',label: 'Insights',       href: '/competitor-benchmarking.html#insights', icon: 'insights' },
     ]},
-    // "Landing Page Builder", not "Landing Pages". Competitor Benchmarking and
-    // Knowledge Base each carry a "Landing Pages" ROW, and both are part of a
-    // parallel channel set (Mailers / Meta / Google / TikTok / Landing Pages)
-    // that this repo's design rules say to keep equal and aligned — renaming one
-    // of them to dodge a collision would break the set. Naming this group for
-    // what it holds costs nothing and leaves those rows alone. (The reference
-    // repo calls its group "Landing Pages" and carries the same collision.)
-    { group: 'Landing Page Builder', icon: 'landing', gid: 'landing', ver: 'v2', match: ['/landing-pages', '/landing-pages.html', '/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'], children: [
-      // The builder itself, first. Its four rows are anchors INSIDE this page,
-      // so without it there was no row that opened the page from the top.
-      { id: 'lp-build',   label: 'Overview (all channels)', href: '/landing-pages', icon: 'landing', match: ['/landing-pages', '/landing-pages.html'] },
-      { id: 'lp-mailers', label: 'For Mailers',    href: '/landing-pages#mailers',  icon: 'mailer' },
-      { id: 'lp-meta',    label: 'For Meta Ads',   href: '/landing-pages#meta',     icon: 'meta' },
-      { id: 'lp-google',  label: 'For Google Ads', href: '/landing-pages#google',   icon: 'google' },
-      { id: 'lp-tiktok',  label: 'For TikTok Ads', href: '/landing-pages#tiktok',   icon: 'tiktok' },
-      { id: 'lp-templates', label: 'Landing Page Templates', href: '/landing-page-templates', icon: 'landing', match: ['/landing-page-templates', '/templates', '/template-gallery', '/template-gallery.html'] },
-      // Tenant zero's own landing artefacts. Hidden once another brand is
-      // active (data-shipped-nav); they are not this product's live pages.
-      { id: 'lp-best',    label: '★ Live: Agent Page', href: '/lp/best',  icon: 'knickgasm', match: ['/lp/best'], shipped: true },
-      { id: 'lp-best-3d', label: '★ 3D Agent Page (motion)', href: '/lp/best-3d', icon: 'knickgasm', match: ['/lp/best-3d'], shipped: true },
-      { id: 'lp-agent',   label: 'Landing Page with All-In-One Voice+Chat+Talk Agent',   href: '/lp/agent', icon: 'knickgasm', match: ['/lp/agent'] },
+    { group: 'Knowledge Base', icon: 'kb', gid: 'kb', ver: 'v1', children: [
+      // The ACTIVE brand's knowledge documents, each at its own address
+      // (/kb/brand/<doc>, brand-doc.html), built from that brand's record.
+      { id: 'kbv-brand',   label: 'Brand Documents', href: '/kb/brand', icon: 'kb', match: ['/kb/brand', '/brand-doc.html', '/doc'] },
+      { id: 'kbv-mailers', label: 'Mailers',       href: '/knowledge-base.html#mailers', icon: 'mailer' },
+      { id: 'kbv-meta',    label: 'Meta Ads',      href: '/knowledge-base.html#meta',    icon: 'meta' },
+      { id: 'kbv-google',  label: 'Google Ads',    href: '/knowledge-base.html#google',  icon: 'google' },
+      { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
+      { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
     ]},
+    { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
 
-    { id: 'music', label: 'Music (Official Songs)', href: '/music', icon: 'knickgasm', ver: 'v2', match: ['/music', '/music.html'] },
-
-    { section: 'Share & Track' },
-    { id: 'social', label: 'Social Media OS', href: '/social', icon: 'social', ver: 'v2', match: ['/social', '/social-media', '/social-media.html'] },
-    { id: 'assets', label: 'Created Assets', href: '/assets', icon: 'analysis', ver: 'v1', match: ['/assets', '/assets.html'] },
+    { section: 'Assistants' },
+    // KicksGPT (internal team chat/info tool) and Knickgasm Agent (customer-facing
+    // concierge) are conversational assistants and stay here. The former Smart
+    // Brain moved to Plan and was renamed Automated Calendar Creation — it is a
+    // calendar-creation feature, not a chat assistant, so it no longer lives here.
+    // href is /ask, not /kicksgpt: the address bar is part of what a person
+    // reads, and tenant zero's assistant name in it labels every other brand's
+    // assistant with another company's product name. Both routes serve the page.
+    { id: 'kicksgpt', label: 'Brand Assistant',   href: '/ask', icon: 'knickgasm', ver: 'v1', match: ['/kicksgpt', '/kicks', '/ask', '/kicksgpt.html'] },
+    { id: 'agent',   label: 'Brand Agent', href: '/agent',   icon: 'knickgasm', ver: 'v1', match: ['/agent', '/agent.html'] },
     // ONE navigation layer: the suite no longer renders its own column, so its
     // modules live here, in the same order as the AI-TeleSuite source app.
     { group: 'TeleSuite', icon: 'avatars', gid: 'telesuite', ver: 'v2',
@@ -1140,21 +1157,9 @@
       { id: 'ts-n8nworkflow', label: "n8n Workflow", href: '/telesuite#n8n-workflow', icon: 'analysis' },
     ] },
 
-    { section: 'Assistants' },
-    // KicksGPT (internal team chat/info tool) and Knickgasm Agent (customer-facing
-    // concierge) are conversational assistants and stay here. The former Smart
-    // Brain moved to Plan and was renamed Automated Calendar Creation — it is a
-    // calendar-creation feature, not a chat assistant, so it no longer lives here.
-    // href is /ask, not /kicksgpt: the address bar is part of what a person
-    // reads, and tenant zero's assistant name in it labels every other brand's
-    // assistant with another company's product name. Both routes serve the page.
-    { id: 'kicksgpt', label: 'Brand Assistant',   href: '/ask', icon: 'knickgasm', ver: 'v1', match: ['/kicksgpt', '/kicks', '/ask', '/kicksgpt.html'] },
-    { id: 'agent',   label: 'Brand Agent', href: '/agent',   icon: 'knickgasm', ver: 'v1', match: ['/agent', '/agent.html'] },
-
     { section: 'Settings' },
-    { id: 'connectors', label: 'Connectors', href: '/connectors', icon: 'insights', ver: 'v2', match: ['/connectors', '/connectors.html'] },
     { id: 'accessissues', label: 'Access Issues', href: '/access-issues', icon: 'insights', ver: 'v2', match: ['/access-issues', '/access', '/access-issues.html'] },
-
+    { id: 'appaudit',   label: 'Overall App Audit', href: '/audit',      icon: 'insights', ver: 'v2', match: ['/audit', '/app-audit', '/app-audit.html'] },
     // ── "Aman's version" (aka "Aman's code") — the frozen 3 Jul 2026 build ──
     // Hidden from the rail per product-owner request, but KEPT as a feature: the
     // code still lives under /diff-version and is reachable by direct URL. If the

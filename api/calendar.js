@@ -258,7 +258,7 @@ async function smartBrain(req, res, smartAction) {
   // calls, and on approve six writes - and neither had any caller gate, so an
   // anonymous POST with no Origin, a forged token, or an unlisted phone
   // account spent the deployment's model keys on content of its choosing.
-  const GENERATES = new Set(['preview', 'approve']);
+  const GENERATES = new Set(['preview', 'approve', 'generate-asset', 'regenerate-asset']);
   if (GENERATES.has(smartAction) && req.method === 'POST' && !require('./_shared/require-caller.js').isCron(req)) {
     const a = verified || await require('./_shared/brand-workspace-core.js').requireUser(req);
     if (!a || !a.ok) {
