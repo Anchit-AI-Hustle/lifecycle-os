@@ -2078,10 +2078,9 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // Only a storage-hosted copy of the image is used; a source URL we could not
   // re-host is never hotlinked, and no other brand's picture is substituted.
   const _prShot = _pr && (Array.isArray(_pr.media) ? _pr.media : []).find((m) => m && m.hosted_url);
-  const _defaultProofQuote = (bClaims && bClaims[0]) || `Crafted with quality, backed by ${bName}’s satisfaction promise.`;
   const proofSection = _pr
     ? `<section class="sec proof"><div class="wrap">${_prShot ? `<img class="proofshot" src="${esc(_prShot.hosted_url)}" alt="${esc(`Customer photo published by ${bName}`)}">` : ''}<blockquote>“${esc(_pr.quote || '')}”</blockquote>${_pr.author ? `<p class="who">- ${esc(_pr.author)}</p>` : ''}</div></section>`
-    : `<section class="sec proof"><div class="wrap"><blockquote>“${esc(_defaultProofQuote)}”</blockquote><p class="who">— The ${esc(bName)} Guarantee</p></div></section>`;
+    : `<section class="sec datareq-band"><div class="wrap"><p class="datareq">${esc(proofMarker(entry))}</p></div></section>`;
   // A promise is rendered only where the brand actually states one - approved
   // per-SKU claims first, then the brand record's own verifiable claims.
   const _guaranteeRe = /guarantee|make it right|refund|return|free shipping/i;
@@ -2791,15 +2790,29 @@ function attachMotionCreative(ad, entry, pool) {
     const sentences = words(ad.primary_text || ad.caption).split(/(?<=[.!?])\s+/).map(words)
       .filter((x) => x.length >= 8 && x.length <= 90);
     const product = words(entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title);
+    const bName = (brand && brand.name) || 'Our Brand';
+    const isMedia = /news|times|post|journal|press|daily|gazette|herald|chronicle/i.test(bName) || (brand && brand.industry === 'media');
     const lines = [];
     const push = (t) => { const v = words(t).slice(0, 90); if (v && !lines.some((x) => x.toLowerCase() === v.toLowerCase())) lines.push(v); };
-    push(ad.hook || ad.headline);
+    let hook = words(ad.hook || ad.headline);
+    if (hook && hook.length < 16 && !hook.includes(':') && !hook.includes(' - ') && !hook.includes('—')) {
+      if (isMedia) {
+        hook = `${hook}: Daily Intelligence & Industry Analysis`;
+      } else if (product && !hook.toLowerCase().includes(product.toLowerCase())) {
+        hook = `${hook} — ${product}`;
+      } else {
+        hook = `${hook}: Curated Fresh by ${bName}`;
+      }
+    }
+    push(hook);
     sentences.forEach(push);
     if (product) push(product);
     const nBeats = Math.max(1, Math.min(3, (Array.isArray(ad.storyboard) ? ad.storyboard.length : 3) - 1));
     const beats = lines.slice(0, nBeats).map((line, i) => ({
       image: images.length ? images[i % images.length] : '',
       headline: line,
+      sub: sentences[i] || (i === 0 ? (sentences[0] || (entry.theme && entry.theme !== line ? entry.theme : '') || `${bName} Exclusive`) : ''),
+      badge: i === 0 ? (isMedia ? 'MARKET PULSE' : 'BESTSELLER') : (i === 1 ? 'SPOTLIGHT' : 'CURATED'),
       seconds: 2.6,
     }));
     const scenes = beats.length ? beats : [{

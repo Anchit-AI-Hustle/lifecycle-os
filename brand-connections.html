@@ -214,15 +214,31 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var state = { providers: [], connections: {}, routing: { entries: [], use_platform_fallback: true }, storage: {} };
 
   function token() {
-    try { if (window.BrandContext && window.BrandContext.token) return window.BrandContext.token(); } catch (e) {}
+    try { if (window.BrandContext && typeof window.BrandContext.token === 'function') { var t = window.BrandContext.token(); if (t) return t; } } catch (e) {}
+    try { if (window.LifecycleAuth && typeof window.LifecycleAuth.apiToken === 'function') { var t2 = window.LifecycleAuth.apiToken(); if (t2) return t2; } } catch (e) {}
     try {
       var a = window.LifecycleAuth;
       if (a && a.session && a.session.access_token) return a.session.access_token;
     } catch (e2) {}
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && (k.indexOf('sb-') >= 0 || k.indexOf('supabase') >= 0) && k.indexOf('-token') >= 0) {
+          var item = JSON.parse(localStorage.getItem(k));
+          var tok = (item && (item.access_token || (item.currentSession && item.currentSession.access_token)));
+          if (tok) return tok;
+        }
+      }
+    } catch (_) {}
     return '';
   }
   function workspaceId() {
-    try { return (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.id) || ''; } catch (e) { return ''; }
+    try { if (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.id) return window.BrandContext.brand.id; } catch (e) { return ''; }
+    try {
+      var bc = JSON.parse(localStorage.getItem('lc-brand-context') || '{}');
+      if (bc && bc.brand && bc.brand.id) return bc.brand.id;
+    } catch (_) {}
+    return '';
   }
 
   async function api(op, body) {

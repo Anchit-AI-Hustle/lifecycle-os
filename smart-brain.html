@@ -1188,10 +1188,10 @@ function renderPlan(){
       <button type="button" class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
       <button type="button" class="btn sm ok" id="dlbtn-${i}" onclick="downloadEntry(${i})" title="Generate (if needed) and download every asset for this send as one HTML file">⬇ Download</button>
       <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
-      <div class="asset-pills" style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap">
-        <button type="button" class="btn sm secondary" style="font-size:10px;padding:2px 6px" onclick="sbQuickAsset(${i}, 'mailer')" title="View or regenerate Mailer">✉ Mailer</button>
-        <button type="button" class="btn sm secondary" style="font-size:10px;padding:2px 6px" onclick="sbQuickAsset(${i}, 'landing')" title="View or regenerate Landing Page">🌐 Landing</button>
-        <button type="button" class="btn sm secondary" style="font-size:10px;padding:2px 6px" onclick="sbQuickAsset(${i}, 'ads')" title="View or regenerate Ads">📱 Ads</button>
+      <div class="asset-pills" style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;font-size:11px">
+        <a href="#pv-mail" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'mailer');return false;" title="View or regenerate Mailer">✉ Mailer</a>
+        <a href="#pv-lp" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'landing');return false;" title="View or regenerate Landing Page">🌐 Landing</a>
+        <a href="#pv-ad" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'ads');return false;" title="View or regenerate Ads">📱 Ads</a>
       </div>
     </div></td>
   </tr>

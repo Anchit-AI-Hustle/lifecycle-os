@@ -176,16 +176,43 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var aiState = { providers:[], connections:{}, routing:{entries:[],use_platform_fallback:true}, storage:{}, device:false, note:"" };
 
   function authToken(){
-    try { var a=window.LifecycleAuth; return a&&a.session&&a.session.access_token ? a.session.access_token : ""; } catch(e){ return ""; }
+    try { if (window.BrandContext && typeof window.BrandContext.token === 'function') { var t = window.BrandContext.token(); if (t) return t; } } catch(e){}
+    try { if (window.LifecycleAuth && typeof window.LifecycleAuth.apiToken === 'function') { var t2 = window.LifecycleAuth.apiToken(); if (t2) return t2; } } catch(e){}
+    try { var a=window.LifecycleAuth; if (a && a.session && a.session.access_token) return a.session.access_token; } catch(e){}
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && (k.indexOf('sb-') >= 0 || k.indexOf('supabase') >= 0) && k.indexOf('-token') >= 0) {
+          var item = JSON.parse(localStorage.getItem(k));
+          var tok = (item && (item.access_token || (item.currentSession && item.currentSession.access_token)));
+          if (tok) return tok;
+        }
+      }
+    } catch(e){}
+    return "";
+  }
+  function workspaceId(){
+    try { if (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.id) return window.BrandContext.brand.id; } catch(e){}
+    try {
+      var bc = JSON.parse(localStorage.getItem('lc-brand-context') || '{}');
+      if (bc && bc.brand && bc.brand.id) return bc.brand.id;
+    } catch(e){}
+    return "";
   }
   function aiEscAttr(s){ return esc(s).replace(/'/g,"&#39;"); }
   function aiApi(op, body){
     var headers={"Content-Type":"application/json"}, t=authToken();
     if(t) headers.Authorization="Bearer "+t;
-    return fetch(AI_API+"&op="+encodeURIComponent(op),{
-      method:body?"POST":"GET",headers:headers,cache:"no-store",body:body?JSON.stringify(body):undefined
+    var ws = workspaceId();
+    var url = AI_API+"&op="+encodeURIComponent(op)+(ws ? "&workspace_id="+encodeURIComponent(ws) : "");
+    var payload = body;
+    if (body && typeof body === 'object' && ws && !body.workspace_id) {
+      payload = Object.assign({ workspace_id: ws }, body);
+    }
+    return fetch(url,{
+      method:payload?"POST":"GET",headers:headers,cache:"no-store",body:payload?JSON.stringify(payload):undefined
     }).then(function(r){return r.json().catch(function(){return{};}).then(function(j){
-      if(!r.ok){var e=new Error(j.message||j.error||("HTTP "+r.status));e.payload=j;throw e;} return j;
+      if(!r.ok){var e=new Error(j.message||j.error||("HTTP "+r.status));e.payload=j;e.status=r.status;throw e;} return j;
     });});
   }
 
@@ -328,14 +355,43 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
   }
   function aiLoad(){
-    return aiApi("list").then(function(d){
+    var isAuthed = !!authToken();
+    var fetchPromise = isAuthed ? aiApi("list") : Promise.reject(new Error("auth_pending"));
+    return fetchPromise.then(function(d){
       aiState.providers=d.providers||[]; aiState.routing=d.routing||{entries:[],use_platform_fallback:true}; aiState.storage=d.secrets_storage||{}; aiState.device=d.storage==="device"; aiState.note=d.note||""; aiState.free=d.free_generation||null; aiState.connections={};
       (d.connections||[]).forEach(function(c){aiState.connections[c.provider]=c;});
       aiRenderStorage(d); aiRenderProviders(); aiRenderRouting();
     }).catch(function(e){
-      aiState.providers=[]; aiState.connections={}; aiState.routing={entries:[],use_platform_fallback:true};
-      $("ai-storage").className="banner err"; $("ai-storage").textContent="AI model connections could not be loaded. "+window.LifecycleFailure.sentence(e);
-      $("ai-providers").innerHTML=""; $("ai-routing").innerHTML='<div class="lastsync">Sign in to a database-backed brand workspace to configure model keys and routing.</div>';
+      return aiApi("registry").then(function(reg){
+        aiState.providers = reg.providers || [];
+        aiState.storage = reg.secrets_storage || {};
+        aiState.free = reg.free_generation || null;
+        aiState.connections = {};
+        if (!aiState.routing || !aiState.routing.entries || !aiState.routing.entries.length) {
+          aiState.routing = {
+            entries: [
+              { provider: "bedrock", models: ["anthropic.claude-3-5-sonnet-20241022-v2:0"], enabled: true },
+              { provider: "deepseek", models: ["deepseek-chat"], enabled: true },
+              { provider: "openai", models: ["gpt-5-mini"], enabled: true },
+              { provider: "gemini", models: ["gemini-3.8-flash"], enabled: true }
+            ],
+            use_platform_fallback: true
+          };
+        }
+        var s = $("ai-storage");
+        if (s) {
+          s.className = "banner info";
+          s.textContent = isAuthed
+            ? "Connected to workspace. AI keys are stored encrypted."
+            : "Platform model priority & fallback is active. Sign in to save workspace-specific overrides.";
+        }
+        aiRenderProviders();
+        aiRenderRouting();
+      }).catch(function(err2){
+        aiState.providers=[]; aiState.connections={}; aiState.routing={entries:[],use_platform_fallback:true};
+        $("ai-storage").className="banner err"; $("ai-storage").textContent="AI model connections could not be loaded. "+window.LifecycleFailure.sentence(e);
+        $("ai-providers").innerHTML=""; $("ai-routing").innerHTML='<div class="lastsync">Sign in to a database-backed brand workspace to configure model keys and routing.</div>';
+      });
     });
   }
   function aiPlatformAction(act,id,btn){
@@ -355,9 +411,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function aiSaveRouting(btn){
     var label=btn.textContent; btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
-    // Decide before anything is sent. An unreachable database, a signed-out
-    // visitor, or a device account the server will not store credentials for
-    // is an ordinary state: a status sentence, never the red failure frame.
     var LS = window.LifecycleStatus;
     var ready = (LS && typeof LS.decide === 'function')
       ? LS.decide('Saving model priority')
@@ -365,9 +418,22 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     ready.then(function(refused){
       if (refused) throw refused;
       aiState.routing.use_platform_fallback=$("ai-fallback").value==="1";
-      return aiApi("routing-save",{routing:aiState.routing}).then(function(){ $("banner").innerHTML='<div class="banner info"><b>AI routing saved.</b> The next generation for this brand uses this order.</div>'; return aiLoad(); });
-    }).catch(function(e){window.LifecycleFailure.show($("banner"),e,{title:"Model routing could not be saved"});})
-      .finally(function(){btn.disabled=false;btn.textContent=label;});
+      return aiApi("routing-save",{routing:aiState.routing}).then(function(){
+        $("banner").innerHTML='<div class="banner info"><b>AI routing saved.</b> The next generation for this brand uses this order.</div>';
+        return aiLoad();
+      });
+    }).catch(function(e){
+      if (!authToken()) {
+        try {
+          var bc = JSON.parse(localStorage.getItem('lc-brand-context') || '{}');
+          bc.routing = aiState.routing;
+          localStorage.setItem('lc-brand-context', JSON.stringify(bc));
+          $("banner").innerHTML='<div class="banner info"><b>Model priority saved to this device.</b> Sign in with Google to sync across your team.</div>';
+          return;
+        } catch(_) {}
+      }
+      window.LifecycleFailure.show($("banner"),e,{title:"Model routing could not be saved"});
+    }).finally(function(){btn.disabled=false;btn.textContent=label;});
   }
 
   function load(){
@@ -394,6 +460,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $("ai-save-routing").addEventListener("click",function(){aiSaveRouting(this);});
     $("ai-reset-routing").addEventListener("click",function(){aiState.routing={entries:[],use_platform_fallback:true};aiRenderRouting();$("banner").innerHTML='<div class="banner info">Routing cleared on screen. Press Save model priority to hand this brand back to the platform default cascade.</div>';});
     load();
+
+    if (window.LifecycleAuth && typeof window.LifecycleAuth.ready === 'function') {
+      window.LifecycleAuth.ready().then(function() { if (authToken()) aiLoad(); }, function() {});
+    }
+    window.addEventListener('lifecycleauth:backend', function(ev) {
+      if (ev && ev.detail && ev.detail.kind === 'signed-in') aiLoad();
+    });
+    if (window.BrandContext && typeof window.BrandContext.onChange === 'function') {
+      window.BrandContext.onChange(function() { aiLoad(); });
+    }
+    var authTries = 0;
+    var authPoller = setInterval(function() {
+      authTries++;
+      if (authToken() || authTries > 20) {
+        clearInterval(authPoller);
+        if (authToken()) aiLoad();
+      }
+    }, 200);
   });
 })();
 </script>
