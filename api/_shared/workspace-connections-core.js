@@ -114,6 +114,25 @@ const PROVIDERS = [
     blurb: 'One key that routes to Claude, GPT, Gemini and open models.',
     fields: [{ key: 'api_key', label: 'API key', secret: true, required: true }],
   },
+  {
+    id: 'deepseek', label: 'DeepSeek', category: 'ai', llm_provider: 'deepseek',
+    auth_kind: 'api_key', env_default: 'DEEPSEEK_API_KEY',
+    key_url: 'https://platform.deepseek.com/api-keys',
+    blurb: 'DeepSeek-V3 and DeepSeek-R1 reasoning models via api.deepseek.com.',
+    fields: [{ key: 'api_key', label: 'API key', secret: true, required: true }],
+  },
+  {
+    id: 'bedrock', label: 'AWS Bedrock (Claude)', category: 'ai', llm_provider: 'bedrock',
+    auth_kind: 'api_key', env_default: 'AWS_ACCESS_KEY_ID',
+    key_url: 'https://console.aws.amazon.com/bedrock',
+    blurb: 'Anthropic Claude models via AWS Bedrock Runtime.',
+    fields: [
+      { key: 'aws_access_key_id', label: 'AWS Access Key ID', secret: true, required: true },
+      { key: 'aws_secret_access_key', label: 'AWS Secret Access Key', secret: true, required: true },
+      { key: 'aws_region', label: 'AWS Region', secret: false, required: false, placeholder: 'us-east-1' },
+      { key: 'aws_session_token', label: 'Session Token (optional)', secret: true, required: false },
+    ],
+  },
   // GitHub Models was retired 2026-07-30 (docs.github.com/en/github-models): not offered.
   {
     id: 'cloudflare', label: 'Cloudflare Workers AI', category: 'ai', llm_provider: 'cloudflare',
@@ -791,6 +810,14 @@ function buildOverrides(routing, connections, secrets) {
       // workspace that gave only a base URL is still usable.
       if (!keys.ollama) keys.ollama = 'ollama';
     }
+    if (reg.llm_provider === 'bedrock') {
+      if (secret.aws_access_key_id) keys.aws_access_key_id = secret.aws_access_key_id;
+      if (secret.aws_secret_access_key) keys.aws_secret_access_key = secret.aws_secret_access_key;
+      if (cfg.aws_region || secret.aws_region) keys.aws_region = cfg.aws_region || secret.aws_region;
+      if (secret.aws_session_token) keys.aws_session_token = secret.aws_session_token;
+      if (secret.api_key) keys.bedrock = secret.api_key;
+      if (keys.aws_access_key_id || keys.bedrock) configured.add('bedrock');
+    }
     if (keys[reg.llm_provider] || bases[reg.llm_provider]) configured.add(reg.llm_provider);
   }
 
@@ -919,6 +946,8 @@ function platformDefault(reg) {
   switch (reg.llm_provider) {
     case 'openai': return !!(process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_2 || process.env.OPENAI_API_KEY_3);
     case 'openrouter': return !!(process.env.OPENROUTER_API_KEY || process.env.OpenRouter_API_KEY);
+    case 'deepseek': return !!process.env.DEEPSEEK_API_KEY;
+    case 'bedrock': return !!((process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || process.env.BEDROCK_API_KEY || process.env.AWS_BEDROCK_API_KEY);
     case 'cloudflare': return !!(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID);
     case 'ollama': return !!process.env.OLLAMA_BASE_URL;
     default: return !!(reg.env_default && process.env[reg.env_default]);

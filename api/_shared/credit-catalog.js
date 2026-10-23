@@ -273,12 +273,16 @@ function grouped() {
  * An unknown feature key costs 0 and is flagged — a typo must never silently
  * charge the user, and it must never silently run for free unnoticed either.
  */
-function quote(key, units, overrides) {
+function quote(key, units, overrides, model) {
   const f = get(key);
   if (!f) return { key: String(key || ''), label: String(key || ''), unit: '', cost: 0, units: 0, total: 0, metered: false, unknown: true };
   const override = overrides && overrides[key];
-  const cost = override && Number.isFinite(+override.cost) ? +override.cost : f.cost;
+  let cost = override && Number.isFinite(+override.cost) ? +override.cost : f.cost;
   const unit = (override && override.unit_label) || f.unit;
+  if (model) {
+    const mult = modelMultiplier('', model);
+    if (mult > 1.0) cost = Math.max(1, Math.round(cost * mult));
+  }
   // An EXPLICIT zero means the caller knows this run does no billable work
   // (e.g. a transcript pasted by hand rather than transcribed) — it must quote
   // as free, not fall back to the reservation estimate. Only undefined/null
@@ -287,10 +291,62 @@ function quote(key, units, overrides) {
   const n = !f.metered ? 1
     : (units != null && Number.isFinite(asked) && asked <= 0) ? 0
     : Math.max(1, Math.ceil(asked > 0 ? asked : f.estimate));
-  return { key: f.key, label: f.label, group: f.group, unit, why: f.why, cost, units: n, total: cost * n, metered: !!f.metered, estimate: f.estimate };
+  return { key: f.key, label: f.label, group: f.group, unit, why: f.why, cost, units: n, total: cost * n, metered: !!f.metered, estimate: f.estimate, model_multiplier: model ? modelMultiplier('', model) : 1.0 };
+}
+
+/**
+ * Per-model pricing multiplier table.
+ * Standard flagship runs (e.g. Claude Sonnet, GPT-5 / GPT-4o, Groq 120B) have multiplier 1.0.
+ * Frontier flagship runs (e.g. Claude Opus) cost more credits.
+ * Compact / basic fallback runs (e.g. Gemini Flash, DeepSeek, Haiku, Mini) cost fewer credits.
+ */
+const MODEL_PRICING = {
+  'claude-opus-5-5': 2.5,
+  'claude-opus-3': 2.5,
+  'anthropic.claude-3-opus-20240229-v1:0': 2.5,
+  'claude-sonnet-5-5': 1.0,
+  'claude-sonnet-4-5': 1.0,
+  'anthropic.claude-3-5-sonnet-20241022-v2:0': 1.0,
+  'anthropic.claude-3-5-sonnet-20240620-v1:0': 1.0,
+  'claude-haiku-5-5': 0.5,
+  'anthropic.claude-3-5-haiku-20241022-v1:0': 0.5,
+  'anthropic.claude-3-haiku-20240307-v1:0': 0.4,
+  'gpt-5.5': 1.2,
+  'gpt-5': 1.0,
+  'gpt-4o': 1.0,
+  'gpt-5-mini': 0.4,
+  'gpt-4o-mini': 0.35,
+  'gpt-5-nano': 0.25,
+  'grok-4.3': 0.9,
+  'deepseek-reasoner': 0.5,
+  'deepseek-chat': 0.35,
+  'gemini-3.8-flash': 0.3,
+  'gemini-2.5-flash': 0.3,
+  'gemini-1.5-pro': 0.8,
+  'openai/gpt-oss-120b': 1.0,
+  'openai/gpt-oss-20b': 0.8,
+  'gpt-oss-120b': 1.0,
+  'pollinations-default': 0.2,
+};
+
+function modelMultiplier(provider, model) {
+  const p = String(provider || '').toLowerCase();
+  const m = String(model || '').toLowerCase();
+  if (!m) return 1.0;
+  for (const [key, mult] of Object.entries(MODEL_PRICING)) {
+    if (m === key.toLowerCase() || m === key) return mult;
+  }
+  if (m.includes('opus')) return 2.5;
+  if (m.includes('sonnet')) return 1.0;
+  if (m.includes('haiku')) return 0.5;
+  if (m.includes('mini') || m.includes('nano')) return 0.35;
+  if (m.includes('deepseek-reasoner')) return 0.5;
+  if (m.includes('deepseek')) return 0.35;
+  return 1.0;
 }
 
 module.exports = {
   FEATURES, PACKS, get, list, grouped, quote, pack, welcomeGrant, tryEverythingOnce,
   packPrice, packList, formatPrice, minorExponent, normalisePrice, envPackPrices,
+  MODEL_PRICING, modelMultiplier,
 };

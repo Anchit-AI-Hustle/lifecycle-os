@@ -61,6 +61,7 @@
 
 const OPENAI_BASE    = 'https://api.openai.com/v1';
 const ANTHROPIC_BASE = 'https://api.anthropic.com/v1';
+const DEEPSEEK_BASE  = 'https://api.deepseek.com/v1';
 const GEMINI_BASE    = 'https://generativelanguage.googleapis.com/v1beta';
 const GROK_BASE      = 'https://api.x.ai/v1';
 const GROQ_BASE      = 'https://api.groq.com/openai/v1';
@@ -189,6 +190,76 @@ function noteOutcome(kind, info) {
   try { require('./request-scope.js').noteLlm(kind, info); } catch (_) { /* no scope */ }
 }
 
+// ── AWS Bedrock helpers for Claude models ────────────────────────────────────
+function bedrockModelId(model) {
+  if (typeof model !== 'string' || !model) return 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+  if (model.startsWith('anthropic.') || model.startsWith('us.anthropic.') || model.startsWith('eu.anthropic.')) return model;
+  const m = model.toLowerCase();
+  if (m.includes('opus')) return 'anthropic.claude-3-opus-20240229-v1:0';
+  if (m.includes('haiku-3-5') || m.includes('3.5-haiku') || m.includes('haiku-5')) return 'anthropic.claude-3-5-haiku-20241022-v1:0';
+  if (m.includes('haiku')) return 'anthropic.claude-3-haiku-20240307-v1:0';
+  if (m.includes('sonnet')) return 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+  return 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+}
+
+function signAwsBedrock({ region, accessKeyId, secretAccessKey, sessionToken, method, url, body, headers = {} }) {
+  const u = new URL(url);
+  const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const datestamp = datetime.slice(0, 8);
+
+  const host = u.host;
+  const canonicalUri = u.pathname || '/';
+  const canonicalQuerystring = u.search ? u.search.slice(1).split('&').sort().join('&') : '';
+
+  const reqHeaders = Object.assign({
+    'content-type': 'application/json',
+    'host': host,
+    'x-amz-date': datetime,
+  }, headers);
+
+  if (sessionToken) {
+    reqHeaders['x-amz-security-token'] = sessionToken;
+  }
+
+  const payloadHash = crypto.createHash('sha256').update(body || '').digest('hex');
+  reqHeaders['x-amz-content-sha256'] = payloadHash;
+
+  const sortedKeys = Object.keys(reqHeaders).map((k) => k.toLowerCase()).sort();
+  const canonicalHeaders = sortedKeys.map((k) => `${k}:${String(reqHeaders[k]).trim()}\n`).join('');
+  const signedHeaders = sortedKeys.join(';');
+
+  const canonicalRequest = [
+    method,
+    canonicalUri,
+    canonicalQuerystring,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join('\n');
+
+  const credentialScope = `${datestamp}/${region}/bedrock/aws4_request`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    datetime,
+    credentialScope,
+    crypto.createHash('sha256').update(canonicalRequest).digest('hex'),
+  ].join('\n');
+
+  function hmac(key, str) {
+    return crypto.createHmac('sha256', key).update(str).digest();
+  }
+
+  const kDate = hmac('AWS4' + secretAccessKey, datestamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, 'bedrock');
+  const kSigning = hmac(kService, 'aws4_request');
+  const signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  return Object.assign({}, reqHeaders, { Authorization: authorization });
+}
+
 function genSeed() {
   return Date.now().toString(36) + '-' + Math.floor(Math.random() * 0xffff).toString(16);
 }
@@ -274,6 +345,13 @@ function modelsFor(provider, tier) {
       return _dedupe([env.OLLAMA_TEXT_MODEL || 'llama3.3']);
     case 'sakana':
       return _dedupe([env.SAKANA_TEXT_MODEL || 'sakana-default']);
+    case 'deepseek':
+      if (tier === 'premium') return _dedupe([env.DEEPSEEK_TEXT_MODEL_MAX || 'deepseek-reasoner', 'deepseek-chat']);
+      return _dedupe([env.DEEPSEEK_TEXT_MODEL || 'deepseek-chat']);
+    case 'bedrock':
+      if (tier === 'premium') return _dedupe([env.BEDROCK_TEXT_MODEL_MAX || 'anthropic.claude-3-5-sonnet-20241022-v2:0', 'anthropic.claude-3-opus-20240229-v1:0']);
+      if (tier === 'fast')    return _dedupe([env.BEDROCK_TEXT_MODEL_FAST || 'anthropic.claude-3-5-haiku-20241022-v1:0']);
+      return _dedupe([env.BEDROCK_TEXT_MODEL || 'anthropic.claude-3-5-sonnet-20241022-v2:0', 'anthropic.claude-3-5-haiku-20241022-v1:0']);
     case 'pollinations':
       // A label for the trace only: the request names no model, because the
       // service's documentation names none to send (text.pollinations.ai/models
@@ -291,22 +369,23 @@ function modelsFor(provider, tier) {
 // they are tried before any paid provider, and a paid key (Anthropic, OpenAI,
 // xAI) is reached only when every free one failed. The user's credit charge is
 // unchanged. FREE_GENERATION=off keeps the paid-first order (and no keyless).
-const PAID_PROVIDERS = new Set(['anthropic', 'openai', 'grok']);
+const PAID_PROVIDERS = new Set(['anthropic', 'bedrock', 'openai', 'grok', 'deepseek']);
 // The order a workspace's OWN models are used in: the operator's four first,
 // then the rest by output quality.
-const OWN_KEY_PRIORITY = ['anthropic', 'openai', 'gemini', 'grok', 'openrouter', 'groq', 'cerebras', 'cloudflare', 'sakana', 'ollama'];
+const OWN_KEY_PRIORITY = ['anthropic', 'bedrock', 'openai', 'gemini', 'grok', 'deepseek', 'openrouter', 'groq', 'cerebras', 'cloudflare', 'sakana', 'ollama'];
 function providerOrder(tier) {
   const base = providerOrderBase(tier);
   if (!freeGenerationOn()) return base;
   const keyless = base.filter((p) => p === 'pollinations');
   const freeTier = base.filter((p) => !PAID_PROVIDERS.has(p) && p !== 'pollinations');
   const paid = base.filter((p) => PAID_PROVIDERS.has(p));
-  return keyless.concat(freeTier, paid);
+  // High-capability free models first (Gemini Flash, Groq 120B, Cerebras...), then paid/low-cost, with keyless last
+  return freeTier.concat(paid, keyless);
 }
 function providerOrderBase(tier) {
   return tier === 'fast'
-    ? ['anthropic', 'openai', 'gemini', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations']
-    : ['anthropic', 'openai', 'gemini', 'grok', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations'];
+    ? ['anthropic', 'bedrock', 'openai', 'gemini', 'deepseek', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations']
+    : ['anthropic', 'bedrock', 'openai', 'gemini', 'grok', 'deepseek', 'groq', 'cerebras', 'cloudflare', 'openrouter', 'ollama', 'sakana', 'pollinations'];
 }
 
 // ── Failure classification (drives demotion) ─────────────────────────────────
@@ -456,6 +535,15 @@ module.exports = async function callLLM(opts) {
   ].map(_clean));
 
   const anthropicKey = _clean(ovKeys.anthropic) || _clean(process.env.ANTHROPIC_API_KEY);
+  const bedrockAccessKey = _clean(ovKeys.bedrock_access_key_id) || _clean(ovKeys.aws_access_key_id) || _clean(process.env.AWS_ACCESS_KEY_ID);
+  const bedrockSecretKey = _clean(ovKeys.bedrock_secret_access_key) || _clean(ovKeys.aws_secret_access_key) || _clean(process.env.AWS_SECRET_ACCESS_KEY);
+  const bedrockRegion = _clean(ovKeys.aws_region) || _clean(process.env.AWS_REGION) || _clean(process.env.AWS_DEFAULT_REGION) || _clean(process.env.BEDROCK_REGION) || 'us-east-1';
+  const bedrockSessionToken = _clean(ovKeys.aws_session_token) || _clean(process.env.AWS_SESSION_TOKEN);
+  const bedrockApiKey = _clean(ovKeys.bedrock) || _clean(process.env.BEDROCK_API_KEY) || _clean(process.env.AWS_BEDROCK_API_KEY);
+  const hasBedrockSigV4 = !!(bedrockAccessKey && bedrockSecretKey);
+  const hasBedrockKey = hasBedrockSigV4 || !!bedrockApiKey;
+
+  const deepseekKey = _clean(ovKeys.deepseek) || _clean(process.env.DEEPSEEK_API_KEY);
   const geminiKey    = _clean(ovKeys.gemini) || _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
   const grokKey      = _clean(ovKeys.grok) || _clean(process.env.XAI_API_KEY);
   const groqKey      = _clean(ovKeys.groq) || _clean(process.env.GROQ_API_KEY);
@@ -468,8 +556,10 @@ module.exports = async function callLLM(opts) {
   // the account rather than to the vendor, so for those the base is part of the
   // credential and a workspace can supply its own.
   const bases = {
-    openai: OPENAI_BASE, anthropic: ANTHROPIC_BASE, gemini: GEMINI_BASE,
-    grok: GROK_BASE, groq: GROQ_BASE, cerebras: CEREBRAS_BASE,
+    openai: OPENAI_BASE, anthropic: ANTHROPIC_BASE,
+    deepseek: (ov && ov.bases && ov.bases.deepseek) || DEEPSEEK_BASE,
+    bedrock: (ov && ov.bases && ov.bases.bedrock) || `https://bedrock-runtime.${bedrockRegion}.amazonaws.com`,
+    gemini: GEMINI_BASE, grok: GROK_BASE, groq: GROQ_BASE, cerebras: CEREBRAS_BASE,
     openrouter: OPENROUTER_BASE,
     cloudflare: cloudflareBase(), ollama: OLLAMA_BASE, sakana: SAKANA_BASE,
   };
@@ -481,11 +571,13 @@ module.exports = async function callLLM(opts) {
   const ollamaOn     = !!bases.ollama;
   const sakanaKey    = _clean(process.env.SAKANA_API_KEY);
   const sakanaOn     = !!bases.sakana && !!sakanaKey;
-  console.log('[llm] Keys present: groq=' + !!groqKey + ' cerebras=' + !!cerebrasKey + ' gemini=' + !!geminiKey + ' tier=' + tierNorm + ' workspace_routing=' + !!ov);
+  console.log('[llm] Keys present: groq=' + !!groqKey + ' cerebras=' + !!cerebrasKey + ' gemini=' + !!geminiKey + ' deepseek=' + !!deepseekKey + ' bedrock=' + hasBedrockKey + ' tier=' + tierNorm + ' workspace_routing=' + !!ov);
 
   const hasKey = {
     openai:    openaiKeys.length > 0,
-    anthropic: !!anthropicKey,
+    anthropic: !!anthropicKey || hasBedrockKey,
+    bedrock:   hasBedrockKey,
+    deepseek:  !!deepseekKey,
     gemini:    !!geminiKey,
     grok:      !!grokKey,
     groq:      !!groqKey,
@@ -578,7 +670,52 @@ module.exports = async function callLLM(opts) {
     }, timeoutMs, readChat);
   }
 
+  function _bedrock(model) {
+    const bModel = bedrockModelId(model);
+    const claudeSystem = responseFormat
+      ? systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. First character must be { and last must be }. No markdown fences, no commentary, no text before or after.'
+      : systemPrompt;
+
+    const bodyStr = JSON.stringify(Object.assign({
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: maxTokens,
+      system: claudeSystem,
+      messages: [{ role: 'user', content: seededUserMessage }]
+    }, /^claude-3/.test(model) ? { temperature } : {}));
+
+    const url = bases.bedrock + '/model/' + encodeURIComponent(bModel) + '/invoke';
+
+    let reqHeaders = { 'Content-Type': 'application/json' };
+    if (hasBedrockSigV4) {
+      reqHeaders = signAwsBedrock({
+        region: bedrockRegion,
+        accessKeyId: bedrockAccessKey,
+        secretAccessKey: bedrockSecretKey,
+        sessionToken: bedrockSessionToken,
+        method: 'POST',
+        url,
+        body: bodyStr,
+        headers: { 'content-type': 'application/json' },
+      });
+    } else if (bedrockApiKey) {
+      reqHeaders['Authorization'] = 'Bearer ' + bedrockApiKey;
+    }
+
+    return attempt('bedrock', bModel, url, {
+      headers: reqHeaders,
+      body: bodyStr,
+    }, timeoutMs, (data) => {
+      const blocks = Array.isArray(data.content) ? data.content : [];
+      const out = blocks.filter((b) => b && b.type !== 'thinking' && b.type !== 'redacted_thinking' && typeof b.text === 'string').map((b) => b.text).join('');
+      if (data.stop_reason === 'refusal') return { refusal: 'stop_reason refusal' };
+      return { text: out };
+    });
+  }
+
   function _anthropic(model) {
+    if (hasBedrockKey && (!anthropicKey || String(process.env.USE_BEDROCK_FOR_ANTHROPIC || '').toLowerCase() === 'true' || anthropicKey.startsWith('aws:') || anthropicKey.startsWith('bedrock:'))) {
+      return _bedrock(model);
+    }
     // Claude has no native JSON mode — inject instruction into system prompt
     const claudeSystem = responseFormat
       ? systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. First character must be { and last must be }. No markdown fences, no commentary, no text before or after.'
@@ -644,6 +781,8 @@ module.exports = async function callLLM(opts) {
   const _std = () => ({ max_tokens: maxTokens, ...(responseFormat ? { response_format: responseFormat } : {}) });
   const CALL = {
     anthropic: _anthropic,
+    bedrock: _bedrock,
+    deepseek: _openaiCompatible('deepseek', bases.deepseek, deepseekKey, _std),
     gemini: _gemini,
     grok: _openaiCompatible('grok', bases.grok, grokKey, _std),
     groq: _openaiCompatible('groq', bases.groq, groqKey, _std),
@@ -692,7 +831,10 @@ module.exports = async function callLLM(opts) {
   const _providerErrors = []; // one row per failed ATTEMPT, in the order made
   const _skipped = [];        // providers never tried, and why
   const keyFor = {
-    anthropic: anthropicKey, gemini: geminiKey, grok: grokKey, groq: groqKey, cerebras: cerebrasKey,
+    anthropic: anthropicKey || (hasBedrockKey ? (bedrockApiKey || bedrockAccessKey) : ''),
+    bedrock: bedrockApiKey || bedrockAccessKey,
+    deepseek: deepseekKey,
+    gemini: geminiKey, grok: grokKey, groq: groqKey, cerebras: cerebrasKey,
     openrouter: openrouterKey, cloudflare: cloudflareKey + '@' + bases.cloudflare, ollama: ollamaKey + '@' + bases.ollama,
     sakana: sakanaKey + '@' + bases.sakana, pollinations: 'keyless',
   };
@@ -850,7 +992,7 @@ module.exports = async function callLLM(opts) {
     order = providerOrder(tierNorm).slice();
     // With free generation on, a PAID provider named as a preference does not
     // jump the free ones (an exclusive pin, which a capability needs, still does).
-    const paidPreference = freeGenerationOn() && PAID_PROVIDERS.has(preferredProvider) && !exclusive;
+    const paidPreference = freeGenerationOn() && PAID_PROVIDERS.has(preferredProvider) && !exclusive && !opts.creditPaid;
     if (preferredProvider && known(preferredProvider) && !paidPreference) {
       // A preferred provider goes FIRST, and the rest of the cascade still
       // follows it. It used to SKIP every other provider, so a pinned provider
