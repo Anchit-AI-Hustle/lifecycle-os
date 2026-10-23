@@ -642,6 +642,12 @@ sb('generate-slot', { run: { json: { entry: { id: 'slot_1', theme: 't' } } },
   expect: (r) => { expect(r.out).toMatchObject({ ok: true, campaign: { id: 'camp_harness', entry: { id: 'slot_1', theme: 't', brand: { id: H.WS, name: 'Harness Brand' } } } }); expect(F.generated.length).toBe(1); expect(F.generated[0][0].workspace_id).toBe(H.WS); },
   cases: [{ name: 'no entry is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(F.generated).toEqual([]); } }],
 });
+for (const alias of ['generate-asset', 'regenerate-asset']) {
+  sb(alias, { run: { json: { id: 'entry_1', asset_type: 'mailer' } }, stubs: () => S.on(PLAN, 'generateSingleAsset', async () => ({ ok: true, asset_type: 'mailer', campaign: {} })),
+    expect: (r) => { expect(r.out).toMatchObject({ ok: true, asset_type: 'mailer' }); expect(last(PLAN, 'generateSingleAsset')[0]).toEqual({ id: 'entry_1', entry: null, assetType: 'mailer', reviewer: null, config: { workspace_id: H.WS } }); },
+    cases: [{ name: 'GET is a 405', run: { method: 'GET' }, expect: (r) => { expect(r.status).toBe(405); } }],
+  });
+}
 sb('feedback', { run: { json: { target_id: 'entry_1', verdict: 'approve', notes: 'n', reviewer: 'op' } },
   expect: (r) => {
     expect(r.out).toMatchObject({ ok: true, feedback: { target_type: 'calendar_entry', target_id: 'entry_1', verdict: 'approve', notes: 'n', reviewer: 'op' }, persistence: { ok: true }, applied_to_future_generation: true });
