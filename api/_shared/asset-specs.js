@@ -127,6 +127,51 @@ const SOCIAL = {
   ], copy: { title: 60, metaDescription: 160 } },
 };
 
+// ── Owned messaging: SMS, WhatsApp, push (2026-10-23) ────────────────────────
+// Each number carries where it comes from. `verified: false` means this repo
+// cannot reach the owner's documentation to confirm it today and nothing here
+// enforces it against a live platform, so a contract may WARN on it, never
+// block (asset-contracts.js rule 2).
+const MESSAGING = {
+  sms: {
+    // 3GPP TS 23.038 (GSM 7-bit default alphabet and its extension table) and
+    // TS 23.040 (a single short message carries 140 octets: 160 septets, or 70
+    // UCS-2 characters; a concatenated part gives 6 or 7 octets to its User
+    // Data Header, leaving 153 septets / 67 UCS-2 characters per part).
+    gsm7: { single: 160, part: 153 },
+    ucs2: { single: 70, part: 67 },
+    source: '3GPP TS 23.038 / TS 23.040',
+    // A property of the encoding, not a platform's refusal: a longer message
+    // is sent as several parts (each billed), never refused, so it warns.
+    standard: true,
+    // An opt-out instruction on every marketing SMS (CTIA Messaging Principles
+    // and Best Practices; US TCPA practice; UK PECR reg. 22 "a simple means of
+    // refusing"). The wording below is the convention carriers recognise.
+    opt_out: 'Reply STOP to opt out.',
+  },
+  whatsapp: {
+    // WhatsApp Business Platform message templates (Meta developer docs,
+    // "Message templates" / "Template components"). A marketing message
+    // outside the 24-hour customer service window must be an APPROVED template.
+    // These numbers were not read on the live documentation from this
+    // deployment, so they are recorded unverified: warn, never block.
+    body: 1024, header_text: 60, footer: 60, button_text: 25,
+    quick_reply_buttons: 3, cta_buttons: 2,
+    category: 'MARKETING',
+    source: 'Meta WhatsApp Business Platform, message templates (not re-read from this deployment)',
+    verified: false,
+    opt_out: 'Reply STOP to opt out',
+  },
+  push: {
+    // Truncation of a notification's title and body depends on the operating
+    // system, the device, the notification style and the user's settings, so
+    // no single limit exists to record. Nothing here blocks on length.
+    title: null, body: null,
+    source: 'no single limit: truncation varies by OS, device and notification style',
+    verified: false,
+  },
+};
+
 // ── Landing pages (responsive breakpoints) ───────────────────────────────────
 const LANDING = {
   breakpoints: { mobile: 640, tablet: 1024, desktop: 1200 },
@@ -192,6 +237,6 @@ function imageSize(kind, channel, placementKey) {
 }
 
 module.exports = {
-  MAILER, ADS, SOCIAL, LANDING, META_FIELDS, MAILER_VARIANTS,
+  MAILER, ADS, SOCIAL, LANDING, MESSAGING, META_FIELDS, MAILER_VARIANTS,
   adSpecText, mailerSpecText, socialSpecText, imageSize, sizesLine,
 };

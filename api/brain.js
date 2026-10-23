@@ -1364,6 +1364,7 @@ module.exports = async function handler(req, res) {
         if (!brand || !brand.name) return res.status(409).json({ ok: false, error: 'brand_required', message: 'Set up or choose a brand first: this is written from its own record.' });
         const op = action === 'review-mine' ? 'reviews' : action;
         const out = await require('./_shared/owner-desk-server.js').handle(op, { brand, body: b });
+        if (!out.ok && out.note && !out.message) out.message = out.note;
         return res.status(out.ok ? 200 : (out.error === 'reviews_required' ? 400 : 409)).json(out);
       }
 

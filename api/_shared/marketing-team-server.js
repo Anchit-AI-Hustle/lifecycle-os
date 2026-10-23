@@ -93,6 +93,16 @@ function attachTracking(campaign, entry, opts) {
     if (ad.platform === 'google') ad.final_url = dest;
     if (/^https?:/i.test(dest)) report.ads_with_destination += 1; else report.ads_without_destination += 1;
   }
+  // WhatsApp's button and push's deep link carry the tags (2026-10-23). An SMS
+  // link is left untagged: every character of a text is part of its length,
+  // and shortening links is the sending platform's job.
+  for (const m of Array.isArray(a.messages) ? a.messages : []) {
+    if (!m || m.channel === 'sms' || !m.link || !MT.taggable(m.link) || !own(hostOf(m.link))) continue;
+    m.link = MT.utmUrl(m.link, MT.utmFor(m.channel, tag, m.channel));
+    if (m.deep_link) m.deep_link = m.link;
+    for (const b of Array.isArray(m.buttons) ? m.buttons : []) if (b && b.url) b.url = m.link;
+    report.tagged += 1;
+  }
   campaign.tracking = report;
   return report;
 }

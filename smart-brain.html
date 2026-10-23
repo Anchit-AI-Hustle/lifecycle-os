@@ -193,6 +193,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pvtab.on{color:var(--vh-ink);border-bottom-color:var(--vh-accent);background:var(--vh-panel-2)}
   .adimg{width:100%;max-height:420px;object-fit:cover;border-radius:8px;margin:4px 0 12px;border:1px solid var(--vh-line);display:block}
   .pvpane{display:none}.pvpane.on{display:block}
+  /* SMS / WhatsApp / push (2026-10-23): a phone screen and its bubble, tokens only. */
+  .msgphone{max-width:360px;background:var(--vh-panel-2);border:1px solid var(--vh-line);border-radius:22px;padding:14px 12px;margin:4px 0 10px}
+  .msgfrom{font-size:11.5px;font-weight:700;color:var(--vh-ink-dim);margin:0 0 6px 4px}
+  .msgbubble{background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:16px 16px 16px 4px;padding:10px 12px;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+  .msgbubble b{display:block;margin-bottom:4px}
+  .msgfoot{font-size:12px;color:var(--vh-ink-dim);margin-top:6px}
+  .msgbtn{display:block;text-align:center;margin-top:8px;padding:9px;border-top:1px solid var(--vh-line);color:var(--vh-accent-text);font-weight:700;font-size:13.5px;text-decoration:none}
+  .msgmeta{font-size:12px;color:var(--vh-ink-dim);margin:0 0 4px}
   /* Stacked sections. Each asset keeps its own heading so a long row stays
      readable, and a rule separates one asset from the next. */
   .pvsec{border-top:1px solid var(--vh-line);padding:14px 0 4px;margin:0}
@@ -1224,6 +1232,29 @@ window.pvTab = function(btn, paneId){
   const pane = root.querySelector('#' + paneId); if(pane) pane.classList.add('on');
 };
 
+// One SMS, WhatsApp template or push notification, drawn as it reaches a
+// phone, with the facts a sender needs beside it (2026-10-23).
+function msgPlain(m){
+  if(m.channel === 'sms') return String(m.text || '');
+  if(m.channel === 'whatsapp') return [m.headline, m.body, m.footer, ...(m.buttons || []).map(b => `[${b.text}] ${b.url || ''}`)].filter(Boolean).join('\n\n');
+  return [m.title, m.body, m.deep_link].filter(Boolean).join('\n');
+}
+function renderMessage(m){
+  const from = `<p class="msgfrom">${esc(m.sender || '')}${m.channel === 'whatsapp' ? ' · WhatsApp' : m.channel === 'push' ? ' · notification' : ''}</p>`;
+  let bubble = '';
+  if(m.channel === 'sms') bubble = `<div class="msgbubble" data-msg-body>${esc(m.text || '')}</div>`;
+  else if(m.channel === 'whatsapp') bubble = `<div class="msgbubble" data-msg-body>${m.headline ? `<b>${esc(m.headline)}</b>` : ''}${esc(m.body || '')}${m.footer ? `<div class="msgfoot">${esc(m.footer)}</div>` : ''}${(m.buttons || []).map(b => `<a class="msgbtn" href="${esc(b.url || '#')}" target="_blank" rel="noopener">${esc(b.text || '')}</a>`).join('')}</div>`;
+  else bubble = `<div class="msgbubble" data-msg-body><b>${esc(m.title || '')}</b>${esc(m.body || '')}</div>`;
+  const enc = m.encoding ? `${m.encoding.units} ${esc(m.encoding.encoding)} characters · ${m.encoding.segments} part${m.encoding.segments === 1 ? '' : 's'}` : '';
+  const meta = [
+    enc,
+    m.template ? `Template ${esc(m.template.name || '')} · ${esc(m.template.category || '')} · ${esc(m.template.language || '')}` : '',
+    m.legal_sender ? `Sender: ${esc(m.legal_sender)}` : '',
+    m.source === 'model' ? 'Line by the model' : 'Line from the brand\'s own words',
+  ].filter(Boolean).map(x => `<p class="msgmeta">${x}</p>`).join('');
+  const note = m.note ? `<p class="pvnote">${esc(m.note)}</p>` : '';
+  return `<div class="msgphone" data-msg-channel="${esc(m.channel)}">${from}${bubble}</div>${meta}${note}`;
+}
 function renderAd(ad){
   const rows = [];
   const add = (k,v)=>{ if(v!=null && String(v).trim()!=='') rows.push(`<div class="k">${esc(k)}</div><div class="v">${esc(Array.isArray(v)?v.filter(Boolean).join('\n'):v)}</div>`); };
@@ -1582,6 +1613,19 @@ function renderPreview(payload, e, i, opts){
   // names its variant and angle, otherwise both A and B collide on the same id
   // ("pv-ad-meta") and read as a duplicate "meta ad" tile (B hidden behind A).
   ads.forEach((ad,ai)=>{ const id='pv-ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); const vl=ad.variant?(' · '+ad.variant+(ad.angle?' ('+ad.angle+')':'')):''; const adName='ad-'+(ad.platform||'x')+'-'+(ad.variant||ai); tab(id, esc((ad.platform||'ad'))+' ad'+esc(vl), first); pane(id, adBar(adName, ad, (ad.platform||'ad')+' ad'+(ad.variant?' · '+ad.variant:''))+renderAd(ad)+promptBar(ad), first); first=false; });
+  // SMS / WhatsApp / push, each its own pane: the message as it reaches a
+  // phone, Copy (the plain text), Download (.txt) and its data (.json).
+  const msgs = campaign.assets?.messages || [];
+  msgs.forEach((m, mi) => {
+    const id = 'pv-msg-' + (m.channel || mi);
+    const label = m.channel === 'sms' ? '💬 SMS' : m.channel === 'whatsapp' ? '💬 WhatsApp' : '🔔 Push';
+    const name = 'message-' + (m.channel || mi);
+    const tdx = window.__SB_EXPORTS.push({ name, label, html: msgPlain(m), ext: 'txt' }) - 1;
+    const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: JSON.stringify(m, null, 2), ext: 'json' }) - 1;
+    tab(id, label, first);
+    pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderMessage(m)}`, first);
+    first = false;
+  });
   tab('pv-json','{ } Details', first); pane('pv-json', `<pre style="margin:0">${esc(JSON.stringify(campaign && campaign.campaign_id ? campaign : e, null, 2))}</pre>`, first);
 
   const banner = `<span class="st approved">final</span> <span class="pvnote" style="margin:0">Final generated version — the best version of each asset, ready to view and download.</span>`;
@@ -1819,9 +1863,10 @@ window.openDetailPage = function(i, btn){
 window.sbDownload = function(idx){
   const item = (window.__SB_EXPORTS||[])[idx]; if(!item) return;
   const json = item.ext === 'json';
-  const blob = new Blob([item.html], { type: json ? 'application/json' : 'text/html' });
+  const txt = item.ext === 'txt';
+  const blob = new Blob([item.html], { type: json ? 'application/json' : txt ? 'text/plain' : 'text/html' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = exportStem()+'-'+String(item.name||'asset').replace(/[^a-z0-9_-]/gi,'-')+(json ? '.json' : '.html');
+  a.download = exportStem()+'-'+String(item.name||'asset').replace(/[^a-z0-9_-]/gi,'-')+(json ? '.json' : txt ? '.txt' : '.html');
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
 };

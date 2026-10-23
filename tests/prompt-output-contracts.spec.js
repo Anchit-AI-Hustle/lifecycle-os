@@ -109,6 +109,11 @@ const GENERATORS = [
     id: mode, path: '/api/ai/generate', q: {}, minCalls: 1, reads: READS[mode],
     body: () => ({ mode, brief: 'A campaign for customers who bought once and stopped.', prompt: 'A campaign for customers who bought once and stopped.', message: 'Sharpen this subject line.', chat_context: {}, selected_products: productsOf(B).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
   })),
+  // SMS / WhatsApp / push (2026-10-23): the model's line reaches the finished message.
+  ...[['sms', 'sms.message'], ['whatsapp', 'whatsapp.message'], ['push', 'push.notification']].map(([mode, contract]) => ({
+    id: mode, path: '/api/ai/generate', q: {}, minCalls: 1, reads: (t) => t.includes(`"contract":"${contract}"`) && /sample/.test(t),
+    body: () => ({ mode, brief: 'A note for customers who bought once and stopped.', selected_products: productsOf(B).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
+  })),
   ...['google', 'meta', 'tiktok', 'lp-mailer', 'lp-meta', 'lp-google', 'lp-tiktok'].map((surface) => ({
     id: surface === 'meta' ? 'autofill' : 'autofill ' + surface, path: '/api/ai/generate', q: {}, minCalls: 1, reads: AD_FORMATS_READ.includes(surface) ? (t) => /"overlay":\{"headline":"sample/.test(t) : (t) => /sample/.test(t),
     body: () => ({ mode: 'autofill', surface, prompt: 'A campaign for customers who bought once and stopped.' }),

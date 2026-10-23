@@ -115,6 +115,9 @@
     youtube: { source: 'youtube', medium: 'paid_video' },
     landing_page: { source: 'landing_page', medium: 'referral' },
     social: { source: 'social', medium: 'organic_social' },
+    sms: { source: 'sms', medium: 'sms' },
+    whatsapp: { source: 'whatsapp', medium: 'messaging' },
+    push: { source: 'push', medium: 'push' },
   };
   const slug = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
 
