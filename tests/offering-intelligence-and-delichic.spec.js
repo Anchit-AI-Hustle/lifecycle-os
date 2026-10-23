@@ -208,15 +208,15 @@ test.describe('Offering Intelligence & DeliChic Catalog Import', () => {
       },
     };
 
-    const html = plan.lpHtml(entry, copy, 'test-camp-delichic', 'https://delichic.co.in/wp-content/uploads/2020/10/jdcj.jpg');
+    const renderedLp = plan.lpHtml(entry, copy, 'test-camp-delichic', 'https://delichic.co.in/wp-content/uploads/2020/10/jdcj.jpg');
 
-    expect(html).toContain('Deli Chic');
-    expect(html).toContain('Honest Chicken, Cut Fresh Daily');
-    expect(html).toContain('₹160 / 500g');
-    expect(html).toContain('11% OFF');
-    expect(html).toContain('🔥 #1 Bestseller • Most Ordered Cut');
-    expect(html).toContain('Order Fresh Cut');
-    expect(html).toContain('delichic.co.in');
+    expect(renderedLp).toContain('Deli Chic');
+    expect(renderedLp).toContain('Honest Chicken, Cut Fresh Daily');
+    expect(renderedLp).toContain('₹160 / 500g');
+    expect(renderedLp).toContain('11% OFF');
+    expect(renderedLp).toContain('🔥 #1 Bestseller • Most Ordered Cut');
+    expect(renderedLp).toContain('Order Fresh Cut');
+    expect(renderedLp).toContain('delichic.co.in');
   });
 
 });
