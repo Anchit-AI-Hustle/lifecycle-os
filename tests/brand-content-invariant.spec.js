@@ -169,6 +169,12 @@ const GENERATORS = [
     own: ['name', 'palette.primary', 'claim'].filter((l) => mode !== 'chat' || l !== 'palette.primary'),
     market: ['create_brief', 'concepts', 'mailer_full'].includes(mode) ? PROMPT_MARKET(mode === 'mailer_full' ? 'market' : 'MARKET') : null,
   })),
+  // SMS / WhatsApp / push (2026-10-23): a message names its own brand and claims, never another's.
+  ...['sms', 'whatsapp', 'push'].map((mode) => ({
+    id: mode, path: '/api/ai/generate', q: {}, modes: ['device', 'account'],
+    body: (b) => ({ mode, brief: 'A note for customers who bought once and stopped.', selected_products: productsOf(b).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
+    own: ['name', 'claim'],
+  })),
   { id: 'landing-page', path: '/api/ai/landing-page', q: {}, body: () => ({ brief: 'A landing page for customers who bought once and stopped.' }), modes: ['device', 'account'], own: ['name', 'palette.primary', 'claim'],
     statuses: { 502: 'the scripted model returns prose, not HTML; the PROMPT is what is judged here' } },
   // ── the five pipeline stages ──

@@ -26,7 +26,7 @@ const {
   CompetitorBenchmarkingService, CalendarIntelligenceService, GenerationService,
   applyContactPolicy,
   replenishmentEntries, enforceFrequencyCap,
-  objectiveFor, offerDecision,
+  objectiveFor, offerDecision, plannedChannels,
 } = require('../../lib/smart-brain/services.js');
 const crypto = require('crypto');
 const callLLM = require('./llm.js');
@@ -433,7 +433,7 @@ function strategyPlanEntries(brand, startDate, days, ns) {
         theme: objective,
         heroProduct: hero,
         heroOffering: null,
-        channels: ['email', 'meta', 'google', 'landing_page'],
+        channels: plannedChannels(['email', 'meta', 'google', 'landing_page'], brand),
         cta: strategyCta(objective),
         cta_url: null,
         offer,
@@ -697,7 +697,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           // stated reads), never a default (offering-intelligence.enrich).
           proof: (() => { try { return require('./offering-intelligence.js').enrich(Object.assign({ title: useOff.name, product_url: useOff.url }, useOff)).proof; } catch (_) { return []; } })(),
         },
-        channels: ['email', 'meta', 'google', 'landing_page'],
+        channels: plannedChannels(['email', 'meta', 'google', 'landing_page'], brand),
         cta: useOff.kind === 'product' && /food|poultry|deli|restaurant/i.test(brand.industry || '')
           ? (useOff.type ? 'Order ' + useOff.type : 'Explore the menu') : rotated.cta,
         cta_url: rotated.cta_url || null,
@@ -825,7 +825,9 @@ function toHero(product) {
 function buildStandbyVariant(e, label, ctx, cohortLtv) {
   const L = SM.SCENARIO_LEVERS[label];
   const baseChannels = Array.isArray(e.channels) ? e.channels : [];
-  let channels = baseChannels.filter((c) => L.channelMix.includes(c));
+  // Owned messaging (SMS / WhatsApp / push) is owned like email: every
+  // scenario keeps it where the brand sends on it (2026-10-23).
+  let channels = baseChannels.filter((c) => L.channelMix.includes(c) || c === 'sms' || c === 'whatsapp' || c === 'push');
   if (!channels.length) channels = L.channelMix.filter((c) => c === 'email' || c === 'landing_page');
 
   let heroProduct = e.heroProduct;
@@ -1694,6 +1696,7 @@ function strategyOutputSpec(entry) {
 }
 function copyOutputSpec(entry) {
   const ac = require('./asset-contracts.js');
+  const messaging = require('./messaging-assets.js');
   const L = (id, slot) => ac.slotLimit(id, slot);
   const b = (entry && entry.brand) || {};
   const faq = { type: 'array', count: 2, items: { type: 'object', of: { q: 'string', a: 'string' } } };
@@ -1701,7 +1704,7 @@ function copyOutputSpec(entry) {
   const proof = (what) => ({ required: false, note: `copied verbatim from the APPROVED PROOF LIBRARY, else ${what}` });
   return {
     id: 'smart-brain.copy', kind: 'data', format: 'json', brand: b.name || 'this brand', region: entry && entry.market,
-    returns: 'ONE JSON object holding the copy for every asset of this slot: the email, the landing page and the Meta, Google and TikTok ads, each with its image brief.',
+    returns: `ONE JSON object holding the copy for every asset of this slot: the email, the landing page and the Meta, Google and TikTok ads, each with its image brief${messaging.plannedOn(entry).length ? `, and the ${messaging.plannedOn(entry).map((c) => (c === 'sms' ? 'SMS' : c === 'whatsapp' ? 'WhatsApp' : 'push')).join(', ')} message line${messaging.plannedOn(entry).length > 1 ? 's' : ''} (the sender, the link and the opt-out are added for you)` : ''}.`,
     lines: ['"rating": null, "reviews": [] and "badges": [] are the answer whenever the APPROVED PROOF LIBRARY is empty; "guarantee", "proof_quote" and "proof_author" are then empty strings.'],
     schema: {
       email: { type: 'object', of: {
@@ -1722,6 +1725,10 @@ function copyOutputSpec(entry) {
         meta: { type: 'object', of: { primary_text: { type: 'string', max: L('ad.meta.static', 'primary_text') }, headline: { type: 'string', max: L('ad.meta.static', 'headline') }, description: { type: 'string', max: L('ad.meta.static', 'description') }, image_brief: img } },
         google: { type: 'object', of: { headlines: { type: 'array', count: [3, 15], items: { type: 'string', max: L('ad.google.rsa', 'headlines') } }, descriptions: { type: 'array', count: [2, 4], items: { type: 'string', max: L('ad.google.rsa', 'descriptions') } }, image_brief: img } },
         tiktok: { type: 'object', of: { script: { type: 'string', note: 'the spoken and shown beats, hook in the first second' }, caption: { type: 'string', max: L('ad.tiktok.video', 'caption') }, image_brief: img } } } },
+      // SMS / WhatsApp / push, in the SAME call, only for a slot that plans
+      // them (2026-10-23): a brand that states no such channel is briefed
+      // exactly as before.
+      ...(messaging.copySchema(entry) ? { messaging: messaging.copySchema(entry) } : {}),
     },
   };
 }
@@ -1793,6 +1800,14 @@ function mailStudyBrief(entry) {
   try { return require('./competitor-mail-study.js').briefLines(entry && entry.__mailStudy).join('\n'); } catch (_) { return ''; }
 }
 function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
+// The messaging lines the writer is briefed with, only for a slot that plans
+// SMS / WhatsApp / push (2026-10-23). Empty for every other slot, so the
+// prompt of a brand that states no such channel is unchanged.
+function messagingRule(entry) {
+  const want = require('./messaging-assets.js').plannedOn(entry);
+  if (!want.length) return '';
+  return `- Messaging (${want.join(', ')}): each is ONE short line to the reader in the brand's own facts, no offer, price or code the facts above do not state. Write no brand-name prefix, no link and no opt-out: the builder adds the sender, the slot's own page and "Reply STOP" itself. SMS in plain GSM characters (no emoji, no curly quotes).\n`;
+}
 function copyTask(entry, fw = null, brief = null) {
   const fwLine = fw
     ? `\nCOPY FRAMEWORK: structure the copy with the ${fw.name} framework (${fw.full || fw.name}); the opening beat lands in the subject + hero_headline, the middle beats across intro_paragraph and body_paragraph in order, and the final beat on the cta. Do NOT name the framework in the copy, let the structure do the work.`
@@ -1828,7 +1843,7 @@ CONVERSION-DRIVEN DIRECT RESPONSE RULES:
 - Action CTA (cta): Clear, high-contrast action verb driving to the destination PDP.
 - Skimmer P.S. (ps): A punchy 1-2 sentence post-script restating the core hook or risk reversal for readers who scroll to the bottom.
 - LENGTH (hard editorial limit, the mail is read on a phone in seconds): hero_headline at most ${require('./asset-contracts.js').MAIL_WORDS.headline} words; each paragraph at most ${require('./asset-contracts.js').MAIL_WORDS.paragraph} words; each benefit at most ${require('./asset-contracts.js').MAIL_WORDS.benefit} words; the P.S. at most ${require('./asset-contracts.js').MAIL_WORDS.ps} words. The whole mail body, headline to button, stays under ${require('./asset-contracts.js').MAIL_WORDS.visual} words for the picture-led mailer and ${require('./asset-contracts.js').MAIL_WORDS.text} for the text mailer. Say one idea, then the button.
-- Channel Architecture: Ensure elements across email, landing page, and ads build on each other cohesively, delivering specific, actionable, bulleted tactics rather than generic advice or empty boilerplate.
+${messagingRule(entry)}- Channel Architecture: Ensure elements across email, landing page, and ads build on each other cohesively, delivering specific, actionable, bulleted tactics rather than generic advice or empty boilerplate.
 
 Every asset must ship with a CREATIVE as well as copy. For each asset write an "image_brief": a vivid 1-2 sentence art-direction prompt for a photoreal product/lifestyle scene of the hero product. Channel rules (ALL creatives are TEXT-FREE photographs — never describe overlaid words, headlines, prices, logos or UI in the image_brief; diffusion models cannot spell and render garbled fake letterforms, and the real ad copy is rendered natively by the platform, not painted into the pixels):
 - email / LP heroes: just scene, props, light, mood; aspirational hero.
@@ -3142,6 +3157,8 @@ function checkAssetContracts(campaign, entry) {
     judge(ad, `ad:${ad.platform}:${ad.creative_type || 'static'}:${ad.variant || 'A'}#${i}`));
   ((campaign.assets && campaign.assets.landing_pages) || []).forEach((lp, i) =>
     judge(lp, `landing:${lp.variant || 'A'}#${i}`));
+  ((campaign.assets && campaign.assets.messages) || []).forEach((m, i) =>
+    judge(m, `message:${m.channel}#${i}`));
 
   comp.verdict = comp.blocking ? 'block' : (comp.warnings ? 'warn' : 'pass');
   campaign.contract_check = summary;
@@ -3533,6 +3550,8 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   const campaign = new GenerationService(config).generate(entry);
   campaign.offer = offerOf(entry);
   let copyMeta = { provider: 'template-fallback', model: null, creatives: 'none' };
+  // The model's SMS / WhatsApp / push lines, when it wrote them (2026-10-23).
+  let msgCopy = null;
   // Agent pipeline trace, surfaced in the console so the reviewer sees which
   // specialist agent produced each part of the mailer.
   const trace = [];
@@ -3613,6 +3632,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       if (!gA.ok) copyA = copyB;
       if (!gB.ok) copyB = copyA;
     }
+    msgCopy = (copyA && copyA.messaging && typeof copyA.messaging === 'object') ? copyA.messaging : null;
     const proofGap = copyA.__proof_gap || copyB.__proof_gap || null;
     if (proofGap) {
       campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), proofGap.marker])];
@@ -3657,6 +3677,9 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       em.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, heroImg);
     }
   } catch (e) { console.warn('[smart-brain] template mail variants failed:', e && e.message); }
+  // SMS, WHATSAPP AND PUSH (2026-10-23), on both paths, only for a slot that
+  // plans them (the brand states it sends on them).
+  attachMessaging(campaign, entry, msgCopy, trace);
   // A VIDEO AD CARRIES ITS ARTEFACT ON EVERY PATH.
   //
   // attachMotionCreative only ran inside applyCopy, which is the LLM branch —
@@ -3731,6 +3754,36 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   return campaign;
 }
 
+// SMS, WhatsApp and push as finished assets (2026-10-23, messaging-assets.js).
+// The model's line when it wrote one, else the brand's own lines; the builder
+// adds the sender, the slot's own page and the opt-out. Scrubbed for the
+// brand's banned words and dashes here; units, compliance and the contract run
+// with every other asset below. A gap (no page, no legal sender) is said in
+// data_gaps, never printed in the message.
+function attachMessaging(campaign, entry, modelCopy, trace) {
+  try {
+    const M = require('./messaging-assets.js');
+    if (!M.plannedOn(entry).length || !campaign || !campaign.assets) return null;
+    let link = '';
+    try { link = slotLinks(entry).pdp || ''; } catch (_) { link = ''; }
+    const rt = require('./brand-runtime.js');
+    const brand = (entry && entry.brand) || null;
+    const scrub = (t) => { try { return rt.scrubForBrand(SM.sanitizeBrand ? SM.sanitizeBrand(String(t)) : String(t), brand); } catch (_) { return String(t); } };
+    const built = M.build(entry, { copy: modelCopy, link, finish: scrub });
+    for (const m of built.messages) {
+      for (const k of ['text', 'line', 'headline', 'body', 'title', 'cta', 'footer']) if (typeof m[k] === 'string') m[k] = scrub(m[k]);
+      M.syncTemplate(m);
+    }
+    campaign.assets.messages = built.messages;
+    if (built.data_gaps.length) campaign.data_gaps = [...new Set((Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []).concat(built.data_gaps))];
+    if (Array.isArray(trace)) trace.push({ agent: 'Messaging Writer', role: 'SMS / WhatsApp / push', ok: true, provider: modelCopy ? 'model' : 'template', output: { channels: built.messages.map((m) => m.channel), gaps: built.data_gaps.length } });
+    return built;
+  } catch (e) {
+    console.warn('[smart-brain] messaging assets failed:', e && e.message);
+    return null;
+  }
+}
+
 // A measurement is written as a person says it (2026-10-21, the operator: "the
 // letter W ... means watts, so basically 100 watts, it shouldn't say 100 W").
 // The store's spec line ("100W", "20000mAh", "500ml") reaches copy from the
@@ -3778,6 +3831,24 @@ function attachUnitWords(campaign, entry) {
     if (Array.isArray(ad.placements)) for (const pl of ad.placements) if (pl && typeof pl === 'object') {
       for (const k of Object.keys(pl)) if (typeof pl[k] === 'string' && !/url|safe|aspect|id$|^key$|^label$|^note$/i.test(k)) pl[k] = fit(k === 'on_screen' ? 'headline' : k, pl[k]);
     }
+  }
+  // SMS / WhatsApp / push (2026-10-23): an SMS keeps a symbol when the words
+  // would send it as one more part; a template field keeps it past its limit.
+  const MA = require('./messaging-assets.js');
+  for (const m of Array.isArray(a.messages) ? a.messages : []) {
+    if (!m || typeof m !== 'object') continue;
+    const contract = ac.contractFor(m);
+    for (const slot of ['text', 'line', 'headline', 'body', 'title', 'cta']) {
+      const v = m[slot];
+      if (typeof v !== 'string') continue;
+      const out = say(v, false);
+      if (out === v) continue;
+      const lim = Number(contract ? ac.slotLimit(contract.id, slot) : 0) || 0;
+      const moreParts = m.channel === 'sms' && slot === 'text' && MA.smsSegments(out).segments > MA.smsSegments(v).segments;
+      if (moreParts || (lim && m.channel !== 'sms' && out.length > lim)) { report.kept_for_limit.push({ platform: m.channel, slot, text: v }); continue; }
+      m[slot] = out;
+    }
+    MA.syncTemplate(m);
   }
   // The platform-ready copies of the same copy (services.platformAdObject).
   const pr = campaign.platform_ready;
