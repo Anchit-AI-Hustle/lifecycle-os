@@ -667,7 +667,22 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         theme: `${useOff.name} (${useOff.kind})`,
         heroOffering: useOff,
         offering: useOff,
-        heroProduct: { title: useOff.name, category: useOff.type || useOff.kind },
+        heroProduct: {
+          title: useOff.name,
+          handle: useOff.handle || null,
+          category: useOff.type || useOff.kind,
+          price: useOff.price != null ? useOff.price : null,
+          compare_at: useOff.compare_at != null ? useOff.compare_at : null,
+          currency: useOff.currency || null,
+          image: useOff.image || null,
+          product_url: useOff.url || useOff.product_url || null,
+          tags: useOff.tags || [],
+          unit_spec: useOff.unit_spec || null,
+          piece_count: useOff.piece_count || null,
+          servings: useOff.servings || null,
+          claims: useOff.claims || [],
+          metrics: useOff.metrics || null,
+        },
         channels: ['email', 'meta', 'google', 'landing_page'],
         cta: useOff.kind === 'product' && /food|poultry|deli|restaurant/i.test(brand.industry || '')
           ? (useOff.type ? 'Order ' + useOff.type : 'Explore the menu') : rotated.cta,
@@ -2005,9 +2020,21 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // The market's own format ("₹1,450", not "₹1450"), through the one money
   // formatter; a value that is not a number is not printed.
   const priceLabel = _o.priceText ? String(_o.priceText) : (() => {
-    const n = Number(price);
-    if (price == null || !Number.isFinite(n) || n <= 0) return '';
-    try { return require('./brand-locale.js').money(n, _b, entry.market) || `${cur}${n}`; } catch (_) { return `${cur}${n}`; }
+    const hp = entry.heroProduct || {};
+    const n = Number(hp.price != null ? hp.price : price);
+    if (n == null || !Number.isFinite(n) || n <= 0) return '';
+    let formatted = '';
+    try { formatted = require('./brand-locale.js').money(n, _b, entry.market) || `${cur}${n}`; } catch (_) { formatted = `${cur}${n}`; }
+    const unit = hp.unit_spec || (hp.specs && hp.specs.weight) || null;
+    const base = unit ? `${formatted} / ${unit}` : formatted;
+    const cp = Number(hp.compare_at);
+    if (Number.isFinite(cp) && cp > n) {
+      let orig = '';
+      try { orig = require('./brand-locale.js').money(cp, _b, entry.market) || `${cur}${cp}`; } catch (_) { orig = `${cur}${cp}`; }
+      const pct = Math.round(((cp - n) / cp) * 100);
+      return `${base} (was ${orig} • ${pct}% OFF)`;
+    }
+    return base;
   })();
   const _cardImg = _ds.present ? (_o.productImage || entry.heroProduct?.image || '') : '';
   // The header bar exists only when the brand's own site has one measured: its
@@ -2194,6 +2221,11 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
 <section class="hero">
   <div class="hero-grid${creativeUrl ? ' has-media' : ''}">
     <div class="hero-copy">
+      ${(() => {
+        const hp = entry.heroProduct || {};
+        const b = hp.badge || (hp.metrics && hp.metrics.bestseller ? '🔥 #1 Bestseller' : null);
+        return b ? `<div class="hero-badge" style="display:inline-block;background:var(--lava);color:var(--on-lava);font-size:12px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:99px;margin-bottom:10px">${esc(b)}</div>` : '';
+      })()}
       <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>
       <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
       ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
