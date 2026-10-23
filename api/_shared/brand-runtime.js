@@ -99,7 +99,7 @@ function isUnresolved(brand) { return !!(brand && brand.unresolved === true); }
  * zero - the one answer the placeholder exists to prevent.
  */
 function namesBrand(b) {
-  return !!(b && typeof b === 'object' && (b.id || b.slug || b.carried === true || b.unresolved === true));
+  return !!(b && typeof b === 'object' && (b.id || b.slug || b.carried === true || b.unresolved === true || (typeof b.name === 'string' && b.name.trim().length > 0 && !/^\[DATA REQUIRED/i.test(b.name))));
 }
 
 function scopedBrand(candidate, opts) {

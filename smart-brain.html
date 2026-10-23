@@ -1188,6 +1188,11 @@ function renderPlan(){
       <button type="button" class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
       <button type="button" class="btn sm ok" id="dlbtn-${i}" onclick="downloadEntry(${i})" title="Generate (if needed) and download every asset for this send as one HTML file">⬇ Download</button>
       <button type="button" class="btn sm secondary" onclick="viewDecision(${i})" title="The complete logic, analysis and reason for this send: why the slot was chosen, and why this design and content">❓ Why this mail?</button>
+      <div class="asset-pills" style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap">
+        <button type="button" class="btn sm secondary" style="font-size:10px;padding:2px 6px" onclick="sbQuickAsset(${i}, 'mailer')" title="View or regenerate Mailer">✉ Mailer</button>
+        <button type="button" class="btn sm secondary" style="font-size:10px;padding:2px 6px" onclick="sbQuickAsset(${i}, 'landing')" title="View or regenerate Landing Page">🌐 Landing</button>
+        <button type="button" class="btn sm secondary" style="font-size:10px;padding:2px 6px" onclick="sbQuickAsset(${i}, 'ads')" title="View or regenerate Ads">📱 Ads</button>
+      </div>
     </div></td>
   </tr>
   <tr class="exprow" id="exprow-${i}" style="display:none"><td colspan="9" style="padding:0;background:var(--vh-panel-2);border-bottom:2px solid var(--vh-line-hot)"><div class="expbody" id="expbody-${i}"></div></td></tr>`;}).join('');
@@ -1478,11 +1483,13 @@ function renderPreview(payload, e, i, opts){
   // generates the final best version of every asset by default; the reviewer
   // just views and downloads.)
   const lpUrlAbs = liveLpId ? (location.origin + '/lp/' + encodeURIComponent(liveLpId)) : '';
-  const expBar = (name, html, label) => {
+  const expBar = (name, html, label, assetKind) => {
     const idx = window.__SB_EXPORTS.push({ name, label: label || name, html: sbPortable(html, lpUrlAbs), ext: 'html' }) - 1;
+    const regenBtn = assetKind ? `<button type="button" class="btn sm secondary" onclick="sbRegenerateAsset(${i}, '${assetKind}', this)" title="Regenerate this ${assetKind} individually">⚡ Regenerate ${assetKind}</button>` : '';
     return `<div class="akbar">
       <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download</button>
       <button type="button" class="btn sm secondary" onclick="sbCopy(${idx}, this)">📋 Copy</button>
+      ${regenBtn}
     </div>`;
   };
   // An ad downloads as the AD: a page showing the creative and its copy. Its
@@ -1493,6 +1500,7 @@ function renderPreview(payload, e, i, opts){
     return `<div class="akbar">
       <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download ad</button>
       <button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button>
+      <button type="button" class="btn sm secondary" onclick="sbRegenerateAsset(${i}, 'ads', this)" title="Regenerate ads & motion video individually">⚡ Regenerate Ads</button>
     </div>`;
   };
   // Every copyable prompt for one asset, whole-asset prompts first, each saying
@@ -1550,10 +1558,10 @@ function renderPreview(payload, e, i, opts){
       const html = String(v.html||'').replace(/\{\{\s*landing_page_url\s*\}\}/g,'#');
       const id = 'pv-mail-'+(v.key||vi);
       tab(id, '✉ Mailer · '+esc(v.label || String(vi+1)), first);
-      pane(id, `${v.type ? `<div class="pvnote" style="margin:0 0 6px">${esc(v.type)}</div>` : ''}${expBar('mailer-'+(v.key||vi), html, 'Mailer · '+(v.label || String(vi+1)))}${docFrame(html, 'mail', v.label || 'Mailer')}${promptBar(emailAsset)}`, first);
+      pane(id, `${v.type ? `<div class="pvnote" style="margin:0 0 6px">${esc(v.type)}</div>` : ''}${expBar('mailer-'+(v.key||vi), html, 'Mailer · '+(v.label || String(vi+1)), 'mailer')}${docFrame(html, 'mail', v.label || 'Mailer')}${promptBar(emailAsset)}`, first);
       first=false;
     });
-  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html, 'Mailer')}${docFrame(html, 'mail', 'Mailer')}${promptBar(emailAsset)}`, first); first=false; }
+  } else if(emailHtml){ const html = emailHtml.replace(/\{\{\s*landing_page_url\s*\}\}/g,'#'); tab('pv-mail','✉ Mailer',first); pane('pv-mail', `${expBar('mailer', html, 'Mailer', 'mailer')}${docFrame(html, 'mail', 'Mailer')}${promptBar(emailAsset)}`, first); first=false; }
   // EVERY landing page, not just the first. The builder ships an A/B pair and
   // only landing_pages[0] was ever rendered, so the B variant existed in the
   // payload, was downloaded by "Download all", and could not be looked at.
@@ -1567,7 +1575,7 @@ function renderPreview(payload, e, i, opts){
     const id = 'pv-lp' + (li ? '-' + li : '');
     const label = '🛬 ' + esc(lp.title || ('Landing page ' + (li + 1)));
     tab(id, label, first);
-    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html, lp.title ? 'Landing page · ' + lp.title : 'Landing page ' + (li + 1))}${docFrame(html, 'page', lp.title || 'Landing page')}${promptBar(lp)}`, first);
+    pane(id, `${(liveLpId && !li) ? `<p class="pvnote">Hosted at <a href="/lp/${esc(liveLpId)}" target="_blank" class="tok">/lp/${esc(liveLpId)} ↗</a>.</p>` : ''}${expBar('landing-page' + (li ? '-' + li : ''), html, lp.title ? 'Landing page · ' + lp.title : 'Landing page ' + (li + 1), 'landing')}${docFrame(html, 'page', lp.title || 'Landing page')}${promptBar(lp)}`, first);
     first = false;
   });
   // Each platform ships an A/B pair. Give every ad a UNIQUE tab id + a label that
@@ -2048,6 +2056,47 @@ async function viewEntry(i, forceRegen){
   }catch(err){ window.LifecycleFailure.show(body, err, { title: 'Preview failed' }); }
 }
 window.viewEntry = viewEntry;
+
+window.sbRegenerateAsset = async function(idx, assetType, btn) {
+  const e = PLAN[idx];
+  if(!e) return;
+  const mark = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Regenerating…'; }
+  sbState('busy', `Regenerating ${assetType} for ${e.date} (${e.cohort?.name || ''})…`);
+  try {
+    const r = await fetch(`${API}?action=smart-brain-generate-asset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: e.id, entry: e, asset_type: assetType, reviewer: reviewerEmail() }),
+    });
+    const data = await safeJson(r);
+    if(!data.ok) throw new Error(data.message || data.error || `Failed to regenerate ${assetType}`);
+    const row = $('exprow-'+idx); const body = $('expbody-'+idx);
+    const existing = PREVIEW_CACHE[e.id] || {};
+    const updated = { ...existing, ...data };
+    if (data.campaign) updated.campaign = data.campaign;
+    PREVIEW_CACHE[e.id] = updated;
+    if(row && body && row.style.display !== 'none') {
+      renderPreview(updated, e, idx, { target: body, persisted: (e.status==='approved'||e.status==='final') });
+      body.setAttribute('data-loaded','1');
+    }
+    sbState('ok', `Successfully regenerated ${assetType} for ${e.date}!`);
+  } catch(err) {
+    sbState('err', `Could not regenerate ${assetType}: ${err.message}`);
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = mark; }
+  }
+};
+
+window.sbQuickAsset = async function(idx, assetType) {
+  const row = $('exprow-'+idx);
+  const body = $('expbody-'+idx);
+  if(!row || !body || row.style.display === 'none') {
+    await viewEntry(idx);
+  }
+  const jumpTarget = assetType === 'mailer' ? 'pv-mail' : (assetType === 'landing' ? 'pv-lp' : (assetType === 'ads' ? 'pv-ad' : 'pv-why'));
+  pvJump(jumpTarget);
+};
 
 /* THE MODE CARD STATES THE REAL MODE (2026-10-05). It read "DB (empty)" for a
    phone sign-in on a deployment with no database at all, because the server
