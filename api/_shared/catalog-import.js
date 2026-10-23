@@ -356,6 +356,113 @@ async function getPolite(url, ctx, opts) {
   }
 }
 
+/* ── the store's OWN popularity order (2026-10-23) ─────────────────────── */
+/*
+ * "Most popular" is never inferred from a product's own words ("popular" in a
+ * description is marketing, not a measurement). It is the order the STORE
+ * itself publishes when a shopper sorts by it: WooCommerce's
+ * `?orderby=popularity` (total sales) and Shopify's `sort_by=best-selling`.
+ * Only those two documented sorts are read; any other platform has no
+ * ranking, and the coverage says so. robots.txt is honoured for every page.
+ */
+const RANKING = {
+  woocommerce: { basis: 'sales', label: 'the store\'s own "Sort by popularity" (WooCommerce, by total sales)',
+    pages: (origin) => [1, 2, 3, 4, 5].map((n) => (n === 1 ? `${origin}/shop/?orderby=popularity` : `${origin}/shop/page/${n}/?orderby=popularity`)),
+    link: /href=["'](https?:\/\/[^"'#?]+\/product\/[^"'#?]+)["']/gi },
+  shopify: { basis: 'sales', label: 'the store\'s own "Best selling" sort (Shopify)',
+    pages: (origin) => [1, 2, 3, 4, 5].map((n) => `${origin}/collections/all?sort_by=best-selling${n > 1 ? `&page=${n}` : ''}`),
+    link: /href=["']((?:https?:\/\/[^"'#?\/]+)?\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?(?:collections\/[^"'#?\/]+\/)?products\/[^"'#?\/]+)["']/gi },
+};
+/** A product page's path, lower-cased, no trailing slash: the key a ranking and a row share. */
+function rankKey(u, base) {
+  try {
+    const x = new URL(u, base);
+    let p = x.pathname.replace(/\/+$/, '').toLowerCase();
+    // Shopify serves a product under a collection too: /collections/x/products/y is /products/y.
+    p = p.replace(/^(\/[a-z]{2}(?:-[a-z]{2})?)?\/collections\/[^/]+(\/products\/)/, '$1$2');
+    return p;
+  } catch (_) { return ''; }
+}
+/** The store's ranked product list, read from its own sorted listing, or null with why. */
+async function readStoreRanking(platformId, base, ctx, { maxPages = 5 } = {}) {
+  const spec = RANKING[platformId];
+  if (!spec) return null;
+  let origin;
+  try { origin = new URL(base).origin + new URL(base).pathname.replace(/\/$/, ''); } catch (_) { return null; }
+  const order = [];
+  const seen = new Set();
+  let read = 0, first = '';
+  for (const u of spec.pages(origin).slice(0, maxPages)) {
+    if (Date.now() > ctx.deadline - 8000) break;
+    if (!(await allowed(u, ctx))) { if (!read) return { basis: spec.basis, label: spec.label, order: [], source_url: u, read: 0, refused: 'robots.txt does not allow it' }; break; }
+    const r = await getPolite(u, ctx, { accept: 'text/html', retries: 0 });
+    if (!r.ok) break;
+    read += 1;
+    if (!first) first = u;
+    let added = 0;
+    for (const m of String(r.body || '').matchAll(spec.link)) {
+      const k = rankKey(m[1], u);
+      if (!k || seen.has(k)) continue;
+      seen.add(k); order.push(k); added += 1;
+      if (order.length >= 300) break;
+    }
+    if (!added || order.length >= 300) break;
+  }
+  if (!order.length) return null;
+  return { basis: spec.basis, label: spec.label, order, source_url: first, read };
+}
+/** Attach the store's own rank to a row (raw.facts.popularity_rank), when the ranking names it. */
+function applyRanking(row, ranking) {
+  if (!row || !ranking || !Array.isArray(ranking.order) || !ranking.order.length) return row;
+  const k = rankKey(row.product_url || row.source_url || '', row.product_url || row.source_url || 'http://x/');
+  const i = k ? ranking.order.indexOf(k) : -1;
+  if (i < 0) return row;
+  row.metrics = Object.assign({}, row.metrics || {}, { popularity_rank: i + 1, popularity_of: ranking.order.length, popularity_basis: ranking.label, popularity_source: ranking.source_url });
+  return row;
+}
+
+/**
+ * The facts a page STATES about an offering (weight, pieces, servings, its own
+ * claim phrases, rating, reads, the store's rank, author, read time) ride in
+ * the row's `raw.facts`: `raw` is the one jsonb column every store keeps, so
+ * the facts reach the generators without a migration.
+ */
+function carryFacts(row) {
+  const f = {};
+  for (const k of ['unit_spec', 'piece_count', 'servings', 'claims', 'metrics', 'author', 'read_time', 'offering_kind', 'published_at']) {
+    const v = row[k];
+    if (v == null || v === '' || (Array.isArray(v) && !v.length)) continue;
+    if (k === 'metrics') {
+      const m = {};
+      for (const [mk, mv] of Object.entries(v)) if (mv != null && mv !== '' && mv !== false) m[mk] = mv;
+      if (Object.keys(m).length) f.metrics = m;
+    } else f[k] = v;
+  }
+  if (Object.keys(f).length) row.raw = Object.assign({}, row.raw || {}, { facts: f });
+  return row;
+}
+
+/** Claim phrases a page states, quoted as written (first letter upper-cased), at most 8. */
+const CLAIM_PHRASES = [
+  /antibiotic[\s-]*(?:residue[\s-]*)?free/i, /hormone[\s-]*free/i, /cut\s+fresh\s+daily|freshly\s+cut/i, /never\s+frozen/i,
+  /chemical[\s-]*free/i, /no\s+(?:added\s+)?preservatives|preservative[\s-]*free/i, /high[\s-]*protein/i,
+  /ready[\s-]*to[\s-]*cook/i, /ready[\s-]*to[\s-]*eat|heat\s*(?:&|and)\s*eat/i, /gluten[\s-]*free/i, /sugar[\s-]*free|no\s+added\s+sugar/i,
+  /vegan/i, /cruelty[\s-]*free/i, /organic/i, /handmade|hand[\s-]*made/i, /water[\s-]*resistant/i,
+];
+function statedClaims(text) {
+  const out = [];
+  const t = String(text || '');
+  for (const rx of CLAIM_PHRASES) {
+    const m = t.match(rx);
+    if (!m) continue;
+    const ph = m[0].replace(/\s+/g, ' ').trim();
+    const said = ph.charAt(0).toUpperCase() + ph.slice(1);
+    if (!out.some((x) => x.toLowerCase() === said.toLowerCase())) out.push(said);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
 /* ── robots.txt (RFC 9309) ─────────────────────────────────────────────── */
 
 const { parseRobots, robotsAllows } = crawl;
@@ -509,6 +616,11 @@ function regionalBase({ url, region, brand, homeHtml, hosts, identity, foreign }
         if (foreign) foreign.push({ code: String(r.code || region).toUpperCase(), url: u.replace(/\/$/, ''), domain: COH.registrableDomain(COH.hostOf(u)) });
         continue;
       }
+      // A page of the site's own host that is not the root or a locale path
+      // is not a regional store (the record's /produc or /category/turkey).
+      let pth = '';
+      try { pth = new URL(u).pathname.replace(/\/$/, ''); } catch (_) { pth = ''; }
+      if (hostOf(u) === hostOf(url) && pth && !/^\/(?:[a-z]{2}(?:[-_][a-z]{2})?)$/i.test(pth)) continue;
       if (givenIsWebsite && crawl.inScope(u, hosts)) return { base: u.replace(/\/$/, ''), from: `the ${String(r.code || region).toUpperCase()} store URL on the brand's own record` };
     }
   }
@@ -739,16 +851,9 @@ function rowFromPage(html, pageUrl, { region, source }) {
       const rating = num(agg.ratingValue);
       const reviewCount = num(agg.reviewCount || agg.ratingCount);
 
-      const claims = [];
-      if (/antibiotic\s*residue\s*free|antibiotic\s*free/i.test(combined)) claims.push('Antibiotic Residue Free');
-      if (/cut\s*fresh\s*daily|freshly\s*cut|fresh\s*cut/i.test(combined)) claims.push('Cut Fresh Daily');
-      if (/never\s*frozen|unfrozen/i.test(combined)) claims.push('Never Frozen');
-      if (/chemical\s*free|no\s*preservatives|preservative\s*free/i.test(combined)) claims.push('No Preservatives');
-      if (/high\s*protein/i.test(combined)) claims.push('High Protein');
-      if (/ready\s*to\s*cook/i.test(combined)) claims.push('Ready to Cook');
-      if (/ready\s*to\s*eat|heat\s*&\s*eat|heat\s*and\s*eat/i.test(combined)) claims.push('Heat & Eat');
-
-      const isBestseller = /bestseller|best\s*seller|popular|top\s*seller/i.test(combined);
+      // The page's OWN claim phrases, as written: a phrase is quoted, never
+      // relabelled ("chemical free" is not "No Preservatives").
+      const claims = statedClaims(combined);
 
       builtRows.push({
         region, title,
@@ -776,7 +881,6 @@ function rowFromPage(html, pageUrl, { region, source }) {
         metrics: {
           rating: rating || null,
           reviews_count: reviewCount || null,
-          bestseller: isBestseller,
           savings_pct: (head.compare_at && head.price && head.compare_at > head.price) ? Math.round(((head.compare_at - head.price) / head.compare_at) * 100) : null,
         },
         raw: { declared: declaredBy, type: typeIs(node, 'productgroup') ? 'ProductGroup' : (node['@type'] || 'Product') },
@@ -806,8 +910,11 @@ function rowFromPage(html, pageUrl, { region, source }) {
   // Declared product articles on range/care/services/shop pages or pages with matching articles
   if (/care|product|range|service|shop|store/i.test(pageUrl) || /<article\b[^>]*class=["'][^"']*\b(?:worry|product|card|item|offering)\b/i.test(html)) {
     const articleRows = [];
-    for (const m of html.matchAll(/<article\b[^>]*class=["'][^"']*\b(?:worry|product|card|item|offering)\b[^"']*["'][^>]*>([\s\S]*?)<\/article>/gi)) {
-      const body = m[1];
+    for (const m of html.matchAll(/<article\b([^>]*class=["'][^"']*\b(?:worry|product|card|item|offering)\b[^"']*["'][^>]*)>([\s\S]*?)<\/article>/gi)) {
+      // A blog post card (WordPress `type-post`, a dated entry) is the brand's
+      // writing, not something it sells: never a catalogue row.
+      if (/\btype-post\b|\b(?:blog|post|entry)\b(?!-)/i.test(m[1]) || /<time\b/i.test(m[2])) continue;
+      const body = m[2];
       const h = (body.match(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i) || [])[1];
       const p = (body.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i) || [])[1];
       if (h) {
@@ -822,7 +929,7 @@ function rowFromPage(html, pageUrl, { region, source }) {
             handle: artHandle,
             sku: null,
             description: cleanDesc.slice(0, 4000) || null,
-            product_type: 'Care & Living Essentials',
+            product_type: null,
             collections: [],
             price: null,
             compare_at: null,
@@ -914,7 +1021,6 @@ function rowFromPage(html, pageUrl, { region, source }) {
           shares,
           comments,
           read_time: readTime,
-          engagement_score: (views || 0) + (shares || 0) * 5 + (comments || 0) * 10,
         },
         raw: { declared: 'json-ld:article', type: node['@type'] || 'Article' },
       });
@@ -1486,6 +1592,8 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
     if (row.handle) seen.add(hkey);
     seen.add(key);
     noteMissing(row, stats);
+    if (st && st.ranking) applyRanking(row, st.ranking);
+    carryFacts(row);
     rows.push(row);
     // A row filed under ANOTHER market (a redirect into its store) is that
     // market's: it is not counted as this market's product.
@@ -1518,11 +1626,17 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       // The ORIGINAL brand (not the trimmed scope), so a store on another site
       // is seen, skipped and named rather than silently absent.
       const foreignStores = own.foreign.slice();
-      const rb = regionalBase({ url: start, region: reg, brand: Object.assign({}, brand || {}, { website: scope.website }), homeHtml, hosts, identity: own.identity, foreign: [] });
+      let rb = regionalBase({ url: start, region: reg, brand: Object.assign({}, brand || {}, { website: scope.website }), homeHtml, hosts, identity: own.identity, foreign: [] });
       let baseHtml = homeHtml;
       if (rb.base !== start && await allowed(rb.base, ctx)) {
         const page = await getPolite(rb.base, ctx, { accept: 'text/html' });
         baseHtml = page.ok ? page.body : '';
+        // A store URL that does not answer (a typo on the record, a page the
+        // site removed) is not a store: the site's root is read, and said.
+        if (!page.ok && page.status >= 400 && page.status < 500 && homeHtml) {
+          rb = { base: start, from: `the site's root, because ${rb.from} (${rb.base}) answered ${page.status}` };
+          baseHtml = homeHtml;
+        }
       }
       const sf = require('./storefront-detect.js').detectStorefront(baseHtml ? [[rb.base, baseHtml]] : []);
       storefront = sf && sf.detected ? { id: sf.platform.id, name: sf.platform.name, why: sf.platform.why, confidence: sf.platform.confidence, source_url: sf.platform.source_url, route: sf.catalog_route.kind, route_note: sf.catalog_route.note } : null;
@@ -1558,6 +1672,11 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       // A robots.txt Crawl-delay is the rate from the first request: one at
       // a time, that far apart.
       if (st.crawl_delay_ms) { st.rate_ms = st.crawl_delay_ms; st.conc = 1; }
+      // The store's own popularity order, read once per market at the start so
+      // every row this run files carries its rank (WooCommerce / Shopify only).
+      if (storefront && RANKING[storefront.id]) {
+        try { st.ranking = await readStoreRanking(storefront.id, rb.base, ctx); } catch (_) { st.ranking = null; }
+      }
       if (ctx.queue) { try { await ctx.queue.clear(true); } catch (_) { /* an older run's rows: best effort */ } }
       if (baseHtml) {
         const baseGot = rowFromPage(baseHtml, rb.base, { region: reg, source: 'sitemap_jsonld' });
@@ -1997,6 +2116,7 @@ async function discoverMarkets({ url, region, brand, guard, deadline }) {
   const origin = new URL(start).origin;
   const startHost = new URL(start).host;
   const found = [];   // { country, prefix, host, store_url, source, lang }
+  const earlyNotes = [];
   const add = (o) => { if (o && o.country) found.push(o); };
   let homeHtml = '';
   if (await allowed(start, ctx)) {
@@ -2040,6 +2160,14 @@ async function discoverMarkets({ url, region, brand, guard, deadline }) {
     if (!u || !(ctx.inScope(u))) continue;
     const c = LOC.countryOf(r.code) || String(r.code).toUpperCase();
     const pu = new URL(u);
+    // On the site's own host a regional store is the root or a locale path
+    // (/en-gb/, /in/). Any other path (/category/turkey, a typo like /produc)
+    // is a page, not a store: named, not read as a market.
+    const pth = pu.pathname.replace(/\/$/, '');
+    if (pu.host === startHost && pth && !/^\/(?:[a-z]{2}(?:[-_][a-z]{2})?)$/i.test(pth)) {
+      earlyNotes.push(`The ${String(r.code).toUpperCase()} store URL on the brand's record (${u}) is a page of the site, not a regional store, so it was not read as ${String(r.code).toUpperCase()}'s store. Correct or remove it in brand setup.`);
+      continue;
+    }
     add({ country: c, lang: '', prefix: pu.pathname.replace(/\/$/, ''), host: pu.host, store_url: u.replace(/\/$/, ''), source: 'the brand record\'s store URL', record: true });
   }
   // The market of the start URL itself: the hreflang that names "/" on the
@@ -2060,7 +2188,7 @@ async function discoverMarkets({ url, region, brand, guard, deadline }) {
     : (rootTags[0] ? canonRegion(rootTags[0].country) : (homeCode && homeCode !== askedCode ? homeCode : askedCode));
   const rootTag = rootTags.find((f) => canonRegion(f.country) === rootCode) || null;
   const markets = [];
-  const notes = [];
+  const notes = earlyNotes;
   for (const f of rootTags) {
     if (canonRegion(f.country) && canonRegion(f.country) !== rootCode) notes.push(`${f.source} points ${f.country}'s store at the site's root, which is ${String(rootCode).toUpperCase()}'s store here; ${f.country} is read from its own store where the site publishes one.`);
   }
@@ -2277,6 +2405,16 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   if (stats.by_source.crawl) src.push(`${stats.by_source.crawl.toLocaleString('en-US')} from crawling its linked pages`);
   if (src.length) s.push(`Source: ${src.join('; ')}.`);
   s.push(`Market ${R || 'unset'}: read from ${st.base} (${st.base_from})${st.currency ? `, priced in ${st.currency} as that storefront declares` : ''}.`);
+  // Which products the store itself ranks as most popular (2026-10-23).
+  if (st.ranking && Array.isArray(st.ranking.order) && st.ranking.order.length) {
+    s.push(`Most popular: ranked by ${st.ranking.label}, read from ${st.ranking.source_url} (${st.ranking.order.length} product${st.ranking.order.length === 1 ? '' : 's'} in its order).`);
+  } else if (st.ranking && st.ranking.refused) {
+    s.push(`Most popular: the store's own popularity listing (${st.ranking.source_url}) is not read: ${st.ranking.refused}. No product is called popular.`);
+  } else if (st.storefront && RANKING[st.storefront.id]) {
+    s.push(`Most popular: the store's own popularity listing gave no products, so no product is called popular.`);
+  } else {
+    s.push('Most popular: this store publishes no popularity order this importer reads (only WooCommerce and Shopify sort orders are read), so no product is called popular; ratings and view counts are used only where a page states them.');
+  }
   for (const f of (Array.isArray(st.foreign_stores) ? st.foreign_stores : [])) s.push(foreignStoreSentence(f, st.identity));
   for (const x of readerSentences(st, R)) s.push(x);
   if (st.feed_refused === 'robots') s.push('robots.txt disallows the product feed, so it was not read.');
@@ -2716,6 +2854,6 @@ async function refreshDue({ maxWorkspaces = 2, budgetMs = 25000, now } = {}) {
 module.exports = {
   refreshDue, chainStep, continueWorkspace, resumable, mergeByMarket, chainAfter, chainSentence, chainBusy, fireNext, staleAliasRegions, selfBaseUrl, CHAIN,
   step, stepAll, discoverMarkets, mergeRows, familyOf, rowKey, coverageOf,
-  rowFromFeed, rowFromPage, enumerateSitemaps, isProductSitemap, sitemapClass, foreignLocale, marketCurrency, scriptRendered, parseRobots, robotsAllows, retryAfterMs,
+  rowFromFeed, rowFromPage, statedClaims, carryFacts, readStoreRanking, applyRanking, rankKey, RANKING, enumerateSitemaps, isProductSitemap, sitemapClass, foreignLocale, marketCurrency, scriptRendered, parseRobots, robotsAllows, retryAfterMs,
   regionalBase, ownScope, identityOf, cursorProblem, foreignStoreSentence, declaredCurrency, handleFromUrl, canonRegion, regionAliases, LIMITS, USER_AGENT, MARKER,
 };

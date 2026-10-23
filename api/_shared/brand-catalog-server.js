@@ -159,6 +159,12 @@ function shipped(market) {
  * code paths. Nothing is invented: a row with no image_url simply has no image,
  * and the caller renders image-free.
  */
+/** A fact the import read off the page, kept in raw.facts (see catalog-import carryFacts). */
+function fact(row, k) {
+  const f = row && row.raw && typeof row.raw === 'object' && row.raw.facts && typeof row.raw.facts === 'object' ? row.raw.facts : null;
+  return f && f[k] != null ? f[k] : null;
+}
+
 function fromRow(row) {
   if (!row || typeof row !== 'object') return null;
   const title = String(row.title || '').trim();
@@ -191,14 +197,15 @@ function fromRow(row) {
     source_url: typeof row.source_url === 'string' && /^https?:\/\//.test(row.source_url) ? row.source_url : '',
     region: String(row.region || '').toLowerCase(),
     __workspace_id: row.workspace_id || '',
-    unit_spec: row.unit_spec || (row.specs && row.specs.weight) || null,
-    piece_count: row.piece_count || (row.specs && row.specs.piece_count) || null,
-    servings: row.servings || (row.specs && row.specs.servings) || null,
-    claims: Array.isArray(row.claims) ? row.claims : ((row.specs && row.specs.claims) || []),
-    metrics: row.metrics || null,
-    author: row.author || null,
-    read_time: row.read_time || null,
-    offering_kind: row.offering_kind || null,
+    unit_spec: row.unit_spec || (row.specs && row.specs.weight) || fact(row, 'unit_spec'),
+    piece_count: row.piece_count || (row.specs && row.specs.piece_count) || fact(row, 'piece_count'),
+    servings: row.servings || (row.specs && row.specs.servings) || fact(row, 'servings'),
+    claims: Array.isArray(row.claims) ? row.claims : ((row.specs && row.specs.claims) || fact(row, 'claims') || []),
+    metrics: row.metrics || fact(row, 'metrics'),
+    author: row.author || fact(row, 'author'),
+    read_time: row.read_time || fact(row, 'read_time'),
+    offering_kind: row.offering_kind || fact(row, 'offering_kind'),
+    published_at: row.published_at || fact(row, 'published_at'),
   };
 }
 
@@ -234,7 +241,9 @@ async function workspaceRows(workspaceId) {
   // Live rows only: a product a complete re-import no longer found is kept
   // (stale_at) but never built into an asset. A database without migration
   // 20261010002000 has no stale_at / image_urls, and reads the old columns.
-  const shapes = [`${cols},image_urls,source_url&stale_at=is.null`, cols];
+  // `raw` carries the facts the page stated (raw.facts: weight, pieces, its
+  // own claim phrases, rating, reads, the store's popularity rank).
+  const shapes = [`${cols},image_urls,source_url,raw&stale_at=is.null`, `${cols},image_urls,source_url&stale_at=is.null`, cols];
   try {
     let out = null;
     for (const shape of shapes) {

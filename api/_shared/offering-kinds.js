@@ -29,7 +29,10 @@ const KINDS = {
     label: 'Product',
     hint: 'A physical or digital item with a price, e.g. a SKU in a store.',
     dateBound: false,
-    fields: ['name', 'handle', 'price', 'compare_at', 'image', 'type', 'tags'],
+    // What the store states about it travels with it (2026-10-23): its own
+    // page, currency, weight or size, claim phrases and metrics (rating, reads,
+    // the store's popularity rank), so every asset can show them.
+    fields: ['name', 'handle', 'price', 'compare_at', 'currency', 'image', 'type', 'tags', 'url', 'unit_spec', 'piece_count', 'servings', 'claims', 'metrics'],
     required: ['name'],
     lifecycle: 'Evergreen. Promote on merchandising logic, seasonality and stock.',
   },
@@ -56,6 +59,14 @@ const KINDS = {
     fields: ['name', 'url', 'topics', 'image'],
     required: ['name'],
     lifecycle: 'Habit formation and frequency. Measured in sessions and return visits.',
+  },
+  story: {
+    label: 'Story',
+    hint: 'An article, report or story the brand publishes: what a media brand offers its readers.',
+    dateBound: false,
+    fields: ['name', 'url', 'image', 'type', 'author', 'read_time', 'published_at', 'topics', 'metrics'],
+    required: ['name'],
+    lifecycle: 'A read, then a return visit, then a subscription. Measured in reads and return visits.',
   },
   plan: {
     label: 'Plan',
