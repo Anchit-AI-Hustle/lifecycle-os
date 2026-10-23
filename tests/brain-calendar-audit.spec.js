@@ -87,7 +87,7 @@ test('4 + 5. the plan holds every cohort to the cap, and a market with no target
   expect(IN.feasibility.currency).toBeNull();
   expect(IN.feasibility.note).toContain('[DATA REQUIRED BEFORE LAUNCH: daily revenue target');
   expect(IN.feasibility.note).not.toContain('$');
-  for (const e of E) expect(e.channels).toEqual(S.BUILT_CHANNELS);
+  for (const e of E) expect(e.channels).toEqual(S.BASE_CHANNELS);
 });
 
 test('6. a dated event takes its milestone days, and the rest of the catalogue still rotates', () => {

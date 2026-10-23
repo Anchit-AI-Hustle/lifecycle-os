@@ -2436,8 +2436,8 @@ function normalizeRow(slot, r) {
   return r;
 }
 
-$('btnResetSeed').addEventListener('click', () => {
-  if (!confirm('Clear all data? This removes any uploaded or linked data and returns to the empty state.')) return;
+$('btnResetSeed').addEventListener('click', async () => {
+  if (!(await window.LifecycleDialog.confirm('Clear all data? This removes any uploaded or linked data and returns to the empty state.', { ok: 'Clear all data', danger: true }))) return;
   LCStore.remove('knickgasm-retention-data');
   DATA = emptyData();
   STAGE && Object.keys(STAGE).forEach((k) => delete STAGE[k]);

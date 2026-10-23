@@ -33,7 +33,7 @@ const CLAIM_WORDS = ('nutrient nutrients nutrition nutritious vitamin vitamins m
   + 'pure purest natural organic fresh freshest clean authentic genuine original handmade handcrafted crafted artisanal '
   + 'scientific science research researched clinical clinically proven tested certified approved recommended '
   + 'doctor doctors expert experts dermatologist award award-winning best finest leading top trusted favourite favorite '
-  + 'healthy healthier health wellness immunity immune energy boost boosts boosting cure cures heal heals healing '
+  + 'healthy healthier healthiest health wellness immunity immune energy boost boosts boosting cure cures heal heals healing '
   + 'safe safest effective guaranteed guarantee instant instantly sustainable eco-friendly vegan gluten sugar-free '
   + 'durable waterproof lightweight comfortable ergonomic secure '
   // Found on a live keyless answer (2026-10-17): a news brand's ads called it a
@@ -155,7 +155,14 @@ function groundCopy(copy, brand, product) {
     });
   }
   if (a.tiktok && typeof a.tiktok.caption === 'string') a.tiktok.caption = groundText(a.tiktok.caption, facts, dropped, 'ads.tiktok.caption');
+  // SMS / WhatsApp / push lines (2026-10-23): held to the same facts. An
+  // emptied line falls back to the brand's own line in the builder.
+  const m = copy.messaging || {};
+  for (const [ch, fields] of [['sms', ['text']], ['whatsapp', ['header', 'body']], ['push', ['title', 'body']]]) {
+    if (!m[ch] || typeof m[ch] !== 'object') continue;
+    for (const f of fields) if (typeof m[ch][f] === 'string') m[ch][f] = groundText(m[ch][f], facts, dropped, `messaging.${ch}.${f}`);
+  }
   return dropped;
 }
 
-module.exports = { groundCopy, factsFor, unbacked, CLAIM_WORDS };
+module.exports = { groundCopy, groundText, factsFor, unbacked, CLAIM_WORDS };

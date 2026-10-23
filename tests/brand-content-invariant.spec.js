@@ -136,6 +136,12 @@ const GENERATORS = [
   { id: 'social-run-daily', path: '/api/brain', q: { action: 'social-run-daily' }, body: () => ({ dry_run: true, platforms: ['instagram', 'linkedin'], date: '2026-10-20' }), modes: ['device', 'account'], own: ['name'], marker: true, templates: true },
   // Competitor ads -> angles + hooks + briefs: built from the ACTIVE brand's own claims and name only.
   { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), modes: ['device', 'account'], own: ['name'] },
+  { id: 'launch-concepts', path: '/api/brain', q: { action: 'launch-concepts' }, body: () => ({ customer: 'people who want it' }), modes: ['device', 'account'], own: ['name'],
+    statuses: { 409: (b) => ((b.tagline || (b.claims || []).length) ? null : 'a brand with no tagline or claims has nothing true to pitch when the model answers prose: it is told to add its claims, never handed invented concepts') } },
+  { id: 'ad-fix', path: '/api/brain', q: { action: 'ad-fix' }, body: () => ({ worst: { ad: 'Old ad' }, why: ['It spent 400 and brought no conversion.'] }), modes: ['device', 'account'], own: ['name'],
+    statuses: { 409: (b) => ((b.tagline || (b.claims || []).length) ? null : 'a brand with no tagline or claims has no true line for an ad when the model answers prose: it is told to add its claims, never handed an invented ad') } },
+  { id: 'review-mine', path: '/api/brain', q: { action: 'review-mine' }, body: () => ({ reviews: [{ text: 'Good, but slow to arrive.', rating: 3 }] }), modes: ['device', 'account'], own: ['name'],
+    statuses: { 409: 'the scripted model returns prose, not per-review labels; the desk counts nothing rather than guess (no_model), and the PROMPT is what is judged' } },
   { id: 'mailer-assets', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ html: '<!doctype html><html><body><!-- IMAGE GENERATION PROMPT (hero, 1200x628): the hero product, natural light --><img src="IMAGE_HERO_URL" alt="hero"></body></html>', video: false, gif: false, persist: false }), modes: ['device'] },
   { id: 'mailer-assets (lifecycle entry)', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ entry_id: 'lc_2026-10-20_tb_buyers_non_engagers_UK' }), modes: ['device'], marker: true,
     statuses: { 409: 'an entry_id names a row of tenant zero\'s lifecycle programme: refused for any other brand with a marker' } },
@@ -168,6 +174,12 @@ const GENERATORS = [
     body: (b) => ({ mode, brief: 'A campaign for customers who bought once and stopped.', prompt: 'A campaign for customers who bought once and stopped.', message: 'Sharpen this subject line.', surface: 'meta', chat_context: {}, selected_products: productsOf(b).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
     own: ['name', 'palette.primary', 'claim'].filter((l) => mode !== 'chat' || l !== 'palette.primary'),
     market: ['create_brief', 'concepts', 'mailer_full'].includes(mode) ? PROMPT_MARKET(mode === 'mailer_full' ? 'market' : 'MARKET') : null,
+  })),
+  // SMS / WhatsApp / push (2026-10-23): a message names its own brand and claims, never another's.
+  ...['sms', 'whatsapp', 'push'].map((mode) => ({
+    id: mode, path: '/api/ai/generate', q: {}, modes: ['device', 'account'],
+    body: (b) => ({ mode, brief: 'A note for customers who bought once and stopped.', selected_products: productsOf(b).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
+    own: ['name', 'claim'],
   })),
   { id: 'landing-page', path: '/api/ai/landing-page', q: {}, body: () => ({ brief: 'A landing page for customers who bought once and stopped.' }), modes: ['device', 'account'], own: ['name', 'palette.primary', 'claim'],
     statuses: { 502: 'the scripted model returns prose, not HTML; the PROMPT is what is judged here' } },
@@ -207,6 +219,7 @@ const EXEMPT = {
   'video-generate': 'sends the caller\'s own prompt to a video provider verbatim; it composes no brand content of its own',
   'generate-asset': 'rebuilds one asset of a slot through buildCampaign, the same builder `preview` drives here in both worlds',
   'regenerate-asset': 'an alias of generate-asset (same route, same builder)',
+  'launch-visuals': 'builds image prompts from the resolved brand record through image-prompt.buildPreamble; no model, and tests/owner-desk.spec.js asserts every prompt names the brand\'s own product and style',
   'daily-calendar': 'not a generator, and answers 500 on main (daily-calendar-core calls smart-brain-plan.horizonCoverage, which this repo never had); recorded in the PR, not changed here',
 };
 

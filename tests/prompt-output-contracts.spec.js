@@ -82,6 +82,9 @@ const GENERATORS = [
   { id: 'mailer-assets', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ html: '<!doctype html><html><body><img src="IMAGE_HERO_URL" alt="hero"></body></html>', video: false, gif: false, persist: false }), statuses: [400, 409] },
   { id: 'platform-agents', path: '/api/brain', q: { action: 'platform-agents' }, body: () => ({}) },
   { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), statuses: [409] },
+  { id: 'launch-concepts', path: '/api/brain', q: { action: 'launch-concepts' }, body: () => ({ product: { title: (B.catalogue[0] || {}).title }, customer: 'readers who commute' }), statuses: [409] },
+  { id: 'ad-fix', path: '/api/brain', q: { action: 'ad-fix' }, body: () => ({ worst: { ad: 'Old headline' }, why: ['It spent 400 and brought no conversion.'] }), statuses: [409] },
+  { id: 'review-mine', path: '/api/brain', q: { action: 'review-mine' }, body: () => ({ reviews: [{ text: 'Great reporting, slow app.', rating: 4 }, { text: 'The app crashes every morning.', rating: 2 }] }), statuses: [409] },
   { id: 'revenue-os', path: '/api/brain', q: { action: 'revenue-os' }, body: null },
   { id: 'telesuite', path: '/api/brain', q: { action: 'telesuite' }, body: () => ({ op: 'pitch', input: { product: (B.catalogue[0] || {}).title } }), minCalls: 1 },
   { id: 'telesuite rebuttal', path: '/api/brain', q: { action: 'telesuite' }, body: () => ({ op: 'rebuttal', input: { objection: 'It costs too much.' } }), minCalls: 1 },
@@ -105,6 +108,11 @@ const GENERATORS = [
   ...['create_brief', 'concepts', 'mailer_full', 'suggested_prompts', 'chat', 'landing_page', 'audience_segment'].map((mode) => ({
     id: mode, path: '/api/ai/generate', q: {}, minCalls: 1, reads: READS[mode],
     body: () => ({ mode, brief: 'A campaign for customers who bought once and stopped.', prompt: 'A campaign for customers who bought once and stopped.', message: 'Sharpen this subject line.', chat_context: {}, selected_products: productsOf(B).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
+  })),
+  // SMS / WhatsApp / push (2026-10-23): the model's line reaches the finished message.
+  ...[['sms', 'sms.message'], ['whatsapp', 'whatsapp.message'], ['push', 'push.notification']].map(([mode, contract]) => ({
+    id: mode, path: '/api/ai/generate', q: {}, minCalls: 1, reads: (t) => t.includes(`"contract":"${contract}"`) && /sample/.test(t),
+    body: () => ({ mode, brief: 'A note for customers who bought once and stopped.', selected_products: productsOf(B).map((p) => ({ name: p.title, price: p.price, image_url: p.image })) }),
   })),
   ...['google', 'meta', 'tiktok', 'lp-mailer', 'lp-meta', 'lp-google', 'lp-tiktok'].map((surface) => ({
     id: surface === 'meta' ? 'autofill' : 'autofill ' + surface, path: '/api/ai/generate', q: {}, minCalls: 1, reads: AD_FORMATS_READ.includes(surface) ? (t) => /"overlay":\{"headline":"sample/.test(t) : (t) => /sample/.test(t),
@@ -136,6 +144,9 @@ const EXEMPT = {
   'video-generate': 'sends the caller\'s own prompt to a video provider; no language-model prompt is built',
   'daily-calendar': 'not a generator (and 500s on main: smart-brain-plan.horizonCoverage never existed)',
   approve: 'builds exactly what preview builds (the same copy and strategy prompts, driven above)',
+  'generate-asset': 'rebuilds one asset of a slot through the same buildCampaign preview runs (the same copy and strategy prompts, driven above)',
+  'regenerate-asset': 'the same rebuild as generate-asset, through buildCampaign (driven above as preview)',
+  'launch-visuals': 'builds image prompts from the brand record and image-prompt.js; it calls no language model',
 
 };
 
@@ -153,7 +164,7 @@ const DRIVEN_FILES = {
   'api/_shared/calendar-trigger.js': 'trigger-mailer', 'api/_shared/landing-page-core.js': 'landing-page', 'api/_shared/competitor-universe.js': 'modules: discoveryPrompt',
   'api/_shared/ci-enrich.js': 'modules: buildPrompt', 'api/_shared/kb-files.js': 'modules: analyse', 'api/_shared/brand-extract.js': 'modules: observeVoice',
   'api/_shared/brand-suggest.js': 'modules: suggest', 'api/_shared/data-validation-core.js': 'analysis-narrative / modules', 'api/_shared/ingest-guardrail.js': 'modules: phase2',
-  'api/_shared/reference-intel.js': 'modules: VISION_INSTRUCTION', 'api/_shared/ad-angle-lab.js': 'ad-angle-lab',
+  'api/_shared/reference-intel.js': 'modules: VISION_INSTRUCTION', 'api/_shared/ad-angle-lab.js': 'ad-angle-lab', 'api/_shared/owner-desk-server.js': 'launch-concepts, ad-fix, review-mine',
 };
 const EXEMPT_FILES = {
   'api/_shared/llm.js': 'the provider cascade itself; it builds no prompt',

@@ -196,6 +196,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* Destructive, so it reads destructive - but only on hover/focus, because a
      permanently red control in a list is noise until it is the one you want. */
   .ws-act.danger:hover,.ws-act.danger:focus{border-color:var(--vh-err);color:var(--vh-err-text)}
+  .ws-del{border:1px solid var(--vh-err);border-radius:10px;padding:12px 14px;margin:-2px 0 10px;background:var(--vh-panel)}
+  .ws-del p{margin:0 0 8px;font-size:13px;color:var(--vh-ink)}
+  .ws-del label{display:block;font-size:13px;margin:0 0 8px}
+  .ws-del input{display:block;width:100%;margin-top:4px}
+  .ws-del-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .ws-del-status{margin:8px 0 0;color:var(--vh-err-text)}
+  .ws-del-status:empty{display:none}
+  .ws-act[disabled]{opacity:.5;cursor:not-allowed}
   .ws-act[disabled]{opacity:.45;cursor:not-allowed}
   /* Where a brand is stored. A device row is an ordinary row with a quiet chip.
      The sentence above the list takes the ACCENT rule: being unable to reach a
@@ -3373,37 +3381,63 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      the name is the standard bar for that. Shared by step 1 and Review -
      Switch Brand / compact setup put brand management on step 1, where Delete
      used to be missing (found live after multi-brand setup). */
-  async function confirmDeleteBrand(id, row, activeId, after) {
+  // The confirmation is a panel under the brand's own row, never a native
+  // prompt (2026-10-23): a browser under remote debugging, an embedded view or
+  // a blocked-dialogs setting answers window.prompt with null at once, and
+  // Delete then did nothing at all, with no request sent and no sentence.
+  function confirmDeleteBrand(id, row, activeId, after, rowEl) {
     var name = (row && row.name) || 'this brand';
     var alsoActive = id === activeId;
-    var warn = 'Delete ' + name + ' permanently?\n\n'
-      + 'This also removes its catalogue, connected accounts and stored keys, competitor set, '
-      + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.\n\n'
-      + (alsoActive ? 'It is your ACTIVE brand - the app will fall back to another brand, or to onboarding if this is your last one.\n\n' : '')
-      + 'Type the brand name to confirm:';
-    var typed = window.prompt(warn, '');
-    if (typed === null) return;
-    if (typed.trim().toLowerCase() !== String(name).trim().toLowerCase()) {
-      toast('Name did not match. Nothing was deleted.', 4000); return;
-    }
-    try {
-      var r = await window.BrandContext.api('delete', { body: { id: id } });
-      toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
-      if (alsoActive) {
-        try { window.BrandContext.clearCache(); } catch (_) {}
-        // A blank setup draft must stay blank (setup shell), not paint a
-        // deleted brand's colours if refresh races the list redraw.
-        if (!draftingNew) {
-          try { if (window.BrandContext.endSetupShell) window.BrandContext.endSetupShell(); } catch (_) {}
+    var host = rowEl && rowEl.parentNode;
+    var old = document.querySelector('[data-delete-confirm]');
+    if (old) { var same = old.getAttribute('data-delete-confirm') === id; old.remove(); if (same) return; }
+    if (!host) return;
+    var box = document.createElement('div');
+    box.className = 'ws-del';
+    box.setAttribute('data-delete-confirm', id);
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Delete ' + name);
+    box.innerHTML =
+      '<p><b>Delete ' + esc(name) + ' permanently?</b> This also removes its catalogue, connected accounts and stored keys, competitor set, '
+      + 'context packs, review library, credit ledger and TeleSuite runs. It cannot be undone.'
+      + (alsoActive ? ' It is your active brand: the app moves to another brand, or back to setup if this is your last one.' : '') + '</p>'
+      + '<label>Type the brand name to confirm <input type="text" data-del-name autocomplete="off" spellcheck="false" placeholder="' + esc(name) + '"></label>'
+      + '<div class="ws-del-acts"><button type="button" class="ws-act" data-del-cancel>Cancel</button>'
+      + '<button type="button" class="ws-act danger" data-del-go disabled>Delete permanently</button></div>'
+      + '<p class="ws-del-status" data-del-status aria-live="polite"></p>';
+    host.insertBefore(box, rowEl.nextSibling);
+    var input = box.querySelector('[data-del-name]');
+    var go = box.querySelector('[data-del-go]');
+    var status = box.querySelector('[data-del-status]');
+    function matches() { return input.value.trim().toLowerCase() === String(name).trim().toLowerCase(); }
+    input.addEventListener('input', function () { go.disabled = !matches(); });
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && matches()) go.click(); if (ev.key === 'Escape') box.remove(); });
+    box.querySelector('[data-del-cancel]').addEventListener('click', function () { box.remove(); });
+    go.addEventListener('click', async function () {
+      if (!matches()) return;
+      go.disabled = true; input.disabled = true; status.textContent = 'Deleting ' + name + '...';
+      try {
+        var r = await window.BrandContext.api('delete', { body: { id: id } });
+        toast('Deleted ' + (r && r.name ? r.name : name) + '.', 3500);
+        if (alsoActive) {
+          try { window.BrandContext.clearCache(); } catch (_) {}
+          // A blank setup draft must stay blank (setup shell), not paint a
+          // deleted brand's colours if refresh races the list redraw.
+          if (!draftingNew) {
+            try { if (window.BrandContext.endSetupShell) window.BrandContext.endSetupShell(); } catch (_) {}
+          }
         }
+        box.remove();
+        try { await window.BrandContext.refresh(); } catch (_) {}
+        if (typeof after === 'function') after();
+      } catch (e) {
+        // The server distinguishes "not yours" (403) from "not there"
+        // (404) from "nothing was removed" (409). Show what it said.
+        go.disabled = false; input.disabled = false;
+        status.textContent = 'Nothing was deleted. ' + window.LifecycleFailure.sentence(e);
       }
-      await window.BrandContext.refresh();
-      if (typeof after === 'function') after();
-    } catch (e) {
-      // The server distinguishes "not yours" (403) from "not there"
-      // (404) from "nothing was removed" (409). Show what it said.
-      toast(window.LifecycleFailure.sentence(e), 5000);
-    }
+    });
+    try { input.focus(); } catch (_) {}
   }
 
   /* Brands already on this account/device — step 1 entry so adding another
@@ -3440,7 +3474,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           var act = btn && btn.dataset.act;
           if (act) ev.stopPropagation();
           if (act === 'edit') { location.href = '/onboarding?id=' + encodeURIComponent(id); return; }
-          if (act === 'delete') { confirmDeleteBrand(id, row, active, function () { loadStep1Brands(); }); return; }
+          if (act === 'delete') { confirmDeleteBrand(id, row, active, function () { loadStep1Brands(); }, el); return; }
           if (act === 'switch' || !act) {
             draftingNew = false;
             window.BrandContext.setActive(id).then(function () {
@@ -3508,7 +3542,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           var act = btn && btn.dataset.act;
           if (act) ev.stopPropagation();
           if (act === 'edit') return edit();
-          if (act === 'delete') return confirmDeleteBrand(id, row, active, function () { loadWorkspaces(); });
+          if (act === 'delete') return confirmDeleteBrand(id, row, active, function () { loadWorkspaces(); }, el);
           return switchTo();          // the row itself, and the Switch button
         });
       });
