@@ -65,3 +65,29 @@ test('a mail recipe varies the composition within what the studied category uses
     expect([2, 3]).toContain(out.grid_columns);
   }
 });
+
+test('a motion ad\'s type position and opening move vary by slot, and the type never sits on the button or the rail', async ({ page }) => {
+  const motion = require('../scripts/lib/motion-ad.js');
+  await page.setViewportSize({ width: 405, height: 720 });
+  const seen = new Set();
+  for (let d = 1; d <= 9; d++) {
+    const layout = S.recipe(slot(BRANDS[0], d), 'ad:meta:video');
+    expect(layout).toEqual(S.recipe(slot(BRANDS[0], d), 'ad:meta:video'));
+    const html = motion.renderMotionAd({ brand: BRANDS[0], scenes: [{ headline: 'Paper that keeps up with you', sub: 'Write it down.', image: '' }], cta: 'Shop now', layout, loop: false });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    const box = await page.evaluate(() => {
+      const r = (sel) => document.querySelector(sel).getBoundingClientRect();
+      const t = r('.type'), a = r('.bottom-action'), s = r('.social-rail'), st = r('.stage');
+      return { at: Math.round(((t.top - st.top) / st.height) * 3), hitsCta: t.bottom > a.top, hitsRail: t.bottom > s.top && t.right > s.left };
+    });
+    expect(box.hitsCta, `slot ${d} (${layout.text_at}): the type covers the button`).toBe(false);
+    expect(box.hitsRail, `slot ${d} (${layout.text_at}): the type runs into the share rail`).toBe(false);
+    seen.add(layout.text_at);
+    // Reduced motion composes one still frame with the type at the top, whatever the recipe.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const top = await page.evaluate(() => { const t = document.querySelector('.type').getBoundingClientRect(); const st = document.querySelector('.stage').getBoundingClientRect(); return (t.top - st.top) / st.height; });
+    expect(top).toBeLessThan(0.2);
+  }
+  expect(seen.size, 'type positions actually used over 9 slots').toBeGreaterThan(1);
+});
