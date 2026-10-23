@@ -1938,7 +1938,11 @@ function regionCandidates(ctx) {
     const abs = absolute(rawHref, url);
     if (!abs) continue;
 
-    const pMatch = /\/(us|gb|uk|in|ca|au|de|fr|es|it|nl|jp|kr|sg|ae|nz|br|mx|se|dk|no|fi|pl|ch|at|be|pt|ie|za)(?:[-_\/][a-z]{2})?(?:\/|$|\?)/i.exec(abs);
+    // A regional store is a locale-shaped FIRST path segment (/in/, /en-gb/),
+    // never any segment ("/contact/us/").
+    let pathOf = '';
+    try { pathOf = new URL(abs).pathname; } catch (_) { pathOf = ''; }
+    const pMatch = /^\/(?:[a-z]{2}[-_])?(us|gb|uk|in|ca|au|de|fr|es|it|nl|jp|kr|sg|ae|nz|br|mx|se|dk|no|fi|pl|ch|at|be|pt|ie|za)(?:[-_][a-z]{2})?(?:\/|$)/i.exec(pathOf);
     if (pMatch) {
       const code = pMatch[1].toUpperCase() === 'UK' ? 'GB' : pMatch[1].toUpperCase();
       const r = touch(code);
@@ -1950,7 +1954,11 @@ function regionCandidates(ctx) {
 
     if (text && text.length >= 2 && text.length <= 40 && typeof countryCodeOf === 'function') {
       const countryCode = countryCodeOf(text);
-      if (countryCode) {
+      // A country NAME as link text is a store switch only when the link's own
+      // address says so too (a locale path, a country= query, or that
+      // country's own domain). "Turkey" on /category/turkey is a meat, not a
+      // market (2026-10-23, DeliChic).
+      if (countryCode && countryLinkSays(abs, countryCode)) {
         const r = touch(countryCode);
         if (r) {
           if (!r.store_url) r.store_url = abs;
@@ -2072,6 +2080,18 @@ const COUNTRY_NAMES = {
   'united arab emirates': 'AE', uae: 'AE', 'saudi arabia': 'SA', qatar: 'QA', kuwait: 'KW', bahrain: 'BH', oman: 'OM', israel: 'IL', egypt: 'EG',
   'south africa': 'ZA', nigeria: 'NG', kenya: 'KE', brazil: 'BR', brasil: 'BR', mexico: 'MX', 'méxico': 'MX', argentina: 'AR', chile: 'CL',
 };
+
+/** True when a link's address itself names `code`'s store (locale path, country query, or that country's domain). */
+function countryLinkSays(href, code) {
+  let u; try { u = new URL(href); } catch (_) { return false; }
+  const c = String(code || '').toLowerCase();
+  const alias = c === 'gb' ? '(?:gb|uk)' : c;
+  if (new RegExp(`^/(?:[a-z]{2}[-_])?${alias}(?:[-_][a-z]{2})?(?:/|$)`, 'i').test(u.pathname)) return true;
+  for (const [k, v] of u.searchParams.entries()) {
+    if (/^(?:country|country_code|region|market|locale|shipto)$/i.test(k) && new RegExp(`(?:^|[-_])${alias}$`, 'i').test(v)) return true;
+  }
+  return ccTldOf(u.host).code === String(code).toUpperCase();
+}
 
 /** An ISO 3166-1 alpha-2 code from a declared country value (code or name), or ''. */
 function countryCodeOf(value) {
