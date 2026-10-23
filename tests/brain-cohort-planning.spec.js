@@ -127,18 +127,24 @@ test('the objectives are genuinely distinct, not one label reused', () => {
 
 /* ═══ the calendar itself ═════════════════════════════════════════════════ */
 
-test('every cohort is planned, in every market, on every day', () => {
+// Changed on purpose (2026-10-23): this asserted every cohort mailed EVERY day,
+// seven sends a week to the same people, against the contact policy's cap of
+// 2 per rolling 7 days. The plan now holds the cap at plan time, so the
+// assertion is coverage within the cap.
+test('every cohort is planned in every market, and never past the contact cap', () => {
   const cohorts = ['Champions', 'At Risk', 'Never Purchased'];
   const cfg = { markets: ['US', 'UK'] };
-  const entries = plan(cohorts, { days: 3, config: cfg });
-  expect(entries.length).toBe(3 * 2 * cohorts.length);
-
-  for (const date of ['2026-09-01', '2026-09-02', '2026-09-03']) {
-    for (const market of cfg.markets) {
-      const here = entries.filter((e) => e.date === date && e.market === market);
-      expect(here.length, `${date} ${market} has the wrong slot count`).toBe(cohorts.length);
-      // No cohort mailed twice on the same day in the same market.
-      expect(new Set(here.map((e) => e.cohort.name)).size).toBe(cohorts.length);
+  const entries = plan(cohorts, { days: 7, config: cfg });
+  for (const market of cfg.markets) {
+    const here = entries.filter((e) => e.market === market);
+    expect(new Set(here.map((e) => e.cohort.name)), `${market} plans every cohort in a week`).toEqual(new Set(cohorts));
+    for (const name of cohorts) {
+      const days = here.filter((e) => e.cohort.name === name).map((e) => Date.parse(e.date) / 864e5);
+      for (const d of days) expect(days.filter((x) => x <= d && x > d - 7).length, `${market} ${name}`).toBeLessThanOrEqual(2);
+    }
+    for (const date of [...new Set(here.map((e) => e.date))]) {
+      const day = here.filter((e) => e.date === date);
+      expect(new Set(day.map((e) => e.cohort.name)).size, `${date} ${market} mails a cohort twice`).toBe(day.length);
     }
   }
 });
@@ -271,7 +277,7 @@ test('with no order history, a week of slots spreads across distinct products an
 
   const svc = new CalendarIntelligenceService(smartConfig({ markets: ['IN'], cohortsPerDay: 3 }));
   const entries = svc.generate({
-    analysis: Object.assign({}, analysis, { cohorts: [{ name: 'Nurture', count: 0 }, { name: 'Engaged', count: 0 }, { name: 'At Risk', count: 0 }] }),
+    analysis: Object.assign({}, analysis, { cohorts: [{ name: 'Champions', count: 0 }, { name: 'Loyal Customers', count: 0 }, { name: 'Potential Loyalist', count: 0 }, { name: 'New Customers', count: 0 }, { name: 'Promising', count: 0 }, { name: 'Need Attention', count: 0 }, { name: 'About to Sleep', count: 0 }, { name: 'At Risk', count: 0 }, { name: "Can't Lose Them", count: 0 }, { name: 'Hibernating', count: 0 }, { name: 'Lost', count: 0 }] }),  // 11 cohorts: 21 slots a week fit the 2-per-7-days cap
     startDate: '2026-10-20', days: 7, brand: { name: 'Arya Teas' },
   }).entries.filter((e) => e.heroProduct && e.heroProduct.sku);
   expect(entries.length).toBeGreaterThanOrEqual(21);
@@ -302,7 +308,7 @@ test('a large catalogue with no orders: the rotation reaches the whole catalogue
   expect(new Set(analysis.productScores.slice(0, 4).map((s) => s.product.category)).size).toBe(4);
   const svc = new CalendarIntelligenceService(smartConfig({ markets: ['IN'], cohortsPerDay: 3 }));
   const entries = svc.generate({
-    analysis: Object.assign({}, analysis, { cohorts: [{ name: 'Nurture', count: 0 }, { name: 'Engaged', count: 0 }, { name: 'At Risk', count: 0 }] }),
+    analysis: Object.assign({}, analysis, { cohorts: [{ name: 'Champions', count: 0 }, { name: 'Loyal Customers', count: 0 }, { name: 'Potential Loyalist', count: 0 }, { name: 'New Customers', count: 0 }, { name: 'Promising', count: 0 }, { name: 'Need Attention', count: 0 }, { name: 'About to Sleep', count: 0 }, { name: 'At Risk', count: 0 }, { name: "Can't Lose Them", count: 0 }, { name: 'Hibernating', count: 0 }, { name: 'Lost', count: 0 }] }),  // 11 cohorts: 21 slots a week fit the 2-per-7-days cap
     startDate: '2026-10-20', days: 7, brand: { name: 'Arya Teas' },
   }).entries.filter((e) => e.heroProduct && e.heroProduct.sku);
   expect(new Set(entries.map((e) => e.heroProduct.category)).size, 'a week shows every category').toBe(4);
