@@ -257,6 +257,10 @@ test('the desk in a browser: files in, the X-ray, the live what-if, and the mont
   await expect(page.locator('#mxResult')).toContainText('a margin of 48%');
   await expect(page.locator('#mxResult')).toContainText('Packaging rose from INR 300');
   await expect(page.locator('#mxResult svg rect')).toHaveCount(2);
+  // The shared theme.css (appended later by auth.js) fixes every table's layout;
+  // the desk's tables must still size to their content.
+  await page.waitForFunction(() => [...document.styleSheets].some((s) => /theme\.css/.test(s.href || '')), null, { timeout: 15000 });
+  expect(await page.locator('#mxResult table').evaluate((t) => getComputedStyle(t).tableLayout)).toBe('auto');
 
   await page.locator('[data-tab="whatif"]').click();
   await expect(page.locator('[data-wf-profit]')).toHaveText('950');
