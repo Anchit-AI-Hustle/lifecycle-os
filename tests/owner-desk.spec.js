@@ -154,7 +154,7 @@ test('replacement ads are held to Google\'s limits and the brand\'s own claims, 
 
 test('mined reviews quote only the customers\' own words, reply only to negative reviews and promise nothing, fix only counted themes', async () => {
   const list = [
-    { text: 'The first flush is the best tea I have had all year.', rating: 5 },
+    { text: 'The breakfast blend is the best tea I have had all year.', rating: 5 },
     { text: 'Arrived in 3 days, still smelled fresh.', rating: 5 },
     { text: 'The tin was dented and the lid would not close.', rating: 2 },
     { text: 'Dented tin again. Disappointed.', rating: 1 },
@@ -185,7 +185,7 @@ test('mined reviews quote only the customers\' own words, reply only to negative
 });
 
 test('a launch: three grounded concepts, then six visuals in the saved style, sized for where they run', async () => {
-  const c = await server.launchConcepts({ brand: BRAND, product: { title: 'First Flush Darjeeling' }, customer: 'tea drinkers who care where it comes from', deps: scripted({ concepts: [
+  const c = await server.launchConcepts({ brand: BRAND, product: { title: 'Hillside Breakfast Blend' }, customer: 'tea drinkers who care where it comes from', deps: scripted({ concepts: [
     { line: 'Tea packed the week it is picked', feeling: 'freshness you can taste', angle: 'freshness' },
     { line: 'The healthiest tea in India', feeling: 'pride', angle: 'health' },
     { line: 'From one estate to your cup in 3 days', feeling: 'closeness', angle: 'speed' },
@@ -193,13 +193,13 @@ test('a launch: three grounded concepts, then six visuals in the saved style, si
   expect(c.concepts.map((x) => x.line)).toEqual(['Tea packed the week it is picked', 'From one estate to your cup in 3 days', 'Single-estate tea, packed the week it is picked']);
   expect(c.dropped.map((d) => d.line)).toEqual(['The healthiest tea in India']);
 
-  const v = server.launchVisuals({ brand: BRAND, concept: c.concepts[0], product: { title: 'First Flush Darjeeling', image_url: 'https://cdn.example/tin.jpg' } });
+  const v = server.launchVisuals({ brand: BRAND, concept: c.concepts[0], product: { title: 'Hillside Breakfast Blend', image_url: 'https://cdn.example/tin.jpg' } });
   expect(v.visuals.map((x) => x.size)).toEqual(['1920x1080', '1080x1080', '1080x1080', '1080x1080', '1080x1920', '1080x1920']);
   expect(v.style_locked).toBe(true);
   for (const x of v.visuals) {
     expect(x.prompt).toMatch(/same product, the same light/);
     expect(x.prompt).toMatch(/Soft window light/);
-    expect(x.prompt).toMatch(/First Flush Darjeeling/);
+    expect(x.prompt).toMatch(/Hillside Breakfast Blend/);
   }
   expect(v.visuals[1].real_photo).toBe('https://cdn.example/tin.jpg');
   expect(server.launchVisuals({ brand: Object.assign({}, BRAND, { brand_data: {} }), concept: c.concepts[0] }).style_locked).toBe(false);
@@ -257,6 +257,10 @@ test('the desk in a browser: files in, the X-ray, the live what-if, and the mont
   await expect(page.locator('#mxResult')).toContainText('a margin of 48%');
   await expect(page.locator('#mxResult')).toContainText('Packaging rose from INR 300');
   await expect(page.locator('#mxResult svg rect')).toHaveCount(2);
+  // The shared theme.css (appended later by auth.js) fixes every table's layout;
+  // the desk's tables must still size to their content.
+  await page.waitForFunction(() => [...document.styleSheets].some((s) => /theme\.css/.test(s.href || '')), null, { timeout: 15000 });
+  expect(await page.locator('#mxResult table').evaluate((t) => getComputedStyle(t).tableLayout)).toBe('auto');
 
   await page.locator('[data-tab="whatif"]').click();
   await expect(page.locator('[data-wf-profit]')).toHaveText('950');
