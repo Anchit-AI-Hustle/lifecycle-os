@@ -232,6 +232,62 @@ function buildStores() {
     };
   }
 
+  // meatshop: DeliChic-shaped (2026-10-23). WooCommerce on WordPress, INR, a
+  // .co.in host. wp-sitemap.xml -> 12 products + 3 blog posts. The home page
+  // shows the 3 posts as Elementor <article class="elementor-post ...
+  // elementor-grid-item ... type-post"> cards, and its menu links the
+  // "Turkey" meat category. /shop/?orderby=popularity lists the products in
+  // the store's own sales order (the reverse of the sitemap). Products 1-4
+  // state an aggregateRating; the rest state none. One description says
+  // "popular" (marketing words, not a measurement).
+  {
+    const host = 'meatshop.co.in';
+    const prods = [];
+    for (let i = 1; i <= 12; i++) {
+      prods.push({ slug: `chicken-cut-${pad(i, 2)}-500gm`, title: `Chicken Cut ${pad(i, 2)} (500gm)`, price: 100 + i * 10, compare: i % 3 === 0 ? 120 + i * 10 : null,
+        desc: i === 5 ? 'Our most popular cut, antibiotic residue free. 7-8 pieces. Serves 2-3.' : `Antibiotic residue free chicken, cut fresh daily. 7-8 pieces.`,
+        rating: i <= 4 ? { ratingValue: (4 + i / 10).toFixed(1), reviewCount: 10 * i } : null });
+    }
+    const posts = ['how-to-store-raw-chicken', 'foods-to-keep-you-warm', 'goat-meat-benefits'];
+    const ranked = prods.slice().reverse();
+    const pdp = (p) => {
+      const node = { '@context': 'https://schema.org', '@type': 'Product', name: p.title, sku: p.slug, url: `https://${host}/product/${p.slug}/`, image: [`https://${host}/wp-content/uploads/${p.slug}.jpg`], description: p.desc,
+        offers: { '@type': 'Offer', price: String(p.price), priceCurrency: 'INR', availability: 'https://schema.org/InStock' } };
+      if (p.rating) node.aggregateRating = Object.assign({ '@type': 'AggregateRating' }, p.rating);
+      return `<!doctype html><html><head><title>${p.title}</title><meta name="generator" content="WooCommerce 9.1.0"><script type="application/ld+json">${JSON.stringify(node)}</script></head><body class="woocommerce"><h1>${p.title}</h1></body></html>`;
+    };
+    const listing = (page) => {
+      const items = ranked.slice((page - 1) * 6, page * 6);
+      if (!items.length) return null;
+      return `<!doctype html><html><head><title>Shop</title><meta name="generator" content="WooCommerce 9.1.0"></head><body class="woocommerce"><ul class="products">${items.map((p) => `<li class="product"><a href="https://${host}/product/${p.slug}/">${p.title}</a></li>`).join('')}</ul></body></html>`;
+    };
+    S[host] = {
+      truth: { products: 12, posts: 3, most_popular: ranked[0].slug, rated: 4 },
+      handler(req, url) {
+        if (url.pathname === '/products.json') return { status: 404, type: 'text/html', body: '<!doctype html><title>Page not found</title>' };
+        if (url.pathname === '/robots.txt') return { status: 200, type: 'text/plain', body: `User-agent: *\nDisallow: /wp-admin/\n\nSitemap: https://${host}/wp-sitemap.xml\n` };
+        if (url.pathname === '/wp-sitemap.xml') return { status: 200, type: 'text/xml', body: sitemapIndex([`https://${host}/wp-sitemap-posts-post-1.xml`, `https://${host}/wp-sitemap-posts-product-1.xml`, `https://${host}/wp-sitemap-taxonomies-product_cat-1.xml`]) };
+        if (url.pathname === '/wp-sitemap-posts-post-1.xml') return { status: 200, type: 'text/xml', body: urlset(posts.map((x) => `https://${host}/${x}/`)) };
+        if (url.pathname === '/wp-sitemap-posts-product-1.xml') return { status: 200, type: 'text/xml', body: urlset(prods.map((p) => `https://${host}/product/${p.slug}/`)) };
+        if (url.pathname === '/wp-sitemap-taxonomies-product_cat-1.xml') return { status: 200, type: 'text/xml', body: urlset([`https://${host}/category/turkey/`, `https://${host}/category/chicken/`]) };
+        if (url.pathname === '/shop/' && url.searchParams.get('orderby') === 'popularity') { const b = listing(1); return b ? { status: 200, type: 'text/html', body: b } : null; }
+        const pg = /^\/shop\/page\/(\d+)\/$/.exec(url.pathname);
+        if (pg && url.searchParams.get('orderby') === 'popularity') { const b = listing(Number(pg[1])); return b ? { status: 200, type: 'text/html', body: b } : { status: 404, type: 'text/html', body: '<!doctype html><title>Not found</title>' }; }
+        if (url.pathname === '/') {
+          return { status: 200, type: 'text/html', body: `<!doctype html><html lang="en-US"><head><title>Meat Shop</title><meta name="generator" content="WooCommerce 9.1.0"></head><body class="home woocommerce">
+<nav><a href="https://${host}/category/turkey/">Turkey</a><a href="https://${host}/category/chicken/">Chicken</a><a href="https://${host}/contact/us/">Contact us</a></nav>
+<article class="post-8 page type-page status-publish hentry" id="post-8"><h2>Welcome</h2></article>
+${posts.map((x, i) => `<article class="elementor-post elementor-grid-item post-${600 + i} post type-post status-publish format-standard has-post-thumbnail hentry category-latest"><h3><a href="https://${host}/${x}/">${x.replace(/-/g, ' ')}</a></h3><p>A blog post.</p></article>`).join('\n')}
+</body></html>` };
+        }
+        const m = /^\/product\/([^/]+)\/$/.exec(url.pathname);
+        const p = m && prods.find((x) => x.slug === m[1]);
+        if (p) return { status: 200, type: 'text/html', body: pdp(p) };
+        return null;
+      },
+    };
+  }
+
   // regional: USD at the root, GBP under /en-gb/.
   {
     const host = 'regional.example';
@@ -676,7 +732,7 @@ async function startStores() {
     Object.defineProperty(out, 'url', { value: asked });
     return out;
   }
-  const FIXTURE_HOST = /\.example$|^bigmarket\.in$|^twinbrand\.co\.uk$/i;
+  const FIXTURE_HOST = /\.example$|^bigmarket\.in$|^twinbrand\.co\.uk$|^meatshop\.co\.in$/i;
   const isFixture = (url) => { try { return FIXTURE_HOST.test(new URL(String(url && url.url ? url.url : url)).hostname); } catch (_) { return false; } };
 
   let realFetch = null, realLookup = null;
@@ -696,7 +752,7 @@ async function startStores() {
     installDns() {
       if (realLookup) return;
       realLookup = dns.promises.lookup;
-      dns.promises.lookup = async (host, opts) => (/\.example$|^bigmarket\.in$|^twinbrand\.co\.uk$/i.test(String(host)) ? ((opts && opts.all) ? [{ address: PUBLIC_ADDR, family: 4 }] : { address: PUBLIC_ADDR, family: 4 }) : realLookup(host, opts));
+      dns.promises.lookup = async (host, opts) => (/\.example$|^bigmarket\.in$|^twinbrand\.co\.uk$|^meatshop\.co\.in$/i.test(String(host)) ? ((opts && opts.all) ? [{ address: PUBLIC_ADDR, family: 4 }] : { address: PUBLIC_ADDR, family: 4 }) : realLookup(host, opts));
     },
     restore() {
       if (realFetch) global.fetch = realFetch;

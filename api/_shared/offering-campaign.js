@@ -57,6 +57,7 @@ const KIND_DEFAULTS = {
   event:     { cta: 'Register now',    verb: 'register for', noun: 'event' },
   programme: { cta: 'Subscribe',       verb: 'subscribe to', noun: 'programme' },
   section:   { cta: 'Start reading',   verb: 'read',      noun: 'section' },
+  story:     { cta: 'Read the story',  verb: 'read',      noun: 'story' },
   plan:      { cta: 'See plans',       verb: 'subscribe to', noun: 'plan' },
   service:   { cta: 'Start your brief', verb: 'commission', noun: 'service' },
 };
@@ -114,8 +115,25 @@ function planSend(offering, sendDate) {
     lines.push(`- This is a SUBSCRIPTION PLAN${o.period ? ` (${o.period})` : ''}. Lead with what access unlocks; renewal matters more than first sale.`);
   } else if (kind === 'service') {
     lines.push(`- This is a SERVICE${o.lead_time ? `, lead time ${o.lead_time}` : ''}. The ask is an enquiry or brief, not an instant checkout. Set the delivery expectation honestly.`);
+  } else if (kind === 'story') {
+    lines.push(`- This is a STORY the brand published${o.author ? `, by ${o.author}` : ''}${o.read_time ? `, ${o.read_time}` : ''}. The ask is a read, not a purchase. Quote its headline as written; no price, no shopping language.`);
+    const m = o.metrics || {};
+    if (m.views != null) lines.push(`- Readership the page states: ${Number(m.views).toLocaleString('en-US')} reads. Use it only as stated.`);
   } else {
     lines.push('- This is a PRODUCT. Standard merchandising applies.');
+    // The facts its own page states, so the copy can show them, and nothing else.
+    const facts = [];
+    if (o.price != null) facts.push(`price ${o.currency ? o.currency + ' ' : ''}${o.price}${o.compare_at != null && o.compare_at > o.price ? ` (was ${o.compare_at})` : ''}`);
+    if (o.unit_spec) facts.push(`size ${require('./unit-words.js').spellUnits(String(o.unit_spec).replace(/^(\d+(?:\.\d+)?)([a-z])/i, '$1 $2'))}`);
+    if (o.piece_count) facts.push(o.piece_count);
+    if (o.servings) facts.push(o.servings);
+    if (facts.length) lines.push(`- What its page states: ${facts.join(', ')}.`);
+    if (Array.isArray(o.claims) && o.claims.length) lines.push(`- Its page's own claim phrases (quote as written, add none): ${o.claims.slice(0, 6).join('; ')}.`);
+    const m = o.metrics || {};
+    const proof = [];
+    if (m.popularity_rank != null) proof.push(`#${m.popularity_rank} of ${m.popularity_of || '?'} in ${m.popularity_basis || 'the store\'s own popularity order'}`);
+    if (m.rating != null && m.reviews_count) proof.push(`rated ${m.rating} by ${m.reviews_count} reviewers on its page`);
+    if (proof.length) lines.push(`- Proof the store states: ${proof.join('; ')}. Use it only as stated; never round a rating or invent a count.`);
   }
   lines.push(`- Call to action MUST be "${cta}"${ctaUrl ? ` linking to ${ctaUrl}` : ' (no URL supplied: write the CTA as plain text, never invent a link)'}.`);
 
