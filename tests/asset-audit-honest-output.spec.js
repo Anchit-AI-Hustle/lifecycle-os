@@ -545,7 +545,7 @@ test('the no-key mail and landing pages say each fact once, show the price, and 
     expect(t).not.toContain('₹1450');
     expect(t, `${lp.variant} names the product`).toContain('Arya Diamond First Flush');
     expect(t).toContain('Also from Arya Tea Estate');
-    expect(lp.html).toMatch(/class="hero-grid has-media"/);
+    expect(lp.html).toMatch(/class="hero-grid has-media[ "]/);
     for (const [w, h] of [[390, 844], [1280, 900]]) {
       await page.setViewportSize({ width: w, height: h });
       await page.route('**/*', (r) => (r.request().url().startsWith('https://aryateas.example/cdn/') ? r.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="900" height="600" fill="#6b8"/></svg>' }) : r.abort()));
