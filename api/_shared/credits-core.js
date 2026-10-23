@@ -383,7 +383,8 @@ function isCompAuth(auth) {
 async function meter(req, featureKey, opts) {
   const o = opts || {};
   const ov = await overrides();
-  const q = catalog.quote(featureKey, o.units, ov);
+  const model = o.model || o.preferred_model || (req && req.body && req.body.model) || (req && req.query && req.query.model) || null;
+  const q = catalog.quote(featureKey, o.units, ov, model);
 
   if (q.unknown) {
     const e = new Error(`Unknown feature key "${featureKey}" — it must be declared in credit-catalog.js before it can run.`);
@@ -486,7 +487,12 @@ async function meter(req, featureKey, opts) {
   // lookup.)
   if (!held || held.ok !== true) {
     const refusal = Object.assign({ ok: false, status: 402, error: 'insufficient_credits', quote: q, feature: q.key, label: q.label }, held || {});
-    if (!(await workspaceHasOwnModels())) return refusal;
+    if (!(await workspaceHasOwnModels())) {
+      if (zeroCreditsFallbackAllowed(o)) {
+        return fallbackGate(q, o, auth, workspaceId, refusal);
+      }
+      return refusal;
+    }
     return deferredGate(q, o, auth, workspaceId, refusal);
   }
 
@@ -580,10 +586,31 @@ function platformBill(q, units, baseMeta) {
   const meta = Object.assign({}, baseMeta || {});
   if (!u) return { actual: full, meta, receipt: {} };
   const share = Math.max(0, Math.min(1, u.platform_share));
-  const actual = share >= 1 ? full : Math.min(full, Math.ceil(full * share - 1e-9));
+
+  // Determine model and provider from reported usage
+  let mult = (q && q.model_multiplier) || 1.0;
+  let primaryModel = null;
+  let primaryProvider = null;
+  if (u.by_provider && u.by_provider.length) {
+    const primary = u.by_provider[0];
+    primaryModel = primary.model;
+    primaryProvider = primary.provider;
+    if (mult <= 1.0 && primary.kind === 'text' && catalog.modelMultiplier) {
+      mult = catalog.modelMultiplier(primary.provider, primary.model);
+    }
+  }
+
+  // Model-based adjustment: ensure multiplier is accounted for without double-counting
+  const quoteMult = (q && q.model_multiplier) || 1.0;
+  const adjustedFull = quoteMult > 1.0 ? full : (mult > 1.0 ? Math.max(1, Math.round(full * mult)) : full);
+  const actual = share >= 1 ? adjustedFull : Math.min(adjustedFull, Math.ceil(adjustedFull * share - 1e-9));
+
   const usage = {
     basis: u.basis, platform_share: Math.round(share * 10000) / 10000, answers: u.calls,
     full_price: full,
+    model_multiplier: mult,
+    primary_model: primaryModel,
+    primary_provider: primaryProvider,
     by_provider: u.by_provider.map((g) => ({
       provider: g.provider, model: g.model, key: g.key, kind: g.kind, answers: g.answers,
       input_tokens: g.kind === 'text' ? g.input_tokens : null, output_tokens: g.kind === 'text' ? g.output_tokens : null,
@@ -592,9 +619,44 @@ function platformBill(q, units, baseMeta) {
   };
   usage.charged = actual;
   meta.usage = usage;
-  const receipt = { usage };
+  const receipt = {
+    usage,
+    model: primaryModel,
+    provider: primaryProvider,
+    model_multiplier: mult,
+  };
   if (actual < full) receipt.note = 'Part of this was made with your own model keys: charged ' + actual + ' of ' + full + ' credits, the platform\'s share by ' + (u.basis === 'tokens' ? 'tokens' : 'answers') + '.';
   return { actual, meta, receipt };
+}
+
+function zeroCreditsFallbackAllowed(opts) {
+  return !!(opts && opts.allowFallback) || String(process.env.ZERO_CREDITS_FALLBACK || 'off').toLowerCase() === 'on';
+}
+
+function fallbackGate(q, o, auth, workspaceId, refusal) {
+  let done = false;
+  return {
+    ok: true, free: true, fallback: true, hold_id: null, quote: q, auth, workspace_id: workspaceId,
+    receipt: {
+      feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units: q.units, charged: 0,
+      fallback: true, note: 'Generated using basic fallback model (0 credits remaining).'
+    },
+    async settle(actualUnits, extra) {
+      if (done) return { ok: true, already: true, charged: 0 };
+      done = true;
+      const bill = platformBill(q, q.units, (extra && extra.meta) || o.meta);
+      const usage = bill.receipt.usage || {};
+      const primaryProvider = usage.primary_provider || (usage.by_provider && usage.by_provider[0] && usage.by_provider[0].provider) || 'fallback';
+      const primaryModel = usage.primary_model || (usage.by_provider && usage.by_provider[0] && usage.by_provider[0].model) || 'basic-fallback';
+      this.receipt = {
+        feature: q.key, label: q.label, cost: q.cost, unit: q.unit, units: q.units, charged: 0,
+        fallback: true, provider: primaryProvider, model: primaryModel, usage,
+        note: 'Generated using basic fallback model (' + primaryProvider + '/' + primaryModel + ', 0 credits remaining).'
+      };
+      return { ok: true, charged: 0, fallback: true, balance: 0 };
+    },
+    async release() { return { ok: true, released: 0 }; },
+  };
 }
 
 /** Does the workspace serving this request have model keys of its own connected? */
