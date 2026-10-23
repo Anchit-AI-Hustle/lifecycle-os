@@ -1130,6 +1130,23 @@ function isCompAccount(email) {
   return compAccounts().includes(emailHash(e));
 }
 
+/**
+ * A gift's recipient and amount, checked: an email address, a whole number of
+ * credits from 1 to 1,000,000, an optional note. The address itself is never
+ * stored, only its hash and a masked hint ("a***@example.com").
+ */
+function giftInput(body) {
+  const b = body || {};
+  const email = String(b.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'gift_email_invalid', message: 'Give the email address of the person the credits are for.' };
+  const amount = Number(b.amount);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 1000000) return { ok: false, error: 'gift_amount_invalid', message: 'A gift is a whole number of credits, from 1 to 1,000,000.' };
+  const [user, domain] = email.split('@');
+  const hint = `${user.charAt(0)}***@${domain}`;
+  const note = b.note ? String(b.note).slice(0, 200) : null;
+  return { email, hash: emailHash(email), hint, amount, note };
+}
+
 async function createOrder(auth, { pack_key, workspace_id }) {
   const p = catalog.pack(pack_key);
   if (!p) { const e = new Error('Unknown credit pack.'); e.status = 400; throw e; }
@@ -1297,6 +1314,21 @@ async function handle(req, res) {
     }
   }
 
+  // GIFT FROM THE OPERATOR (2026-10-23): the deployment's CRON_SECRET grants
+  // credits to an email without debiting anyone. Decided before the session
+  // check, exactly like fulfil (a session can never also be the secret).
+  if (op === 'gift' && operatorSecretPresented(req)) {
+    if (!configured()) return res.status(503).json({ ok: false, error: 'credits_unavailable', message: 'The credit meter needs SUPABASE_SERVICE_ROLE_KEY on this deployment.' });
+    const g = giftInput(body);
+    if (g.error) return res.status(400).json(g);
+    try {
+      const r = await rpc('credit_gift_send', { p_from: null, p_from_workspace: null, p_email_hash: g.hash, p_hint: g.hint, p_amount: g.amount, p_note: g.note, p_operator: true });
+      return res.status(200).json(Object.assign({ ok: true, from: 'operator', message: `${g.amount} credits are waiting for ${g.hint}. They arrive the next time that person opens their balance, signed in with that email.` }, r || {}));
+    } catch (err) {
+      return res.status(err.status || 500).json({ ok: false, error: err.message || 'gift_failed' });
+    }
+  }
+
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
 
@@ -1356,6 +1388,15 @@ async function handle(req, res) {
   try {
     switch (op) {
       case 'balance': {
+        // Gifts sent to this person's verified email arrive here, once.
+        let giftsReceived = null;
+        if (auth.email && !phoneAccount) {
+          try {
+            await wallet(auth.user_id, workspaceId);
+            const c = await rpc('credit_gift_claim', { p_user: auth.user_id, p_workspace: workspaceId, p_email_hash: emailHash(auth.email) });
+            if (c && c.claimed > 0) giftsReceived = { count: c.claimed, credits: c.credits };
+          } catch (_) { giftsReceived = null; /* a database without the gifts migration: nothing to claim */ }
+        }
         const w = await wallet(auth.user_id, workspaceId);
         return res.status(200).json({
           ok: true,
@@ -1368,7 +1409,23 @@ async function handle(req, res) {
           account: phoneAccount ? 'mobile-pin' : 'email',
           features: await priceList(),
           packs: await packList().catch(() => catalog.packList(null)),
+          gifts_received: giftsReceived,
         });
+      }
+      case 'gift': {
+        if (String(req.method || 'POST').toUpperCase() !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        const g = giftInput(body);
+        if (g.error) return res.status(400).json(g);
+        if (auth.email && emailHash(auth.email) === g.hash) return res.status(400).json({ ok: false, error: 'gift_to_self', message: 'That is your own email: a gift goes to someone else.' });
+        const r = await rpc('credit_gift_send', { p_from: auth.user_id, p_from_workspace: workspaceId, p_email_hash: g.hash, p_hint: g.hint, p_amount: g.amount, p_note: g.note, p_operator: false });
+        if (!r || r.ok !== true) {
+          return res.status(402).json(Object.assign({ ok: false, error: 'insufficient_credits', message: `This wallet has ${r && r.balance != null ? r.balance : 'too few'} credits, so ${g.amount} could not be gifted.` }, r || {}));
+        }
+        return res.status(200).json(Object.assign({}, r, { message: `${g.amount} credits sent to ${g.hint}. They arrive the next time that person opens their balance, signed in with that email.` }));
+      }
+      case 'gifts': {
+        const rows = await serviceRest(`credit_gifts?select=id,to_email_hint,amount,note,status,created_at,claimed_at&from_user=eq.${encodeURIComponent(auth.user_id)}&order=created_at.desc&limit=50`).catch(() => []);
+        return res.status(200).json({ ok: true, gifts: Array.isArray(rows) ? rows : [] });
       }
       case 'ledger':
         return res.status(200).json({ ok: true, entries: await ledger(auth.user_id, workspaceId, q.limit || body.limit) });
@@ -1390,14 +1447,14 @@ async function handle(req, res) {
         return res.status(200).json({ ok: true, orders: Array.isArray(rows) ? rows : [] });
       }
       default:
-        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders'] });
+        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders', 'gift', 'gifts'] });
     }
   } catch (err) {
     return res.status(err.status || 500).json({ ok: false, error: err.message || 'credits_operation_failed' });
   }
 }
 
-module.exports = { realPrice,
+module.exports = { realPrice, giftInput,
   handle, meter, withCredits, enforce, metered, wallet, ledger, usage, providerUsage, platformBill, priceList, overrides,
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,

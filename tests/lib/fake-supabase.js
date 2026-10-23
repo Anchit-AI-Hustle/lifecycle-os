@@ -553,6 +553,37 @@ function installCreditsRpc(db) {
     return { ok: true, hold_id: hold, wallet_id: w.id, balance: w.balance, held: amount };
   };
 
+  // credit_gift_send / credit_gift_claim, as 20261023221000_credit_gifts.sql
+  // defines them: a person's gift is debited in the same call; an operator's is
+  // not; a claim moves every pending gift for that email hash, once.
+  const gifts = () => db.table('credit_gifts');
+  db.rpc.credit_gift_send = (a) => {
+    const amount = Number(a.p_amount);
+    if (!Number.isFinite(amount) || amount <= 0) return raise('amount must be positive');
+    if (!a.p_email_hash || String(a.p_email_hash).length < 32) return raise('recipient required');
+    let w = null;
+    if (!a.p_operator) {
+      if (!a.p_from) return raise('sender required');
+      w = walletId(a.p_from, a.p_from_workspace);
+      if (w.balance < amount) return { ok: false, error: 'insufficient_credits', balance: w.balance, required: amount };
+      w.balance -= amount;
+    }
+    const g = { id: uuid(), from_user: a.p_from || null, from_workspace: a.p_from_workspace || null, from_kind: a.p_operator ? 'operator' : 'user', to_email_hash: a.p_email_hash, to_email_hint: a.p_hint, amount, note: a.p_note || null, status: 'pending', created_at: db.tick(), claimed_by: null, claimed_at: null, claimed_wallet: null };
+    gifts().push(g);
+    if (w) entry(w, { kind: 'gift_sent', delta: -amount, balance_after: w.balance, ref: g.id, note: a.p_note || null, meta: { to: a.p_hint } });
+    return { ok: true, gift_id: g.id, balance: w ? w.balance : null, amount, to: a.p_hint };
+  };
+  db.rpc.credit_gift_claim = (a) => {
+    let total = 0, count = 0;
+    if (!a.p_user || !a.p_email_hash) return { ok: true, claimed: 0, credits: 0 };
+    for (const g of gifts().filter((x) => x.to_email_hash === a.p_email_hash && x.status === 'pending')) {
+      const r = db.rpc.credit_grant({ p_user: a.p_user, p_workspace: a.p_workspace, p_amount: g.amount, p_kind: 'gift', p_ref: g.id, p_note: g.note || 'A gift of credits', p_meta: { from_kind: g.from_kind } });
+      Object.assign(g, { status: 'claimed', claimed_by: a.p_user, claimed_at: db.tick(), claimed_wallet: r.wallet_id });
+      total += g.amount; count += 1;
+    }
+    return { ok: true, claimed: count, credits: total };
+  };
+
   const findHold = (id) => ledger().find((l) => l.hold_id === id && l.kind === 'hold') || null;
   const closed = (id) => ledger().some((l) => l.hold_id === id && (l.kind === 'spend' || l.kind === 'release'));
 
