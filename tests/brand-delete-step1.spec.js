@@ -6,6 +6,11 @@
  * Review could not remove a brand. confirmDeleteBrand() now serves both
  * lists; this drives the device path end-to-end.
  *
+ * 2026-10-23: the name is confirmed in a panel under the row, never a native
+ * prompt. On production (Chrome under remote debugging) window.prompt came
+ * back null at once and Delete did nothing: no request, no sentence. Any
+ * dialog now fails these tests.
+ *
  * Run: npx playwright test tests/brand-delete-step1.spec.js --project=desktop-1280
  */
 const { test, expect } = require('@playwright/test');
@@ -40,8 +45,7 @@ async function open(page) {
   const log = { prompts: [] };
   page.on('dialog', async (d) => {
     log.prompts.push({ type: d.type(), message: d.message() });
-    if (d.type() === 'prompt') await d.accept('Drop Brand');
-    else await d.dismiss();
+    await d.dismiss();
   });
   await page.addInitScript(({ key, keep, drop }) => {
     try {
@@ -99,10 +103,15 @@ test('step 1 lists Delete; confirming the name removes the brand from the device
   await expect(page.locator('#step1Brands [data-act="delete"]')).toHaveCount(2);
 
   await page.locator(`#step1Brands [data-ws="${DROP.id}"] [data-act="delete"]`).click();
-  await expect.poll(() => log.prompts.length).toBe(1);
-  expect(log.prompts[0].type).toBe('prompt');
-  expect(log.prompts[0].message).toMatch(/Drop Brand/);
-  expect(log.prompts[0].message).toMatch(/catalogue/i);
+  const panel = page.locator(`[data-delete-confirm="${DROP.id}"]`);
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText('Drop Brand');
+  await expect(panel).toContainText(/catalogue/i);
+  const go = panel.locator('[data-del-go]');
+  await expect(go).toBeDisabled();
+  await panel.locator('[data-del-name]').fill('drop brand');   // case does not matter
+  await expect(go).toBeEnabled();
+  await go.click();
 
   await expect(page.locator('#step1Brands .ws')).toHaveCount(1, { timeout: 10000 });
   await expect(page.locator(`#step1Brands [data-ws="${DROP.id}"]`)).toHaveCount(0);
@@ -113,13 +122,12 @@ test('step 1 lists Delete; confirming the name removes the brand from the device
   }, DEVICE_KEY);
   expect(stored.workspaces.map((w) => w.id)).toEqual([KEEP.id]);
   expect(stored.active_id).toBe(KEEP.id);
+  expect(log.prompts, 'a native dialog was opened').toEqual([]);
 });
 
 test('a mistyped confirm name deletes nothing', async ({ page }) => {
-  page.on('dialog', async (d) => {
-    if (d.type() === 'prompt') await d.accept('Wrong Name');
-    else await d.dismiss();
-  });
+  const dialogs = [];
+  page.on('dialog', async (d) => { dialogs.push(d.type()); await d.dismiss(); });
   await page.addInitScript(({ key, keep, drop }) => {
     localStorage.setItem(key, JSON.stringify({ version: 1, active_id: keep.id, workspaces: [keep, drop] }));
   }, { key: DEVICE_KEY, keep: KEEP, drop: DROP });
@@ -161,7 +169,14 @@ test('a mistyped confirm name deletes nothing', async ({ page }) => {
   await page.goto(HOST + '/onboarding.html?new=1', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#step1Brands [data-ws]', { timeout: 15000 });
   await page.locator(`#step1Brands [data-ws="${DROP.id}"] [data-act="delete"]`).click();
+  const panel = page.locator(`[data-delete-confirm="${DROP.id}"]`);
+  await panel.locator('[data-del-name]').fill('Wrong Name');
+  await expect(panel.locator('[data-del-go]')).toBeDisabled();
+  await panel.locator('[data-del-name]').press('Enter');
+  await panel.locator('[data-del-cancel]').click();
+  await expect(panel).toHaveCount(0);
   await expect(page.locator('#step1Brands .ws')).toHaveCount(2);
+  expect(dialogs).toEqual([]);
   const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key) || 'null'), DEVICE_KEY);
   expect(stored.workspaces).toHaveLength(2);
 });
