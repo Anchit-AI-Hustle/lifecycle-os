@@ -555,6 +555,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // Server-decided, from the VERIFIED session email. The client never
       // asserts this; it only renders what the server already concluded.
       state.comp = !!r.comp;
+      // Credits someone gifted to this verified email arrive with this read
+      // (2026-10-23): said once, in the accent rule, never as a failure.
+      if (r.gifts_received && r.gifts_received.credits > 0) {
+        state.giftsReceived = r.gifts_received;
+        try { window.dispatchEvent(new CustomEvent('credits:gift', { detail: r.gifts_received })); } catch (_) {}
+      }
       state.packs = r.packs || state.packs;
       if (r.features) setFeatures(r.features);
       state.loaded = true;
