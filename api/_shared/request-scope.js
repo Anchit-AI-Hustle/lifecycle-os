@@ -147,6 +147,12 @@ function llmUsage() {
   return { calls: calls.length, by_provider: by, platform_share: share, basis };
 }
 
+/** Every model answer of THIS request, one row each (for the real-price charge). */
+function llmCalls() {
+  const s = current();
+  return s && s.llmCalls ? s.llmCalls.slice() : [];
+}
+
 /** Wrap a Vercel handler so everything it calls can see its request. */
 function wrap(handler) {
   return function scopedHandler(req, res) {
@@ -154,4 +160,4 @@ function wrap(handler) {
   };
 }
 
-module.exports = { run, current, currentRequest, once, wrap, noteLlm, llmOutcome, llmUsage };
+module.exports = { run, current, currentRequest, once, wrap, noteLlm, llmOutcome, llmUsage, llmCalls };
