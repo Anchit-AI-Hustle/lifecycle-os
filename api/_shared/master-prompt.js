@@ -47,7 +47,21 @@ function productLines(products = [], currency = '', brandName = brandRuntime.def
     const price = p.price ?? p.p;
     const handle = p.handle || p.h;
     const cat = p.category || p.cat || p.c || '';
-    return `- ${title}${price != null ? ` (${currency}${price})` : ''}${cat ? ` · ${cat}` : ''}${handle ? ` · handle: ${handle}` : ''}`;
+    const unit = p.unit_spec || (p.specs && p.specs.weight) || '';
+    const pcs = p.piece_count || (p.specs && p.specs.piece_count) || '';
+    const badge = p.badge || '';
+    const readTime = p.read_time || '';
+    const author = p.author ? `by ${p.author}` : '';
+    const details = [
+      price != null ? `${currency}${price}${unit ? ' / ' + unit : ''}` : '',
+      pcs,
+      readTime,
+      author,
+      badge,
+      cat,
+      handle ? `handle: ${handle}` : '',
+    ].filter(Boolean).join(' · ');
+    return `- ${title}${details ? ` (${details})` : ''}`;
   }).join('\n');
 }
 

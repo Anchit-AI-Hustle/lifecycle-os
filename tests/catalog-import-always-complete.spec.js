@@ -726,6 +726,10 @@ test('product sitemaps are typed by the WORDS of their path: blog "product-revie
     ['https://x.example/product-sitemap2.xml.gz', 'product'],
     ['https://x.example/product_cat-sitemap.xml', 'non-product'],
     ['https://x.example/sitemap-v2/sitemap-dp-index.xml', 'other'],
+    ['https://delichic.co.in/wp-sitemap-posts-product-1.xml', 'product'],
+    ['https://delichic.co.in/wp-sitemap-posts-product.xml', 'product'],
+    ['https://delichic.co.in/wp-sitemap-posts-page-1.xml', 'non-product'],
+    ['https://delichic.co.in/wp-sitemap-taxonomies-product_cat-1.xml', 'non-product'],
   ]) expect(imp.sitemapClass(u, false), u).toBe(want);
   expect(imp.sitemapClass('https://x.example/sitemaps/p/a/7.xml.gz', true)).toBe('product');
   expect(imp.sitemapClass('https://x.example/blog/7.xml', true)).toBe('non-product');

@@ -726,11 +726,35 @@ function rowFromPage(html, pageUrl, { region, source }) {
         : head.available;
       const isService = SERVICE_SCHEMA_TYPES.test(String(node['@type'] || ''));
       const handle = handleFromUrl(pageUrl) || (title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 100) : null);
+      const descText = str(node.description, 4000) || null;
+      const combined = `${title} ${descText || ''}`;
+      const mWeight = combined.match(/\b(\d+(?:\.\d+)?\s*(?:-\s*\d+(?:\.\d+)?\s*)?(?:gm|gms|g|kg|kgs|ml|l|ltr|oz|lb|lbs))\b/i);
+      const mPcs = combined.match(/\b(\d+(?:\s*-\s*\d+)?\s*(?:pieces|piece|pcs|pc|cuts|slices|sausages|patties|nuggets|wings))\b/i);
+      const mServings = combined.match(/\b(serves\s*\d+(?:\s*-\s*\d+)?)\b/i);
+      const unitSpec = mWeight ? mWeight[1].replace(/\s+/g, '').toLowerCase().replace(/gms$/, 'g').replace(/gm$/, 'g') : null;
+      const pieceCount = mPcs ? mPcs[1].replace(/\s+/g, ' ').toLowerCase() : null;
+      const servings = mServings ? mServings[1] : null;
+
+      const agg = node.aggregateRating || {};
+      const rating = num(agg.ratingValue);
+      const reviewCount = num(agg.reviewCount || agg.ratingCount);
+
+      const claims = [];
+      if (/antibiotic\s*residue\s*free|antibiotic\s*free/i.test(combined)) claims.push('Antibiotic Residue Free');
+      if (/cut\s*fresh\s*daily|freshly\s*cut|fresh\s*cut/i.test(combined)) claims.push('Cut Fresh Daily');
+      if (/never\s*frozen|unfrozen/i.test(combined)) claims.push('Never Frozen');
+      if (/chemical\s*free|no\s*preservatives|preservative\s*free/i.test(combined)) claims.push('No Preservatives');
+      if (/high\s*protein/i.test(combined)) claims.push('High Protein');
+      if (/ready\s*to\s*cook/i.test(combined)) claims.push('Ready to Cook');
+      if (/ready\s*to\s*eat|heat\s*&\s*eat|heat\s*and\s*eat/i.test(combined)) claims.push('Heat & Eat');
+
+      const isBestseller = /bestseller|best\s*seller|popular|top\s*seller/i.test(combined);
+
       builtRows.push({
         region, title,
         handle,
         sku: str(node.sku || node.productGroupID || node.mpn || node.applicationCategory, 120) || null,
-        description: str(node.description, 4000) || null,
+        description: descText,
         product_type: str(typeof node.category === 'string' ? node.category : (node.applicationCategory || (isService ? 'Service' : '')), 120) || null,
         collections: [],
         price: head.price != null ? head.price : null,
@@ -744,6 +768,17 @@ function rowFromPage(html, pageUrl, { region, source }) {
         tags: [],
         source,
         source_url: pageUrl,
+        unit_spec: unitSpec,
+        piece_count: pieceCount,
+        servings,
+        claims,
+        specs: { weight: unitSpec, piece_count: pieceCount, servings, claims },
+        metrics: {
+          rating: rating || null,
+          reviews_count: reviewCount || null,
+          bestseller: isBestseller,
+          savings_pct: (head.compare_at && head.price && head.compare_at > head.price) ? Math.round(((head.compare_at - head.price) / head.compare_at) * 100) : null,
+        },
         raw: { declared: declaredBy, type: typeIs(node, 'productgroup') ? 'ProductGroup' : (node['@type'] || 'Product') },
       });
     }
@@ -807,6 +842,85 @@ function rowFromPage(html, pageUrl, { region, source }) {
     }
     if (articleRows.length > 0) {
       return { row: articleRows[0], rows: articleRows };
+    }
+  }
+  // Declared editorial news articles, stories, investigations, or blog posts
+  const articleNodes = [];
+  for (const n of crawl.jsonLdBlocks(html)) {
+    const t = String((n && n['@type']) || '').toLowerCase();
+    if (t.includes('article') || t.includes('newsarticle') || t.includes('blogposting') || t.includes('report')) {
+      articleNodes.push(n);
+    }
+  }
+  if (articleNodes.length > 0) {
+    const meta = crawl.metaTags(html);
+    const storyRows = [];
+    for (const node of articleNodes) {
+      const headline = str(node.headline || node.name || node.alternativeHeadline, 300);
+      if (!headline) continue;
+      const author = str((node.author && (typeof node.author === 'string' ? node.author : (node.author.name || (Array.isArray(node.author) && node.author[0] && node.author[0].name)))) || meta['author'] || '', 120) || null;
+      const wordCount = num(node.wordCount) || null;
+      let readTime = null;
+      if (typeof node.timeRequired === 'string' && /pt(\d+)m/i.test(node.timeRequired)) {
+        readTime = `${/pt(\d+)m/i.exec(node.timeRequired)[1]} min read`;
+      } else if (wordCount && wordCount > 0) {
+        readTime = `${Math.max(1, Math.round(wordCount / 200))} min read`;
+      } else {
+        const bodyLen = String(node.articleBody || node.description || '').split(/\s+/).length;
+        if (bodyLen > 50) readTime = `${Math.max(1, Math.round(bodyLen / 200))} min read`;
+      }
+      const images = imagesOf(node.image, pageUrl);
+      if (!images.length && meta['og:image']) {
+        const ogImg = httpAbs(meta['og:image'], pageUrl);
+        if (ogImg) images.push(ogImg);
+      }
+      let views = null, shares = null, comments = null;
+      const stats = Array.isArray(node.interactionStatistic) ? node.interactionStatistic : (node.interactionStatistic ? [node.interactionStatistic] : []);
+      for (const st of stats) {
+        const it = String((st && (st.interactionType || st['@type'])) || '').toLowerCase();
+        const cnt = num(st && st.userInteractionCount);
+        if (cnt != null) {
+          if (/read|watch|view/i.test(it)) views = cnt;
+          else if (/share/i.test(it)) shares = cnt;
+          else if (/comment/i.test(it)) comments = cnt;
+        }
+      }
+      const handle = handleFromUrl(pageUrl) || headline.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 100);
+      storyRows.push({
+        region,
+        title: headline,
+        handle,
+        sku: null,
+        description: str(node.description || node.articleBody, 4000) || null,
+        product_type: str(node.articleSection || (typeIs(node, 'newsarticle') ? 'News & Editorial' : 'Article / Story'), 120),
+        collections: node.keywords ? String(node.keywords).split(/[,;]+/).map((k) => k.trim().toLowerCase()).filter(Boolean) : [],
+        price: null,
+        compare_at: null,
+        currency: marketCurrency(region) || null,
+        image_url: images[0] || null,
+        image_urls: [...new Set(images.filter(Boolean))].slice(0, 30),
+        variants: [],
+        product_url: pageUrl,
+        in_stock: true,
+        tags: ['Editorial', 'Article', ...(readTime ? [readTime] : [])],
+        source,
+        source_url: pageUrl,
+        offering_kind: 'story',
+        author,
+        read_time: readTime,
+        published_at: node.datePublished || node.dateModified || null,
+        metrics: {
+          views,
+          shares,
+          comments,
+          read_time: readTime,
+          engagement_score: (views || 0) + (shares || 0) * 5 + (comments || 0) * 10,
+        },
+        raw: { declared: 'json-ld:article', type: node['@type'] || 'Article' },
+      });
+    }
+    if (storyRows.length > 0) {
+      return { row: storyRows[0], rows: storyRows };
     }
   }
   return { skip: scriptRendered(html) ? 'script_rendered' : 'no_product_declared' };
@@ -893,6 +1007,10 @@ function scriptRendered(html) {
    else it says; "product"/"products" makes it a product sitemap; a child of a
    product index is one too. */
 const NON_PRODUCT_WORDS = new Set(['blog', 'blogs', 'article', 'articles', 'news', 'review', 'reviews', 'category', 'categories', 'cat', 'cats', 'collection', 'collections', 'brand', 'brands', 'page', 'pages', 'tag', 'tags', 'author', 'authors', 'help', 'faq', 'faqs', 'post', 'posts', 'video', 'videos', 'guide', 'guides', 'search', 'press', 'careers', 'attribute', 'attributes', 'type', 'types']);
+/* Words that disqualify a sitemap EVEN IF "product" or "products" is present in the path.
+   WooCommerce / WordPress core generates wp-sitemap-posts-product-1.xml where "posts" is just
+   the WordPress custom post type container; that is a genuine product sitemap and must be read. */
+const PRODUCT_DISQUALIFIERS = new Set(['category', 'categories', 'cat', 'cats', 'collection', 'collections', 'brand', 'brands', 'tag', 'tags', 'author', 'authors', 'review', 'reviews', 'attribute', 'attributes', 'type', 'types', 'blog', 'blogs', 'help', 'faq', 'faqs', 'search', 'press', 'careers']);
 function sitemapWords(u) {
   let p = '';
   try { p = new URL(u).pathname.toLowerCase(); } catch (_) { p = String(u || '').toLowerCase(); }
@@ -901,8 +1019,10 @@ function sitemapWords(u) {
 /** 'product' | 'non-product' | 'other', from the sitemap's own path; a child of a product index inherits 'product'. */
 function sitemapClass(u, parentTyped) {
   const w = sitemapWords(u);
+  const hasProduct = w.some((x) => x === 'product' || x === 'products');
+  if (hasProduct && !w.some((x) => PRODUCT_DISQUALIFIERS.has(x))) return 'product';
   if (w.some((x) => NON_PRODUCT_WORDS.has(x))) return 'non-product';
-  if (w.some((x) => x === 'product' || x === 'products')) return 'product';
+  if (hasProduct) return 'product';
   return parentTyped ? 'product' : 'other';
 }
 const isProductSitemap = (u) => sitemapClass(u, false) === 'product';
