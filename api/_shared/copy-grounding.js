@@ -33,7 +33,7 @@ const CLAIM_WORDS = ('nutrient nutrients nutrition nutritious vitamin vitamins m
   + 'pure purest natural organic fresh freshest clean authentic genuine original handmade handcrafted crafted artisanal '
   + 'scientific science research researched clinical clinically proven tested certified approved recommended '
   + 'doctor doctors expert experts dermatologist award award-winning best finest leading top trusted favourite favorite '
-  + 'healthy healthier health wellness immunity immune energy boost boosts boosting cure cures heal heals healing '
+  + 'healthy healthier healthiest health wellness immunity immune energy boost boosts boosting cure cures heal heals healing '
   + 'safe safest effective guaranteed guarantee instant instantly sustainable eco-friendly vegan gluten sugar-free '
   + 'durable waterproof lightweight comfortable ergonomic secure '
   // Found on a live keyless answer (2026-10-17): a news brand's ads called it a

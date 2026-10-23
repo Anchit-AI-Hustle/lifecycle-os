@@ -173,7 +173,7 @@ function netGuard(opts) {
      * anybody's data).
      */
     restBeyondScoping() {
-      return g.rest().filter((c) => !/\/rest\/v1\/(brand_user_prefs|brand_workspaces|brand_workspace_members|credit_prices)\b/.test(c.url));
+      return g.rest().filter((c) => !/\/rest\/v1\/(brand_user_prefs|brand_workspaces|brand_workspace_members|credit_prices|credit_pack_prices)\b/.test(c.url));
     },
     /** Every call that would have MOVED a credit balance. */
     get balanceMoves() { return calls.filter((c) => /\/rest\/v1\/rpc\/credit_(grant|hold|spend|release|settle|fulfil)/.test(c.url)); },
@@ -230,6 +230,7 @@ function fakeSupabase(g, o) {
   // and is a member of nothing else.
   g.route((u) => u.startsWith(base + '/rest/v1/brand_workspace_members'), () => reply(200, []));
   g.route((u) => u.startsWith(base + '/rest/v1/credit_prices'), () => reply(200, []));
+  g.route((u) => u.startsWith(base + '/rest/v1/credit_pack_prices'), () => reply(200, []));
   g.route((u) => u.startsWith(base + '/rest/v1/credit_wallets'), () => reply(200, [{ id: 'wallet_harness', user_id: USER_ID, workspace_id: WS, balance: 500, held: 0 }]));
   g.route((u) => u.startsWith(base + '/rest/v1/credit_ledger'), () => reply(200, [{ id: 'ledger_welcome' }]));
   const args = (init) => { try { return JSON.parse(String(init.body || '{}')); } catch (_) { return {}; } };

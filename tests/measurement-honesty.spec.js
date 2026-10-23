@@ -185,34 +185,33 @@ function planWith(cohorts, days) {
   });
 }
 
+// Changed on purpose (2026-10-23): the planner now HOLDS a slot that would be
+// the third (or later) marketing send to a cohort in a rolling 7 days
+// (services.holdToCap), so the plan never carries one to flag. The judgement
+// itself is the contact policy's, executed here, and the plan is held to it.
 test('three promotional sends in a rolling 7 days is flagged, not passed', () => {
+  const fatigue = require('../api/_shared/contact-fatigue.js');
+  const c = fatigue.capStatus(3, 'promotional');
+  expect(c).toMatchObject({ counted: true, status: 'REDUCE_AUDIENCE', over_preferred: true, over_cap: false, per_rolling_7d: 2, absolute_max: 3 });
   const plan = planWith(
     [{ name: 'Champions', count: 5000 }, { name: 'Winback', count: 1200 }, { name: 'New Buyers', count: 800 }],
     10,
   );
   const capped = plan.entries.map((e) => e.reach.frequency_cap);
-  const three = capped.filter((c) => c.sends_in_rolling_7d === 3);
-  expect(three.length).toBeGreaterThan(0);
-  for (const c of three) {
-    expect(c.per_rolling_7d).toBe(2);
-    expect(c.absolute_max).toBe(3);
-    // Above preferred, at absolute: allowed only with a documented override.
-    expect(c.over_preferred).toBe(true);
-    expect(c.over_cap).toBe(false);
-    expect(c.status).toBe('REDUCE_AUDIENCE');
-    expect(c.action).toMatch(/documented|override/i);
+  expect(capped.length).toBeGreaterThan(0);
+  for (const k of capped) {
+    expect(k.sends_in_rolling_7d).toBeLessThanOrEqual(2);
+    expect(k.status).toBe('SAFE');
   }
 });
 
 test('breaching the absolute cap is BLOCKED and says it is not launch ready', () => {
+  const fatigue = require('../api/_shared/contact-fatigue.js');
+  expect(fatigue.capStatus(4, 'promotional')).toMatchObject({ status: 'BLOCKED', over_cap: true });
+  // A planned slot that would breach it is held, never shipped as BLOCKED.
   const plan = planWith([{ name: 'Champions', count: 5000 }], 10);
-  const blocked = plan.entries.map((e) => e.reach.frequency_cap).filter((c) => c.status === 'BLOCKED');
-  expect(blocked.length).toBeGreaterThan(0);
-  for (const c of blocked) {
-    expect(c.over_cap).toBe(true);
-    expect(c.sends_in_rolling_7d).toBeGreaterThan(3);
-    expect(c.action).toMatch(/NOT LAUNCH READY/i);
-  }
+  expect(plan.entries.filter((e) => e.reach.frequency_cap.status === 'BLOCKED')).toEqual([]);
+  expect(Math.max(...plan.entries.map((e) => e.reach.frequency_cap.sends_in_rolling_7d))).toBeLessThanOrEqual(2);
 });
 
 test('a slot with a partial look-back window says so', () => {
@@ -415,8 +414,11 @@ test('the cap counts every marketing send: not the code string, and not only a d
     const plan = planWith([{ name: cohort, count: 5000 }], 5);          // one cohort, every day, no brand
     expect(plan.entries.every((e) => !(e.offer && e.offer.code)), 'no brand means no code').toBe(true);
     expect(plan.entries.every((e) => Number(e.offer.pct) === pct), `${cohort} offer`).toBe(true);
-    expect(plan.entries.map((e) => e.reach.frequency_cap.sends_in_rolling_7d), cohort).toEqual([1, 2, 3, 4, 5]);
-    expect(plan.entries.map((e) => e.reach.frequency_cap.status), cohort).toEqual(['SAFE', 'SAFE', 'REDUCE_AUDIENCE', 'BLOCKED', 'BLOCKED']);
+    // Both are counted: the third and later sends in the rolling week are held
+    // (2026-10-23), so a nurture send with no discount is capped exactly as a
+    // promotional one is.
+    expect(plan.entries.map((e) => e.reach.frequency_cap.sends_in_rolling_7d), cohort).toEqual([1, 2]);
+    expect(plan.entries.map((e) => e.reach.frequency_cap.status), cohort).toEqual(['SAFE', 'SAFE']);
   }
 });
 

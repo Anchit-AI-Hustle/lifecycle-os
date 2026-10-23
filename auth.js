@@ -1135,6 +1135,7 @@
     ]},
     { id: 'avatars', label: 'Avatars (Personas)', href: '/avatars', icon: 'avatars', ver: 'v2', match: ['/avatars', '/personas', '/avatars.html'] },
     { id: 'mteam',      label: 'Marketing Team',   href: '/marketing-team',   icon: 'insights', ver: 'v2', match: ['/marketing-team', '/marketing-team.html'] },
+    { id: 'ownerdesk',  label: 'Owner\'s Desk',    href: '/owner-desk',       icon: 'insights', ver: 'v2', match: ['/owner-desk', '/owner-desk.html'] },
 
     { section: 'Research & Benchmark' },
     { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
@@ -1426,6 +1427,23 @@
         ['Design + layout + structure', 'One card per department; brand tokens only.'],
         ['Coding', 'One shared module the page and the server both run, and one op on the brain router.', '/api/brain?action=marketing-team'],
         ['Final compilation + presentation', 'Each slot on /brain lists what every department did for it.', '/marketing-team'],
+      ],
+    },
+    'ownerdesk': {
+      title: "Owner's Desk",
+      what: "Seven jobs an agency would bill for, from the brand's own record and the owner's own files: lock in the brand style, a launch in one go (three concepts, then six visuals), fix the worst ad, mine the reviews, the money X-ray, the what-if model and one monthly report.",
+      who: "The owner of the active brand, and whoever runs its money, ads and reviews.",
+      how: "Every number is worked out in code from the files added: cost per conversion and the ad above the account's own median, theme counts from the reviews, revenue, expenses and margin by month, profit and break-even for any price, ad spend and order count. A model writes only the words (concepts, replacement ads, review replies), held to the brand's own claims and Google's own limits. A figure the files cannot give is asked for, never guessed.",
+      input: "The brand record (colours, fonts, claims). A sales export, an expense sheet, an ad report and reviews, each a CSV kept in this browser.",
+      pipeline: true,
+      steps: [
+        ['Ideology', 'Numbers from files, words from the brand: the desk asks before it guesses.'],
+        ['Data analysis + review + hypothesis', 'The money X-ray, the worst ad and the review counts are computed from the owner\'s own files.', '/owner-desk#money'],
+        ['Business & strategy decisions', 'Three scenarios ranked by profit, each with the assumption it rests on and how far it can be wrong.', '/owner-desk#whatif'],
+        ['Content', 'Three launch concepts, three replacement ads and a reply to each negative review, in the brand\'s own words.', '/api/brain?action=launch-concepts'],
+        ['Design + layout + structure', 'Six launch visuals in the saved brand style: a hero, three square posts and two stories with space for text.', '/api/brain?action=launch-visuals'],
+        ['Coding', 'One shared module the page and the server both run, and four ops on the brain router.'],
+        ['Final compilation + presentation', 'One monthly report in the same layout every month, kept and downloadable.', '/owner-desk#report'],
       ],
     },
     'da-revenue': {

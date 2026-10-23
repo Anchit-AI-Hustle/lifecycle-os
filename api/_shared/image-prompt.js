@@ -180,7 +180,10 @@ function buildPreamble(brand, mode, opt) {
       ? 'Any body copy is illegible placeholder texture rather than real sentences; render no claim, statistic or rating.'
       : 'NO text anywhere in frame.';
 
-  return [head, subject.caution, palette, type, textPolicy, NEVER, QUALITY]
+  const lock = brand && brand.brand_data && brand.brand_data.style_lock;
+  const style = lock ? [lock.photo_style && `Photo style, the brand's own: ${String(lock.photo_style).slice(0, 400)}.`,
+    Array.isArray(lock.rules) && lock.rules.length && `Never break: ${lock.rules.slice(0, 5).map((r) => String(r).slice(0, 160)).join(' ')}`].filter(Boolean).join(' ') : '';
+  return [head, subject.caution, style, palette, type, textPolicy, NEVER, QUALITY]
     .filter(Boolean).join(' ') + '\n\n';
 }
 

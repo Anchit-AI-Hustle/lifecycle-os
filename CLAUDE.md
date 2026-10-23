@@ -4,6 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The Owner's Desk: seven agency jobs from the owner's own files (2026-10-23)
+The operator, with seven "run your business like a $10K/month agency" prompts (lock in your brand, a launch in one
+prompt, fix your worst ad, mine your reviews, the money X-ray, the what-if model, the monthly CEO report): "match with
+this". `/owner-desk` (rail: Plan -> Owner's Desk), `api/_shared/owner-desk.js` (UMD; root `/owner-desk.js`
+byte-identical) does EVERY number in code from CSVs kept in this browser per brand (Shopify order export: an order's
+Total once, else its lines; expenses: category else vendor; Google/Meta ad report; reviews); a figure the files cannot
+give is null with a QUESTION ("no expenses for 2026-10, so its margin is not worked out"), never a guess.
+`owner-desk-server.js` on brain.js `launch-concepts` (`launch.concepts`), `ad-fix` (`ads.fix`), `review-mine`
+(`reviews.mine`), `launch-visuals` (signed in, no model): concepts and replacement ads held to copy-grounding and
+Google's own 30/90 (read from asset-contracts, dropped never cut); a review quote is a review's own words BY NUMBER and
+never a negative one; a reply only to a negative review and never promising a refund/discount/gift; a fix only for a
+complaint theme code counted. Worst ad = most spend above the account's own median cost per conversion. Scenarios
+(price +10%, ads -20%, an upsell) ranked by profit, each with the assumption it rests on and how far it can be wrong.
+The report has one versioned layout (`owner-report.v1`). The style lock (`brand_data.style_lock`: photo style, five-word
+personality, three rules) rides `brand-runtime.brandBlock` and `image-prompt.buildPreamble`. Gated by
+`tests/owner-desk.spec.js` (11 executed incl. the page at 1280 and 390; 6 mutations caught).
+Also this day: Delete brand and every other confirm/prompt are in-page (`auth.js` `LifecycleDialog`); `window.prompt`
+returned null at once under remote debugging and Delete did nothing (`tests/in-page-dialogs.spec.js`).
+
 ## ⭐ A measurement is written as a person says it, for any brand (2026-10-21)
 The operator: "the letter W ... means watts, so basically 100 watts, it shouldn't say 100 W ... It could be based on
 any brand ... any other spectrum". A store's spec line ("100W", "20000mAh", "500ml", "25°C") reached copy, the
