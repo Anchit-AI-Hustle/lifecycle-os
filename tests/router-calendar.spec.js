@@ -645,7 +645,13 @@ sb('generate-slot', { run: { json: { entry: { id: 'slot_1', theme: 't' } } },
 for (const alias of ['generate-asset', 'regenerate-asset']) {
   sb(alias, { run: { json: { id: 'entry_1', asset_type: 'mailer' } }, stubs: () => S.on(PLAN, 'generateSingleAsset', async () => ({ ok: true, asset_type: 'mailer', campaign: {} })),
     expect: (r) => { expect(r.out).toMatchObject({ ok: true, asset_type: 'mailer' }); expect(last(PLAN, 'generateSingleAsset')[0]).toEqual({ id: 'entry_1', entry: null, assetType: 'mailer', reviewer: null, config: { workspace_id: H.WS } }); },
-    cases: [{ name: 'GET is a 405', run: { method: 'GET' }, expect: (r) => { expect(r.status).toBe(405); } }],
+    cases: [
+      { name: 'GET is a 405', run: { method: 'GET' }, expect: (r) => { expect(r.status).toBe(405); } },
+      // It builds with the deployment's model keys, exactly as preview does, so
+      // it takes the same caller gate (2026-10-23: it had none).
+      { name: 'an unverified caller is refused before any model', run: { auth: 'forged', json: { id: 'entry_1', asset_type: 'mailer' } }, expect: (r) => { expect(r.status).toBe(401); expect(S.hits(PLAN)).toEqual([]); } },
+      { name: 'an anonymous server-to-server caller is refused before any model', run: { auth: 'none', origin: false, json: { id: 'entry_1', asset_type: 'mailer' } }, expect: (r) => { expect(S.hits(PLAN)).toEqual([]); expect(r.out.asset_type).toBeUndefined(); } },
+    ],
   });
 }
 sb('feedback', { run: { json: { target_id: 'entry_1', verdict: 'approve', notes: 'n', reviewer: 'op' } },

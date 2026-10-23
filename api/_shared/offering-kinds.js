@@ -32,7 +32,7 @@ const KINDS = {
     // What the store states about it travels with it (2026-10-23): its own
     // page, currency, weight or size, claim phrases and metrics (rating, reads,
     // the store's popularity rank), so every asset can show them.
-    fields: ['name', 'handle', 'price', 'compare_at', 'currency', 'image', 'type', 'tags', 'url', 'unit_spec', 'piece_count', 'servings', 'claims', 'metrics'],
+    fields: ['name', 'handle', 'price', 'compare_at', 'currency', 'region', 'image', 'type', 'tags', 'url', 'unit_spec', 'piece_count', 'servings', 'claims', 'metrics'],
     required: ['name'],
     lifecycle: 'Evergreen. Promote on merchandising logic, seasonality and stock.',
   },

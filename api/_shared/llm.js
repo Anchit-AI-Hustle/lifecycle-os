@@ -346,8 +346,11 @@ function modelsFor(provider, tier) {
     case 'sakana':
       return _dedupe([env.SAKANA_TEXT_MODEL || 'sakana-default']);
     case 'deepseek':
-      if (tier === 'premium') return _dedupe([env.DEEPSEEK_TEXT_MODEL_MAX || 'deepseek-reasoner', 'deepseek-chat']);
-      return _dedupe([env.DEEPSEEK_TEXT_MODEL || 'deepseek-chat']);
+      // The names DeepSeek's own pricing page lists for the `model` field
+      // (api-docs.deepseek.com/quick_start/pricing, read 2026-10-23); it no
+      // longer lists deepseek-chat / deepseek-reasoner.
+      if (tier === 'premium') return _dedupe([env.DEEPSEEK_TEXT_MODEL_MAX || 'deepseek-v4-pro', 'deepseek-flash']);
+      return _dedupe([env.DEEPSEEK_TEXT_MODEL || 'deepseek-flash']);
     case 'bedrock':
       if (tier === 'premium') return _dedupe([env.BEDROCK_TEXT_MODEL_MAX || 'anthropic.claude-3-5-sonnet-20241022-v2:0', 'anthropic.claude-3-opus-20240229-v1:0']);
       if (tier === 'fast')    return _dedupe([env.BEDROCK_TEXT_MODEL_FAST || 'anthropic.claude-3-5-haiku-20241022-v1:0']);
@@ -376,6 +379,9 @@ const OWN_KEY_PRIORITY = ['anthropic', 'bedrock', 'openai', 'gemini', 'grok', 'd
 function providerOrder(tier) {
   const base = providerOrderBase(tier);
   if (!freeGenerationOn()) return base;
+  // A run the user is paying credits for goes to the flagship models first
+  // (2026-10-23, the operator); the free-first order is for runs nobody pays.
+  try { const cur = require('./request-scope.js').current(); if (cur && cur.creditPaid) return base; } catch (_) { /* outside a request */ }
   const keyless = base.filter((p) => p === 'pollinations');
   const freeTier = base.filter((p) => !PAID_PROVIDERS.has(p) && p !== 'pollinations');
   const paid = base.filter((p) => PAID_PROVIDERS.has(p));

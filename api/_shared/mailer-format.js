@@ -213,7 +213,9 @@ function displayName(title) {
   // A merge tag is the ESP's to fill: never cut inside it.
   if (/\{\{|\{%/.test(String(title || ''))) return String(title).trim();
   const t = String(title || '').split(/\s+/).filter(Boolean);
-  const code = (w) => { const x = w.replace(/[^A-Za-z0-9/-]/g, ''); return (/[a-z]/i.test(x) && /\d/.test(x) && x.length >= 3) || /\d\/|\/\d/.test(x) || /^\d{3,}$/.test(x); };
+  // A size or measure ("500g", "1kg", "100W") is part of the name, not a code.
+  const measure = (x) => /^\d+(?:[.,]\d+)?(?:-\d+(?:[.,]\d+)?)?(?:g|gm|gms|kg|kgs|mg|ml|l|ltr|oz|lb|lbs|w|kw|kwh|wh|mah|v|gb|tb|mb|cm|mm|in|ft|pcs?|x|ct|hz|mhz|ghz|db|km|k|p)$/i.test(x);
+  const code = (w) => { const x = w.replace(/[^A-Za-z0-9/-]/g, ''); return !(measure(x) && !/\//.test(x)) && ((/[a-z]/i.test(x) && /\d/.test(x) && x.length >= 3) || /\d\/|\/\d/.test(x) || /^\d{3,}$/.test(x)); };
   if (!t.some(code)) return t.join(' ');
   const out = t.filter((w, i) => !code(w) && !(/^[A-Z]{1,3}$/.test(w) && t[i + 1] && code(t[i + 1])));
   return out.join(' ').replace(/[\s:,;.\-]+$/, '').trim();

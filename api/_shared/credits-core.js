@@ -498,6 +498,12 @@ async function meter(req, featureKey, opts) {
 
   const holdId = held.hold_id;
   let done = false;
+  // A credit-paid run (2026-10-23): llm.js tries the flagship models first for
+  // it; the free-first order is for runs nobody pays for. And the pack prices
+  // the real-price charge converts by are read now (cached), so settle can use
+  // them synchronously.
+  try { const cur = scope.current(); if (cur) cur.creditPaid = true; } catch (_) { /* outside a request */ }
+  try { await packOverrides(); } catch (_) { /* unpriced: the catalogue price stands */ }
 
   return {
     ok: true,
@@ -539,11 +545,30 @@ async function meter(req, featureKey, opts) {
         p_hold: holdId, p_actual: actual, p_units: units,
         p_ref: (extra && extra.ref) || o.ref || null, p_meta: bill.meta,
       });
+      // The ledger never settles above the hold. A run whose REAL price was
+      // more than was reserved takes the difference as a second hold, settled
+      // at once; a wallet that cannot cover it is charged nothing more and the
+      // shortfall is written on the ledger row, never hidden.
+      let topUp = 0, shortfall = 0;
+      // Only a REAL-PRICE run is topped up; a metered feature's units stay
+      // capped at what was reserved, as they always were.
+      const realBasis = !!(bill.meta && bill.meta.usage && bill.meta.usage.pricing && bill.meta.usage.pricing.basis === 'real');
+      const over = realBasis ? actual - q.total : 0;
+      if (over > 0) {
+        try {
+          const h2 = await rpc('credit_hold', { p_user: auth.user_id, p_workspace: workspaceId, p_amount: over, p_feature: q.key, p_label: `${q.label} (real price above the reservation)`, p_unit_label: q.unit, p_units: 0, p_ref: (extra && extra.ref) || o.ref || null, p_meta: { real_price_top_up: true } });
+          if (h2 && h2.ok === true) {
+            const r2 = await rpc('credit_settle', { p_hold: h2.hold_id, p_actual: over, p_units: 0, p_ref: (extra && extra.ref) || o.ref || null, p_meta: { real_price_top_up: true, usage: bill.meta.usage } });
+            topUp = (r2 && r2.charged) || 0;
+            if (r && r2 && r2.balance != null) r.balance = r2.balance;
+          } else shortfall = over;
+        } catch (_) { shortfall = over; }
+      }
       this.receipt = Object.assign({
         feature: q.key, label: q.label, cost: q.cost, unit: q.unit,
-        units, charged: (r && r.charged != null) ? r.charged : actual, refunded: (r && r.refunded) || 0,
+        units, charged: ((r && r.charged != null) ? r.charged : Math.min(actual, q.total)) + topUp, refunded: (r && r.refunded) || 0,
         balance: r && r.balance,
-      }, bill.receipt);
+      }, bill.receipt, shortfall ? { unbilled_credits: shortfall, note: `This run really cost ${actual} credits; ${shortfall} could not be charged because the balance was too low.` } : {});
       this.balance = r && r.balance;
       return r;
     },
@@ -580,6 +605,32 @@ const OWN_KEYS_NOTE = 'made with the workspace\'s own model keys; no credits cha
  * The ledger row's meta carries the usage per provider, model and key, so the
  * spend can be read against each provider's own usage page.
  */
+/**
+ * The real price of the platform's share of a run, or why it cannot be known.
+ * { credits, pricing: { basis, usd, credit_value_usd, credit_value_basis, by_model, missing } }
+ */
+function realPrice(calls) {
+  const MP = require('./model-prices.js');
+  const platform = (Array.isArray(calls) ? calls : []).filter((c) => c && c.key === 'platform');
+  const pricing = { basis: 'catalogue', usd: null, credit_value_usd: null, credit_value_basis: null, by_model: [], missing: null };
+  if (!platform.length) { pricing.missing = 'no answer was made on the platform\'s keys'; return { credits: null, pricing }; }
+  const cv = MP.creditValueUsd(catalog.packList(PACK_OVERRIDES || null));
+  if (!cv) { pricing.missing = 'the value of one credit is not set (CREDIT_VALUE_USD, or a credit pack priced in USD)'; return { credits: null, pricing }; }
+  let usd = 0;
+  for (const c of platform) {
+    if (c.kind !== 'text') { pricing.missing = `a ${c.kind} from ${c.provider} has no per-token price`; return { credits: null, pricing }; }
+    const cost = MP.costUsd(c.model, c.input_tokens, c.output_tokens);
+    if (cost == null) {
+      pricing.missing = MP.priceOf(c.model) ? `${c.provider} did not report both token counts` : `no published price is on record for ${c.model || c.provider}`;
+      return { credits: null, pricing };
+    }
+    usd += cost;
+    pricing.by_model.push({ provider: c.provider, model: c.model, input_tokens: c.input_tokens, output_tokens: c.output_tokens, usd: Math.round(cost * 1e6) / 1e6 });
+  }
+  Object.assign(pricing, { basis: 'real', usd: Math.round(usd * 1e6) / 1e6, credit_value_usd: cv.usd, credit_value_basis: cv.basis, prices_read_on: MP.READ_ON });
+  return { credits: Math.ceil(usd / cv.usd - 1e-9), pricing };
+}
+
 function platformBill(q, units, baseMeta) {
   const full = q.cost * units;
   const u = scope.llmUsage();
@@ -603,7 +654,16 @@ function platformBill(q, units, baseMeta) {
   // Model-based adjustment: ensure multiplier is accounted for without double-counting
   const quoteMult = (q && q.model_multiplier) || 1.0;
   const adjustedFull = quoteMult > 1.0 ? full : (mult > 1.0 ? Math.max(1, Math.round(full * mult)) : full);
-  const actual = share >= 1 ? adjustedFull : Math.min(adjustedFull, Math.ceil(adjustedFull * share - 1e-9));
+  let actual = share >= 1 ? adjustedFull : Math.min(adjustedFull, Math.ceil(adjustedFull * share - 1e-9));
+
+  // REAL PRICES (2026-10-23, the operator's choice): when every answer the
+  // platform's keys made is a text answer from a model with a published price
+  // (model-prices.js) and its provider reported both token counts, and the
+  // operator has said what a credit is worth, the run costs what those answers
+  // really cost, in credits, rounded up. Otherwise the catalogue price above
+  // stands, and the receipt says which fact was missing.
+  const real = realPrice(scope.llmCalls ? scope.llmCalls() : []);
+  if (real.credits != null) actual = real.credits;
 
   const usage = {
     basis: u.basis, platform_share: Math.round(share * 10000) / 10000, answers: u.calls,
@@ -617,6 +677,7 @@ function platformBill(q, units, baseMeta) {
       tokens_reported: g.kind === 'text' ? g.tokens_reported : null, images: g.images,
     })),
   };
+  usage.pricing = real.pricing;
   usage.charged = actual;
   meta.usage = usage;
   const receipt = {
@@ -1069,6 +1130,23 @@ function isCompAccount(email) {
   return compAccounts().includes(emailHash(e));
 }
 
+/**
+ * A gift's recipient and amount, checked: an email address, a whole number of
+ * credits from 1 to 1,000,000, an optional note. The address itself is never
+ * stored, only its hash and a masked hint ("a***@example.com").
+ */
+function giftInput(body) {
+  const b = body || {};
+  const email = String(b.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'gift_email_invalid', message: 'Give the email address of the person the credits are for.' };
+  const amount = Number(b.amount);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 1000000) return { ok: false, error: 'gift_amount_invalid', message: 'A gift is a whole number of credits, from 1 to 1,000,000.' };
+  const [user, domain] = email.split('@');
+  const hint = `${user.charAt(0)}***@${domain}`;
+  const note = b.note ? String(b.note).slice(0, 200) : null;
+  return { email, hash: emailHash(email), hint, amount, note };
+}
+
 async function createOrder(auth, { pack_key, workspace_id }) {
   const p = catalog.pack(pack_key);
   if (!p) { const e = new Error('Unknown credit pack.'); e.status = 400; throw e; }
@@ -1236,6 +1314,21 @@ async function handle(req, res) {
     }
   }
 
+  // GIFT FROM THE OPERATOR (2026-10-23): the deployment's CRON_SECRET grants
+  // credits to an email without debiting anyone. Decided before the session
+  // check, exactly like fulfil (a session can never also be the secret).
+  if (op === 'gift' && operatorSecretPresented(req)) {
+    if (!configured()) return res.status(503).json({ ok: false, error: 'credits_unavailable', message: 'The credit meter needs SUPABASE_SERVICE_ROLE_KEY on this deployment.' });
+    const g = giftInput(body);
+    if (g.error) return res.status(400).json(g);
+    try {
+      const r = await rpc('credit_gift_send', { p_from: null, p_from_workspace: null, p_email_hash: g.hash, p_hint: g.hint, p_amount: g.amount, p_note: g.note, p_operator: true });
+      return res.status(200).json(Object.assign({ ok: true, from: 'operator', message: `${g.amount} credits are waiting for ${g.hint}. They arrive the next time that person opens their balance, signed in with that email.` }, r || {}));
+    } catch (err) {
+      return res.status(err.status || 500).json({ ok: false, error: err.message || 'gift_failed' });
+    }
+  }
+
   const auth = await brandCore.requireUser(req);
   if (!auth.ok) return res.status(auth.status || 401).json(auth);
 
@@ -1295,6 +1388,15 @@ async function handle(req, res) {
   try {
     switch (op) {
       case 'balance': {
+        // Gifts sent to this person's verified email arrive here, once.
+        let giftsReceived = null;
+        if (auth.email && !phoneAccount) {
+          try {
+            await wallet(auth.user_id, workspaceId);
+            const c = await rpc('credit_gift_claim', { p_user: auth.user_id, p_workspace: workspaceId, p_email_hash: emailHash(auth.email) });
+            if (c && c.claimed > 0) giftsReceived = { count: c.claimed, credits: c.credits };
+          } catch (_) { giftsReceived = null; /* a database without the gifts migration: nothing to claim */ }
+        }
         const w = await wallet(auth.user_id, workspaceId);
         return res.status(200).json({
           ok: true,
@@ -1307,7 +1409,23 @@ async function handle(req, res) {
           account: phoneAccount ? 'mobile-pin' : 'email',
           features: await priceList(),
           packs: await packList().catch(() => catalog.packList(null)),
+          gifts_received: giftsReceived,
         });
+      }
+      case 'gift': {
+        if (String(req.method || 'POST').toUpperCase() !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        const g = giftInput(body);
+        if (g.error) return res.status(400).json(g);
+        if (auth.email && emailHash(auth.email) === g.hash) return res.status(400).json({ ok: false, error: 'gift_to_self', message: 'That is your own email: a gift goes to someone else.' });
+        const r = await rpc('credit_gift_send', { p_from: auth.user_id, p_from_workspace: workspaceId, p_email_hash: g.hash, p_hint: g.hint, p_amount: g.amount, p_note: g.note, p_operator: false });
+        if (!r || r.ok !== true) {
+          return res.status(402).json(Object.assign({ ok: false, error: 'insufficient_credits', message: `This wallet has ${r && r.balance != null ? r.balance : 'too few'} credits, so ${g.amount} could not be gifted.` }, r || {}));
+        }
+        return res.status(200).json(Object.assign({}, r, { message: `${g.amount} credits sent to ${g.hint}. They arrive the next time that person opens their balance, signed in with that email.` }));
+      }
+      case 'gifts': {
+        const rows = await serviceRest(`credit_gifts?select=id,to_email_hint,amount,note,status,created_at,claimed_at&from_user=eq.${encodeURIComponent(auth.user_id)}&order=created_at.desc&limit=50`).catch(() => []);
+        return res.status(200).json({ ok: true, gifts: Array.isArray(rows) ? rows : [] });
       }
       case 'ledger':
         return res.status(200).json({ ok: true, entries: await ledger(auth.user_id, workspaceId, q.limit || body.limit) });
@@ -1329,14 +1447,14 @@ async function handle(req, res) {
         return res.status(200).json({ ok: true, orders: Array.isArray(rows) ? rows : [] });
       }
       default:
-        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders'] });
+        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders', 'gift', 'gifts'] });
     }
   } catch (err) {
     return res.status(err.status || 500).json({ ok: false, error: err.message || 'credits_operation_failed' });
   }
 }
 
-module.exports = {
+module.exports = { realPrice, giftInput,
   handle, meter, withCredits, enforce, metered, wallet, ledger, usage, providerUsage, platformBill, priceList, overrides,
   createOrder, fulfilOrder, configured, catalog,
   isCompAccount, compAccounts, emailHash, COMP_ACCOUNT_HASHES,

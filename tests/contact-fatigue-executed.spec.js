@@ -351,11 +351,12 @@ test('a Smart Brain slot\'s eligibility is reduced by the ledger and says how ma
   expect(e.time_basis).toMatch(/09:00 UTC/);
   expect(e.label).toBe('1 eligible · 2 held back');
   expect(plan.entries[0].reach.planned_recipients).toBe(1);
-  // The plan's OWN earlier sends count: by the third daily slot to the same
-  // cohort, the member the ledger left eligible has had two this week.
-  const third = plan.entries[2].reach.eligibility;
-  expect(third.eligible).toBe(0);
-  expect(third.by_reason.promotional_cap + (third.by_reason.absolute_cap || 0) + (third.by_reason.cooldown || 0)).toBe(3);
+  // The plan's OWN earlier sends count (changed on purpose, 2026-10-23): a
+  // third daily send to the same cohort would pass the preferred cap of 2 in
+  // a rolling 7 days, so the plan does not schedule it at all, rather than
+  // scheduling it and marking it held back.
+  expect(plan.entries.length).toBe(2);
+  expect(plan.entries.map((e) => e.reach.frequency_cap.status)).toEqual(['SAFE', 'SAFE']);
 
   // No member list, a real cohort size: the ledger's people tagged with this
   // cohort are judged, the rest are judged on the plan's own sends.
@@ -589,8 +590,12 @@ test('every place a cap was computed reads the one policy: the cohort engine, th
   expect(SM.DEFAULTS.SEGMENT_SEND_CEILING).toBe(3);
   expect(SM.scaleCadence({ Champions: 3 }, SM.SCENARIO_LEVERS.best).Champions).toBe(3);
   // A Smart Brain slot with NO discount still counts toward the cap (spec §10).
+  // Five daily sends to one cohort: the plan keeps the two the cap allows in a
+  // rolling 7 days and does not schedule the rest (changed on purpose,
+  // 2026-10-23: they were planned and marked REDUCE_AUDIENCE / BLOCKED, and the
+  // prebuild queue built them anyway).
   const plan = smartPlan(null, [{ name: 'Nurture', count: 100 }], 5);
-  expect(plan.entries.map((e) => e.reach.frequency_cap.status)).toEqual(['SAFE', 'SAFE', 'REDUCE_AUDIENCE', 'BLOCKED', 'BLOCKED']);
+  expect(plan.entries.map((e) => e.reach.frequency_cap.status)).toEqual(['SAFE', 'SAFE']);
   expect(plan.entries.every((e) => e.message_class === 'promotional')).toBe(true);
 });
 

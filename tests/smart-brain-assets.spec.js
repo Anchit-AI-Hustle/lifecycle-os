@@ -152,16 +152,20 @@ test('proof the model invented anyway is stripped before it can be rendered', ()
   expect(copy.__proof_gap.marker).toContain('[DATA REQUIRED BEFORE LAUNCH: approved review library');
 });
 
-test('a brand with no approved reviews gets the marker, never a rating', () => {
+// Changed on purpose (2026-10-23, the operator: "no matter what, no
+// placeholders will be used"): with no approved review there is no proof
+// section at all, on the mail or the page. The gap is still reported, in the
+// copy's __proof_gap (above) and the campaign's data_gaps.
+test('a brand with no approved reviews gets no proof section and no rating, and the gap is reported', () => {
   const e = entryFor(OTHER_BRAND);
   const block = sbp.__test_proofBlockHtml(e);
-  expect(block).toContain('[DATA REQUIRED BEFORE LAUNCH: approved review library, Meridian Review, US]');
+  expect(block).toBe('');
   expect(block).not.toMatch(/★|Rated|\/5/);
 
   // …and the same holds on the landing page that real traffic reaches, which is
   // where the invented testimonial used to render.
   const lp = sbp.__test_lpHtml(e, { landing: { hero_headline: 'h', proof_quote: 'A quote the model wrote', proof_author: 'Someone' } }, 'camp_1', null);
-  expect(lp).toContain('[DATA REQUIRED BEFORE LAUNCH: approved review library');
+  expect(lp).not.toContain('DATA REQUIRED');
   expect(lp).not.toContain('A quote the model wrote');
   expect(lp).not.toContain('Someone');
 });
