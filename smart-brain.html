@@ -2510,7 +2510,7 @@ async function approveRow(i){
 }
 async function rejectRow(i){
   const e = PLAN[i];
-  const notes = prompt('Reject this send? Add an optional reason — it is logged and the slot is re-planned on the next daily sync.', '');
+  const notes = await window.LifecycleDialog.prompt('Reject this send? Add an optional reason. It is logged and the slot is re-planned on the next daily sync.', '', { ok: 'Reject', danger: true });
   if(notes === null) return;   // reviewer cancelled
   const rev = $('rev-'+i);
   if(rev) rev.innerHTML = '<span class="pvnote"><span class="spinner"></span> rejecting…</span>';

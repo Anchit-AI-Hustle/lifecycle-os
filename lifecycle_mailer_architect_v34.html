@@ -1197,7 +1197,7 @@ end of the disabled overlay login -->
     <span style="flex:1"></span>
     <span style="font-family:var(--vh-font-head);font-size:13px;font-weight:700;color:var(--vh-primary-text);letter-spacing:0.04em">Step 5, Final Output</span>
     <span style="flex:1"></span>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="if(confirm('Start a new campaign? Current work will be cleared.'))clearAndCreate()" style="white-space:nowrap;color:var(--vh-err-text)">&#8635; Start New</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="window.LifecycleDialog.confirm('Start a new campaign? Current work will be cleared.',{ok:'Start new',danger:true}).then(function(y){if(y)clearAndCreate();})" style="white-space:nowrap;color:var(--vh-err-text)">&#8635; Start New</button>
   </div>
   <div class="panel">
     <div class="plbl" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">

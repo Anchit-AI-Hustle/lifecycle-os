@@ -605,7 +605,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
       Array.prototype.forEach.call($('list').querySelectorAll('[data-del]'), function (b) {
         b.addEventListener('click', async function () {
-          if (!confirm('Delete this entry?')) return;
+          if (!(await window.LifecycleDialog.confirm('Delete this entry?', { ok: 'Delete', danger: true }))) return;
           try { await ts('item-delete', { id: b.dataset.del }); toast('Deleted.'); refresh(); } catch (e) { toast(window.LifecycleFailure.sentence(e)); }
         });
       });
@@ -899,7 +899,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
       Array.prototype.forEach.call($('runs').querySelectorAll('[data-del]'), function (b) {
         b.addEventListener('click', async function () {
-          if (!confirm('Delete this run from the log?')) return;
+          if (!(await window.LifecycleDialog.confirm('Delete this run from the log?', { ok: 'Delete', danger: true }))) return;
           try { await ts('run-delete', { id: b.dataset.del }); toast('Deleted.'); viewDashboard(s); } catch (e) { toast(window.LifecycleFailure.sentence(e)); }
         });
       });

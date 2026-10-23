@@ -166,6 +166,8 @@ test('approving a paused Meta ad from the console queues its own live-approval j
   await expect(approve).toHaveCount(1);
   await expect(page.locator('#gw-drafts')).toContainText('ad-new-1');
   await approve.click();
+  // The question is asked in the page (auth.js LifecycleDialog), never natively.
+  await page.locator('[data-lc-dialog-ok]').click();
   await expect(page.locator('#msg')).toContainText('Live approval queued as its own job');
 
   const sent = asked.find((a) => a.op === 'live-approve');
@@ -203,6 +205,7 @@ test('thresholds saved from the console are the brand\'s own; recompute flags th
 
   db.clearCalls();
   await rows.first().locator('button[data-gw-flag="regen-approve"]').click();
+  await page.locator('[data-lc-dialog-ok]').click();
   await expect(page.locator('#msg')).toContainText('Regeneration approved');
   expect(db.table('social_creative_flags')[0]).toMatchObject({ status: 'regen_approved', decided_by: 'user-a' });
   expect(db.calls.filter((c) => /rpc\/credit_/.test(c.url)), 'approving spends nothing by itself').toEqual([]);

@@ -472,6 +472,71 @@
     window.LifecycleStatus = { refusal: refusal, decide: decide, ordinary: ordinary, html: statusHtml, htmlFor: htmlFor, show: show };
   })();
 
+  // ─── In-page confirm / prompt (2026-10-23) ──────────────────────────────
+  // window.confirm / window.prompt are answered at once, with no dialog,
+  // wherever a browser is under remote debugging, in an embedded view or with
+  // dialogs blocked: on production, Delete brand did nothing at all, with no
+  // request and no sentence. Every question the app asks goes through here: a
+  // panel in the page, Escape or Cancel answers no, tokens only.
+  (function () {
+    if (window.LifecycleDialog) return;
+    function open(opts) {
+      return new Promise(function (resolve) {
+        var prev = document.activeElement;
+        var wrap = document.createElement('div');
+        wrap.className = 'lc-dialog-scrim';
+        wrap.setAttribute('data-lc-dialog', opts.kind);
+        wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,20,25,.45)';
+        var box = document.createElement('div');
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.style.cssText = 'background:var(--vh-panel,var(--brand-surface,#fff));color:var(--vh-ink,var(--brand-ink,#111));border:1px solid var(--vh-line,rgba(0,0,0,.12));border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.25);max-width:460px;width:100%;padding:18px 18px 14px;font:14px/1.5 var(--brand-font-body,system-ui,sans-serif)';
+        var msg = document.createElement('p');
+        msg.style.cssText = 'margin:0 0 12px;white-space:pre-line';
+        msg.textContent = opts.message || '';
+        box.appendChild(msg);
+        var input = null;
+        if (opts.kind === 'prompt') {
+          input = document.createElement('input');
+          input.type = 'text'; input.value = opts.value || ''; input.setAttribute('data-lc-dialog-input', '');
+          input.style.cssText = 'display:block;width:100%;box-sizing:border-box;margin:0 0 12px;padding:9px 10px;border:1px solid var(--vh-line,rgba(0,0,0,.2));border-radius:8px;font:inherit;font-size:max(16px,1em);background:var(--vh-bg,#fff);color:inherit';
+          box.appendChild(input);
+        }
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap';
+        var no = document.createElement('button'); no.type = 'button'; no.textContent = opts.cancel || 'Cancel'; no.setAttribute('data-lc-dialog-cancel', '');
+        var yes = document.createElement('button'); yes.type = 'button'; yes.textContent = opts.ok || 'OK'; yes.setAttribute('data-lc-dialog-ok', '');
+        var base = 'min-height:40px;padding:8px 16px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer;';
+        no.style.cssText = base + 'background:transparent;color:inherit;border:1px solid var(--vh-line,rgba(0,0,0,.2))';
+        yes.style.cssText = base + 'border:1px solid transparent;background:' + (opts.danger ? 'var(--vh-err,#b42318)' : 'var(--brand-primary,var(--vh-accent,#1f5c99))') + ';color:' + (opts.danger ? '#fff' : 'var(--brand-on-primary,#fff)');
+        row.appendChild(no); row.appendChild(yes); box.appendChild(row);
+        wrap.appendChild(box);
+        function done(v) {
+          document.removeEventListener('keydown', onKey, true);
+          try { wrap.remove(); } catch (_) {}
+          try { if (prev && prev.focus) prev.focus(); } catch (_) {}
+          resolve(v);
+        }
+        function onKey(ev) {
+          if (ev.key === 'Escape') { ev.preventDefault(); done(opts.kind === 'prompt' ? null : false); }
+          else if (ev.key === 'Enter' && (input ? document.activeElement === input : true)) { ev.preventDefault(); yes.click(); }
+        }
+        no.addEventListener('click', function () { done(opts.kind === 'prompt' ? null : false); });
+        yes.addEventListener('click', function () { done(opts.kind === 'prompt' ? (input.value || '') : true); });
+        wrap.addEventListener('click', function (ev) { if (ev.target === wrap) done(opts.kind === 'prompt' ? null : false); });
+        document.addEventListener('keydown', onKey, true);
+        (document.body || document.documentElement).appendChild(wrap);
+        try { (input || yes).focus(); } catch (_) {}
+      });
+    }
+    window.LifecycleDialog = {
+      /** Resolves true or false. */
+      confirm: function (message, o) { return open(Object.assign({ kind: 'confirm', message: message }, o || {})); },
+      /** Resolves the typed text ('' when empty), or null when cancelled. */
+      prompt: function (message, value, o) { return open(Object.assign({ kind: 'prompt', message: message, value: value }, o || {})); },
+    };
+  })();
+
   // ─── Universal brand layer + credit meter ───────────────────────────────
   // brand-context.js re-skins the whole app to the signed-in user's ACTIVE
   // brand workspace (palette, fonts, name, favicon) and sends a user with no

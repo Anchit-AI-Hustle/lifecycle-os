@@ -647,13 +647,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         return;
       }
       if (act === 'disconnect') {
-        if (!window.confirm('Disconnect ' + p + '? Stored credentials for this brand are removed.')) { b.disabled = false; return; }
+        if (!(await window.LifecycleDialog.confirm('Disconnect ' + p + '? Stored credentials for this brand are removed.', { ok: 'Disconnect', danger: true }))) { b.disabled = false; return; }
         var d = await call(CONN + '&op=oauth-disconnect', { provider: p });
         note('ok', d.note || 'Disconnected.');
       }
       if (act === 'publish-toggle') {
         var turningOn = b.dataset.on !== '1';
-        if (turningOn && !window.confirm('Turn on live publishing for ' + p + '?\n\nDispatches will leave this deployment and appear on the real account.')) { b.disabled = false; return; }
+        if (turningOn && !(await window.LifecycleDialog.confirm('Turn on live publishing for ' + p + '?\n\nDispatches will leave this deployment and appear on the real account.', { ok: 'Turn on' }))) { b.disabled = false; return; }
         var t = await call(CONN + '&op=publishing', { provider: p, enabled: turningOn });
         note(turningOn ? 'warn' : 'info', t.note);
       }
@@ -884,7 +884,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var override = lastPreflight && lastPreflight.verdict === 'block';
     var reason = '';
     if (override) {
-      reason = window.prompt('This send is blocked. Why are you overriding?');
+      reason = await window.LifecycleDialog.prompt('This send is blocked. Why are you overriding?', '', { ok: 'Override and send' });
       if (!reason) return;
     }
     this.disabled = true;
@@ -1245,7 +1245,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   document.getElementById('gw-flags').addEventListener('click', async function (ev) {
     var b = ev.target.closest('button[data-gw-flag]'); if (!b) return;
     var op = b.dataset.gwFlag;
-    if (op === 'regen-approve' && !window.confirm('Approve this regeneration?\n\nIt runs from the console that made the creative and spends credits there, on your session. Nothing is published.')) return;
+    if (op === 'regen-approve' && !(await window.LifecycleDialog.confirm('Approve this regeneration?\n\nIt runs from the console that made the creative and spends credits there, on your session. Nothing is published.', { ok: 'Approve' }))) return;
     b.disabled = true;
     try {
       var r = await call(GW + op, { flag_id: b.dataset.id });
@@ -1258,7 +1258,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   document.getElementById('gw-drafts').addEventListener('click', async function (ev) {
     var b = ev.target.closest('button[data-gw-live]'); if (!b) return;
-    if (!window.confirm('Approve this draft going live?\n\nA paused ad starts spending and a private video becomes public. The approval is recorded with your account and runs behind the same three switches.')) return;
+    if (!(await window.LifecycleDialog.confirm('Approve this draft going live?\n\nA paused ad starts spending and a private video becomes public. The approval is recorded with your account and runs behind the same three switches.', { ok: 'Approve going live', danger: true }))) return;
     b.disabled = true;
     try {
       var r = await call(GW + 'live-approve', { job_id: b.dataset.gwLive });
