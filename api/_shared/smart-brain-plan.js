@@ -293,8 +293,16 @@ async function planningBrand(config, db) {
     if (brand && !isZero) {
       const catalog = await require('./brand-catalog-server.js').resolve({ brand: { ...brand, owns_shipped: false }, workspaceId: wsId });
       if (catalog.source === 'brand' && catalog.products.length) {
-        const products = catalog.products.map(p => ({ kind: 'product', name: p.n, handle: p.h,
-          price: p.price, compare_at: p.compare_at, image: p.i, type: p.type, tags: p.t, url: p.product_url || '',
+        // Every fact the store stated rides along (2026-10-23), and the
+        // store's OWN popularity order leads: the rotation starts with what
+        // the store says sells most; unranked rows keep their order after.
+        const rankOf = (p) => (p.metrics && Number.isFinite(Number(p.metrics.popularity_rank)) ? Number(p.metrics.popularity_rank) : Infinity);
+        const ordered = catalog.products.map((p, i) => [p, i]).sort((a, b) => (rankOf(a[0]) - rankOf(b[0])) || (a[1] - b[1])).map((x) => x[0]);
+        const products = ordered.map(p => ({ kind: p.offering_kind === 'story' ? 'story' : 'product', name: p.n, handle: p.h,
+          price: p.price, compare_at: p.compare_at, currency: p.currency || null, image: p.i, type: p.type, tags: p.t, url: p.product_url || '',
+          unit_spec: p.unit_spec || null, piece_count: p.piece_count || null, servings: p.servings || null,
+          claims: Array.isArray(p.claims) && p.claims.length ? p.claims : null, metrics: p.metrics || null,
+          author: p.author || null, read_time: p.read_time || null, published_at: p.published_at || null,
           source: { type: 'workspace_catalog', workspace_id: wsId } }));
         const other = _resolveBrandOfferings(brand).filter(o => o.kind !== 'product');
         brand = { ...brand, offerings: products.concat(other), brand_data: { ...brand.brand_data, offerings: products.concat(other) } };
@@ -682,6 +690,12 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
           servings: useOff.servings || null,
           claims: useOff.claims || [],
           metrics: useOff.metrics || null,
+          kind: useOff.kind,
+          author: useOff.author || null,
+          read_time: useOff.read_time || null,
+          // Proof the store states (its own popularity rank, a stated rating,
+          // stated reads), never a default (offering-intelligence.enrich).
+          proof: (() => { try { return require('./offering-intelligence.js').enrich(Object.assign({ title: useOff.name, product_url: useOff.url }, useOff)).proof; } catch (_) { return []; } })(),
         },
         channels: ['email', 'meta', 'google', 'landing_page'],
         cta: useOff.kind === 'product' && /food|poultry|deli|restaurant/i.test(brand.industry || '')
@@ -2223,7 +2237,10 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
     <div class="hero-copy">
       ${(() => {
         const hp = entry.heroProduct || {};
-        const b = hp.badge || (hp.metrics && hp.metrics.bestseller ? '🔥 #1 Bestseller' : null);
+        // A badge only from what the store states (its own popularity rank,
+        // a stated rating, stated reads); a stored badge is not trusted.
+        let b = null;
+        try { b = require('./offering-intelligence.js').enrich(Object.assign({ title: hp.title, product_url: hp.product_url }, hp)).badge; } catch (_) { b = null; }
         return b ? `<div class="hero-badge" style="display:inline-block;background:var(--lava);color:var(--on-lava);font-size:12px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:99px;margin-bottom:10px">${esc(b)}</div>` : '';
       })()}
       <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>

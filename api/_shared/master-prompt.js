@@ -49,12 +49,16 @@ function productLines(products = [], currency = '', brandName = brandRuntime.def
     const cat = p.category || p.cat || p.c || '';
     const unit = p.unit_spec || (p.specs && p.specs.weight) || '';
     const pcs = p.piece_count || (p.specs && p.specs.piece_count) || '';
-    const badge = p.badge || '';
+    // Proof only from what the store states (offering-intelligence), never a stored badge.
+    let badge = '';
+    try { badge = require('./offering-intelligence.js').enrich(Object.assign({ title, product_url: p.product_url || p.url }, p)).proof.map((x) => x.text).join('; '); } catch (_) { badge = ''; }
+    const claims = Array.isArray(p.claims) && p.claims.length ? `its page says: ${p.claims.slice(0, 4).join(', ')}` : '';
     const readTime = p.read_time || '';
     const author = p.author ? `by ${p.author}` : '';
     const details = [
-      price != null ? `${currency}${price}${unit ? ' / ' + unit : ''}` : '',
+      price != null ? `${currency}${price}${unit ? ' for ' + require('./unit-words.js').spellUnits(String(unit).replace(/^(\d+(?:\.\d+)?)([a-z])/i, '$1 $2')) : ''}` : '',
       pcs,
+      claims,
       readTime,
       author,
       badge,
