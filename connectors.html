@@ -356,8 +356,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function aiLoad(){
     var isAuthed = !!authToken();
-    var fetchPromise = isAuthed ? aiApi("list") : Promise.reject(new Error("auth_pending"));
-    return fetchPromise.then(function(d){
+    /* Always ask the server: it answers a signed-out page with what applies to
+       it (the platform's models), and the page never guesses that state. */
+    return aiApi("list").then(function(d){
       aiState.providers=d.providers||[]; aiState.routing=d.routing||{entries:[],use_platform_fallback:true}; aiState.storage=d.secrets_storage||{}; aiState.device=d.storage==="device"; aiState.note=d.note||""; aiState.free=d.free_generation||null; aiState.connections={};
       (d.connections||[]).forEach(function(c){aiState.connections[c.provider]=c;});
       aiRenderStorage(d); aiRenderProviders(); aiRenderRouting();
@@ -367,17 +368,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         aiState.storage = reg.secrets_storage || {};
         aiState.free = reg.free_generation || null;
         aiState.connections = {};
-        if (!aiState.routing || !aiState.routing.entries || !aiState.routing.entries.length) {
-          aiState.routing = {
-            entries: [
-              { provider: "bedrock", models: ["anthropic.claude-3-5-sonnet-20241022-v2:0"], enabled: true },
-              { provider: "deepseek", models: ["deepseek-chat"], enabled: true },
-              { provider: "openai", models: ["gpt-5-mini"], enabled: true },
-              { provider: "gemini", models: ["gemini-3.8-flash"], enabled: true }
-            ],
-            use_platform_fallback: true
-          };
-        }
+        /* No order is shown that this workspace did not save: the platform's
+           own order applies until one is saved. */
+        aiState.routing = { entries: [], use_platform_fallback: true };
         var s = $("ai-storage");
         if (s) {
           s.className = "banner info";
