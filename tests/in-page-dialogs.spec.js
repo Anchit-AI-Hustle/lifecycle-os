@@ -50,10 +50,12 @@ test('LifecycleDialog asks in the page: OK, Cancel, Escape and typed text resolv
   await expect(page.locator('[data-lc-dialog]')).toHaveCount(0);
 
   p = page.evaluate(() => window.LifecycleDialog.confirm('Again?'));
+  await expect(page.locator('[data-lc-dialog="confirm"]')).toBeVisible();
   await page.locator('[data-lc-dialog-cancel]').click();
   expect(await p).toBe(false);
 
   p = page.evaluate(() => window.LifecycleDialog.confirm('Escape?'));
+  await expect(page.locator('[data-lc-dialog="confirm"]')).toBeVisible();
   await page.keyboard.press('Escape');
   expect(await p).toBe(false);
 
@@ -63,6 +65,7 @@ test('LifecycleDialog asks in the page: OK, Cancel, Escape and typed text resolv
   expect(await p).toBe('the segment is stale');
 
   p = page.evaluate(() => window.LifecycleDialog.prompt('Why?', 'x'));
+  await expect(page.locator('[data-lc-dialog="prompt"]')).toBeVisible();
   await page.keyboard.press('Escape');
   expect(await p).toBeNull();
   expect(dialogs).toEqual([]);
