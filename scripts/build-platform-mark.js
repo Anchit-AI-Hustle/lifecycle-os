@@ -73,13 +73,18 @@ for (const [bucket, [pw, ph]] of Object.entries(SPLASH)) {
   TARGETS.push({ file: `android/app/src/main/res/drawable-port-${bucket}/splash.png`, w: pw, h: ph, kind: 'splash', use: 'Android launch screen, portrait' });
   TARGETS.push({ file: `android/app/src/main/res/drawable-land-${bucket}/splash.png`, w: bucket === 'xxxhdpi' ? 1920 : ph, h: bucket === 'xxxhdpi' ? 1280 : pw, kind: 'splash', use: 'Android launch screen, landscape' });
 }
-// iOS (Capacitor's Xcode project): one 1024 app icon, full bleed and opaque
-// (iOS applies its own corner mask and rejects transparency), and the launch
-// image the storyboard scales to fit.
-TARGETS.push({ file: 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png', w: 1024, h: 1024, kind: 'fullbleed', opaque: true, use: 'iOS app icon' });
-for (const f of ['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png']) {
-  TARGETS.push({ file: `ios/App/App/Assets.xcassets/Splash.imageset/${f}`, w: 2732, h: 2732, kind: 'splash', use: 'iOS launch image' });
-}
+// iOS: one 1024 app icon, full bleed and opaque (iOS applies its own corner
+// mask and rejects transparency), and the launch image the storyboard scales
+// to fit. ios/ is generated on each build and kept out of git (Swift in the
+// repo trips code scanning), so these live here and
+// .github/workflows/mobile-builds.yml copies them over Capacitor's template
+// images after `cap add ios` (IOS_ASSETS says where each goes).
+TARGETS.push({ file: 'assets/lifecycle-os/ios/AppIcon-512@2x.png', w: 1024, h: 1024, kind: 'fullbleed', opaque: true, use: 'iOS app icon' });
+TARGETS.push({ file: 'assets/lifecycle-os/ios/splash-2732x2732.png', w: 2732, h: 2732, kind: 'splash', use: 'iOS launch image' });
+const IOS_ASSETS = {
+  'assets/lifecycle-os/ios/AppIcon-512@2x.png': ['ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'],
+  'assets/lifecycle-os/ios/splash-2732x2732.png': ['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png'].map((f) => `ios/App/App/Assets.xcassets/Splash.imageset/${f}`),
+};
 /** The plain surface a launch screen and the native shell sit on. */
 const SPLASH_GROUND = '#FFFFFF';
 
@@ -246,7 +251,7 @@ async function render() {
   }
 }
 
-module.exports = { TARGETS, SPLASH_GROUND, SVG_PATH, tokens, variant, documentFor, LOGO_SET, LOGO_RASTERS, logoSvg, markParts, WORDMARK, WORDMARK_FONT };
+module.exports = { TARGETS, IOS_ASSETS, SPLASH_GROUND, SVG_PATH, tokens, variant, documentFor, LOGO_SET, LOGO_RASTERS, logoSvg, markParts, WORDMARK, WORDMARK_FONT };
 
 if (require.main === module) {
   if (process.argv.includes('--list')) {

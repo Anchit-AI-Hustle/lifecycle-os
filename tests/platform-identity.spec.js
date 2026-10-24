@@ -523,11 +523,22 @@ test('every raster exists at its declared size, is not blank, and keeps the corn
 
 test('the Android and iOS apps load the live site and open on the platform mark, never a tenant\'s name, colour or the template\'s logo', () => {
   // Both apps exist as native projects, each with the mark's launch screen and icon.
-  for (const f of ['android/app/src/main/AndroidManifest.xml', 'ios/App/App/Info.plist', 'ios/App/App.xcodeproj/project.pbxproj']) {
-    expect(fs.existsSync(path.join(ROOT, f)), `${f} missing: the native project was not generated`).toBe(true);
-  }
+  expect(fs.existsSync(path.join(ROOT, 'android/app/src/main/AndroidManifest.xml'))).toBe(true);
   expect(mark.TARGETS.filter((t) => t.file.startsWith('android/') && t.kind === 'splash').length).toBe(11);
-  expect(mark.TARGETS.filter((t) => t.file.startsWith('ios/')).length).toBe(4);
+  // ios/ is generated on each build; the build copies the mark's icon and launch
+  // image over every template image Capacitor's iOS project ships.
+  const iosTargets = mark.TARGETS.filter((t) => t.file.startsWith('assets/lifecycle-os/ios/')).map((t) => t.file).sort();
+  expect(Object.keys(mark.IOS_ASSETS).sort()).toEqual(iosTargets);
+  const shipped = Object.values(mark.IOS_ASSETS).flat().sort();
+  expect(shipped).toEqual(['ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png'].concat(['splash-2732x2732-1.png', 'splash-2732x2732-2.png', 'splash-2732x2732.png'].map((f) => `ios/App/App/Assets.xcassets/Splash.imageset/${f}`)).sort());
+  const tpl = path.join(ROOT, 'node_modules', '@capacitor', 'cli', 'assets', 'ios-spm-template.tar.gz');
+  if (fs.existsSync(tpl)) {
+    const listed = cp.execSync(`tar -tzf "${tpl}"`, { encoding: 'utf8' }).split('\n').filter((f) => /\.png$/.test(f)).map((f) => 'ios/' + f.replace(/^\.\//, '')).sort();
+    expect(listed, 'Capacitor\'s iOS template ships an image the build does not replace').toEqual(shipped);
+  }
+  const wf = fs.readFileSync(path.join(ROOT, '.github/workflows/mobile-builds.yml'), 'utf8');
+  const add = wf.indexOf('npx cap add ios'), copy = wf.indexOf('IOS_ASSETS'), build = wf.indexOf('xcodebuild');
+  expect(add > 0 && copy > add && build > copy, 'the iOS build must copy the mark\'s images after cap add ios and before xcodebuild').toBe(true);
   // Every config loads the canonical site, so the apps run what the website runs.
   for (const f of ['capacitor.config.json', 'mobile/capacitor.config.json']) {
     const c = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
