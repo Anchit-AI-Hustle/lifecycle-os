@@ -12,11 +12,7 @@
  *     POST https://openrouter.ai/api/v1/auth/keys for an API key on THEIR
  *     account (https://openrouter.ai/docs/use-cases/oauth-pkce). No app
  *     registration and no client secret: nothing for this deployment to set.
- * Not here, and why (said on the page too):
- *   - OpenAI and Anthropic publish no sign-in for a third-party app to use a
- *     person's account; their API keys are the only route.
- *   - Google (Gemini) documents OAuth for desktop/testing clients; a public web
- *     app needs Google's app verification of its scopes first.
+ * Not here, and why (said on the page too): see PROVIDER_SIGNIN below.
  *
  * The exchange runs HERE, not in the browser: the key goes straight into the
  * same encrypted store a typed key goes to (workspace-connections-core
@@ -37,39 +33,40 @@ const SIGNIN = {
   },
 };
 
-const NOT_OFFERED = {
-  openai: 'OpenAI publishes no sign-in a third-party app can use to reach your account; paste an API key from platform.openai.com instead.',
-  anthropic: 'Anthropic publishes no sign-in a third-party app can use to reach your account; paste an API key from console.anthropic.com instead.',
-  gemini: 'Google documents Gemini sign-in for desktop and testing apps only; a public web app needs Google to verify it first. Paste an API key from aistudio.google.com instead.',
-};
-
 /**
- * The same model family THROUGH the person's own OpenRouter account
- * (2026-10-24, the operator: "sign in with AI model not added yet here?").
- * Claude, ChatGPT, Gemini and Grok have no sign-in of their own for an app, but
- * OpenRouter serves each of them on the person's OpenRouter account, so the card
- * of each offers that sign-in and the key is then used with that model. Slugs
- * read from https://openrouter.ai/api/v1/models on 2026-10-24.
+ * Each model's OWN sign-in (2026-10-24, the operator: "use each respective
+ * model signup not openrouter as common for all"). Read on 2026-10-24:
+ *   - OpenAI ships "Sign in with ChatGPT" (developers.openai.com/siwc), but a
+ *     HOSTED app gets a client ID only through OpenAI's limited trial, and the
+ *     plan-usage flow it documents is for open-source tools that sign in back
+ *     to 127.0.0.1. Until OpenAI issues this app a client ID, the person signs
+ *     in at platform.openai.com and makes a key there.
+ *   - Anthropic's terms do not let a third-party app sign people in to Claude;
+ *     an API key from the Console is the supported route.
+ *   - Google's Gemini API OAuth bills the app's own Google project, not the
+ *     person's account, so the person's own route is a key from AI Studio.
+ *   - xAI documents no sign-in for third-party apps; keys come from its console.
+ * So each card sends the person to THAT provider's own sign-in page, where the
+ * key is made on their own account, and the key is pasted back here.
  */
-const VIA = {
-  anthropic: { model: 'anthropic/claude-sonnet-5.5', family: 'Claude' },
-  openai: { model: 'openai/gpt-5.5', family: 'ChatGPT' },
-  gemini: { model: 'google/gemini-3.8-flash', family: 'Gemini' },
-  grok: { model: 'x-ai/grok-4.3', family: 'Grok' },
+const PROVIDER_SIGNIN = {
+  openai: { label: 'OpenAI', url: 'https://platform.openai.com/api-keys',
+    note: 'OpenAI offers "Sign in with ChatGPT" to hosted apps only through a limited trial that OpenAI has not opened to this app yet. Sign in at OpenAI, create a key on your account, and paste it above.' },
+  anthropic: { label: 'Anthropic', url: 'https://console.anthropic.com/settings/keys',
+    note: 'Anthropic does not let other apps sign you in to Claude. Sign in at the Anthropic Console, create a key on your account, and paste it above.' },
+  gemini: { label: 'Google AI Studio', url: 'https://aistudio.google.com/apikey',
+    note: 'A Google sign-in from another app would bill that app\'s Google project, not your account. Sign in at Google AI Studio, create a key on your account, and paste it above.' },
+  grok: { label: 'xAI', url: 'https://console.x.ai',
+    note: 'xAI does not offer other apps a sign-in. Sign in at the xAI console, create a key on your account, and paste it above.' },
 };
-const VIA_MODELS = Object.keys(VIA).map((k) => VIA[k].model);
+const NOT_OFFERED = Object.fromEntries(Object.keys(PROVIDER_SIGNIN).map((k) => [k, PROVIDER_SIGNIN[k].note]));
 
-/** What the page shows per provider: a sign-in it can start, or why there is none. */
+/** What the page shows per provider: a sign-in it can start here, or the provider's own sign-in page. */
 function viewFor(providerId) {
   const s = SIGNIN[providerId];
   if (s) return { available: true, kind: s.kind, authorize_url: s.authorize_url, note: s.note, source: s.source };
-  const v = VIA[providerId];
-  const via = v ? {
-    provider: 'openrouter', model: v.model, family: v.family, authorize_url: SIGNIN.openrouter.authorize_url,
-    note: `Sign in with your OpenRouter account to use ${v.family} (${v.model}) on it: OpenRouter makes a key on your account and bills its use to your OpenRouter credits, not this app's.`,
-  } : null;
-  if (NOT_OFFERED[providerId]) return { available: false, note: NOT_OFFERED[providerId], via };
-  if (via) return { available: false, note: '', via };
+  const own = PROVIDER_SIGNIN[providerId];
+  if (own) return { available: false, note: own.note, provider_signin: { label: own.label, url: own.url } };
   return null;
 }
 
@@ -89,10 +86,6 @@ async function exchange(auth, workspaceId, input, deps) {
   const s = SIGNIN[providerId];
   if (!s) throw fail(400, 'signin_not_offered', (NOT_OFFERED[providerId]) || `There is no sign-in for "${providerId}" here.`);
   const code = String((input && input.code) || '').trim();
-  // A model asked for by a provider card's "use <family> through OpenRouter":
-  // only one of the listed slugs, never a string the request makes up.
-  const model = String((input && input.model) || '').trim();
-  if (model && VIA_MODELS.indexOf(model) < 0) throw fail(400, 'model_not_offered', `"${model}" is not a model this sign-in sets up. Start the sign-in again from a provider card.`);
   const verifier = String((input && input.code_verifier) || '').trim();
   if (!code) throw fail(400, 'code_required', `${s.label} did not send back a sign-in code. Start the sign-in again.`);
   // RFC 7636: a verifier is 43-128 characters of [A-Za-z0-9-._~].
@@ -125,15 +118,9 @@ async function exchange(auth, workspaceId, input, deps) {
   const connection = await save(auth, {
     workspace_id: workspaceId, provider: s.provider,
     label: `${s.label} (signed in)`,
-    fields: model ? { api_key: key, model } : { api_key: key },
+    fields: { api_key: key },
   });
-  const fam = model ? Object.keys(VIA).map((k) => VIA[k]).filter((v) => v.model === model)[0].family : '';
-  return {
-    ok: true, provider: s.provider, signed_in: true, model: model || null, connection,
-    message: model
-      ? `Signed in with ${s.label}. This workspace now uses ${fam} (${model}) on your ${s.label} account; the key is kept encrypted and never shown.`
-      : `Signed in with ${s.label}. This workspace now uses your ${s.label} account; the key is kept encrypted and never shown.`,
-  };
+  return { ok: true, provider: s.provider, signed_in: true, connection, message: `Signed in with ${s.label}. This workspace now uses your ${s.label} account; the key is kept encrypted and never shown.` };
 }
 
-module.exports = { SIGNIN, NOT_OFFERED, VIA, viewFor, exchange };
+module.exports = { SIGNIN, NOT_OFFERED, PROVIDER_SIGNIN, viewFor, exchange };
