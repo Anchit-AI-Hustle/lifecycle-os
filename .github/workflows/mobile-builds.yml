@@ -102,23 +102,14 @@ jobs:
 
       - run: npm ci
 
-      - name: cap add ios (regenerate native platform)
-        # ios/ is intentionally NOT committed — keeping Swift (AppDelegate.swift) and
-        # the Ruby Podfile out of the repo is what stops CodeQL from erroring on
-        # unbuildable Swift/Ruby. The iOS shell is a pure derivative of
-        # capacitor.config.json (server.url -> live site), so regenerate it fresh from
-        # node_modules for each build. `|| true` no-ops if it already exists.
-        run: npx cap add ios || true
-
-      - name: Lifecycle OS icon and launch images
-        # `cap add ios` writes Capacitor's template images; replace them with the
-        # platform mark's (rendered by scripts/build-platform-mark.js, IOS_ASSETS).
-        run: |
-          node -e "
-          const fs = require('fs');
-          const { IOS_ASSETS } = require('./scripts/build-platform-mark.js');
-          for (const [src, dests] of Object.entries(IOS_ASSETS)) for (const d of dests) { fs.copyFileSync(src, d); console.log(src, '->', d); }
-          "
+      - name: Make the iOS project, in the platform's chrome
+        # ios/ is intentionally NOT committed: keeping Swift (AppDelegate.swift)
+        # out of the repo is what stops code scanning from erroring on unbuildable
+        # Swift. The iOS shell is a pure derivative of capacitor.config.json
+        # (server.url -> live site). scripts/ios-prepare.js adds the platform when
+        # missing and replaces Capacitor's template icon and launch images with the
+        # Lifecycle OS mark's (IOS_ASSETS); the next step syncs.
+        run: node scripts/ios-prepare.js --no-sync
 
       - name: cap sync ios
         # Resolves Swift Package Manager dependencies (Capacitor 8 iOS uses SPM,

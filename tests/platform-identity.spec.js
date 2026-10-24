@@ -536,9 +536,18 @@ test('the Android and iOS apps load the live site and open on the platform mark,
     const listed = cp.execSync(`tar -tzf "${tpl}"`, { encoding: 'utf8' }).split('\n').filter((f) => /\.png$/.test(f)).map((f) => 'ios/' + f.replace(/^\.\//, '')).sort();
     expect(listed, 'Capacitor\'s iOS template ships an image the build does not replace').toEqual(shipped);
   }
+  // One preparer adds the platform when missing and applies the images; the
+  // local entry point and the build both run it before anything else touches ios/.
+  // Executed: on a checkout with no ios/ it adds the platform; either way every
+  // template image ends up byte-for-byte the mark's.
+  cp.execFileSync(process.execPath, [path.join(ROOT, 'scripts/ios-prepare.js'), '--no-sync'], { cwd: ROOT, stdio: 'pipe', timeout: 120000 });
+  for (const [src, dests] of Object.entries(mark.IOS_ASSETS)) {
+    for (const d of dests) expect(fs.readFileSync(path.join(ROOT, d)).equals(fs.readFileSync(path.join(ROOT, src))), `${d} is not the mark's image`).toBe(true);
+  }
   const wf = fs.readFileSync(path.join(ROOT, '.github/workflows/mobile-builds.yml'), 'utf8');
-  const add = wf.indexOf('npx cap add ios'), copy = wf.indexOf('IOS_ASSETS'), build = wf.indexOf('xcodebuild');
-  expect(add > 0 && copy > add && build > copy, 'the iOS build must copy the mark\'s images after cap add ios and before xcodebuild').toBe(true);
+  const step = wf.indexOf('node scripts/ios-prepare.js'), build = wf.indexOf('xcodebuild');
+  expect(step > 0 && build > step, 'the iOS build must run ios-prepare.js before xcodebuild').toBe(true);
+  expect(JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).scripts['mobile:ios:open']).toMatch(/^node scripts\/ios-prepare\.js && /);
   // Every config loads the canonical site, so the apps run what the website runs.
   for (const f of ['capacitor.config.json', 'mobile/capacitor.config.json']) {
     const c = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
