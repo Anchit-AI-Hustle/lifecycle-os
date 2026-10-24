@@ -75,6 +75,10 @@ jobs:
             --title "Lifecycle OS — mobile builds (latest)" \
             --notes "Auto-published by the Mobile Builds workflow. The apps render the live deployment, so they stay current without rebuilds. Android: install the APK directly. iOS: unsigned IPA — sideload or sign for TestFlight." \
             || true
+          # The builds were published as knickgasm-lifecycle-os.* until the product
+          # was renamed (2026-08): those files would be offered beside the current
+          # ones forever, so they are removed (a no-op once they are gone).
+          gh release delete-asset mobile-latest knickgasm-lifecycle-os.apk -y || true
           # GitHub's release API returns transient 503s; the build is fine, so retry
           # the upload with backoff instead of failing the whole job on a blip.
           for i in 1 2 3 4 5; do
@@ -144,6 +148,7 @@ jobs:
             --title "Lifecycle OS — mobile builds (latest)" \
             --notes "Auto-published by the Mobile Builds workflow." \
             || true
+          gh release delete-asset mobile-latest knickgasm-lifecycle-os-ios-unsigned.ipa -y || true
           # Retry the upload past transient GitHub 503s (see the Android job).
           for i in 1 2 3 4 5; do
             gh release upload mobile-latest lifecycle-os-ios-unsigned.ipa --clobber && exit 0
