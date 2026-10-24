@@ -43,11 +43,33 @@ const NOT_OFFERED = {
   gemini: 'Google documents Gemini sign-in for desktop and testing apps only; a public web app needs Google to verify it first. Paste an API key from aistudio.google.com instead.',
 };
 
+/**
+ * The same model family THROUGH the person's own OpenRouter account
+ * (2026-10-24, the operator: "sign in with AI model not added yet here?").
+ * Claude, ChatGPT, Gemini and Grok have no sign-in of their own for an app, but
+ * OpenRouter serves each of them on the person's OpenRouter account, so the card
+ * of each offers that sign-in and the key is then used with that model. Slugs
+ * read from https://openrouter.ai/api/v1/models on 2026-10-24.
+ */
+const VIA = {
+  anthropic: { model: 'anthropic/claude-sonnet-5.5', family: 'Claude' },
+  openai: { model: 'openai/gpt-5.5', family: 'ChatGPT' },
+  gemini: { model: 'google/gemini-3.8-flash', family: 'Gemini' },
+  grok: { model: 'x-ai/grok-4.3', family: 'Grok' },
+};
+const VIA_MODELS = Object.keys(VIA).map((k) => VIA[k].model);
+
 /** What the page shows per provider: a sign-in it can start, or why there is none. */
 function viewFor(providerId) {
   const s = SIGNIN[providerId];
   if (s) return { available: true, kind: s.kind, authorize_url: s.authorize_url, note: s.note, source: s.source };
-  if (NOT_OFFERED[providerId]) return { available: false, note: NOT_OFFERED[providerId] };
+  const v = VIA[providerId];
+  const via = v ? {
+    provider: 'openrouter', model: v.model, family: v.family, authorize_url: SIGNIN.openrouter.authorize_url,
+    note: `Sign in with your OpenRouter account to use ${v.family} (${v.model}) on it: OpenRouter makes a key on your account and bills its use to your OpenRouter credits, not this app's.`,
+  } : null;
+  if (NOT_OFFERED[providerId]) return { available: false, note: NOT_OFFERED[providerId], via };
+  if (via) return { available: false, note: '', via };
   return null;
 }
 
@@ -67,6 +89,10 @@ async function exchange(auth, workspaceId, input, deps) {
   const s = SIGNIN[providerId];
   if (!s) throw fail(400, 'signin_not_offered', (NOT_OFFERED[providerId]) || `There is no sign-in for "${providerId}" here.`);
   const code = String((input && input.code) || '').trim();
+  // A model asked for by a provider card's "use <family> through OpenRouter":
+  // only one of the listed slugs, never a string the request makes up.
+  const model = String((input && input.model) || '').trim();
+  if (model && VIA_MODELS.indexOf(model) < 0) throw fail(400, 'model_not_offered', `"${model}" is not a model this sign-in sets up. Start the sign-in again from a provider card.`);
   const verifier = String((input && input.code_verifier) || '').trim();
   if (!code) throw fail(400, 'code_required', `${s.label} did not send back a sign-in code. Start the sign-in again.`);
   // RFC 7636: a verifier is 43-128 characters of [A-Za-z0-9-._~].
@@ -99,9 +125,15 @@ async function exchange(auth, workspaceId, input, deps) {
   const connection = await save(auth, {
     workspace_id: workspaceId, provider: s.provider,
     label: `${s.label} (signed in)`,
-    fields: { api_key: key },
+    fields: model ? { api_key: key, model } : { api_key: key },
   });
-  return { ok: true, provider: s.provider, signed_in: true, connection, message: `Signed in with ${s.label}. This workspace now uses your ${s.label} account; the key is kept encrypted and never shown.` };
+  const fam = model ? Object.keys(VIA).map((k) => VIA[k]).filter((v) => v.model === model)[0].family : '';
+  return {
+    ok: true, provider: s.provider, signed_in: true, model: model || null, connection,
+    message: model
+      ? `Signed in with ${s.label}. This workspace now uses ${fam} (${model}) on your ${s.label} account; the key is kept encrypted and never shown.`
+      : `Signed in with ${s.label}. This workspace now uses your ${s.label} account; the key is kept encrypted and never shown.`,
+  };
 }
 
-module.exports = { SIGNIN, NOT_OFFERED, viewFor, exchange };
+module.exports = { SIGNIN, NOT_OFFERED, VIA, viewFor, exchange };
