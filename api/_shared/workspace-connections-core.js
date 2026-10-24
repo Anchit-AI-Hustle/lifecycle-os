@@ -112,7 +112,12 @@ const PROVIDERS = [
     auth_kind: 'api_key', env_default: 'OPENROUTER_API_KEY',
     key_url: 'https://openrouter.ai/credits',
     blurb: 'One key that routes to Claude, GPT, Gemini and open models.',
-    fields: [{ key: 'api_key', label: 'API key', secret: true, required: true }],
+    fields: [
+      { key: 'api_key', label: 'API key', secret: true, required: true },
+      // The model this key is used with (an OpenRouter slug such as
+      // anthropic/claude-sonnet-5.5); empty = the default chain in llm.js.
+      { key: 'model', label: 'Model', secret: false, required: false, placeholder: 'anthropic/claude-sonnet-5.5' },
+    ],
   },
   {
     id: 'deepseek', label: 'DeepSeek', category: 'ai', llm_provider: 'deepseek',
@@ -788,6 +793,7 @@ const RESOLVED = new Map();       // `${user}|${workspace}` -> { at, overrides }
  */
 function buildOverrides(routing, connections, secrets) {
   const keys = {};
+  const connModels = {};
   const bases = {};
   const configured = new Set();
 
@@ -798,6 +804,9 @@ function buildOverrides(routing, connections, secrets) {
     const cfg = (row.config && typeof row.config === 'object') ? row.config : {};
 
     if (secret.api_key) keys[reg.llm_provider] = secret.api_key;
+    // A model chosen on the connection (OpenRouter: the family a provider
+    // card's sign-in asked for), used unless the routing names its own.
+    if (cfg.model && typeof cfg.model === 'string' && /^[a-z0-9._-]+\/[a-z0-9._:-]+$/i.test(cfg.model)) connModels[reg.llm_provider] = [cfg.model];
 
     // Two providers are reached at an address that depends on the workspace's
     // own account, so the base URL is part of the credential.
@@ -830,6 +839,7 @@ function buildOverrides(routing, connections, secrets) {
     order.push(p);
     if (Array.isArray(e.models) && e.models.length) models[p] = e.models.slice();
   }
+  for (const p of Object.keys(connModels)) if (!models[p]) models[p] = connModels[p];
 
   if (!order.length && !Object.keys(keys).length && !Object.keys(bases).length) return null;
 
