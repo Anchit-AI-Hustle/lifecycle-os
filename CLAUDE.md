@@ -15,7 +15,7 @@ a near-black ground with "KNICKGASM" (a tenant's name in platform chrome), and t
 from the one mark: 11 Android splash PNGs and the iOS 1024 app icon (opaque, PNG colour type 2: the App Store refuses an
 alpha channel) and launch images, all on `SPLASH_GROUND` (#FFFFFF); the shell page is the stacked lockup on that
 surface. Gated in `tests/platform-identity.spec.js` (the old shell fails it). Building and signing the store binaries
-needs Android Studio / Xcode on the operator's machine (`npm run mobile:android`, `npx cap open ios`); the bundle id
+needs Android Studio / Xcode on the operator's machine (`npm run mobile:android`, `npm run mobile:ios:open`; both sync the shell and config first, which a clean checkout lacks); the bundle id
 `com.knickgasm.lifecycleos` was left as it is, since changing it makes a new app in both stores.
 
 ## ⭐ The Owner's Desk: seven agency jobs from the owner's own files (2026-10-23)
