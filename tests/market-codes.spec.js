@@ -25,7 +25,7 @@ const extract = require('../api/_shared/brand-extract.js');
 const locale = require('../api/_shared/brand-locale.js');
 const core = require('../api/_shared/brand-workspace-core.js');
 
-const CODES = ['OK', 'TV', 'IN', 'US', 'UK', 'GB', 'EU', 'ME', 'GLOBAL', 'IND', 'TR', 'XX', 'ZZ', 'QQ', 'AE', 'XK', 'XA', 'XB', 'EZ', 'UN', 'QO', 'AC', 'IC'];
+const CODES = ['OK', 'TV', 'IN', 'US', 'UK', 'GB', 'EU', 'ME', 'GLOBAL', 'IND', 'TR', 'XX', 'ZZ', 'QQ', 'AE', 'XK', 'XA', 'XB', 'EZ', 'UN', 'QO', 'AC', 'IC', 'SU', 'CS'];
 
 test('the site reader takes a country from a link only when the link NAMES the country', () => {
   const html = '<html><head>' +
@@ -75,6 +75,10 @@ test('the rail never offers a stored "OK", and the browser rule answers as the s
     expect(offered).toEqual(['IN', 'US']);
     const browser = await page.evaluate((codes) => codes.map((c) => window.RegionContext.isMarket(c)), CODES);
     expect(browser).toEqual(CODES.map((c) => locale.isMarket(c)));
+    // One list on both sides: the 249 assigned ISO 3166-1 codes and XK.
+    const list = await page.evaluate(() => window.RegionContext.isoCountries());
+    expect(list).toEqual([...locale.ISO_COUNTRIES].sort());
+    expect(list.length).toBe(250);
     expect(CODES.filter((c) => locale.isMarket(c))).toEqual(['TV', 'IN', 'US', 'UK', 'GB', 'EU', 'ME', 'GLOBAL', 'IND', 'TR', 'AE', 'XK']);
   } finally {
     await new Promise((r) => { try { srv.closeAllConnections(); } catch (_) {} srv.close(() => r()); });

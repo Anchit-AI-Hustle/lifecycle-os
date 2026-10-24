@@ -107,28 +107,28 @@ function family(v) {
   return FAMILY[k] || k;
 }
 /* A MARKET IS A COUNTRY OR A ZONE (2026-10-24). Production, The Economic
-   Times: the rail offered "OK" and "TV" as markets. A link whose text was
-   "TV" (to /tv/) had been read as Tuvalu's store, and "OK" is no country at
-   all. A code is a market only when it is one of this app's zones or an ISO
-   3166-1 country the runtime's own region names know (Intl.DisplayNames,
-   the same table in Node and every browser); anything else is dropped. */
+   Times: the rail offered "OK" and "TV" as markets - a link whose text was
+   "TV" (to /tv/) had been read as Tuvalu's store, and "OK" is no country.
+   A code is a market only when it is one of this app's zones or an ISO
+   3166-1 alpha-2 code currently ASSIGNED to a country (the 249 below, plus
+   XK, how Kosovo is written). Not the runtime's region names: ICU also names
+   pseudo-locales (XA), groupings (EZ, UN), reserved territories (AC, IC) and
+   deprecated aliases (SU, CS), none of them a country (Codex, #325/#326).
+   The browser holds the same list (region-context.js); a test compares them. */
 const ZONE_CODES = new Set(['GLOBAL', 'EU', 'ME', 'UK']);
-/* Region names ICU knows that are not countries (Codex on #325): its pseudo-
-   locales (XA, XB), groupings (EZ, UN, QO), ISO's exceptionally reserved
-   territories (AC, CP, CQ, DG, EA, IC, TA) and every user-assigned code
-   (AA, QM-QZ, X*, ZZ) - except XK, which is how Kosovo is written. */
-const NOT_COUNTRY = /^(?:AA|Q[M-Z]|X[A-JL-Z]|ZZ|EZ|UN|AC|CP|CQ|DG|EA|IC|TA)$/;
-let regionNames = null;
+const ISO_COUNTRIES = new Set((
+  'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD ' +
+  'CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF ' +
+  'GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN ' +
+  'KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA ' +
+  'NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI ' +
+  'SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI ' +
+  'VN VU WF WS YE YT ZA ZM ZW'
+).trim().split(/\s+/).concat(['XK']));
 function isMarket(code) {
   const f = family(code);
   if (!f) return false;
-  if (ZONE_CODES.has(f) || COUNTRY[f]) return true;
-  if (!/^[A-Z]{2}$/.test(f) || NOT_COUNTRY.test(f)) return false;
-  try {
-    if (!regionNames) regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
-    const n = regionNames.of(f);
-    return !!n && n !== f && !/^unknown/i.test(n);
-  } catch (_) { return false; }
+  return ZONE_CODES.has(f) || ISO_COUNTRIES.has(f);
 }
 
 /** The ISO country a market code names, or '' for a zone (EU, ME, GLOBAL). */
@@ -304,6 +304,6 @@ function socialOf(brand) {
 }
 
 module.exports = {
-  COUNTRY, SYMBOL, FAMILY, family, isMarket, countryOf, marker, homeMarket, homeRegionRow, marketFor, localeFor, money, symbolOf, defaultMarket,
+  COUNTRY, SYMBOL, FAMILY, family, isMarket, ISO_COUNTRIES, ZONE_CODES, countryOf, marker, homeMarket, homeRegionRow, marketFor, localeFor, money, symbolOf, defaultMarket,
   utcHourOf, legalEntityOf, socialOf,
 };
