@@ -995,6 +995,9 @@ function registryView(signedIn) {
       ? 'Used by every generation in this workspace, in the priority order you set.'
       : (p.wired_note || ''),
     oauth_note: p.oauth_note || '',
+    // Sign in with the provider's own account, where the provider documents
+    // one (ai-account-signin.js); else why there is none.
+    signin: p.category === 'ai' ? require('./ai-account-signin.js').viewFor(p.id) : null,
   }));
 }
 
@@ -1192,6 +1195,10 @@ async function handle(req, res) {
         return res.status(200).json({ ok: true, routing: await getRouting(auth, workspaceId), providers: registryView(true).filter((p) => p.llm_provider), free_generation: freeGenerationView(true) });
       case 'routing-save':
         return res.status(200).json({ ok: true, routing: await saveRouting(auth, workspaceId, body.routing || body) });
+
+      /* ── sign in with an AI provider's own account ─────────────────── */
+      case 'ai-signin-exchange':
+        return res.status(200).json(await require('./ai-account-signin.js').exchange(auth, workspaceId, body));
 
       /* ── OAuth ──────────────────────────────────────────────────────── */
       case 'oauth-start':

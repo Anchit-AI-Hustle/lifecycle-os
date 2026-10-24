@@ -648,3 +648,63 @@ test('a brand-level gap is reported against the brand, not padded with "all, all
   expect(markers).toContain('[DATA REQUIRED BEFORE LAUNCH: logo URL, ' + BRAND.name + ']');
   expect(markers.filter((m) => /, all, all\]|, all\]/.test(m)), 'the review list still pads a marker with "all"').toEqual([]);
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. HOSTILE AND EDGE INPUT IS NORMALISED THE SAME ON THE DEVICE AND THE SERVER
+   (2026-10-24 sweep: duplicate markets, "ftp://" store links, "RUPEES!!" as a
+   currency, accents dropped from slugs, a font family carrying markup or CSS,
+   "[object Object]" for a voice field; the device twin had every one too.)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const HOSTILE = [
+  { name: 'Café Noir', website: 'cafenoir.example', regions: [{ code: 'IN', home: true, currency: 'inr' }, { code: 'IND' }, { code: 'india', home: true }, { code: 'GB', currency: 'RUPEES!!' }, { code: 'UK', home: true }, { code: 'ZZ' }, { code: 'US', store_url: 'ftp://x.example' }, { code: 'AE', store_url: 'javascript:alert(1)' }],
+    typography: { heading: { family: 'Inter"><script>alert(1)</script>' }, body: { family: "Bad'; } body{display:none} .", stack: 'Bad", serif; x:1' } },
+    voice: { tone: { a: 1 }, preferred: [1, null, 'ok', { a: 1 }], banned: 'not a list', notes: ['x'] },
+    palette: { primary: '#ABC', ink: '000', surface: 'fff', accent: 'url(x)', extra: [{ name: '<b>Brand red</b>', hex: '#e11d48' }] } },
+  { name: 'Ünïcødé & Söns', website: 'https://unicode.example/', logo_url: 'data:image/png;base64,AAAA', regions: [{ code: 'eu' }, { code: 'global', home: true }] },
+  { name: 'Ørsted Æble Straße', regions: 'IN', typography: [], voice: null, palette: 'red' },
+];
+
+test('hostile and edge input is normalised the same on the device as on the server', async ({ page }) => {
+  await harness(page, 'unreachable');
+  await openWizard(page);
+  for (const input of HOSTILE) {
+    const got = await page.evaluate(async (b) => {
+      const saved = await window.BrandContext.api('save', { body: { brand: b } });
+      const id = saved && saved.brand && saved.brand.id;
+      const back = await window.BrandContext.api('get', { query: { id } }).catch(() => null);
+      return (back && back.brand) || (saved && saved.brand) || null;
+    }, input);
+    expect(got, `${input.name} was not saved on the device`).not.toBeNull();
+    const want = {
+      palette: core.normalizePalette(input.palette),
+      typography: core.normalizeTypography(input.typography),
+      voice: core.normalizeVoice(input.voice),
+      regions: core.normalizeRegions(input.regions),
+    };
+    // A field the save did not send keeps the record's own (here: none).
+    for (const k of ['palette', 'typography', 'voice', 'regions']) if (input[k] !== undefined) expect(got[k], `${input.name}: ${k}`).toEqual(want[k]);
+    expect(got.slug, `${input.name}: slug`).toBe(core.slugify(input.name));
+  }
+});
+
+test('the server normalisers: one row per market, ISO currencies, web links only, folded slugs, clean type and voice', () => {
+  const r = core.normalizeRegions(HOSTILE[0].regions);
+  expect(r.map((x) => x.code)).toEqual(['IN', 'UK', 'US', 'AE']);
+  expect(r.filter((x) => x.home).map((x) => x.code)).toEqual(['IN']);
+  expect(r.find((x) => x.code === 'IN').currency).toBe('INR');
+  expect(r.find((x) => x.code === 'UK').currency).toBe('');
+  expect(r.every((x) => x.store_url === '')).toBe(true);
+  expect(core.normalizeRegions([{ code: 'UK' }, { code: 'GB', home: true }]).map((x) => [x.code, x.home])).toEqual([['UK', true]]);
+  expect(core.slugify('Café Noir')).toBe('cafe-noir');
+  expect(core.slugify('Ørsted Æble Straße')).toBe('orsted-aeble-strasse');
+  const t = core.normalizeTypography(HOSTILE[0].typography);
+  for (const f of [t.heading, t.body]) {
+    expect(f.family).not.toMatch(/[<>"';{}()]/);
+    expect(f.stack).not.toMatch(/[<>";{}()]/);
+  }
+  const v = core.normalizeVoice(HOSTILE[0].voice);
+  expect(JSON.stringify(v)).not.toContain('[object Object]');
+  expect(v.preferred).toEqual(['1', 'ok']);
+  expect(core.normalizePalette(HOSTILE[0].palette).extra).toEqual([{ name: 'bBrand red/b', hex: '#e11d48' }]);
+});

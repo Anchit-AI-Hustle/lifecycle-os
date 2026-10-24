@@ -436,9 +436,13 @@ const DEFAULT_BRAND = (() => {
   catch (_) { return null; }
 })();
 
+// Accents fold to their letters (2026-10-24 sweep: "Cafe Noir" with an accent
+// became "caf-noir", "Unicode & Sons" with diacritics "n-c-d-s-ns").
 function slugify(v) {
-  return String(v == null ? '' : v).toLowerCase().trim()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  let s = String(v == null ? '' : v).toLowerCase().trim();
+  try { s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, ''); } catch (_) { /* old engine */ }
+  s = s.replace(/ß/g, 'ss').replace(/æ/g, 'ae').replace(/œ/g, 'oe').replace(/ø/g, 'o').replace(/đ/g, 'd').replace(/ł/g, 'l').replace(/þ/g, 'th');
+  return s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
 }
 
 function str(v, max) {
@@ -454,6 +458,9 @@ function arr(v, max) {
 function httpUrl(v) {
   const s = str(v, 500);
   if (!s) return '';
+  // Another scheme is not a web address (2026-10-24 sweep: "ftp://x.com" was
+  // read as host "ftp" and saved as "https://ftp//x.com").
+  if (/^[a-z][a-z0-9+.-]*:/i.test(s) && !/^https?:\/\//i.test(s)) return '';
   try {
     const u = new URL(s.startsWith('http') ? s : `https://${s}`);
     return (u.protocol === 'http:' || u.protocol === 'https:') ? u.toString().replace(/\/$/, '') : '';
@@ -473,20 +480,26 @@ function normalizePalette(input) {
   const cleanExtra = [];
   for (const e of extra.slice(0, 12)) {
     const hex = normHex(e && e.hex);
-    const name = str(e && e.name, 32);
+    const name = str(e && e.name, 32).replace(/[<>]/g, '').trim();
     if (hex && name) cleanExtra.push({ name, hex });
   }
   if (cleanExtra.length) out.extra = cleanExtra;
   return out;
 }
 
+// A family name is words; a stack is family names, quotes and commas. Nothing
+// else reaches a style attribute or a stylesheet (2026-10-24 sweep: a family
+// of 'Inter"><script>' or "X; } body{display:none}" was kept as typed).
+function cleanFamily(v) { return str(v, 64).replace(/[^\p{L}\p{N} .&_-]/gu, '').replace(/\s+/g, ' ').trim(); }
+function cleanStack(v) { return str(v, 200).replace(/"/g, "'").replace(/[^\p{L}\p{N} .,&'_-]/gu, '').replace(/\s+/g, ' ').trim(); }
+
 function normalizeFont(f, fallback) {
   const src = f && typeof f === 'object' ? f : {};
-  const family = str(src.family, 64);
+  const family = cleanFamily(src.family);
   if (!family) return null;
   // A stack is only ever built from the operator's own family + a generic
   // fallback; we never substitute a different brand's typeface.
-  const stack = str(src.stack, 200) || `'${family}',${fallback}`;
+  const stack = cleanStack(src.stack) || `'${family}',${fallback}`;
   const out = {
     family,
     stack,
@@ -516,14 +529,17 @@ function normalizeTypography(input) {
   return out;
 }
 
+// Only words are voice: an object sent for a field is not "[object Object]".
+function words(v, max) { return (typeof v === 'string' || typeof v === 'number') ? str(v, max) : ''; }
+
 function normalizeVoice(input) {
   const src = input && typeof input === 'object' ? input : {};
   return {
-    tone: str(src.tone, 400),
-    preferred: arr(src.preferred, 80).map((s) => str(s, 60)),
-    banned: arr(src.banned, 120).map((s) => str(s, 60)),
+    tone: words(src.tone, 400),
+    preferred: arr(src.preferred, 80).map((s) => words(s, 60)).filter(Boolean),
+    banned: arr(src.banned, 120).map((s) => words(s, 60)).filter(Boolean),
     no_em_dashes: src.no_em_dashes !== false,
-    notes: str(src.notes, 2000),
+    notes: words(src.notes, 2000),
   };
 }
 
@@ -542,11 +558,18 @@ function normalizeRegions(input) {
     const locale = require('./brand-locale.js');
     const code = locale.family(str(r && r.code, 12));
     if (!code || !locale.isMarket(code)) continue;
+    // ONE row per market (2026-10-24 sweep: "IN", "IND" and "india" were three
+    // India rows, "GB" and "UK" two). The first row is kept; a later one only
+    // lends the home flag when none is set yet.
+    const seen = out.find((x) => x.code === code);
+    if (seen) { if (r.home === true && !homeSeen) { seen.home = true; homeSeen = true; } continue; }
     const home = r.home === true && !homeSeen;
     if (home) homeSeen = true;
+    const cur = str(r.currency, 8).toUpperCase();
     out.push({
       code,
-      currency: str(r.currency, 8).toUpperCase(),
+      // An ISO 4217 code or nothing: "RUPEES!!" is not a currency.
+      currency: /^[A-Z]{3}$/.test(cur) ? cur : '',
       symbol: str(r.symbol, 4),
       store_url: httpUrl(r.store_url),
       // Only what was stated: /products/{handle} is a Shopify URL scheme, and

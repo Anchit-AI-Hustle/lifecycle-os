@@ -4,6 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Every asset and every brand-setup field swept across every parameter; sign in with OpenRouter (2026-10-24)
+The operator: "test every asset generation logic and brand setup logic too for every parameter and context", then
+"while user is using his keys for the AI models also allow him to sign in directly with that AI model".
+- **Asset sweep** (`tests/asset-sweep-every-parameter.spec.js` over `tests/lib/sweep-brands.js`: 12 brand kinds x
+  every market they serve x 13 cohorts on the template path, plus a good and an ADVERSARIAL scripted model x offers;
+  ~500 builds). Found on the TEMPLATE path and fixed at source: `attachUnitWords` walked `platform_ready` blind (an
+  ad's `copy` there IS the ad object), spelling a kept "250g" into a 32-character Google headline / Meta text past 125
+  (now `finishAd()` for both, limit-aware); an RSA with 0-1 descriptions for a brand with no tagline/claims (filled
+  with name + action sentences, as headlines are); an EMPTY push body when the title said the line; the product (or a
+  catalogue-less brand) named twice in one Meta text / audience line; the preheader repeating the tagline the subject
+  carried; "The The ... team"; an SMS for a name with an em dash blocked as unnamed (contract compares dash-folded);
+  a landing page whose buttons go to "#" passed its contract (now a data-gap BLOCK). The adversarial model got no
+  invented claim, marker, tag, other brand, wrong currency or dash into any asset.
+- **Brand-setup sweep** (server `brand-workspace-core` AND the device twin in `brand-context.js`, parity-tested in
+  `tests/onboarding-without-backend.spec.js` section 6): one region row per market ("IN"/"IND"/"india", "GB"/"UK"),
+  ISO-4217 currency or none, `httpUrl` refuses another scheme ("ftp://x" was "https://ftp//x"), slugs fold accents
+  ("cafe-noir", "orsted-aeble-strasse"), font family/stack carry no markup, quotes, braces or semicolons
+  (`cleanFamily`/`cleanStack`), voice fields are words (no "[object Object]"), palette extra names carry no tags.
+- **Sign in with OpenRouter** (`api/_shared/ai-account-signin.js`, op `ai-signin-exchange` on
+  `?action=connections`, `/connections` card button): OAuth PKCE exactly as OpenRouter documents it
+  (openrouter.ai/docs/use-cases/oauth-pkce): verifier + state in the browser's sessionStorage, the one-time code
+  exchanged SERVER-side at `POST https://openrouter.ai/api/v1/auth/keys` only after the workspace write check, the
+  key saved through `saveConnection` (encrypted, never returned). No app registration, no env var. OpenAI, Anthropic
+  and Gemini say why there is no sign-in (none for third-party apps / Google verification for a web app). Not built
+  yet: Hugging Face (documented OAuth with an `inference-api` scope, needs a new llm.js provider + token refresh).
+  Gated by `tests/ai-account-signin.spec.js` (5 executed, incl. the redirect and return in Chromium).
+
 ## ⭐ The Android and iOS apps are the live site in platform chrome (2026-10-24)
 The operator: "ensure everything updated in both the web and mweb site ... and the ios and android apps". Both apps are
 Capacitor shells whose `server.url` is `https://lifecycle-os.anchit-tandon.com` (`capacitor.config.json`,
