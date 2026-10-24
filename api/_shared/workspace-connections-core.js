@@ -84,7 +84,14 @@ const PROVIDERS = [
     auth_kind: 'api_key', env_default: 'GEMINI_API_KEY',
     key_url: 'https://aistudio.google.com/apikey',
     blurb: 'Gemini models, with a free tier.',
-    fields: [{ key: 'api_key', label: 'API key', secret: true, required: true }],
+    // A key, or "Sign in with Google" (ai-account-signin.js): the sign-in keeps
+    // a Google refresh token (never shown, no input for it) and the Google Cloud
+    // project the calls are billed to, which the person can change.
+    fields: [
+      { key: 'api_key', label: 'API key', secret: true, required: true },
+      { key: 'google_refresh_token', label: 'Google sign-in', secret: true, required: false, hidden: true },
+      { key: 'project', label: 'Google Cloud project ID (for Sign in with Google)', secret: false, required: false, placeholder: 'my-project-id' },
+    ],
   },
   {
     id: 'grok', label: 'xAI (Grok)', category: 'ai', llm_provider: 'grok',
@@ -817,6 +824,12 @@ function buildOverrides(routing, connections, secrets) {
     const cfg = (row.config && typeof row.config === 'object') ? row.config : {};
 
     if (secret.api_key) keys[reg.llm_provider] = secret.api_key;
+    // Signed in with Google: the access token minted for this request (see
+    // llmOverridesFor), billed to the person's own project.
+    if (reg.llm_provider === 'gemini' && !secret.api_key && secret.__google_access) {
+      keys.gemini_oauth = { access_token: secret.__google_access, project: cfg.project || '' };
+      configured.add('gemini');
+    }
     // A model chosen on the connection (OpenRouter: the family a provider
     // card's sign-in asked for), used unless the routing names its own.
     if (cfg.model && typeof cfg.model === 'string' && /^[a-z0-9._-]+\/[a-z0-9._:-]+$/i.test(cfg.model)) connModels[reg.llm_provider] = [cfg.model];
@@ -903,6 +916,16 @@ async function llmOverridesFor(req) {
       return reg && reg.llm_provider && Array.isArray(r.secret_fields) && r.secret_fields.length;
     });
     const secrets = aiRows.length ? await secretsByConnectionId(aiRows.map((r) => r.id)) : new Map();
+    // A Google sign-in is a refresh token: turn it into an access token now.
+    // Google refusing it (revoked, expired) leaves Gemini unconnected for this
+    // request rather than failing the generation.
+    for (const r of aiRows) {
+      const sec = secrets.get(r.id);
+      if (r.provider === 'gemini' && sec && !sec.api_key && sec.google_refresh_token) {
+        const access = await require('./ai-account-signin.js').googleAccessToken(sec.google_refresh_token);
+        if (access) secrets.set(r.id, Object.assign({}, sec, { __google_access: access }));
+      }
+    }
 
     const overrides = buildOverrides(routing, connections, secrets);
     RESOLVED.set(cacheKey, { at: Date.now(), overrides });
@@ -1009,7 +1032,7 @@ function registryView(signedIn) {
     llm_provider: p.llm_provider || null,
     blurb: p.blurb,
     key_url: p.key_url || '',
-    fields: p.fields.map((f) => ({ key: f.key, label: f.label, secret: !!f.secret, required: !!f.required, fetched: !!f.fetched, placeholder: f.placeholder || '' })),
+    fields: p.fields.filter((f) => !f.hidden).map((f) => ({ key: f.key, label: f.label, secret: !!f.secret, required: !!f.required, fetched: !!f.fetched, placeholder: f.placeholder || '' })),
     known_models: p.llm_provider ? knownModels(p.llm_provider) : [],
     platform_default: signedIn ? platformDefault(p) : null,
     // Stated plainly so nobody reads a stored credential as a wired one.
