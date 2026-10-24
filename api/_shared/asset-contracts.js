@@ -377,6 +377,11 @@ const CONTRACTS = {
       if (a.html && /class="[^"]*\bsx\b/.test(a.html) && !/sx-on/.test(a.html)) {
         v.push(block('html', 'Reveal classes are present without the sx-on guard, so a visitor with no JavaScript gets a permanently blank page.'));
       }
+      // The page's buttons need somewhere to go (2026-10-24 sweep: a brand with
+      // no website or store on record shipped every button as href="#", and the
+      // contract passed it while the mail's own check blocks the same thing).
+      const dead = String(a.html || '').match(/<a\b[^>]*\bhref\s*=\s*"(?:#?)"[^>]*class="[^"]*\bbtn\b|<a\b[^>]*class="[^"]*\bbtn\b[^"]*"[^>]*\bhref\s*=\s*"(?:#?)"/gi);
+      if (dead) v.push(gap(block('cta', `${dead.length} button(s) on the page link to "#": the record has no website, store or product page for them to go to. [DATA REQUIRED BEFORE LAUNCH: website or store URL]`)));
       return v.concat(urlsNotPayloads(a, ['html']));
     },
   },
@@ -421,7 +426,9 @@ const CONTRACTS = {
       if (!/\b(STOP|opt[\s-]?out|unsubscribe)\b/i.test(text)) v.push(block('opt_out', 'No opt-out in a marketing SMS. Every one must say how to stop them (CTIA Messaging Principles; TCPA practice; UK PECR reg. 22 "a simple means of refusing").'));
       const sender = String(a.sender || '').trim();
       if (!sender) v.push(block('sender', 'The SMS does not say which brand is texting. A marketing text must identify its sender (CTIA Messaging Principles; UK PECR reg. 23).'));
-      else if (text.toLowerCase().indexOf(sender.toLowerCase()) < 0) v.push(block('sender', `The text never names ${sender}: the reader cannot tell who is texting (CTIA Messaging Principles; UK PECR reg. 23).`));
+      // Copy carries no em/en dash (scrubDashes writes "-"), so a brand whose
+      // own name has one is named in the text with a hyphen (2026-10-24 sweep).
+      else if (text.replace(/[—–]/g, '-').toLowerCase().indexOf(sender.replace(/[—–]/g, '-').toLowerCase()) < 0) v.push(block('sender', `The text never names ${sender}: the reader cannot tell who is texting (CTIA Messaging Principles; UK PECR reg. 23).`));
       if (a.link && !/^https:\/\//i.test(String(a.link))) v.push(block('link', 'The link is not an https address on the brand\'s own site.'));
       v.push(...shouting('text', text));
       return v;
