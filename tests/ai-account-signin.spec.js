@@ -60,9 +60,9 @@ test('the registry offers OpenRouter sign-in and says why OpenAI, Anthropic and 
   expect(r.code).toBe(200);
   const by = Object.fromEntries(r.payload.providers.map((p) => [p.id, p]));
   expect(by.openrouter.signin).toMatchObject({ available: true, kind: 'pkce', authorize_url: 'https://openrouter.ai/auth' });
-  for (const id of ['openai', 'anthropic', 'gemini']) {
+  for (const id of ['openai', 'anthropic', 'gemini', 'grok']) {
     expect(by[id].signin.available, id).toBe(false);
-    expect(by[id].signin.note, id).toMatch(/API key/);
+    expect(by[id].signin.note, id).toMatch(/create a key on your account/);
   }
   // A non-AI platform carries no sign-in field at all.
   expect(Object.values(by).filter((p) => p.category !== 'ai').every((p) => p.signin == null)).toBe(true);
@@ -86,34 +86,23 @@ test('a sign-in code is exchanged with its verifier, and the key is kept encrypt
   expect(connections.decryptSecrets(sec).api_key).toBe('sk-or-v1-PERSONALKEY1234');
 });
 
-test('Claude, ChatGPT, Gemini and Grok cards sign in through OpenRouter for THAT model, and generation then asks for it', async () => {
-  // 2026-10-24, the operator on /ai-models: "sign in with ai model not added
-  // yet here?" - the cards only said why their provider has no sign-in.
+test('Claude, ChatGPT, Gemini and Grok cards send the person to THAT provider\'s own sign-in, never through OpenRouter', async () => {
+  // 2026-10-24, the operator: "use each respective model signup not openrouter
+  // as common for all". Each card points at its own provider's key page.
   const reg = connections.registryView(true);
   const by = Object.fromEntries(reg.map((p) => [p.id, p]));
-  for (const [id, model] of [['anthropic', 'anthropic/claude-sonnet-5.5'], ['openai', 'openai/gpt-5.5'], ['gemini', 'google/gemini-3.8-flash'], ['grok', 'x-ai/grok-4.3']]) {
-    expect(by[id].signin.via, id).toMatchObject({ provider: 'openrouter', model, authorize_url: 'https://openrouter.ai/auth' });
+  const own = { anthropic: 'https://console.anthropic.com/settings/keys', openai: 'https://platform.openai.com/api-keys', gemini: 'https://aistudio.google.com/apikey', grok: 'https://console.x.ai' };
+  for (const id of Object.keys(own)) {
+    expect(by[id].signin.provider_signin, id).toMatchObject({ url: own[id] });
+    expect(JSON.stringify(by[id].signin), id).not.toMatch(/openrouter/i);
   }
-  const db = world();
-  openrouterAnswers(db, { key: 'sk-or-v1-CLAUDEKEY9876' });
-  const r = await call('tok-a', 'ai-signin-exchange', { provider: 'openrouter', code: 'code-9', code_verifier: VERIFIER, model: 'anthropic/claude-sonnet-5.5' });
-  expect(r.code, JSON.stringify(r.payload)).toBe(200);
-  expect(r.payload.message).toMatch(/now uses Claude \(anthropic\/claude-sonnet-5\.5\) on your OpenRouter account/);
-  const conn = db.table('workspace_connections')[0];
-  expect(conn.config).toMatchObject({ model: 'anthropic/claude-sonnet-5.5' });
-  const sec = db.table('workspace_connection_secrets')[0];
-  const ov = connections.buildOverrides(null, [conn], new Map([[conn.id, connections.decryptSecrets(sec)]]));
-  expect(ov.keys.openrouter).toBe('sk-or-v1-CLAUDEKEY9876');
+  expect(by.openai.signin.note).toMatch(/Sign in with ChatGPT.*limited trial/);
+  // A model the OpenRouter card's model field names is what generation asks for.
+  const conn = { id: 'c1', provider: 'openrouter', status: 'active', config: { model: 'anthropic/claude-sonnet-5.5' } };
+  const ov = connections.buildOverrides(null, [conn], new Map([['c1', { api_key: 'sk-or-v1-X' }]]));
   expect(ov.models.openrouter).toEqual(['anthropic/claude-sonnet-5.5']);
-  // A routing that names its own OpenRouter models wins over the sign-in's.
   const ov2 = connections.buildOverrides({ entries: [{ provider: 'openrouter', models: ['openai/gpt-4o'] }] }, [conn], new Map());
   expect(ov2.models.openrouter).toEqual(['openai/gpt-4o']);
-  // A model the request makes up is refused before the code is spent.
-  const db2 = world();
-  const seen = openrouterAnswers(db2, { key: 'sk-or-v1-X' });
-  const bad = await call('tok-a', 'ai-signin-exchange', { provider: 'openrouter', code: 'c', code_verifier: VERIFIER, model: 'evil/model' });
-  expect(bad.code).toBe(400);
-  expect(seen).toHaveLength(0);
 });
 
 test('a viewer cannot keep a key, so nothing is exchanged; a refused or missing code says to start again', async () => {
@@ -137,7 +126,7 @@ test('a viewer cannot keep a key, so nothing is exchanged; a refused or missing 
   expect(badVerifier.code).toBe(400);
   const notOffered = await call('tok-a', 'ai-signin-exchange', { provider: 'openai', code: 'c', code_verifier: VERIFIER });
   expect(notOffered.code).toBe(400);
-  expect(notOffered.payload.message).toMatch(/OpenAI publishes no sign-in/);
+  expect(notOffered.payload.message).toMatch(/Sign in at OpenAI, create a key/);
   const anon = await call('', 'ai-signin-exchange', { provider: 'openrouter', code: 'c', code_verifier: VERIFIER });
   expect(anon.code).toBe(401);
 });
@@ -179,7 +168,7 @@ test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, wi
     await page.goto(`${base}/connections`);
     const btn = page.locator('.conn[data-provider="openrouter"] [data-act="signin"]');
     await expect(btn).toBeVisible({ timeout: 30000 });
-    await expect(page.locator('.conn[data-provider="openai"] [data-signin-note]')).toContainText('OpenAI publishes no sign-in');
+    await expect(page.locator('.conn[data-provider="openai"] [data-signin-note]')).toContainText('Sign in at OpenAI, create a key');
     await btn.click();
     await page.waitForURL(/openrouter\.ai\/auth/, { timeout: 30000 });
     const auth = new URL(page.url());
@@ -199,23 +188,16 @@ test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, wi
     // The verifier the page sent is the one whose S256 hash it gave OpenRouter.
     const hash = require('crypto').createHash('sha256').update(posts[0].code_verifier).digest('base64url');
     expect(hash).toBe(auth.searchParams.get('code_challenge'));
-    // The Claude card's button: the same sign-in, carrying Claude's model.
-    await page.goto(`${base}/connections`);
-    const claude = page.locator('.conn[data-provider="anthropic"] [data-act="signin"]');
-    await expect(claude).toContainText('Sign in to use Claude (via OpenRouter)', { timeout: 30000 });
-    await claude.click();
-    await page.waitForURL(/openrouter\.ai\/auth/, { timeout: 30000 });
-    const auth2 = new URL(page.url());
-    const cb2 = new URL(auth2.searchParams.get('callback_url'));
-    await page.goto(`${cb2.toString()}&code=claude-code&state=${encodeURIComponent(auth2.searchParams.get('state'))}`);
-    await expect(page.locator('[data-signin-result="ok"]')).toBeVisible({ timeout: 30000 });
-    expect(posts).toHaveLength(2);
-    expect(posts[1]).toMatchObject({ provider: 'openrouter', code: 'claude-code', model: 'anthropic/claude-sonnet-5.5' });
+    // The Claude card sends the person to Anthropic's own sign-in, not OpenRouter.
+    const claude = page.locator('.conn[data-provider="anthropic"] [data-provider-signin]');
+    await expect(claude).toHaveText('Sign in to Anthropic to get your key');
+    expect(await claude.getAttribute('href')).toBe('https://console.anthropic.com/settings/keys');
+    expect(await page.locator('.conn[data-provider="anthropic"]').textContent()).not.toMatch(/OpenRouter/);
     // A code that comes back to another tab (no stored verifier) is not used.
     await page.evaluate(() => sessionStorage.clear());
     await page.goto(`${base}/connections?ai_signin=openrouter&code=stray&state=x`);
     await expect(page.locator('[data-signin-result="failed"]')).toContainText('not started from this browser tab', { timeout: 30000 });
-    expect(posts).toHaveLength(2);
+    expect(posts).toHaveLength(1);
   } finally {
     await new Promise((r) => server.close(r));
   }
