@@ -1562,6 +1562,30 @@
       }
       return null;
     }
+    /** Where a website points: its host without www, and its path. */
+    function placeOf(url) {
+      var h = hostOf(url).replace(/^www\./, '');
+      var p = '';
+      try { p = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(str(url)) ? str(url) : 'https://' + str(url)).pathname.replace(/\/+$/, '').toLowerCase(); } catch (_) { p = ''; }
+      return { host: h, path: p };
+    }
+    /** Two websites on one registrable domain that are two PUBLICATIONS or
+        sections of one owner (economictimes.indiatimes.com beside
+        timesofindia.indiatimes.com, a /life-style/health-fitness section beside
+        its home page): each on a subdomain of its own, or the same host under
+        another path. www, the bare domain and another suffix are one place. */
+    function distinctPlace(a, b) {
+      var pa = placeOf(a), pb = placeOf(b);
+      if (!pa.host || !pb.host) return false;
+      if (pa.host !== pb.host) {
+        return pa.host !== registrableDomain(pa.host) && pb.host !== registrableDomain(pb.host);
+      }
+      if (pa.path === pb.path) return false;
+      // A locale path (/en, /en-gb) is the same publication in another language.
+      var loc = /^\/[a-z]{2}([-_][a-z]{2})?$/;
+      return !((pa.path === '' || loc.test(pa.path)) && (pb.path === '' || loc.test(pb.path)));
+    }
+    function sameName(a, b) { var x = fold(a), y = fold(b); return !!x && x === y; }
     /** Another record of the same account that is already this brand (same site by sameBrand), or null. */
     function duplicateBrand(record, others) {
       var site = siteOf(record);
@@ -1572,7 +1596,7 @@
         var o = list[i];
         if (!isObj(o) || (id && str(o.id) === id)) continue;
         var os = siteOf(o);
-        if (os && sameBrand(os, site)) {
+        if (os && sameBrand(os, site) && (sameName(o.name, record.name) || !distinctPlace(o.website, record.website))) {
           return {
             code: 'brand_exists', status: 409, field: 'website', existing_id: str(o.id), existing_name: str(o.name), site: site,
             message: '"' + (str(o.name) || os) + '" is already the brand at ' + os + ' in this account. Open the existing brand instead of creating a second one; one brand has one record.'
