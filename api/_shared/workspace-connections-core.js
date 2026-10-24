@@ -314,10 +314,23 @@ let KEY_CACHE = { raw: null, out: null };
  * raises the cost of guessing, it does not create entropy that was never there.
  */
 function encryptionKey() {
-  const raw = String(process.env.CONNECTION_SECRET_KEY || '').trim();
+  const own = String(process.env.CONNECTION_SECRET_KEY || '').trim();
+  // No key of its own: derive one from the project's Supabase JWT secret, which
+  // every Supabase deployment already holds and never sends to a browser. A
+  // separate HKDF label means the derived key is not the JWT secret, and the
+  // keys people save stay in THEIR workspace's rows, encrypted, as before.
+  // Rotating the JWT secret then makes saved keys unreadable (they are entered
+  // again), exactly as rotating CONNECTION_SECRET_KEY does.
+  const jwt = own ? '' : String(process.env.SUPABASE_JWT_SECRET || '').trim();
+  const raw = own || (jwt ? 'jwt:' + jwt : '');
   if (KEY_CACHE.raw === raw && KEY_CACHE.out) return KEY_CACHE.out;
   const remember = (out) => { KEY_CACHE = { raw, out }; return out; };
   if (!raw) return remember({ ok: false, error: 'CONNECTION_SECRET_KEY is not set on this deployment.' });
+  if (!own) {
+    if (jwt.length < 24) return remember({ ok: false, error: 'CONNECTION_SECRET_KEY is not set on this deployment.' });
+    const key = Buffer.from(crypto.hkdfSync('sha256', Buffer.from(jwt, 'utf8'), Buffer.from('lifecycle-os'), Buffer.from('workspace-connections/v1'), 32));
+    return remember({ ok: true, key, derived_from: 'SUPABASE_JWT_SECRET', key_id: crypto.createHash('sha256').update(key).digest('hex').slice(0, 12) });
+  }
 
   let key = null;
   if (/^[0-9a-f]{64}$/i.test(raw)) key = Buffer.from(raw, 'hex');
@@ -326,10 +339,10 @@ function encryptionKey() {
     if (b64.length === 32 && b64.toString('base64').replace(/=+$/, '') === raw.replace(/=+$/, '')) key = b64;
   }
   if (!key) {
-    if (raw.length < 24) {
+    if (own.length < 24) {
       return remember({ ok: false, error: 'CONNECTION_SECRET_KEY is too short. Use 32 random bytes as hex (openssl rand -hex 32), or a passphrase of at least 24 characters.' });
     }
-    key = crypto.scryptSync(raw, 'lifecycle-os/workspace-connections', 32);
+    key = crypto.scryptSync(own, 'lifecycle-os/workspace-connections', 32);
   }
   return remember({ ok: true, key, key_id: crypto.createHash('sha256').update(key).digest('hex').slice(0, 12) });
 }

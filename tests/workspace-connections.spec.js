@@ -27,7 +27,7 @@ const ENV_KEYS = [
   'GEMINI_API_KEY', 'XAI_API_KEY', 'GROQ_API_KEY', 'CEREBRAS_API_KEY',
   'OPENROUTER_API_KEY', 'OpenRouter_API_KEY', 'GITHUB_MODELS_TOKEN', 'GITHUB_TOKEN',
   'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'OLLAMA_BASE_URL', 'SAKANA_BASE_URL',
-  'APP_AI_PROVIDER', 'APP_AI_TIER',
+  'APP_AI_PROVIDER', 'APP_AI_TIER', 'SUPABASE_JWT_SECRET',
 ];
 
 const savedEnv = {};
@@ -42,6 +42,7 @@ test.beforeAll(() => {
   process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY;
   // 32 bytes of hex, the shape the module documents.
   process.env.CONNECTION_SECRET_KEY = 'a'.repeat(64);
+  delete process.env.SUPABASE_JWT_SECRET;
 
   // Two platform keys, so "the workspace key replaced the platform key" is a
   // real substitution rather than the only key there was.
@@ -427,6 +428,41 @@ test('no key is stored unencrypted when there is nowhere to encrypt it', async (
     expect(Object.keys(w.secrets)).toHaveLength(0);
   } finally {
     process.env.CONNECTION_SECRET_KEY = previous;
+  }
+});
+
+// The operator: "save it only in the user's login area". A deployment with no
+// CONNECTION_SECRET_KEY of its own still saves a person's key into THEIR
+// workspace's row, encrypted under a key derived from the project's Supabase JWT
+// secret (never the JWT secret itself), so nobody has to set anything on the host.
+test('with no key of its own, a key is saved encrypted in the workspace under one derived from the Supabase JWT secret', async () => {
+  const w = fresh();
+  const previous = process.env.CONNECTION_SECRET_KEY;
+  delete process.env.CONNECTION_SECRET_KEY;
+  process.env.SUPABASE_JWT_SECRET = 'jwt-secret-of-the-fixture-project-0123456789';
+  try {
+    expect(core.cryptoConfigured()).toBe(true);
+    const request = req('tok-a');
+    request.method = 'POST';
+    request.query = { op: 'save' };
+    request.body = { op: 'save', provider: 'openai', fields: { api_key: 'sk-derived-key-9876' } };
+    const r = res();
+    await core.handle(request, r);
+    expect(r.code).toBe(200);
+    expect(r.payload.connection.configured).toBe(true);
+    // Stored, encrypted, never in the clear, and the JWT secret is not the key.
+    const rows = Object.values(w.secrets);
+    expect(rows).toHaveLength(1);
+    expect(JSON.stringify(w.calls)).not.toContain('sk-derived-key-9876');
+    expect(core.decryptSecrets(rows[0])).toEqual({ api_key: 'sk-derived-key-9876' });
+    const enc = core.encryptSecrets({ api_key: 'x' });
+    expect(enc.key_id).not.toBe(require('crypto').createHash('sha256').update(Buffer.from(process.env.SUPABASE_JWT_SECRET)).digest('hex').slice(0, 12));
+    // A short JWT secret is not stretched into a key.
+    process.env.SUPABASE_JWT_SECRET = 'short';
+    expect(core.cryptoConfigured()).toBe(false);
+  } finally {
+    process.env.CONNECTION_SECRET_KEY = previous;
+    delete process.env.SUPABASE_JWT_SECRET;
   }
 });
 
