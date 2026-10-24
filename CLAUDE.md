@@ -28,9 +28,11 @@ The operator: "test every asset generation logic and brand setup logic too for e
   exchanged SERVER-side at `POST https://openrouter.ai/api/v1/auth/keys` only after the workspace write check, the
   key saved through `saveConnection` (encrypted, never returned). No app registration, no env var. OpenAI, Anthropic
   and Gemini say why there is no sign-in (none for third-party apps / Google verification for a web app). Claude, ChatGPT, Gemini and Grok
-  cards each carry "Sign in to use <family> (via OpenRouter)" (`VIA` in ai-account-signin.js, slugs read from
-  openrouter.ai/api/v1/models): the same PKCE sign-in, the model saved on the OpenRouter connection's `model` field and
-  used by `buildOverrides` unless the routing names its own. Not built
+  cards send the person to THAT provider's own sign-in page to make a key on their account (`PROVIDER_SIGNIN`; the
+  operator: "each respective model signup not openrouter"): OpenAI's "Sign in with ChatGPT" (developers.openai.com/siwc)
+  gives a HOSTED app a client ID only through a limited trial and documents plan usage only for loopback open-source
+  tools; Anthropic's terms bar third-party Claude sign-in; Gemini OAuth bills the app's own project; xAI has none. The
+  OpenRouter connection keeps an optional `model` field `buildOverrides` uses unless the routing names its own. Not built
   yet: Hugging Face (documented OAuth with an `inference-api` scope, needs a new llm.js provider + token refresh).
   Gated by `tests/ai-account-signin.spec.js` (5 executed, incl. the redirect and return in Chromium).
 

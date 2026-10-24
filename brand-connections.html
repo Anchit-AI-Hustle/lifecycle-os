@@ -311,16 +311,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (p.signin && p.signin.available) {
       h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="' + esc(p.id) + '"' + signOff + '>Sign in with ' + esc(p.label) + '</button></div>' +
         '<div class="note" data-signin-note>' + esc(p.signin.note) + ' Or paste a key above.</div>';
-    } else if (p.signin && (p.signin.note || p.signin.via)) {
-      // Claude, ChatGPT, Gemini and Grok: no sign-in of their own for an app,
-      // so the card offers the same family through the person's OpenRouter
-      // account (ai-account-signin.js VIA).
-      var via = p.signin.via;
-      if (via) {
-        h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="openrouter" data-model="' + esc(via.model) + '" data-signin-via="' + esc(p.id) + '"' + signOff + '>Sign in to use ' + esc(via.family) + ' (via OpenRouter)</button></div>' +
-          '<div class="note" data-signin-via-note>' + esc(via.note) + '</div>';
-      }
-      if (p.signin.note) h += '<div class="note" style="margin-top:6px" data-signin-note>' + esc(p.signin.note) + (via ? ' Or sign in through OpenRouter above.' : '') + '</div>';
+    } else if (p.signin && p.signin.provider_signin) {
+      // Claude, ChatGPT, Gemini, Grok: the person signs in on THAT provider's
+      // own site and makes a key on their account (ai-account-signin.js
+      // PROVIDER_SIGNIN says why there is no sign-in from here).
+      var own = p.signin.provider_signin;
+      h += '<div class="row" style="margin-top:8px"><a class="btn" data-provider-signin="' + esc(p.id) + '" href="' + esc(own.url) + '" target="_blank" rel="noopener">Sign in to ' + esc(own.label) + ' to get your key</a></div>' +
+        '<div class="note" style="margin-top:6px" data-signin-note>' + esc(p.signin.note) + '</div>';
+    } else if (p.signin && p.signin.note) {
+      h += '<div class="note" style="margin-top:6px" data-signin-note>' + esc(p.signin.note) + '</div>';
     }
     if (p.wired_note) h += '<div class="note" style="margin-top:6px">' + esc(p.wired_note) + '</div>';
     if (c && c.last_check_note) {
@@ -376,7 +375,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         await api('delete', { provider: providerId });
         toast('Removed. The stored secret was deleted with it.');
       } else if (act === 'signin') {
-        await startSignin(providerId, btn.getAttribute('data-model') || '');
+        await startSignin(providerId);
         return; // the browser is leaving for the provider's own sign-in page
       }
       await load();
@@ -399,14 +398,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
   function randomToken(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a); }
-  async function startSignin(providerId, model) {
+  async function startSignin(providerId) {
     var p = state.providers.filter(function (x) { return x.id === providerId; })[0];
     if (!p || !p.signin || !p.signin.available) throw new Error('There is no sign-in for this provider here.');
     if (!window.crypto || !crypto.subtle) throw new Error(NO_CRYPTO);
     var verifier = randomToken(48);
     var challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
     var st = randomToken(16);
-    try { sessionStorage.setItem(SIGNIN_KEY, JSON.stringify({ provider: providerId, model: model || '', verifier: verifier, state: st, workspace_id: workspaceId() || '', at: Date.now() })); }
+    try { sessionStorage.setItem(SIGNIN_KEY, JSON.stringify({ provider: providerId, verifier: verifier, state: st, workspace_id: workspaceId() || '', at: Date.now() })); }
     catch (e) { throw new Error('This browser blocks session storage, so a sign-in cannot be finished here. Paste a key instead.'); }
     var back = location.origin + location.pathname + '?ai_signin=' + encodeURIComponent(providerId);
     var u = new URL(p.signin.authorize_url);
@@ -434,7 +433,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       msg = 'This sign-in was not started from this browser tab (or it took longer than 15 minutes), so it was not used. Start it again from here.';
     } else {
       try {
-        var r = await api('ai-signin-exchange', { provider: provider, code: code, code_verifier: saved.verifier, model: saved.model || '' });
+        var r = await api('ai-signin-exchange', { provider: provider, code: code, code_verifier: saved.verifier });
         msg = r.message || 'Signed in.'; ok = true;
       } catch (e) { msg = window.LifecycleFailure.sentence(e); }
     }
