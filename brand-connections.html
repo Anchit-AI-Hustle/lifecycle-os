@@ -407,8 +407,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var st = randomToken(16);
     try { sessionStorage.setItem(SIGNIN_KEY, JSON.stringify({ provider: providerId, verifier: verifier, state: st, workspace_id: workspaceId() || '', at: Date.now() })); }
     catch (e) { throw new Error('This browser blocks session storage, so a sign-in cannot be finished here. Paste a key instead.'); }
-    var back = location.origin + location.pathname + '?ai_signin=' + encodeURIComponent(providerId);
     var u = new URL(p.signin.authorize_url);
+    if (p.signin.kind === 'google') {
+      // Google matches the return address exactly, so it carries no query: the
+      // sign-in is recognised on return by what this tab kept.
+      var gBack = location.origin + location.pathname;
+      try { var kept = JSON.parse(sessionStorage.getItem(SIGNIN_KEY)); kept.redirect_uri = gBack; kept.project = (collect(providerId).project || ''); sessionStorage.setItem(SIGNIN_KEY, JSON.stringify(kept)); } catch (e) {}
+      u.searchParams.set('client_id', p.signin.client_id);
+      u.searchParams.set('redirect_uri', gBack);
+      u.searchParams.set('response_type', 'code');
+      u.searchParams.set('scope', p.signin.scope);
+      u.searchParams.set('access_type', 'offline');
+      u.searchParams.set('prompt', 'consent');
+      u.searchParams.set('code_challenge', challenge);
+      u.searchParams.set('code_challenge_method', 'S256');
+      u.searchParams.set('state', st);
+      location.assign(u.toString());
+      return;
+    }
+    var back = location.origin + location.pathname + '?ai_signin=' + encodeURIComponent(providerId);
     u.searchParams.set('callback_url', back);
     u.searchParams.set('code_challenge', challenge);
     u.searchParams.set('code_challenge_method', 'S256');
@@ -419,6 +436,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function finishSignin() {
     var qs = new URLSearchParams(location.search);
     var provider = qs.get('ai_signin');
+    var peek = null;
+    try { peek = JSON.parse(sessionStorage.getItem(SIGNIN_KEY) || 'null'); } catch (e) { peek = null; }
+    // Google comes back to the bare page address with code (or error) and state.
+    if (!provider && peek && peek.redirect_uri && (qs.get('code') || qs.get('error')) && qs.get('state')) provider = peek.provider;
     if (!provider) return;
     var code = qs.get('code') || '';
     var returned = qs.get('state');
@@ -433,7 +454,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       msg = 'This sign-in was not started from this browser tab (or it took longer than 15 minutes), so it was not used. Start it again from here.';
     } else {
       try {
-        var r = await api('ai-signin-exchange', { provider: provider, code: code, code_verifier: saved.verifier });
+        var r = await api('ai-signin-exchange', { provider: provider, code: code, code_verifier: saved.verifier, redirect_uri: saved.redirect_uri || '', project: saved.project || '' });
         msg = r.message || 'Signed in.'; ok = true;
       } catch (e) { msg = window.LifecycleFailure.sentence(e); }
     }
@@ -716,7 +737,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (d && d.brand) $('brandLabel').textContent = d.brand.name + ' · Connections';
       });
     }
-    if (new URLSearchParams(location.search).get('ai_signin')) finishSignin().then(function () {}, function () {});
+    var bootQs = new URLSearchParams(location.search);
+    if (bootQs.get('ai_signin') || (bootQs.get('state') && (bootQs.get('code') || bootQs.get('error')))) finishSignin().then(function () {}, function () {});
     else load();
     (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(loadCatalog, function () {});
   }

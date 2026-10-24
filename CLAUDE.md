@@ -4,6 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Gemini: Sign in with Google; a key saves with nothing set on the host (2026-10-24)
+The operator: "signin must completely integrate the signin to use the model - not just open key creation page",
+"google sign in or whatever signin mode that model accepts", and "if you save to my vercel, users will raise problems -
+save it only in the user's login area".
+- **Keys need no host setting**: with no `CONNECTION_SECRET_KEY`, `workspace-connections-core.encryptionKey()` derives
+  the AES key by HKDF (own label) from `SUPABASE_JWT_SECRET`. The key a person saves stays in THEIR workspace's
+  encrypted row. Rotating the JWT secret makes saved keys unreadable (entered again).
+- **Gemini card: Sign in with Google** (`ai-account-signin.js` SIGNIN.gemini, kind `google`): OAuth 2.0 web-server
+  flow with PKCE, scope `cloud-platform` (ai.google.dev/gemini-api/docs/oauth), back to the bare page address
+  (Google matches it exactly); the server exchanges the code with the platform's Google client, keeps the REFRESH token
+  encrypted (hidden registry field `google_refresh_token`), finds the person's project (Cloud Resource Manager; the card's
+  `project` field wins), switches on the Generative Language API there (Service Usage) or says it could not. At run
+  time `llmOverridesFor` mints an access token (`googleAccessToken`, cached to expiry) and llm.js calls Gemini with
+  `Authorization: Bearer` + `x-goog-user-project`, counted as the workspace's own (no credits). Needs the platform's
+  Google OAuth client: `GOOGLE_AI_OAUTH_CLIENT_ID` / `_SECRET` (Web client, Generative Language API enabled, redirect
+  URIs `/ai-models` and `/connections`); until set, the card shows the AI Studio key page and says why. Google requires
+  app verification for the sensitive scope beyond 100 users. Claude, ChatGPT and Grok still accept only a key for a
+  hosted app. Gated in `tests/ai-account-signin.spec.js` (10 executed incl. the Google round trip in Chromium).
+
 ## ⭐ Every asset and every brand-setup field swept across every parameter; sign in with OpenRouter (2026-10-24)
 The operator: "test every asset generation logic and brand setup logic too for every parameter and context", then
 "while user is using his keys for the AI models also allow him to sign in directly with that AI model".
