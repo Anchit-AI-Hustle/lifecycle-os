@@ -4,6 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Asset review: mailers, landing pages, Story video, a grouped preview (2026-10-24)
+The operator: "review each asset's creation logic and rate asset wise ... mailers and landing pages are atrocious",
+then "proper video ads up to 30 s ... keep [the transitional] variant too" and "too cumbersome to view all the output".
+Rendered a Lenskart-shaped build (no industry, claims or legal sender, as production holds it) and fixed at source:
+- **Titles**: `mailer-format.dedupeTitle()` drops an exactly repeated leading phrase of 2+ words ("Bausch & Lomb Lacelle
+  Bausch & Lomb Lacelle ..."), at the catalogue read (`brand-catalog-server.fromRow`) and on stored slots at build.
+- **Text mailers** list the slot's products (name to its own page, price, View) in words, no photographs; one CTA
+  before the list; a price-only subline is dropped; the footer does not print the brand name twice.
+- **Text + Visual**: a name over 32 characters is the product's line under the picture, not spaced capitals; the
+  brand-led variant is the headline on the brand's ground with every product pictured (only when 2+ products have
+  their own photo, `ownPhotoCount`), not the product-led mail again.
+- **Landing pages** (both paths through `lpHtml`): logo in the header linked to the website, hero button on the band
+  at 3:1 (WCAG 1.4.11) else the surface, the mail's own opening line under the headline, cards with price and View to
+  the product's OWN page (no guessed `/products/<handle>`), B = a collection page (2+ pictured products), footer with
+  the website, two-column cards on phones.
+- **Story video** (`scripts/lib/story-ad.js`, `creative.story_html` / `story_brief`): hook, each product with its
+  price, the ad's own lines, end card, at most 30 s; drawn on a canvas and saved as MP4/WebM in the browser; a photo
+  host with no CORS is said, nothing blank is saved. The transitional creative stays. Gated by `story-video-ad`.
+- **/brain preview** grouped by kind (Mailers / Landing pages / Ads / Messages / Why / Data, with counts, plus All),
+  one kind at a time, items in columns. Tests that measure every asset press All.
+- `onboarding` step-1 list keeps an open delete panel and its typed text across a redraw (CI race).
+
 ## ⭐ /brain: a slot planned now is built, never refused for an older stored row (2026-10-24)
 Production /brain (Lenskart): every View and Generate all answered `brand_changed` ("0 generated, 8 failed") right
 after a Daily Sync that said "no material changes". Stored rows kept an earlier record fingerprint (their in-place

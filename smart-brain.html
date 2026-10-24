@@ -204,6 +204,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* Stacked sections. Each asset keeps its own heading so a long row stays
      readable, and a rule separates one asset from the next. */
   .pvsec{border-top:1px solid var(--vh-line);padding:14px 0 4px;margin:0}
+  .pvgroups{position:sticky;top:0;z-index:5;background:var(--vh-panel)}
+  .pvgroups .pvtab[aria-selected="true"]{color:var(--vh-ink);border-bottom-color:var(--vh-primary)}
+  .pvgroups .pvtab{min-height:44px}
+  .pvcount{display:inline-block;min-width:18px;padding:1px 6px;margin-left:4px;border-radius:999px;background:var(--vh-panel-2);color:var(--vh-ink);font-size:11px}
+  .pvgroup[hidden]{display:none}
+  /* Side by side, as columns: a tall card (a video) never leaves a hole under
+     a short neighbour the way a grid row does. */
+  .pvgroup-mail{columns:480px;column-gap:18px}
+  .pvgroup-ads{columns:340px;column-gap:18px}
+  .pvgroup-mail .pvsec,.pvgroup-ads .pvsec{break-inside:avoid;-webkit-column-break-inside:avoid;min-width:0;display:inline-block;width:100%;vertical-align:top}
   .pvsec:first-of-type{border-top:0;padding-top:4px}
   .pvsech{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:var(--vh-ink-dim)}
@@ -251,7 +261,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     padding:8px 16px;border-radius:8px;margin:8px 0}
   .advstage{display:flex;justify-content:center;background:var(--vh-panel-2);border:1px solid var(--vh-line);
     border-radius:12px;padding:10px}
-  .advframe{width:270px;height:480px;max-width:100%;border:0;border-radius:10px;background:var(--vh-panel)}
+  .advframe{width:300px;height:620px;max-width:100%;border:0;border-radius:10px;background:var(--vh-panel)}
+  .advswitch{display:flex;gap:8px;justify-content:center;margin:0 0 8px}
+  .advswitch .btn{min-height:44px}
   .advnote{color:var(--vh-ink-dim);font-size:12px;line-height:1.5;margin:0 0 8px}
   .adgap{color:var(--vh-ink);border:1px dashed var(--vh-marker-edge);border-radius:8px;padding:8px 10px;background:var(--vh-marker-ground)}
   .advboard{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px}
@@ -1235,9 +1247,18 @@ function clearPreview(){ $('preview').innerHTML = ''; }
 
 /* The strip is now a JUMP, not a switcher: every pane is open, so this scrolls
    to a section instead of hiding the other ten. */
+// Show one kind of asset; frames that were hidden are measured again.
+window.pvGroup = function(btn, key){
+  const root = btn && btn.closest('.pvroot'); if(!root) return;
+  root.querySelectorAll('.pvgroup').forEach((g) => { g.hidden = key !== '*' && g.dataset.group !== key; });
+  root.querySelectorAll('.pvgroups .pvtab').forEach((b) => b.setAttribute('aria-selected', b.dataset.group === key ? 'true' : 'false'));
+  root.querySelectorAll('.pvgroup:not([hidden]) iframe.pvframe[data-loaded]').forEach((f) => { try { fitFrame(f); } catch (_) {} });
+};
 window.pvJump = function(id){
   const el = document.getElementById(id);
   if (!el) return;
+  const g = el.closest('.pvgroup');
+  if (g && g.hidden) { const b = el.closest('.pvroot') && el.closest('.pvroot').querySelector('.pvgroups .pvtab[data-group="' + g.dataset.group + '"]'); if (b) window.pvGroup(b, g.dataset.group); }
   (el.closest('.pvsec') || el).scrollIntoView({ behavior:'smooth', block:'start' });
 };
 /* Kept because other surfaces still render a real tab strip through it. */
@@ -1308,7 +1329,8 @@ function renderAd(ad){
     // silently kill every handler on the page (the failure mode CLAUDE.md lists
     // first). The index is the only thing that travels through the markup.
     window.__SB_MOTION = window.__SB_MOTION || [];
-    const midx = cr.motion_html ? (window.__SB_MOTION.push({ html: cr.motion_html, brief: cr.motion_brief||null, name: (ad.platform||'ad')+'-video' }) - 1) : -1;
+    const midx = cr.motion_html ? (window.__SB_MOTION.push({ html: cr.motion_html, brief: cr.motion_brief||null, story: cr.story_html||null, storyBrief: cr.story_brief||null, name: (ad.platform||'ad')+'-video' }) - 1) : -1;
+    const storySecs = cr.story_brief && cr.story_brief.duration_s ? Math.round(cr.story_brief.duration_s) : 0;
     // THE REAL ARTEFACT. This pane used to draw a play triangle on a gradient —
     // a picture of a video, not a video. Nothing was ever generated behind it,
     // so the reviewer approved something they had never seen. The animated 9:16
@@ -1318,11 +1340,14 @@ function renderAd(ad){
     // hands you rather than a re-render that could differ from it.
     const v = cr.video || null;
     const status = v ? v.note : 'No MP4 has been generated for this ad.';
+    // Two variants (2026-10-24): the STORY video (timed, up to 30 s, saved as
+    // a video file from its own page) and the TRANSITIONAL creative. One
+    // frame, a switch above it: the reviewer sees one at a time.
     const player = cr.motion_html
-      ? `<div class="advstage"><iframe class="advframe" sandbox="allow-same-origin" title="${esc(platform)} animated creative"></iframe></div>`
+      ? `${cr.story_html ? `<div class="advswitch" role="tablist" aria-label="Video variant"><button type="button" role="tab" class="btn sm" aria-selected="true" data-vv="story" onclick="sbVideoVariant(this,${midx},'story')">Story · ${storySecs} s</button><button type="button" role="tab" class="btn sm secondary" aria-selected="false" data-vv="transitional" onclick="sbVideoVariant(this,${midx},'transitional')">Transitional</button></div>` : ''}<div class="advstage"><iframe class="advframe" sandbox="allow-scripts allow-downloads" title="${esc(platform)} video creative"></iframe></div>`
       : `<p class="advnote adgap">No animated creative was built for this ad, and no MP4 exists. Regenerate the send to build one.</p>`;
     const bar = midx>=0
-      ? `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbDownloadMotion(${midx})">⬇ Download creative (HTML)</button>${cr.motion_brief?`<button type="button" class="btn sm secondary" onclick="sbDownloadBrief(${midx})">⬇ Download shot brief (JSON)</button>`:''}</div>`
+      ? `<div class="akbar">${cr.story_html ? `<button type="button" class="btn sm secondary" onclick="sbDownloadStory(${midx})">⬇ Story video page (HTML, saves the video)</button>` : ''}<button type="button" class="btn sm secondary" onclick="sbDownloadMotion(${midx})">⬇ Transitional creative (HTML)</button>${cr.motion_brief?`<button type="button" class="btn sm secondary" onclick="sbDownloadBrief(${midx})">⬇ Download shot brief (JSON)</button>`:''}</div>`
       : '';
     const shots = (cr.motion_brief && Array.isArray(cr.motion_brief.shots)) ? cr.motion_brief.shots : [];
     const board = shots.length
@@ -1381,8 +1406,8 @@ function hydrateMotionAds(root){
     const item = store[Number(card.dataset.motionIdx)];
     const frame = card.querySelector('.advframe');
     if(!item || !frame || frame.dataset.hydrated) return;
-    const url = URL.createObjectURL(new Blob([item.html], { type:'text/html' }));
-    frame.src = url; frame.dataset.hydrated = '1';
+    const url = URL.createObjectURL(new Blob([item.story || item.html], { type:'text/html' }));
+    frame.src = url; frame.dataset.hydrated = '1'; frame.dataset.variant = item.story ? 'story' : 'transitional';
     setTimeout(()=>URL.revokeObjectURL(url), 300000);
   });
 }
@@ -1397,6 +1422,18 @@ window.sbDownloadMotion = function(idx){
   const item = (window.__SB_MOTION||[])[idx]; if(!item) return;
   // The SAME bytes the iframe above is rendering — the preview is the artefact.
   sbSaveBlob(item.html, 'text/html', String(item.name||'video-ad')+'-creative.html');
+};
+window.sbDownloadStory = function(idx){
+  const item = (window.__SB_MOTION||[])[idx]; if(!item || !item.story) return;
+  sbSaveBlob(item.story, 'text/html', String(item.name||'video-ad')+'-story.html');
+};
+window.sbVideoVariant = function(btn, idx, which){
+  const item = (window.__SB_MOTION||[])[idx]; const card = btn && btn.closest('.adcard'); if(!item || !card) return;
+  const frame = card.querySelector('.advframe'); if(!frame) return;
+  const html = which === 'story' ? item.story : item.html; if(!html) return;
+  const url = URL.createObjectURL(new Blob([html], { type:'text/html' }));
+  frame.src = url; frame.dataset.variant = which; setTimeout(()=>URL.revokeObjectURL(url), 300000);
+  card.querySelectorAll('.advswitch [data-vv]').forEach((b)=>{ const on = b.dataset.vv === which; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.classList.toggle('secondary', !on); });
 };
 window.sbDownloadBrief = function(idx){
   const item = (window.__SB_MOTION||[])[idx]; if(!item || !item.brief) return;
@@ -1701,16 +1738,24 @@ function renderPreview(payload, e, i, opts){
     </div>
     ${checksLead}
     ${(() => {
-      // A jump strip, not a switcher: the row is tall now, so these scroll to a
-      // section rather than hiding the others.
-      if (heads.length < 2) return '';
-      return `<div class="pvtabs">${heads.map(h=>`<button type="button" class="pvtab" onclick="pvJump('${h.id}')">${h.label}</button>`).join('')}</div>`;
+      // GROUPED BY KIND, ONE KIND AT A TIME (2026-10-24, the operator: "still
+      // too cumbersome to view all the output"). Seventeen sections stacked in
+      // one column - the analysis, four mailers, two pages, eight ads, the
+      // messages and the data - were one long scroll. Now one bar: Mailers,
+      // Landing pages, Ads, Messages, Why, Data, each with its count; the
+      // chosen kind's items sit side by side, so a whole kind compares at a
+      // glance. Every pane stays in the page (ids, downloads and prompts
+      // unchanged); the other kinds are one press away.
+      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : 'json';
+      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
+      const by = {};
+      panes.forEach((p) => { const g = groupOf(p.id); (by[g] = by[g] || []).push(p); });
+      const present = GROUPS.filter(([k]) => by[k] && by[k].length);
+      const open = (present.find(([k]) => k === 'mail' || k === 'lp' || k === 'ads') || present[0] || [''])[0];
+      const bar = present.length > 1 ? `<div class="pvtabs pvgroups" role="tablist" aria-label="Asset kinds">${present.map(([k, label]) => `<button type="button" role="tab" class="pvtab" data-group="${k}" aria-selected="${k === open}" onclick="pvGroup(this,'${k}')">${label}${by[k].length > 1 ? ` <span class="pvcount">${by[k].length}</span>` : ''}</button>`).join('')}<button type="button" role="tab" class="pvtab" data-group="*" aria-selected="false" onclick="pvGroup(this,'*')">All</button></div>` : '';
+      const section = (p) => { const h = heads.find((x) => x.id === p.id); return `<section class="pvsec"><h4 class="pvsech">${h ? h.label : ''}</h4><div class="pvpane on" id="${p.id}">${p.html}</div></section>`; };
+      return bar + present.map(([k]) => `<div class="pvgroup pvgroup-${k}" data-group="${k}"${k === open ? '' : ' hidden'}>${by[k].map(section).join('')}</div>`).join('');
     })()}
-    ${panes.map((p) => {
-      const h = heads.find((x) => x.id === p.id);
-      return `<section class="pvsec"><h4 class="pvsech">${h ? h.label : ''}</h4>`
-        + `<div class="pvpane on" id="${p.id}">${p.html}</div></section>`;
-    }).join('')}
     ${checksBlock}</div>`;
   // Video ads carry a real animated creative; point each iframe at the exact
   // bytes of it (Blob URL) now that the panes are in the DOM.

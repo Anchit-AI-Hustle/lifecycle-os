@@ -62,7 +62,9 @@ async function render(page, c) {
     const root = host.querySelector('.pvroot');
     const kids = [...root.children];
     const idx = (sel) => kids.findIndex((k) => k.matches(sel) || k.querySelector(sel));
-    const firstSec = kids.findIndex((k) => k.matches('section.pvsec'));
+    // The assets begin at the asset-kind bar (2026-10-24: grouped by kind, one
+    // kind at a time), or at the first section when there is one kind only.
+    const firstSec = kids.findIndex((k) => k.matches('section.pvsec, .pvgroups, .pvgroup'));
     const checks = root.querySelector('details.pvchecks');
     // In the mailer pane: the document comes before the prompt buttons.
     const mf = root.querySelector('iframe.pvframe.is-mail'); const pane = mf && mf.closest('.pvpane');
@@ -135,4 +137,35 @@ test('the copy brief forbids product attributes the brand does not state', () =>
   const prompt = sbPlan.__test_copyPrompt ? sbPlan.__test_copyPrompt(SLOT) : null;
   test.skip(!prompt, 'copyPrompt is not exported');
   expect(prompt).toMatch(/DESCRIBE the product only with words the brand itself uses/);
+});
+
+// GROUPED BY KIND (2026-10-24, the operator: "still too cumbersome to view all
+// the output"): one bar of kinds with their counts, one kind shown at a time,
+// its items side by side; "All" shows every kind; nothing is removed.
+test('the preview shows one kind of asset at a time, switches by the bar, and All shows everything', async ({ page }) => {
+  await page.addInitScript((e) => { window.SLOT_E = e; }, SLOT);
+  await render(page, campaign);
+  const state = () => page.evaluate(() => {
+    const root = document.querySelector('.pvroot');
+    const groups = [...root.querySelectorAll('.pvgroup')].map((g) => ({ k: g.dataset.group, shown: !g.hidden && g.getBoundingClientRect().height > 0, n: g.querySelectorAll('.pvsec').length }));
+    const tabs = [...root.querySelectorAll('.pvgroups .pvtab')].map((b) => ({ k: b.dataset.group, on: b.getAttribute('aria-selected') === 'true', text: b.textContent.replace(/\s+/g, ' ').trim() }));
+    return { groups, tabs, panes: root.querySelectorAll('.pvpane').length };
+  });
+  let s = await state();
+  const kinds = s.groups.map((g) => g.k);
+  expect(kinds).toEqual(expect.arrayContaining(['mail', 'lp', 'ads']));
+  expect(s.groups.filter((g) => g.shown).map((g) => g.k), 'one kind at a time, mailers first').toEqual(['mail']);
+  expect(s.tabs.find((t) => t.k === 'mail').text).toMatch(/Mailers\s*4/);
+  const panesBefore = s.panes;
+  await page.click('.pvgroups .pvtab[data-group="ads"]');
+  s = await state();
+  expect(s.groups.filter((g) => g.shown).map((g) => g.k)).toEqual(['ads']);
+  expect(s.tabs.find((t) => t.k === 'ads').on).toBe(true);
+  // The ads sit side by side at this width (more than one column), not in one column.
+  const lefts = await page.evaluate(() => new Set([...document.querySelectorAll('.pvgroup[data-group="ads"] > .pvsec')].map((x) => Math.round(x.getBoundingClientRect().left))).size);
+  expect(lefts).toBeGreaterThan(1);
+  await page.click('.pvgroups .pvtab[data-group="*"]');
+  s = await state();
+  expect(s.groups.every((g) => g.shown), 'All shows every kind').toBe(true);
+  expect(s.panes).toBe(panesBefore);
 });
