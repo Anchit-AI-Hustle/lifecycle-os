@@ -137,6 +137,26 @@ test.describe('the brand router', () => {
     expect(db.table('brand_workspaces').length).toBe(1);
   });
 
+  test('two publications of one owner (each on its own subdomain, or a section under its own path) are two brands, never "already in your account"', async () => {
+    // Production, 2026-10-24: setting up The Economic Times
+    // (economictimes.indiatimes.com) with The Times of India
+    // (timesofindia.indiatimes.com) in the account said "The Times of India is
+    // already a brand in this account (indiatimes.com)" and offered to open it.
+    const toi = await brandOp('save', { brand: { name: 'The Times of India', website: 'https://timesofindia.indiatimes.com', regions: [{ code: 'IN', currency: 'INR', home: true }] } });
+    expect(toi.status, JSON.stringify(toi.json)).toBe(200);
+    const et = await brandOp('save', { brand: { name: 'The Economic Times', website: 'https://economictimes.indiatimes.com', regions: [{ code: 'IN', currency: 'INR', home: true }] } });
+    expect(et.status, JSON.stringify(et.json)).toBe(200);
+    expect(et.json.brand.name).toBe('The Economic Times');
+    const section = await brandOp('save', { brand: { name: 'TOI Health & Fitness', website: 'https://timesofindia.indiatimes.com/life-style/health-fitness', regions: [{ code: 'IN', currency: 'INR', home: true }] } });
+    expect(section.status, JSON.stringify(section.json)).toBe(200);
+    expect(db.table('brand_workspaces').map((w) => w.name).sort()).toEqual(['TOI Health & Fitness', 'The Economic Times', 'The Times of India']);
+    // The same publication again (www, a trailing slash) is still one brand.
+    const again = await brandOp('save', { brand: { name: 'Times of India', website: 'https://www.timesofindia.indiatimes.com/' } });
+    expect(again.status).toBe(409);
+    expect(again.json.code).toBe('brand_exists');
+    expect(again.json.message).toMatch(/"The Times of India" is already the brand/);
+  });
+
   test('a URL TYPED on another site is refused with a sentence; values READ from another site are set aside, kept, never applied', async () => {
     const made = await brandOp('save', { brand: quillRecord() });
     const id = made.json.brand.id;
