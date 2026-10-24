@@ -17,7 +17,7 @@ iOS 1024 app icon (opaque, PNG colour type 2: the App Store refuses an alpha cha
 `assets/lifecycle-os/ios/`, which the workflow copies over every template image (`IOS_ASSETS`) before `xcodebuild`;
 all on `SPLASH_GROUND` (#FFFFFF). The shell page is the stacked lockup on that surface. A push to main touching
 `android/`, `mobile-shell/` or the workflow republishes the APK and unsigned IPA to the `mobile-latest` release. Gated in `tests/platform-identity.spec.js` (the old shell fails it). Building and signing the store binaries
-needs Android Studio / Xcode on the operator's machine (`npm run mobile:android`, `npm run mobile:ios:open`; both sync the shell and config first, which a clean checkout lacks); the bundle id
+needs Android Studio / Xcode on the operator's machine (`npm run mobile:android`, `npm run mobile:ios:open`: `scripts/ios-prepare.js` adds the iOS platform when missing, applies the images and syncs); the bundle id
 `com.knickgasm.lifecycleos` was left as it is, since changing it makes a new app in both stores.
 
 ## ⭐ The Owner's Desk: seven agency jobs from the owner's own files (2026-10-23)
