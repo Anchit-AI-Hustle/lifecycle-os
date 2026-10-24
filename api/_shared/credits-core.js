@@ -1257,6 +1257,15 @@ async function fulfilOrder(orderId, { provider, provider_ref } = {}) {
   };
 }
 
+/* ── Razorpay (India, INR) ─────────────────────────────────────────────────── */
+
+const razorpay = require('./razorpay-credits.js');
+
+/** What the Razorpay module may use: this file's store, wallet and one grant. */
+function razorpayDeps() {
+  return { catalog, packOverrides, serviceRest, wallet, fulfilOrder };
+}
+
 /* ── router (mounted at /api/public-config?action=credits) ────────────────── */
 
 /**
@@ -1274,6 +1283,16 @@ function operatorSecretPresented(req) {
 
 async function handle(req, res) {
   const q = (req && req.query) || {};
+
+  // Razorpay's redirect callback and webhook carry no session: the order id and
+  // a signature prove them (razorpay-credits.js). Decided from the QUERY before
+  // anything touches req.body, because the webhook must read the raw bytes.
+  const openOp = String(q.op || '').toLowerCase();
+  if (openOp === 'rzp-callback' || openOp === 'rzp-webhook') {
+    if (!configured()) return res.status(503).json({ ok: false, error: 'credits_unavailable', message: 'The credit meter needs SUPABASE_SERVICE_ROLE_KEY on this deployment.' });
+    return razorpay.handleOpen(openOp, req, res, razorpayDeps());
+  }
+
   const body = req && req.body && typeof req.body === 'object' ? req.body : {};
   const op = String(q.op || body.op || 'balance').toLowerCase();
 
@@ -1286,6 +1305,8 @@ async function handle(req, res) {
       packs: await packList().catch(() => catalog.packList(null)),
       welcome_grant: catalog.welcomeGrant(),
       configured: configured(),
+      // Whether an INR-priced pack opens Razorpay's checkout. Never a key.
+      razorpay: razorpay.ready(),
     });
   }
 
@@ -1409,6 +1430,7 @@ async function handle(req, res) {
           account: phoneAccount ? 'mobile-pin' : 'email',
           features: await priceList(),
           packs: await packList().catch(() => catalog.packList(null)),
+          razorpay: razorpay.ready(),
           gifts_received: giftsReceived,
         });
       }
@@ -1440,6 +1462,10 @@ async function handle(req, res) {
         const ov = await overrides();
         return res.status(200).json({ ok: true, quote: catalog.quote(String(q.feature || body.feature || ''), q.units || body.units, ov) });
       }
+      case 'rzp-order':
+      case 'rzp-verify':
+        try { return await razorpay.handleSignedIn(op, auth, body, workspaceId, res, razorpayDeps()); }
+        catch (e) { return razorpay.sendError(res, e); }
       case 'recharge':
         return res.status(200).json(await createOrder(auth, { pack_key: body.pack_key || q.pack_key, workspace_id: workspaceId }));
       case 'orders': {
@@ -1447,7 +1473,7 @@ async function handle(req, res) {
         return res.status(200).json({ ok: true, orders: Array.isArray(rows) ? rows : [] });
       }
       default:
-        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders', 'gift', 'gifts'] });
+        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders', 'gift', 'gifts', 'rzp-order', 'rzp-verify'] });
     }
   } catch (err) {
     return res.status(err.status || 500).json({ ok: false, error: err.message || 'credits_operation_failed' });
