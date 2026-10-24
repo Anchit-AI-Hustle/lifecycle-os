@@ -127,6 +127,10 @@ test('back from the bank: #paid names the pack and the server balance, #unpaid s
   await open(page);
   await page.evaluate(() => sessionStorage.setItem('lc.rzp.pending', JSON.stringify({ wallet: '', pack: 'starter', label: 'Starter', order: 'order_StubOrder001' })));
   balance = 600;  // the callback already credited it, server-side
+  // A full page load, as the bank's return always is: going from /credits.html to
+  // /credits.html#paid without leaving the page is only a hash change, and the page
+  // reads the return once, when it loads.
+  await page.goto('about:blank');
   await page.goto(base + '/credits.html#paid', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#toast')).toContainText('Payment received for the Starter pack. Your balance is 600 credits.');
   expect(await page.evaluate(() => location.hash)).toBe('');
