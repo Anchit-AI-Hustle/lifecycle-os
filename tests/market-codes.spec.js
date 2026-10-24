@@ -25,7 +25,7 @@ const extract = require('../api/_shared/brand-extract.js');
 const locale = require('../api/_shared/brand-locale.js');
 const core = require('../api/_shared/brand-workspace-core.js');
 
-const CODES = ['OK', 'TV', 'IN', 'US', 'UK', 'GB', 'EU', 'ME', 'GLOBAL', 'IND', 'TR', 'XX', 'ZZ', 'QQ', 'AE', 'XK'];
+const CODES = ['OK', 'TV', 'IN', 'US', 'UK', 'GB', 'EU', 'ME', 'GLOBAL', 'IND', 'TR', 'XX', 'ZZ', 'QQ', 'AE', 'XK', 'XA', 'XB', 'EZ', 'UN', 'QO', 'AC', 'IC'];
 
 test('the site reader takes a country from a link only when the link NAMES the country', () => {
   const html = '<html><head>' +
