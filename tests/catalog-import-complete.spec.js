@@ -577,12 +577,21 @@ test('the device merge in the browser and the server merge agree on the same inp
     expect(server.staled).toBe(1);                    // b: same family, same region, unseen
     expect(server.rows.find((r) => r.handle === 'c').stale_at).toBe(undefined);   // csv: another family
     expect(server.rows.find((r) => r.handle === 'd').stale_at).toBe(undefined);   // another market
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await stopServer(srv); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
    9. What the operator sees: the onboarding catalogue step and /connections
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/* close() waits for every keep-alive socket, and a page that is still
+   making requests (the import it continues by itself, the credit pill's poll)
+   keeps its socket busy, so a bare close() can outlast the test's timeout
+   (main CI, 2026-10-24: "Test timeout of 150000ms exceeded" with no
+   assertion failing). End every connection, then close. */
+function stopServer(srv) {
+  return new Promise((r) => { try { srv.closeAllConnections(); } catch (_) {} srv.close(() => r()); });
+}
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 function appServer() {
@@ -652,7 +661,7 @@ test('onboarding: a partial import keeps going BY ITSELF - the page drives the n
     // said in a sentence, when it is not (catalog-store-identity.spec.js).
     // Here the box still names the store being read, so it is a resume.
     expect(imports[1].sent.url).toBe('https://slowshop.example');
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await stopServer(srv); }
 });
 
 test('/connections shows the active brand\'s catalogue coverage and, pressed once, Continue import keeps going until complete', async ({ page }) => {
@@ -687,7 +696,7 @@ test('/connections shows the active brand\'s catalogue coverage and, pressed onc
     const cont = calls.filter((c) => c.action === 'brand' && c.op === 'catalog-import');
     expect(cont).toHaveLength(1);
     expect(cont[0].sent).toMatchObject({ workspace_id: WS, continue: true });
-  } finally { await new Promise((r) => srv.close(r)); }
+  } finally { await stopServer(srv); }
 });
 
 test('catalog import for each region imports correctly with regionwise currency (IN->INR, UK->GBP, US->USD, EU->EUR) across CSV and JSON', async () => {
