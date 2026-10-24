@@ -25,6 +25,14 @@ Rendered a Lenskart-shaped build (no industry, claims or legal sender, as produc
 - **/brain preview** grouped by kind (Mailers / Landing pages / Ads / Messages / Why / Data, with counts, plus All),
   one kind at a time, items in columns. Tests that measure every asset press All.
 - `onboarding` step-1 list keeps an open delete panel and its typed text across a redraw (CI race).
+- **Long-form landing page** (the operator, with VAHDAM's landing pages + reusable-section library: "implement it for any
+  brand"): offer bar (a stated offer, the shipping promise) → hero (button, trust pills) → numbered reasons with the
+  product's own photos → the details (size, servings, type, the store's description) → a buy box (price against the
+  compare-at with the saving, per serving from stated servings, pack line, CTA, service checklist) → other products →
+  reviews (approved/site only) → About <brand> (its own description) → FAQ → closing button → legal footer + sticky
+  bar. Every section only from stated facts (no rating, countdown, stock, gift or study is supplied); each claim has
+  ONE home (service promises: bar + checklist; others: reasons + pills). Story scenes go through unit-words.
+  Gated by `landing-page-structure`.
 
 ## ⭐ /brain: a slot planned now is built, never refused for an older stored row (2026-10-24)
 Production /brain (Lenskart): every View and Generate all answered `brand_changed` ("0 generated, 8 failed") right
