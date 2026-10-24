@@ -81,22 +81,24 @@
     var k = String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
     return FAMILY[k] || k;
   }
-  /* A market is a country or a zone (brand-locale.isMarket, the same rule):
-     "OK" and "TV" read off a news site's links are neither, and are not
-     offered as markets. */
+  /* A market is a country or a zone: brand-locale.isMarket's rule and its
+     list, held equal by tests/market-codes.spec.js. "OK" and "TV" read off a
+     news site's links are not offered as markets. */
   var ZONE_CODES = { GLOBAL: 1, EU: 1, ME: 1, UK: 1 };
-  var NOT_COUNTRY = /^(?:AA|Q[M-Z]|X[A-JL-Z]|ZZ|EZ|UN|AC|CP|CQ|DG|EA|IC|TA)$/;
-  var regionNames = null;
+  var ISO_COUNTRIES = {};
+  (
+    'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD ' +
+    'CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF ' +
+    'GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN ' +
+    'KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA ' +
+    'NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI ' +
+    'SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI ' +
+    'VN VU WF WS YE YT ZA ZM ZW'
+  ).trim().split(/\s+/).concat(['XK']).forEach(function (c) { ISO_COUNTRIES[c] = 1; });
   function isMarket(v) {
     var f = family(v);
     if (!f) return false;
-    if (ZONE_CODES[f]) return true;
-    if (!/^[A-Z]{2}$/.test(f) || NOT_COUNTRY.test(f)) return false;
-    try {
-      if (!regionNames) regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
-      var n = regionNames.of(f);
-      return !!n && n !== f && !/^unknown/i.test(n);
-    } catch (_) { return false; }
+    return !!(ZONE_CODES[f] || ISO_COUNTRIES[f]);
   }
   /** The brand's own code for a value spelt any of the ways above, or ''. */
   function resolveCode(v) {
@@ -915,6 +917,7 @@
     resolve: resolveCode,
     family: family,
     isMarket: isMarket,
+    isoCountries: function () { return Object.keys(ISO_COUNTRIES).sort(); },
     localeOf: localeOf,
     money: money,
     num: num,
