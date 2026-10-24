@@ -2138,7 +2138,13 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _ds = _dsx ? _dsx.resolve(_b) : { present: false, head: FONT_HEAD, body: FONT_BODY, fonts: { faces: '', googleHref: '' } };
   const _dsCss = _dsx && _ds.present ? _dsx.lpCss(_ds, { surface: SURF, ink: INKC, primary: P, heroGround: P }) : { css: '', header: null };
   const HEADF = _ds.head || FONT_HEAD, BODYF = _ds.body || FONT_BODY;
-  const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
+  const bClaimsAll = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
+  // Each claim has ONE home on the page (2026-10-24): a service promise
+  // (shipping, returns, a guarantee) sits in the offer bar and the buy box's
+  // checklist; every other claim in the reasons and the hero's pills.
+  const _svcRe0 = /ship|deliver|dispatch|return|refund|guarantee|warrant|exchange|cancel|trial|cash on delivery|\bcod\b/i;
+  const _hasBuy0 = !!(entry.heroProduct && !entry.heroProduct.placeholder && Number(entry.heroProduct.price) > 0);
+  const bClaims = bClaimsAll.filter((c) => !(_hasBuy0 && _svcRe0.test(String(c))));
   // The store and currency are THIS brand's region record. Tenant zero's map
   // (master-prompt's REGION) answers only for tenant zero; any other brand
   // with no store for the market gets an honest dead link, not another
@@ -2273,6 +2279,75 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _offerList = (Array.isArray(_b.offerings) ? _b.offerings : [])
     .filter((o) => o && o.name && String(o.name).trim().toLowerCase() !== _heroName && !/^\[DATA REQUIRED/.test(String(o.name)))
     .slice(0, 6).map((o) => ({ name: String(o.name), url: /^https?:\/\//.test(String(o.url || '')) ? String(o.url) : '' }));
+  // ── THE LONG-FORM SALES PAGE (2026-10-24) ─────────────────────────────────
+  // The operator, with VAHDAM's own landing pages and section library: "ensure
+  // proper well thought of structure of landing pages ... understand what type
+  // of content ... and implement it for any brand". The pattern those pages
+  // follow: an offer bar, the hero with a reassurance line and trust pills, the
+  // product's reasons as numbered rows with pictures, what is inside, a buy box
+  // (price against the compare-at, per-serving, pack, checklist), the reviews,
+  // who the brand is, the questions, the buy box again, the legal footer and a
+  // sticky bar. Each section is drawn ONLY from what the brand or its catalogue
+  // states: no figure, rating, countdown, stock level, gift or study is ever
+  // supplied for it, and a section with nothing to say is left out.
+  const _hp = entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct : null;
+  const _money = (n) => { const v = Number(n); if (!Number.isFinite(v) || v <= 0) return ''; try { return require('./brand-locale.js').money(v, _b, entry.market) || ''; } catch (_) { return ''; } };
+  const _svcRe = /ship|deliver|dispatch|return|refund|guarantee|warrant|exchange|cancel|trial|cash on delivery|\bcod\b/i;
+  const _svcAll = bClaimsAll.concat(_appClaims).map(String).filter((c) => _svcRe.test(c) && c.length <= 90).filter((c, i, a) => a.indexOf(c) === i);
+  const _annClaim = _svcAll.find((c) => /ship|deliver/i.test(c)) || '';
+  // The bar says the shipping promise; the checklist (or the reassurance line)
+  // says the others, so no promise is printed twice.
+  const _svcClaims = _svcAll.filter((c) => c !== _annClaim).slice(0, 3);
+  const _offerPct = Number(entry.offer && entry.offer.pct) || 0;
+  const _annc = [_offerPct > 0 ? `${_offerPct}% off` : '', _annClaim].filter(Boolean);
+  const anncBar = _annc.length ? `<div class="annc">${_annc.map(esc).join(' · ')}</div>` : '';
+  // The claims the reasons do not carry, as pills under the hero's button
+  // (they used to be a strip under the hero as well: said twice).
+  const _pillItems = _stripItems.filter((c) => !/^★/.test(c) && String(c).length <= 40);
+  const heroPills = _pillItems.length ? `<div class="pills">${_pillItems.map((c) => `<span>✓ ${esc(c)}</span>`).join('')}</div>` : '';
+  const _hasBuy = !!(entry.heroProduct && !entry.heroProduct.placeholder && Number(entry.heroProduct.price) > 0);
+  const heroAssure = _svcClaims.length && !_hasBuy ? `<p class="assure">${_svcClaims.slice(0, 2).map(esc).join(' · ')}</p>` : '';
+  // The product's own photographs, for the numbered rows.
+  const _gallery = (() => { if (!_hp) return []; let g = []; try { g = catalogImage.imagesFor(_hp, entry.market, { width: 900, brand: entry.brand }) || []; } catch (_) { g = []; } if (!g.length && /^https:\/\//i.test(String(_hp.image || ''))) g = [String(_hp.image)]; return g.filter((u) => u && u !== creativeUrl); })();
+  const _featItems = (L.why_bullets && L.why_bullets.length ? L.why_bullets : bClaims.slice(0, 3)).map(String).filter(Boolean).slice(0, 4);
+  const featRows = (_featItems.length >= 2 && _gallery.length >= 1 && !_collection)
+    ? `<section class="sec feats"><h2>${esc(cleanWhyTitle)}</h2>${_featItems.map((t, i) => `<div class="feat${i % 2 ? ' rev' : ''}"><img src="${esc(_gallery[i % _gallery.length])}" alt="${esc(_hp.title)}" loading="lazy"><div><span class="num">${String(i + 1).padStart(2, '0')}</span><h3>${esc(t)}</h3></div></div>`).join('')}</section>`
+    : '';
+  // What is inside / the details: only the facts the store states.
+  const _det = _hp ? [
+    _hp.unit_spec ? ['Size', _hp.unit_spec] : null,
+    _hp.piece_count ? ['In the box', String(_hp.piece_count) + ' pieces'] : null,
+    _hp.servings ? ['Servings', String(_hp.servings)] : null,
+    _cat ? ['Type', _cat] : null,
+  ].filter(Boolean) : [];
+  const _desc = _hp ? require('./mailer-format.js').productLine(_hp.description || '', _hp.title || '', bName) : '';
+  const detailSec = (_det.length || _desc) && !_collection
+    ? `<section class="sec details"><h2>The details</h2>${_desc ? `<p class="lede">${esc(_desc)}</p>` : ''}${_det.length ? `<div class="dgrid">${_det.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
+    : '';
+  // The buy box: the store's price against its own compare-at (the saving is
+  // that arithmetic, nothing more), per serving when the pack states servings.
+  const _pNum = _hp ? Number(_hp.price) : NaN;
+  const _cNum = _hp ? Number(_hp.compare_at) : NaN;
+  const _save = Number.isFinite(_pNum) && Number.isFinite(_cNum) && _cNum > _pNum && _pNum > 0 ? Math.round(((_cNum - _pNum) / _cNum) * 100) : 0;
+  const _perServ = _hp && Number(_hp.servings) > 1 && Number.isFinite(_pNum) && _pNum > 0 ? _money(_pNum / Number(_hp.servings)) : '';
+  const _boxImg = (_gallery[0] || creativeUrl || (_hp && /^https:\/\//i.test(String(_hp.image || '')) ? _hp.image : '')) || '';
+  const buyBox = (tag) => (_hp && _money(_pNum)) ? `<section class="sec buy"${tag ? ` data-buy="${tag}"` : ''}><div class="buybox">${_boxImg ? `<img src="${esc(_boxImg)}" alt="${esc(_hp.title)}" loading="lazy">` : ''}<div class="bb">
+      ${_offerPct > 0 ? `<span class="deal">${_offerPct}% off</span>` : ''}
+      <h3>${esc(_hp.title)}</h3>
+      <p class="bbprice"><b>${esc(_money(_pNum))}</b>${_save ? ` <s>${esc(_money(_cNum))}</s> <span class="off">${_save}% off</span>` : ''}</p>
+      ${_perServ ? `<p class="per">${esc(_perServ)} per serving</p>` : ''}
+      ${[_hp.unit_spec, _hp.servings ? _hp.servings + ' servings' : ''].filter(Boolean).length ? `<p class="pack">${esc([_hp.unit_spec, _hp.servings ? _hp.servings + ' servings' : ''].filter(Boolean).join(' · '))}</p>` : ''}
+      <a href="${esc(shopUrl)}" class="btn big">${cta}</a>
+      ${_svcClaims.length ? `<ul class="chk">${_svcClaims.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+    </div></div></section>` : '';
+  // More than one review: the rest of them as cards (the first leads the page).
+  const _moreReviews = _proofPool.slice(1, 4).filter((r) => r && r.quote);
+  const reviewCards = _moreReviews.length ? `<section class="sec revs"><h2>What customers say</h2><div class="rgrid">${_moreReviews.map((r) => `<figure><blockquote>“${esc(r.quote)}”</blockquote>${r.author ? `<figcaption>${esc(r.author)}</figcaption>` : ''}</figure>`).join('')}</div></section>` : '';
+  // Who the brand is, in its own words from its own record.
+  const _bd = (_b && _b.brand_data) || {};
+  const _about = String(_b.description || _bd.description || (_bd.brand_extraction && _bd.brand_extraction.applied && _bd.brand_extraction.applied.description && _bd.brand_extraction.applied.description.value) || '').trim();
+  const aboutSec = _about && _about.length > 40 ? `<section class="sec about"><h2>About ${esc(bName)}</h2><p>${esc(_about.slice(0, 600))}</p></section>` : '';
+  const _legal = (() => { const le = _b.legal_entity || _bd.legal_entity; if (!le) return ''; if (typeof le === 'string') return /^\[DATA REQUIRED/.test(le) ? '' : le; return [le.name, le.address].filter(Boolean).join(' · '); })();
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
 <style>
@@ -2315,6 +2390,37 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 .sec h2{font-size:26px;margin:0 0 12px}
 .why li{list-style:none;margin:8px 0;padding-left:6px;font-size:14px}
 .tick{color:var(--moss);font-weight:800;margin-right:8px}
+.annc{background:var(--moss);color:var(--on-moss);text-align:center;font-size:13px;font-weight:700;letter-spacing:.04em;padding:9px 14px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0 0}
+.pills span{display:inline-block;padding:6px 12px;border-radius:999px;background:var(--chalk);color:var(--ink);font-size:12px;font-weight:600}
+.assure{font-size:13px;margin:10px 0 0;opacity:1}
+.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;font-size:16px}
+.feats h2,.details h2,.revs h2,.about h2{font-size:26px}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:22px 0}
+.feat img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
+.feat.rev img{order:2}
+.feat .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800;font-size:13px;margin-bottom:10px}
+.feat h3{font-size:20px;line-height:1.3;margin:0}
+.details .lede{color:var(--ink);font-size:16px;max-width:680px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;margin-top:12px}
+.dgrid div{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:14px}
+.dgrid b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px}
+.buybox{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;border:2px solid var(--moss);border-radius:18px;padding:24px;background:var(--chalk)}
+.buybox img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}
+.bb{text-align:center}.bb h3{font-size:22px;margin:8px 0}
+.deal{display:inline-block;background:var(--moss);color:var(--on-moss);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:999px}
+.bbprice{font-family:var(--head);margin:6px 0}.bbprice b{font-size:34px;color:var(--moss)}.bbprice s{color:var(--ink-dim);font-size:18px;margin-left:8px}
+.off{display:inline-block;background:var(--moss);color:var(--on-moss);font-size:12px;font-weight:800;padding:3px 8px;border-radius:6px;margin-left:6px;vertical-align:middle}
+.per,.pack{color:var(--ink-dim);font-size:14px;margin:2px 0}
+.bb .btn{margin:16px 0 10px;width:100%;max-width:360px}
+.buy .btn,.endcta .btn{background:var(--moss);color:var(--on-moss)}
+.chk{list-style:none;padding:0;margin:8px auto 0;text-align:left;max-width:360px}.chk li{padding:4px 0 4px 24px;position:relative;font-size:14px}.chk li::before{content:"✓";position:absolute;left:0;color:var(--moss);font-weight:800}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.rgrid figure{margin:0;background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:14px;padding:18px}
+.rgrid blockquote{margin:0 0 10px;font-size:15px;line-height:1.55}.rgrid figcaption{font-weight:700;color:var(--moss);font-size:13px}
+.about p{font-size:16px;line-height:1.65;max-width:760px}
+.endcta{text-align:center;padding:30px 18px}
+@media(max-width:760px){.feat,.buybox{grid-template-columns:1fr}.feat.rev img{order:0}.bbprice b{font-size:28px}}
 .why ul{padding:0;margin:0}
 .reveal{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:20px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
 .reveal .price{font-family:var(--head);font-size:26px;color:var(--moss)}
@@ -2381,7 +2487,7 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18p
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
-<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
+${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
 <section class="hero" data-recipe="${esc(_lpRecipe.id)}">
   <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpRecipe.hero)}">
     <div class="hero-copy">
@@ -2398,13 +2504,15 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
       ${(() => { const sub = L.hero_sub || _b.tagline || ((copy.email || {}).intro_paragraph) || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
       ${priceLabel ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 auto 18px">${esc(priceLabel)}</p>` : ''}
       <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
+      ${heroAssure}${heroPills}
     </div>
     ${creativeUrl ? `<div class="hero-media"><img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct.title : bName)}"></div>` : ''}
   </div>
 </section>
-${_stripItems.length ? `<div class="trust">${_stripItems.map((c) => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
+${_appRating ? `<div class="trust"><span>${esc(`★★★★★ Rated ${String(_appRating)}/5`)}</span></div>` : ''}
 <div class="wrap" data-ds="wrap">
-  ${(bullets || fallbackBullets) ? `<section class="sec why">
+  ${featRows}
+  ${(!featRows && (bullets || fallbackBullets)) ? `<section class="sec why">
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
   </section>` : ''}
@@ -2421,19 +2529,24 @@ ${_stripItems.length ? `<div class="trust">${_stripItems.map((c) => `<span>${esc
       </div>
     </div>
   </section>` : ''}
+  ${detailSec}
+  ${_collection ? '' : buyBox('main')}
   ${_others.length ? `<section class="sec"><h2>${_collection ? 'Pick yours' : `Also from ${esc(bName)}`}</h2><div class="others${_others.length === 4 ? ' four' : ''}">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span>${_otherPrice(x) ? `<span class="op"><b>${esc(_otherPrice(x))}</b><u>View</u></span>` : `<span class="op"><u>View</u></span>`}</a>`; }).join('')}</div></section>` : ''}
   ${(!_others.length && _offerList.length) ? `<section class="sec"><h2>What ${esc(bName)} offers</h2><ul class="offers">${_offerList.map((o) => `<li>${o.url ? `<a href="${esc(o.url)}">${esc(o.name)}</a>` : `<b>${esc(o.name)}</b>`}</li>`).join('')}</ul></section>` : ''}
 </div>
 ${proofSection}
 <div class="wrap">
+  ${reviewCards}
+  ${aboutSec}
   ${faq ? `<section class="sec"><h2>Questions, answered</h2>${faq}</section>` : ''}
-  ${guaranteeBlock}
+  ${_svcAll.indexOf(_guaranteeText) >= 0 && (_hasBuy || _annClaim === _guaranteeText) ? '' : guaranteeBlock}
+  <section class="endcta"><a href="${esc(shopUrl)}" class="btn big">${cta}</a></section>
 </div>
 <div class="sticky">
   <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
   <a href="${esc(shopUrl)}" class="btn">${cta}</a>
 </div>
-<footer data-ds="footer" data-campaign="${esc(campaignId)}">© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : ''; return home ? ` · <a href="${esc(home)}" style="color:inherit">${esc(home.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''))}</a>` : ''; })()}</footer>
+<footer data-ds="footer" data-campaign="${esc(campaignId)}">${_legal ? `${esc(_legal)}<br>` : ''}© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : ''; return home ? ` · <a href="${esc(home)}" style="color:inherit">${esc(home.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''))}</a>` : ''; })()}</footer>
 </body></html>`;
 }
 
@@ -3040,9 +3153,14 @@ function attachMotionCreative(ad, entry, pool) {
         .map((p, i) => ({ title: p.title, price_text: money(p.price), image: (/^https:\/\//i.test(String(p.image || '')) ? String(p.image) : '') || images[i % Math.max(1, images.length)] || '' }));
       let store = '';
       try { store = (slotLinks(entry) || {}).store || (brand && brand.website) || ''; } catch (_) { store = (brand && brand.website) || ''; }
+      // Units as a person says them ("100 watts"), as on every other asset.
+      const U = require('./unit-words.js');
+      let uLoc = ''; try { uLoc = rt.homeRegion(brand); } catch (_) { uLoc = ''; }
+      const say = (t) => (typeof t === 'string' && /\d/.test(t) ? U.spellUnits(t, { locale: uLoc }) : t);
+      prods.forEach((p) => { p.title = say(p.title); });
       const sspec = {
-        brand, brandName: bName, hook: ad.hook || ad.headline || '', lines: sentences, products: prods, images,
-        cta: ad.cta || entry.cta || 'Shop now', store, endLine: ad.headline || '',
+        brand, brandName: bName, hook: say(ad.hook || ad.headline || ''), lines: sentences.map(say), products: prods, images,
+        cta: ad.cta || entry.cta || 'Shop now', store, endLine: say(ad.headline || ''),
         palette: { primary: ground, on_primary: core && core.textOn ? core.textOn(ground, pal.surface, pal.ink) : pal.surface,
           accent: pal.surface, on_accent: core && core.readableAsText ? core.readableAsText(ground, pal.surface, 4.5) : pal.ink, surface: pal.surface, ink: pal.ink },
         fonts: { head: String(fs.head).replace(/"/g, "'"), body: String(fs.body).replace(/"/g, "'") },
