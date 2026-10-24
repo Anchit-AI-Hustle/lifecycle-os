@@ -439,7 +439,7 @@ function strategyPlanEntries(brand, startDate, days, ns) {
         offer,
         why,
         analysis: buildEntryAnalysis({
-          cohort: { name: job.name, size: null },
+          cohort: { name: job.name, size: null, estimated: true },
           product: hero,
           channels: plannedChannels(require('../../lib/smart-brain/services.js').BASE_CHANNELS, brand),
           objective,
@@ -695,7 +695,9 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       // row read "Drive the reader to buy this product." whatever the cohort,
       // so a lapsed customer and a first-time reader got the same brief. A
       // dated offering keeps its phase's job (the date is the reason to send).
-      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, useOff.name, rotated.job);
+      // The job names the product as a person says it: the range, never the
+      // store's model code ("Vincent Chase Online VC E13033" -> "Vincent Chase Online").
+      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, require('./mailer-format.js').displayName(useOff.name) || useOff.name, rotated.job);
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
@@ -737,7 +739,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         phase: rotated.phase,
         why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}${moment ? `, on ${moment.name} in ${market}` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
         analysis: buildEntryAnalysis({
-          cohort: { name: cohort, size: 0 },
+          cohort: { name: cohort, size: null, estimated: true },
           product: { title: useOff.name, category: useOff.kind },
           channels: plannedChannels(require('../../lib/smart-brain/services.js').BASE_CHANNELS, brand),
           objective,
@@ -948,6 +950,33 @@ function slotForOtherRecord(entry, row, ident) {
   if (!ident) return !!row || !!(entry && entry[IDENTITY_KEY]);
   if (row) return !identityMatches((row.payload || {})[IDENTITY_KEY], ident);
   return !!(entry && entry[IDENTITY_KEY]) && entry[IDENTITY_KEY] !== ident;
+}
+
+// A stored row stamped for an earlier version of the record, when the request
+// carries the SAME slot as the server planned it for the record as it is now
+// (2026-10-24, production /brain, Lenskart): Daily Sync's in-place refresh of
+// such rows did not land, getPlan then served the freshly planned slots under
+// the same ids, and every View and Generate all was refused "brand_changed".
+// The current plan wins: the row is re-planned in place with the slot the
+// page holds, its old campaign link dropped, and the build goes on. An
+// approved/final row is its reviewer's and is never replaced this way.
+async function adoptCurrentSlot(entry, row, ident, db, config) {
+  if (!row || !ident || !entry || entry[IDENTITY_KEY] !== ident) return false;
+  if (identityMatches((row.payload || {})[IDENTITY_KEY], ident)) return false;
+  if (!['tentative', 'rejected', 'needs_human_verification'].includes(row.status)) return false;
+  const payload = { ...entry };
+  delete payload[PREBUILD_MARKER];
+  delete payload[PREVIEW_MARKER];
+  delete payload.brand;
+  delete payload.workspace_id;
+  const log = Array.isArray(row.change_log) ? row.change_log.slice(-30) : [];
+  log.push({ at: nowIso(), kind: 'updated', detail: 'built for another brand record: re-planned for this one' });
+  try {
+    await db.update(config.tableNames.calendarEntries, { id: `eq.${row.id}`, status: SYNC_WRITABLE_STATUSES },
+      { status: 'tentative', payload, change_log: log, updated_at: nowIso() });
+  } catch (_) { /* the build below does not depend on the write */ }
+  row.payload = payload; row.status = 'tentative'; row.generated_campaign_id = null;
+  return true;
 }
 
 function materialDiff(oldPayload, fresh) {
@@ -1261,6 +1290,10 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
         } else results.skipped_locked += 1; // human approved/finalized mid-sync
       } else { results.warnings.push(upd.warning); }
     }
+    // A write that did not land is said, never folded into "no material
+    // changes" (2026-10-24): the stored row keeps its old plan until it lands.
+    const lost = results.warnings.filter(Boolean);
+    if (lost.length) changes.push({ id: null, kind: 'not_saved', detail: `${lost.length} planned change(s) could not be saved to the calendar store; the plan shown is today's, and View or Generate re-plans each slot as it opens. First reason: ${String(lost[0]).slice(0, 240)}` });
     persistence = { ok: true, ...results };
     // Roll past slots out of the active window.
     await db.update(config.tableNames.calendarEntries, { date: `lt.${start}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', updated_at: nowIso() }).catch(() => {});
@@ -4237,6 +4270,7 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
   }
 
   // Checked after the catalogue rule, whose answer names the excluded domain.
+  await adoptCurrentSlot(entry, row, ident, db, config);
   if (slotForOtherRecord(entry, row, ident)) throw brandChangedError('slot');
 
   // Approved/final slots return the FINAL saved campaign — the reviewer sees
@@ -4442,6 +4476,7 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     throw e;
   }
 
+  await adoptCurrentSlot(entry, row, ident, db, config);
   if (slotForOtherRecord(entry, row, ident)) throw brandChangedError('slot');
 
   // IDEMPOTENCY: a slot already approved with a generated campaign must NOT be

@@ -640,14 +640,43 @@
         // Inside a table the line would sit over the next row or column
         // (Smart Brain's plan, 2026-10-13): it floats at the foot there.
         var dense = !!(el && el.closest && el.closest('table, [role="grid"]'));
-        if (!dense && r && (r.width || r.height) && r.bottom > 0 && r.bottom + 30 < vh && r.right > 0 && r.left < vw) {
+        var under = !dense && r && (r.width || r.height) && r.bottom > 0 && r.bottom + 30 < vh && r.right > 0 && r.left < vw;
+        if (under) {
           b.line.classList.remove('lc-busy-float');
           b.line.style.left = Math.max(8, Math.min(r.left, vw - 200)) + 'px';
           b.line.style.top = (r.bottom + 6) + 'px';
-        } else {
+          // The page's OWN progress line is often right under the control
+          // (Smart Brain's "Reviewing the latest data ...", 2026-10-24): the
+          // tile covered it. Where it would sit over page text that reports
+          // progress, it goes to the foot of the screen instead.
+          if (coversStatus(b.line)) under = false;
+        }
+        if (!under) {
           b.line.classList.add('lc-busy-float');
           b.line.style.left = ''; b.line.style.top = '';
         }
+      }
+      // A page's own progress report: a live region, a spinner, or a block
+      // the page names a status/state line. The app's chrome (rail, notice
+      // bar, consent bar) is not the page's progress.
+      var STATUS = '[role="status"], [role="alert"], [aria-live], [role="progressbar"], .spinner, .vh-status, .actstate, [id$="state"], [id$="status"]';
+      var CHROME = '#lifecycle-nav, #lc-authnotice, #lc-consent, #lc-activity-bar';
+      function coversStatus(line) {
+        try {
+          if (!document.elementsFromPoint) return false;
+          var lr = line.getBoundingClientRect();
+          if (!lr.width || !lr.height) return false;
+          var xs = [lr.left + 4, lr.left + lr.width / 2, lr.right - 4], ys = [lr.top + 2, lr.top + lr.height / 2, lr.bottom - 2];
+          for (var i = 0; i < xs.length; i++) for (var j = 0; j < ys.length; j++) {
+            var hits = document.elementsFromPoint(xs[i], ys[j]);
+            for (var k = 0; k < hits.length; k++) {
+              var h = hits[k];
+              if (h === line || line.contains(h) || h === document.body || h === document.documentElement) continue;
+              if (h.closest && h.closest(STATUS) && !h.closest('[data-lc-busy-line]') && !h.closest(CHROME)) return true;
+            }
+          }
+        } catch (_) { /* keep it under the control */ }
+        return false;
       }
       window.addEventListener('scroll', function () { if (A.busy.length) A.busy.forEach(place); }, { passive: true, capture: true });
       window.addEventListener('resize', function () { if (A.busy.length) A.busy.forEach(place); }, { passive: true });
@@ -1006,13 +1035,17 @@
       { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
       { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
       { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
-      { id: 'connections',   label: 'Connections',      href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
       { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
     ]},
     // AI Models is its own item (2026-10-23, the operator: "ai models as a
     // separate item instead of branched within brand setup"): which model makes
     // the work, in what order, and on whose key is a decision of its own.
     { id: 'ai-models',     label: 'AI Models & Routing', href: '/ai-models', icon: 'studio', ver: 'v2', match: ['/ai-models', '/models'] },
+    // Connections is its own item beside it (2026-10-24, the operator: the
+    // rail "still doesn't have ai models and connections ... clearly specify
+    // which is what"): the platforms a brand publishes to and reads from
+    // (Meta, Google Ads, Klaviyo, Shopify ...), with their sign-ins and keys.
+    { id: 'connections',   label: 'Platform Connections', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
 
     { section: 'Plan' },
     // Automated Calendar Creation — the ONE calendar + asset-generation feature.
@@ -1273,8 +1306,8 @@
       ],
     },
     connections: {
-      title: 'Connections',
-      what: "The place a brand brings its own platform accounts: commerce stores, ad networks, ESPs (Klaviyo, Mailchimp) and data connectors. A key entered here is encrypted inside the server, is never returned to the browser and is never written to a log, so the page can only ever show you its last four characters.",
+      title: 'Platform Connections',
+      what: "The platforms this brand publishes to and reads from: commerce stores, ad networks (Meta, Google Ads, TikTok), ESPs (Klaviyo, Mailchimp) and data connectors. AI model keys and the order models are tried in live under AI Models & Routing. A key entered here is encrypted inside the server, is never returned to the browser and is never written to a log, so the page can only ever show you its last four characters.",
       who: "The owner or an editor of the active brand workspace. A viewer can see what is connected and cannot change it. Everything stored is private to this one workspace: no other brand on the deployment can read or spend it.",
       how: "Two records per brand. A connection row holds the non-secret settings and a four character hint; the secret itself sits encrypted in a separate table that the browser role cannot select from at all, and only the server reads it, after checking the caller's own session and their role.",
       input: "Platform API credentials or account auth.",
@@ -1284,7 +1317,7 @@
         ['Business & strategy decisions', 'Connect your marketing stack directly to automate ingestion and dispatch.'],
         ['Content', 'Syncs products, campaigns, and audience lists.'],
         ['Design + layout + structure', 'Rendered entirely from brand tokens, so the page re-skins with the workspace like every other surface.'],
-        ['Coding', 'Encrypted with AES-256-GCM under CONNECTION_SECRET_KEY before storage.'],
+        ['Coding', 'Encrypted with AES-256-GCM before storage (CONNECTION_SECRET_KEY when set, else a key derived from the project secret).'],
         ['Final compilation + presentation', 'Connected platforms are available for automated multi-channel marketing. Runs via: /api/public-config?action=connections'],
       ],
     },

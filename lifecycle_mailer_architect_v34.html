@@ -3776,7 +3776,8 @@ function heroHeadline(p,typeHint){
   if(_t==='Sale')return ['Your Favourites.','Now Within Reach.'];
   if(_t==='Gift'&&cat)return ['Give the Gift of',cat+'.'];
   if(_t==='Gift')return ['Some Moments Deserve','Something Beautiful.'];
-  if(_t==='Launch'&&cat)return ['Meet Your New',cat+'.'];
+  // "Meet Your New New Arrivals." (2026-10-24): the category already says new.
+  if(_t==='Launch'&&cat)return /^new\b/i.test(cat)?['Meet Our',cat+'.']:['Meet Your New',cat+'.'];
   if(_t==='Launch')return ['Something New.','Something Worth Your Time.'];
   if(_t==='Bestseller'&&cat)return ['Why People Reach for','Our '+cat+'.'];
   if(_t==='Bestseller')return ['There Is a Reason','It Keeps Selling Out.'];
@@ -3805,12 +3806,16 @@ function subCopy(p,typeHint){
   var l=p.toLowerCase();
   var _t=typeHint||(window.S&&S.type?S.type:null);
   var sig=extractPromptSignals(p);
-  if(sig.userSentence){
+  // A sentence of the BRIEF written to the operator ("Our next Campaign for
+  // Lenskart speaks to Lenskart's customers in IN.", 2026-10-24) is not copy
+  // for the reader: it is never used as the hero's sub-copy.
+  var _brief=/^(our next|this campaign|the campaign|the brief|the hero product|proof comes|voice:)|\bspeaks to\b|\bcustomers in [A-Z]{2}\b|\[DATA REQUIRED/i;
+  if(sig.userSentence&&!_brief.test(sig.userSentence)){
     var s=sig.userSentence;
     if(s.length>140){s=s.substring(0,130).replace(/,?\s+\S+$/,'')+'...';}
     return s+'.';
   }
-  if(sig.hookLine&&sig.hookLine.length>20)return sig.hookLine+'.';
+  if(sig.hookLine&&sig.hookLine.length>20&&!_brief.test(sig.hookLine))return sig.hookLine+'.';
   var pct=sig.pct;
   var cat=resolveCat(sig.productCategory);
   var claim=brandClaims(1)[0];
@@ -3821,7 +3826,7 @@ function subCopy(p,typeHint){
   if(_t==='Sale')return 'There is something deeply satisfying about treating yourself to something you love, and knowing you got the best price, too.';
   if(_t==='Gift')return 'When they open it, the care reaches them first. Then the quiet joy of giving something truly beautiful.';
   if(_t==='Launch')return 'Some things take time to perfect. This one is finally here, waiting for you.'+claimTail;
-  if(_t==='Bestseller')return 'These are the pieces that keep selling out. No customer count is quoted here: this deployment holds no approved figure, and an invented one would be the most convincing wrong thing in the mailer.';
+  if(_t==='Bestseller')return 'Our best sellers, together in one place.'+claimTail;
   if(_t==='Discovery')return 'Your perfect pick is somewhere in this collection, waiting.'+claimTail;
   if(_t==='Routine')return 'That first quiet moment before the day begins. This is what your routine has been missing.';
   if(_t==='Story')return 'Every piece is made by someone who knows exactly what it takes. That care shows.'+claimTail;
@@ -3840,7 +3845,7 @@ function ctaText(p,typeHint){
   var cat=resolveCat(sig.productCategory);
   // Campaign type is the PRIMARY signal — checked first
   if(_t==='Sale')return cat?'Shop '+cat+' Sale':'Shop the Sale';
-  if(_t==='Launch')return cat?'Shop New '+cat:'Shop New Arrivals';
+  if(_t==='Launch')return cat?(/^new\b/i.test(cat)?'Shop '+cat:'Shop New '+cat):'Shop New Arrivals';
   if(_t==='Bestseller')return cat?'Shop Our Best '+cat:'Shop Bestsellers';
   if(_t==='Discovery')return 'Explore the Collection';
   if(_t==='Routine')return 'Build Your Routine';
