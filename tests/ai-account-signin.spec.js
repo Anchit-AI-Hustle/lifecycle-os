@@ -86,6 +86,36 @@ test('a sign-in code is exchanged with its verifier, and the key is kept encrypt
   expect(connections.decryptSecrets(sec).api_key).toBe('sk-or-v1-PERSONALKEY1234');
 });
 
+test('Claude, ChatGPT, Gemini and Grok cards sign in through OpenRouter for THAT model, and generation then asks for it', async () => {
+  // 2026-10-24, the operator on /ai-models: "sign in with ai model not added
+  // yet here?" - the cards only said why their provider has no sign-in.
+  const reg = connections.registryView(true);
+  const by = Object.fromEntries(reg.map((p) => [p.id, p]));
+  for (const [id, model] of [['anthropic', 'anthropic/claude-sonnet-5.5'], ['openai', 'openai/gpt-5.5'], ['gemini', 'google/gemini-3.8-flash'], ['grok', 'x-ai/grok-4.3']]) {
+    expect(by[id].signin.via, id).toMatchObject({ provider: 'openrouter', model, authorize_url: 'https://openrouter.ai/auth' });
+  }
+  const db = world();
+  openrouterAnswers(db, { key: 'sk-or-v1-CLAUDEKEY9876' });
+  const r = await call('tok-a', 'ai-signin-exchange', { provider: 'openrouter', code: 'code-9', code_verifier: VERIFIER, model: 'anthropic/claude-sonnet-5.5' });
+  expect(r.code, JSON.stringify(r.payload)).toBe(200);
+  expect(r.payload.message).toMatch(/now uses Claude \(anthropic\/claude-sonnet-5\.5\) on your OpenRouter account/);
+  const conn = db.table('workspace_connections')[0];
+  expect(conn.config).toMatchObject({ model: 'anthropic/claude-sonnet-5.5' });
+  const sec = db.table('workspace_connection_secrets')[0];
+  const ov = connections.buildOverrides(null, [conn], new Map([[conn.id, connections.decryptSecrets(sec)]]));
+  expect(ov.keys.openrouter).toBe('sk-or-v1-CLAUDEKEY9876');
+  expect(ov.models.openrouter).toEqual(['anthropic/claude-sonnet-5.5']);
+  // A routing that names its own OpenRouter models wins over the sign-in's.
+  const ov2 = connections.buildOverrides({ entries: [{ provider: 'openrouter', models: ['openai/gpt-4o'] }] }, [conn], new Map());
+  expect(ov2.models.openrouter).toEqual(['openai/gpt-4o']);
+  // A model the request makes up is refused before the code is spent.
+  const db2 = world();
+  const seen = openrouterAnswers(db2, { key: 'sk-or-v1-X' });
+  const bad = await call('tok-a', 'ai-signin-exchange', { provider: 'openrouter', code: 'c', code_verifier: VERIFIER, model: 'evil/model' });
+  expect(bad.code).toBe(400);
+  expect(seen).toHaveLength(0);
+});
+
 test('a viewer cannot keep a key, so nothing is exchanged; a refused or missing code says to start again', async () => {
   let db = world();
   let seen = openrouterAnswers(db, { key: 'sk-or-v1-x' });
@@ -113,11 +143,13 @@ test('a viewer cannot keep a key, so nothing is exchanged; a refused or missing 
 });
 
 test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, with the code taken out of the address bar', async ({ page }) => {
+  // Each load waits up to 12 s for BrandContext, which this stub page has not.
+  test.setTimeout(150000);
   const posts = [];
   let exchanged = false;
   const server = http.createServer((req, res) => {
     const u = new URL(req.url || '/', 'http://127.0.0.1');
-    const send = (status, type, body) => { res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(body); };
+    const send = (status, type, body) => { res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', Connection: 'close' }); res.end(body); };
     if (u.pathname === '/auth.js') return send(200, 'text/javascript', 'window.LifecycleAuth={session:{access_token:"session-token"}};window.LifecycleStatus={decide:async function(){return null;}};window.LifecycleFailure={sentence:function(e){return e.message;},html:function(e){return e.message;},show:function(){}};');
     if (u.pathname === '/api/public-config' && u.searchParams.get('action') === 'connections') {
       const op = u.searchParams.get('op');
@@ -145,11 +177,11 @@ test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, wi
       return route.abort('failed');
     });
     await page.goto(`${base}/connections`);
-    const btn = page.locator('[data-act="signin"][data-provider="openrouter"]');
-    await expect(btn).toBeVisible({ timeout: 15000 });
+    const btn = page.locator('.conn[data-provider="openrouter"] [data-act="signin"]');
+    await expect(btn).toBeVisible({ timeout: 30000 });
     await expect(page.locator('.conn[data-provider="openai"] [data-signin-note]')).toContainText('OpenAI publishes no sign-in');
     await btn.click();
-    await page.waitForURL(/openrouter\.ai\/auth/, { timeout: 15000 });
+    await page.waitForURL(/openrouter\.ai\/auth/, { timeout: 30000 });
     const auth = new URL(page.url());
     const cb = new URL(auth.searchParams.get('callback_url'));
     expect(cb.origin).toBe(base);
@@ -160,18 +192,30 @@ test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, wi
     expect(st).toBeTruthy();
     // OpenRouter sends the person back with a one-time code (and the state).
     await page.goto(`${cb.toString()}&code=one-time-code&state=${encodeURIComponent(st)}`);
-    await expect(page.locator('[data-signin-result="ok"]')).toContainText('Signed in with OpenRouter', { timeout: 15000 });
+    await expect(page.locator('[data-signin-result="ok"]')).toContainText('Signed in with OpenRouter', { timeout: 30000 });
     expect(page.url()).not.toContain('one-time-code');
     expect(posts).toHaveLength(1);
     expect(posts[0]).toMatchObject({ provider: 'openrouter', code: 'one-time-code' });
     // The verifier the page sent is the one whose S256 hash it gave OpenRouter.
     const hash = require('crypto').createHash('sha256').update(posts[0].code_verifier).digest('base64url');
     expect(hash).toBe(auth.searchParams.get('code_challenge'));
+    // The Claude card's button: the same sign-in, carrying Claude's model.
+    await page.goto(`${base}/connections`);
+    const claude = page.locator('.conn[data-provider="anthropic"] [data-act="signin"]');
+    await expect(claude).toContainText('Sign in to use Claude (via OpenRouter)', { timeout: 30000 });
+    await claude.click();
+    await page.waitForURL(/openrouter\.ai\/auth/, { timeout: 30000 });
+    const auth2 = new URL(page.url());
+    const cb2 = new URL(auth2.searchParams.get('callback_url'));
+    await page.goto(`${cb2.toString()}&code=claude-code&state=${encodeURIComponent(auth2.searchParams.get('state'))}`);
+    await expect(page.locator('[data-signin-result="ok"]')).toBeVisible({ timeout: 30000 });
+    expect(posts).toHaveLength(2);
+    expect(posts[1]).toMatchObject({ provider: 'openrouter', code: 'claude-code', model: 'anthropic/claude-sonnet-5.5' });
     // A code that comes back to another tab (no stored verifier) is not used.
     await page.evaluate(() => sessionStorage.clear());
     await page.goto(`${base}/connections?ai_signin=openrouter&code=stray&state=x`);
-    await expect(page.locator('[data-signin-result="failed"]')).toContainText('not started from this browser tab', { timeout: 15000 });
-    expect(posts).toHaveLength(1);
+    await expect(page.locator('[data-signin-result="failed"]')).toContainText('not started from this browser tab', { timeout: 30000 });
+    expect(posts).toHaveLength(2);
   } finally {
     await new Promise((r) => server.close(r));
   }
