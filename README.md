@@ -169,10 +169,50 @@ Set in Vercel, never in the repo. Full list in `.env.example`.
 | Per-workspace secrets | `CONNECTION_SECRET_KEY` (32 hex bytes). **Without it a key save is refused, not stored in the clear.** |
 | Sending | `LIVE_CONNECTORS`, `<PLATFORM>_ALLOW_WRITES` |
 | Cron | `CRON_SECRET` |
+| Buying credits (India) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, plus an INR price per pack in `credit_pack_prices` or `CREDIT_PACK_PRICES` |
 
 A workspace brings its own platform credentials and its own model keys, which
 reach `llm.js` through an AsyncLocalStorage request scope — a module-level
 variable would leak keys across concurrent requests.
+
+### Buying credits with Razorpay
+
+A pack priced in rupees is paid through Razorpay Standard Checkout as a one-time
+order ([`api/_shared/razorpay-credits.js`](api/_shared/razorpay-credits.js), on
+`/api/public-config?action=credits`). The flow:
+
+1. **`op=rzp-order`** (signed in). The server reads the pack's price from the
+   price list, never from the request; it must be INR and at least ₹1. It
+   records a `pending` row in `credit_orders` (`provider = 'razorpay'`), creates
+   the Razorpay order (`POST /v1/orders`, receipt ≤ 40 chars, notes
+   `{wallet, pack, credits}`) and stores its id in `provider_ref`. It answers
+   `{keyId, orderId, amount, currency, pack}`.
+2. **The page** ([`credits.js`](credits.js) `Credits.buy`) loads
+   `checkout.razorpay.com/v1/checkout.js` on tap and opens it with that order,
+   `redirect: true` and a `callback_url`, because phones and in-app browsers
+   block the bank's popup. Closing it or a declined card says nothing was
+   charged.
+3. **Confirmation**, through whichever door arrives first:
+   `op=rzp-verify` (the checkout handler, signed in), `op=rzp-callback` (the
+   redirect's form POST, answered `303 /credits#paid` or `#unpaid`) or
+   `op=rzp-webhook` (`order.paid` / `payment.captured`, signed with
+   `RAZORPAY_WEBHOOK_SECRET` over the raw body). Verify and callback check
+   `HMAC-SHA256(order_id|payment_id, RAZORPAY_KEY_SECRET)` in constant time,
+   then `GET /v1/payments/{id}` for the same order, the same amount in INR and
+   `captured` (an `authorized` payment is captured). The credits move once:
+   `credit_fulfil_order()` is a compare-and-set on `pending`, the payment id
+   replaces the order id in `provider_ref`, and a unique index
+   (`20261024200000_razorpay_payment_once.sql`) means one payment id can mark
+   one order paid, ever. The balance updates through Supabase Realtime.
+4. **Errors**: Razorpay refusing our keys is a calm 500 that logs only the
+   status and error code; any other provider refusal is a 502. No key, secret or
+   payload is ever logged or returned.
+
+The webhook is created once per deployment in the Razorpay dashboard or with
+`POST /v1/webhooks` (`url`, `secret`, `active: true`, events `order.paid` and
+`payment.captured`). Test with card `4100 2800 0000 1007`, any future expiry, CVV
+`123`, contact `9000090000`, then Success on the demo bank page. Gated by
+`tests/razorpay-credits-executed.spec.js` and `tests/razorpay-credits-page.spec.js`.
 
 ---
 

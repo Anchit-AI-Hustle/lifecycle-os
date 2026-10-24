@@ -371,6 +371,103 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     } catch (e) { log(e); }
   }
 
+  /* ── Razorpay (India, INR) ─────────────────────────────────────────────── */
+  // An INR-priced pack is paid through Razorpay Standard Checkout. The server
+  // makes the order and decides the amount (rzp-order); this only opens the
+  // checkout with what came back. `redirect: true` sends the whole page through
+  // the bank and back to rzp-callback, because phones and in-app browsers block
+  // the bank's popup; the server then answers /credits#paid or #unpaid. On a
+  // desktop that finishes in the overlay, the handler posts rzp-verify. Either
+  // way the balance shown afterwards is the one the server reads back.
+  var RZP_PENDING = 'lc.rzp.pending';
+  var RZP_SCRIPT = 'https://checkout.razorpay.com/v1/checkout.js';
+
+  function packFor(key) {
+    var k = String(key || '').toLowerCase();
+    return (state.packs || []).filter(function (p) { return p && p.key === k; })[0] || null;
+  }
+  /** A complimentary account recharges free, so it never meets a checkout. */
+  function paysWithRazorpay(p) {
+    return !state.comp && !!state.razorpay && !!p && !!p.price && !!p.price.configured && p.price.currency === 'INR';
+  }
+  function nothingCharged(msg) { var e = new Error(msg); e.ordinary = true; return e; }
+  function loadScript(src) {
+    if (window.Razorpay) return Promise.resolve();
+    return new Promise(function (ok, no) {
+      var s = document.createElement('script');
+      s.src = src; s.async = true; s.onload = ok;
+      s.onerror = function () { no(nothingCharged('The payment page could not load. Check your connection and try again. Nothing was charged.')); };
+      document.head.appendChild(s);
+    });
+  }
+  function brandColour() {
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+      return /^#[0-9a-f]{3,8}$/i.test(v) ? v : '';
+    } catch (_) { return ''; }
+  }
+
+  async function payRazorpay(p) {
+    var c = await api('rzp-order', { pack_key: p.key });
+    // The tab keeps which wallet and pack it was buying, for the #paid/#unpaid return.
+    try { sessionStorage.setItem(RZP_PENDING, JSON.stringify({ wallet: workspaceId() || '', pack: p.key, label: p.label, order: c.orderId, at: Date.now() })); } catch (_) {}
+    await loadScript(RZP_SCRIPT);
+    return new Promise(function (resolve, reject) {
+      var over = false;
+      function finish(fn, v) { if (!over) { over = true; fn(v); } }
+      var colour = brandColour();
+      var rzp = new window.Razorpay({
+        key: c.keyId, order_id: c.orderId, amount: c.amount, currency: c.currency,
+        name: 'Lifecycle OS', description: ((c.pack && c.pack.label) || p.label) + ' credit pack',
+        prefill: c.prefill || {},
+        theme: colour ? { color: colour } : undefined,
+        redirect: true,
+        callback_url: location.origin + API + '&op=rzp-callback',
+        handler: function (r) {
+          api('rzp-verify', {
+            razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature,
+          }).then(function (out) {
+            try { sessionStorage.removeItem(RZP_PENDING); } catch (_) {}
+            finish(resolve, out);
+          }, function (e) { finish(reject, e); });
+        },
+        modal: { ondismiss: function () { finish(reject, nothingCharged('Checkout was closed before paying. Nothing was charged.')); } },
+      });
+      if (rzp.on) rzp.on('payment.failed', function () { finish(reject, nothingCharged('That payment did not go through. Nothing was charged. Try again or use another method.')); });
+      rzp.open();
+    });
+  }
+
+  /** Buy a pack: Razorpay for an INR-priced pack, otherwise the recorded order. */
+  async function buy(packKey) {
+    var p = packFor(packKey);
+    if (paysWithRazorpay(p)) {
+      var out = await payRazorpay(p);
+      await refresh();
+      return out;
+    }
+    return api('recharge', { pack_key: packKey });
+  }
+
+  /** Back from Razorpay's redirect: { status: 'paid'|'unpaid', pack, label, wallet } or null. */
+  function takeReturn() {
+    var h = String(location.hash || '');
+    var kind = h === '#paid' ? 'paid' : (h === '#unpaid' ? 'unpaid' : null);
+    if (!kind) return null;
+    var pending = null;
+    try { pending = JSON.parse(sessionStorage.getItem(RZP_PENDING) || 'null'); sessionStorage.removeItem(RZP_PENDING); } catch (_) {}
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+    return { status: kind, pack: (pending && pending.pack) || null, label: (pending && pending.label) || null, wallet: pending ? pending.wallet : null };
+  }
+
+  /** The sentence under the packs, for the four states a deployment can be in. */
+  function packNote(packs, comp) {
+    var list = packs || [];
+    if (comp) return 'free';
+    if (list.some(paysWithRazorpay)) return 'razorpay';
+    return list.some(function (p) { return p && p.price && p.price.configured; }) ? 'order' : 'none';
+  }
+
   /* ── guard + recharge ──────────────────────────────────────────────────── */
 
   function guard(key, units) {
@@ -432,6 +529,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           // follow — and unpriced is the state every deployment starts in.
           (state.comp
             ? 'This account recharges free: picking a pack adds the credits immediately at no charge. Usage is still metered, so your spend stays visible in the ledger.'
+            : packNote(state.packs, false) === 'razorpay'
+              ? 'Picking a pack opens Razorpay\'s secure checkout to pay in rupees (UPI, cards, netbanking). The credits land as soon as the payment is confirmed.'
             : anyBuyable
               ? 'Picking a pack records a recharge order. No payment processor is connected to this deployment, so an operator confirms the order before the credits land.'
               : 'No pack has a price on this deployment yet, so none can be ordered. An operator sets one before credits can be bought; your existing balance and every free feature are unaffected.') +
@@ -456,14 +555,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       el.addEventListener('click', async function () {
         el.style.opacity = '.6';
         try {
-          var r = await api('recharge', { pack_key: el.getAttribute('data-pack') });
+          var r = await buy(el.getAttribute('data-pack'));
           // The sheet stays open with the receipt on it; Close, Escape and the
           // backdrop still dismiss it. It used to close itself the moment the
           // dialog was dismissed, so the receipt was the dialog.
-          if (r.credited) { await refresh(); pulse(); say('Added ' + fmt(r.credits) + ' credits. New balance: ' + fmt(r.balance) + '.'); }
+          if (r.credited) { await refresh(); pulse(); say('Added ' + fmt(r.credits) + ' credits. New balance: ' + fmt(state.balance != null ? state.balance : r.balance) + '.'); }
           else say(r.message || 'Recharge order recorded. An operator confirms it before the credits land.');
           el.style.opacity = '';
         } catch (err) {
+          // Closing the checkout or a declined card is an ordinary outcome, said plainly.
+          if (err && err.ordinary) { say(err.message); el.style.opacity = ''; return; }
           note.hidden = false;
           note.className = 'lc-credit-note';
           note.style.marginBottom = '14px';
@@ -555,6 +656,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // Server-decided, from the VERIFIED session email. The client never
       // asserts this; it only renders what the server already concluded.
       state.comp = !!r.comp;
+      state.razorpay = !!r.razorpay;
       // Credits someone gifted to this verified email arrive with this read
       // (2026-10-23): said once, in the accent rule, never as a failure.
       if (r.gifts_received && r.gifts_received.credits > 0) {
@@ -595,7 +697,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   // before sign-in finishes.
   fetch(API + '&op=catalog', { cache: 'no-store' })
     .then(function (r) { return r.json(); })
-    .then(function (j) { if (j && j.features) { setFeatures(j.features); state.packs = j.packs || []; state.configured = j.configured !== false; state.loaded = true; emit(); decorate(document); } })
+    .then(function (j) { if (j && j.features) { setFeatures(j.features); state.packs = j.packs || []; state.configured = j.configured !== false; state.razorpay = !!j.razorpay; state.loaded = true; emit(); decorate(document); } })
     .catch(function () {});
 
   function start() {
@@ -642,6 +744,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     // for a wallet the server has just answered with.
     get unavailable() { return state.unavailable || ''; },
     get wallet() { return state.wallet; },
+    // Whether an INR-priced pack opens Razorpay's checkout on this deployment.
+    get razorpay() { return !!state.razorpay; },
+    buy: buy, takeReturn: takeReturn, packNote: function () { return packNote(state.packs, !!state.comp); },
     cost: cost, costText: costText, chip: chipFor, decorate: decorate,
     guard: guard, refresh: refresh, applyReceipt: applyReceipt, openRecharge: openRecharge,
     api: api,

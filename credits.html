@@ -246,7 +246,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function fmt(n) { return (Number(n) || 0).toLocaleString(); }
   function when(t) { try { return new Date(t).toLocaleString(); } catch (_) { return t || ''; } }
-  function toast(m) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, 3000); }
+  function toast(m) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, Math.max(3000, String(m).length * 45)); }
 
   function waitFor(test, cb, tries) {
     tries = tries || 0;
@@ -311,8 +311,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // this deployment carries a price yet. "Pick a pack" is not something a
       // user can do when no pack is pickable.
       var anyBuyable = comp || packs.some(function (p) { return p && p.price && p.price.configured; });
+      var viaRazorpay = !comp && window.Credits.packNote && window.Credits.packNote() === 'razorpay';
       note.textContent = comp
         ? 'This account recharges free. Picking a pack adds the credits immediately at no charge, and usage is still metered so your spend stays visible below.'
+        : viaRazorpay
+          ? 'Pick a pack to pay in rupees through Razorpay (UPI, cards, netbanking). The credits land as soon as the payment is confirmed.'
         : anyBuyable
           ? 'Pick a pack to record a recharge order.'
           : 'No pack has a price on this deployment yet, so none can be ordered. An operator sets one before credits can be bought; your balance and every free feature are unaffected.';
@@ -342,10 +345,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       el.addEventListener('click', async function () {
         el.style.opacity = '.5';
         try {
-          var r = await window.Credits.api('recharge', { pack_key: el.dataset.pack });
+          // Razorpay for an INR-priced pack, the recorded order otherwise: Credits.buy decides.
+          var r = await window.Credits.buy(el.dataset.pack);
           if (r.credited) { await window.Credits.refresh(); toast('Added ' + fmt(r.credits) + ' credits.'); loadAll(); }
           else toast(r.message || 'Recharge order recorded.');
-        } catch (e) { toast(window.LifecycleFailure.sentence(e)); }
+        } catch (e) { toast(e && e.ordinary ? e.message : window.LifecycleFailure.sentence(e)); }
         el.style.opacity = '';
       });
     });
@@ -522,7 +526,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       window.__ledgerReload = setTimeout(loadAll, 700);
     });
 
-    window.Credits.refresh().then(function () { renderBalance(); loadAll(); });
+    // Back from Razorpay's redirect. The server already decided paid or not;
+    // the balance shown is the one it reads back, never a sum made here.
+    var back = window.Credits.takeReturn ? window.Credits.takeReturn() : null;
+    window.Credits.refresh().then(function () {
+      renderBalance(); loadAll();
+      if (!back) return;
+      var what = back.label ? 'the ' + back.label + ' pack' : 'your credits';
+      toast(back.status === 'paid'
+        ? 'Payment received for ' + what + '. Your balance is ' + fmt(window.Credits.balance) + ' credits.'
+        : 'That payment did not go through, so no credits were added. If your bank shows a charge, the credits land by themselves within a few minutes.');
+    });
 
     if (window.BrandContext) {
       window.BrandContext.onChange(function (d) {

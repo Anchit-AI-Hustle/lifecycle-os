@@ -92,6 +92,8 @@ const BASELINE = {
   'ad-rows.spec.js': 2,
   'asset-no-black-background.spec.js': 2,
   'brand-extract.spec.js': 2,
+  // A secret must not appear in a file the deployment serves: a FILE property.
+  'razorpay-credits-executed.spec.js': 1,
   'brand-harvest.spec.js': 1,
   'competitor-dashboard.spec.js': 2,
   'data-analysis.spec.js': 2,

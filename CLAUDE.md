@@ -514,6 +514,23 @@ block; the line under the wordmark is the tagline only when it is <= 70 characte
 words (no pure/natural/locally sourced/best... it does not state). Gated by `tests/output-first-preview.spec.js`
 (mutation-checked).
 
+## ⭐ Credits can be bought with Razorpay (India, INR), one-time orders (2026-10-25)
+`api/_shared/razorpay-credits.js` on `credits-core.js` (`?action=credits&op=rzp-order|rzp-verify|rzp-callback|rzp-webhook`,
+still 12/12), `Credits.buy()` in `credits.js`, `credits.html` (#paid/#unpaid return), migration
+`20261024200000_razorpay_payment_once.sql`. A pack opens Razorpay only when its price (credit_pack_prices /
+CREDIT_PACK_PRICES) is INR and ≥ ₹1; the amount is the server's alone. No new column: `credit_orders.provider =
+'razorpay'`, `provider_ref` = Razorpay's order id while pending, the payment id once paid (credit_fulfil_order writes
+p_ref over it), so lookups match either; the migration's unique index on razorpay provider_ref is the backstop, the
+code works without it. Verify/callback: constant-time HMAC(order|payment, KEY_SECRET), then GET /v1/payments for the
+same order + amount + INR + captured (authorized is captured), then the existing compare-and-set grant; the webhook
+trusts its own signature over the raw body (raw-body.js) and is idempotent through the same grant. Callback and
+webhook are decided from the QUERY before the session check and before req.body is touched. Razorpay 401 = calm 500
+logging only status + code; other refusals 502. Redirect mode (`redirect: true` + callback_url) because phones block
+the bank popup; the callback answers a RELATIVE `303 /credits#paid|#unpaid`. Env: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET,
+RAZORPAY_WEBHOOK_SECRET. Gated by `tests/razorpay-credits-executed.spec.js` (router over fake-supabase + a modelled
+Razorpay API) and `tests/razorpay-credits-page.spec.js` (Chromium, stubbed checkout.js). Production has NO pack price
+yet, so Razorpay shows nowhere until an operator sets INR prices; none was invented here.
+
 ## ⭐ The agent goes on the brand's own website; /agent, /assets and /music fixed from production (2026-10-14)
 - **/agent answered "the database is unreachable"** while credits loaded from the same project. Vercel's log:
   `column smart_products.active does not exist` - the buyer agent, the KB and the legacy slot engine filtered on a
