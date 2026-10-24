@@ -209,10 +209,17 @@ test.describe.serial('the rendered harvest of fixture sites', () => {
     await expect(page.locator('#presetGallery [data-preset]').first()).toBeVisible({ timeout: 15000 });
     const card = page.locator('[data-preset="new-balance"]');
     // Each swatch is the read value, painted, and named by its role.
-    const sw = await card.locator('.psw').evaluateAll((els) => els.map((e) => ({
+    // Read once the card has painted: the gallery fills its swatches after the
+    // first card is visible, and a one-shot read in CI caught one unpainted
+    // (main run 888: "primary" read as ""). A swatch that never paints still fails.
+    const readSw = () => card.locator('.psw').evaluateAll((els) => els.map((e) => ({
       role: e.getAttribute('data-role'), label: e.querySelector('b').textContent, bg: getComputedStyle(e.querySelector('i')).backgroundColor,
     })));
-    expect(sw.map((s) => s.role)).toEqual(['primary', 'accent', 'surface', 'ink']);
+    const want = ['primary', 'accent', 'surface', 'ink'];
+    await expect.poll(async () => (await readSw()).map((s) => [s.role, rgbHex(s.bg)].join('=')), { timeout: 10000 })
+      .toEqual(want.map((r) => r + '=' + EXPECT['brand-a'][r]));
+    const sw = await readSw();
+    expect(sw.map((s) => s.role)).toEqual(want);
     for (const s of sw) {
       expect(s.label).toBe(s.role);
       expect(rgbHex(s.bg), s.role).toBe(EXPECT['brand-a'][s.role]);

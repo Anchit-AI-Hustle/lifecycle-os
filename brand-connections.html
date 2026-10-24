@@ -303,8 +303,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     // Sign in with the provider's own account, where it documents one; else
     // one line saying why a key is the only way (ai-account-signin.js).
+    // A sign-in needs Web Crypto for its PKCE code, which a browser gives only
+    // on a secure (https or localhost) page: without it the control is off,
+    // with its reason on it, instead of a press that can only fail.
+    var canSign = !!(window.crypto && window.crypto.subtle);
+    var signOff = canSign ? '' : ' disabled title="' + esc(NO_CRYPTO) + '"';
     if (p.signin && p.signin.available) {
-      h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="' + esc(p.id) + '">Sign in with ' + esc(p.label) + '</button></div>' +
+      h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="' + esc(p.id) + '"' + signOff + '>Sign in with ' + esc(p.label) + '</button></div>' +
         '<div class="note" data-signin-note>' + esc(p.signin.note) + ' Or paste a key above.</div>';
     } else if (p.signin && (p.signin.note || p.signin.via)) {
       // Claude, ChatGPT, Gemini and Grok: no sign-in of their own for an app,
@@ -312,7 +317,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       // account (ai-account-signin.js VIA).
       var via = p.signin.via;
       if (via) {
-        h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="openrouter" data-model="' + esc(via.model) + '" data-signin-via="' + esc(p.id) + '">Sign in to use ' + esc(via.family) + ' (via OpenRouter)</button></div>' +
+        h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="openrouter" data-model="' + esc(via.model) + '" data-signin-via="' + esc(p.id) + '"' + signOff + '>Sign in to use ' + esc(via.family) + ' (via OpenRouter)</button></div>' +
           '<div class="note" data-signin-via-note>' + esc(via.note) + '</div>';
       }
       if (p.signin.note) h += '<div class="note" style="margin-top:6px" data-signin-note>' + esc(p.signin.note) + (via ? ' Or sign in through OpenRouter above.' : '') + '</div>';
@@ -388,6 +393,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      encrypted. The key never comes to this page. */
 
   var SIGNIN_KEY = 'lifecycle.ai-signin.v1';
+  var NO_CRYPTO = 'This page cannot make the secure one-time code a sign-in uses (the browser gives it only on an https page). Paste an API key above instead.';
   function b64url(bytes) {
     var bin = ''; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -396,7 +402,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function startSignin(providerId, model) {
     var p = state.providers.filter(function (x) { return x.id === providerId; })[0];
     if (!p || !p.signin || !p.signin.available) throw new Error('There is no sign-in for this provider here.');
-    if (!window.crypto || !crypto.subtle) throw new Error('This browser cannot start a secure sign-in (no Web Crypto). Paste a key instead.');
+    if (!window.crypto || !crypto.subtle) throw new Error(NO_CRYPTO);
     var verifier = randomToken(48);
     var challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
     var st = randomToken(16);
