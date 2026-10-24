@@ -27,7 +27,10 @@ The operator: "test every asset generation logic and brand setup logic too for e
   (openrouter.ai/docs/use-cases/oauth-pkce): verifier + state in the browser's sessionStorage, the one-time code
   exchanged SERVER-side at `POST https://openrouter.ai/api/v1/auth/keys` only after the workspace write check, the
   key saved through `saveConnection` (encrypted, never returned). No app registration, no env var. OpenAI, Anthropic
-  and Gemini say why there is no sign-in (none for third-party apps / Google verification for a web app). Not built
+  and Gemini say why there is no sign-in (none for third-party apps / Google verification for a web app). Claude, ChatGPT, Gemini and Grok
+  cards each carry "Sign in to use <family> (via OpenRouter)" (`VIA` in ai-account-signin.js, slugs read from
+  openrouter.ai/api/v1/models): the same PKCE sign-in, the model saved on the OpenRouter connection's `model` field and
+  used by `buildOverrides` unless the routing names its own. Not built
   yet: Hugging Face (documented OAuth with an `inference-api` scope, needs a new llm.js provider + token refresh).
   Gated by `tests/ai-account-signin.spec.js` (5 executed, incl. the redirect and return in Chromium).
 
