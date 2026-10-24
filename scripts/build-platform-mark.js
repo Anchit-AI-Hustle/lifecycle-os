@@ -63,6 +63,25 @@ for (const [bucket, scale] of Object.entries(DENSITY)) {
   TARGETS.push({ file: `android/app/src/main/res/mipmap-${bucket}/ic_launcher_round.png`, w: px, h: px, kind: 'round', use: 'Android legacy round launcher' });
   TARGETS.push({ file: `android/app/src/main/res/mipmap-${bucket}/ic_launcher_foreground.png`, w: fg, h: fg, kind: 'glyph', use: 'Android adaptive-icon foreground' });
 }
+// Android launch screens (2026-10-24): Capacitor's template shipped its own
+// blue logo as the splash, so the app opened on another product's mark. The
+// mark sits centred on the plain surface, the name under it, at the sizes the
+// template declared.
+const SPLASH = { mdpi: [320, 480], hdpi: [480, 800], xhdpi: [720, 1280], xxhdpi: [960, 1600], xxxhdpi: [1280, 1920] };
+TARGETS.push({ file: 'android/app/src/main/res/drawable/splash.png', w: 480, h: 320, kind: 'splash', use: 'Android launch screen (default)' });
+for (const [bucket, [pw, ph]] of Object.entries(SPLASH)) {
+  TARGETS.push({ file: `android/app/src/main/res/drawable-port-${bucket}/splash.png`, w: pw, h: ph, kind: 'splash', use: 'Android launch screen, portrait' });
+  TARGETS.push({ file: `android/app/src/main/res/drawable-land-${bucket}/splash.png`, w: bucket === 'xxxhdpi' ? 1920 : ph, h: bucket === 'xxxhdpi' ? 1280 : pw, kind: 'splash', use: 'Android launch screen, landscape' });
+}
+// iOS (Capacitor's Xcode project): one 1024 app icon, full bleed and opaque
+// (iOS applies its own corner mask and rejects transparency), and the launch
+// image the storyboard scales to fit.
+TARGETS.push({ file: 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png', w: 1024, h: 1024, kind: 'fullbleed', opaque: true, use: 'iOS app icon' });
+for (const f of ['splash-2732x2732.png', 'splash-2732x2732-1.png', 'splash-2732x2732-2.png']) {
+  TARGETS.push({ file: `ios/App/App/Assets.xcassets/Splash.imageset/${f}`, w: 2732, h: 2732, kind: 'splash', use: 'iOS launch image' });
+}
+/** The plain surface a launch screen and the native shell sit on. */
+const SPLASH_GROUND = '#FFFFFF';
 
 /* ── The logo set (2026-10-05, design/lifecycle-os/DESIGN.md "Logo") ─────────
    Every lockup is a string transform of the ONE mark file plus the wordmark,
@@ -156,6 +175,14 @@ function documentFor(target, svg) {
       + `<div><div style="font-size:88px;font-weight:700;letter-spacing:-0.02em;line-height:1">Lifecycle OS</div>`
       + `<div style="font-size:30px;line-height:1.35;margin-top:22px;max-width:760px;color:#5B6470">A lifecycle-marketing operating system. Onboard a brand and the whole suite runs as that brand.</div></div></body>`;
   }
+  if (kind === 'splash') {
+    // The mark centred exactly (its core dot on the centre pixel), the name under it.
+    const m = Math.round(Math.min(w, h) * 0.22);
+    const fs_ = Math.round(m * 0.3);
+    return base.replace('background:transparent', `background:${SPLASH_GROUND}`) + `<body style="position:relative;font-family:${WORDMARK_FONT};color:${t.ink}">`
+      + `<div style="position:absolute;left:${Math.round((w - m) / 2)}px;top:${Math.round((h - m) / 2)}px;width:${m}px;height:${m}px">${variant(svg, 'any').replace('width="64" height="64"', `width="${m}" height="${m}"`)}</div>`
+      + `<div style="position:absolute;left:0;right:0;top:${Math.round((h + m) / 2 + m * 0.18)}px;text-align:center;font-size:${fs_}px;font-weight:700;letter-spacing:-0.01em">${WORDMARK}</div></body>`;
+  }
   if (kind === 'glyph') {
     // Adaptive-icon foreground: the safe zone is the centre 66dp of 108dp. The
     // loop spans 63% of the SVG's half-width, so the SVG is drawn at 90% of the
@@ -184,7 +211,9 @@ async function render() {
     for (const target of (ONLY_LOGOS ? [] : TARGETS)) {
       await page.setViewportSize({ width: target.w, height: target.h });
       await page.setContent(documentFor(target, svg), { waitUntil: 'load' });
-      const png = await page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: target.w, height: target.h }, type: 'png' });
+      // A launch screen and the iOS icon are opaque; the others keep alpha.
+      const opaque = target.opaque || target.kind === 'splash';
+      const png = await page.screenshot({ omitBackground: !opaque, clip: { x: 0, y: 0, width: target.w, height: target.h }, type: 'png' });
       const out = path.join(ROOT, target.file);
       fs.mkdirSync(path.dirname(out), { recursive: true });
       fs.writeFileSync(out, png);
@@ -217,7 +246,7 @@ async function render() {
   }
 }
 
-module.exports = { TARGETS, SVG_PATH, tokens, variant, documentFor, LOGO_SET, LOGO_RASTERS, logoSvg, markParts, WORDMARK, WORDMARK_FONT };
+module.exports = { TARGETS, SPLASH_GROUND, SVG_PATH, tokens, variant, documentFor, LOGO_SET, LOGO_RASTERS, logoSvg, markParts, WORDMARK, WORDMARK_FONT };
 
 if (require.main === module) {
   if (process.argv.includes('--list')) {

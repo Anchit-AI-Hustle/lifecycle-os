@@ -487,13 +487,20 @@ test('every raster exists at its declared size, is not blank, and keeps the corn
       return { natural: [img.naturalWidth, img.naturalHeight], corner: at(0, 0), centre: at(Math.floor(W / 2), Math.floor(H / 2)), opaque, dark, total: W * H };
     }, [src, w, h]);
     expect(px.natural, target.file).toEqual([w, h]);
-    expect(px.dark, `${target.file} has no ink pixels: blank`).toBeGreaterThan(px.total * 0.01);
+    expect(px.dark, `${target.file} has no ink pixels: blank`).toBeGreaterThan(px.total * (target.kind === 'splash' ? 0.001 : 0.01));
     if (target.kind === 'any' || target.kind === 'round' || target.kind === 'glyph') expect(px.corner[3], `${target.file} (${target.kind}) corner should be transparent`).toBe(0);
     if (target.kind === 'fullbleed') {
       expect(px.corner[3], `${target.file} corner should be opaque`).toBe(255);
       expect(px.corner.slice(0, 3), `${target.file} corner should be the tile colour`).toEqual(tile);
     }
     if (target.kind === 'card') expect(px.corner[3]).toBe(255);
+    if (target.kind === 'splash') {
+      const g = mark.SPLASH_GROUND;
+      expect(px.corner, `${target.file}: a launch screen is the plain surface, opaque`).toEqual([parseInt(g.slice(1, 3), 16), parseInt(g.slice(3, 5), 16), parseInt(g.slice(5, 7), 16), 255]);
+    }
+    // A launch screen and the iOS icon carry no alpha channel at all (PNG colour type 2):
+    // the App Store refuses an icon with one, opaque or not.
+    if (target.kind === 'splash' || target.opaque) expect(fs.readFileSync(abs)[25], `${target.file} has an alpha channel`).toBe(2);
     // The core dot sits at the centre of every icon shape.
     if (target.kind !== 'card') expect(px.centre[0] + px.centre[1] + px.centre[2], `${target.file} centre is not the ink`).toBeLessThan(300);
     checked++;
@@ -510,6 +517,43 @@ test('every raster exists at its declared size, is not blank, and keeps the corn
   expect(svgPx.natural).toEqual([64, 64]);
   expect(svgPx.corner).toBe(0);
   expect(svgPx.centre).toBeLessThan(300);
+});
+
+/* ═══ the Android and iOS apps: the live site, in platform chrome ═════════ */
+
+test('the Android and iOS apps load the live site and open on the platform mark, never a tenant\'s name, colour or the template\'s logo', () => {
+  // Both apps exist as native projects, each with the mark's launch screen and icon.
+  for (const f of ['android/app/src/main/AndroidManifest.xml', 'ios/App/App/Info.plist', 'ios/App/App.xcodeproj/project.pbxproj']) {
+    expect(fs.existsSync(path.join(ROOT, f)), `${f} missing: the native project was not generated`).toBe(true);
+  }
+  expect(mark.TARGETS.filter((t) => t.file.startsWith('android/') && t.kind === 'splash').length).toBe(11);
+  expect(mark.TARGETS.filter((t) => t.file.startsWith('ios/')).length).toBe(4);
+  // Every config loads the canonical site, so the apps run what the website runs.
+  for (const f of ['capacitor.config.json', 'mobile/capacitor.config.json']) {
+    const c = JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
+    expect(c.server && c.server.url, f).toBe('https://lifecycle-os.anchit-tandon.com');
+    expect(c.server.cleartext, f).toBe(false);
+    const grounds = JSON.stringify(c).match(/"backgroundColor":"(#[0-9A-Fa-f]{6})"/g) || [];
+    expect(grounds.length, `${f} sets no background colour`).toBeGreaterThan(0);
+    for (const gd of grounds) {
+      const hex = gd.slice(-8, -1);
+      expect(lowSat(hex), `${f}: ${hex} is a colour, not the platform surface`).toBe(true);
+      expect(core.luminance(hex), `${f}: ${hex} is a dark ground`).toBeGreaterThan(0.8);
+    }
+  }
+  // The shell page (launch / offline): the mark, no tenant name or colour, no dark ground.
+  const shell = fs.readFileSync(path.join(ROOT, 'mobile-shell', 'index.html'), 'utf8');
+  expect(fs.readFileSync(path.join(ROOT, 'mobile', 'www', 'index.html'), 'utf8'), 'the two shell copies differ').toBe(shell);
+  expect(shell).toMatch(/aria-label="Lifecycle OS"/);
+  expect(shell).not.toMatch(new RegExp(ZERO.name, 'i'));
+  const hexes = [...new Set((shell.match(/#[0-9A-Fa-f]{6}\b/g) || []).map((h) => h.toUpperCase()))];
+  expect(hexes.length).toBeGreaterThan(0);
+  for (const h of hexes) {
+    expect(lowSat(h), `${h} in the shell is a colour`).toBe(true);
+    // A neutral white is every brand's surface; a tenant's COLOUR is what must not appear.
+    expect(ZERO_HEXES.filter((z) => !lowSat(z))).not.toContain(h);
+  }
+  expect(shell).toMatch(new RegExp(`background:${mark.SPLASH_GROUND}`));
 });
 
 /* ═══ the retired tenant file is linked only from tenant zero's frozen artefacts ═ */
