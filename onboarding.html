@@ -510,6 +510,33 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     'Manrope','Work Sans','Source Serif 4','Fraunces','Poppins','Nunito','Karla','Libre Baskerville','IBM Plex Sans','Outfit','Bricolage Grotesque'];
 
   var step = 1, paletteCheck = null, workspaces = [], catalogCount = null, catalogExcluded = null, busy = false;
+  /* ONE BRAND, ONE RECORD - AND A WAY TO IT (2026-10-24). Production: an account
+     that already held The Economic Times opened /onboarding?new=1, picked the
+     Economic Times template and reached Review. Every save the wizard made on
+     the way was refused "brand_exists" (one brand has one record), silently,
+     so the context pack said "Save this brand first" and Activate showed a
+     toast that went away and offered nothing to press. The refusal names the
+     record that IS this brand; the wizard keeps it here and turns Activate into
+     "Open and activate <name>", which activates THAT record and changes
+     nothing on it. */
+  var dupOf = null;
+  function noteDuplicate(e) {
+    if (!e || e.code !== 'brand_exists') return false;
+    var d = (e.payload && Array.isArray(e.payload.details) && e.payload.details[0]) || (Array.isArray(e.details) && e.details[0]) || null;
+    if (!d || !d.existing_id || d.existing_id === brand.id) return false;
+    var was = dupOf && dupOf.id;
+    dupOf = { id: String(d.existing_id), name: String(d.existing_name || brand.name || 'This brand'), site: String(d.site || '') };
+    return was !== dupOf.id;
+  }
+  function dupBlock() {
+    if (!dupOf) return '';
+    return '<div class="verdict warn" data-brand-exists="' + esc(dupOf.id) + '" style="margin-top:14px">' +
+      '<b>ALREADY IN YOUR ACCOUNT</b>' +
+      esc(dupOf.name) + ' is already a brand in this account' + (dupOf.site ? ' (' + esc(dupOf.site) + ')' : '') +
+      ', so nothing on this page was saved as a second one. Activate opens that brand and makes it live as it is; ' +
+      '<a href="/onboarding?id=' + encodeURIComponent(dupOf.id) + '&step=6" data-open-existing>open it to review or edit first</a>.' +
+    '</div>';
+  }
   // Set by go(). Boot restores a saved step asynchronously, and must not do it
   // once the operator has moved somewhere themselves.
   var __navigated = false;
@@ -1230,12 +1257,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
               '<div style="margin-top:8px">' + r.missing.map(function (m) { return '<div class="marker">' + esc(m.marker) + '</div>'; }).join(' ') + '</div>'
             : 'Everything the platform needs is present.') +
         '</div>' +
-        coherenceBlock(true) +
-        autoFilledBlock() +
-        storeFeedCallout() +
+        dupBlock() +
+        (dupOf ? '' : coherenceBlock(true) + autoFilledBlock() + storeFeedCallout()) +
         '<div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">' +
-          '<button type="button" class="btn primary" id="activate">' + (r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
-          '<button type="button" class="btn" id="saveDraft">Save as draft</button>' +
+          '<button type="button" class="btn primary" id="activate">' + (dupOf ? 'Open and activate ' + esc(dupOf.name) : r.ready ? 'Activate this brand' : 'Activate anyway (drafts only)') + '</button>' +
+          (dupOf ? '' : '<button type="button" class="btn" id="saveDraft">Save as draft</button>') +
         '</div>' +
         contextBlock() +
         // Exempt for the same reason as the gallery: this list names the
@@ -3649,7 +3675,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     if (!brand.id) {
       return '<div class="xtract" style="margin-top:26px"><h3>Brand context pack</h3>' +
-        '<p class="xmeta">Save this brand first, then build its context pack.</p></div>';
+        '<p class="xmeta">' + (dupOf ? esc(dupOf.name) + ' is already in your account; its context pack is built from that brand.' : 'Save this brand first, then build its context pack.') + '</p></div>';
     }
     var p = packState;
     var line;
@@ -3771,7 +3797,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
       });
     }
-    $('saveDraft').addEventListener('click', async function () {
+    if ($('saveDraft')) $('saveDraft').addEventListener('click', async function () {
       brand.status = 'draft';
       try {
         var saved = await save();
@@ -3779,10 +3805,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // account, and the difference is the whole reason the row is labelled.
         toast(saved && saved.storage === 'device' ? 'Saved as a draft on this device.' : 'Saved as a draft.');
         loadWorkspaces();
-      } catch (e) { toast(window.LifecycleFailure.sentence(e), 4200); }
+      } catch (e) {
+        if (noteDuplicate(e)) return render();
+        toast(window.LifecycleFailure.sentence(e), 4200);
+      }
     });
     $('newBrand').addEventListener('click', function () { startNewBrand(); go(1); });
     $('activate').addEventListener('click', async function () {
+      if (dupOf) return activateExisting();
       var pc = checkPalette();
       if (!pc.ok) { toast('The colour schema still fails the design rules. Fix step 2 first.'); return go(2); }
       /* A record that mixes brands does not go live by accident (2026-10-10):
@@ -3806,9 +3836,35 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         setTimeout(function () { location.href = from && from !== '/onboarding' ? from : '/'; }, 900);
       } catch (e) {
         brand.status = 'draft';
+        // The record already exists: say so on the page and offer it, never a
+        // toast that leaves nothing to press.
+        if (noteDuplicate(e)) { render(); var ex = document.querySelector('[data-brand-exists]'); if (ex) ex.scrollIntoView({ block: 'center' }); return; }
         toast(window.LifecycleFailure.sentence(e), 5000);
       }
     });
+  }
+
+  /* Activate the record that already IS this brand, as it is. Its own review
+     decides anything that blocks it (a mixed record asks for a reason there). */
+  async function activateExisting() {
+    var target = dupOf;
+    var btn = $('activate'); if (btn) btn.disabled = true;
+    try {
+      // Its status says live too, as a brand activated from its own review
+      // would; a partial save keeps every other field of that record.
+      try { await api('save', { brand: { id: target.id, status: 'active' } }); } catch (e) {
+        if (e && (e.code === 'coherence_blocked' || /design rules/i.test(e.message || ''))) { location.href = '/onboarding?id=' + encodeURIComponent(target.id) + '&step=6'; return; }
+        throw e;
+      }
+      var live = await window.BrandContext.setActive(target.id);
+      toast((live && live.storage === 'device') ? target.name + ' is now live across the app on this device.' : target.name + ' is now live across the app.');
+      var from = new URLSearchParams(location.search).get('from');
+      setTimeout(function () { location.href = from && from !== '/onboarding' ? from : '/'; }, 900);
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      if (e && e.code === 'coherence_blocked') { location.href = '/onboarding?id=' + encodeURIComponent(target.id) + '&step=6'; return; }
+      toast(window.LifecycleFailure.sentence(e), 5000);
+    }
   }
 
   /* ══ BRAND GUIDELINES + FILE-OR-URL ASSETS (2026-10-04) ══════════════════
@@ -4946,6 +5002,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function startNewBrand() {
     draftingNew = true;
+    dupOf = null;
     brand = blankBrand();
     DEFAULT_FIELDS.forEach(function (f) { markOrigin(f, 'default'); });
     ['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface', 'palette.surface_alt', 'palette.muted', 'typography.heading', 'typography.body']
@@ -4969,6 +5026,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       brand.onboarding_step = step;
       if (!brand.slug) brand.slug = slugify(brand.name);
       var r = await api('save', { brand: brand });
+      dupOf = null;
       if (r.brand) {
         var wasPending = !brand.id;
         brand.id = r.brand.id;
@@ -4979,6 +5037,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!silent) toast('Saved.');
       return r.brand;
     } catch (e) {
+      if (noteDuplicate(e) && silent && !raise) { try { render(); } catch (_) {} }
       if (!silent || raise) throw e;
       // A draft save failing mid-wizard must not block the user; the final
       // Activate re-saves and will surface the real error then.
