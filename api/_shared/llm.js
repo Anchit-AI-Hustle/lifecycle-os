@@ -550,7 +550,13 @@ module.exports = async function callLLM(opts) {
   const hasBedrockKey = hasBedrockSigV4 || !!bedrockApiKey;
 
   const deepseekKey = _clean(ovKeys.deepseek) || _clean(process.env.DEEPSEEK_API_KEY);
-  const geminiKey    = _clean(ovKeys.gemini) || _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
+  // A person who signed in with Google (ai-account-signin.js) carries an OAuth
+  // access token for THEIR Google Cloud project, not a key: Gemini is then
+  // called as them, billed to that project (x-goog-user-project).
+  const geminiOauth = (!_clean(ovKeys.gemini) && ovKeys.gemini_oauth && _clean(ovKeys.gemini_oauth.access_token))
+    ? { token: _clean(ovKeys.gemini_oauth.access_token), project: _clean(ovKeys.gemini_oauth.project) } : null;
+  const geminiKey    = _clean(ovKeys.gemini) || (geminiOauth ? 'google-oauth' : '') || _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
+  const ownKey = (p) => !!ovKeys[p] || (p === 'gemini' && !!geminiOauth);
   const grokKey      = _clean(ovKeys.grok) || _clean(process.env.XAI_API_KEY);
   const groqKey      = _clean(ovKeys.groq) || _clean(process.env.GROQ_API_KEY);
   const cerebrasKey  = _clean(ovKeys.cerebras) || _clean(process.env.CEREBRAS_API_KEY);
@@ -749,8 +755,10 @@ module.exports = async function callLLM(opts) {
     const combined = systemPrompt + '\n\n---\nUSER REQUEST:\n' + seededUserMessage;
     // Gemini free tier can be slower — give 30% more time than other providers
     return attempt('gemini', model,
-      bases.gemini + '/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(geminiKey), {
-        headers: { 'Content-Type': 'application/json' },
+      bases.gemini + '/models/' + encodeURIComponent(model) + ':generateContent' + (geminiOauth ? '' : '?key=' + encodeURIComponent(geminiKey)), {
+        headers: geminiOauth
+          ? Object.assign({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + geminiOauth.token }, geminiOauth.project ? { 'x-goog-user-project': geminiOauth.project } : {})
+          : { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: combined }] }],
           generationConfig: {
@@ -877,14 +885,14 @@ module.exports = async function callLLM(opts) {
 
   function _success(result) {
     const usage = result.usage || { input_tokens: null, output_tokens: null };
-    noteOutcome('ok', { own: !!ovKeys[result.provider], kind: 'text', provider: result.provider, model: result.model,
+    noteOutcome('ok', { own: ownKey(result.provider), kind: 'text', provider: result.provider, model: result.model,
       input_tokens: usage.input_tokens, output_tokens: usage.output_tokens });
     return { text: result.text, provider: result.provider, model: result.model, seed, usage,
              quota_warning: openaiKeysExhausted > 0, exhausted_keys: openaiKeysExhausted,
              // Which routing decided this call, and whether the key that paid
              // for it was the workspace's. Never the key, only the fact.
              routing: ov ? 'workspace' : 'platform',
-             workspace_key: !!ovKeys[result.provider],
+             workspace_key: ownKey(result.provider),
              // What failed before this answer, so a caller can see it was a fallback.
              attempts: _providerErrors.slice(), fell_back: _providerErrors.length > 0 };
   }

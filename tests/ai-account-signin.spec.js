@@ -24,14 +24,19 @@ const signin = require(path.join(ROOT, 'api', '_shared', 'ai-account-signin.js')
 const EXCHANGE = 'https://openrouter.ai/api/v1/auth/keys';
 const VERIFIER = 'v'.repeat(43) + 'erifier-0123456789';
 
-const ENV = envScope(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'CONNECTION_SECRET_KEY']);
+const ENV = envScope(['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'CONNECTION_SECRET_KEY', 'GOOGLE_AI_OAUTH_CLIENT_ID', 'GOOGLE_AI_OAUTH_CLIENT_SECRET']);
 let REAL_FETCH;
 test.beforeAll(() => {
   ENV.save(); REAL_FETCH = global.fetch;
   process.env.SUPABASE_URL = BASE; process.env.SUPABASE_ANON_KEY = ANON_KEY;
   process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY; process.env.CONNECTION_SECRET_KEY = 'e'.repeat(64);
-  for (const k of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY']) delete process.env[k];
+  for (const k of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY', 'GOOGLE_AI_OAUTH_CLIENT_ID', 'GOOGLE_AI_OAUTH_CLIENT_SECRET']) delete process.env[k];
 });
+const GOOGLE_ID = '123-test.apps.googleusercontent.com';
+function withGoogleClient(on) {
+  if (on) { process.env.GOOGLE_AI_OAUTH_CLIENT_ID = GOOGLE_ID; process.env.GOOGLE_AI_OAUTH_CLIENT_SECRET = 'google-client-secret'; }
+  else { delete process.env.GOOGLE_AI_OAUTH_CLIENT_ID; delete process.env.GOOGLE_AI_OAUTH_CLIENT_SECRET; }
+}
 test.afterAll(() => { ENV.restore(); global.fetch = REAL_FETCH; });
 
 function world() {
@@ -204,10 +209,137 @@ test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, wi
 });
 
 test('the module names only documented flows', () => {
-  expect(Object.keys(signin.SIGNIN)).toEqual(['openrouter']);
+  expect(Object.keys(signin.SIGNIN).sort()).toEqual(['gemini', 'openrouter']);
+  expect(signin.SIGNIN.gemini.source).toBe('https://ai.google.dev/gemini-api/docs/oauth');
   for (const s of Object.values(signin.SIGNIN)) {
     expect(s.source).toMatch(/^https:\/\//);
     expect(s.authorize_url).toMatch(/^https:\/\//);
     expect(s.exchange_url).toMatch(/^https:\/\//);
+  }
+});
+
+
+// 2026-10-24, the operator: "signin must completely integrate the signin to use
+// the model - not just open key creation page", then "google sign in or whatever
+// signin mode that model accepts". Gemini accepts a Google user's OAuth token.
+test('Gemini: Sign in with Google is offered once the platform has its Google client, and not before', () => {
+  withGoogleClient(false);
+  let by = Object.fromEntries(connections.registryView(true).map((p) => [p.id, p]));
+  expect(by.gemini.signin.available).toBe(false);
+  expect(by.gemini.signin.provider_signin.url).toBe('https://aistudio.google.com/apikey');
+  // The refresh token is never a field the page draws.
+  expect(by.gemini.fields.map((f) => f.key)).toEqual(['api_key', 'project']);
+  withGoogleClient(true);
+  by = Object.fromEntries(connections.registryView(true).map((p) => [p.id, p]));
+  expect(by.gemini.signin).toMatchObject({ available: true, kind: 'google', client_id: GOOGLE_ID, authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth', scope: 'https://www.googleapis.com/auth/cloud-platform' });
+  expect(JSON.stringify(by.gemini.signin)).not.toContain('google-client-secret');
+  withGoogleClient(false);
+});
+
+test('Gemini: the Google code is exchanged on the server, the project found and the Gemini API switched on, the token kept encrypted', async () => {
+  const db = world();
+  withGoogleClient(true);
+  const seen = [];
+  db.route((u) => u === 'https://oauth2.googleapis.com/token', (_u, _i, c) => { seen.push(c); return { access_token: 'ya29.ACCESS', refresh_token: '1//REFRESHSECRET', expires_in: 3599 }; });
+  db.route((u) => u.startsWith('https://cloudresourcemanager.googleapis.com/v1/projects'), () => ({ projects: [{ projectId: 'acme-ai' }, { projectId: 'acme-old' }] }));
+  const enabled = [];
+  db.route((u) => u.startsWith('https://serviceusage.googleapis.com/'), (u) => { enabled.push(u); return {}; });
+  try {
+    const r = await call('tok-a', 'ai-signin-exchange', { provider: 'gemini', code: 'g-code', code_verifier: VERIFIER, redirect_uri: 'https://app.example.test/ai-models' });
+    expect(r.code, JSON.stringify(r.payload)).toBe(200);
+    expect(r.payload).toMatchObject({ ok: true, provider: 'gemini', signed_in: true, project: 'acme-ai' });
+    expect(r.payload.message).toMatch(/billed to your Google Cloud project "acme-ai"/);
+    expect(r.payload.message).toMatch(/2 Google Cloud projects/);
+    expect(JSON.stringify(r.payload)).not.toMatch(/REFRESHSECRET|ya29/);
+    const body = new URLSearchParams(String(seen[0].body));
+    expect(Object.fromEntries(body)).toMatchObject({ code: 'g-code', client_id: GOOGLE_ID, client_secret: 'google-client-secret', redirect_uri: 'https://app.example.test/ai-models', grant_type: 'authorization_code', code_verifier: VERIFIER });
+    expect(enabled[0]).toBe('https://serviceusage.googleapis.com/v1/projects/acme-ai/services/generativelanguage.googleapis.com:enable');
+    const conn = db.tables.workspace_connections.find((c) => c.provider === 'gemini');
+    expect(conn.config.project).toBe('acme-ai');
+    const sec = db.tables.workspace_connection_secrets.find((x) => x.connection_id === conn.id);
+    expect(JSON.stringify(sec)).not.toContain('REFRESHSECRET');
+    expect(connections.decryptSecrets(sec).google_refresh_token).toBe('1//REFRESHSECRET');
+  } finally { withGoogleClient(false); }
+});
+
+test('Gemini: a signed-in workspace calls Gemini as the person, billed to their project, and pays no credits', async () => {
+  withGoogleClient(true);
+  try {
+    const conn = { id: 'g1', provider: 'gemini', status: 'active', config: { project: 'acme-ai' } };
+    const ov = connections.buildOverrides(null, [conn], new Map([['g1', { google_refresh_token: '1//R', __google_access: 'ya29.LIVE' }]]));
+    expect(ov.keys.gemini_oauth).toEqual({ access_token: 'ya29.LIVE', project: 'acme-ai' });
+    expect(ov.configured).toContain('gemini');
+    const llm = require(path.join(ROOT, 'api', '_shared', 'llm.js'));
+    const calls = [];
+    global.fetch = async (url, init) => {
+      calls.push({ url: String(url), headers: (init && init.headers) || {} });
+      if (String(url).startsWith('https://generativelanguage.googleapis.com/')) {
+        return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'hello from gemini' }] } }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 4 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      throw new Error('unrouted ' + url);
+    };
+    const out = await llm({ systemPrompt: 'sys', userMessage: 'hi', overrides: ov, maxTokens: 50 });
+    expect(out.provider).toBe('gemini');
+    expect(out.workspace_key).toBe(true);
+    const g = calls.find((c) => c.url.startsWith('https://generativelanguage.googleapis.com/'));
+    expect(g.url).not.toMatch(/[?&]key=/);
+    expect(g.headers.Authorization).toBe('Bearer ya29.LIVE');
+    expect(g.headers['x-goog-user-project']).toBe('acme-ai');
+  } finally { global.fetch = REAL_FETCH; withGoogleClient(false); }
+});
+
+test('Gemini: the page sends the person to Google with PKCE and finishes on the bare page address', async ({ page }) => {
+  test.setTimeout(150000);
+  withGoogleClient(true);
+  const posts = [];
+  const server = http.createServer((req, res) => {
+    const u = new URL(req.url || '/', 'http://127.0.0.1');
+    const send = (status, type, body) => { res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', Connection: 'close' }); res.end(body); };
+    if (u.pathname === '/auth.js') return send(200, 'text/javascript', 'window.LifecycleAuth={session:{access_token:"session-token"}};window.LifecycleStatus={decide:async function(){return null;}};window.LifecycleFailure={sentence:function(e){return e.message;},html:function(e){return e.message;},show:function(){}};');
+    if (u.pathname === '/api/public-config' && u.searchParams.get('action') === 'connections') {
+      const op = u.searchParams.get('op');
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        if (op === 'ai-signin-exchange') { posts.push(JSON.parse(body || '{}')); return send(200, 'application/json', JSON.stringify({ ok: true, signed_in: true, message: 'Signed in with Google. Gemini now runs as you, billed to your Google Cloud project "acme-ai".' })); }
+        const reg = connections.registryView(true).filter((p) => p.category === 'ai');
+        return send(200, 'application/json', JSON.stringify({ ok: true, workspace_id: 'ws-a', connections: [], routing: { entries: [], use_platform_fallback: true }, providers: reg, secrets_storage: { encrypted: true, store: true } }));
+      });
+      return undefined;
+    }
+    if (u.pathname === '/ai-models') return send(200, 'text/html; charset=utf-8', fs.readFileSync(path.join(ROOT, 'brand-connections.html')));
+    const f = path.join(ROOT, u.pathname.replace(/^\//, ''));
+    if (fs.existsSync(f) && fs.statSync(f).isFile()) return send(200, f.endsWith('.js') ? 'text/javascript' : f.endsWith('.css') ? 'text/css' : 'text/html', fs.readFileSync(f));
+    return send(404, 'text/plain', 'nf');
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => {
+      if (route.request().url().startsWith('https://accounts.google.com/')) return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>google sign-in</p>' });
+      return route.abort('failed');
+    });
+    await page.goto(`${base}/ai-models`);
+    const btn = page.locator('.conn[data-provider="gemini"] [data-act="signin"]');
+    await expect(btn).toBeVisible({ timeout: 30000 });
+    await page.fill('.conn[data-provider="gemini"] [data-field="project"]', 'acme-ai');
+    await btn.click();
+    await page.waitForURL(/accounts\.google\.com/, { timeout: 30000 });
+    const auth = new URL(page.url());
+    expect(auth.searchParams.get('client_id')).toBe(GOOGLE_ID);
+    expect(auth.searchParams.get('redirect_uri')).toBe(`${base}/ai-models`);
+    expect(auth.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/cloud-platform');
+    expect(auth.searchParams.get('access_type')).toBe('offline');
+    expect(auth.searchParams.get('code_challenge_method')).toBe('S256');
+    const st = auth.searchParams.get('state');
+    await page.goto(`${base}/ai-models?state=${encodeURIComponent(st)}&code=g-one-time&scope=x`);
+    await expect(page.locator('[data-signin-result="ok"]')).toContainText('Signed in with Google', { timeout: 30000 });
+    expect(page.url()).not.toContain('g-one-time');
+    expect(posts).toHaveLength(1);
+    expect(posts[0]).toMatchObject({ provider: 'gemini', code: 'g-one-time', redirect_uri: `${base}/ai-models`, project: 'acme-ai' });
+    expect(require('crypto').createHash('sha256').update(posts[0].code_verifier).digest('base64url')).toBe(auth.searchParams.get('code_challenge'));
+  } finally {
+    withGoogleClient(false);
+    await new Promise((r) => server.close(r));
   }
 });
