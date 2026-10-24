@@ -407,12 +407,17 @@
     return v.map(function (x) { return typeof x === 'string' ? x.trim() : x; })
       .filter(function (x) { return x !== '' && x != null; }).slice(0, max || 200);
   }
+  // Mirrors the server (2026-10-24): accents fold, another scheme is no URL.
   function slugify(v) {
-    return String(v == null ? '' : v).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+    var s = String(v == null ? '' : v).toLowerCase().trim();
+    try { s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, ''); } catch (_) { /* old engine */ }
+    s = s.replace(/ß/g, 'ss').replace(/æ/g, 'ae').replace(/œ/g, 'oe').replace(/ø/g, 'o').replace(/đ/g, 'd').replace(/ł/g, 'l').replace(/þ/g, 'th');
+    return s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
   }
   function httpUrl(v) {
     var s = str(v, 500);
     if (!s) return '';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(s) && !/^https?:\/\//i.test(s)) return '';
     try {
       var u = new URL(s.indexOf('http') === 0 ? s : 'https://' + s);
       return (u.protocol === 'http:' || u.protocol === 'https:') ? u.toString().replace(/\/$/, '') : '';
@@ -494,19 +499,21 @@
     var extra = Array.isArray(src.extra) ? src.extra : [];
     var cleanExtra = [];
     extra.slice(0, 12).forEach(function (e) {
-      var hex = normHex(e && e.hex), name = str(e && e.name, 32);
+      var hex = normHex(e && e.hex), name = str(e && e.name, 32).replace(/[<>]/g, '').trim();
       if (hex && name) cleanExtra.push({ name: name, hex: hex });
     });
     if (cleanExtra.length) out.extra = cleanExtra;
     return out;
   }
+  function cleanFamily(v) { return str(v, 64).replace(/[^\p{L}\p{N} .&_-]/gu, '').replace(/\s+/g, ' ').trim(); }
+  function cleanStack(v) { return str(v, 200).replace(/"/g, "'").replace(/[^\p{L}\p{N} .,&'_-]/gu, '').replace(/\s+/g, ' ').trim(); }
   function normalizeFont(f, fallback) {
     var src = f && typeof f === 'object' ? f : {};
-    var family = str(src.family, 64);
+    var family = cleanFamily(src.family);
     if (!family) return null;
     var out = {
       family: family,
-      stack: str(src.stack, 200) || ("'" + family + "'," + fallback),
+      stack: cleanStack(src.stack) || ("'" + family + "'," + fallback),
       google: src.google !== false,
       weights: str(src.weights, 40) || '400;600;700',
     };
@@ -530,14 +537,15 @@
     if (mono) out.mono = mono;
     return out;
   }
+  function words(v, max) { return (typeof v === 'string' || typeof v === 'number') ? str(v, max) : ''; }
   function normalizeVoice(input) {
     var src = input && typeof input === 'object' ? input : {};
     return {
-      tone: str(src.tone, 400),
-      preferred: arr(src.preferred, 80).map(function (s) { return str(s, 60); }),
-      banned: arr(src.banned, 120).map(function (s) { return str(s, 60); }),
+      tone: words(src.tone, 400),
+      preferred: arr(src.preferred, 80).map(function (s) { return words(s, 60); }).filter(Boolean),
+      banned: arr(src.banned, 120).map(function (s) { return words(s, 60); }).filter(Boolean),
       no_em_dashes: src.no_em_dashes !== false,
-      notes: str(src.notes, 2000),
+      notes: words(src.notes, 2000),
     };
   }
   function normalizeRegions(input) {
@@ -552,11 +560,14 @@
       var code = (window.RegionContext && typeof RegionContext.family === 'function') ? RegionContext.family(raw) : raw.toUpperCase();
       if (!code) return;
       if (window.RegionContext && typeof RegionContext.isMarket === 'function' && !RegionContext.isMarket(code)) return;
+      var seen = out.filter(function (x) { return x.code === code; })[0];
+      if (seen) { if (r.home === true && !homeSeen) { seen.home = true; homeSeen = true; } return; }
       var home = r.home === true && !homeSeen;
       if (home) homeSeen = true;
+      var cur = str(r.currency, 8).toUpperCase();
       out.push({
         code: code,
-        currency: str(r.currency, 8).toUpperCase(),
+        currency: /^[A-Z]{3}$/.test(cur) ? cur : '',
         symbol: str(r.symbol, 4),
         store_url: httpUrl(r.store_url),
         pdp_pattern: str(r.pdp_pattern, 200),

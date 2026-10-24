@@ -3951,28 +3951,7 @@ function attachUnitWords(campaign, entry) {
   const em = a.email;
   if (em && typeof em === 'object') deep(em);
   for (const lp of Array.isArray(a.landing_pages) ? a.landing_pages : []) deep(lp);
-  for (const ad of Array.isArray(a.ads) ? a.ads : []) {
-    if (!ad || typeof ad !== 'object') continue;
-    const contract = ac.contractFor(ad);
-    const limitOf = (slot) => (contract ? ac.slotLimit(contract.id, slot) : null);
-    const fit = (slot, v) => {
-      const out = say(v, false);
-      const lim = Number(limitOf(slot)) || 0;
-      if (lim && out !== v && out.length > lim) { report.kept_for_limit.push({ platform: ad.platform, slot, text: v }); return v; }
-      return out;
-    };
-    for (const slot of ['headline', 'primary_text', 'description', 'caption', 'cta', 'overlay', 'script', 'hook']) {
-      if (typeof ad[slot] === 'string') ad[slot] = fit(slot === 'overlay' ? 'headline' : slot, ad[slot]);
-    }
-    if (Array.isArray(ad.headlines)) ad.headlines = ad.headlines.map((h) => fit('headlines', h));
-    if (Array.isArray(ad.descriptions)) ad.descriptions = ad.descriptions.map((d) => fit('descriptions', d));
-    if (ad.creative && typeof ad.creative === 'object' && typeof ad.creative.motion_html === 'string') ad.creative.motion_html = say(ad.creative.motion_html, true);
-    // Every other line a viewer reads: the overlay, the video's on-screen words.
-    deep(ad.overlay); if (ad.creative) deep(ad.creative.motion_brief);
-    if (Array.isArray(ad.placements)) for (const pl of ad.placements) if (pl && typeof pl === 'object') {
-      for (const k of Object.keys(pl)) if (typeof pl[k] === 'string' && !/url|safe|aspect|id$|^key$|^label$|^note$/i.test(k)) pl[k] = fit(k === 'on_screen' ? 'headline' : k, pl[k]);
-    }
-  }
+  for (const ad of Array.isArray(a.ads) ? a.ads : []) finishAd(ad);
   // SMS / WhatsApp / push (2026-10-23): an SMS keeps a symbol when the words
   // would send it as one more part; a template field keeps it past its limit.
   const MA = require('./messaging-assets.js');
@@ -3992,10 +3971,48 @@ function attachUnitWords(campaign, entry) {
     MA.syncTemplate(m);
   }
   // The platform-ready copies of the same copy (services.platformAdObject).
+  // An ad's `copy` there is the SAME object as the ad (2026-10-24 sweep): a
+  // blind walk spelled "250g" in a Google headline the limit had kept, and
+  // pushed it past 30. An ad goes through the limit-aware pass, the rest is read.
   const pr = campaign.platform_ready;
-  if (pr && typeof pr === 'object') for (const k of Object.keys(pr)) deep(pr[k]);
+  if (pr && typeof pr === 'object') {
+    for (const k of Object.keys(pr)) {
+      const list = Array.isArray(pr[k]) ? pr[k] : [pr[k]];
+      for (const item of list) {
+        if (!item || typeof item !== 'object') continue;
+        if (item.copy && typeof item.copy === 'object' && item.copy.platform) {
+          finishAd(item.copy);
+          for (const key of Object.keys(item)) if (key !== 'copy') item[key] = deep(item[key], key);
+        } else deep(item);
+      }
+    }
+  }
   campaign.unit_words = report;
   return report;
+  function finishAd(ad) {
+    if (!ad || typeof ad !== 'object') return;
+    const contract = ac.contractFor(ad);
+    const limitOf = (slot) => (contract ? ac.slotLimit(contract.id, slot) : null);
+    const fit = (slot, v) => {
+      const out = say(v, false);
+      const lim = Number(limitOf(slot)) || 0;
+      if (lim && out !== v && out.length > lim) { report.kept_for_limit.push({ platform: ad.platform, slot, text: v }); return v; }
+      return out;
+    };
+    for (const slot of ['headline', 'primary_text', 'description', 'caption', 'cta', 'overlay', 'script', 'hook']) {
+      if (typeof ad[slot] === 'string') ad[slot] = fit(slot === 'overlay' ? 'headline' : slot, ad[slot]);
+    }
+    if (Array.isArray(ad.headlines)) ad.headlines = ad.headlines.map((h) => fit('headlines', h));
+    if (Array.isArray(ad.descriptions)) ad.descriptions = ad.descriptions.map((d) => fit('descriptions', d));
+    if (ad.creative && typeof ad.creative === 'object' && typeof ad.creative.motion_html === 'string') ad.creative.motion_html = say(ad.creative.motion_html, true);
+    // Every other line a viewer reads: the overlay, the video's on-screen words.
+    deep(ad.overlay); if (ad.creative) deep(ad.creative.motion_brief);
+    // The prompts a person copies into a model (no platform limit applies).
+    if (Array.isArray(ad.prompts)) for (const pp of ad.prompts) if (pp && typeof pp.text === 'string') pp.text = say(pp.text, false);
+    if (Array.isArray(ad.placements)) for (const pl of ad.placements) if (pl && typeof pl === 'object') {
+      for (const k of Object.keys(pl)) if (typeof pl[k] === 'string' && !/url|safe|aspect|id$|^key$|^label$|^note$/i.test(k)) pl[k] = fit(k === 'on_screen' ? 'headline' : k, pl[k]);
+    }
+  }
   // A string a reader sees, anywhere in a node, but never a prompt, a URL or an id.
   function deep(node, key) {
     if (node == null) return node;
