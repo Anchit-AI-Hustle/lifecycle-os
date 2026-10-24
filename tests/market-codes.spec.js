@@ -39,6 +39,17 @@ test('the site reader takes a country from a link only when the link NAMES the c
   expect(r.regions.map((x) => x.code), 'a two-letter word on a link was read as a market').toEqual(['IN']);
 });
 
+test('a declared address or area served of "OK" proposes no home market', () => {
+  expect(extract.countryCodeOf('OK')).toBe('');
+  expect(extract.countryCodeOf('IN')).toBe('IN');
+  expect(extract.countryCodeOf('India')).toBe('IN');
+  const ld = [{ '@type': 'Organization', address: { '@type': 'PostalAddress', addressCountry: 'OK' }, areaServed: 'OK' }];
+  const r = extract.regionCandidates({ html: '<html><body></body></html>', url: 'https://news.example/', meta: {}, ld });
+  expect(r.regions.map((x) => x.code)).toEqual([]);
+  const home = extract.homeMarket({ regions: r.regions, legal: { addressCountry: 'OK' }, homeUrl: 'https://news.example/', homeCurrencies: [] });
+  expect(home.proposed || '').toBe('');
+});
+
 test('a saved market is a real country or a zone: "OK" is dropped, every real market is kept', () => {
   const rows = core.normalizeRegions([{ code: 'IN', home: true }, { code: 'OK' }, { code: 'XX' }, { code: 'US' }, { code: 'UK' }, { code: 'EU' }, { code: 'GLOBAL' }, { code: 'TR' }]);
   expect(rows.map((r) => r.code)).toEqual(['IN', 'US', 'UK', 'EU', 'GLOBAL', 'TR']);

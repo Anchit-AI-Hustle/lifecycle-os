@@ -2099,7 +2099,9 @@ function countryLinkSays(href, code) {
 function countryCodeOf(value) {
   const v = String(value == null ? '' : value).trim();
   if (!v) return '';
-  if (/^[A-Za-z]{2}$/.test(v)) return v.toUpperCase();
+  // Two letters are a code only when they name a market (brand-locale.isMarket):
+  // an addressCountry or areaServed of "OK" is no country (2026-10-24).
+  if (/^[A-Za-z]{2}$/.test(v)) return require('./brand-locale.js').isMarket(v) ? v.toUpperCase() : '';
   return COUNTRY_NAMES[v.toLowerCase().replace(/\s+/g, ' ').replace(/\.$/, '')] || '';
 }
 
@@ -2157,7 +2159,7 @@ function homeMarket(input) {
   const notes = [];
   const push = (list, code, signal, sourceUrl, evidence, confidence) => {
     const c = String(code || '').toUpperCase();
-    if (!/^[A-Z]{2}$/.test(c)) return;
+    if (!/^[A-Z]{2}$/.test(c) || !require('./brand-locale.js').isMarket(c)) return;
     list.push({ code: c, signal, source_url: sourceUrl || '', evidence: clip(evidence, 200), confidence: confidence || CONF.strong });
   };
 
