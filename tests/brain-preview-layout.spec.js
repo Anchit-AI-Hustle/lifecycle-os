@@ -127,6 +127,10 @@ async function openPreview(page, width) {
   await view.waitFor({ timeout: 20_000 });
   await view.click();
   await page.locator('#expbody-0 .pvroot').waitFor({ timeout: 30_000 });
+  // Every kind at once (the bar's "All"), so every asset is measured; the
+  // grouping itself is gated in tests/brain-preview-groups.spec.js.
+  const all = page.locator('#expbody-0 .pvgroups .pvtab[data-group="*"]');
+  if (await all.count()) await all.click();
   await waitFitted(page);
 }
 
@@ -182,6 +186,11 @@ function measure() {
   for (const f of root.querySelectorAll('iframe')) {
     const r = f.getBoundingClientRect();
     let doc = null;
+    // A video creative runs its own script (the story player draws and
+    // records a canvas), so its frame is sandboxed WITHOUT same-origin
+    // (2026-10-24): its document is not readable from here by design. It is
+    // judged by its box: inside the preview, and not empty.
+    if (f.classList.contains('advframe')) { out.frames.push({ cls: f.className, left: r.left, right: r.right, width: r.width, height: r.height, doc: { opaque: true } }); continue; }
     try {
       const d = f.contentDocument;
       const bodyText = (d && d.body && d.body.innerText || '').trim();
@@ -214,9 +223,16 @@ function measure() {
   // the heading of the next (and, for the last, the section's own bottom).
   const secs = [...root.querySelectorAll('.pvsec')].filter(visible);
   const contentBottom = (sec) => Math.max(...[...sec.querySelectorAll('*')].filter(visible).map((el) => el.getBoundingClientRect().bottom));
+  // Mailers and ads sit side by side (2026-10-24): the next section is the
+  // next one in the SAME column.
   secs.forEach((sec, i) => {
     const bottom = contentBottom(sec);
-    const next = secs[i + 1];
+    const left = Math.round(sec.getBoundingClientRect().left);
+    const grp = sec.closest('.pvgroup');
+    const next = secs.slice(i + 1).find((x) => x.closest('.pvgroup') === grp && Math.abs(Math.round(x.getBoundingClientRect().left) - left) <= 2 && x.getBoundingClientRect().top >= sec.getBoundingClientRect().bottom - 1);
+    // The last card of a column ends its column; the columns of one kind are
+    // balanced by the browser, not by this page.
+    if (!next && grp && secs.slice(i + 1).some((x) => x.closest('.pvgroup') === grp)) return;
     const nextTop = next ? next.querySelector('.pvsech').getBoundingClientRect().top : sec.getBoundingClientRect().bottom;
     out.bands.push({ section: (sec.querySelector('.pvsech') || {}).textContent, gap: nextTop - bottom });
   });
@@ -250,6 +266,7 @@ for (const width of [1600, 1280, 390]) {
       expect(docs.length, 'mailer variants + both landing pages').toBeGreaterThanOrEqual(5);
       expect(m.frames.length, 'the video creatives too').toBeGreaterThan(docs.length);
       for (const f of m.frames) {
+        if (f.doc && f.doc.opaque) { expect(f.height, `${f.cls}: an empty video frame`).toBeGreaterThan(200); expect(f.left).toBeGreaterThanOrEqual(m.view.left - 1); expect(f.right).toBeLessThanOrEqual(m.view.right + 1); continue; }
         expect(f.doc && !f.doc.error, `${f.cls}: document unreadable ${f.doc && f.doc.error}`).toBeTruthy();
         expect(f.doc.text, `${f.cls}: the frame is blank`).toBeGreaterThan(40);
         expect(f.left).toBeGreaterThanOrEqual(m.view.left - 1);
@@ -303,6 +320,8 @@ test('View answers the click before it builds the documents', async ({ page }) =
   expect(r.open, 'the row did not open').toBe(true);
   expect(r.sync, 'the click handler blocked the page').toBeLessThan(50);
   expect(r.framesInClick, 'documents were parsed inside the click').toBe(0);
+  await waitFitted(page);
+  await page.locator('#expbody-0 .pvgroups .pvtab[data-group="*"]').click();
   await waitFitted(page);
   const fitted = await page.evaluate(() => [...document.querySelectorAll('#expbody-0 iframe.pvframe')].filter((f) => f.dataset.fitted === '1' && f.srcdoc.length > 200).length);
   expect(fitted, 'the documents never arrived after the click').toBeGreaterThanOrEqual(5);
