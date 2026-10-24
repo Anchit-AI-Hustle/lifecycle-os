@@ -30,9 +30,9 @@ const BRANDS = [
     __hero: { title: 'Voltnest Pro 100W GaN', price: 3499, handle: 'pro-100w', category: 'Chargers' } },
   { id: 'device:vowel', slug: 'arya', name: 'Arya Organics', website: 'https://aryaorganics.example', industry: 'skincare', tagline: '', palette: { primary: '#B4547A', accent: '#F0C987', ink: '#2E1A24', surface: '#FFF9FB' },
     regions: [{ code: 'IN', currency: 'INR', home: true }], claims: [], legal_entity: '' },
-  { id: 'device:long', slug: 'longname', name: 'The Extraordinarily Long Named Heritage Tea Company of Darjeeling', website: 'https://longtea.example', industry: 'tea',
-    tagline: 'First flush Darjeeling, picked by hand on estates above two thousand metres and packed within the week', palette: { primary: '#5B7F3A', accent: '#D9A441', ink: '#1F2A16', surface: '#FBFAF2' },
-    regions: [{ code: 'IN', currency: 'INR', home: true }, { code: 'US', currency: 'USD' }], claims: ['Packed within 7 days of picking'], legal_entity: 'Heritage Tea Co., Darjeeling' },
+  { id: 'device:long', slug: 'longname', name: 'The Extraordinarily Long Named Heritage Tea Company of Westmere', website: 'https://longtea.example', industry: 'tea',
+    tagline: 'First flush leaf, picked by hand on estates above two thousand metres and packed within the week', palette: { primary: '#5B7F3A', accent: '#D9A441', ink: '#1F2A16', surface: '#FBFAF2' },
+    regions: [{ code: 'IN', currency: 'INR', home: true }, { code: 'US', currency: 'USD' }], claims: ['Packed within 7 days of picking'], legal_entity: 'Heritage Tea Co., Westmere' },
   { id: 'device:unicode', slug: 'chai', name: 'Chāy & Co. — Café', website: 'https://chay.example', industry: 'café', tagline: 'Masala chai, brewed "slow" & strong',
     palette: { primary: '#C2410C', accent: '#FCD34D', ink: '#1C1917', surface: '#FFFBEB' }, regions: [{ code: 'IN', currency: 'INR', home: true }], claims: ["Brewed for 12 minutes, not 2"], legal_entity: 'Chay & Co, Mumbai', voice: { banned: ['authentic'] } },
 ];
