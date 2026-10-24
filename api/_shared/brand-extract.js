@@ -1874,7 +1874,7 @@ function regionCandidates(ctx) {
   const rows = new Map();
   const touch = (code) => {
     const c = String(code || '').toUpperCase();
-    if (!/^[A-Z]{2}$/.test(c)) return null;
+    if (!/^[A-Z]{2}$/.test(c) || !require('./brand-locale.js').isMarket(c)) return null;
     if (!rows.has(c)) rows.set(c, { code: c, store_url: '', currency: '', signals: [] });
     return rows.get(c);
   };
@@ -1953,7 +1953,9 @@ function regionCandidates(ctx) {
     }
 
     if (text && text.length >= 2 && text.length <= 40 && typeof countryCodeOf === 'function') {
-      const countryCode = countryCodeOf(text);
+      // The NAME of a country, never two letters: a "TV" link to /tv/ is a
+      // news channel, not Tuvalu's store (2026-10-24, The Economic Times).
+      const countryCode = /^[A-Za-z]{2}$/.test(text) ? '' : countryCodeOf(text);
       // A country NAME as link text is a store switch only when the link's own
       // address says so too (a locale path, a country= query, or that
       // country's own domain). "Turkey" on /category/turkey is a meat, not a
