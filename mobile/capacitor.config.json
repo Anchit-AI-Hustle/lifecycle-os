@@ -7,7 +7,7 @@
     "cleartext": false,
     "androidScheme": "https"
   },
-  "backgroundColor": "#0a1410",
+  "backgroundColor": "#FFFFFF",
   "ios": { "contentInset": "always", "limitsNavigationsToAppBoundDomains": false },
-  "android": { "backgroundColor": "#0a1410", "allowMixedContent": false }
+  "android": { "backgroundColor": "#FFFFFF", "allowMixedContent": false }
 }

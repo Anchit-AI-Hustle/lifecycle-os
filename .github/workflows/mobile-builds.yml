@@ -110,6 +110,16 @@ jobs:
         # node_modules for each build. `|| true` no-ops if it already exists.
         run: npx cap add ios || true
 
+      - name: Lifecycle OS icon and launch images
+        # `cap add ios` writes Capacitor's template images; replace them with the
+        # platform mark's (rendered by scripts/build-platform-mark.js, IOS_ASSETS).
+        run: |
+          node -e "
+          const fs = require('fs');
+          const { IOS_ASSETS } = require('./scripts/build-platform-mark.js');
+          for (const [src, dests] of Object.entries(IOS_ASSETS)) for (const d of dests) { fs.copyFileSync(src, d); console.log(src, '->', d); }
+          "
+
       - name: cap sync ios
         # Resolves Swift Package Manager dependencies (Capacitor 8 iOS uses SPM,
         # not CocoaPods) and keeps the plugin list in sync.
