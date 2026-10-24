@@ -7,6 +7,6 @@
     "cleartext": false,
     "androidScheme": "https"
   },
-  "ios": { "contentInset": "always", "backgroundColor": "#0a1410" },
-  "android": { "backgroundColor": "#0a1410" }
+  "ios": { "contentInset": "always", "backgroundColor": "#FFFFFF" },
+  "android": { "backgroundColor": "#FFFFFF" }
 }
