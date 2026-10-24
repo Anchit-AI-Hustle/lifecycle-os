@@ -1846,9 +1846,30 @@ async function deleteWorkspace(auth, id) {
   // Public objects left behind would stay readable (and billed) forever.
   const assets = await removeBrandAssets(auth, wsId);
 
-  const gone = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,name`, {
-    method: 'DELETE', prefer: 'return=representation',
-  });
+  // The brand's big tables go first, in bounded batches (2026-10-24): one
+  // DELETE of the brand row cascades to every row it owns, and a brand with a
+  // large catalogue or import queue ran past PostgREST's statement timeout
+  // ("canceling statement due to statement timeout"), so nothing was deleted.
+  const purge = await purgeBrandRows(wsId);
+  if (!purge.done) {
+    const e = new Error(`This brand holds a lot of stored data. ${purge.deleted.toLocaleString('en-US')} rows were removed so far and the brand itself is still there. Press Delete permanently again to continue.`);
+    e.status = 409; e.code = 'delete_continuing'; e.details = [{ deleted: purge.deleted }];
+    throw e;
+  }
+
+  let gone;
+  try {
+    gone = await restAs(auth.token, `brand_workspaces?id=eq.${encodeURIComponent(wsId)}&select=id,name`, {
+      method: 'DELETE', prefer: 'return=representation',
+    });
+  } catch (err) {
+    if (/statement timeout/i.test(String(err && err.message))) {
+      const e = new Error('The database took too long to remove this brand and its stored data, so nothing was deleted. Press Delete permanently again: each press removes more of it first.');
+      e.status = 409; e.code = 'delete_timeout';
+      throw e;
+    }
+    throw err;
+  }
   const rows = Array.isArray(gone) ? gone : (gone ? [gone] : []);
   if (!rows.length) {
     // Reached only if the row vanished between the read and the delete, or a
@@ -1874,6 +1895,59 @@ async function deleteWorkspace(auth, id) {
     storage_note: `Re-hosted media under brand-review-media/${wsId}/ is not removed by this delete and must be cleared separately.`
       + (assets.note ? ` ${assets.note}` : ''),
   };
+}
+
+/**
+ * The tables that can hold many rows per brand, each with an `id` primary key
+ * (PostgREST's limited DELETE needs an order on a unique column). Every one
+ * also cascades from brand_workspaces; removing them here first only keeps the
+ * final cascade small. Children before parents (attempts before jobs).
+ */
+const PURGE_TABLES = [
+  'brand_catalog_import_queue', 'brand_catalog_products', 'contact_touch_ledger', 'subscriber_engagement_scores',
+  'platform_sync_log', 'platform_webhook_events', 'social_inbound_events', 'social_metric_snapshots',
+  'telesuite_items', 'telesuite_runs', 'dispatch_attempts', 'dispatch_jobs', 'dns_audit_log',
+  'brand_review_library', 'preflight_audits', 'brand_competitors',
+];
+
+/**
+ * Delete a brand's rows from the big tables in batches, with the service role
+ * (the caller's ownership was checked by deleteWorkspace before this runs).
+ * Each request is `DELETE ...?workspace_id=eq.<id>&order=id&limit=<n>`, small
+ * enough to finish inside the statement timeout; a batch the database still
+ * cancels is halved. Stops at `budgetMs` and says how far it got, so a press
+ * that runs out of time leaves the brand intact and the next press continues.
+ * With no service key it does nothing (the cascade alone, as before).
+ */
+async function purgeBrandRows(wsId, { budgetMs = 40000, batch = 5000, fetchImpl } = {}) {
+  let e;
+  try { e = env(); } catch (_) { return { done: true, deleted: 0 }; }
+  if (!e.service) return { done: true, deleted: 0 };
+  const doFetch = fetchImpl || fetch;
+  const headers = { apikey: e.service, authorization: `Bearer ${e.service}`, Prefer: 'return=minimal,count=exact' };
+  const deadline = Date.now() + budgetMs;
+  let deleted = 0;
+  for (const table of PURGE_TABLES) {
+    let size = batch;
+    for (;;) {
+      if (Date.now() > deadline) return { done: false, deleted };
+      let res;
+      try {
+        res = await doFetch(`${e.url}/rest/v1/${table}?workspace_id=eq.${encodeURIComponent(wsId)}&order=id.asc&limit=${size}`, { method: 'DELETE', headers, cache: 'no-store' });
+      } catch (_) { return { done: false, deleted }; }
+      if (res.status === 404 || res.status === 400) break;   // a table this database does not have: the cascade covers it
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        if (/statement timeout/i.test(text) && size > 250) { size = Math.floor(size / 2); continue; }
+        return { done: false, deleted };
+      }
+      const range = String(res.headers.get('content-range') || '');
+      const removed = Number((/\/(\d+)$/.exec(range) || [])[1] || 0);   // "*/<count>" with return=minimal
+      deleted += removed;
+      if (removed < size) break;
+    }
+  }
+  return { done: true, deleted };
 }
 
 /**
@@ -3167,6 +3241,7 @@ async function handle(req, res) {
 }
 
 module.exports = {
+  purgeBrandRows, PURGE_TABLES,
   samePageRequest, documentFetchRefusal,
   handle,
   requireUser,
