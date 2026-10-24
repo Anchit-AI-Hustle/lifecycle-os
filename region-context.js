@@ -85,12 +85,13 @@
      "OK" and "TV" read off a news site's links are neither, and are not
      offered as markets. */
   var ZONE_CODES = { GLOBAL: 1, EU: 1, ME: 1, UK: 1 };
+  var NOT_COUNTRY = /^(?:AA|Q[M-Z]|X[A-JL-Z]|ZZ|EZ|UN|AC|CP|CQ|DG|EA|IC|TA)$/;
   var regionNames = null;
   function isMarket(v) {
     var f = family(v);
     if (!f) return false;
     if (ZONE_CODES[f]) return true;
-    if (!/^[A-Z]{2}$/.test(f)) return false;
+    if (!/^[A-Z]{2}$/.test(f) || NOT_COUNTRY.test(f)) return false;
     try {
       if (!regionNames) regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
       var n = regionNames.of(f);

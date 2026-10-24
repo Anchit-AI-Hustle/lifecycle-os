@@ -113,12 +113,17 @@ function family(v) {
    3166-1 country the runtime's own region names know (Intl.DisplayNames,
    the same table in Node and every browser); anything else is dropped. */
 const ZONE_CODES = new Set(['GLOBAL', 'EU', 'ME', 'UK']);
+/* Region names ICU knows that are not countries (Codex on #325): its pseudo-
+   locales (XA, XB), groupings (EZ, UN, QO), ISO's exceptionally reserved
+   territories (AC, CP, CQ, DG, EA, IC, TA) and every user-assigned code
+   (AA, QM-QZ, X*, ZZ) - except XK, which is how Kosovo is written. */
+const NOT_COUNTRY = /^(?:AA|Q[M-Z]|X[A-JL-Z]|ZZ|EZ|UN|AC|CP|CQ|DG|EA|IC|TA)$/;
 let regionNames = null;
 function isMarket(code) {
   const f = family(code);
   if (!f) return false;
   if (ZONE_CODES.has(f) || COUNTRY[f]) return true;
-  if (!/^[A-Z]{2}$/.test(f)) return false;
+  if (!/^[A-Z]{2}$/.test(f) || NOT_COUNTRY.test(f)) return false;
   try {
     if (!regionNames) regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
     const n = regionNames.of(f);
