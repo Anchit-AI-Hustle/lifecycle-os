@@ -60,6 +60,10 @@ function _brand(o) {
     return rt.scopedBrand(rt.namesBrand(b) ? b : null, { allowTenantZero: true }) || {};
   } catch (_) { return b || {}; }
 }
+// "The The Heritage Tea Company team" (2026-10-24 sweep): a brand whose own
+// name begins with "The" takes no second article in a sign-off.
+function teamName(name) { return String(name || '').replace(/^the\s+/i, ''); }
+
 function brandNameOf(o) { return _brand(o).name || 'the brand'; }
 function brandStore(o, market) {
   const b = _brand(o);
@@ -936,7 +940,7 @@ function _renderVariantBody(o) {
         <p style="font-family:${BODY};font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
-        <p style="font-family:${BODY};font-size:11px;color:#7a6e5a;margin:18px 0 0;">The ${esc(brandNameOf(o))} team</p>
+        <p style="font-family:${BODY};font-size:11px;color:${palette.mutedOnSurface};margin:18px 0 0;">The ${esc(teamName(brandNameOf(o)))} team</p>
         <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc([brandOrg(o).name, brandOrg(o).address].filter(Boolean).join(', '))}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
@@ -955,7 +959,7 @@ function _renderVariantBody(o) {
       <tr><td style="padding:24px 32px 0;">
         <p data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
-        <p style="font-family:${BODY};font-size:13px;color:${palette.mutedOnSurface};margin:0;">A note from the ${esc(brandNameOf(o))} team</p>
+        <p style="font-family:${BODY};font-size:13px;color:${palette.mutedOnSurface};margin:0;">A note from the ${esc(teamName(brandNameOf(o)))} team</p>
       </td></tr>
       ${ctaRow('18px 32px 4px')}
       ${blocks}

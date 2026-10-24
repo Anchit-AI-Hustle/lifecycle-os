@@ -247,7 +247,13 @@ function build(entry, opts) {
   if (want.includes('push')) {
     const m = model.push || {};
     const title = pick(m.title, L.headline || name);
-    const body = pick(m.body, L.say !== title ? L.say : (L.tagline || ''));
+    // A body that only repeats the title is no body: the next of the brand's
+    // own lines, else its action (2026-10-24 sweep: a brand with no tagline or
+    // claims sent "Picked for you" with an EMPTY body, which the contract blocks).
+    const same = (a, b) => cleanLine(a).replace(/[.!?]+$/, '').toLowerCase() === cleanLine(b).replace(/[.!?]+$/, '').toLowerCase();
+    const bodyLine = [L.say, L.tagline, L.claims[0], L.subj, name ? `${L.cta} at ${name}.` : '']
+      .map(cleanLine).find((x) => x && !same(x, title)) || '';
+    const body = pick(m.body, sentence(bodyLine));
     out.messages.push({
       contract: 'push.notification', channel: 'push', id: `push_${slug(entry && entry.id) || 'slot'}`, source: source('push'),
       sender: name, title, body, link: link || null, deep_link: link || null, message_class: 'promotional',

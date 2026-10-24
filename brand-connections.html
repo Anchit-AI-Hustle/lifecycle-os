@@ -301,6 +301,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       h += '<div class="marker" style="margin-top:8px">' + esc(p.oauth_note) + '</div>' +
         '<div class="note">No sign-in button is shown for this platform because the flow has not been established here. Create the token in that platform\'s own console and paste it above.</div>';
     }
+    // Sign in with the provider's own account, where it documents one; else
+    // one line saying why a key is the only way (ai-account-signin.js).
+    if (p.signin && p.signin.available) {
+      h += '<div class="row" style="margin-top:8px"><button type="button" class="btn" data-act="signin" data-provider="' + esc(p.id) + '">Sign in with ' + esc(p.label) + '</button></div>' +
+        '<div class="note" data-signin-note>' + esc(p.signin.note) + ' Or paste a key above.</div>';
+    } else if (p.signin && p.signin.note) {
+      h += '<div class="note" style="margin-top:6px" data-signin-note>' + esc(p.signin.note) + '</div>';
+    }
     if (p.wired_note) h += '<div class="note" style="margin-top:6px">' + esc(p.wired_note) + '</div>';
     if (c && c.last_check_note) {
       h += '<div class="note" style="margin-top:6px"><b>Last check' + (c.last_check_ok ? '' : ' failed') + ':</b> ' + esc(c.last_check_note) + '</div>';
@@ -354,12 +362,71 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       } else if (act === 'remove') {
         await api('delete', { provider: providerId });
         toast('Removed. The stored secret was deleted with it.');
+      } else if (act === 'signin') {
+        await startSignin(providerId);
+        return; // the browser is leaving for the provider's own sign-in page
       }
       await load();
     } catch (e) {
       toast(window.LifecycleFailure.sentence(e), 4600);
       btn.disabled = false; btn.textContent = label;
     }
+  }
+
+  /* ── sign in with an AI provider's own account (2026-10-24) ─────────────
+     OAuth PKCE as the provider documents it: the verifier and the state stay
+     in THIS browser (sessionStorage, one sign-in at a time), the provider sends
+     back a one-time code, and the server exchanges it and keeps the key
+     encrypted. The key never comes to this page. */
+
+  var SIGNIN_KEY = 'lifecycle.ai-signin.v1';
+  function b64url(bytes) {
+    var bin = ''; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function randomToken(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a); }
+  async function startSignin(providerId) {
+    var p = state.providers.filter(function (x) { return x.id === providerId; })[0];
+    if (!p || !p.signin || !p.signin.available) throw new Error('There is no sign-in for this provider here.');
+    if (!window.crypto || !crypto.subtle) throw new Error('This browser cannot start a secure sign-in (no Web Crypto). Paste a key instead.');
+    var verifier = randomToken(48);
+    var challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+    var st = randomToken(16);
+    try { sessionStorage.setItem(SIGNIN_KEY, JSON.stringify({ provider: providerId, verifier: verifier, state: st, workspace_id: workspaceId() || '', at: Date.now() })); }
+    catch (e) { throw new Error('This browser blocks session storage, so a sign-in cannot be finished here. Paste a key instead.'); }
+    var back = location.origin + location.pathname + '?ai_signin=' + encodeURIComponent(providerId);
+    var u = new URL(p.signin.authorize_url);
+    u.searchParams.set('callback_url', back);
+    u.searchParams.set('code_challenge', challenge);
+    u.searchParams.set('code_challenge_method', 'S256');
+    u.searchParams.set('state', st);
+    location.assign(u.toString());
+  }
+  /** Back from the provider: finish once, then take the code out of the address bar. */
+  async function finishSignin() {
+    var qs = new URLSearchParams(location.search);
+    var provider = qs.get('ai_signin');
+    if (!provider) return;
+    var code = qs.get('code') || '';
+    var returned = qs.get('state');
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(SIGNIN_KEY) || 'null'); sessionStorage.removeItem(SIGNIN_KEY); } catch (e) { saved = null; }
+    var line = $('banner');
+    var say = function (msg, ok) { line.innerHTML = '<p class="vh-status" role="status" data-signin-result="' + (ok ? 'ok' : 'failed') + '">' + esc(msg) + '</p>'; };
+    var msg = '', ok = false;
+    if (!code) msg = 'The sign-in was cancelled or did not finish, so nothing was connected.';
+    else if (!saved || saved.provider !== provider || (returned && returned !== saved.state) || Date.now() - (saved.at || 0) > 15 * 60 * 1000) {
+      msg = 'This sign-in was not started from this browser tab (or it took longer than 15 minutes), so it was not used. Start it again from here.';
+    } else {
+      try {
+        var r = await api('ai-signin-exchange', { provider: provider, code: code, code_verifier: saved.verifier });
+        msg = r.message || 'Signed in.'; ok = true;
+      } catch (e) { msg = window.LifecycleFailure.sentence(e); }
+    }
+    // The cards load first (load() clears the banner), then the outcome is said.
+    await load();
+    say(msg, ok);
   }
 
   /* ── AI model priority ─────────────────────────────────────────────────── */
@@ -636,7 +703,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (d && d.brand) $('brandLabel').textContent = d.brand.name + ' · Connections';
       });
     }
-    load();
+    if (new URLSearchParams(location.search).get('ai_signin')) finishSignin().then(function () {}, function () {});
+    else load();
     (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(loadCatalog, function () {});
   }
 
