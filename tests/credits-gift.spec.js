@@ -18,7 +18,10 @@ test.beforeEach(() => {
   process.env.CREDIT_WELCOME_GRANT = '500';
   process.env.CRON_SECRET = 'cron-secret-for-gift-tests-0123456789';
 });
-test.afterEach(() => ENV.restore());
+// The fake project replaces global.fetch; put the real one back so a later spec
+// in the same worker (market-probe, on CI shard 3) does not inherit the fake.
+const REAL_FETCH = global.fetch;
+test.afterEach(() => { ENV.restore(); global.fetch = REAL_FETCH; });
 
 function world() {
   const db = new FakeSupabase();
