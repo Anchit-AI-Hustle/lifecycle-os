@@ -213,9 +213,14 @@ test('a save claims only typed fields as the operator\'s and records a document\
 test('deleting an account brand removes its hosted files under its workspace prefix first, and refuses to orphan them', async () => {
   // The shipped deleteWorkspace, with PostgREST and Storage modelled at the network.
   const core = require('../api/_shared/brand-workspace-core.js');
-  const saved = { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY };
+  const saved = { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY, service: process.env.SUPABASE_SERVICE_ROLE_KEY, service2: process.env.SUPABASE_SERVICE_KEY };
   process.env.SUPABASE_URL = 'https://fixture.supabase.co';
   process.env.SUPABASE_ANON_KEY = 'anon';
+  // No service key: this models the storage half only. The batched purge a
+  // service key turns on is gated by tests/brand-delete-large.spec.js; a key
+  // another spec left in this worker must not change what is modelled here.
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  delete process.env.SUPABASE_SERVICE_KEY;
   const real = global.fetch;
   const run = async (storageDelete, listing) => {
     const calls = [];
@@ -270,6 +275,8 @@ test('deleting an account brand removes its hosted files under its workspace pre
     global.fetch = real;
     if (saved.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = saved.url;
     if (saved.anon === undefined) delete process.env.SUPABASE_ANON_KEY; else process.env.SUPABASE_ANON_KEY = saved.anon;
+    if (saved.service !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = saved.service;
+    if (saved.service2 !== undefined) process.env.SUPABASE_SERVICE_KEY = saved.service2;
   }
 });
 
