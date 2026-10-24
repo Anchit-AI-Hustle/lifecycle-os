@@ -1,0 +1,14 @@
+.git
+node_modules
+**/node_modules
+test-results
+tests/report
+coverage
+android
+ios
+mobile
+mobile-shell
+marketing_automation
+competitor-intelligence-hub
+readers
+.claude
