@@ -81,6 +81,22 @@
     var k = String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
     return FAMILY[k] || k;
   }
+  /* A market is a country or a zone (brand-locale.isMarket, the same rule):
+     "OK" and "TV" read off a news site's links are neither, and are not
+     offered as markets. */
+  var ZONE_CODES = { GLOBAL: 1, EU: 1, ME: 1, UK: 1 };
+  var regionNames = null;
+  function isMarket(v) {
+    var f = family(v);
+    if (!f) return false;
+    if (ZONE_CODES[f]) return true;
+    if (!/^[A-Z]{2}$/.test(f)) return false;
+    try {
+      if (!regionNames) regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+      var n = regionNames.of(f);
+      return !!n && n !== f && !/^unknown/i.test(n);
+    } catch (_) { return false; }
+  }
   /** The brand's own code for a value spelt any of the ways above, or ''. */
   function resolveCode(v) {
     var f = family(v);
@@ -103,7 +119,7 @@
   function regionsOf(brand) {
     var list = (brand && Array.isArray(brand.regions)) ? brand.regions : [];
     return list
-      .filter(function (r) { return r && r.code; })
+      .filter(function (r) { return r && r.code && isMarket(r.code); })
       .map(function (r) {
         return {
           code: String(r.code).toUpperCase(),
@@ -897,6 +913,7 @@
     fillSelects: fillSelects,
     resolve: resolveCode,
     family: family,
+    isMarket: isMarket,
     localeOf: localeOf,
     money: money,
     num: num,

@@ -1874,7 +1874,7 @@ function regionCandidates(ctx) {
   const rows = new Map();
   const touch = (code) => {
     const c = String(code || '').toUpperCase();
-    if (!/^[A-Z]{2}$/.test(c)) return null;
+    if (!/^[A-Z]{2}$/.test(c) || !require('./brand-locale.js').isMarket(c)) return null;
     if (!rows.has(c)) rows.set(c, { code: c, store_url: '', currency: '', signals: [] });
     return rows.get(c);
   };
@@ -1953,7 +1953,9 @@ function regionCandidates(ctx) {
     }
 
     if (text && text.length >= 2 && text.length <= 40 && typeof countryCodeOf === 'function') {
-      const countryCode = countryCodeOf(text);
+      // The NAME of a country, never two letters: a "TV" link to /tv/ is a
+      // news channel, not Tuvalu's store (2026-10-24, The Economic Times).
+      const countryCode = /^[A-Za-z]{2}$/.test(text) ? '' : countryCodeOf(text);
       // A country NAME as link text is a store switch only when the link's own
       // address says so too (a locale path, a country= query, or that
       // country's own domain). "Turkey" on /category/turkey is a meat, not a
@@ -2097,7 +2099,9 @@ function countryLinkSays(href, code) {
 function countryCodeOf(value) {
   const v = String(value == null ? '' : value).trim();
   if (!v) return '';
-  if (/^[A-Za-z]{2}$/.test(v)) return v.toUpperCase();
+  // Two letters are a code only when they name a market (brand-locale.isMarket):
+  // an addressCountry or areaServed of "OK" is no country (2026-10-24).
+  if (/^[A-Za-z]{2}$/.test(v)) return require('./brand-locale.js').isMarket(v) ? v.toUpperCase() : '';
   return COUNTRY_NAMES[v.toLowerCase().replace(/\s+/g, ' ').replace(/\.$/, '')] || '';
 }
 
@@ -2155,7 +2159,7 @@ function homeMarket(input) {
   const notes = [];
   const push = (list, code, signal, sourceUrl, evidence, confidence) => {
     const c = String(code || '').toUpperCase();
-    if (!/^[A-Z]{2}$/.test(c)) return;
+    if (!/^[A-Z]{2}$/.test(c) || !require('./brand-locale.js').isMarket(c)) return;
     list.push({ code: c, signal, source_url: sourceUrl || '', evidence: clip(evidence, 200), confidence: confidence || CONF.strong });
   };
 
