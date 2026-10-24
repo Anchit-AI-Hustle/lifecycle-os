@@ -77,7 +77,11 @@ function buildEntryAnalysis(input = {}) {
   const own = input.ownCampaign || null;
   const channels = Array.isArray(input.channels) ? input.channels : [];
   const cohortName = firstText(cohort.name, 'the target cohort');
-  const cohortSize = cohort.size != null ? cohort.size : cohort.count;
+  const rawSize = cohort.size != null ? cohort.size : cohort.count;
+  // A planner that could not measure the cohort marks it `estimated` and puts
+  // 0 in `size`; "(0 profiles)" then read as an empty audience (2026-10-24).
+  const unmeasured = !!cohort.estimated && !(Number(rawSize) > 0);
+  const cohortSize = unmeasured ? null : rawSize;
   const productName = firstText(product.title, product.sku, 'the hero assortment');
   const objective = firstText(input.objective, 'lifecycle conversion');
   const market = firstText(input.market, 'this market');
@@ -86,7 +90,7 @@ function buildEntryAnalysis(input = {}) {
   const drivers = [];
   drivers.push({
     signal: 'Target cohort',
-    value: cohortSize != null ? `${cohortName} · ${num(cohortSize) || cohortSize} profiles` : cohortName,
+    value: cohortSize != null ? `${cohortName} · ${num(cohortSize) || cohortSize} profiles` : (unmeasured ? `${cohortName} · size not measured` : cohortName),
     implication: cohortImplication(cohortName, cohortSize),
   });
   drivers.push({
@@ -152,7 +156,7 @@ function buildEntryAnalysis(input = {}) {
   // reader ..." was printed on every such row of the plan.
   const objText = String(objective || '').trim().replace(/[.\s]+$/, '');
   const aim = /^drive\b/i.test(objText) ? objText.charAt(0).toLowerCase() + objText.slice(1) : `drive ${objText}`;
-  const summary = `Chosen to ${aim} for ${cohortName}${cohortSize != null ? ` (${num(cohortSize) || cohortSize} profiles)` : ''}` +
+  const summary = `Chosen to ${aim} for ${cohortName}${cohortSize != null ? ` (${num(cohortSize) || cohortSize} profiles)` : (unmeasured ? ' (size not measured)' : '')}` +
     ` with ${productName}${festival && festival.name ? `, timed to ${festival.name}` : ''}.`;
 
   return {

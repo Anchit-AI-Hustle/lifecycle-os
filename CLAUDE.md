@@ -4,6 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ /brain: a slot planned now is built, never refused for an older stored row (2026-10-24)
+Production /brain (Lenskart): every View and Generate all answered `brand_changed` ("0 generated, 8 failed") right
+after a Daily Sync that said "no material changes". Stored rows kept an earlier record fingerprint (their in-place
+refresh did not land, and a failed write was not reported), getPlan filtered them out and served the freshly planned
+slots under the SAME ids, and preview/approve then judged the stale row. `adoptCurrentSlot()`: when the request carries
+the slot stamped with the CURRENT fingerprint and the stored row is writable, the row is re-planned in place with it and
+the build goes on; an approved/final row and a slot still stamped for the old record stay refused. A sync write that
+does not land is a `not_saved` change, never "no material changes". The page throws the server's `message` (it showed
+"did not explain why") and re-plans once on `brand_changed`. Also: the Launch headline no longer reads "Meet Your New
+New Arrivals", a brief sentence written to the operator ("Our next Campaign ... speaks to ... customers in IN") is never
+the hero sub-copy, the Bestseller sub-copy no longer prints an explanation to the customer, an unmeasured cohort says
+"size not measured" (not "0 profiles"), objectives say the product's display name, the working tile moves off a page's
+own progress line, /brain has a jump bar and a back-to-top button, and Platform Connections is its own rail item beside
+AI Models & Routing. Gated in `catalog-identity-generation` (mutation-checked) and `cta-activity`.
+
 ## ⭐ Gemini: Sign in with Google; a key saves with nothing set on the host (2026-10-24)
 The operator: "signin must completely integrate the signin to use the model - not just open key creation page",
 "google sign in or whatever signin mode that model accepts", and "if you save to my vercel, users will raise problems -

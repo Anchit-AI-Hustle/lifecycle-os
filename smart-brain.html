@@ -285,6 +285,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      (shared with /catalog), scoped to [data-bcp]. */
   .sb-dialog-scrim{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;isolation:isolate}
   .sb-dialog-scrim::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--vh-ink);opacity:.45}
+  .sbjump{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+  .sbjump a{display:inline-flex;align-items:center;min-height:44px;padding:6px 14px;border:1px solid var(--vh-line);border-radius:var(--vh-r-pill,999px);background:var(--vh-panel);color:var(--vh-ink);font-size:13px;font-weight:600;text-decoration:none}
+  .sbjump a:hover,.sbjump a:focus-visible{border-color:var(--vh-primary);color:var(--vh-primary-text,var(--vh-ink))}
+  #calcard,#dualmode,#catpanel,#insightscard,#detailcard{scroll-margin-top:72px}
+  .sbtop{position:fixed;right:20px;bottom:20px;z-index:150;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:8px 14px;border-radius:var(--vh-r-pill,999px);background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);box-shadow:var(--vh-lift-1,none);font-size:13px;font-weight:700;text-decoration:none}
+  .sbtop[hidden]{display:none}
+  @media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
 </style>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
@@ -308,6 +315,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div id="syncstate" class="actstate" role="status" aria-live="polite" hidden></div>
     </div>
   </section>
+
+  <!-- On a long page the sections are one press away (2026-10-24, the
+       operator: "better designing for easy scroll navigation"). -->
+  <nav class="sbjump" aria-label="On this page">
+    <a href="#calcard">Rolling calendar</a>
+    <a href="#dualmode">Agentic generation</a>
+    <a href="#catpanel">Catalogue</a>
+    <a href="#insightscard">Insights and changes</a>
+    <a href="#detailcard">Details</a>
+  </nav>
+  <a href="#" class="sbtop" id="sbTop" aria-label="Back to the top of the page" hidden>↑ Top</a>
 
   <section class="grid">
     <div class="card"><div class="label">Mode</div><div id="mode" class="metric"> - </div></div>
@@ -353,7 +371,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <div id="agenticOut" class="feed"><p class="tdim">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
     </div>
 
-    <div class="card wide">
+    <div class="card wide" id="calcard">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
         <h2 style="margin:0">Rolling calendar</h2>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:210px">
@@ -392,10 +410,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
     </div>
 
-    <div class="card two"><h2>Daily insights</h2><div id="insights" class="feed"><p>Run a sync to refresh insights.</p></div></div>
+    <div class="card two" id="insightscard"><h2>Daily insights</h2><div id="insights" class="feed"><p>Run a sync to refresh insights.</p></div></div>
     <div class="card two"><h2>Changes from last sync</h2><div id="changes" class="feed"><p>No sync run in this session yet.</p></div></div>
 
-    <div class="card wide">
+    <div class="card wide" id="detailcard">
       <h2 id="detailTitle">Details</h2>
       <div id="preview"></div>
       <pre id="detail">Click “View” on any slot to preview its full funnel, mailer, ads & landing page, before approving.</pre>
@@ -2059,6 +2077,31 @@ window.sbLaunchAI = function(idx, tool, btn){
   }catch(_){ done(false); }
 };
 
+// The server's own sentence, with its code kept for anything that branches on
+// it (2026-10-24: a 409 brand_changed carried a full sentence in `message`
+// and the page threw `error` alone, so the reader saw "did not explain why").
+function sbRefusal(data, fallback){
+  const d = data || {};
+  const err = new Error(d.message || d.error || fallback);
+  if(d.error) err.code = d.error;
+  return err;
+}
+
+// A slot planned for an earlier version of the brand record is never shown as
+// this version's (the server refuses it). The plan on screen is older than the
+// record, so it is re-planned once for the record as it is now, and said.
+let SB_REPLANNED = false;
+async function replanForCurrentRecord(body, err){
+  const say = esc(err.message || 'This send was planned for an earlier version of this brand record.');
+  if(SB_REPLANNED){
+    body.innerHTML = `<p class="vh-status" data-brand-changed>${say}</p>`;
+    return;
+  }
+  SB_REPLANNED = true;
+  body.innerHTML = `<p class="vh-status" data-brand-changed>${say}</p><p class="pvnote"><span class="spinner"></span> Re-planning the calendar for the brand as it is now…</p>`;
+  await runSync();
+}
+
 async function viewEntry(i, forceRegen){
   const e = PLAN[i];
   const row = $('exprow-'+i), body = $('expbody-'+i);
@@ -2091,16 +2134,27 @@ async function viewEntry(i, forceRegen){
         .then(safeJson).finally(()=>{ delete PREVIEW_INFLIGHT[flightKey]; });
     }
     const data = await PREVIEW_INFLIGHT[flightKey];
-    if(!data.ok) throw new Error(data.error || 'Preview failed');
+    if(!data.ok) throw sbRefusal(data, 'Preview failed');
     if(previewScope !== planScope()) return;
     PREVIEW_CACHE[e.id] = data;
     // Once a slot is approved/final, the server returns the FINAL saved campaign,
     // so the reviewer always sees exactly what ships (never a fresh regeneration).
     renderPreview(data, e, i, { target: body, persisted: !!data.persisted || (e.status==='approved'||e.status==='final') });
     body.setAttribute('data-loaded','1');
-  }catch(err){ window.LifecycleFailure.show(body, err, { title: 'Preview failed' }); }
+  }catch(err){
+    if(err && err.code === 'brand_changed'){ await replanForCurrentRecord(body, err); return; }
+    window.LifecycleFailure.show(body, err, { title: 'Preview failed' });
+  }
 }
 window.viewEntry = viewEntry;
+(function(){
+  var top = document.getElementById('sbTop');
+  if(!top) return;
+  function onScroll(){ top.hidden = (window.scrollY || 0) < 700; }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  top.addEventListener('click', function(ev){ ev.preventDefault(); window.scrollTo(0, 0); var h = document.querySelector('h1'); if(h){ h.setAttribute('tabindex','-1'); h.focus({ preventScroll: true }); } });
+  onScroll();
+})();
 
 window.sbRegenerateAsset = async function(idx, assetType, btn) {
   const e = PLAN[idx];
@@ -2306,7 +2360,7 @@ async function runSync(){
     if(await signedOutPlan(ticket, 'Daily Sync')) return;
     const r = await fetch(`${API}?action=smart-brain-sync-daily`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
     const data = await safeJson(r);
-    if(!data.ok) throw new Error(data.error || 'Sync failed');
+    if(!data.ok) throw sbRefusal(data, 'Sync failed');
     if(!stillCurrent(ticket)) return;   // superseded by a later action
     // A 200 with ok:true is not automatically a success. The router refuses an
     // unattributable request with an `error` code and the planner explains an
@@ -2403,7 +2457,7 @@ async function downloadEntry(i){
       if(body) body.innerHTML = `<p class="pvnote"><span class="spinner"></span> Loading saved assets…</p>`;
       const r = await fetch(`${API}?action=smart-brain-preview`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: e, reviewer: reviewerEmail() })});
       const data = await safeJson(r);
-      if(!data.ok) throw new Error(data.error || 'Load failed');
+      if(!data.ok) throw sbRefusal(data, 'Load failed');
       PREVIEW_CACHE[e.id] = data;
     }
     renderPreview(PREVIEW_CACHE[e.id], e, i, { persisted: true, target: body });

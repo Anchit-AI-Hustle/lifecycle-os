@@ -145,3 +145,34 @@ test('the real "Read my site" button on /onboarding shows it is working the mome
   await expect.poll(() => page.evaluate(() => !!document.getElementById('lc-activity-bar')), { timeout: 5000 }).toBe(false);
   expect(log.errors).toEqual([]);
 });
+
+// Production /brain, 2026-10-24: the page's own progress line ("Reviewing the
+// latest data ...") sits right under its button, and the working tile covered
+// it. Where the tile would sit over page text that reports progress, it goes
+// to the foot of the screen; the page's line stays readable.
+test('the working tile never covers the page\'s own progress line', async ({ page }) => {
+  const held = holder(/^demo2:/);
+  await wire(page, held);
+  await page.goto(HOST + '/about.html', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => !!window.__lcActivity, null, { timeout: 15000 });
+  await page.evaluate(() => {
+    const b = document.createElement('button');
+    b.id = 'demoCta2'; b.textContent = 'Run Daily Sync';
+    const st = document.createElement('div');
+    st.id = 'syncstate'; st.className = 'actstate busy';
+    st.style.cssText = 'margin-top:4px;padding:6px 10px';
+    b.addEventListener('click', () => { st.textContent = 'Reviewing the latest data and rebuilding the rolling calendar...'; fetch('/api/calendar?action=demo2'); });
+    const row = document.createElement('div');
+    row.appendChild(b); row.appendChild(st);
+    document.body.prepend(row);
+  });
+  await page.click('#demoCta2');
+  await expect.poll(() => page.evaluate(() => !!document.querySelector('[data-lc-busy-line]')), { timeout: 2000 }).toBe(true);
+  const overlap = await page.evaluate(() => {
+    const a = document.querySelector('[data-lc-busy-line]').getBoundingClientRect();
+    const b = document.getElementById('syncstate').getBoundingClientRect();
+    return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+  });
+  expect(overlap, 'the working tile covered the page\'s own progress line').toBe(false);
+  held.release();
+});
