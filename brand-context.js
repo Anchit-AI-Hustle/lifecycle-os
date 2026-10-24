@@ -551,6 +551,7 @@
       var raw = str(r && r.code, 12);
       var code = (window.RegionContext && typeof RegionContext.family === 'function') ? RegionContext.family(raw) : raw.toUpperCase();
       if (!code) return;
+      if (window.RegionContext && typeof RegionContext.isMarket === 'function' && !RegionContext.isMarket(code)) return;
       var home = r.home === true && !homeSeen;
       if (home) homeSeen = true;
       out.push({

@@ -106,6 +106,26 @@ function family(v) {
   const k = String(v == null ? '' : v).toUpperCase().replace(/[^A-Z]/g, '');
   return FAMILY[k] || k;
 }
+/* A MARKET IS A COUNTRY OR A ZONE (2026-10-24). Production, The Economic
+   Times: the rail offered "OK" and "TV" as markets. A link whose text was
+   "TV" (to /tv/) had been read as Tuvalu's store, and "OK" is no country at
+   all. A code is a market only when it is one of this app's zones or an ISO
+   3166-1 country the runtime's own region names know (Intl.DisplayNames,
+   the same table in Node and every browser); anything else is dropped. */
+const ZONE_CODES = new Set(['GLOBAL', 'EU', 'ME', 'UK']);
+let regionNames = null;
+function isMarket(code) {
+  const f = family(code);
+  if (!f) return false;
+  if (ZONE_CODES.has(f) || COUNTRY[f]) return true;
+  if (!/^[A-Z]{2}$/.test(f)) return false;
+  try {
+    if (!regionNames) regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    const n = regionNames.of(f);
+    return !!n && n !== f && !/^unknown/i.test(n);
+  } catch (_) { return false; }
+}
+
 /** The ISO country a market code names, or '' for a zone (EU, ME, GLOBAL). */
 function countryOf(market) {
   const f = family(market);
@@ -279,6 +299,6 @@ function socialOf(brand) {
 }
 
 module.exports = {
-  COUNTRY, SYMBOL, FAMILY, family, countryOf, marker, homeMarket, homeRegionRow, marketFor, localeFor, money, symbolOf, defaultMarket,
+  COUNTRY, SYMBOL, FAMILY, family, isMarket, countryOf, marker, homeMarket, homeRegionRow, marketFor, localeFor, money, symbolOf, defaultMarket,
   utcHourOf, legalEntityOf, socialOf,
 };
