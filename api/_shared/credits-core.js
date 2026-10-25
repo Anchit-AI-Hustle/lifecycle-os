@@ -726,12 +726,14 @@ async function workspaceHasOwnModels(feature) {
     const ov = await require('./workspace-connections-core.js').llmOverridesForCurrentRequest();
     const configured = Array.isArray(ov && ov.configured) ? ov.configured : Object.keys((ov && ov.keys) || {});
     if (ov && configured.length) return true;
-    // A workspace's own MEDIA keys (Pollo, ElevenLabs, Replicate) are its own
-    // models for the runs that can use them, music and video, and for nothing
-    // else (Codex, #358): a text run must not skip its hold on a video key.
-    if (!/^(audio\.music|video\.)/.test(String(feature || ''))) return false;
+    // A workspace's own MEDIA keys are its own models for the runs that can
+    // use THAT key, and nothing else (Codex, #358): music reads ElevenLabs and
+    // Replicate, video reads Pollo. A text run never skips its hold on one.
+    const f = String(feature || '');
+    const usable = f === 'audio.music' ? ['elevenlabs', 'replicate'] : /^video\./.test(f) ? ['pollo'] : [];
+    if (!usable.length) return false;
     const media = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
-    return !!(media && Object.keys(media).length);
+    return !!(media && usable.some((k) => media[k]));
   } catch (_) { return false; }
 }
 
