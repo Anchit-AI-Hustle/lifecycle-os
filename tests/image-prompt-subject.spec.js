@@ -142,6 +142,8 @@ test('api/ai/image.js sends every provider a prompt about THIS product, and refu
     }
     for (const c of recorded.filter((x) => !/pollinations/.test(x.host))) {
       expect(c.prompt, `${c.host}: the render rules`).toMatch(/window spill/);
+      // The packaging ban opens the prompt, so the 4,000-character cap never cuts it.
+      expect(c.prompt.indexOf('actual retail packaging'), `${c.host}: the packaging ban leads`).toBeLessThan(c.prompt.indexOf(HERO.title));
       expect(c.prompt, `${c.host}: the studio quality bar`).not.toMatch(/professional colour grading|natural soft lighting/);
     }
     // No product, and the caller asked for one: refused before ANY provider.
